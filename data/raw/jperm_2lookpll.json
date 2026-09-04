@@ -1,0 +1,55 @@
+[
+ {
+  "name": "Headlights",
+  "alg": [
+   "R U R' U' R' F R2 U' R' U' R U R' F'"
+  ],
+  "group": "1: Corners",
+  "prob": 4
+ },
+ {
+  "name": "Diagonal",
+  "alg": [
+   "F R U' R' U' R U R' F' R U R' U' R' F R F'"
+  ],
+  "group": "1: Corners",
+  "prob": 1
+ },
+ {
+  "name": "PLL (H)",
+  "alg": [
+   "M2 U M2 U2 M2 U M2",
+   "M2 U' M2 U2 M2 U' M2"
+  ],
+  "group": "2: Edges",
+  "prob": 1
+ },
+ {
+  "name": "PLL (Z)",
+  "alg": [
+   "M' U (M2 U M2 U) M' U2 M2",
+   "M' U' (M2 U' M2 U') M' U2 M2"
+  ],
+  "group": "2: Edges",
+  "prob": 2
+ },
+ {
+  "name": "PLL (Ua)",
+  "alg": [
+   "R U' (R U R U) R U' R' U' R2",
+   "M2 U M U2 M' U M2"
+  ],
+  "group": "2: Edges",
+  "prob": 4
+ },
+ {
+  "name": "PLL (Ub)",
+  "alg": [
+   "R2 U (R U R' U') R' U' R' U R'",
+   "L' U L' U' L' U' L' U L U L2",
+   "M2 U' M U2 M' U' M2"
+  ],
+  "group": "2: Edges",
+  "prob": 4
+ }
+]

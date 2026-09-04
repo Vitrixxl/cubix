@@ -1,0 +1,177 @@
+{
+  "set": "2-look PLL",
+  "generated": "2026-09-04",
+  "count": 6,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "2L-PLL Headlights",
+      "name": "Headlights",
+      "group": "1: Corners",
+      "probability": "4/72",
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F R U' R' U R U R2 F' R U R U' R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-PLL Diagonal",
+      "name": "Diagonal",
+      "group": "1: Corners",
+      "probability": "1/72",
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-PLL PLL (H)",
+      "name": "PLL (H)",
+      "group": "2: Edges",
+      "probability": "1/72",
+      "algorithms": [
+        {
+          "alg": "M2 U M2 U2 M2 U M2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "M2 U' M2 U2 M2 U' M2",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "M2 U' M2 U2 M2 U' M2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-PLL PLL (Z)",
+      "name": "PLL (Z)",
+      "group": "2: Edges",
+      "probability": "2/72",
+      "algorithms": [
+        {
+          "alg": "M' U (M2 U M2 U) M' U2 M2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "M' U' (M2 U' M2 U') M' U2 M2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "M2 U2 M U' M2 U' M2 U' M",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-PLL PLL (Ua)",
+      "name": "PLL (Ua)",
+      "group": "2: Edges",
+      "probability": "4/72",
+      "algorithms": [
+        {
+          "alg": "R U' (R U R U) R U' R' U' R2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "M2 U M U2 M' U M2",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R2 U R U R' U' R' U' R' U R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-PLL PLL (Ub)",
+      "name": "PLL (Ub)",
+      "group": "2: Edges",
+      "probability": "4/72",
+      "algorithms": [
+        {
+          "alg": "R2 U (R U R' U') R' U' R' U R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "L' U L' U' L' U' L' U L U L2",
+          "source": "jperm",
+          "verified": true
+        },
+        {
+          "alg": "M2 U' M U2 M' U' M2",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R U' R U R U R U' R' U' R2",
+      "setups_alt": [],
+      "verified": true
+    }
+  ]
+}

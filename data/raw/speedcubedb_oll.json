@@ -1,0 +1,2681 @@
+[
+ {
+  "name": "OLL 1",
+  "subgroup": "Dot Case",
+  "setup": "F R' F' R U2' F R' F' R2' U2' R'",
+  "standard": "(R U2 R') (R' F R F') U2 (R' F R F')",
+  "stickers": {
+   "U": "llllyllll",
+   "B": "lylbbbbbb",
+   "F": "lylgggggg",
+   "L": "yyyrrrrrr",
+   "R": "yyyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U2 R2 F R F' U2 R' F R F'",
+    "votes": 149,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "Krt5t5X9gTo"
+   },
+   {
+    "alg": "y R U' R2 D' r U' r' D R2 U R'",
+    "votes": 34,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "f R U R' U' R f' U' r' U' R U M'",
+    "votes": 12,
+    "etm": 13,
+    "stm": 13,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "L' U2 L2 F' L' F U2 L F' L' F",
+    "votes": 6,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 2",
+  "subgroup": "Dot Case",
+  "setup": "f U R U' R' f' F U R U' R' F'",
+  "standard": "F (R U R' U') F' f (R U R' U') f'",
+  "stickers": {
+   "U": "llllyllll",
+   "B": "yylbbbbbb",
+   "F": "lyygggggg",
+   "L": "yyyrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "y' R U' R2 D' r U r' D R2 U R'",
+    "votes": 89,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "F R U R' U' S R U R' U' f'",
+    "votes": 64,
+    "etm": 11,
+    "stm": 11,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "F R U R' U' F' f R U R' U' f'",
+    "votes": 38,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": "EyCwdkn03sM"
+   },
+   {
+    "alg": "y r U r' U2 R U2 R' U2 r U' r'",
+    "votes": 38,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "piR89TULJ7A"
+   }
+  ]
+ },
+ {
+  "name": "OLL 3",
+  "subgroup": "Dot Case",
+  "setup": "F U R U' R' F' U f U R U' R' f' y",
+  "standard": "y' f (R U R' U') f' (U') F (R U R' U') F'",
+  "stickers": {
+   "U": "llllylyll",
+   "B": "lyyrrrrrr",
+   "F": "lyyoooooo",
+   "L": "lylgggggg",
+   "R": "lyybbbbbb"
+  },
+  "alts": [
+   {
+    "alg": "y' f R U R' U' f' U' F R U R' U' F'",
+    "votes": 44,
+    "etm": 13,
+    "stm": 13,
+    "gen": "4GEN",
+    "yt": "KdgjbaG0YmI"
+   },
+   {
+    "alg": "y R' F2 R2 U2 R' F R U2 R2 F2 R",
+    "votes": 36,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "r' R2 U R' U r U2 r' U M'",
+    "votes": 29,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "M R U R' U r U2 r' U M'",
+    "votes": 19,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 4",
+  "subgroup": "Dot Case",
+  "setup": "F U R U' R' F' U' f U R U' R' f' y",
+  "standard": "y' f (R U R' U') f' (U) F (R U R' U') F'",
+  "stickers": {
+   "U": "llllyllly",
+   "B": "yylrrrrrr",
+   "F": "yyloooooo",
+   "L": "yylgggggg",
+   "R": "lylbbbbbb"
+  },
+  "alts": [
+   {
+    "alg": "y' R' F2 R2 U2 R' F' R U2 R2 F2 R",
+    "votes": 42,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' f R U R' U' f' U F R U R' U' F'",
+    "votes": 26,
+    "etm": 13,
+    "stm": 13,
+    "gen": "4GEN",
+    "yt": "JlGs-0-RxJk"
+   },
+   {
+    "alg": "R' F R F' U' S R' U' R U R S'",
+    "votes": 16,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y F U R U' R' F' U' F R U R' U' F'",
+    "votes": 14,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 5",
+  "subgroup": "Square Shapes",
+  "setup": "r' U' R U' R' U2' r",
+  "standard": "r' U2 (R U R' U) r",
+  "stickers": {
+   "U": "llllyylyy",
+   "B": "lyybbbbbb",
+   "F": "lllgggggg",
+   "L": "lyyrrrrrr",
+   "R": "llyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r' U2 R U R' U r",
+    "votes": 77,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": "zDAhS61IFlw"
+   },
+   {
+    "alg": "y2 l' U2 L U L' U l",
+    "votes": 35,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R' F2 r U r' F R",
+    "votes": 22,
+    "etm": 7,
+    "stm": 7,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R' F2 L F L' F R",
+    "votes": 2,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 6",
+  "subgroup": "Square Shapes",
+  "setup": "r U R' U R U2' r'",
+  "standard": "r U2 (R' U' R U') r'",
+  "stickers": {
+   "U": "lyylyylll",
+   "B": "lllbbbbbb",
+   "F": "yylgggggg",
+   "L": "yylrrrrrr",
+   "R": "ylloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U2 R' U' R U' r'",
+    "votes": 86,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": "xtuAlp8AAj8"
+   },
+   {
+    "alg": "F U' R2 D R' U' R D' R2 U F'",
+    "votes": 3,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 l U2 L' U' L U' l'",
+    "votes": 3,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "L F2 l' U' l F' L'",
+    "votes": 2,
+    "etm": 7,
+    "stm": 7,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 7",
+  "subgroup": "Lightning Shapes",
+  "setup": "r U2' R' U' R U' r'",
+  "standard": "r (U R' U R) U2 r'",
+  "stickers": {
+   "U": "lylyylyll",
+   "B": "llybbbbbb",
+   "F": "lyygggggg",
+   "L": "lllrrrrrr",
+   "R": "lyyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U R' U R U2 r'",
+    "votes": 77,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": "Ls-uPCQbjqg"
+   },
+   {
+    "alg": "S' R U R' U R U2 R' U S",
+    "votes": 8,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "L' U2 L U2 L F' L' F",
+    "votes": 6,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 f R U R' U' f' y2 F R' F' r U R U' r'",
+    "votes": 5,
+    "etm": 15,
+    "stm": 14,
+    "gen": "5GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 8",
+  "subgroup": "Lightning Shapes",
+  "setup": "r' U2' R U R' U r y2'",
+  "standard": "y2 r' (U' R U' R') U2 r",
+  "stickers": {
+   "U": "lyllyylly",
+   "B": "yllgggggg",
+   "F": "yylbbbbbb",
+   "L": "yyloooooo",
+   "R": "lllrrrrrr"
+  },
+  "alts": [
+   {
+    "alg": "y2 r' U' R U' R' U2 r",
+    "votes": 51,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": "Vptj1rtxcxA"
+   },
+   {
+    "alg": "l' U' L U' L' U2 l",
+    "votes": 46,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": "FGA7rb5u6yg"
+   },
+   {
+    "alg": "R U2 R' U2 R' F R F'",
+    "votes": 26,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' F' r U' r' F2 R",
+    "votes": 22,
+    "etm": 7,
+    "stm": 7,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 9",
+  "subgroup": "Fish Shapes",
+  "setup": "F U R U' R2' F' R U R U' R' y'",
+  "standard": "y (R U R' U') (R' F R) (R U R' U') F'",
+  "stickers": {
+   "U": "llyyyllyl",
+   "B": "lyloooooo",
+   "F": "yllrrrrrr",
+   "L": "yllbbbbbb",
+   "R": "yylgggggg"
+  },
+  "alts": [
+   {
+    "alg": "y R U R' U' R' F R2 U R' U' F'",
+    "votes": 89,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "1tkJ78gxtfU"
+   },
+   {
+    "alg": "R U2 R' U' S' R U' R' S",
+    "votes": 22,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 F' U' F r U' r' U r U r'",
+    "votes": 7,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' L' U' L U' L F' L' F L' U2 L",
+    "votes": 7,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 10",
+  "subgroup": "Fish Shapes",
+  "setup": "R U2' R' F R' F' R U' R U' R'",
+  "standard": "(R U R' U) (R' F R F') (R U2 R')",
+  "stickers": {
+   "U": "llyyyllyl",
+   "B": "lyybbbbbb",
+   "F": "llygggggg",
+   "L": "llyrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U R' F R F' R U2 R'",
+    "votes": 58,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "RPjJagkkvwM"
+   },
+   {
+    "alg": "y F U F' R' F R U' R' F' R",
+    "votes": 16,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y M' R' U2 R U R' U R U M",
+    "votes": 9,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 L' U' L U L F' L2 U' L U F",
+    "votes": 6,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 11",
+  "subgroup": "Lightning Shapes",
+  "setup": "M U' R U2' R' U' R U' R2' r",
+  "standard": "M (R U R' U R U2 R') U M'",
+  "stickers": {
+   "U": "llllyyyyl",
+   "B": "lyybbbbbb",
+   "F": "llygggggg",
+   "L": "lylrrrrrr",
+   "R": "llyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r' R2 U R' U R U2 R' U M'",
+    "votes": 45,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": "YsNvf0oUw9U"
+   },
+   {
+    "alg": "y2 r U R' U R' F R F' R U2 r'",
+    "votes": 37,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "S R U R' U R U2 R' U2 S'",
+    "votes": 29,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "M R U R' U R U2 R' U M'",
+    "votes": 29,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 12",
+  "subgroup": "Lightning Shapes",
+  "setup": "F U R U' R' F' U' F U R U' R' F'",
+  "standard": "y' M' (R' U' R U' R' U2 R) U' M",
+  "stickers": {
+   "U": "llylyylyl",
+   "B": "lylbbbbbb",
+   "F": "yllgggggg",
+   "L": "yylrrrrrr",
+   "R": "ylloooooo"
+  },
+  "alts": [
+   {
+    "alg": "y' M' R' U' R U' R' U2 R U' M",
+    "votes": 37,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "E5WsvlCzOrM"
+   },
+   {
+    "alg": "F R U R' U' F' U F R U R' U' F'",
+    "votes": 29,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' S R' U' R U' R' U2 R U2 S'",
+    "votes": 18,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y M L' U' L U' L' U2 L U' M'",
+    "votes": 11,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 13",
+  "subgroup": "Knight Move Shapes",
+  "setup": "F' U' F r U' r' U r U r'",
+  "standard": "(r U' r') U' (r U r') (F' U F)",
+  "stickers": {
+   "U": "lllyyyyll",
+   "B": "lyybbbbbb",
+   "F": "lyygggggg",
+   "L": "lllrrrrrr",
+   "R": "llyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "F U R U2 R' U' R U R' F'",
+    "votes": 48,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "Xz96dRD2DaI"
+   },
+   {
+    "alg": "F U R U' R2 F' R U R U' R'",
+    "votes": 44,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "r U' r' U' r U r' F' U F",
+    "votes": 28,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "LFkHgbjtymY"
+   },
+   {
+    "alg": "y2 f R U R2 U' R' U R U' f'",
+    "votes": 7,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 14",
+  "subgroup": "Knight Move Shapes",
+  "setup": "F U F' R' F R U' R' F' R",
+  "standard": "R' F (R U R') F' R (F U' F')",
+  "stickers": {
+   "U": "lllyyylly",
+   "B": "yylbbbbbb",
+   "F": "yylgggggg",
+   "L": "yllrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' F R U R' F' R F U' F'",
+    "votes": 56,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "xEoC4d91yAc"
+   },
+   {
+    "alg": "r U R' U' r' F R2 U R' U' F'",
+    "votes": 30,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "l' U l U l' U' l F U' F'",
+    "votes": 9,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "S R U R' U' R' F R2 U R' U' f'",
+    "votes": 8,
+    "etm": 12,
+    "stm": 12,
+    "gen": "5GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 15",
+  "subgroup": "Knight Move Shapes",
+  "setup": "r' U' r U' R' U R r' U r",
+  "standard": "(r' U' r) (R' U' R U) (r' U r)",
+  "stickers": {
+   "U": "lllyyylly",
+   "B": "lyybbbbbb",
+   "F": "lylgggggg",
+   "L": "llyrrrrrr",
+   "R": "llyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r' U' r R' U' R U r' U r",
+    "votes": 40,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "VeG5V1a6pHA"
+   },
+   {
+    "alg": "y2 l' U' l L' U' L U l' U l",
+    "votes": 35,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "B8q4UMQ2Kow"
+   },
+   {
+    "alg": "r' U' M' U' R U r' U r",
+    "votes": 14,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R' F' R L' U' L U R' F R",
+    "votes": 12,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 16",
+  "subgroup": "Knight Move Shapes",
+  "setup": "r U r' U R U' R' r U' r'",
+  "standard": "(r U r') (R U R' U') (r U' r')",
+  "stickers": {
+   "U": "llyyyylll",
+   "B": "lylbbbbbb",
+   "F": "yylgggggg",
+   "L": "yllrrrrrr",
+   "R": "ylloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U r' R U R' U' r U' r'",
+    "votes": 76,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "Gar0BFyHWXs"
+   },
+   {
+    "alg": "r U M U R' U' r U' r'",
+    "votes": 11,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R' F R U R' U' F' R U' R' U2 R",
+    "votes": 7,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 l U l' L U L' U' l U' l'",
+    "votes": 4,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 17",
+  "subgroup": "Dot Case",
+  "setup": "F R' F' R U2' F R' F' R U' R U' R'",
+  "standard": "(R U R' U) (R' F R F') U2 (R' F R F')",
+  "stickers": {
+   "U": "ylllyllly",
+   "B": "yylbbbbbb",
+   "F": "lylgggggg",
+   "L": "lyyrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U R' F R F' U2 R' F R F'",
+    "votes": 58,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "4QtUb6tleZE"
+   },
+   {
+    "alg": "y2 F R' F' R U S' R U' R' S",
+    "votes": 51,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 F R' F' R2 r' U R U' R' U' M'",
+    "votes": 12,
+    "etm": 11,
+    "stm": 11,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' F' r U r' U' S r' F r S'",
+    "votes": 8,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 18",
+  "subgroup": "Dot Case",
+  "setup": "r' U2' R U R' U r2' U2' R' U' R U' r'",
+  "standard": "y (R U2 R') (R' F R F') U2 M' (U R U' r')",
+  "stickers": {
+   "U": "ylylyllll",
+   "B": "lylbbbbbb",
+   "F": "yyygggggg",
+   "L": "lylrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "y R U2 R2 F R F' U2 M' U R U' r'",
+    "votes": 42,
+    "etm": 12,
+    "stm": 12,
+    "gen": "5GEN",
+    "yt": "2jrDoX0AQCc"
+   },
+   {
+    "alg": "r U R' U R U2 r2 U' R U' R' U2 r",
+    "votes": 23,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y F S' R U' R' S R U2 R' U' F'",
+    "votes": 23,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "R D r' U' r D' R' U' R2 F R F' R",
+    "votes": 10,
+    "etm": 13,
+    "stm": 13,
+    "gen": "5GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 19",
+  "subgroup": "Dot Case",
+  "setup": "F R' F' R M U R U' R' U' M'",
+  "standard": "M U (R U R' U') M' (R' F R F')",
+  "stickers": {
+   "U": "ylylyllll",
+   "B": "lylbbbbbb",
+   "F": "lylgggggg",
+   "L": "lyyrrrrrr",
+   "R": "yyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "y S' R U R' S U' R' F R F'",
+    "votes": 48,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": "SmrT7tPMfFw"
+   },
+   {
+    "alg": "M U R U R' U' M' R' F R F'",
+    "votes": 36,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' U2 F R U R' U' F2 U2 F R",
+    "votes": 14,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "r' R U R U R' U' r R2 F R F'",
+    "votes": 8,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": "OUTQriBA888"
+   }
+  ]
+ },
+ {
+  "name": "OLL 20",
+  "subgroup": "Dot Case",
+  "setup": "r U R' U' M2' U R U' R' U' M'",
+  "standard": "(r U R' U') M2 (U R U' R') U' M'",
+  "stickers": {
+   "U": "ylylylyly",
+   "B": "lylbbbbbb",
+   "F": "lylgggggg",
+   "L": "lylrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U R' U' M2 U R U' R' U' M'",
+    "votes": 56,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "M' U2 M U2 M' U M U2 M' U2 M",
+    "votes": 42,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "S' R U R' S U' M' U R U' r'",
+    "votes": 28,
+    "etm": 11,
+    "stm": 11,
+    "gen": "5GEN",
+    "yt": "EWrqt5KvmLo"
+   },
+   {
+    "alg": "S R' U' R U R U R U' R' S'",
+    "votes": 25,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 21",
+  "subgroup": "OCLL",
+  "setup": "R U R' U R U' R' U R U2' R' y'",
+  "standard": "(R U R' U) (R U' R' U) (R U2 R')",
+  "stickers": {
+   "U": "lylyyylyl",
+   "B": "llloooooo",
+   "F": "lllrrrrrr",
+   "L": "ylybbbbbb",
+   "R": "ylygggggg"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U R U' R' U R U2 R'",
+    "votes": 78,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": "LkLCxmV63Sc"
+   },
+   {
+    "alg": "y R U2 R' U' R U R' U' R U' R'",
+    "votes": 48,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "y F R U R' U' R U R' U' R U R' U' F'",
+    "votes": 34,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": "AF0bvyLDsgI"
+   },
+   {
+    "alg": "R' U' R U' R' U R U' R' U2 R",
+    "votes": 13,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 22",
+  "subgroup": "OCLL",
+  "setup": "R' U2' R2' U R2' U R2' U2' R'",
+  "standard": "R U2 (R2' U') (R2 U') (R2' U') U' R",
+  "stickers": {
+   "U": "lylyyylyl",
+   "B": "yllbbbbbb",
+   "F": "llygggggg",
+   "L": "ylyrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U2 R2 U' R2 U' R2 U2 R",
+    "votes": 98,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": "Z6SYc0MyBnk"
+   },
+   {
+    "alg": "R' U2 R2 U R2 U R2 U2 R'",
+    "votes": 18,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "f R U R' U' S' R U R' U' F'",
+    "votes": 17,
+    "etm": 11,
+    "stm": 11,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "f R U R' U' f' F R U R' U' F'",
+    "votes": 6,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 23",
+  "subgroup": "OCLL",
+  "setup": "R U2' R D R' U2' R D' R2'",
+  "standard": "R2 D (R' U2 R) D' (R' U2 R')",
+  "stickers": {
+   "U": "yyyyyylyl",
+   "B": "lllbbbbbb",
+   "F": "ylygggggg",
+   "L": "lllrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R2 D R' U2 R D' R' U2 R'",
+    "votes": 104,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "YvgWA5n7-y0"
+   },
+   {
+    "alg": "y2 R2 D' R U2 R' D R U2 R",
+    "votes": 40,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "clgJFx6RBUM"
+   },
+   {
+    "alg": "R U R' U R U2 R2 U' R U' R' U2 R",
+    "votes": 13,
+    "etm": 13,
+    "stm": 13,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R U R' U' R U' R' U2 R U' R' U2 R U R'",
+    "votes": 5,
+    "etm": 15,
+    "stm": 15,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 24",
+  "subgroup": "OCLL",
+  "setup": "F R' F' r U R U' r'",
+  "standard": "(r U R' U') (r' F R F')",
+  "stickers": {
+   "U": "lyyyyylyy",
+   "B": "llybbbbbb",
+   "F": "yllgggggg",
+   "L": "lllrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U R' U' r' F R F'",
+    "votes": 117,
+    "etm": 8,
+    "stm": 8,
+    "gen": "4GEN",
+    "yt": "5pmKYnWCNiI"
+   },
+   {
+    "alg": "y2 R' F' r U R U' r' F",
+    "votes": 14,
+    "etm": 8,
+    "stm": 8,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' x' R U R' D R U' R' D' x",
+    "votes": 12,
+    "etm": 10,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R U R D R' U' R D' R2",
+    "votes": 12,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 25",
+  "subgroup": "OCLL",
+  "setup": "R' F' r U R U' r' F y'",
+  "standard": "y (F' r U R') (U' r' F R)",
+  "stickers": {
+   "U": "yylyyylyy",
+   "B": "llloooooo",
+   "F": "yllrrrrrr",
+   "L": "lllbbbbbb",
+   "R": "llygggggg"
+  },
+  "alts": [
+   {
+    "alg": "R U2 R D R' U2 R D' R2",
+    "votes": 100,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y F' r U R' U' r' F R",
+    "votes": 77,
+    "etm": 8,
+    "stm": 8,
+    "gen": "4GEN",
+    "yt": "w2pqzFn0KqU"
+   },
+   {
+    "alg": "F R' F' r U R U' r'",
+    "votes": 64,
+    "etm": 8,
+    "stm": 8,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "x R' U R D' R' U' R D x'",
+    "votes": 13,
+    "etm": 10,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 26",
+  "subgroup": "OCLL",
+  "setup": "R U R' U R U2' R' y'",
+  "standard": "y R U2 (R' U' R U') R'",
+  "stickers": {
+   "U": "yylyyylyl",
+   "B": "ylloooooo",
+   "F": "yllrrrrrr",
+   "L": "lllbbbbbb",
+   "R": "yllgggggg"
+  },
+  "alts": [
+   {
+    "alg": "y R U2 R' U' R U' R'",
+    "votes": 83,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "W4E8fo6-D84"
+   },
+   {
+    "alg": "R' U' R U' R' U2 R",
+    "votes": 42,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "3FfmBJsypKI"
+   },
+   {
+    "alg": "y2 L' U' L U' L' U2 L",
+    "votes": 24,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 L' U R U' L U R'",
+    "votes": 4,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 27",
+  "subgroup": "OCLL",
+  "setup": "R U2' R' U' R U' R'",
+  "standard": "(R U R' U) (R U2 R')",
+  "stickers": {
+   "U": "lylyyyyyl",
+   "B": "llybbbbbb",
+   "F": "llygggggg",
+   "L": "lllrrrrrr",
+   "R": "llyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U R U2 R'",
+    "votes": 112,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "83GLN0XmCNA"
+   },
+   {
+    "alg": "y' R' U2 R U R' U R",
+    "votes": 15,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "MDJJIJ7DxAs"
+   },
+   {
+    "alg": "y L' U2 L U L' U L",
+    "votes": 8,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 L U L' U L U2 L'",
+    "votes": 7,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 28",
+  "subgroup": "All Corners Oriented",
+  "setup": "R U R' U' M' U R U' r'",
+  "standard": "(r U R' U') M (U R U' R')",
+  "stickers": {
+   "U": "yyyyylyly",
+   "B": "lllbbbbbb",
+   "F": "lylgggggg",
+   "L": "lllrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U R' U' M U R U' R'",
+    "votes": 113,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": "blOdiGsmlQQ"
+   },
+   {
+    "alg": "r U R' U' r' R U R U' R'",
+    "votes": 26,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' F R S R' F' R S'",
+    "votes": 25,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 M' U M U2 M' U M",
+    "votes": 17,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 29",
+  "subgroup": "Awkward Shapes",
+  "setup": "M F R' F' R U R U' R' U' M'",
+  "standard": "y (R U R') U' (R U' R') (F' U' F) (R U R')",
+  "stickers": {
+   "U": "ylyyyllyl",
+   "B": "lylbbbbbb",
+   "F": "lllgggggg",
+   "L": "llyrrrrrr",
+   "R": "yyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r2 D' r U r' D r2 U' r' U' r",
+    "votes": 57,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "0JlTP_cMNVw"
+   },
+   {
+    "alg": "y R U R' U' R U' R' F' U' F R U R'",
+    "votes": 40,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "xaSQb6RdIrY"
+   },
+   {
+    "alg": "y S' R U R' U' R' F R F' U S",
+    "votes": 25,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "M U R U R' U' R' F R F' M'",
+    "votes": 20,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 30",
+  "subgroup": "Awkward Shapes",
+  "setup": "F U R U2' R' U R U2' R' U' F' y2'",
+  "standard": "y2 F U (R U2 R') U' (R U2 R') U' F'",
+  "stickers": {
+   "U": "ylylyylyl",
+   "B": "lylgggggg",
+   "F": "lllbbbbbb",
+   "L": "lyyoooooo",
+   "R": "yllrrrrrr"
+  },
+  "alts": [
+   {
+    "alg": "y' r' D' r U' r' D r2 U' r' U r U r'",
+    "votes": 46,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "HSDYQ3F9_GQ"
+   },
+   {
+    "alg": "y2 F U R U2 R' U' R U2 R' U' F'",
+    "votes": 44,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 F R' F R2 U' R' U' R U R' F2",
+    "votes": 29,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y S' R' U' R f R' U R U' F'",
+    "votes": 14,
+    "etm": 10,
+    "stm": 10,
+    "gen": "5GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 31",
+  "subgroup": "P Shapes",
+  "setup": "R' F R U R' U' F' U R",
+  "standard": "(R' U' F) (U R U' R') F' R",
+  "stickers": {
+   "U": "lyylyylly",
+   "B": "llybbbbbb",
+   "F": "yylgggggg",
+   "L": "lylrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' U' F U R U' R' F' R",
+    "votes": 77,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "d5krfXeAvZ8"
+   },
+   {
+    "alg": "y2 S' L' U' L U L F' L' f",
+    "votes": 13,
+    "etm": 9,
+    "stm": 9,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "y S R U R' U' f' U' F",
+    "votes": 12,
+    "etm": 8,
+    "stm": 8,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' F R' F' R U R U R' U' R U' R'",
+    "votes": 7,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 32",
+  "subgroup": "P Shapes",
+  "setup": "f R' F' R U R U' R' S'",
+  "standard": "S (R U R' U') (R' F R f')",
+  "stickers": {
+   "U": "llylyylyy",
+   "B": "lyybbbbbb",
+   "F": "yllgggggg",
+   "L": "lylrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "S R U R' U' R' F R f'",
+    "votes": 74,
+    "etm": 9,
+    "stm": 9,
+    "gen": "5GEN",
+    "yt": "fK4goEB_xPg"
+   },
+   {
+    "alg": "y2 L U F' U' L' U L F L'",
+    "votes": 20,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U B' U' R' U R B R'",
+    "votes": 14,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "7fnmWAo3tl8"
+   },
+   {
+    "alg": "y' R' F R F' U' r U' r' U r U r'",
+    "votes": 6,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 33",
+  "subgroup": "T Shapes",
+  "setup": "F R' F' R U R U' R'",
+  "standard": "(R U R' U') (R' F R F')",
+  "stickers": {
+   "U": "llyyyylly",
+   "B": "lyybbbbbb",
+   "F": "yylgggggg",
+   "L": "lllrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U' R' F R F'",
+    "votes": 116,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": "yw6EhRi2Ylo"
+   },
+   {
+    "alg": "y2 L' U' L U L F' L' F",
+    "votes": 5,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 r' F' r U r U' r' F",
+    "votes": 3,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U R' F' U' F R U' R'",
+    "votes": 2,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 34",
+  "subgroup": "C Shapes",
+  "setup": "F U R' U' R' F' R U R2' U' R' y2'",
+  "standard": "y2 R U R2 U' R' F (R U R U') F'",
+  "stickers": {
+   "U": "ylyyyylll",
+   "B": "lylgggggg",
+   "F": "lylbbbbbb",
+   "L": "llyoooooo",
+   "R": "yllrrrrrr"
+  },
+  "alts": [
+   {
+    "alg": "y f R f' U' r' U' R U M'",
+    "votes": 80,
+    "etm": 9,
+    "stm": 9,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R U R2 U' R' F R U R U' F'",
+    "votes": 55,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "tOB1D8nmMIs"
+   },
+   {
+    "alg": "F R U R' U' R' F' r U R U' r'",
+    "votes": 30,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R U R' U' B' R' F R F' B",
+    "votes": 18,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 35",
+  "subgroup": "Fish Shapes",
+  "setup": "R U2' R' F R' F' R2' U2' R'",
+  "standard": "(R U2 R') (R' F R F') (R U2 R')",
+  "stickers": {
+   "U": "ylllyylyy",
+   "B": "lylbbbbbb",
+   "F": "yllgggggg",
+   "L": "lylrrrrrr",
+   "R": "llyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U2 R2 F R F' R U2 R'",
+    "votes": 56,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "bG14LWhXWCk"
+   },
+   {
+    "alg": "f R U R' U' f' R U R' U R U2 R'",
+    "votes": 6,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U2 R' d' R' F R U' R' F' R",
+    "votes": 3,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y L' U2 L2 F' L' F L' U2 L",
+    "votes": 2,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 36",
+  "subgroup": "W Shapes",
+  "setup": "F' L F L' U' L' U' L U L' U L y2'",
+  "standard": "y2 (L' U' L U') (L' U L U) (L F' L' F)",
+  "stickers": {
+   "U": "yllyyllyy",
+   "B": "lylgggggg",
+   "F": "yllbbbbbb",
+   "L": "llloooooo",
+   "R": "lyyrrrrrr"
+  },
+  "alts": [
+   {
+    "alg": "y R U R2 F' U' F U R2 U2 R'",
+    "votes": 59,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 L' U' L U' L' U L U L F' L' F",
+    "votes": 53,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": "6E5tMt6BGog"
+   },
+   {
+    "alg": "y2 R U R' F' R U R' U' R' F R U' R' F R F'",
+    "votes": 33,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U R' U' F' U2 F U R U R'",
+    "votes": 16,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 37",
+  "subgroup": "Fish Shapes",
+  "setup": "F R U' R' U R U R' F'",
+  "standard": "F R (U' R' U') (R U R') F'",
+  "stickers": {
+   "U": "yylyyllly",
+   "B": "lllbbbbbb",
+   "F": "yylgggggg",
+   "L": "lllrrrrrr",
+   "R": "lyyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "F R' F' R U R U' R'",
+    "votes": 77,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": "VC3QYvYu-R4"
+   },
+   {
+    "alg": "F R U' R' U' R U R' F'",
+    "votes": 72,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "1uNKnyKiFOo"
+   },
+   {
+    "alg": "y F' r U r' U' r' F r",
+    "votes": 8,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 r2 D' r U' r' D r U r",
+    "votes": 3,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 38",
+  "subgroup": "W Shapes",
+  "setup": "F R' F' R U R U R' U' R U' R'",
+  "standard": "(R U R' U) (R U' R' U') (R' F R F')",
+  "stickers": {
+   "U": "lyyyylyll",
+   "B": "llybbbbbb",
+   "F": "lylgggggg",
+   "L": "lllrrrrrr",
+   "R": "yyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U R U' R' U' R' F R F'",
+    "votes": 91,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": "-OHDLxFILFU"
+   },
+   {
+    "alg": "y F R U' R' S U' R U R' f'",
+    "votes": 7,
+    "etm": 10,
+    "stm": 10,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "r U R' U' r' F R U R U' R' F'",
+    "votes": 2,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 L U L' U L U' L' U' L' B L B'",
+    "votes": 2,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 39",
+  "subgroup": "Lightning Shapes",
+  "setup": "L U F' U' L' U L F L' y'",
+  "standard": "y L F' (L' U' L U) F U' L'",
+  "stickers": {
+   "U": "yyllyllyy",
+   "B": "ylloooooo",
+   "F": "lllrrrrrr",
+   "L": "lyybbbbbb",
+   "R": "lylgggggg"
+  },
+  "alts": [
+   {
+    "alg": "y' f' r U r' U' r' F r S",
+    "votes": 47,
+    "etm": 9,
+    "stm": 9,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' R U R' F' U' F U R U2 R'",
+    "votes": 42,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y L F' L' U' L U F U' L'",
+    "votes": 32,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "frAvYb9HoYo"
+   },
+   {
+    "alg": "y' f' L F L' U' L' U L S",
+    "votes": 17,
+    "etm": 9,
+    "stm": 9,
+    "gen": "5GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 40",
+  "subgroup": "Lightning Shapes",
+  "setup": "R' U' F U R U' R' F' R y'",
+  "standard": "y R' F (R U R' U') F' U R",
+  "stickers": {
+   "U": "lyylylyyl",
+   "B": "llloooooo",
+   "F": "llyrrrrrr",
+   "L": "yylbbbbbb",
+   "R": "lylgggggg"
+  },
+  "alts": [
+   {
+    "alg": "y R' F R U R' U' F' U R",
+    "votes": 68,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "fYZxskw2EgI"
+   },
+   {
+    "alg": "y' f R' F' R U R U' R' S'",
+    "votes": 38,
+    "etm": 9,
+    "stm": 9,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "R r D r' U r D' r' U' R'",
+    "votes": 2,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' L' U' L F U F' U' L' U2 L",
+    "votes": 1,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 41",
+  "subgroup": "Awkward Shapes",
+  "setup": "F U R U' R' F' R U2' R' U' R U' R' y2'",
+  "standard": "y2 (R U R' U) (R U2 R') F (R U R' U') F'",
+  "stickers": {
+   "U": "ylylyylyl",
+   "B": "lylgggggg",
+   "F": "ylybbbbbb",
+   "L": "lyloooooo",
+   "R": "lllrrrrrr"
+  },
+  "alts": [
+   {
+    "alg": "y2 R U R' U R U2 R' F R U R' U' F'",
+    "votes": 54,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "AmxQNjhBzfk"
+   },
+   {
+    "alg": "y2 F U R2 D R' U' R D' R2 F'",
+    "votes": 21,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' S U' R' F' U' F U R S'",
+    "votes": 12,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "M U' F' L' U' L U F M'",
+    "votes": 10,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 42",
+  "subgroup": "Awkward Shapes",
+  "setup": "F U R U' R' F' R' U2' R U R' U R",
+  "standard": "(R' U' R U') (R' U2 R) F (R U R' U') F'",
+  "stickers": {
+   "U": "ylyyyllyl",
+   "B": "lylbbbbbb",
+   "F": "ylygggggg",
+   "L": "lllrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' U' R U' R' U2 R F R U R' U' F'",
+    "votes": 41,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "uL5R2Hx2fV8"
+   },
+   {
+    "alg": "y F S' R U R' U' F' U S",
+    "votes": 26,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R' F R F' R' F R F' R U R' U' R U R'",
+    "votes": 23,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R' U' F2 u' R U R' D R2 B",
+    "votes": 16,
+    "etm": 10,
+    "stm": 10,
+    "gen": "6GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 43",
+  "subgroup": "P Shapes",
+  "setup": "f' U' L' U L f",
+  "standard": "y R' U' (F' U F) R",
+  "stickers": {
+   "U": "yllyylyyl",
+   "B": "lylbbbbbb",
+   "F": "lllgggggg",
+   "L": "lllrrrrrr",
+   "R": "yyyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "y R' U' F' U F R",
+    "votes": 62,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": "joYVuCv8p-E"
+   },
+   {
+    "alg": "y2 F' U' L' U L F",
+    "votes": 26,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": "hQdWbvmddmQ"
+   },
+   {
+    "alg": "f' L' U' L U f",
+    "votes": 24,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "B' U' R' U R B",
+    "votes": 7,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 44",
+  "subgroup": "P Shapes",
+  "setup": "f U R U' R' f'",
+  "standard": "f (R U R' U') f'",
+  "stickers": {
+   "U": "llylyylyy",
+   "B": "lylbbbbbb",
+   "F": "lllgggggg",
+   "L": "yyyrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "f R U R' U' f'",
+    "votes": 75,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": "3PvMbW3CC3Y"
+   },
+   {
+    "alg": "y2 F U R U' R' F'",
+    "votes": 68,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": "CeqGe0Q1wMg"
+   },
+   {
+    "alg": "y R U B U' B' R'",
+    "votes": 6,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' L U F U' F' L'",
+    "votes": 2,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 45",
+  "subgroup": "T Shapes",
+  "setup": "F U R U' R' F'",
+  "standard": "F (R U R' U') F'",
+  "stickers": {
+   "U": "llyyyylly",
+   "B": "lylbbbbbb",
+   "F": "lylgggggg",
+   "L": "ylyrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "F R U R' U' F'",
+    "votes": 104,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": "3HJQsUqEqyM"
+   },
+   {
+    "alg": "y R' F' U' F U R",
+    "votes": 17,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 f U R U' R' f'",
+    "votes": 5,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 F' L' U' L U F",
+    "votes": 4,
+    "etm": 6,
+    "stm": 6,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 46",
+  "subgroup": "C Shapes",
+  "setup": "R' U' F R' F' R U R",
+  "standard": "R' U' (R' F R F') U R",
+  "stickers": {
+   "U": "yyllylyyl",
+   "B": "lllbbbbbb",
+   "F": "lllgggggg",
+   "L": "lylrrrrrr",
+   "R": "yyyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' U' R' F R F' U R",
+    "votes": 76,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": "AQynWJ4dAjk"
+   },
+   {
+    "alg": "R' F' U' F R U' R' U2 R",
+    "votes": 6,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y F R U R' U' F' U' R U R' U R U2 R'",
+    "votes": 5,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "l' U2 L2 F' L' F U L' U l",
+    "votes": 3,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 47",
+  "subgroup": "L Shapes",
+  "setup": "F' U' L' U L U' L' U L F",
+  "standard": "F' (L' U' L U) (L' U' L U) F",
+  "stickers": {
+   "U": "lyllyylll",
+   "B": "llybbbbbb",
+   "F": "yylgggggg",
+   "L": "lylrrrrrr",
+   "R": "ylyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "y' F R' F' R U2 R U' R' U R U2 R'",
+    "votes": 40,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "F' L' U' L U L' U' L U F",
+    "votes": 38,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "gTDSTIKmA40"
+   },
+   {
+    "alg": "R' U' R' F R F' R' F R F' U R",
+    "votes": 28,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": "9Ui1n0UjaCU"
+   },
+   {
+    "alg": "y' R' F' U' F U F' U' F U R",
+    "votes": 9,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 48",
+  "subgroup": "L Shapes",
+  "setup": "F U R U' R' U R U' R' F'",
+  "standard": "F (R U R' U') (R U R' U') F'",
+  "stickers": {
+   "U": "lylyyllll",
+   "B": "yllbbbbbb",
+   "F": "lyygggggg",
+   "L": "ylyrrrrrr",
+   "R": "lyloooooo"
+  },
+  "alts": [
+   {
+    "alg": "F R U R' U' R U R' U' F'",
+    "votes": 69,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "-yAt0RgMmsY"
+   },
+   {
+    "alg": "y2 f U R U' R' U R U' R' f'",
+    "votes": 8,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U2 R' U' R U R' U2 R' F R F'",
+    "votes": 3,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "F R' F' U2 R U R' U R2 U2 R'",
+    "votes": 1,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 49",
+  "subgroup": "L Shapes",
+  "setup": "r' U r2' U' r2' U' r2' U r' y2'",
+  "standard": "y2 r U' (r2 U) (r2 U) (r2) U' r",
+  "stickers": {
+   "U": "lllyyllyl",
+   "B": "lyygggggg",
+   "F": "yllbbbbbb",
+   "L": "llloooooo",
+   "R": "yyyrrrrrr"
+  },
+  "alts": [
+   {
+    "alg": "y2 r U' r2 U r2 U r2 U' r",
+    "votes": 59,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": "dQrWHwyT8bo"
+   },
+   {
+    "alg": "l U' l2 U l2 U l2 U' l",
+    "votes": 14,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "R B' R2 F R2 B R2 F' R",
+    "votes": 8,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R' F R' F' R2 U2 B' R B R'",
+    "votes": 4,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 50",
+  "subgroup": "L Shapes",
+  "setup": "r U' r2' U r2' U r2' U' r",
+  "standard": "r' U (r2 U') (r2 U') (r2) U r'",
+  "stickers": {
+   "U": "llllyylyl",
+   "B": "yylbbbbbb",
+   "F": "llygggggg",
+   "L": "yyyrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "r' U r2 U' r2 U' r2 U r'",
+    "votes": 51,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": "0jwU3QUs93g"
+   },
+   {
+    "alg": "y2 R' F R2 B' R2 F' R2 B R'",
+    "votes": 11,
+    "etm": 9,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' R U2 R' U' R U' R' F R U R' U' F'",
+    "votes": 11,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 l' U l2 U' l2 U' l2 U l'",
+    "votes": 11,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 51",
+  "subgroup": "Line Shapes",
+  "setup": "f U R U' R' U R U' R' f'",
+  "standard": "f (R U R' U') (R U R' U') f'",
+  "stickers": {
+   "U": "lllyyylll",
+   "B": "yylbbbbbb",
+   "F": "lyygggggg",
+   "L": "ylyrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "y2 F U R U' R' U R U' R' F'",
+    "votes": 64,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "6j4D0FHgSOY"
+   },
+   {
+    "alg": "f R U R' U' R U R' U' f'",
+    "votes": 55,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "wntbjuYVMJs"
+   },
+   {
+    "alg": "y' R' U' R' F R F' R U' R' U2 R",
+    "votes": 5,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y r' F' U' F U F' U' F U r",
+    "votes": 3,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 52",
+  "subgroup": "Line Shapes",
+  "setup": "F R U R' d R' U' R U' R'",
+  "standard": "y2 R' (F' U' F U') (R U R' U) R",
+  "stickers": {
+   "U": "lyllyllyl",
+   "B": "llyoooooo",
+   "F": "yllrrrrrr",
+   "L": "lylbbbbbb",
+   "R": "yyygggggg"
+  },
+  "alts": [
+   {
+    "alg": "y2 R' F' U' F U' R U R' U R",
+    "votes": 56,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "ZuRxOkExG8o"
+   },
+   {
+    "alg": "R U R' U R U' B U' B' R'",
+    "votes": 44,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U R' U R d' R U' R' F'",
+    "votes": 16,
+    "etm": 10,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U R' U R U' y R U' R' F'",
+    "votes": 12,
+    "etm": 11,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 53",
+  "subgroup": "L Shapes",
+  "setup": "r' U2' R U R' U' R U R' U r",
+  "standard": "(r' U' R U') (R' U R U') (R' U2 r)",
+  "stickers": {
+   "U": "llllyylyl",
+   "B": "lylbbbbbb",
+   "F": "lllgggggg",
+   "L": "yyyrrrrrr",
+   "R": "ylyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r' U' R U' R' U R U' R' U2 r",
+    "votes": 33,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "FV3aJg0kmIw"
+   },
+   {
+    "alg": "y2 l' U' L U' L' U L U' L' U2 l",
+    "votes": 25,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y r' U2 R U R' U' R U R' U r",
+    "votes": 24,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' l' U2 L U L' U' L U L' U l",
+    "votes": 13,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 54",
+  "subgroup": "L Shapes",
+  "setup": "r U2' R' U' R U R' U' R U' r'",
+  "standard": "(r U R' U) (R U' R' U) (R U2 r')",
+  "stickers": {
+   "U": "lyllyylll",
+   "B": "lllbbbbbb",
+   "F": "lylgggggg",
+   "L": "yyyrrrrrr",
+   "R": "ylyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U R' U R U' R' U R U2 r'",
+    "votes": 45,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "gydKjGqInfg"
+   },
+   {
+    "alg": "y' r U2 R' U' R U R' U' R U' r'",
+    "votes": 26,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y' r U r' R U R' U' R U R' U' r U' r'",
+    "votes": 4,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 l U L' U L U' L' U L U2 l'",
+    "votes": 3,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 55",
+  "subgroup": "Line Shapes",
+  "setup": "F R' F' U2' R U R' U R2' U2' R'",
+  "standard": "R U2 R2 (U' R U' R') U2 (F R F')",
+  "stickers": {
+   "U": "lyllyllyl",
+   "B": "lllbbbbbb",
+   "F": "lllgggggg",
+   "L": "yyyrrrrrr",
+   "R": "yyyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "y R' F U R U' R2 F' R2 U R' U' R",
+    "votes": 52,
+    "etm": 12,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R' F R U R U' R2 F' R2 U' R' U R U R'",
+    "votes": 34,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U2 R2 U' R U' R' U2 F R F'",
+    "votes": 22,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "QDehoJhTOtY"
+   },
+   {
+    "alg": "r U2 R2 F R F' U2 r' F R F'",
+    "votes": 19,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 56",
+  "subgroup": "Line Shapes",
+  "setup": "r U r' R U R' U' R U R' U' r U' r'",
+  "standard": "(r U r') (U R U' R') (U R U' R') (r U' r')",
+  "stickers": {
+   "U": "lllyyylll",
+   "B": "lylbbbbbb",
+   "F": "lylgggggg",
+   "L": "ylyrrrrrr",
+   "R": "ylyoooooo"
+  },
+  "alts": [
+   {
+    "alg": "r U r' U R U' R' U R U' R' r U' r'",
+    "votes": 33,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": "KZkE5GBzS9k"
+   },
+   {
+    "alg": "r U r' U R U' R' M' U R U2 r'",
+    "votes": 31,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "F R U R' U' R F' r U R' U' r'",
+    "votes": 19,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "r' U' r U' R' U R U' R' U R r' U r",
+    "votes": 17,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "OLL 57",
+  "subgroup": "All Corners Oriented",
+  "setup": "r U R' U' M U R U' R'",
+  "standard": "(R U R' U') M' (U R U' r')",
+  "stickers": {
+   "U": "ylyyyyyly",
+   "B": "lylbbbbbb",
+   "F": "lylgggggg",
+   "L": "lllrrrrrr",
+   "R": "llloooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U' M' U R U' r'",
+    "votes": 96,
+    "etm": 9,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": "qHvJd0pk41Q"
+   },
+   {
+    "alg": "y R U' R' S' R U R' S",
+    "votes": 12,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R U R' S' R U' R' S",
+    "votes": 8,
+    "etm": 8,
+    "stm": 8,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U R' U' R' r U R U' r'",
+    "votes": 7,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ }
+]

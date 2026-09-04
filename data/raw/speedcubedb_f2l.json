@@ -1,0 +1,1970 @@
+[
+ {
+  "name": "F2L 1",
+  "subgroup": "Free Pairs",
+  "setup": "F R' F' R",
+  "facelets": "lllllgllgllwgglggloollooloollwgglggloollooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U R U' R'",
+     "votes": 130,
+     "etm": 3,
+     "stm": 4,
+     "gen": "2GEN",
+     "yt": "GJAPWiFQlcY"
+    },
+    {
+     "alg": "R' F R F'",
+     "votes": 44,
+     "etm": 4,
+     "stm": 4,
+     "gen": "2GEN",
+     "yt": "d4iMIP8e_bw"
+    },
+    {
+     "alg": "y' r' U' R U M'",
+     "votes": 16,
+     "etm": 5,
+     "stm": 5,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U F' L F L2 U L",
+     "votes": 11,
+     "etm": 6,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 2",
+  "subgroup": "Free Pairs",
+  "setup": "R' F R F'",
+  "facelets": "llllllloolgggglgglwlllooloolgggglgglwlllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "F R' F' R",
+     "votes": 61,
+     "etm": 4,
+     "stm": 4,
+     "gen": "2GEN",
+     "yt": "xtiPZNtB428"
+    },
+    {
+     "alg": "y' U' R' U R",
+     "votes": 27,
+     "etm": 3,
+     "stm": 4,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' F' U F",
+     "votes": 16,
+     "etm": 3,
+     "stm": 4,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U' L' U L",
+     "votes": 12,
+     "etm": 3,
+     "stm": 4,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 3",
+  "subgroup": "Free Pairs",
+  "setup": "F' U F",
+  "facelets": "lllollllgllwgglgglolllooloollwgglgglolllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "F' U' F",
+     "votes": 48,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": "hjGuFNoMRW0"
+    },
+    {
+     "alg": "y' R' U' R",
+     "votes": 28,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y L' U' L",
+     "votes": 12,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "S U R U' R' S'",
+     "votes": 6,
+     "etm": 6,
+     "stm": 6,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 4",
+  "subgroup": "Free Pairs",
+  "setup": "R U' R'",
+  "facelets": "lgllllllollggglgglwlllooloollggglgglwlllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U R'",
+     "votes": 61,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": "EmUXH3oqdh4"
+    },
+    {
+     "alg": "y' f R f'",
+     "votes": 7,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y F U F'",
+     "votes": 4,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y2 L U L'",
+     "votes": 3,
+     "etm": 3,
+     "stm": 3,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 5",
+  "subgroup": "Disconnected Pairs",
+  "setup": "R U R' U2' R U' R' U",
+  "facelets": "lgllllllgllwgglgglolllooloollwgglgglolllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U R' U2 R U' R'",
+     "votes": 69,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "RyT5JGz41gw"
+    },
+    {
+     "alg": "F2 L' U' L U F2",
+     "votes": 17,
+     "etm": 6,
+     "stm": 6,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U R' U' R U2 R'",
+     "votes": 9,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U R' U R' F R F'",
+     "votes": 5,
+     "etm": 8,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 6",
+  "subgroup": "Disconnected Pairs",
+  "setup": "F' U' F U2' F' U F U'",
+  "facelets": "lllollllollggglgglwlllooloollggglgglwlllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' r U' R' U R U r'",
+     "votes": 49,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "i2CSmZJc7Ck"
+    },
+    {
+     "alg": "y' U R' U' R U2 R' U R",
+     "votes": 26,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "d R' U' R U2 R' U R",
+     "votes": 14,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U L' U' L U2 L' U L",
+     "votes": 6,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 7",
+  "subgroup": "Disconnected Pairs",
+  "setup": "R U R' U2' R U2' R' U",
+  "facelets": "lllgllllgllwgglgglolllooloollwgglgglolllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U2 R' U' R U2 R'",
+     "votes": 36,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "M' U' M U2 r U' r'",
+     "votes": 29,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U2 R' U2 R U' R'",
+     "votes": 12,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U2 R' U R' F R F'",
+     "votes": 5,
+     "etm": 8,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 8",
+  "subgroup": "Disconnected Pairs",
+  "setup": "r' U' R2 U' R2' U2' r",
+  "facelets": "lollllllollggglgglwlllooloollggglgglwlllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "r' U2 R2 U R2 U r",
+     "votes": 37,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "d R' U2 R U R' U2 R",
+     "votes": 34,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' U R' U2 R U2 R' U R",
+     "votes": 12,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U L' U2 L U2 L' U L",
+     "votes": 11,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 9",
+  "subgroup": "Disconnected Pairs",
+  "setup": "F' U F U' R U R' U",
+  "facelets": "lollllllgllwgglgglolllooloollwgglgglolllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U' R' U F' U' F",
+     "votes": 40,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "uKp6lYvTTNc"
+    },
+    {
+     "alg": "F R U R' U' F' R U' R'",
+     "votes": 14,
+     "etm": 9,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U' R' d R' U' R",
+     "votes": 10,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "d R' U' R U' R' U' R",
+     "votes": 8,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 10",
+  "subgroup": "Disconnected Pairs",
+  "setup": "R U' R' U' R U' R' U",
+  "facelets": "lllgllllollggglgglwlllooloollggglgglwlllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U R' U R U R'",
+     "votes": 39,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "gyyYICRQg5c"
+    },
+    {
+     "alg": "U2 R U' R' U' R U R'",
+     "votes": 14,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "d R' U R d' R U R'",
+     "votes": 3,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' U R' U R U' f R f'",
+     "votes": 2,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 11",
+  "subgroup": "Connected Pairs",
+  "setup": "F' U F U' R U2' R' U",
+  "facelets": "lllllollgllwgglgglogllooloollwgglgglogllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U2 R' U F' U' F",
+     "votes": 43,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "6yXzaZM3GEk"
+    },
+    {
+     "alg": "y' R U2 R2 U' R2 U' R'",
+     "votes": 39,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U2 R' d R' U' R",
+     "votes": 10,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "F' U L' U2 L U2 F",
+     "votes": 9,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 12",
+  "subgroup": "Connected Pairs",
+  "setup": "R U R' U2' R U R' U' R U R'",
+  "facelets": "lllllllgologgglgglwlllooloologgglgglwlllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U' R' U R U' R' U2 R U' R'",
+     "votes": 33,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": "IW2wvQ2nC2o"
+    },
+    {
+     "alg": "R' U2 R2 U R2 U R",
+     "votes": 26,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U F' U2 F U' R U R'",
+     "votes": 6,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U R U' R' U' R U R' U' R U R'",
+     "votes": 5,
+     "etm": 11,
+     "stm": 12,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 13",
+  "subgroup": "Connected Pairs",
+  "setup": "r U2' R' U R U' R' U M",
+  "facelets": "llllllloglgwgglgglolllooloolgwgglgglolllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "y' U R' U R U' R' U' R",
+     "votes": 41,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "Sjo7aOX6f8o"
+    },
+    {
+     "alg": "M' U' R U R' U2 R U' r'",
+     "votes": 16,
+     "etm": 9,
+     "stm": 9,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R' U R' F R F' R U' R'",
+     "votes": 12,
+     "etm": 11,
+     "stm": 11,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "d R' U R U' R' U' R",
+     "votes": 12,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 14",
+  "subgroup": "Connected Pairs",
+  "setup": "R U' R' U' R U R' U",
+  "facelets": "lllllgllollggglgglwollooloollggglgglwollooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U' R' U R U R'",
+     "votes": 47,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "BwaDJAZaIpc"
+    },
+    {
+     "alg": "R U2 R' U2 R U R' U2 R U' R'",
+     "votes": 4,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R2 D R' U R D' R2",
+     "votes": 1,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U2 R2 U R' U R U2 R2",
+     "votes": 1,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 15",
+  "subgroup": "Connected Pairs",
+  "setup": "R U R' U' R U R' U2' R U' R'",
+  "facelets": "lllllllgglowgglgglolllooloolowgglgglolllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "M U r U' r' U' M'",
+     "votes": 40,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R' D' R U' R' D R U R U' R'",
+     "votes": 37,
+     "etm": 11,
+     "stm": 11,
+     "gen": "3GEN",
+     "yt": "m0Uve1y-8tE"
+    },
+    {
+     "alg": "R U R' U2 R U' R' U R U' R'",
+     "votes": 35,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "F' U F U2 R U R'",
+     "votes": 19,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 16",
+  "subgroup": "Connected Pairs",
+  "setup": "F' U F U2' R U R'",
+  "facelets": "lllllollollggglgglwgllooloollggglgglwgllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U' R' U2 F' U' F",
+     "votes": 35,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": "Rf5jEBMOUnc"
+    },
+    {
+     "alg": "R U' R' U2 y' R' U' R",
+     "votes": 12,
+     "etm": 8,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U M' U R U' r' U' R U R'",
+     "votes": 6,
+     "etm": 9,
+     "stm": 10,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "U F U R U' R' F' R U R'",
+     "votes": 4,
+     "etm": 9,
+     "stm": 10,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 17",
+  "subgroup": "Connected Pairs",
+  "setup": "R U' R' U R U2' R'",
+  "facelets": "lllllgllwllogglgglgollooloollogglgglgollooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U2 R' U' R U R'",
+     "votes": 43,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "ncxTAoW7jow"
+    },
+    {
+     "alg": "y2 L U2 L' U' L U L'",
+     "votes": 2,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U R' U' R U2 R' U2 R U R'",
+     "votes": 1,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y L F' L' F L' U L U' L' U L",
+     "votes": 0,
+     "etm": 11,
+     "stm": 11,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 18",
+  "subgroup": "Connected Pairs",
+  "setup": "R U R' U' R U R' F R' F' R",
+  "facelets": "lllllllowlgogglgglglllooloolgogglgglglllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "y' R' U2 R U R' U' R",
+     "votes": 27,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "NotJBG5dR6w"
+    },
+    {
+     "alg": "y L' U2 L U L' U' L",
+     "votes": 14,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "F' U2 F U F' U' F",
+     "votes": 7,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R' F R F' R U' R' U R U' R'",
+     "votes": 4,
+     "etm": 11,
+     "stm": 11,
+     "gen": "3GEN",
+     "yt": "Jhnm4pk86A4"
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 19",
+  "subgroup": "Disconnected Pairs",
+  "setup": "R U R' U' R U2' R' U'",
+  "facelets": "lgllllllwllogglgglglllooloollogglgglglllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U R U2 R' U R U' R'",
+     "votes": 37,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "EodPFBbDBME"
+    },
+    {
+     "alg": "U R U2 R2 F R F'",
+     "votes": 3,
+     "etm": 6,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "d f R2 f' U f R' f'",
+     "votes": 2,
+     "etm": 8,
+     "stm": 8,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R' U R U' R' U R U R'",
+     "votes": 2,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 20",
+  "subgroup": "Disconnected Pairs",
+  "setup": "R U R' F R' F' R2' U R' U",
+  "facelets": "lllollllwllogglgglglllooloollogglgglglllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "y' U' R' U2 R U' R' U R",
+     "votes": 31,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "Am2sBaR-xVs"
+    },
+    {
+     "alg": "U' R U' R2 F R F' R U' R'",
+     "votes": 20,
+     "etm": 9,
+     "stm": 10,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U' L' U2 L U' L' U L",
+     "votes": 8,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' F' U2 F U' F' U F",
+     "votes": 5,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 21",
+  "subgroup": "Disconnected Pairs",
+  "setup": "R U' R' U2' R U R'",
+  "facelets": "lllgllllwllogglgglglllooloollogglgglglllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U2 R U R' U R U' R'",
+     "votes": 27,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "6M2nkaooAZk"
+    },
+    {
+     "alg": "R U' R' U2 R U R'",
+     "votes": 15,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "xgz0P4IQ0Z8"
+    },
+    {
+     "alg": "R B U2 B' R'",
+     "votes": 6,
+     "etm": 5,
+     "stm": 5,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' f R' f' U2 f R f'",
+     "votes": 2,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 22",
+  "subgroup": "Disconnected Pairs",
+  "setup": "F' L' U2' L F",
+  "facelets": "lollllllwllogglgglglllooloollogglgglglllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "r U' r' U2 r U r'",
+     "votes": 28,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "0IpO4zFYFoo"
+    },
+    {
+     "alg": "F' L' U2 L F",
+     "votes": 22,
+     "etm": 5,
+     "stm": 5,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' U2 R' U' R U' R' U R",
+     "votes": 17,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U2 L' U' L U' L' U L",
+     "votes": 5,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 23",
+  "subgroup": "Connected Pairs",
+  "setup": "R U' R' U R U' R' U2' R U' R'",
+  "facelets": "lllllllgwloogglgglgllloolooloogglgglglllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U R U' R' U' R U' R' U R U' R'",
+     "votes": 33,
+     "etm": 11,
+     "stm": 12,
+     "gen": "2GEN",
+     "yt": "ZkLqXWiLFAg"
+    },
+    {
+     "alg": "R U R' U2 R U R' U' R U R'",
+     "votes": 16,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U2 R2 U2 R' U' R U' R2",
+     "votes": 10,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R2 D' R U2 R' D R",
+     "votes": 7,
+     "etm": 9,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 24",
+  "subgroup": "Connected Pairs",
+  "setup": "R U R' F R U R' U' F'",
+  "facelets": "lllllollwllogglgglggllooloollogglgglggllooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "F U R U' R' F' R U' R'",
+     "votes": 37,
+     "etm": 9,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": "6HbnAQY-aVM"
+    },
+    {
+     "alg": "U' R U R2 F R F' R U' R'",
+     "votes": 7,
+     "etm": 9,
+     "stm": 10,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' R' U' R U2 R' U' R U R' U' R",
+     "votes": 6,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U F' L' U L F R U R'",
+     "votes": 4,
+     "etm": 8,
+     "stm": 9,
+     "gen": "4GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 25",
+  "subgroup": "Corner In Slot",
+  "setup": "F' R U R' U' R' F R",
+  "facelets": "lllllgllllllgglggglollooooolllgglggglollooooo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R' F R F' R U R'",
+     "votes": 29,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "S9257JxJwZk"
+    },
+    {
+     "alg": "R' F' R U R U' R' F",
+     "votes": 13,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' F' U F U R U' R'",
+     "votes": 13,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "l' U' l U l F' l' F",
+     "votes": 4,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 26",
+  "subgroup": "Corner In Slot",
+  "setup": "F' U' F U R U R' U'",
+  "facelets": "lllllllollglgglgggllllooooolglgglgggllllooooo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U R U' R' F R' F' R",
+     "votes": 24,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "gr9h0xiXWjM"
+    },
+    {
+     "alg": "R S' R' U R S R'",
+     "votes": 13,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U R U R' U' y L' U' L",
+     "votes": 6,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U R U' R' U' F' U F",
+     "votes": 4,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 27",
+  "subgroup": "Corner In Slot",
+  "setup": "R U R' U' R U R'",
+  "facelets": "lllllgllllllgglggwlolloogoolllgglggwlolloogoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U' R' U R U' R'",
+     "votes": 33,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "JBYRStpmDL8"
+    },
+    {
+     "alg": "F' U' F U2 R U' R'",
+     "votes": 3,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' f R' f' U f R' f'",
+     "votes": 1,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' f R' f' r' U' R U M'",
+     "votes": 1,
+     "etm": 8,
+     "stm": 8,
+     "gen": "5GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 28",
+  "subgroup": "Corner In Slot",
+  "setup": "R' F R F' U R U' R'",
+  "facelets": "lllllllollglgglggolllloowoolglgglggolllloowoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U R' U' F R' F' R",
+     "votes": 23,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y L' U L U' L' U L",
+     "votes": 12,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "_VWlb_5SrsI"
+    },
+    {
+     "alg": "F' U F U' F' U F",
+     "votes": 6,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' R' U R U' R' U R",
+     "votes": 4,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 29",
+  "subgroup": "Corner In Slot",
+  "setup": "F R' F' R F R' F' R",
+  "facelets": "lllllllollglgglggwlllloogoolglgglggwlllloogoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R' F R F' U R U' R'",
+     "votes": 22,
+     "etm": 8,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "EvCzppFMLCs"
+    },
+    {
+     "alg": "y L' U' L U L' U' L",
+     "votes": 16,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "y' R' U' R U R' U' R",
+     "votes": 16,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R' F R F' R' F R F'",
+     "votes": 6,
+     "etm": 8,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 30",
+  "subgroup": "Corner In Slot",
+  "setup": "R U' R' U R U' R'",
+  "facelets": "lllllgllllllgglggololloowoolllgglggololloowoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U R' U' R U R'",
+     "votes": 34,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": "MDy2EhrraRE"
+    },
+    {
+     "alg": "U' R U2 R' U2 R U R'",
+     "votes": 2,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' F R' F' R2 U R'",
+     "votes": 2,
+     "etm": 6,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U2 F' U F R U R'",
+     "votes": 0,
+     "etm": 6,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 31",
+  "subgroup": "Edge In Slot",
+  "setup": "R U R' F R' F' R U",
+  "facelets": "llllllllwlloggogglgllgooloolloggogglgllgooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R' F R F' R U' R'",
+     "votes": 28,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "YflQOzAiK5s"
+    },
+    {
+     "alg": "R U' R' U y' R' U R",
+     "votes": 6,
+     "etm": 8,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "F' U F R U2 R'",
+     "votes": 5,
+     "etm": 6,
+     "stm": 6,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R' U y L' U L",
+     "votes": 5,
+     "etm": 8,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 32",
+  "subgroup": "Edge In Slot",
+  "setup": "R U' R' U R U' R' U R U' R'",
+  "facelets": "llllllllwlloggggglglloooloolloggggglglloooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U R U' R' U R U' R' U R U' R'",
+     "votes": 37,
+     "etm": 11,
+     "stm": 12,
+     "gen": "2GEN",
+     "yt": "-xHjZYwAvWk"
+    },
+    {
+     "alg": "R U R' U' R U R' U' R U R'",
+     "votes": 24,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R2 U R2 U R2 U2 R2",
+     "votes": 21,
+     "etm": 7,
+     "stm": 7,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' F R' F' R U' R U R'",
+     "votes": 9,
+     "etm": 8,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 33",
+  "subgroup": "Edge In Slot",
+  "setup": "R U R' U2' R U R' U",
+  "facelets": "llllllllgllwggggglolloooloollwggggglolloooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U' R' U2 R U' R'",
+     "votes": 31,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "l49Oin4njnY"
+    },
+    {
+     "alg": "y R' D R U' R' D' R",
+     "votes": 3,
+     "etm": 7,
+     "stm": 7,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U R' U' R U' R' U R U' R'",
+     "votes": 3,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U' R' U' R U2 R'",
+     "votes": 2,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 34",
+  "subgroup": "Edge In Slot",
+  "setup": "R U' R' U2' R U' R' U'",
+  "facelets": "llllllllollgggggglwlloooloollgggggglwlloooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U R U R' U2 R U R'",
+     "votes": 28,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "1Zh-CRRe0E4"
+    },
+    {
+     "alg": "U' R U2 R' U R U R'",
+     "votes": 20,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": "uLiLxtW2lko"
+    },
+    {
+     "alg": "U R' D' R U' R' D R",
+     "votes": 9,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "y U L' U L U2 L' U L",
+     "votes": 7,
+     "etm": 7,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 35",
+  "subgroup": "Edge In Slot",
+  "setup": "F' U F U' R U' R' U",
+  "facelets": "llllllllgllwggogglollgooloollwggogglollgooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U' R U R' U F' U' F",
+     "votes": 25,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "ZYv09SLzoKw"
+    },
+    {
+     "alg": "U' R U R' d R' U' R",
+     "votes": 17,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U2 R U R' F R' F' R",
+     "votes": 12,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "U' R U R' U y' R' U' R",
+     "votes": 5,
+     "etm": 8,
+     "stm": 8,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 36",
+  "subgroup": "Edge In Slot",
+  "setup": "R U' R' U2' F R' F' R U2'",
+  "facelets": "llllllllollgggogglwllgooloollgggogglwllgooloo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "U F' U' F U' R U R'",
+     "votes": 23,
+     "etm": 7,
+     "stm": 8,
+     "gen": "3GEN",
+     "yt": "cfa5NlJaxZ8"
+    },
+    {
+     "alg": "U2 R' F R F' U2 R U R'",
+     "votes": 13,
+     "etm": 8,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": "PXry0dwYwgE"
+    },
+    {
+     "alg": "R U R' U R U R' U' F' U' F",
+     "votes": 3,
+     "etm": 11,
+     "stm": 11,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R2 u R U R' U' u' R' U R'",
+     "votes": 3,
+     "etm": 10,
+     "stm": 10,
+     "gen": "3GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 37",
+  "subgroup": "Pieces In Slot",
+  "setup": "R U' R U2' F R2' F' U2' R2'",
+  "facelets": "llllllllllllggoggglllgooooolllggoggglllgooooo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R2 U2 F R2 F' U2 R' U R'",
+     "votes": 37,
+     "etm": 9,
+     "stm": 9,
+     "gen": "3GEN",
+     "yt": "Yo29cluMUNc"
+    },
+    {
+     "alg": "R' F R F' R U' R' U R U' R' U2 R U' R'",
+     "votes": 19,
+     "etm": 15,
+     "stm": 15,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U2 R' U R U2 R' U F' U' F",
+     "votes": 10,
+     "etm": 11,
+     "stm": 11,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U R' U2 R U2 R' U y' R' U' R",
+     "votes": 7,
+     "etm": 12,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 38",
+  "subgroup": "Pieces In Slot",
+  "setup": "R U' R' U R U2' R' U R U' R'",
+  "facelets": "llllllllllllgggggwlllooogoolllgggggwlllooogoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U' R' U' R U R' U2 R U' R'",
+     "votes": 22,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": "ji7XpGGcrWs"
+    },
+    {
+     "alg": "R U R' U' R U2 R' U' R U R'",
+     "votes": 12,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R2 U2 R' U' R U' R' U2 R'",
+     "votes": 7,
+     "etm": 9,
+     "stm": 9,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R' U' R U R' U' R U2 R'",
+     "votes": 4,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 39",
+  "subgroup": "Pieces In Slot",
+  "setup": "R U' R' U' R U R' U2' R U' R'",
+  "facelets": "llllllllllllgggggolllooowoolllgggggolllooowoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U' R' U R U2 R' U R U' R'",
+     "votes": 29,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": "vq-vBqWFuec"
+    },
+    {
+     "alg": "R U2 R U R' U R U2 R2",
+     "votes": 6,
+     "etm": 9,
+     "stm": 9,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U R' U2 R U' R' U R U R'",
+     "votes": 4,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U2 R' U R U' R' U R U R'",
+     "votes": 3,
+     "etm": 11,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 40",
+  "subgroup": "Pieces In Slot",
+  "setup": "R U R' F U R U' R' F' R U R'",
+  "facelets": "llllllllllllggoggwlllgoogoolllggoggwlllgoogoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "r U' r' U2 r U r' R U R'",
+     "votes": 24,
+     "etm": 10,
+     "stm": 10,
+     "gen": "3GEN",
+     "yt": "u_RyH_2Kqhw"
+    },
+    {
+     "alg": "F' L' U2 L F R U R'",
+     "votes": 15,
+     "etm": 8,
+     "stm": 8,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R' F R U R' U' F' R U' R'",
+     "votes": 10,
+     "etm": 12,
+     "stm": 12,
+     "gen": "3GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U' R' U' R U' R' U y' R' U' R",
+     "votes": 9,
+     "etm": 12,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ },
+ {
+  "name": "F2L 41",
+  "subgroup": "Pieces In Slot",
+  "setup": "R F U R U' R' F' U' R'",
+  "facelets": "llllllllllllggoggolllgoowoolllggoggolllgoowoo",
+  "orientations": {
+   "0": "Front Right",
+   "1": "Front Left",
+   "2": "Back Left",
+   "3": "Back Right"
+  },
+  "alts_by_ori": {
+   "0": [
+    {
+     "alg": "R U' R' r U' r' U2 r U r'",
+     "votes": 24,
+     "etm": 10,
+     "stm": 10,
+     "gen": "3GEN",
+     "yt": "DpuAOiDiin4"
+    },
+    {
+     "alg": "R U' R' F' L' U2 L F",
+     "votes": 9,
+     "etm": 8,
+     "stm": 8,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U R' U' y M U' R' F R U M'",
+     "votes": 7,
+     "etm": 12,
+     "stm": 11,
+     "gen": "4GEN",
+     "yt": null
+    },
+    {
+     "alg": "R U R' U' R U' R' U2 y' R' U' R",
+     "votes": 6,
+     "etm": 12,
+     "stm": 11,
+     "gen": "2GEN",
+     "yt": null
+    }
+   ]
+  }
+ }
+]

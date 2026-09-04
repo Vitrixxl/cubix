@@ -1,0 +1,1354 @@
+{
+  "set": "F2L advanced",
+  "generated": "2026-09-04",
+  "count": 60,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "F2L-ADV 1",
+      "name": "F2L-ADV 1",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front  / White facing Up",
+      "algorithms": [
+        {
+          "alg": "U' R' U R2 U' R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U R2 U' R U",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 2",
+      "name": "F2L-ADV 2",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front  / White facing Up",
+      "algorithms": [
+        {
+          "alg": "U2 (R' U R) U' (S R S')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "S R' S' U R' U' R U2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 3",
+      "name": "F2L-ADV 3",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front  / White facing Up",
+      "algorithms": [
+        {
+          "alg": "U L' R U2 L R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R L' U2 R' L U'",
+      "setups_alt": [
+        "L' R U2 L R' U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 4",
+      "name": "F2L-ADV 4",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front  / White facing Up",
+      "algorithms": [
+        {
+          "alg": "y U2 (L U' L') U (S' L' S)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "S' L S U' L U L' U2 y'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 5",
+      "name": "F2L-ADV 5",
+      "group": "Advanced Cases",
+      "subgroup": "Edge in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "(U R U' R')2 L U2 L'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U2 L' R U R' U' R U R' U'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 6",
+      "name": "F2L-ADV 6",
+      "group": "Advanced Cases",
+      "subgroup": "Edge in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "L F' U F L'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L F' U' F L'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 7",
+      "name": "F2L-ADV 7",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Side",
+      "algorithms": [
+        {
+          "alg": "R' U' R2 U R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U' R2 U R",
+      "setups_alt": [
+        "L R U' R2 U L' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 8",
+      "name": "F2L-ADV 8",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Side",
+      "algorithms": [
+        {
+          "alg": "F D R D' F'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y' R u R u' R'",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F D R' D' F'",
+      "setups_alt": [
+        "R U F R' F' U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 9",
+      "name": "F2L-ADV 9",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Front",
+      "algorithms": [
+        {
+          "alg": "y' (R U R2' U' R)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y L U L2' U' L",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R' U R2 U' R' y",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 10",
+      "name": "F2L-ADV 10",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Front",
+      "algorithms": [
+        {
+          "alg": "y F' D' L' D F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y2 L' u' L' u L",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F' D' L D F y'",
+      "setups_alt": [
+        "F2 U F U' R' F2 R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 11",
+      "name": "F2L-ADV 11",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Side",
+      "algorithms": [
+        {
+          "alg": "U' (L' U' L) (R U' R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U R' L' U L U",
+      "setups_alt": [
+        "L' U2 R U' R' U' L U",
+        "R U2 R' U' L' U L U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 12",
+      "name": "F2L-ADV 12",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Side",
+      "algorithms": [
+        {
+          "alg": "(F U2 F') (R U R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y (L U2 L') F U F'",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y' (R U2 R') (f R f')",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R U' R' F U2 F'",
+      "setups_alt": [
+        "B' F D R' D' B U2 F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 13",
+      "name": "F2L-ADV 13",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Front",
+      "algorithms": [
+        {
+          "alg": "U2' R U R2' U' R2 U R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U' R2 U R2 U' R' U2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 14",
+      "name": "F2L-ADV 14",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / White facing Front",
+      "algorithms": [
+        {
+          "alg": "y (F' U2 F) (L' U' L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "R' U2 R F' U' F",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U2 L (f' L' f)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L' U L F' U2 F y'",
+      "setups_alt": [
+        "L R' D' F D L' U2 R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 15",
+      "name": "F2L-ADV 15",
+      "group": "Advanced Cases",
+      "subgroup": "Edge in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "U (R U R') (L U L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U' L' R U' R' U'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 16",
+      "name": "F2L-ADV 16",
+      "group": "Advanced Cases",
+      "subgroup": "Edge in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "U2 F' (L U L') F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y U2 L' (B U B') L",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y' U2 R' (F U F') R",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F' L U' L' F U2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 17",
+      "name": "F2L-ADV 17",
+      "group": "Advanced Cases",
+      "subgroup": "Edge in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "U' (R U' R') (L U' L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U L' R U R' U",
+      "setups_alt": [
+        "L U2 L' U' R U R' U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 18",
+      "name": "F2L-ADV 18",
+      "group": "Advanced Cases",
+      "subgroup": "Edge in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "U' (R U R') d' (R' U' R)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U R d R U' R' U",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 19",
+      "name": "F2L-ADV 19",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "U (R U' R') (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L R U R' U'",
+      "setups_alt": [
+        "R U2 L' U L U' R' U'",
+        "L' U2 L U R U R' U'",
+        "L' U' R U R' U2 L U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 20",
+      "name": "F2L-ADV 20",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "y (L' U2 L) U' (L U L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U' L' U L' U2 L y'",
+      "setups_alt": [
+        "F U' F' U F' U2 F"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 21",
+      "name": "F2L-ADV 21",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "U2 (R U' R') U (L' U' L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U L U' R U R' U2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 22",
+      "name": "F2L-ADV 22",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "y U' L' U' L2 U2 L'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U2 L2 U L U y'",
+      "setups_alt": [
+        "F U F' U F' U F U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 23",
+      "name": "F2L-ADV 23",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "(R U R') U' (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y (S' L S)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L U R U' R'",
+      "setups_alt": [
+        "F' L F L' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 24",
+      "name": "F2L-ADV 24",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Front / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "U' (R U R') (F U F')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y U' (F U F') (L U L')",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F U' F' R U' R' U",
+      "setups_alt": [
+        "F U' F' R U' R' U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 25",
+      "name": "F2L-ADV 25",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Corner in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "y U' (L' U L) (R U' R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U R' L' U' L U y'",
+      "setups_alt": [
+        "B U B' F' U' F U",
+        "B U F' U' F U B'",
+        "B U F' U' F U2 B' U'",
+        "B U2 B' U' F' U' F U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 26",
+      "name": "F2L-ADV 26",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Corner in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "(R U2 R') U (R' U' R)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U R U' R U2 R'",
+      "setups_alt": [
+        "R' U R U' R U2 R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 27",
+      "name": "F2L-ADV 27",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Corner in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "(F R' F' R) U (R' U2 R)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U' R' F R F'",
+      "setups_alt": [
+        "R2 F2 D' F' D R2 F'",
+        "R' U F' U' F2 R F'",
+        "B U F' U B' U F U2",
+        "B' R B2 U' B' U R' U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 28",
+      "name": "F2L-ADV 28",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Corner in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U R U R2' U2 R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R2 U' R' U'",
+      "setups_alt": [
+        "R' U' R U' R U' R' U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 29",
+      "name": "F2L-ADV 29",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Corner in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "(S R' S')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y (L' U' L) U (R U' R')",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "S R S'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 30",
+      "name": "F2L-ADV 30",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Corner in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U (F' U' F) (R' U' R)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y U (L' U' L) (F' U' F)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R' U R F' U F U'",
+      "setups_alt": [
+        "R' U R F' U F U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 31",
+      "name": "F2L-ADV 31",
+      "group": "Advanced Cases",
+      "subgroup": "Corner in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "U' (F' U F) (L U2 L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y U' (L' U L) U' (f R' f')",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L U2 L' F' U' F U",
+      "setups_alt": [
+        "L U2 L' F' U' F U",
+        "L U2 F' U' F L' U",
+        "L U2 F' U' F U L'",
+        "L U L' U F' U' F U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 32",
+      "name": "F2L-ADV 32",
+      "group": "Advanced Cases",
+      "subgroup": "Corner in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "U (R U' R') U (f' L f)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y U (F U' F') (R' U2 R)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "f' L' f U' R U R' U'",
+      "setups_alt": [
+        "B' U2 B R U R' U'",
+        "B' U2 R U R' B U'",
+        "B' U2 R U R' U' B",
+        "R U' B' U B U2 R' U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 33",
+      "name": "F2L-ADV 33",
+      "group": "Advanced Cases",
+      "subgroup": "Corner in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "(R U' R') (L U2 L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U2 L' R U R'",
+      "setups_alt": [
+        "L U L' U R U R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 34",
+      "name": "F2L-ADV 34",
+      "group": "Advanced Cases",
+      "subgroup": "Corner in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "(R U R') (f' L f)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "f' L' f R U' R'",
+      "setups_alt": [
+        "B' U' B R U' R'",
+        "R U' B' U2 B R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 35",
+      "name": "F2L-ADV 35",
+      "group": "Advanced Cases",
+      "subgroup": "Corner in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "(R U R') U (L U L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U' L' U' R U' R'",
+      "setups_alt": [
+        "L U' L' U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 36",
+      "name": "F2L-ADV 36",
+      "group": "Advanced Cases",
+      "subgroup": "Corner in Opposite Slot",
+      "algorithms": [
+        {
+          "alg": "(R' F R F') (L U2 L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L U2 L' F R' F' R",
+      "setups_alt": [
+        "L U2 L' F R' F' R",
+        "L U2 F R' F' L' R",
+        "F' U L U' F' L' F2 U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 37",
+      "name": "F2L-ADV 37",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Edge in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "R U' R2' U R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R2 U R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 38",
+      "name": "F2L-ADV 38",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Edge in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U' R U R2' U' R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U R2 U' R' U",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 39",
+      "name": "F2L-ADV 39",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Edge in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U R' U' R2 U R2' U' R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U R2 U' R2 U R U'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 40",
+      "name": "F2L-ADV 40",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Edge in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U (R' F R F') R' U' R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U R F R' F' R U'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 41",
+      "name": "F2L-ADV 41",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Edge in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U' F' R' U' R F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F' R' U R F U",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 42",
+      "name": "F2L-ADV 42",
+      "group": "Advanced Cases",
+      "subgroup": "Slot in Back / Edge in Adjacent Front Slot",
+      "algorithms": [
+        {
+          "alg": "U F' U F R' U2' R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R F' U' F U'",
+      "setups_alt": [
+        "R' U2 R F' U' F U'",
+        "R' U' R U' F' U' F U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 43",
+      "name": "F2L-ADV 43 (10B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "R' U R2 U R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "R' U R2 U R' U",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R U' R2 U' R",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 44",
+      "name": "F2L-ADV 44 (12B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "R' U2 R2 U R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U' R2 U2 R",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 45",
+      "name": "F2L-ADV 45 (15B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "U' R' U R U' (R U R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U' R' U R' U' R U",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 46",
+      "name": "F2L-ADV 46 (23B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "U2 (L F' L' F) (R U R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U' R' F' L F L' U2",
+      "setups_alt": [
+        "R U' R' F' L F L' U2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 47",
+      "name": "F2L-ADV 47 (25B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "R2 U' R' U R2",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R2 U' R U R2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 48",
+      "name": "F2L-ADV 48 (25F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "U' D (R U R') D'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D R U' R' D' U",
+      "setups_alt": [
+        "D U' R U' R' D' U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 49",
+      "name": "F2L-ADV 49 (26B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "u' U (R' U' R) u",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "u' R' U R U' u",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 50",
+      "name": "F2L-ADV 50 (26F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "u U' (L' U L) D'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "U' D F' U F D'",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "D L' U' L U u'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 51",
+      "name": "F2L-ADV 51 (33B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D U' (R' U' R) D'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D R' U R U D'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 52",
+      "name": "F2L-ADV 52 (33F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "U D' (L' U' L) D",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D' L' U L D U'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 53",
+      "name": "F2L-ADV 53 (34B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D U R' U2 R D'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D R' U2 R U' D'",
+      "setups_alt": [
+        "D U' R' U' R D' U2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 54",
+      "name": "F2L-ADV 54 (34F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D' (L' U L) D",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D' L' U' L D",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 55",
+      "name": "F2L-ADV 55 (37B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D' (R' F R F') (R U' R') D",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D' R U R' F R' F' R D",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 56",
+      "name": "F2L-ADV 56 (37F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D (R' F R F') (R U' R') D'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D R U R' F R' F' R D'",
+      "setups_alt": [
+        "D R B' R B R' U R' D' U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 57",
+      "name": "F2L-ADV 57 (38B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "R U' R2 U' R (F' U' F)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "U R U' R2 U' R (F' U' F)",
+          "source": "f2ltrainer",
+          "verified": true,
+          "pre_auf": "U'"
+        }
+      ],
+      "setup": "F' U F R' U R2 U R'",
+      "setups_alt": [
+        "F' U F R' U R2 U R' U U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 58",
+      "name": "F2L-ADV 58 (38F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "F' L' U2 L F (R U R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U' R' F' L' U2 L F",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 59",
+      "name": "F2L-ADV 59 (39B)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D R' U (R U' R') U R D'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D R' U' R U R' U' R D'",
+      "setups_alt": [
+        "D B' R B R2 U' R D'",
+        "R U' R' U R F R' F' R'",
+        "R2 B' R' B R U R' U' R2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-ADV 60",
+      "name": "F2L-ADV 60 (39F)",
+      "group": "Advanced Cases",
+      "subgroup": "Basic Cases / Free Slot",
+      "algorithms": [
+        {
+          "alg": "D' L' U (L U' L') U L D",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "D' L' U' L U L' U' L D",
+      "setups_alt": [
+        "D' L' U B' U2 B L D U'",
+        "D' L2 B L B' U2 L D U' U"
+      ],
+      "verified": true
+    }
+  ]
+}

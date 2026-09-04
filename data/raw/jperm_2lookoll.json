@@ -1,0 +1,89 @@
+[
+ {
+  "name": "I-Shape",
+  "alg": [
+   "F R U R' U' F'",
+   "R U R' U' M' U R U' r'"
+  ],
+  "group": "1: Edges",
+  "prob": 2
+ },
+ {
+  "name": "L-Shape",
+  "alg": [
+   "f R U R' U' f'",
+   "y2 F U R U' R' F'",
+   "y2 r U R' U' r' R (U R U' R')"
+  ],
+  "group": "1: Edges",
+  "prob": 4
+ },
+ {
+  "name": "Dot Shape",
+  "alg": [
+   "F R U R' U' F' f R U R' U' f'"
+  ],
+  "group": "1: Edges",
+  "prob": 1
+ },
+ {
+  "name": "H",
+  "alg": [
+   "R U R' U R U' R' U R U2 R'",
+   "y F R U R' U' R U R' U' R U R' U' F'"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ },
+ {
+  "name": "Pi",
+  "alg": [
+   "R U2 (R2 U' R2 U' R2) U2 R"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ },
+ {
+  "name": "U",
+  "alg": [
+   "R2 D R' U2 R D' R' U2 R'"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ },
+ {
+  "name": "T",
+  "alg": [
+   "r U R' U' r' F R F'"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ },
+ {
+  "name": "L",
+  "alg": [
+   "F R' F' r U R U' r'"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ },
+ {
+  "name": "Antisune",
+  "alg": [
+   "R U2 R' U' R U' R'",
+   "y' R' U' R U' R' U2 R",
+   "y L' U' L U' L' U2 L"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ },
+ {
+  "name": "Sune",
+  "alg": [
+   "R U R' U R U2 R'",
+   "y' R' U2 (R U R' U) R"
+  ],
+  "group": "2: Corners",
+  "prob": 4
+ }
+]

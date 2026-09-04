@@ -1,0 +1,252 @@
+{
+  "set": "2-look OLL",
+  "generated": "2026-09-04",
+  "count": 10,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "2L-OLL I-Shape",
+      "name": "I-Shape",
+      "group": "1: Edges",
+      "probability": "2/216",
+      "algorithms": [
+        {
+          "alg": "F R U R' U' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F U R U' R' F'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL L-Shape",
+      "name": "L-Shape",
+      "group": "1: Edges",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "f R U R' U' f'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y2 F U R U' R' F'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "f U R U' R' f'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL Dot Shape",
+      "name": "Dot Shape",
+      "group": "1: Edges",
+      "probability": "1/216",
+      "algorithms": [
+        {
+          "alg": "F R U R' U' F' f R U R' U' f'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "f U R U' R' f' F U R U' R' F'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL H",
+      "name": "H",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "R U R' U R U' R' U R U2 R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y F R U R' U' R U R' U' R U R' U' F'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' U' R U R' U' R U' R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL Pi",
+      "name": "Pi",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "R U2 (R2 U' R2 U' R2) U2 R",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R2 U R2 U R2 U2 R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL U",
+      "name": "U",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "R2 D R' U2 R D' R' U2 R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R D R' U2 R D' R2",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL T",
+      "name": "T",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "r U R' U' r' F R F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' r U R U' r'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL L",
+      "name": "L",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "F R' F' r U R U' r'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "r U R' U' r' F R F'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL Antisune",
+      "name": "Antisune",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U' R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y' R' U' R U' R' U2 R",
+          "source": "jperm",
+          "verified": true
+        },
+        {
+          "alg": "y L' U' L U' L' U2 L",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U2 R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "2L-OLL Sune",
+      "name": "Sune",
+      "group": "2: Corners",
+      "probability": "4/216",
+      "algorithms": [
+        {
+          "alg": "R U R' U R U2 R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y' R' U2 (R U R' U) R",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' U' R U' R'",
+      "setups_alt": [],
+      "verified": true
+    }
+  ]
+}

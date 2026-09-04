@@ -1,0 +1,49 @@
+{
+  "$schema_note": "Notation standard (WCA/SiGN). Convention : le cube est tenu avec une face devant (F) et une face en haut (U). Un mouvement sans suffixe = 90° sens horaire en regardant la face concernée. Suffixe ' (prime) = 90° anti-horaire. Suffixe 2 = 180°. Toute séquence s'annule en jouant l'inverse : on lit à l'envers en inversant chaque mouvement (R U R' -> R U' R').",
+  "suffixes": [
+    { "suffix": "",  "angle": 90,  "direction": "horaire",      "example": "R" },
+    { "suffix": "'", "angle": 90,  "direction": "anti-horaire", "example": "R'" },
+    { "suffix": "2", "angle": 180, "direction": "demi-tour",    "example": "R2" }
+  ],
+  "families": {
+    "face":     "Tourne uniquement la couche externe.",
+    "wide":     "Tourne la couche externe ET la tranche du milieu adjacente (2 couches). Notation minuscule (r) ou Rw.",
+    "slice":    "Tourne uniquement une tranche du milieu.",
+    "rotation": "Tourne le cube entier, aucune pièce ne bouge relativement aux autres."
+  },
+  "moves": [
+    { "symbol": "R", "family": "face", "layer": "droite",  "inverse": "R'", "description": "Face droite, sens horaire vu de la droite : la colonne de droite monte vers l'arrière.", "equivalent": null },
+    { "symbol": "L", "family": "face", "layer": "gauche",  "inverse": "L'", "description": "Face gauche, sens horaire vu de la gauche : la colonne de gauche descend vers l'avant.", "equivalent": null },
+    { "symbol": "U", "family": "face", "layer": "haut",    "inverse": "U'", "description": "Face du haut, sens horaire vu du dessus : la couche du haut tourne vers la gauche (vue de face).", "equivalent": null },
+    { "symbol": "D", "family": "face", "layer": "bas",     "inverse": "D'", "description": "Face du bas, sens horaire vu du dessous : la couche du bas tourne vers la droite (vue de face).", "equivalent": null },
+    { "symbol": "F", "family": "face", "layer": "avant",   "inverse": "F'", "description": "Face avant, sens horaire en la regardant.", "equivalent": null },
+    { "symbol": "B", "family": "face", "layer": "arrière", "inverse": "B'", "description": "Face arrière, sens horaire en la regardant depuis l'arrière (donc anti-horaire vu de face).", "equivalent": null },
+
+    { "symbol": "r", "family": "wide", "layer": "droite (2 couches)",  "inverse": "r'", "description": "Comme R mais entraîne aussi la tranche M.", "equivalent": "R M'", "alias": "Rw" },
+    { "symbol": "l", "family": "wide", "layer": "gauche (2 couches)",  "inverse": "l'", "description": "Comme L mais entraîne aussi la tranche M.", "equivalent": "L M",  "alias": "Lw" },
+    { "symbol": "u", "family": "wide", "layer": "haut (2 couches)",    "inverse": "u'", "description": "Comme U mais entraîne aussi la tranche E.", "equivalent": "U E'", "alias": "Uw" },
+    { "symbol": "d", "family": "wide", "layer": "bas (2 couches)",     "inverse": "d'", "description": "Comme D mais entraîne aussi la tranche E.", "equivalent": "D E",  "alias": "Dw" },
+    { "symbol": "f", "family": "wide", "layer": "avant (2 couches)",   "inverse": "f'", "description": "Comme F mais entraîne aussi la tranche S.", "equivalent": "F S",  "alias": "Fw" },
+    { "symbol": "b", "family": "wide", "layer": "arrière (2 couches)", "inverse": "b'", "description": "Comme B mais entraîne aussi la tranche S.", "equivalent": "B S'", "alias": "Bw" },
+
+    { "symbol": "M", "family": "slice", "layer": "tranche entre L et R", "inverse": "M'", "description": "Tranche du milieu verticale, tourne dans le même sens que L (vers le bas à l'avant).", "equivalent": "r' R" },
+    { "symbol": "E", "family": "slice", "layer": "tranche entre U et D", "inverse": "E'", "description": "Tranche du milieu horizontale, tourne dans le même sens que D.", "equivalent": "u' U" },
+    { "symbol": "S", "family": "slice", "layer": "tranche entre F et B", "inverse": "S'", "description": "Tranche du milieu parallèle à F, tourne dans le même sens que F.", "equivalent": "f F'" },
+
+    { "symbol": "x", "family": "rotation", "axis": "R-L", "inverse": "x'", "description": "Rotation du cube entier comme un R : la face F passe en haut (U).", "equivalent": "R M' L'" },
+    { "symbol": "y", "family": "rotation", "axis": "U-D", "inverse": "y'", "description": "Rotation du cube entier comme un U : la face R passe devant (F).", "equivalent": "U E' D'" },
+    { "symbol": "z", "family": "rotation", "axis": "F-B", "inverse": "z'", "description": "Rotation du cube entier comme un F : la face U passe à droite (R).", "equivalent": "F S B'" }
+  ],
+  "auf": {
+    "name": "AUF (Adjust U Face)",
+    "moves": ["", "U", "U2", "U'"],
+    "description": "Ajustement de la face du haut avant/après un algorithme de dernière couche. Pour l'entraînement OLL/PLL, on ajoute un AUF aléatoire avant le setup et on considère le cas résolu à un AUF près."
+  },
+  "triggers": [
+    { "name": "Sexy move",       "alg": "R U R' U'",  "description": "Trigger le plus courant, base de nombreux OLL/F2L." },
+    { "name": "Sledgehammer",    "alg": "R' F R F'",  "description": "Insère une paire F2L ou oriente des arêtes." },
+    { "name": "Hedgeslammer",    "alg": "F R' F' R",  "description": "Inverse du sledgehammer." },
+    { "name": "Sune",            "alg": "R U R' U R U2 R'", "description": "OLL 27, base des 2-look OLL coins." },
+    { "name": "Anti-Sune",       "alg": "R' U' R U' R' U2 R", "description": "OLL 26, miroir/inverse du Sune." }
+  ]
+}

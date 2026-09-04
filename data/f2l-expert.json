@@ -1,0 +1,907 @@
+{
+  "set": "F2L expert",
+  "generated": "2026-09-04",
+  "count": 33,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "F2L-EXP 1",
+      "name": "F2L-EXP 1",
+      "group": "Expert Cases",
+      "subgroup": "Corner is solved",
+      "algorithms": [
+        {
+          "alg": "R2 U' R2' U R2",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y2 L2' U' L2 U L2'",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y F' R' F2 R F",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R2 U' R2 U R2",
+      "setups_alt": [
+        "D2 L2 U' L2 D2 U' R2",
+        "B D2 F' U2 F D2 B' U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 2",
+      "name": "F2L-EXP 2",
+      "group": "Expert Cases",
+      "subgroup": "Corner is solved",
+      "algorithms": [
+        {
+          "alg": "f' R' U R f",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y R' u' R u R",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y' L' u' L u L",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y2 f' D' L D f",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "f' R' U' R f",
+      "setups_alt": [
+        "B' R2 B U R' U' R2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 3",
+      "name": "F2L-EXP 3",
+      "group": "Expert Cases",
+      "subgroup": "Corner is solved",
+      "algorithms": [
+        {
+          "alg": "y L2' U L2 U' L2'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y' R2 U R2' U' R2",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "F L F2' L' F'",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L2 U L2 U' L2 y'",
+      "setups_alt": [
+        "B F L F2 L' B' F'",
+        "B' F2 U F2 U' B F2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 4",
+      "name": "F2L-EXP 4",
+      "group": "Expert Cases",
+      "subgroup": "Corner is solved",
+      "algorithms": [
+        {
+          "alg": "y f (L U' L') f'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "L u L' u' L'",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y2 R u R' u' R'",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y' f D R' D' f'",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "f L U L' f' y'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 5",
+      "name": "F2L-EXP 5",
+      "group": "Expert Cases",
+      "subgroup": "Corner is solved",
+      "algorithms": [
+        {
+          "alg": "L2' u' L2 u L2'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y' R2 u R2' u' R2",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y L2' u L2 u' L2'",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "y2 R2 u' R2' u R2",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L2 u' L2 u L2",
+      "setups_alt": [
+        "B F R U2 R' B' F'",
+        "D2 R2 D' F2 D R2 D2 U2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 6",
+      "name": "F2L-EXP 6",
+      "group": "Expert Cases",
+      "subgroup": "Corner is solved",
+      "algorithms": [
+        {
+          "alg": "(L' u' L) U (L' u L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y2 (R' u' R) U (R' u R)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L' u' L U' L' u L",
+      "setups_alt": [
+        "B L' U' B L B2",
+        "F2 D R' D' F' U F'",
+        "L' D' B U' B' D L"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 7",
+      "name": "F2L-EXP 7",
+      "group": "Expert Cases",
+      "subgroup": "Pair in wrong slot",
+      "algorithms": [
+        {
+          "alg": "R' F R2 U' R2' F' R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' F R2 U R2 F' R",
+      "setups_alt": [
+        "R U' L2 D' B D L2 R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 8",
+      "name": "F2L-EXP 8",
+      "group": "Expert Cases",
+      "subgroup": "Pair in wrong slot",
+      "algorithms": [
+        {
+          "alg": "y L F' L2' U L2 F L'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L F' L2 U' L2 F L' y'",
+      "setups_alt": [
+        "R U R' U2 B' R B R' U'",
+        "R U2 R' U B' R B R' U'",
+        "F R' D' F D F2 U' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 9",
+      "name": "F2L-EXP 9",
+      "group": "Expert Cases",
+      "subgroup": "Pair in wrong slot",
+      "algorithms": [
+        {
+          "alg": "R (L U2 L') R'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y L' (R' U2 R) L",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R L U2 L' R'",
+      "setups_alt": [
+        "F2 L2 F L2 B' F U2 B"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 10",
+      "name": "F2L-EXP 10",
+      "group": "Expert Cases",
+      "subgroup": "Edge flipped / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "L F2' L' F U' F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(L F' L' U' F) U' (R U R')",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F' U F' L F2 L'",
+      "setups_alt": [
+        "R' F D' F D R F2 U2",
+        "F2 L F' D F2 D' L' F U",
+        "F' U B F' L F2 L' B'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 11",
+      "name": "F2L-EXP 11",
+      "group": "Expert Cases",
+      "subgroup": "Edge flipped / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "y R' F2 R F' U F'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y (R' F R U F') U (L' U' L)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F U' F R' F2 R y'",
+      "setups_alt": [
+        "R U' R B' R2 B",
+        "F R' D R' D' F' R2 U2",
+        "R2 B' R D' R2 D B R' U'",
+        "R U' L' R B' R2 B L"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 12",
+      "name": "F2L-EXP 12",
+      "group": "Expert Cases",
+      "subgroup": "Edge flipped / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "(R' F R U' F') (R U' R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U R' F U R' F' R",
+      "setups_alt": [
+        "R U L R' D F D' L'",
+        "R F U F D R D' F2 R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 13",
+      "name": "F2L-EXP 13",
+      "group": "Expert Cases",
+      "subgroup": "Edge flipped / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "y (L F' L' U F) (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L F' U' L F L' y'",
+      "setups_alt": [
+        "F' U F R U2 R2 U2 R U",
+        "F' U' F R' U' F R F'",
+        "F' U' B' F D' R' D B"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 14",
+      "name": "F2L-EXP 14",
+      "group": "Expert Cases",
+      "subgroup": "Edge flipped / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "(L' U L) (M' U R U' r') (R U' R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U R' r U R' U' M L' U' L",
+      "setups_alt": [
+        "L D F D' F2 L' F' U' F' U"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 15",
+      "name": "F2L-EXP 15",
+      "group": "Expert Cases",
+      "subgroup": "Edge flipped / Corner in Adjacent Slot",
+      "algorithms": [
+        {
+          "alg": "y (R U' R') (M' U' L' U l) (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L l' U' L U M R U R' y'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 16",
+      "name": "F2L-EXP 16",
+      "group": "Expert Cases",
+      "subgroup": "Other easy cases",
+      "algorithms": [
+        {
+          "alg": "(R' F R U' F') U (R U' R')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U' F U R' F' R",
+      "setups_alt": [
+        "R U2 R' F' U2 F2 U F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 17",
+      "name": "F2L-EXP 17",
+      "group": "Expert Cases",
+      "subgroup": "Other easy cases",
+      "algorithms": [
+        {
+          "alg": "y (L F' L' U F) U' (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L U F' U' L F L' y'",
+      "setups_alt": [
+        "F' U2 F R U2 R2 U' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 18",
+      "name": "F2L-EXP 18",
+      "group": "Expert Cases",
+      "subgroup": "Pair in wrong slot",
+      "algorithms": [
+        {
+          "alg": "F' U R' U2 R F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F' R' U2 R U' F",
+      "setups_alt": [
+        "F' R' U2 R U' F"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 19",
+      "name": "F2L-EXP 19",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "R U' R2 U' (R U' R') U' R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' U R U R' U R2 U R'",
+      "setups_alt": [
+        "R' U R U R' U R2 U R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 20",
+      "name": "F2L-EXP 20",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "F' U (L' U L) U' (L U L') F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "F' U F (L U L') U (L U' L')",
+          "source": "f2ltrainer",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "F' L U' L' U L' U' L U' F",
+      "setups_alt": [
+        "L2 F' L' F L' F' U' F U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 21",
+      "name": "F2L-EXP 21",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "(R U' R') U' (L' U L) U (L' U' L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U L U' L' U' L U R U R'",
+      "setups_alt": [
+        "R2 D2 L' B2 L' B2 L2 D2 R2 U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 22",
+      "name": "F2L-EXP 22",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "(R U R') U' (R U' R') U (R' U' R)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') U (R' U' R) U' (R' U R)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R' U R U' R U R' U R U' R'",
+      "setups_alt": [
+        "R' U R U B' R B U2 R' U'",
+        "R2 F R F' R U' R U R'",
+        "R' F' U2 F R U R U R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 23",
+      "name": "F2L-EXP 23",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "(R U R') U' (R U' R') (f' L' f)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') U f' U' (L' U L') f",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') y (R' U' R) U' (R' U R)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "f' L f R U R' U R U' R'",
+      "setups_alt": [
+        "B2 R B R' B R U R'",
+        "B' F' U B U' F R U R'",
+        "B' U B L U' L' R U R'",
+        "L' B L B2 U B R U R'",
+        "U' B2 R B R' B R U R'",
+        "U2 B2 R B R' B R U R'",
+        "U B2 R B R' B R U R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 24",
+      "name": "F2L-EXP 24",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "(R U' R') U' (L' U' L) U' (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U R') U' (R U' R') U' (L' U' L)",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') F' r' F' r2 U r'",
+          "source": "f2ltrainer",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "L' U' L U L' U L U R U R'",
+      "setups_alt": [
+        "L' B' U2 B L U' R U R'",
+        "L2 B L B' L U R U R'",
+        "L F' L2 U L F R U R' U'",
+        "L' U B' U B L R U R'",
+        "L' U L R B U B' U R' U'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 25",
+      "name": "F2L-EXP 25",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "F' (R' U R) U' (R' U' R) F",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F' R' U R U R' U' R F",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 26",
+      "name": "F2L-EXP 26",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "(R U' R') U' (R U R') (L U' L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') U' R U M' B' r'",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L U L' R U' R' U R U R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 27",
+      "name": "F2L-EXP 27",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "R' F R2 U' (R' U' R) U R' U2 F'",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R' F R F') U2 (L' U L) U' (L' U' L)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "F U2 R U' R' U R U R2 F' R",
+      "setups_alt": [
+        "F U' F' R U B' R B R2 U'",
+        "F U' F' R U2 R2 F R F' U2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 28",
+      "name": "F2L-EXP 28",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "(R U R') U2 (R U' R') (f R f')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "f R' f' R U R' U2 R U' R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 29",
+      "name": "F2L-EXP 29",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "(R U' R') U (R U2 R') (L U2 L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') U' (L U2 L') U (L U' L')",
+          "source": "f2ltrainer",
+          "verified": true,
+          "pre_auf": "U'"
+        },
+        {
+          "alg": "(R U' R') U (R U2 R') U' (L U' L')",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L U2 L' R U2 R' U' R U R'",
+      "setups_alt": [
+        "R' D' R2 U' R D B2 R2 U2",
+        "U' R' D' R2 U' R D B2 R2 U2",
+        "U2 R' D' R2 U' R D B2 R2 U2",
+        "U R' D' R2 U' R D B2 R2 U2"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 30",
+      "name": "F2L-EXP 30",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "(R U R') d' (L U' L') U (L U L')",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U R') U' y' (R U' R') U (R U R')",
+          "source": "f2ltrainer",
+          "verified": true
+        },
+        {
+          "alg": "(R U R') (L' U L) U' (L F' L' F) (L' U L)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L U' L' U' L U L' d R U' R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 31",
+      "name": "F2L-EXP 31",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "R U' R2 U2 (R U R') U2 R",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "R U' R2 U2 (R U2 R') U R",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U' R' U2 R2 U R'",
+      "setups_alt": [
+        "R' U2 R U' R' U2 R2 U R'",
+        "R' U' R U2 R' U2 R2 U R'",
+        "R' U F' U' F U2 R2 U R'",
+        "B U' B' R U' F R F' R' U2",
+        "B R U2 R' U' B' F' U F"
+      ],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 32",
+      "name": "F2L-EXP 32",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge unoriented",
+      "algorithms": [
+        {
+          "alg": "(R U' R') d (R' U2 R) (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "(R U' R') U y (L' U2 L) (R' U R)",
+          "source": "f2ltrainer",
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L R' U2 R d' R U R'",
+      "setups_alt": [],
+      "verified": true
+    },
+    {
+      "id": "F2L-EXP 33",
+      "name": "F2L-EXP 33",
+      "group": "Expert Cases",
+      "subgroup": "Both pieces in wrong slot / Edge oriented",
+      "algorithms": [
+        {
+          "alg": "(R U' R') U2 (L' U2 L) U2 (L' U L)",
+          "source": "f2ltrainer",
+          "recommended_by": [
+            "f2ltrainer"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "L' U' L U2 L' U2 L U2 R U R'",
+      "setups_alt": [],
+      "verified": true
+    }
+  ]
+}

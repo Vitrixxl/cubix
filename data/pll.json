@@ -1,0 +1,1476 @@
+{
+  "set": "PLL",
+  "generated": "2026-09-04",
+  "count": 21,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "PLL Aa",
+      "name": "Aa Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "obobbbbbb",
+        "F": "ggbgggggg",
+        "L": "brrrrrrrr",
+        "R": "rogoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "x R' U R' D2 R U' R' D2 R2 x'",
+          "source": "speedcubedb",
+          "votes": 199,
+          "etm": 11,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=ibDaGbBp1wY",
+          "verified": true
+        },
+        {
+          "alg": "y' x L2 D2 L' U' L D2 L' U L'",
+          "source": "speedcubedb",
+          "votes": 45,
+          "etm": 10,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y x' R2 D2 R' U' R D2 R' U R' x",
+          "source": "speedcubedb",
+          "votes": 43,
+          "etm": 11,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "l' U R' D2 R U' R' D2 R2 x'",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 10,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "x R2 D2 R U R' D2 R U' R x'",
+      "setups_alt": [
+        "x R2' D2' R U R' D2' R U' R x'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Ab",
+      "name": "Ab Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "rbgbbbbbb",
+        "F": "ggogggggg",
+        "L": "orrrrrrrr",
+        "R": "boboooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "x R2 D2 R U R' D2 R U' R x'",
+          "source": "speedcubedb",
+          "votes": 164,
+          "etm": 11,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Nd0NvF4PF-g",
+          "verified": true
+        },
+        {
+          "alg": "y' x L U' L D2 L' U L D2 L2",
+          "source": "speedcubedb",
+          "votes": 32,
+          "etm": 10,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y x' R U' R D2 R' U R D2 R2 x",
+          "source": "speedcubedb",
+          "votes": 25,
+          "etm": 11,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' B' R U' R D R' U R D' R2 B R",
+          "source": "speedcubedb",
+          "votes": 18,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "x R' U R' D2 R U' R' D2 R2 x'",
+      "setups_alt": [
+        "x R' U R' D2' R U' R' D2' R2' x'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL E",
+      "name": "E Perm",
+      "group": "Diagonal Corner Swap",
+      "subgroup": "Opp Swap",
+      "probability": "1/36",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bogoooooo",
+        "F": "grbrrrrrr",
+        "L": "obrbbbbbb",
+        "R": "rgogggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y x' R U' R' D R U R' D' R U R' D R U' R' D' x",
+          "source": "speedcubedb",
+          "votes": 163,
+          "etm": 18,
+          "stm": 16,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=ifo0uz8s4cI",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' R' D' R U' R' D R U R' D' R U R' D R2",
+          "source": "speedcubedb",
+          "votes": 47,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 U F' R' U R U' R' U R U' R' U R U' F U' R2",
+          "source": "speedcubedb",
+          "votes": 31,
+          "etm": 18,
+          "stm": 18,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y x' L' U L D' L' U' L D L' U' L D' L' U L D",
+          "source": "speedcubedb",
+          "votes": 18,
+          "etm": 17,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "x' D R U R' D' R U' R' D R U' R' D' R U R' x y'",
+      "setups_alt": [
+        "x' D R U R' D' R U' R' D R U' R' D' R U R' x y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL F",
+      "name": "F Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bogoooooo",
+        "F": "rrrrrrrrr",
+        "L": "ogbbbbbbb",
+        "R": "gbogggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R",
+          "source": "speedcubedb",
+          "votes": 194,
+          "etm": 18,
+          "stm": 18,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=KLL-Qt9Lm90",
+          "verified": true
+        },
+        {
+          "alg": "y R' F R f' R' F R2 U R' U' R' F' R2 U R' S",
+          "source": "speedcubedb",
+          "votes": 55,
+          "etm": 16,
+          "stm": 16,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U R U' R2 F' U' F U R F R' F' R2",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 F R F' R' U' F' U F R2 U R' U' R",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R' U' R U' R' U R U R2 F' R U R U' R' F U R y'",
+      "setups_alt": [
+        "R' U' R U' R' U R U R2' F' R U R U' R' F U R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Ga",
+      "name": "Ga Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "ogbbbbbbb",
+        "F": "googggggg",
+        "L": "rbrrrrrrr",
+        "R": "brgoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R2 U R' U R' U' R U' R2 D U' R' U R D'",
+          "source": "speedcubedb",
+          "votes": 119,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=wd4gd8B7QSA",
+          "verified": true
+        },
+        {
+          "alg": "R2 u R' U R' U' R u' R2 F' U F",
+          "source": "speedcubedb",
+          "votes": 25,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' F' R U R' U' R' F R U' R' F R2 U' R' U' R U R' F'",
+          "source": "speedcubedb",
+          "votes": 15,
+          "etm": 22,
+          "stm": 22,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "D' R2 U R' U R' U' R U' R2 U' D R' U R",
+          "source": "speedcubedb",
+          "votes": 11,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 U R' U R' U' R U' R2 (U' D) R' U R D'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "R2 u R' U R' U' R u' R2 y' R' U R",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "D R' U' R U D' R2 U R' U R U' R U' R2",
+      "setups_alt": [
+        "R' U' R D' U R2' U R' U R U' R U' R2' D"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Gb",
+      "name": "Gb Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "orbbbbbbb",
+        "F": "gbogggggg",
+        "L": "rorrrrrrr",
+        "R": "bggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "D R' U' R U D' R2 U R' U R U' R U' R2",
+          "source": "speedcubedb",
+          "votes": 143,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=8fJRWcKSMUk",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U D' R2 U R' U R U' R U' R2 D",
+          "source": "speedcubedb",
+          "votes": 108,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y F' U' F R2 u R' U R U' R u' R2",
+          "source": "speedcubedb",
+          "votes": 57,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' d' F R2 u R' U R U' R u' R2",
+          "source": "speedcubedb",
+          "votes": 38,
+          "etm": 12,
+          "stm": 12,
+          "gen": "5GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 U R' U R' U' R U' R2 D U' R' U R D'",
+      "setups_alt": [
+        "R2' U R' U R' U' R U' R2' D U' R' U R D'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Gc",
+      "name": "Gc Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "oobbbbbbb",
+        "F": "gbogggggg",
+        "L": "rgrrrrrrr",
+        "R": "brgoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R2 U' R U' R U R' U R2 D' U R U' R' D",
+          "source": "speedcubedb",
+          "votes": 98,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=L8C6nY-Qy3E",
+          "verified": true
+        },
+        {
+          "alg": "y2 R2 F2 R U2 R U2 R' F R U R' U' R' F R2",
+          "source": "speedcubedb",
+          "votes": 91,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=M9rWmN8BzKw",
+          "verified": true
+        },
+        {
+          "alg": "D R2 U' R U' R U R' U R2 D' U R U' R'",
+          "source": "speedcubedb",
+          "votes": 75,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 u' R U' R U R' u R2 f R' f'",
+          "source": "speedcubedb",
+          "votes": 22,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 U' R U' R U R' U R2 (U D') R U' R' D",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "R2 u' R U' R U R' u R2 y R U' R'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "D' R U R' U' D R2 U' R U' R' U R' U R2",
+      "setups_alt": [
+        "D' R U R' U' D R2' U' R U' R' U R' U R2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Gd",
+      "name": "Gd Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "ogbbbbbbb",
+        "F": "grogggggg",
+        "L": "rorrrrrrr",
+        "R": "bbgoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U' D R2 U' R U' R' U R' U R2 D'",
+          "source": "speedcubedb",
+          "votes": 112,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "D' R U R' U' D R2 U' R U' R' U R' U R2",
+          "source": "speedcubedb",
+          "votes": 35,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=ESv6a7Cid6c",
+          "verified": true
+        },
+        {
+          "alg": "R U R' y' R2 u' R U' R' U R' u R2",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 13,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 F' R U R U' R' F' R U2 R' U2 R' F2 R2",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "D R2 U' R U' R U R' U R2 D' U R U' R'",
+      "setups_alt": [
+        "R2' U' R U' R U R' U R2' D' U R U' R' D"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL H",
+      "name": "H Perm",
+      "group": "Edges Only",
+      "subgroup": "EPLL",
+      "probability": "1/72",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bgbbbbbbb",
+        "F": "gbggggggg",
+        "L": "rorrrrrrr",
+        "R": "orooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "M2 U M2 U2 M2 U M2",
+          "source": "speedcubedb",
+          "votes": 142,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "M2 U' M2 U2 M2 U' M2",
+          "source": "speedcubedb",
+          "votes": 137,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=pmA8ToRfOXQ",
+          "verified": true
+        },
+        {
+          "alg": "R2 S2 R2 U' R2 S2 R2",
+          "source": "speedcubedb",
+          "votes": 17,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "M2 U2 M2 U M2 U2 M2",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "M2 U' M2 U2 M2 U' M2",
+      "setups_alt": [
+        "M2' U' M2' U2' M2' U' M2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Ja",
+      "name": "Ja Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "ggooooooo",
+        "F": "oobrrrrrr",
+        "L": "bbgbbbbbb",
+        "R": "rrrgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 x R2 F R F' R U2 r' U r U2 x'",
+          "source": "speedcubedb",
+          "votes": 151,
+          "etm": 12,
+          "stm": 10,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=INlrVWiGZjc",
+          "verified": true
+        },
+        {
+          "alg": "y R' U L' U2 R U' R' U2 R L",
+          "source": "speedcubedb",
+          "votes": 68,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=nh9th-AYF_8",
+          "verified": true
+        },
+        {
+          "alg": "L' U' L F L' U' L U L F' L2 U L",
+          "source": "speedcubedb",
+          "votes": 64,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U' L' U R' U2 L U' L' U2 L",
+          "source": "speedcubedb",
+          "votes": 23,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U' L F L' U' L U L F' L2 U L",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y' R' U L' U2 R U' R' U2 R L",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "x U2 r' U' r U2 R' F R' F' R2 x' y2",
+      "setups_alt": [
+        "L' R' U2' R U R' U2' L U' R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Jb",
+      "name": "Jb Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "goobbbbbb",
+        "F": "rgggggggg",
+        "L": "bbbrrrrrr",
+        "R": "orroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 211,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=QXIIxGzMftw",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "R U2 R' U' R U2 L' U R' U' L",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=LG79DHx4uvE",
+          "verified": true
+        },
+        {
+          "alg": "r' F R F' r U2 R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "L' U R U' L U2 R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R2 F' R U R U' R' F R U' R'",
+      "setups_alt": [
+        "R U R2' F' R U R U' R' F R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Na",
+      "name": "Na Perm",
+      "group": "Diagonal Corner Swap",
+      "subgroup": "Opp Swap",
+      "probability": "1/72",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "gbbbbbbbb",
+        "F": "bgggggggg",
+        "L": "roorrrrrr",
+        "R": "orroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'",
+          "source": "speedcubedb",
+          "votes": 149,
+          "etm": 21,
+          "stm": 21,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=RWpMAU_aG4Y",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "F' R U R' U' R' F R2 F U' R' U' R U F' R'",
+          "source": "speedcubedb",
+          "votes": 61,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=iNfx--vOxd0",
+          "verified": true
+        },
+        {
+          "alg": "R F U' R' U R U F' R2 F' R U R U' R' F",
+          "source": "speedcubedb",
+          "votes": 37,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "r' D r U2 r' D r U2 r' D r U2 r' D r U2 r' D r",
+          "source": "speedcubedb",
+          "votes": 32,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "z U R' D R2 U' R D' U R' D R2 U' R D'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R U R' U2 R U R2 F' R U R U' R' F R U' R' U' R U' R'",
+      "setups_alt": [
+        "R U R' U2' R U R2' F' R U R U' R' F R U' R' U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Nb",
+      "name": "Nb Perm",
+      "group": "Diagonal Corner Swap",
+      "subgroup": "Opp Swap",
+      "probability": "1/72",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bbgbbbbbb",
+        "F": "ggbgggggg",
+        "L": "oorrrrrrr",
+        "R": "rrooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U R U' R' F' U' F R U R' F R' F' R U' R",
+          "source": "speedcubedb",
+          "votes": 124,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "r' D' F r U' r' F' D r2 U r' U' r' F r F'",
+          "source": "speedcubedb",
+          "votes": 110,
+          "etm": 16,
+          "stm": 16,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=P5yMlQQ3nsM",
+          "verified": true
+        },
+        {
+          "alg": "R' U L' U2 R U' L R' U L' U2 R U' L",
+          "source": "speedcubedb",
+          "votes": 34,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=tVFEJ077hwI",
+          "verified": true
+        },
+        {
+          "alg": "R' U R U' R' F' U' F R U R' U' R U' f R f'",
+          "source": "speedcubedb",
+          "votes": 23,
+          "etm": 17,
+          "stm": 17,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "z D' R U' R2 D R' U D' R U' R2 D R' U",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U'"
+        }
+      ],
+      "setup": "R' U R' F R F' R U' R' F' U F R U R' U' R",
+      "setups_alt": [
+        "F r' F' r U r U' r2' D' F r U r' F' D r"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Ra",
+      "name": "Ra Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "ogroooooo",
+        "F": "bobrrrrrr",
+        "L": "gbobbbbbb",
+        "R": "rrggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U' R' U' R U R D R' U' R D' R' U2 R'",
+          "source": "speedcubedb",
+          "votes": 151,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=IGHfp6CgfaA",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' F' R U2 R' U2 R' F R U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 63,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L U2 L' U2 L F' L' U' L U L F L2",
+          "source": "speedcubedb",
+          "votes": 31,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U' R' U' R U R' U R' D' R U' R' D R2 U R'",
+          "source": "speedcubedb",
+          "votes": 18,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U' R' U' R U R D R' U' R D' R' U2 R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "R U R' F' R U2 R' U2 R' F R U R U2 R'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y' L U2 L' U2 L F' L' U' L U L F L2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R U2 R D R' U R D' R' U' R' U R U R' y'",
+      "setups_alt": [
+        "R U2' R D R' U R D' R' U' R' U R U R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Rb",
+      "name": "Rb Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bogbbbbbb",
+        "F": "rgrgggggg",
+        "L": "obbrrrrrr",
+        "R": "grooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U2 R U2 R' F R U R' U' R' F' R2",
+          "source": "speedcubedb",
+          "votes": 112,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=FwXr8Cawxfg",
+          "verified": true
+        },
+        {
+          "alg": "y R2 F R U R U' R' F' R U2 R' U2 R",
+          "source": "speedcubedb",
+          "votes": 76,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U2 R' D' R U' R' D R U R U' R' U' R",
+          "source": "speedcubedb",
+          "votes": 50,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=h5qLhgpKzyA",
+          "verified": true
+        },
+        {
+          "alg": "y R' U R U R' U' R' D' R U R' D R U2 R",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 F R U R U' R' F' R U2 R' U2 R",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y' R' U2 R U2 R' F R U R' U' R' F' R2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R2 F R U R U' R' F' R U2 R' U2 R",
+      "setups_alt": [
+        "R' U R U R' U' R' D' R U R' D R U2' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL T",
+      "name": "T Perm",
+      "group": "Adjacent Corner Swap",
+      "subgroup": "Adj Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "obbbbbbbb",
+        "F": "ggogggggg",
+        "L": "rorrrrrrr",
+        "R": "brgoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F'",
+          "source": "speedcubedb",
+          "votes": 222,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=PX1R7VW9YTs",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "l b d' L' U' F U2 L' U' L' U L U' f' S M r u E U' R'",
+          "source": "speedcubedb",
+          "votes": 29,
+          "etm": 21,
+          "stm": 21,
+          "gen": "13GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' R' F R2 U' R' U F' L' U L",
+          "source": "speedcubedb",
+          "votes": 19,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 u R2 u' R2 F2 u' F2 u F2",
+          "source": "speedcubedb",
+          "votes": 19,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R U' R' U R U R2 F' R U R U' R'",
+      "setups_alt": [
+        "F R U' R' U R U R2' F' R U R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Ua",
+      "name": "Ua Perm",
+      "group": "Edges Only",
+      "subgroup": "EPLL",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "brbbbbbbb",
+        "F": "ggggggggg",
+        "L": "rorrrrrrr",
+        "R": "obooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 M2 U M U2 M' U M2",
+          "source": "speedcubedb",
+          "votes": 137,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=9wQWsy2K9Ig",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U R' U' R2 U' R' U R' U R",
+          "source": "speedcubedb",
+          "votes": 120,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=WNkmbgnvQPU",
+          "verified": true
+        },
+        {
+          "alg": "y R2 U' S' U2 S U' R2",
+          "source": "speedcubedb",
+          "votes": 81,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U' R U R U R U' R' U' R2",
+          "source": "speedcubedb",
+          "votes": 72,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "M2 U M U2 M' U M2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "R U' R U R U R U' R' U' R2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R2 U' R' U' R U R U R U' R",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "M2 U' M U2 M' U' M2 y2",
+      "setups_alt": [
+        "M2' U' M' U2' M U' M2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Ub",
+      "name": "Ub Perm",
+      "group": "Edges Only",
+      "subgroup": "EPLL",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bobbbbbbb",
+        "F": "ggggggggg",
+        "L": "rbrrrrrrr",
+        "R": "orooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 M2 U' M U2 M' U' M2",
+          "source": "speedcubedb",
+          "votes": 131,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=N-bzJHQUOSk",
+          "verified": true
+        },
+        {
+          "alg": "R' U R' U' R' U' R' U R U R2",
+          "source": "speedcubedb",
+          "votes": 56,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2' U R U R' U' R3 U' R' U R'",
+          "source": "speedcubedb",
+          "votes": 52,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R2 U R U R' U' R' U' R' U R'",
+          "source": "speedcubedb",
+          "votes": 43,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "M2 U' M U2 M' U' M2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "R2 U (R U R' U') R' U' R' U R'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R' U R' U' R' U' (R' U R U) R2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R' U R' U' R3 U' (R' U R U) R2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "M2 U M U2 M' U M2 y2",
+      "setups_alt": [
+        "M2' U M' U2' M U M2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL V",
+      "name": "V Perm",
+      "group": "Diagonal Corner Swap",
+      "subgroup": "Opp Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "bogbbbbbb",
+        "F": "ggbgggggg",
+        "L": "orrrrrrrr",
+        "R": "rbooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U R' U' R D' R' D R' U D' R2 U' R2 D R2",
+          "source": "speedcubedb",
+          "votes": 106,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=4mobE-mgRZs",
+          "verified": true
+        },
+        {
+          "alg": "R' U R U' R' f' U' R U2 R' U' R U' R' f R",
+          "source": "speedcubedb",
+          "votes": 95,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U R' U' y R' F' R2 U' R' U R' F R F",
+          "source": "speedcubedb",
+          "votes": 83,
+          "etm": 15,
+          "stm": 14,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Ud9ZDcS2yRk",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y R U' R U R' D R D' R U' D R2 U R2 D' R2",
+          "source": "speedcubedb",
+          "votes": 81,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "z D' R2 D R2 U R' D' R U' R U R' D R U' z'",
+          "source": "jperm",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' D R U' R U' R U R2 D R' U' R D2",
+          "source": "jperm",
+          "verified": true
+        },
+        {
+          "alg": "x' R' F R F' U R U2 R' U' R U' R' U2 R U R' U'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R2 D' R2 U R2 D U' R D' R D R' U R U' R",
+      "setups_alt": [
+        "D2' R' U R D' R2' U' R' U R' U R' D' R U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Y",
+      "name": "Y Perm",
+      "group": "Diagonal Corner Swap",
+      "subgroup": "Opp Swap",
+      "probability": "1/18",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "brgbbbbbb",
+        "F": "ggbgggggg",
+        "L": "obrrrrrrr",
+        "R": "roooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 170,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=gC3LvhSAXSA",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "F R' F R2 U' R' U' R U R' F' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 59,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 U' R2 U' R2 U F U F' R2 F U' F'",
+          "source": "speedcubedb",
+          "votes": 15,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R' F' R U R U' R2 U' R U R f' U' f",
+          "source": "speedcubedb",
+          "votes": 9,
+          "etm": 15,
+          "stm": 15,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [
+        "F R' F' R U R U' R' F R U' R' U R U R' F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "PLL Z",
+      "name": "Z Perm",
+      "group": "Edges Only",
+      "subgroup": "EPLL",
+      "probability": "1/36",
+      "stickers": {
+        "U": "yyyyyyyyy",
+        "B": "gogbbbbbb",
+        "F": "brbgggggg",
+        "L": "ogorrrrrr",
+        "R": "rbroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "M' U' M2 U' M2 U' M' U2 M2",
+          "source": "speedcubedb",
+          "votes": 90,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "M2 U M2 U M' U2 M2 U2 M'",
+          "source": "speedcubedb",
+          "votes": 83,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y M2 U' M2 U' M' U2 M2 U2 M'",
+          "source": "speedcubedb",
+          "votes": 43,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=I0haU9Z2MeA",
+          "verified": true
+        },
+        {
+          "alg": "y M' U M2 U M2 U M' U2 M2",
+          "source": "speedcubedb",
+          "votes": 41,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "M' U M2 U M2 U M' U2 M2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y M' U' M2 U' M2 U' M' U2 M2",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y M2 U M2 U M' U2 M2 U2 M'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "M2 U' M2 U' M' U2 M2 U2 M'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "M2 U2 M U M2 U M2 U M",
+      "setups_alt": [
+        "M U2' M2' U2' M U' M2' U' M2'"
+      ],
+      "verified": true
+    }
+  ]
+}

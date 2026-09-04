@@ -1,0 +1,3878 @@
+{
+  "set": "OLL",
+  "generated": "2026-09-04",
+  "count": 57,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "OLL 1",
+      "name": "Runway",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyllll",
+        "B": "lylbbbbbb",
+        "F": "lylgggggg",
+        "L": "yyyrrrrrr",
+        "R": "yyyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R2 F R F' U2 R' F R F'",
+          "source": "speedcubedb",
+          "votes": 149,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Krt5t5X9gTo",
+          "verified": true
+        },
+        {
+          "alg": "y R U' R2 D' r U' r' D R2 U R'",
+          "source": "speedcubedb",
+          "votes": 34,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "f R U R' U' R f' U' r' U' R U M'",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 13,
+          "stm": 13,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "L' U2 L2 F' L' F U2 L F' L' F",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' R' F R F' U2 R' F R F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U2 F R' F' R2 U2 R'",
+      "setups_alt": [
+        "F R' F' R U2' F R' F' R2' U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 2",
+      "name": "Zamboni",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyllll",
+        "B": "yylbbbbbb",
+        "F": "lyygggggg",
+        "L": "yyyrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U' R2 D' r U r' D R2 U R'",
+          "source": "speedcubedb",
+          "votes": 89,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R U R' U' S R U R' U' f'",
+          "source": "speedcubedb",
+          "votes": 64,
+          "etm": 11,
+          "stm": 11,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R U R' U' F' f R U R' U' f'",
+          "source": "speedcubedb",
+          "votes": 38,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=EyCwdkn03sM",
+          "verified": true
+        },
+        {
+          "alg": "y r U r' U2 R U2 R' U2 r U' r'",
+          "source": "speedcubedb",
+          "votes": 38,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=piR89TULJ7A",
+          "verified": true
+        },
+        {
+          "alg": "r U r' U2 r U2 R' U2 R U' r'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y' F R U R' U' F' f R U R' U' f'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y' F R U R' U' S R U R' U' f'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R U' R2 D' r U' r' D R2 U R' y",
+      "setups_alt": [
+        "f U R U' R' f' F U R U' R' F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 3",
+      "name": "Anti-Mouse",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllylyll",
+        "B": "lyyrrrrrr",
+        "F": "lyyoooooo",
+        "L": "lylgggggg",
+        "R": "lyybbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' f R U R' U' f' U' F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 44,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=KdgjbaG0YmI",
+          "verified": true
+        },
+        {
+          "alg": "y R' F2 R2 U2 R' F R U2 R2 F2 R",
+          "source": "speedcubedb",
+          "votes": 36,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "r' R2 U R' U r U2 r' U M'",
+          "source": "speedcubedb",
+          "votes": 29,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "M R U R' U r U2 r' U M'",
+          "source": "speedcubedb",
+          "votes": 19,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F U R U' R' F' U F R U R' U' F'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "F U R U' R' F' U f U R U' R' f' y",
+      "setups_alt": [
+        "F U R U' R' F' U f U R U' R' f' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 4",
+      "name": "Mouse",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyllly",
+        "B": "yylrrrrrr",
+        "F": "yyloooooo",
+        "L": "yylgggggg",
+        "R": "lylbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R' F2 R2 U2 R' F' R U2 R2 F2 R",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' f R U R' U' f' U F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 26,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=JlGs-0-RxJk",
+          "verified": true
+        },
+        {
+          "alg": "R' F R F' U' S R' U' R U R S'",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F U R U' R' F' U' F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "M U' r U2 r' U' R U' R' M'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R' F2 R2 U2 R' F R U2 R2 F2 R y",
+      "setups_alt": [
+        "F U R U' R' F' U' f U R U' R' f' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 5",
+      "name": "Lefty Square",
+      "group": "Square Shape",
+      "subgroup": "Square Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyylyy",
+        "B": "lyybbbbbb",
+        "F": "lllgggggg",
+        "L": "lyyrrrrrr",
+        "R": "llyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r' U2 R U R' U r",
+          "source": "speedcubedb",
+          "votes": 77,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=zDAhS61IFlw",
+          "verified": true
+        },
+        {
+          "alg": "y2 l' U2 L U L' U l",
+          "source": "speedcubedb",
+          "votes": 35,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F2 r U r' F R",
+          "source": "speedcubedb",
+          "votes": 22,
+          "etm": 7,
+          "stm": 7,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F2 L F L' F R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "l' U2 L U L' U l",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 r' U2 R U R' U r",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "r' U' R U' R' U2 r",
+      "setups_alt": [
+        "r' U' R U' R' U2' r"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 6",
+      "name": "Righty Square",
+      "group": "Square Shape",
+      "subgroup": "Square Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyylyylll",
+        "B": "lllbbbbbb",
+        "F": "yylgggggg",
+        "L": "yylrrrrrr",
+        "R": "ylloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U2 R' U' R U' r'",
+          "source": "speedcubedb",
+          "votes": 86,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=xtuAlp8AAj8",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "F U' R2 D R' U' R D' R2 U F'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 l U2 L' U' L U' l'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L F2 l' U' l F' L'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 7,
+          "stm": 7,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r U R' U R U2 r'",
+      "setups_alt": [
+        "r U R' U R U2' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 7",
+      "name": "Lightning",
+      "group": "Small Lightning Bolt",
+      "subgroup": "Lightning Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lylyylyll",
+        "B": "llybbbbbb",
+        "F": "lyygggggg",
+        "L": "lllrrrrrr",
+        "R": "lyyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U R' U R U2 r'",
+          "source": "speedcubedb",
+          "votes": 77,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Ls-uPCQbjqg",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "S' R U R' U R U2 R' U S",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L' U2 L U2 L F' L' F",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 f R U R' U' f' y2 F R' F' r U R U' r'",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 15,
+          "stm": 14,
+          "gen": "5GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r U2 R' U' R U' r'",
+      "setups_alt": [
+        "r U2' R' U' R U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 8",
+      "name": "Reverse Lightning",
+      "group": "Small Lightning Bolt",
+      "subgroup": "Lightning Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyllyylly",
+        "B": "yllgggggg",
+        "F": "yylbbbbbb",
+        "L": "yyloooooo",
+        "R": "lllrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 r' U' R U' R' U2 r",
+          "source": "speedcubedb",
+          "votes": 51,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Vptj1rtxcxA",
+          "verified": true
+        },
+        {
+          "alg": "l' U' L U' L' U2 l",
+          "source": "speedcubedb",
+          "votes": 46,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=FGA7rb5u6yg",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "R U2 R' U2 R' F R F'",
+          "source": "speedcubedb",
+          "votes": 26,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' F' r U' r' F2 R",
+          "source": "speedcubedb",
+          "votes": 22,
+          "etm": 7,
+          "stm": 7,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r' U2 R U R' U r y2",
+      "setups_alt": [
+        "r' U2' R U R' U r y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 9",
+      "name": "Kite",
+      "group": "Fish Shape",
+      "subgroup": "Fish Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llyyyllyl",
+        "B": "lyloooooo",
+        "F": "yllrrrrrr",
+        "L": "yllbbbbbb",
+        "R": "yylgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R' U' R' F R2 U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 89,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=1tkJ78gxtfU",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U' S' R U' R' S",
+          "source": "speedcubedb",
+          "votes": 22,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F' U' F r U' r' U r U r'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L' U' L U' L F' L' F L' U2 L",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' R' F R2 U R' U' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "F U R U' R2 F' R U R U' R' y'",
+      "setups_alt": [
+        "F U R U' R2' F' R U R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 10",
+      "name": "Anti-Kite",
+      "group": "Fish Shape",
+      "subgroup": "Fish Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llyyyllyl",
+        "B": "lyybbbbbb",
+        "F": "llygggggg",
+        "L": "llyrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U R' F R F' R U2 R'",
+          "source": "speedcubedb",
+          "votes": 58,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=RPjJagkkvwM",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y F U F' R' F R U' R' F' R",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y M' R' U2 R U R' U R U M",
+          "source": "speedcubedb",
+          "votes": 9,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U' L U L F' L2 U' L U F",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r U R' U R U' R' U' r' R (U R U' R')",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' F R' F' R U' R U' R'",
+      "setups_alt": [
+        "R U2' R' F R' F' R U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 11",
+      "name": "Downstairs",
+      "group": "Small Lightning Bolt",
+      "subgroup": "Lightning Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyyyyl",
+        "B": "lyybbbbbb",
+        "F": "llygggggg",
+        "L": "lylrrrrrr",
+        "R": "llyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r' R2 U R' U R U2 R' U M'",
+          "source": "speedcubedb",
+          "votes": 45,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=YsNvf0oUw9U",
+          "verified": true
+        },
+        {
+          "alg": "y2 r U R' U R' F R F' R U2 r'",
+          "source": "speedcubedb",
+          "votes": 37,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "S R U R' U R U2 R' U2 S'",
+          "source": "speedcubedb",
+          "votes": 29,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "M R U R' U R U2 R' U M'",
+          "source": "speedcubedb",
+          "votes": 29,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "r U R' U R' F R F' R U2 r'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 r' R2 U R' U R U2 R' U M'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "M U' R U2 R' U' R U' R2 r",
+      "setups_alt": [
+        "M U' R U2' R' U' R U' R2' r"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 12",
+      "name": "Upstairs",
+      "group": "Small Lightning Bolt",
+      "subgroup": "Lightning Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llylyylyl",
+        "B": "lylbbbbbb",
+        "F": "yllgggggg",
+        "L": "yylrrrrrr",
+        "R": "ylloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y' M' R' U' R U' R' U2 R U' M",
+          "source": "speedcubedb",
+          "votes": 37,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=E5WsvlCzOrM",
+          "verified": true
+        },
+        {
+          "alg": "F R U R' U' F' U F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 29,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' S R' U' R U' R' U2 R U2 S'",
+          "source": "speedcubedb",
+          "votes": 18,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y M L' U' L U' L' U2 L U' M'",
+          "source": "speedcubedb",
+          "votes": 11,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "M' R' U' R U' R' U2 R U' R r'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U'"
+        }
+      ],
+      "setup": "M' U R' U2 R U R' U R M y",
+      "setups_alt": [
+        "F U R U' R' F' U' F U R U' R' F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 13",
+      "name": "Gun",
+      "group": "Knight Move Shape",
+      "subgroup": "Knight Move Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lllyyyyll",
+        "B": "lyybbbbbb",
+        "F": "lyygggggg",
+        "L": "lllrrrrrr",
+        "R": "llyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "F U R U2 R' U' R U R' F'",
+          "source": "speedcubedb",
+          "votes": 48,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Xz96dRD2DaI",
+          "verified": true
+        },
+        {
+          "alg": "F U R U' R2 F' R U R U' R'",
+          "source": "speedcubedb",
+          "votes": 44,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "r U' r' U' r U r' F' U F",
+          "source": "speedcubedb",
+          "votes": 28,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=LFkHgbjtymY",
+          "verified": true
+        },
+        {
+          "alg": "y2 f R U R2 U' R' U R U' f'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "r U' r' U' r U r' y' R' U R",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "F R U' R' U R U2 R' U' F'",
+      "setups_alt": [
+        "F' U' F r U' r' U r U r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 14",
+      "name": "Anti-Gun",
+      "group": "Knight Move Shape",
+      "subgroup": "Knight Move Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lllyyylly",
+        "B": "yylbbbbbb",
+        "F": "yylgggggg",
+        "L": "yllrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' F R U R' F' R F U' F'",
+          "source": "speedcubedb",
+          "votes": 56,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=xEoC4d91yAc",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "r U R' U' r' F R2 U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 30,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "l' U l U l' U' l F U' F'",
+          "source": "speedcubedb",
+          "votes": 9,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "S R U R' U' R' F R2 U R' U' f'",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 12,
+          "stm": 12,
+          "gen": "5GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U F' R' F R U' R' F' R",
+      "setups_alt": [
+        "F U F' R' F R U' R' F' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 15",
+      "name": "Squeegee",
+      "group": "Knight Move Shape",
+      "subgroup": "Knight Move Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lllyyylly",
+        "B": "lyybbbbbb",
+        "F": "lylgggggg",
+        "L": "llyrrrrrr",
+        "R": "llyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r' U' r R' U' R U r' U r",
+          "source": "speedcubedb",
+          "votes": 40,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=VeG5V1a6pHA",
+          "verified": true
+        },
+        {
+          "alg": "y2 l' U' l L' U' L U l' U l",
+          "source": "speedcubedb",
+          "votes": 35,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=B8q4UMQ2Kow",
+          "verified": true
+        },
+        {
+          "alg": "r' U' M' U' R U r' U r",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F' R L' U' L U R' F R",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "l' U' l L' U' L U l' U l",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 r' U' r R' U' R U r' U r",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "r' U' r U' R' U R r' U r",
+      "setups_alt": [
+        "r' U' r U' R' U R r' U r"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 16",
+      "name": "Anti-Squeegee",
+      "group": "Knight Move Shape",
+      "subgroup": "Knight Move Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llyyyylll",
+        "B": "lylbbbbbb",
+        "F": "yylgggggg",
+        "L": "yllrrrrrr",
+        "R": "ylloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U r' R U R' U' r U' r'",
+          "source": "speedcubedb",
+          "votes": 76,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=Gar0BFyHWXs",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "r U M U R' U' r U' r'",
+          "source": "speedcubedb",
+          "votes": 11,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F R U R' U' F' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 l U l' L U L' U' l U' l'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r U r' U R U' R' r U' r'",
+      "setups_alt": [
+        "r U r' U R U' R' r U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 17",
+      "name": "Slash",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylllyllly",
+        "B": "yylbbbbbb",
+        "F": "lylgggggg",
+        "L": "lyyrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U R' F R F' U2 R' F R F'",
+          "source": "speedcubedb",
+          "votes": 58,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=4QtUb6tleZE",
+          "verified": true
+        },
+        {
+          "alg": "y2 F R' F' R U S' R U' R' S",
+          "source": "speedcubedb",
+          "votes": 51,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F R' F' R2 r' U R U' R' U' M'",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 11,
+          "stm": 11,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' F' r U r' U' S r' F r S'",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R' F' R2 r' U R U' R' U' M'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R U R' U R' F R F' U2 R' F R F'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "F R' F' R U2 F R' F' R U' R U' R'",
+      "setups_alt": [
+        "F R' F' R U2' F R' F' R U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 18",
+      "name": "Crown",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylylyllll",
+        "B": "lylbbbbbb",
+        "F": "yyygggggg",
+        "L": "lylrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U2 R2 F R F' U2 M' U R U' r'",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 12,
+          "stm": 12,
+          "gen": "5GEN",
+          "youtube": "https://www.youtube.com/watch?v=2jrDoX0AQCc",
+          "verified": true
+        },
+        {
+          "alg": "r U R' U R U2 r2 U' R U' R' U2 r",
+          "source": "speedcubedb",
+          "votes": 23,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F S' R U' R' S R U2 R' U' F'",
+          "source": "speedcubedb",
+          "votes": 23,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R D r' U' r D' R' U' R2 F R F' R",
+          "source": "speedcubedb",
+          "votes": 10,
+          "etm": 13,
+          "stm": 13,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "r U R' U R U2 r' r' U' R U' R' U2 r",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' R' F R F' U2 M' (U R U' r')",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "r U R' U' M U2 F R' F' R2 U2 R' y'",
+      "setups_alt": [
+        "r' U2' R U R' U r2' U2' R' U' R U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 19",
+      "name": "Bunny",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylylyllll",
+        "B": "lylbbbbbb",
+        "F": "lylgggggg",
+        "L": "lyyrrrrrr",
+        "R": "yyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y S' R U R' S U' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 48,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=SmrT7tPMfFw",
+          "verified": true
+        },
+        {
+          "alg": "M U R U R' U' M' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 36,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U2 F R U R' U' F2 U2 F R",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "r' R U R U R' U' r R2 F R F'",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=OUTQriBA888",
+          "verified": true
+        },
+        {
+          "alg": "r' R U R U R' U' M' R' F R F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U S' R U' R' S y'",
+      "setups_alt": [
+        "F R' F' R M U R U' R' U' M'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 20",
+      "name": "Checkers",
+      "group": "Dot",
+      "subgroup": "Dot Case",
+      "probability": "1/216",
+      "stickers": {
+        "U": "ylylylyly",
+        "B": "lylbbbbbb",
+        "F": "lylgggggg",
+        "L": "lylrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U R' U' M2 U R U' R' U' M'",
+          "source": "speedcubedb",
+          "votes": 56,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "M' U2 M U2 M' U M U2 M' U2 M",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "S' R U R' S U' M' U R U' r'",
+          "source": "speedcubedb",
+          "votes": 28,
+          "etm": 11,
+          "stm": 11,
+          "gen": "5GEN",
+          "youtube": "https://www.youtube.com/watch?v=EWrqt5KvmLo",
+          "verified": true
+        },
+        {
+          "alg": "S R' U' R U R U R U' R' S'",
+          "source": "speedcubedb",
+          "votes": 25,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "r' R U (R U R' U') M2 U R U' r'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "M U R U R' U' M2 U R U' r'",
+      "setups_alt": [
+        "r U R' U' M2' U R U' R' U' M'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 21",
+      "name": "H Shape",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/108",
+      "stickers": {
+        "U": "lylyyylyl",
+        "B": "llloooooo",
+        "F": "lllrrrrrr",
+        "L": "ylybbbbbb",
+        "R": "ylygggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U R U' R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 78,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=LkLCxmV63Sc",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 48,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F R U R' U' R U R' U' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 34,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=AF0bvyLDsgI",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U' R U R' U' R U' R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y R U R' U R U' R' U R U2 R'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R U2 R' U' R U R' U' R U' R'",
+      "setups_alt": [
+        "R U R' U R U' R' U R U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 22",
+      "name": "Pi Shape",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/108",
+      "stickers": {
+        "U": "lylyyylyl",
+        "B": "yllbbbbbb",
+        "F": "llygggggg",
+        "L": "ylyrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R2 U' R2 U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 98,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=Z6SYc0MyBnk",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "R' U2 R2 U R2 U R2 U2 R'",
+          "source": "speedcubedb",
+          "votes": 18,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "f R U R' U' S' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 17,
+          "etm": 11,
+          "stm": 11,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "f R U R' U' f' F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R2 U R2 U R2 U2 R'",
+      "setups_alt": [
+        "R' U2' R2' U R2' U R2' U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 23",
+      "name": "U Shape",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yyyyyylyl",
+        "B": "lllbbbbbb",
+        "F": "ylygggggg",
+        "L": "lllrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R2 D R' U2 R D' R' U2 R'",
+          "source": "speedcubedb",
+          "votes": 104,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=YvgWA5n7-y0",
+          "verified": true
+        },
+        {
+          "alg": "y2 R2 D' R U2 R' D R U2 R",
+          "source": "speedcubedb",
+          "votes": 40,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=clgJFx6RBUM",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U R U2 R2 U' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U' R U' R' U2 R U' R' U2 R U R'",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 D' R U2 R' D R U2 R",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R2 D R' U2 R D' R' U2 R'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "R U2 R D R' U2 R D' R2",
+      "setups_alt": [
+        "R U2' R D R' U2' R D' R2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 24",
+      "name": "T Shape",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyyyyylyy",
+        "B": "llybbbbbb",
+        "F": "yllgggggg",
+        "L": "lllrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U R' U' r' F R F'",
+          "source": "speedcubedb",
+          "votes": 117,
+          "etm": 8,
+          "stm": 8,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=5pmKYnWCNiI",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y2 R' F' r U R U' r' F",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 8,
+          "stm": 8,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' x' R U R' D R U' R' D' x",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 10,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R D R' U' R D' R2",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' r U R U' r'",
+      "setups_alt": [
+        "F R' F' r U R U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 25",
+      "name": "L Shape",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yylyyylyy",
+        "B": "llloooooo",
+        "F": "yllrrrrrr",
+        "L": "lllbbbbbb",
+        "R": "llygggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R D R' U2 R D' R2",
+          "source": "speedcubedb",
+          "votes": 100,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F' r U R' U' r' F R",
+          "source": "speedcubedb",
+          "votes": 77,
+          "etm": 8,
+          "stm": 8,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=w2pqzFn0KqU",
+          "verified": true
+        },
+        {
+          "alg": "F R' F' r U R U' r'",
+          "source": "speedcubedb",
+          "votes": 64,
+          "etm": 8,
+          "stm": 8,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "x R' U R D' R' U' R D x'",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 10,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F' r U R' U' r' F R",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y' R' F R B' R' F' R B",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R2 D R' U2 R D' R' U2 R'",
+      "setups_alt": [
+        "R' F' r U R U' r' F y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 26",
+      "name": "Anti-Sune",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yylyyylyl",
+        "B": "ylloooooo",
+        "F": "yllrrrrrr",
+        "L": "lllbbbbbb",
+        "R": "yllgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U2 R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 83,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=W4E8fo6-D84",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=3FfmBJsypKI",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U' L U' L' U2 L",
+          "source": "speedcubedb",
+          "votes": 24,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U R U' L U R'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "(R U2 R') U' R U' R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y' R' U' R U' R' U2 R",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R U R' U R U2 R' y'",
+      "setups_alt": [
+        "R U R' U R U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 27",
+      "name": "Sune",
+      "group": "Cross",
+      "subgroup": "OCLL",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lylyyyyyl",
+        "B": "llybbbbbb",
+        "F": "llygggggg",
+        "L": "lllrrrrrr",
+        "R": "llyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 112,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=83GLN0XmCNA",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y' R' U2 R U R' U R",
+          "source": "speedcubedb",
+          "votes": 15,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=MDJJIJ7DxAs",
+          "verified": true
+        },
+        {
+          "alg": "y L' U2 L U L' U L",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L U L' U L U2 L'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' U' R U' R'",
+      "setups_alt": [
+        "R U2' R' U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 28",
+      "name": "Stealth",
+      "group": "Corners Oriented",
+      "subgroup": "All Corners Oriented",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yyyyylyly",
+        "B": "lllbbbbbb",
+        "F": "lylgggggg",
+        "L": "lllrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U R' U' M U R U' R'",
+          "source": "speedcubedb",
+          "votes": 113,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=blOdiGsmlQQ",
+          "verified": true
+        },
+        {
+          "alg": "r U R' U' r' R U R U' R'",
+          "source": "speedcubedb",
+          "votes": 26,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "R' F R S R' F' R S'",
+          "source": "speedcubedb",
+          "votes": 25,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 M' U M U2 M' U M",
+          "source": "speedcubedb",
+          "votes": 17,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U' M' U R U' r'",
+      "setups_alt": [
+        "R U R' U' M' U R U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 29",
+      "name": "Spotted Chameleon",
+      "group": "Awkward Shape",
+      "subgroup": "Awkward Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylyyyllyl",
+        "B": "lylbbbbbb",
+        "F": "lllgggggg",
+        "L": "llyrrrrrr",
+        "R": "yyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r2 D' r U r' D r2 U' r' U' r",
+          "source": "speedcubedb",
+          "votes": 57,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=0JlTP_cMNVw",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U' R U' R' F' U' F R U R'",
+          "source": "speedcubedb",
+          "votes": 40,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=xaSQb6RdIrY",
+          "verified": true
+        },
+        {
+          "alg": "y S' R U R' U' R' F R F' U S",
+          "source": "speedcubedb",
+          "votes": 25,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "M U R U R' U' R' F R F' M'",
+          "source": "speedcubedb",
+          "votes": 20,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' R U' R' F' U' F R U R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "r' U r U r2 D' r U' r' D r2",
+      "setups_alt": [
+        "M F R' F' R U R U' R' U' M'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 30",
+      "name": "Anti-Spotted Chameleon",
+      "group": "Awkward Shape",
+      "subgroup": "Awkward Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylylyylyl",
+        "B": "lylgggggg",
+        "F": "lllbbbbbb",
+        "L": "lyyoooooo",
+        "R": "yllrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y' r' D' r U' r' D r2 U' r' U r U r'",
+          "source": "speedcubedb",
+          "votes": 46,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=HSDYQ3F9_GQ",
+          "verified": true
+        },
+        {
+          "alg": "y2 F U R U2 R' U' R U2 R' U' F'",
+          "source": "speedcubedb",
+          "votes": 44,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F R' F R2 U' R' U' R U R' F2",
+          "source": "speedcubedb",
+          "votes": 29,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y S' R' U' R f R' U R U' F'",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 10,
+          "stm": 10,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R' F R2 U' R' U' R U R' F2",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "F U (R U2 R' U') R U2 R' U' F'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "r U' r' U' r U r2 D' r U r' D r y",
+      "setups_alt": [
+        "F U R U2' R' U R U2' R' U' F' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 31",
+      "name": "Couch",
+      "group": "P Shape",
+      "subgroup": "P Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyylyylly",
+        "B": "llybbbbbb",
+        "F": "yylgggggg",
+        "L": "lylrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' F U R U' R' F' R",
+          "source": "speedcubedb",
+          "votes": 77,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=d5krfXeAvZ8",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y2 S' L' U' L U L F' L' f",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 9,
+          "stm": 9,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y S R U R' U' f' U' F",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 8,
+          "stm": 8,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' F R' F' R U R U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' F R U R' U' F' U R",
+      "setups_alt": [
+        "R' F R U R' U' F' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 32",
+      "name": "Anti-Couch",
+      "group": "P Shape",
+      "subgroup": "P Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llylyylyy",
+        "B": "lyybbbbbb",
+        "F": "yllgggggg",
+        "L": "lylrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "S R U R' U' R' F R f'",
+          "source": "speedcubedb",
+          "votes": 74,
+          "etm": 9,
+          "stm": 9,
+          "gen": "5GEN",
+          "youtube": "https://www.youtube.com/watch?v=fK4goEB_xPg",
+          "verified": true
+        },
+        {
+          "alg": "y2 L U F' U' L' U L F L'",
+          "source": "speedcubedb",
+          "votes": 20,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U B' U' R' U R B R'",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=7fnmWAo3tl8",
+          "verified": true
+        },
+        {
+          "alg": "y' R' F R F' U' r U' r' U r U r'",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "L U F' U' L' U L F L'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 S R U R' U' R' F R f'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "f R' F' R U R U' R' S'",
+      "setups_alt": [
+        "f R' F' R U R U' R' S'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 33",
+      "name": "Tying Shoelaces",
+      "group": "T Shape",
+      "subgroup": "T Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llyyyylly",
+        "B": "lyybbbbbb",
+        "F": "yylgggggg",
+        "L": "lllrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 116,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=yw6EhRi2Ylo",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y2 L' U' L U L F' L' F",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r' F' r U r U' r' F",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' F' U' F R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U R U' R'",
+      "setups_alt": [
+        "F R' F' R U R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 34",
+      "name": "City",
+      "group": "C Shape",
+      "subgroup": "C Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylyyyylll",
+        "B": "lylgggggg",
+        "F": "lylbbbbbb",
+        "L": "llyoooooo",
+        "R": "yllrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y f R f' U' r' U' R U M'",
+          "source": "speedcubedb",
+          "votes": 80,
+          "etm": 9,
+          "stm": 9,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R2 U' R' F R U R U' F'",
+          "source": "speedcubedb",
+          "votes": 55,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=tOB1D8nmMIs",
+          "verified": true
+        },
+        {
+          "alg": "F R U R' U' R' F' r U R U' r'",
+          "source": "speedcubedb",
+          "votes": 30,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R' U' B' R' F R F' B",
+          "source": "speedcubedb",
+          "votes": 18,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R2 U' R' F R U R U' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "R U R' U' B' R' F R F' B",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "M U' R' U r U f R' f' y'",
+      "setups_alt": [
+        "F U R' U' R' F' R U R2' U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 35",
+      "name": "Fish Salad",
+      "group": "Fish Shape",
+      "subgroup": "Fish Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylllyylyy",
+        "B": "lylbbbbbb",
+        "F": "yllgggggg",
+        "L": "lylrrrrrr",
+        "R": "llyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R2 F R F' R U2 R'",
+          "source": "speedcubedb",
+          "votes": 56,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=bG14LWhXWCk",
+          "verified": true
+        },
+        {
+          "alg": "f R U R' U' f' R U R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' d' R' F R U' R' F' R",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L' U2 L2 F' L' F L' U2 L",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' R' F R F' R U2 R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' F R' F' R2 U2 R'",
+      "setups_alt": [
+        "R U2' R' F R' F' R2' U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 36",
+      "name": "Anti-Moustache",
+      "group": "W Shape",
+      "subgroup": "W Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yllyyllyy",
+        "B": "lylgggggg",
+        "F": "yllbbbbbb",
+        "L": "llloooooo",
+        "R": "lyyrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R2 F' U' F U R2 U2 R'",
+          "source": "speedcubedb",
+          "votes": 59,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U' L U' L' U L U L F' L' F",
+          "source": "speedcubedb",
+          "votes": 53,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=6E5tMt6BGog",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R' F' R U R' U' R' F R U' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 33,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' F' U2 F U R U R'",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L' U' L U' L' U L U L F' L' F",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 R' U' R U' R' U R U R B' R' B",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "R U2 R2 U' F' U F R2 U' R' y'",
+      "setups_alt": [
+        "F' L F L' U' L' U' L U L' U L y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 37",
+      "name": "Mounted Fish",
+      "group": "Fish Shape",
+      "subgroup": "Fish Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yylyyllly",
+        "B": "lllbbbbbb",
+        "F": "yylgggggg",
+        "L": "lllrrrrrr",
+        "R": "lyyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "F R' F' R U R U' R'",
+          "source": "speedcubedb",
+          "votes": 77,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=VC3QYvYu-R4",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "F R U' R' U' R U R' F'",
+          "source": "speedcubedb",
+          "votes": 72,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=1uNKnyKiFOo",
+          "verified": true
+        },
+        {
+          "alg": "y F' r U r' U' r' F r",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r2 D' r U' r' D r U r",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U' R' F R F'",
+      "setups_alt": [
+        "F R U' R' U R U R' F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 38",
+      "name": "Moustache",
+      "group": "W Shape",
+      "subgroup": "W Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyyyylyll",
+        "B": "llybbbbbb",
+        "F": "lylgggggg",
+        "L": "lllrrrrrr",
+        "R": "yyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U R U' R' U' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 91,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=-OHDLxFILFU",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y F R U' R' S U' R U R' f'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 10,
+          "stm": 10,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "r U R' U' r' F R U R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L U L' U L U' L' U' L' B L B'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U R U R' U' R U' R'",
+      "setups_alt": [
+        "F R' F' R U R U R' U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 39",
+      "name": "Fung",
+      "group": "Big Lightning Bolt",
+      "subgroup": "Lightning Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yyllyllyy",
+        "B": "ylloooooo",
+        "F": "lllrrrrrr",
+        "L": "lyybbbbbb",
+        "R": "lylgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' f' r U r' U' r' F r S",
+          "source": "speedcubedb",
+          "votes": 47,
+          "etm": 9,
+          "stm": 9,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U R' F' U' F U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 42,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L F' L' U' L U F U' L'",
+          "source": "speedcubedb",
+          "votes": 32,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=frAvYb9HoYo",
+          "verified": true
+        },
+        {
+          "alg": "y' f' L F L' U' L' U L S",
+          "source": "speedcubedb",
+          "votes": 17,
+          "etm": 9,
+          "stm": 9,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "L F' L' U' L U F U' L'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y2 R B' R' U' R U B U' R'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "S' r' F' r U r U' r' f y",
+      "setups_alt": [
+        "L U F' U' L' U L F L' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 40",
+      "name": "Anti-Fung",
+      "group": "Big Lightning Bolt",
+      "subgroup": "Lightning Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyylylyyl",
+        "B": "llloooooo",
+        "F": "llyrrrrrr",
+        "L": "yylbbbbbb",
+        "R": "lylgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' F R U R' U' F' U R",
+          "source": "speedcubedb",
+          "votes": 68,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=fYZxskw2EgI",
+          "verified": true
+        },
+        {
+          "alg": "y' f R' F' R U R U' R' S'",
+          "source": "speedcubedb",
+          "votes": 38,
+          "etm": 9,
+          "stm": 9,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "R r D r' U r D' r' U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L' U' L F U F' U' L' U2 L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' F R U R' U' F' U R",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R' U' F U R U' R' F' R y'",
+      "setups_alt": [
+        "R' U' F U R U' R' F' R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 41",
+      "name": "Dalmatian",
+      "group": "Awkward Shape",
+      "subgroup": "Awkward Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylylyylyl",
+        "B": "lylgggggg",
+        "F": "ylybbbbbb",
+        "L": "lyloooooo",
+        "R": "lllrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R U R' U R U2 R' F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 54,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=AmxQNjhBzfk",
+          "verified": true
+        },
+        {
+          "alg": "y2 F U R2 D R' U' R D' R2 F'",
+          "source": "speedcubedb",
+          "votes": 21,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' S U' R' F' U' F U R S'",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "M U' F' L' U' L U F M'",
+          "source": "speedcubedb",
+          "votes": 10,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U R U2 R' F R U R' U' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "F U R U' R' F' R U2 R' U' R U' R' y2",
+      "setups_alt": [
+        "F U R U' R' F' R U2' R' U' R U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 42",
+      "name": "Anti-Dalmatian",
+      "group": "Awkward Shape",
+      "subgroup": "Awkward Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "ylyyyllyl",
+        "B": "lylbbbbbb",
+        "F": "ylygggggg",
+        "L": "lllrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' R U' R' U2 R F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 41,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=uL5R2Hx2fV8",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y F S' R U R' U' F' U S",
+          "source": "speedcubedb",
+          "votes": 26,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' F R F' R' F R F' R U R' U' R U R'",
+          "source": "speedcubedb",
+          "votes": 23,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' F2 u' R U R' D R2 B",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 10,
+          "stm": 10,
+          "gen": "6GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U R U' R' F' R' U2 R U R' U R",
+      "setups_alt": [
+        "F U R U' R' F' R' U2' R U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 43",
+      "name": "Anti-P Shape",
+      "group": "P Shape",
+      "subgroup": "P Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yllyylyyl",
+        "B": "lylbbbbbb",
+        "F": "lllgggggg",
+        "L": "lllrrrrrr",
+        "R": "yyyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' U' F' U F R",
+          "source": "speedcubedb",
+          "votes": 62,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=joYVuCv8p-E",
+          "verified": true
+        },
+        {
+          "alg": "y2 F' U' L' U L F",
+          "source": "speedcubedb",
+          "votes": 26,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=hQdWbvmddmQ",
+          "verified": true
+        },
+        {
+          "alg": "f' L' U' L U f",
+          "source": "speedcubedb",
+          "votes": 24,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "B' U' R' U R B",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F' U' L' U L F",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "R' U' F R' F' R U R",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "R' F' U' F U R y'",
+      "setups_alt": [
+        "f' U' L' U L f"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 44",
+      "name": "P Shape",
+      "group": "P Shape",
+      "subgroup": "P Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llylyylyy",
+        "B": "lylbbbbbb",
+        "F": "lllgggggg",
+        "L": "yyyrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "f R U R' U' f'",
+          "source": "speedcubedb",
+          "votes": 75,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=3PvMbW3CC3Y",
+          "verified": true
+        },
+        {
+          "alg": "y2 F U R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 68,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=CeqGe0Q1wMg",
+          "verified": true
+        },
+        {
+          "alg": "y R U B U' B' R'",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L U F U' F' L'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F U R U' R' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 f R U R' U' f'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "f U R U' R' f'",
+      "setups_alt": [
+        "f U R U' R' f'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 45",
+      "name": "Suit Up",
+      "group": "T Shape",
+      "subgroup": "T Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llyyyylly",
+        "B": "lylbbbbbb",
+        "F": "lylgggggg",
+        "L": "ylyrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 104,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=3HJQsUqEqyM",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y R' F' U' F U R",
+          "source": "speedcubedb",
+          "votes": 17,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 f U R U' R' f'",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F' L' U' L U F",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 6,
+          "stm": 6,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U R U' R' F'",
+      "setups_alt": [
+        "F U R U' R' F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 46",
+      "name": "Seeing Headlights",
+      "group": "C Shape",
+      "subgroup": "C Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "yyllylyyl",
+        "B": "lllbbbbbb",
+        "F": "lllgggggg",
+        "L": "lylrrrrrr",
+        "R": "yyyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' R' F R F' U R",
+          "source": "speedcubedb",
+          "votes": 76,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=AQynWJ4dAjk",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "R' F' U' F R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F R U R' U' F' U' R U R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "l' U2 L2 F' L' F U L' U l",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' F R' F' R U R",
+      "setups_alt": [
+        "R' U' F R' F' R U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 47",
+      "name": "Anti-Breakneck",
+      "group": "Small L Shape",
+      "subgroup": "L Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyllyylll",
+        "B": "llybbbbbb",
+        "F": "yylgggggg",
+        "L": "lylrrrrrr",
+        "R": "ylyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y' F R' F' R U2 R U' R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 40,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F' L' U' L U L' U' L U F",
+          "source": "speedcubedb",
+          "votes": 38,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=gTDSTIKmA40",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R' F R F' R' F R F' U R",
+          "source": "speedcubedb",
+          "votes": 28,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=9Ui1n0UjaCU",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y' R' F' U' F U F' U' F U R",
+          "source": "speedcubedb",
+          "votes": 9,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' F U R U' R' F' R U R' U R U2 R'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' U' R U R' U2 R' F R F' y",
+      "setups_alt": [
+        "F' U' L' U L U' L' U L F"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 48",
+      "name": "Breakneck",
+      "group": "Small L Shape",
+      "subgroup": "L Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lylyyllll",
+        "B": "yllbbbbbb",
+        "F": "lyygggggg",
+        "L": "ylyrrrrrr",
+        "R": "lyloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "F R U R' U' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 69,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=-yAt0RgMmsY",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y2 f U R U' R' U R U' R' f'",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U' R U R' U2 R' F R F'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R' F' U2 R U R' U R2 U2 R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U R U' R' U R U' R' F'",
+      "setups_alt": [
+        "F U R U' R' U R U' R' F'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 49",
+      "name": "Right Back Squeezy",
+      "group": "Small L Shape",
+      "subgroup": "L Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lllyyllyl",
+        "B": "lyygggggg",
+        "F": "yllbbbbbb",
+        "L": "llloooooo",
+        "R": "yyyrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 r U' r2 U r2 U r2 U' r",
+          "source": "speedcubedb",
+          "votes": 59,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=dQrWHwyT8bo",
+          "verified": true
+        },
+        {
+          "alg": "l U' l2 U l2 U l2 U' l",
+          "source": "speedcubedb",
+          "votes": 14,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R B' R2 F R2 B R2 F' R",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F R' F' R2 U2 B' R B R'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "r U' r2 U r2 U r2 U' r",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "r' U r2 U' r2 U' r2 U r' y2",
+      "setups_alt": [
+        "r' U r2' U' r2' U' r2' U r' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 50",
+      "name": "Right Front Squeezy",
+      "group": "Small L Shape",
+      "subgroup": "L Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyylyl",
+        "B": "yylbbbbbb",
+        "F": "llygggggg",
+        "L": "yyyrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r' U r2 U' r2 U' r2 U r'",
+          "source": "speedcubedb",
+          "votes": 51,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "youtube": "https://www.youtube.com/watch?v=0jwU3QUs93g",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y2 R' F R2 B' R2 F' R2 B R'",
+          "source": "speedcubedb",
+          "votes": 11,
+          "etm": 9,
+          "stm": 9,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R' U' R U' R' F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 11,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 l' U l2 U' l2 U' l2 U l'",
+          "source": "speedcubedb",
+          "votes": 11,
+          "etm": 9,
+          "stm": 9,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r U' r2 U r2 U r2 U' r",
+      "setups_alt": [
+        "r U' r2' U r2' U r2' U' r"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 51",
+      "name": "Bottlecap",
+      "group": "I Shape",
+      "subgroup": "Line Shapes",
+      "probability": "1/108",
+      "stickers": {
+        "U": "lllyyylll",
+        "B": "yylbbbbbb",
+        "F": "lyygggggg",
+        "L": "ylyrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 F U R U' R' U R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 64,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=6j4D0FHgSOY",
+          "verified": true
+        },
+        {
+          "alg": "f R U R' U' R U R' U' f'",
+          "source": "speedcubedb",
+          "votes": 55,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=wntbjuYVMJs",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U' R' F R F' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y r' F' U' F U F' U' F U r",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F U R U' R' U R U' R' F'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U2"
+        },
+        {
+          "alg": "y2 f R U R' U' R U R' U' f'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U2"
+        }
+      ],
+      "setup": "F R U R' U' R U R' U' F' y2",
+      "setups_alt": [
+        "f U R U' R' U R U' R' f'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 52",
+      "name": "Rice Cooker",
+      "group": "I Shape",
+      "subgroup": "Line Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyllyllyl",
+        "B": "llyoooooo",
+        "F": "yllrrrrrr",
+        "L": "lylbbbbbb",
+        "R": "yyygggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' F' U' F U' R U R' U R",
+          "source": "speedcubedb",
+          "votes": 56,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=ZuRxOkExG8o",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U R U' B U' B' R'",
+          "source": "speedcubedb",
+          "votes": 44,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "R U R' U R d' R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 16,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U R U' y R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 11,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R U' R' U F' U F R y2",
+      "setups_alt": [
+        "F R U R' d R' U' R U' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 53",
+      "name": "Frying Pan",
+      "group": "Small L Shape",
+      "subgroup": "L Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "llllyylyl",
+        "B": "lylbbbbbb",
+        "F": "lllgggggg",
+        "L": "yyyrrrrrr",
+        "R": "ylyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r' U' R U' R' U R U' R' U2 r",
+          "source": "speedcubedb",
+          "votes": 33,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=FV3aJg0kmIw",
+          "verified": true
+        },
+        {
+          "alg": "y2 l' U' L U' L' U L U' L' U2 l",
+          "source": "speedcubedb",
+          "votes": 25,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y r' U2 R U R' U' R U R' U r",
+          "source": "speedcubedb",
+          "votes": 24,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' l' U2 L U L' U' L U L' U l",
+          "source": "speedcubedb",
+          "votes": 13,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "l' U2 L U L' U' L U L' U l",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U'"
+        },
+        {
+          "alg": "y2 r' U2 (R U R' U') R U R' U r",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U'"
+        },
+        {
+          "alg": "y r' U' R U' R' U R U' R' U2 r",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U'"
+        }
+      ],
+      "setup": "r' U2 R U R' U' R U R' U r",
+      "setups_alt": [
+        "r' U2' R U R' U' R U R' U r"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 54",
+      "name": "Anti-Frying Pan",
+      "group": "Small L Shape",
+      "subgroup": "L Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyllyylll",
+        "B": "lllbbbbbb",
+        "F": "lylgggggg",
+        "L": "yyyrrrrrr",
+        "R": "ylyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U R' U R U' R' U R U2 r'",
+          "source": "speedcubedb",
+          "votes": 45,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=gydKjGqInfg",
+          "verified": true
+        },
+        {
+          "alg": "y' r U2 R' U' R U R' U' R U' r'",
+          "source": "speedcubedb",
+          "votes": 26,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' r U r' R U R' U' R U R' U' r U' r'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 l U L' U L U' L' U L U2 l'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "(r U2 R' U') R U R' U' R U' r'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U'"
+        },
+        {
+          "alg": "y r U R' U R U' R' U R U2 r'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U'"
+        }
+      ],
+      "setup": "r U2 R' U' R U R' U' R U' r'",
+      "setups_alt": [
+        "r U2' R' U' R U R' U' R U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 55",
+      "name": "Freeway",
+      "group": "I Shape",
+      "subgroup": "Line Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lyllyllyl",
+        "B": "lllbbbbbb",
+        "F": "lllgggggg",
+        "L": "yyyrrrrrr",
+        "R": "yyyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' F U R U' R2 F' R2 U R' U' R",
+          "source": "speedcubedb",
+          "votes": 52,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' F R U R U' R2 F' R2 U' R' U R U R'",
+          "source": "speedcubedb",
+          "votes": 34,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R2 U' R U' R' U2 F R F'",
+          "source": "speedcubedb",
+          "votes": 22,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=QDehoJhTOtY",
+          "verified": true
+        },
+        {
+          "alg": "r U2 R2 F R F' U2 r' F R F'",
+          "source": "speedcubedb",
+          "votes": 19,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' F R U R U' R2 F' R2 U' R' U R U R'",
+          "source": "jperm",
+          "recommended_by": [
+            "jperm"
+          ],
+          "verified": true,
+          "pre_auf": "U"
+        },
+        {
+          "alg": "y R U2 R2 U' R U' R' U2 F R F'",
+          "source": "jperm",
+          "verified": true,
+          "pre_auf": "U"
+        }
+      ],
+      "setup": "R' U R U' R2 F R2 U R' U' F' R y'",
+      "setups_alt": [
+        "F R' F' U2' R U R' U R2' U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 56",
+      "name": "Dead Man",
+      "group": "I Shape",
+      "subgroup": "Line Shapes",
+      "probability": "1/54",
+      "stickers": {
+        "U": "lllyyylll",
+        "B": "lylbbbbbb",
+        "F": "lylgggggg",
+        "L": "ylyrrrrrr",
+        "R": "ylyoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "r U r' U R U' R' U R U' R' r U' r'",
+          "source": "speedcubedb",
+          "votes": 33,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "youtube": "https://www.youtube.com/watch?v=KZkE5GBzS9k",
+          "verified": true
+        },
+        {
+          "alg": "r U r' U R U' R' M' U R U2 r'",
+          "source": "speedcubedb",
+          "votes": 31,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R U R' U' R F' r U R' U' r'",
+          "source": "speedcubedb",
+          "votes": 19,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "r' U' r U' R' U R U' R' U R r' U r",
+          "source": "speedcubedb",
+          "votes": 17,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "(r U r') U R U' R' U R U' M' U' r'",
+          "source": "jperm",
+          "verified": true
+        }
+      ],
+      "setup": "r U r' R U R' U' R U R' U' r U' r'",
+      "setups_alt": [
+        "r U r' R U R' U' R U R' U' r U' r'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "OLL 57",
+      "name": "Mummy",
+      "group": "Corners Oriented",
+      "subgroup": "All Corners Oriented",
+      "probability": "1/108",
+      "stickers": {
+        "U": "ylyyyyyly",
+        "B": "lylbbbbbb",
+        "F": "lylgggggg",
+        "L": "lllrrrrrr",
+        "R": "llloooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' U' M' U R U' r'",
+          "source": "speedcubedb",
+          "votes": 96,
+          "etm": 9,
+          "stm": 9,
+          "gen": "4GEN",
+          "youtube": "https://www.youtube.com/watch?v=qHvJd0pk41Q",
+          "verified": true,
+          "recommended_by": [
+            "jperm"
+          ]
+        },
+        {
+          "alg": "y R U' R' S' R U R' S",
+          "source": "speedcubedb",
+          "votes": 12,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' S' R U' R' S",
+          "source": "speedcubedb",
+          "votes": 8,
+          "etm": 8,
+          "stm": 8,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' R' r U R U' r'",
+          "source": "speedcubedb",
+          "votes": 7,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r U R' U' M U R U' R'",
+      "setups_alt": [
+        "r U R' U' M U R U' R'"
+      ],
+      "verified": true
+    }
+  ]
+}

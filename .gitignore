@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.hutch/
+*.db
+*.db-*
+
+# Local caches, release bundles and secrets
+.cottontail-tmp/
+artifacts/
+.env
+.env.*
+!.env.example
+*.log

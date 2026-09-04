@@ -1,0 +1,989 @@
+[
+ {
+  "name": "Aa",
+  "subgroup": "Adj Swap",
+  "setup": "x R2' D2' R U R' D2' R U' R x'",
+  "standard": "x (R' U R') D2 (R U' R') D2 R2 x'",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "obobbbbbb",
+   "F": "ggbgggggg",
+   "L": "brrrrrrrr",
+   "R": "rogoooooo"
+  },
+  "alts": [
+   {
+    "alg": "x R' U R' D2 R U' R' D2 R2 x'",
+    "votes": 199,
+    "etm": 11,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "ibDaGbBp1wY"
+   },
+   {
+    "alg": "y' x L2 D2 L' U' L D2 L' U L'",
+    "votes": 45,
+    "etm": 10,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y x' R2 D2 R' U' R D2 R' U R' x",
+    "votes": 43,
+    "etm": 11,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "l' U R' D2 R U' R' D2 R2 x'",
+    "votes": 42,
+    "etm": 10,
+    "stm": 9,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Ab",
+  "subgroup": "Adj Swap",
+  "setup": "x R' U R' D2' R U' R' D2' R2' x'",
+  "standard": "x R2 D2 (R U R') D2 (R U' R) x'",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "rbgbbbbbb",
+   "F": "ggogggggg",
+   "L": "orrrrrrrr",
+   "R": "boboooooo"
+  },
+  "alts": [
+   {
+    "alg": "x R2 D2 R U R' D2 R U' R x'",
+    "votes": 164,
+    "etm": 11,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": "Nd0NvF4PF-g"
+   },
+   {
+    "alg": "y' x L U' L D2 L' U L D2 L2",
+    "votes": 32,
+    "etm": 10,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y x' R U' R D2 R' U R D2 R2 x",
+    "votes": 25,
+    "etm": 11,
+    "stm": 9,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' B' R U' R D R' U R D' R2 B R",
+    "votes": 18,
+    "etm": 13,
+    "stm": 13,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "E",
+  "subgroup": "Opp Swap",
+  "setup": "x' D R U R' D' R U' R' D R U' R' D' R U R' x y'",
+  "standard": "y x' (R U' R' D) (R U R' D') (R U R' D) (R U' R' D') x",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bogoooooo",
+   "F": "grbrrrrrr",
+   "L": "obrbbbbbb",
+   "R": "rgogggggg"
+  },
+  "alts": [
+   {
+    "alg": "y x' R U' R' D R U R' D' R U R' D R U' R' D' x",
+    "votes": 163,
+    "etm": 18,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": "ifo0uz8s4cI"
+   },
+   {
+    "alg": "y R' U' R' D' R U' R' D R U R' D' R U R' D R2",
+    "votes": 47,
+    "etm": 17,
+    "stm": 17,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R2 U F' R' U R U' R' U R U' R' U R U' F U' R2",
+    "votes": 31,
+    "etm": 18,
+    "stm": 18,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y x' L' U L D' L' U' L D L' U' L D' L' U L D",
+    "votes": 18,
+    "etm": 17,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "F",
+  "subgroup": "Adj Swap",
+  "setup": "R' U' R U' R' U R U R2' F' R U R U' R' F U R y'",
+  "standard": "y (R' U' F') (R U R' U') R' F R2 (U' R' U') (R U R' U) R",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bogoooooo",
+   "F": "rrrrrrrrr",
+   "L": "ogbbbbbbb",
+   "R": "gbogggggg"
+  },
+  "alts": [
+   {
+    "alg": "y R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R",
+    "votes": 194,
+    "etm": 18,
+    "stm": 18,
+    "gen": "3GEN",
+    "yt": "KLL-Qt9Lm90"
+   },
+   {
+    "alg": "y R' F R f' R' F R2 U R' U' R' F' R2 U R' S",
+    "votes": 55,
+    "etm": 16,
+    "stm": 16,
+    "gen": "5GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' U R U' R2 F' U' F U R F R' F' R2",
+    "votes": 42,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R2 F R F' R' U' F' U F R2 U R' U' R",
+    "votes": 16,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Ga",
+  "subgroup": "Adj Swap",
+  "setup": "R' U' R D' U R2' U R' U R U' R U' R2' D",
+  "standard": "R2 (U R' U R' U' R U') R2 D (U' R' U R) D'",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "ogbbbbbbb",
+   "F": "googggggg",
+   "L": "rbrrrrrrr",
+   "R": "brgoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R2 U R' U R' U' R U' R2 D U' R' U R D'",
+    "votes": 119,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "wd4gd8B7QSA"
+   },
+   {
+    "alg": "R2 u R' U R' U' R u' R2 F' U F",
+    "votes": 25,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R U R' F' R U R' U' R' F R U' R' F R2 U' R' U' R U R' F'",
+    "votes": 15,
+    "etm": 22,
+    "stm": 22,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "D' R2 U R' U R' U' R U' R2 U' D R' U R",
+    "votes": 11,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Gb",
+  "subgroup": "Adj Swap",
+  "setup": "R2' U R' U R' U' R U' R2' D U' R' U R D'",
+  "standard": "(R' U' R U) D' R2 (U R' U R U' R U') R2 D",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "orbbbbbbb",
+   "F": "gbogggggg",
+   "L": "rorrrrrrr",
+   "R": "bggoooooo"
+  },
+  "alts": [
+   {
+    "alg": "D R' U' R U D' R2 U R' U R U' R U' R2",
+    "votes": 143,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "8fJRWcKSMUk"
+   },
+   {
+    "alg": "R' U' R U D' R2 U R' U R U' R U' R2 D",
+    "votes": 108,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y F' U' F R2 u R' U R U' R u' R2",
+    "votes": 57,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' d' F R2 u R' U R U' R u' R2",
+    "votes": 38,
+    "etm": 12,
+    "stm": 12,
+    "gen": "5GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Gc",
+  "subgroup": "Adj Swap",
+  "setup": "D' R U R' U' D R2' U' R U' R' U R' U R2'",
+  "standard": "R2 (U' R U' R U R' U) R2 D' (U R U' R') D",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "oobbbbbbb",
+   "F": "gbogggggg",
+   "L": "rgrrrrrrr",
+   "R": "brgoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R2 U' R U' R U R' U R2 D' U R U' R' D",
+    "votes": 98,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "L8C6nY-Qy3E"
+   },
+   {
+    "alg": "y2 R2 F2 R U2 R U2 R' F R U R' U' R' F R2",
+    "votes": 91,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "M9rWmN8BzKw"
+   },
+   {
+    "alg": "D R2 U' R U' R U R' U R2 D' U R U' R'",
+    "votes": 75,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R2 u' R U' R U R' u R2 f R' f'",
+    "votes": 22,
+    "etm": 12,
+    "stm": 12,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Gd",
+  "subgroup": "Adj Swap",
+  "setup": "R2' U' R U' R U R' U R2' D' U R U' R' D",
+  "standard": "(R U R' U') D R2 (U' R U' R' U R' U) R2 D'",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "ogbbbbbbb",
+   "F": "grogggggg",
+   "L": "rorrrrrrr",
+   "R": "bbgoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U' D R2 U' R U' R' U R' U R2 D'",
+    "votes": 112,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "D' R U R' U' D R2 U' R U' R' U R' U R2",
+    "votes": 35,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "ESv6a7Cid6c"
+   },
+   {
+    "alg": "R U R' y' R2 u' R U' R' U R' u R2",
+    "votes": 16,
+    "etm": 13,
+    "stm": 12,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R2 F' R U R U' R' F' R U2 R' U2 R' F2 R2",
+    "votes": 13,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "H",
+  "subgroup": "EPLL",
+  "setup": "M2' U' M2' U2' M2' U' M2'",
+  "standard": "(M2 U' M2) U2 (M2 U' M2)",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bgbbbbbbb",
+   "F": "gbggggggg",
+   "L": "rorrrrrrr",
+   "R": "orooooooo"
+  },
+  "alts": [
+   {
+    "alg": "M2 U M2 U2 M2 U M2",
+    "votes": 142,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "M2 U' M2 U2 M2 U' M2",
+    "votes": 137,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "pmA8ToRfOXQ"
+   },
+   {
+    "alg": "R2 S2 R2 U' R2 S2 R2",
+    "votes": 17,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "M2 U2 M2 U M2 U2 M2",
+    "votes": 14,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Ja",
+  "subgroup": "Adj Swap",
+  "setup": "L' R' U2' R U R' U2' L U' R y'",
+  "standard": "y (R' U L') U2 (R U' R') U2 R L",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "ggooooooo",
+   "F": "oobrrrrrr",
+   "L": "bbgbbbbbb",
+   "R": "rrrgggggg"
+  },
+  "alts": [
+   {
+    "alg": "y2 x R2 F R F' R U2 r' U r U2 x'",
+    "votes": 151,
+    "etm": 12,
+    "stm": 10,
+    "gen": "4GEN",
+    "yt": "INlrVWiGZjc"
+   },
+   {
+    "alg": "y R' U L' U2 R U' R' U2 R L",
+    "votes": 68,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": "nh9th-AYF_8"
+   },
+   {
+    "alg": "L' U' L F L' U' L U L F' L2 U L",
+    "votes": 64,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U' L' U R' U2 L U' L' U2 L",
+    "votes": 23,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Jb",
+  "subgroup": "Adj Swap",
+  "setup": "R U R2' F' R U R U' R' F R U' R'",
+  "standard": "(R U R' F') (R U R' U') R' F R2 U' R'",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "goobbbbbb",
+   "F": "rgggggggg",
+   "L": "bbbrrrrrr",
+   "R": "orroooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' F' R U R' U' R' F R2 U' R'",
+    "votes": 211,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "QXIIxGzMftw"
+   },
+   {
+    "alg": "R U2 R' U' R U2 L' U R' U' L",
+    "votes": 13,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": "LG79DHx4uvE"
+   },
+   {
+    "alg": "r' F R F' r U2 R' U R U2 R'",
+    "votes": 8,
+    "etm": 11,
+    "stm": 11,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "L' U R U' L U2 R' U R U2 R'",
+    "votes": 7,
+    "etm": 11,
+    "stm": 11,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Na",
+  "subgroup": "Opp Swap",
+  "setup": "R U R' U2' R U R2' F' R U R U' R' F R U' R' U' R U' R'",
+  "standard": "(R U R' U) (R U R' F') (R U R' U') R' F R2 U' R' U2 (R U' R')",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "gbbbbbbbb",
+   "F": "bgggggggg",
+   "L": "roorrrrrr",
+   "R": "orroooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'",
+    "votes": 149,
+    "etm": 21,
+    "stm": 21,
+    "gen": "3GEN",
+    "yt": "RWpMAU_aG4Y"
+   },
+   {
+    "alg": "F' R U R' U' R' F R2 F U' R' U' R U F' R'",
+    "votes": 61,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": "iNfx--vOxd0"
+   },
+   {
+    "alg": "R F U' R' U R U F' R2 F' R U R U' R' F",
+    "votes": 37,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "r' D r U2 r' D r U2 r' D r U2 r' D r U2 r' D r",
+    "votes": 32,
+    "etm": 19,
+    "stm": 19,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Nb",
+  "subgroup": "Opp Swap",
+  "setup": "F r' F' r U r U' r2' D' F r U r' F' D r",
+  "standard": "(R' U R U' R') (F' U' F) (R U R') (F R' F') (R U' R)",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bbgbbbbbb",
+   "F": "ggbgggggg",
+   "L": "oorrrrrrr",
+   "R": "rrooooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' U R U' R' F' U' F R U R' F R' F' R U' R",
+    "votes": 124,
+    "etm": 17,
+    "stm": 17,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "r' D' F r U' r' F' D r2 U r' U' r' F r F'",
+    "votes": 110,
+    "etm": 16,
+    "stm": 16,
+    "gen": "4GEN",
+    "yt": "P5yMlQQ3nsM"
+   },
+   {
+    "alg": "R' U L' U2 R U' L R' U L' U2 R U' L",
+    "votes": 34,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": "tVFEJ077hwI"
+   },
+   {
+    "alg": "R' U R U' R' F' U' F R U R' U' R U' f R f'",
+    "votes": 23,
+    "etm": 17,
+    "stm": 17,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Ra",
+  "subgroup": "Adj Swap",
+  "setup": "R U2' R D R' U R D' R' U' R' U R U R' y'",
+  "standard": "y (R U' R' U') (R U R D) (R' U' R D') (R' U2 R')",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "ogroooooo",
+   "F": "bobrrrrrr",
+   "L": "gbobbbbbb",
+   "R": "rrggggggg"
+  },
+  "alts": [
+   {
+    "alg": "y R U' R' U' R U R D R' U' R D' R' U2 R'",
+    "votes": 151,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "IGHfp6CgfaA"
+   },
+   {
+    "alg": "y R U R' F' R U2 R' U2 R' F R U R U2 R'",
+    "votes": 63,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "L U2 L' U2 L F' L' U' L U L F L2",
+    "votes": 31,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y R U' R' U' R U R' U R' D' R U' R' D R2 U R'",
+    "votes": 18,
+    "etm": 17,
+    "stm": 17,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Rb",
+  "subgroup": "Adj Swap",
+  "setup": "R' U R U R' U' R' D' R U R' D R U2' R",
+  "standard": "(R' U2) (R U2) (R' F R) (U R' U' R') F' R2",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bogbbbbbb",
+   "F": "rgrgggggg",
+   "L": "obbrrrrrr",
+   "R": "grooooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' U2 R U2 R' F R U R' U' R' F' R2",
+    "votes": 112,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": "FwXr8Cawxfg"
+   },
+   {
+    "alg": "y R2 F R U R U' R' F' R U2 R' U2 R",
+    "votes": 76,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' U2 R' D' R U' R' D R U R U' R' U' R",
+    "votes": 50,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": "h5qLhgpKzyA"
+   },
+   {
+    "alg": "y R' U R U R' U' R' D' R U R' D R U2 R",
+    "votes": 8,
+    "etm": 15,
+    "stm": 15,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "T",
+  "subgroup": "Adj Swap",
+  "setup": "F R U' R' U R U R2' F' R U R U' R'",
+  "standard": "(R U R' U') (R' F R2) (U' R' U') (R U R' F')",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "obbbbbbbb",
+   "F": "ggogggggg",
+   "L": "rorrrrrrr",
+   "R": "brgoooooo"
+  },
+  "alts": [
+   {
+    "alg": "R U R' U' R' F R2 U' R' U' R U R' F'",
+    "votes": 222,
+    "etm": 14,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": "PX1R7VW9YTs"
+   },
+   {
+    "alg": "l b d' L' U' F U2 L' U' L' U L U' f' S M r u E U' R'",
+    "votes": 29,
+    "etm": 21,
+    "stm": 21,
+    "gen": "13GEN",
+    "yt": null
+   },
+   {
+    "alg": "R U R' U' R' F R2 U' R' U F' L' U L",
+    "votes": 19,
+    "etm": 14,
+    "stm": 14,
+    "gen": "4GEN",
+    "yt": null
+   },
+   {
+    "alg": "R2 u R2 u' R2 F2 u' F2 u F2",
+    "votes": 19,
+    "etm": 10,
+    "stm": 10,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Ua",
+  "subgroup": "EPLL",
+  "setup": "M2' U' M' U2' M U' M2'",
+  "standard": "y2 (M2 U M) U2 (M' U M2)",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "brbbbbbbb",
+   "F": "ggggggggg",
+   "L": "rorrrrrrr",
+   "R": "obooooooo"
+  },
+  "alts": [
+   {
+    "alg": "y2 M2 U M U2 M' U M2",
+    "votes": 137,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "9wQWsy2K9Ig"
+   },
+   {
+    "alg": "R U R' U R' U' R2 U' R' U R' U R",
+    "votes": 120,
+    "etm": 13,
+    "stm": 13,
+    "gen": "2GEN",
+    "yt": "WNkmbgnvQPU"
+   },
+   {
+    "alg": "y R2 U' S' U2 S U' R2",
+    "votes": 81,
+    "etm": 7,
+    "stm": 7,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R U' R U R U R U' R' U' R2",
+    "votes": 72,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Ub",
+  "subgroup": "EPLL",
+  "setup": "M2' U M' U2' M U M2'",
+  "standard": "y2 (M2 U' M) U2 (M' U' M2)",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bobbbbbbb",
+   "F": "ggggggggg",
+   "L": "rbrrrrrrr",
+   "R": "orooooooo"
+  },
+  "alts": [
+   {
+    "alg": "y2 M2 U' M U2 M' U' M2",
+    "votes": 131,
+    "etm": 7,
+    "stm": 7,
+    "gen": "2GEN",
+    "yt": "N-bzJHQUOSk"
+   },
+   {
+    "alg": "R' U R' U' R' U' R' U R U R2",
+    "votes": 56,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "R2' U R U R' U' R3 U' R' U R'",
+    "votes": 52,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "y2 R2 U R U R' U' R' U' R' U R'",
+    "votes": 43,
+    "etm": 11,
+    "stm": 11,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "V",
+  "subgroup": "Opp Swap",
+  "setup": "D2' R' U R D' R2' U' R' U R' U R' D' R U2' R'",
+  "standard": "(R' U R' U') (R D' R' D) (R' U D') (R2 U' R2) D R2",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "bogbbbbbb",
+   "F": "ggbgggggg",
+   "L": "orrrrrrrr",
+   "R": "rbooooooo"
+  },
+  "alts": [
+   {
+    "alg": "R' U R' U' R D' R' D R' U D' R2 U' R2 D R2",
+    "votes": 106,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": "4mobE-mgRZs"
+   },
+   {
+    "alg": "R' U R U' R' f' U' R U2 R' U' R U' R' f R",
+    "votes": 95,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R' U R' U' y R' F' R2 U' R' U R' F R F",
+    "votes": 83,
+    "etm": 15,
+    "stm": 14,
+    "gen": "3GEN",
+    "yt": "Ud9ZDcS2yRk"
+   },
+   {
+    "alg": "y R U' R U R' D R D' R U' D R2 U R2 D' R2",
+    "votes": 81,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Y",
+  "subgroup": "Opp Swap",
+  "setup": "F R' F' R U R U' R' F R U' R' U R U R' F'",
+  "standard": "F R (U' R' U') (R U R' F') (R U R' U') (R' F R F')",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "brgbbbbbb",
+   "F": "ggbgggggg",
+   "L": "obrrrrrrr",
+   "R": "roooooooo"
+  },
+  "alts": [
+   {
+    "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+    "votes": 170,
+    "etm": 17,
+    "stm": 17,
+    "gen": "3GEN",
+    "yt": "gC3LvhSAXSA"
+   },
+   {
+    "alg": "F R' F R2 U' R' U' R U R' F' R U R' U' F'",
+    "votes": 59,
+    "etm": 16,
+    "stm": 16,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "R2 U' R2 U' R2 U F U F' R2 F U' F'",
+    "votes": 15,
+    "etm": 13,
+    "stm": 13,
+    "gen": "3GEN",
+    "yt": null
+   },
+   {
+    "alg": "F R' F' R U R U' R2 U' R U R f' U' f",
+    "votes": 9,
+    "etm": 15,
+    "stm": 15,
+    "gen": "4GEN",
+    "yt": null
+   }
+  ]
+ },
+ {
+  "name": "Z",
+  "subgroup": "EPLL",
+  "setup": "M U2' M2' U2' M U' M2' U' M2'",
+  "standard": "(M2 U) (M2 U) (M' U2) M2 (U2 M')",
+  "stickers": {
+   "U": "yyyyyyyyy",
+   "B": "gogbbbbbb",
+   "F": "brbgggggg",
+   "L": "ogorrrrrr",
+   "R": "rbroooooo"
+  },
+  "alts": [
+   {
+    "alg": "M' U' M2 U' M2 U' M' U2 M2",
+    "votes": 90,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "M2 U M2 U M' U2 M2 U2 M'",
+    "votes": 83,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": null
+   },
+   {
+    "alg": "y M2 U' M2 U' M' U2 M2 U2 M'",
+    "votes": 43,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": "I0haU9Z2MeA"
+   },
+   {
+    "alg": "y M' U M2 U M2 U M' U2 M2",
+    "votes": 41,
+    "etm": 9,
+    "stm": 9,
+    "gen": "2GEN",
+    "yt": null
+   }
+  ]
+ }
+]
