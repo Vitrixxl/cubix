@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "bun:test";
 import { EMPTY_TRAINING_HISTORY, TRAINING_HISTORY_LIMIT, trainingHistoryReducer } from "../src/frontend/lib/trainingHistory";
 import { CASES } from "./backend";
 

@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test } from "bun:test";
 import { createApi, openDb } from "./backend";
 import { ApiError, createApiClient } from "../src/frontend/api-client";
 

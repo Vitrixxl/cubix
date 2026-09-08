@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { Database } from "../scripts/sqlite";
 import { mkdtempSync, rmSync } from "node:fs";

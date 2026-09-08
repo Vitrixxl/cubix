@@ -17,15 +17,13 @@
     "verbatimModuleSyntax": false,
     "types": [
       "node",
-      "vite/client"
+      "bun"
     ]
   },
   "include": [
     "src/**/*",
     "scripts/**/*",
-    "tests/**/*",
-    "vite.config.ts",
-    "vitest.config.ts"
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "bun:test";
 import { matchesShortcut } from "../src/frontend/hooks/useShortcuts";
 
 test("shortcut letters follow AZERTY and QWERTY instead of physical key positions", () => {

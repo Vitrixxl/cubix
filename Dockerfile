@@ -1,11 +1,12 @@
-FROM node:24-bookworm-slim AS frontend
+FROM oven/bun:1.4.0 AS frontend
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY src ./src
 COPY public ./public
-COPY vite.config.ts tsconfig.json ./
-RUN npm run build
+COPY tsconfig.json ./
+COPY scripts/build.ts ./scripts/build.ts
+RUN bun run build
 
 FROM rust:1.98-bookworm AS backend
 WORKDIR /app

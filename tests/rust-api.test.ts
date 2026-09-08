@@ -1,4 +1,4 @@
-import { expect, test, afterEach } from "vitest";
+import { expect, test, afterEach } from "bun:test";
 import { Database } from "../scripts/sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";

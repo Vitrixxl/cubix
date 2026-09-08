@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "vite build",
+    "dev": "bun scripts/dev.ts",
+    "build": "bun scripts/build.ts",
     "build:api": "sh scripts/rust.sh build --release --locked",
     "start": "sh scripts/rust.sh serve",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build:api && vitest run && tsx scripts/test-cube.ts && sh scripts/rust.sh test --locked",
-    "test:api": "npm run build:api && vitest run tests/accounts.test.ts tests/social.test.ts tests/api-client.test.ts tests/rust-api.test.ts",
+    "test": "bun run build:api && bun test --timeout 15000 && bun scripts/test-cube.ts && sh scripts/rust.sh test --locked",
+    "test:api": "bun run build:api && bun test --timeout 15000 tests/accounts.test.ts tests/social.test.ts tests/api-client.test.ts tests/rust-api.test.ts",
     "build:db": "tsx scripts/build-db.ts",
     "import:history": "sh scripts/rust.sh serve --import-history",
     "launch": "sh scripts/cubix-launch.sh",
@@ -28,14 +28,14 @@
     "@types/react-dom": "^19.2.7",
     "typescript": "^5",
     "@types/node": "^24.0.0",
-    "vite": "^8.0.0",
-    "@vitejs/plugin-react": "^6.0.0",
-    "vitest": "^4.0.0",
     "tsx": "^4.0.0",
     "ws": "^8.0.0",
-    "@types/ws": "^8.0.0"
+    "@types/ws": "^8.0.0",
+    "@types/bun": "^1.3.0"
   },
   "engines": {
-    "node": ">=24.0.0"
-  }
+    "node": ">=24.0.0",
+    "bun": ">=1.4.0"
+  },
+  "packageManager": "bun@1.4.0"
 }

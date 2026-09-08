@@ -6,7 +6,7 @@ Voir le [README principal](../README.md) pour le démarrage avec `docker compose
 ## Construction
 
 ```sh
-npm run build:api
+bun run build:api
 ./rust-api/target/release/cubix-api --port 3000
 ```
 
@@ -32,7 +32,7 @@ sont automatiques. `--init-db` effectue seulement cette initialisation.
 ## Tests
 
 ```sh
-npm run test:api
+bun run test:api
 sh scripts/rust.sh test --locked
 sh scripts/rust.sh clippy -- -D warnings
 ```
@@ -43,7 +43,7 @@ conservation des données et conversions concurrentes d’un invité.
 
 ## Benchmark
 
-`npm run stress` utilise des générateurs Node.js pour envoyer des requêtes HTTP et maintenir
+`bun run stress` utilise des générateurs Node.js pour envoyer des requêtes HTTP et maintenir
 des WebSockets authentifiées. Il crée sa propre base de comptes fictifs ; il ne touche jamais
 à la base normale de l’application. Les ports loopback doivent être libres.
 

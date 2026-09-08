@@ -4,6 +4,7 @@ Application web de speedcubing : catalogue F2L / OLL / PLL, entraînement, chron
 statistiques et messagerie entre cubeurs.
 
 **Serveur Rust** (Axum, Tokio, SQLite) · **React 19**, Jotai et Motion dans le navigateur.
+Le frontend est compilé avec `bun build` ; les tests TypeScript utilisent `bun test`.
 Le conteneur final exécute uniquement le serveur Rust, qui sert aussi l’interface compilée.
 
 ## Démarrer
@@ -18,7 +19,7 @@ docker compose up
 
 Ouvrir **http://localhost:3000**. Le premier démarrage construit automatiquement le frontend
 et le binaire Rust en mode release. La base SQLite et ses migrations sont créées au démarrage.
-Aucun compte externe, clé API, fichier `.env` ou installation locale de Node/Rust n’est nécessaire.
+Aucun compte externe, clé API, fichier `.env` ou installation locale de Bun/Node/Rust n’est nécessaire.
 
 ```sh
 docker compose up -d           # en arrière-plan
@@ -82,19 +83,19 @@ Les requêtes de sessions et de temps vérifient systématiquement leur proprié
 
 ## Développement et tests
 
-Pour travailler sans Docker : Node.js **24+**, npm et Rust **1.98+**.
+Pour travailler sans Docker : Bun **1.4+**, Node.js **24+** (scripts de catalogue / stress test) et Rust **1.98+**.
 
 ```sh
-npm ci
-npm run dev           # API Rust :47129 et frontend Vite avec HMR :5180
-npm run build         # frontend dans dist/view
-npm run build:api     # binaire Rust release
-npm start             # sert le frontend construit et l’API sur :47129
-npm run typecheck
-npm test              # tests API/WS, frontend, cube et tests Rust
+bun install --frozen-lockfile
+bun run dev           # API Rust :47129 et frontend Bun avec HMR :5180
+bun run build         # frontend dans dist/view
+bun run build:api     # binaire Rust release
+bun run start         # sert le frontend construit et l’API sur :47129
+bun run typecheck
+bun run test          # tests API/WS, frontend, cube et tests Rust
 ```
 
-`npm run dev` reconstruit l’API à son lancement ; relancer cette commande après une modification Rust.
+`bun run dev` reconstruit l’API à son lancement ; relancer cette commande après une modification Rust.
 L’interface se recharge automatiquement pendant les modifications React/CSS.
 
 Le serveur accepte `--host`, `--port`, `--version`, `--init-db` et `--import-history <username>`.
@@ -108,7 +109,7 @@ visiteur. Pour les associer explicitement à un compte déjà créé :
 ```sh
 docker compose exec api cubix-api --import-history votre_pseudo
 # Installation locale :
-npm run import:history -- votre_pseudo
+bun run import:history -- votre_pseudo
 ```
 
 L’import est transactionnel et peut être répété sans dupliquer les temps.
@@ -116,8 +117,8 @@ L’import est transactionnel et peut être répété sans dupliquer les temps.
 ## Stress test
 
 ```sh
-npm run build:api
-npm run stress
+bun run build:api
+bun run stress
 ```
 
 Le script crée une base temporaire avec des comptes fictifs et lance sa propre instance Rust.
@@ -138,5 +139,5 @@ Voir [les détails du serveur et du benchmark](rust-api/README.md).
 
 La croix est en bas (blanc), la dernière face est jaune et la face avant est verte.
 Les cas F2L visent le slot avant-droit. Les sources brutes sont conservées dans `data/raw` ;
-`npm run build:db` reconstruit et vérifie le catalogue.
+`bun run build:db` reconstruit et vérifie le catalogue.
 Les fontes Geist sont distribuées avec leur licence dans `src/frontend/fonts`.

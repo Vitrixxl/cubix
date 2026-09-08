@@ -1,5 +1,5 @@
 /** Real Rust processes and disposable SQLite files for HTTP and WebSocket tests. */
-import { afterEach } from "vitest";
+import { afterEach } from "bun:test";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";

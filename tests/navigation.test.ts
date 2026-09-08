@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test } from "bun:test";
 import { initialRoute, LAST_TAB_KEY, parseRoute, rememberTab } from "../src/frontend/lib/navigation";
 
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
