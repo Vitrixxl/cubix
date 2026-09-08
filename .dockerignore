@@ -1,0 +1,15 @@
+.git
+.hutch
+node_modules
+dist
+build
+artifacts
+rust-api/target
+.cottontail-tmp
+.env
+.env.*
+*.log
+**/*.db
+**/*.db-*
+data/raw
+tests

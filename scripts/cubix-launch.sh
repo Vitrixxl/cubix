@@ -7,8 +7,6 @@ PORT="${CUBIX_PORT:-47129}"
 URL="http://127.0.0.1:$PORT"
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/cubix"
-BUN="${BUN_BIN:-$HOME/.bun/bin/bun}"
-[ -x "$BUN" ] || BUN="$(command -v bun)"
 
 mkdir -p "$LOG_DIR"
 
@@ -16,7 +14,7 @@ healthy() { curl -sf -m 1 "$URL/api/health" >/dev/null 2>&1; }
 
 if ! healthy; then
   # detached from the launcher: survives after this script exits
-  (cd "$DIR" && setsid nohup "$BUN" run scripts/serve.ts --port "$PORT" >>"$LOG_DIR/server.log" 2>&1 &)
+  (cd "$DIR" && setsid nohup ./rust-api/target/release/cubix-api --port "$PORT" >>"$LOG_DIR/server.log" 2>&1 &)
   i=0
   while [ $i -lt 100 ] && ! healthy; do
     sleep 0.1

@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    ports:
+      - "${CUBIX_PORT:-3000}:3000"
+    environment:
+      CUBIX_HOST: 0.0.0.0
+      PORT: "3000"
+      CUBIX_DB: /var/lib/cubix/cubix.db
+    volumes:
+      - cubix-data:/var/lib/cubix
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+volumes:
+  cubix-data:

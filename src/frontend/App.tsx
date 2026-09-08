@@ -1,0 +1,183 @@
+import { Fragment, Suspense, useEffect, useInsertionEffect, useRef, useState } from "react";
+import { useAtom } from "jotai";
+import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, motion } from "motion/react";
+import { animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
+import { AlgorithmsPage } from "./pages/AlgorithmsPage";
+import { TrainingPage } from "./pages/TrainingPage";
+import { PlaygroundPage } from "./pages/PlaygroundPage";
+import { IconCube, IconGrid, IconPalette, IconTimer, IconUser, IconUsers, IconMessage, IconSun, IconMoon } from "./components/icons";
+import { ThemeController, ThemePicker } from "./components/ThemePicker";
+
+import { parseRoute, rememberTab } from "./lib/navigation";
+import { api, ApiError, authToken, tokenKey } from "./api";
+import { Avatar, CommunityPage, ProfilePage } from "./pages/AccountPage";
+
+import { ChatConnection } from "./components/ChatConnection";
+import { MessagesPage } from "./pages/MessagesPage";
+import { useTimerChrome } from "./hooks/useTimerChrome";
+import { useAppViewport } from "./hooks/useAppViewport";
+
+import { useShortcuts } from "./hooks/useShortcuts";
+import { ShortcutKey } from "./components/ShortcutKey";
+import { SolveContextMenu } from "./components/SolveContextMenu";
+
+const NAV: { page: Route["page"]; label: string; icon: typeof IconGrid }[] = [
+  { page: "algorithms", label: "Algorithms", icon: IconGrid },
+  { page: "training", label: "Training", icon: IconTimer },
+  { page: "playground", label: "Playground", icon: IconCube },
+  { page: "messages", label: "Messages", icon: IconMessage },
+  { page: "community", label: "Community", icon: IconUsers },
+];
+
+const PAGE_TRANSITION = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
+
+export function App() {
+  useAppViewport();
+  useEffect(() => {
+    // Custom component menus handle the event first; suppress the browser menu.
+    const preventNativeMenu = (event: MouseEvent) => event.preventDefault();
+    window.addEventListener("contextmenu", preventNativeMenu);
+    return () => window.removeEventListener("contextmenu", preventNativeMenu);
+  }, []);
+  const [animationsEnabled] = useAtom(animationsEnabledAtom);
+  const [colorMode, setColorMode] = useAtom(colorModeAtom);
+  const toggleColorMode = () => setColorMode(mode => mode === "light" ? "dark" : "light");
+  useInsertionEffect(() => {
+    // MotionConfig's skip flag is captured at mount; this flag also updates existing elements.
+    const previous = MotionGlobalConfig.skipAnimations;
+    MotionGlobalConfig.skipAnimations = !animationsEnabled;
+    document.documentElement.dataset.animations = animationsEnabled ? "on" : "off";
+    return () => { MotionGlobalConfig.skipAnimations = previous; };
+  }, [animationsEnabled]);
+  const navigationMotion = useTimerChrome("down");
+  const [user, setUser] = useAtom(userAtom);
+  const [, bumpStats] = useAtom(statsVersionAtom);
+  const [bootError, setBootError] = useState("");
+  const [bootRetry, setBootRetry] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setBootError("");
+    (async () => {
+      if (authToken.get()) {
+        try { const current = await api.me(); if (active) setUser(current); return; }
+        catch (error) { if (!(error instanceof ApiError) || error.status !== 401) throw error; authToken.clear(); }
+      }
+      const result = await api.guest();
+      if (active) { authToken.set(result.token); setUser(result.user); bumpStats(v => v + 1); }
+    })().catch(e => { if (active) setBootError(e.message); });
+    return () => { active = false; };
+  }, [bootRetry, setUser, bumpStats]);
+  const [route, setRoute] = useAtom(routeAtom);
+  const [chatActivity, setChatActivity] = useAtom(chatActivityAtom);
+  useEffect(() => { if (route.page === "messages") setChatActivity(false); }, [route.page, chatActivity, setChatActivity]);
+  useEffect(() => {
+    const changed = (event: StorageEvent) => { if (event.key === tokenKey || event.key === null) window.location.reload(); };
+    const expired = () => { authToken.clear(); window.location.reload(); };
+    window.addEventListener("storage", changed);
+    window.addEventListener("cubix-session-expired", expired);
+    return () => { window.removeEventListener("storage", changed); window.removeEventListener("cubix-session-expired", expired); };
+  }, []);
+  const [themesOpen, setThemesOpen] = useState(false);
+  const historyReady = useRef(false);
+  const restoringHistory = useRef(false);
+
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const next = parseRoute(event.state?.cubixRoute);
+      restoringHistory.current = true;
+      setRoute(next ?? { page: "algorithms" });
+      setThemesOpen(false);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [setRoute]);
+
+  useEffect(() => {
+    rememberTab(route);
+    if (!historyReady.current) {
+      historyReady.current = true;
+      window.history.replaceState({ ...window.history.state, cubixRoute: route }, "");
+      return;
+    }
+    if (restoringHistory.current) {
+      restoringHistory.current = false;
+      return;
+    }
+    window.history.pushState({ ...window.history.state, cubixRoute: route }, "");
+  }, [route]);
+
+  useShortcuts([
+    ...NAV.map(({ page }, i) => ({ key: String(i + 1), run: () => setRoute({ page } as Route) })),
+    { key: "6", run: () => setThemesOpen(true) },
+    { key: "7", run: () => setRoute({ page: "profile" }) },
+    { key: "8", run: toggleColorMode },
+  ]);
+
+  return (
+    <MotionConfig reducedMotion="user">
+    <div className="app">
+      <ChatConnection />
+      <ThemeController />
+      <motion.nav {...navigationMotion} className="sidebar" aria-label="Main navigation">
+        <LayoutGroup id="nav">
+          {NAV.map(({ page, label, icon: Icon }, i) => {
+            const active = route.page === page;
+            return (
+              <Fragment key={page}>
+                {i === 3 && <span className="nav-divider" aria-hidden="true" />}
+                <button className={`nav-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}
+                  aria-label={label} aria-keyshortcuts={`Alt+${i + 1}`} onClick={() => setRoute({ page } as Route)}>
+                  {active && <span className="nav-indicator" />}
+                  <Icon /><span className="nav-label">{label}</span>
+                  <span className="nav-tooltip" aria-hidden="true">{label}<ShortcutKey letter={String(i + 1)} /></span>
+                  {page === "messages" && chatActivity && <span className="chat-activity-dot" role="status" aria-label="New activity in messages" />}
+                </button>
+              </Fragment>
+            );
+          })}
+          <span className="nav-divider" aria-hidden="true" />
+          <button aria-label="Themes" aria-keyshortcuts="Alt+6" className="nav-item" onClick={() => setThemesOpen(true)}>
+            <IconPalette /><span className="nav-tooltip" aria-hidden="true">Themes<ShortcutKey letter="6" /></span>
+          </button>
+          <button type="button" role="switch" aria-label="Light mode" aria-checked={colorMode === "light"} aria-keyshortcuts="Alt+8" className="nav-item color-mode-nav" onClick={toggleColorMode}>
+            {colorMode === "light" ? <IconMoon aria-hidden="true" /> : <IconSun aria-hidden="true" />}
+            <span className="nav-tooltip" aria-hidden="true">{colorMode === "light" ? "Switch to dark mode" : "Switch to light mode"}<ShortcutKey letter="8" /></span>
+          </button>
+          <button aria-label="My account" aria-keyshortcuts="Alt+7" aria-current={route.page === "profile" ? "page" : undefined}
+            className={`nav-item account-nav ${route.page === "profile" ? "active" : ""}`} onClick={() => setRoute({ page: "profile" })}>
+            {route.page === "profile" && <span className="nav-indicator" />}
+            {user && !user.isGuest ? <Avatar user={user} /> : <IconUser />}
+            <span className="nav-label">My account</span>
+            <span className="nav-tooltip" aria-hidden="true">My account<ShortcutKey letter="7" /></span>
+          </button>
+        </LayoutGroup>
+      </motion.nav>
+      <main className="main">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`${route.page}:${user?.id ?? "loading"}:${user?.isGuest}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={PAGE_TRANSITION}
+            className="page-transition"
+          >
+            <Suspense fallback={<div className="boot">Loading…</div>}>
+              {!user ? <div className="page"><p role={bootError ? "alert" : "status"}>{bootError || "Loading your workspace…"}</p>{bootError && <button className="btn" onClick={() => setBootRetry(v => v + 1)}>Try again</button>}</div> : <>
+              {route.page === "algorithms" && <AlgorithmsPage />}
+              {route.page === "training" && <TrainingPage />}
+              {route.page === "playground" && <PlaygroundPage />}
+              {route.page === "messages" && <MessagesPage solveId={route.solveId} />}
+              {route.page === "community" && <CommunityPage />}
+              {route.page === "profile" && <ProfilePage key={route.username ?? "self"} username={route.username} mode={route.mode} caseId={route.caseId} />}
+              </>}
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
+      </main>
+      <ThemePicker open={themesOpen} onClose={() => setThemesOpen(false)} />
+      <SolveContextMenu />
+    </div>
+    </MotionConfig>
+  );
+}

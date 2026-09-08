@@ -1,35 +1,41 @@
 {
   "name": "cubix",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "hutch run dev",
-    "start": "hutch run start",
-    "build": "hutch run build",
-    "dev:web": "bun run scripts/dev-web.ts",
-    "build:view": "bun run scripts/build-view.ts",
-    "build:db": "bun run scripts/build-db.ts",
-    "test": "bun run scripts/test-cube.ts && bun run test:accounts",
-    "typecheck": "bunx tsc --noEmit -p tsconfig.json",
-    "serve": "bun run scripts/serve.ts",
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "build:api": "sh scripts/rust.sh build --release --locked",
+    "start": "sh scripts/rust.sh serve",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build:api && vitest run && tsx scripts/test-cube.ts && sh scripts/rust.sh test --locked",
+    "test:api": "npm run build:api && vitest run tests/accounts.test.ts tests/social.test.ts tests/api-client.test.ts tests/rust-api.test.ts",
+    "build:db": "tsx scripts/build-db.ts",
+    "import:history": "sh scripts/rust.sh serve --import-history",
     "launch": "sh scripts/cubix-launch.sh",
-    "test:accounts": "bun test tests/accounts.test.ts",
-    "import:history": "bun run scripts/import-history.ts"
+    "stress": "tsx scripts/stress-api.ts"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.4.2",
     "cubing": "^0.63.4",
-    "elysia": "^1.4.30",
     "jotai": "^2.20.3",
     "motion": "^13.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/bun": "latest",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "typescript": "^5"
+    "typescript": "^5",
+    "@types/node": "^24.0.0",
+    "vite": "^8.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "vitest": "^4.0.0",
+    "tsx": "^4.0.0",
+    "ws": "^8.0.0",
+    "@types/ws": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

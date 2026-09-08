@@ -1,0 +1,31 @@
+name: Check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install Rust
+        run: rustup toolchain install 1.98.1 --profile minimal && rustup default 1.98.1
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build and start the complete application
+        run: docker compose up -d --build --wait
+      - name: Check frontend and API
+        run: |
+          curl --fail http://localhost:3000/ | grep 'Cubix'
+          curl --fail http://localhost:3000/api/health
+          curl --fail http://localhost:3000/api/cases > /tmp/cases.json
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; if(JSON.parse(readFileSync('/tmp/cases.json','utf8')).length !== 228) process.exit(1)"
+      - name: Stop containers
+        if: always()
+        run: docker compose down

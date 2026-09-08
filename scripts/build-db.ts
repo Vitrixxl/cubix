@@ -6,7 +6,7 @@
  *   - des `setups_alt` (setup SpeedCubeDB, scrambles F2LTrainer)
  *   - une vérification : setup + algo => état attendu (résolu / OLL fait / F2L fait)
  *
- * Usage : bun run scripts/build-db.ts [--verify-only]
+ * Usage : npx tsx scripts/build-db.ts [--verify-only]
  */
 import { Alg } from "cubing/alg";
 import { cube3x3x3 } from "cubing/puzzles";
@@ -14,7 +14,7 @@ import type { KPattern } from "cubing/kpuzzle";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(import.meta.dir, "..");
+const ROOT = join(import.meta.dirname, "..");
 const RAW = join(ROOT, "data", "raw");
 const OUT = join(ROOT, "data");
 const VERIFY_ONLY = process.argv.includes("--verify-only");

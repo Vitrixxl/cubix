@@ -16,20 +16,20 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "types": [
-      "bun-types"
+      "node",
+      "vite/client"
     ]
   },
   "include": [
     "src/**/*",
     "scripts/**/*",
     "tests/**/*",
-    "electrobun.config.ts",
-    "hutch.config.ts"
+    "vite.config.ts",
+    "vitest.config.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     ".hutch"
-  ],
-  "extends": "./.hutch/devkit/tsconfig.json"
+  ]
 }

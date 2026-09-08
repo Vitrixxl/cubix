@@ -8,6 +8,7 @@ build/
 # Local caches, release bundles and secrets
 .cottontail-tmp/
 artifacts/
+rust-api/target/
 .env
 .env.*
 !.env.example

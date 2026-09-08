@@ -1,0 +1,44 @@
+[
+  {
+    "id": "f2l",
+    "label": "F2L",
+    "stage": "F2L",
+    "description": "The 41 standard first-two-layers cases, front-right slot."
+  },
+  {
+    "id": "f2l-advanced",
+    "label": "F2L Advanced",
+    "stage": "F2L",
+    "description": "Pieces in other slots, back slot, multi-slot situations."
+  },
+  {
+    "id": "f2l-expert",
+    "label": "F2L Expert",
+    "stage": "F2L",
+    "description": "Pairs in the wrong slot, corner solved with edge misplaced, and other tricky cases."
+  },
+  {
+    "id": "2look-oll",
+    "label": "2-Look OLL",
+    "stage": "OLL",
+    "description": "Beginner orientation: edges first, then corners (10 algorithms)."
+  },
+  {
+    "id": "oll",
+    "label": "OLL",
+    "stage": "OLL",
+    "description": "All 57 orientation-of-the-last-layer cases."
+  },
+  {
+    "id": "2look-pll",
+    "label": "2-Look PLL",
+    "stage": "PLL",
+    "description": "Beginner permutation: corners first, then edges (6 algorithms)."
+  },
+  {
+    "id": "pll",
+    "label": "PLL",
+    "stage": "PLL",
+    "description": "All 21 permutation-of-the-last-layer cases."
+  }
+]

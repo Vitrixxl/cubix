@@ -1,4 +1,4 @@
-/** DTOs shared between the Elysia API (bun) and the React webview. */
+/** HTTP and WebSocket contracts for the Rust API and React web app. */
 
 export type Stage = "F2L" | "OLL" | "PLL";
 export const STAGES: readonly Stage[] = ["F2L", "OLL", "PLL"];
@@ -92,9 +92,7 @@ export interface CaseHistoryDto {
 export interface UserDto {
   id: string;
   username: string;
-  displayName: string;
   bio: string;
-  isPrivate: boolean;
   isGuest: boolean;
   createdAt: string;
 }
@@ -106,4 +104,20 @@ export interface ProfileDto {
   totalSolves: number;
   trainingSolves: number;
   activeDays: number;
+}
+
+export interface FriendDto {
+  id: number;
+  userId: string;
+  username: string;
+  status: "pending" | "accepted";
+  incoming: boolean;
+}
+export interface ChatMessageDto {
+  id: number;
+  senderId: string;
+  recipientId: string;
+  text: string;
+  solve: SolveDto | null;
+  createdAt: string;
 }

@@ -1,0 +1,23 @@
+[package]
+name = "cubix-api"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
+tower-http = { version = "0.6", features = ["fs", "cors", "set-header"] }
+rusqlite = { version = "0.37", features = ["bundled"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde_urlencoded = "0.7"
+percent-encoding = "2"
+sha2 = "0.10"
+rand = "0.8"
+argon2 = "0.5"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

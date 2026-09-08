@@ -5,13 +5,13 @@
  *     SpeedCubeDB setup and compare the top face + top rows of side faces.
  *  3. every case in data/*.json: setup then algorithms[0] (with pre_auf) must reach the expected state.
  *
- * Usage: bun run scripts/test-cube.ts
+ * Usage: npx tsx scripts/test-cube.ts
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { applyAlg, colorOf, compensateAuf, FACES, parseAlg, reorientAlgY2, solved, SLOTS, type CubeState, type Face } from "../src/shared/cube";
 
-const ROOT = join(import.meta.dir, "..");
+const ROOT = join(import.meta.dirname, "..");
 const read = (p: string) => JSON.parse(readFileSync(join(ROOT, p), "utf8"));
 let failures = 0;
 const assert = (cond: boolean, msg: string) => {
