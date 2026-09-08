@@ -38,6 +38,7 @@ impl Db {
                 "CREATE INDEX IF NOT EXISTS idx_{table}_owner ON {table}(user_id)"
             ))?;
         }
+        crate::sync::migrate(&db)?;
         let (tx, mut rx) = mpsc::channel::<Job>(1024);
         std::thread::Builder::new()
             .name("cubix-sqlite".into())

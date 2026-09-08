@@ -28,7 +28,7 @@ export function SolveContextMenu() {
     const cancelHold = () => { clearTimeout(hold); hold = undefined; start = undefined; };
     const open = (anchor: HTMLElement, x: number, y: number) => {
       const id = Number(anchor.dataset.solveId);
-      if (!anchor.isConnected || !Number.isSafeInteger(id) || id <= 0 || anchor.closest("[inert]")) return;
+      if (!anchor.isConnected || !Number.isSafeInteger(id) || id === 0 || anchor.closest("[inert]")) return;
       const rect = anchor.getBoundingClientRect();
       const top = Math.max(8, Math.min(y || rect.bottom, innerHeight - 8));
       setError("");

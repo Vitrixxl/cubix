@@ -5,6 +5,7 @@ mod db;
 mod error;
 mod social;
 mod stats;
+mod sync;
 
 use axum::{
     Router,

@@ -78,7 +78,7 @@ function Conversation({ peer, userId, attachment, clearAttachment, onRemove, onB
   const viewport = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const pending = useRef<{ key: string; id: string } | null>(null);
-  const merge = (rows: ChatMessageDto[]) => setMessages(previous => [...new Map([...previous, ...rows].map(m => [m.id, m])).values()].sort((a, b) => a.id - b.id));
+  const merge = (rows: ChatMessageDto[]) => setMessages(previous => [...new Map([...previous.filter(m => m.id > 0), ...rows].map(m => [m.id, m])).values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id - b.id));
   useEffect(() => {
     let active = true;
     api.messages(peer.userId).then(rows => {
@@ -86,7 +86,7 @@ function Conversation({ peer, userId, attachment, clearAttachment, onRemove, onB
       setMessages(previous => {
         // If a long disconnection skipped a page, restart from a contiguous latest page.
         if (previous.length && rows.length && previous.at(-1)!.id < rows[0].id) return rows;
-        return [...new Map([...previous, ...rows].map(m => [m.id, m])).values()].sort((a, b) => a.id - b.id);
+        return [...new Map([...previous.filter(m => m.id > 0), ...rows].map(m => [m.id, m])).values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id - b.id);
       });
       if (loading) setHasOlder(rows.length === 50);
       setLoading(false);
@@ -126,7 +126,7 @@ function Conversation({ peer, userId, attachment, clearAttachment, onRemove, onB
     <div className="chat-messages" role="log" aria-label="Messages" aria-live="polite" ref={viewport} onScroll={() => { const el = viewport.current; if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}>
       {hasOlder && <button className="mini-btn load-older" disabled={olderBusy} onClick={() => void loadOlder()}>{olderBusy ? "Loading…" : "Load older messages"}</button>}
       {loading ? <p className="muted">Loading conversation…</p> : messages.length === 0 && <div className="conversation-start"><h3>Say hello to @{peer.username}.</h3><p className="muted">Share a time from Playground, Training or your profile.</p></div>}
-      {messages.map(message => <article className={`chat-message ${message.senderId === userId ? "own" : ""}`} key={message.id}><span className="chat-author">{message.senderId === userId ? "You" : `@${peer.username}`}</span>{message.solve && <SharedTimeCard solve={message.solve} />}{message.text && <p>{message.text}</p>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time></article>)}
+      {messages.map(message => <article className={`chat-message ${message.senderId === userId ? "own" : ""}`} key={message.id}><span className="chat-author">{message.senderId === userId ? "You" : `@${peer.username}`}</span>{message.solve && <SharedTimeCard solve={message.solve} />}{message.text && <p>{message.text}</p>}{message.id < 0 && <small className="muted">Saved locally · awaiting sync</small>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time></article>)}
       <div ref={bottom} />
     </div>
     {error && <p className="form-error" role="alert">{error} <button className="mini-btn" onClick={() => { setError(""); setRetry(v => v + 1); }}>Retry loading</button></p>}

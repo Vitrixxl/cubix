@@ -18,7 +18,7 @@ export function parseRoute(value: unknown): Route | undefined {
       ...("mode" in value && (value.mode === "training" || value.mode === "playground") ? { mode: value.mode } : {}),
       ...("caseId" in value && typeof value.caseId === "string" ? { caseId: value.caseId } : {}),
     };
-    case "messages": return { page: value.page, ...("solveId" in value && typeof value.solveId === "number" && Number.isSafeInteger(value.solveId) && value.solveId > 0 ? { solveId: value.solveId } : {}) };
+    case "messages": return { page: value.page, ...("solveId" in value && typeof value.solveId === "number" && Number.isSafeInteger(value.solveId) && value.solveId !== 0 ? { solveId: value.solveId } : {}) };
     case "training": return { page: value.page, ...("autostart" in value && value.autostart === true ? { autostart: true } : {}) };
     case "playground": case "community": return { page: value.page };
   }

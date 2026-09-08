@@ -17,7 +17,7 @@ export function createApiClient(origin: string, options: { getToken: () => strin
   async function request<T>(path: string, method = "GET", body?: unknown, signal?: AbortSignal, auth = false): Promise<T> {
     const token = options.getToken();
     const response = await fetch(base + path, {
-      method, signal,
+      method, signal: signal ?? AbortSignal.timeout(10000),
       headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(body === undefined ? {} : { "content-type": "application/json" }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -29,6 +29,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     return value as T;
   }
   return {
+    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves"; id: number; value: SessionDto | SolveDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}`),
+    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | UserDto | null }[] }>("/sync", "POST", { operations }),
     friends: () => request<FriendDto[]>("/social/friends"),
     addFriend: (username: string) => request<FriendDto[]>("/social/friends", "POST", { username }),
     acceptFriend: (id: number) => request<FriendDto[]>(`/social/friends/${id}/accept`, "POST"),

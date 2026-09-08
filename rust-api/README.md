@@ -77,3 +77,15 @@ s’exécute contre SQLite, les historiques grossissent pendant le test, et les 
 persistés. Le rapport distingue connexions, utilisateurs HTTP actifs, concurrence, timeouts,
 RAM du serveur et RAM des générateurs. Un timeout ne prouve pas l’annulation d’une écriture.
 Un test de quelques minutes ne permet pas de conclure sur une fuite mémoire à long terme.
+
+## Synchronisation locale
+
+`GET /api/sync?after=<curseur>` renvoie au plus 500 changements appartenant à l’utilisateur authentifié.
+Les triggers SQLite enregistrent également les modifications provenant des routes historiques.
+Le journal conserve la dernière révision de chaque session/temps et les suppressions.
+
+`POST /api/sync` applique une liste de 1 à 100 opérations dans une transaction, pour un compte enregistré.
+Chaque opération possède un identifiant stable, une méthode, un chemin autorisé et un corps ; les créations
+incluent leur date originale ISO. Une réception répétée renvoie le résultat déjà enregistré ; réutiliser
+l’identifiant avec un contenu différent échoue. Les contrôles d’appartenance des routes habituelles restent appliqués.
+Les messages utilisent leur mécanisme existant de déduplication par `clientId`.

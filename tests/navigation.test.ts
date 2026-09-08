@@ -51,7 +51,8 @@ test("invalid routes and unavailable storage fall back safely", () => {
     browser(saved, { page: "unknown" });
     expect(initialRoute()).toEqual({ page: "algorithms" });
   }
-  expect(parseRoute({ page: "messages", solveId: -1 })).toEqual({ page: "messages" });
+  expect(parseRoute({ page: "messages", solveId: 0 })).toEqual({ page: "messages" });
+  expect(parseRoute({ page: "messages", solveId: -123 })).toEqual({ page: "messages", solveId: -123 });
   expect(parseRoute({ page: "profile", username: {} })).toEqual({ page: "profile" });
   browser();
   Object.defineProperty(window, "localStorage", { get() { throw new Error("Storage blocked"); } });

@@ -33,6 +33,37 @@ Les comptes, temps, sessions, amitiés et messages sont conservés dans le volum
 Le service expose le frontend, `/api` et la WebSocket `/api/social/live` sur le même port.
 Les utilisateurs doivent ouvrir le même serveur pour retrouver les mêmes comptes et discuter.
 
+## Stockage local et mode hors ligne
+
+Les sessions, temps et pénalités sont d’abord enregistrés dans le **localStorage du navigateur**.
+Sans compte connecté, aucune session invitée n’est créée sur le serveur et aucun temps ne lui est envoyé.
+Le catalogue complet et les calculs de statistiques sont intégrés au frontend.
+
+Après un premier chargement en ligne, le service worker conserve l’interface, le catalogue,
+les fontes et les icônes : l’application peut être fermée puis rouverte sans réseau.
+Cette installation hors ligne nécessite **HTTPS**, ou `http://localhost` pour un usage local.
+Le serveur de développement Bun utilise le HMR ; le cache hors ligne est activé sur le build de production.
+
+Pour un compte connecté, les modifications sont conservées dans une file persistante liée à ce compte,
+puis envoyées à l’API Rust dès qu’elle répond. La synchronisation reprend au retour du réseau,
+à la réouverture de l’application, au retour sur l’onglet, et toutes les 30 secondes pendant son ouverture.
+Elle ne dépend pas d’une connexion permanente. Un clic sur l’état en bas relance les envois.
+Si l’application est fermée, les éléments en attente restent sur l’appareil et repartent à sa prochaine ouverture.
+
+- La connexion ou l’inscription importe les temps locaux dans le compte, sans duplication.
+- Une déconnexion conserve les données en attente dans l’espace de leur compte ; elles ne sont jamais envoyées à un autre compte.
+- Une session expirée conserve l’historique et les nouveaux temps localement ; se reconnecter reprend la synchronisation.
+- Les dates originales sont conservées. Les envois rejoués après une réponse perdue sont dédupliqués côté Rust.
+- Les suppressions se propagent entre appareils et priment sur les modifications tardives d’un temps supprimé.
+- Les conversations déjà chargées sont lisibles hors ligne. Les nouveaux messages et temps partagés attendent dans la file d’envoi.
+  L’inscription, la connexion et les actions d’amitié nécessitent le serveur ; les données sociales non encore chargées nécessitent aussi le réseau.
+- Les anciens temps invités stockés sur le serveur sont récupérés localement lors de la migration.
+- Si le stockage du navigateur est plein, le timer affiche l’échec et permet de réessayer l’enregistrement du temps.
+
+Le volume Docker conserve la copie synchronisée. Les données encore exclusivement locales sont propres
+au navigateur et à l’origine du site ; effacer les données du site les supprime.
+Les thèmes et préférences d’interface restent propres à l’appareil.
+
 ## Fonctionnalités
 
 - **Catalogue** : tous les cas F2L, F2L Advanced, F2L Expert, OLL, PLL et variantes 2-Look,
@@ -41,7 +72,7 @@ Les utilisateurs doivent ouvrir le même serveur pour retrouver les mêmes compt
   précédent/suivant, historique et statistiques par cas. Les groupes peuvent être repliés.
 - **Chronomètre libre** : scrambles, pénalités +2/DNF, moyennes WCA, suppression et partage
   d’un temps par clic droit ou appui long sur mobile.
-- **Profils** : compte invité convertible en compte permanent sans perdre ses temps,
+- **Profils** : entraînement local sans compte, import des temps lors de la connexion,
   pseudonyme unique, bio, recherche de membres et progression. Les cas non entraînés sont grisés.
 - **Messagerie** : demandes d’amitié, conversations privées entre amis, mises à jour en temps réel,
   pagination et partage d’une copie d’un temps conservée même si le temps original est supprimé.

@@ -50,6 +50,19 @@ export function TrainingPage() {
   const [showTimes, setShowTimes] = useState(wide);
   useEffect(() => { setShowSelector(wide); setShowTimes(wide); }, [wide]);
   const session = useRef<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    const restore = async () => {
+      const latest = await api.latestSession("training");
+      if (!active || !latest) return;
+      if (session.current === null) session.current = latest.id;
+      const rows = await api.solves("training",1000);
+      if (active) setSolves(rows.filter(s => s.session_id === session.current).reverse());
+    };
+    void restore();
+    window.addEventListener("cubix-local-changed",restore);
+    return () => { active = false; window.removeEventListener("cubix-local-changed",restore); };
+  },[]);
 
   const pick = useCallback(
     (pool: CaseDto[]) => {
@@ -84,7 +97,7 @@ export function TrainingPage() {
         const sessionId = await ensureSession();
         const setupText = combineAuf(current.c.setup, current.auf);
         const solve = await api.addSolve({ sessionId, caseId: current.c.id, timeMs: ms, scramble: setupText });
-        setSolves((s) => [...s, solve]);
+        setSolves((s) => [...s.filter(item => item.id !== solve.id), solve]);
         bumpStats((v) => v + 1);
         pick(selectedCases);
       } finally {

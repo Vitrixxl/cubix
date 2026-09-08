@@ -9,7 +9,7 @@ import { IconCube, IconGrid, IconPalette, IconTimer, IconUser, IconUsers, IconMe
 import { ThemeController, ThemePicker } from "./components/ThemePicker";
 
 import { parseRoute, rememberTab } from "./lib/navigation";
-import { api, ApiError, authToken, tokenKey } from "./api";
+import { api, local, tokenKey } from "./api";
 import { Avatar, CommunityPage, ProfilePage } from "./pages/AccountPage";
 
 import { ChatConnection } from "./components/ChatConnection";
@@ -19,6 +19,7 @@ import { useAppViewport } from "./hooks/useAppViewport";
 
 import { useShortcuts } from "./hooks/useShortcuts";
 import { ShortcutKey } from "./components/ShortcutKey";
+import { SyncIndicator } from "./components/SyncIndicator";
 import { SolveContextMenu } from "./components/SolveContextMenu";
 
 const NAV: { page: Route["page"]; label: string; icon: typeof IconGrid }[] = [
@@ -52,31 +53,31 @@ export function App() {
   const navigationMotion = useTimerChrome("down");
   const [user, setUser] = useAtom(userAtom);
   const [, bumpStats] = useAtom(statsVersionAtom);
-  const [bootError, setBootError] = useState("");
-  const [bootRetry, setBootRetry] = useState(0);
   useEffect(() => {
-    let active = true;
-    setBootError("");
-    (async () => {
-      if (authToken.get()) {
-        try { const current = await api.me(); if (active) setUser(current); return; }
-        catch (error) { if (!(error instanceof ApiError) || error.status !== 401) throw error; authToken.clear(); }
-      }
-      const result = await api.guest();
-      if (active) { authToken.set(result.token); setUser(result.user); bumpStats(v => v + 1); }
-    })().catch(e => { if (active) setBootError(e.message); });
-    return () => { active = false; };
-  }, [bootRetry, setUser, bumpStats]);
+    const refresh = () => { setUser(local.current()); bumpStats(v => v + 1); };
+    refresh();
+    void local.restore();
+    const changed = (event: StorageEvent) => {
+      if (event.key === tokenKey || event.key?.startsWith("cubix.local.v1:") || event.key === null) refresh();
+    };
+    const reconnect = () => { void local.restore(); };
+    const visible = () => { if (document.visibilityState === "visible") reconnect(); };
+    window.addEventListener("cubix-local-changed", refresh);
+    window.addEventListener("storage", changed);
+    window.addEventListener("online", reconnect);
+    document.addEventListener("visibilitychange", visible);
+    const retry = setInterval(reconnect,30000);
+    return () => {
+      window.removeEventListener("cubix-local-changed", refresh);
+      window.removeEventListener("storage", changed);
+      window.removeEventListener("online", reconnect);
+      document.removeEventListener("visibilitychange", visible);
+      clearInterval(retry);
+    };
+  }, [setUser,bumpStats]);
   const [route, setRoute] = useAtom(routeAtom);
   const [chatActivity, setChatActivity] = useAtom(chatActivityAtom);
   useEffect(() => { if (route.page === "messages") setChatActivity(false); }, [route.page, chatActivity, setChatActivity]);
-  useEffect(() => {
-    const changed = (event: StorageEvent) => { if (event.key === tokenKey || event.key === null) window.location.reload(); };
-    const expired = () => { authToken.clear(); window.location.reload(); };
-    window.addEventListener("storage", changed);
-    window.addEventListener("cubix-session-expired", expired);
-    return () => { window.removeEventListener("storage", changed); window.removeEventListener("cubix-session-expired", expired); };
-  }, []);
   const [themesOpen, setThemesOpen] = useState(false);
   const historyReady = useRef(false);
   const restoringHistory = useRef(false);
@@ -163,7 +164,7 @@ export function App() {
             className="page-transition"
           >
             <Suspense fallback={<div className="boot">Loading…</div>}>
-              {!user ? <div className="page"><p role={bootError ? "alert" : "status"}>{bootError || "Loading your workspace…"}</p>{bootError && <button className="btn" onClick={() => setBootRetry(v => v + 1)}>Try again</button>}</div> : <>
+              {!user ? <div className="boot">Loading your workspace…</div> : <>
               {route.page === "algorithms" && <AlgorithmsPage />}
               {route.page === "training" && <TrainingPage />}
               {route.page === "playground" && <PlaygroundPage />}
@@ -177,6 +178,7 @@ export function App() {
       </main>
       <ThemePicker open={themesOpen} onClose={() => setThemesOpen(false)} />
       <SolveContextMenu />
+      <SyncIndicator />
     </div>
     </MotionConfig>
   );

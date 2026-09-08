@@ -12,11 +12,13 @@ export interface TimerApi {
   /** call on pointer up */
   release: () => void;
   reset: () => void;
+  saveError: string;
+  retrySave: () => void;
 }
 
 interface Options {
   /** invoked when a solve is stopped */
-  onStop: (ms: number) => void;
+  onStop: (ms: number) => void | Promise<void>;
   /** disable keyboard handling (e.g. while a text input is focused) */
   enabled?: boolean;
   /** Temporarily prevent new attempts while keeping stop-key handling active. */
@@ -32,6 +34,14 @@ export const HOLD_DELAY_MS = 300;
  */
 export function useTimer({ onStop, enabled = true, canStart = true }: Options): TimerApi {
   const [phase, setPhase] = useState<TimerPhase>("idle");
+  const [saveError, setSaveError] = useState("");
+  const failedSave = useRef<(() => void | Promise<void>) | null>(null);
+  const retrySave = useCallback(() => {
+    const action = failedSave.current;
+    if (!action) return;
+    Promise.resolve().then(action).then(() => { failedSave.current = null; setSaveError(""); })
+      .catch(error => setSaveError((error as Error).message));
+  },[]);
   const [elapsed, setElapsed] = useState(0);
   const startAt = useRef(0);
   const hold = useRef<number | null>(null);
@@ -50,13 +60,14 @@ export function useTimer({ onStop, enabled = true, canStart = true }: Options): 
     const ms = performance.now() - startAt.current;
     setElapsed(ms);
     setPhaseBoth("stopped");
-    onStop(Math.round(ms));
-  }, [onStop]);
+    failedSave.current = () => onStop(Math.round(ms));
+    retrySave();
+  }, [onStop,retrySave]);
 
   const press = useCallback(() => {
     const p = phaseRef.current;
     if (p === "running") stop();
-    else if (canStart && (p === "idle" || p === "stopped")) {
+    else if (canStart && !failedSave.current && (p === "idle" || p === "stopped")) {
       setElapsed(0);
       setPhaseBoth("holding");
       clearHold();
@@ -135,5 +146,5 @@ export function useTimer({ onStop, enabled = true, canStart = true }: Options): 
     clearHold();
   }, []);
 
-  return { phase, elapsed, startedAt: startAt.current, press, release, reset };
+  return { phase, elapsed, saveError, retrySave, startedAt: startAt.current, press, release, reset };
 }

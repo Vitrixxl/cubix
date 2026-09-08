@@ -36,7 +36,10 @@ export function PlaygroundPage() {
 
 
   useEffect(() => {
-    api.solves("playground", 1000).then((list) => setSolves([...list].reverse()));
+    const refresh = () => { void api.solves("playground", 1000).then(list => setSolves([...list].reverse())); };
+    refresh(); window.addEventListener("cubix-local-changed",refresh);
+    window.addEventListener("storage",refresh);
+    return () => { window.removeEventListener("cubix-local-changed",refresh); window.removeEventListener("storage",refresh); };
   }, []);
 
   const ensureSession = async () => {
@@ -48,7 +51,7 @@ export function PlaygroundPage() {
     async (ms: number) => {
       const sessionId = await ensureSession();
       const solve = await api.addSolve({ sessionId, caseId: null, timeMs: ms, scramble });
-      setSolves((s) => [...s, solve]);
+      setSolves((s) => [...s.filter(item => item.id !== solve.id), solve]);
       setScramble(randomScramble());
     },
     [scramble, setScramble],

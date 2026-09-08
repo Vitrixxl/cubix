@@ -16,3 +16,8 @@ root.render(
     </Provider>
   </StrictMode>,
 );
+
+// Development uses Bun HMR; production can reopen without a reachable server.
+if (!import.meta.hot && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => { void navigator.serviceWorker.register("/sw.js").catch(error => console.error("Offline installation failed",error)); }, {once:true});
+}

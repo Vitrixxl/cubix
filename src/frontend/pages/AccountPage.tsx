@@ -2,7 +2,7 @@ import { AnimationSetting } from "../components/AnimationSetting";
 import { FriendActions, useFriendActions } from "../components/FriendActions";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { api, authToken } from "../api";
+import { api, authToken, local } from "../api";
 import { casesAtom, setsAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
 import { IconBack, IconLock, IconSearch, IconUser } from "../components/icons";
 import { motion } from "motion/react";
@@ -14,8 +14,8 @@ export function Avatar({ user, large = false }: { user: Pick<UserDto, "username"
   return <span className={`avatar ${large ? "large" : ""}`} aria-hidden="true"><span className="avatar-initials">{user.username.trim().slice(0, 2).toUpperCase()}</span></span>;
 }
 
-export function AccountForm() {
-  const [mode, setMode] = useState<"register" | "login">("register");
+export function AccountForm({ initialMode = "register" }: { initialMode?: "register" | "login" } = {}) {
+  const [mode, setMode] = useState<"register" | "login">(initialMode);
   const [user, setUser] = useAtom(userAtom);
   const setRoute = useSetAtom(routeAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
@@ -45,7 +45,7 @@ export function AccountForm() {
       <div className="tabs" role="tablist" aria-label="Account access">
         {(["register", "login"] as const).map(m => <button type="button" role="tab" aria-selected={mode === m} className={`tab ${mode === m ? "active" : ""}`} key={m} disabled={busy} onClick={() => { setMode(m); setError(""); }}>{mode === m && <span className="tab-pill" />}<span>{m === "register" ? "Create account" : "Sign in"}</span></button>)}
       </div>
-      <div><h2>{mode === "register" ? "Make yourself at home." : "Welcome back."}</h2><p className="muted">{mode === "register" ? "Your guest times will come with you." : "Sign in to find your times and profile."}</p></div>
+      <div><h2>{mode === "register" ? "Make yourself at home." : "Welcome back."}</h2><p className="muted">{mode === "register" ? "Your locally saved times will come with you." : "Sign in to find your times and profile."}</p></div>
       <label>Username<input className="input" name="username" autoComplete="username" placeholder="your_username" pattern="[a-zA-Z0-9_]{3,24}" minLength={3} maxLength={24} required disabled={busy} autoCapitalize="none" spellCheck={false} /><small>3–24 letters, numbers or underscores.</small></label>
       <label>Password<input className="input" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 10 characters" : "Your password"} minLength={mode === "register" ? 10 : 1} maxLength={128} required disabled={busy} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -98,6 +98,7 @@ export function ProfilePage({ username, mode = "playground", caseId }: { usernam
   const mobile = useAtomValue(viewportSizeAtom).width <= 700;
   const openedFromGallery = useRef(false);
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
+  const statsVersion = useAtomValue(statsVersionAtom);
   const friendship = useFriendActions();
   const [user, setUser] = useAtom(userAtom);
   const setRoute = useSetAtom(routeAtom);
@@ -123,7 +124,7 @@ export function ProfilePage({ username, mode = "playground", caseId }: { usernam
     setProfile(current => current?.user.username === target ? current : null); setError(""); setEditing(false);
     api.profile(target, controller.signal).then(setProfile).catch(e => { if (!controller.signal.aborted) setError(e.message); });
     return () => controller.abort();
-  }, [target, user?.id, user?.isGuest, version, deletedSolveId]);
+  }, [target, user?.id, user?.isGuest, version, deletedSolveId, statsVersion]);
   // Refresh after returning to the tab to show profile changes made elsewhere.
   useEffect(() => {
     const refresh = () => { if (document.visibilityState === "visible") setVersion(v => v + 1); };

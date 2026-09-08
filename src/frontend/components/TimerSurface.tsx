@@ -75,6 +75,7 @@ export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: T
 
       </div>
     </div>
+    {timer.saveError && <div className="timer-save-error" role="alert"><p>{timer.saveError}</p><button className="btn" onClick={timer.retrySave}>Retry saving this time</button></div>}
     {mobile && (phase === "running" || stopping) && createPortal(
       <div className="timer-stop-surface" role="button" tabIndex={-1} aria-label="Stop timer"
         onPointerDown={(event) => {

@@ -289,7 +289,7 @@ fn session_dto(mut value: Value) -> Result<Value> {
         .map_err(ApiError::internal)?;
     Ok(value)
 }
-fn route(
+pub(crate) fn route(
     db: &mut Connection,
     state: &AppState,
     method: &str,
@@ -313,6 +313,26 @@ fn route(
     }
     let user = accounts::signed_in(db, token)?;
     let uid = user["id"].as_str().unwrap();
+    if path == "sync" {
+        if method == "GET" {
+            let after = query
+                .get("after")
+                .map(|s| s.parse::<i64>())
+                .transpose()
+                .map_err(|_| ApiError::validation())?
+                .unwrap_or(0);
+            if after < 0 {
+                return Err(ApiError::validation());
+            }
+            return crate::sync::pull(db, uid, after);
+        }
+        if method == "POST" {
+            if user["password_hash"].is_null() {
+                return Err(ApiError::new(403, "Sign in to synchronize."));
+            }
+            return crate::sync::push(db, state, uid, token, body);
+        }
+    }
     let parts: Vec<_> = path.split('/').collect();
     if parts.first() == Some(&"social") && user["password_hash"].is_null() {
         return Err(ApiError::new(
