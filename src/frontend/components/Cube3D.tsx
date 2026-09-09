@@ -115,6 +115,7 @@ export const Cube3D = memo(function Cube3D({ state, size = 160, mask = "full", r
   return (
     <div
       className={className}
+      data-timer-ignore={interactive || undefined}
       style={{ width: size, height: size, perspective: size * 6, position: "relative", cursor: interactive ? "grab" : undefined, touchAction: "none", contain: "layout", ...style }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
