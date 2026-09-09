@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { unwrap } from "jotai/utils";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { puzzleAtom, solveModeAtom, animationsEnabledAtom, collapsedAlgorithmGroupsAtom, trainedOnlyAtom, casesAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, stageAtom, statsAtom } from "../state";
+import { threeDEnabledAtom, puzzleAtom, solveModeAtom, animationsEnabledAtom, collapsedAlgorithmGroupsAtom, trainedOnlyAtom, casesAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, stageAtom, statsAtom } from "../state";
 import { type CaseDto, type CaseHistoryDto, type CaseStatsDto, type SetDto, type Stage } from "../../shared/types";
 import { Cube3D, useAlgPlayer } from "../components/Cube3D";
 import { CaseDiagram } from "../components/CaseDiagram";
@@ -303,6 +303,8 @@ export const Kpi = memo(function Kpi({ label, value, small }: { label: string; v
 });
 
 function CaseSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
+  const show3D = useAtomValue(threeDEnabledAtom);
+  if (!show3D) return null;
   return puzzleInfo(puzzleOf(c)).cubeSize ? <CubeSolutionPlayer c={c} active={active}/> : <PuzzleSolutionPlayer puzzle={puzzleOf(c)} setup={c.setup} alg={executableAlg(active)}/>;
 }
 function CubeSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {

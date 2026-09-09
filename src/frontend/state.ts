@@ -111,5 +111,6 @@ export const chatActivityAtom = atom(false);
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);
 
-/** Device preference, applied before the first animated render. */
+/** Device preferences, applied before the first render. */
+export const threeDEnabledAtom = atomWithStorage<boolean>("cubix.ui.3dPuzzles", true, undefined, { getOnInit: true });
 export const animationsEnabledAtom = atomWithStorage<boolean>("cubix.ui.animations", true, undefined, { getOnInit: true });

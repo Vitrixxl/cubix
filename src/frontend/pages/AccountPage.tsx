@@ -1,3 +1,4 @@
+import { ThreeDSetting } from "../components/ThreeDSetting";
 import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { AnimationSetting } from "../components/AnimationSetting";
@@ -183,5 +184,5 @@ function ProfileSettings({ user, onSaved }: { user: UserDto; onSaved: (user: Use
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };
-  return <form className="profile-settings" onSubmit={submit}><AnimationSetting /><div className="profile-fields"><label>Bio<textarea className="input" name="bio" defaultValue={user.bio} maxLength={240} rows={2} placeholder="Your favourite cube, your next goal…" disabled={busy} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}<button className="btn primary" disabled={busy}>{busy ? "Saving…" : "Save changes"}</button></form>;
+  return <form className="profile-settings" onSubmit={submit}><ThreeDSetting /><AnimationSetting /><div className="profile-fields"><label>Bio<textarea className="input" name="bio" defaultValue={user.bio} maxLength={240} rows={2} placeholder="Your favourite cube, your next goal…" disabled={busy} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}<button className="btn primary" disabled={busy}>{busy ? "Saving…" : "Save changes"}</button></form>;
 }

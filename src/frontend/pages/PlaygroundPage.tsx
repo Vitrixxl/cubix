@@ -13,7 +13,7 @@ import { contextKey, puzzleInfo, scrambleLabel, type PracticeContext, type Scram
 import { averageOf, best, effective, fmtSolve, fmtTime, mean } from "../lib/format";
 import { Kpi } from "./AlgorithmsPage";
 import { IconShuffle, IconTimer } from "../components/icons";
-import { practiceContextAtom, solveModeAtom, scrambleTypeAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom } from "../state";
+import { threeDEnabledAtom, practiceContextAtom, solveModeAtom, scrambleTypeAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom } from "../state";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { AlgText } from "../components/AlgorithmList";
@@ -29,6 +29,7 @@ export function PlaygroundPage() {
 }
 function PlaygroundSession({context}: {context: PracticeContext}) {
   const info = puzzleInfo(context.puzzle);
+  const show3D = useAtomValue(threeDEnabledAtom);
   const [,setSolveMode] = useAtom(solveModeAtom);
   const [, setScrambleType] = useAtom(scrambleTypeAtom);
   const [generating, setGenerating] = useState(false);
@@ -124,9 +125,9 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
               <span className="practice-caption">{info.label} · {scrambleLabel(context.scrambleType)}</span>
               {generating ? <span className="muted" role="status">Generating scramble…</span> : generationError ? <span role="alert">{generationError} <button className="mini-btn" onClick={() => void generateNext()}>Retry</button></span> : <AlgText alg={scramble} />}
             </motion.div>
-            <motion.div {...upperMotion} className="practice-cube">
+            {show3D && <motion.div {...upperMotion} className="practice-cube">
               <PuzzlePreview puzzle={context.puzzle} alg={scramble} />
-            </motion.div>
+            </motion.div>}
             <TimerSurface timer={timer} flat />
             <motion.div {...lowerMotion} className="practice-stats">
               <Kpi label="Solves" value={String(solves.length)} />

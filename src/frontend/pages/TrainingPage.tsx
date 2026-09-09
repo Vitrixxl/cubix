@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useFloatingPortalTarget } from "../components/FloatingSheet";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { AnimatePresence, motion } from "motion/react";
-import { solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
+import { threeDEnabledAtom, solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
 import type { CaseDto, SolveDto } from "../../shared/types";
 import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
@@ -31,6 +31,7 @@ import { Kpi } from "./AlgorithmsPage";
 const TRAINING_ROTATION = { x: -30, y: 140 };
 
 export function TrainingPage() {
+  const show3D = useAtomValue(threeDEnabledAtom);
   const puzzle = useAtomValue(puzzleAtom);
   const cube = puzzleInfo(puzzle).cubeSize;
   const supportsAuf = !!cube;
@@ -174,9 +175,9 @@ export function TrainingPage() {
                   {current.c.name !== current.c.id && <p>{current.c.name}</p>}
                 </div>
                 <div className="training-setup">
-                  <div className="practice-cube">
+                  {show3D && <div className="practice-cube">
                     {cube ? <SetupCube cubeSize={cube!} alg={animatedSetup} revision={caseHistory.revision} size={128} mask={maskForStage(current.c.stage)} rotation={TRAINING_ROTATION} /> : <PuzzlePreview puzzle={puzzle} alg={shownSetup} />}
-                  </div>
+                  </div>}
                   <div className="training-notation">
                     <span className="practice-caption">Setup</span>
                     <AlgText alg={shownSetup} className="large" />

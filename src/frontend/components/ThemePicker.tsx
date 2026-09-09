@@ -1,3 +1,4 @@
+import { ThreeDSetting } from "./ThreeDSetting";
 import { useEffect } from "react";
 import { useAtom } from "jotai";
 import { FloatingSheet } from "./FloatingSheet";
@@ -56,6 +57,7 @@ export function ThemePicker({ open, onClose }: { open: boolean; onClose: () => v
                 </button>
               ))}
             </div>
+            <ThreeDSetting />
             <AnimationSetting />
     </FloatingSheet>
   );
