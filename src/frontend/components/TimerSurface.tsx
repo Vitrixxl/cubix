@@ -1,6 +1,7 @@
 import { useSetAtom } from "jotai";
 import { timerRunningAtom } from "../state";
 import { useTimerChrome } from "../hooks/useTimerChrome";
+import { useTimerTouchArea } from "../hooks/useTimerTouchArea";
 import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -29,6 +30,7 @@ export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: T
   useLayoutEffect(() => { setRunning(phase === "running"); }, [phase, setRunning]);
   useLayoutEffect(() => () => { setRunning(false); }, [setRunning]);
   const [mobile, setMobile] = useState(() => matchMedia("(max-width: 700px), (pointer: coarse)").matches);
+  useTimerTouchArea(timer, mobile && !disabled);
   const [stopping, setStopping] = useState(false);
   const livePhase = useRef(phase);
   livePhase.current = phase;
@@ -70,7 +72,7 @@ export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: T
         </motion.div>
           <motion.div {...hintMotion} className="timer-hint">
             <span className="timer-keyboard-hint">{hintText.split("Space").map((part, index) => index === 0 ? part : <span key={index}><kbd>Space</kbd>{part}</span>)}</span>
-            <span className="timer-touch-hint">{disabled ? "Select cases to begin" : phase === "running" ? "Tap to stop" : phase === "ready" ? "Release to start" : phase === "holding" ? "Keep holding…" : "Hold here · release to start"}</span>
+            <span className="timer-touch-hint">{disabled ? "Select cases to begin" : phase === "running" ? "Tap to stop" : phase === "ready" ? "Release to start" : phase === "holding" ? "Keep holding…" : "Hold any free area · release to start"}</span>
           </motion.div>
 
       </div>
