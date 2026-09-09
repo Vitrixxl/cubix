@@ -2091,6 +2091,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .group-title .group-train svg { width: 14px; height: 14px; }
 
+.catalog-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; flex: none; gap: 8px 16px; margin-bottom: 8px; }
+.catalog-toolbar p { margin: 0; font-size: 13px; }
+.catalog-trained-filter { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--surface-3); border-radius: 10px; color: var(--readable-muted); font-size: 12px; }
+.catalog-trained-filter svg { width: 15px; height: 15px; }
+.catalog-trained-filter[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.catalog-trained-filter .count { font: 11px var(--mono); }
+.catalog-group-title { align-items: center; }
+.catalog-group-title h2 { flex: 1; min-width: 0; margin: 0; font: inherit; }
+.catalog-group-toggle { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 0; color: inherit; font: inherit; text-align: left; text-transform: inherit; letter-spacing: inherit; }
+.catalog-group-toggle svg { flex: none; }
+.catalog-group-toggle:hover { color: var(--accent); }
+
 /* Shared application frame. Only content lists scroll, never the document. */
 .app { grid-template-rows: minmax(0, 1fr) auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); overflow: hidden; }
 .main { grid-row: 1; }
@@ -2467,4 +2479,33 @@ button:disabled { cursor: default; }
 @media (max-width: 700px) and (display-mode: browser) {
   .app { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
   .sidebar { padding-bottom: 4px; }
+}
+
+/* The case catalogue and its statistics keep independent scroll positions. */
+.algorithms-page .detail.case-detail { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 16px; overflow: hidden; }
+.case-detail-heading { flex: none; min-width: 0; }
+.case-detail-heading .detail-meta { margin-bottom: 0; }
+.case-content-panels { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; flex: 1; min-height: 0; }
+.case-scroll-pane { min-height: 0; min-width: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; border: 1px solid var(--surface-3); border-radius: var(--radius); padding: 18px; }
+.case-scroll-pane .card { padding: 0; }
+.case-scroll-pane .card + .card { margin-top: 28px; }
+.case-scroll-pane .setup-block { flex-wrap: wrap; }
+.case-scroll-pane .setup-block > div { min-width: 0; }
+.case-statistics-pane .kpi-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 12px; }
+.case-player { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 28px; min-width: 0; padding: 12px 0; border-top: 1px solid var(--surface-3); }
+.case-player .cube-stage { width: min(100%, 340px); height: 340px; display: grid; place-items: center; }
+.case-player > div { max-width: 100%; }
+.case-player .player-controls { flex-wrap: wrap; }
+.case-pane-tabs { display: none; }
+@media (max-width: 760px) {
+  .algorithms-page .detail.case-detail { gap: 12px; }
+  .case-pane-tabs { display: flex; flex: none; gap: 8px; }
+  .case-pane-tabs button { flex: 1; min-height: 44px; padding: 8px 12px; border-radius: 10px; color: var(--readable-muted); border: 1px solid var(--surface-3); }
+  .case-pane-tabs button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+  .case-content-panels { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .case-content-panels[data-active-pane="algorithms"] .case-statistics-pane,
+  .case-content-panels[data-active-pane="statistics"] .case-algorithms-pane { display: none; }
+  .case-scroll-pane { padding: 14px 10px; }
+  .case-player .cube-stage { height: 280px; }
+  .case-player .cube-stage > div { zoom: .75; }
 }

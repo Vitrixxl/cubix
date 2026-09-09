@@ -15,6 +15,8 @@ export const viewportSizeAtom = atom({ width: window.innerWidth, height: window.
 /** Stage tab (F2L / OLL / PLL) and set per stage on the algorithms page, persisted. */
 export const stageAtom = atomWithStorage<Stage>("cubix.algs.stage", "F2L");
 export const setByStageAtom = atomWithStorage<Record<Stage, string>>("cubix.algs.set", { F2L: "f2l", OLL: "oll", PLL: "pll" });
+export const trainedOnlyAtom = atomWithStorage<boolean>("cubix.algs.trainedOnly", false);
+export const collapsedAlgorithmGroupsAtom = atomWithStorage<Record<string, boolean>>("cubix.algs.collapsedGroups", {});
 
 // ---------------------------------------------------------------------------
 // Data
