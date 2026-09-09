@@ -119,3 +119,7 @@ export const IconSearch = (p: SVGProps<SVGSVGElement>) => (
 export const IconMessage = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 3V11.5A8.5 8.5 0 0 1 9.5 3h3a8.5 8.5 0 0 1 8.5 8.5Z" /><path d="M7 9h8M7 13h5" /></svg>
 );
+
+export const IconMore = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+);

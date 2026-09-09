@@ -1,8 +1,9 @@
+import { MobileNavigationMenu } from "./components/MobileNavigationMenu";
 import { PuzzlePicker } from "./components/PuzzlePicker";
 import { Fragment, Suspense, useEffect, useInsertionEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, motion } from "motion/react";
-import { puzzleAtom, solveModeAtom, cubeSwitchLockedAtom, animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
+import { puzzleAtom, solveModeAtom, animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
 import { AlgorithmsPage } from "./pages/AlgorithmsPage";
 import { TrainingPage } from "./pages/TrainingPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
@@ -130,8 +131,8 @@ export function App() {
             const active = route.page === page;
             return (
               <Fragment key={page}>
-                {i === 3 && <span className="nav-divider" aria-hidden="true" />}
-                <button className={`nav-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}
+                {i === 3 && <span className="nav-divider secondary-navigation" aria-hidden="true" />}
+                <button className={`nav-item ${i>=3?"secondary-navigation":""} ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}
                   aria-label={label} aria-keyshortcuts={`Alt+${i + 1}`} onClick={() => setRoute({ page } as Route)}>
                   {active && <span className="nav-indicator" />}
                   <Icon /><span className="nav-label">{label}</span>
@@ -141,21 +142,22 @@ export function App() {
               </Fragment>
             );
           })}
-          <span className="nav-divider" aria-hidden="true" />
-          <button aria-label="Themes" aria-keyshortcuts="Alt+6" className="nav-item" onClick={() => setThemesOpen(true)}>
+          <span className="nav-divider secondary-navigation" aria-hidden="true" />
+          <button aria-label="Themes" aria-keyshortcuts="Alt+6" className="nav-item secondary-navigation" onClick={() => setThemesOpen(true)}>
             <IconPalette /><span className="nav-tooltip" aria-hidden="true">Themes<ShortcutKey letter="6" /></span>
           </button>
-          <button type="button" role="switch" aria-label="Light mode" aria-checked={colorMode === "light"} aria-keyshortcuts="Alt+8" className="nav-item color-mode-nav" onClick={toggleColorMode}>
+          <button type="button" role="switch" aria-label="Light mode" aria-checked={colorMode === "light"} aria-keyshortcuts="Alt+8" className="nav-item color-mode-nav secondary-navigation" onClick={toggleColorMode}>
             {colorMode === "light" ? <IconMoon aria-hidden="true" /> : <IconSun aria-hidden="true" />}
             <span className="nav-tooltip" aria-hidden="true">{colorMode === "light" ? "Switch to dark mode" : "Switch to light mode"}<ShortcutKey letter="8" /></span>
           </button>
           <button aria-label="My account" aria-keyshortcuts="Alt+7" aria-current={route.page === "profile" ? "page" : undefined}
-            className={`nav-item account-nav ${route.page === "profile" ? "active" : ""}`} onClick={() => setRoute({ page: "profile" })}>
+            className={`nav-item account-nav secondary-navigation ${route.page === "profile" ? "active" : ""}`} onClick={() => setRoute({ page: "profile" })}>
             {route.page === "profile" && <span className="nav-indicator" />}
             {user && !user.isGuest ? <Avatar user={user} /> : <IconUser />}
             <span className="nav-label">My account</span>
             <span className="nav-tooltip" aria-hidden="true">My account<ShortcutKey letter="7" /></span>
           </button>
+          <MobileNavigationMenu onThemes={()=>setThemesOpen(true)}/>
         </LayoutGroup>
       </motion.nav>
       <main className="main" key={route.page === "playground" ? "playground" : route.page === "messages" || route.page === "community" ? "social" : `${cube}:${solveMode}`}>
