@@ -36,7 +36,7 @@ export function ThreeViewport<M extends ThreeModel>({createModel,cacheKey,loadin
     let renderer:WebGLRenderer;
     try{renderer=new WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});}catch{setError('3D unavailable: WebGL 2 is required.');return;}
     renderer.outputColorSpace=SRGBColorSpace;renderer.setClearColor(0,0);
-    renderer.toneMapping=NeutralToneMapping;renderer.toneMappingExposure=1.1;
+    renderer.toneMapping=NeutralToneMapping;renderer.toneMappingExposure=1;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=PCFSoftShadowMap;
     renderer.domElement.setAttribute('aria-hidden','true');el.prepend(renderer.domElement);
     const scene=new Scene(), camera=new OrthographicCamera(-2,2,2,-2,.1,100),group=new Group();
@@ -44,7 +44,7 @@ export function ThreeViewport<M extends ThreeModel>({createModel,cacheKey,loadin
     scene.environment=environment.texture;scene.environmentIntensity=.7;
     room.dispose();pmrem.dispose();
     camera.position.z=8;scene.add(group);scene.add(new AmbientLight(0xffffff,.35));
-    const light=new DirectionalLight(0xfff7ed,2.2);light.position.set(-3,6,8);light.castShadow=true;
+    const light=new DirectionalLight(0xfff7ed,1.6);light.position.set(-3,6,8);light.castShadow=true;
     light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-2;light.shadow.camera.right=2;
     light.shadow.camera.top=2;light.shadow.camera.bottom=-2;light.shadow.camera.near=.1;light.shadow.camera.far=20;
     light.shadow.normalBias=.008;light.shadow.bias=-.0001;scene.add(light);

@@ -135,7 +135,7 @@ export function installCubeTemplates(data:CubeTemplateData[]){
   }
 }
 function plasticMaterial(){
-  const material=new MeshPhysicalMaterial({vertexColors:true,roughness:.32,metalness:0,clearcoat:.18,clearcoatRoughness:.3});
+  const material=new MeshPhysicalMaterial({vertexColors:true,roughness:.2,metalness:0,specularIntensity:.18,envMapIntensity:.45,clearcoat:.06,clearcoatRoughness:.2,emissive:0xffffff,emissiveIntensity:.24});
   // Each physical piece has up to three plastic colours, while all pieces of a
   // shape share one draw call. The baked recess shading remains in vertex colours.
   material.onBeforeCompile=shader=>{
@@ -146,8 +146,11 @@ function plasticMaterial(){
       attribute vec3 faceColour2;`)
       .replace('#include <color_vertex>',`#include <color_vertex>
       vColor *= colourRegion < 0.5 ? faceColour0 : (colourRegion < 1.5 ? faceColour1 : faceColour2);`);
+    // The glow follows each face colour and its recess shading, including training masks.
+    shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+      totalEmissiveRadiance *= vColor.rgb;`);
   };
-  material.customProgramCacheKey=()=> 'cubix-stickerless-instances-v1';
+  material.customProgramCacheKey=()=> 'cubix-stickerless-instances-v2';
   return material;
 }
 
