@@ -56,6 +56,9 @@ est conservé dans un cookie `HttpOnly`, `SameSite=Strict` (`Secure` en HTTPS), 
 Il reste valide après un redémarrage ; une déconnexion ou un changement de mot de passe le révoque.
 Le serveur stocke uniquement l’empreinte des jetons. Les données admin ne sont pas mises en cache par la PWA.
 
+Les sondes `/api/health` restent soumises aux limites de requêtes mais sont exclues du journal,
+des compteurs et des listes IP d’administration.
+
 Le journal conserve les **10 000 dernières requêtes HTTP** en mémoire (routes statiques, API,
 erreurs et ouvertures WebSocket incluses) ; l’interface affiche les 200 dernières correspondances aux filtres.
 Les corps, paramètres de requête, mots de passe et jetons ne sont pas enregistrés.
@@ -208,7 +211,8 @@ Les tests vérifient les inverses, les pièces préservées et la légalité des
   Le défilement est mémorisé par puzzle, catalogue, cas et panneau, y compris après un rechargement dans le même onglet.
 
 Maintenir **Espace** 300 ms, relâcher pour démarrer, puis appuyer sur **n’importe quelle touche**
-pour arrêter. Sur écran tactile, maintenir le timer, relâcher, puis toucher pour arrêter.
+pour arrêter. Sur écran tactile, maintenir le timer ou une zone libre, relâcher, puis toucher pour arrêter.
+Les boutons, menus, modèles 3D et gestes de défilement restent utilisables sans déclencher le timer.
 
 | Raccourci | Action |
 | --- | --- |
