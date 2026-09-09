@@ -1,3 +1,4 @@
+import { matchesPractice, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { CaseHistoryDto, SolveDto, ProfileDto, UserDto } from "../../shared/types";
 import { effective, averageOf, best, mean } from "../lib/format";
 import { cases } from "./catalog";
@@ -15,7 +16,8 @@ export function history(caseId: string, rows: SolveDto[]): CaseHistoryDto {
     history: solves.map((s,i) => { const time = times[i]; if (time !== null) minimum = minimum === null ? time : Math.min(minimum,time);
       return { id:s.id, time, penalty:s.penalty, at:s.created_at, best:minimum, sessionId:s.session_id }; }), ao5, ao12 };
 }
-export function profile(user: UserDto, solves: SolveDto[]): ProfileDto {
+export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}): ProfileDto {
+  const solves = rows.filter(s => matchesPractice(s, cubeSize, s.case_id ? {solveMode:filter.solveMode} : filter));
   const groups = new Map<string, SolveDto[]>();
   for (const solve of [...solves].sort(chronological)) if (solve.case_id) { const rows = groups.get(solve.case_id) ?? []; rows.push(solve); groups.set(solve.case_id,rows); }
   const playground = solves.filter(s => !s.case_id);

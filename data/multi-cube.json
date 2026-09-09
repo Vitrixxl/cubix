@@ -1,0 +1,866 @@
+{
+  "sets": [
+    {
+      "id": "2x2-oll",
+      "cube_size": 2,
+      "stage": "OLL",
+      "label": "Ortega OLL",
+      "description": "Orient the last face after building the first face. Seven Ortega cases.",
+      "count": 7
+    },
+    {
+      "id": "2x2-pbl",
+      "cube_size": 2,
+      "stage": "PBL",
+      "label": "Ortega PBL",
+      "description": "Permute both layers after orienting both faces. Five Ortega cases.",
+      "count": 5
+    },
+    {
+      "id": "4x4-centers",
+      "cube_size": 4,
+      "stage": "Centers",
+      "label": "Center drills",
+      "description": "Practise center commutators at each inner depth. Build bars and centers intuitively; these drills cover useful cycles.",
+      "count": 2
+    },
+    {
+      "id": "4x4-edges",
+      "cube_size": 4,
+      "stage": "Edges",
+      "label": "Edge pairing",
+      "description": "Practise the edge-flip trigger and slice / flip / restore at each wing depth. Start from the displayed setup.",
+      "count": 2
+    },
+    {
+      "id": "4x4-parity",
+      "cube_size": 4,
+      "stage": "Parity",
+      "label": "Parity",
+      "description": "Wing parity by slice depth, plus OLL and PLL parity after reduction. Start from the displayed setup.",
+      "count": 3
+    },
+    {
+      "id": "5x5-centers",
+      "cube_size": 5,
+      "stage": "Centers",
+      "label": "Center drills",
+      "description": "Practise center commutators at each inner depth. Build bars and centers intuitively; these drills cover useful cycles.",
+      "count": 2
+    },
+    {
+      "id": "5x5-edges",
+      "cube_size": 5,
+      "stage": "Edges",
+      "label": "Edge pairing",
+      "description": "Practise the edge-flip trigger and slice / flip / restore at each wing depth. Start from the displayed setup.",
+      "count": 2
+    },
+    {
+      "id": "5x5-parity",
+      "cube_size": 5,
+      "stage": "Parity",
+      "label": "Parity",
+      "description": "Last-two-edge wing parity, by slice depth. Odd cubes have no PLL parity after reduction.",
+      "count": 1
+    },
+    {
+      "id": "6x6-centers",
+      "cube_size": 6,
+      "stage": "Centers",
+      "label": "Center drills",
+      "description": "Practise center commutators at each inner depth. Build bars and centers intuitively; these drills cover useful cycles.",
+      "count": 4
+    },
+    {
+      "id": "6x6-edges",
+      "cube_size": 6,
+      "stage": "Edges",
+      "label": "Edge pairing",
+      "description": "Practise the edge-flip trigger and slice / flip / restore at each wing depth. Start from the displayed setup.",
+      "count": 3
+    },
+    {
+      "id": "6x6-parity",
+      "cube_size": 6,
+      "stage": "Parity",
+      "label": "Parity",
+      "description": "Wing parity by slice depth, plus OLL and PLL parity after reduction. Start from the displayed setup.",
+      "count": 4
+    },
+    {
+      "id": "7x7-centers",
+      "cube_size": 7,
+      "stage": "Centers",
+      "label": "Center drills",
+      "description": "Practise center commutators at each inner depth. Build bars and centers intuitively; these drills cover useful cycles.",
+      "count": 4
+    },
+    {
+      "id": "7x7-edges",
+      "cube_size": 7,
+      "stage": "Edges",
+      "label": "Edge pairing",
+      "description": "Practise the edge-flip trigger and slice / flip / restore at each wing depth. Start from the displayed setup.",
+      "count": 3
+    },
+    {
+      "id": "7x7-parity",
+      "cube_size": 7,
+      "stage": "Parity",
+      "label": "Parity",
+      "description": "Last-two-edge wing parity, by slice depth. Odd cubes have no PLL parity after reduction.",
+      "count": 2
+    }
+  ],
+  "cases": [
+    {
+      "id": "2x2 OLL L",
+      "cube_size": 2,
+      "name": "L",
+      "group": "2 corners",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "R U R' U' R' F R F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R' F' R U R U' R'",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 OLL U",
+      "cube_size": 2,
+      "name": "U",
+      "group": "2 corners",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "F U R U' R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U R' U' F'",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 OLL T",
+      "cube_size": 2,
+      "name": "T",
+      "group": "2 corners",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "F R' F' R U R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R F'",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 OLL Pi",
+      "cube_size": 2,
+      "name": "Pi",
+      "group": "0 corners",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "R' U2 R2 U R2 U R2 U2 R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 (R2 U' R2 U' R2) U2 R",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 OLL H",
+      "cube_size": 2,
+      "name": "H",
+      "group": "0 corners",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "R2 U2 R' U2 R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 U2 R U2 R2",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 OLL Antisune",
+      "cube_size": 2,
+      "name": "Antisune",
+      "group": "1 corner",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "R U R' U R U2 R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U' R'",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 OLL Sune",
+      "cube_size": 2,
+      "name": "Sune",
+      "group": "1 corner",
+      "stage": "OLL",
+      "set": "2x2-oll",
+      "setLabel": "Ortega OLL",
+      "setup": "R U2 R' U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R U2 R'",
+          "source": "https://www.jperm.net/algs/2x2/oll"
+        }
+      ]
+    },
+    {
+      "id": "2x2 PBL Adjacent U",
+      "cube_size": 2,
+      "name": "Adjacent U",
+      "group": "Solved bottom",
+      "stage": "PBL",
+      "set": "2x2-pbl",
+      "setLabel": "Ortega PBL",
+      "setup": "F R U' R' U R U R2 F' R U R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R2 U' R' U' R U R' F'",
+          "source": "https://www.jperm.net/algs/2x2/pbl"
+        }
+      ]
+    },
+    {
+      "id": "2x2 PBL Diagonal U",
+      "cube_size": 2,
+      "name": "Diagonal U",
+      "group": "Solved bottom",
+      "stage": "PBL",
+      "set": "2x2-pbl",
+      "setLabel": "Ortega PBL",
+      "setup": "F R' F' R U R U' R' F R U' R' U R U R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+          "source": "https://www.jperm.net/algs/2x2/pbl"
+        }
+      ]
+    },
+    {
+      "id": "2x2 PBL Adjacent / adjacent",
+      "cube_size": 2,
+      "name": "Adjacent / adjacent",
+      "group": "Both layers",
+      "stage": "PBL",
+      "set": "2x2-pbl",
+      "setLabel": "Ortega PBL",
+      "setup": "R2 U R2 U2 B2 U R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 U' B2 U2 R2 U' R2",
+          "source": "https://www.jperm.net/algs/2x2/pbl"
+        }
+      ]
+    },
+    {
+      "id": "2x2 PBL Adjacent / diagonal",
+      "cube_size": 2,
+      "name": "Adjacent / diagonal",
+      "group": "Both layers",
+      "stage": "PBL",
+      "set": "2x2-pbl",
+      "setLabel": "Ortega PBL",
+      "setup": "R U' R F2 R' U R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U' R F2 R' U R'",
+          "source": "https://www.jperm.net/algs/2x2/pbl"
+        }
+      ]
+    },
+    {
+      "id": "2x2 PBL Diagonal / diagonal",
+      "cube_size": 2,
+      "name": "Diagonal / diagonal",
+      "group": "Both layers",
+      "stage": "PBL",
+      "set": "2x2-pbl",
+      "setLabel": "Ortega PBL",
+      "setup": "R2 F2 R2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 F2 R2",
+          "source": "https://www.jperm.net/algs/2x2/pbl"
+        }
+      ]
+    },
+    {
+      "id": "4x4 CENTERS Center cycle · slice 2",
+      "cube_size": 4,
+      "name": "Center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "4x4-centers",
+      "setLabel": "Center drills",
+      "setup": "2U 2R U 2R' 2U' 2R U' 2R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R U 2R' 2U 2R U' 2R' 2U'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "4x4 CENTERS Reverse center cycle · slice 2",
+      "cube_size": 4,
+      "name": "Reverse center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "4x4-centers",
+      "setLabel": "Center drills",
+      "setup": "2R U 2R' 2U 2R U' 2R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U 2R U 2R' 2U' 2R U' 2R'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "4x4 EDGES Slice / flip / restore · slice 2",
+      "cube_size": 4,
+      "name": "Slice / flip / restore · slice 2",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "4x4-edges",
+      "setLabel": "Edge pairing",
+      "setup": "2U R' F R F' R U' R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U R U R' F R' F' R 2U'",
+          "source": "https://www.jperm.net/4x4"
+        }
+      ]
+    },
+    {
+      "id": "4x4 EDGES Edge flip",
+      "cube_size": 4,
+      "name": "Edge flip",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "4x4-edges",
+      "setLabel": "Edge pairing",
+      "setup": "R' F R F' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F R' F' R",
+          "source": "https://www.jperm.net/4x4"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PARITY Wing parity · slice 2",
+      "cube_size": 4,
+      "name": "Wing parity · slice 2",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "4x4-parity",
+      "setLabel": "Parity",
+      "setup": "F2 2R2 F2 U2 2R U2 2R' U2 2R2 F2 2L F2 2L' U2 2R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
+          "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PARITY OLL parity",
+      "cube_size": 4,
+      "name": "OLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "4x4-parity",
+      "setLabel": "Parity",
+      "setup": "Rw U2 Rw U2 Rw' U2 Rw U2 Lw' U2 Rw U2 Rw' U2 Rw' x' U2 Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'",
+          "source": "https://www.jperm.net/4x4"
+        }
+      ]
+    },
+    {
+      "id": "4x4 PARITY PLL parity",
+      "cube_size": 4,
+      "name": "PLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "4x4-parity",
+      "setLabel": "Parity",
+      "setup": "Uw2 R2 Rw2 Uw2 R2 Rw2 U2 R2 Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "Rw2 R2 U2 Rw2 R2 Uw2 Rw2 R2 Uw2",
+          "source": "https://www.jperm.net/4x4"
+        }
+      ]
+    },
+    {
+      "id": "5x5 CENTERS Center cycle · slice 2",
+      "cube_size": 5,
+      "name": "Center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "5x5-centers",
+      "setLabel": "Center drills",
+      "setup": "2U 2R U 2R' 2U' 2R U' 2R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R U 2R' 2U 2R U' 2R' 2U'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "5x5 CENTERS Reverse center cycle · slice 2",
+      "cube_size": 5,
+      "name": "Reverse center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "5x5-centers",
+      "setLabel": "Center drills",
+      "setup": "2R U 2R' 2U 2R U' 2R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U 2R U 2R' 2U' 2R U' 2R'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "5x5 EDGES Slice / flip / restore · slice 2",
+      "cube_size": 5,
+      "name": "Slice / flip / restore · slice 2",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "5x5-edges",
+      "setLabel": "Edge pairing",
+      "setup": "2U R' F R F' R U' R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U R U R' F R' F' R 2U'",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "5x5 EDGES Edge flip",
+      "cube_size": 5,
+      "name": "Edge flip",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "5x5-edges",
+      "setLabel": "Edge pairing",
+      "setup": "R' F R F' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F R' F' R",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "5x5 PARITY Wing parity · slice 2",
+      "cube_size": 5,
+      "name": "Wing parity · slice 2",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "5x5-parity",
+      "setLabel": "Parity",
+      "setup": "F2 2R2 F2 U2 2R U2 2R' U2 2R2 F2 2L F2 2L' U2 2R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
+          "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "6x6 CENTERS Center cycle · slice 2",
+      "cube_size": 6,
+      "name": "Center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "6x6-centers",
+      "setLabel": "Center drills",
+      "setup": "2U 2R U 2R' 2U' 2R U' 2R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R U 2R' 2U 2R U' 2R' 2U'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "6x6 CENTERS Reverse center cycle · slice 2",
+      "cube_size": 6,
+      "name": "Reverse center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "6x6-centers",
+      "setLabel": "Center drills",
+      "setup": "2R U 2R' 2U 2R U' 2R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U 2R U 2R' 2U' 2R U' 2R'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "6x6 CENTERS Center cycle · slice 3",
+      "cube_size": 6,
+      "name": "Center cycle · slice 3",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "6x6-centers",
+      "setLabel": "Center drills",
+      "setup": "3U 3R U 3R' 3U' 3R U' 3R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R U 3R' 3U 3R U' 3R' 3U'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "6x6 CENTERS Reverse center cycle · slice 3",
+      "cube_size": 6,
+      "name": "Reverse center cycle · slice 3",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "6x6-centers",
+      "setLabel": "Center drills",
+      "setup": "3R U 3R' 3U 3R U' 3R' 3U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3U 3R U 3R' 3U' 3R U' 3R'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "6x6 EDGES Slice / flip / restore · slice 2",
+      "cube_size": 6,
+      "name": "Slice / flip / restore · slice 2",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "6x6-edges",
+      "setLabel": "Edge pairing",
+      "setup": "2U R' F R F' R U' R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U R U R' F R' F' R 2U'",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "6x6 EDGES Slice / flip / restore · slice 3",
+      "cube_size": 6,
+      "name": "Slice / flip / restore · slice 3",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "6x6-edges",
+      "setLabel": "Edge pairing",
+      "setup": "3U R' F R F' R U' R' 3U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3U R U R' F R' F' R 3U'",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "6x6 EDGES Edge flip",
+      "cube_size": 6,
+      "name": "Edge flip",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "6x6-edges",
+      "setLabel": "Edge pairing",
+      "setup": "R' F R F' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F R' F' R",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY Wing parity · slice 2",
+      "cube_size": 6,
+      "name": "Wing parity · slice 2",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "F2 2R2 F2 U2 2R U2 2R' U2 2R2 F2 2L F2 2L' U2 2R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
+          "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY Wing parity · slice 3",
+      "cube_size": 6,
+      "name": "Wing parity · slice 3",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "F2 3R2 F2 U2 3R U2 3R' U2 3R2 F2 3L F2 3L' U2 3R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R' U2 3L F2 3L' F2 3R2 U2 3R U2 3R' U2 F2 3R2 F2",
+          "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY OLL parity",
+      "cube_size": 6,
+      "name": "OLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "3Rw U2 3Rw U2 3Rw' U2 3Rw U2 3Lw' U2 3Rw U2 3Rw' U2 3Rw' x' U2 3Rw'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw U2 x 3Rw U2 3Rw U2 3Rw' U2 3Lw U2 3Rw' U2 3Rw U2 3Rw' U2 3Rw'",
+          "source": "https://www.jperm.net/4x4"
+        }
+      ]
+    },
+    {
+      "id": "6x6 PARITY PLL parity",
+      "cube_size": 6,
+      "name": "PLL parity",
+      "group": "After reduction",
+      "stage": "Parity",
+      "set": "6x6-parity",
+      "setLabel": "Parity",
+      "setup": "3Uw2 R2 3Rw2 3Uw2 R2 3Rw2 U2 R2 3Rw2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3Rw2 R2 U2 3Rw2 R2 3Uw2 3Rw2 R2 3Uw2",
+          "source": "https://www.jperm.net/4x4"
+        }
+      ]
+    },
+    {
+      "id": "7x7 CENTERS Center cycle · slice 2",
+      "cube_size": 7,
+      "name": "Center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "7x7-centers",
+      "setLabel": "Center drills",
+      "setup": "2U 2R U 2R' 2U' 2R U' 2R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R U 2R' 2U 2R U' 2R' 2U'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "7x7 CENTERS Reverse center cycle · slice 2",
+      "cube_size": 7,
+      "name": "Reverse center cycle · slice 2",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "7x7-centers",
+      "setLabel": "Center drills",
+      "setup": "2R U 2R' 2U 2R U' 2R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U 2R U 2R' 2U' 2R U' 2R'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "7x7 CENTERS Center cycle · slice 3",
+      "cube_size": 7,
+      "name": "Center cycle · slice 3",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "7x7-centers",
+      "setLabel": "Center drills",
+      "setup": "3U 3R U 3R' 3U' 3R U' 3R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R U 3R' 3U 3R U' 3R' 3U'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "7x7 CENTERS Reverse center cycle · slice 3",
+      "cube_size": 7,
+      "name": "Reverse center cycle · slice 3",
+      "group": "Center commutators",
+      "stage": "Centers",
+      "set": "7x7-centers",
+      "setLabel": "Center drills",
+      "setup": "3R U 3R' 3U 3R U' 3R' 3U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3U 3R U 3R' 3U' 3R U' 3R'",
+          "source": "Cubix · center commutator drill"
+        }
+      ]
+    },
+    {
+      "id": "7x7 EDGES Slice / flip / restore · slice 2",
+      "cube_size": 7,
+      "name": "Slice / flip / restore · slice 2",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "7x7-edges",
+      "setLabel": "Edge pairing",
+      "setup": "2U R' F R F' R U' R' 2U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2U R U R' F R' F' R 2U'",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "7x7 EDGES Slice / flip / restore · slice 3",
+      "cube_size": 7,
+      "name": "Slice / flip / restore · slice 3",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "7x7-edges",
+      "setLabel": "Edge pairing",
+      "setup": "3U R' F R F' R U' R' 3U'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3U R U R' F R' F' R 3U'",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "7x7 EDGES Edge flip",
+      "cube_size": 7,
+      "name": "Edge flip",
+      "group": "Edge pairing",
+      "stage": "Edges",
+      "set": "7x7-edges",
+      "setLabel": "Edge pairing",
+      "setup": "R' F R F' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F R' F' R",
+          "source": "https://jperm.net/5x5"
+        }
+      ]
+    },
+    {
+      "id": "7x7 PARITY Wing parity · slice 2",
+      "cube_size": 7,
+      "name": "Wing parity · slice 2",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "7x7-parity",
+      "setLabel": "Parity",
+      "setup": "F2 2R2 F2 U2 2R U2 2R' U2 2R2 F2 2L F2 2L' U2 2R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "2R' U2 2L F2 2L' F2 2R2 U2 2R U2 2R' U2 F2 2R2 F2",
+          "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    },
+    {
+      "id": "7x7 PARITY Wing parity · slice 3",
+      "cube_size": 7,
+      "name": "Wing parity · slice 3",
+      "group": "Last two edges",
+      "stage": "Parity",
+      "set": "7x7-parity",
+      "setLabel": "Parity",
+      "setup": "F2 3R2 F2 U2 3R U2 3R' U2 3R2 F2 3L F2 3L' U2 3R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "3R' U2 3L F2 3L' F2 3R2 U2 3R U2 3R' U2 F2 3R2 F2",
+          "source": "https://www.speedcubedb.com/a/5x5/L2E"
+        }
+      ]
+    }
+  ]
+}

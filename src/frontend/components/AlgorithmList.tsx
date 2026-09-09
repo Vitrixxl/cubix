@@ -10,6 +10,13 @@ interface Props {
 
 const SOURCE_LABEL: Record<string, string> = { speedcubedb: "SpeedCubeDB", jperm: "J Perm", f2ltrainer: "F2L Trainer" };
 
+function sourceLabel(source: string) {
+  if (SOURCE_LABEL[source]) return SOURCE_LABEL[source];
+  if (source.startsWith("Cubix")) return "Cubix drill";
+  const sites: Record<string, string> = { "jperm.net": "J Perm", "speedcubedb.com": "SpeedCubeDB", "jaapsch.net": "Jaap's Puzzle Page", "cubezone.be": "CubeZone", "cubeskills.com": "CubeSkills", "speedcube.com.au": "Speedcube", "sarah.cubing.net": "Sarah Strong", "youtube.com": "Cubing World" };
+  return Object.entries(sites).find(([domain]) => source.includes(domain))?.[1] ?? source;
+}
+
 const listVariants = { hidden: {}, show: { transition: { staggerChildren: 0.035, delayChildren: 0.04 } } };
 const rowVariants = {
   hidden: { opacity: 0, y: 6 },
@@ -17,8 +24,9 @@ const rowVariants = {
 };
 
 function moveTokens(alg: string) {
-  return alg.split(/([URFDLBMESxyzurfdlb]w?[23]?['’]?)/g).map((token, index) => {
-    return /^[URFDLBMESxyzurfdlb]w?[23]?['’]?$/.test(token)
+  const notation = /(\(-?\d+,\s*-?\d+\)|(?:UR|UL|DR|DL|ALL|[URDLFB])\d+[+-]|[RD](?:\+\+|--)|\d*[URFDLBMESxyzurfdlb]w?[23]?['’]?|\/)/g;
+  return alg.split(notation).map((token, index) => {
+    return index % 2
       ? <span className="alg-move" key={index}>{token}</span>
       : token;
   });
@@ -70,7 +78,7 @@ export function AlgorithmList({ algorithms, activeIndex, onSelect }: Props) {
                 {a.votes !== undefined && <span className="chip">▲ {a.votes}</span>}
                 {a.stm !== undefined && <span className="chip">{a.stm} STM</span>}
                 {a.gen && <span className="chip">{a.gen}</span>}
-                <span className="chip">{SOURCE_LABEL[a.source] ?? a.source}</span>
+                <span className="chip" title={a.source}>{sourceLabel(a.source)}</span>
                 {a.youtube && (
                   <a className="chip" href={a.youtube} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
                     Video

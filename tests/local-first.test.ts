@@ -206,3 +206,142 @@ test("an edit made while an upload is in flight survives the acknowledgement",as
   expect((await remote(auth.token).solves("playground"))[0].penalty).toBe("+2");
   expect(a.local.status().pending).toBe(0);
 });
+
+test("cube context survives offline storage, guest import, sync and another device without mixing statistics", async () => {
+  const {remote,db,origin} = setup(); const a = device(remote);
+  const oldSession = await a.api.createSession("playground");
+  const oldSolve = await a.api.addSolve({sessionId:oldSession.id,timeMs:3333});
+  // The browser records saved before this feature have no cube_size field.
+  const key = "cubix.local.v1:workspace:guest";
+  const saved = JSON.parse(a.storage.getItem(key)!);
+  delete saved.sessions[oldSession.id].cube_size;
+  delete saved.solves[oldSolve.id].cube_size;
+  for (const field of ["puzzle_id","solve_mode","scramble_type"]) {
+    delete saved.sessions[oldSession.id][field];
+    delete saved.solves[oldSolve.id][field];
+  }
+  a.storage.setItem(key,JSON.stringify(saved));
+  for (const cube of [2,4,5,6,7] as const) {
+    const c = (await a.api.cases(cube))[0]!;
+    const training = await a.api.createSession("training",[c.id],cube);
+    await a.api.addSolve({sessionId:training.id,caseId:c.id,timeMs:cube*1000});
+    const session = await a.api.createSession("playground",[],cube);
+    await a.api.addSolve({sessionId:session.id,timeMs:cube*2000});
+    expect((await a.api.latestSession("training",cube))?.id).toBe(training.id);
+    await expect(a.api.addSolve({sessionId:session.id,cubeSize:3,timeMs:10})).rejects.toThrow("cube");
+    await expect(a.api.createSession("training",[c.id],3)).rejects.toThrow("cube");
+  }
+  expect((await a.api.profile("Guest")).playground.summary.best).toBe(3333);
+  const auth = await a.api.register("multi_cube_alice","a-long-test-password");
+  await a.local.sync();
+  expect(a.local.status().pending).toBe(0);
+  const b = device(remote);
+  await b.api.login(auth.user.username,"a-long-test-password"); await b.local.sync();
+  for (const cube of [2,3,4,5,6,7] as const) {
+    expect(await b.api.cases(cube)).toEqual(await remote(auth.token).cases(cube));
+    expect(await b.api.sets(cube)).toEqual(await remote(auth.token).sets(cube));
+    const localProfile = await b.api.profile(auth.user.username,undefined,cube);
+    const serverProfile = await remote(auth.token).profile(auth.user.username,undefined,cube);
+    expect(localProfile.playground.summary).toEqual(serverProfile.playground.summary);
+    expect(localProfile.totalSolves).toBe(cube === 3 ? 1 : 2);
+    expect(localProfile.playground.summary.best).toBe(cube === 3 ? 3333 : cube*2000);
+    expect(await b.api.solves("playground",100,cube)).toHaveLength(1);
+    expect(await b.api.stats(cube)).toHaveLength(cube === 3 ? 0 : 1);
+  }
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves").get()?.n).toBe(11);
+  const badCase = (await a.api.cases(2))[0]!;
+  await expect(remote(auth.token).createSession("training",[badCase.id],3)).rejects.toThrow("cube");
+  const four = await remote(auth.token).createSession("playground",[],4);
+  await expect(remote(auth.token).addSolve({sessionId:four.id,cubeSize:7,timeMs:100})).rejects.toThrow("cube");
+  const response = await fetch(`${origin}/api/cases?cubeSize=9`);
+  expect(response.status).toBe(422);
+});
+
+
+test("practice labels survive offline reopening, guest import and sync while histories stay separate", async () => {
+  const {remote,db} = setup(); const a = device(remote); a.control.offline = true;
+  const contexts = [
+    {puzzle:"333", solveMode:"standard", scrambleType:"random-moves"},
+    {puzzle:"333", solveMode:"standard", scrambleType:"2gen-ru"},
+    {puzzle:"333", solveMode:"one-handed", scrambleType:"2gen-ru"},
+    {puzzle:"333", solveMode:"blindfolded", scrambleType:"competition"},
+    ...(["sq1","pyram","skewb","minx","clock"] as const).map(puzzle => ({puzzle, solveMode:"standard", scrambleType:"competition"} as const)),
+  ] as const;
+  for (const [i,context] of contexts.entries()) {
+    const session = await a.api.createSession("playground",[],context.puzzle,context);
+    const solve = await a.api.addSolve({sessionId:session.id,timeMs:1000+i*1000,scramble:"test scramble"});
+    expect(solve).toMatchObject({puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType});
+    if (i >= 4) expect(solve.cube_size).toBeNull();
+  }
+  const reopened = device(remote,a.storage); reopened.control.offline = true;
+  for (const [i,context] of contexts.entries()) {
+    expect(await reopened.api.solves("playground",100,context.puzzle,context)).toHaveLength(1);
+    expect((await reopened.api.profile("Guest",undefined,context.puzzle,context)).playground.summary.best).toBe(1000+i*1000);
+    expect((await reopened.api.latestSession("playground",context.puzzle,context))?.scramble_type).toBe(context.scrambleType);
+  }
+  reopened.control.offline = false;
+  const auth = await reopened.api.register("practice_labels","a-long-test-password");
+  await reopened.local.sync(); expect(reopened.local.status().pending).toBe(0);
+  const b = device(remote); await b.api.login(auth.user.username,"a-long-test-password"); await b.local.sync();
+  for (const [i,context] of contexts.entries()) {
+    const localRows = await b.api.solves("playground",100,context.puzzle,context);
+    const serverRows = await remote(auth.token).solves("playground",100,context.puzzle,context);
+    expect(localRows).toMatchObject(serverRows);
+    expect(serverRows).toHaveLength(1);
+    const localProfile = await b.api.profile(auth.user.username,undefined,context.puzzle,context);
+    const serverProfile = await remote(auth.token).profile(auth.user.username,undefined,context.puzzle,context);
+    expect(localProfile.playground.summary).toEqual(serverProfile.playground.summary);
+    expect(serverProfile.playground.summary.best).toBe(1000+i*1000);
+  }
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE puzzle_id='sq1' AND cube_size IS NULL AND solve_mode='standard' AND scramble_type='competition'").get()?.n).toBe(1);
+});
+
+test("both APIs inherit context, reject incompatible labels and isolate training modes", async () => {
+  const {remote} = setup(); const a = device(remote);
+  const auth = await a.api.register("practice_validation","a-long-test-password");
+  for (const api of [a.api,remote(auth.token)]) {
+    const direct = await api.addSolve({puzzle:"sq1",timeMs:3000});
+    expect(direct).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"standard",scramble_type:"competition"});
+    await expect(api.createSession("playground",[],"sq1",{scrambleType:"2gen-ru"})).rejects.toThrow();
+    await expect(api.createSession("training",["PLL Aa"],"sq1")).rejects.toThrow();
+    await expect(api.createSession("playground",[],3,{solveMode:"invalid" as any})).rejects.toThrow();
+    await expect(api.addSolve({puzzle:"sq1",cubeSize:3,timeMs:100})).rejects.toThrow();
+    const session = await api.createSession("playground",[],3,{solveMode:"one-handed",scrambleType:"2gen-ru"});
+    await expect(api.addSolve({sessionId:session.id,solveMode:"standard",timeMs:100})).rejects.toThrow();
+    await expect(api.addSolve({sessionId:session.id,scrambleType:"random-moves",timeMs:100})).rejects.toThrow();
+    const training = await api.createSession("training",["PLL Aa"],3,{solveMode:"blindfolded"});
+    await api.addSolve({sessionId:training.id,caseId:"PLL Aa",timeMs:8000});
+    expect((await api.caseHistory("PLL Aa")).summary.count).toBe(0);
+    expect((await api.caseHistory("PLL Aa",{solveMode:"blindfolded"})).summary.count).toBe(1);
+    expect(await api.stats(3)).toHaveLength(0);
+    expect(await api.stats(3,{solveMode:"blindfolded"})).toHaveLength(1);
+  }
+});
+
+test('niche training sessions, case statistics and modes survive guest import and another device',async()=>{
+  const {remote,db}=setup(),a=device(remote);
+  const puzzles=['sq1','pyram','skewb','minx','clock'] as const;
+  for(const puzzle of puzzles){
+    const catalogue=await a.api.cases(puzzle);expect(catalogue.length).toBeGreaterThan(0);
+    const c=catalogue[0],context={solveMode:'one-handed' as const,scrambleType:'case' as const};
+    const session=await a.api.createSession('training',[c.id],puzzle,context);
+    await a.api.addSolve({sessionId:session.id,caseId:c.id,timeMs:4321,scramble:c.setup});
+    const direct=await a.api.addSolve({caseId:c.id,timeMs:1000});
+    expect(direct).toMatchObject({puzzle_id:puzzle,cube_size:null,solve_mode:'standard',scramble_type:'case'});
+  }
+  const auth=await a.api.register('all_puzzle_training','a-long-test-password');await a.local.sync();
+  expect(a.local.status().pending).toBe(0);
+  const b=device(remote);await b.api.login(auth.user.username,'a-long-test-password');await b.local.sync();
+  for(const puzzle of puzzles){
+    const c=(await b.api.cases(puzzle))[0],context={solveMode:'one-handed' as const};
+    expect(await b.api.cases(puzzle)).toEqual(await remote(auth.token).cases(puzzle));
+    expect(await b.api.sets(puzzle)).toEqual(await remote(auth.token).sets(puzzle));
+    expect((await b.api.latestSession('training',puzzle,context))?.puzzle_id).toBe(puzzle);
+    expect((await b.api.caseHistory(c.id,context)).summary.best).toBe(4321);
+    expect((await b.api.caseHistory(c.id)).summary.best).toBe(1000);
+    const local=await b.api.profile(auth.user.username,undefined,puzzle,context);
+    const server=await remote(auth.token).profile(auth.user.username,undefined,puzzle,context);
+    expect(local.trainingSolves).toBe(1);expect(local.cases).toEqual(server.cases);
+  }
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(10);
+});

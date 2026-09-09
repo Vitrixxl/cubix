@@ -1,3 +1,4 @@
+import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import { ApiError, createApiClient, type AddSolveBody, type SendMessageBody } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, ChatMessageDto, FriendDto } from "../../shared/types";
 import { cases, sets } from "./catalog";
@@ -67,11 +68,11 @@ export function createLocalClient(options: {
       // Stable local IDs make a repeated import safe even if the browser closes between writes.
       for (const session of Object.values(guest.sessions)) if (!account.sessions[session.id]) {
         account.sessions[session.id] = { ...session, serverId:undefined };
-        operation(account,user.id,"session",session.id,{ mode:session.mode, caseIds:session.case_ids },session.created_at);
+        operation(account,user.id,"session",session.id,{ mode:session.mode, caseIds:session.case_ids, ...contextOf(session) },session.created_at);
       }
       for (const solve of liveSolves(guest)) if (!account.solves[solve.id]) {
         account.solves[solve.id] = { ...solve, serverId:undefined };
-        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble },solve.created_at);
+        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, ...contextOf(solve) },solve.created_at);
       }
       save(user.id,account); save("guest",empty());
     });
@@ -228,8 +229,8 @@ export function createLocalClient(options: {
   const api = {
     ...options.remote(options.getToken()),
     me: async () => current(),
-    cases: async () => cases,
-    sets: async () => sets,
+    cases: async (cubeSize: PuzzleInput = 3) => cases.filter(c => puzzleOf(c) === puzzleId(cubeSize)),
+    sets: async (cubeSize: PuzzleInput = 3) => sets.filter(s => puzzleOf(s) === puzzleId(cubeSize)),
     register: async (username: string,password: string) => authenticate(await options.remote(null).register(username,password)),
     login: async (username: string,password: string) => authenticate(await options.remote(null).login(username,password)),
     logout: async () => {
@@ -239,25 +240,33 @@ export function createLocalClient(options: {
       if (token) void options.remote(token).logout().catch(() => {});
       return { ok:true };
     },
-    latestSession: async (mode: SessionMode) => Object.values(data().sessions).filter(s => s.mode === mode).sort((a,b) => b.created_at.localeCompare(a.created_at))[0] ?? null,
-    createSession: async (mode: SessionMode, caseIds: string[] = []) => localMutation((workspace,id) => {
-      const session: Session = { id:newId(), mode, case_ids:caseIds, created_at:new Date().toISOString() };
+    latestSession: async (mode: SessionMode, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => Object.values(data().sessions).filter(s => s.mode === mode && matchesPractice(s,cubeSize,filter)).sort((a,b) => b.created_at.localeCompare(a.created_at))[0] ?? null,
+    createSession: async (mode: SessionMode, caseIds: string[] = [], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => localMutation((workspace,id) => {
+      const context = { puzzle: puzzleId(cubeSize), solveMode: filter.solveMode ?? "standard", scrambleType: filter.scrambleType ?? (mode === "training" ? "case" : puzzleInfo(cubeSize)?.cubeSize ? "random-moves" : "competition") };
+      if (!validContext(context, mode === "training") || caseIds.some(id => !cases.some(c => c.id === id && puzzleOf(c) === context.puzzle))) throw new Error("Case, cube and practice context do not match.");
+      const session: Session = { id:newId(), cube_size:puzzleInfo(cubeSize).cubeSize, puzzle_id:context.puzzle, solve_mode:context.solveMode, scramble_type:context.scrambleType, mode, case_ids:caseIds, created_at:new Date().toISOString() };
       workspace.sessions[session.id] = session;
-      operation(workspace,id,"session",session.id,{mode,caseIds},session.created_at); return session;
+      operation(workspace,id,"session",session.id,{mode,caseIds,...context},session.created_at); return session;
     }),
     addSolve: async (body: AddSolveBody) => localMutation((workspace,id) => {
       const session = body.sessionId == null ? null : workspace.sessions[body.sessionId];
       if (body.sessionId != null && !session) throw new Error("Unknown local session.");
+      const c = cases.find(c => c.id === body.caseId);
+      const inherited = contextOf(session ?? (c ? { ...c, case_id:c.id } : {}));
+      const puzzle = body.puzzle ?? (body.cubeSize ? puzzleId(body.cubeSize) : inherited.puzzle);
+      const context = { puzzle, solveMode: body.solveMode ?? inherited.solveMode, scrambleType: body.scrambleType ?? (session || c ? inherited.scrambleType : puzzleInfo(puzzle)?.cubeSize ? "random-moves" : "competition") };
+      if (!validContext(context, !!body.caseId) || (body.cubeSize && puzzleInfo(context.puzzle).cubeSize !== body.cubeSize) || (session && JSON.stringify(contextOf(session)) !== JSON.stringify(context)) || (c && puzzleOf(c) !== context.puzzle)) throw new Error("Case, cube and practice context do not match.");
+      if (session && (session.mode === "training") !== !!body.caseId) throw new Error("Case and session mode do not match.");
       if (!Number.isFinite(body.timeMs) || body.timeMs < 0) throw new Error("Invalid solve time.");
       if (body.caseId && !cases.some(c => c.id === body.caseId)) throw new Error("Unknown case.");
       // Preserve insertion order even for imports/tests producing several solves in one millisecond.
       const latest = Object.values(workspace.solves).reduce((at,s) => Math.max(at,Date.parse(s.created_at)),0);
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
-      const solve: Solve = { id:newId(),session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,created_at:createdAt };
+      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,created_at:createdAt };
       workspace.solves[solve.id] = solve;
-      operation(workspace,id,"solve",solve.id,{...body,timeMs:solve.time_ms},solve.created_at); return solve;
+      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms},solve.created_at); return solve;
     }),
-    solves: async (mode: SessionMode, limit = 500) => { const workspace = data(); return liveSolves(workspace).filter(s => (workspace.sessions[s.session_id ?? 0]?.mode ?? (s.case_id ? "training" : "playground")) === mode).sort(chronological).reverse().slice(0,limit); },
+    solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => { const workspace = data(); return liveSolves(workspace).filter(s => matchesPractice(s,cubeSize,filter) && (workspace.sessions[s.session_id ?? 0]?.mode ?? (s.case_id ? "training" : "playground")) === mode).sort(chronological).reverse().slice(0,limit); },
     setPenalty: async (solveId: number, penalty: Penalty) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.penalty = penalty; operation(workspace,id,"penalty",solveId,{penalty}); return solve;
@@ -266,11 +275,11 @@ export function createLocalClient(options: {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.deleted = true; operation(workspace,id,"delete",solveId,{}); return solve;
     }),
-    stats: async () => profile(current(),liveSolves()).cases.map(c => c.summary),
-    caseHistory: async (caseId: string) => history(caseId,liveSolves().filter(s => s.case_id === caseId)),
-    profile: async (username: string, signal?: AbortSignal) => {
-      if (username === current().username) return profile(current(),liveSolves());
-      const value = await cached("profile:"+username,r => r.profile(username,signal),null);
+    stats: async (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
+    caseHistory: async (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
+    profile: async (username: string, signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
+      if (username === current().username) return profile(current(),liveSolves(),cubeSize,filter);
+      const value = await cached("profile:"+username+":"+puzzleId(cubeSize)+":"+JSON.stringify(filter),r => r.profile(username,signal,cubeSize,filter),null);
       if (!value) throw new Error("This profile has not been downloaded yet. Reconnect to load it.");
       return value;
     },

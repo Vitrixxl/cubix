@@ -1,3 +1,4 @@
+import { contextLabel } from "../../shared/puzzles";
 import { AnimatePresence, motion } from "motion/react";
 import { usePopoverMotion } from "../hooks/usePopoverMotion";
 import { useFloatingPortalTarget } from "./FloatingSheet";
@@ -43,7 +44,7 @@ export function SolveInfoButton({ solve }: { solve: SolveDto }) {
       setPosition({ left: Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)), top: above ? rect.top - 8 : rect.bottom + 8, above });
     }}><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="10" cy="10" r="8" /><path d="M10 9v5" /><circle cx="10" cy="6" r=".7" fill="currentColor" stroke="none" /></svg></button>
     {createPortal(<AnimatePresence>{position && <motion.div {...focusMotion} data-placement={position.above ? "top" : "bottom"} transformTemplate={(_, transform) => `translateY(${position.above ? "-100%" : "0"}) ${transform === "none" ? "" : transform}`} id={id} ref={popover} className="solve-details-popover" role="region" aria-label="Solve details" style={{ left: position.left, top: position.top, maxHeight: position.above ? position.top - 8 : window.innerHeight - position.top - 8 }}>
-      <span className="label">Date</span>
+      <span className="label">{contextLabel(solve)} · Date</span>
       <time dateTime={solve.created_at}>{new Date(solve.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" })}</time>
       <span className="label">Scramble</span>
       <p>{solve.scramble ? <AlgText alg={solve.scramble} /> : "No scramble recorded."}</p>

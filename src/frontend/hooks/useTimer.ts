@@ -101,7 +101,7 @@ export function useTimer({ onStop, enabled = true, canStart = true }: Options): 
     if (!enabled) return;
     const isTyping = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable || !!t.closest('[aria-haspopup], [role="combobox"], [role="listbox"], [data-puzzle-popover], [data-practice-control]'));
     };
     const down = (e: KeyboardEvent) => {
       if (stoppingKey.current) { e.preventDefault(); e.stopImmediatePropagation(); return; }
@@ -112,7 +112,7 @@ export function useTimer({ onStop, enabled = true, canStart = true }: Options): 
         stop();
         return;
       }
-      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey || e.code !== "Space" || isTyping(e) || document.querySelector('[aria-modal="true"]')) return;
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey || e.code !== "Space" || isTyping(e) || document.querySelector('[aria-modal="true"], [role="listbox"], [data-puzzle-popover]')) return;
       e.preventDefault();
       // Space controls the timer, so a previously clicked button must not acquire
       // a keyboard focus ring or receive a synthetic button activation.

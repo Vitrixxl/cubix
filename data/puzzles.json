@@ -1,0 +1,214 @@
+{
+  "puzzles": [
+    {
+      "id": "222",
+      "label": "2×2",
+      "cubeSize": 2,
+      "twisty": "2x2x2",
+      "scrambles": [
+        "competition",
+        "random-moves",
+        "2gen-ru",
+        "2gen-rf",
+        "3gen-ruf",
+        "half-turns"
+      ]
+    },
+    {
+      "id": "333",
+      "label": "3×3",
+      "cubeSize": 3,
+      "twisty": "3x3x3",
+      "scrambles": [
+        "competition",
+        "random-moves",
+        "2gen-ru",
+        "2gen-lu",
+        "2gen-rf",
+        "2gen-mu",
+        "3gen-rul",
+        "3gen-ruf",
+        "half-turns",
+        "edges-only",
+        "corners-only",
+        "last-layer",
+        "oll",
+        "pll",
+        "f2l"
+      ]
+    },
+    {
+      "id": "444",
+      "label": "4×4",
+      "cubeSize": 4,
+      "twisty": "4x4x4",
+      "scrambles": [
+        "competition",
+        "random-moves",
+        "outer-turns",
+        "half-turns"
+      ]
+    },
+    {
+      "id": "555",
+      "label": "5×5",
+      "cubeSize": 5,
+      "twisty": "5x5x5",
+      "scrambles": [
+        "competition",
+        "random-moves",
+        "outer-turns",
+        "half-turns"
+      ]
+    },
+    {
+      "id": "666",
+      "label": "6×6",
+      "cubeSize": 6,
+      "twisty": "6x6x6",
+      "scrambles": [
+        "competition",
+        "random-moves",
+        "outer-turns",
+        "half-turns"
+      ]
+    },
+    {
+      "id": "777",
+      "label": "7×7",
+      "cubeSize": 7,
+      "twisty": "7x7x7",
+      "scrambles": [
+        "competition",
+        "random-moves",
+        "outer-turns",
+        "half-turns"
+      ]
+    },
+    {
+      "id": "sq1",
+      "label": "Square-1",
+      "cubeSize": null,
+      "twisty": "square1",
+      "scrambles": [
+        "competition"
+      ]
+    },
+    {
+      "id": "pyram",
+      "label": "Pyraminx",
+      "cubeSize": null,
+      "twisty": "pyraminx",
+      "scrambles": [
+        "competition"
+      ]
+    },
+    {
+      "id": "skewb",
+      "label": "Skewb",
+      "cubeSize": null,
+      "twisty": "skewb",
+      "scrambles": [
+        "competition"
+      ]
+    },
+    {
+      "id": "minx",
+      "label": "Megaminx",
+      "cubeSize": null,
+      "twisty": "megaminx",
+      "scrambles": [
+        "competition"
+      ]
+    },
+    {
+      "id": "clock",
+      "label": "Clock",
+      "cubeSize": null,
+      "twisty": "clock",
+      "scrambles": [
+        "competition"
+      ]
+    }
+  ],
+  "scrambles": [
+    {
+      "id": "competition",
+      "label": "Event scramble"
+    },
+    {
+      "id": "random-moves",
+      "label": "Random moves"
+    },
+    {
+      "id": "2gen-ru",
+      "label": "2-gen · R U"
+    },
+    {
+      "id": "2gen-lu",
+      "label": "2-gen · L U"
+    },
+    {
+      "id": "2gen-rf",
+      "label": "2-gen · R F"
+    },
+    {
+      "id": "2gen-mu",
+      "label": "2-gen · M U"
+    },
+    {
+      "id": "3gen-rul",
+      "label": "3-gen · R U L"
+    },
+    {
+      "id": "3gen-ruf",
+      "label": "3-gen · R U F"
+    },
+    {
+      "id": "half-turns",
+      "label": "Half turns"
+    },
+    {
+      "id": "edges-only",
+      "label": "Edges only"
+    },
+    {
+      "id": "corners-only",
+      "label": "Corners only"
+    },
+    {
+      "id": "last-layer",
+      "label": "Last layer"
+    },
+    {
+      "id": "oll",
+      "label": "OLL cases"
+    },
+    {
+      "id": "pll",
+      "label": "PLL cases"
+    },
+    {
+      "id": "f2l",
+      "label": "F2L cases"
+    },
+    {
+      "id": "outer-turns",
+      "label": "Outer layers only"
+    }
+  ],
+  "solveModes": [
+    {
+      "id": "standard",
+      "label": "Standard"
+    },
+    {
+      "id": "one-handed",
+      "label": "One-handed"
+    },
+    {
+      "id": "blindfolded",
+      "label": "Blindfolded"
+    }
+  ]
+}

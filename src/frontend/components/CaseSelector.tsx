@@ -1,14 +1,17 @@
+import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFloatingPortalTarget } from "./FloatingSheet";
 import { useSetAtom } from "jotai";
 import { AnimatePresence, motion } from "motion/react";
-import { STAGES, type CaseDto, type SetDto } from "../../shared/types";
+import { type CaseDto, type SetDto } from "../../shared/types";
 import { routeAtom } from "../state";
 import { IconCheck, IconGrid, IconMinus } from "./icons";
 import { usePopoverMotion } from "../hooks/usePopoverMotion";
-import { StaticCubeSvg } from "./StaticCubeSvg";
+import { CaseDiagram } from "./CaseDiagram";
 import { caseState, maskForStage } from "../lib/caseState";
+
+const selectorExpansion=new Map<string,Record<string,boolean>>();
 
 interface Props {
   cases: CaseDto[];
@@ -63,7 +66,10 @@ const MENU_WIDTH = 220;
 export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, onChange, defaultExpanded = false }: Props) {
   const portalTarget = useFloatingPortalTarget();
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const selectorKey=sets.map(s=>s.id).join(":");
+  const [open, setOpen] = useState<Record<string, boolean>>(()=>selectorExpansion.get(selectorKey)??{});
+  useEffect(()=>{selectorExpansion.set(selectorKey,open);},[selectorKey,open]);
+  const scrollRef=usePreservedScroll(`case-selector:${selectorKey}:${query}`);
   const [menu, setMenu] = useState<ContextMenu | null>(null);
   const menuMotion = usePopoverMotion(menu?.above ?? false, "left");
   const menuRef = useRef<HTMLDivElement>(null);
@@ -132,8 +138,8 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
       <div style={{ padding: "0 4px 8px" }}>
         <input className="input" aria-label="Search cases" placeholder="Search cases…" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
-      <div className="panel-body">
-        {STAGES.map((stage) => (
+      <div className="panel-body" ref={scrollRef}>
+        {[...new Set(sets.map(s => s.stage))].map((stage) => (
           <div key={stage}>
             <div className="stage-label">{stage}</div>
             {sets
@@ -187,7 +193,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
                                       />
                                     )}
                                   </AnimatePresence>
-                                  <StaticCubeSvg state={caseState(c)} size={58} mask={maskForStage(c.stage)} />
+                                  <CaseDiagram c={c} size={58} />
                                   <span className="tile-id">{shortId(c)}</span>
                                   <AnimatePresence initial={false}>
                                     {on && (

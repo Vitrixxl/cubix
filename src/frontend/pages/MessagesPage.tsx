@@ -1,3 +1,4 @@
+import { contextLabel } from "../../shared/puzzles";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useAtomValue } from "jotai";
 import { sendChatMessage } from "../lib/chatTransport";
@@ -10,7 +11,7 @@ import { AccountForm } from "./AccountPage";
 
 export function SharedTimeCard({ solve }: { solve: SolveDto }) {
   return <div className="shared-time-card">
-    <span className="eyebrow">{solve.case_id ?? "Playground"} · Shared time</span>
+    <span className="eyebrow">{contextLabel(solve)} · {solve.case_id ?? "Playground"} · Shared time</span>
     <strong>{fmtSolve(solve.time_ms, solve.penalty)}</strong>
     <span className="muted">{fmtDate(solve.created_at)}{solve.penalty !== "none" && ` · ${solve.penalty}`}</span>
     {solve.scramble && <details><summary>Scramble</summary><p><AlgText alg={solve.scramble} /></p></details>}
@@ -126,7 +127,7 @@ function Conversation({ peer, userId, attachment, clearAttachment, onRemove, onB
     <div className="chat-messages" role="log" aria-label="Messages" aria-live="polite" ref={viewport} onScroll={() => { const el = viewport.current; if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}>
       {hasOlder && <button className="mini-btn load-older" disabled={olderBusy} onClick={() => void loadOlder()}>{olderBusy ? "Loading…" : "Load older messages"}</button>}
       {loading ? <p className="muted">Loading conversation…</p> : messages.length === 0 && <div className="conversation-start"><h3>Say hello to @{peer.username}.</h3><p className="muted">Share a time from Playground, Training or your profile.</p></div>}
-      {messages.map(message => <article className={`chat-message ${message.senderId === userId ? "own" : ""}`} key={message.id}><span className="chat-author">{message.senderId === userId ? "You" : `@${peer.username}`}</span>{message.solve && <SharedTimeCard solve={message.solve} />}{message.text && <p>{message.text}</p>}{message.id < 0 && <small className="muted">Saved locally · awaiting sync</small>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time></article>)}
+      {messages.map(message => <article className={`chat-message ${message.senderId === userId ? "own" : ""}`} key={message.id}><span className="chat-author">{message.senderId === userId ? "You" : `@${peer.username}`}</span>{message.solve && <SharedTimeCard solve={message.solve} />}{message.text && <p>{message.text}</p>}{message.id < 0 && <small className="muted">Sending…</small>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</time></article>)}
       <div ref={bottom} />
     </div>
     {error && <p className="form-error" role="alert">{error} <button className="mini-btn" onClick={() => { setError(""); setRetry(v => v + 1); }}>Retry loading</button></p>}

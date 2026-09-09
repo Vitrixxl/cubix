@@ -38,6 +38,16 @@ impl Db {
                 "CREATE INDEX IF NOT EXISTS idx_{table}_owner ON {table}(user_id)"
             ))?;
         }
+        for table in ["sessions", "solves"] {
+            if !all(&db, &format!("PRAGMA table_info({table})"), [])?
+                .iter()
+                .any(|c| c["name"] == "cube_size")
+            {
+                db.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN cube_size INTEGER NOT NULL DEFAULT 3 CHECK(cube_size BETWEEN 2 AND 7)"))?;
+            }
+            db.execute_batch(&format!("CREATE INDEX IF NOT EXISTS idx_{table}_cube ON {table}(user_id,cube_size,created_at)"))?;
+        }
+        crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
         let (tx, mut rx) = mpsc::channel::<Job>(1024);
         std::thread::Builder::new()

@@ -15,12 +15,13 @@ export function SyncIndicator() {
     window.addEventListener("cubix-sync-status",update);
     return () => window.removeEventListener("cubix-sync-status",update);
   },[]);
-  const label = {local:"Saved on this device",synced:"All changes synced",syncing:"Syncing…",offline:"Offline · saved on this device",signin:"Saved locally · sign in to sync",error:status.error ?? "Sync paused"}[status.state];
+  if (status.state !== "error" && status.state !== "signin") return null;
+  const label = status.state === "signin" ? "Sign in again" : "Couldn't save changes · Retry";
   return <>
     <motion.button {...chrome} className="sync-indicator" title={label} onClick={() => status.state === "signin" ? setSignIn(true) : void local.retry()} aria-label={label}>
-      <span aria-hidden="true">{status.state === "synced" ? "✓" : status.state === "syncing" ? "↥" : "○"}</span>
-      <span role="status">{label}{status.pending ? ` (${status.pending})` : ""}</span>
+      <span aria-hidden="true">!</span>
+      <span role="status">{label}</span>
     </motion.button>
-    <FloatingSheet open={signIn} title="Sign in to sync" className="sync-signin-sheet" onClose={() => setSignIn(false)}><AccountForm initialMode="login" /></FloatingSheet>
+    <FloatingSheet open={signIn} title="Sign in" className="sync-signin-sheet" onClose={() => setSignIn(false)}><AccountForm initialMode="login" /></FloatingSheet>
   </>;
 }

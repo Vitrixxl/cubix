@@ -1,6 +1,7 @@
 /** HTTP and WebSocket contracts for the Rust API and React web app. */
 
-export type Stage = "F2L" | "OLL" | "PLL";
+import type { CubeSize, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
+export type Stage = "F2L" | "OLL" | "PLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
 export const STAGES: readonly Stage[] = ["F2L", "OLL", "PLL"];
 
 export interface AlgEntry {
@@ -17,6 +18,10 @@ export interface AlgEntry {
 }
 
 export interface CaseDto {
+  puzzle_id?: PuzzleId;
+  diagram?: string;
+  notes?: string;
+  cube_size?: CubeSize;
   id: string;
   name: string;
   stage: Stage;
@@ -31,6 +36,8 @@ export interface CaseDto {
 }
 
 export interface SetDto {
+  puzzle_id?: PuzzleId;
+  cube_size?: CubeSize;
   id: string;
   label: string;
   stage: Stage;
@@ -42,6 +49,10 @@ export type SessionMode = "training" | "playground";
 export type Penalty = "none" | "+2" | "dnf";
 
 export interface SolveDto {
+  puzzle_id?: PuzzleId;
+  solve_mode?: SolveMode;
+  scramble_type?: ScrambleType;
+  cube_size?: CubeSize | null;
   id: number;
   session_id: number | null;
   case_id: string | null;
@@ -52,6 +63,10 @@ export interface SolveDto {
 }
 
 export interface SessionDto {
+  puzzle_id?: PuzzleId;
+  solve_mode?: SolveMode;
+  scramble_type?: ScrambleType;
+  cube_size?: CubeSize | null;
   id: number;
   mode: SessionMode;
   case_ids: string[];

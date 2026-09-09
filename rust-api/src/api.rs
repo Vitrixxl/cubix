@@ -1,3 +1,4 @@
+use crate::practice;
 use crate::{
     AppState, accounts,
     db::{all, one, required},
@@ -205,8 +206,18 @@ pub async fn dispatch(
         match path.as_str() {
             "health" => return Ok(Json(json!({"ok":true}))),
             "moves" => return Ok(Json(state.catalog.moves.clone())),
-            "sets" => return Ok(Json(state.catalog.sets.clone())),
-            "cases" => return Ok(Json(state.catalog.cases.clone())),
+            "sets" => {
+                return Ok(Json(practice::catalog(
+                    &state.catalog.sets,
+                    &practice::query(&query)?,
+                )));
+            }
+            "cases" => {
+                return Ok(Json(practice::catalog(
+                    &state.catalog.cases,
+                    &practice::query(&query)?,
+                )));
+            }
             _ => {}
         }
         if let Some(id) = path.strip_prefix("cases/").filter(|s| !s.contains('/')) {
@@ -227,14 +238,26 @@ pub async fn dispatch(
         .map(Json)
 }
 
-fn profile(db: &Connection, state: &AppState, username: &str, user: &Value) -> Result<Value> {
+fn profile(
+    db: &Connection,
+    state: &AppState,
+    username: &str,
+    user: &Value,
+    filter: practice::Filter,
+) -> Result<Value> {
     let target = accounts::by_username(db, username)?
         .filter(|_| !user["password_hash"].is_null())
         .ok_or_else(|| ApiError::new(404, "This profile is unavailable."))?;
     let solves = all(
         db,
-        "SELECT * FROM solves WHERE user_id=? ORDER BY created_at,id",
-        [target["id"].as_str()],
+        "SELECT * FROM solves WHERE user_id=? AND puzzle_id=? AND solve_mode=? AND (case_id IS NOT NULL OR ? IS NULL OR scramble_type=?) ORDER BY created_at,id",
+        params![
+            target["id"].as_str(),
+            filter.puzzle,
+            filter.solve_mode,
+            filter.scramble_type,
+            filter.scramble_type
+        ],
     )?;
     // Preserve first-seen case order, as in the web API's Map.
     let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
@@ -365,12 +388,13 @@ pub(crate) fn route(
             }
             Ok(json!(all(db,"SELECT * FROM users WHERE password_hash IS NOT NULL AND instr(lower(username),?)>0 ORDER BY username LIMIT 30",[q.trim().to_lowercase()])?.iter().map(accounts::public).collect::<Vec<_>>()))
         }
-        ("GET", ["users", name]) => profile(db, state, name, &user),
+        ("GET", ["users", name]) => profile(db, state, name, &user, practice::query(query)?),
         ("GET", ["stats"]) => {
+            let filter = practice::query(query)?;
             let rows = all(
                 db,
-                "SELECT * FROM solves WHERE case_id IS NOT NULL AND user_id=? ORDER BY case_id,created_at,id",
-                [uid],
+                "SELECT * FROM solves WHERE case_id IS NOT NULL AND user_id=? AND puzzle_id=? AND solve_mode=? ORDER BY case_id,created_at,id",
+                params![uid, filter.puzzle, filter.solve_mode],
             )?;
             let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
             for row in rows {
@@ -393,8 +417,8 @@ pub(crate) fn route(
             id,
             &all(
                 db,
-                "SELECT * FROM solves WHERE case_id=? AND user_id=? ORDER BY created_at,id",
-                params![id, uid],
+                "SELECT * FROM solves WHERE case_id=? AND user_id=? AND solve_mode=? ORDER BY created_at,id",
+                params![id, uid, practice::query(query)?.solve_mode],
             )?,
         )),
         ("POST", ["sessions"]) => {
@@ -406,10 +430,28 @@ pub(crate) fn route(
             {
                 return Err(ApiError::validation());
             }
+            let context = practice::Context::from_body(body, None, mode == "training")?;
+            if cases.as_array().unwrap().iter().any(|id| {
+                !state
+                    .catalog
+                    .by_id
+                    .get(id.as_str().unwrap())
+                    .is_some_and(|c| practice::puzzle_of(c) == context.puzzle)
+            }) {
+                return Err(ApiError::new(400, "Case and cube do not match."));
+            }
             session_dto(required(
                 db,
-                "INSERT INTO sessions(mode,case_ids,user_id) VALUES(?,?,?) RETURNING *",
-                params![mode, cases.to_string(), uid],
+                "INSERT INTO sessions(mode,case_ids,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?) RETURNING *",
+                params![
+                    mode,
+                    cases.to_string(),
+                    uid,
+                    context.cube_size(),
+                    context.puzzle,
+                    context.solve_mode,
+                    context.scramble_type
+                ],
                 "Unknown session",
             )?)
         }
@@ -434,10 +476,19 @@ pub(crate) fn route(
                 return Err(ApiError::validation());
             }
             let limit = query_int(query, "limit", 500, 10000)?;
+            let filter = practice::query(query)?;
             Ok(json!(all(
                 db,
-                "SELECT s.* FROM solves s LEFT JOIN sessions se ON se.id=s.session_id WHERE s.user_id=? AND COALESCE(se.mode,CASE WHEN s.case_id IS NULL THEN 'playground' ELSE 'training' END)=? ORDER BY s.created_at DESC,s.id DESC LIMIT ?",
-                params![uid, mode, limit]
+                "SELECT s.* FROM solves s LEFT JOIN sessions se ON se.id=s.session_id WHERE s.user_id=? AND s.puzzle_id=? AND s.solve_mode=? AND (? IS NULL OR s.scramble_type=?) AND COALESCE(se.mode,CASE WHEN s.case_id IS NULL THEN 'playground' ELSE 'training' END)=? ORDER BY s.created_at DESC,s.id DESC LIMIT ?",
+                params![
+                    uid,
+                    filter.puzzle,
+                    filter.solve_mode,
+                    filter.scramble_type,
+                    filter.scramble_type,
+                    mode,
+                    limit
+                ]
             )?))
         }
         ("POST", ["solves"]) => {
@@ -457,8 +508,24 @@ pub(crate) fn route(
                 "none"
             };
             let scramble = optional_string(body, "scramble")?;
-            if let Some(id) = sid {
-                let s = session(db, id, uid)?;
+            let selected_session = sid.map(|id| session(db, id, uid)).transpose()?;
+            let selected_case = case.and_then(|id| state.catalog.by_id.get(id));
+            let context = practice::Context::from_body(
+                body,
+                selected_session.as_ref().or(selected_case),
+                case.is_some_and(|s| !s.is_empty()),
+            )?;
+            if selected_session
+                .as_ref()
+                .is_some_and(|s| practice::Context::of(s) != context)
+                || selected_case.is_some_and(|c| practice::puzzle_of(c) != context.puzzle)
+            {
+                return Err(ApiError::new(
+                    400,
+                    "Case, cube and practice context do not match.",
+                ));
+            }
+            if let Some(s) = selected_session {
                 if (s["mode"] == "training") != case.is_some_and(|s| !s.is_empty()) {
                     return Err(ApiError::new(400, "Case and session mode do not match."));
                 }
@@ -468,8 +535,19 @@ pub(crate) fn route(
             }
             required(
                 db,
-                "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,user_id) VALUES(?,?,?,?,?,?) RETURNING *",
-                params![sid, case, time.round(), penalty, scramble, uid],
+                "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING *",
+                params![
+                    sid,
+                    case,
+                    time.round(),
+                    penalty,
+                    scramble,
+                    uid,
+                    context.cube_size(),
+                    context.puzzle,
+                    context.solve_mode,
+                    context.scramble_type
+                ],
                 "Unknown solve",
             )
         }

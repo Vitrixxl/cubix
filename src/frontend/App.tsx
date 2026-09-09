@@ -1,7 +1,8 @@
+import { PuzzlePicker } from "./components/PuzzlePicker";
 import { Fragment, Suspense, useEffect, useInsertionEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, motion } from "motion/react";
-import { animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
+import { puzzleAtom, solveModeAtom, cubeSwitchLockedAtom, animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
 import { AlgorithmsPage } from "./pages/AlgorithmsPage";
 import { TrainingPage } from "./pages/TrainingPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
@@ -34,6 +35,8 @@ const PAGE_TRANSITION = { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const };
 
 export function App() {
   useAppViewport();
+  const [cube] = useAtom(puzzleAtom);
+  const [solveMode] = useAtom(solveModeAtom);
   useEffect(() => {
     // Custom component menus handle the event first; suppress the browser menu.
     const preventNativeMenu = (event: MouseEvent) => event.preventDefault();
@@ -116,11 +119,13 @@ export function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="app">
+    <div className="app" data-cube={cube}>
       <ChatConnection />
       <ThemeController />
       <motion.nav {...navigationMotion} className="sidebar" aria-label="Main navigation">
         <LayoutGroup id="nav">
+          <PuzzlePicker />
+          <span className="nav-divider context-divider" aria-hidden="true" />
           {NAV.map(({ page, label, icon: Icon }, i) => {
             const active = route.page === page;
             return (
@@ -153,7 +158,7 @@ export function App() {
           </button>
         </LayoutGroup>
       </motion.nav>
-      <main className="main">
+      <main className="main" key={route.page === "messages" || route.page === "community" ? "social" : `${cube}:${solveMode}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${route.page}:${user?.id ?? "loading"}:${user?.isGuest}`}

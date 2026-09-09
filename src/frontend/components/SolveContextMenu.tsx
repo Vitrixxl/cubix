@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { AnimatePresence, motion } from "motion/react";
-import { deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
+import { practiceContextAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
 import { api } from "../api";
 import { usePopoverMotion } from "../hooks/usePopoverMotion";
 import { IconClose, IconMessage } from "./icons";
@@ -11,6 +11,7 @@ interface Menu { id: number; x: number; y: number; above: boolean; anchor: HTMLE
 
 /** One delegated menu for all times, rather than one component/listener per solve. */
 export function SolveContextMenu() {
+  const context = useAtomValue(practiceContextAtom);
   const user = useAtomValue(userAtom);
   const route = useAtomValue(routeAtom);
   const setRoute = useSetAtom(routeAtom);
@@ -19,7 +20,7 @@ export function SolveContextMenu() {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => { setMenu(null); }, [route]);
+  useEffect(() => { setMenu(null); }, [route, context]);
   useEffect(() => {
     if (!user) return;
     let hold: ReturnType<typeof setTimeout> | undefined;

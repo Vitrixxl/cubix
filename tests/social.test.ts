@@ -55,14 +55,14 @@ test("friend consent, message isolation, verified time snapshots and idempotent 
   await bob.api.acceptFriend(request.id);
   expect((await alice.api.friends())[0].status).toBe("accepted");
   await expect(alice.api.addFriend("bob")).rejects.toMatchObject({ status: 409 });
-  const solve = await alice.api.addSolve({ sessionId: null, caseId: "PLL Aa", timeMs: 1234, penalty: "+2", scramble: "R U R'" });
+  const solve = await alice.api.addSolve({ sessionId: null, caseId: "7x7 PLL Aa", cubeSize: 7, solveMode: "one-handed", timeMs: 1234, penalty: "+2", scramble: "R U R'" });
   await expect(bob.api.sharedSolve(solve.id)).rejects.toMatchObject({ status: 404 });
   await expect(bob.api.sendMessage(alice.user.id, body("Stolen", solve.id))).rejects.toMatchObject({ status: 404 });
   const payload = body("New personal best!", solve.id);
   const sent = await alice.api.sendMessage(bob.user.id, payload);
   expect((await alice.api.sendMessage(bob.user.id, payload)).id).toBe(sent.id);
   expect((await bob.api.messages(alice.user.id))).toHaveLength(1);
-  expect(sent.solve).toMatchObject({ id: solve.id, time_ms: 1234, penalty: "+2", scramble: "R U R'" });
+  expect(sent.solve).toMatchObject({ id: solve.id, cube_size: 7, puzzle_id: "777", solve_mode: "one-handed", scramble_type: "case", time_ms: 1234, penalty: "+2", scramble: "R U R'" });
   expect(sent.solve).not.toHaveProperty("user_id");
   await alice.api.deleteSolve(solve.id);
   expect((await bob.api.messages(alice.user.id))[0].solve).toEqual(sent.solve);

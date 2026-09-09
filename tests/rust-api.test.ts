@@ -76,7 +76,7 @@ rustTest(
     ).not.toContain("display_name");
     expect(
       db.query<any, []>("SELECT * FROM solves WHERE id=1").get(),
-    ).toMatchObject({ time_ms: 9000, user_id: null });
+    ).toMatchObject({ time_ms: 9000, user_id: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "random-moves" });
     const guest = (await call("/auth/guest", "POST")).body;
     expect((await call("/solves", "GET", undefined, guest.token)).body).toEqual(
       [],
@@ -111,3 +111,30 @@ rustTest(
     ).toBe(guest.user.id);
   },
 );
+
+
+rustTest("practice migration preserves existing cube histories and remains safe on restart", async () => {
+  const path = fixture(), db = new Database(path); cleanups.unshift(() => db.close());
+  db.exec(`CREATE TABLE sessions(id INTEGER PRIMARY KEY,mode TEXT,case_ids TEXT,created_at TEXT,cube_size INTEGER NOT NULL DEFAULT 3);
+    CREATE TABLE solves(id INTEGER PRIMARY KEY,session_id INTEGER,case_id TEXT,time_ms INTEGER,penalty TEXT,scramble TEXT,created_at TEXT,cube_size INTEGER NOT NULL DEFAULT 3);
+    INSERT INTO sessions VALUES(1,'training','["7x7 PLL Aa"]','2026-01-01',7),(2,'playground','[]','2026-01-02',4);
+    INSERT INTO solves VALUES(1,1,'7x7 PLL Aa',9000,'+2','R U','2026-01-01',7),(2,2,NULL,42000,'none','Rw U','2026-01-02',4);`);
+  const server = createRustApi(path);
+  const before = db.query("SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,puzzle_id,cube_size,solve_mode,scramble_type FROM solves ORDER BY id").all();
+  expect(before).toMatchObject([
+    {id:1,puzzle_id:"777",cube_size:7,solve_mode:"standard",scramble_type:"case",time_ms:9000,penalty:"+2",scramble:"R U"},
+    {id:2,puzzle_id:"444",cube_size:4,solve_mode:"standard",scramble_type:"random-moves",time_ms:42000},
+  ]);
+  expect(db.query("SELECT puzzle_id,solve_mode,scramble_type FROM sessions ORDER BY id").all()).toEqual([
+    {puzzle_id:"777",solve_mode:"standard",scramble_type:"case"},
+    {puzzle_id:"444",solve_mode:"standard",scramble_type:"random-moves"},
+  ]);
+  server.server.stop();
+  const call = client(createRustApi(path));
+  expect(db.query("SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,puzzle_id,cube_size,solve_mode,scramble_type FROM solves ORDER BY id").all()).toEqual(before);
+  const auth = (await call("/auth/register","POST",{username:"migration_labels",password:"a-long-test-password"})).body;
+  const niche = await call("/solves","POST",{puzzle:"sq1",solveMode:"blindfolded",timeMs:5000},auth.token);
+  expect(niche.status).toBe(200);
+  expect(niche.body).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"blindfolded",scramble_type:"competition"});
+  expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
+});

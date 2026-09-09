@@ -64,7 +64,7 @@ pub fn friends(db: &Connection, user: &str) -> Result<Value> {
 pub fn own_solve(db: &Connection, id: i64, user: &str) -> Result<Option<Value>> {
     one(
         db,
-        "SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at FROM solves WHERE id=? AND user_id=?",
+        "SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,cube_size,puzzle_id,solve_mode,scramble_type FROM solves WHERE id=? AND user_id=?",
         params![id, user],
     )
 }

@@ -1,12 +1,12 @@
 /**
- * Minimal 3x3x3 facelet model.
+ * Size-aware 2×2–7×7 facelet model (3×3 by default).
  *
- * - 54 sticker slots, 9 per face in the order U, D, F, B, R, L.
- * - A state is a Uint8Array where state[slot] = origin slot of the sticker now sitting there.
+ * - 6 × size² sticker slots, size² per face in the order U, D, F, B, R, L.
+ * - A state is a Uint16Array (also accepts legacy Uint8Array) where state[slot] = origin slot of the sticker now sitting there.
  *   The solved state is the identity; the colour of a sticker is the face of its origin slot.
- * - Every slot has a 3D geometry (cubie position p ∈ {-1,0,1}³ and outward normal n),
+ * - Every slot has a 3D geometry (cubie position centered on the origin, with half-integers for even sizes and outward normal n),
  *   which is used both to apply moves (rotate p and n, look up the target slot) and to
- *   render the cube with CSS 3D transforms.
+ *   render the cube with Three.js.
  *
  * Math coordinates: x → right, y → up, z → towards the viewer (right-handed).
  */
@@ -33,34 +33,44 @@ const FACE_NORMAL: Record<Face, Vec3> = {
 };
 
 /** Slot geometry, row-major as seen from outside each face (standard net orientation). */
-export const SLOTS: readonly SlotGeometry[] = (() => {
+const geometryCache = new Map<number, readonly SlotGeometry[]>();
+export function slotsFor(size = 3): readonly SlotGeometry[] {
+  if (geometryCache.has(size)) return geometryCache.get(size)!;
+  const h = (size - 1) / 2;
   const out: SlotGeometry[] = [];
   for (const face of FACES) {
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
         let p: Vec3;
         switch (face) {
-          case "U": p = [c - 1, 1, r - 1]; break; // row 0 = back, row 2 = front
-          case "D": p = [c - 1, -1, 1 - r]; break; // row 0 = front
-          case "F": p = [c - 1, 1 - r, 1]; break;
-          case "B": p = [1 - c, 1 - r, -1]; break; // seen from behind, left = +x
-          case "R": p = [1, 1 - r, 1 - c]; break; // seen from the right, left = front (+z)
-          case "L": p = [-1, 1 - r, c - 1]; break; // seen from the left, left = back (-z)
+          case "U": p = [c - h, h, r - h]; break; // row 0 = back, last row = front
+          case "D": p = [c - h, -h, h - r]; break; // row 0 = front
+          case "F": p = [c - h, h - r, h]; break;
+          case "B": p = [h - c, h - r, -h]; break; // seen from behind, left = +x
+          case "R": p = [h, h - r, h - c]; break; // seen from the right, left = front (+z)
+          case "L": p = [-h, h - r, c - h]; break; // seen from the left, left = back (-z)
         }
         out.push({ p, n: FACE_NORMAL[face], face });
       }
     }
   }
+  geometryCache.set(size, out);
   return out;
-})();
+}
+export const SLOTS = slotsFor();
 
 const slotKey = (p: Vec3, n: Vec3) => `${p[0]},${p[1]},${p[2]}|${n[0]},${n[1]},${n[2]}`;
-const SLOT_BY_KEY = new Map<string, number>(SLOTS.map((s, i) => [slotKey(s.p, s.n), i]));
+const slotMaps = new Map<number, Map<string, number>>();
+function slotMap(size: number) {
+  if (!slotMaps.has(size)) slotMaps.set(size, new Map(slotsFor(size).map((s, i) => [slotKey(s.p, s.n), i])));
+  return slotMaps.get(size)!;
+}
 
-export type CubeState = Uint8Array;
-export const solved = (): CubeState => Uint8Array.from({ length: 54 }, (_, i) => i);
-export const faceOfSlot = (slot: number): Face => FACES[Math.floor(slot / 9)];
-export const colorOf = (state: CubeState, slot: number): Face => faceOfSlot(state[slot]);
+export type CubeState = Uint8Array | Uint16Array;
+export const cubeSize = (state: CubeState): number => Math.sqrt(state.length / 6);
+export const solved = (size = 3): CubeState => Uint16Array.from({ length: 6 * size * size }, (_, i) => i);
+export const faceOfSlot = (slot: number, size = 3): Face => FACES[Math.floor(slot / (size * size))];
+export const colorOf = (state: CubeState, slot: number): Face => faceOfSlot(state[slot], cubeSize(state));
 
 // ---------------------------------------------------------------------------
 // Rotations
@@ -116,8 +126,9 @@ const BASE: Record<string, MoveDef> = {
 const TOKEN_RE = /^([UDFBRLudfbrlMESxyz])(w)?([123])?(')?([123])?$/;
 
 /** Parse one token such as R, R', R2, R2', R3, Rw, u2. Returns null when not a move. */
-export function parseMove(raw: string): Move | null {
-  const m = TOKEN_RE.exec(raw);
+export function parseMove(raw: string, size = 3): Move | null {
+  const prefix = /^(\d+)(?=[UDFBRL])/.exec(raw)?.[1];
+  const m = TOKEN_RE.exec(prefix ? raw.slice(prefix.length) : raw);
   if (!m) return null;
   let letter = m[1];
   if (m[2] === "w") letter = letter.toLowerCase(); // Rw → r
@@ -126,7 +137,19 @@ export function parseMove(raw: string): Move | null {
   let amount = Number(m[3] ?? m[5] ?? 1);
   if (m[4]) amount = -amount;
   const q = (((def.q * amount) % 4) + 4) % 4;
-  return { axis: def.axis, layers: def.layers, q, token: raw };
+  const h = (size - 1) / 2;
+  const all = Array.from({ length: size }, (_, i) => h - i);
+  let layers: number[];
+  if ("xyz".includes(letter)) layers = all;
+  else if ("MES".includes(letter)) layers = all.slice(1, -1);
+  else {
+    const sign = def.layers[0] > 0 ? 1 : -1;
+    const wide = letter === letter.toLowerCase();
+    const depth = prefix ? Number(prefix) : wide ? 2 : 1;
+    if (depth < 1 || depth > size) return null;
+    layers = wide ? all.slice(0, depth).map(v => sign * v) : [sign * (h - depth + 1)];
+  }
+  return { axis: def.axis, layers, q, token: raw };
 }
 
 const GROUP_RE = /\(([^()]*)\)([0-9]*)('?)/;
@@ -148,11 +171,11 @@ export function expandAlg(alg: string): string {
 }
 
 /** Parse a full algorithm string. Groups are expanded; unknown tokens throw. */
-export function parseAlg(alg: string): Move[] {
+export function parseAlg(alg: string, size = 3): Move[] {
   const out: Move[] = [];
   for (const tok of expandAlg(alg).split(/\s+/)) {
     if (!tok) continue;
-    const mv = parseMove(tok);
+    const mv = parseMove(tok, size);
     if (!mv) throw new Error(`Unknown move token: "${tok}" in "${alg}"`);
     if (mv.q !== 0) out.push(mv);
   }
@@ -161,9 +184,10 @@ export function parseAlg(alg: string): Move[] {
 
 /** Inverse of a move token (R → R', R2 → R2, R' → R). */
 export function invertToken(tok: string): string {
-  const m = TOKEN_RE.exec(tok);
+  const prefix = /^(\d+)(?=[UDFBRL])/.exec(tok)?.[1] ?? "";
+  const m = TOKEN_RE.exec(tok.slice(prefix.length));
   if (!m) return tok;
-  const base = m[1] + (m[2] ?? "");
+  const base = prefix + m[1] + (m[2] ?? "");
   const n = Number(m[3] ?? m[5] ?? 1) % 4;
   if (n === 2) return base + "2";
   const prime = !!m[4] !== (n === 3); // R3 ≡ R'
@@ -195,10 +219,11 @@ export function reorientAlgY2(alg: string): string {
     .split(/\s+/)
     .filter(Boolean)
     .map((token) => {
-      const match = TOKEN_RE.exec(token);
+      const prefix = /^(\d+)(?=[UDFBRL])/.exec(token)?.[1] ?? "";
+      const match = TOKEN_RE.exec(token.slice(prefix.length));
       if (!match) throw new Error(`Unknown move token: "${token}" in "${alg}"`);
       const letter = match[1];
-      const mapped = `${Y2_MOVE_MAP[letter]}${match[2] ?? ""}${match[3] ?? ""}${match[4] ?? ""}${match[5] ?? ""}`;
+      const mapped = `${prefix}${Y2_MOVE_MAP[letter]}${match[2] ?? ""}${match[3] ?? ""}${match[4] ?? ""}${match[5] ?? ""}`;
       return Y2_REVERSES_DIRECTION.has(letter) ? invertToken(mapped) : mapped;
     })
     .join(" ");
@@ -207,18 +232,18 @@ export function reorientAlgY2(alg: string): string {
 // ---------------------------------------------------------------------------
 // Applying moves
 // ---------------------------------------------------------------------------
-const PERM_CACHE = new Map<string, Uint8Array>();
+const PERM_CACHE = new Map<string, Uint16Array>();
 
 /** Permutation for a move: perm[slot] = target slot after the move. */
-export function movePermutation(mv: Move): Uint8Array {
-  const key = `${mv.axis}|${mv.layers.join(",")}|${mv.q}`;
+export function movePermutation(mv: Move, size = 3): Uint16Array {
+  const key = `${size}|${mv.axis}|${mv.layers.join(",")}|${mv.q}`;
   let perm = PERM_CACHE.get(key);
   if (perm) return perm;
-  perm = new Uint8Array(54);
-  for (let s = 0; s < 54; s++) {
-    const g = SLOTS[s];
+  perm = new Uint16Array(6 * size * size);
+  for (let s = 0; s < 6 * size * size; s++) {
+    const g = slotsFor(size)[s];
     if (mv.layers.includes(g.p[mv.axis])) {
-      const t = SLOT_BY_KEY.get(slotKey(rotate(g.p, mv.axis, mv.q), rotate(g.n, mv.axis, mv.q)));
+      const t = slotMap(size).get(slotKey(rotate(g.p, mv.axis, mv.q), rotate(g.n, mv.axis, mv.q)));
       if (t === undefined) throw new Error("geometry error");
       perm[s] = t;
     } else perm[s] = s;
@@ -228,23 +253,24 @@ export function movePermutation(mv: Move): Uint8Array {
 }
 
 export function applyMove(state: CubeState, mv: Move): CubeState {
-  const perm = movePermutation(mv);
-  const next = new Uint8Array(54);
-  for (let s = 0; s < 54; s++) next[perm[s]] = state[s];
+  const size = cubeSize(state);
+  const perm = movePermutation(mv, size);
+  const next = new Uint16Array(state.length);
+  for (let s = 0; s < 6 * size * size; s++) next[perm[s]] = state[s];
   return next;
 }
 
 export function applyAlg(state: CubeState, alg: string | Move[]): CubeState {
-  const moves = typeof alg === "string" ? parseAlg(alg) : alg;
+  const moves = typeof alg === "string" ? parseAlg(alg, cubeSize(state)) : alg;
   let cur = state;
   for (const mv of moves) cur = applyMove(cur, mv);
   return cur;
 }
 
 /** Slots that move for a given move (used to animate a layer). */
-export function movingSlots(mv: Move): number[] {
+export function movingSlots(mv: Move, size = 3): number[] {
   const out: number[] = [];
-  for (let s = 0; s < 54; s++) if (mv.layers.includes(SLOTS[s].p[mv.axis])) out.push(s);
+  for (let s = 0; s < 6 * size * size; s++) if (mv.layers.includes(slotsFor(size)[s].p[mv.axis])) out.push(s);
   return out;
 }
 
@@ -329,6 +355,6 @@ export function formatAlg(alg: string): string {
 }
 
 /** Is the sticker currently in `slot` part of a last-layer (U) piece by origin? */
-export const originInULayer = (state: CubeState, slot: number): boolean => SLOTS[state[slot]].p[1] === 1;
+export const originInULayer = (state: CubeState, slot: number): boolean => slotsFor(cubeSize(state))[state[slot]].p[1] === (cubeSize(state) - 1) / 2;
 /** Is `slot` physically in the U layer? */
-export const slotInULayer = (slot: number): boolean => SLOTS[slot].p[1] === 1;
+export const slotInULayer = (slot: number, size = 3): boolean => slotsFor(size)[slot].p[1] === (size - 1) / 2;

@@ -1,3 +1,5 @@
+import { buildVendor } from "./build-vendor";
+await buildVendor();
 import admin from "../src/admin/index.html";
 import index from "../src/frontend/index.html";
 import { WebSocket } from "ws";
@@ -30,6 +32,18 @@ const server = Bun.serve<Bridge>({
       } catch {
         return new Response("Rust API unavailable", { status: 502 });
       }
+    },
+    "/vendor/cubing/*": async (request: Request) => {
+      const path = decodeURIComponent(new URL(request.url).pathname.slice("/vendor/cubing/".length));
+      if (path.split("/").includes("..") || path.includes("\\")) return new Response("Invalid path", { status: 400 });
+      const file = Bun.file(`build/vendor/cubing/${path}`);
+      return await file.exists() ? new Response(file) : new Response("Not found", { status: 404 });
+    },
+    "/cases/*": async (request: Request) => {
+      const name = new URL(request.url).pathname.slice("/cases/".length);
+      if (!/^[a-z0-9-]+\.svg$/.test(name)) return new Response("Not found", {status:404});
+      const file = Bun.file(`public/cases/${name}`);
+      return await file.exists() ? new Response(file) : new Response("Not found", {status:404});
     },
     "/pwa/*": async (request: Request) => {
       const path = new URL(request.url).pathname;

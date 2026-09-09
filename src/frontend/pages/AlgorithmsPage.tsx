@@ -1,11 +1,12 @@
+import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { memo, useEffect, useId, useMemo, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { unwrap } from "jotai/utils";
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { animationsEnabledAtom, collapsedAlgorithmGroupsAtom, trainedOnlyAtom, casesAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, stageAtom, statsAtom } from "../state";
-import { STAGES, type CaseDto, type CaseHistoryDto, type CaseStatsDto } from "../../shared/types";
+import { puzzleAtom, solveModeAtom, animationsEnabledAtom, collapsedAlgorithmGroupsAtom, trainedOnlyAtom, casesAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, stageAtom, statsAtom } from "../state";
+import { type CaseDto, type CaseHistoryDto, type CaseStatsDto } from "../../shared/types";
 import { Cube3D, useAlgPlayer } from "../components/Cube3D";
-import { StaticCubeSvg } from "../components/StaticCubeSvg";
+import { CaseDiagram } from "../components/CaseDiagram";
 import { caseState, displayAlg, executableAlg, maskForStage } from "../lib/caseState";
 import { fmtTime } from "../lib/format";
 import { api } from "../api";
@@ -13,6 +14,9 @@ import { AlgorithmList, AlgText } from "../components/AlgorithmList";
 import { TimesChart } from "../components/TimesChart";
 import { IconBack, IconPause, IconPlay, IconReset, IconStep, IconTimer } from "../components/icons";
 import { formatAlg } from "../../shared/cube";
+import { PuzzleSolutionPlayer } from "../components/PuzzleSolutionPlayer";
+import { puzzleInfo, puzzleOf } from "../../shared/puzzles";
+import type { AlgEntry } from "../../shared/types";
 
 import { useShortcuts } from "../hooks/useShortcuts";
 import { ShortcutKey } from "../components/ShortcutKey";
@@ -23,6 +27,7 @@ const listVariants = { hidden: {}, show: { transition: { staggerChildren: 0.014,
 const itemVariants = { hidden: { opacity: 0, y: 14, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 380, damping: 28 } } };
 
 export function AlgorithmsPage() {
+  const puzzle = useAtomValue(puzzleAtom);
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const stats = useAtomValue(statsMapAtom);
@@ -45,6 +50,8 @@ export function AlgorithmsPage() {
 
   const stageSets = sets.filter((s) => s.stage === stage);
   const activeSet = stageSets.find((s) => s.id === setByStage[stage]) ?? stageSets[0];
+  const scrollRef = usePreservedScroll(`algorithms:${puzzle}:${activeSet?.id}:${trainedOnly}`);
+  const pageScrollRef = usePreservedScroll(`algorithms-page:${puzzle}:${caseId??activeSet?.id}`);
   const setCases = useMemo(() => cases.filter(c => c.set === activeSet?.id), [cases, activeSet?.id]);
   const trainedCases = useMemo(() => setCases.filter(c => (stats.get(c.id)?.count ?? 0) > 0), [setCases, stats]);
   const visible = trainedOnly ? trainedCases : setCases;
@@ -55,7 +62,7 @@ export function AlgorithmsPage() {
   }, [visible]);
 
   return (
-    <div className="page algorithms-page">
+    <div className="page algorithms-page" ref={pageScrollRef}>
         <AnimatePresence mode="wait" initial={false}>
           {selected ? (
             <CaseDetail key={selected.id} c={selected} stats={stats.get(selected.id)} onBack={() => setRoute({ page: "algorithms" })} />
@@ -64,7 +71,7 @@ export function AlgorithmsPage() {
               <div className="page-header">
                 <LayoutGroup id="stage-tabs">
                   <div className="tabs">
-                    {STAGES.map((s) => (
+                    {[...new Set(sets.map(s => s.stage))].map((s) => (
                       <motion.button key={s} className={`tab ${s === stage ? "active" : ""}`} onClick={() => setStage(s)}>
                         {s === stage && <motion.span className="tab-pill" layoutId="stage-pill" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
                         <span>{s}</span>
@@ -91,7 +98,7 @@ export function AlgorithmsPage() {
                 </button>
               </div>
               <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={activeSet?.id} className="case-list" variants={listVariants} initial="hidden" animate="show" exit="exit">
+                <motion.div key={activeSet?.id} ref={scrollRef} className="case-list" variants={listVariants} initial="hidden" animate="show" exit="exit">
                   {groups.map(([group, list]) => {
                     const key = `${activeSet?.id}:${group}`;
                     const expanded = !collapsed[key];
@@ -131,7 +138,7 @@ function CaseCard({ c, stats, onOpen }: { c: CaseDto; stats?: CaseStatsDto; onOp
     <motion.button className="case-card" onClick={onOpen} variants={itemVariants}>
       {stats && <span className="trained-dot" title={`${stats.count} solves`} />}
       <div className="case-cube">
-        <StaticCubeSvg state={caseState(c)} size={102} mask={maskForStage(c.stage)} />
+        <CaseDiagram c={c} size={102} />
       </div>
       <div className="case-id">{c.id}</div>
       {c.name !== c.id && <div className="case-name">{c.name}</div>}
@@ -156,17 +163,19 @@ function CaseCard({ c, stats, onOpen }: { c: CaseDto; stats?: CaseStatsDto; onOp
 function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; onBack: () => void }) {
   const setRoute = useSetAtom(routeAtom);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
+  const solveMode = useAtomValue(solveModeAtom);
   const [algIndex, setAlgIndex] = useState(0);
   const [activePane, setActivePane] = useState<"algorithms" | "statistics">("algorithms");
   const paneId = useId();
+  const algScrollRef=usePreservedScroll<HTMLElement>(`case:${c.id}:algorithms`);
+  const statsScrollRef=usePreservedScroll<HTMLElement>(`case:${c.id}:statistics:${solveMode}`);
+  const detailScrollRef=usePreservedScroll(`case:${c.id}:detail`);
   const [history, setHistory] = useState<CaseHistoryDto | null>(null);
-  const initial = useMemo(() => caseState(c), [c.id]);
   const active = c.algorithms[algIndex] ?? c.algorithms[0];
-  const player = useAlgPlayer(initial, executableAlg(active));
 
   useEffect(() => {
     let alive = true;
-    api.caseHistory(c.id).then((h) => alive && setHistory(h));
+    api.caseHistory(c.id,{solveMode}).then((h) => alive && setHistory(h));
     return () => {
       alive = false;
     };
@@ -187,14 +196,11 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
   useShortcuts([
     { key: "b", run: onBack },
     { key: "t", run: train },
-    { key: "p", run: player.playing ? player.pause : player.play },
-    { key: "r", run: player.reset },
-    { key: "j", run: () => { if (!player.playing && player.index < player.total) player.stepForward(); } },
   ]);
   const summary = history?.summary ?? stats;
 
   return (
-    <motion.div className="detail case-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+    <motion.div ref={detailScrollRef} className="detail case-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
       <div className="case-detail-heading">
         <motion.button className="btn ghost small" onClick={onBack} style={{ marginLeft: -10, marginBottom: 10 }} variants={itemVariants}>
           <IconBack /> {c.setLabel} <ShortcutKey letter="B" />
@@ -217,20 +223,21 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
         <button type="button" aria-pressed={activePane === "statistics"} aria-controls={`${paneId}-statistics`} onClick={() => setActivePane("statistics")}>Statistics</button>
       </div>
       <div className="case-content-panels" data-active-pane={activePane}>
-        <section id={`${paneId}-algorithms`} className="case-scroll-pane case-algorithms-pane" aria-label="Case algorithms" tabIndex={0}>
+        <section ref={algScrollRef} id={`${paneId}-algorithms`} className="case-scroll-pane case-algorithms-pane" aria-label="Case algorithms" tabIndex={0}>
         <motion.div className="card" variants={itemVariants}>
           <div className="setup-block">
             <div>
               <h2>Setup</h2>
               <p className="muted" style={{ margin: "0 0 10px", fontSize: 12 }}>
-                Apply on a solved cube (yellow up, green front) to get this case.
+                {puzzleInfo(puzzleOf(c)).cubeSize ? "Apply on a solved cube (yellow up, green front) to get this case." : "Apply to a solved puzzle."}
               </p>
-              <AlgText alg={formatAlg(c.setup)} className="large" />
+              <AlgText alg={puzzleInfo(puzzleOf(c)).cubeSize ? formatAlg(c.setup) : c.setup} className="large" />
             </div>
             <button className="btn primary" onClick={train} aria-keyshortcuts="Alt+t">
               <IconTimer /> Train this case <ShortcutKey letter="T" />
             </button>
           </div>
+          {c.notes && <p className="case-note">{c.notes}</p>}
           {c.setups_alt.length > 0 && (
             <details style={{ marginTop: 12 }}>
               <summary className="muted" style={{ cursor: "pointer", fontSize: 12 }}>
@@ -250,7 +257,58 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
           <AlgorithmList algorithms={c.algorithms} activeIndex={algIndex} onSelect={setAlgIndex} />
         </motion.div>
 
-      <motion.div className="case-player" initial={{ opacity: 0, x: 0, scale: 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
+          <CaseSolutionPlayer c={c} active={active} />
+        </section>
+        <section ref={statsScrollRef} id={`${paneId}-statistics`} className="case-scroll-pane case-statistics-pane" aria-label="Case statistics" tabIndex={0}>
+        <motion.div className="card" variants={itemVariants}>
+          <h2>Statistics</h2>
+          {summary && summary.count > 0 ? (
+            <>
+              <div className="kpi-row" style={{ marginBottom: 16 }}>
+                <Kpi label="Solves" value={String(summary.count)} />
+                <Kpi label="Best" value={fmtTime(summary.best)} />
+                <Kpi label="Mean" value={fmtTime(summary.mean)} />
+                <Kpi label="Ao5" value={fmtTime(summary.ao5)} />
+                <Kpi label="Ao12" value={fmtTime(summary.ao12)} />
+                <Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
+              </div>
+              {history && <TimesChart history={history.history} ao5={history.ao5} />}
+            </>
+          ) : (
+            <div className="empty">No solves yet.</div>
+          )}
+        </motion.div>
+        </section>
+      </div>
+    </motion.div>
+  );
+}
+
+export const Kpi = memo(function Kpi({ label, value, small }: { label: string; value: string; small?: boolean }) {
+  return (
+    <div className="kpi">
+      <div className="label">{label}</div>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div key={value} className={`value ${small ? "small" : ""}`} initial={{ opacity: 0, y: 8, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.94 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}>
+          {value}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+});
+
+function CaseSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
+  return puzzleInfo(puzzleOf(c)).cubeSize ? <CubeSolutionPlayer c={c} active={active}/> : <PuzzleSolutionPlayer puzzle={puzzleOf(c)} setup={c.setup} alg={executableAlg(active)}/>;
+}
+function CubeSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
+  const initial=useMemo(()=>caseState(c),[c.id]);
+  const player=useAlgPlayer(initial,executableAlg(active));
+  useShortcuts([
+    {key:"p",run:player.playing?player.pause:player.play},
+    {key:"r",run:player.reset},
+    {key:"j",run:()=>{if(!player.playing&&player.index<player.total)player.stepForward();}},
+  ]);
+  return (      <motion.div className="case-player" initial={{ opacity: 0, x: 0, scale: 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
         <div className="cube-stage">
           <Cube3D state={player.state} animation={player.animation} size={260} mask={maskForStage(c.stage)} interactive />
         </div>
@@ -275,45 +333,6 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
           </div>
           <AlgText alg={displayAlg(active)} />
         </div>
-        <p className="muted" style={{ fontSize: 12, textAlign: "center", margin: 0 }}>
-          Drag the cube to rotate it.
-        </p>
       </motion.div>
-        </section>
-        <section id={`${paneId}-statistics`} className="case-scroll-pane case-statistics-pane" aria-label="Case statistics" tabIndex={0}>
-        <motion.div className="card" variants={itemVariants}>
-          <h2>Statistics</h2>
-          {summary && summary.count > 0 ? (
-            <>
-              <div className="kpi-row" style={{ marginBottom: 16 }}>
-                <Kpi label="Solves" value={String(summary.count)} />
-                <Kpi label="Best" value={fmtTime(summary.best)} />
-                <Kpi label="Mean" value={fmtTime(summary.mean)} />
-                <Kpi label="Ao5" value={fmtTime(summary.ao5)} />
-                <Kpi label="Ao12" value={fmtTime(summary.ao12)} />
-                <Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
-              </div>
-              {history && <TimesChart history={history.history} ao5={history.ao5} />}
-            </>
-          ) : (
-            <div className="empty">Not trained yet. Start a session to track your progress on this case.</div>
-          )}
-        </motion.div>
-        </section>
-      </div>
-    </motion.div>
-  );
+);
 }
-
-export const Kpi = memo(function Kpi({ label, value, small }: { label: string; value: string; small?: boolean }) {
-  return (
-    <div className="kpi">
-      <div className="label">{label}</div>
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.div key={value} className={`value ${small ? "small" : ""}`} initial={{ opacity: 0, y: 8, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.94 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}>
-          {value}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-});

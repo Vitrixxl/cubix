@@ -1,28 +1,11 @@
 import { useAtomValue } from "jotai";
 import { animationsEnabledAtom } from "../state";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { applyMove, colorOf, moveAngleDeg, movingSlots, originInULayer, parseAlg, SLOTS, slotInULayer, type CubeState, type Face, type Move } from "../../shared/cube";
-
-/** Yellow on top, green in front (orange right, red left) — the usual CFOP colour scheme. */
-export const FACE_COLORS: Record<Face, string> = {
-  U: "rgb(255, 230, 42)",
-  D: "rgb(236, 232, 226)",
-  F: "rgb(26, 190, 87)",
-  B: "rgb(61, 124, 224)",
-  R: "rgb(255, 128, 31)",
-  L: "rgb(235, 66, 66)",
-};
-const GREY = "rgb(58, 58, 66)";
-const DIM = "rgb(36, 36, 42)";
-
-export type CubeMask = "full" | "OLL" | "PLL" | "F2L";
-
-export interface LayerAnimation {
-  move: Move;
-  /** degrees, right-handed about the positive axis (math convention) */
-  angle: number;
-}
-
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { applyMove, moveAngleDeg, parseAlg, cubeSize, type CubeState, type Move } from "../../shared/cube";
+import {ThreeViewport} from './ThreeViewport';
+import {createCubeModel} from '../lib/three/cube-model';
+import {DEFAULT_ROTATION,type CubeMask,type LayerAnimation} from '../lib/cube-appearance';
+export {FACE_COLORS,DEFAULT_ROTATION,type CubeMask,type LayerAnimation} from '../lib/cube-appearance';
 export interface Cube3DProps {
   state: CubeState;
   size?: number;
@@ -37,119 +20,11 @@ export interface Cube3DProps {
   style?: CSSProperties;
 }
 
-export const DEFAULT_ROTATION = { x: -30, y: -40 };
 
-function stickerColor(state: CubeState, slot: number, mask: CubeMask): string {
-  const face = colorOf(state, slot);
-  switch (mask) {
-    case "OLL":
-      if (face === "U") return FACE_COLORS.U;
-      return slotInULayer(slot) ? GREY : DIM;
-    case "PLL":
-      return slotInULayer(slot) ? FACE_COLORS[face] : DIM;
-    case "F2L":
-      return originInULayer(state, slot) ? GREY : FACE_COLORS[face];
-    default:
-      return FACE_COLORS[face];
-  }
-}
-
-/** CSS rotation that turns a sticker (facing +z) towards its normal. */
-function facing(n: readonly number[]): string {
-  if (n[1] === 1) return "rotateX(90deg)";
-  if (n[1] === -1) return "rotateX(-90deg)";
-  if (n[0] === 1) return "rotateY(90deg)";
-  if (n[0] === -1) return "rotateY(-90deg)";
-  if (n[2] === -1) return "rotateY(180deg)";
-  return "";
-}
-
-/** Math (right-handed, y up) → CSS (y down) rotation about an axis. */
-function cssLayerRotation(axis: number, angleDeg: number): string {
-  const a = axis === 1 ? angleDeg : -angleDeg;
-  return `rotate${axis === 0 ? "X" : axis === 1 ? "Y" : "Z"}(${a}deg)`;
-}
-
-export const Cube3D = memo(function Cube3D({ state, size = 160, mask = "full", rotation, animation, interactive, onRotationChange, className, style }: Cube3DProps) {
-  const [localRot, setLocalRot] = useState(rotation ?? DEFAULT_ROTATION);
-  useEffect(() => {
-    if (rotation) setLocalRot(rotation);
-  }, [rotation?.x, rotation?.y]);
-  const rot = rotation && !interactive ? rotation : localRot;
-
-  const drag = useRef<{ x: number; y: number; rx: number; ry: number } | null>(null);
-  const onPointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!interactive) return;
-      drag.current = { x: e.clientX, y: e.clientY, rx: rot.x, ry: rot.y };
-      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-    },
-    [interactive, rot.x, rot.y],
-  );
-  const onPointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!drag.current) return;
-      const next = {
-        x: Math.max(-90, Math.min(90, drag.current.rx - (e.clientY - drag.current.y) * 0.5)),
-        y: drag.current.ry + (e.clientX - drag.current.x) * 0.5,
-      };
-      setLocalRot(next);
-      onRotationChange?.(next);
-    },
-    [onRotationChange],
-  );
-  const onPointerUp = useCallback(() => {
-    drag.current = null;
-  }, []);
-
-  const unit = size / 3; // 53.33px for a 160px cube
-  const sticker = size * (46 / 160);
-  const half = size / 2;
-  const moving = animation ? new Set(movingSlots(animation.move)) : null;
-  const layerRot = animation ? cssLayerRotation(animation.move.axis, animation.angle) : "";
-
-  // A rotated cube projects beyond its nominal square. Keeping the scene at
-  // ~72% makes the *visible* cube fit the requested width/height.
-  const sceneScale = 0.72;
-
-  return (
-    <div
-      className={className}
-      style={{ width: size, height: size, perspective: size * 6, position: "relative", cursor: interactive ? "grab" : undefined, touchAction: "none", contain: "layout", ...style }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-    >
-      <div style={{ width: size, height: size, transformStyle: "preserve-3d", transform: `scale(${sceneScale}) rotateX(${rot.x}deg) rotateY(${rot.y}deg)`, transformOrigin: "50% 50%", position: "relative" }}>
-        <div style={{ position: "absolute", left: "50%", top: "50%", transformStyle: "preserve-3d" }}>
-          {SLOTS.map((g, slot) => {
-            const [x, y, z] = g.p;
-            const tx = g.n[0] !== 0 ? g.n[0] * half : x * unit;
-            const ty = g.n[1] !== 0 ? -g.n[1] * half : -y * unit;
-            const tz = g.n[2] !== 0 ? g.n[2] * half : z * unit;
-            const prefix = moving?.has(slot) ? layerRot + " " : "";
-            return (
-              <div
-                key={slot}
-                style={{
-                  position: "absolute",
-                  width: sticker,
-                  height: sticker,
-                  marginLeft: -sticker / 2,
-                  marginTop: -sticker / 2,
-                  backgroundColor: stickerColor(state, slot, mask),
-                  borderRadius: Math.max(2, size / 40),
-                  transform: `${prefix}translate3d(${tx}px, ${ty}px, ${tz}px) ${facing(g.n)}`,
-                  backfaceVisibility: "hidden",
-                }}
-              />
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+export const Cube3D=memo(function Cube3D({state,size=160,mask='full',rotation=DEFAULT_ROTATION,animation,interactive,onRotationChange,className,style}:Cube3DProps){
+  const dimension=cubeSize(state);
+  const createModel=useCallback(()=>createCubeModel(dimension),[dimension]);
+  return <ThreeViewport createModel={createModel} updateModel={model=>model.update(state,mask,animation)} label={`${dimension}×${dimension} cube, drag to rotate`} rotation={rotation} interactive={interactive} onRotationChange={onRotationChange} className={className} style={{width:size,height:size,...style}}/>;
 });
 
 // ---------------------------------------------------------------------------
@@ -183,8 +58,8 @@ export function useAlgPlayer(initial: CubeState, alg: string, options: AlgPlayer
   const totalDurationMs = options.totalDurationMs;
   const moveGapMs = options.moveGapMs ?? 40;
   const parsedMoves = useMemo(() => {
-    try { return parseAlg(alg); } catch { return []; }
-  }, [alg]);
+    try { return parseAlg(alg, cubeSize(initial)); } catch { return []; }
+  }, [alg, initial]);
   const moves = useRef<Move[]>(parsedMoves);
   moves.current = parsedMoves;
   const [state, setState] = useState<CubeState>(initial);

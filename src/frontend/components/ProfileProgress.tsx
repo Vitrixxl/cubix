@@ -1,11 +1,12 @@
+import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { memo, useId, useMemo, useState } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { STAGES, type CaseDto, type CaseHistoryDto, type ProfileDto, type SetDto } from "../../shared/types";
+import { type CaseDto, type CaseHistoryDto, type ProfileDto, type SetDto } from "../../shared/types";
 import { animationsEnabledAtom, routeAtom, selectedCaseIdsAtom } from "../state";
 import { caseState, maskForStage } from "../lib/caseState";
 import { fmtDate, fmtTime } from "../lib/format";
-import { StaticCubeSvg } from "./StaticCubeSvg";
+import { CaseDiagram } from "./CaseDiagram";
 import { TimesChart } from "./TimesChart";
 import { IconBack, IconClose, IconSearch, IconTimer } from "./icons";
 
@@ -21,7 +22,7 @@ export function ProfileStats({ data, own }: { data: CaseHistoryDto; own: boolean
 const CaseTile = memo(function CaseTile({ c, stats, onOpen }: { c: CaseDto; stats?: CaseHistoryDto; onOpen: (id: string) => void }) {
   const trained = !!stats?.summary.count;
   return <button type="button" className={`profile-case-tile ${trained ? "trained" : "untrained"}`} data-case-id={c.id} aria-label={`${c.id}, ${trained ? `${stats.summary.count} solves` : "not trained"}`} onClick={() => onOpen(c.id)}>
-    <span className="profile-case-cube" aria-hidden="true"><StaticCubeSvg state={caseState(c)} size={76} mask={maskForStage(c.stage)} /></span>
+    <span className="profile-case-cube" aria-hidden="true"><CaseDiagram c={c} size={76} /></span>
     <strong>{c.id}</strong>
     <span className="profile-case-best">{trained ? fmtTime(stats.summary.best) : "—"}</span>
     <small>{trained ? `${stats.summary.count} solves` : "Not trained"}</small>
@@ -42,7 +43,7 @@ export function ProfileCaseGallery({ cases, sets, profile, onOpen }: { cases: Ca
   return <div className="profile-case-gallery">
     <div className="profile-gallery-toolbar">
       <label className="profile-case-search"><IconSearch /><input className="input" type="search" aria-label="Search training cases" placeholder="Find a case…" value={query} onChange={event => setQuery(event.target.value)} /></label>
-      <div className="profile-stage-filters" aria-label="Filter cases by stage">{["all", ...STAGES].map(value => <button type="button" key={value} aria-pressed={stage === value} onClick={() => setStage(value)}>{value === "all" ? "All cases" : value}</button>)}</div>
+      <div className="profile-stage-filters" aria-label="Filter cases by stage">{["all", ...new Set(sets.map(s => s.stage))].map(value => <button type="button" key={value} aria-pressed={stage === value} onClick={() => setStage(value)}>{value === "all" ? "All cases" : value}</button>)}</div>
     </div>
     <p className="profile-gallery-caption"><span>{profile.cases.length} / {cases.length} cases trained</span><span>Grey cases haven’t been trained yet.</span></p>
     {groups.map(({ set, cases: list }) => {
@@ -66,6 +67,7 @@ export function ProfileCaseGallery({ cases, sets, profile, onOpen }: { cases: Ca
 }
 
 export function ProfileCaseDetails({ c, data, own, username, mobile, onClose }: { c: CaseDto; data?: CaseHistoryDto; own: boolean; username: string; mobile: boolean; onClose: () => void }) {
+  const scrollRef=usePreservedScroll(`profile-case:${username}:${c.id}`);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
   const setRoute = useSetAtom(routeAtom);
   return <>
@@ -73,9 +75,9 @@ export function ProfileCaseDetails({ c, data, own, username, mobile, onClose }: 
       {mobile ? <button type="button" className="btn ghost" onClick={onClose}><IconBack />All cases</button> : <span className="eyebrow">CASE PROGRESS</span>}
       {!mobile && <button type="button" className="btn icon" aria-label="Close case statistics" onClick={onClose}><IconClose /></button>}
     </div>
-    <div className="profile-case-detail-scroll">
+    <div className="profile-case-detail-scroll" ref={scrollRef}>
       <header className="profile-case-detail-heading">
-        <span className="profile-case-detail-cube" aria-hidden="true"><StaticCubeSvg state={caseState(c)} size={104} mask={maskForStage(c.stage)} /></span>
+        <span className="profile-case-detail-cube" aria-hidden="true"><CaseDiagram c={c} size={104} /></span>
         <div><span className="eyebrow">{username} · {c.stage}</span><h1>{c.id}</h1><p>{c.name !== c.id ? c.name : c.group}</p><span className="chip">{data?.summary.count ?? 0} solves</span></div>
         {own && <button type="button" className="btn profile-train-case" onClick={() => { setSelection([c.id]); setRoute({ page: "training" }); }}><IconTimer />Train this case</button>}
       </header>

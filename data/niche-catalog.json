@@ -1,0 +1,1947 @@
+{
+  "sets": [
+    {
+      "puzzle_id": "sq1",
+      "id": "sq1-shape",
+      "stage": "Cube shape",
+      "label": "Cube shape",
+      "description": "Five star cases: restore the square shape from a layer with six corners.",
+      "count": 5
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "sq1-co",
+      "stage": "Corners",
+      "label": "Corner orientation",
+      "description": "Move corners into their correct layer.",
+      "count": 5
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "sq1-eo",
+      "stage": "Edges",
+      "label": "Edge orientation",
+      "description": "Separate top and bottom edges without disturbing the corners.",
+      "count": 7
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "sq1-cp",
+      "stage": "Corners",
+      "label": "Corner permutation",
+      "description": "All eight non-solved corner-permutation cases.",
+      "count": 8
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "sq1-ep",
+      "stage": "Edges",
+      "label": "Edge permutation",
+      "description": "Paired swaps to place the edges, followed by the odd-parity fix.",
+      "count": 2
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "sq1-parity",
+      "stage": "Parity",
+      "label": "Parity & middle layer",
+      "description": "Resolve an odd edge swap or restore the middle layer.",
+      "count": 2
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "pyram-basics",
+      "stage": "Basics",
+      "label": "Tips & insertions",
+      "description": "Align the tips and practise inserting the first-layer edges. Uppercase turns include the tip.",
+      "count": 6
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "pyram-ll",
+      "stage": "Last layer",
+      "label": "Last three edges",
+      "description": "The five beginner last-layer cases, with the solved face down.",
+      "count": 5
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "skewb-corners",
+      "stage": "Corners",
+      "label": "First face & corners",
+      "description": "Beginner corner insertions and sledgehammer sequences. Follow the displayed grip and rotations.",
+      "count": 5
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "skewb-centers",
+      "stage": "Centers",
+      "label": "Last centers",
+      "description": "Cycle the remaining centers after the corners are solved.",
+      "count": 2
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "minx-pairs",
+      "stage": "F2L",
+      "label": "Pair insertions",
+      "description": "Practise corner-edge pair insertions before the last layer. Megaminx face turns are 72°, not 90°.",
+      "count": 4
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "minx-eo",
+      "stage": "OLL",
+      "label": "Edge orientation",
+      "description": "Three edge-orientation cases for the last layer. Match the U face in the diagram.",
+      "count": 3
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "minx-co",
+      "stage": "OLL",
+      "label": "Corner orientation",
+      "description": "Sixteen corner-orientation cases for the four-look last layer.",
+      "count": 16
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "minx-ep",
+      "stage": "PLL",
+      "label": "Edge permutation",
+      "description": "Five edge-permutation cases for the four-look last layer.",
+      "count": 5
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "minx-cp",
+      "stage": "PLL",
+      "label": "Corner permutation",
+      "description": "Corner cycles and swaps to finish the last layer. BR means the back-right face.",
+      "count": 6
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "clock-pins",
+      "stage": "Dials",
+      "label": "Pin groups",
+      "description": "Read a dial offset, choose the raised pins and turn towards 12. These are dial-alignment drills, not fixed OLL-style cases.",
+      "count": 9
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "clock-back",
+      "stage": "Dials",
+      "label": "Back cross",
+      "description": "Turn the puzzle over with y2, align the rear cross, then return to the starting side.",
+      "count": 5
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "clock-sequences",
+      "stage": "Dials",
+      "label": "Complete sequences",
+      "description": "Combine pin groups into cross and full-puzzle practice. The required offsets depend on the displayed setup.",
+      "count": 4
+    }
+  ],
+  "cases": [
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 SHAPE 1",
+      "name": "Star · 0 edges between the two corners",
+      "stage": "Cube shape",
+      "set": "sq1-shape",
+      "setLabel": "Cube shape",
+      "group": "Cube shape",
+      "setup": "/ (3, 3) / (1, 2) / (2, 4) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-2, -4) / (-1, -2) / (-3, -3) /",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-shape-1.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 SHAPE 2",
+      "name": "Star · 1 edges between the two corners",
+      "stage": "Cube shape",
+      "set": "sq1-shape",
+      "setLabel": "Cube shape",
+      "group": "Cube shape",
+      "setup": "/ (-6, 3) / (5, 4) / (-4, 3) / (3, 4) / (-2, 2) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (2, -2) / (-3, -4) / (4, -3) / (-5, -4) / (6, -3) /",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-shape-2.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 SHAPE 3",
+      "name": "Star · 2 edges between the two corners",
+      "stage": "Cube shape",
+      "set": "sq1-shape",
+      "setLabel": "Cube shape",
+      "group": "Cube shape",
+      "setup": "/ (3, 0) / (1, -4) / (4, 2) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-4, -2) / (-1, 4) / (-3, 0) /",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-shape-3.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 SHAPE 4",
+      "name": "Star · 3 edges between the two corners",
+      "stage": "Cube shape",
+      "set": "sq1-shape",
+      "setLabel": "Cube shape",
+      "group": "Cube shape",
+      "setup": "/ (-6, 3) / (5, 4) / (-2, 3) / (-5, -4) / (4, 0) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-4, 0) / (5, 4) / (2, -3) / (-5, -4) / (6, -3) /",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-shape-4.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 SHAPE 5",
+      "name": "Star · 4 edges between the two corners",
+      "stage": "Cube shape",
+      "set": "sq1-shape",
+      "setLabel": "Cube shape",
+      "group": "Cube shape",
+      "setup": "/ (-3, -3) / (0, 1) / (-2, -2) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (2, 2) / (0, -1) / (3, 3) /",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-shape-5.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CO 1",
+      "name": "Corner orientation 1",
+      "stage": "Corners",
+      "set": "sq1-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "(1, 0) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step2.html"
+        }
+      ],
+      "diagram": "/cases/sq1-co-1.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CO 2",
+      "name": "Corner orientation 2",
+      "stage": "Corners",
+      "set": "sq1-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "(1, 0) / (-3, -3) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (3, 3) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step2.html"
+        }
+      ],
+      "diagram": "/cases/sq1-co-2.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CO 3",
+      "name": "Corner orientation 3",
+      "stage": "Corners",
+      "set": "sq1-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "(1, 0) / (-3, 0) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (3, 0) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step2.html"
+        }
+      ],
+      "diagram": "/cases/sq1-co-3.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CO 4",
+      "name": "Corner orientation 4",
+      "stage": "Corners",
+      "set": "sq1-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "(1, 0) / (0, -3) / (0, -3) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (0, 3) / (0, 3) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step2.html"
+        }
+      ],
+      "diagram": "/cases/sq1-co-4.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CO 5",
+      "name": "Corner orientation 5",
+      "stage": "Corners",
+      "set": "sq1-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "(1, 0) / (-3, 0) / (-3, 0) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (3, 0) / (3, 0) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step2.html"
+        }
+      ],
+      "diagram": "/cases/sq1-co-5.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 1",
+      "name": "Edge orientation 1",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(0, 1) (0, 1) / (-3, 0) / (4, 1) / (-4, -1) / (3, 0) / (0, 1)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(0, -1) / (-3, 0) / (4, 1) / (-4, -1) / (3, 0) / (0, -1) (0, -1)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-1.svg",
+      "notes": "The final layer alignment returns the puzzle to the solved grip shown in the preview."
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 2",
+      "name": "Edge orientation 2",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(1, 0) / (-4, -1) / (1, 1) / (3, 0) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (-3, 0) / (-1, -1) / (4, 1) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-2.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 3",
+      "name": "Edge orientation 3",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(1, 0) / (-1, -1) / (0, 1)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(0, -1) / (1, 1) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-3.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 4",
+      "name": "Edge orientation 4",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(1, 0) / (-3, 0) / (-3, 0) / (-1, -1) / (3, 0) / (3, 0) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (-3, 0) / (-3, 0) / (1, 1) / (3, 0) / (3, 0) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-4.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 5",
+      "name": "Edge orientation 5",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(1, 0) / (0, -3) / (-1, 2) / (3, 0) / (-3, 0) / (0, 1)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(0, -1) / (3, 0) / (-3, 0) / (1, -2) / (0, 3) / (-1, 0)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-5.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 6",
+      "name": "Edge orientation 6",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(-1, -1) (1, 0) / (-3, 0) / (-2, 1) / (0, 3) / (0, -3) / (0, 1)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(0, -1) / (0, 3) / (0, -3) / (2, -1) / (3, 0) / (-1, 0) (1, 1)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-6.svg",
+      "notes": "The final layer alignment returns the puzzle to the solved grip shown in the preview."
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EO 7",
+      "name": "Edge orientation 7",
+      "stage": "Edges",
+      "set": "sq1-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "(0, -1) / (1, 1) / (-3, -3) / (-1, -1) / (0, 1)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(0, -1) / (1, 1) / (3, 3) / (-1, -1) / (0, 1)",
+          "source": "https://www.cubezone.be/square1step3.html"
+        }
+      ],
+      "diagram": "/cases/sq1-eo-7.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 1",
+      "name": "Corner permutation 1",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (-3, 3) / (3, 0) / (0, -3) / (0, 3) / (0, -3) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (0, 3) / (0, -3) / (0, 3) / (-3, 0) / (3, -3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-1.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 2",
+      "name": "Corner permutation 2",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (-3, -3) / (-3, 0) / (-3, -3) / (-3, 0) / (-3, -3) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (3, 3) / (3, 0) / (3, 3) / (3, 0) / (3, 3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-2.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 3",
+      "name": "Corner permutation 3",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (-3, 3) / (0, -3) / (3, 0) / (-3, 0) / (3, 0) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-3, 0) / (3, 0) / (-3, 0) / (0, 3) / (3, -3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-3.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 4",
+      "name": "Corner permutation 4",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (-3, -3) / (0, -3) / (-3, -3) / (0, -3) / (-3, -3) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (3, 3) / (0, 3) / (3, 3) / (0, 3) / (3, 3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-4.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 5",
+      "name": "Corner permutation 5",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (0, 3) / (-3, -3) / (3, 0) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-3, 0) / (3, 3) / (0, -3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-5.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 6",
+      "name": "Corner permutation 6",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (0, 3) / (0, -3) / (0, 3) / (0, -3) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (0, 3) / (0, -3) / (0, 3) / (0, -3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-6.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 7",
+      "name": "Corner permutation 7",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (-3, 0) / (3, 0) / (-3, 0) / (3, 0) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-3, 0) / (3, 0) / (-3, 0) / (3, 0) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-7.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 CP 8",
+      "name": "Corner permutation 8",
+      "stage": "Corners",
+      "set": "sq1-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "/ (-3, 3) / (3, -3) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (-3, 3) / (3, -3) /",
+          "source": "https://www.cubezone.be/square1step4.html"
+        }
+      ],
+      "diagram": "/cases/sq1-cp-8.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EP 1",
+      "name": "Opposite edge swaps",
+      "stage": "Edges",
+      "set": "sq1-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "(1, 0) / (-1, -1) / (-6, 0) / (1, 1) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (-1, -1) / (6, 0) / (1, 1) / (-1, 0)",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-ep-1.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 EP 2",
+      "name": "Adjacent edge swaps",
+      "stage": "Edges",
+      "set": "sq1-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "(1, 0) / (-4, -1) / (1, 1) / (3, 0) / (-1, -1) / (-3, 0) / (1, 1) / (3, 0) / (-1, 0)",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "(1, 0) / (-3, 0) / (-1, -1) / (3, 0) / (1, 1) / (-3, 0) / (-1, -1) / (4, 1) / (-1, 0)",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-ep-2.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 PARITY 1",
+      "name": "Opposite edge parity",
+      "stage": "Parity",
+      "set": "sq1-parity",
+      "setLabel": "Parity & middle layer",
+      "group": "Parity & middle layer",
+      "setup": "(4, 3) / (-1, -1) / (3, 0) / (1, 1) / (-3, 0) / (-3, -3) / (2, 0) / (3, 3) / (1, 0) / (-2, -2) / (-2, 0) / (2, 2) / (-1, 0) / (-3, -3) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (3, 3) / (1, 0) / (-2, -2) / (2, 0) / (2, 2) / (-1, 0) / (-3, -3) / (-2, 0) / (3, 3) / (3, 0) / (-1, -1) / (-3, 0) / (1, 1) / (-4, -3)",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-parity-1.svg"
+    },
+    {
+      "puzzle_id": "sq1",
+      "id": "Square-1 PARITY 2",
+      "name": "Middle layer flip",
+      "stage": "Parity",
+      "set": "sq1-parity",
+      "setLabel": "Parity & middle layer",
+      "group": "Parity & middle layer",
+      "setup": "(-6, 0) / (-6, 0) / (-6, 0) /",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "/ (6, 0) / (6, 0) / (6, 0)",
+          "source": "https://www.jaapsch.net/puzzles/square1.htm"
+        }
+      ],
+      "diagram": "/cases/sq1-parity-2.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx BASICS 1",
+      "name": "Align U tip",
+      "stage": "Basics",
+      "set": "pyram-basics",
+      "setLabel": "Tips & insertions",
+      "group": "Tips & insertions",
+      "setup": "u'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "u",
+          "source": "https://www.jaapsch.net/puzzles/pyraminx.htm"
+        }
+      ],
+      "diagram": "/cases/pyram-basics-1.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx BASICS 2",
+      "name": "Align R tip",
+      "stage": "Basics",
+      "set": "pyram-basics",
+      "setLabel": "Tips & insertions",
+      "group": "Tips & insertions",
+      "setup": "r'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "r",
+          "source": "https://www.jaapsch.net/puzzles/pyraminx.htm"
+        }
+      ],
+      "diagram": "/cases/pyram-basics-2.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx BASICS 3",
+      "name": "Align L tip",
+      "stage": "Basics",
+      "set": "pyram-basics",
+      "setLabel": "Tips & insertions",
+      "group": "Tips & insertions",
+      "setup": "l'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "l",
+          "source": "https://www.jaapsch.net/puzzles/pyraminx.htm"
+        }
+      ],
+      "diagram": "/cases/pyram-basics-3.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx BASICS 4",
+      "name": "Align B tip",
+      "stage": "Basics",
+      "set": "pyram-basics",
+      "setLabel": "Tips & insertions",
+      "group": "Tips & insertions",
+      "setup": "b'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "b",
+          "source": "https://www.jaapsch.net/puzzles/pyraminx.htm"
+        }
+      ],
+      "diagram": "/cases/pyram-basics-4.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx BASICS 5",
+      "name": "Right insertion",
+      "stage": "Basics",
+      "set": "pyram-basics",
+      "setLabel": "Tips & insertions",
+      "group": "Tips & insertions",
+      "setup": "R U R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U' R'",
+          "source": "https://www.speedcube.com.au/blogs/speedcubing-solutions/how-to-solve-a-pyraminx-easy-to-follow-beginners-steps"
+        }
+      ],
+      "diagram": "/cases/pyram-basics-5.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx BASICS 6",
+      "name": "Left insertion",
+      "stage": "Basics",
+      "set": "pyram-basics",
+      "setLabel": "Tips & insertions",
+      "group": "Tips & insertions",
+      "setup": "L' U' L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L' U L",
+          "source": "https://www.speedcube.com.au/blogs/speedcubing-solutions/how-to-solve-a-pyraminx-easy-to-follow-beginners-steps"
+        }
+      ],
+      "diagram": "/cases/pyram-basics-6.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx LL 1",
+      "name": "Clockwise cycle",
+      "stage": "Last layer",
+      "set": "pyram-ll",
+      "setLabel": "Last three edges",
+      "group": "Last three edges",
+      "setup": "R U R' U R U R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U' R' U' R U' R'",
+          "source": "https://www.speedcube.com.au/blogs/pyraminx-beginner"
+        }
+      ],
+      "diagram": "/cases/pyram-ll-1.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx LL 2",
+      "name": "Counterclockwise cycle",
+      "stage": "Last layer",
+      "set": "pyram-ll",
+      "setLabel": "Last three edges",
+      "group": "Last three edges",
+      "setup": "R U' R' U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R U R'",
+          "source": "https://www.speedcube.com.au/blogs/pyraminx-beginner"
+        }
+      ],
+      "diagram": "/cases/pyram-ll-2.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx LL 3",
+      "name": "Two flipped edges",
+      "stage": "Last layer",
+      "set": "pyram-ll",
+      "setLabel": "Last three edges",
+      "group": "Last three edges",
+      "setup": "R U' R' U R' L R L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L R' L' R U' R U R'",
+          "source": "https://www.speedcube.com.au/blogs/pyraminx-beginner"
+        }
+      ],
+      "diagram": "/cases/pyram-ll-3.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx LL 4",
+      "name": "Cycle with two flips · A",
+      "stage": "Last layer",
+      "set": "pyram-ll",
+      "setLabel": "Last three edges",
+      "group": "Last three edges",
+      "setup": "R U R' U' R' L R L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L R' L' R U R U' R'",
+          "source": "https://www.speedcube.com.au/blogs/pyraminx-beginner"
+        }
+      ],
+      "diagram": "/cases/pyram-ll-4.svg"
+    },
+    {
+      "puzzle_id": "pyram",
+      "id": "Pyraminx LL 5",
+      "name": "Cycle with two flips · B",
+      "stage": "Last layer",
+      "set": "pyram-ll",
+      "setLabel": "Last three edges",
+      "group": "Last three edges",
+      "setup": "L R U R' U' L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L U R U' R' L'",
+          "source": "https://www.youtube.com/watch?v=Fyl7-RgkfCs"
+        }
+      ],
+      "diagram": "/cases/pyram-ll-5.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CORNERS 1",
+      "name": "Right insertion",
+      "stage": "Corners",
+      "set": "skewb-corners",
+      "setLabel": "First face & corners",
+      "group": "First face & corners",
+      "setup": "R' L' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' L R",
+          "source": "https://www.speedcube.com.au/blogs/skewb-beginner"
+        }
+      ],
+      "diagram": "/cases/skewb-corners-1.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CORNERS 2",
+      "name": "Left insertion",
+      "stage": "Corners",
+      "set": "skewb-corners",
+      "setLabel": "First face & corners",
+      "group": "First face & corners",
+      "setup": "L R L' y",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y' L R' L'",
+          "source": "https://www.speedcube.com.au/blogs/skewb-beginner"
+        }
+      ],
+      "diagram": "/cases/skewb-corners-2.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CORNERS 3",
+      "name": "Sledgehammer",
+      "stage": "Corners",
+      "set": "skewb-corners",
+      "setLabel": "First face & corners",
+      "group": "First face & corners",
+      "setup": "L R' L' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' L R L'",
+          "source": "https://www.speedcube.com.au/blogs/skewb-beginner"
+        }
+      ],
+      "diagram": "/cases/skewb-corners-3.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CORNERS 4",
+      "name": "Opposite corners",
+      "stage": "Corners",
+      "set": "skewb-corners",
+      "setLabel": "First face & corners",
+      "group": "First face & corners",
+      "setup": "L R' L' R y' L R' L' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' L R L' y R' L R L'",
+          "source": "https://www.speedcube.com.au/blogs/skewb-beginner"
+        }
+      ],
+      "diagram": "/cases/skewb-corners-4.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CORNERS 5",
+      "name": "Hedgeslammer",
+      "stage": "Corners",
+      "set": "skewb-corners",
+      "setLabel": "First face & corners",
+      "group": "First face & corners",
+      "setup": "R' L R L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L R' L' R",
+          "source": "https://www.speedcube.com.au/blogs/skewb-beginner"
+        }
+      ],
+      "diagram": "/cases/skewb-corners-5.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CENTERS 1",
+      "name": "Center cycle · clockwise",
+      "stage": "Centers",
+      "set": "skewb-centers",
+      "setLabel": "Last centers",
+      "group": "Last centers",
+      "setup": "L R' L' R y2 L R' L' R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' L R L' y2 R' L R L'",
+          "source": "https://www.speedcube.com.au/blogs/skewb-beginner"
+        }
+      ],
+      "diagram": "/cases/skewb-centers-1.svg"
+    },
+    {
+      "puzzle_id": "skewb",
+      "id": "Skewb CENTERS 2",
+      "name": "Center cycle · counterclockwise",
+      "stage": "Centers",
+      "set": "skewb-centers",
+      "setLabel": "Last centers",
+      "group": "Last centers",
+      "setup": "R' L R L' y2 R' L R L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L R' L' R y2 L R' L' R",
+          "source": "https://sarah.cubing.net/skewb/my-method"
+        }
+      ],
+      "diagram": "/cases/skewb-centers-2.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx PAIRS 1",
+      "name": "Right pair",
+      "stage": "F2L",
+      "set": "minx-pairs",
+      "setLabel": "Pair insertions",
+      "group": "Pair insertions",
+      "setup": "R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R'",
+          "source": "Cubix · Megaminx pair insertion drills"
+        }
+      ],
+      "diagram": "/cases/minx-pairs-1.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx PAIRS 2",
+      "name": "Left pair",
+      "stage": "F2L",
+      "set": "minx-pairs",
+      "setLabel": "Pair insertions",
+      "group": "Pair insertions",
+      "setup": "L' U L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L' U' L",
+          "source": "Cubix · Megaminx pair insertion drills"
+        }
+      ],
+      "diagram": "/cases/minx-pairs-2.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx PAIRS 3",
+      "name": "Right split pair",
+      "stage": "F2L",
+      "set": "minx-pairs",
+      "setLabel": "Pair insertions",
+      "group": "Pair insertions",
+      "setup": "R U' R' U' R U R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U' R' U R U R'",
+          "source": "Cubix · Megaminx pair insertion drills"
+        }
+      ],
+      "diagram": "/cases/minx-pairs-3.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx PAIRS 4",
+      "name": "Left split pair",
+      "stage": "F2L",
+      "set": "minx-pairs",
+      "setLabel": "Pair insertions",
+      "group": "Pair insertions",
+      "setup": "L' U L U L' U' L",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L' U L U' L' U' L",
+          "source": "Cubix · Megaminx pair insertion drills"
+        }
+      ],
+      "diagram": "/cases/minx-pairs-4.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EO 1",
+      "name": "Edge orientation 1",
+      "stage": "OLL",
+      "set": "minx-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "F U R U' R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U R' U' F'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-eo-1.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EO 2",
+      "name": "Edge orientation 2",
+      "stage": "OLL",
+      "set": "minx-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "F R U R' U' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F U R U' R' F'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-eo-2.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EO 3",
+      "name": "Edge orientation 3",
+      "stage": "OLL",
+      "set": "minx-eo",
+      "setLabel": "Edge orientation",
+      "group": "Edge orientation",
+      "setup": "F U2 F R' F' R2 U2' R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U2 R2' F R F' U2' F'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-eo-3.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 1",
+      "name": "Corner orientation 1",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U R' U2 R U' R' U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R U R' U2' R U' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-1.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 2",
+      "name": "Corner orientation 2",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "F R U R' U R U2' R' F'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "F R U2 R' U' R U' R' F'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-2.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 3",
+      "name": "Corner orientation 3",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2' R' U' R U2' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R' U R U2 R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-3.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 4",
+      "name": "Corner orientation 4",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "F R U R' U' R' F' R U R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U' R' F R U R U' R' F'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-4.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 5",
+      "name": "Corner orientation 5",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2 R' U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R U2' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-5.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 6",
+      "name": "Corner orientation 6",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R' U2' R U R' U R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U' R U' R' U2 R",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-6.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 7",
+      "name": "Corner orientation 7",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U R' U R U2' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-7.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 8",
+      "name": "Corner orientation 8",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2' R' U2' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U2 R U2 R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-8.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 9",
+      "name": "Corner orientation 9",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U R' U R U' R' U R U2' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U R' U' R U' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-9.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 10",
+      "name": "Corner orientation 10",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2 R' U' R U R' U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R U' R' U R U2' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-10.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 11",
+      "name": "Corner orientation 11",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2 R' U R U' R' U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R U R' U' R U2' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-11.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 12",
+      "name": "Corner orientation 12",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R' U2' R U R' U R2 U R' U R U2' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U' R2' U' R U' R' U2 R",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-12.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 13",
+      "name": "Corner orientation 13",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R' U2' R2 U R2' U R2 U2' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R2' U' R2 U' R2' U2 R",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-13.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 14",
+      "name": "Corner orientation 14",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2 R2' U' R2 U' R2' U2 R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' U2' R2 U R2' U R2 U2' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-14.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 15",
+      "name": "Corner orientation 15",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U2 R' U' R U2 R' U2' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U2 R U2' R' U R U2' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-15.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CO 16",
+      "name": "Corner orientation 16",
+      "stage": "OLL",
+      "set": "minx-co",
+      "setLabel": "Corner orientation",
+      "group": "Corner orientation",
+      "setup": "R U R' U2 R U2' R' U R U2' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U2 R' U2' R U' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-co-16.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EP 1",
+      "name": "Edge permutation 1",
+      "stage": "PLL",
+      "set": "minx-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "R2 U2 R2' U R2 U2 R2'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 U2' R2' U' R2 U2' R2'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-ep-1.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EP 2",
+      "name": "Edge permutation 2",
+      "stage": "PLL",
+      "set": "minx-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "R2 U2' R2' U' R2 U2' R2'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R2 U2 R2' U R2 U2 R2'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-ep-2.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EP 3",
+      "name": "Edge permutation 3",
+      "stage": "PLL",
+      "set": "minx-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "R U R2' F' R U R U' R' F R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U' R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-ep-3.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EP 4",
+      "name": "Edge permutation 4",
+      "stage": "PLL",
+      "set": "minx-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "U2 R' U' R U' R U R2' U R U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R' U' R2 U' R' U R' U R U2'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-ep-4.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx EP 5",
+      "name": "Edge permutation 5",
+      "stage": "PLL",
+      "set": "minx-ep",
+      "setLabel": "Edge permutation",
+      "group": "Edge permutation",
+      "setup": "R U2' L U2' R' U L' R U' L U2' R' L'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L R U2 L' U R' L U' R U2 L' U2 R'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-ep-5.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CP 1",
+      "name": "Corner permutation 1",
+      "stage": "PLL",
+      "set": "minx-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "R' F' BR' R BR R' F R BR' R' BR R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' BR' R BR R' F' R BR' R' BR F R",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-cp-1.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CP 2",
+      "name": "Corner permutation 2",
+      "stage": "PLL",
+      "set": "minx-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "R' BR' R BR R' F' R BR' R' BR F R",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R' F' BR' R BR R' F R BR' R' BR R",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-cp-2.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CP 3",
+      "name": "Corner permutation 3",
+      "stage": "PLL",
+      "set": "minx-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "BR' R2' U L U' R U L' U' R BR",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "BR' R' U L U' R' U L' U' R2 BR",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-cp-3.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CP 4",
+      "name": "Corner permutation 4",
+      "stage": "PLL",
+      "set": "minx-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "BR' R' U L U' R' U L' U' R2 BR",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "BR' R2' U L U' R U L' U' R BR",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-cp-4.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CP 5",
+      "name": "Corner permutation 5",
+      "stage": "PLL",
+      "set": "minx-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "L' R U R' U R U' R' U R U' R' U R U2' R' L y'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y L' R U2 R' U' R U R' U' R U R' U' R U' R' L",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-cp-5.svg"
+    },
+    {
+      "puzzle_id": "minx",
+      "id": "Megaminx CP 6",
+      "name": "Corner permutation 6",
+      "stage": "PLL",
+      "set": "minx-cp",
+      "setLabel": "Corner permutation",
+      "group": "Corner permutation",
+      "setup": "U R' U' R2 U R2' F' R U R U' R' F R' U R U' R U' R'",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R U R' U R' U' R F' R U R' U' R' F R2 U' R2' U R U'",
+          "source": "https://www.cubeskills.com/uploads/pdf/tutorials/intermediate-megaminx-techniques.pdf"
+        }
+      ],
+      "diagram": "/cases/minx-cp-6.svg"
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 1",
+      "name": "UR · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "UR1-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "UR1+",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-1.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 2",
+      "name": "DR · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "DR2+",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "DR2-",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-2.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 3",
+      "name": "DL · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "DL3-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "DL3+",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-3.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 4",
+      "name": "UL · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "UL4+",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "UL4-",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-4.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 5",
+      "name": "U · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "U5-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U5+",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-5.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 6",
+      "name": "R · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "R1+",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "R1-",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-6.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 7",
+      "name": "D · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "D2-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "D2+",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-7.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 8",
+      "name": "L · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "L3+",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "L3-",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-8.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock PINS 9",
+      "name": "ALL · front alignment",
+      "stage": "Dials",
+      "set": "clock-pins",
+      "setLabel": "Pin groups",
+      "group": "Pin groups",
+      "setup": "ALL4-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "ALL4+",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-pins-9.svg",
+      "notes": "The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock BACK 1",
+      "name": "U · back alignment",
+      "stage": "Dials",
+      "set": "clock-back",
+      "setLabel": "Back cross",
+      "group": "Back cross",
+      "setup": "y2 U1- y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 U1+ y2",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-back-1.svg"
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock BACK 2",
+      "name": "R · back alignment",
+      "stage": "Dials",
+      "set": "clock-back",
+      "setLabel": "Back cross",
+      "group": "Back cross",
+      "setup": "y2 R2- y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 R2+ y2",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-back-2.svg"
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock BACK 3",
+      "name": "D · back alignment",
+      "stage": "Dials",
+      "set": "clock-back",
+      "setLabel": "Back cross",
+      "group": "Back cross",
+      "setup": "y2 D3- y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 D3+ y2",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-back-3.svg"
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock BACK 4",
+      "name": "L · back alignment",
+      "stage": "Dials",
+      "set": "clock-back",
+      "setLabel": "Back cross",
+      "group": "Back cross",
+      "setup": "y2 L4- y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 L4+ y2",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-back-4.svg"
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock BACK 5",
+      "name": "ALL · back alignment",
+      "stage": "Dials",
+      "set": "clock-back",
+      "setLabel": "Back cross",
+      "group": "Back cross",
+      "setup": "y2 ALL5- y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 ALL5+ y2",
+          "source": "https://www.jaapsch.net/puzzles/clock.htm"
+        }
+      ],
+      "diagram": "/cases/clock-back-5.svg"
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock SEQUENCES 1",
+      "name": "Front cross",
+      "stage": "Dials",
+      "set": "clock-sequences",
+      "setLabel": "Complete sequences",
+      "group": "Complete sequences",
+      "setup": "ALL2- L1+ D4- R2+ U3-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "U3+ R2- D4+ L1- ALL2+",
+          "source": "Cubix · Clock dial-sequence drills"
+        }
+      ],
+      "diagram": "/cases/clock-sequences-1.svg",
+      "notes": "Solve all dials to 12. This fixed setup lets you practise the sequence; adapt each turn amount when solving a different scramble."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock SEQUENCES 2",
+      "name": "Back cross",
+      "stage": "Dials",
+      "set": "clock-sequences",
+      "setLabel": "Complete sequences",
+      "group": "Complete sequences",
+      "setup": "y2 ALL1+ L3- D1+ R4- U2+ y2",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "y2 U2- R4+ D1- L3+ ALL1- y2",
+          "source": "Cubix · Clock dial-sequence drills"
+        }
+      ],
+      "diagram": "/cases/clock-sequences-2.svg",
+      "notes": "Solve all dials to 12. This fixed setup lets you practise the sequence; adapt each turn amount when solving a different scramble."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock SEQUENCES 3",
+      "name": "Front dial sequence",
+      "stage": "Dials",
+      "set": "clock-sequences",
+      "setLabel": "Complete sequences",
+      "group": "Complete sequences",
+      "setup": "ALL2- L4+ D3- R2+ U1- UL3+ DL4- DR1+ UR2-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "UR2+ DR1- DL4+ UL3- U1+ R2- D3+ L4- ALL2+",
+          "source": "Cubix · Clock dial-sequence drills"
+        }
+      ],
+      "diagram": "/cases/clock-sequences-3.svg",
+      "notes": "Solve all dials to 12. This fixed setup lets you practise the sequence; adapt each turn amount when solving a different scramble."
+    },
+    {
+      "puzzle_id": "clock",
+      "id": "Clock SEQUENCES 4",
+      "name": "Full clock sequence",
+      "stage": "Dials",
+      "set": "clock-sequences",
+      "setLabel": "Complete sequences",
+      "group": "Complete sequences",
+      "setup": "y2 ALL1- L4- D1+ R2- U3+ y2 ALL2- L4+ D3- R2+ U1- UL3+ DL4- DR1+ UR2-",
+      "setups_alt": [],
+      "algorithms": [
+        {
+          "alg": "UR2+ DR1- DL4+ UL3- U1+ R2- D3+ L4- ALL2+ y2 U3- R2+ D1- L4+ ALL1+ y2",
+          "source": "Cubix · Clock dial-sequence drills"
+        }
+      ],
+      "diagram": "/cases/clock-sequences-4.svg",
+      "notes": "Solve all dials to 12. This fixed setup lets you practise the sequence; adapt each turn amount when solving a different scramble."
+    }
+  ]
+}

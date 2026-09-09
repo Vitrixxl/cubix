@@ -1,16 +1,19 @@
+import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFloatingPortalTarget } from "../components/FloatingSheet";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { AnimatePresence, motion } from "motion/react";
-import { casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
+import { solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
 import type { CaseDto, SolveDto } from "../../shared/types";
 import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
 import { TimerSurface } from "../components/TimerSurface";
 import { CaseSelector } from "../components/CaseSelector";
+import { PuzzlePreview } from "../components/PuzzlePreview";
+import { puzzleInfo } from "../../shared/puzzles";
 import { SetupCube } from "../components/SetupCube";
-import { StaticCubeSvg } from "../components/StaticCubeSvg";
+import { CaseDiagram } from "../components/CaseDiagram";
 import { caseState, executableAlg, maskForStage } from "../lib/caseState";
 import { combineAuf, compensateAuf, randomAuf, reorientAlgY2 } from "../../shared/cube";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../lib/trainingHistory";
@@ -28,6 +31,11 @@ import { Kpi } from "./AlgorithmsPage";
 const TRAINING_ROTATION = { x: -30, y: 140 };
 
 export function TrainingPage() {
+  const puzzle = useAtomValue(puzzleAtom);
+  const cube = puzzleInfo(puzzle).cubeSize;
+  const supportsAuf = !!cube;
+  const solveMode = useAtomValue(solveModeAtom);
+  const lockCube = useSetAtom(cubeSwitchLockedAtom);
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const [selected, setSelected] = useAtom(selectedCaseIdsAtom);
@@ -53,10 +61,10 @@ export function TrainingPage() {
   useEffect(() => {
     let active = true;
     const restore = async () => {
-      const latest = await api.latestSession("training");
+      const latest = await api.latestSession("training", puzzle, {solveMode, scrambleType:"case"});
       if (!active || !latest) return;
       if (session.current === null) session.current = latest.id;
-      const rows = await api.solves("training",1000);
+      const rows = await api.solves("training",1000, puzzle, {solveMode, scrambleType:"case"});
       if (active) setSolves(rows.filter(s => s.session_id === session.current).reverse());
     };
     void restore();
@@ -66,10 +74,10 @@ export function TrainingPage() {
 
   const pick = useCallback(
     (pool: CaseDto[]) => {
-      navigateCase({ type: "next", pool, sample: Math.random(), auf: useAuf ? randomAuf() : "" });
+      navigateCase({ type: "next", pool, sample: Math.random(), auf: useAuf && supportsAuf ? randomAuf() : "" });
       setRevealed(false);
     },
-    [useAuf],
+    [useAuf, supportsAuf],
   );
 
   // pick a case when the selection changes / on mount
@@ -83,7 +91,7 @@ export function TrainingPage() {
 
   const ensureSession = async () => {
     if (session.current === null) {
-      const s = await api.createSession("training", selected);
+      const s = await api.createSession("training", selected, puzzle, {solveMode, scrambleType:"case"});
       session.current = s.id;
     }
     return session.current;
@@ -95,8 +103,8 @@ export function TrainingPage() {
       setSaving(true);
       try {
         const sessionId = await ensureSession();
-        const setupText = combineAuf(current.c.setup, current.auf);
-        const solve = await api.addSolve({ sessionId, caseId: current.c.id, timeMs: ms, scramble: setupText });
+        const setupText = (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup);
+        const solve = await api.addSolve({ sessionId, caseId: current.c.id, timeMs: ms, scramble: setupText, puzzle });
         setSolves((s) => [...s.filter(item => item.id !== solve.id), solve]);
         bumpStats((v) => v + 1);
         pick(selectedCases);
@@ -120,13 +128,14 @@ export function TrainingPage() {
   };
 
   const primary = current?.c.algorithms[0];
-  const shownSetup = current ? combineAuf(current.c.setup, current.auf) : "";
-  const animatedSetup = shownSetup ? reorientAlgY2(shownSetup) : "";
-  const shownAlgorithm = primary && current ? compensateAuf(executableAlg(primary), current.auf) : "";
+  const shownSetup = current ? (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup) : "";
+  const animatedSetup = cube && shownSetup ? reorientAlgY2(shownSetup) : "";
+  const shownAlgorithm = primary && current ? (cube ? compensateAuf(executableAlg(primary), current.auf) : executableAlg(primary)) : "";
 
   const upperMotion = useTimerChrome("up", timer.phase === "running");
   const lowerMotion = useTimerChrome("down", timer.phase === "running");
   const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
+  useEffect(() => { lockCube(busy || !!timer.saveError); return () => lockCube(false); }, [busy, timer.saveError, lockCube]);
   const toggleCases = () => setShowSelector(value => !value);
   const toggleTimes = () => setShowTimes(value => !value);
   const toggleSolution = () => { setHideAlg(value => !value); setRevealed(false); };
@@ -145,7 +154,7 @@ export function TrainingPage() {
     { key: "n", run: nextCase },
     { key: "p", run: previousCase },
     { key: "h", run: toggleSolution },
-    { key: "a", run: () => setUseAuf(value => !value) },
+    { key: "a", run: () => { if (supportsAuf) setUseAuf(value => !value); } },
   ], !busy);
   const times = solves.map(solve => effective(solve.time_ms, solve.penalty));
 
@@ -166,7 +175,7 @@ export function TrainingPage() {
                 </div>
                 <div className="training-setup">
                   <div className="practice-cube">
-                    <SetupCube alg={animatedSetup} revision={caseHistory.revision} size={128} mask={maskForStage(current.c.stage)} rotation={TRAINING_ROTATION} />
+                    {cube ? <SetupCube cubeSize={cube!} alg={animatedSetup} revision={caseHistory.revision} size={128} mask={maskForStage(current.c.stage)} rotation={TRAINING_ROTATION} /> : <PuzzlePreview puzzle={puzzle} alg={shownSetup} />}
                   </div>
                   <div className="training-notation">
                     <span className="practice-caption">Setup</span>
@@ -205,9 +214,9 @@ export function TrainingPage() {
         <PracticeAction running={timer.phase === "running"} aria-expanded={showSelector} disabled={busy} onClick={toggleCases} aria-keyshortcuts="Alt+c">
           <IconGrid /><span>Cases <small>{selectedCases.length}</small></span><ShortcutKey letter="C" />
         </PracticeAction>
-        <PracticeAction running={timer.phase === "running"} aria-pressed={useAuf} disabled={busy} onClick={() => setUseAuf(value => !value)} aria-keyshortcuts="Alt+a">
+        {supportsAuf && <PracticeAction running={timer.phase === "running"} aria-pressed={useAuf} disabled={busy} onClick={() => setUseAuf(value => !value)} aria-keyshortcuts="Alt+a">
           <IconShuffle /><span>Random AUF</span><ShortcutKey letter="A" />
-        </PracticeAction>
+        </PracticeAction>}
         <PracticeAction running={timer.phase === "running"} aria-pressed={hideAlg} disabled={busy} onClick={toggleSolution} aria-keyshortcuts="Alt+h">
           <IconEye /><span>Hide solution</span><ShortcutKey letter="H" />
         </PracticeAction>
@@ -228,6 +237,7 @@ export function TrainingPage() {
 function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[]; solves: SolveDto[]; onUndo: () => void }) {
   const previewMotion = useTimerChrome("right");
   const portalTarget = useFloatingPortalTarget();
+  const timesScrollRef=usePreservedScroll(`training-times:${selectedCases[0]?.puzzle_id??selectedCases[0]?.cube_size??3}`);
   const [preview, setPreview] = useState<{ name: string; left: number; top: number } | null>(null);
   const showPreview = (element: HTMLElement, name: string) => {
     const rect = element.getBoundingClientRect();
@@ -264,7 +274,7 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
           <IconUndo /> Undo
         </button>
       </div>
-      <div className="panel-body" onScroll={() => setPreview(null)}>
+      <div className="panel-body" ref={timesScrollRef} onScroll={() => setPreview(null)}>
         {ordered.map((c) => {
           const list = byCase.get(c.id) ?? [];
           const times = list.map((s) => effective(s.time_ms, s.penalty));
@@ -284,7 +294,7 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
                   onKeyDown={(event) => { if (event.key === "Escape") setPreview(null); }}
                 >
                   <span aria-hidden="true">
-                    <StaticCubeSvg state={caseState(c)} size={56} mask={maskForStage(c.stage)} />
+                    <CaseDiagram c={c} size={56} />
                   </span>
                 </span>
                 <span className="stats">

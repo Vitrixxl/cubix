@@ -4,6 +4,7 @@ mod api;
 mod catalog;
 mod db;
 mod error;
+mod practice;
 mod social;
 mod stats;
 mod sync;

@@ -1,14 +1,14 @@
 import { memo, useId } from "react";
-import { colorOf, originInULayer, slotInULayer, type CubeState, type Face } from "../../shared/cube";
-import { FACE_COLORS, type CubeMask } from "./Cube3D";
+import { colorOf, cubeSize, originInULayer, slotInULayer, type CubeState, type Face } from "../../shared/cube";
+import { FACE_COLORS, type CubeMask } from "../lib/cube-appearance";
 
 const GREY = "rgb(58, 58, 66)";
 const DIM = "rgb(36, 36, 42)";
 
 function color(state: CubeState, slot: number, mask: CubeMask): string {
   const face = colorOf(state, slot);
-  if (mask === "OLL") return face === "U" ? FACE_COLORS.U : slotInULayer(slot) ? GREY : DIM;
-  if (mask === "PLL") return slotInULayer(slot) ? FACE_COLORS[face] : DIM;
+  if (mask === "OLL") return face === "U" ? FACE_COLORS.U : slotInULayer(slot, cubeSize(state)) ? GREY : DIM;
+  if (mask === "PLL") return slotInULayer(slot, cubeSize(state)) ? FACE_COLORS[face] : DIM;
   if (mask === "F2L") return originInULayer(state, slot) ? GREY : FACE_COLORS[face];
   return FACE_COLORS[face];
 }
@@ -85,7 +85,8 @@ function TopLayerSvg({ state, size, mask, className, titleId }: { state: CubeSta
 /** Lightweight isometric cube for static previews: one SVG, 27 visible stickers, no CSS 3D transforms. */
 export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, mask = "full", className }: { state: CubeState; size?: number; mask?: CubeMask; className?: string }) {
   const titleId = useId();
-  if (mask === "OLL" || mask === "PLL") return <TopLayerSvg state={state} size={size} mask={mask} className={className} titleId={titleId} />;
+  const dimension = cubeSize(state);
+  if (dimension === 3 && (mask === "OLL" || mask === "PLL")) return <TopLayerSvg state={state} size={size} mask={mask} className={className} titleId={titleId} />;
 
   const faces = [
     { face: "U" as const, point: topPoint },
@@ -98,11 +99,11 @@ export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, ma
       <title id={titleId}>Rubik's Cube case preview</title>
       <g stroke="rgba(7, 7, 10, .9)" strokeWidth="1.15" strokeLinejoin="round">
         {faces.flatMap(({ face, point }) =>
-          Array.from({ length: 9 }, (_, index) => {
-            const row = Math.floor(index / 3);
-            const column = index % 3;
-            const slot = FACE_OFFSET[face] + index;
-            return <polygon key={`${face}-${index}`} points={cell(point, column, row)} fill={color(state, slot, mask)} />;
+          Array.from({ length: dimension * dimension }, (_, index) => {
+            const row = Math.floor(index / dimension);
+            const column = index % dimension;
+            const slot = FACE_OFFSET[face] / 9 * dimension * dimension + index;
+            return <polygon key={`${face}-${index}`} points={cell((c, r) => point(c * 3 / dimension, r * 3 / dimension), column, row)} fill={color(state, slot, mask)} />;
           }),
         )}
       </g>

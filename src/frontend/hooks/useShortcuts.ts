@@ -16,7 +16,7 @@ export function useShortcuts(shortcuts: Shortcut[], enabled = true) {
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || !event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]') || document.querySelector('[aria-modal="true"], .timer-surface.holding, .timer-surface.ready, .timer-surface.running')) return;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]') || document.querySelector('[aria-modal="true"], [role="listbox"], [data-puzzle-popover], .timer-surface.holding, .timer-surface.ready, .timer-surface.running')) return;
       const shortcut = shortcuts.find(item => matchesShortcut(event, item.key));
       if (shortcut) { event.preventDefault(); shortcut.run(); }
     };

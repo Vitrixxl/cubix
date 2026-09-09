@@ -1,14 +1,17 @@
+import {usePreservedScroll} from "../hooks/usePreservedScroll";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { AnimationSetting } from "../components/AnimationSetting";
 import { FriendActions, useFriendActions } from "../components/FriendActions";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { api, authToken, local } from "../api";
-import { casesAtom, setsAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
+import { puzzleAtom, solveModeAtom, scrambleTypeAtom, casesAtom, setsAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
 import { IconBack, IconLock, IconSearch, IconUser } from "../components/icons";
 import { motion } from "motion/react";
 import { FloatingSheet } from "../components/FloatingSheet";
 import { ProfileCaseGallery, ProfileCaseDetails, ProfileStats } from "../components/ProfileProgress";
 import type { ProfileDto, UserDto } from "../../shared/types";
+import { modeLabel, puzzleInfo, scrambleLabel, type ScrambleType } from "../../shared/puzzles";
 
 export function Avatar({ user, large = false }: { user: Pick<UserDto, "username">; large?: boolean }) {
   return <span className={`avatar ${large ? "large" : ""}`} aria-hidden="true"><span className="avatar-initials">{user.username.trim().slice(0, 2).toUpperCase()}</span></span>;
@@ -45,7 +48,7 @@ export function AccountForm({ initialMode = "register" }: { initialMode?: "regis
       <div className="tabs" role="tablist" aria-label="Account access">
         {(["register", "login"] as const).map(m => <button type="button" role="tab" aria-selected={mode === m} className={`tab ${mode === m ? "active" : ""}`} key={m} disabled={busy} onClick={() => { setMode(m); setError(""); }}>{mode === m && <span className="tab-pill" />}<span>{m === "register" ? "Create account" : "Sign in"}</span></button>)}
       </div>
-      <div><h2>{mode === "register" ? "Make yourself at home." : "Welcome back."}</h2><p className="muted">{mode === "register" ? "Your locally saved times will come with you." : "Sign in to find your times and profile."}</p></div>
+      <div><h2>{mode === "register" ? "Make yourself at home." : "Welcome back."}</h2><p className="muted">{mode === "register" ? "Keep your times and progress." : "Sign in to find your times and profile."}</p></div>
       <label>Username<input className="input" name="username" autoComplete="username" placeholder="your_username" pattern="[a-zA-Z0-9_]{3,24}" minLength={3} maxLength={24} required disabled={busy} autoCapitalize="none" spellCheck={false} /><small>3–24 letters, numbers or underscores.</small></label>
       <label>Password<input className="input" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 10 characters" : "Your password"} minLength={mode === "register" ? 10 : 1} maxLength={128} required disabled={busy} /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -75,6 +78,7 @@ export function CommunityPage() {
     }, 250);
     return () => { clearTimeout(timeout); controller.abort(); };
   }, [query, user, retry]);
+  const scrollRef=usePreservedScroll(`community:${query}`);
   if (!user || user.isGuest) return <AccountForm />;
   const members: Pick<UserDto, "id" | "username" | "bio">[] = [...results];
   for (const friend of friendship.friends) {
@@ -86,13 +90,16 @@ export function CommunityPage() {
     <label className="member-search"><IconSearch /><input className="input" aria-label="Search cubers" placeholder="Search cubers…" value={query} maxLength={80} onChange={e => setQuery(e.target.value)} />{query && <button className="mini-btn" onClick={() => setQuery("")}>Clear</button>}</label>
     {friendship.error && <p className="form-error" role="alert">{friendship.error} <button className="mini-btn" onClick={friendship.retry}>Retry</button></p>}
     <div className="community-caption"><h2>{query.trim() ? "Search results" : "Meet the community"}</h2><span className="muted">Cubers & invitations</span></div>
-    <div className="community-results" aria-live="polite">
+    <div ref={scrollRef} className="community-results" aria-live="polite">
       {loading ? <div className="empty">Finding cubers…</div> : error ? <div className="empty"><p role="alert">{error}</p><button className="btn" onClick={() => setRetry(v => v + 1)}>Try again</button></div> : members.length === 0 ? <div className="member-empty"><IconSearch /><h2>{query.trim() ? "No cubers found." : "A community starts with you."}</h2><p>{query.trim() ? "Try another name." : "Registered cubers will appear here."}</p></div> : <div className="member-list">{members.map(member => <div className="member-row" key={member.id}><button className="member-profile" onClick={() => setRoute({ page: "profile", username: member.username })}><Avatar user={member} /><span className="member-copy"><strong>{member.username}</strong>{member.bio && <span className="subtle member-bio">{member.bio}</span>}</span><span className="member-open">View profile <span aria-hidden="true">↗</span></span></button><FriendActions userId={member.id} username={member.username} state={friendship} /></div>)}</div>}
     </div>
   </div>;
 }
 
 export function ProfilePage({ username, mode = "playground", caseId }: { username?: string; mode?: "playground" | "training"; caseId?: string }) {
+  const cube = useAtomValue(puzzleAtom);
+  const solveMode = useAtomValue(solveModeAtom);
+  const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const mobile = useAtomValue(viewportSizeAtom).width <= 700;
@@ -122,15 +129,17 @@ export function ProfilePage({ username, mode = "playground", caseId }: { usernam
     if (!target || !user || user.isGuest) return;
     const controller = new AbortController();
     setProfile(current => current?.user.username === target ? current : null); setError(""); setEditing(false);
-    api.profile(target, controller.signal).then(setProfile).catch(e => { if (!controller.signal.aborted) setError(e.message); });
+    api.profile(target, controller.signal, cube, {solveMode,scrambleType}).then(value => { if (!controller.signal.aborted) setProfile(value); }).catch(e => { if (!controller.signal.aborted) setError(e.message); });
     return () => controller.abort();
-  }, [target, user?.id, user?.isGuest, version, deletedSolveId, statsVersion]);
+  }, [cube, solveMode, scrambleType, target, user?.id, user?.isGuest, version, deletedSolveId, statsVersion]);
   // Refresh after returning to the tab to show profile changes made elsewhere.
   useEffect(() => {
     const refresh = () => { if (document.visibilityState === "visible") setVersion(v => v + 1); };
     document.addEventListener("visibilitychange", refresh);
     return () => document.removeEventListener("visibilitychange", refresh);
   }, []);
+  const activeMode = caseId ? "training" : mode;
+  const profileScrollRef=usePreservedScroll(`profile:${username??"self"}:${cube}:${solveMode}:${activeMode}`);
   if (!user || user.isGuest) return <AccountForm />;
   const logout = async () => {
     setBusy(true); setError("");
@@ -140,17 +149,17 @@ export function ProfilePage({ username, mode = "playground", caseId }: { usernam
   if (!profile) return <div className="page"><button className="btn ghost small" onClick={() => setRoute({ page: "community" })}><IconBack /> Community</button>{error ? <div className="member-empty"><IconLock /><h1>Profile unavailable</h1><p role="alert">{error}</p><button className="btn" onClick={() => setVersion(v => v + 1)}>Try again</button></div> : <div className="empty">Loading profile…</div>}</div>;
   const selectedCase = cases.find(c => c.id === caseId);
   const selectedStats = profile.cases.find(c => c.summary.caseId === caseId);
-  const activeMode = caseId ? "training" : mode;
   const details = selectedCase && <ProfileCaseDetails c={selectedCase} data={selectedStats} own={own} username={profile.user.username} mobile={mobile} onClose={closeCase} />;
   return <div className="page profile-page">
     <div className="profile-home" hidden={mobile && !!selectedCase}>
     <div className="profile-topline"><button className="btn ghost small" onClick={() => setRoute({ page: "community" })}><IconBack /> Community</button>{own && <button className="btn ghost small" onClick={logout} disabled={busy}>Sign out</button>}</div>
     <header className="profile-header"><Avatar user={profile.user} large /><div className="profile-identity"><div className="profile-name"><h1>{profile.user.username}</h1></div><span className="subtle">Joined {new Date(profile.user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>{profile.user.bio && <p className="profile-bio">{profile.user.bio}</p>}</div>{own && <button className="btn" onClick={() => { setEditing(v => !v); setError(""); }}>{editing ? "Close settings" : "Edit profile"}</button>}{!own && <FriendActions userId={profile.user.id} username={profile.user.username} state={friendship} />}</header>
-    <div className="profile-body">
+    <div className="profile-body" ref={profileScrollRef}>
     {friendship.error && <p className="form-error" role="alert">{friendship.error} <button className="mini-btn" onClick={friendship.retry}>Retry</button></p>}
     {editing && <ProfileSettings user={profile.user} onSaved={updated => { setUser(updated); setProfile({ ...profile, user: updated }); setEditing(false); }} />}
     {error && <p role="alert" className="form-error">{error}</p>}
-    <div className="profile-overview"><div><strong>{profile.totalSolves.toLocaleString()}</strong><span>Total solves</span></div><div><strong>{profile.trainingSolves.toLocaleString()}</strong><span>Training solves</span></div><div><strong>{profile.cases.length}</strong><span>Cases practised</span></div><div><strong>{profile.activeDays}</strong><span>Active days</span></div></div>
+    <div className="practice-controls"><span className="subtle">{puzzleInfo(cube).label} · {modeLabel(solveMode)}</span><label>Playground scramble type<Select value={scrambleType} onValueChange={value => setScrambleType(value as ScrambleType)}><SelectTrigger aria-label="Playground scramble type"><SelectValue/></SelectTrigger><SelectContent>{puzzleInfo(cube).scrambles.map(type => <SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent></Select></label></div>
+    <div className="profile-overview"><div><strong>{profile.totalSolves.toLocaleString()}</strong><span>Solves in this selection</span></div><div><strong>{profile.trainingSolves.toLocaleString()}</strong><span>Training solves</span></div><div><strong>{profile.cases.length}</strong><span>Cases practised</span></div><div><strong>{profile.activeDays}</strong><span>Active days</span></div></div>
     <section className="profile-progress"><div className="profile-section-heading"><div><span className="eyebrow">ONE SOLVE AT A TIME</span><h2>Progress & personal bests</h2></div><div className="tabs small">{(["playground", "training"] as const).map(m => <button className={`tab ${activeMode === m ? "active" : ""}`} key={m} onClick={() => setMode(m)}>{activeMode === m && <span className="tab-pill" />}<span>{m === "playground" ? "Playground" : "Training"}</span></button>)}</div></div>
       {activeMode === "training" ? <ProfileCaseGallery cases={cases} sets={sets} profile={profile} onOpen={openCase} />
         : profile.playground.summary.count ? <ProfileStats data={profile.playground} own={own} />

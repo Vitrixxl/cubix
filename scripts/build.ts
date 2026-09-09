@@ -1,3 +1,4 @@
+import { buildVendor } from "./build-vendor";
 import { cp, rm, readdir, readFile, writeFile } from "node:fs/promises";
 
 await rm("dist/view", { recursive: true, force: true });
@@ -10,9 +11,10 @@ if (status !== 0) process.exit(status);
 const admin = Bun.spawn(["bun", "build", "./src/admin/index.html", "--outdir=dist/view/admin", "--public-path=/admin/", "--target=browser", "--production"], {stdout:"inherit",stderr:"inherit"});
 if (await admin.exited !== 0) process.exit(1);
 await cp("public", "dist/view", { recursive: true });
+await buildVendor("dist/view/vendor/cubing");
 
 // An atomic shell cache includes the complete catalogue, fonts and PWA icons.
-const files = (await readdir("dist/view", {recursive:true})).filter(path => !path.startsWith("admin/") && /\.(html|js|css|woff2|png|webmanifest)$/.test(path)).sort();
+const files = (await readdir("dist/view", {recursive:true})).filter(path => !path.startsWith("admin/") && /\.(html|js|css|woff2|png|svg|webmanifest)$/.test(path)).sort();
 const hash = new Bun.CryptoHasher("sha256");
 for (const path of files) hash.update(await readFile("dist/view/"+path));
 const template = await readFile("scripts/service-worker.js","utf8");
