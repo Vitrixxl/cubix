@@ -55,7 +55,7 @@ export function createCubieShell(unit:number,directions:Vector3[]){
     // A shallow crown gives the plastic a broad highlight, without bulging seams.
     for(let axis=0;axis<3;axis++)if(Math.abs(Math.abs(point.getComponent(axis))-half)<1e-6){
       const a=point.getComponent((axis+1)%3)/half,b=point.getComponent((axis+2)%3)/half;
-      rounded.setComponent(axis,rounded.getComponent(axis)+Math.sign(point.getComponent(axis))*.005*(1-a*a)**2*(1-b*b)**2);
+      rounded.setComponent(axis,rounded.getComponent(axis)+Math.sign(point.getComponent(axis))*.018*(1-a*a)**2*(1-b*b)**2);
     }
     positions.setXYZ(i,rounded.x*unit,rounded.y*unit,rounded.z*unit);
   }
@@ -135,7 +135,9 @@ export function installCubeTemplates(data:CubeTemplateData[]){
   }
 }
 function plasticMaterial(){
-  const material=new MeshPhysicalMaterial({vertexColors:true,roughness:.2,metalness:0,specularIntensity:.18,envMapIntensity:.45,clearcoat:.06,clearcoatRoughness:.2,emissive:0xffffff,emissiveIntensity:.24});
+  // A smooth transparent lacquer over coloured plastic: sharp reflections on
+  // the coating, with enough body roughness to keep the plastic readable below.
+  const material=new MeshPhysicalMaterial({vertexColors:true,roughness:.18,metalness:0,specularIntensity:.8,envMapIntensity:1,clearcoat:1,clearcoatRoughness:.035,emissive:0xffffff,emissiveIntensity:.025});
   // Each physical piece has up to three plastic colours, while all pieces of a
   // shape share one draw call. The baked recess shading remains in vertex colours.
   material.onBeforeCompile=shader=>{

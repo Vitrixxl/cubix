@@ -1,7 +1,6 @@
 import {useLayoutEffect,useRef,useState,type CSSProperties,type PointerEvent} from 'react';
-import {AmbientLight,DirectionalLight,InstancedMesh,NeutralToneMapping,PCFSoftShadowMap,PMREMGenerator,Group,Mesh,OrthographicCamera,Scene,SRGBColorSpace,WebGLRenderer,type Object3D,type Material} from 'three';
+import {AmbientLight,Color,DirectionalLight,DoubleSide,InstancedMesh,MeshBasicMaterial,NeutralToneMapping,PCFSoftShadowMap,PlaneGeometry,PMREMGenerator,Group,Mesh,OrthographicCamera,Scene,SRGBColorSpace,WebGLRenderer,type Object3D,type Material} from 'three';
 import {PuzzlePlaceholder} from './PuzzlePlaceholder';
-import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 
 export interface ThreeModel { object: Object3D; }
 export interface ThreeViewportProps<M extends ThreeModel> {
@@ -40,9 +39,20 @@ export function ThreeViewport<M extends ThreeModel>({createModel,cacheKey,loadin
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=PCFSoftShadowMap;
     renderer.domElement.setAttribute('aria-hidden','true');el.prepend(renderer.domElement);
     const scene=new Scene(), camera=new OrthographicCamera(-2,2,2,-2,.1,100),group=new Group();
-    const room=new RoomEnvironment(),pmrem=new PMREMGenerator(renderer),environment=pmrem.fromScene(room,.04);
+    // Narrow studio softboxes leave distinct moving reflections in the lacquer.
+    // They are baked once into the environment, with no extra lights per frame.
+    const room=new Scene();room.background=new Color(.18,.18,.18);
+    for(const {position,width,height,intensity} of [
+      {position:[-6,-3.6,-.8],width:.45,height:5,intensity:20},
+      {position:[6,-2.5,-2.7],width:.5,height:5,intensity:18},
+      {position:[0,6,-3],width:5,height:.8,intensity:18},
+    ]){
+      const panel=new Mesh(new PlaneGeometry(width,height),new MeshBasicMaterial({color:new Color().setScalar(intensity),side:DoubleSide}));
+      panel.position.set(position[0],position[1],position[2]);panel.lookAt(0,0,0);room.add(panel);
+    }
+    const pmrem=new PMREMGenerator(renderer),environment=pmrem.fromScene(room,.005);
     scene.environment=environment.texture;scene.environmentIntensity=.7;
-    room.dispose();pmrem.dispose();
+    disposeObject(room);pmrem.dispose();
     camera.position.z=8;scene.add(group);scene.add(new AmbientLight(0xffffff,.35));
     const light=new DirectionalLight(0xfff7ed,1.6);light.position.set(-3,6,8);light.castShadow=true;
     light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-2;light.shadow.camera.right=2;
