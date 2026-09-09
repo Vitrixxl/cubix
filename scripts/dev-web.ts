@@ -14,8 +14,11 @@ const server = Bun.serve<Bridge>({
     "/aaaaadmin/": admin,
     "/api/*": async (request: Request, server: Bun.Server<Bridge>) => {
       const url = new URL(request.url);
-      if (url.pathname === "/api/social/live" && request.headers.get("upgrade")?.toLowerCase() === "websocket") {
-        const upstream = new WebSocket(upstreamOrigin.replace("http:", "ws:") + url.pathname, { maxPayload: 16 * 1024 });
+      if (["/api/social/live", "/api/admin/live"].includes(url.pathname) && request.headers.get("upgrade")?.toLowerCase() === "websocket") {
+        const upstream = new WebSocket(upstreamOrigin.replace("http:", "ws:") + url.pathname, {
+          maxPayload: url.pathname === "/api/admin/live" ? 1024 * 1024 : 16 * 1024,
+          headers: { host: request.headers.get("host") ?? url.host, ...(request.headers.has("origin") ? { origin: request.headers.get("origin")! } : {}), ...(request.headers.has("cookie") ? { cookie: request.headers.get("cookie")! } : {}) },
+        });
         // Registered immediately so connection failures cannot become unhandled errors.
         upstream.on("error", () => {});
         if (server.upgrade(request, { data: { upstream, pending: [] } })) return;

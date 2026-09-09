@@ -114,6 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         passwords: Arc::new(Semaphore::new(4)),
     };
     let admin_api = Router::new()
+        .route("/api/admin/live", get(admin::upgrade))
         .route("/api/admin/{*path}", any(admin::dispatch))
         .with_state(state.clone())
         .layer(DefaultBodyLimit::max(4096))

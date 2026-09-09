@@ -60,3 +60,65 @@ test("missing configuration disables admin access and rotating the password inva
  expect((await fetch(next+"/api/admin/dashboard",{headers:{cookie:admin.cookie}})).status).toBe(401);
  expect((await login(next,"another-synthetic-admin-password")).response.status).toBe(200);
 });
+
+async function adminSocket(origin:string,cookie:string,filters:Record<string,string>={}) {
+ const {default:WebSocket}=await import("ws");
+ const ws=new WebSocket(origin.replace('http:','ws:')+'/api/admin/live',{headers:{cookie,origin}});
+ cleanup.unshift(()=>ws.terminate());
+ const snapshots:any[]=[];
+ ws.on('error',()=>{});
+ ws.on('message',raw=>{const message=JSON.parse(String(raw));if(message.type==='snapshot')snapshots.push(message.data)});
+ const wait=async(predicate:(value:any)=>boolean)=>{
+  for(let i=0;i<300;i++){const found=snapshots.find(predicate);if(found)return found;await Bun.sleep(10)}
+  throw Error('Missing admin snapshot');
+ };
+ const subscribe=(filters:Record<string,string>,live=true)=>ws.send(JSON.stringify({type:'subscribe',filters,live}));
+ await new Promise<void>((resolve,reject)=>{ws.once('open',resolve);ws.once('error',reject)});
+ subscribe(filters);
+ await wait(()=>true);
+ return {ws,snapshots,wait,subscribe};
+}
+
+test('admin WebSocket pushes traffic and users, applies filters, pauses, resumes and stays idle without polling',async()=>{
+ const {origin}=setup();const admin=await login(origin);const live=await adminSocket(origin,admin.cookie);
+ await Bun.sleep(600);const before=live.snapshots.length;
+ await Bun.sleep(700);expect(live.snapshots.length).toBe(before);
+ await fetch(origin+'/websocket-proof');
+ const pushed=await live.wait(data=>data.traffic.requests.some((r:any)=>r.path==='/websocket-proof'));
+ expect(pushed.traffic.requests.some((r:any)=>r.path==='/api/admin/live'&&r.status===101)).toBe(true);
+ await createApiClient(origin,{getToken:()=>null}).register('websocket_user','a-long-test-password');
+ await live.wait(data=>data.users.rows.some((r:any)=>r.username==='websocket_user'));
+ live.subscribe({path:'/websocket-proof'});
+ await live.wait(data=>data.traffic.requests.length===1&&data.traffic.requests[0].path==='/websocket-proof');
+ live.subscribe({},false);await Bun.sleep(600);const paused=live.snapshots.length;
+ await fetch(origin+'/during-pause');await Bun.sleep(650);expect(live.snapshots.length).toBe(paused);
+ live.subscribe({});await live.wait(data=>data.traffic.requests.some((r:any)=>r.path==='/during-pause'));
+ const allRequests=live.snapshots.at(-1).traffic.requests;
+ expect(allRequests.filter((r:any)=>r.path==='/api/admin/dashboard')).toHaveLength(0);
+});
+
+test('admin WebSocket rejects missing cookies and foreign origins; logout closes an open session',async()=>{
+ const {origin}=setup();const admin=await login(origin);
+ const {default:WebSocket}=await import('ws');
+ async function rejected(headers:Record<string,string>){return new Promise<number>((resolve,reject)=>{
+  const ws=new WebSocket(origin.replace('http:','ws:')+'/api/admin/live',{headers});cleanup.unshift(()=>ws.terminate());ws.on('error',()=>{});
+  ws.on('unexpected-response',(_,response)=>{const status=response.statusCode!;response.destroy();ws.terminate();resolve(status)});ws.on('open',()=>reject(Error('Unexpected upgrade')));
+ })}
+ expect(await rejected({origin})).toBe(401);
+ expect(await rejected({cookie:admin.cookie,origin:'https://foreign.example'})).toBe(403);
+ const live=await adminSocket(origin,admin.cookie);
+ live.subscribe({},false);
+ const closed=new Promise<number>(resolve=>live.ws.once('close',code=>resolve(code)));
+ await fetch(origin+'/api/admin/logout',{method:'POST',headers:{cookie:admin.cookie,origin}});
+ expect(await closed).toBe(4001);
+ expect(await rejected({cookie:admin.cookie,origin})).toBe(401);
+});
+
+test('admin WebSocket closes expired sessions and rejects invalid filter messages',async()=>{
+ const {origin,db}=setup();const admin=await login(origin);const live=await adminSocket(origin,admin.cookie);
+ const expired=new Promise<number>(resolve=>live.ws.once('close',code=>resolve(code)));
+ db.db.exec('UPDATE admin_tokens SET expires_at=0');await fetch(origin+'/expiry-trigger');expect(await expired).toBe(4001);
+ const second=await login(origin);const invalid=await adminSocket(origin,second.cookie);
+ const rejected=new Promise<number>(resolve=>invalid.ws.once('close',code=>resolve(code)));
+ invalid.subscribe({path:'x'.repeat(101)});expect(await rejected).toBe(1008);
+});

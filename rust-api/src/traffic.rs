@@ -13,6 +13,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Instant,
 };
+use tokio::sync::watch;
 const MAX_IPS: usize = 20000;
 const MAX_LOGS: usize = 10000;
 #[derive(Clone)]
@@ -59,6 +60,7 @@ struct Metrics {
     logs: VecDeque<Value>,
 }
 pub struct Traffic {
+    updates: watch::Sender<()>,
     data: Mutex<Metrics>,
     pub started: i64,
     pub limit: u32,
@@ -67,6 +69,7 @@ pub struct Traffic {
 impl Traffic {
     pub fn new() -> Self {
         Self {
+            updates: watch::channel(()).0,
             data: Mutex::new(Metrics {
                 total: 0,
                 limited: 0,
@@ -87,6 +90,9 @@ impl Traffic {
                 .filter_map(|v| v.trim().parse().ok())
                 .collect(),
         }
+    }
+    pub fn subscribe(&self) -> watch::Receiver<()> {
+        self.updates.subscribe()
     }
     pub fn ip(&self, peer: IpAddr, headers: &HeaderMap) -> IpAddr {
         if !self.trusted.contains(&peer) {
@@ -166,6 +172,8 @@ impl Traffic {
             d.logs.pop_front();
         }
         d.logs.push_back(json!({"id":id,"at":now(),"ip":ip.to_string(),"method":method,"path":path.chars().take(300).collect::<String>(),"status":status,"durationMs":(ms*100.).round()/100.}));
+        drop(d);
+        self.updates.send_replace(());
     }
     pub fn snapshot(&self, ip: &str, path: &str, status: &str, ip_page: usize) -> Value {
         let d = self.data.lock().unwrap();

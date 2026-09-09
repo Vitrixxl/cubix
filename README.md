@@ -37,6 +37,12 @@ Les utilisateurs doivent ouvrir le même serveur pour retrouver les mêmes compt
 
 L’interface **`/aaaaadmin`** donne accès au journal HTTP en direct, aux compteurs par IP
 et à la liste paginée des utilisateurs (recherche, nombre de temps et de sessions).
+Le direct passe par une WebSocket authentifiée sur `/api/admin/live` : les changements sont poussés
+au navigateur, regroupés au maximum deux fois par seconde sous charge. Au repos, seul un ping
+de maintien de connexion est envoyé toutes les 30 secondes. Les filtres et la pause passent par
+la même connexion ; une coupure déclenche une reconnexion automatique avec délai progressif.
+L’expiration ou la révocation de la session ferme le flux. Les files de notifications sont bornées
+et le serveur accepte au maximum 32 connexions admin simultanées.
 Les anciens invités serveur sont séparés des comptes inscrits ; les invités locaux ne sont pas envoyés au serveur.
 
 Créer un fichier `.env` à la racine à partir de `.env.example`, puis définir

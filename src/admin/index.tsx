@@ -1,4 +1,4 @@
-import {useEffect,useState,type FormEvent} from "react";
+import {useEffect,useRef,useState,type FormEvent} from "react";
 import {createRoot} from "react-dom/client";
 
 type Traffic = {startedAt:number;total:number;errors:number;limited:number;ipCount:number;matchingIps:number;untrackedRequests:number;retained:number;capacity:number;rateLimit:number;ips:{ip:string;requests:number;limited:number;errors:number;lastAt:number}[];requests:{id:number;at:number;ip:string;method:string;path:string;status:number;durationMs:number}[]};
@@ -12,24 +12,63 @@ async function request<T>(path:string,body?:unknown,signal?:AbortSignal):Promise
 function Admin() {
  const [data,setData]=useState<Dashboard|null>(null),[authenticated,setAuthenticated]=useState(false),[checking,setChecking]=useState(true),[error,setError]=useState(""),[busy,setBusy]=useState(false);
  const [live,setLive]=useState(true),[tab,setTab]=useState("requests"),[ip,setIp]=useState(""),[path,setPath]=useState(""),[status,setStatus]=useState(""),[query,setQuery]=useState(""),[guests,setGuests]=useState(false),[page,setPage]=useState(0),[ipPage,setIpPage]=useState(0),[refresh,setRefresh]=useState(0);
+ const [connection,setConnection]=useState<"connecting"|"connected"|"disconnected">("connecting");
+ const subscribe=useRef<(()=>void)|null>(null);
+ const preferences=useRef({});
+ preferences.current={type:"subscribe",live,filters:{ip,path,status,q:query,guests:guests?"1":"0",page:String(page),ipPage:String(ipPage)}};
  useEffect(()=>{
-  const controller=new AbortController();let timer:ReturnType<typeof setTimeout>;
-  const load=async()=>{
-   try {const value=await request<Dashboard>("dashboard?"+new URLSearchParams({ip,path,status,q:query,guests:guests?"1":"0",page:String(page),ipPage:String(ipPage)}),undefined,controller.signal);setData(value);setAuthenticated(true);setError("");}
-   catch(e){if(controller.signal.aborted)return;const error=e as Error&{status?:number};if(error.status===401){setAuthenticated(false);setData(null);}else setError(error.message);}
-   finally {if(!controller.signal.aborted){setChecking(false);if(live&&authenticated)timer=setTimeout(load,2000);}}
+  const controller=new AbortController();
+  void request("session",undefined,controller.signal).then(()=>{if(!controller.signal.aborted)setAuthenticated(true)}).catch(e=>{
+   if(controller.signal.aborted)return;
+   if(e.status!==401)setError(e.message);setChecking(false);
+  });
+  return()=>controller.abort();
+ },[]);
+ useEffect(()=>{
+  if(!authenticated)return;
+  let stopped=false,socket:WebSocket|null=null,retry:ReturnType<typeof setTimeout>|undefined,attempt=0;
+  const controller=new AbortController();
+  const connect=()=>{
+   if(stopped)return;
+   setConnection("connecting");
+   const url=new URL("/api/admin/live",location.href);url.protocol=location.protocol==="https:"?"wss:":"ws:";
+   const ws=new WebSocket(url);socket=ws;
+   const send=()=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(preferences.current))};
+   subscribe.current=send;
+   ws.onopen=()=>{if(stopped)return;setConnection("connected");send()};
+   ws.onmessage=event=>{
+    if(stopped)return;
+    try{const message=JSON.parse(String(event.data));if(message.type==="snapshot"){attempt=0;setData(message.data);setChecking(false);setError("");}}
+    catch{setError("Réponse du direct invalide.");ws.close()}
+   };
+   ws.onclose=async event=>{
+    if(stopped)return;
+    subscribe.current=null;setConnection("disconnected");setChecking(false);
+    if(event.code===4001){setAuthenticated(false);setData(null);setError("Session expirée. Reconnecte-toi.");return;}
+    // A rejected upgrade cannot expose its HTTP status to browser JavaScript.
+    // Check the session only after a disconnection, never poll a healthy socket.
+    try{await request("session",undefined,controller.signal)}catch(e){
+     if(stopped)return;
+     if((e as Error&{status?:number}).status===401){setAuthenticated(false);setData(null);setError("Session expirée. Reconnecte-toi.");return;}
+    }
+    if(stopped)return;
+    setError("Connexion au direct interrompue. Reconnexion automatique…");
+    retry=setTimeout(connect,Math.min(30000,1000*2**Math.min(attempt++,5)));
+   };
   };
-  void load();return()=>{controller.abort();clearTimeout(timer)};
- },[authenticated,live,ip,path,status,query,guests,page,ipPage,refresh]);
+  connect();
+  return()=>{stopped=true;controller.abort();clearTimeout(retry);subscribe.current=null;socket?.close()};
+ },[authenticated]);
+ useEffect(()=>{subscribe.current?.()},[live,ip,path,status,query,guests,page,ipPage,refresh]);
  const login=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();const form=event.currentTarget,password=String(new FormData(form).get("password"));setBusy(true);setError("");
-  try{await request("login",{password});form.reset();setAuthenticated(true);setRefresh(n=>n+1);}catch(e){setError((e as Error).message)}finally{setBusy(false)}
+  try{await request("login",{password});form.reset();setChecking(true);setAuthenticated(true);setRefresh(n=>n+1);}catch(e){setError((e as Error).message)}finally{setBusy(false)}
  };
  const logout=async()=>{setBusy(true);try{await request("logout",{});setAuthenticated(false);setData(null);}catch(e){setError((e as Error).message)}finally{setBusy(false)}};
  if(!authenticated||!data)return <main className="login-screen"><a className="brand" href="/">CUBIX<span> / ADMIN</span></a><form className="login-card" onSubmit={login}><span className="eyebrow">ACCÈS ADMINISTRATEUR</span><h1>Bienvenue<br/>aux commandes.</h1><p>Une session privée, valable 24 heures.</p><label>Mot de passe<input name="password" type="password" autoComplete="current-password" required autoFocus disabled={busy||checking}/></label>{error&&<p className="error" role="alert">{error}</p>}<button className="primary" disabled={busy||checking}>{checking?"Vérification…":busy?"Connexion…":"Ouvrir l’administration ↗"}</button><small>Mot de passe configuré dans <code>.env</code>.</small></form></main>;
  const traffic=data.traffic;
  return <div className="admin-shell"><header className="admin-header"><a className="brand" href="/">CUBIX<span> / ADMIN</span></a><div className="header-actions"><span className="expiry">Session jusqu’au {time(data.expiresAt)}</span><button onClick={logout} disabled={busy}>Déconnexion</button></div></header>
- <main><section className="intro"><div><span className="eyebrow">VUE D’ENSEMBLE</span><h1>Le pouls de Cubix.</h1><p>Trafic HTTP depuis le {time(traffic.startedAt)}.</p></div><div className="live-controls"><button className={live?"live":""} onClick={()=>setLive(v=>!v)}><i/>{live?"En direct":"En pause"}</button><button aria-label="Actualiser" onClick={()=>setRefresh(v=>v+1)}>↻</button></div></section>
+ <main><section className="intro"><div><span className="eyebrow">VUE D’ENSEMBLE</span><h1>Le pouls de Cubix.</h1><p>Trafic HTTP depuis le {time(traffic.startedAt)}.</p></div><div className="live-controls"><button className={live&&connection==="connected"?"live":""} aria-pressed={live} onClick={()=>setLive(v=>!v)}><i/>{!live?"En pause":connection==="connected"?"En direct":connection==="connecting"?"Connexion…":"Reconnexion…"}</button><button aria-label="Actualiser" onClick={()=>setRefresh(v=>v+1)}>↻</button></div></section>
  {error&&<p className="error" role="alert">{error}</p>}
  <section className="metrics">{[["Comptes",data.users.counts.registered],["Requêtes HTTP",traffic.total],["Adresses IP suivies",traffic.ipCount],["Requêtes limitées",traffic.limited]].map(([label,value])=><article key={label}><span>{label}</span><strong>{number(Number(value))}</strong></article>)}</section>
  <nav className="tabs" aria-label="Sections d’administration">{[["requests","Requêtes"],["ips","Adresses IP"],["users","Utilisateurs"]].map(([key,label])=><button key={key} className={tab===key?"selected":""} onClick={()=>setTab(key)}>{label}</button>)}</nav>
