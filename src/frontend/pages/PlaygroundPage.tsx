@@ -180,7 +180,7 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
       </div>
       <div className="practice-actions playground-actions" aria-label="Playground controls">
         <motion.div {...lowerMotion} className="playground-context">
-          <div className="playground-scramble-control"><span className="practice-control-label">Scramble type</span>
+          <div className="playground-scramble-control">
             <Select value={context.scrambleType} disabled={busy || !!timer.saveError} onValueChange={value=>setScrambleType(value as ScrambleType)}>
               <SelectTrigger aria-label="Scramble type"><SelectValue/></SelectTrigger>
               <SelectContent>{info.scrambles.map(type=><SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent>

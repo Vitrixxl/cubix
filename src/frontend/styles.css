@@ -2623,3 +2623,27 @@ button:disabled { cursor: default; }
 .three-viewport.is-loading > canvas { visibility:hidden; }
 @keyframes puzzle-loading { 0%,100% { opacity:.4; } 50% { opacity:1; } }
 @media(prefers-reduced-motion:reduce){ .puzzle-placeholder svg { animation:none; } }
+
+/* One continuous catalogue; each stage keeps its variant picker at the top. */
+.catalog-navigation { gap:12px; }
+.catalog-navigation > .tabs { min-width:0; overflow-x:auto; scrollbar-width:none; }
+.catalog-navigation .catalog-trained-filter { flex:none; }
+.algorithms-page .catalog-sections { position:relative; padding-bottom:0; overflow-anchor:none; }
+.catalog-stage { padding-bottom:36px; }
+.catalog-stage:last-child { min-height:100%; }
+.catalog-stage-header { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:64px; padding:10px 0; background:var(--bg); border-bottom:1px solid var(--surface-2); }
+.catalog-stage-header h2 { margin:0; font-size:17px; font-weight:650; }
+.catalog-stage-header .tabs { min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:none; }
+.catalog-stage-header .tab { flex:none; }
+.catalog-stage-description { margin:18px 0; font-size:13px; }
+.catalog-group-title h3 { flex:1; min-width:0; margin:0; font:inherit; }
+@media(max-width:700px){
+  .catalog-navigation { flex-wrap:nowrap; align-items:center; gap:8px; }
+  .catalog-navigation .catalog-trained-filter { padding:8px; }
+  .catalog-navigation .catalog-trained-filter .count { display:none; }
+  .catalog-navigation .catalog-trained-filter > span:not(.count) { font-size:10px; }
+  .catalog-stage-header { flex-direction:column; align-items:stretch; gap:4px; padding:10px 0 8px; }
+  .catalog-stage-header h2 { font-size:15px; }
+  .catalog-stage-header .tabs.small { width:100%; flex-wrap:nowrap; }
+  .catalog-stage-description { font-size:12px; line-height:1.5; }
+}
