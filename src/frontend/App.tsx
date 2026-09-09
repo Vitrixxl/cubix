@@ -158,7 +158,7 @@ export function App() {
           </button>
         </LayoutGroup>
       </motion.nav>
-      <main className="main" key={route.page === "messages" || route.page === "community" ? "social" : `${cube}:${solveMode}`}>
+      <main className="main" key={route.page === "playground" ? "playground" : route.page === "messages" || route.page === "community" ? "social" : `${cube}:${solveMode}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${route.page}:${user?.id ?? "loading"}:${user?.isGuest}`}

@@ -1,3 +1,4 @@
+import { buildModelWorker } from "./build-model-worker";
 import { buildVendor } from "./build-vendor";
 await buildVendor();
 import admin from "../src/admin/index.html";
@@ -38,6 +39,10 @@ const server = Bun.serve<Bridge>({
       if (path.split("/").includes("..") || path.includes("\\")) return new Response("Invalid path", { status: 400 });
       const file = Bun.file(`build/vendor/cubing/${path}`);
       return await file.exists() ? new Response(file) : new Response("Not found", { status: 404 });
+    },
+    "/workers/puzzle-model.js": async () => {
+      await buildModelWorker();
+      return new Response(Bun.file("build/workers/puzzle-model.js"),{headers:{"Cache-Control":"no-store"}});
     },
     "/cases/*": async (request: Request) => {
       const name = new URL(request.url).pathname.slice("/cases/".length);

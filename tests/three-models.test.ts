@@ -1,7 +1,7 @@
 import {test,expect} from 'bun:test';
 import {Alg,Move} from 'cubing/alg';
 import {puzzles} from 'cubing/puzzles';
-import {Vector3,Quaternion,Mesh} from 'three';
+import {Vector3,Quaternion,Matrix4,Color,InstancedMesh,Mesh} from 'three';
 import {createSquare1Model,square1Pose,square1Pieces,square1Polygon} from '../src/frontend/lib/three/square1-model';
 import {createClockModel,clockDialAngles} from '../src/frontend/lib/three/clock-model';
 import {createCubeModel} from '../src/frontend/lib/three/cube-model';
@@ -56,12 +56,18 @@ test('Clock dial animation meets the exact pattern at signed turn endpoints',asy
 test('stickerless cubies carry all face colours through outer, wide and inner turns',()=>{
   for(const n of [2,3,4,5,6,7]){
     const model=createCubeModel(n),slots=slotsFor(n);
-    expect(model.object.children).toHaveLength(n**3-(n-2)**3);
+    expect(model.object.children.reduce((sum,mesh)=>sum+(mesh as InstancedMesh).count,0)).toBe(n**3-(n-2)**3);
+    expect(model.object.children.length).toBeLessThanOrEqual(3);
     const capture=()=>model.object.children.flatMap(object=>{
-      const mesh=object as Mesh;
-      return (mesh.userData.cubieSlots as number[]).map((slot,i)=>{
-        const normal=new Vector3(...slots[slot].n).applyQuaternion(mesh.quaternion);
-        return {position:mesh.position.clone().addScaledVector(normal,1/n),normal,color:(mesh.material as any[])[i].color.getHexString()};
+      const mesh=object as InstancedMesh;
+      return mesh.userData.pieces.flatMap((piece:{indices:number[];orientation:Quaternion},instance:number)=>{
+        const matrix=new Matrix4(),position=new Vector3(),rotation=new Quaternion(),scale=new Vector3();
+        mesh.getMatrixAt(instance,matrix);matrix.decompose(position,rotation,scale);
+        return piece.indices.map((slot,i)=>{
+          const normal=new Vector3(...slots[slot].n).applyQuaternion(piece.orientation.clone().invert()).applyQuaternion(rotation);
+          const attribute=mesh.geometry.getAttribute(`faceColour${i}`);
+          return {position:position.clone().addScaledVector(normal,1/n),normal,color:new Color(attribute.getX(instance),attribute.getY(instance),attribute.getZ(instance)).getHexString()};
+        });
       });
     });
     for(const alg of ['R','U2',...(n>3?['2R','Rw']:[])]){
@@ -69,14 +75,14 @@ test('stickerless cubies carry all face colours through outer, wide and inner tu
       const ends=capture();model.update(applyAlg(solved(n),alg),'full');
       expect(ends).toHaveLength(6*n*n);
       for(const face of capture()){
-        const previous=ends.find(e=>e.position.distanceTo(face.position)<1e-7&&e.normal.distanceTo(face.normal)<1e-7);
+        const previous=ends.find(e=>e.position.distanceTo(face.position)<1e-6&&e.normal.distanceTo(face.normal)<1e-6);
         expect(previous?.color).toBe(face.color);
       }
     }
     for(const object of model.object.children){
-      const mesh=object as Mesh;expect(Array.isArray(mesh.material)).toBe(true);
-      expect(mesh.geometry.groups).toHaveLength(mesh.userData.cubieSlots.length);
-      expect(mesh.geometry.groups.every(g=>g.count>0)).toBe(true);
+      const mesh=object as InstancedMesh;expect(Array.isArray(mesh.material)).toBe(false);
+      expect(mesh.geometry.groups).toHaveLength(0);
+      expect(mesh.geometry.getAttribute('faceColour0').count).toBe(mesh.count);
     }
     disposeObject(model.object);
   }
@@ -102,19 +108,39 @@ test('Pyraminx, Skewb and Megaminx rotations meet the next state without jumps',
 });
 
 test('stickerless colour seams partition a closed rounded body without gaps or overlapping shells',async()=>{
-  const {RoundedBoxGeometry}=await import('three/addons/geometries/RoundedBoxGeometry.js');
-  const {createStickerlessGeometry}=await import('../src/frontend/lib/three/cube-model');
+  const {createStickerlessGeometry,createCubieShell}=await import('../src/frontend/lib/three/cube-model');
   const area=(geometry:import('three').BufferGeometry)=>{
     const p=geometry.getAttribute('position');let sum=0;
     for(let i=0;i<p.count;i+=3){const a=new Vector3().fromBufferAttribute(p,i),b=new Vector3().fromBufferAttribute(p,i+1),c=new Vector3().fromBufferAttribute(p,i+2);sum+=b.sub(a).cross(c.sub(a)).length()/2;}
     return sum;
   };
-  const body=new RoundedBoxGeometry(.98,.98,.98,3,.095),expected=area(body);
   for(const normals of [[new Vector3(0,1,0)],[new Vector3(0,1,0),new Vector3(0,0,1)],[new Vector3(1,0,0),new Vector3(0,1,0),new Vector3(0,0,1)]]){
+    const body=createCubieShell(1,normals),expected=area(body);
     const geometry=createStickerlessGeometry(1,normals);
     expect(area(geometry)).toBeCloseTo(expected,5);
     expect(geometry.groups.reduce((sum,g)=>sum+g.count,0)).toBe(geometry.getAttribute('position').count);
-    geometry.dispose();
+    geometry.dispose();body.dispose();
   }
-  body.dispose();
+});
+
+test('moulded corners keep the exterior square and their geometry matches across a quarter turn',async()=>{
+  const {createCubieShell}=await import('../src/frontend/lib/three/cube-model');
+  const up=new Vector3(0,1,0),right=new Vector3(1,0,0),front=new Vector3(0,0,1);
+  const centre=createCubieShell(1,[up]),corner=createCubieShell(1,[up,right,front]);
+  const support=(geometry:import('three').BufferGeometry,direction:Vector3)=>{
+    const positions=geometry.getAttribute('position');let max=-Infinity;
+    for(let i=0;i<positions.count;i++)max=Math.max(max,new Vector3().fromBufferAttribute(positions,i).dot(direction));
+    return max;
+  };
+  expect(support(corner,new Vector3(1,1,1))-support(centre,new Vector3(1,1,1))).toBeGreaterThan(.04);
+  expect(support(corner,new Vector3(-1,1,-1))).toBeCloseTo(support(centre,new Vector3(-1,1,-1)),5);
+  const quarter=new Quaternion().setFromAxisAngle(up,Math.PI/2);
+  const before=createCubieShell(1,[up,front]),after=createCubieShell(1,[up,right]);
+  const vertices=(geometry:import('three').BufferGeometry,rotation=new Quaternion())=>{
+    const positions=geometry.getAttribute('position'),result=new Set<string>();
+    for(let i=0;i<positions.count;i++)result.add(new Vector3().fromBufferAttribute(positions,i).applyQuaternion(rotation).toArray().map(x=>Math.round(x*1e5)||0).join(','));
+    return result;
+  };
+  expect(vertices(before,quarter)).toEqual(vertices(after));
+  for(const geometry of [centre,corner,before,after])geometry.dispose();
 });

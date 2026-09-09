@@ -1,6 +1,6 @@
 import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { SolveInfoButton } from "../components/SolveInfoButton";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { AnimatePresence, motion } from "motion/react";
 import type { Penalty, SolveDto } from "../../shared/types";
@@ -9,7 +9,7 @@ import { useTimer } from "../hooks/useTimer";
 import { TimerSurface } from "../components/TimerSurface";
 import { PuzzlePreview } from "../components/PuzzlePreview";
 import { generatePracticeScramble } from "../lib/practiceScramble";
-import { contextKey, puzzleInfo, scrambleLabel, modeLabel, type PracticeContext, type ScrambleType, SOLVE_MODES } from "../../shared/puzzles";
+import { contextKey, puzzleInfo, scrambleLabel, type PracticeContext, type ScrambleType, SOLVE_MODES } from "../../shared/puzzles";
 import { averageOf, best, effective, fmtSolve, fmtTime, mean } from "../lib/format";
 import { Kpi } from "./AlgorithmsPage";
 import { IconShuffle, IconTimer } from "../components/icons";
@@ -25,7 +25,7 @@ import { useShortcuts } from "../hooks/useShortcuts";
 
 export function PlaygroundPage() {
   const context = useAtomValue(practiceContextAtom);
-  return <PlaygroundSession key={contextKey(context)} context={context} />;
+  return <PlaygroundSession context={context} />;
 }
 function PlaygroundSession({context}: {context: PracticeContext}) {
   const info = puzzleInfo(context.puzzle);
@@ -48,7 +48,7 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
 
   const generateNext = useCallback(async () => {
     const id = ++request.current;
-    setGenerating(true); setGenerationError(""); setScramble("");
+    setGenerating(true); setGenerationError("");
     try {
       const next = await generatePracticeScramble(context);
       if (alive.current && request.current === id) setScramble(next);
@@ -58,19 +58,16 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
       if (alive.current && request.current === id) setGenerating(false);
     }
   }, [context, setScramble]);
+  const practiceKey=contextKey(context);
   useEffect(() => {
-    alive.current = true;
-    if (!scramble) void generateNext();
-  return () => { alive.current = false; request.current++; };
-  }, []);
-
-
-  useEffect(() => {
-    const refresh = () => { void api.solves("playground", 1000, context.puzzle, context).then(list => setSolves([...list].reverse())); };
+    let active=true;
+    const refresh = () => { void api.solves("playground", 1000, context.puzzle, context).then(list => {
+      if(active)setSolves([...list].reverse());
+    }); };
     refresh(); window.addEventListener("cubix-local-changed",refresh);
     window.addEventListener("storage",refresh);
-    return () => { window.removeEventListener("cubix-local-changed",refresh); window.removeEventListener("storage",refresh); };
-  }, []);
+    return () => { active=false; window.removeEventListener("cubix-local-changed",refresh); window.removeEventListener("storage",refresh); };
+  }, [practiceKey]);
 
   const ensureSession = async () => {
     if (session.current === null) session.current = (await api.createSession("playground", [], context.puzzle, context)).id;
@@ -87,9 +84,18 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
       void generateNext();
       } finally { setSaving(false); }
     },
-    [scramble, setScramble],
+    [scramble, context, generateNext],
   );
   const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError });
+  // Reset the attempt and its data, while keeping the expensive WebGL viewport alive.
+  useLayoutEffect(() => {
+    alive.current=true;request.current++;
+    session.current=null;setSolves([]);setGenerationError("");setGenerating(false);
+    timer.reset();
+    if(!scramble)void generateNext();
+    return()=>{alive.current=false;request.current++;};
+  },[practiceKey]);
+
 
   const penalty = async (s: SolveDto, p: Penalty) => {
     const next = s.penalty === p ? "none" : p;
@@ -114,24 +120,12 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
         {wide && <div className="practice-rail left" />}
         <div className="practice-center">
           <div className="practice-stack playground-stack">
-            <motion.div {...upperMotion} className="playground-context">
-              <div className="playground-scramble-control"><span className="practice-control-label">Scramble type</span>
-                <Select value={context.scrambleType} disabled={busy || !!timer.saveError} onValueChange={value=>setScrambleType(value as ScrambleType)}>
-                  <SelectTrigger aria-label="Scramble type"><SelectValue/></SelectTrigger>
-                  <SelectContent>{info.scrambles.map(type=><SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="solve-mode-toggle" role="group" aria-label="Solve mode" data-practice-control>
-                {SOLVE_MODES.map(mode=><button type="button" key={mode.id} aria-pressed={context.solveMode===mode.id} disabled={busy || !!timer.saveError} onClick={()=>setSolveMode(mode.id)}>{mode.label}</button>)}
-              </div>
-              {context.solveMode==='blindfolded'&&<span className="practice-mode-label">Memo + execution</span>}
-            </motion.div>
             <motion.div {...upperMotion} className={`practice-scramble ${!info.cubeSize || info.cubeSize > 3 ? "big-cube-scramble" : ""}`} aria-label="Scramble">
               <span className="practice-caption">{info.label} · {scrambleLabel(context.scrambleType)}</span>
               {generating ? <span className="muted" role="status">Generating scramble…</span> : generationError ? <span role="alert">{generationError} <button className="mini-btn" onClick={() => void generateNext()}>Retry</button></span> : <AlgText alg={scramble} />}
             </motion.div>
             <motion.div {...upperMotion} className="practice-cube">
-              {scramble && <PuzzlePreview puzzle={context.puzzle} alg={scramble} />}
+              <PuzzlePreview puzzle={context.puzzle} alg={scramble} />
             </motion.div>
             <TimerSurface timer={timer} flat />
             <motion.div {...lowerMotion} className="practice-stats">
@@ -184,7 +178,19 @@ function PlaygroundSession({context}: {context: PracticeContext}) {
         </div>
         </PracticePanel>
       </div>
-      <div className="practice-actions" aria-label="Playground controls">
+      <div className="practice-actions playground-actions" aria-label="Playground controls">
+        <motion.div {...lowerMotion} className="playground-context">
+          <div className="playground-scramble-control"><span className="practice-control-label">Scramble type</span>
+            <Select value={context.scrambleType} disabled={busy || !!timer.saveError} onValueChange={value=>setScrambleType(value as ScrambleType)}>
+              <SelectTrigger aria-label="Scramble type"><SelectValue/></SelectTrigger>
+              <SelectContent>{info.scrambles.map(type=><SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="solve-mode-toggle" role="group" aria-label="Solve mode" data-practice-control>
+            {SOLVE_MODES.map(mode=><button type="button" key={mode.id} aria-pressed={context.solveMode===mode.id} disabled={busy || !!timer.saveError} onClick={()=>setSolveMode(mode.id)}>{mode.label}</button>)}
+          </div>
+        </motion.div>
+
         <PracticeAction running={timer.phase === "running"} onClick={nextScramble} disabled={busy || generating} aria-keyshortcuts="Alt+n"><IconShuffle /><span>New scramble</span><ShortcutKey letter="N" /></PracticeAction>
         <PracticeAction running={timer.phase === "running"} onClick={toggleTimes} disabled={busy} aria-expanded={showTimes} aria-keyshortcuts="Alt+t"><IconTimer /><span>Times</span><ShortcutKey letter="T" /></PracticeAction>
       </div>

@@ -2,7 +2,9 @@ import { useAtomValue } from "jotai";
 import { animationsEnabledAtom } from "../state";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { applyMove, moveAngleDeg, parseAlg, cubeSize, type CubeState, type Move } from "../../shared/cube";
-import {ThreeViewport} from './ThreeViewport';
+import {ThreeViewport,type ThreeViewportProps} from './ThreeViewport';
+import {useCubeGeometry} from '../hooks/useCubeGeometry';
+import {PuzzlePlaceholder} from './PuzzlePlaceholder';
 import {createCubeModel} from '../lib/three/cube-model';
 import {DEFAULT_ROTATION,type CubeMask,type LayerAnimation} from '../lib/cube-appearance';
 export {FACE_COLORS,DEFAULT_ROTATION,type CubeMask,type LayerAnimation} from '../lib/cube-appearance';
@@ -24,7 +26,9 @@ export interface Cube3DProps {
 export const Cube3D=memo(function Cube3D({state,size=160,mask='full',rotation=DEFAULT_ROTATION,animation,interactive,onRotationChange,className,style}:Cube3DProps){
   const dimension=cubeSize(state);
   const createModel=useCallback(()=>createCubeModel(dimension),[dimension]);
-  return <ThreeViewport createModel={createModel} updateModel={model=>model.update(state,mask,animation)} label={`${dimension}×${dimension} cube, drag to rotate`} rotation={rotation} interactive={interactive} onRotationChange={onRotationChange} className={className} style={{width:size,height:size,...style}}/>;
+  const geometry=useCubeGeometry(dimension),view=useRef<ThreeViewportProps<ReturnType<typeof createCubeModel>>|null>(null);
+  if(geometry.ready)view.current={cacheKey:`cube:${dimension}`,createModel,updateModel:model=>model.update(state,mask,animation),label:`${dimension}×${dimension} cube, drag to rotate`,rotation,interactive,onRotationChange,className,style:{width:size,height:size,...style}};
+  return view.current&&!geometry.error?<ThreeViewport {...view.current} loading={!geometry.ready}/>:<div style={{width:size,height:size,position:'relative',...style}}><PuzzlePlaceholder error={geometry.error} onRetry={geometry.retry}/></div>;
 });
 
 // ---------------------------------------------------------------------------

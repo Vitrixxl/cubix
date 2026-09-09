@@ -1,3 +1,4 @@
+import { buildModelWorker } from "./build-model-worker";
 import { buildVendor } from "./build-vendor";
 import { cp, rm, readdir, readFile, writeFile } from "node:fs/promises";
 
@@ -12,6 +13,7 @@ const admin = Bun.spawn(["bun", "build", "./src/admin/index.html", "--outdir=dis
 if (await admin.exited !== 0) process.exit(1);
 await cp("public", "dist/view", { recursive: true });
 await buildVendor("dist/view/vendor/cubing");
+await buildModelWorker("dist/view/workers");
 
 // An atomic shell cache includes the complete catalogue, fonts and PWA icons.
 const files = (await readdir("dist/view", {recursive:true})).filter(path => !path.startsWith("admin/") && /\.(html|js|css|woff2|png|svg|webmanifest)$/.test(path)).sort();
