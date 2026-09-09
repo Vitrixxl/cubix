@@ -46,6 +46,7 @@ struct Client {
     limited: u64,
     errors: u64,
     last: i64,
+    last_recorded: i64,
     http: Bucket,
     auth: Bucket,
     admin: Bucket,
@@ -120,7 +121,9 @@ impl Traffic {
             let cutoff = now() - 900000;
             d.ips.retain(|_, c| c.last > cutoff);
             if d.ips.len() >= MAX_IPS {
-                d.overflow += 1;
+                if path != "/api/health" {
+                    d.overflow += 1;
+                }
                 return false;
             }
         }
@@ -129,6 +132,7 @@ impl Traffic {
             limited: 0,
             errors: 0,
             last: now(),
+            last_recorded: 0,
             http: Bucket::new(self.limit as f64),
             auth: Bucket::new(20.),
             admin: Bucket::new(5.),
@@ -149,6 +153,10 @@ impl Traffic {
         general && special
     }
     pub fn record(&self, ip: IpAddr, method: &str, path: &str, status: u16, ms: f64) {
+        // Health probes still obey rate limits, but never feed admin telemetry.
+        if path == "/api/health" {
+            return;
+        }
         let mut d = self.data.lock().unwrap();
         d.total += 1;
         if status == 429 {
@@ -160,6 +168,7 @@ impl Traffic {
         if let Some(c) = d.ips.get_mut(&ip) {
             c.total += 1;
             c.last = now();
+            c.last_recorded = c.last;
             if status == 429 {
                 c.limited += 1;
             }
@@ -192,12 +201,14 @@ impl Traffic {
         let mut ips: Vec<_> = d
             .ips
             .iter()
-            .filter(|(addr, _)| ip.is_empty() || addr.to_string().contains(ip))
+            .filter(|(_, client)| client.total > 0)
             .collect();
+        let tracked_ip_count = ips.len();
+        ips.retain(|(addr, _)| ip.is_empty() || addr.to_string().contains(ip));
         ips.sort_by(|a, b| b.1.total.cmp(&a.1.total).then_with(|| a.0.cmp(b.0)));
         let ip_count = ips.len();
-        let rows:Vec<_>=ips.into_iter().skip(ip_page*50).take(50).map(|(ip,c)|json!({"ip":ip.to_string(),"requests":c.total,"limited":c.limited,"errors":c.errors,"lastAt":c.last})).collect();
-        json!({"startedAt":self.started,"total":d.total,"errors":d.errors,"limited":d.limited,"ipCount":d.ips.len(),"matchingIps":ip_count,"untrackedRequests":d.overflow,"ips":rows,"requests":logs,"retained":d.logs.len(),"capacity":MAX_LOGS,"rateLimit":self.limit})
+        let rows:Vec<_>=ips.into_iter().skip(ip_page*50).take(50).map(|(ip,c)|json!({"ip":ip.to_string(),"requests":c.total,"limited":c.limited,"errors":c.errors,"lastAt":c.last_recorded})).collect();
+        json!({"startedAt":self.started,"total":d.total,"errors":d.errors,"limited":d.limited,"ipCount":tracked_ip_count,"matchingIps":ip_count,"untrackedRequests":d.overflow,"ips":rows,"requests":logs,"retained":d.logs.len(),"capacity":MAX_LOGS,"rateLimit":self.limit})
     }
 }
 pub async fn monitor(
