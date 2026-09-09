@@ -79,6 +79,10 @@ Le catalogue complet et les calculs de statistiques sont intégrés au frontend.
 
 Après un premier chargement en ligne, le service worker conserve l’interface, le catalogue,
 les fontes et les icônes : l’application peut être fermée puis rouverte sans réseau.
+Ce fonctionnement est disponible dans un onglet normal, sans installer la PWA.
+À l’ouverture ou au rechargement, la page est demandée au serveur en priorité ; le cache prend
+le relais en cas de panne, d’absence de réseau ou après 4 secondes sans réponse. L’administration
+reste exclusivement en réseau. Une mise à jour du service worker ne recharge pas les sessions d’entraînement ouvertes.
 Cette installation hors ligne nécessite **HTTPS**, ou `http://localhost` pour un usage local.
 Le serveur de développement Bun utilise le HMR ; le cache hors ligne est activé sur le build de production.
 

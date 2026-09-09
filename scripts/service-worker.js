@@ -2,12 +2,28 @@
 const CACHE = "cubix-shell-__VERSION__";
 const ASSETS = __ASSETS__;
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  event.waitUntil((async () => {
+    await caches.open(CACHE).then(cache => cache.addAll(ASSETS));
+    // An old worker may serve the application shell at /aaaaadmin indefinitely.
+    // Activate after the complete offline shell is ready, even with old tabs open.
+    await self.skipWaiting();
+  })());
 });
 self.addEventListener("activate", event => {
   event.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key.startsWith("cubix-shell-") && key !== CACHE) await caches.delete(key);
+    // Keep one previous build for assets still referenced by open application tabs.
+    const previous = (await caches.keys()).filter(key => key.startsWith("cubix-shell-") && key !== CACHE);
+    for (const key of previous.slice(0, -1)) await caches.delete(key);
     await self.clients.claim();
+    // Repair only admin navigation intercepted by the old shell. Never reload an
+    // active training session when the worker changes.
+    for (const client of await self.clients.matchAll({ type: "window" })) {
+      if (["/aaaaadmin", "/aaaaadmin/"].includes(new URL(client.url).pathname)) {
+        // Do not await navigation inside activation: its fetch waits for this
+        // activation event to finish.
+        void client.navigate(client.url).catch(() => {});
+      }
+    }
   })());
 });
 self.addEventListener("fetch", event => {
@@ -15,7 +31,24 @@ self.addEventListener("fetch", event => {
   if (event.request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname.startsWith("/aaaaadmin") || url.pathname.startsWith("/admin/")) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    if (event.request.mode === "navigate") return await cache.match("/index.html") || fetch(event.request);
-    return await cache.match(event.request, {ignoreSearch:true}) || fetch(event.request);
+    if (event.request.mode === "navigate") {
+      if (url.pathname !== "/" && url.pathname !== "/index.html") return fetch(event.request);
+      // Ask the server first, including when a network exists but the server is
+      // unreachable. Keep the cached HTML paired with its complete build assets.
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      try {
+        const response = await fetch(event.request, { cache: "no-cache", signal: controller.signal });
+        if (response.status >= 500) return await cache.match("/index.html") || response;
+        return response;
+      } catch (error) {
+        const fallback = await cache.match("/index.html");
+        if (fallback) return fallback;
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    return await cache.match(event.request, {ignoreSearch:true}) || await caches.match(event.request, {ignoreSearch:true}) || fetch(event.request);
   })());
 });

@@ -16,4 +16,5 @@ const files = (await readdir("dist/view", {recursive:true})).filter(path => !pat
 const hash = new Bun.CryptoHasher("sha256");
 for (const path of files) hash.update(await readFile("dist/view/"+path));
 const template = await readFile("scripts/service-worker.js","utf8");
+hash.update(template);
 await writeFile("dist/view/sw.js",template.replace("__VERSION__",hash.digest("hex").slice(0,16)).replace("__ASSETS__",JSON.stringify(files.map(path => "/"+path))));
