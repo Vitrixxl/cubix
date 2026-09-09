@@ -5,7 +5,7 @@ import {Vector3,Quaternion,Mesh} from 'three';
 import {createSquare1Model,square1Pose,square1Pieces,square1Polygon} from '../src/frontend/lib/three/square1-model';
 import {createClockModel,clockDialAngles} from '../src/frontend/lib/three/clock-model';
 import {createCubeModel} from '../src/frontend/lib/three/cube-model';
-import {applyAlg,solved,parseMove,moveAngleDeg} from '../src/shared/cube';
+import {applyAlg,solved,parseMove,moveAngleDeg,slotsFor} from '../src/shared/cube';
 import {disposeObject} from '../src/frontend/components/ThreeViewport';
 import catalog from '../data/niche-catalog.json';
 const sameRotation=(a:Quaternion,b:Quaternion)=>Math.abs(a.dot(b))>1-1e-7;
@@ -53,16 +53,30 @@ test('Clock dial animation meets the exact pattern at signed turn endpoints',asy
   disposeObject(model.object);
 });
 
-test('Three.js cube animates physical cubies and stickers, including inner slices',()=>{
+test('stickerless cubies carry all face colours through outer, wide and inner turns',()=>{
   for(const n of [2,3,4,5,6,7]){
-    const model=createCubeModel(n);
+    const model=createCubeModel(n),slots=slotsFor(n);
+    expect(model.object.children).toHaveLength(n**3-(n-2)**3);
+    const capture=()=>model.object.children.flatMap(object=>{
+      const mesh=object as Mesh;
+      return (mesh.userData.cubieSlots as number[]).map((slot,i)=>{
+        const normal=new Vector3(...slots[slot].n).applyQuaternion(mesh.quaternion);
+        return {position:mesh.position.clone().addScaledVector(normal,1/n),normal,color:(mesh.material as any[])[i].color.getHexString()};
+      });
+    });
     for(const alg of ['R','U2',...(n>3?['2R','Rw']:[])]){
       const move=parseMove(alg,n)!;model.update(solved(n),'full',{move,angle:moveAngleDeg(move)});
-      const ends=model.object.children.filter((o):o is Mesh=>o instanceof Mesh&&o.userData.cubeSticker===true).map(o=>({position:o.position.clone(),normal:new Vector3(0,0,1).applyQuaternion(o.quaternion),color:(o.material as any).color.getHexString()}));
-      model.update(applyAlg(solved(n),alg),'full');
+      const ends=capture();model.update(applyAlg(solved(n),alg),'full');
       expect(ends).toHaveLength(6*n*n);
-      const after=model.object.children.filter((o):o is Mesh=>o instanceof Mesh&&o.userData.cubeSticker===true);
-      for(const sticker of after){const previous=ends.find(e=>e.position.distanceTo(sticker.position)<1e-7&&e.normal.distanceTo(new Vector3(0,0,1).applyQuaternion(sticker.quaternion))<1e-7);expect(previous?.color).toBe((sticker.material as any).color.getHexString());}
+      for(const face of capture()){
+        const previous=ends.find(e=>e.position.distanceTo(face.position)<1e-7&&e.normal.distanceTo(face.normal)<1e-7);
+        expect(previous?.color).toBe(face.color);
+      }
+    }
+    for(const object of model.object.children){
+      const mesh=object as Mesh;expect(Array.isArray(mesh.material)).toBe(true);
+      expect(mesh.geometry.groups).toHaveLength(mesh.userData.cubieSlots.length);
+      expect(mesh.geometry.groups.every(g=>g.count>0)).toBe(true);
     }
     disposeObject(model.object);
   }
@@ -85,4 +99,22 @@ test('Pyraminx, Skewb and Megaminx rotations meet the next state without jumps',
     }
     disposeObject(model.object);
   }
+});
+
+test('stickerless colour seams partition a closed rounded body without gaps or overlapping shells',async()=>{
+  const {RoundedBoxGeometry}=await import('three/addons/geometries/RoundedBoxGeometry.js');
+  const {createStickerlessGeometry}=await import('../src/frontend/lib/three/cube-model');
+  const area=(geometry:import('three').BufferGeometry)=>{
+    const p=geometry.getAttribute('position');let sum=0;
+    for(let i=0;i<p.count;i+=3){const a=new Vector3().fromBufferAttribute(p,i),b=new Vector3().fromBufferAttribute(p,i+1),c=new Vector3().fromBufferAttribute(p,i+2);sum+=b.sub(a).cross(c.sub(a)).length()/2;}
+    return sum;
+  };
+  const body=new RoundedBoxGeometry(.98,.98,.98,3,.095),expected=area(body);
+  for(const normals of [[new Vector3(0,1,0)],[new Vector3(0,1,0),new Vector3(0,0,1)],[new Vector3(1,0,0),new Vector3(0,1,0),new Vector3(0,0,1)]]){
+    const geometry=createStickerlessGeometry(1,normals);
+    expect(area(geometry)).toBeCloseTo(expected,5);
+    expect(geometry.groups.reduce((sum,g)=>sum+g.count,0)).toBe(geometry.getAttribute('position').count);
+    geometry.dispose();
+  }
+  body.dispose();
 });

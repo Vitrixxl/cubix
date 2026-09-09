@@ -1,39 +1,72 @@
-import {RoundedBoxGeometry} from "three/addons/geometries/RoundedBoxGeometry.js";
-import {ExtrudeGeometry,Group,Mesh,MeshPhysicalMaterial,MeshStandardMaterial,Quaternion,Shape,Vector3} from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {BufferGeometry,Float32BufferAttribute,Group,Mesh,MeshPhysicalMaterial,Quaternion,Vector3} from 'three';
 import {cubeSize,movingSlots,slotsFor,type CubeState} from '../../../shared/cube';
 import {stickerColor,type CubeMask,type LayerAnimation} from '../cube-appearance';
 
-/** A rounded, raised tile with a soft bevel, sharing geometry across all facelets. */
-function createTileGeometry(unit:number){
-  const half=unit*.435,r=unit*.09,shape=new Shape();
-  shape.moveTo(-half+r,-half);shape.lineTo(half-r,-half);
-  shape.quadraticCurveTo(half,-half,half,-half+r);shape.lineTo(half,half-r);
-  shape.quadraticCurveTo(half,half,half-r,half);shape.lineTo(-half+r,half);
-  shape.quadraticCurveTo(-half,half,-half,half-r);shape.lineTo(-half,-half+r);
-  shape.quadraticCurveTo(-half,-half,-half+r,-half);
-  const geometry=new ExtrudeGeometry(shape,{depth:unit*.012,bevelEnabled:true,bevelThickness:unit*.018,bevelSize:unit*.018,bevelSegments:4,curveSegments:6,steps:1});
+type Vertex={position:Vector3;normal:Vector3};
+/** Split the solid at the colour seams; interpolated normals keep the bevel smooth. */
+function clip(polygon:Vertex[],plane:Vector3):Vertex[]{
+  const result:Vertex[]=[];
+  for(let i=0;i<polygon.length;i++){
+    const a=polygon[i],b=polygon[(i+1)%polygon.length];
+    const da=a.position.dot(plane),db=b.position.dot(plane);
+    if(da>=-1e-10)result.push(a);
+    if((da<0&&db>0)||(da>0&&db<0)){
+      const t=da/(da-db);
+      result.push({position:a.position.clone().lerp(b.position,t),normal:a.normal.clone().lerp(b.normal,t).normalize()});
+    }
+  }
+  return result;
+}
+/** A single moulded cubie. Coloured plastic continues around the bevel and onto its inner faces. */
+export function createStickerlessGeometry(unit:number,directions:Vector3[]){
+  const base=new RoundedBoxGeometry(unit*.98,unit*.98,unit*.98,3,unit*.095);
+  const positions=base.getAttribute('position'),normals=base.getAttribute('normal');
+  const geometry=new BufferGeometry(),vertices:number[]=[],vertexNormals:number[]=[];
+  for(const [material,direction] of directions.entries()){
+    const start=vertices.length/3;
+    const planes=directions.filter(other=>other!==direction).map(other=>direction.clone().sub(other));
+    for(let i=0;i<positions.count;i+=3){
+      let polygon:Vertex[]=Array.from({length:3},(_,j)=>({position:new Vector3().fromBufferAttribute(positions,i+j),normal:new Vector3().fromBufferAttribute(normals,i+j)}));
+      for(const plane of planes){polygon=clip(polygon,plane);if(polygon.length<3)break;}
+      for(let j=1;j<polygon.length-1;j++){
+        const triangle=[polygon[0],polygon[j],polygon[j+1]];
+        if(new Vector3().subVectors(triangle[1].position,triangle[0].position).cross(new Vector3().subVectors(triangle[2].position,triangle[0].position)).lengthSq()<1e-18)continue;
+        for(const vertex of triangle){vertices.push(...vertex.position.toArray());vertexNormals.push(...vertex.normal.toArray());}
+      }
+    }
+    geometry.addGroup(start,vertices.length/3-start,material);
+  }
+  base.dispose();
+  geometry.setAttribute('position',new Float32BufferAttribute(vertices,3));
+  geometry.setAttribute('normal',new Float32BufferAttribute(vertexNormals,3));
+  geometry.computeBoundingSphere();
   return geometry;
 }
 
 export function createCubeModel(size:number){
-  const object=new Group(),unit=2/size;
-  const bodyGeometry=new RoundedBoxGeometry(unit*.96,unit*.96,unit*.96,3,unit*.09),bodyMaterial=new MeshStandardMaterial({color:0x15161b,roughness:.38});
-  const stickerGeometry=createTileGeometry(unit);
-  const bodies:{mesh:Mesh;position:Vector3;slot:number}[]=[];
-  const occupied=new Set<string>();
-  const stickers=slotsFor(size).map((slot,index)=>{
-    const key=slot.p.join(',');
-    if(!occupied.has(key)){occupied.add(key);const mesh=new Mesh(bodyGeometry,bodyMaterial);mesh.position.set(...slot.p).multiplyScalar(unit);object.add(mesh);bodies.push({mesh,position:mesh.position.clone(),slot:index});}
-    const material=new MeshPhysicalMaterial({roughness:.32,metalness:0,clearcoat:.3,clearcoatRoughness:.26}),mesh=new Mesh(stickerGeometry,material);
-    mesh.userData.cubeSticker=true;
-    mesh.position.set(...slot.p).multiplyScalar(unit).addScaledVector(new Vector3(...slot.n),unit*.485);
-    mesh.quaternion.setFromUnitVectors(new Vector3(0,0,1),new Vector3(...slot.n));object.add(mesh);
-    return {mesh,material,position:mesh.position.clone(),quaternion:mesh.quaternion.clone()};
+  const object=new Group(),unit=2/size,slots=slotsFor(size);
+  const cubieSlots=new Map<string,number[]>();
+  for(const [index,slot] of slots.entries()){
+    const key=slot.p.join(',');const list=cubieSlots.get(key)??[];list.push(index);cubieSlots.set(key,list);
+  }
+  const geometries=new Map<string,BufferGeometry>();
+  const pieces=[...cubieSlots.values()].map(indices=>{
+    const directions=indices.map(i=>new Vector3(...slots[i].n)),key=directions.map(n=>n.toArray().join(',')).join('|');
+    let geometry=geometries.get(key);
+    if(!geometry){geometry=createStickerlessGeometry(unit,directions);geometries.set(key,geometry);}
+    const materials=indices.map(()=>new MeshPhysicalMaterial({roughness:.3,metalness:0,clearcoat:.24,clearcoatRoughness:.3}));
+    const mesh=new Mesh(geometry,materials);mesh.position.set(...slots[indices[0]].p).multiplyScalar(unit);
+    mesh.userData.cubieSlots=indices;object.add(mesh);
+    return {mesh,position:mesh.position.clone(),indices,materials};
   });
   return {object,update(state:CubeState,mask:CubeMask,animation?:LayerAnimation|null){
     const moving=animation?new Set(movingSlots(animation.move,cubeSize(state))):null;
-    const q=new Quaternion();if(animation)q.setFromAxisAngle(new Vector3(...([animation.move.axis===0?1:0,animation.move.axis===1?1:0,animation.move.axis===2?1:0] as [number,number,number])),animation.angle*Math.PI/180);
-    for(const [index,sticker] of stickers.entries()){sticker.material.color.set(stickerColor(state,index,mask));sticker.mesh.position.copy(sticker.position);sticker.mesh.quaternion.copy(sticker.quaternion);if(moving?.has(index)){sticker.mesh.position.applyQuaternion(q);sticker.mesh.quaternion.premultiply(q);}}
-    for(const body of bodies){body.mesh.position.copy(body.position);body.mesh.quaternion.identity();if(moving?.has(body.slot)){body.mesh.position.applyQuaternion(q);body.mesh.quaternion.copy(q);}}
+    const q=new Quaternion();if(animation){const axis=new Vector3();axis.setComponent(animation.move.axis,1);q.setFromAxisAngle(axis,animation.angle*Math.PI/180);}
+    for(const piece of pieces){
+      piece.indices.forEach((slot,i)=>piece.materials[i].color.set(stickerColor(state,slot,mask)));
+      piece.mesh.position.copy(piece.position);piece.mesh.quaternion.identity();
+      if(moving?.has(piece.indices[0])){piece.mesh.position.applyQuaternion(q);piece.mesh.quaternion.copy(q);}
+    }
   }};
 }
