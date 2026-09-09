@@ -40,6 +40,24 @@ test("per-IP rate limits return 429 with Retry-After and cannot be bypassed by s
  expect(responses.filter(r=>r.status===429).length).toBeGreaterThanOrEqual(3);expect(responses.at(-1)!.headers.get("retry-after")).toBe("60");
 });
 
+test("health probes are excluded from admin logs, counters and IP listings even when rate limited",async()=>{
+ const {origin}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1",CUBIX_RATE_LIMIT:"5"});
+ for(let i=0;i<7;i++){
+  const response=await fetch(origin+"/api/health?probe=1",{headers:{"x-forwarded-for":"203.0.113.8"}});
+  expect(response.status).toBe(i<5?200:429);
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+ }
+ const admin=await login(origin);
+ const {traffic}=await (await fetch(origin+"/api/admin/dashboard",{headers:{cookie:admin.cookie}})).json();
+ expect(traffic.total).toBe(1);expect(traffic.retained).toBe(1);
+ expect(traffic.errors).toBe(0);expect(traffic.limited).toBe(0);
+ expect(traffic.ipCount).toBe(1);expect(traffic.matchingIps).toBe(1);
+ expect(traffic.ips).toHaveLength(1);expect(traffic.ips[0].requests).toBe(1);
+ expect(traffic.requests.map((r:any)=>r.path)).toEqual(["/api/admin/login"]);
+ const filtered=await (await fetch(origin+"/api/admin/dashboard?ip=203.0.113.8",{headers:{cookie:admin.cookie}})).json();
+ expect(filtered.traffic.matchingIps).toBe(0);expect(filtered.traffic.ips).toHaveLength(0);expect(filtered.traffic.requests).toHaveLength(0);
+});
+
 test("admin login has a separate brute-force limit and rejects cross-origin submissions",async()=>{
  const {origin}=setup();const cross=await login(origin,"synthetic-admin-test-password",{origin:"https://foreign.example"});expect(cross.response.status).toBe(403);
  for(let i=0;i<4;i++)expect((await login(origin,"wrong-password")).response.status).toBe(401);
@@ -48,7 +66,7 @@ test("admin login has a separate brute-force limit and rejects cross-origin subm
 
 test("only configured proxies may supply client IPs; the rightmost untrusted hop wins",async()=>{
  const {origin}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1"});
- await fetch(origin+"/api/health",{headers:{"x-forwarded-for":"192.0.2.5, 203.0.113.7"}});
+ await fetch(origin+"/api/moves",{headers:{"x-forwarded-for":"192.0.2.5, 203.0.113.7"}});
  const admin=await login(origin);const body=await (await fetch(origin+"/api/admin/dashboard?ip=203.0.113.7",{headers:{cookie:admin.cookie}})).json();
  expect(body.traffic.ips[0].ip).toBe("203.0.113.7");expect(body.traffic.ips[0].requests).toBe(1);
 });
@@ -82,6 +100,7 @@ async function adminSocket(origin:string,cookie:string,filters:Record<string,str
 test('admin WebSocket pushes traffic and users, applies filters, pauses, resumes and stays idle without polling',async()=>{
  const {origin}=setup();const admin=await login(origin);const live=await adminSocket(origin,admin.cookie);
  await Bun.sleep(600);const before=live.snapshots.length;
+ await fetch(origin+'/api/health');await fetch(origin+'/api/health?probe=1');
  await Bun.sleep(700);expect(live.snapshots.length).toBe(before);
  await fetch(origin+'/websocket-proof');
  const pushed=await live.wait(data=>data.traffic.requests.some((r:any)=>r.path==='/websocket-proof'));
