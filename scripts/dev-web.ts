@@ -1,3 +1,4 @@
+import admin from "../src/admin/index.html";
 import index from "../src/frontend/index.html";
 import { WebSocket } from "ws";
 
@@ -9,6 +10,8 @@ const server = Bun.serve<Bridge>({
   port: 5180,
   development: { hmr: true, console: true },
   routes: {
+    "/aaaaadmin": admin,
+    "/aaaaadmin/": admin,
     "/api/*": async (request: Request, server: Bun.Server<Bridge>) => {
       const url = new URL(request.url);
       if (url.pathname === "/api/social/live" && request.headers.get("upgrade")?.toLowerCase() === "websocket") {

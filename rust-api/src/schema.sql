@@ -50,3 +50,8 @@
       UNIQUE(sender_id, client_id)
     );
     CREATE INDEX IF NOT EXISTS idx_chat_pair ON chat_messages(sender_id, recipient_id, id);
+
+CREATE TABLE IF NOT EXISTS admin_tokens (
+ token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL, password_version TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_admin_expiry ON admin_tokens(expires_at);

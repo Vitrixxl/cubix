@@ -6,7 +6,7 @@ use crate::{
 };
 use axum::{
     extract::{
-        State, WebSocketUpgrade,
+        ConnectInfo, State, WebSocketUpgrade,
         ws::{CloseFrame, Message, WebSocket},
     },
     response::Response,
@@ -147,13 +147,19 @@ pub fn persist(db: &Connection, hub: &Hub, user: &str, peer: &str, body: &Value)
     hub.notify(&[user, peer]);
     message_dto(row)
 }
-pub async fn upgrade(State(state): State<AppState>, ws: WebSocketUpgrade) -> Response {
+pub async fn upgrade(
+    State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<std::net::SocketAddr>,
+    headers: axum::http::HeaderMap,
+    ws: WebSocketUpgrade,
+) -> Response {
+    let ip = state.traffic.ip(peer.ip(), &headers);
     ws.read_buffer_size(4096)
         .write_buffer_size(0)
         .max_write_buffer_size(32768)
         .max_message_size(16384)
         .max_frame_size(16384)
-        .on_upgrade(move |socket| live(state, socket))
+        .on_upgrade(move |socket| live(state, socket, ip))
 }
 async fn send(socket: &mut WebSocket, value: Value) -> bool {
     socket
@@ -182,7 +188,7 @@ async fn authenticated(state: &AppState, token: String) -> Result<Value> {
     }
     Ok(user)
 }
-async fn live(state: AppState, mut socket: WebSocket) {
+async fn live(state: AppState, mut socket: WebSocket, ip: std::net::IpAddr) {
     let id = Uuid::new_v4();
     let mut user_id: Option<String> = None;
     let mut token = String::new();
@@ -199,6 +205,10 @@ async fn live(state: AppState, mut socket: WebSocket) {
             }
             incoming=socket.recv()=>{
                 let Some(Ok(message))=incoming else {break};
+                if !state.traffic.allow(ip,"/api/social/live",true) {
+                    let _=socket.send(Message::Close(Some(CloseFrame {code:1008,reason:"Message rate limit exceeded".into()}))).await;
+                    break;
+                }
                 let text=match message {Message::Text(t)=>t,Message::Close(_)=>break,Message::Ping(_)|Message::Pong(_)=>continue,_=>{close(&mut socket).await;break}};
                 let Ok(body)=serde_json::from_str::<Value>(&text) else {close(&mut socket).await;break};
                 let kind=body["type"].as_str().unwrap_or("");

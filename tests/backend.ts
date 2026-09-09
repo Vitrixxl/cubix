@@ -32,14 +32,14 @@ export function openDb(path = ":memory:") {
   return database(path);
 }
 export function createApi(db: {path:string}) { return createRustApi(db.path); }
-export function createRustApi(path: string) {
+export function createRustApi(path: string, settings: Record<string,string> = {}) {
   const reservation = spawnSync(process.execPath, ['-e', `
     const s=require('node:net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()});
   `], { encoding: 'utf8' });
   if (reservation.status !== 0) throw Error(reservation.stderr);
   const port = Number(reservation.stdout.trim());
   const child = spawn(resolve("rust-api/target/release/cubix-api"), [], {
-    env: { ...process.env, CUBIX_DB:path, CUBIX_HOST:"127.0.0.1", PORT:String(port), CUBIX_EXTRA_PORTS:"" }, stdio:['ignore','ignore','inherit'],
+    env: { ...process.env, CUBIX_DB:path, CUBIX_HOST:"127.0.0.1", PORT:String(port), CUBIX_EXTRA_PORTS:"", CUBIX_ADMIN_PASSWORD:"synthetic-admin-test-password", ...settings }, stdio:['ignore','ignore','inherit'],
   });
   children.push(child);
   const origin=`http://127.0.0.1:${port}`;

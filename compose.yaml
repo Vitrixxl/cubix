@@ -7,6 +7,9 @@ services:
       CUBIX_HOST: 0.0.0.0
       PORT: "3000"
       CUBIX_DB: /var/lib/cubix/cubix.db
+      CUBIX_ADMIN_PASSWORD: "${CUBIX_ADMIN_PASSWORD:-}"
+      CUBIX_RATE_LIMIT: "${CUBIX_RATE_LIMIT:-600}"
+      CUBIX_TRUSTED_PROXIES: "${CUBIX_TRUSTED_PROXIES:-}"
     volumes:
       - cubix-data:/var/lib/cubix
     ulimits:

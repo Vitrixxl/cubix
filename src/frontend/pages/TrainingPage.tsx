@@ -160,7 +160,7 @@ export function TrainingPage() {
             {current ? (
               <motion.section {...upperMotion} className="training-case" aria-label="Current case">
                 <div className="training-case-heading">
-                  <h1>{current.c.id}</h1>
+                  <h1><button type="button" className="training-case-link" disabled={busy} onClick={() => setRoute({ page: "algorithms", caseId: current.c.id })} title="Open case details">{current.c.id}</button></h1>
                   <span className="chip">{current.c.group}</span>
                   {current.c.name !== current.c.id && <p>{current.c.name}</p>}
                 </div>

@@ -33,6 +33,44 @@ Les comptes, temps, sessions, amitiés et messages sont conservés dans le volum
 Le service expose le frontend, `/api` et la WebSocket `/api/social/live` sur le même port.
 Les utilisateurs doivent ouvrir le même serveur pour retrouver les mêmes comptes et discuter.
 
+## Administration
+
+L’interface **`/aaaaadmin`** donne accès au journal HTTP en direct, aux compteurs par IP
+et à la liste paginée des utilisateurs (recherche, nombre de temps et de sessions).
+Les anciens invités serveur sont séparés des comptes inscrits ; les invités locaux ne sont pas envoyés au serveur.
+
+Créer un fichier `.env` à la racine à partir de `.env.example`, puis définir
+`CUBIX_ADMIN_PASSWORD` avec un mot de passe d’au moins 12 caractères. Ce fichier est ignoré par Git
+et exclu de l’image Docker. Compose transmet la variable au conteneur ; les lancements Rust directs lisent également `.env`.
+Sans mot de passe configuré, les API d’administration sont désactivées.
+Après un changement : `docker compose up -d --build`.
+
+La connexion utilise uniquement ce mot de passe. Le jeton admin, indépendant des comptes utilisateurs,
+est conservé dans un cookie `HttpOnly`, `SameSite=Strict` (`Secure` en HTTPS), valable **24 heures**.
+Il reste valide après un redémarrage ; une déconnexion ou un changement de mot de passe le révoque.
+Le serveur stocke uniquement l’empreinte des jetons. Les données admin ne sont pas mises en cache par la PWA.
+
+Le journal conserve les **10 000 dernières requêtes HTTP** en mémoire (routes statiques, API,
+erreurs et ouvertures WebSocket incluses) ; l’interface affiche les 200 dernières correspondances aux filtres.
+Les corps, paramètres de requête, mots de passe et jetons ne sont pas enregistrés.
+Les compteurs repartent à zéro au redémarrage. Le suivi est limité à 20 000 IP ; à saturation,
+les IP inactives depuis 15 minutes sont évincées et les nouvelles IP restantes sont bloquées.
+
+### Rate limiting
+
+- Général : **600 requêtes/minute/IP**, configurable avec `CUBIX_RATE_LIMIT` dans `.env`.
+- Connexion, inscription et ancien accès invité : **20 tentatives/minute/IP**.
+- Connexion admin : **5 tentatives/15 minutes/IP**.
+- WebSocket : **120 messages/minute/IP**, avec le plafond existant sur les messages de chat.
+
+Les limites HTTP utilisent des seaux à jetons et renvoient `429` avec `Retry-After`.
+Elles s’appliquent également aux IP locales. Le test de charge doit définir explicitement une valeur
+`CUBIX_RATE_LIMIT` adaptée s’il veut mesurer la capacité brute plutôt que le limiteur.
+
+Par défaut, l’IP vient de la connexion TCP : `X-Forwarded-For` est ignoré.
+Derrière un reverse proxy, définir `CUBIX_TRUSTED_PROXIES` avec ses **IP exactes**, séparées par des virgules.
+Le serveur parcourt alors la chaîne de droite à gauche jusqu’au premier intermédiaire non approuvé.
+
 ## Stockage local et mode hors ligne
 
 Les sessions, temps et pénalités sont d’abord enregistrés dans le **localStorage du navigateur**.

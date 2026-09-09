@@ -1,4 +1,5 @@
 mod accounts;
+mod admin;
 mod api;
 mod catalog;
 mod db;
@@ -6,6 +7,7 @@ mod error;
 mod social;
 mod stats;
 mod sync;
+mod traffic;
 
 use axum::{
     Router,
@@ -28,6 +30,8 @@ pub struct AppState {
     hub: Arc<social::Hub>,
     attempts: Arc<Mutex<HashMap<String, (u32, i64)>>>,
     passwords: Arc<Semaphore>,
+    admin: Arc<Option<admin::Admin>>,
+    traffic: Arc<traffic::Traffic>,
 }
 fn env_or(name: &str, fallback: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| fallback.to_owned())
@@ -44,6 +48,8 @@ fn default_db() -> PathBuf {
 }
 #[tokio::main(worker_threads = 4)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Docker supplies .env through Compose; direct launches also load the local file.
+    dotenvy::dotenv().ok();
     let args: Vec<_> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--version") {
         println!("cubix-api {}", env!("CARGO_PKG_VERSION"));
@@ -96,13 +102,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         return Ok(());
     }
+    let traffic = Arc::new(traffic::Traffic::new());
+    let admin = Arc::new(admin::Admin::new()?);
     let state = AppState {
+        admin,
+        traffic: traffic.clone(),
         db,
         catalog: Arc::new(catalog::Catalog::load()),
         hub: Arc::new(social::Hub::default()),
         attempts: Arc::new(Mutex::new(HashMap::new())),
         passwords: Arc::new(Semaphore::new(4)),
     };
+    let admin_api = Router::new()
+        .route("/api/admin/{*path}", any(admin::dispatch))
+        .with_state(state.clone())
+        .layer(DefaultBodyLimit::max(4096))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        ));
     let api = Router::new()
         .route("/api/social/live", get(social::upgrade))
         .route("/api/{*path}", any(api::dispatch))
@@ -114,11 +132,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ))
         .layer(CorsLayer::permissive());
     let app = api
+        .merge(admin_api)
+        .route(
+            "/aaaaadmin",
+            get(|| async {
+                axum::response::Html(
+                    std::fs::read_to_string(format!(
+                        "{}/admin/index.html",
+                        env_or("CUBIX_ASSETS", "dist/view")
+                    ))
+                    .unwrap_or_else(|_| "Build the frontend first.".into()),
+                )
+            }),
+        )
+        .route(
+            "/aaaaadmin/",
+            axum::routing::get(|| async { axum::response::Redirect::permanent("/aaaaadmin") }),
+        )
         .nest_service("/pwa", ServeDir::new(env_or("CUBIX_PWA", "public/pwa")))
         .fallback_service(ServeDir::new(env_or("CUBIX_ASSETS", "dist/view")))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-cache"),
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            traffic,
+            traffic::monitor,
         ));
     // Optional extra listeners let local load generators use separate TCP port pools.
     // All listeners share the same runtime, SQLite worker, authentication and chat hub.
@@ -138,7 +177,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             path.display()
         );
         let app = app.clone();
-        servers.spawn(async move { axum::serve(listener, app).await });
+        servers.spawn(async move {
+            axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+            )
+            .await
+        });
     }
     tokio::select! {
         _=tokio::signal::ctrl_c()=>{},
