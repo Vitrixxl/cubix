@@ -32,8 +32,10 @@ export function ThreeViewport<M extends ThreeModel>({createModel,updateModel,lab
     renderer.outputColorSpace=SRGBColorSpace;renderer.setClearColor(0,0);
     renderer.domElement.setAttribute('aria-hidden','true');el.prepend(renderer.domElement);
     const scene=new Scene(), camera=new OrthographicCamera(-2,2,2,-2,.1,100),group=new Group();
-    camera.position.z=8;scene.add(group);scene.add(new AmbientLight(0xffffff,2.3));
-    const light=new DirectionalLight(0xffffff,2.6);light.position.set(-3,6,8);scene.add(light);
+    camera.position.z=8;scene.add(group);scene.add(new AmbientLight(0xffffff,1.7));
+    const light=new DirectionalLight(0xfff7ed,3.1);light.position.set(-3,6,8);scene.add(light);
+    const fill=new DirectionalLight(0xdce8ff,1.2);fill.position.set(5,1,3);scene.add(fill);
+    const rim=new DirectionalLight(0xffffff,1.5);rim.position.set(2,4,-5);scene.add(rim);
     const model=createModel();group.add(model.object);
     const render=()=>renderer.render(scene,camera);
     current.current={model,render,orientation:group};update.current(model);

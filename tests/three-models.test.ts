@@ -58,9 +58,10 @@ test('Three.js cube animates physical cubies and stickers, including inner slice
     const model=createCubeModel(n);
     for(const alg of ['R','U2',...(n>3?['2R','Rw']:[])]){
       const move=parseMove(alg,n)!;model.update(solved(n),'full',{move,angle:moveAngleDeg(move)});
-      const ends=model.object.children.filter((o):o is Mesh=>o instanceof Mesh&&o.geometry.type==='PlaneGeometry').map(o=>({position:o.position.clone(),normal:new Vector3(0,0,1).applyQuaternion(o.quaternion),color:(o.material as any).color.getHexString()}));
+      const ends=model.object.children.filter((o):o is Mesh=>o instanceof Mesh&&o.userData.cubeSticker===true).map(o=>({position:o.position.clone(),normal:new Vector3(0,0,1).applyQuaternion(o.quaternion),color:(o.material as any).color.getHexString()}));
       model.update(applyAlg(solved(n),alg),'full');
-      const after=model.object.children.filter((o):o is Mesh=>o instanceof Mesh&&o.geometry.type==='PlaneGeometry');
+      expect(ends).toHaveLength(6*n*n);
+      const after=model.object.children.filter((o):o is Mesh=>o instanceof Mesh&&o.userData.cubeSticker===true);
       for(const sticker of after){const previous=ends.find(e=>e.position.distanceTo(sticker.position)<1e-7&&e.normal.distanceTo(new Vector3(0,0,1).applyQuaternion(sticker.quaternion))<1e-7);expect(previous?.color).toBe((sticker.material as any).color.getHexString());}
     }
     disposeObject(model.object);

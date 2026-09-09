@@ -1,7 +1,8 @@
+import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import { ApiError, createApiClient, type AddSolveBody, type SendMessageBody } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, ChatMessageDto, FriendDto } from "../../shared/types";
-import { cases, sets } from "./catalog";
+import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
 
 type Remote = ReturnType<typeof createApiClient>;
@@ -25,6 +26,7 @@ export function createLocalClient(options: {
   lock?: <T>(name: string, action: () => Promise<T>) => Promise<T>;
 }) {
   const { storage } = options;
+  const catalog = createCatalogCache(storage);
   const read = <T>(key: string, fallback: T): T => {
     const text = storage.getItem(PREFIX + key);
     if (text === null) return fallback;
@@ -32,7 +34,12 @@ export function createLocalClient(options: {
   };
   const write = (key: string, value: unknown) => {
     try { storage.setItem(PREFIX + key, JSON.stringify(value)); }
-    catch { throw new Error("Your browser storage is full or unavailable. This change could not be saved."); }
+    catch {
+      // Rebuildable algorithms must never prevent saving a personal solve.
+      evictCatalogCache(storage);
+      try { storage.setItem(PREFIX + key, JSON.stringify(value)); }
+      catch { throw new Error("Your browser storage is full or unavailable. This change could not be saved."); }
+    }
   };
   const current = () => read<UserDto>("user",GUEST);
   const owner = () => current().isGuest ? "guest" : current().id;
@@ -229,8 +236,8 @@ export function createLocalClient(options: {
   const api = {
     ...options.remote(options.getToken()),
     me: async () => current(),
-    cases: async (cubeSize: PuzzleInput = 3) => cases.filter(c => puzzleOf(c) === puzzleId(cubeSize)),
-    sets: async (cubeSize: PuzzleInput = 3) => sets.filter(s => puzzleOf(s) === puzzleId(cubeSize)),
+    cases: async (cubeSize: PuzzleInput = 3) => catalog(cubeSize).cases,
+    sets: async (cubeSize: PuzzleInput = 3) => catalog(cubeSize).sets,
     register: async (username: string,password: string) => authenticate(await options.remote(null).register(username,password)),
     login: async (username: string,password: string) => authenticate(await options.remote(null).login(username,password)),
     logout: async () => {

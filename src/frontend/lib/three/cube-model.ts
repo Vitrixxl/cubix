@@ -1,18 +1,32 @@
-import {BoxGeometry,Group,Mesh,MeshBasicMaterial,MeshStandardMaterial,PlaneGeometry,Quaternion,Vector3} from 'three';
+import {RoundedBoxGeometry} from "three/addons/geometries/RoundedBoxGeometry.js";
+import {ExtrudeGeometry,Group,Mesh,MeshPhysicalMaterial,MeshStandardMaterial,Quaternion,Shape,Vector3} from 'three';
 import {cubeSize,movingSlots,slotsFor,type CubeState} from '../../../shared/cube';
 import {stickerColor,type CubeMask,type LayerAnimation} from '../cube-appearance';
 
+/** A rounded, raised tile with a soft bevel, sharing geometry across all facelets. */
+function createTileGeometry(unit:number){
+  const half=unit*.435,r=unit*.09,shape=new Shape();
+  shape.moveTo(-half+r,-half);shape.lineTo(half-r,-half);
+  shape.quadraticCurveTo(half,-half,half,-half+r);shape.lineTo(half,half-r);
+  shape.quadraticCurveTo(half,half,half-r,half);shape.lineTo(-half+r,half);
+  shape.quadraticCurveTo(-half,half,-half,half-r);shape.lineTo(-half,-half+r);
+  shape.quadraticCurveTo(-half,-half,-half+r,-half);
+  const geometry=new ExtrudeGeometry(shape,{depth:unit*.012,bevelEnabled:true,bevelThickness:unit*.018,bevelSize:unit*.018,bevelSegments:4,curveSegments:6,steps:1});
+  return geometry;
+}
+
 export function createCubeModel(size:number){
   const object=new Group(),unit=2/size;
-  const bodyGeometry=new BoxGeometry(unit*.975,unit*.975,unit*.975),bodyMaterial=new MeshStandardMaterial({color:0x101116,roughness:.65});
-  const stickerGeometry=new PlaneGeometry(unit*.87,unit*.87);
+  const bodyGeometry=new RoundedBoxGeometry(unit*.96,unit*.96,unit*.96,3,unit*.09),bodyMaterial=new MeshStandardMaterial({color:0x15161b,roughness:.38});
+  const stickerGeometry=createTileGeometry(unit);
   const bodies:{mesh:Mesh;position:Vector3;slot:number}[]=[];
   const occupied=new Set<string>();
   const stickers=slotsFor(size).map((slot,index)=>{
     const key=slot.p.join(',');
     if(!occupied.has(key)){occupied.add(key);const mesh=new Mesh(bodyGeometry,bodyMaterial);mesh.position.set(...slot.p).multiplyScalar(unit);object.add(mesh);bodies.push({mesh,position:mesh.position.clone(),slot:index});}
-    const material=new MeshBasicMaterial(),mesh=new Mesh(stickerGeometry,material);
-    mesh.position.set(...slot.p).multiplyScalar(unit).addScaledVector(new Vector3(...slot.n),unit*.501);
+    const material=new MeshPhysicalMaterial({roughness:.32,metalness:0,clearcoat:.3,clearcoatRoughness:.26}),mesh=new Mesh(stickerGeometry,material);
+    mesh.userData.cubeSticker=true;
+    mesh.position.set(...slot.p).multiplyScalar(unit).addScaledVector(new Vector3(...slot.n),unit*.485);
     mesh.quaternion.setFromUnitVectors(new Vector3(0,0,1),new Vector3(...slot.n));object.add(mesh);
     return {mesh,material,position:mesh.position.clone(),quaternion:mesh.quaternion.clone()};
   });

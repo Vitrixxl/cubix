@@ -85,6 +85,10 @@ Le serveur parcourt alors la chaîne de droite à gauche jusqu’au premier inte
 Les sessions, temps et pénalités sont d’abord enregistrés dans le **localStorage du navigateur**.
 Sans compte connecté, aucune session invitée n’est créée sur le serveur et aucun temps ne lui est envoyé.
 Le catalogue complet et les calculs de statistiques sont intégrés au frontend.
+Les algorithmes et groupes consultés sont également conservés dans `localStorage`, par puzzle,
+avec une version fondée sur leur contenu. Les visites répétées et rechargements ne déclenchent
+aucune requête de catalogue ; une correction livrée avec l’application renouvelle le cache.
+Ce cache peut être évincé pour laisser la priorité à l’enregistrement des temps.
 
 Après un premier chargement en ligne, le service worker conserve l’interface, le catalogue,
 les fontes, les icônes et les générateurs cubing.js locaux : l’application peut être fermée puis rouverte sans réseau.
