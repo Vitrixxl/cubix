@@ -6,7 +6,7 @@ import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, motion 
 import { puzzleAtom, solveModeAtom, animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
 
 import { PlaygroundPage } from "./pages/PlaygroundPage";
-import { IconCube, IconGrid, IconPalette, IconTimer, IconUser, IconUsers, IconMessage, IconSun, IconMoon } from "./components/icons";
+import { IconCube, IconGrid, IconPalette, IconTimer, IconUser, IconUsers, IconMessage, IconSun, IconMoon, IconHelp } from "./components/icons";
 import { ThemeController, ThemePicker } from "./components/ThemePicker";
 
 import { parseRoute, rememberTab, routePath, routeFromPath } from "./lib/navigation";
@@ -23,7 +23,7 @@ import { ShortcutKey } from "./components/ShortcutKey";
 import { SyncIndicator } from "./components/SyncIndicator";
 import { SolveContextMenu } from "./components/SolveContextMenu";
 
-import { PublicContent } from "./seo/PublicContent";
+import { helpPath } from "./seo/pages";
 import { updatePageMetadata } from "./seo/metadata";
 const CommunityPage = lazy(() => import("./pages/AccountPage").then(m => ({ default: m.CommunityPage })));
 const ProfilePage = lazy(() => import("./pages/AccountPage").then(m => ({ default: m.ProfilePage })));
@@ -165,6 +165,9 @@ export function App() {
             <span className="nav-label">My account</span>
             <span className="nav-tooltip" aria-hidden="true">My account<ShortcutKey letter="7" /></span>
           </button>
+          <a href={helpPath(route.page)} className="nav-item secondary-navigation" aria-label="Help">
+            <IconHelp /><span className="nav-tooltip" aria-hidden="true">Help</span>
+          </a>
           <MobileNavigationMenu onThemes={()=>setThemesOpen(true)}/>
         </LayoutGroup>
       </motion.nav>
@@ -195,7 +198,6 @@ export function App() {
       <SolveContextMenu />
       <SyncIndicator />
     </div>
-    <PublicContent page={route.page} />
     </MotionConfig>
   );
 }

@@ -8,3 +8,7 @@ ssh vitrix@192.168.1.49 pihost update cubix
 ```
 
 Vérifier que la commande se termine avec succès et signaler toute erreur de mise à jour.
+
+Les écrans de l’application doivent rester à la hauteur de la fenêtre, sans
+défilement de la page. Placer les textes explicatifs dans les pages de guides
+accessibles via l’aide, jamais sous l’espace de pratique.

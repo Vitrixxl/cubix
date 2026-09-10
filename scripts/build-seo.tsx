@@ -19,7 +19,7 @@ export function seoHead(page: SeoPage, origin: string) {
     (data ? `\n<script id="cubix-structured-data" type="application/ld+json">${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>` : '');
 }
 export function renderGuide(page: SeoPage, origin = "") {
-  const content = renderToStaticMarkup(<PublicContent page={page} primary />);
+  const content = renderToStaticMarkup(<PublicContent page={page} />);
   return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">${seoHead(page, origin)}<link rel="icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/seo.css"></head><body class="public-guide"><header><a href="/" aria-label="Cubix home"><strong>CUBIX</strong></a><a href="/">Open cube timer</a></header><main>${content}</main></body></html>`;
 }
 export async function buildSeo(outdir = 'dist/view', configuredOrigin = process.env.CUBIX_PUBLIC_URL ?? '') {
@@ -27,15 +27,14 @@ export async function buildSeo(outdir = 'dist/view', configuredOrigin = process.
   const shell = await readFile(`${outdir}/index.html`, 'utf8');
   for (const page of Object.keys(SEO_PAGES) as SeoPage[]) {
     const info = SEO_PAGES[page];
-    const content = renderToStaticMarkup(<PublicContent page={page} primary />);
-    const boot = `<div class="public-boot"><p>Opening Cubix…</p><noscript><p>Enable JavaScript to use the interactive timer and algorithm tools.</p><p>You can still read the practice guides below.</p></noscript></div>`;
+    const boot = `<div class="public-boot"><h1>${escape(info.heading)}</h1><p>Opening Cubix…</p><a href="/guides/about-cubix/">Help &amp; guides</a><noscript><p>Enable JavaScript to use the interactive timer and algorithm tools.</p></noscript></div>`;
     let html: string;
     if (isGuide(page)) html = renderGuide(page, origin);
     else {
       // Bundled asset paths must remain root-relative on every public URL.
       html = shell.replace(/<meta name="description"[^>]*>/, '')
         .replace(/<title>[\s\S]*?<\/title>/, seoHead(page, origin))
-        .replace('<div id="root"></div>', `<div id="root">${boot}${content}</div>`)
+        .replace('<div id="root"></div>', `<div id="root">${boot}</div>`)
         .replace(/(src|href)="\.\/([^"#]+)"/g, '$1="/$2"');
     }
     const directory = info.path === '/' ? outdir : outdir + info.path.slice(0, -1);

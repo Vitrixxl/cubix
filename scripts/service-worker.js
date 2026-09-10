@@ -33,7 +33,7 @@ self.addEventListener("fetch", event => {
     const cache = await caches.open(CACHE);
     if (event.request.mode === "navigate") {
       const path = url.pathname;
-      const pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/"];
+      const pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/", "/guides/about-cubix/", "/guides/cube-algorithms/", "/guides/algorithm-training/"];
       const normalized = path.endsWith("/") ? path : path + "/";
       const offlinePage = path === "/" || path === "/index.html" ? "/" : pages.includes(normalized) ? normalized : undefined;
       if (!offlinePage) return fetch(event.request);

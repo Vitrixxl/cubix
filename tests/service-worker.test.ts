@@ -77,7 +77,7 @@ describe("offline worker navigation", () => {
 });
 
 test('public tool and guide URLs keep their own offline document', async () => {
-  for (const path of ['/algorithms/', '/training/', '/guides/ao5-ao12/']) {
+  for (const path of ['/algorithms/', '/training/', '/guides/ao5-ao12/', '/guides/about-cubix/', '/guides/cube-algorithms/', '/guides/algorithm-training/']) {
     const sw = worker(async () => { throw new TypeError('Offline'); });
     expect(await (await sw.navigate(path))!.text()).toBe('offline shell');
     expect(sw.cacheMatches).toEqual([path]);

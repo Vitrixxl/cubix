@@ -1,7 +1,4 @@
-/* Public reference content stays below the full-screen practice workspace. */
-body:has(.public-content) { overflow-y: auto; }
-body:has(.timer-surface.running) { overflow: hidden; }
-body:has(.public-content) #root { height: auto; min-height: 100%; }
+/* Reference articles live on standalone guide pages, outside the app workspace. */
 .public-content { box-sizing: border-box; max-width: 1040px; margin: 0 auto; padding: 64px 28px 40px; color: var(--text, #eef0f5); font: 400 16px/1.75 var(--font, system-ui, sans-serif); user-select: text; scroll-margin-top: 24px; }
 .public-content * { box-sizing: border-box; }
 .public-content h1 { max-width: 760px; margin: 8px 0 20px; font-size: clamp(30px, 4vw, 48px); line-height: 1.15; letter-spacing: -.035em; }
@@ -20,6 +17,7 @@ body:has(.public-content) #root { height: auto; min-height: 100%; }
 .public-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--surface-3, #30303a); }
 .public-content footer { margin-top: 28px; color: var(--text-2, #a9adba); font-size: 13px; }
 .public-boot { display: grid; place-content: center; min-height: var(--app-height, 100dvh); text-align: center; font: 16px/1.6 system-ui, sans-serif; }
+.public-boot h1 { font-size: 24px; padding-inline: 20px; }
 .public-boot a { color: #68aaff; }
 .public-guide { margin: 0; background: #0b0b0e; color: #eef0f5; font-family: system-ui, sans-serif; }
 .public-guide > header { display: flex; align-items: center; justify-content: space-between; max-width: 1040px; margin: auto; padding: 24px 28px; border-bottom: 1px solid #30303a; }

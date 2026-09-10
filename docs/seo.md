@@ -2,24 +2,28 @@
 
 Cubix targets the primary intent **“Rubik’s cube timer”**, with “online cube timer”,
 “speedcubing timer”, “spacebar cube timer” and “mobile cube timer” described naturally
-on the timer page. The app remains the first screen; readable reference content is
-below it. There are no crawler-only pages or user-agent-specific responses.
+in standalone guides. The app fills the viewport without document scrolling;
+reference content is available through Help. There are no crawler-only pages or user-agent-specific responses.
 
 ## Public pages
 
 | URL | Purpose |
 | --- | --- |
-| `/` | Free online cube timer, actual controls, supported puzzles, statistics and FAQ |
+| `/` | Free online cube timer, puzzle selection and session statistics |
 | `/algorithms/` | Algorithm library: F2L, OLL, PLL and the link to practice |
 | `/training/` | Case selection and timed algorithm practice |
+| `/guides/about-cubix/` | Timer overview, supported puzzles and FAQ |
+| `/guides/cube-algorithms/` | Algorithm library and practice instructions |
+| `/guides/algorithm-training/` | Case selection and focused training instructions |
 | `/guides/how-to-use-a-cube-timer/` | Desktop/touch instructions, saved data and practice modes |
 | `/guides/ao5-ao12/` | Worked examples for averages, +2 and DNF |
 
-Every public page has build-rendered English content, a unique title and description,
+Every public page has build-rendered English headings, a unique title and description,
 real HTML links, social sharing metadata and (when the origin is configured) a canonical
-URL and JSON-LD. The same content remains available after React mounts. The two guides
-work without JavaScript and do not load the app bundle. The sitemap contains only these
-five pages, with no invented modification dates. Account, message, community and admin
+URL and JSON-LD. Long-form reference content lives only in the guides, which work without JavaScript
+and do not load the app bundle. Tool pages show a compact loading shell and a Help link
+before React mounts; no article is appended to the workspace. The sitemap contains only these
+eight pages, with no invented modification dates. Account, message, community and admin
 pages have `noindex` metadata/headers. API routes are excluded in robots.txt.
 
 `/timer/` and `/index.html` permanently redirect to `/`; known tools without their trailing

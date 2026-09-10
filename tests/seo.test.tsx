@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildSeo, publicOrigin } from '../scripts/build-seo';
-import { PUBLIC_PAGES, SEO_PAGES, structuredData } from '../src/frontend/seo/pages';
+import { PUBLIC_PAGES, SEO_PAGES, isGuide, structuredData } from '../src/frontend/seo/pages';
 import { averageOf } from '../src/frontend/lib/format';
 const directories: string[] = [];
 afterEach(async () => { for (const dir of directories.splice(0)) await rm(dir, { recursive: true, force: true }); });
@@ -23,7 +23,14 @@ test('each public route ships readable content, links and unique metadata before
     expect(html).toContain(`href="https://cubix.test${info.path}"`);
     expect(html.match(/name="description"/g)).toHaveLength(1);
     expect(html).toContain(info.description);
-    expect(html).toContain('href="/training/"');
+    expect(html).toContain('href="/guides/about-cubix/"');
+    if (isGuide(page)) {
+      expect(html).toContain('class="public-content"');
+      expect(html).not.toContain('src="/app.js"');
+    } else {
+      expect(html).not.toContain('class="public-content"');
+      expect(html).toContain('src="/app.js"');
+    }
     expect(html).toContain('application/ld+json');
     expect(html).not.toContain('src="./');
     expect(html).not.toContain('noindex');

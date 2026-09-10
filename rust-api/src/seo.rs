@@ -11,7 +11,7 @@ pub async fn headers(request: Request, next: Next) -> Response {
     let canonical = match path.as_str() {
         "/index.html" | "/timer" | "/timer/" => Some("/".to_owned()),
         _ => {
-            let pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/"];
+            let pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/", "/guides/about-cubix/", "/guides/cube-algorithms/", "/guides/algorithm-training/"];
             pages.iter().find(|page| path == page.trim_end_matches('/') || path == format!("{page}index.html")).map(|page| (*page).to_owned())
         }
     };

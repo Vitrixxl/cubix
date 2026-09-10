@@ -2,7 +2,9 @@ import {useEffect,useRef,useState} from 'react';
 import {useAtom,useAtomValue} from 'jotai';
 import * as Popover from '@radix-ui/react-popover';
 import {chatActivityAtom,colorModeAtom,cubeSwitchLockedAtom,routeAtom} from '../state';
-import {IconMessage,IconMoon,IconMore,IconPalette,IconSun,IconUser,IconUsers} from './icons';
+import {IconHelp,IconMessage,IconMoon,IconMore,IconPalette,IconSun,IconUser,IconUsers} from './icons';
+
+import {helpPath} from '../seo/pages';
 
 /** Secondary destinations stay within thumb reach without squeezing the main tabs. */
 export function MobileNavigationMenu({onThemes}:{onThemes:()=>void}){
@@ -30,6 +32,7 @@ export function MobileNavigationMenu({onThemes}:{onThemes:()=>void}){
         {([{page:'messages',label:'Messages',Icon:IconMessage},{page:'community',label:'Community',Icon:IconUsers},{page:'profile',label:'My account',Icon:IconUser}] as const).map(({page,label,Icon})=><button key={page} type="button" aria-current={route.page===page?'page':undefined} onClick={()=>{setOpen(false);setRoute({page});}}>
           <Icon/><span>{label}</span>{page==='messages'&&activity&&<span className="mobile-nav-activity" aria-label="New activity in messages"/>}
         </button>)}
+        <a href={helpPath(route.page)}><IconHelp/><span>Help</span></a>
       </div>
       <div className="mobile-nav-appearance">
         <button type="button" onClick={()=>{handoff.current=true;setOpen(false);}}><IconPalette/><span>Themes</span></button>
