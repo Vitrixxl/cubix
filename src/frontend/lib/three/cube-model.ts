@@ -135,9 +135,8 @@ export function installCubeTemplates(data:CubeTemplateData[]){
   }
 }
 function plasticMaterial(){
-  // A smooth transparent lacquer over coloured plastic: sharp reflections on
-  // the coating, with enough body roughness to keep the plastic readable below.
-  const material=new MeshPhysicalMaterial({vertexColors:true,roughness:.18,metalness:0,specularIntensity:.8,envMapIntensity:1,clearcoat:1,clearcoatRoughness:.035,emissive:0xffffff,emissiveIntensity:.025});
+  // Matte coloured plastic: broad, faint highlights without a reflective lacquer.
+  const material=new MeshPhysicalMaterial({vertexColors:true,roughness:.68,metalness:0,specularIntensity:.22,envMapIntensity:.65,clearcoat:0});
   // Each physical piece has up to three plastic colours, while all pieces of a
   // shape share one draw call. The baked recess shading remains in vertex colours.
   material.onBeforeCompile=shader=>{
