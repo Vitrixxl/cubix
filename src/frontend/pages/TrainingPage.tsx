@@ -176,7 +176,7 @@ export function TrainingPage() {
                 </div>
                 <div className="training-setup">
                   {show3D && <div className="practice-cube">
-                    {cube ? <SetupCube cubeSize={cube!} alg={animatedSetup} revision={caseHistory.revision} size={128} mask={maskForStage(current.c.stage)} rotation={TRAINING_ROTATION} /> : <PuzzlePreview puzzle={puzzle} alg={shownSetup} />}
+                    {cube ? <SetupCube cubeSize={cube!} alg={animatedSetup} revision={caseHistory.revision} size={224} mask={maskForStage(current.c.stage)} rotation={TRAINING_ROTATION} /> : <PuzzlePreview puzzle={puzzle} alg={shownSetup} />}
                   </div>}
                   <div className="training-notation">
                     <span className="practice-caption">Setup</span>

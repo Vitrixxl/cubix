@@ -2157,7 +2157,7 @@ button:disabled { cursor: default; }
 .practice-scramble { width: 100%; max-width: 680px; }
 .practice-scramble .alg-text { font-size: clamp(24px, 2.3vw, 32px); line-height: 1.65; word-spacing: .2em; }
 .practice-cube { width: 144px; height: 136px; display: grid; place-items: center; flex: none; }
-.training-setup .practice-cube { width: 176px; height: 176px; }
+.training-setup .practice-cube { width: 256px; height: 256px; }
 .practice-page .timer-surface { width: 100%; flex: none; min-height: 0; padding: 8px 0; background: transparent; border: 0; border-radius: 0; }
 .timer-readout { width: 100%; min-width: 0; text-align: center; }
 .practice-page .timer-value { font-size: clamp(60px, 6.8vw, 100px); font-weight: 550; letter-spacing: -.045em; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -2237,7 +2237,7 @@ button:disabled { cursor: default; }
   .page.practice-page { padding: 10px 14px 4px; gap: 10px; }
   .practice-stack { gap: 14px; max-width: 500px; }
   .practice-cube { width: 114px; height: 116px; }
-  .training-setup .practice-cube { width: 144px; height: 144px; }
+  .training-setup .practice-cube { width: 208px; height: 208px; }
   .practice-cube > div { zoom: .8; }
   .practice-caption { font-size: 9px; margin-bottom: 4px; }
   .practice-scramble .alg-text { font-size: 22px; line-height: 1.6; word-spacing: 0; }
@@ -2294,7 +2294,7 @@ button:disabled { cursor: default; }
 @media (max-height: 740px) {
   .practice-stack { gap: 10px; }
   .practice-cube { height: 98px; width: 108px; }
-  .training-setup .practice-cube { width: 128px; height: 128px; }
+  .training-setup .practice-cube { width: 184px; height: 184px; }
   .practice-cube > div { zoom: .7; }
   .practice-page .timer-value { font-size: 64px; }
   .practice-page .timer-surface { padding-block: 2px; }
@@ -2303,7 +2303,7 @@ button:disabled { cursor: default; }
 @media (max-height: 620px) and (max-width: 700px) {
   .practice-stack { gap: 6px; }
   .practice-cube { width: 90px; height: 82px; }
-  .training-setup .practice-cube { width: 104px; height: 104px; }
+  .training-setup .practice-cube { width: 160px; height: 160px; }
   .practice-cube > div { zoom: .6; }
   .practice-page .timer-value { font-size: 54px; }
   .practice-page .timer-hint { min-height: 16px; margin-top: 4px; }
