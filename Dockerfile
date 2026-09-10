@@ -1,11 +1,13 @@
 FROM oven/bun:1.4.0 AS frontend
 WORKDIR /app
+ARG CUBIX_PUBLIC_URL=
+ENV CUBIX_PUBLIC_URL=$CUBIX_PUBLIC_URL
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY src ./src
 COPY public ./public
 COPY tsconfig.json ./
-COPY scripts/build.ts scripts/build-vendor.ts scripts/build-model-worker.ts scripts/service-worker.js ./scripts/
+COPY scripts/build.ts scripts/build-seo.tsx scripts/compress-assets.ts scripts/build-vendor.ts scripts/build-model-worker.ts scripts/service-worker.js ./scripts/
 COPY data ./data
 COPY rust-api/catalog-sets.json ./rust-api/catalog-sets.json
 RUN bun run build

@@ -1,6 +1,9 @@
 services:
   api:
-    build: .
+    build:
+      context: .
+      args:
+        CUBIX_PUBLIC_URL: "${CUBIX_PUBLIC_URL:-}"
     ports:
       - "${CUBIX_PORT:-3000}:3000"
     environment:

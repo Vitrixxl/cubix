@@ -1,3 +1,5 @@
+import { renderGuide } from "./build-seo";
+import { SEO_PAGES, isGuide, type SeoPage } from "../src/frontend/seo/pages";
 import { buildModelWorker } from "./build-model-worker";
 import { buildVendor } from "./build-vendor";
 await buildVendor();
@@ -13,6 +15,13 @@ const server = Bun.serve<Bridge>({
   port: 5180,
   development: { hmr: true, console: true },
   routes: {
+    "/seo.css": () => new Response(Bun.file("public/seo.css")),
+    "/robots.txt": () => new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain" } }),
+    "/guides/*": (request: Request) => {
+      const path = new URL(request.url).pathname.replace(/\/+$/, "") + "/";
+      const page = (Object.keys(SEO_PAGES) as SeoPage[]).find(page => isGuide(page) && SEO_PAGES[page].path === path);
+      return page ? new Response(renderGuide(page), { headers: { "content-type": "text/html; charset=utf-8" } }) : new Response("Not found", { status: 404 });
+    },
     "/aaaaadmin": admin,
     "/aaaaadmin/": admin,
     "/api/*": async (request: Request, server: Bun.Server<Bridge>) => {

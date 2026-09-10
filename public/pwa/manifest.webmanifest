@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "Cubix",
+  "name": "Cubix \u2013 Cube Timer & Algorithm Trainer",
   "short_name": "Cubix",
   "start_url": "/",
   "scope": "/",
@@ -20,5 +20,11 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "description": "Free online speedcubing timer with scrambles, solve history, averages and algorithm practice.",
+  "lang": "en",
+  "categories": [
+    "sports",
+    "utilities"
   ]
 }

@@ -1,3 +1,4 @@
+import { Kpi } from "../components/Kpi";
 import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -288,19 +289,6 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
     </motion.div>
   );
 }
-
-export const Kpi = memo(function Kpi({ label, value, small }: { label: string; value: string; small?: boolean }) {
-  return (
-    <div className="kpi">
-      <div className="label">{label}</div>
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.div key={value} className={`value ${small ? "small" : ""}`} initial={{ opacity: 0, y: 8, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.94 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}>
-          {value}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-});
 
 function CaseSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
   const show3D = useAtomValue(threeDEnabledAtom);

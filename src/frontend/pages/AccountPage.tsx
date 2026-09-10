@@ -1,3 +1,4 @@
+import { Avatar } from "../components/Avatar";
 import { ThreeDSetting } from "../components/ThreeDSetting";
 import {usePreservedScroll} from "../hooks/usePreservedScroll";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -14,9 +15,6 @@ import { ProfileCaseGallery, ProfileCaseDetails, ProfileStats } from "../compone
 import type { ProfileDto, UserDto } from "../../shared/types";
 import { modeLabel, puzzleInfo, scrambleLabel, type ScrambleType } from "../../shared/puzzles";
 
-export function Avatar({ user, large = false }: { user: Pick<UserDto, "username">; large?: boolean }) {
-  return <span className={`avatar ${large ? "large" : ""}`} aria-hidden="true"><span className="avatar-initials">{user.username.trim().slice(0, 2).toUpperCase()}</span></span>;
-}
 
 export function AccountForm({ initialMode = "register" }: { initialMode?: "register" | "login" } = {}) {
   const [mode, setMode] = useState<"register" | "login">(initialMode);

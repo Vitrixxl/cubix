@@ -308,3 +308,11 @@ La croix est en bas (blanc), la dernière face est jaune et la face avant est ve
 Les cas F2L visent le slot avant-droit. Les sources brutes sont conservées dans `data/raw` ;
 `bun run build:db` reconstruit et vérifie le catalogue.
 Les fontes Geist sont distribuées avec leur licence dans `src/frontend/fonts`.
+
+## Référencement anglais
+
+Les pages du timer, des algorithmes et de l’entraînement ont des URL publiques, du contenu
+HTML pré-rendu et des guides anglais. Définir `CUBIX_PUBLIC_URL` avec l’origine HTTPS
+officielle avant `docker compose up -d --build` pour générer les canoniques, le sitemap et
+les métadonnées de partage. Voir [le guide SEO](docs/seo.md) pour la configuration,
+les vérifications et les étapes Google Search Console / Bing Webmaster Tools.

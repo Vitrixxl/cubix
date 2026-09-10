@@ -11,7 +11,7 @@ import { PuzzlePreview } from "../components/PuzzlePreview";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { contextKey, puzzleInfo, scrambleLabel, type PracticeContext, type ScrambleType, SOLVE_MODES } from "../../shared/puzzles";
 import { averageOf, best, effective, fmtSolve, fmtTime, mean } from "../lib/format";
-import { Kpi } from "./AlgorithmsPage";
+import { Kpi } from "../components/Kpi";
 import { IconShuffle, IconTimer } from "../components/icons";
 import { threeDEnabledAtom, practiceContextAtom, solveModeAtom, scrambleTypeAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom } from "../state";
 

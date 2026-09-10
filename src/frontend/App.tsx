@@ -1,21 +1,20 @@
 import { MobileNavigationMenu } from "./components/MobileNavigationMenu";
 import { PuzzlePicker } from "./components/PuzzlePicker";
-import { Fragment, Suspense, useEffect, useInsertionEffect, useRef, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useInsertionEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { AnimatePresence, LayoutGroup, MotionConfig, MotionGlobalConfig, motion } from "motion/react";
 import { puzzleAtom, solveModeAtom, animationsEnabledAtom, colorModeAtom, userAtom, statsVersionAtom, routeAtom, chatActivityAtom, type Route } from "./state";
-import { AlgorithmsPage } from "./pages/AlgorithmsPage";
-import { TrainingPage } from "./pages/TrainingPage";
+
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { IconCube, IconGrid, IconPalette, IconTimer, IconUser, IconUsers, IconMessage, IconSun, IconMoon } from "./components/icons";
 import { ThemeController, ThemePicker } from "./components/ThemePicker";
 
-import { parseRoute, rememberTab } from "./lib/navigation";
+import { parseRoute, rememberTab, routePath, routeFromPath } from "./lib/navigation";
 import { api, local, tokenKey } from "./api";
-import { Avatar, CommunityPage, ProfilePage } from "./pages/AccountPage";
+import { Avatar } from "./components/Avatar";
 
 import { ChatConnection } from "./components/ChatConnection";
-import { MessagesPage } from "./pages/MessagesPage";
+
 import { useTimerChrome } from "./hooks/useTimerChrome";
 import { useAppViewport } from "./hooks/useAppViewport";
 
@@ -24,10 +23,18 @@ import { ShortcutKey } from "./components/ShortcutKey";
 import { SyncIndicator } from "./components/SyncIndicator";
 import { SolveContextMenu } from "./components/SolveContextMenu";
 
+import { PublicContent } from "./seo/PublicContent";
+import { updatePageMetadata } from "./seo/metadata";
+const CommunityPage = lazy(() => import("./pages/AccountPage").then(m => ({ default: m.CommunityPage })));
+const ProfilePage = lazy(() => import("./pages/AccountPage").then(m => ({ default: m.ProfilePage })));
+const AlgorithmsPage = lazy(() => import("./pages/AlgorithmsPage").then(m => ({ default: m.AlgorithmsPage })));
+const TrainingPage = lazy(() => import("./pages/TrainingPage").then(m => ({ default: m.TrainingPage })));
+const MessagesPage = lazy(() => import("./pages/MessagesPage").then(m => ({ default: m.MessagesPage })));
+
 const NAV: { page: Route["page"]; label: string; icon: typeof IconGrid }[] = [
   { page: "algorithms", label: "Algorithms", icon: IconGrid },
   { page: "training", label: "Training", icon: IconTimer },
-  { page: "playground", label: "Playground", icon: IconCube },
+  { page: "playground", label: "Timer", icon: IconCube },
   { page: "messages", label: "Messages", icon: IconMessage },
   { page: "community", label: "Community", icon: IconUsers },
 ];
@@ -82,6 +89,7 @@ export function App() {
   const [route, setRoute] = useAtom(routeAtom);
   const [chatActivity, setChatActivity] = useAtom(chatActivityAtom);
   useEffect(() => { if (route.page === "messages") setChatActivity(false); }, [route.page, chatActivity, setChatActivity]);
+  useEffect(() => { updatePageMetadata(route.page); window.scrollTo(0, 0); }, [route.page]);
   const [themesOpen, setThemesOpen] = useState(false);
   const historyReady = useRef(false);
   const restoringHistory = useRef(false);
@@ -90,7 +98,7 @@ export function App() {
     const onPopState = (event: PopStateEvent) => {
       const next = parseRoute(event.state?.cubixRoute);
       restoringHistory.current = true;
-      setRoute(next ?? { page: "algorithms" });
+      setRoute(next ?? routeFromPath(window.location.pathname) ?? { page: "playground" });
       setThemesOpen(false);
     };
     window.addEventListener("popstate", onPopState);
@@ -101,14 +109,14 @@ export function App() {
     rememberTab(route);
     if (!historyReady.current) {
       historyReady.current = true;
-      window.history.replaceState({ ...window.history.state, cubixRoute: route }, "");
+      window.history.replaceState({ ...window.history.state, cubixRoute: route }, "", routePath(route));
       return;
     }
     if (restoringHistory.current) {
       restoringHistory.current = false;
       return;
     }
-    window.history.pushState({ ...window.history.state, cubixRoute: route }, "");
+    window.history.pushState({ ...window.history.state, cubixRoute: route }, "", routePath(route));
   }, [route]);
 
   useShortcuts([
@@ -132,13 +140,13 @@ export function App() {
             return (
               <Fragment key={page}>
                 {i === 3 && <span className="nav-divider secondary-navigation" aria-hidden="true" />}
-                <button className={`nav-item ${i>=3?"secondary-navigation":""} ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}
-                  aria-label={label} aria-keyshortcuts={`Alt+${i + 1}`} onClick={() => setRoute({ page } as Route)}>
+                <a href={routePath({ page } as Route)} className={`nav-item ${i>=3?"secondary-navigation":""} ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}
+                  aria-label={label} aria-keyshortcuts={`Alt+${i + 1}`} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); setRoute({ page } as Route); } }}>
                   {active && <span className="nav-indicator" />}
                   <Icon /><span className="nav-label">{label}</span>
                   <span className="nav-tooltip" aria-hidden="true">{label}<ShortcutKey letter={String(i + 1)} /></span>
                   {page === "messages" && chatActivity && <span className="chat-activity-dot" role="status" aria-label="New activity in messages" />}
-                </button>
+                </a>
               </Fragment>
             );
           })}
@@ -187,6 +195,7 @@ export function App() {
       <SolveContextMenu />
       <SyncIndicator />
     </div>
+    <PublicContent page={route.page} />
     </MotionConfig>
   );
 }

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { initialRoute, LAST_TAB_KEY, parseRoute, rememberTab } from "../src/frontend/lib/navigation";
+import { initialRoute, LAST_TAB_KEY, parseRoute, rememberTab, routeFromPath, routePath } from "../src/frontend/lib/navigation";
 
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 afterEach(() => {
@@ -49,13 +49,24 @@ test("profile case navigation restores the member and case without replaying it 
 test("invalid routes and unavailable storage fall back safely", () => {
   for (const saved of ["broken", "null", "[]", '{"page":"unknown"}']) {
     browser(saved, { page: "unknown" });
-    expect(initialRoute()).toEqual({ page: "algorithms" });
+    expect(initialRoute()).toEqual({ page: "playground" });
   }
   expect(parseRoute({ page: "messages", solveId: 0 })).toEqual({ page: "messages" });
   expect(parseRoute({ page: "messages", solveId: -123 })).toEqual({ page: "messages", solveId: -123 });
   expect(parseRoute({ page: "profile", username: {} })).toEqual({ page: "profile" });
   browser();
   Object.defineProperty(window, "localStorage", { get() { throw new Error("Storage blocked"); } });
-  expect(initialRoute()).toEqual({ page: "algorithms" });
+  expect(initialRoute()).toEqual({ page: "playground" });
   expect(() => rememberTab({ page: "training" })).not.toThrow();
+});
+
+
+test("public URLs open the requested tool regardless of a remembered tab", () => {
+  for (const [path, page] of [["/", "playground"], ["/algorithms/", "algorithms"], ["/training", "training"], ["/account/", "profile"]] as const) {
+    browser('{"page":"messages"}', {page:"messages"});
+    Object.defineProperty(window, "location", {value:{pathname:path}, configurable:true});
+    expect(initialRoute()).toEqual({page});
+    expect(routeFromPath(routePath({page}))).toEqual({page});
+  }
+  expect(routeFromPath("/does-not-exist")).toBeUndefined();
 });

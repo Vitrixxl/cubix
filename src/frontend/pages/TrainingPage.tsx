@@ -26,7 +26,7 @@ import { PracticePanel, useWidePractice } from "../components/PracticePanel";
 import { ShortcutKey } from "../components/ShortcutKey";
 import { useTimerChrome } from "../hooks/useTimerChrome";
 import { useShortcuts } from "../hooks/useShortcuts";
-import { Kpi } from "./AlgorithmsPage";
+import { Kpi } from "../components/Kpi";
 
 const TRAINING_ROTATION = { x: -30, y: 140 };
 

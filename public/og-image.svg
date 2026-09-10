@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0b0b0e"/>
+  <rect x="28" y="28" width="1144" height="574" rx="28" fill="#14141a" stroke="#30303c"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="80" y="116" font-size="28" font-weight="700" letter-spacing="6" fill="#69aaff">CUBIX</text>
+    <text x="76" y="250" font-size="72" font-weight="700" fill="#eef0f5">Free online</text>
+    <text x="76" y="335" font-size="72" font-weight="700" fill="#eef0f5">cube timer</text>
+    <text x="80" y="403" font-size="25" fill="#a9adba">Scrambles. Averages. Algorithm practice.</text>
+    <text x="80" y="531" font-size="20" fill="#a9adba">Keyboard + touchscreen  ·  No account needed</text>
+    <rect x="790" y="408" width="276" height="102" rx="16" fill="#0b0b0e"/>
+    <text x="928" y="480" text-anchor="middle" font-family="monospace" font-size="65" font-weight="700" fill="#69aaff">0.00</text>
+  </g>
+  <g transform="translate(930 230)" stroke="#14141a" stroke-width="5" stroke-linejoin="round">
+    <path d="M0 -135 135 -65 0 8 -135 -65Z" fill="#f3df33"/>
+    <path d="M-135 -65 0 8 0 155 -135 80Z" fill="#2382dc"/>
+    <path d="M0 8 135 -65 135 80 0 155Z" fill="#1bb55f"/>
+    <path d="M-90 -88 45 -16M-45 -112 90 -41M45 -112 -90 -41M90 -88 -45 -16M-90 -41 -90 105M-45 -16 -45 130M-135 -17 0 57M-135 31 0 106M45 -16 45 130M90 -41 90 105M0 57 135 -17M0 106 135 31" fill="none"/>
+  </g>
+</svg>

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { motion } from "motion/react";
 import { local } from "../api";
 import { useTimerChrome } from "../hooks/useTimerChrome";
 import type { SyncStatus } from "../local/client";
 import { FloatingSheet } from "./FloatingSheet";
-import { AccountForm } from "../pages/AccountPage";
+const AccountForm = lazy(() => import("../pages/AccountPage").then(m => ({ default: m.AccountForm })));
 
 export function SyncIndicator() {
   const [status,setStatus] = useState(local.status);
@@ -22,6 +22,6 @@ export function SyncIndicator() {
       <span aria-hidden="true">!</span>
       <span role="status">{label}</span>
     </motion.button>
-    <FloatingSheet open={signIn} title="Sign in" className="sync-signin-sheet" onClose={() => setSignIn(false)}><AccountForm initialMode="login" /></FloatingSheet>
+    <FloatingSheet open={signIn} title="Sign in" className="sync-signin-sheet" onClose={() => setSignIn(false)}>{signIn && <Suspense fallback={<p>Loading sign-in…</p>}><AccountForm initialMode="login" /></Suspense>}</FloatingSheet>
   </>;
 }

@@ -1,3 +1,4 @@
+mod seo;
 mod accounts;
 mod admin;
 mod api;
@@ -152,11 +153,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::routing::get(|| async { axum::response::Redirect::permanent("/aaaaadmin") }),
         )
         .nest_service("/pwa", ServeDir::new(env_or("CUBIX_PWA", "public/pwa")))
-        .fallback_service(ServeDir::new(env_or("CUBIX_ASSETS", "dist/view")))
+        .fallback_service(ServeDir::new(env_or("CUBIX_ASSETS", "dist/view")).precompressed_br().precompressed_gzip())
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-cache"),
         ))
+        .layer(axum::middleware::from_fn(seo::headers))
         .layer(axum::middleware::from_fn_with_state(
             traffic,
             traffic::monitor,

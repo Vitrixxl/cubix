@@ -1,0 +1,56 @@
+import { SEO_PAGES, type SeoPage } from './pages';
+
+export function PublicContent({ page, primary = false }: { page: SeoPage; primary?: boolean }) {
+  if (!SEO_PAGES[page].index) return null;
+  const Heading = !primary && (page === 'algorithms' || page === 'training') ? 'h2' : 'h1';
+  return <section className="public-content" id="about-cubix" aria-label="About Cubix" data-timer-ignore>
+    <header><p className="public-eyebrow">CUBIX · SPEEDCUBING PRACTICE</p><Heading>{SEO_PAGES[page].heading}</Heading></header>
+    {page === 'playground' && <>
+      <p className="public-lead">Time your solves, follow your averages and practise your next algorithm. Cubix is a free browser-based cube timer for your computer or phone. Start practising without creating an account.</p>
+      <div className="public-grid">
+        <section><h2>A spacebar timer on desktop. A touch timer on mobile.</h2><p>Apply the displayed scramble to your cube. Hold the spacebar until the timer is ready, release to start and press any key to stop. On a phone, hold a free area of the screen, release to start and tap to stop. Buttons and the interactive cube keep their own controls.</p><p><a href="/guides/how-to-use-a-cube-timer/">Read the cube timer instructions</a></p></section>
+        <section><h2>Track more than a personal best</h2><p>Your practice session shows solve count, best time, mean, average of 5 (Ao5) and average of 12 (Ao12). Open Times to review solves, inspect their scrambles or apply a +2 or DNF penalty.</p><p><a href="/guides/ao5-ao12/">Understand Ao5, Ao12 and DNF</a></p></section>
+        <section><h2>From 2×2 to 7×7 and beyond</h2><p>Use the puzzle picker for 2×2, 3×3, 4×4, 5×5, 6×6 and 7×7 cubes, or practise Square-1, Pyraminx, Skewb, Megaminx and Clock. Choose from the scramble types available for your puzzle. Standard, one-handed and blindfolded practice have separate contexts.</p></section>
+        <section><h2>Turn an algorithm into a habit</h2><p>Browse case diagrams and 3D solutions, then select cases for a timed training session. Work on F2L pairs, OLL recognition or PLL execution with repeated practice.</p><p><a href="/algorithms/">Explore cube algorithms</a> · <a href="/training/">Open the algorithm trainer</a></p></section>
+      </div>
+      <h2>Questions about the Cubix timer</h2>
+      <details><summary>Is Cubix free, and do I need an account?</summary><p>The timer and algorithm practice are free. You can start as a guest; your guest practice is saved in this browser. An account adds synchronisation and community features.</p></details>
+      <details><summary>Can I use this cube timer offline?</summary><p>After a successful online load has cached the production app, you can reopen it for offline practice. Some scramble types need additional resources on their first use. Account synchronisation and messaging need a connection. Clearing browser storage removes locally stored guest data.</p></details>
+      <details><summary>Does Cubix work on a phone?</summary><p>Yes. The timer supports touchscreen controls and adapts to portrait and landscape layouts. You can turn off 3D puzzle previews in settings if you prefer a simpler display.</p></details>
+      <details><summary>Is this an official competition timer?</summary><p>Cubix is a practice tool. It is not affiliated with Rubik’s or the World Cube Association and does not replace official competition equipment or judging. The blindfolded mode records the combined memorisation and execution time.</p></details>
+    </>}
+    {page === 'algorithms' && <>
+      <p className="public-lead">Explore cube cases, compare their algorithms and watch each move on an interactive 3D puzzle. Cubix connects the reference library to timed practice so you can work on the cases you actually need.</p>
+      <h3>Build your 3×3 CFOP practice</h3><p>F2L pairs combine a corner and an edge to complete the first two layers. OLL orients the last layer, and PLL permutes its pieces. Use the stage and case selectors to browse these groups, inspect a setup and play its solution one move at a time.</p>
+      <h3>From reference to repetition</h3><p>Choose cases in the <a href="/training/">algorithm trainer</a> and practise their setups with the timer. Hide the solution while recognising a case, reveal it when needed and compare your recorded attempts. Use the puzzle picker to explore the other supported puzzles.</p>
+      <p>Algorithms and source links are shown alongside the relevant cases. You can also inspect the <a href="https://github.com/Vitrixxl/cubix">Cubix source repository</a> for catalogue provenance.</p>
+    </>}
+    {page === 'training' && <>
+      <p className="public-lead">A full solve mixes recognition, execution and transitions. A focused training session lets you repeat selected cases and see how consistently you execute them.</p>
+      <h3>Set up a focused session</h3><ol><li>Choose your puzzle and open the case selector.</li><li>Select the cases you want to practise. The timer becomes available when a case is selected.</li><li>Apply the displayed setup. Hide or reveal the solution as needed.</li><li>Hold the spacebar or a free touchscreen area, then release when ready to start timing.</li><li>Stop the timer after execution and review your attempts in Times.</li></ol>
+      <h3>Keep recognition and execution in view</h3><p>Start with a small set of cases that you confuse or solve slowly. Use the <a href="/algorithms/">algorithm library</a> to check the moves before timing repeated attempts. Case-training times measure a different task from complete solves, so compare like-for-like sessions.</p>
+      <p>For full solves, open the <a href="/">online cube timer</a>. The <a href="/guides/ao5-ao12/">averages guide</a> explains how to read your session statistics.</p>
+    </>}
+    {page === 'timerGuide' && <>
+      <p className="public-lead">Cubix times physical puzzle solves using your keyboard or touchscreen. Keep your cube nearby and <a href="/">open the timer</a> to follow these steps.</p>
+      <h2>1. Choose a puzzle and apply the scramble</h2><p>The puzzle picker selects the cube or puzzle you are practising. The scramble control at the bottom chooses the kind of scramble; New scramble generates another. Apply the moves to your physical puzzle before starting. The 3D preview is a visual aid and can be rotated by dragging.</p>
+      <h2>2. Start with the spacebar or touchscreen</h2><p>On a computer, hold Space for at least 0.3 seconds, until the display is ready. Release Space to start. Releasing too early cancels preparation. On a phone, hold the timer or a free area of the screen, then release when ready. Touching buttons, menus or the rotatable cube does not prepare the timer. Swiping a free area cancels preparation so you can scroll.</p>
+      <h2>3. Stop and record the solve</h2><p>Press any key on desktop, or tap the screen on mobile, to stop. Your time is recorded and the next scramble is prepared. Open Times to inspect a solve, including its scramble, and mark a +2 or DNF if appropriate for your practice.</p>
+      <h2>4. Compare consistent sessions</h2><p>Best is your fastest valid result. Ao5 and Ao12 summarise recent groups of solves after removing their fastest and slowest results. Read the <a href="/guides/ao5-ao12/">worked examples for cube averages</a> before comparing a single fast solve with a session average.</p>
+      <h2>Practice settings and saved data</h2><p>Standard, one-handed and blindfolded modes keep distinct practice contexts. Blindfolded time includes memorisation and execution. Guest solves stay in your browser; clearing site data can remove them. Sign in to use synchronisation. Once the app has been cached, basic practice can work offline, while features needing new downloads may still need a connection.</p>
+      <p>Cubix is designed for practice. For official competitions, follow the <a href="https://www.worldcubeassociation.org/regulations/">WCA Regulations</a> and the event’s judges.</p>
+    </>}
+    {page === 'averagesGuide' && <>
+      <p className="public-lead">A personal best shows what you managed once. An average gives a better view of a group of attempts. Here is how the <a href="/">Cubix timer</a> calculates its session statistics.</p>
+      <h2>Average of 5 (Ao5)</h2><p>Take five consecutive results, remove the fastest and the slowest, then average the remaining three. For 10.00, 12.00, 13.00, 14.00 and 20.00 seconds, discard 10.00 and 20.00: (12.00 + 13.00 + 14.00) ÷ 3 = <strong>13.00 seconds</strong>.</p>
+      <h2>Average of 12 (Ao12)</h2><p>In Cubix, take twelve consecutive results, remove the fastest and slowest, and average the remaining ten. If twelve solves take 10 through 21 seconds in one-second increments, removing 10 and 21 leaves 11 through 20. Their sum is 155, giving an Ao12 of <strong>15.50 seconds</strong>. Ao12 is a practice statistic, not the standard format for every official event.</p>
+      <h2>How +2 and DNF affect an average</h2><p>A +2 adds two seconds to that result before results are ordered and averaged. A DNF (did not finish) is treated as the worst result. With one DNF, it is the discarded worst result; the fastest valid result is also discarded. With two or more DNFs, the average is DNF.</p>
+      <p>For 10.00, 12.00, 13.00, 14.00 and DNF, discard the DNF and 10.00. The Ao5 is 13.00 seconds. Change the 14.00 result to a second DNF and there are no longer three valid results after trimming: the Ao5 is DNF.</p>
+      <h2>Best, mean and rolling averages</h2><p>Best is the fastest valid result, including any +2. Cubix’s session Mean uses all valid results and excludes DNFs; it does not trim the extremes. Ao5 and Ao12 on the timer use the most recent five or twelve results. They remain blank until the session has enough results.</p>
+      <h2>Use averages to guide your practice</h2><p>Compare the same puzzle, scramble type and solve mode across sessions. A slow result can reveal a recognition problem or a pause worth working on. Use <a href="/training/">focused algorithm training</a> for specific cases, then return to full solves to see how those improvements translate.</p>
+      <p>These examples describe Cubix’s calculations. For official average-of-five and penalty rules, consult the <a href="https://www.worldcubeassociation.org/regulations/#9b">WCA competition formats</a> and <a href="https://www.worldcubeassociation.org/regulations/#9f">result rules</a>.</p>
+    </>}
+    <nav className="public-links" aria-label="Cube timer resources"><a href="/">Cube timer</a><a href="/algorithms/">Cube algorithms</a><a href="/training/">Algorithm trainer</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12 explained</a></nav>
+    <footer><p>Cubix is an independent speedcubing app. Rubik’s is a trademark of its respective owner. <a href="https://github.com/Vitrixxl/cubix">Source code &amp; feedback</a></p></footer>
+  </section>;
+}

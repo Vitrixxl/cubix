@@ -9,7 +9,8 @@ function worker(fetch: (request: { url: string }, options?: RequestInit) => Prom
   const events: Record<string, (event: any) => void> = {};
   const navigated: string[] = [], deleted: string[] = [];
   let claimed = false;
-  const cache = { match: async () => new Response("offline shell"), addAll: async () => {} };
+  const cacheMatches: string[] = [];
+  const cache = { match: async (path: string) => { cacheMatches.push(path); return new Response("offline shell"); }, addAll: async () => {} };
   const clients = ["/", "/aaaaadmin"].map(path => ({
     url: `https://cubix.test${path}`,
     // Browser navigation may wait until activation finishes.
@@ -31,7 +32,7 @@ function worker(fetch: (request: { url: string }, options?: RequestInit) => Prom
     },
   });
   return {
-    navigated, deleted, claimed: () => claimed,
+    navigated, deleted, cacheMatches, claimed: () => claimed,
     navigate(path: string) {
       let response: Promise<Response> | undefined;
       events.fetch!({ request: { method: "GET", mode: "navigate", url: `https://cubix.test${path}` }, respondWith: (value: Promise<Response>) => { response = value; } });
@@ -73,4 +74,12 @@ describe("offline worker navigation", () => {
     expect(sw.navigated).toEqual(["https://cubix.test/aaaaadmin"]);
     expect(sw.deleted).toEqual(["cubix-shell-oldest"]);
   });
+});
+
+test('public tool and guide URLs keep their own offline document', async () => {
+  for (const path of ['/algorithms/', '/training/', '/guides/ao5-ao12/']) {
+    const sw = worker(async () => { throw new TypeError('Offline'); });
+    expect(await (await sw.navigate(path))!.text()).toBe('offline shell');
+    expect(sw.cacheMatches).toEqual([path]);
+  }
 });

@@ -32,17 +32,21 @@ self.addEventListener("fetch", event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     if (event.request.mode === "navigate") {
-      if (url.pathname !== "/" && url.pathname !== "/index.html") return fetch(event.request);
+      const path = url.pathname;
+      const pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/"];
+      const normalized = path.endsWith("/") ? path : path + "/";
+      const offlinePage = path === "/" || path === "/index.html" ? "/" : pages.includes(normalized) ? normalized : undefined;
+      if (!offlinePage) return fetch(event.request);
       // Ask the server first, including when a network exists but the server is
       // unreachable. Keep the cached HTML paired with its complete build assets.
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4000);
       try {
         const response = await fetch(event.request, { cache: "no-cache", signal: controller.signal });
-        if (response.status >= 500) return await cache.match("/index.html") || response;
+        if (response.status >= 500) return await cache.match(offlinePage) || response;
         return response;
       } catch (error) {
-        const fallback = await cache.match("/index.html");
+        const fallback = await cache.match(offlinePage);
         if (fallback) return fallback;
         throw error;
       } finally {
