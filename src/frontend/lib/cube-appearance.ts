@@ -8,8 +8,9 @@ export const FACE_COLORS: Record<Face, string> = {
   R: "rgb(255, 128, 31)",
   L: "rgb(235, 66, 66)",
 };
-const GREY = "rgb(58, 58, 66)";
-const DIM = "rgb(36, 36, 42)";
+// Neutral charcoal keeps masked pieces distinct from the gaps, even on mobile.
+const GREY = "rgb(92, 92, 98)";
+const DIM = "rgb(64, 64, 70)";
 
 export type CubeMask = "full" | "OLL" | "PLL" | "F2L";
 
@@ -35,4 +36,3 @@ export function stickerColor(state: CubeState, slot: number, mask: CubeMask): st
       return FACE_COLORS[face];
   }
 }
-

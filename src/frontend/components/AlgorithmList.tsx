@@ -72,23 +72,29 @@ export function AlgorithmList({ algorithms, activeIndex, onSelect }: Props) {
                 <IconCheck />
               </motion.span>
               <AlgText alg={a.alg} preAuf={a.pre_auf} />
-              <div className="badges">
-                {i === 0 && <span className="chip accent">Primary</span>}
-                {a.recommended_by?.includes("jperm") && <span className="chip">J Perm pick</span>}
-                {a.votes !== undefined && <span className="chip">▲ {a.votes}</span>}
-                {a.stm !== undefined && <span className="chip">{a.stm} STM</span>}
-                {a.gen && <span className="chip">{a.gen}</span>}
-                <span className="chip" title={a.source}>{sourceLabel(a.source)}</span>
-                {a.youtube && (
-                  <a className="chip" href={a.youtube} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                    Video
-                  </a>
-                )}
-              </div>
+              <AlgorithmBadges algorithm={a} primary={i === 0} />
             </motion.button>
           );
         })}
       </motion.div>
     </LayoutGroup>
+  );
+}
+
+export function AlgorithmBadges({algorithm: a, primary = false}: {algorithm: AlgEntry; primary?: boolean}) {
+  return (
+    <div className="badges">
+      {primary && <span className="chip accent">Primary</span>}
+      {a.recommended_by?.includes("jperm") && <span className="chip">J Perm pick</span>}
+      {a.votes !== undefined && <span className="chip">▲ {a.votes}</span>}
+      {a.stm !== undefined && <span className="chip">{a.stm} STM</span>}
+      {a.gen && <span className="chip">{a.gen}</span>}
+      <span className="chip" title={a.source}>{sourceLabel(a.source)}</span>
+      {a.youtube && (
+        <a className="chip" href={a.youtube} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+          Video
+        </a>
+      )}
+    </div>
   );
 }

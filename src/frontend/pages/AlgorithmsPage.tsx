@@ -11,7 +11,7 @@ import { CaseDiagram } from "../components/CaseDiagram";
 import { caseState, displayAlg, executableAlg, maskForStage } from "../lib/caseState";
 import { fmtTime } from "../lib/format";
 import { api } from "../api";
-import { AlgorithmList, AlgText } from "../components/AlgorithmList";
+import { AlgorithmBadges, AlgText } from "../components/AlgorithmList";
 import { TimesChart } from "../components/TimesChart";
 import { IconBack, IconPause, IconPlay, IconReset, IconStep, IconTimer } from "../components/icons";
 import { formatAlg } from "../../shared/cube";
@@ -21,6 +21,7 @@ import type { AlgEntry } from "../../shared/types";
 
 import { useShortcuts } from "../hooks/useShortcuts";
 import { ShortcutKey } from "../components/ShortcutKey";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 const statsMapAtom = unwrap(statsAtom, (prev) => prev ?? new Map<string, CaseStatsDto>());
 
@@ -173,7 +174,8 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
   const [algIndex, setAlgIndex] = useState(0);
   const [activePane, setActivePane] = useState<"algorithms" | "statistics">("algorithms");
   const paneId = useId();
-  const algScrollRef=usePreservedScroll<HTMLElement>(`case:${c.id}:algorithms`);
+  const [setupIndex, setSetupIndex] = useState(0);
+  const setups = [c.setup, ...c.setups_alt];
   const statsScrollRef=usePreservedScroll<HTMLElement>(`case:${c.id}:statistics:${solveMode}`);
   const detailScrollRef=usePreservedScroll(`case:${c.id}:detail`);
   const [history, setHistory] = useState<CaseHistoryDto | null>(null);
@@ -208,7 +210,7 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
   return (
     <motion.div ref={detailScrollRef} className="detail case-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
       <div className="case-detail-heading">
-        <motion.button className="btn ghost small" onClick={onBack} style={{ marginLeft: -10, marginBottom: 10 }} variants={itemVariants}>
+        <motion.button className="btn ghost small case-back" onClick={onBack} variants={itemVariants}>
           <IconBack /> {c.setLabel} <ShortcutKey letter="B" />
         </motion.button>
         <motion.div className="detail-title" variants={itemVariants}>
@@ -229,41 +231,41 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
         <button type="button" aria-pressed={activePane === "statistics"} aria-controls={`${paneId}-statistics`} onClick={() => setActivePane("statistics")}>Statistics</button>
       </div>
       <div className="case-content-panels" data-active-pane={activePane}>
-        <section ref={algScrollRef} id={`${paneId}-algorithms`} className="case-scroll-pane case-algorithms-pane" aria-label="Case algorithms" tabIndex={0}>
-        <motion.div className="card" variants={itemVariants}>
-          <div className="setup-block">
-            <div>
-              <h2>Setup</h2>
-              <p className="muted" style={{ margin: "0 0 10px", fontSize: 12 }}>
-                {puzzleInfo(puzzleOf(c)).cubeSize ? "Apply on a solved cube (yellow up, green front) to get this case." : "Apply to a solved puzzle."}
-              </p>
-              <AlgText alg={puzzleInfo(puzzleOf(c)).cubeSize ? formatAlg(c.setup) : c.setup} className="large" />
+        <section id={`${paneId}-algorithms`} className="case-scroll-pane case-algorithms-pane" aria-label="Case algorithms">
+          <div className="case-algorithm-choice">
+            <div className="case-choice-toolbar">
+              <Select value={String(algIndex)} onValueChange={value => setAlgIndex(Number(value))}>
+                <SelectTrigger aria-label="Algorithm"><SelectValue>Algorithm {algIndex + 1} / {c.algorithms.length}</SelectValue></SelectTrigger>
+                <SelectContent className="case-algorithm-options">
+                  {c.algorithms.map((a, i) => <SelectItem key={i} value={String(i)} textValue={`Algorithm ${i + 1}: ${displayAlg(a)}`}>
+                    <span className="case-option-number">{i + 1}{i === 0 ? " · Primary" : ""}</span>
+                    <AlgText alg={displayAlg(a)} />
+                  </SelectItem>)}
+                </SelectContent>
+              </Select>
+              <button className="btn primary small" onClick={train} aria-keyshortcuts="Alt+t">
+                <IconTimer /> Train this case <ShortcutKey letter="T" />
+              </button>
             </div>
-            <button className="btn primary" onClick={train} aria-keyshortcuts="Alt+t">
-              <IconTimer /> Train this case <ShortcutKey letter="T" />
-            </button>
+            <div className="case-selected-algorithm" aria-live="polite">
+              <AlgText alg={displayAlg(active)} />
+              <AlgorithmBadges algorithm={active} primary={algIndex === 0} />
+            </div>
           </div>
-          {c.notes && <p className="case-note">{c.notes}</p>}
-          {c.setups_alt.length > 0 && (
-            <details style={{ marginTop: 12 }}>
-              <summary className="muted" style={{ cursor: "pointer", fontSize: 12 }}>
-                {c.setups_alt.length} alternative setup{c.setups_alt.length > 1 ? "s" : ""}
-              </summary>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                {c.setups_alt.map((s) => (
-                  <AlgText key={s} alg={s} />
-                ))}
-              </div>
-            </details>
-          )}
-        </motion.div>
-
-        <motion.div className="card" variants={itemVariants}>
-          <h2>Algorithms</h2>
-          <AlgorithmList algorithms={c.algorithms} activeIndex={algIndex} onSelect={setAlgIndex} />
-        </motion.div>
-
           <CaseSolutionPlayer c={c} active={active} />
+          <div className="case-setup-choice">
+            <div className="case-setup-label">
+              {setups.length > 1 ? <Select value={String(setupIndex)} onValueChange={value => setSetupIndex(Number(value))}>
+                <SelectTrigger aria-label="Setup"><SelectValue>Setup {setupIndex + 1} / {setups.length}</SelectValue></SelectTrigger>
+                <SelectContent className="case-algorithm-options">
+                  {setups.map((setup, i) => <SelectItem key={i} value={String(i)} textValue={`Setup ${i + 1}: ${setup}`}>
+                    <span className="case-option-number">Setup {i + 1}</span><AlgText alg={setup} />
+                  </SelectItem>)}
+                </SelectContent>
+              </Select> : <span className="muted">Setup</span>}
+            </div>
+            <div className="case-setup-notation" aria-live="polite"><AlgText alg={puzzleInfo(puzzleOf(c)).cubeSize ? formatAlg(setups[setupIndex]) : setups[setupIndex]} /></div>
+          </div>
         </section>
         <section ref={statsScrollRef} id={`${paneId}-statistics`} className="case-scroll-pane case-statistics-pane" aria-label="Case statistics" tabIndex={0}>
         <motion.div className="card" variants={itemVariants}>
@@ -292,7 +294,7 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
 
 function CaseSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
   const show3D = useAtomValue(threeDEnabledAtom);
-  if (!show3D) return null;
+  if (!show3D) return <div className="case-player case-static-preview"><CaseDiagram c={c} size={160} /></div>;
   return puzzleInfo(puzzleOf(c)).cubeSize ? <CubeSolutionPlayer c={c} active={active}/> : <PuzzleSolutionPlayer puzzle={puzzleOf(c)} setup={c.setup} alg={executableAlg(active)}/>;
 }
 function CubeSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
@@ -305,7 +307,7 @@ function CubeSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
   ]);
   return (      <motion.div className="case-player" initial={{ opacity: 0, x: 0, scale: 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
         <div className="cube-stage">
-          <Cube3D state={player.state} animation={player.animation} size={260} mask={maskForStage(c.stage)} interactive />
+          <Cube3D state={player.state} animation={player.animation} size={260} style={{width:"100%",height:"100%"}} mask={maskForStage(c.stage)} interactive />
         </div>
         <div className="progress" style={{ maxWidth: 260 }}>
           <div style={{ width: `${player.total ? (player.index / player.total) * 100 : 0}%` }} />
@@ -321,12 +323,6 @@ function CubeSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
           <button className="btn icon" onClick={player.stepForward} disabled={player.playing || player.index >= player.total} title="Next move (Alt + J)" aria-label="Next move" aria-keyshortcuts="Alt+j">
             <IconStep /><ShortcutKey letter="J" />
           </button>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
-            Showing
-          </div>
-          <AlgText alg={displayAlg(active)} />
         </div>
       </motion.div>
 );

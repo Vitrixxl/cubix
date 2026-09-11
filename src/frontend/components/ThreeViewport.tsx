@@ -39,26 +39,26 @@ export function ThreeViewport<M extends ThreeModel>({createModel,cacheKey,loadin
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=PCFSoftShadowMap;
     renderer.domElement.setAttribute('aria-hidden','true');el.prepend(renderer.domElement);
     const scene=new Scene(), camera=new OrthographicCamera(-2,2,2,-2,.1,100),group=new Group();
-    // Broad daylight sources give the plastic soft shading, without bright strips.
+    // Broad daylight and balanced fill keep masked faces readable on dark backgrounds.
     // Bake the diffuse room once, with no extra lights per frame.
-    const room=new Scene();room.background=new Color(.3,.3,.3);
+    const room=new Scene();room.background=new Color(.5,.5,.5);
     for(const {position,width,height,intensity} of [
       {position:[-5,6,4],width:7,height:8,intensity:2.5},
-      {position:[5,2,-3],width:6,height:6,intensity:1},
+      {position:[5,2,-3],width:6,height:6,intensity:1.8},
     ]){
       const panel=new Mesh(new PlaneGeometry(width,height),new MeshBasicMaterial({color:new Color().setScalar(intensity),side:DoubleSide}));
       panel.position.set(position[0],position[1],position[2]);panel.lookAt(0,0,0);room.add(panel);
     }
     const pmrem=new PMREMGenerator(renderer),environment=pmrem.fromScene(room,.3);
-    scene.environment=environment.texture;scene.environmentIntensity=.6;
+    scene.environment=environment.texture;scene.environmentIntensity=.9;
     disposeObject(room);pmrem.dispose();
-    camera.position.z=8;scene.add(group);scene.add(new AmbientLight(0xffffff,.45));
+    camera.position.z=8;scene.add(group);scene.add(new AmbientLight(0xffffff,.9));
     const light=new DirectionalLight(0xfff7ed,1.6);light.position.set(-3,6,8);light.castShadow=true;
     light.shadow.mapSize.set(1024,1024);light.shadow.camera.left=-2;light.shadow.camera.right=2;
     light.shadow.camera.top=2;light.shadow.camera.bottom=-2;light.shadow.camera.near=.1;light.shadow.camera.far=20;
     light.shadow.normalBias=.008;light.shadow.bias=-.0001;scene.add(light);
-    const fill=new DirectionalLight(0xe8efff,.35);fill.position.set(5,1,3);scene.add(fill);
-    const rim=new DirectionalLight(0xffffff,.25);rim.position.set(2,4,-5);scene.add(rim);
+    const fill=new DirectionalLight(0xffffff,1.2);fill.position.set(5,1,3);scene.add(fill);
+    const rim=new DirectionalLight(0xffffff,.6);rim.position.set(2,4,-5);scene.add(rim);
     const model=createModel();group.add(model.object);
     let frame:number|null=null;
     const retired:M[]=[];
