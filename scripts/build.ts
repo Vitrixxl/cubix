@@ -1,6 +1,5 @@
 import { compressAssets } from "./compress-assets";
 import { buildSeo } from "./build-seo";
-import { buildModelWorker } from "./build-model-worker";
 import { buildVendor } from "./build-vendor";
 import { cp, rm, readdir, readFile, writeFile } from "node:fs/promises";
 
@@ -15,12 +14,10 @@ const admin = Bun.spawn(["bun", "build", "./src/admin/index.html", "--outdir=dis
 if (await admin.exited !== 0) process.exit(1);
 await cp("public", "dist/view", { recursive: true });
 await buildVendor("dist/view/vendor/cubing");
-await buildModelWorker("dist/view/workers");
 await buildSeo();
 
-// An atomic shell cache includes the complete catalogue, fonts and PWA icons.
-// Geometry is cached on selection, never downloaded as part of shell installation.
-const files = (await readdir("dist/view", {recursive:true})).filter(path => !path.startsWith("admin/") && !path.startsWith("cube-library/models/") && (/\.(html|js|css|woff2|png|svg|webmanifest)$/.test(path) || path === 'cube-library/catalog.json')).sort();
+// The offline shell stays small: scramblers and case diagrams are cached on first use.
+const files = (await readdir("dist/view", {recursive:true})).filter(path => !/^(admin|vendor|cases)\//.test(path) && !path.startsWith("og-image") && /\.(html|js|css|png|svg|webmanifest)$/.test(path)).sort();
 const hash = new Bun.CryptoHasher("sha256");
 for (const path of files) hash.update(await readFile("dist/view/"+path));
 const template = await readFile("scripts/service-worker.js","utf8");

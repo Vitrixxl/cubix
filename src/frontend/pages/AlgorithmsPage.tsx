@@ -1,31 +1,23 @@
 import { Kpi } from "../components/Kpi";
-import {usePreservedScroll} from "../hooks/usePreservedScroll";
-import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePreservedScroll } from "../hooks/usePreservedScroll";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { unwrap } from "jotai/utils";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { threeDEnabledAtom, puzzleAtom, solveModeAtom, animationsEnabledAtom, collapsedAlgorithmGroupsAtom, trainedOnlyAtom, casesAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, stageAtom, statsAtom } from "../state";
+import { puzzleAtom, solveModeAtom, collapsedAlgorithmGroupsAtom, trainedOnlyAtom, casesAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, stageAtom, statsAtom } from "../state";
 import { type CaseDto, type CaseHistoryDto, type CaseStatsDto, type SetDto, type Stage } from "../../shared/types";
-import { Cube3D, useAlgPlayer } from "../components/Cube3D";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { caseState, displayAlg, executableAlg, maskForStage } from "../lib/caseState";
+import { displayAlg } from "../lib/caseState";
 import { fmtTime } from "../lib/format";
 import { api } from "../api";
 import { AlgorithmBadges, AlgText } from "../components/AlgorithmList";
 import { TimesChart } from "../components/TimesChart";
-import { IconBack, IconPause, IconPlay, IconReset, IconStep, IconTimer } from "../components/icons";
+import { IconBack, IconTimer } from "../components/icons";
 import { formatAlg } from "../../shared/cube";
-import { PuzzleSolutionPlayer } from "../components/PuzzleSolutionPlayer";
 import { puzzleInfo, puzzleOf } from "../../shared/puzzles";
-import type { AlgEntry } from "../../shared/types";
-
 import { useShortcuts } from "../hooks/useShortcuts";
 import { ShortcutKey } from "../components/ShortcutKey";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 const statsMapAtom = unwrap(statsAtom, (prev) => prev ?? new Map<string, CaseStatsDto>());
-
-const itemVariants = { hidden: { opacity: 0, y: 14, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 380, damping: 28 } } };
 
 export function AlgorithmsPage() {
   const puzzle = useAtomValue(puzzleAtom);
@@ -35,12 +27,9 @@ export function AlgorithmsPage() {
   const [route, setRoute] = useAtom(routeAtom);
   const caseId = route.page === "algorithms" ? route.caseId : undefined;
   const selected = caseId ? cases.find(c => c.id === caseId) : undefined;
-  const pageScrollRef = usePreservedScroll(`algorithms-page:${puzzle}:${caseId??'catalogue'}`);
-  return <div className="page algorithms-page" ref={pageScrollRef}>
-    <AnimatePresence mode="wait" initial={false}>
-      {selected ? <CaseDetail key={selected.id} c={selected} stats={stats.get(selected.id)} onBack={() => setRoute({page:'algorithms'})}/>
-        : <AlgorithmBrowser key="grid" puzzle={puzzle} cases={cases} sets={sets} stats={stats}/>}
-    </AnimatePresence>
+  return <div className="page algorithms-page">
+    {selected ? <CaseDetail key={selected.id} c={selected} stats={stats.get(selected.id)} onBack={() => setRoute({page:'algorithms'})}/>
+      : <AlgorithmBrowser key={puzzle} puzzle={puzzle} cases={cases} sets={sets} stats={stats}/>}
   </div>;
 }
 
@@ -50,8 +39,6 @@ function AlgorithmBrowser({puzzle,cases,sets,stats}:{puzzle:string;cases:CaseDto
   const [stage,setStage]=useAtom(stageAtom);
   const [setByStage,setSetByStage]=useAtom(setByStageAtom);
   const setRoute=useSetAtom(routeAtom),setSelection=useSetAtom(selectedCaseIdsAtom);
-  const groupId=useId(),animationsEnabled=useAtomValue(animationsEnabledAtom),reducedMotion=useReducedMotion();
-  const foldTransition={duration:animationsEnabled && !reducedMotion ? .22 : 0,ease:[.22,1,.36,1] as const};
   const sections=useMemo(()=>[...new Set(sets.map(set=>set.stage))].map(stage=>{
     const variants=sets.filter(set=>set.stage===stage);
     const active=variants.find(set=>set.id===setByStage[stage])??variants[0];
@@ -60,14 +47,9 @@ function AlgorithmBrowser({puzzle,cases,sets,stats}:{puzzle:string;cases:CaseDto
     for(const c of trainedOnly?trained:all){const list=groups.get(c.group)??[];list.push(c);groups.set(c.group,list);}
     return {stage,variants,active,all,trained,groups:[...groups]};
   }),[sets,cases,setByStage,stats,trainedOnly]);
-  const listRef=useRef<HTMLDivElement|null>(null),navRef=useRef<HTMLElement|null>(null),pendingJump=useRef<Stage|null>(null);
-  useEffect(()=>{
-    const nav=navRef.current,active=nav?.querySelector<HTMLElement>('[aria-current="location"]');if(!nav||!active)return;
-    const bounds=nav.getBoundingClientRect(),tab=active.getBoundingClientRect();
-    if(tab.left<bounds.left)nav.scrollLeft+=tab.left-bounds.left;
-    else if(tab.right>bounds.right)nav.scrollLeft+=tab.right-bounds.right;
-  },[stage]);
-  const preserveScroll=usePreservedScroll(`algorithms:${puzzle}:all-stages:${trainedOnly}`);
+  const listRef=useRef<HTMLDivElement|null>(null);
+  const preserveScroll=usePreservedScroll(`algorithms:${puzzle}:${trainedOnly}`);
+  // The active stage tab follows the section under the top of the list.
   const scrollRef=useCallback((element:HTMLDivElement|null)=>{
     listRef.current=element;if(!element)return;
     const cleanup=preserveScroll(element);let frame=0,previousStage:string|undefined;
@@ -81,89 +63,60 @@ function AlgorithmBrowser({puzzle,cases,sets,stats}:{puzzle:string;cases:CaseDto
     element.addEventListener('scroll',onScroll,{passive:true});onScroll();
     return()=>{cancelAnimationFrame(frame);element.removeEventListener('scroll',onScroll);cleanup?.();listRef.current=null;};
   },[preserveScroll,setStage]);
-  const jumpTo=useCallback((stage:Stage,smooth=true)=>{
+  const jumpTo=(stage:Stage)=>{
     const list=listRef.current;
     const target=list&&[...list.querySelectorAll<HTMLElement>('[data-catalog-stage]')].find(section=>section.dataset.catalogStage===stage);
     if(!list||!target)return;
-    list.scrollTo({top:list.scrollTop+target.getBoundingClientRect().top-list.getBoundingClientRect().top,behavior:smooth&&animationsEnabled&&!reducedMotion?'smooth':'instant'});
+    list.scrollTo({top:list.scrollTop+target.getBoundingClientRect().top-list.getBoundingClientRect().top});
     setStage(stage);
-  },[animationsEnabled,reducedMotion,setStage]);
-  useLayoutEffect(()=>{if(pendingJump.current){jumpTo(pendingJump.current,false);pendingJump.current=null;}},[setByStage,jumpTo]);
+  };
   const openCase=useCallback((id:string)=>setRoute({page:'algorithms',caseId:id}),[setRoute]);
   const trainAll=(list:CaseDto[])=>{setSelection(list.map(c=>c.id));setRoute({page:'training',autostart:true});};
-  return <motion.div className="case-browser" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.18}}>
-    <div className="page-header catalog-navigation">
-      <LayoutGroup id="stage-tabs">
-        <nav ref={navRef} className="tabs" aria-label="Algorithm sections">
-          {sections.map(section=><motion.button type="button" key={section.stage} className={`tab ${section.stage===stage?'active':''}`} aria-current={section.stage===stage?'location':undefined} aria-controls={`${groupId}-stage-${encodeURIComponent(section.stage)}`} onClick={()=>jumpTo(section.stage)}>
-            {section.stage===stage&&<motion.span className="tab-pill" layoutId="stage-pill" transition={{type:'spring',stiffness:500,damping:36}}/>}
-            <span>{section.stage}</span>
-          </motion.button>)}
-        </nav>
-      </LayoutGroup>
-      <button type="button" className="catalog-trained-filter" aria-pressed={trainedOnly} onClick={()=>setTrainedOnly(value=>!value)}>
-        <IconTimer/><span>Trained only</span><span className="count">{sections.reduce((sum,s)=>sum+s.trained.length,0)} / {sections.reduce((sum,s)=>sum+s.all.length,0)}</span>
+  return <div className="case-browser">
+    <div className="toolbar">
+      <div className="segmented" role="group" aria-label="Stage">
+        {sections.map(section=><button type="button" key={section.stage} aria-pressed={section.stage===stage} onClick={()=>jumpTo(section.stage)}>{section.stage}</button>)}
+      </div>
+      <button type="button" className="btn small toggle" aria-pressed={trainedOnly} onClick={()=>setTrainedOnly(value=>!value)}>
+        Trained only <span className="count">{sections.reduce((sum,s)=>sum+s.trained.length,0)}/{sections.reduce((sum,s)=>sum+s.all.length,0)}</span>
       </button>
     </div>
-    <div ref={scrollRef} className="case-list catalog-sections">
-      {sections.map(({stage:sectionStage,variants,active,groups})=><section key={sectionStage} id={`${groupId}-stage-${encodeURIComponent(sectionStage)}`} className="catalog-stage" data-catalog-stage={sectionStage} aria-label={sectionStage}>
+    <div ref={scrollRef} className="case-list">
+      {sections.map(({stage:sectionStage,variants,active,groups})=><section key={sectionStage} className="catalog-stage" data-catalog-stage={sectionStage} aria-label={sectionStage}>
         <header className="catalog-stage-header">
           <h2>{sectionStage}</h2>
-          {variants.length>1&&<div className="tabs small" role="group" aria-label={`${sectionStage} variants`}>
-            {variants.map(variant=><button type="button" key={variant.id} className={`tab ${variant.id===active.id?'active':''}`} aria-pressed={variant.id===active.id} title={variant.description} onClick={()=>{
-              if(variant.id===active.id)return;
-              pendingJump.current=sectionStage;setSetByStage(previous=>({...previous,[sectionStage]:variant.id}));
-            }}><span>{variant.label}</span><span className="count">{variant.count}</span></button>)}
+          {variants.length>1&&<div className="segmented small" role="group" aria-label={`${sectionStage} sets`}>
+            {variants.map(variant=><button type="button" key={variant.id} aria-pressed={variant.id===active.id} title={variant.description} onClick={()=>setSetByStage(previous=>({...previous,[sectionStage]:variant.id}))}>{variant.label} <span className="count">{variant.count}</span></button>)}
           </div>}
         </header>
-        <p className="subtle catalog-stage-description">{active.description}</p>
         {groups.map(([group,list])=>{
-          const key=`${active.id}:${group}`,expanded=!collapsed[key],contentId=`${groupId}-${encodeURIComponent(key)}`;
-          return <section key={key} aria-label={group}>
-            <div className="group-title catalog-group-title">
-              <h3><button type="button" className="catalog-group-toggle" aria-expanded={expanded} aria-controls={contentId} onClick={()=>setCollapsed(previous=>({...previous,[key]:!previous[key]}))}>
-                <motion.svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" initial={false} animate={{rotate:expanded?0:-90}} transition={foldTransition}><path d="m6 9 6 6 6-6"/></motion.svg>
+          const key=`${active.id}:${group}`,expanded=!collapsed[key];
+          return <section key={key} aria-label={group} className="catalog-group">
+            <div className="group-title">
+              <button type="button" className="group-toggle" aria-expanded={expanded} onClick={()=>setCollapsed(previous=>({...previous,[key]:!previous[key]}))}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{transform:expanded?'none':'rotate(-90deg)'}}><path d="m6 9 6 6 6-6"/></svg>
                 <span>{group}</span><span className="count">{list.length}</span>
-              </button></h3>
-              <button type="button" className="btn ghost small group-train" onClick={()=>trainAll(list)} title={`Train the ${list.length} cases of ${group}`}><IconTimer/> Train all</button>
+              </button>
+              <button type="button" className="mini-btn" onClick={()=>trainAll(list)} title={`Train the ${list.length} cases of ${group}`}><IconTimer/> Train all</button>
             </div>
-            <div id={contentId} inert={!expanded}>
-              <AnimatePresence initial={false}>{expanded&&<motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={foldTransition} style={{overflow:'hidden'}}>
-                <div className="grid-cases">{list.map(c=><CaseCard key={c.id} c={c} stats={stats.get(c.id)} onOpen={openCase}/>)}</div>
-              </motion.div>}</AnimatePresence>
-            </div>
+            {expanded&&<div className="grid-cases">{list.map(c=><CaseCard key={c.id} c={c} stats={stats.get(c.id)} onOpen={openCase}/>)}</div>}
           </section>;
         })}
-        {!groups.length&&<div className="empty"><p>No trained cases in this set yet.</p><button type="button" className="btn ghost small" onClick={()=>setTrainedOnly(false)}>Show all cases</button></div>}
+        {!groups.length&&<div className="empty"><p>No trained cases in this set yet.</p><button type="button" className="btn small" onClick={()=>setTrainedOnly(false)}>Show all cases</button></div>}
       </section>)}
     </div>
-  </motion.div>;
+  </div>;
 }
 
 const CaseCard=memo(function CaseCard({ c, stats, onOpen }: { c: CaseDto; stats?: CaseStatsDto; onOpen: (id:string) => void }) {
   return (
-    <motion.button className="case-card" onClick={()=>onOpen(c.id)} variants={itemVariants}>
+    <button className="case-card" onClick={()=>onOpen(c.id)}>
       {stats && <span className="trained-dot" title={`${stats.count} solves`} />}
-      <div className="case-cube">
-        <CaseDiagram c={c} size={102} />
-      </div>
-      <div className="case-id">{c.id}</div>
+      <CaseDiagram c={c} size={96} />
+      <div className="case-id">{c.id.replace(/^\S+\s+/, "")}</div>
       {c.name !== c.id && <div className="case-name">{c.name}</div>}
-      <div className="case-stats">
-        {stats ? (
-          <>
-            <span>
-              best <b>{fmtTime(stats.best)}</b>
-            </span>
-            <span>
-              avg <b>{fmtTime(stats.mean)}</b>
-            </span>
-          </>
-        ) : (
-          <span className="muted">not trained</span>
-        )}
-      </div>
-    </motion.button>
+      <div className="case-stats">{stats ? <><b>{fmtTime(stats.best)}</b> · {fmtTime(stats.mean)}</> : <span className="muted">—</span>}</div>
+    </button>
   );
 });
 
@@ -171,23 +124,15 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
   const setRoute = useSetAtom(routeAtom);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
   const solveMode = useAtomValue(solveModeAtom);
-  const [algIndex, setAlgIndex] = useState(0);
-  const [activePane, setActivePane] = useState<"algorithms" | "statistics">("algorithms");
-  const paneId = useId();
-  const [setupIndex, setSetupIndex] = useState(0);
-  const setups = [c.setup, ...c.setups_alt];
-  const statsScrollRef=usePreservedScroll<HTMLElement>(`case:${c.id}:statistics:${solveMode}`);
-  const detailScrollRef=usePreservedScroll(`case:${c.id}:detail`);
+  const detailScrollRef = usePreservedScroll(`case:${c.id}:detail`);
   const [history, setHistory] = useState<CaseHistoryDto | null>(null);
-  const active = c.algorithms[algIndex] ?? c.algorithms[0];
+  const isCube = !!puzzleInfo(puzzleOf(c)).cubeSize;
 
   useEffect(() => {
     let alive = true;
     api.caseHistory(c.id,{solveMode}).then((h) => alive && setHistory(h));
-    return () => {
-      alive = false;
-    };
-  }, [c.id, stats?.count]);
+    return () => { alive = false; };
+  }, [c.id, stats?.count, solveMode]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -201,129 +146,51 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
     setSelection([c.id]);
     setRoute({ page: "training", autostart: true });
   };
-  useShortcuts([
-    { key: "b", run: onBack },
-    { key: "t", run: train },
-  ]);
+  useShortcuts([{ key: "b", run: onBack }, { key: "t", run: train }]);
   const summary = history?.summary ?? stats;
 
   return (
-    <motion.div ref={detailScrollRef} className="detail case-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
-      <div className="case-detail-heading">
-        <motion.button className="btn ghost small case-back" onClick={onBack} variants={itemVariants}>
-          <IconBack /> {c.setLabel} <ShortcutKey letter="B" />
-        </motion.button>
-        <motion.div className="detail-title" variants={itemVariants}>
-          <h1>{c.id}</h1>
-          {c.name !== c.id && <span className="subtle" style={{ fontSize: 17 }}>{c.name}</span>}
-        </motion.div>
-        <motion.div className="detail-meta" variants={itemVariants}>
-          <span className="chip">{c.stage}</span>
-          <span className="chip">{c.group}</span>
-          {c.subgroup && c.subgroup !== c.group && <span className="chip">{c.subgroup}</span>}
-          {c.probability && <span className="chip">P = {c.probability}</span>}
-          <span className="chip">{c.algorithms.length} algorithms</span>
-        </motion.div>
-
+    <div className="detail">
+      <div className="toolbar">
+        <button className="btn small ghost" onClick={onBack}><IconBack /> {c.setLabel} <ShortcutKey letter="B" /></button>
+        <button className="btn small primary" onClick={train} aria-keyshortcuts="Alt+t"><IconTimer /> Train <ShortcutKey letter="T" /></button>
       </div>
-      <div className="case-pane-tabs" aria-label="Case content">
-        <button type="button" aria-pressed={activePane === "algorithms"} aria-controls={`${paneId}-algorithms`} onClick={() => setActivePane("algorithms")}>Algorithms</button>
-        <button type="button" aria-pressed={activePane === "statistics"} aria-controls={`${paneId}-statistics`} onClick={() => setActivePane("statistics")}>Statistics</button>
-      </div>
-      <div className="case-content-panels" data-active-pane={activePane}>
-        <section id={`${paneId}-algorithms`} className="case-scroll-pane case-algorithms-pane" aria-label="Case algorithms">
-          <div className="case-algorithm-choice">
-            <div className="case-choice-toolbar">
-              <Select value={String(algIndex)} onValueChange={value => setAlgIndex(Number(value))}>
-                <SelectTrigger aria-label="Algorithm"><SelectValue>Algorithm {algIndex + 1} / {c.algorithms.length}</SelectValue></SelectTrigger>
-                <SelectContent className="case-algorithm-options">
-                  {c.algorithms.map((a, i) => <SelectItem key={i} value={String(i)} textValue={`Algorithm ${i + 1}: ${displayAlg(a)}`}>
-                    <span className="case-option-number">{i + 1}{i === 0 ? " · Primary" : ""}</span>
-                    <AlgText alg={displayAlg(a)} />
-                  </SelectItem>)}
-                </SelectContent>
-              </Select>
-              <button className="btn primary small" onClick={train} aria-keyshortcuts="Alt+t">
-                <IconTimer /> Train this case <ShortcutKey letter="T" />
-              </button>
-            </div>
-            <div className="case-selected-algorithm" aria-live="polite">
-              <AlgText alg={displayAlg(active)} />
-              <AlgorithmBadges algorithm={active} primary={algIndex === 0} />
-            </div>
+      <div className="detail-body" ref={detailScrollRef}>
+        <header className="detail-hero">
+          <CaseDiagram c={c} size={150} />
+          <div>
+            <h1>{c.id}</h1>
+            {c.name !== c.id && <p>{c.name}</p>}
+            <div className="chips"><span className="chip">{c.group}</span>{c.subgroup && c.subgroup !== c.group && <span className="chip">{c.subgroup}</span>}{c.probability && <span className="chip">P = {c.probability}</span>}</div>
           </div>
-          <CaseSolutionPlayer c={c} active={active} />
-          <div className="case-setup-choice">
-            <div className="case-setup-label">
-              {setups.length > 1 ? <Select value={String(setupIndex)} onValueChange={value => setSetupIndex(Number(value))}>
-                <SelectTrigger aria-label="Setup"><SelectValue>Setup {setupIndex + 1} / {setups.length}</SelectValue></SelectTrigger>
-                <SelectContent className="case-algorithm-options">
-                  {setups.map((setup, i) => <SelectItem key={i} value={String(i)} textValue={`Setup ${i + 1}: ${setup}`}>
-                    <span className="case-option-number">Setup {i + 1}</span><AlgText alg={setup} />
-                  </SelectItem>)}
-                </SelectContent>
-              </Select> : <span className="muted">Setup</span>}
-            </div>
-            <div className="case-setup-notation" aria-live="polite"><AlgText alg={puzzleInfo(puzzleOf(c)).cubeSize ? formatAlg(setups[setupIndex]) : setups[setupIndex]} /></div>
-          </div>
+        </header>
+        <section className="card">
+          <h2>Setup</h2>
+          <AlgText alg={isCube ? formatAlg(c.setup) : c.setup} className="large" />
+          {c.setups_alt.length > 0 && <p className="muted">Also: {c.setups_alt.map((setup, i) => <span key={i}>{i > 0 && " · "}<AlgText alg={isCube ? formatAlg(setup) : setup} /></span>)}</p>}
+          {c.notes && <p className="muted">{c.notes}</p>}
         </section>
-        <section ref={statsScrollRef} id={`${paneId}-statistics`} className="case-scroll-pane case-statistics-pane" aria-label="Case statistics" tabIndex={0}>
-        <motion.div className="card" variants={itemVariants}>
+        <section className="card">
+          <h2>Algorithms</h2>
+          <ol className="alg-list">
+            {c.algorithms.map((a, i) => <li key={i} className="alg-row"><AlgText alg={displayAlg(a)} /><AlgorithmBadges algorithm={a} primary={i === 0} /></li>)}
+          </ol>
+        </section>
+        <section className="card">
           <h2>Statistics</h2>
-          {summary && summary.count > 0 ? (
-            <>
-              <div className="kpi-row" style={{ marginBottom: 16 }}>
-                <Kpi label="Solves" value={String(summary.count)} />
-                <Kpi label="Best" value={fmtTime(summary.best)} />
-                <Kpi label="Mean" value={fmtTime(summary.mean)} />
-                <Kpi label="Ao5" value={fmtTime(summary.ao5)} />
-                <Kpi label="Ao12" value={fmtTime(summary.ao12)} />
-                <Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
-              </div>
-              {history && <TimesChart history={history.history} ao5={history.ao5} />}
-            </>
-          ) : (
-            <div className="empty">No solves yet.</div>
-          )}
-        </motion.div>
+          {summary && summary.count > 0 ? <>
+            <div className="kpi-row">
+              <Kpi label="Solves" value={String(summary.count)} />
+              <Kpi label="Best" value={fmtTime(summary.best)} />
+              <Kpi label="Mean" value={fmtTime(summary.mean)} />
+              <Kpi label="Ao5" value={fmtTime(summary.ao5)} />
+              <Kpi label="Ao12" value={fmtTime(summary.ao12)} />
+              <Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
+            </div>
+            {history && <TimesChart history={history.history} ao5={history.ao5} />}
+          </> : <div className="empty">No solves yet.</div>}
         </section>
       </div>
-    </motion.div>
+    </div>
   );
-}
-
-function CaseSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
-  const show3D = useAtomValue(threeDEnabledAtom);
-  if (!show3D) return <div className="case-player case-static-preview"><CaseDiagram c={c} size={160} /></div>;
-  return puzzleInfo(puzzleOf(c)).cubeSize ? <CubeSolutionPlayer c={c} active={active}/> : <PuzzleSolutionPlayer puzzle={puzzleOf(c)} setup={c.setup} alg={executableAlg(active)}/>;
-}
-function CubeSolutionPlayer({c,active}:{c:CaseDto;active:AlgEntry}) {
-  const initial=useMemo(()=>caseState(c),[c.id]);
-  const player=useAlgPlayer(initial,executableAlg(active));
-  useShortcuts([
-    {key:"p",run:player.playing?player.pause:player.play},
-    {key:"r",run:player.reset},
-    {key:"j",run:()=>{if(!player.playing&&player.index<player.total)player.stepForward();}},
-  ]);
-  return (      <motion.div className="case-player" initial={{ opacity: 0, x: 0, scale: 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
-        <div className="cube-stage">
-          <Cube3D state={player.state} animation={player.animation} size={260} style={{width:"100%",height:"100%"}} mask={maskForStage(c.stage)} interactive />
-        </div>
-        <div className="progress" style={{ maxWidth: 260 }}>
-          <div style={{ width: `${player.total ? (player.index / player.total) * 100 : 0}%` }} />
-        </div>
-        <div className="player-controls">
-          <button className="btn icon" onClick={player.reset} title="Reset to the case (Alt + R)" aria-label="Reset to the case" aria-keyshortcuts="Alt+r">
-            <IconReset /><ShortcutKey letter="R" />
-          </button>
-          <button className="btn primary" aria-keyshortcuts="Alt+p" onClick={player.playing ? player.pause : player.play}>
-            {player.playing ? <IconPause /> : <IconPlay />}
-            {player.playing ? "Pause" : player.index >= player.total ? "Replay" : "Play"} <ShortcutKey letter="P" />
-          </button>
-          <button className="btn icon" onClick={player.stepForward} disabled={player.playing || player.index >= player.total} title="Next move (Alt + J)" aria-label="Next move" aria-keyshortcuts="Alt+j">
-            <IconStep /><ShortcutKey letter="J" />
-          </button>
-        </div>
-      </motion.div>
-);
 }

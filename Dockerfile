@@ -7,7 +7,7 @@ RUN bun install --frozen-lockfile
 COPY src ./src
 COPY public ./public
 COPY tsconfig.json ./
-COPY scripts/build.ts scripts/build-seo.tsx scripts/compress-assets.ts scripts/build-vendor.ts scripts/build-model-worker.ts scripts/service-worker.js ./scripts/
+COPY scripts/build.ts scripts/build-seo.tsx scripts/compress-assets.ts scripts/build-vendor.ts scripts/service-worker.js ./scripts/
 COPY data ./data
 COPY rust-api/catalog-sets.json ./rust-api/catalog-sets.json
 RUN bun run build

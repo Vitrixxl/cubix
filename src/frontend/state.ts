@@ -3,7 +3,6 @@ import { sets as catalogSets } from "./local/catalog";
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { api } from "./api";
-import { cubeModelAsset } from "./lib/cube-library";
 import type { UserDto, CaseDto, CaseStatsDto, Stage } from "../shared/types";
 
 // ---------------------------------------------------------------------------
@@ -25,8 +24,6 @@ export const puzzleAtom = atom(get => { const value = get(storedPuzzleAtom); ret
   if (route.page === "algorithms") set(routeAtom, { page: "algorithms" });
   if (route.page === "profile") set(routeAtom, { ...route, caseId: undefined });
 });
-/** Numeric geometry is only used by the cube catalogue and cube renderer. */
-export const cubeSizeAtom = atom(get => puzzleInfo(get(puzzleAtom)).cubeSize ?? 3);
 export const cubeSwitchLockedAtom = atom(false);
 /** Each cube remembers its own last stage, training selection and scramble. */
 function perCubeAtom<T>(key: string, fallback: T, legacyKey?: string) {
@@ -111,17 +108,5 @@ export const chatActivityAtom = atom(false);
 
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);
-
-/** Device preferences, applied before the first render. */
-export const threeDEnabledAtom = atomWithStorage<boolean>("cubix.ui.3dPuzzles", true, undefined, { getOnInit: true });
-export const animationsEnabledAtom = atomWithStorage<boolean>("cubix.ui.animations", true, undefined, { getOnInit: true });
-/** Legacy brand choices never identify a physical model and are deliberately not migrated. */
-const storedCubeModelSelectionAtom = atomWithStorage<Record<string, string>>("cubix.ui.cubeModels", {}, undefined, { getOnInit: true });
-export const cubeModelSelectionAtom = atom(get => {
-  const stored = get(storedCubeModelSelectionAtom);
-  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
-  return Object.fromEntries(Object.entries(stored).filter(([size, id]) => id === 'generic' || cubeModelAsset(id, Number(size))));
-}, (get, set, selections: Record<string, string>) => {
-  if (get(cubeSwitchLockedAtom)) return;
-  set(storedCubeModelSelectionAtom, Object.fromEntries(Object.entries(selections).filter(([size, id]) => id === 'generic' || cubeModelAsset(id, Number(size)))));
-});
+/** Conversation opened from the friends list; never persisted. */
+export const chatPeerAtom = atom("");

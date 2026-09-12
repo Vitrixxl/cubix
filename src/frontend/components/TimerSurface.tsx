@@ -1,8 +1,6 @@
 import { useSetAtom } from "jotai";
 import { timerRunningAtom } from "../state";
-import { useTimerChrome } from "../hooks/useTimerChrome";
 import { useTimerTouchArea } from "../hooks/useTimerTouchArea";
-import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { TimerApi } from "../hooks/useTimer";
@@ -23,10 +21,9 @@ function LiveTime({ startedAt }: { startedAt: number }) {
   return text;
 }
 
-export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: TimerApi; disabled?: boolean; hint?: string; /** no background box (floating layout) */ flat?: boolean }) {
+export function TimerSurface({ timer, disabled = false }: { timer: TimerApi; disabled?: boolean }) {
   const { phase, elapsed } = timer;
   const setRunning = useSetAtom(timerRunningAtom);
-  const hintMotion = useTimerChrome("down", phase === "running");
   useLayoutEffect(() => { setRunning(phase === "running"); }, [phase, setRunning]);
   useLayoutEffect(() => () => { setRunning(false); }, [setRunning]);
   const [mobile, setMobile] = useState(() => matchMedia("(max-width: 700px), (pointer: coarse)").matches);
@@ -42,11 +39,15 @@ export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: T
   }, []);
   const armed = phase === "ready" || phase === "holding";
   const text = armed ? "0.00" : fmtTime(elapsed, { blank: "0.00" });
-  const hintText = disabled ? "Select cases to begin" : phase === "running" ? "Press any key to stop" : phase === "ready" ? "Release to start" : phase === "holding" ? "Keep holding…" : "Hold Space · release to start";
+  const hint = disabled ? "Select cases to begin"
+    : phase === "running" ? (mobile ? "Tap to stop" : "Any key to stop")
+    : phase === "ready" ? "Release to start"
+    : phase === "holding" ? "Keep holding…"
+    : mobile ? "Hold, then release to start" : "Hold Space, release to start";
 
   return (
     <><div
-      className={`timer-surface ${phase} ${flat ? "flat" : ""}`}
+      className={`timer-surface ${phase}`}
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-label={disabled ? "Select cases to enable the timer" : "Timer: hold Space or touch to prepare, release to start, any key to stop"}
@@ -60,24 +61,12 @@ export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: T
       onPointerUp={() => { if (!disabled) timer.release(); }}
       onPointerCancel={() => { if (timer.phase === "ready" || timer.phase === "holding") timer.reset(); }}
     >
-      <div className="timer-readout">
-        <motion.div
-          key={phase === "stopped" ? "stopped" : armed ? "armed" : "live"}
-          className={`timer-value ${phase === "ready" ? "ready" : phase === "holding" ? "holding" : ""}`}
-          initial={phase === "stopped" ? { scale: 1.12, opacity: 0.6 } : armed ? { scale: 0.96 } : false}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 18 }}
-        >
-          {phase === "running" ? <LiveTime startedAt={timer.startedAt} /> : text}
-        </motion.div>
-          <motion.div {...hintMotion} className="timer-hint">
-            <span className="timer-keyboard-hint">{hintText.split("Space").map((part, index) => index === 0 ? part : <span key={index}><kbd>Space</kbd>{part}</span>)}</span>
-            <span className="timer-touch-hint">{disabled ? "Select cases to begin" : phase === "running" ? "Tap to stop" : phase === "ready" ? "Release to start" : phase === "holding" ? "Keep holding…" : "Hold any free area · release to start"}</span>
-          </motion.div>
-
+      <div className={`timer-value ${phase === "ready" ? "ready" : phase === "holding" ? "holding" : ""}`}>
+        {phase === "running" ? <LiveTime startedAt={timer.startedAt} /> : text}
       </div>
+      <div className="timer-hint">{hint}</div>
     </div>
-    {timer.saveError && <div className="timer-save-error" role="alert"><p>{timer.saveError}</p><button className="btn" onClick={timer.retrySave}>Retry saving this time</button></div>}
+    {timer.saveError && <div className="timer-save-error" role="alert"><p>{timer.saveError}</p><button className="btn" onClick={timer.retrySave}>Retry</button></div>}
     {mobile && (phase === "running" || stopping) && createPortal(
       <div className="timer-stop-surface" role="button" tabIndex={-1} aria-label="Stop timer"
         onPointerDown={(event) => {
@@ -89,9 +78,7 @@ export function TimerSurface({ timer, hint, flat, disabled = false }: { timer: T
         onPointerUp={() => setStopping(false)}
         onPointerCancel={() => setStopping(false)}
         onClick={(event) => { event.preventDefault(); event.stopPropagation(); }}
-      >
-
-      </div>, document.body
+      />, document.body
     )}</>
   );
 }

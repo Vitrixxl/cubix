@@ -3,7 +3,7 @@
 Application web de speedcubing du **2×2 au 7×7**, avec Square-1, Pyraminx, Skewb, Megaminx et Clock : algorithmes, entraînement, chronomètre,
 statistiques et messagerie entre cubeurs.
 
-**Serveur Rust** (Axum, Tokio, SQLite) · **React 19**, Jotai et Motion dans le navigateur.
+**Serveur Rust** (Axum, Tokio, SQLite) · **React 19** et Jotai dans le navigateur, sans bibliothèque d’animation ni rendu 3D.
 Le frontend est compilé avec `bun build` ; les tests TypeScript utilisent `bun test`.
 Le conteneur final exécute uniquement le serveur Rust, qui sert aussi l’interface compilée.
 
@@ -91,7 +91,8 @@ aucune requête de catalogue ; une correction livrée avec l’application renou
 Ce cache peut être évincé pour laisser la priorité à l’enregistrement des temps.
 
 Après un premier chargement en ligne, le service worker conserve l’interface, le catalogue,
-les fontes, les icônes et les générateurs cubing.js locaux : l’application peut être fermée puis rouverte sans réseau.
+les icônes et les schémas déjà consultés : l’application peut être fermée puis rouverte sans réseau.
+Les générateurs cubing.js sont mis en cache à leur première utilisation.
 Ce fonctionnement est disponible dans un onglet normal, sans installer la PWA.
 À l’ouverture ou au rechargement, la page est demandée au serveur en priorité ; le cache prend
 le relais en cas de panne, d’absence de réseau ou après 4 secondes sans réponse. L’administration
@@ -122,7 +123,7 @@ Les thèmes et préférences d’interface restent propres à l’appareil.
 ## Puzzle, mélange et mode de résolution
 
 Le sélecteur **2×2 à 7×7 / Square-1 / Pyraminx / Skewb / Megaminx / Clock** dans la barre de navigation
-ouvre un popover avec une icône SVG par puzzle et fixe le puzzle pour toute l’application.
+est un simple menu déroulant natif qui fixe le puzzle pour toute l’application.
 Le mode **Standard / One-handed / Blindfolded** se règle avec les boutons du Playground.
 Catalogue, entraînement, mélanges, temps et progression
 des profils suivent ce choix. Il est mémorisé à la réouverture. Chaque cube conserve sa sélection
@@ -139,14 +140,9 @@ l’armement, le chronométrage et l’enregistrement d’un temps.
 Le type **Random moves** utilise 11, 22, 40, 60, 80 et 100 mouvements selon la taille,
 avec des mouvements larges jusqu’à la moitié du cube et sans deux axes consécutifs identiques.
 Ce sont des mélanges par mouvements aléatoires, pas des mélanges officiels WCA à état aléatoire.
-Les rendus interactifs utilisent **Three.js / WebGL 2** pour les onze puzzles.
-Les cubes sont composés de pièces et de stickers ; Square-1 et Clock ont leurs modèles dédiés,
-et les géométries de Pyraminx, Skewb et Megaminx viennent de cubing.js. Les scènes ne redessinent
-que lors des mouvements, rotations et redimensionnements, puis libèrent leurs ressources à la fermeture.
-Les vignettes de catalogue restent des SVG légers.
-Les aperçus et animations représentent la vraie taille du cube, y compris les tranches internes
-(`2R`, `3R`) et mouvements larges (`Rw`, `3Rw`). En résolution après réduction, un mouvement
-large du 3×3 devient un bloc de N−1 couches (`3Rw` sur 4×4, par exemple).
+Aucun rendu 3D : chaque cas est illustré par un schéma SVG statique (cubes) ou par une image
+générée par cubing.js (Square-1, Pyraminx, Skewb, Megaminx, Clock). Le chronomètre affiche le mélange
+en notation et rien d’autre.
 
 Le Playground propose les types compatibles avec le puzzle : mélanges d’épreuve via cubing.js,
 2-gen (RU, LU, RF, MU), 3-gen (RUL, RUF), demi-tours, arêtes seules, coins seuls,
@@ -154,7 +150,7 @@ dernière couche, cas OLL/PLL/F2L et couches extérieures des grands cubes.
 Les cas sont tirés du catalogue ; les générateurs restreints par mouvements ne prétendent pas
 échantillonner uniformément tous les états. **Event scramble** sert à l’entraînement personnel ;
 les compétitions officielles utilisent leurs propres mélanges. Square-1, Pyraminx, Skewb,
-Megaminx et Clock ont également leur catalogue, animations et entraînement : **99 cas dans 18 groupes**.
+Megaminx et Clock ont également leur catalogue et leur entraînement : **99 cas dans 18 groupes**.
 
 - **Square-1** : 29 cas de forme cubique, orientation et permutation des coins/arêtes, parité et tranche centrale.
 - **Pyraminx** : 11 cas de pointes, insertions et dernière couche.
@@ -210,18 +206,18 @@ Les tests vérifient les inverses, les pièces préservées et la légalité des
   pseudonyme unique, bio, recherche de membres et progression. Les cas non entraînés sont grisés.
 - **Messagerie** : demandes d’amitié, conversations privées entre amis, mises à jour en temps réel,
   pagination et partage d’une copie d’un temps conservée même si le temps original est supprimé.
-- **Interface** : navigation en bas, écran principal sans défilement, disposition responsive,
-  six palettes avec modes clair/sombre et réglage pour désactiver les animations.
+- **Interface** : cinq onglets en bas (Timer, Algorithms, Training, Friends, Account) plus le sélecteur
+  de puzzle ; écran principal sans défilement, disposition responsive, mode clair/sombre et six couleurs
+  d’accent réglés depuis Account. Polices système, aucune fonte téléchargée.
   Le défilement est mémorisé par puzzle, catalogue, cas et panneau, y compris après un rechargement dans le même onglet.
 
 Maintenir **Espace** 300 ms, relâcher pour démarrer, puis appuyer sur **n’importe quelle touche**
 pour arrêter. Sur écran tactile, maintenir le timer ou une zone libre, relâcher, puis toucher pour arrêter.
-Les boutons, menus, modèles 3D et gestes de défilement restent utilisables sans déclencher le timer.
+Les boutons, menus et gestes de défilement restent utilisables sans déclencher le timer.
 
 | Raccourci | Action |
 | --- | --- |
-| Alt + 1–5 | Catalogue, entraînement, timer libre, messages, communauté |
-| Alt + 6 / 7 / 8 | Thèmes / compte / mode clair-sombre |
+| Alt + 1–5 | Timer, algorithmes, entraînement, amis, compte |
 | Alt + N / P | Cas suivant / précédent en entraînement |
 | Alt + C / T | Sélection des cas / temps de la session |
 | Alt + H / A | Masquer la solution / AUF aléatoire |
@@ -307,7 +303,6 @@ Voir [les détails du serveur et du benchmark](rust-api/README.md).
 La croix est en bas (blanc), la dernière face est jaune et la face avant est verte.
 Les cas F2L visent le slot avant-droit. Les sources brutes sont conservées dans `data/raw` ;
 `bun run build:db` reconstruit et vérifie le catalogue.
-Les fontes Geist sont distribuées avec leur licence dans `src/frontend/fonts`.
 
 ## Référencement anglais
 

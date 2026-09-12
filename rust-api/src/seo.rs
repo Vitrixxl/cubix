@@ -11,7 +11,7 @@ pub async fn headers(request: Request, next: Next) -> Response {
     let canonical = match path.as_str() {
         "/index.html" | "/timer" | "/timer/" => Some("/".to_owned()),
         _ => {
-            let pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/", "/guides/about-cubix/", "/guides/cube-algorithms/", "/guides/algorithm-training/", "/guides/cube-models/"];
+            let pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/", "/guides/about-cubix/", "/guides/cube-algorithms/", "/guides/algorithm-training/"];
             pages.iter().find(|page| path == page.trim_end_matches('/') || path == format!("{page}index.html")).map(|page| (*page).to_owned())
         }
     };
@@ -31,8 +31,7 @@ pub async fn headers(request: Request, next: Next) -> Response {
     let hashed = name.rsplit_once('.').is_some_and(|(stem, ext)| {
         matches!(ext, "js" | "css" | "woff2" | "png") && stem.rsplit_once('-').is_some_and(|(_, hash)| hash.len() == 8 && hash.bytes().all(|b| b.is_ascii_alphanumeric()))
     });
-    let model_hash = path.starts_with("/cube-library/models/") && name.strip_suffix(".glb").is_some_and(|hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()));
-    if response.status().is_success() && (hashed || model_hash) {
+    if response.status().is_success() && hashed {
         response.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
     }
     response

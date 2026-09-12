@@ -1,25 +1,20 @@
 import { Avatar } from "../components/Avatar";
-import { ThreeDSetting } from "../components/ThreeDSetting";
-import {usePreservedScroll} from "../hooks/usePreservedScroll";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { AnimationSetting } from "../components/AnimationSetting";
-import { CubeModelSetting } from "../components/CubeModelSetting";
+import { usePreservedScroll } from "../hooks/usePreservedScroll";
+import { AppearanceSettings } from "../components/Settings";
 import { FriendActions, useFriendActions } from "../components/FriendActions";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { api, authToken, local } from "../api";
-import { puzzleAtom, solveModeAtom, scrambleTypeAtom, casesAtom, setsAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
-import { IconBack, IconLock, IconSearch, IconUser } from "../components/icons";
-import { motion } from "motion/react";
+import { api, authToken } from "../api";
+import { puzzleAtom, solveModeAtom, scrambleTypeAtom, casesAtom, setsAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom, chatActivityAtom, chatPeerAtom } from "../state";
+import { IconBack, IconMessage, IconSearch, IconUser } from "../components/icons";
 import { FloatingSheet } from "../components/FloatingSheet";
 import { ProfileCaseGallery, ProfileCaseDetails, ProfileStats } from "../components/ProfileProgress";
 import type { ProfileDto, UserDto } from "../../shared/types";
 import { modeLabel, puzzleInfo, scrambleLabel, type ScrambleType } from "../../shared/puzzles";
 
-
 export function AccountForm({ initialMode = "register" }: { initialMode?: "register" | "login" } = {}) {
   const [mode, setMode] = useState<"register" | "login">(initialMode);
-  const [user, setUser] = useAtom(userAtom);
+  const [, setUser] = useAtom(userAtom);
   const setRoute = useSetAtom(routeAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
   const [error, setError] = useState("");
@@ -37,24 +32,27 @@ export function AccountForm({ initialMode = "register" }: { initialMode?: "regis
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };
-  return <div className="page account-welcome">
-    <div className="account-intro">
-      <span className="eyebrow">YOUR CUBIX JOURNEY</span>
-      <h1>Every solve.<br /><span>Your progress.</span></h1>
-      <p>Give your times a home. Track your personal bests, see how far you’ve come, and find the cubers who inspire you.</p>
-      <div className="account-promise"><IconUser /><div><strong>Join the community.</strong><p>Find other cubers and share your progress through your profile.</p></div></div>
+  return <form className="account-form card" onSubmit={submit}>
+    <div className="segmented" role="tablist" aria-label="Account">
+      {(["login", "register"] as const).map(m => <button type="button" role="tab" aria-selected={mode === m} aria-pressed={mode === m} key={m} disabled={busy} onClick={() => { setMode(m); setError(""); }}>{m === "register" ? "Create account" : "Sign in"}</button>)}
     </div>
-    <form className="account-form" onSubmit={submit}>
-      <div className="tabs" role="tablist" aria-label="Account access">
-        {(["register", "login"] as const).map(m => <button type="button" role="tab" aria-selected={mode === m} className={`tab ${mode === m ? "active" : ""}`} key={m} disabled={busy} onClick={() => { setMode(m); setError(""); }}>{mode === m && <span className="tab-pill" />}<span>{m === "register" ? "Create account" : "Sign in"}</span></button>)}
-      </div>
-      <div><h2>{mode === "register" ? "Make yourself at home." : "Welcome back."}</h2><p className="muted">{mode === "register" ? "Keep your times and progress." : "Sign in to find your times and profile."}</p></div>
-      <label>Username<input className="input" name="username" autoComplete="username" placeholder="your_username" pattern="[a-zA-Z0-9_]{3,24}" minLength={3} maxLength={24} required disabled={busy} autoCapitalize="none" spellCheck={false} /><small>3–24 letters, numbers or underscores.</small></label>
-      <label>Password<input className="input" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 10 characters" : "Your password"} minLength={mode === "register" ? 10 : 1} maxLength={128} required disabled={busy} /></label>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="btn primary" disabled={busy}>{busy ? "One moment…" : mode === "register" ? "Create my account" : "Sign in"}</button>
-      {user?.isGuest && <p className="muted account-footnote">You can also keep practising as a guest using the tabs below.</p>}
-    </form>
+    <p className="muted">{mode === "register" ? "An account syncs your times between devices and lets you add friends." : "Your local times are merged into your account."}</p>
+    <label>Username<input className="input" name="username" autoComplete="username" pattern="[a-zA-Z0-9_]{3,24}" minLength={3} maxLength={24} required disabled={busy} autoCapitalize="none" spellCheck={false} /></label>
+    <label>Password<input className="input" name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={mode === "register" ? 10 : 1} maxLength={128} required disabled={busy} /></label>
+    {mode === "register" && <small className="muted">3–24 letters, digits or underscores. Password: 10 characters or more.</small>}
+    {error && <p className="form-error" role="alert">{error}</p>}
+    <button className="btn primary" disabled={busy}>{busy ? "One moment…" : mode === "register" ? "Create account" : "Sign in"}</button>
+  </form>;
+}
+
+function GuestPage({ title, intro }: { title: string; intro: string }) {
+  return <div className="page account-page">
+    <div className="page-scroll">
+      <h1>{title}</h1>
+      <p className="muted">{intro}</p>
+      <AccountForm />
+      <AppearanceSettings />
+    </div>
   </div>;
 }
 
@@ -62,6 +60,8 @@ export function CommunityPage() {
   const friendship = useFriendActions();
   const [user] = useAtom(userAtom);
   const setRoute = useSetAtom(routeAtom);
+  const setPeer = useSetAtom(chatPeerAtom);
+  const activity = useAtomValue(chatActivityAtom);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,20 +78,30 @@ export function CommunityPage() {
     }, 250);
     return () => { clearTimeout(timeout); controller.abort(); };
   }, [query, user, retry]);
-  const scrollRef=usePreservedScroll(`community:${query}`);
-  if (!user || user.isGuest) return <AccountForm />;
+  const scrollRef = usePreservedScroll(`community:${query}`);
+  if (!user || user.isGuest) return <GuestPage title="Friends" intro="Sign in to find other cubers, share times and chat." />;
   const members: Pick<UserDto, "id" | "username" | "bio">[] = [...results];
   for (const friend of friendship.friends) {
     if (friend.status !== "pending" || !friend.username.toLowerCase().includes(query.trim().toLowerCase()) || members.some(m => m.id === friend.userId)) continue;
     members.push({ id: friend.userId, username: friend.username, bio: "" });
   }
+  const openChat = (userId?: string) => { setPeer(userId ?? ""); setRoute({ page: "messages" }); };
   return <div className="page community-page">
-    <div className="page-header"><div><span className="eyebrow">BETTER, TOGETHER</span><h1>Find your fellow cubers.</h1><p className="subtle">Explore their times, personal bests and progress.</p></div></div>
-    <label className="member-search"><IconSearch /><input className="input" aria-label="Search cubers" placeholder="Search cubers…" value={query} maxLength={80} onChange={e => setQuery(e.target.value)} />{query && <button className="mini-btn" onClick={() => setQuery("")}>Clear</button>}</label>
+    <div className="toolbar">
+      <h1>Friends</h1>
+      <button className="btn small" onClick={() => openChat()}><IconMessage /> Messages{activity && <span className="chat-activity-dot" aria-label="New messages" />}</button>
+    </div>
+    <label className="search"><IconSearch /><input className="input" aria-label="Search cubers" placeholder="Search cubers…" value={query} maxLength={80} onChange={e => setQuery(e.target.value)} /></label>
     {friendship.error && <p className="form-error" role="alert">{friendship.error} <button className="mini-btn" onClick={friendship.retry}>Retry</button></p>}
-    <div className="community-caption"><h2>{query.trim() ? "Search results" : "Meet the community"}</h2><span className="muted">Cubers & invitations</span></div>
-    <div ref={scrollRef} className="community-results" aria-live="polite">
-      {loading ? <div className="empty">Finding cubers…</div> : error ? <div className="empty"><p role="alert">{error}</p><button className="btn" onClick={() => setRetry(v => v + 1)}>Try again</button></div> : members.length === 0 ? <div className="member-empty"><IconSearch /><h2>{query.trim() ? "No cubers found." : "A community starts with you."}</h2><p>{query.trim() ? "Try another name." : "Registered cubers will appear here."}</p></div> : <div className="member-list">{members.map(member => <div className="member-row" key={member.id}><button className="member-profile" onClick={() => setRoute({ page: "profile", username: member.username })}><Avatar user={member} /><span className="member-copy"><strong>{member.username}</strong>{member.bio && <span className="subtle member-bio">{member.bio}</span>}</span><span className="member-open">View profile <span aria-hidden="true">↗</span></span></button><FriendActions userId={member.id} username={member.username} state={friendship} /></div>)}</div>}
+    <div ref={scrollRef} className="page-scroll" aria-live="polite">
+      {loading ? <div className="empty">Searching…</div> : error ? <div className="empty"><p role="alert">{error}</p><button className="btn small" onClick={() => setRetry(v => v + 1)}>Try again</button></div> : members.length === 0 ? <div className="empty">{query.trim() ? "No cubers found." : "No other cubers yet."}</div> : <div className="member-list">{members.map(member => {
+        const friend = friendship.friends.find(f => f.userId === member.id);
+        return <div className="member-row" key={member.id}>
+          <button className="member-profile" onClick={() => setRoute({ page: "profile", username: member.username })}><Avatar user={member} /><span className="member-copy"><strong>{member.username}</strong>{member.bio && <span className="muted member-bio">{member.bio}</span>}</span></button>
+          {friend?.status === "accepted" && <button className="btn small" onClick={() => openChat(member.id)}><IconMessage /> Message</button>}
+          <FriendActions userId={member.id} username={member.username} state={friendship} />
+        </div>;
+      })}</div>}
     </div>
   </div>;
 }
@@ -139,49 +149,65 @@ export function ProfilePage({ username, mode = "playground", caseId }: { usernam
     return () => document.removeEventListener("visibilitychange", refresh);
   }, []);
   const activeMode = caseId ? "training" : mode;
-  const profileScrollRef=usePreservedScroll(`profile:${username??"self"}:${cube}:${solveMode}:${activeMode}`);
-  if (!user || user.isGuest) return <AccountForm />;
+  const profileScrollRef = usePreservedScroll(`profile:${username??"self"}:${cube}:${solveMode}:${activeMode}`);
+  if (!user || user.isGuest) return <GuestPage title="Account" intro="Practise as a guest, or sign in to keep your times on every device." />;
   const logout = async () => {
     setBusy(true); setError("");
     try { await api.logout(); authToken.clear(); window.location.reload(); }
     catch (e) { setError((e as Error).message); setBusy(false); }
   };
-  if (!profile) return <div className="page"><button className="btn ghost small" onClick={() => setRoute({ page: "community" })}><IconBack /> Community</button>{error ? <div className="member-empty"><IconLock /><h1>Profile unavailable</h1><p role="alert">{error}</p><button className="btn" onClick={() => setVersion(v => v + 1)}>Try again</button></div> : <div className="empty">Loading profile…</div>}</div>;
+  if (!profile) return <div className="page account-page"><div className="toolbar">{!own && <button className="btn small ghost" onClick={() => setRoute({ page: "community" })}><IconBack /> Friends</button>}</div>{error ? <div className="empty"><p role="alert">{error}</p><button className="btn small" onClick={() => setVersion(v => v + 1)}>Try again</button></div> : <div className="empty">Loading…</div>}</div>;
   const selectedCase = cases.find(c => c.id === caseId);
   const selectedStats = profile.cases.find(c => c.summary.caseId === caseId);
   const details = selectedCase && <ProfileCaseDetails c={selectedCase} data={selectedStats} own={own} username={profile.user.username} mobile={mobile} onClose={closeCase} />;
-  return <div className="page profile-page">
+  return <div className="page account-page profile-page">
     <div className="profile-home" hidden={mobile && !!selectedCase}>
-    <div className="profile-topline"><button className="btn ghost small" onClick={() => setRoute({ page: "community" })}><IconBack /> Community</button>{own && <button className="btn ghost small" onClick={logout} disabled={busy}>Sign out</button>}</div>
-    <header className="profile-header"><Avatar user={profile.user} large /><div className="profile-identity"><div className="profile-name"><h1>{profile.user.username}</h1></div><span className="subtle">Joined {new Date(profile.user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>{profile.user.bio && <p className="profile-bio">{profile.user.bio}</p>}</div>{own && <button className="btn" onClick={() => { setEditing(v => !v); setError(""); }}>{editing ? "Close settings" : "Edit profile"}</button>}{!own && <FriendActions userId={profile.user.id} username={profile.user.username} state={friendship} />}</header>
-    <div className="profile-body" ref={profileScrollRef}>
-    {friendship.error && <p className="form-error" role="alert">{friendship.error} <button className="mini-btn" onClick={friendship.retry}>Retry</button></p>}
-    {editing && <ProfileSettings user={profile.user} onSaved={updated => { setUser(updated); setProfile({ ...profile, user: updated }); setEditing(false); }} />}
-    {error && <p role="alert" className="form-error">{error}</p>}
-    <div className="practice-controls"><span className="subtle">{puzzleInfo(cube).label} · {modeLabel(solveMode)}</span><label>Playground scramble type<Select value={scrambleType} onValueChange={value => setScrambleType(value as ScrambleType)}><SelectTrigger aria-label="Playground scramble type"><SelectValue/></SelectTrigger><SelectContent>{puzzleInfo(cube).scrambles.map(type => <SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent></Select></label></div>
-    <div className="profile-overview"><div><strong>{profile.totalSolves.toLocaleString()}</strong><span>Solves in this selection</span></div><div><strong>{profile.trainingSolves.toLocaleString()}</strong><span>Training solves</span></div><div><strong>{profile.cases.length}</strong><span>Cases practised</span></div><div><strong>{profile.activeDays}</strong><span>Active days</span></div></div>
-    <section className="profile-progress"><div className="profile-section-heading"><div><span className="eyebrow">ONE SOLVE AT A TIME</span><h2>Progress & personal bests</h2></div><div className="tabs small">{(["playground", "training"] as const).map(m => <button className={`tab ${activeMode === m ? "active" : ""}`} key={m} onClick={() => setMode(m)}>{activeMode === m && <span className="tab-pill" />}<span>{m === "playground" ? "Playground" : "Training"}</span></button>)}</div></div>
-      {activeMode === "training" ? <ProfileCaseGallery cases={cases} sets={sets} profile={profile} onOpen={openCase} />
-        : profile.playground.summary.count ? <ProfileStats data={profile.playground} own={own} />
-        : <div className="member-empty"><IconUser /><h2>The next solve is the first step.</h2><p>{own ? "Start a session and your times and progress will appear here." : "No times recorded in this mode yet."}</p>{own && <button className="btn primary" onClick={() => setRoute({ page: "playground" })}>Start solving</button>}</div>}
-
-    </section>
+      <header className="profile-header">
+        {!own && <button className="btn small ghost" onClick={() => setRoute({ page: "community" })}><IconBack /> Friends</button>}
+        <Avatar user={profile.user} large />
+        <div className="profile-identity"><h1>{profile.user.username}</h1>{profile.user.bio ? <p className="muted">{profile.user.bio}</p> : <p className="muted">Joined {new Date(profile.user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</p>}</div>
+        {own ? <button className="btn small" onClick={() => { setEditing(v => !v); setError(""); }}>{editing ? "Close" : "Edit"}</button> : <FriendActions userId={profile.user.id} username={profile.user.username} state={friendship} />}
+      </header>
+      <div className="page-scroll" ref={profileScrollRef}>
+        {friendship.error && <p className="form-error" role="alert">{friendship.error} <button className="mini-btn" onClick={friendship.retry}>Retry</button></p>}
+        {editing && <ProfileSettings user={profile.user} busy={busy} onLogout={logout} onSaved={updated => { setUser(updated); setProfile({ ...profile, user: updated }); setEditing(false); }} />}
+        {error && <p role="alert" className="form-error">{error}</p>}
+        <div className="toolbar">
+          <div className="segmented">{(["playground", "training"] as const).map(m => <button key={m} aria-pressed={activeMode === m} onClick={() => setMode(m)}>{m === "playground" ? "Timer" : "Training"}</button>)}</div>
+          <span className="muted">{puzzleInfo(cube).label} · {modeLabel(solveMode)}</span>
+          {activeMode === "playground" && <select className="select" aria-label="Scramble type" value={scrambleType} onChange={event => setScrambleType(event.target.value as ScrambleType)}>{puzzleInfo(cube).scrambles.map(type => <option key={type} value={type}>{scrambleLabel(type)}</option>)}</select>}
+        </div>
+        <div className="kpi-row profile-overview"><Kpi label="Solves" value={profile.totalSolves.toLocaleString()} /><Kpi label="Training" value={profile.trainingSolves.toLocaleString()} /><Kpi label="Cases" value={String(profile.cases.length)} /><Kpi label="Active days" value={String(profile.activeDays)} /></div>
+        {activeMode === "training" ? <ProfileCaseGallery cases={cases} sets={sets} profile={profile} onOpen={openCase} />
+          : profile.playground.summary.count ? <ProfileStats data={profile.playground} own={own} />
+          : <div className="empty"><IconUser /><p>{own ? "No times in this selection yet." : "No times recorded yet."}</p>{own && <button className="btn small" onClick={() => setRoute({ page: "playground" })}>Open the timer</button>}</div>}
+      </div>
     </div>
-    </div>
-    {mobile && selectedCase && <motion.section key={selectedCase.id} className="profile-case-page" aria-label={`${selectedCase.id} statistics`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .2 }}>{details}</motion.section>}
+    {mobile && selectedCase && <section key={selectedCase.id} className="profile-case-page" aria-label={`${selectedCase.id} statistics`}>{details}</section>}
     <FloatingSheet open={!mobile && !!selectedCase} title={`${selectedCase?.id ?? "Case"} statistics`} className="profile-case-dialog" onClose={closeCase}>{details}</FloatingSheet>
   </div>;
 }
 
-function ProfileSettings({ user, onSaved }: { user: UserDto; onSaved: (user: UserDto) => void }) {
-  const [busy, setBusy] = useState(false);
+function Kpi({ label, value }: { label: string; value: string }) {
+  return <div className="kpi"><div className="label">{label}</div><div className="value">{value}</div></div>;
+}
+
+function ProfileSettings({ user, busy, onLogout, onSaved }: { user: UserDto; busy: boolean; onLogout: () => void; onSaved: (user: UserDto) => void }) {
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
-    setBusy(true); setError("");
+    setSaving(true); setError("");
     try { onSaved(await api.updateAccount({ bio: String(data.get("bio")) })); }
     catch (e) { setError((e as Error).message); }
-    finally { setBusy(false); }
+    finally { setSaving(false); }
   };
-  return <form className="profile-settings" onSubmit={submit}><ThreeDSetting /><AnimationSetting /><CubeModelSetting /><div className="profile-fields"><label>Bio<textarea className="input" name="bio" defaultValue={user.bio} maxLength={240} rows={2} placeholder="Your favourite cube, your next goal…" disabled={busy} /></label></div>{error && <p className="form-error" role="alert">{error}</p>}<button className="btn primary" disabled={busy}>{busy ? "Saving…" : "Save changes"}</button></form>;
+  return <>
+    <form className="card profile-settings" onSubmit={submit}>
+      <label>Bio<textarea className="input" name="bio" defaultValue={user.bio} maxLength={240} rows={2} placeholder="Your main cube, your next goal…" disabled={saving} /></label>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="toolbar"><button className="btn small primary" disabled={saving}>{saving ? "Saving…" : "Save"}</button><button type="button" className="btn small ghost" onClick={onLogout} disabled={busy}>Sign out</button></div>
+    </form>
+    <AppearanceSettings />
+  </>;
 }

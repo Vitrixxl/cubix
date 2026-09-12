@@ -70,13 +70,13 @@ After the official domain is deployed:
 5. Track non-branded English queries, impressions, clicks and CTR. Compare trends over
    several weeks rather than treating a single search position as a stable measure.
 6. Use PageSpeed Insights / Core Web Vitals field data when enough visits are available.
-   Review mobile loading, layout shifts and interaction responsiveness with 3D enabled.
+   Review mobile loading, layout shifts and interaction responsiveness.
 
 The build generates Brotli and gzip copies of text assets. Rust serves the encoding the
 browser supports. Build-hashed JS/CSS can be cached for a year; HTML, named workers and
-the service worker revalidate. Secondary pages load through dynamic imports. PWA
-pre-caching still downloads the full offline shell in the background, so initial entry
-bundle size alone is not a measure of total network traffic.
+the service worker revalidate. Secondary pages load through dynamic imports. The PWA
+precaches only the application shell; scramble generators and case diagrams are cached
+the first time they are requested.
 
 `public/og-image.svg` is the editable 1200×630 sharing artwork; `public/og-image.png` is
 the raster version used by social metadata. Keep both in sync when updating branding.

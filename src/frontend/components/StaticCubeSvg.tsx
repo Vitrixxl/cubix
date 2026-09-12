@@ -1,6 +1,16 @@
 import { memo, useId } from "react";
 import { colorOf, cubeSize, originInULayer, slotInULayer, type CubeState, type Face } from "../../shared/cube";
-import { FACE_COLORS, type CubeMask } from "../lib/cube-appearance";
+
+/** Yellow on top, green in front (orange right, red left) — the usual CFOP colour scheme. */
+export const FACE_COLORS: Record<Face, string> = {
+  U: "rgb(255, 230, 42)",
+  D: "rgb(236, 232, 226)",
+  F: "rgb(26, 190, 87)",
+  B: "rgb(61, 124, 224)",
+  R: "rgb(255, 128, 31)",
+  L: "rgb(235, 66, 66)",
+};
+export type CubeMask = "full" | "OLL" | "PLL" | "F2L";
 
 const GREY = "rgb(58, 58, 66)";
 const DIM = "rgb(36, 36, 42)";

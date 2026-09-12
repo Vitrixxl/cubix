@@ -1,6 +1,7 @@
 /* Filled with the exact build manifest by scripts/build.ts. API responses are never cached here. */
 const CACHE = "cubix-shell-__VERSION__";
 const ASSETS = __ASSETS__;
+const RUNTIME = "cubix-runtime-v1";
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     await caches.open(CACHE).then(cache => cache.addAll(ASSETS));
@@ -33,7 +34,7 @@ self.addEventListener("fetch", event => {
     const cache = await caches.open(CACHE);
     if (event.request.mode === "navigate") {
       const path = url.pathname;
-      const pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/", "/guides/about-cubix/", "/guides/cube-algorithms/", "/guides/algorithm-training/", "/guides/cube-models/"];
+      const pages = ["/algorithms/", "/training/", "/community/", "/messages/", "/account/", "/guides/how-to-use-a-cube-timer/", "/guides/ao5-ao12/", "/guides/about-cubix/", "/guides/cube-algorithms/", "/guides/algorithm-training/"];
       const normalized = path.endsWith("/") ? path : path + "/";
       const offlinePage = path === "/" || path === "/index.html" ? "/" : pages.includes(normalized) ? normalized : undefined;
       if (!offlinePage) return fetch(event.request);
@@ -53,6 +54,11 @@ self.addEventListener("fetch", event => {
         clearTimeout(timeout);
       }
     }
-    return await cache.match(event.request, {ignoreSearch:true}) || await caches.match(event.request, {ignoreSearch:true}) || fetch(event.request);
+    const cached = await cache.match(event.request, {ignoreSearch:true}) || await caches.match(event.request, {ignoreSearch:true});
+    if (cached) return cached;
+    const response = await fetch(event.request);
+    // Scramble generators and case diagrams are immutable per build: keep them after first use.
+    if (response.ok && /^\/(vendor|cases)\//.test(url.pathname)) void caches.open(RUNTIME).then(runtime => runtime.put(event.request, response.clone())).catch(() => {});
+    return response;
   })());
 });

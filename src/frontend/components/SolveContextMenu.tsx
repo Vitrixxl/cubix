@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAtomValue, useSetAtom } from "jotai";
-import { AnimatePresence, motion } from "motion/react";
 import { practiceContextAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
 import { api } from "../api";
-import { usePopoverMotion } from "../hooks/usePopoverMotion";
 import { IconClose, IconMessage } from "./icons";
 
 interface Menu { id: number; x: number; y: number; above: boolean; anchor: HTMLElement; host: HTMLElement; }
@@ -95,21 +93,19 @@ export function SolveContextMenu() {
     } catch (error) { setError((error as Error).message); }
     finally { setDeleting(false); }
   };
-  return <AnimatePresence>{menu && <TimeMenu menu={menu} canShare={!!user && !user.isGuest} deleting={deleting} error={error} onDelete={deleteTime}
-    onShare={() => { setMenu(null); setRoute({ page: "messages", solveId: menu.id }); }} />}</AnimatePresence>;
+  return menu && <TimeMenu menu={menu} canShare={!!user && !user.isGuest} deleting={deleting} error={error} onDelete={deleteTime}
+    onShare={() => { setMenu(null); setRoute({ page: "messages", solveId: menu.id }); }} />;
 }
 
 function TimeMenu({ menu, canShare, deleting, error, onShare, onDelete }: {
   menu: Menu; canShare: boolean; deleting: boolean; error: string; onShare: () => void; onDelete: () => void;
 }) {
-  const chrome = usePopoverMotion(menu.above);
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => {
     container.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
     return () => { if (menu.anchor.isConnected) menu.anchor.focus({ preventScroll: true }); };
   }, [menu.anchor]);
-  return createPortal(<motion.div {...chrome} ref={container} className="case-context-menu solve-context-menu" role="menu" aria-label="Time actions"
-    transformTemplate={(_, transform) => `translateY(${menu.above ? "-100%" : "0"}) ${transform === "none" ? "" : transform}`}
+  return createPortal(<div ref={container} className="context-menu solve-context-menu popover" role="menu" aria-label="Time actions"
     data-placement={menu.above ? "top" : "bottom"}
     style={{ left: menu.x, top: menu.y, width: 180, maxHeight: menu.above ? menu.y - 8 : innerHeight - menu.y - 8, overflowY: "auto" }}
     onKeyDown={event => {
@@ -119,8 +115,8 @@ function TimeMenu({ menu, canShare, deleting, error, onShare, onDelete }: {
       const index = items.indexOf(document.activeElement as HTMLButtonElement);
       items[event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
     }}>
-    {canShare && <button type="button" className="case-context-menu-item" role="menuitem" disabled={deleting} onClick={onShare}><IconMessage />Share</button>}
-    <button type="button" className="case-context-menu-item danger" role="menuitem" disabled={deleting} onClick={onDelete}><IconClose />{deleting ? "Deleting…" : "Delete"}</button>
+    {canShare && <button type="button" className="context-menu-item" role="menuitem" disabled={deleting} onClick={onShare}><IconMessage />Share</button>}
+    <button type="button" className="context-menu-item danger" role="menuitem" disabled={deleting} onClick={onDelete}><IconClose />{deleting ? "Deleting…" : "Delete"}</button>
     {error && <p className="form-error" role="alert">{error}</p>}
-  </motion.div>, menu.host);
+  </div>, menu.host);
 }

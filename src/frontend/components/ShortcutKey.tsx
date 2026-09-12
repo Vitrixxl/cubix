@@ -1,3 +1,3 @@
 export function ShortcutKey({ letter }: { letter: string }) {
-  return <span className="shortcut-key" aria-hidden="true"><kbd>Alt</kbd><span>+</span><kbd>{letter}</kbd></span>;
+  return <kbd className="shortcut-key" aria-hidden="true">Alt+{letter}</kbd>;
 }

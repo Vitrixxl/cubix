@@ -1,37 +1,26 @@
-import {usePreservedScroll} from "../hooks/usePreservedScroll";
+import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useFloatingPortalTarget } from "../components/FloatingSheet";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { AnimatePresence, motion } from "motion/react";
-import { threeDEnabledAtom, solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
+import { solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
 import type { CaseDto, SolveDto } from "../../shared/types";
 import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
 import { TimerSurface } from "../components/TimerSurface";
 import { CaseSelector } from "../components/CaseSelector";
-import { PuzzlePreview } from "../components/PuzzlePreview";
 import { puzzleInfo } from "../../shared/puzzles";
-import { SetupCube } from "../components/SetupCube";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { caseState, executableAlg, maskForStage } from "../lib/caseState";
-import { combineAuf, compensateAuf, randomAuf, reorientAlgY2 } from "../../shared/cube";
+import { executableAlg } from "../lib/caseState";
+import { combineAuf, compensateAuf, randomAuf } from "../../shared/cube";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../lib/trainingHistory";
 import { best, effective, fmtSolve, fmtTime, mean } from "../lib/format";
 import { AlgText } from "../components/AlgorithmList";
-import { IconEye, IconSkip, IconUndo, IconGrid, IconTimer, IconShuffle, IconBack } from "../components/icons";
-
-import { PracticeAction } from "../components/PracticeAction";
+import { IconEye, IconSkip, IconUndo, IconGrid, IconTimer, IconBack } from "../components/icons";
 import { PracticePanel, useWidePractice } from "../components/PracticePanel";
 import { ShortcutKey } from "../components/ShortcutKey";
-import { useTimerChrome } from "../hooks/useTimerChrome";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { Kpi } from "../components/Kpi";
 
-const TRAINING_ROTATION = { x: -30, y: 140 };
-
 export function TrainingPage() {
-  const show3D = useAtomValue(threeDEnabledAtom);
   const puzzle = useAtomValue(puzzleAtom);
   const cube = puzzleInfo(puzzle).cubeSize;
   const supportsAuf = !!cube;
@@ -130,11 +119,8 @@ export function TrainingPage() {
 
   const primary = current?.c.algorithms[0];
   const shownSetup = current ? (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup) : "";
-  const animatedSetup = cube && shownSetup ? reorientAlgY2(shownSetup) : "";
   const shownAlgorithm = primary && current ? (cube ? compensateAuf(executableAlg(primary), current.auf) : executableAlg(primary)) : "";
 
-  const upperMotion = useTimerChrome("up", timer.phase === "running");
-  const lowerMotion = useTimerChrome("down", timer.phase === "running");
   const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
   useEffect(() => { lockCube(busy || !!timer.saveError); return () => lockCube(false); }, [busy, timer.saveError, lockCube]);
   const toggleCases = () => setShowSelector(value => !value);
@@ -162,22 +148,20 @@ export function TrainingPage() {
   return (
     <div className="page practice-page">
       <div className={`practice-workspace ${wide ? "with-rails" : ""}`}>
-        <PracticePanel open={showSelector} wide={wide} side="left" title="Select cases" onClose={() => setShowSelector(false)}>
+        <PracticePanel open={showSelector} wide={wide} side="left" title="Cases" onClose={() => setShowSelector(false)}>
+          {supportsAuf && <label className="switch-row"><input type="checkbox" checked={useAuf} onChange={event => setUseAuf(event.target.checked)} /><span>Random U turn before each setup</span><ShortcutKey letter="A" /></label>}
           <CaseSelector cases={cases} sets={sets} selected={selected} onChange={setSelected} defaultExpanded={wide} />
         </PracticePanel>
         <div className="practice-center">
-          <div className="practice-stack training-stack">
+          <div className="practice-stack">
             {current ? (
-              <motion.section {...upperMotion} className="training-case" aria-label="Current case">
+              <section className="training-case" aria-label="Current case" data-timer-chrome>
                 <div className="training-case-heading">
                   <h1><button type="button" className="training-case-link" disabled={busy} onClick={() => setRoute({ page: "algorithms", caseId: current.c.id })} title="Open case details">{current.c.id}</button></h1>
-                  <span className="chip">{current.c.group}</span>
-                  {current.c.name !== current.c.id && <p>{current.c.name}</p>}
+                  <span className="muted">{current.c.name !== current.c.id ? current.c.name : current.c.group}</span>
                 </div>
                 <div className="training-setup">
-                  {show3D && <div className="practice-cube">
-                    {cube ? <SetupCube cubeSize={cube!} alg={animatedSetup} revision={caseHistory.revision} size={224} mask={maskForStage(current.c.stage)} rotation={TRAINING_ROTATION} /> : <PuzzlePreview puzzle={puzzle} alg={shownSetup} />}
-                  </div>}
+                  <div className="practice-cube"><CaseDiagram c={current.c} size={150} /></div>
                   <div className="training-notation">
                     <span className="practice-caption">Setup</span>
                     <AlgText alg={shownSetup} className="large" />
@@ -190,69 +174,50 @@ export function TrainingPage() {
                   </div>
                 )}
                 {primary && hideAlg && <button className="reveal-solution" onClick={() => setRevealed(value => !value)} disabled={busy}>
-                  <IconEye /> {revealed ? "Hide solution" : "Reveal solution"}
+                  <IconEye /> {revealed ? "Hide solution" : "Show solution"}
                 </button>}
-              </motion.section>
+              </section>
             ) : (
-              <motion.div {...upperMotion} className="practice-empty">
+              <div className="practice-empty" data-timer-chrome>
                 <IconGrid /><h1>Choose your cases</h1>
-                <p>Select a few algorithms and practise at your own pace.</p>
-              </motion.div>
+                <p>Open Cases and select the algorithms to practise.</p>
+              </div>
             )}
-            <TimerSurface timer={timer} disabled={!current || saving} flat />
-            <motion.div {...lowerMotion} className="practice-stats">
+            <TimerSurface timer={timer} disabled={!current || saving} />
+            <div className="practice-stats" data-timer-chrome>
               <Kpi label="Solves" value={String(solves.length)} />
               <Kpi label="Best" value={fmtTime(best(times))} />
               <Kpi label="Mean" value={fmtTime(mean(times))} />
-            </motion.div>
+            </div>
           </div>
         </div>
-        <PracticePanel open={showTimes} wide={wide} side="right" title="Session times" onClose={() => setShowTimes(false)}>
+        <PracticePanel open={showTimes} wide={wide} side="right" title="Session" onClose={() => setShowTimes(false)}>
           <TimesPanel selectedCases={selectedCases} solves={solves} onUndo={undoLast} />
         </PracticePanel>
       </div>
-      <div className="practice-actions training-actions" aria-label="Training controls">
-        <PracticeAction running={timer.phase === "running"} aria-expanded={showSelector} disabled={busy} onClick={toggleCases} aria-keyshortcuts="Alt+c">
+      <div className="practice-actions" aria-label="Training controls" data-timer-chrome>
+        <button type="button" className="action" aria-expanded={showSelector} disabled={busy} onClick={toggleCases} aria-keyshortcuts="Alt+c">
           <IconGrid /><span>Cases <small>{selectedCases.length}</small></span><ShortcutKey letter="C" />
-        </PracticeAction>
-        {supportsAuf && <PracticeAction running={timer.phase === "running"} aria-pressed={useAuf} disabled={busy} onClick={() => setUseAuf(value => !value)} aria-keyshortcuts="Alt+a">
-          <IconShuffle /><span>Random AUF</span><ShortcutKey letter="A" />
-        </PracticeAction>}
-        <PracticeAction running={timer.phase === "running"} aria-pressed={hideAlg} disabled={busy} onClick={toggleSolution} aria-keyshortcuts="Alt+h">
+        </button>
+        <button type="button" className="action" aria-pressed={hideAlg} disabled={busy} onClick={toggleSolution} aria-keyshortcuts="Alt+h">
           <IconEye /><span>Hide solution</span><ShortcutKey letter="H" />
-        </PracticeAction>
-        <PracticeAction running={timer.phase === "running"} disabled={busy || caseHistory.index <= 0} onClick={previousCase} aria-label="Previous case" title="Previous case (Alt + P)" aria-keyshortcuts="Alt+p">
-          <IconBack /><span>Previous case</span><ShortcutKey letter="P" />
-        </PracticeAction>
-        <PracticeAction running={timer.phase === "running"} disabled={busy || !current} onClick={nextCase} aria-label="Next case" aria-keyshortcuts="Alt+n">
-          <IconSkip /><span>Next case</span><ShortcutKey letter="N" />
-        </PracticeAction>
-        <PracticeAction running={timer.phase === "running"} aria-expanded={showTimes} disabled={busy} onClick={toggleTimes} aria-keyshortcuts="Alt+t">
+        </button>
+        <button type="button" className="action" disabled={busy || caseHistory.index <= 0} onClick={previousCase} aria-keyshortcuts="Alt+p">
+          <IconBack /><span>Previous</span><ShortcutKey letter="P" />
+        </button>
+        <button type="button" className="action" disabled={busy || !current} onClick={nextCase} aria-keyshortcuts="Alt+n">
+          <IconSkip /><span>Next</span><ShortcutKey letter="N" />
+        </button>
+        <button type="button" className="action" aria-expanded={showTimes} disabled={busy} onClick={toggleTimes} aria-keyshortcuts="Alt+t">
           <IconTimer /><span>Times</span><ShortcutKey letter="T" />
-        </PracticeAction>
+        </button>
       </div>
     </div>
   );
 }
 
 function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[]; solves: SolveDto[]; onUndo: () => void }) {
-  const previewMotion = useTimerChrome("right");
-  const portalTarget = useFloatingPortalTarget();
-  const timesScrollRef=usePreservedScroll(`training-times:${selectedCases[0]?.puzzle_id??selectedCases[0]?.cube_size??3}`);
-  const [preview, setPreview] = useState<{ name: string; left: number; top: number } | null>(null);
-  const showPreview = (element: HTMLElement, name: string) => {
-    const rect = element.getBoundingClientRect();
-    setPreview({ name, left: rect.left - 10, top: rect.top + rect.height / 2 });
-  };
-  useEffect(() => {
-    const dismiss = () => setPreview(null);
-    window.addEventListener("resize", dismiss);
-    window.addEventListener("scroll", dismiss, true);
-    return () => {
-      window.removeEventListener("resize", dismiss);
-      window.removeEventListener("scroll", dismiss, true);
-    };
-  }, []);
+  const timesScrollRef = usePreservedScroll(`training-times:${selectedCases[0]?.puzzle_id ?? selectedCases[0]?.cube_size ?? 3}`);
   const byCase = useMemo(() => {
     const m = new Map<string, SolveDto[]>();
     for (const s of solves) if (s.case_id) m.set(s.case_id, [...(m.get(s.case_id) ?? []), s]);
@@ -264,18 +229,15 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
   return (
     <div className="panel">
       <div className="panel-header">
-        <div>
-          <h2>Session</h2>
-          <div className="muted" style={{ fontSize: 12 }}>
-            {solves.length} solve{solves.length === 1 ? "" : "s"}
-            {solves.length > 0 && <> · mean {fmtTime(mean(allTimes))} · best {fmtTime(best(allTimes))}</>}
-          </div>
-        </div>
-        <button className="btn ghost small" onClick={onUndo} disabled={!solves.length} title="Delete the last time">
+        <span className="muted">
+          {solves.length} solve{solves.length === 1 ? "" : "s"}
+          {solves.length > 0 && <> · best {fmtTime(best(allTimes))} · mean {fmtTime(mean(allTimes))}</>}
+        </span>
+        <button className="mini-btn" onClick={onUndo} disabled={!solves.length} title="Delete the last time">
           <IconUndo /> Undo
         </button>
       </div>
-      <div className="panel-body" ref={timesScrollRef} onScroll={() => setPreview(null)}>
+      <div className="panel-body" ref={timesScrollRef}>
         {ordered.map((c) => {
           const list = byCase.get(c.id) ?? [];
           const times = list.map((s) => effective(s.time_ms, s.penalty));
@@ -283,46 +245,19 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
           return (
             <div key={c.id} className="times-group">
               <div className="times-group-header">
-                <span
-                  className="times-case-cube"
-                  role="img"
-                  aria-label={c.id}
-                  tabIndex={0}
-                  onMouseEnter={(event) => showPreview(event.currentTarget, c.id)}
-                  onMouseLeave={() => setPreview(null)}
-                  onFocus={(event) => showPreview(event.currentTarget, c.id)}
-                  onBlur={() => setPreview(null)}
-                  onKeyDown={(event) => { if (event.key === "Escape") setPreview(null); }}
-                >
-                  <span aria-hidden="true">
-                    <CaseDiagram c={c} size={56} />
-                  </span>
-                </span>
-                <span className="stats">
-                  {list.length ? `${list.length} · best ${fmtTime(b)} · mean ${fmtTime(mean(times))}` : "—"}
-                </span>
+                <span className="times-case-cube" title={c.id}><CaseDiagram c={c} size={48} /></span>
+                <span className="stats"><strong>{c.id.replace(/^\S+\s+/, "")}</strong>{list.length ? ` · ${list.length} · best ${fmtTime(b)}` : ""}</span>
               </div>
               <div className="times">
-                  {[...list].reverse().map((s) => {
-                    const t = effective(s.time_ms, s.penalty);
-                    return (
-                      <span key={s.id} data-solve-id={s.id} tabIndex={0} className={`time-chip ${t !== null && t === b ? "best" : ""} ${s.penalty === "dnf" ? "dnf" : ""}`}>
-                        {fmtSolve(s.time_ms, s.penalty)}
-                      </span>
-                    );
-                  })}
+                {[...list].reverse().map((s) => {
+                  const t = effective(s.time_ms, s.penalty);
+                  return <span key={s.id} data-solve-id={s.id} tabIndex={0} className={`time-chip ${t !== null && t === b ? "best" : ""} ${s.penalty === "dnf" ? "dnf" : ""}`}>{fmtSolve(s.time_ms, s.penalty)}</span>;
+                })}
               </div>
             </div>
           );
         })}
       </div>
-      {createPortal(<AnimatePresence>{preview &&
-        <motion.div {...previewMotion} initial={{ opacity: 0, y: 6 }} transition={{ ...previewMotion.transition, opacity: { duration: 0.14 } }} exit={previewMotion.inert ? { ...previewMotion.animate, transition: previewMotion.transition } : { opacity: 0, y: 6, transition: { duration: 0.14 } }} transformTemplate={(_, transform) => `translate(-100%, -50%) ${transform === "none" ? "" : transform}`} className="times-case-popover" style={{ left: preview.left, top: preview.top }} role="tooltip">
-          <span className="times-case-popover-arrow" />
-          {preview.name}
-        </motion.div>}</AnimatePresence>,
-        portalTarget,
-      )}
     </div>
   );
 }
