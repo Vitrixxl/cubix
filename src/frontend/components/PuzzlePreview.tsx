@@ -1,4 +1,6 @@
 import {useCallback,useEffect,useMemo,useRef} from 'react';
+import {useAtomValue} from 'jotai';
+import {cubeBrandAtom} from '../state';
 import {puzzleInfo,type PuzzleId} from '../../shared/puzzles';
 import {cubeSize,solved} from '../../shared/cube';
 import {useCubeGeometry} from '../hooks/useCubeGeometry';
@@ -12,7 +14,7 @@ type SpecialModel=ReturnType<NonNullable<ReturnType<typeof useSpecialPuzzlePlaye
 type Model=ReturnType<typeof createCubeModel>|SpecialModel;
 /** One WebGL viewport survives every puzzle and scramble change. */
 export function PuzzlePreview({puzzle,alg}:{puzzle:PuzzleId;alg:string}){
-  const info=puzzleInfo(puzzle),size=info.cubeSize??3;
+  const info=puzzleInfo(puzzle),size=info.cubeSize??3,brand=useAtomValue(cubeBrandAtom);
   const geometry=useCubeGeometry(info.cubeSize??null);
   const initial=useMemo(()=>solved(size),[size]);
   const cubeAlg=info.cubeSize?alg:'';
@@ -23,7 +25,7 @@ export function PuzzlePreview({puzzle,alg}:{puzzle:PuzzleId;alg:string}){
   const view=useRef<ThreeViewportProps<Model>|null>(null);
   // Keep the last valid model visible while a new puzzle's resources load.
   if(info.cubeSize&&geometry.ready&&cubeSize(cube.state)===size)view.current={
-    cacheKey:`cube:${size}`,createModel:createCube,updateModel:model=>(model as ReturnType<typeof createCubeModel>).update(cube.state,'full',cube.animation),
+    cacheKey:`cube:${size}`,createModel:createCube,updateModel:model=>(model as ReturnType<typeof createCubeModel>).update(cube.state,'full',cube.animation,brand),
     label:`${info.label} cube, drag to rotate`,rotation:DEFAULT_ROTATION,viewSize:3.9,
   };
   else if(!info.cubeSize&&special.view){const next=special.view;view.current={...next,updateModel:model=>next.updateModel(model as SpecialModel)};}

@@ -1,5 +1,5 @@
 import { useAtomValue } from "jotai";
-import { animationsEnabledAtom } from "../state";
+import { animationsEnabledAtom, cubeBrandAtom } from "../state";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { applyMove, moveAngleDeg, parseAlg, cubeSize, type CubeState, type Move } from "../../shared/cube";
 import {ThreeViewport,type ThreeViewportProps} from './ThreeViewport';
@@ -24,10 +24,10 @@ export interface Cube3DProps {
 
 
 export const Cube3D=memo(function Cube3D({state,size=160,mask='full',rotation=DEFAULT_ROTATION,animation,interactive,onRotationChange,className,style}:Cube3DProps){
-  const dimension=cubeSize(state);
+  const dimension=cubeSize(state),brand=useAtomValue(cubeBrandAtom);
   const createModel=useCallback(()=>createCubeModel(dimension),[dimension]);
   const geometry=useCubeGeometry(dimension),view=useRef<ThreeViewportProps<ReturnType<typeof createCubeModel>>|null>(null);
-  if(geometry.ready)view.current={cacheKey:`cube:${dimension}`,createModel,updateModel:model=>model.update(state,mask,animation),label:`${dimension}×${dimension} cube, drag to rotate`,rotation,interactive,onRotationChange,className,style:{width:size,height:size,...style}};
+  if(geometry.ready)view.current={cacheKey:`cube:${dimension}`,createModel,updateModel:model=>model.update(state,mask,animation,brand),label:`${dimension}×${dimension} cube, drag to rotate`,rotation,interactive,onRotationChange,className,style:{width:size,height:size,...style}};
   return view.current&&!geometry.error?<ThreeViewport {...view.current} loading={!geometry.ready}/>:<div style={{width:size,height:size,position:'relative',...style}}><PuzzlePlaceholder error={geometry.error} onRetry={geometry.retry}/></div>;
 });
 
