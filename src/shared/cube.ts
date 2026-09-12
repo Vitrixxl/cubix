@@ -72,6 +72,14 @@ export const solved = (size = 3): CubeState => Uint16Array.from({ length: 6 * si
 export const faceOfSlot = (slot: number, size = 3): Face => FACES[Math.floor(slot / (size * size))];
 export const colorOf = (state: CubeState, slot: number): Face => faceOfSlot(state[slot], cubeSize(state));
 
+// Facelet permutations alone discard centre-cap rotation. Keep a tangent for
+// each sticker so an imported physical piece (including its artwork) has a pose.
+// Weak keys release the extra data with algorithm-player states.
+const stickerTangents = new WeakMap<CubeState, readonly Vec3[]>();
+export function stickerTangent(state: CubeState, slot: number): Vec3 {
+  return stickerTangents.get(state)?.[slot] ?? (Math.abs(slotsFor(cubeSize(state))[slot].n[1]) === 1 ? [0, 0, 1] : [0, 1, 0]);
+}
+
 // ---------------------------------------------------------------------------
 // Rotations
 // ---------------------------------------------------------------------------
@@ -257,6 +265,12 @@ export function applyMove(state: CubeState, mv: Move): CubeState {
   const perm = movePermutation(mv, size);
   const next = new Uint16Array(state.length);
   for (let s = 0; s < 6 * size * size; s++) next[perm[s]] = state[s];
+  const tangents: Vec3[] = new Array(state.length);
+  for (let s = 0; s < state.length; s++) {
+    const tangent = stickerTangent(state, s);
+    tangents[perm[s]] = mv.layers.includes(slotsFor(size)[s].p[mv.axis]) ? rotate(tangent, mv.axis, mv.q) : tangent;
+  }
+  stickerTangents.set(next, tangents);
   return next;
 }
 

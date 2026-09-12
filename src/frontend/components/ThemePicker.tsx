@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAtom } from "jotai";
 import { FloatingSheet } from "./FloatingSheet";
 import { AnimationSetting } from "./AnimationSetting";
+import { CubeModelSetting } from "./CubeModelSetting";
 import { colorModeAtom, themeAtom, type ThemeId } from "../state";
 import { IconCheck, IconClose } from "./icons";
 
@@ -59,6 +60,7 @@ export function ThemePicker({ open, onClose }: { open: boolean; onClose: () => v
             </div>
             <ThreeDSetting />
             <AnimationSetting />
+            <CubeModelSetting />
     </FloatingSheet>
   );
 }

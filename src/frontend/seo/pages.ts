@@ -10,6 +10,7 @@ export const SEO_PAGES = {
   trainingGuide: { path: '/guides/algorithm-training/', title: 'How to Use the Algorithm Trainer | Cubix', heading: 'Practise cube algorithms with a training timer', description: 'Set up a focused algorithm training session in Cubix: select cases, apply setups, reveal solutions and review your attempts.', index: true },
   timerGuide: { path: '/guides/how-to-use-a-cube-timer/', title: 'How to Use a Rubik’s Cube Timer on Desktop & Mobile | Cubix', heading: 'How to use an online cube timer', description: 'Learn how to start and stop the Cubix timer with the spacebar or touchscreen, use scrambles, record penalties and review your speedcubing practice.', index: true },
   averagesGuide: { path: '/guides/ao5-ao12/', title: 'Ao5 & Ao12 Explained: Cube Timer Averages and DNF | Cubix', heading: 'Ao5 and Ao12: how cube timer averages work', description: 'Understand average of 5, average of 12, +2 penalties and DNF in Cubix. Follow worked examples and learn how averages differ from your best solve and mean.', index: true },
+  cubeModelsGuide: { path: '/guides/cube-models/', title: 'Cube Models and Reference Sources | Cubix', heading: 'Physical cube models', description: 'Explore photo-based cube surface models, their reference sources, and browser caching for the selected 3D model.', index: true },
 } as const;
 export type SeoPage = keyof typeof SEO_PAGES;
 export const PUBLIC_PAGES = (Object.keys(SEO_PAGES) as SeoPage[]).filter(key => SEO_PAGES[key].index);

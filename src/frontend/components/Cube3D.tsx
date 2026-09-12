@@ -1,11 +1,13 @@
 import { useAtomValue } from "jotai";
-import { animationsEnabledAtom, cubeBrandAtom } from "../state";
+import { animationsEnabledAtom, cubeModelSelectionAtom } from "../state";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { applyMove, moveAngleDeg, parseAlg, cubeSize, type CubeState, type Move } from "../../shared/cube";
 import {ThreeViewport,type ThreeViewportProps} from './ThreeViewport';
 import {useCubeGeometry} from '../hooks/useCubeGeometry';
 import {PuzzlePlaceholder} from './PuzzlePlaceholder';
 import {createCubeModel} from '../lib/three/cube-model';
+import {createPhysicalCubeModel} from '../lib/three/physical-cube-model';
+import {usePhysicalCube} from '../hooks/usePhysicalCube';
 import {DEFAULT_ROTATION,type CubeMask,type LayerAnimation} from '../lib/cube-appearance';
 export {FACE_COLORS,DEFAULT_ROTATION,type CubeMask,type LayerAnimation} from '../lib/cube-appearance';
 export interface Cube3DProps {
@@ -24,11 +26,13 @@ export interface Cube3DProps {
 
 
 export const Cube3D=memo(function Cube3D({state,size=160,mask='full',rotation=DEFAULT_ROTATION,animation,interactive,onRotationChange,className,style}:Cube3DProps){
-  const dimension=cubeSize(state),brand=useAtomValue(cubeBrandAtom);
-  const createModel=useCallback(()=>createCubeModel(dimension),[dimension]);
-  const geometry=useCubeGeometry(dimension),view=useRef<ThreeViewportProps<ReturnType<typeof createCubeModel>>|null>(null);
-  if(geometry.ready)view.current={cacheKey:`cube:${dimension}`,createModel,updateModel:model=>model.update(state,mask,animation,brand),label:`${dimension}×${dimension} cube, drag to rotate`,rotation,interactive,onRotationChange,className,style:{width:size,height:size,...style}};
-  return view.current&&!geometry.error?<ThreeViewport {...view.current} loading={!geometry.ready}/>:<div style={{width:size,height:size,position:'relative',...style}}><PuzzlePlaceholder error={geometry.error} onRetry={geometry.retry}/></div>;
+  const dimension=cubeSize(state),selections=useAtomValue(cubeModelSelectionAtom);
+  const physical=usePhysicalCube(selections[dimension],dimension);
+  const createModel=useCallback(()=>physical.template?createPhysicalCubeModel(physical.template,dimension):createCubeModel(dimension),[dimension,physical.template]);
+  const geometry=useCubeGeometry(physical.asset?null:dimension),view=useRef<ThreeViewportProps<ReturnType<typeof createCubeModel>>|null>(null);
+  const ready=geometry.ready&&physical.ready,error=physical.error||geometry.error;
+  if(ready)view.current={cacheKey:`cube:${dimension}:${physical.asset?.sha256??'generic'}`,createModel,updateModel:model=>model.update(state,mask,animation),label:`${physical.asset?.name??`${dimension}×${dimension} generic cube`}, drag to rotate`,rotation,interactive,onRotationChange,className,style:{width:size,height:size,...style}};
+  return view.current&&!error?<ThreeViewport {...view.current} loading={!ready}/>:<div style={{width:size,height:size,position:'relative',...style}}><PuzzlePlaceholder error={error} onRetry={physical.asset?physical.retry:geometry.retry}/></div>;
 });
 
 // ---------------------------------------------------------------------------

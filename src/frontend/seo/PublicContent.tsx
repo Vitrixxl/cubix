@@ -1,4 +1,5 @@
 import { SEO_PAGES, isGuide, type SeoPage } from './pages';
+import modelAssets from '../../../data/cube-model-assets.json';
 
 export function PublicContent({ page }: { page: SeoPage }) {
   if (!isGuide(page)) return null;
@@ -39,6 +40,14 @@ export function PublicContent({ page }: { page: SeoPage }) {
       <h2>Practice settings and saved data</h2><p>Standard, one-handed and blindfolded modes keep distinct practice contexts. Blindfolded time includes memorisation and execution. Guest solves stay in your browser; clearing site data can remove them. Sign in to use synchronisation. Once the app has been cached, basic practice can work offline, while features needing new downloads may still need a connection.</p>
       <p>Cubix is designed for practice. For official competitions, follow the <a href="https://www.worldcubeassociation.org/regulations/">WCA Regulations</a> and the event’s judges.</p>
     </>}
+    {page === 'cubeModelsGuide' && <>
+      <p className="public-lead">A physical cube model needs its own centres, edges and corners, including the surfaces visible during a turn. A brand name or a logo does not identify this geometry.</p>
+      <h2>Product references and 3D models</h2><p>Open the Cube model library from the puzzle picker or appearance settings. Search by model, brand, version or finish. Product photographs and logo references link to their original source. A photo reference is not a ready 3D model.</p>
+      <h2>What is available now?</h2><p>{modelAssets.length} selectable 3D models are available, covering cubes from 2×2 to 7×7. Open the cube library from the puzzle selector or appearance settings, choose a model and use it for practice. Each model has its own file and movable pieces. Product references without a model remain in the All references tab.</p>
+      <h2>Surfaces reconstructed from photographs</h2><p>These models reproduce exterior shapes using product photographs: centre caps, edge and corner contours, rounded junctions, gaps, wider outer rows, stickers and visible grip ridges. Each reconstruction links to its source. Proportions, bevels and depth are estimates from photos, not measured manufacturer CAD; exact physical equivalence is not certified. The unseen mechanisms are not reconstructed. Original brand artwork is not invented or replaced by drawn approximations.</p>
+      <h2>Stored in your browser</h2><p>Only the selected 3D file is downloaded. Its verified file is cached on your device and reused across visits, including offline. Model files are served as static assets and do not call the Cubix API. A new file version has a new fingerprint. Clearing site data or browser storage eviction can require another download; private browsing and storage limits may prevent persistent caching.</p>
+      <h2>Sources</h2><p>The product and logo catalogue comes from <a href="https://www.thecubicle.com/collections/all">TheCubicle</a>. Manufacturer references are also available at <a href="https://www.gancube.com/pages/manual-download">GAN's product manuals</a>. Source photographs are displayed without redrawing their logos.</p>
+    </>}
     {page === 'averagesGuide' && <>
       <p className="public-lead">A personal best shows what you managed once. An average gives a better view of a group of attempts. Here is how the <a href="/">Cubix timer</a> calculates its session statistics.</p>
       <h2>Average of 5 (Ao5)</h2><p>Take five consecutive results, remove the fastest and the slowest, then average the remaining three. For 10.00, 12.00, 13.00, 14.00 and 20.00 seconds, discard 10.00 and 20.00: (12.00 + 13.00 + 14.00) ÷ 3 = <strong>13.00 seconds</strong>.</p>
@@ -49,7 +58,7 @@ export function PublicContent({ page }: { page: SeoPage }) {
       <h2>Use averages to guide your practice</h2><p>Compare the same puzzle, scramble type and solve mode across sessions. A slow result can reveal a recognition problem or a pause worth working on. Use <a href="/training/">focused algorithm training</a> for specific cases, then return to full solves to see how those improvements translate.</p>
       <p>These examples describe Cubix’s calculations. For official average-of-five and penalty rules, consult the <a href="https://www.worldcubeassociation.org/regulations/#9b">WCA competition formats</a> and <a href="https://www.worldcubeassociation.org/regulations/#9f">result rules</a>.</p>
     </>}
-    <nav className="public-links" aria-label="Cube timer resources"><a href="/">Cube timer</a><a href="/algorithms/">Cube algorithms</a><a href="/training/">Algorithm trainer</a><a href="/guides/about-cubix/">About Cubix</a><a href="/guides/cube-algorithms/">Algorithms guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12 explained</a></nav>
+    <nav className="public-links" aria-label="Cube timer resources"><a href="/">Cube timer</a><a href="/algorithms/">Cube algorithms</a><a href="/training/">Algorithm trainer</a><a href="/guides/about-cubix/">About Cubix</a><a href="/guides/cube-algorithms/">Algorithms guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12 explained</a><a href="/guides/cube-models/">Cube models</a></nav>
     <footer><p>Cubix is an independent speedcubing app. Rubik’s is a trademark of its respective owner. <a href="https://github.com/Vitrixxl/cubix">Source code &amp; feedback</a></p></footer>
   </section>;
 }

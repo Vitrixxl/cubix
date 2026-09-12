@@ -19,7 +19,8 @@ await buildModelWorker("dist/view/workers");
 await buildSeo();
 
 // An atomic shell cache includes the complete catalogue, fonts and PWA icons.
-const files = (await readdir("dist/view", {recursive:true})).filter(path => !path.startsWith("admin/") && /\.(html|js|css|woff2|png|svg|webmanifest)$/.test(path)).sort();
+// Geometry is cached on selection, never downloaded as part of shell installation.
+const files = (await readdir("dist/view", {recursive:true})).filter(path => !path.startsWith("admin/") && !path.startsWith("cube-library/models/") && (/\.(html|js|css|woff2|png|svg|webmanifest)$/.test(path) || path === 'cube-library/catalog.json')).sort();
 const hash = new Bun.CryptoHasher("sha256");
 for (const path of files) hash.update(await readFile("dist/view/"+path));
 const template = await readFile("scripts/service-worker.js","utf8");

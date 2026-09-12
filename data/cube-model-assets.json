@@ -1,0 +1,2550 @@
+[
+  {
+    "id": "gan-354-m",
+    "productId": "gan-354-m",
+    "variantId": "13215191662665",
+    "name": "GAN 354 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-354-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-354-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan354mb2_ddb472b5-fca7-4383-a956-35c3543ff96d.jpg?v=1581453920",
+      "profile": "data/cube-surface-profiles.json#gan-354-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-354-m/aaccc8e690d6a7b6ee303e6698a5a75153b88981ce7fd453e641efd080fd5f81.glb",
+    "sha256": "aaccc8e690d6a7b6ee303e6698a5a75153b88981ce7fd453e641efd080fd5f81"
+  },
+  {
+    "id": "gan356-m",
+    "productId": "gan356-m",
+    "variantId": "31583052791891",
+    "name": "GAN356 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan356-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan356-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan356m.jpg?v=1585074302",
+      "profile": "data/cube-surface-profiles.json#gan356-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan356-m/bf5b2753dfd3185c9a4914656ec8bb790973acac0ad2b673f779b5ab6054f50e.glb",
+    "sha256": "bf5b2753dfd3185c9a4914656ec8bb790973acac0ad2b673f779b5ab6054f50e"
+  },
+  {
+    "id": "gan356-rs",
+    "productId": "gan356-rs",
+    "variantId": "31351024549971",
+    "name": "GAN356 RS 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan356-rs",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan356-rs",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan356rs.jpg?v=1581458392",
+      "profile": "data/cube-surface-profiles.json#gan356-rs",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan356-rs/133593e000a6aebdd4f2f33ad0995e1c06b5cc9c951c69997ed6999536ce1116.glb",
+    "sha256": "133593e000a6aebdd4f2f33ad0995e1c06b5cc9c951c69997ed6999536ce1116"
+  },
+  {
+    "id": "gan356-xs",
+    "productId": "gan356-xs",
+    "variantId": "30834906202185",
+    "name": "GAN356 XS Lite 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan356-xs",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan356-xs",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/GAN356XS.jpg?v=1624388600",
+      "profile": "data/cube-surface-profiles.json#gan356-xs",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan356-xs/bfee00eb67bfa37d6ce9c082ff7756e3ea70c3a11762beba539b51b960b741fe.glb",
+    "sha256": "bfee00eb67bfa37d6ce9c082ff7756e3ea70c3a11762beba539b51b960b741fe"
+  },
+  {
+    "id": "gan-11-m-pro-3x3",
+    "productId": "gan-11-m-pro-3x3",
+    "variantId": "32246941974611",
+    "name": "GAN11 M Pro 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-11-m-pro-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-11-m-pro-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan11mpro3x3.jpg?v=1606146293",
+      "profile": "data/cube-surface-profiles.json#gan-11-m-pro-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-11-m-pro-3x3/0b4359560a855d8c25969c77eac7cafff771ab9f4eb13ce967f62678f8429a6a.glb",
+    "sha256": "0b4359560a855d8c25969c77eac7cafff771ab9f4eb13ce967f62678f8429a6a"
+  },
+  {
+    "id": "gan12-m-maglev-matte-3x3",
+    "productId": "gan12-m-maglev-matte-3x3",
+    "variantId": "39494479675475",
+    "name": "GAN12 M MagLev (Matte) 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan12-m-maglev-matte-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan12-m-maglev-matte-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/matte.jpg?v=1663089941",
+      "profile": "data/cube-surface-profiles.json#gan12-m-maglev-matte-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan12-m-maglev-matte-3x3/61cc3642c190d13806f9c5ebb7956bc45af4acb0c612387bc33f6180153540d2.glb",
+    "sha256": "61cc3642c190d13806f9c5ebb7956bc45af4acb0c612387bc33f6180153540d2"
+  },
+  {
+    "id": "gan13-m-maglev-matte-3x3",
+    "productId": "gan13-m-maglev-matte-3x3",
+    "variantId": "40291139813459",
+    "name": "GAN13 M MagLev (Matte) 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan13-m-maglev-matte-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan13-m-maglev-matte-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan13matte.jpg?v=1664565811",
+      "profile": "data/cube-surface-profiles.json#gan13-m-maglev-matte-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan13-m-maglev-matte-3x3/082bdde7705d3fd2287178d460228956a98b85de66435852ca284f13c0237d81.glb",
+    "sha256": "082bdde7705d3fd2287178d460228956a98b85de66435852ca284f13c0237d81"
+  },
+  {
+    "id": "gan14-maglev-pro-matte-3x3",
+    "productId": "gan14-maglev-pro-matte-3x3",
+    "variantId": "41577908895827",
+    "name": "GAN14 MagLev Pro (Matte) 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan14-maglev-pro-matte-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan14-maglev-pro-matte-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/GAN14_20Maglev_20Pro_20matte.jpg?v=1712589955",
+      "profile": "data/cube-surface-profiles.json#gan14-maglev-pro-matte-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan14-maglev-pro-matte-3x3/f4bab10462d9a5b0d51314c748859fcd9520e549ab35c0b5739116ee9efeab8d.glb",
+    "sha256": "f4bab10462d9a5b0d51314c748859fcd9520e549ab35c0b5739116ee9efeab8d"
+  },
+  {
+    "id": "gan15-maglev-3x3-frosted",
+    "productId": "gan15-maglev-3x3-frosted",
+    "variantId": "42347797413971",
+    "name": "GAN15 MagLev 3x3 (Frosted)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan15-maglev-3x3-frosted",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan15-maglev-3x3-frosted",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/GAN15MagLev3x3_Frosted.jpg?v=1738349320",
+      "profile": "data/cube-surface-profiles.json#gan15-maglev-3x3-frosted",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan15-maglev-3x3-frosted/92d289a6e5cc2223c27cdeb9010026739b30c0fe108448dbb77540130b34c254.glb",
+    "sha256": "92d289a6e5cc2223c27cdeb9010026739b30c0fe108448dbb77540130b34c254"
+  },
+  {
+    "id": "gan16-maglev-uv-3x3",
+    "productId": "gan16-maglev-uv-3x3",
+    "variantId": "43130146259027",
+    "name": "GAN16 MagLev UV 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan16-maglev-uv-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan16-maglev-uv-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/GAN16_MagLev_UV.png?v=1762018968",
+      "profile": "data/cube-surface-profiles.json#gan16-maglev-uv-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan16-maglev-uv-3x3/857439fabb3acc719bf2c78eca23053a7e6960d06f01edc23978e2d4536fbc6f.glb",
+    "sha256": "857439fabb3acc719bf2c78eca23053a7e6960d06f01edc23978e2d4536fbc6f"
+  },
+  {
+    "id": "gan17-magdrive-uv-3x3",
+    "productId": "gan17-magdrive-uv-3x3",
+    "variantId": "45947852914771",
+    "name": "GAN17 MagDrive UV 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan17-magdrive-uv-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan17-magdrive-uv-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/GAN17_20MagDrive_20UV_203x3_19803fe7-cb39-49e1-82d5-2948491369b5.png?v=1786365853",
+      "profile": "data/cube-surface-profiles.json#gan17-magdrive-uv-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan17-magdrive-uv-3x3/8fb98b6d95bb2c9fe6f421d2586ed02319e884f6c71ccd835f813062c5064e31.glb",
+    "sha256": "8fb98b6d95bb2c9fe6f421d2586ed02319e884f6c71ccd835f813062c5064e31"
+  },
+  {
+    "id": "gan-v100-maglev-uv-3x3",
+    "productId": "gan-v100-maglev-uv-3x3",
+    "variantId": "43130244956243",
+    "name": "GAN V100 MagLev UV 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-v100-maglev-uv-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-v100-maglev-uv-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/GAN_V100_3x3_-_UV.png?v=1769571815",
+      "profile": "data/cube-surface-profiles.json#gan-v100-maglev-uv-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-v100-maglev-uv-3x3/907aa7fa0b4cd412312f49c3cbd881d4c0e3feac84aad0c471a1735406d1ef6b.glb",
+    "sha256": "907aa7fa0b4cd412312f49c3cbd881d4c0e3feac84aad0c471a1735406d1ef6b"
+  },
+  {
+    "id": "moyu-rs3-m-2020",
+    "productId": "moyu-rs3-m-2020",
+    "variantId": "31921990893651",
+    "name": "MoYu RS3 M 2020 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-rs3-m-2020",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-rs3-m-2020",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/moyurs3m2020.jpg?v=1715090625",
+      "profile": "data/cube-surface-profiles.json#moyu-rs3-m-2020",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-rs3-m-2020/7edabc668ceb7c312b181b196da8a471b125e9d8648d419abd4d1f9361e5326c.glb",
+    "sha256": "7edabc668ceb7c312b181b196da8a471b125e9d8648d419abd4d1f9361e5326c"
+  },
+  {
+    "id": "moyu-rs3-m-2021-3x3-maglev",
+    "productId": "moyu-rs3-m-2021-3x3-maglev",
+    "variantId": "39450120978515",
+    "name": "MoYu RS3 M 2021 3x3 (MagLev)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-rs3-m-2021-3x3-maglev",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-rs3-m-2021-3x3-maglev",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/MoYu_20RS3_20M_202021_203x3_20_MagLev.jpg?v=1631282561",
+      "profile": "data/cube-surface-profiles.json#moyu-rs3-m-2021-3x3-maglev",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-rs3-m-2021-3x3-maglev/623b257c5777c066b248d596842d488e79ca02561500c51e1bc131faf412dd5a.glb",
+    "sha256": "623b257c5777c066b248d596842d488e79ca02561500c51e1bc131faf412dd5a"
+  },
+  {
+    "id": "moyu-rs3-m-v5-3x3-standard",
+    "productId": "moyu-rs3-m-v5-3x3-standard",
+    "variantId": "41043316801619",
+    "name": "MoYu RS3 M V5 3x3 (Standard)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-rs3-m-v5-3x3-standard",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-rs3-m-v5-3x3-standard",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYuRS3MV53x3_Standard.jpg?v=1723581487",
+      "profile": "data/cube-surface-profiles.json#moyu-rs3-m-v5-3x3-standard",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-rs3-m-v5-3x3-standard/9ed6b3a4786edb98a2253b71ea49c8dec1291aa3949d94b445cfc52aee1bb82b.glb",
+    "sha256": "9ed6b3a4786edb98a2253b71ea49c8dec1291aa3949d94b445cfc52aee1bb82b"
+  },
+  {
+    "id": "moyu-super-rs3-m-2022-3x3",
+    "productId": "moyu-super-rs3-m-2022-3x3",
+    "variantId": "40356839293011",
+    "name": "MoYu Super RS3 M 2022 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-super-rs3-m-2022-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-super-rs3-m-2022-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/moyu-super-rs3m-standard.jpg?v=1698783519",
+      "profile": "data/cube-surface-profiles.json#moyu-super-rs3-m-2022-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-super-rs3-m-2022-3x3/0fbc4b2234dbc10457dcb98aab3677d7db2e9c8a58d7e7253122e1e54a554f2e.glb",
+    "sha256": "0fbc4b2234dbc10457dcb98aab3677d7db2e9c8a58d7e7253122e1e54a554f2e"
+  },
+  {
+    "id": "moyu-super-rs3-m-v2-ball-core-uv-3x3",
+    "productId": "moyu-super-rs3-m-v2-ball-core-uv-3x3",
+    "variantId": "40835584819283",
+    "name": "MoYu Super RS3 M V2 Ball-Core UV 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-super-rs3-m-v2-ball-core-uv-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-super-rs3-m-v2-ball-core-uv-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYu-Super-RS3-M-V2-Ball-Core-UV-3x3.jpg?v=1687534454",
+      "profile": "data/cube-surface-profiles.json#moyu-super-rs3-m-v2-ball-core-uv-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-super-rs3-m-v2-ball-core-uv-3x3/3e659e6756e0f23cab9d59ef71a550bf05e9f2aa729e621b4baf758743e0f3fe.glb",
+    "sha256": "3e659e6756e0f23cab9d59ef71a550bf05e9f2aa729e621b4baf758743e0f3fe"
+  },
+  {
+    "id": "moyu-weilong-gts2-m",
+    "productId": "moyu-weilong-gts2-m",
+    "variantId": "13215270535241",
+    "name": "MoYu WeiLong GTS2 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-gts2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-gts2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/moyuweilonggts2mb11_4a27792b-c0d9-426e-a6dc-ecae900d229b.jpg?v=1581454292",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-gts2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-gts2-m/7e39b0c7ae2438a2fb88623a73aa3bdc17b03977839a1a260a1f921fb3f3b890.glb",
+    "sha256": "7e39b0c7ae2438a2fb88623a73aa3bdc17b03977839a1a260a1f921fb3f3b890"
+  },
+  {
+    "id": "moyu-weilong-gts3-m",
+    "productId": "moyu-weilong-gts3-m",
+    "variantId": "13215272599625",
+    "name": "MoYu WeiLong GTS3 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-gts3-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-gts3-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/MoyuGTS3M.jpg?v=1610645206",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-gts3-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-gts3-m/cd9436954a0c40b58ccc0db447420a44e96ddbd29342de46e143233798660b12.glb",
+    "sha256": "cd9436954a0c40b58ccc0db447420a44e96ddbd29342de46e143233798660b12"
+  },
+  {
+    "id": "moyu-weilong-wr-m-2020",
+    "productId": "moyu-weilong-wr-m-2020",
+    "variantId": "32004860444755",
+    "name": "MoYu WeiLong WR M 2020 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-wr-m-2020",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-wr-m-2020",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/WeiLongWRM2020.jpg?v=1610645067",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-wr-m-2020",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-wr-m-2020/d0e15883172037cfd38fd39b452b02a30909338ac0f3312309718f9a046726c9.glb",
+    "sha256": "d0e15883172037cfd38fd39b452b02a30909338ac0f3312309718f9a046726c9"
+  },
+  {
+    "id": "moyu-weilong-wr-m-2021-3x3",
+    "productId": "moyu-weilong-wr-m-2021-3x3",
+    "variantId": "39378286346323",
+    "name": "MoYu WeiLong WR M 2021 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-wr-m-2021-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-wr-m-2021-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/weilongwrm2021.jpg?v=1625685240",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-wr-m-2021-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-wr-m-2021-3x3/0e150afa4d6241da08db1818c44cbb26cf2256e66efbc4b4cec5627b062ae530.glb",
+    "sha256": "0e150afa4d6241da08db1818c44cbb26cf2256e66efbc4b4cec5627b062ae530"
+  },
+  {
+    "id": "moyu-weilong-wrm-v9-3x3",
+    "productId": "moyu-weilong-wrm-v9-3x3",
+    "variantId": "40621632323667",
+    "name": "MoYu WeiLong WRM V9 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-wrm-v9-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-wrm-v9-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/MoYuWeiLongWRMV93x3.jpg?v=1714504469",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-wrm-v9-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-wrm-v9-3x3/8d2d90d25184b4167bfbf371735dea7e8f6dd9afb27dc7c3a6a1b1eb2e2f5390.glb",
+    "sha256": "8d2d90d25184b4167bfbf371735dea7e8f6dd9afb27dc7c3a6a1b1eb2e2f5390"
+  },
+  {
+    "id": "moyu-weilong-wrm-v10-3x3",
+    "productId": "moyu-weilong-wrm-v10-3x3",
+    "variantId": "41790286266451",
+    "name": "MoYu WeiLong WRM V10 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-wrm-v10-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-wrm-v10-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYu_20WeiLong_20WRM_20V10_203x3_509654e7-9bb0-49ab-8c4e-12b5ff6dd338.jpg?v=1720555973",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-wrm-v10-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-wrm-v10-3x3/f44e246a12aba47f6812a587eb613a3442c1ab8ccb28dd682bff7dbb5abf7c82.glb",
+    "sha256": "f44e246a12aba47f6812a587eb613a3442c1ab8ccb28dd682bff7dbb5abf7c82"
+  },
+  {
+    "id": "moyu-weilong-v11-3x3-magnetic",
+    "productId": "moyu-weilong-v11-3x3-magnetic",
+    "variantId": "42788471799891",
+    "name": "MoYu WeiLong V11 3x3 (Magnetic)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-weilong-v11-3x3-magnetic",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-weilong-v11-3x3-magnetic",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYu_20WeiLong_20V11_203x3_20_Magnetic.jpg?v=1749221230",
+      "profile": "data/cube-surface-profiles.json#moyu-weilong-v11-3x3-magnetic",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-weilong-v11-3x3-magnetic/14377a6700f164553ed8be5199cddd68971de5a9fffd8cafe29e1e4fc39661ea.glb",
+    "sha256": "14377a6700f164553ed8be5199cddd68971de5a9fffd8cafe29e1e4fc39661ea"
+  },
+  {
+    "id": "the-feryoocore-3x3-v2",
+    "productId": "the-feryoocore-3x3-v2",
+    "variantId": "44558039580755",
+    "name": "The FerYooCore V2 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/the-feryoocore-3x3-v2",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/the-feryoocore-3x3-v2",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/feryoocorev2matte.jpg?v=1777660069",
+      "profile": "data/cube-surface-profiles.json#the-feryoocore-3x3-v2",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/the-feryoocore-3x3-v2/38249d33a7ad11187c29fdf0d982486e74255f7e000f33a9051f20fb46be3dd8.glb",
+    "sha256": "38249d33a7ad11187c29fdf0d982486e74255f7e000f33a9051f20fb46be3dd8"
+  },
+  {
+    "id": "moyu-super-weilong-3x3-v2-20-magnet-ball-core-maglev-uv",
+    "productId": "moyu-super-weilong-3x3-v2-20-magnet-ball-core-maglev-uv",
+    "variantId": "42492280635475",
+    "name": "MoYu Super WeiLong 3x3 V2 (20-Magnet Ball-Core + MagLev + UV)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-super-weilong-3x3-v2-20-magnet-ball-core-maglev-uv",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-super-weilong-3x3-v2-20-magnet-ball-core-maglev-uv",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/moyusuperweilongv2m.jpg?v=1739392977",
+      "profile": "data/cube-surface-profiles.json#moyu-super-weilong-3x3-v2-20-magnet-ball-core-maglev-uv",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-super-weilong-3x3-v2-20-magnet-ball-core-maglev-uv/b6ec7b933d478029df8e0e36a43333494260be39b907b349e9ad5d5e3ac7df74.glb",
+    "sha256": "b6ec7b933d478029df8e0e36a43333494260be39b907b349e9ad5d5e3ac7df74"
+  },
+  {
+    "id": "moyu-aolong-v5-3x3-magnetic",
+    "productId": "moyu-aolong-v5-3x3-magnetic",
+    "variantId": "45717192998995",
+    "name": "MoYu AoLong V5 3x3 (Magnetic)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aolong-v5-3x3-magnetic",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aolong-v5-3x3-magnetic",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYu_20AoLong_20V5_20Magnetic.png?v=1781837880",
+      "profile": "data/cube-surface-profiles.json#moyu-aolong-v5-3x3-magnetic",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aolong-v5-3x3-magnetic/8c5f30f753e6601bfd258c12bc03577e53e0f5ca58280a7f25e8d3e37f044265.glb",
+    "sha256": "8c5f30f753e6601bfd258c12bc03577e53e0f5ca58280a7f25e8d3e37f044265"
+  },
+  {
+    "id": "x-man-tornado-v2-3x3",
+    "productId": "x-man-tornado-v2-3x3",
+    "variantId": "39354003652691",
+    "name": "X-Man Tornado V2 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/x-man-tornado-v2-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/x-man-tornado-v2-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/xmantornadov2m.jpg?v=1704986684",
+      "profile": "data/cube-surface-profiles.json#x-man-tornado-v2-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/x-man-tornado-v2-3x3/112a608acffd6a28e56e9ac4f96719f47e4d6a9a38ea99ab32247041a219ca68.glb",
+    "sha256": "112a608acffd6a28e56e9ac4f96719f47e4d6a9a38ea99ab32247041a219ca68"
+  },
+  {
+    "id": "x-man-tornado-v3-m-standard",
+    "productId": "x-man-tornado-v3-m-standard",
+    "variantId": "40300111659091",
+    "name": "X-Man Tornado V3 M Standard 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/x-man-tornado-v3-m-standard",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/x-man-tornado-v3-m-standard",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/X-Man_20Tornado_20V3_20M_20_Standard.jpg?v=1702414545",
+      "profile": "data/cube-surface-profiles.json#x-man-tornado-v3-m-standard",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/x-man-tornado-v3-m-standard/3e8ab14050b57a238174e64995fc690d41624bff4a39e46c6c58c3515af07490.glb",
+    "sha256": "3e8ab14050b57a238174e64995fc690d41624bff4a39e46c6c58c3515af07490"
+  },
+  {
+    "id": "x-man-tornado-v4-m-3x3-flagship",
+    "productId": "x-man-tornado-v4-m-3x3-flagship",
+    "variantId": "42187509891155",
+    "name": "X-Man Tornado V4 M 3x3 (Flagship)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/x-man-tornado-v4-m-3x3-flagship",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/x-man-tornado-v4-m-3x3-flagship",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/tornado_20v4.jpg?v=1726802352",
+      "profile": "data/cube-surface-profiles.json#x-man-tornado-v4-m-3x3-flagship",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/x-man-tornado-v4-m-3x3-flagship/bfc5cd85137ce08b6fe3bcc38d6acef754724f620badea2d786e8f7eec74f16b.glb",
+    "sha256": "bfc5cd85137ce08b6fe3bcc38d6acef754724f620badea2d786e8f7eec74f16b"
+  },
+  {
+    "id": "x-man-tornado-v5-3x3-flagship",
+    "productId": "x-man-tornado-v5-3x3-flagship",
+    "variantId": "44527791407187",
+    "name": "X-Man Tornado V5 3x3 (Flagship UV)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/x-man-tornado-v5-3x3-flagship",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/x-man-tornado-v5-3x3-flagship",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/Tornado_V5_Flagship_1.png?v=1777091772",
+      "profile": "data/cube-surface-profiles.json#x-man-tornado-v5-3x3-flagship",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/x-man-tornado-v5-3x3-flagship/17227df9d553be0f77041258de337453d3df2bb741430bf5ea14fc229c8e8c5c.glb",
+    "sha256": "17227df9d553be0f77041258de337453d3df2bb741430bf5ea14fc229c8e8c5c"
+  },
+  {
+    "id": "x-man-xt3-v1-3x3-flagship",
+    "productId": "x-man-xt3-v1-3x3-flagship",
+    "variantId": "42265166512211",
+    "name": "X-Man XT3 V1 3x3 (Flagship)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/x-man-xt3-v1-3x3-flagship",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/x-man-xt3-v1-3x3-flagship",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/X-Man_20XT3_20V1_203x3_20_Flagship.jpg?v=1730131117",
+      "profile": "data/cube-surface-profiles.json#x-man-xt3-v1-3x3-flagship",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/x-man-xt3-v1-3x3-flagship/dd2802d19f1b0f7bef167d972d323dc1fc49f5882d5f394141862b6372a81667.glb",
+    "sha256": "dd2802d19f1b0f7bef167d972d323dc1fc49f5882d5f394141862b6372a81667"
+  },
+  {
+    "id": "qiyi-ms-3x3",
+    "productId": "qiyi-ms-3x3",
+    "variantId": "31681955070035",
+    "name": "QiYi MS 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/qiyi-ms-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/qiyi-ms-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/QiYiMS3x3.jpg?v=1610645240",
+      "profile": "data/cube-surface-profiles.json#qiyi-ms-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/qiyi-ms-3x3/932504ec82970d917181b0e8f0eb895a62cb24909b819c05eddb5acfbe28ba9c.glb",
+    "sha256": "932504ec82970d917181b0e8f0eb895a62cb24909b819c05eddb5acfbe28ba9c"
+  },
+  {
+    "id": "qiyi-m-pro-3x3",
+    "productId": "qiyi-m-pro-3x3",
+    "variantId": "40791593844819",
+    "name": "QiYi M Pro 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/qiyi-m-pro-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/qiyi-m-pro-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/QiYi_20M_20Pro_203x3_20stickerless.jpg?v=1683915677",
+      "profile": "data/cube-surface-profiles.json#qiyi-m-pro-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/qiyi-m-pro-3x3/fbf15f8da0c19daad062a92ac69615aae431efd4dee61583ee1962b5fae0be01.glb",
+    "sha256": "fbf15f8da0c19daad062a92ac69615aae431efd4dee61583ee1962b5fae0be01"
+  },
+  {
+    "id": "qiyi-m-pro-v2-3x3-flagship",
+    "productId": "qiyi-m-pro-v2-3x3-flagship",
+    "variantId": "42321958076499",
+    "name": "QiYi M Pro 3x3 V2 (Flagship)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/qiyi-m-pro-v2-3x3-flagship",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/qiyi-m-pro-v2-3x3-flagship",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/QiYi_20M_20Pro_20V2_203x3_20_Flagship.jpg?v=1732567408",
+      "profile": "data/cube-surface-profiles.json#qiyi-m-pro-v2-3x3-flagship",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/qiyi-m-pro-v2-3x3-flagship/d62e83be3d783c81b2a97b989d6b3f9385a2cc3ffd3ed840b5bd2a41793ca756.glb",
+    "sha256": "d62e83be3d783c81b2a97b989d6b3f9385a2cc3ffd3ed840b5bd2a41793ca756"
+  },
+  {
+    "id": "qiyi-m-pro-3x3-v3-flagship",
+    "productId": "qiyi-m-pro-3x3-v3-flagship",
+    "variantId": "46234839482451",
+    "name": "QiYi M Pro 3x3 V3 (Flagship)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/qiyi-m-pro-3x3-v3-flagship",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/qiyi-m-pro-3x3-v3-flagship",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/QiYi_20M_20Pro_20V3_20Flagship.png?v=1789163549",
+      "profile": "data/cube-surface-profiles.json#qiyi-m-pro-3x3-v3-flagship",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/qiyi-m-pro-3x3-v3-flagship/486ff7e85656f0ed848d4a5dab6ef5e6a868937e73a0e871132b10b3e6c86d24.glb",
+    "sha256": "486ff7e85656f0ed848d4a5dab6ef5e6a868937e73a0e871132b10b3e6c86d24"
+  },
+  {
+    "id": "qiyi-warrior-w-3x3",
+    "productId": "qiyi-warrior-w-3x3",
+    "variantId": "13215288524873",
+    "name": "QiYi Warrior W 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/qiyi-warrior-w-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/qiyi-warrior-w-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/qiyiwarriorwb1_cbac2cda-3795-4ed7-a31d-948f9ca4e147.jpg?v=1581454371",
+      "profile": "data/cube-surface-profiles.json#qiyi-warrior-w-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/qiyi-warrior-w-3x3/2a3846c37f13105eefc85e88c2f71b89f437688a80307ff61955491c978114e2.glb",
+    "sha256": "2a3846c37f13105eefc85e88c2f71b89f437688a80307ff61955491c978114e2"
+  },
+  {
+    "id": "qiyi-sail-w-3x3",
+    "productId": "qiyi-sail-w-3x3",
+    "variantId": "19976026849353",
+    "name": "QiYi Sail W 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/qiyi-sail-w-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/qiyi-sail-w-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/SglRXYPvsTjm2.jpg?v=1624388500",
+      "profile": "data/cube-surface-profiles.json#qiyi-sail-w-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/qiyi-sail-w-3x3/3a355dec3700a719df7dc0bbb37e9f327837fdfe90f83933b66908b76bf4c736.glb",
+    "sha256": "3a355dec3700a719df7dc0bbb37e9f327837fdfe90f83933b66908b76bf4c736"
+  },
+  {
+    "id": "valk-3",
+    "productId": "valk-3",
+    "variantId": "13215305498697",
+    "name": "Valk 3 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/valk-3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/valk-3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/valk3b1_a4a4807d-8197-4675-b2ae-0ed490c467d6.jpg?v=1581454452",
+      "profile": "data/cube-surface-profiles.json#valk-3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/valk-3/89819a74149456678efaa2e7a83924b03863f62df4a0a0fd0c4999260134d40e.glb",
+    "sha256": "89819a74149456678efaa2e7a83924b03863f62df4a0a0fd0c4999260134d40e"
+  },
+  {
+    "id": "valk-3-elite",
+    "productId": "valk-3-elite",
+    "variantId": "31260579889235",
+    "name": "Valk 3 Elite M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/valk-3-elite",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/valk-3-elite",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/ValkEliteM.jpg?v=1610645266",
+      "profile": "data/cube-surface-profiles.json#valk-3-elite",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/valk-3-elite/4d534e9c514cae19748f9b2e777940d99045781979e9248ead9a7edac2c0d0f9.glb",
+    "sha256": "4d534e9c514cae19748f9b2e777940d99045781979e9248ead9a7edac2c0d0f9"
+  },
+  {
+    "id": "valk-3-power-m",
+    "productId": "valk-3-power-m",
+    "variantId": "13215310348361",
+    "name": "Valk 3 Power M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/valk-3-power-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/valk-3-power-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/valk3powermb1_b620e25b-8a78-40cd-bb8b-c4ff190e7b16.jpg?v=1581454481",
+      "profile": "data/cube-surface-profiles.json#valk-3-power-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/valk-3-power-m/7c5e6cac10cf5c2ca807413503823ad0fda94f218cdb669bd820c1cce512fc5f.glb",
+    "sha256": "7c5e6cac10cf5c2ca807413503823ad0fda94f218cdb669bd820c1cce512fc5f"
+  },
+  {
+    "id": "mofang-jiaoshi-mf3rs2",
+    "productId": "mofang-jiaoshi-mf3rs2",
+    "variantId": "13215240683593",
+    "name": "MoFang JiaoShi MF3RS2",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mofang-jiaoshi-mf3rs2",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mofang-jiaoshi-mf3rs2",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mf3rs2b1_4cd09b9b-0bfc-4ee3-9adb-4797e6a2fb4b.jpg?v=1581454161",
+      "profile": "data/cube-surface-profiles.json#mofang-jiaoshi-mf3rs2",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mofang-jiaoshi-mf3rs2/7e1f885990427fb7f63f4d7614a061663b40ea67a0319a7085f06c09c37e0351.glb",
+    "sha256": "7e1f885990427fb7f63f4d7614a061663b40ea67a0319a7085f06c09c37e0351"
+  },
+  {
+    "id": "mfjs-meilong-3x3",
+    "productId": "mfjs-meilong-3x3",
+    "variantId": "19702093578313",
+    "name": "MFJS MeiLong 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mfjsmeilong3x3.jpg?v=1581457974",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-3x3/33e4e23048525db92870d0d777a08820e19aebd71f041846f3a6e2ad0595d700.glb",
+    "sha256": "33e4e23048525db92870d0d777a08820e19aebd71f041846f3a6e2ad0595d700"
+  },
+  {
+    "id": "mfjs-meilong-3x3-m",
+    "productId": "mfjs-meilong-3x3-m",
+    "variantId": "31921989615699",
+    "name": "MFJS MeiLong 3x3 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-3x3-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-3x3-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/VAmVpXh7kq9hk.jpg?v=1592250023",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-3x3-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-3x3-m/e40c988184b23a9fe22b3b57218a4cfbdb633e2b92e82235979510abcc50f1ae.glb",
+    "sha256": "e40c988184b23a9fe22b3b57218a4cfbdb633e2b92e82235979510abcc50f1ae"
+  },
+  {
+    "id": "mfjs-meilong-3m-v2",
+    "productId": "mfjs-meilong-3m-v2",
+    "variantId": "41655588487251",
+    "name": "MFJS MeiLong 3M V2 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-3m-v2",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-3m-v2",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MFJSMeiLong3MV23x3.jpg?v=1714504494",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-3m-v2",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-3m-v2/8e5cb25fa1b6c30a7887cb3b5ac9507c4f37d7e266094910fbf54dc8b6dc1d5f.glb",
+    "sha256": "8e5cb25fa1b6c30a7887cb3b5ac9507c4f37d7e266094910fbf54dc8b6dc1d5f"
+  },
+  {
+    "id": "dayan-guhong-v3-m",
+    "productId": "dayan-guhong-v3-m",
+    "variantId": "31268895195219",
+    "name": "DaYan GuHong V3 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-guhong-v3-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-guhong-v3-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/dayanguhongv3mstickerless.jpg?v=1581458363",
+      "profile": "data/cube-surface-profiles.json#dayan-guhong-v3-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-guhong-v3-m/bdf99819e534cc83319efb596e36791441f64e4f572a51f22b34a4f714835c67.glb",
+    "sha256": "bdf99819e534cc83319efb596e36791441f64e4f572a51f22b34a4f714835c67"
+  },
+  {
+    "id": "dayan-guhong-3x3-v4-m",
+    "productId": "dayan-guhong-3x3-v4-m",
+    "variantId": "32309027504211",
+    "name": "DaYan GuHong V4 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-guhong-3x3-v4-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-guhong-3x3-v4-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/dayanguhongv4.jpg?v=1607026359",
+      "profile": "data/cube-surface-profiles.json#dayan-guhong-3x3-v4-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-guhong-3x3-v4-m/c2ab3f4e3f0988f4471880865f4b39397f6ec428936e734852ffb62da1c7e6e0.glb",
+    "sha256": "c2ab3f4e3f0988f4471880865f4b39397f6ec428936e734852ffb62da1c7e6e0"
+  },
+  {
+    "id": "dayan-guhong-pro-m-3x3-55mm-standard",
+    "productId": "dayan-guhong-pro-m-3x3-55mm-standard",
+    "variantId": "41020888383571",
+    "name": "DaYan GuHong Pro M 3x3 55mm (Standard)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-guhong-pro-m-3x3-55mm-standard",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-guhong-pro-m-3x3-55mm-standard",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/DaYanGuHongProM3x355mm_Standard_copy.jpg?v=1693507561",
+      "profile": "data/cube-surface-profiles.json#dayan-guhong-pro-m-3x3-55mm-standard",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-guhong-pro-m-3x3-55mm-standard/ba0ca09c165ca9d9866fd8d9a287994cf52f31a8895a9754883e50804cb1c955.glb",
+    "sha256": "ba0ca09c165ca9d9866fd8d9a287994cf52f31a8895a9754883e50804cb1c955"
+  },
+  {
+    "id": "dayan-guhong-pro-3x3-55mm-magnetic",
+    "productId": "dayan-guhong-pro-3x3-55mm-magnetic",
+    "variantId": "43103024283731",
+    "name": "DaYan GuHong Pro+ 3x3 55mm (Magnetic)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-guhong-pro-3x3-55mm-magnetic",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-guhong-pro-3x3-55mm-magnetic",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/DaYan_20GuHong_20Pro_20Plus_203x3_20_2.png?v=1759941336",
+      "profile": "data/cube-surface-profiles.json#dayan-guhong-pro-3x3-55mm-magnetic",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-guhong-pro-3x3-55mm-magnetic/3bada839c94499e3355762284570395393b7685640b50467802b4e282c56b6d3.glb",
+    "sha256": "3bada839c94499e3355762284570395393b7685640b50467802b4e282c56b6d3"
+  },
+  {
+    "id": "dayan-tengyun-m-3x3",
+    "productId": "dayan-tengyun-m-3x3",
+    "variantId": "18730617962569",
+    "name": "DaYan TengYun M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-tengyun-m-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-tengyun-m-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/dayantengyunm3x3b2.jpg?v=1581457872",
+      "profile": "data/cube-surface-profiles.json#dayan-tengyun-m-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-tengyun-m-3x3/0841d07d29d6bdf0949823556d0d146b5eb1e7a56f80d189e05efe4ab131338c.glb",
+    "sha256": "0841d07d29d6bdf0949823556d0d146b5eb1e7a56f80d189e05efe4ab131338c"
+  },
+  {
+    "id": "dayan-tengyun-v2-m-3x3",
+    "productId": "dayan-tengyun-v2-m-3x3",
+    "variantId": "31624490516563",
+    "name": "DaYan TengYun V2 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-tengyun-v2-m-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-tengyun-v2-m-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/dayantengyunv2m3x3.jpg?v=1704388478",
+      "profile": "data/cube-surface-profiles.json#dayan-tengyun-v2-m-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-tengyun-v2-m-3x3/c691164cd9644bd17b07ad11932e649a3e47e2e10d1e9a7e2b09dfca69eff636.glb",
+    "sha256": "c691164cd9644bd17b07ad11932e649a3e47e2e10d1e9a7e2b09dfca69eff636"
+  },
+  {
+    "id": "dayan-tengyun-v3-m-3x3",
+    "productId": "dayan-tengyun-v3-m-3x3",
+    "variantId": "40444001386579",
+    "name": "DaYan TengYun V3 M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-tengyun-v3-m-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-tengyun-v3-m-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/dayan-tengyun-v3-m.jpg?v=1670433801",
+      "profile": "data/cube-surface-profiles.json#dayan-tengyun-v3-m-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-tengyun-v3-m-3x3/a1cb6c408faaa086c8c52e46e5c74181b038d7535e72a768e5cd45560f1d0dab.glb",
+    "sha256": "a1cb6c408faaa086c8c52e46e5c74181b038d7535e72a768e5cd45560f1d0dab"
+  },
+  {
+    "id": "dayan-zhanchi-pro-m-3x3",
+    "productId": "dayan-zhanchi-pro-m-3x3",
+    "variantId": "39327057215571",
+    "name": "DaYan ZhanChi Pro M 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-zhanchi-pro-m-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-zhanchi-pro-m-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/DaYanZhanChiPro.jpg?v=1621870220",
+      "profile": "data/cube-surface-profiles.json#dayan-zhanchi-pro-m-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-zhanchi-pro-m-3x3/a7aede48888de6ccfd74751dd468644bf2275f9d6e8755763f9cdaff6566fb4e.glb",
+    "sha256": "a7aede48888de6ccfd74751dd468644bf2275f9d6e8755763f9cdaff6566fb4e"
+  },
+  {
+    "id": "yj-mgc",
+    "productId": "yj-mgc",
+    "variantId": "15571562430537",
+    "name": "YJ MGC 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yjmgcb1.jpg?v=1581454528",
+      "profile": "data/cube-surface-profiles.json#yj-mgc",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc/1cbe2cc550862f04725d5f93145ecb8908912fa5984965a1d58850ae7e488836.glb",
+    "sha256": "1cbe2cc550862f04725d5f93145ecb8908912fa5984965a1d58850ae7e488836"
+  },
+  {
+    "id": "yj-mgc3-elite",
+    "productId": "yj-mgc3-elite",
+    "variantId": "31210473193555",
+    "name": "YJ MGC3 Elite 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc3-elite",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc3-elite",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mgcelite3x3stickerless.jpg?v=1581458342",
+      "profile": "data/cube-surface-profiles.json#yj-mgc3-elite",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc3-elite/ffb41bad657b17f7b6675b019b8cac47e9d5056bc888b9058a96eea6d2d2f73e.glb",
+    "sha256": "ffb41bad657b17f7b6675b019b8cac47e9d5056bc888b9058a96eea6d2d2f73e"
+  },
+  {
+    "id": "yj-mgc-evo-3x3",
+    "productId": "yj-mgc-evo-3x3",
+    "variantId": "39546919059539",
+    "name": "YJ MGC Evo 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-evo-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-evo-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mgcevo3x3.jpg?v=1637604272",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-evo-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-evo-3x3/275991ab29d50e8f7055a6edcfcd252cf40decc39ce182290fe5bff62614e5ae.glb",
+    "sha256": "275991ab29d50e8f7055a6edcfcd252cf40decc39ce182290fe5bff62614e5ae"
+  },
+  {
+    "id": "yj-mgc-evo-ii-3x3",
+    "productId": "yj-mgc-evo-ii-3x3",
+    "variantId": "40588441256019",
+    "name": "YJ MGC Evo II 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-evo-ii-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-evo-ii-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mgc-evo-ii.jpg?v=1680545428",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-evo-ii-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-evo-ii-3x3/94294f54fc27dda95b088086b69e916277720905b8fc656254a03493ca44aaed.glb",
+    "sha256": "94294f54fc27dda95b088086b69e916277720905b8fc656254a03493ca44aaed"
+  },
+  {
+    "id": "yj-mgc3-beta",
+    "productId": "yj-mgc3-beta",
+    "variantId": "42554525974611",
+    "name": "YJ MGC3 Beta 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc3-beta",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc3-beta",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/YJ_20MGC3_20Beta.jpg?v=1741384116",
+      "profile": "data/cube-surface-profiles.json#yj-mgc3-beta",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc3-beta/cba3d78938daf7187ba3758f2e5d90f1520e9cce447915b7d41f8720d23bd8e6.glb",
+    "sha256": "cba3d78938daf7187ba3758f2e5d90f1520e9cce447915b7d41f8720d23bd8e6"
+  },
+  {
+    "id": "yj-mgc-sigma-3x3",
+    "productId": "yj-mgc-sigma-3x3",
+    "variantId": "44054175121491",
+    "name": "YJ MGC Sigma 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-sigma-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-sigma-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/YJMGCSigma.jpg?v=1770922732",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-sigma-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-sigma-3x3/20ab34a44fec8c7bf62c07d29eeda925bfbdffac30c0d3a128f582830ba2dda3.glb",
+    "sha256": "20ab34a44fec8c7bf62c07d29eeda925bfbdffac30c0d3a128f582830ba2dda3"
+  },
+  {
+    "id": "yj-yulong-v2-m",
+    "productId": "yj-yulong-v2-m",
+    "variantId": "19472086270025",
+    "name": "YJ YuLong 3x3 V2 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-yulong-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-yulong-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yjyulongmstickerless.jpg?v=1569360786",
+      "profile": "data/cube-surface-profiles.json#yj-yulong-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-yulong-v2-m/b4811d44b73c86cc74ba61c759e6e821b6799e68bed6c827df9c15a45799ba82.glb",
+    "sha256": "b4811d44b73c86cc74ba61c759e6e821b6799e68bed6c827df9c15a45799ba82"
+  },
+  {
+    "id": "yj-yulong-3x3-v3-m",
+    "productId": "yj-yulong-3x3-v3-m",
+    "variantId": "42602666131539",
+    "name": "YJ YuLong 3x3 V3 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-yulong-3x3-v3-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-yulong-3x3-v3-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/YJYuLong3x3V3M.jpg?v=1743790552",
+      "profile": "data/cube-surface-profiles.json#yj-yulong-3x3-v3-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-yulong-3x3-v3-m/673a7bcfa08611b75d04a3df005176b868a1d44e406753920415aa226ecfa994.glb",
+    "sha256": "673a7bcfa08611b75d04a3df005176b868a1d44e406753920415aa226ecfa994"
+  },
+  {
+    "id": "yj-zhilong-m-3x3",
+    "productId": "yj-zhilong-m-3x3",
+    "variantId": "32284205744211",
+    "name": "YJ ZhiLong Mini 3x3 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-zhilong-m-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-zhilong-m-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yj8DXB59grw30.jpg?v=1603379552",
+      "profile": "data/cube-surface-profiles.json#yj-zhilong-m-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-zhilong-m-3x3/4339e9e6858721065f591f22c9bec7b122f06b975c7b7ad78210dcbf4f37725e.glb",
+    "sha256": "4339e9e6858721065f591f22c9bec7b122f06b975c7b7ad78210dcbf4f37725e"
+  },
+  {
+    "id": "yj-meta3-3x3-magnetic",
+    "productId": "yj-meta3-3x3-magnetic",
+    "variantId": "42974367580243",
+    "name": "YJ Meta3 3x3 (Magnetic)",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-meta3-3x3-magnetic",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-meta3-3x3-magnetic",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/YJ_Meta3_3x3_Magnetic.png?v=1756154827",
+      "profile": "data/cube-surface-profiles.json#yj-meta3-3x3-magnetic",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-meta3-3x3-magnetic/ec4461fea57bc54f962bb118428418e1afe7656441d83a81a570ece089430208.glb",
+    "sha256": "ec4461fea57bc54f962bb118428418e1afe7656441d83a81a570ece089430208"
+  },
+  {
+    "id": "yuxin-little-magic-3x3",
+    "productId": "yuxin-little-magic-3x3",
+    "variantId": "13215336005705",
+    "name": "YuXin Little Magic 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yuxin-little-magic-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yuxin-little-magic-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yuxinlittlemagic3x3b1_1d791934-4f8d-48a4-8c78-a9004ff6cea5.jpg?v=1581454563",
+      "profile": "data/cube-surface-profiles.json#yuxin-little-magic-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yuxin-little-magic-3x3/2250910e11d223e5b71c3e78a4ae4a4371af1eb3a605f36f58a16653486e5e78.glb",
+    "sha256": "2250910e11d223e5b71c3e78a4ae4a4371af1eb3a605f36f58a16653486e5e78"
+  },
+  {
+    "id": "yuxin-little-magic-3x3-v2-m",
+    "productId": "yuxin-little-magic-3x3-v2-m",
+    "variantId": "39506238079059",
+    "name": "YuXin Little Magic 3x3 V2 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yuxin-little-magic-3x3-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yuxin-little-magic-3x3-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/YuXin_20Little_20Magic_203x3_20V2_20M.jpg?v=1635360670",
+      "profile": "data/cube-surface-profiles.json#yuxin-little-magic-3x3-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yuxin-little-magic-3x3-v2-m/6054f075c9c50f347e87fecd6a200272c57ad75a6379514d9990a9eaf98a8da0.glb",
+    "sha256": "6054f075c9c50f347e87fecd6a200272c57ad75a6379514d9990a9eaf98a8da0"
+  },
+  {
+    "id": "yuxin-huanglong-3x3",
+    "productId": "yuxin-huanglong-3x3",
+    "variantId": "13215332401225",
+    "name": "YuXin HuangLong 3x3",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yuxin-huanglong-3x3",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yuxin-huanglong-3x3",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yuxinhuanglong3x3b1_96430cfc-f792-4756-a5fd-a331ce9db8d1.jpg?v=1581454554",
+      "profile": "data/cube-surface-profiles.json#yuxin-huanglong-3x3",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yuxin-huanglong-3x3/560ab7c4c72e5dd72ac455f0cd21bad62e639413f7e911636ed6ebec4c8373f6.glb",
+    "sha256": "560ab7c4c72e5dd72ac455f0cd21bad62e639413f7e911636ed6ebec4c8373f6"
+  },
+  {
+    "id": "yuxin-kylin-3x3-v2-m",
+    "productId": "yuxin-kylin-3x3-v2-m",
+    "variantId": "18354586615881",
+    "name": "YuXin Kylin 3x3 V2 M",
+    "size": 3,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yuxin-kylin-3x3-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yuxin-kylin-3x3-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yuxin3x3v2mb1.jpg?v=1581457818",
+      "profile": "data/cube-surface-profiles.json#yuxin-kylin-3x3-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yuxin-kylin-3x3-v2-m/4b28eb04ac690042aa2a0f6a51ff5c366cb7766b9aedac16f33d4021643c55de.glb",
+    "sha256": "4b28eb04ac690042aa2a0f6a51ff5c366cb7766b9aedac16f33d4021643c55de"
+  },
+  {
+    "id": "gan-251-m",
+    "productId": "gan-251-m",
+    "variantId": "31872284491859",
+    "name": "GAN 251 M",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-251-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-251-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/euHXXZG5SHmHK.jpg?v=1660315700",
+      "profile": "data/cube-surface-profiles.json#gan-251-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-251-m/1e37ddec67ec44803e6d9a29c70779cb76d38da13e3a54b1542aafdea86adcc0.glb",
+    "sha256": "1e37ddec67ec44803e6d9a29c70779cb76d38da13e3a54b1542aafdea86adcc0"
+  },
+  {
+    "id": "gan-251-m-pro",
+    "productId": "gan-251-m-pro",
+    "variantId": "39339569578067",
+    "name": "GAN251 M Pro 2x2",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-251-m-pro",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-251-m-pro",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan251mpro.jpg?v=1626803235",
+      "profile": "data/cube-surface-profiles.json#gan-251-m-pro",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-251-m-pro/324cfcc69956dc76a976fa45c2c94553787bdff88aa45a0f9b1b85921c114b37.glb",
+    "sha256": "324cfcc69956dc76a976fa45c2c94553787bdff88aa45a0f9b1b85921c114b37"
+  },
+  {
+    "id": "gan-251-m-leap",
+    "productId": "gan-251-m-leap",
+    "variantId": "39339569479763",
+    "name": "GAN251 M Leap 2x2",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-251-m-leap",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-251-m-leap",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan251mleap.jpg?v=1636478376",
+      "profile": "data/cube-surface-profiles.json#gan-251-m-leap",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-251-m-leap/324cfcc69956dc76a976fa45c2c94553787bdff88aa45a0f9b1b85921c114b37.glb",
+    "sha256": "324cfcc69956dc76a976fa45c2c94553787bdff88aa45a0f9b1b85921c114b37"
+  },
+  {
+    "id": "gan-249-v2-m",
+    "productId": "gan-249-v2-m",
+    "variantId": "13214924406857",
+    "name": "GAN 249 V2 M",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/gan-249-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/gan-249-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/gan249v2mb11_e66d8fbb-3ce0-4957-af13-fca968a63356.jpg?v=1581453480",
+      "profile": "data/cube-surface-profiles.json#gan-249-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/gan-249-v2-m/a60b1d1d62e59d416839f433948a04a0dbb765398474348816a72c4c43c1c376.glb",
+    "sha256": "a60b1d1d62e59d416839f433948a04a0dbb765398474348816a72c4c43c1c376"
+  },
+  {
+    "id": "dayan-tengyun-2x2-m",
+    "productId": "dayan-tengyun-2x2-m",
+    "variantId": "30552369070153",
+    "name": "DaYan TengYun 2x2 M",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-tengyun-2x2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-tengyun-2x2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/PQR2tLFnWfvcR.jpg?v=1581458290",
+      "profile": "data/cube-surface-profiles.json#dayan-tengyun-2x2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-tengyun-2x2-m/7486f8786a997e041867d786017aab6fe09e7e9aee4693cac4dd07f94cf8b54c.glb",
+    "sha256": "7486f8786a997e041867d786017aab6fe09e7e9aee4693cac4dd07f94cf8b54c"
+  },
+  {
+    "id": "dayan-tengyun-v2-m-2x2",
+    "productId": "dayan-tengyun-v2-m-2x2",
+    "variantId": "39424225345619",
+    "name": "DaYan TengYun V2 M 2x2",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/dayan-tengyun-v2-m-2x2",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/dayan-tengyun-v2-m-2x2",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/dayantengyunv2m2x2stickerless1.jpg?v=1630001368",
+      "profile": "data/cube-surface-profiles.json#dayan-tengyun-v2-m-2x2",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/dayan-tengyun-v2-m-2x2/8aa8f75cb507c3931f6ad0d9946963f87fec6db1aa2b8ab57e5bcf4fc241ec2c.glb",
+    "sha256": "8aa8f75cb507c3931f6ad0d9946963f87fec6db1aa2b8ab57e5bcf4fc241ec2c"
+  },
+  {
+    "id": "yj-mgc-2x2",
+    "productId": "yj-mgc-2x2",
+    "variantId": "13214967332937",
+    "name": "YJ MGC 2x2",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-2x2",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-2x2",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yjmgc2x2b2.jpg?v=1687895085",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-2x2",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-2x2/6d1c173ab1676ec72b8f78cfc8c636c3c392ca0e94ee71eca908809697bfabdc.glb",
+    "sha256": "6d1c173ab1676ec72b8f78cfc8c636c3c392ca0e94ee71eca908809697bfabdc"
+  },
+  {
+    "id": "yj-mgc2-elite-2x2",
+    "productId": "yj-mgc2-elite-2x2",
+    "variantId": "31863104634963",
+    "name": "YJ MGC2 Elite 2x2",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc2-elite-2x2",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc2-elite-2x2",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/mgcelite2x2m.jpg?v=1712175811",
+      "profile": "data/cube-surface-profiles.json#yj-mgc2-elite-2x2",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc2-elite-2x2/de1d5791eed0488c89249cf80cbdf883752e650624b0225dc34f0ddaf3f4be48.glb",
+    "sha256": "de1d5791eed0488c89249cf80cbdf883752e650624b0225dc34f0ddaf3f4be48"
+  },
+  {
+    "id": "yj-yupo-2x2-v2-m",
+    "productId": "yj-yupo-2x2-v2-m",
+    "variantId": "19809472217161",
+    "name": "YJ YuPo 2x2 V2 M",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-yupo-2x2-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-yupo-2x2-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yjyupov2m.jpg?v=1723581497",
+      "profile": "data/cube-surface-profiles.json#yj-yupo-2x2-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-yupo-2x2-v2-m/40b8ceacd50bba6a528f0a26be5adc9ccb78a72f4590bbe0793ba09bd295aafe.glb",
+    "sha256": "40b8ceacd50bba6a528f0a26be5adc9ccb78a72f4590bbe0793ba09bd295aafe"
+  },
+  {
+    "id": "mfjs-meilong-2x2-m",
+    "productId": "mfjs-meilong-2x2-m",
+    "variantId": "31921989582931",
+    "name": "MFJS MeiLong 2x2 M",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-2x2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-2x2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/9OT3EPzylbkLM.jpg?v=1612451521",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-2x2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-2x2-m/766904206e4a92bf40a45adcd7df010477c7d30b3086280c16147156ca509855.glb",
+    "sha256": "766904206e4a92bf40a45adcd7df010477c7d30b3086280c16147156ca509855"
+  },
+  {
+    "id": "valk2-m",
+    "productId": "valk2-m",
+    "variantId": "18344386101321",
+    "name": "Valk 2 M",
+    "size": 2,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/valk2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/valk2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/valk2mb2.jpg?v=1569321818",
+      "profile": "data/cube-surface-profiles.json#valk2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/valk2-m/0bbf04e04947d8897361a20a44aa85badad5b6695de0c664ef51fc979358c227.glb",
+    "sha256": "0bbf04e04947d8897361a20a44aa85badad5b6695de0c664ef51fc979358c227"
+  },
+  {
+    "id": "moyu-aosu-4x4-wr-m",
+    "productId": "moyu-aosu-4x4-wr-m",
+    "variantId": "20208887595081",
+    "name": "MoYu AoSu 4x4 WR M",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aosu-4x4-wr-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aosu-4x4-wr-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/Dncv6HRKcHYDj.jpg?v=1569398497",
+      "profile": "data/cube-surface-profiles.json#moyu-aosu-4x4-wr-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aosu-4x4-wr-m/a31ba26620aeb5542c79f11ce644f43cf5982f219db9b5ae91db80536f97cff4.glb",
+    "sha256": "a31ba26620aeb5542c79f11ce644f43cf5982f219db9b5ae91db80536f97cff4"
+  },
+  {
+    "id": "moyu-aosu-v7-4x4-single-track",
+    "productId": "moyu-aosu-v7-4x4-single-track",
+    "variantId": "42172616540243",
+    "name": "MoYu AoSu V7 4x4 (Single-Track)",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aosu-v7-4x4-single-track",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aosu-v7-4x4-single-track",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYuAoSuV74x4_Single-Track.jpg?v=1727296809",
+      "profile": "data/cube-surface-profiles.json#moyu-aosu-v7-4x4-single-track",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aosu-v7-4x4-single-track/8db2a8a7b6b7911b8ce7bb83ac597aea62353d318fefb59ef6341c9399d230bf.glb",
+    "sha256": "8db2a8a7b6b7911b8ce7bb83ac597aea62353d318fefb59ef6341c9399d230bf"
+  },
+  {
+    "id": "yj-mgc-4x4",
+    "productId": "yj-mgc-4x4",
+    "variantId": "31862973562963",
+    "name": "YJ MGC 4x4",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-4x4",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-4x4",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mgc4x4.jpg?v=1637344885",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-4x4",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-4x4/97447695a38c5ce519d8badeadad6a03adc4ecfd3a70e452183c880d577bdb12.glb",
+    "sha256": "97447695a38c5ce519d8badeadad6a03adc4ecfd3a70e452183c880d577bdb12"
+  },
+  {
+    "id": "yj-mgc4-4x4-elite",
+    "productId": "yj-mgc4-4x4-elite",
+    "variantId": "42637936689235",
+    "name": "YJ MGC4 4x4 Elite",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc4-4x4-elite",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc4-4x4-elite",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/YJMGC44x4Elite.jpg?v=1745526852",
+      "profile": "data/cube-surface-profiles.json#yj-mgc4-4x4-elite",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc4-4x4-elite/effedbd21ec33a45c95d04d3cd07fc3108f9d5e3baa95e5ef16b7df8cdc5e981.glb",
+    "sha256": "effedbd21ec33a45c95d04d3cd07fc3108f9d5e3baa95e5ef16b7df8cdc5e981"
+  },
+  {
+    "id": "x-man-ambition-4x4-m",
+    "productId": "x-man-ambition-4x4-m",
+    "variantId": "39327005769811",
+    "name": "X-Man Ambition 4x4 M",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/x-man-ambition-4x4-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/x-man-ambition-4x4-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/xmanambition.jpg?v=1620243949",
+      "profile": "data/cube-surface-profiles.json#x-man-ambition-4x4-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/x-man-ambition-4x4-m/95d626050b0360dcba5102b05c5c91ae5ebcb9670e0249234a1a29103c7aa08f.glb",
+    "sha256": "95d626050b0360dcba5102b05c5c91ae5ebcb9670e0249234a1a29103c7aa08f"
+  },
+  {
+    "id": "mfjs-meilong-4x4-m",
+    "productId": "mfjs-meilong-4x4-m",
+    "variantId": "31921989845075",
+    "name": "MFJS MeiLong 4x4 M",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-4x4-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-4x4-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/mJIcZo7FlQk4J.jpg?v=1689711762",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-4x4-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-4x4-m/045380b97298355da3958e28d428678b968f185df2bdc4e5490da9b452a2fa3e.glb",
+    "sha256": "045380b97298355da3958e28d428678b968f185df2bdc4e5490da9b452a2fa3e"
+  },
+  {
+    "id": "valk-4-m-standard",
+    "productId": "valk-4-m-standard",
+    "variantId": "19848182792265",
+    "name": "Valk 4 M (Standard)",
+    "size": 4,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/valk-4-m-standard",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/valk-4-m-standard",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/qiyivalk4stickerless.jpg?v=1569380146",
+      "profile": "data/cube-surface-profiles.json#valk-4-m-standard",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/valk-4-m-standard/bfb0b36d0e410860973138d230e65356a218083975be95f42a0a887536dce51e.glb",
+    "sha256": "bfb0b36d0e410860973138d230e65356a218083975be95f42a0a887536dce51e"
+  },
+  {
+    "id": "moyu-aochuang-5x5-wr-m",
+    "productId": "moyu-aochuang-5x5-wr-m",
+    "variantId": "31743619924051",
+    "name": "MoYu AoChuang 5x5 WR M",
+    "size": 5,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aochuang-5x5-wr-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aochuang-5x5-wr-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/moyu-aochuang-wr-m-5x5.jpg?v=1677872814",
+      "profile": "data/cube-surface-profiles.json#moyu-aochuang-5x5-wr-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aochuang-5x5-wr-m/ddcbd455bc595dea3ef69e9aa1fc321304e60340c7b2d92c1459b42226b52958.glb",
+    "sha256": "ddcbd455bc595dea3ef69e9aa1fc321304e60340c7b2d92c1459b42226b52958"
+  },
+  {
+    "id": "moyu-aochuang-v6-5x5-single-track",
+    "productId": "moyu-aochuang-v6-5x5-single-track",
+    "variantId": "42202438303827",
+    "name": "MoYu AoChuang V6 5x5 (Single-Track)",
+    "size": 5,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aochuang-v6-5x5-single-track",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aochuang-v6-5x5-single-track",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYu_20AoChuang_20V6_205x5_20_Double-Track_20_20UV.jpg?v=1727372788",
+      "profile": "data/cube-surface-profiles.json#moyu-aochuang-v6-5x5-single-track",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aochuang-v6-5x5-single-track/396f44ea3ed99d45dad46185c6c0e435e93d65b0a16746c88dc3e0a9ded84f5b.glb",
+    "sha256": "396f44ea3ed99d45dad46185c6c0e435e93d65b0a16746c88dc3e0a9ded84f5b"
+  },
+  {
+    "id": "yj-mgc-5x5",
+    "productId": "yj-mgc-5x5",
+    "variantId": "31284281049171",
+    "name": "YJ MGC 5x5",
+    "size": 5,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-5x5",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-5x5",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/5dN0MwK7Hxsga.jpg?v=1576786256",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-5x5",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-5x5/a4c2b0e4b8a5ec19a5f474ca1653ec13bed6556f3624635a02f5a98b25b90c28.glb",
+    "sha256": "a4c2b0e4b8a5ec19a5f474ca1653ec13bed6556f3624635a02f5a98b25b90c28"
+  },
+  {
+    "id": "mfjs-meilong-5x5-m",
+    "productId": "mfjs-meilong-5x5-m",
+    "variantId": "31921990107219",
+    "name": "MFJS MeiLong 5x5 M",
+    "size": 5,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-5x5-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-5x5-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/42vY21SWcDsVL.jpg?v=1592250042",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-5x5-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-5x5-m/dc00a9a21072fb6b60e24949c947c203fac4efd79ff03ce86aa4a729c63a178a.glb",
+    "sha256": "dc00a9a21072fb6b60e24949c947c203fac4efd79ff03ce86aa4a729c63a178a"
+  },
+  {
+    "id": "valk-5-m",
+    "productId": "valk-5-m",
+    "variantId": "20038030393417",
+    "name": "Valk 5 M",
+    "size": 5,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/valk-5-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/valk-5-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/B5gH08eqYHU1N.jpg?v=1569386495",
+      "profile": "data/cube-surface-profiles.json#valk-5-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/valk-5-m/9c1efd39ea6e791b4e40d2b85ae23c143957225c2dfa640f01dcbea5a6d66b52.glb",
+    "sha256": "9c1efd39ea6e791b4e40d2b85ae23c143957225c2dfa640f01dcbea5a6d66b52"
+  },
+  {
+    "id": "moyu-aoshi-6x6-wr-m",
+    "productId": "moyu-aoshi-6x6-wr-m",
+    "variantId": "40332887556179",
+    "name": "MoYu AoShi 6x6 WR M",
+    "size": 6,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aoshi-6x6-wr-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aoshi-6x6-wr-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/moyu-aoshi-wr-m-6x6.jpg?v=1677872852",
+      "profile": "data/cube-surface-profiles.json#moyu-aoshi-6x6-wr-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aoshi-6x6-wr-m/1769a7b9f9e44f66a896574bafb13df291ed54814a7a987209c7b92c13545804.glb",
+    "sha256": "1769a7b9f9e44f66a896574bafb13df291ed54814a7a987209c7b92c13545804"
+  },
+  {
+    "id": "moyu-aoshi-v4-6x6-single-track-magnetic",
+    "productId": "moyu-aoshi-v4-6x6-single-track-magnetic",
+    "variantId": "43106678308947",
+    "name": "MoYu AoShi V4 6x6 (Single-Track Magnetic)",
+    "size": 6,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aoshi-v4-6x6-single-track-magnetic",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aoshi-v4-6x6-single-track-magnetic",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MoYu_20AoShi_20V4_206x6_20-_20Single_20Track.png?v=1760040853",
+      "profile": "data/cube-surface-profiles.json#moyu-aoshi-v4-6x6-single-track-magnetic",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aoshi-v4-6x6-single-track-magnetic/596ccc68c3038cc8713f8d5651799cebc5d1ef238258fc8a1c28d2918c29c49a.glb",
+    "sha256": "596ccc68c3038cc8713f8d5651799cebc5d1ef238258fc8a1c28d2918c29c49a"
+  },
+  {
+    "id": "yj-mgc-6x6",
+    "productId": "yj-mgc-6x6",
+    "variantId": "31273737453651",
+    "name": "YJ MGC 6x6",
+    "size": 6,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-6x6",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-6x6",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/KU0OdEwFxJH5X.jpg?v=1576255827",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-6x6",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-6x6/8bdaa4d979387c762cb495a942ff4360a4723ffcff89228c181e1a6707ec5b32.glb",
+    "sha256": "8bdaa4d979387c762cb495a942ff4360a4723ffcff89228c181e1a6707ec5b32"
+  },
+  {
+    "id": "mfjs-meilong-6x6-v2-m",
+    "productId": "mfjs-meilong-6x6-v2-m",
+    "variantId": "41033988276307",
+    "name": "MFJS MeiLong 6x6 V2 M",
+    "size": 6,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-6x6-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-6x6-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MFJS_20MeiLong_206x6_20V2_20M.jpg?v=1694803284",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-6x6-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-6x6-v2-m/38aa207cc1655f1abd1186790354a6bf43dfb05a1cc05ed544d0e6cfa551a850.glb",
+    "sha256": "38aa207cc1655f1abd1186790354a6bf43dfb05a1cc05ed544d0e6cfa551a850"
+  },
+  {
+    "id": "moyu-aofu-7x7-wr-m",
+    "productId": "moyu-aofu-7x7-wr-m",
+    "variantId": "40162660843603",
+    "name": "MoYu AoFu 7x7 WR M",
+    "size": 7,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aofu-7x7-wr-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aofu-7x7-wr-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/aofuwrm_294e5f5a-e75b-4327-afdd-2c92e7ab4434.jpg?v=1661524024",
+      "profile": "data/cube-surface-profiles.json#moyu-aofu-7x7-wr-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aofu-7x7-wr-m/664d3421ba0a3a21814086d72331d8086f6871ad31daa49d5eae407c66011843.glb",
+    "sha256": "664d3421ba0a3a21814086d72331d8086f6871ad31daa49d5eae407c66011843"
+  },
+  {
+    "id": "moyu-aofu-v5-7x7-magnetic-single-track",
+    "productId": "moyu-aofu-v5-7x7-magnetic-single-track",
+    "variantId": "42940499755091",
+    "name": "MoYu AoFu V5 7x7 (Single-Track Magnetic)",
+    "size": 7,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/moyu-aofu-v5-7x7-magnetic-single-track",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/moyu-aofu-v5-7x7-magnetic-single-track",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/AoFu_V5_7x7_Single_Track-1.png?v=1754687481",
+      "profile": "data/cube-surface-profiles.json#moyu-aofu-v5-7x7-magnetic-single-track",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/moyu-aofu-v5-7x7-magnetic-single-track/dad9ff2a5380e4365187205f48c8babc52faa5cdea75731e4a8d8c2e8fe3a45c.glb",
+    "sha256": "dad9ff2a5380e4365187205f48c8babc52faa5cdea75731e4a8d8c2e8fe3a45c"
+  },
+  {
+    "id": "yj-mgc-7x7",
+    "productId": "yj-mgc-7x7",
+    "variantId": "32174792867923",
+    "name": "YJ MGC 7x7",
+    "size": 7,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/yj-mgc-7x7",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/yj-mgc-7x7",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/products/yj-mgc-7x7.jpg?v=1677872748",
+      "profile": "data/cube-surface-profiles.json#yj-mgc-7x7",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/yj-mgc-7x7/1a421694b1f784e71dc00ab4c4f264b25b6f4bf30f7edc59b53295b16c2b4ea6.glb",
+    "sha256": "1a421694b1f784e71dc00ab4c4f264b25b6f4bf30f7edc59b53295b16c2b4ea6"
+  },
+  {
+    "id": "mfjs-meilong-7x7-v2-m",
+    "productId": "mfjs-meilong-7x7-v2-m",
+    "variantId": "41046046113875",
+    "name": "MFJS MeiLong 7x7 V2 M",
+    "size": 7,
+    "provenance": {
+      "source": "https://www.thecubicle.com/products/mfjs-meilong-7x7-v2-m",
+      "author": "Cubix",
+      "license": "Original Cubix reconstruction; photographic references remain with their owners."
+    },
+    "verification": {
+      "reference": "https://www.thecubicle.com/products/mfjs-meilong-7x7-v2-m",
+      "checkedBy": "Cubix photo surface review",
+      "checkedAt": "2026-09-12"
+    },
+    "reconstruction": {
+      "method": "photo-observed-surface-profile",
+      "photo": "https://cdn.shopify.com/s/files/1/0035/5205/1273/files/MFJS_20MeiLong_207x7_20V2_20M.jpg?v=1695923324",
+      "profile": "data/cube-surface-profiles.json#mfjs-meilong-7x7-v2-m",
+      "scope": "exterior",
+      "accuracy": "estimated-from-photographs"
+    },
+    "url": "/cube-library/models/mfjs-meilong-7x7-v2-m/88a147f981829966c51635e7dd5fd1adf6d24c5fecb5b00aa5c61e6b905c4d86.glb",
+    "sha256": "88a147f981829966c51635e7dd5fd1adf6d24c5fecb5b00aa5c61e6b905c4d86"
+  }
+]

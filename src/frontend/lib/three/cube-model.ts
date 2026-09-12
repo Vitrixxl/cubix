@@ -1,7 +1,6 @@
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
-import {BoxGeometry,BufferAttribute,BufferGeometry,CanvasTexture,Float32BufferAttribute,Group,Matrix4,InstancedMesh,InstancedBufferAttribute,DynamicDrawUsage,Color,Mesh,MeshPhysicalMaterial,MeshStandardMaterial,PlaneGeometry,Quaternion,Sphere,SRGBColorSpace,Vector3} from 'three';
-import {colorOf,cubeSize,movingSlots,slotsFor,type CubeState} from '../../../shared/cube';
-import {brandLogoCanvas,type CubeBrandId} from '../cube-brands';
+import {BoxGeometry,BufferAttribute,BufferGeometry,Float32BufferAttribute,Group,Matrix4,InstancedMesh,InstancedBufferAttribute,DynamicDrawUsage,Color,MeshPhysicalMaterial,Quaternion,Sphere,Vector3} from 'three';
+import {cubeSize,movingSlots,slotsFor,type CubeState} from '../../../shared/cube';
 import {stickerColor,type CubeMask,type LayerAnimation} from '../cube-appearance';
 
 type Vertex={position:Vector3;normal:Vector3};
@@ -182,30 +181,9 @@ export function createCubeModel(size:number){
     object.add(mesh);return [{mesh,members,colours}];
   });
   const matrix=new Matrix4(),position=new Vector3(),orientation=new Quaternion(),scale=new Vector3(unit,unit,unit),colour=new Color();
-  // The maker's mark sits on the white centre, so it follows the white face rather than a physical piece.
-  const centres=size%2?slots.map((slot,index)=>({slot,index})).filter(({slot})=>slot.p.filter(Boolean).length===1):[];
-  const logo=new Mesh(new PlaneGeometry(unit*.72,unit*.72),new MeshStandardMaterial({transparent:true,alphaTest:.02,depthWrite:false,roughness:.75,metalness:0,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
-  logo.visible=false;logo.renderOrder=1;object.add(logo);
-  let logoBrand:CubeBrandId='none';
-  const forward=new Vector3(0,0,1),normal=new Vector3();
-  return {object,update(state:CubeState,mask:CubeMask,animation?:LayerAnimation|null,brand:CubeBrandId='none'){
+  return {object,update(state:CubeState,mask:CubeMask,animation?:LayerAnimation|null){
     const moving=animation?new Set(movingSlots(animation.move,cubeSize(state))):null;
     const q=new Quaternion();if(animation){const axis=new Vector3();axis.setComponent(animation.move.axis,1);q.setFromAxisAngle(axis,animation.angle*Math.PI/180);}
-    if(brand!==logoBrand){
-      logoBrand=brand;const canvas=brandLogoCanvas(brand);
-      logo.material.map?.dispose();logo.material.map=canvas?new CanvasTexture(canvas):null;
-      if(logo.material.map){logo.material.map.colorSpace=SRGBColorSpace;logo.material.map.anisotropy=4;}
-      logo.material.needsUpdate=true;
-    }
-    const white=logo.material.map&&mask==='full'?centres.find(({index})=>colorOf(state,index)==='D'):undefined;
-    logo.visible=!!white;
-    if(white){
-      normal.set(...white.slot.n);
-      position.set(...white.slot.p).multiplyScalar(unit).addScaledVector(normal,unit*.515);
-      orientation.setFromUnitVectors(forward,normal);
-      if(moving?.has(white.index)){position.applyQuaternion(q);orientation.premultiply(q);}
-      logo.position.copy(position);logo.quaternion.copy(orientation);
-    }
     for(const {mesh,members,colours} of batches){
       members.forEach((piece,instance)=>{
         piece.indices.forEach((slot,i)=>{colour.set(stickerColor(state,slot,mask));colours[i].setXYZ(instance,colour.r,colour.g,colour.b);});

@@ -15,6 +15,12 @@ const server = Bun.serve<Bridge>({
   port: 5180,
   development: { hmr: true, console: true },
   routes: {
+    "/cube-library/*": async (request: Request) => {
+      const path = decodeURIComponent(new URL(request.url).pathname);
+      if (!/^\/cube-library\/[a-z0-9/.-]+$/.test(path) || path.split('/').includes('..')) return new Response('Invalid path', { status: 400 });
+      const file = Bun.file(`public${path}`);
+      return await file.exists() ? new Response(file) : new Response('Not found', { status: 404 });
+    },
     "/seo.css": () => new Response(Bun.file("public/seo.css")),
     "/robots.txt": () => new Response("User-agent: *\nDisallow: /\n", { headers: { "content-type": "text/plain" } }),
     "/guides/*": (request: Request) => {

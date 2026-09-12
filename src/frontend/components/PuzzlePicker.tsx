@@ -5,11 +5,13 @@ import {puzzleAtom,cubeSwitchLockedAtom} from '../state';
 import {PUZZLES,puzzleInfo} from '../../shared/puzzles';
 import {PuzzleIcon} from './PuzzleIcon';
 import {IconCheck} from './icons';
+import {CubeLibrary} from './CubeLibrary';
 
 export function PuzzlePicker(){
   const [puzzle,setPuzzle]=useAtom(puzzleAtom), locked=useAtomValue(cubeSwitchLockedAtom);
   const [open,setOpen]=useState(false);
-  return <Popover.Root open={open} onOpenChange={setOpen} modal>
+  const [libraryOpen,setLibraryOpen]=useState(false);
+  return <><Popover.Root open={open} onOpenChange={setOpen} modal>
     <Popover.Trigger asChild><button type="button" className="puzzle-picker-trigger" disabled={locked} aria-label={`Choose puzzle, ${puzzleInfo(puzzle).label}`} title="Choose puzzle">
       <PuzzleIcon puzzle={puzzle}/><span>{puzzleInfo(puzzle).label}</span><svg className="puzzle-picker-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
     </button></Popover.Trigger>
@@ -25,6 +27,7 @@ export function PuzzlePicker(){
       }}>{PUZZLES.map(p=><button key={p.id} type="button" role="radio" aria-checked={p.id===puzzle} aria-label={p.label} tabIndex={p.id===puzzle?0:-1} onClick={()=>{setPuzzle(p.id);setOpen(false);}}>
         <PuzzleIcon puzzle={p.id}/><span>{p.label}</span>{p.id===puzzle&&<IconCheck className="puzzle-option-check"/>}
       </button>)}</div>
+      <button type="button" className="btn puzzle-library-button" onClick={()=>{setOpen(false);setLibraryOpen(true);}}>Cube model library</button>
     </Popover.Content></Popover.Portal>
-  </Popover.Root>;
+  </Popover.Root><CubeLibrary open={libraryOpen} onClose={()=>setLibraryOpen(false)}/></>;
 }
