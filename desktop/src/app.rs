@@ -3,6 +3,7 @@ mod navigation;
 mod virtuals;
 use crate::{
     assets::Images,
+    cube::{CubeView, Scene},
     engine::Engine,
     input::TextInput,
     theme::Theme,
@@ -75,6 +76,9 @@ pub struct Cubix {
     engine: Engine,
     images: Images,
     catalog: Value,
+    cube_view: Entity<CubeView>,
+    cube_key: String,
+    cube_scenes: HashMap<String, std::sync::Arc<Scene>>,
     guides: Value,
     prefs: HashMap<String, Value>,
     page: String,
@@ -172,6 +176,9 @@ impl Cubix {
                 .unwrap(),
             images: Images::new(root),
             catalog,
+            cube_view: cx.new(|_| CubeView::new()),
+            cube_key: String::new(),
+            cube_scenes: HashMap::new(),
             prefs: HashMap::new(),
             page: std::env::var("CUBIX_SCREEN").unwrap_or("playground".into()),
             case_id: String::new(),
@@ -492,6 +499,21 @@ impl Cubix {
             .pending
             .remove(&message["id"].as_u64().unwrap_or(0))
             .unwrap_or_default();
+        if let Some(request_key) = key.strip_prefix("cubePreview:") {
+            if request_key == self.cube_key {
+                if let Some(error) = message["error"].as_str() {
+                    self.error = format!("Cube preview: {error}");
+                } else {
+                    let scene = Scene::from_value(&message["value"]);
+                    if scene.is_none() {
+                        self.error = "Invalid cube preview".into();
+                    }
+                    self.cube_view.update(cx, |view, cx| view.load(scene, cx));
+                }
+                cx.notify();
+            }
+            return;
+        }
         if let Some(error) = message["error"].as_str() {
             if key == "snapshot" {
                 self.snapshot_busy = false;
@@ -605,7 +627,8 @@ impl Cubix {
                     .get("cubix.algs.learningFilter")
                     .and_then(Value::as_str)
                     .filter(|value| matches!(*value, "learned" | "not-learned"))
-                    .unwrap_or("all").into();
+                    .unwrap_or("all")
+                    .into();
                 self.load_context();
                 self.refresh();
                 if self.scramble.is_empty() {
@@ -878,7 +901,12 @@ impl Cubix {
                 self.pref("cubix.algs.collapsedGroups", Value::Object(map));
             }
             "learningFilter" if matches!(arg, "learned" | "not-learned") => {
-                self.learning_filter = if self.learning_filter == arg { "all" } else { arg }.into();
+                self.learning_filter = if self.learning_filter == arg {
+                    "all"
+                } else {
+                    arg
+                }
+                .into();
                 self.pref("cubix.algs.learningFilter", json!(self.learning_filter));
             }
             "select" => {
@@ -966,6 +994,7 @@ impl Cubix {
                 );
                 self.timer.update(cx, |t, cx| t.reset(cx));
             }
+            "replayCube" => self.cube_view.update(cx, |view, cx| view.replay(cx)),
             "solution" => self.revealed = !self.revealed,
             "auf" => {
                 self.random_auf = !self.random_auf;
@@ -1210,9 +1239,75 @@ impl Cubix {
         self.focus.focus(window);
         cx.notify();
     }
+    fn prepare_cube(&mut self, cx: &mut Context<Self>) {
+        let spec = if self.page == "playground" {
+            self.puzzle_info()["cubeSize"]
+                .as_u64()
+                .map(|size| (self.scramble.clone(), size, "full".to_owned()))
+        } else if self.page == "training" || self.page == "algorithms" && !self.case_id.is_empty() {
+            let id = if self.page == "training" {
+                s(&self.training, "id")
+            } else {
+                &self.case_id
+            };
+            let c = self.find_case(id);
+            if id.is_empty() || !s(&c, "diagram").is_empty() {
+                None
+            } else {
+                let setup = if self.page == "training" {
+                    s(&self.training, "setup")
+                } else {
+                    s(&c, "setup")
+                };
+                let stage = s(&c, "stage");
+                Some((
+                    setup.to_owned(),
+                    c["cube_size"].as_u64().unwrap_or(3),
+                    if ["OLL", "PLL", "F2L"].contains(&stage) {
+                        stage
+                    } else {
+                        "full"
+                    }
+                    .to_owned(),
+                ))
+            }
+        } else {
+            None
+        };
+        let key = spec
+            .as_ref()
+            .map(|v| format!("{}:{}:{}", self.page, self.case_id, json!(v)))
+            .unwrap_or_default();
+        if key != self.cube_key {
+            self.cube_key = key.clone();
+            self.cube_view.update(cx, |view, cx| view.load(None, cx));
+            if let Some((setup, size, mask)) = spec {
+                self.call(
+                    &format!("cubePreview:{key}"),
+                    "cubePreview",
+                    json!([setup, size, mask]),
+                );
+            }
+        }
+    }
+    fn animated_cube(&self, size: f32) -> Div {
+        div()
+            .size(px(size))
+            .flex_none()
+            .child(self.cube_view.clone())
+    }
     fn diagram(&mut self, c: &Value, size: f32) -> Div {
         let mut node = div().size(px(size)).flex_none();
-        if let Some(image) = self.images.get(s(c, "asset")) {
+        let key = s(c, "asset");
+        if !self.cube_scenes.contains_key(key) {
+            if let Some(scene) = Scene::from_value(&c["cube"]) {
+                self.cube_scenes.insert(key.to_owned(), scene);
+            }
+        }
+        if let Some(scene) = self.cube_scenes.get(key) {
+            return node.child(crate::cube::thumbnail(scene.clone()));
+        }
+        if let Some(image) = self.images.get(key) {
             node = node.child(img(image).size_full());
         }
         node
@@ -1415,12 +1510,7 @@ impl Cubix {
         let timer_top = self.height / 2. - font_size * 1.1 / 2. - 38.;
         let timer_height = font_size * 1.1 + 76.;
         let gap = (self.height * 0.026).clamp(14., 28.);
-        let mut top = row()
-            .w_full()
-            .justify_between()
-            .when(!training && self.width <= 700., |d| {
-                d.flex_col().items_start().gap(px(4.))
-            });
+        let mut top = row().w_full().justify_center().flex_wrap().gap(px(8.));
         if training {
             top = top
                 .child(if !wide {
@@ -1468,11 +1558,13 @@ impl Cubix {
                     ),
             );
         }
-        let mut right = row()
-            .gap(px(6.))
-            .when(!training && self.width <= 700., |d| {
-                d.w_full().justify_end()
-            });
+        let mut right = row().justify_center().flex_wrap().gap(px(6.));
+        if !self.cube_key.is_empty() {
+            right = right.child(
+                self.btn("replayCube", "Replay", false, cx)
+                    .child(icon("IconUndo", 15.)),
+            );
+        }
         if !training {
             right = right.child(
                 self.btn("next", "", false, cx)
@@ -1480,15 +1572,13 @@ impl Cubix {
                     .child("New scramble"),
             );
         }
-        if !wide {
-            right = right.child(
-                self.btn("times", "", self.show_times, cx)
-                    .child(icon("IconTimer", 15.))
-                    .child("Times"),
-            );
-        }
+        right = right.child(
+            self.btn("times", "", self.show_times, cx)
+                .child(icon("IconTimer", 15.))
+                .child("Times"),
+        );
         top = top.child(right);
-        let mut toolbar = Some(top);
+        let toolbar = top;
         let mut center = div()
             .absolute()
             .left(px(center_x))
@@ -1496,17 +1586,6 @@ impl Cubix {
             .w(px(center_width))
             .h_full();
         if self.timer.read(cx).phase != Phase::Running {
-            // Place the playground toolbar against the window padding, independent
-            // of the narrower timer column and the optional times rail.
-            if training {
-                center = center.child(
-                    div()
-                        .absolute()
-                        .top(px(12.))
-                        .w_full()
-                        .child(toolbar.take().unwrap()),
-                );
-            }
             let mut above = col()
                 .w_full()
                 .max_w(px(720.))
@@ -1550,43 +1629,57 @@ impl Cubix {
                             )
                             .child(self.btn("next", "", false, cx).child(icon("IconSkip", 16.))),
                     );
-                    let mut cube = div().size(px(if self.height < 700. { 96. } else { 150. }));
-                    if let Some(source) = self.training["svg"].as_str() {
-                        let key = format!("training:{}", s(&self.training, "setup"));
-                        if let Some(image) = self.images.svg(&key, source) {
-                            cube = cube.child(img(image).size_full());
-                        }
+                    let cube_size = if self.revealed || self.height < 700. {
+                        92.
                     } else {
-                        cube = cube.child(self.diagram(&c, 150.));
-                    }
-                    above = above
-                        .child(cube)
+                        150.
+                    };
+                    let cube = if !self.cube_key.is_empty() {
+                        self.animated_cube(cube_size)
+                    } else {
+                        self.diagram(&c, cube_size)
+                    };
+                    let text_budget =
+                        (timer_top - gap - 76. - if self.revealed { 100. } else { 62. }).max(44.);
+                    let text_height = if self.revealed {
+                        text_budget / 2.
+                    } else {
+                        text_budget
+                    };
+                    let mut setup = col()
+                        .flex_1()
+                        .min_w_0()
+                        .items_center()
+                        .gap(px(6.))
                         .child(
                             txt("SETUP", 11.)
                                 .font_weight(FontWeight::BOLD)
                                 .text_color(self.theme.muted),
                         )
-                        .child(self.alg(
+                        .child(self.practice_alg(
+                            "setup",
                             s(&self.training, "setup"),
-                            if self.width <= 700. {
-                                19.
-                            } else {
-                                (self.width * 0.018).clamp(19., 25.)
-                            },
+                            if self.height < 700. { 16. } else { 19. },
+                            text_height,
                         ));
                     if self.revealed {
-                        above = above.child(
+                        setup = setup.child(
                             col()
                                 .w_full()
                                 .border_t_1()
                                 .border_color(self.theme.line)
-                                .pt(px(12.))
-                                .gap(px(8.))
+                                .pt(px(6.))
+                                .gap(px(4.))
                                 .child(txt("SOLUTION", 11.).text_color(self.theme.muted))
-                                .child(self.alg(s(&self.training, "algorithm"), 18.)),
+                                .child(self.practice_alg(
+                                    "solution",
+                                    s(&self.training, "algorithm"),
+                                    16.,
+                                    text_height,
+                                )),
                         );
                     }
-                    above = above.child(
+                    setup = setup.child(
                         self.btn(
                             "solution",
                             if self.revealed {
@@ -1599,6 +1692,7 @@ impl Cubix {
                         )
                         .child(icon("IconEye", 14.)),
                     );
+                    above = above.child(row().w_full().gap(px(12.)).child(cube).child(setup));
                 } else {
                     above = above
                         .child(icon("IconGrid", 34.).text_color(self.theme.accent))
@@ -1616,6 +1710,17 @@ impl Cubix {
                     self.label("scrambles", &self.scramble_type)
                 )
                 .to_uppercase();
+                let cube_size = if self.cube_key.is_empty() {
+                    0.
+                } else if self.height < 700. {
+                    96.
+                } else {
+                    156.
+                };
+                if cube_size > 0. {
+                    above = above.child(self.animated_cube(cube_size));
+                }
+                let scramble_height = (timer_top - gap - cube_size - 48.).max(40.);
                 above = above
                     .child(
                         txt(caption, 11.)
@@ -1625,7 +1730,8 @@ impl Cubix {
                     .child(if self.generating {
                         txt("Generating…", 16.).text_color(self.theme.muted)
                     } else {
-                        self.alg(
+                        self.practice_alg(
+                            "scramble",
                             &self.scramble,
                             if self.puzzle_info()["cubeSize"]
                                 .as_u64()
@@ -1635,6 +1741,7 @@ impl Cubix {
                             } else {
                                 (self.width * 0.022).clamp(22., 30.)
                             },
+                            scramble_height,
                         )
                     });
             }
@@ -1674,18 +1781,14 @@ impl Cubix {
                 .child(self.timer.clone()),
         );
         let mut workspace = div().size_full().relative().child(center);
-        if !training && self.timer.read(cx).phase != Phase::Running {
+        if self.timer.read(cx).phase != Phase::Running {
             workspace = workspace.child(
                 div()
                     .absolute()
-                    .left(px(24.))
-                    .right(px(if wide {
-                        if self.show_times { rail + 48. } else { 124. }
-                    } else {
-                        24.
-                    }))
-                    .top(px(12.))
-                    .child(toolbar.take().unwrap()),
+                    .left(px(14.))
+                    .right(px(14.))
+                    .bottom(px(72.))
+                    .child(toolbar),
             );
         }
         if self.timer.read(cx).phase != Phase::Running {
@@ -1713,16 +1816,12 @@ impl Cubix {
                         .absolute()
                         .right(px(24.))
                         .top(px(12.))
-                        .bottom(px(12.))
+                        .bottom(px(100.))
                         .w(px(rail))
                         .child(if self.show_times {
                             self.times(cx)
                         } else {
-                            col().items_end().child(
-                                self.btn("times", "", false, cx)
-                                    .child(icon("IconTimer", 15.))
-                                    .child("Times"),
-                            )
+                            col()
                         }),
                 );
             } else if self.show_times || self.show_cases && training {
@@ -1752,6 +1851,16 @@ impl Cubix {
             }
         }
         workspace
+    }
+    fn practice_alg(&self, id: &str, alg: &str, size: f32, max_height: f32) -> Div {
+        div().w_full().child(
+            div()
+                .id(SharedString::from(format!("practice-{id}:{alg}")))
+                .w_full()
+                .max_h(px(max_height))
+                .overflow_y_scroll()
+                .child(self.alg(alg, size).w_full()),
+        )
     }
     fn alg(&self, alg: &str, size: f32) -> Div {
         row()
@@ -1815,7 +1924,14 @@ impl Cubix {
     }
     fn detail(&mut self, cx: &Context<Self>) -> Div {
         let c = self.find_case(&self.case_id);
-        let pic = self.diagram(&c, 150.);
+        let pic = if self.cube_key.is_empty() {
+            self.diagram(&c, 150.)
+        } else {
+            col().items_center().child(self.animated_cube(180.)).child(
+                self.btn("replayCube", "Replay scramble", false, cx)
+                    .child(icon("IconUndo", 14.)),
+            )
+        };
         let mut body = self.scroll("detail").gap(px(22.));
         let hero = row().gap(px(24.)).child(pic).child(
             col()
@@ -3018,6 +3134,7 @@ impl Render for Cubix {
         self.width = window.viewport_size().width.into();
         self.height = window.viewport_size().height.into();
         self.theme = Theme::new(&self.theme_name, self.light);
+        self.prepare_cube(cx);
         let t = self.theme;
         for field in self.fields.values() {
             field.update(cx, |f, _| f.colors = (t.surface2, t.text, t.muted));

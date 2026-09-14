@@ -19,6 +19,7 @@ export function GuideContent({ page }: { page: Guide }) {
     </>}
     {page === 'algorithmsGuide' && <>
       <p className="public-lead">The library lists every case with its diagram, setup and algorithms. Open a case to compare its algorithms and see your statistics.</p>
+      <h2>3D case previews</h2><p>Drag the cube to inspect it from another angle. Replay scramble shows the setup in three seconds. Blue is the front reference and red is the right reference. OLL highlights orientation, PLL highlights the last layer, and F2L hides last-layer pieces.</p>
       <h2>Browse by stage</h2><p>F2L pairs a corner and an edge to finish the first two layers. OLL orients the last layer. PLL permutes it. Use the stage tabs to jump between them and the set switches to choose 2-look or full variants.</p>
       <h2>From reference to practice</h2><p>Press Train on a case or Train all on a group to open the <a href="/training/">trainer</a> with that selection. Trained cases show their best and mean time on their card.</p>
       <p>Sources are shown next to each algorithm. The <a href="https://github.com/Vitrixxl/cubix">Cubix source repository</a> documents the catalogue.</p>
@@ -31,7 +32,8 @@ export function GuideContent({ page }: { page: Guide }) {
     </>}
     {page === 'timerGuide' && <>
       <p className="public-lead">Cubix times physical solves with your keyboard or touchscreen. <a href="/">Open the timer</a> and follow these steps.</p>
-      <h2>1. Choose a puzzle and scramble</h2><p>The puzzle selector in the navigation bar changes the puzzle everywhere. The scramble type is chosen below the timer. New scramble generates another one.</p>
+      <h2>1. Choose a puzzle and scramble</h2><p>The puzzle selector in the navigation bar changes the puzzle everywhere. The scramble type is chosen below the timer. New scramble generates another one. The controls, including Times, sit together at the bottom above the navigation.</p>
+      <p>The 3D cube plays the complete scramble in three seconds. Drag it to change the viewing angle or use Replay to watch the scramble again. Long scrambles scroll inside their text area while the cube and timer remain visible.</p>
       <h2>2. Start</h2><p>Hold Space for 0.3 seconds until the time turns green, then release. Releasing early cancels. On a phone, hold a free area of the screen and release when ready.</p>
       <h2>3. Stop and review</h2><p>Press any key or tap the screen to stop. The time is saved and the next scramble appears. Open Times to see scrambles, apply +2 or DNF, or delete a time with a right click or long press.</p>
       <h2>Modes</h2><p>Standard, one-handed and blindfolded keep separate histories. Blindfolded time includes memorisation. Guest times stay on your device; sign in to sync them.</p>

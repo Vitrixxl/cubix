@@ -1,5 +1,6 @@
 mod app;
 mod assets;
+mod cube;
 mod engine;
 mod input;
 mod theme;

@@ -1,3 +1,4 @@
+import { cubePreview } from './cubePreview';
 /** Headless data engine. The GPUI process owns every pixel and the monotonic timer.
  * Reusing the shared client preserves its local-first synchronization and HTTP/WS protocol.
  */
@@ -83,6 +84,7 @@ async function handle(req:any){
    value={revision:q.revision,...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async([key,promise])=>[key,await promise])))};
  }
  else if(req.method==='preference'){storage.setItem(req.args[0],JSON.stringify(req.args[1]));value=true;}
+ else if(req.method==='cubePreview')value=cubePreview(req.args[0],req.args[1],req.args[2]);
  else if(req.method==='scramble')value=await generatePracticeScramble(req.args[0]);
  else if(req.method==='training'){
    value=training(req.args[0],req.args[1],req.args[2],req.args[3],req.args[4]);
