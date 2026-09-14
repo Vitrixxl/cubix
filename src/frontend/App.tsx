@@ -1,14 +1,12 @@
-import { PuzzlePicker } from "./components/PuzzlePicker";
+import { Nav, NAV } from "./components/Nav";
 import { Suspense, lazy, useEffect, useRef } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { userAtom, statsVersionAtom, routeAtom, chatActivityAtom, themeAtom, colorModeAtom, timerRunningAtom, type Route } from "./state";
 
 import { PlaygroundPage } from "./pages/PlaygroundPage";
-import { IconGrid, IconTimer, IconUser, IconUsers, IconCube } from "./components/icons";
 
 import { parseRoute, rememberTab, routePath, routeFromPath } from "./lib/navigation";
 import { local, tokenKey } from "./api";
-import { Avatar } from "./components/Avatar";
 
 import { ChatConnection } from "./components/ChatConnection";
 import { useAppViewport } from "./hooks/useAppViewport";
@@ -21,14 +19,6 @@ const ProfilePage = lazy(() => import("./pages/AccountPage").then(m => ({ defaul
 const AlgorithmsPage = lazy(() => import("./pages/AlgorithmsPage").then(m => ({ default: m.AlgorithmsPage })));
 const TrainingPage = lazy(() => import("./pages/TrainingPage").then(m => ({ default: m.TrainingPage })));
 const MessagesPage = lazy(() => import("./pages/MessagesPage").then(m => ({ default: m.MessagesPage })));
-
-const NAV: { page: Route["page"]; label: string; icon: typeof IconGrid }[] = [
-  { page: "playground", label: "Timer", icon: IconCube },
-  { page: "algorithms", label: "Algorithms", icon: IconGrid },
-  { page: "training", label: "Training", icon: IconTimer },
-  { page: "community", label: "Friends", icon: IconUsers },
-  { page: "profile", label: "Account", icon: IconUser },
-];
 
 /** Which navigation entry a route belongs to. */
 function navPage(route: Route): Route["page"] {
@@ -125,19 +115,7 @@ export function App() {
           </>}
         </Suspense>
       </main>
-      <nav className="sidebar" aria-label="Main navigation" data-timer-chrome>
-        <PuzzlePicker />
-        {NAV.map(({ page, label, icon: Icon }, i) => {
-          const current = active === page;
-          const avatar = page === "profile" && user && !user.isGuest;
-          return <a key={page} href={routePath({ page } as Route)} className={`nav-item ${current ? "active" : ""}`} aria-current={current ? "page" : undefined}
-            aria-keyshortcuts={`Alt+${i + 1}`} title={`${label} (Alt+${i + 1})`}
-            onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); setRoute({ page } as Route); } }}>
-            {avatar ? <Avatar user={user} /> : <Icon />}<span className="nav-label">{label}</span>
-            {page === "community" && chatActivity && <span className="chat-activity-dot" role="status" aria-label="New messages" />}
-          </a>;
-        })}
-      </nav>
+      <Nav active={active} onNavigate={page => setRoute({ page } as Route)} user={user} chatActivity={chatActivity} />
       <SolveContextMenu />
       <SyncIndicator />
     </div>

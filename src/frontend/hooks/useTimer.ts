@@ -99,9 +99,11 @@ export function useTimer({ onStop, enabled = true, canStart = true }: Options): 
 
   useEffect(() => {
     if (!enabled) return;
+    // Only real text entry keeps Space. Focused buttons, links and closed selects lose focus instead,
+    // so holding Space never scrolls, highlights or activates anything but the timer.
     const isTyping = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable || !!t.closest('[aria-haspopup], [role="combobox"], [role="listbox"], [data-puzzle-popover], [data-practice-control], [data-timer-ignore]'));
+      return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
     };
     const down = (e: KeyboardEvent) => {
       if (stoppingKey.current) { e.preventDefault(); e.stopImmediatePropagation(); return; }
@@ -112,13 +114,14 @@ export function useTimer({ onStop, enabled = true, canStart = true }: Options): 
         stop();
         return;
       }
-      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey || e.code !== "Space" || isTyping(e) || document.querySelector('[aria-modal="true"], [role="listbox"], [data-puzzle-popover]')) return;
+      if (e.code !== "Space" || isTyping(e) || document.querySelector('[aria-modal="true"], [role="listbox"], [role="menu"]')) return;
+      if (e.repeat) { if (phaseRef.current === "holding" || phaseRef.current === "ready") e.preventDefault(); return; }
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       // Space scrolls the public guides when the practice workspace is off screen.
       const surface = document.querySelector('.timer-surface');
       if (surface && surface.getBoundingClientRect().bottom <= 0) return;
       e.preventDefault();
-      // Space controls the timer, so a previously clicked button must not acquire
-      // a keyboard focus ring or receive a synthetic button activation.
+      e.stopImmediatePropagation();
       (document.activeElement as HTMLElement | null)?.blur();
       press();
     };

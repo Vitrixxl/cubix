@@ -1,7 +1,7 @@
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, hideAlgorithmAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
+import { solveModeAtom, puzzleAtom, cubeSwitchLockedAtom, casesAtom, deletedSolveIdAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsVersionAtom } from "../state";
 import type { CaseDto, SolveDto } from "../../shared/types";
 import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
@@ -9,13 +9,14 @@ import { TimerSurface } from "../components/TimerSurface";
 import { CaseSelector } from "../components/CaseSelector";
 import { puzzleInfo } from "../../shared/puzzles";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { executableAlg } from "../lib/caseState";
-import { combineAuf, compensateAuf, randomAuf } from "../../shared/cube";
+import { StaticCubeSvg } from "../components/StaticCubeSvg";
+import { executableAlg, maskForStage } from "../lib/caseState";
+import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from "../../shared/cube";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../lib/trainingHistory";
 import { best, effective, fmtSolve, fmtTime, mean } from "../lib/format";
 import { AlgText } from "../components/AlgorithmList";
-import { IconEye, IconSkip, IconUndo, IconGrid, IconTimer, IconBack } from "../components/icons";
-import { PracticePanel, useWidePractice } from "../components/PracticePanel";
+import { IconEye, IconSkip, IconUndo, IconGrid, IconTimer, IconBack, IconShuffle } from "../components/icons";
+import { PanelButton, PracticePanel, useWidePractice } from "../components/PracticePanel";
 import { ShortcutKey } from "../components/ShortcutKey";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { Kpi } from "../components/Kpi";
@@ -29,7 +30,6 @@ export function TrainingPage() {
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const [selected, setSelected] = useAtom(selectedCaseIdsAtom);
-  const [hideAlg, setHideAlg] = useAtom(hideAlgorithmAtom);
   const [useAuf, setUseAuf] = useAtom(randomAufAtom);
   const [route, setRoute] = useAtom(routeAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
@@ -119,13 +119,15 @@ export function TrainingPage() {
 
   const primary = current?.c.algorithms[0];
   const shownSetup = current ? (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup) : "";
+  // The picture must show the cube exactly as it is after the displayed setup, random U turn included.
+  const shownState = useMemo(() => cube && shownSetup ? applyAlg(solved(cube), shownSetup) : null, [cube, shownSetup]);
   const shownAlgorithm = primary && current ? (cube ? compensateAuf(executableAlg(primary), current.auf) : executableAlg(primary)) : "";
 
   const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
   useEffect(() => { lockCube(busy || !!timer.saveError); return () => lockCube(false); }, [busy, timer.saveError, lockCube]);
   const toggleCases = () => setShowSelector(value => !value);
   const toggleTimes = () => setShowTimes(value => !value);
-  const toggleSolution = () => { setHideAlg(value => !value); setRevealed(false); };
+  const toggleSolution = () => setRevealed(value => !value);
   const previousCase = () => {
     const previous = caseHistory.entries[caseHistory.index - 1];
     if (busy || !previous) return;
@@ -148,32 +150,46 @@ export function TrainingPage() {
   return (
     <div className="page practice-page">
       <div className={`practice-workspace ${wide ? "with-rails" : ""}`}>
-        <PracticePanel open={showSelector} wide={wide} side="left" title="Cases" onClose={() => setShowSelector(false)}>
-          {supportsAuf && <label className="switch-row"><input type="checkbox" checked={useAuf} onChange={event => setUseAuf(event.target.checked)} /><span>Random U turn before each setup</span><ShortcutKey letter="A" /></label>}
+        <PracticePanel open={showSelector} wide={wide} side="left" title="Cases" icon={<IconGrid />} count={selectedCases.length} shortcut="C" disabled={busy} onOpen={() => setShowSelector(true)} onClose={() => setShowSelector(false)}>
           <CaseSelector cases={cases} sets={sets} selected={selected} onChange={setSelected} defaultExpanded={wide} />
         </PracticePanel>
         <div className="practice-center">
+          <div className="practice-toolbar" aria-label="Training controls" data-timer-chrome>
+            <div className="toolbar-group">
+              {!wide && !showSelector && <PanelButton title="Cases" icon={<IconGrid />} count={selectedCases.length} shortcut="C" disabled={busy} onClick={() => setShowSelector(true)} />}
+            </div>
+            <div className="toolbar-group">
+              {supportsAuf && <button type="button" className="action" aria-pressed={useAuf} disabled={busy} onClick={() => setUseAuf(value => !value)} aria-keyshortcuts="Alt+a" title="Random U turn before each setup">
+                <IconShuffle /><span>Random AUF</span><ShortcutKey letter="A" />
+              </button>}
+            </div>
+            <div className="toolbar-group">
+              {!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer />} shortcut="T" disabled={busy} onClick={() => setShowTimes(true)} />}
+            </div>
+          </div>
           <div className="practice-stack">
             {current ? (
               <section className="training-case" aria-label="Current case" data-timer-chrome>
                 <div className="training-case-heading">
+                  <button type="button" className="case-nav" disabled={busy || caseHistory.index <= 0} onClick={previousCase} aria-keyshortcuts="Alt+p" aria-label="Previous case" title="Previous case (Alt+P)"><IconBack /></button>
                   <h1><button type="button" className="training-case-link" disabled={busy} onClick={() => setRoute({ page: "algorithms", caseId: current.c.id })} title="Open case details">{current.c.id}</button></h1>
                   <span className="muted">{current.c.name !== current.c.id ? current.c.name : current.c.group}</span>
+                  <button type="button" className="case-nav" disabled={busy} onClick={nextCase} aria-keyshortcuts="Alt+n" aria-label="Next case" title="Next case (Alt+N)"><IconSkip /></button>
                 </div>
                 <div className="training-setup">
-                  <div className="practice-cube"><CaseDiagram c={current.c} size={150} /></div>
+                  <div className="practice-cube">{shownState ? <StaticCubeSvg state={shownState} size={150} mask={maskForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={150} />}</div>
                   <div className="training-notation">
                     <span className="practice-caption">Setup</span>
                     <AlgText alg={shownSetup} className="large" />
                   </div>
                 </div>
-                {primary && (!hideAlg || revealed) && (
+                {primary && revealed && (
                   <div className="training-solution">
                     <span className="practice-caption">Solution</span>
                     <AlgText alg={shownAlgorithm} />
                   </div>
                 )}
-                {primary && hideAlg && <button className="reveal-solution" onClick={() => setRevealed(value => !value)} disabled={busy}>
+                {primary && <button className="reveal-solution" onClick={toggleSolution} disabled={busy} aria-keyshortcuts="Alt+h">
                   <IconEye /> {revealed ? "Hide solution" : "Show solution"}
                 </button>}
               </section>
@@ -191,26 +207,9 @@ export function TrainingPage() {
             </div>
           </div>
         </div>
-        <PracticePanel open={showTimes} wide={wide} side="right" title="Session" onClose={() => setShowTimes(false)}>
+        <PracticePanel open={showTimes} wide={wide} side="right" title="Session" icon={<IconTimer />} shortcut="T" disabled={busy} onOpen={() => setShowTimes(true)} onClose={() => setShowTimes(false)}>
           <TimesPanel selectedCases={selectedCases} solves={solves} onUndo={undoLast} />
         </PracticePanel>
-      </div>
-      <div className="practice-actions" aria-label="Training controls" data-timer-chrome>
-        <button type="button" className="action" aria-expanded={showSelector} disabled={busy} onClick={toggleCases} aria-keyshortcuts="Alt+c">
-          <IconGrid /><span>Cases <small>{selectedCases.length}</small></span><ShortcutKey letter="C" />
-        </button>
-        <button type="button" className="action" aria-pressed={hideAlg} disabled={busy} onClick={toggleSolution} aria-keyshortcuts="Alt+h">
-          <IconEye /><span>Hide solution</span><ShortcutKey letter="H" />
-        </button>
-        <button type="button" className="action" disabled={busy || caseHistory.index <= 0} onClick={previousCase} aria-keyshortcuts="Alt+p">
-          <IconBack /><span>Previous</span><ShortcutKey letter="P" />
-        </button>
-        <button type="button" className="action" disabled={busy || !current} onClick={nextCase} aria-keyshortcuts="Alt+n">
-          <IconSkip /><span>Next</span><ShortcutKey letter="N" />
-        </button>
-        <button type="button" className="action" aria-expanded={showTimes} disabled={busy} onClick={toggleTimes} aria-keyshortcuts="Alt+t">
-          <IconTimer /><span>Times</span><ShortcutKey letter="T" />
-        </button>
       </div>
     </div>
   );
@@ -243,16 +242,16 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
           const times = list.map((s) => effective(s.time_ms, s.penalty));
           const b = best(times);
           return (
-            <div key={c.id} className="times-group">
-              <div className="times-group-header">
-                <span className="times-case-cube" title={c.id}><CaseDiagram c={c} size={48} /></span>
-                <span className="stats"><strong>{c.id.replace(/^\S+\s+/, "")}</strong>{list.length ? ` · ${list.length} · best ${fmtTime(b)}` : ""}</span>
-              </div>
-              <div className="times">
-                {[...list].reverse().map((s) => {
-                  const t = effective(s.time_ms, s.penalty);
-                  return <span key={s.id} data-solve-id={s.id} tabIndex={0} className={`time-chip ${t !== null && t === b ? "best" : ""} ${s.penalty === "dnf" ? "dnf" : ""}`}>{fmtSolve(s.time_ms, s.penalty)}</span>;
-                })}
+            <div key={c.id} className="session-case">
+              <span className="session-case-cube" title={c.id}><CaseDiagram c={c} size={40} /></span>
+              <div className="session-case-body">
+                <div className="session-case-title"><strong>{c.id.replace(/^\S+\s+/, "")}</strong><span className="muted">{list.length ? `${list.length} · best ${fmtTime(b)} · mean ${fmtTime(mean(times))}` : "no time yet"}</span></div>
+                {list.length > 0 && <div className="session-times">
+                  {[...list].reverse().map((s) => {
+                    const t = effective(s.time_ms, s.penalty);
+                    return <span key={s.id} data-solve-id={s.id} tabIndex={0} className={`session-time ${t !== null && t === b ? "best" : ""} ${s.penalty === "dnf" ? "dnf" : ""}`}>{fmtSolve(s.time_ms, s.penalty)}</span>;
+                  })}
+                </div>}
               </div>
             </div>
           );

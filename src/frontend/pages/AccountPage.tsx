@@ -5,12 +5,14 @@ import { FriendActions, useFriendActions } from "../components/FriendActions";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { api, authToken } from "../api";
-import { puzzleAtom, solveModeAtom, scrambleTypeAtom, casesAtom, setsAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom, chatActivityAtom, chatPeerAtom } from "../state";
+import { puzzleAtom, solveModeAtom, scrambleTypeAtom, viewportSizeAtom, deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom, chatActivityAtom, chatPeerAtom } from "../state";
 import { IconBack, IconMessage, IconSearch, IconUser } from "../components/icons";
 import { FloatingSheet } from "../components/FloatingSheet";
 import { ProfileCaseGallery, ProfileCaseDetails, ProfileStats } from "../components/ProfileProgress";
-import type { ProfileDto, UserDto } from "../../shared/types";
-import { modeLabel, puzzleInfo, scrambleLabel, type ScrambleType } from "../../shared/puzzles";
+import type { CaseDto, ProfileDto, SetDto, UserDto } from "../../shared/types";
+import { puzzleInfo, scrambleLabel, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../shared/puzzles";
+import { PuzzleSelect } from "../components/PuzzlePicker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 export function AccountForm({ initialMode = "register" }: { initialMode?: "register" | "login" } = {}) {
   const [mode, setMode] = useState<"register" | "login">(initialMode);
@@ -107,11 +109,21 @@ export function CommunityPage() {
 }
 
 export function ProfilePage({ username, mode = "playground", caseId }: { username?: string; mode?: "playground" | "training"; caseId?: string }) {
-  const cube = useAtomValue(puzzleAtom);
-  const solveMode = useAtomValue(solveModeAtom);
-  const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
-  const cases = useAtomValue(casesAtom);
-  const sets = useAtomValue(setsAtom);
+  // The profile browses any puzzle without touching the puzzle used by the rest of the app.
+  const appPuzzle = useAtomValue(puzzleAtom);
+  const [cube, setCube] = useState<PuzzleId>(appPuzzle);
+  const appSolveMode = useAtomValue(solveModeAtom);
+  const [solveMode, setSolveMode] = useState<SolveMode>(appSolveMode);
+  const appScrambleType = useAtomValue(scrambleTypeAtom);
+  const [preferredScrambleType, setScrambleType] = useState<ScrambleType>(appScrambleType);
+  const scrambleType = puzzleInfo(cube).scrambles.includes(preferredScrambleType) ? preferredScrambleType : puzzleInfo(cube).scrambles[0];
+  const [cases, setCases] = useState<CaseDto[]>([]);
+  const [sets, setSets] = useState<SetDto[]>([]);
+  useEffect(() => {
+    let active = true;
+    Promise.all([api.cases(cube), api.sets(cube)]).then(([c, s]) => { if (active) { setCases(c); setSets(s); } });
+    return () => { active = false; };
+  }, [cube]);
   const mobile = useAtomValue(viewportSizeAtom).width <= 700;
   const openedFromGallery = useRef(false);
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
@@ -174,8 +186,15 @@ export function ProfilePage({ username, mode = "playground", caseId }: { usernam
         {error && <p role="alert" className="form-error">{error}</p>}
         <div className="toolbar">
           <div className="segmented">{(["playground", "training"] as const).map(m => <button key={m} aria-pressed={activeMode === m} onClick={() => setMode(m)}>{m === "playground" ? "Timer" : "Training"}</button>)}</div>
-          <span className="muted">{puzzleInfo(cube).label} · {modeLabel(solveMode)}</span>
-          {activeMode === "playground" && <select className="select" aria-label="Scramble type" value={scrambleType} onChange={event => setScrambleType(event.target.value as ScrambleType)}>{puzzleInfo(cube).scrambles.map(type => <option key={type} value={type}>{scrambleLabel(type)}</option>)}</select>}
+          <PuzzleSelect value={cube} onChange={setCube} />
+          {activeMode === "playground" && <Select value={scrambleType} onValueChange={value => setScrambleType(value as ScrambleType)}>
+            <SelectTrigger aria-label="Scramble type"><SelectValue /></SelectTrigger>
+            <SelectContent>{puzzleInfo(cube).scrambles.map(type => <SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent>
+          </Select>}
+          <Select value={solveMode} onValueChange={value => setSolveMode(value as SolveMode)}>
+            <SelectTrigger aria-label="Solve mode"><SelectValue /></SelectTrigger>
+            <SelectContent>{SOLVE_MODES.map(mode => <SelectItem key={mode.id} value={mode.id}>{mode.label}</SelectItem>)}</SelectContent>
+          </Select>
         </div>
         <div className="kpi-row profile-overview"><Kpi label="Solves" value={profile.totalSolves.toLocaleString()} /><Kpi label="Training" value={profile.trainingSolves.toLocaleString()} /><Kpi label="Cases" value={String(profile.cases.length)} /><Kpi label="Active days" value={String(profile.activeDays)} /></div>
         {activeMode === "training" ? <ProfileCaseGallery cases={cases} sets={sets} profile={profile} onOpen={openCase} />

@@ -10,10 +10,19 @@ import { IconBack, IconClose, IconTimer } from "./icons";
 
 export function ProfileStats({ data, own }: { data: CaseHistoryDto; own: boolean }) {
   const metrics: [string, number | null][] = [["Best", data.summary.best], ["Mean", data.summary.mean], ["Ao5", data.summary.ao5], ["Ao12", data.summary.ao12], ["Best Ao5", data.summary.bestAo5], ["Best Ao12", data.summary.bestAo12]];
+  const recent = data.history.slice(-20).reverse();
   return <>
-    <div className="kpi-row profile-kpis">{metrics.map(([label, value]) => <div className="kpi" key={label}><div className="label">{label}</div><div className="value">{fmtTime(value)}</div></div>)}</div>
+    <div className="kpi-row">{metrics.map(([label, value]) => <div className="kpi" key={label}><div className="label">{label}</div><div className="value">{fmtTime(value)}</div></div>)}</div>
     <TimesChart history={data.history} ao5={data.ao5} height={240} />
-    <div className="profile-recent"><div className="section-heading"><h2>Recent times</h2><span className="muted">{data.summary.count} solves</span></div><div className="recent-time-list">{data.history.slice(-20).reverse().map(s => <div className="recent-time" key={s.id} data-solve-id={own ? s.id : undefined} tabIndex={own ? 0 : undefined}><span className={`mono ${s.time === null ? "form-error" : ""}`}>{s.time === null ? "DNF" : fmtTime(s.time)}{s.penalty === "+2" && <small> +2</small>}</span><span className="muted">{fmtDate(s.at)}</span></div>)}</div></div>
+    <div className="section-heading"><h2>Recent times</h2><span className="muted">{data.summary.count} solves</span></div>
+    <table className="table times-table">
+      <thead><tr><th>#</th><th>Time</th><th>Date</th></tr></thead>
+      <tbody>{recent.map((s, i) => <tr key={s.id} data-solve-id={own ? s.id : undefined} tabIndex={own ? 0 : undefined}>
+        <td className="muted">{data.history.length - i}</td>
+        <td className={`mono ${s.time === null ? "form-error" : ""}`}>{s.time === null ? "DNF" : fmtTime(s.time)}{s.penalty === "+2" && "+"}</td>
+        <td className="muted">{fmtDate(s.at)}</td>
+      </tr>)}</tbody>
+    </table>
   </>;
 }
 
@@ -21,7 +30,7 @@ const CaseTile = memo(function CaseTile({ c, stats, onOpen }: { c: CaseDto; stat
   const trained = !!stats?.summary.count;
   return <button type="button" className={`profile-case-tile ${trained ? "trained" : "untrained"}`} data-case-id={c.id} aria-label={`${c.id}, ${trained ? `${stats.summary.count} solves` : "not trained"}`} onClick={() => onOpen(c.id)}>
     <span className="profile-case-cube" aria-hidden="true"><CaseDiagram c={c} size={72} /></span>
-    <strong>{c.id}</strong>
+    <strong>{c.id.replace(/^\S+\s+/, "")}</strong>
     <span className="profile-case-best">{trained ? fmtTime(stats.summary.best) : "—"}</span>
   </button>;
 });
@@ -34,10 +43,10 @@ export function ProfileCaseGallery({ cases, sets, profile, onOpen }: { cases: Ca
   const groups = sets.map(set => ({ set, cases: cases.filter(c => c.set === set.id && (stage === "all" || c.stage === stage) && (!q || `${c.id} ${c.name} ${c.group} ${set.label}`.toLowerCase().includes(q))) })).filter(group => group.cases.length);
   return <div className="profile-case-gallery">
     <div className="toolbar">
-      <input className="input" type="search" aria-label="Search cases" placeholder="Search cases…" value={query} onChange={event => setQuery(event.target.value)} />
       <div className="segmented" aria-label="Stage">{["all", ...new Set(sets.map(s => s.stage))].map(value => <button type="button" key={value} aria-pressed={stage === value} onClick={() => setStage(value)}>{value === "all" ? "All" : value}</button>)}</div>
+      <input className="input" type="search" aria-label="Search cases" placeholder="Search…" value={query} onChange={event => setQuery(event.target.value)} />
+      <span className="muted">{profile.cases.length} / {cases.length} trained</span>
     </div>
-    <p className="muted">{profile.cases.length} / {cases.length} cases trained</p>
     {groups.map(({ set, cases: list }) => <details className="profile-case-group" key={set.id} open>
       <summary><span>{set.label}</span><span className="count">{list.filter(c => byCase.has(c.id)).length} / {list.length}</span></summary>
       <div className="profile-case-grid">{list.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} onOpen={onOpen} />)}</div>

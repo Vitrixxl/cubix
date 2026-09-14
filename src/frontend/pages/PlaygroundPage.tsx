@@ -13,9 +13,10 @@ import { Kpi } from "../components/Kpi";
 import { IconShuffle, IconTimer } from "../components/icons";
 import { practiceContextAtom, solveModeAtom, scrambleTypeAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom } from "../state";
 import { AlgText } from "../components/AlgorithmList";
-import { PracticePanel, useWidePractice } from "../components/PracticePanel";
+import { PanelButton, PracticePanel, useWidePractice } from "../components/PracticePanel";
 import { ShortcutKey } from "../components/ShortcutKey";
 import { useShortcuts } from "../hooks/useShortcuts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 export function PlaygroundPage() {
   const context = useAtomValue(practiceContextAtom);
@@ -100,6 +101,23 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
       <div className={`practice-workspace ${wide ? "with-rails" : ""}`}>
         {wide && <div className="practice-rail left" />}
         <div className="practice-center">
+          <div className="practice-toolbar" aria-label="Timer controls" data-timer-chrome>
+            <div className="toolbar-group">
+              <Select value={context.scrambleType} disabled={busy || !!timer.saveError} onValueChange={value => setScrambleType(value as ScrambleType)}>
+                <SelectTrigger aria-label="Scramble type"><SelectValue /></SelectTrigger>
+                <SelectContent>{info.scrambles.map(type => <SelectItem key={type} value={type}>{scrambleLabel(type)}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={context.solveMode} disabled={busy || !!timer.saveError} onValueChange={value => setSolveMode(value as SolveMode)}>
+                <SelectTrigger aria-label="Solve mode"><SelectValue /></SelectTrigger>
+                <SelectContent>{SOLVE_MODES.map(mode => <SelectItem key={mode.id} value={mode.id}>{mode.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="toolbar-group" />
+            <div className="toolbar-group">
+              <button type="button" className="action" onClick={nextScramble} disabled={busy || generating} aria-keyshortcuts="Alt+n"><IconShuffle /><span>New scramble</span><ShortcutKey letter="N" /></button>
+              {!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer />} shortcut="T" disabled={busy} onClick={() => setShowTimes(() => true)} />}
+            </div>
+          </div>
           <div className="practice-stack">
             <div className={`practice-scramble ${!info.cubeSize || info.cubeSize > 3 ? "big-cube-scramble" : ""}`} aria-label="Scramble" data-timer-chrome>
               <span className="practice-caption">{info.label} · {scrambleLabel(context.scrambleType)}</span>
@@ -115,7 +133,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             </div>
           </div>
         </div>
-        <PracticePanel open={showTimes} wide={wide} side="right" title="Times" onClose={() => setShowTimes(() => false)}>
+        <PracticePanel open={showTimes} wide={wide} side="right" title="Times" icon={<IconTimer />} shortcut="T" disabled={busy} onOpen={() => setShowTimes(() => true)} onClose={() => setShowTimes(() => false)}>
           <div className="panel">
             <div className="panel-header"><span className="muted">{solves.length} solves</span></div>
             <div className="panel-body" ref={timesScrollRef}>
@@ -134,16 +152,6 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             </div>
           </div>
         </PracticePanel>
-      </div>
-      <div className="practice-actions" aria-label="Timer controls" data-timer-chrome>
-        <select className="select" aria-label="Scramble type" value={context.scrambleType} disabled={busy || !!timer.saveError} data-timer-ignore onChange={event => { setScrambleType(event.target.value as ScrambleType); event.currentTarget.blur(); }}>
-          {info.scrambles.map(type => <option key={type} value={type}>{scrambleLabel(type)}</option>)}
-        </select>
-        <select className="select" aria-label="Solve mode" value={context.solveMode} disabled={busy || !!timer.saveError} data-timer-ignore onChange={event => { setSolveMode(event.target.value as SolveMode); event.currentTarget.blur(); }}>
-          {SOLVE_MODES.map(mode => <option key={mode.id} value={mode.id}>{mode.label}</option>)}
-        </select>
-        <button type="button" className="action" onClick={nextScramble} disabled={busy || generating} aria-keyshortcuts="Alt+n"><IconShuffle /><span>New scramble</span><ShortcutKey letter="N" /></button>
-        <button type="button" className="action" onClick={toggleTimes} disabled={busy} aria-expanded={showTimes} aria-keyshortcuts="Alt+t"><IconTimer /><span>Times</span><ShortcutKey letter="T" /></button>
       </div>
     </div>
   );

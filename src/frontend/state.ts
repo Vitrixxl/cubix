@@ -68,7 +68,6 @@ export const statsAtom = atom(async (get) => {
 // Training preferences
 // ---------------------------------------------------------------------------
 export const selectedCaseIdsAtom = perCubeAtom<string[]>("cubix.training.selectionByCube", [], "cubix.training.selection");
-export const hideAlgorithmAtom = atomWithStorage<boolean>("cubix.training.hideAlg", true);
 export const randomAufAtom = atomWithStorage<boolean>("cubix.training.randomAuf", true);
 
 export type ThemeId = "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";

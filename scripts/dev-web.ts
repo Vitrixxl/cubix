@@ -8,7 +8,7 @@ import { WebSocket } from "ws";
 
 // Development-only proxy: API traffic and authentication remain on the Rust server.
 type Bridge = { upstream: WebSocket; pending: (string | Buffer)[] };
-const upstreamOrigin = "http://127.0.0.1:47129";
+const upstreamOrigin = process.env.CUBIX_API_ORIGIN ?? "http://127.0.0.1:47129";
 const server = Bun.serve<Bridge>({
   hostname: "127.0.0.1",
   port: 5180,

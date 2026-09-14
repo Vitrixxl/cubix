@@ -1,15 +1,23 @@
 import { useAtom, useAtomValue } from "jotai";
 import { puzzleAtom, cubeSwitchLockedAtom } from "../state";
-import { PUZZLES, type PuzzleId } from "../../shared/puzzles";
-import { IconCube } from "./icons";
+import { PUZZLES, puzzleInfo, type PuzzleId } from "../../shared/puzzles";
+import { PuzzleIcon } from "./PuzzleIcon";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 
-/** One native select switches the puzzle for every page. */
-export function PuzzlePicker() {
+/** A shadcn select listing every puzzle with its WCA glyph. */
+export function PuzzleSelect({ value, onChange, disabled, compact, className = "" }: { value: PuzzleId; onChange: (puzzle: PuzzleId) => void; disabled?: boolean; compact?: boolean; className?: string }) {
+  return <Select value={value} disabled={disabled} onValueChange={next => onChange(next as PuzzleId)}>
+    <SelectTrigger className={`puzzle-trigger ${compact ? "compact" : ""} ${className}`} aria-label={`Puzzle: ${puzzleInfo(value).label}`}>
+      <PuzzleIcon puzzle={value} />{!compact && <span>{puzzleInfo(value).label}</span>}
+    </SelectTrigger>
+    <SelectContent className="puzzle-options">
+      {PUZZLES.map(p => <SelectItem key={p.id} value={p.id} textValue={p.label}><PuzzleIcon puzzle={p.id} /><span>{p.label}</span></SelectItem>)}
+    </SelectContent>
+  </Select>;
+}
+
+/** The app-wide puzzle, shown in the navigation. */
+export function PuzzlePicker({ compact }: { compact?: boolean }) {
   const [puzzle, setPuzzle] = useAtom(puzzleAtom), locked = useAtomValue(cubeSwitchLockedAtom);
-  return <label className="puzzle-picker nav-item" title="Puzzle">
-    <IconCube aria-hidden="true" />
-    <select aria-label="Puzzle" value={puzzle} disabled={locked} data-timer-ignore onChange={event => { setPuzzle(event.target.value as PuzzleId); event.currentTarget.blur(); }}>
-      {PUZZLES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-    </select>
-  </label>;
+  return <PuzzleSelect value={puzzle} onChange={setPuzzle} disabled={locked} compact={compact} className="nav-puzzle" />;
 }
