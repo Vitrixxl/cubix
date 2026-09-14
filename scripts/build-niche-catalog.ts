@@ -33,11 +33,11 @@ async function add(s: ReturnType<typeof set>, name: string, alg: string, source:
   if (!pattern.applyAlg(parsed).isIdentical(kp.defaultPattern())) throw Error(`Invalid solution: ${id}`);
   if (pattern.isIdentical(kp.defaultPattern())) throw Error(`Solved case: ${id}`);
   const diagram = `/cases/${s.id}-${s.count}.svg`;
-  await writeFile(`public${diagram}`,renderPatternSvg(await puzzles[puzzleInfo(s.puzzle_id).twisty].svg(),pattern));
+  await writeFile(`assets${diagram}`,renderPatternSvg(await puzzles[puzzleInfo(s.puzzle_id).twisty].svg(),pattern));
   cases.push({puzzle_id:s.puzzle_id,id,name,stage:s.stage,set:s.id,setLabel:s.label,group:s.label,
     setup,setups_alt:[],algorithms:[{alg:parsed.toString(),source}],diagram,...(note?{notes:note}:{})});
 }
-await mkdir('public/cases',{recursive:true});
+await mkdir('assets/cases',{recursive:true});
 const sqSource='https://www.jaapsch.net/puzzles/square1.htm';
 let s=set('sq1','shape','Cube shape','Cube shape','Five star cases: restore the square shape from a layer with six corners.');
 for(const [i,alg] of ["/ (-2,-4) / (-1,-2) / (-3,-3) /","/ (2,-2) / (-3,-4) / (4,-3) / (-5,-4) / (6,-3) /","/ (-4,-2) / (-1,4) / (-3,0) /","/ (-4,0) / (5,4) / (2,-3) / (-5,-4) / (6,-3) /","/ (2,2) / (0,-1) / (3,3) /"].entries())

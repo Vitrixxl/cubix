@@ -1,6 +1,6 @@
 import {afterEach,expect,test} from "bun:test";
 import {createRustApi,openDb} from "./backend";
-import {createApiClient} from "../src/frontend/api-client";
+import {createApiClient} from "../src/client/api-client";
 const cleanup:(()=>void)[]=[];afterEach(()=>cleanup.splice(0).forEach(fn=>fn()));
 function setup(settings:Record<string,string>={}) {const db=openDb();cleanup.push(()=>db.db.close());const app=createRustApi(db.path,settings);return {db,app,origin:`http://127.0.0.1:${app.server.port}`};}
 async function login(origin:string,password="synthetic-admin-test-password",headers:Record<string,string>={}) {const response=await fetch(origin+"/api/admin/login",{method:"POST",headers:{"content-type":"application/json",...headers},body:JSON.stringify({password})});const value=await response.json();return {response,value,cookie:response.headers.get("set-cookie")?.split(";")[0]??""};}
@@ -31,7 +31,7 @@ test("admin dashboard lists accounts and HTTP traffic without secrets or spoofed
  const row=body.traffic.requests.find((r:any)=>r.path==="/missing-path");expect(row.status).toBe(404);expect(row.ip).toBe("127.0.0.1");expect(body.traffic.ips[0].requests).toBeGreaterThan(3);
  expect(JSON.stringify(body)).not.toContain("do-not-log-this");expect(JSON.stringify(body)).not.toContain("password_hash");expect(JSON.stringify(body)).not.toContain("token_hash");
  expect((await (await fetch(origin+"/api/admin/dashboard?guests=1",{headers:{cookie:admin.cookie}})).json()).users.rows).toHaveLength(2);
- expect((await fetch(origin+"/aaaaadmin")).status).toBe(200);
+ expect((await fetch(origin+"/aaaaadmin")).status).toBe(404);
 });
 
 test("per-IP rate limits return 429 with Retry-After and cannot be bypassed by spoofing forwarding headers",async()=>{

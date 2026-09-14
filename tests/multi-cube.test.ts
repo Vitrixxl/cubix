@@ -1,11 +1,8 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { AlgText } from "../src/frontend/components/AlgorithmList";
 import { expect, test } from "bun:test";
 import { applyAlg, colorOf, combineAuf, compensateAuf, invertAlg, parseAlg, parseMove, reorientAlgY2, slotsFor, solved } from "../src/shared/cube";
 import { CUBE_SIZES, puzzleOf, puzzleId } from "../src/shared/puzzles";
 import { randomCubeScramble, SCRAMBLE_LENGTHS } from "../src/shared/scramble";
-import { cases, sets } from "../src/frontend/local/catalog";
+import { cases, sets } from "../src/client/local/catalog";
 import extra from "../data/multi-cube.json";
 
 test("every cube has a distinct catalogue and playable random-move scrambles", () => {
@@ -78,13 +75,5 @@ test("reduced CFOP setups and every solution behave exactly like their verified 
       check(c.setup, original.setup);
       c.algorithms.forEach((a, i) => check(`${c.setup} ${a.pre_auf ?? ""} ${a.alg}`, `${original.setup} ${original.algorithms[i].pre_auf ?? ""} ${original.algorithms[i].alg}`));
     }
-  }
-});
-
-test("numbered inner and wide moves stay together when notation wraps", () => {
-  const markup = renderToStaticMarkup(createElement(AlgText, { alg: "3Rw2 2R' (6Rw U2)2" }));
-  for (const token of ["3Rw2", "2R'", "6Rw", "U2"]) {
-    const encoded = token.replaceAll("'", "&#x27;");
-    expect(markup).toContain(`<span class="alg-move">${encoded}</span>`);
   }
 });

@@ -1,0 +1,36 @@
+pkgbase = cubix-git
+	pkgdesc = Native speedcubing timer, algorithm library and trainer
+	pkgver = 0.1.0.r0.g916ac85
+	pkgrel = 1
+	url = https://github.com/Vitrixxl/cubix
+	arch = x86_64
+	makedepends = git
+	makedepends = rust
+	makedepends = clang
+	makedepends = pkgconf
+	makedepends = unzip
+	makedepends = desktop-file-utils
+	depends = glibc
+	depends = gcc-libs
+	depends = libxcb
+	depends = libxkbcommon
+	depends = libxkbcommon-x11
+	depends = wayland
+	depends = fontconfig
+	depends = freetype2
+	depends = vulkan-icd-loader
+	optdepends = vulkan-driver: GPU rendering
+	optdepends = xdg-desktop-portal: desktop integration
+	optdepends = xdg-utils: open external links
+	provides = cubix
+	conflicts = cubix
+	conflicts = cubix-bin
+	options = !lto
+	options = !strip
+	options = !debug
+	source = cubix::git+https://github.com/Vitrixxl/cubix.git#branch=main
+	source = bun-linux-x64-1.4.0.zip::https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-x64.zip
+	sha256sums = SKIP
+	sha256sums = 2d03fb5fb83ac8b567aca0a281b2ce1a1a19d488f56c2968d88c3f25e92fe452
+
+pkgname = cubix-git

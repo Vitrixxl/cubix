@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { createApi, openDb } from "./backend";
-import { ApiError, createApiClient } from "../src/frontend/api-client";
+import { ApiError, createApiClient } from "../src/client/api-client";
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0)) dispose(); });

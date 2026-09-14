@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApi, openDb } from "./backend";
-import { createApiClient } from "../src/frontend/api-client";
+import { createApiClient } from "../src/client/api-client";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => { for (const close of cleanups.splice(0)) close(); });

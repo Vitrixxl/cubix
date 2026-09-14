@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { EMPTY_TRAINING_HISTORY, TRAINING_HISTORY_LIMIT, trainingHistoryReducer } from "../src/frontend/lib/trainingHistory";
+import { EMPTY_TRAINING_HISTORY, TRAINING_HISTORY_LIMIT, trainingHistoryReducer } from "../src/client/lib/trainingHistory";
 import { CASES } from "./backend";
 
 const pool = CASES.filter(c => c.stage === "F2L").slice(0, 3);

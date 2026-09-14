@@ -1,6 +1,6 @@
 # Serveur Rust
 
-Axum 0.8, Tokio, rusqlite et SQLite. Le binaire sert l’API complète et le frontend statique.
+Axum 0.8, Tokio, rusqlite et SQLite. Le binaire sert les API HTTP et WebSocket, sans interface web ni fichiers statiques.
 Voir le [README principal](../README.md) pour le démarrage avec `docker compose up`.
 
 ## Construction
@@ -10,8 +10,7 @@ bun run build:api
 ./rust-api/target/release/cubix-api --port 3000
 ```
 
-Le binaire doit être lancé depuis la racine du projet, ou avec `CUBIX_ASSETS` et `CUBIX_PWA`
-configurés. La base locale est choisie par `CUBIX_DB` ; son initialisation et ses migrations
+Le catalogue est inclus dans le binaire, qui peut être lancé depuis tout répertoire. La base locale est choisie par `CUBIX_DB` ; son initialisation et ses migrations
 sont automatiques. `--init-db` effectue seulement cette initialisation.
 
 ## Concurrence

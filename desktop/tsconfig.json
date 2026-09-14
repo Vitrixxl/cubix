@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "include": [
+    "engine/*.ts",
+    "scripts/*.tsx",
+    "guides/*.tsx",
+    "guides/*.ts",
+    "testing/*.ts",
+    "package.ts",
+    "install-linux.ts"
+  ],
+  "exclude": [
+    "bin",
+    "target",
+    "assets"
+  ]
+}

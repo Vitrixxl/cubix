@@ -1,4 +1,4 @@
-//! Stable puzzle / scramble / solve-mode labels, shared with the frontend registry.
+//! Stable puzzle / scramble / solve-mode labels, shared with the shared puzzle registry.
 use crate::{
     db::all,
     error::{ApiError, Result},

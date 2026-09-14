@@ -1,17 +1,3 @@
-FROM oven/bun:1.4.0 AS frontend
-WORKDIR /app
-ARG CUBIX_PUBLIC_URL=
-ENV CUBIX_PUBLIC_URL=$CUBIX_PUBLIC_URL
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
-COPY src ./src
-COPY public ./public
-COPY tsconfig.json ./
-COPY scripts/build.ts scripts/build-seo.tsx scripts/compress-assets.ts scripts/build-vendor.ts scripts/service-worker.js ./scripts/
-COPY data ./data
-COPY rust-api/catalog-sets.json ./rust-api/catalog-sets.json
-RUN bun run build
-
 FROM rust:1.98-bookworm AS backend
 WORKDIR /app
 COPY rust-api ./rust-api
@@ -26,8 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 ENV CUBIX_HOST=0.0.0.0 PORT=3000 CUBIX_DB=/var/lib/cubix/cubix.db
 COPY --from=backend /app/rust-api/target/release/cubix-api /usr/local/bin/cubix-api
-COPY --from=frontend /app/dist/view ./dist/view
-COPY --from=frontend /app/public/pwa ./public/pwa
 USER cubix
 EXPOSE 3000
 CMD ["cubix-api"]

@@ -1,7 +1,7 @@
 import {expect,test} from 'bun:test';
 import {Alg} from 'cubing/alg';
 import {puzzles} from 'cubing/puzzles';
-import {cases,sets} from '../src/frontend/local/catalog';
+import {cases,sets} from '../src/client/local/catalog';
 import {PUZZLES,puzzleOf,puzzleInfo} from '../src/shared/puzzles';
 import {renderPatternSvg,assertLegalSquare1} from '../scripts/niche-model';
 import {readFile} from 'node:fs/promises';
@@ -27,7 +27,7 @@ test('each niche solution resolves its real puzzle and every saved diagram match
         if(p.id==='sq1')assertLegalSquare1(solved,new Alg(`${c.setup} ${a.alg}`));
       }
       expect(c.diagram,c.id).toBeDefined();
-      expect(await readFile(`public${c.diagram}`,'utf8'),c.id).toBe(renderPatternSvg(svg,pattern));
+      expect(await readFile(`assets${c.diagram}`,'utf8'),c.id).toBe(renderPatternSvg(svg,pattern));
     }
   }
 });

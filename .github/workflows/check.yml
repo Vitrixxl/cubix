@@ -20,14 +20,43 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run test
-      - name: Build and start the complete application
+      - name: Build and start the API
         run: docker compose up -d --build --wait
-      - name: Check frontend and API
+      - name: Check API and retired web routes
         run: |
-          curl --fail http://localhost:3000/ | grep 'Cubix'
           curl --fail http://localhost:3000/api/health
           curl --fail http://localhost:3000/api/cases > /tmp/cases.json
           node --input-type=module -e "import {readFileSync} from 'node:fs'; if(JSON.parse(readFileSync('/tmp/cases.json','utf8')).length !== 228) process.exit(1)"
+          for path in / /index.html /aaaaadmin /pwa/icon-192.png /sw.js; do
+            test "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")" = 404
+          done
       - name: Stop containers
         if: always()
         run: docker compose down
+  desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang cmake pkg-config libxcb1-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libfontconfig1-dev libfreetype6-dev libvulkan-dev libssl-dev desktop-file-utils
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup default 1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop
+      - run: bun install --frozen-lockfile
+      - run: bun run build:desktop
+      - name: Check standalone engine and launcher
+        run: |
+          CUBIX_ENGINE_EXE="$PWD/artifacts/gpui/cubix-linux-x64/cubix-engine" bun desktop/engine/smoke.ts
+          sed 's|@APP@|/usr/lib/cubix|g' desktop/linux/fr.vitrixxl.cubix.desktop > /tmp/cubix.desktop
+          desktop-file-validate /tmp/cubix.desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cubix-linux-x64
+          path: artifacts/gpui/cubix-linux-x64/

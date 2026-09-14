@@ -1,0 +1,15 @@
+Text input is adapted from the GPUI 0.2.2 input example.
+Copyright Zed Industries, Inc. and contributors. Licensed under Apache-2.0.
+https://github.com/zed-industries/zed/tree/main/crates/gpui
+
+Geist and Geist Mono: Copyright Vercel and contributors, SIL Open Font License 1.1.
+Unmodified fonts, exact source revision and full license in assets/fonts/.
+https://github.com/vercel/geist-font
+
+WCA event glyphs exported from @cubing/icons (MIT).
+https://github.com/cubing/icons
+
+cubing.js and random-uint-below are distributed with their upstream licenses.
+The packaged cubing.js worker files retain their module structure. The build
+rewrites bare random-uint-below imports to explicit relative paths for standalone
+Bun execution. Those modified JavaScript sources are included in vendor/cubing.

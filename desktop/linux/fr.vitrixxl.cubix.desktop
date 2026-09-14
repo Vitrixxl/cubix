@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Cubix
+GenericName=Speedcubing timer
+GenericName[fr]=Chronomètre de speedcubing
+Comment=Native cube timer and algorithm training
+Comment[fr]=Chronomètre et entraînement aux algorithmes en application native
+Exec="@APP@/cubix-desktop"
+TryExec=@APP@/cubix-desktop
+Icon=fr.vitrixxl.cubix
+Terminal=false
+StartupNotify=true
+StartupWMClass=fr.vitrixxl.cubix
+Categories=Game;LogicGame;
+Keywords=Cubix;Rubik;cube;timer;algorithms;GPUI;

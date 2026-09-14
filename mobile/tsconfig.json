@@ -1,0 +1,23 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["react-native", "bun"]
+  },
+  "include": [
+    "index.ts",
+    "App.tsx",
+    "src/**/*",
+    "scripts/**/*",
+    "../src/shared/**/*",
+    "../src/client/local/**/*",
+    "../src/client/api-client.ts",
+    "../src/client/lib/format.ts",
+    "../src/client/lib/trainingHistory.ts",
+    "../src/client/lib/practiceScrambleCore.ts"
+  ],
+  "exclude": ["node_modules", "android", "ios"]
+}

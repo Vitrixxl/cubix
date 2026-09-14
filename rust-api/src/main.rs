@@ -1,4 +1,3 @@
-mod seo;
 mod accounts;
 mod admin;
 mod api;
@@ -23,7 +22,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::Semaphore;
-use tower_http::{cors::CorsLayer, services::ServeDir, set_header::SetResponseHeaderLayer};
+use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -136,29 +135,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(CorsLayer::permissive());
     let app = api
         .merge(admin_api)
-        .route(
-            "/aaaaadmin",
-            get(|| async {
-                axum::response::Html(
-                    std::fs::read_to_string(format!(
-                        "{}/admin/index.html",
-                        env_or("CUBIX_ASSETS", "dist/view")
-                    ))
-                    .unwrap_or_else(|_| "Build the frontend first.".into()),
-                )
-            }),
-        )
-        .route(
-            "/aaaaadmin/",
-            axum::routing::get(|| async { axum::response::Redirect::permanent("/aaaaadmin") }),
-        )
-        .nest_service("/pwa", ServeDir::new(env_or("CUBIX_PWA", "public/pwa")))
-        .fallback_service(ServeDir::new(env_or("CUBIX_ASSETS", "dist/view")).precompressed_br().precompressed_gzip())
-        .layer(SetResponseHeaderLayer::if_not_present(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("no-cache"),
-        ))
-        .layer(axum::middleware::from_fn(seo::headers))
         .layer(axum::middleware::from_fn_with_state(
             traffic,
             traffic::monitor,

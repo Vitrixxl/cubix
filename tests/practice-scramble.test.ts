@@ -1,8 +1,5 @@
 import { expect, test } from "bun:test";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { AlgText } from "../src/frontend/components/AlgorithmList";
-import { generatePracticeScramble } from "../src/frontend/lib/practiceScramble";
+import { generatePracticeScramble } from "../desktop/engine/practiceScramble";
 import { applyAlg, colorOf, slotsFor, solved } from "../src/shared/cube";
 import { type ScrambleType, contextOf, validContext } from "../src/shared/puzzles";
 
@@ -42,10 +39,9 @@ test("last-layer and case scrambles preserve solved blocks", async () => {
   }
 });
 
-test("legacy records have stable labels and niche notation wraps as whole moves", () => {
+test("legacy records have stable labels", () => {
   expect(contextOf({})).toEqual({puzzle:"333",solveMode:"standard",scrambleType:"random-moves"});
   expect(contextOf({cube_size:7,case_id:"case"})).toEqual({puzzle:"777",solveMode:"standard",scrambleType:"case"});
   expect(validContext({puzzle:"sq1",solveMode:"standard",scrambleType:"2gen-ru"})).toBe(false);
-  const markup = renderToStaticMarkup(createElement(AlgText,{alg:"(-3, 0) / R++ D-- UR2+ ALL5- y2"}));
-  for (const token of ["(-3, 0)","/","R++","D--","UR2+","ALL5-","y2"]) expect(markup).toContain(`<span class="alg-move">${token}</span>`);
+
 });

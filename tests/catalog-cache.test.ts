@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {createCatalogCache,evictCatalogCache,CATALOG_CACHE_PREFIX} from '../src/frontend/local/catalog-cache';
+import {createCatalogCache,evictCatalogCache,CATALOG_CACHE_PREFIX} from '../src/client/local/catalog-cache';
 import {PUZZLES} from '../src/shared/puzzles';
 function storage(){const values=new Map<string,string>();let writes=0;return {getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>{writes++;values.set(key,value);},removeItem:(key:string)=>{values.delete(key);},values,writes:()=>writes};}
 test('all puzzle algorithms persist across client reopening without fetching or rewriting',()=>{

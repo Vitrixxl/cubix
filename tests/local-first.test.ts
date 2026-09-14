@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
-import { createLocalClient } from "../src/frontend/local/client";
-import { createApiClient } from "../src/frontend/api-client";
+import { createLocalClient } from "../src/client/local/client";
+import { createApiClient } from "../src/client/api-client";
 import { createRustApi, openDb } from "./backend";
 import type { SessionDto, SolveDto } from "../src/shared/types";
 
