@@ -4,7 +4,6 @@ use gpui::{prelude::*, *};
 use serde::Deserialize;
 use std::{f32::consts::FRAC_PI_2, sync::Arc, time::Instant};
 
-const DURATION: f32 = 3.0;
 const YAW: f32 = std::f32::consts::FRAC_PI_4;
 const PITCH: f32 = 0.55;
 type V = [f32; 3];
@@ -42,8 +41,11 @@ impl Scene {
         }
         Some(Arc::new(scene))
     }
+    fn duration(&self) -> f32 {
+        self.size.max(3) as f32
+    }
     fn frame(&self, seconds: f32) -> (usize, f32) {
-        let progress = (seconds / DURATION).clamp(0., 1.) * self.moves.len() as f32;
+        let progress = (seconds / self.duration()).clamp(0., 1.) * self.moves.len() as f32;
         let index = (progress.floor() as usize).min(self.moves.len());
         let fraction = progress.fract();
         (index, fraction * fraction * (3. - 2. * fraction))
@@ -178,7 +180,8 @@ pub fn drawing(scene: Arc<Scene>, seconds: f32, yaw: f32, pitch: f32) -> impl In
     .size_full()
 }
 pub fn thumbnail(scene: Arc<Scene>) -> impl IntoElement {
-    drawing(scene, DURATION, YAW, PITCH)
+    let duration = scene.duration();
+    drawing(scene, duration, YAW, PITCH)
 }
 
 pub struct CubeView {
@@ -241,7 +244,7 @@ impl Render for CubeView {
                 .get_or_insert_with(Instant::now)
                 .elapsed()
                 .as_secs_f32();
-            if seconds < DURATION && !scene.moves.is_empty() {
+            if seconds < scene.duration() && !scene.moves.is_empty() {
                 window.request_animation_frame();
             }
             node = node.child(drawing(scene.clone(), seconds, self.yaw, self.pitch));
@@ -254,25 +257,28 @@ impl Render for CubeView {
 mod tests {
     use super::{FRAC_PI_2, Move, Scene, rotate};
     #[test]
-    fn animation_finishes_at_three_seconds_independent_of_move_count() {
-        for count in [1, 7, 22, 100] {
-            let scene = Scene {
-                size: 3,
-                colors: vec![],
-                states: vec![],
-                moves: vec![
-                    Move {
-                        axis: 0,
-                        layers: vec![1.],
-                        q: 3
-                    };
-                    count
-                ],
-            };
-            assert_eq!(scene.frame(0.), (0, 0.));
-            assert!(scene.frame(2.999).0 < count);
-            assert_eq!(scene.frame(3.), (count, 0.));
-            assert_eq!(scene.frame(30.), (count, 0.));
+    fn animation_duration_scales_with_cube_size_independent_of_move_count() {
+        for (size, duration) in [(2, 3.), (3, 3.), (4, 4.), (5, 5.), (6, 6.), (7, 7.)] {
+            for count in [1, 7, 22, 100] {
+                let scene = Scene {
+                    size,
+                    colors: vec![],
+                    states: vec![],
+                    moves: vec![
+                        Move {
+                            axis: 0,
+                            layers: vec![1.],
+                            q: 3
+                        };
+                        count
+                    ],
+                };
+                assert_eq!(scene.duration(), duration);
+                assert_eq!(scene.frame(0.), (0, 0.));
+                assert!(scene.frame(duration - 0.001).0 < count);
+                assert_eq!(scene.frame(duration), (count, 0.));
+                assert_eq!(scene.frame(30.), (count, 0.));
+            }
         }
     }
     #[test]
