@@ -16,7 +16,7 @@ import { IconShuffle, IconTimer } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
 import { PracticeContent, PracticeReadout, TimerChrome, TouchArea } from "../components/Practice";
 import { Select } from "../components/Select";
-import { SolveInfoButton, SolveRow } from "../components/SolveMenus";
+import { SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { Caption, Empty, Kpi, MiniBtn, Muted, mono } from "../components/ui";
 
@@ -141,10 +141,11 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             renderItem={({ item: s, index: i }) => <SolveRow key={s.id} solveId={s.id} style={styles.solveRow}>
               <Text style={[mono(t, 12), { width: 26, color: t.muted }]}>{solves.length - i}</Text>
               <Text style={[mono(t, 16, "600"), { minWidth: 64 }, s.penalty === "dnf" && { color: t.danger }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>
-              <SolveInfoButton solve={s} />
               <View style={styles.actions}>
+                <SolveInfoButton solve={s} />
                 <MiniBtn label="+2" on={s.penalty === "+2"} onPress={() => void penalty(s, "+2")} />
                 <MiniBtn label="DNF" on={s.penalty === "dnf"} onPress={() => void penalty(s, "dnf")} />
+                <SolveActionButtons solveId={s.id} />
               </View>
             </SolveRow>}
           />
@@ -172,6 +173,6 @@ export const styles = StyleSheet.create({
   landscapeLeft: { width: "48%", flex: undefined, height: "100%", justifyContent: "center" },
   panel: { flex: 1, gap: 10, minHeight: 0 },
   panelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 30 },
-  solveRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 10 },
-  actions: { flexDirection: "row", gap: 2, marginLeft: "auto" },
+  solveRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 6, rowGap: 2, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 10 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 2, marginLeft: "auto" },
 });

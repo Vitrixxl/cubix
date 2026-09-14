@@ -1,6 +1,8 @@
 import { memo } from "react";
 import Svg, { G, Polygon, Rect } from "react-native-svg";
-import { colorOf, cubeSize, originInULayer, slotInULayer, type CubeState, type Face } from "../../../src/shared/cube";
+import { colorOf, cubeSize, slotInULayer, type CubeState, type Face } from "../../../src/shared/cube";
+
+import { stickerColors } from "../../../src/shared/cubeAppearance";
 
 /** Yellow on top, green in front (orange right, red left) — the usual CFOP colour scheme. */
 export const FACE_COLORS: Record<Face, string> = {
@@ -10,11 +12,18 @@ export type CubeMask = "full" | "OLL" | "PLL" | "F2L";
 const GREY = "rgb(58, 58, 66)";
 const DIM = "rgb(36, 36, 42)";
 
+const f2lColors = new WeakMap<CubeState, number[]>();
+
 function color(state: CubeState, slot: number, mask: CubeMask): string {
   const face = colorOf(state, slot);
   if (mask === "OLL") return face === "U" ? FACE_COLORS.U : slotInULayer(slot, cubeSize(state)) ? GREY : DIM;
   if (mask === "PLL") return slotInULayer(slot, cubeSize(state)) ? FACE_COLORS[face] : DIM;
-  if (mask === "F2L") return originInULayer(state, slot) ? GREY : FACE_COLORS[face];
+  if (mask === "F2L") {
+    // Normalize rotated setups to the same blue front, red right and white pair.
+    let palette = f2lColors.get(state);
+    if (!palette) { palette = stickerColors(state, mask); f2lColors.set(state, palette); }
+    return `#${palette[state[slot]].toString(16).padStart(6, "0")}`;
+  }
   return FACE_COLORS[face];
 }
 
