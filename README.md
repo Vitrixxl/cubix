@@ -6,6 +6,18 @@ API en **Rust / Axum / SQLite**. L'application web et la PWA ne sont plus prises
 
 ## Desktop
 
+Installer ou mettre à jour le binaire précompilé sur Arch Linux x86_64 :
+
+```sh
+./update.sh
+```
+
+Aucun compilateur ni compte AUR n'est nécessaire. Le script télécharge la dernière
+release GitHub, vérifie son SHA-256 puis installe le paquet `cubix-bin`.
+Les releases sont produites après validation de `main` par la CI.
+
+Pour développer ou compiler soi-même :
+
 ```sh
 bun install --frozen-lockfile
 bun run dev             # construire et lancer le desktop

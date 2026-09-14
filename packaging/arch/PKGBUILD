@@ -1,0 +1,29 @@
+# Internal release packaging: consumes an already built desktop bundle.
+pkgname=cubix-bin
+pkgver=${CUBIX_PACKAGE_VERSION:-0.1.0}
+pkgrel=1
+pkgdesc='Native speedcubing timer, algorithm library and trainer (prebuilt)'
+arch=('x86_64')
+url='https://github.com/Vitrixxl/cubix'
+depends=('glibc' 'gcc-libs' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'wayland' 'fontconfig' 'freetype2' 'vulkan-icd-loader')
+optdepends=('vulkan-driver: GPU rendering' 'xdg-desktop-portal: desktop integration' 'xdg-utils: open external links')
+provides=('cubix')
+conflicts=('cubix' 'cubix-git')
+options=('!strip' '!debug')
+# Produced locally by CI, not fetched from a remote source.
+source=('cubix-linux-x64.tar.gz')
+sha256sums=('SKIP')
+
+package() {
+  local bundle="$srcdir/cubix-linux-x64"
+  install -d "$pkgdir/usr/lib/cubix" "$pkgdir/usr/bin" "$pkgdir/usr/share/licenses/$pkgname"
+  install -m755 "$bundle/cubix-desktop" "$bundle/cubix-engine" "$pkgdir/usr/lib/cubix/"
+  cp -r "$bundle/assets" "$bundle/vendor" "$pkgdir/usr/lib/cubix/"
+  cp -r "$bundle/licenses/." "$pkgdir/usr/share/licenses/$pkgname/"
+  install -m644 "$bundle/NOTICE" "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
+  install -m644 "$bundle/assets/fonts/OFL.txt" "$pkgdir/usr/share/licenses/$pkgname/Geist-OFL.txt"
+  ln -s /usr/lib/cubix/cubix-desktop "$pkgdir/usr/bin/cubix"
+  sed 's|@APP@|/usr/lib/cubix|g' "$bundle/linux/fr.vitrixxl.cubix.desktop" > "$srcdir/cubix.desktop"
+  install -Dm644 "$srcdir/cubix.desktop" "$pkgdir/usr/share/applications/fr.vitrixxl.cubix.desktop"
+  install -Dm644 "$bundle/linux/fr.vitrixxl.cubix.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/fr.vitrixxl.cubix.png"
+}

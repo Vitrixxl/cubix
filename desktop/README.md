@@ -27,6 +27,18 @@ l'exécution. Seul Linux a été validé ; macOS et Windows nécessitent leurs p
 
 ## Installer sous Linux
 
+Sur Arch Linux x86_64, depuis la racine du dépôt :
+
+```sh
+./update.sh
+```
+
+Cette commande installe le dernier paquet précompilé GitHub, sans Rust ni Bun.
+Les dépendances graphiques restent nécessaires. Le paquet `cubix-bin` remplace
+l'ancien `cubix-git` et conserve les données. La compilation décrite plus haut
+concerne le développement.
+
+
 Pour une installation utilisateur sans paquet système :
 
 ```sh

@@ -56,7 +56,65 @@ jobs:
           CUBIX_ENGINE_EXE="$PWD/artifacts/gpui/cubix-linux-x64/cubix-engine" bun desktop/engine/smoke.ts
           sed 's|@APP@|/usr/lib/cubix|g' desktop/linux/fr.vitrixxl.cubix.desktop > /tmp/cubix.desktop
           desktop-file-validate /tmp/cubix.desktop
+      - name: Archive standalone desktop
+        run: tar -C artifacts/gpui -czf artifacts/cubix-linux-x64.tar.gz cubix-linux-x64
       - uses: actions/upload-artifact@v4
         with:
           name: cubix-linux-x64
-          path: artifacts/gpui/cubix-linux-x64/
+          path: artifacts/cubix-linux-x64.tar.gz
+  release:
+    needs: [test, desktop]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    permissions:
+      contents: write
+    concurrency:
+      group: cubix-desktop-release
+      cancel-in-progress: false
+    steps:
+      - name: Install packaging utilities
+        run: pacman -Syu --noconfirm git github-cli
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: cubix-linux-x64
+          path: packaging/arch
+      - name: Package prebuilt desktop
+        shell: bash
+        run: |
+          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' desktop/Cargo.toml | head -n1)
+          version="$version.r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)"
+          useradd --create-home builder
+          chown -R builder:builder packaging/arch
+          cd packaging/arch
+          runuser -u builder -- env CUBIX_PACKAGE_VERSION="$version" makepkg --nodeps --force
+          cp cubix-bin-*.pkg.tar.zst cubix-linux-x86_64.pkg.tar.zst
+          sha256sum cubix-linux-x86_64.pkg.tar.zst > cubix-linux-x86_64.pkg.tar.zst.sha256
+          pacman -Qip cubix-linux-x86_64.pkg.tar.zst
+      - name: Publish binary release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # A slow older run must not replace a more recent release.
+          current=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo 'A newer main commit exists; skipping this release.'
+            exit 0
+          fi
+          tag="desktop-${GITHUB_SHA}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'This commit already has a release.'
+            exit 0
+          fi
+          gh release create "$tag" \
+            packaging/arch/cubix-linux-x86_64.pkg.tar.zst \
+            packaging/arch/cubix-linux-x86_64.pkg.tar.zst.sha256 \
+            packaging/arch/cubix-linux-x64.tar.gz \
+            --target "$GITHUB_SHA" --title "Cubix desktop ${GITHUB_SHA:0:7}" \
+            --notes 'Prebuilt Linux x86_64 desktop. Run ./update.sh to install without Rust or Bun. The Arch package replaces cubix-git and preserves application data.' \
+            --latest

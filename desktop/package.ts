@@ -13,6 +13,7 @@ await cp(join(process.env.CARGO_TARGET_DIR??'desktop/target',`release/cubix-desk
 await run(['bun','build','desktop/bin/main.js','--compile','--outfile',join(out,`cubix-engine${ext}`)]);
 await cp('desktop/assets',join(out,'assets'),{recursive:true});
 await cp('desktop/bin/vendor',join(out,'vendor'),{recursive:true});
+await cp('desktop/linux',join(out,'linux'),{recursive:true});
 await cp('desktop/NOTICE',join(out,'NOTICE'));
 await cp('desktop/licenses',join(out,'licenses'),{recursive:true});
 await cp('desktop/README.md',join(out,'README.md'));

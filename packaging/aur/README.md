@@ -16,8 +16,28 @@ yay -S cubix-git
 ```
 
 Un PKGBUILD dans GitHub ne suffit pas à rendre le paquet trouvable par yay.
-Tant que la publication AUR n'est pas effectuée, construire depuis les sources
-avec `bun run build:desktop` (voir le README desktop).
+Les binaires GitHub permettent déjà l'installation sans passer par l'AUR.
+
+Pour mettre à jour le paquet installé localement, depuis la racine du dépôt :
+
+```sh
+./update.sh
+```
+
+Ce script télécharge le dernier paquet **précompilé** depuis les releases GitHub,
+vérifie son empreinte SHA-256, puis l'installe avec `yay -U` (ou `pacman -U`).
+Il ne nécessite ni Rust, ni Cargo, ni Bun, ni compte AUR. Le paquet `cubix-bin`
+remplace `cubix-git` ; les données utilisateur sont conservées.
+Fermer et relancer Cubix après l'installation.
+
+`./update.sh --download-only` télécharge et vérifie le paquet sans l'installer.
+Les binaires sont publiés automatiquement après les tests réussis de `main`.
+Une modification locale ou une compilation CI en cours ne figure donc pas encore
+dans la dernière release. Une erreur de téléchargement ou d'empreinte arrête
+l'installation et laisse la version existante intacte.
+
+Pour compiler volontairement depuis les sources, utiliser la recette
+`packaging/aur/cubix-git/PKGBUILD` décrite ci-dessous.
 
 ## Validation et publication
 
