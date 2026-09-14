@@ -16,6 +16,7 @@ import { formatAlg } from "../../shared/cube";
 import { puzzleInfo, puzzleOf } from "../../shared/puzzles";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { ShortcutKey } from "../components/ShortcutKey";
+import { LearnedCheckbox } from "../components/LearnedCheckbox";
 
 const statsMapAtom = unwrap(statsAtom, (prev) => prev ?? new Map<string, CaseStatsDto>());
 
@@ -110,13 +111,16 @@ function AlgorithmBrowser({puzzle,cases,sets,stats}:{puzzle:string;cases:CaseDto
 
 const CaseCard=memo(function CaseCard({ c, stats, onOpen }: { c: CaseDto; stats?: CaseStatsDto; onOpen: (id:string) => void }) {
   return (
-    <button className="case-card" onClick={()=>onOpen(c.id)}>
-      {stats && <span className="trained-dot" title={`${stats.count} solves`} />}
-      <CaseDiagram c={c} size={96} />
-      <div className="case-id">{c.id.replace(/^\S+\s+/, "")}</div>
-      {c.name !== c.id && <div className="case-name">{c.name}</div>}
-      <div className="case-stats">{stats ? <><b>{fmtTime(stats.best)}</b> · {fmtTime(stats.mean)}</> : <span className="muted">—</span>}</div>
-    </button>
+    <div className="case-card">
+      <button type="button" className="case-card-open" onClick={()=>onOpen(c.id)}>
+        {stats && <span className="trained-dot" title={`${stats.count} solves`} />}
+        <CaseDiagram c={c} size={96} />
+        <div className="case-id">{c.id.replace(/^\S+\s+/, "")}</div>
+        {c.name !== c.id && <div className="case-name">{c.name}</div>}
+        <div className="case-stats">{stats ? <><b>{fmtTime(stats.best)}</b> · {fmtTime(stats.mean)}</> : <span className="muted">—</span>}</div>
+      </button>
+      <LearnedCheckbox caseId={c.id} />
+    </div>
   );
 });
 
@@ -162,6 +166,7 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
             <h1>{c.id}</h1>
             {c.name !== c.id && <p>{c.name}</p>}
             <div className="chips"><span className="chip">{c.group}</span>{c.subgroup && c.subgroup !== c.group && <span className="chip">{c.subgroup}</span>}{c.probability && <span className="chip">P = {c.probability}</span>}</div>
+            <LearnedCheckbox caseId={c.id} />
           </div>
         </header>
         <section className="card">

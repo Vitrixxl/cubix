@@ -313,6 +313,12 @@ a.chip:hover { color: var(--accent); }
 .grid-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 4px; }
 .case-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 6px 10px; border-radius: 16px; text-align: center; content-visibility: auto; contain-intrinsic-size: 168px; transition: background .15s; }
 .case-card:hover { background: var(--hover); }
+.case-card-open { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; border-radius: 10px; }
+.learned-checkbox { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 4px 8px; border-radius: 8px; color: var(--text-2); font-size: 12px; cursor: pointer; }
+.learned-checkbox:hover { background: var(--hover); }
+.learned-checkbox:has(:checked) { color: var(--good); }
+.learned-checkbox input { width: 16px; height: 16px; margin: 0; accent-color: var(--good); cursor: pointer; }
+.learned-checkbox input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .case-card svg, .case-card img { margin-bottom: 6px; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); }
 .case-id { font-size: 15px; font-weight: 700; }
 .case-name { max-width: 100%; color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

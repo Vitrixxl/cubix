@@ -46,6 +46,8 @@ export const stageAtom = atom(get => {
 export const setByStageAtom = perCubeAtom<Partial<Record<Stage, string>>>("cubix.algs.setByCube", { F2L: "f2l", OLL: "oll", PLL: "pll" }, "cubix.algs.set");
 export const trainedOnlyAtom = atomWithStorage<boolean>("cubix.algs.trainedOnly", false);
 export const collapsedAlgorithmGroupsAtom = atomWithStorage<Record<string, boolean>>("cubix.algs.collapsedGroups", {});
+/** Case IDs are unique across puzzles and sets; learning is independent of timed solves. */
+export const learnedCaseIdsAtom = atomWithStorage<string[]>("cubix.algs.learnedCaseIds", [], undefined, { getOnInit: true });
 
 // ---------------------------------------------------------------------------
 // Data
