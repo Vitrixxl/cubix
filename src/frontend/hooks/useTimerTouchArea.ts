@@ -12,7 +12,7 @@ export function useTimerTouchArea(timer: TimerApi, enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
-    let active: { id: number; x: number; y: number; target: Element } | null = null;
+    let active: { id: number; target: Element } | null = null;
 
     const clearPointer = () => {
       const pointer = active;
@@ -31,14 +31,14 @@ export function useTimerTouchArea(timer: TimerApi, enabled: boolean) {
       const target = event.target;
       if (!(target instanceof Element) || target.closest(CONTROLS) || document.querySelector(OPEN_OVERLAYS)) return;
       event.preventDefault();
-      active = { id: event.pointerId, x: event.clientX, y: event.clientY, target };
+      active = { id: event.pointerId, target };
       target.setPointerCapture(event.pointerId);
       latest.current.press();
     };
-    const move = (event: PointerEvent) => {
-      if (!active || event.pointerId !== active.id) return;
-      // A swipe is scrolling, not a timer start. Leave native touch scrolling enabled.
-      if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 10) cancel();
+    const move = (event: TouchEvent) => {
+      // Keep an accepted hold active while the finger moves. Prevent native panning
+      // from cancelling the pointer; gestures begun on controls still scroll normally.
+      if (active && event.cancelable) event.preventDefault();
     };
     const up = (event: PointerEvent) => {
       if (!active || event.pointerId !== active.id) return;
@@ -54,7 +54,7 @@ export function useTimerTouchArea(timer: TimerApi, enabled: boolean) {
     };
 
     document.addEventListener("pointerdown", down);
-    document.addEventListener("pointermove", move);
+    document.addEventListener("touchmove", move, { passive: false });
     document.addEventListener("pointerup", up);
     document.addEventListener("pointercancel", pointerCancel);
     document.addEventListener("lostpointercapture", pointerCancel);
@@ -63,7 +63,7 @@ export function useTimerTouchArea(timer: TimerApi, enabled: boolean) {
     window.addEventListener("blur", cancel);
     return () => {
       document.removeEventListener("pointerdown", down);
-      document.removeEventListener("pointermove", move);
+      document.removeEventListener("touchmove", move);
       document.removeEventListener("pointerup", up);
       document.removeEventListener("pointercancel", pointerCancel);
       document.removeEventListener("lostpointercapture", pointerCancel);
