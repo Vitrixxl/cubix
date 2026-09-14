@@ -16,7 +16,7 @@ import { formatAlg } from "../../shared/cube";
 import { puzzleInfo, puzzleOf } from "../../shared/puzzles";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { ShortcutKey } from "../components/ShortcutKey";
-import { LearnedCheckbox } from "../components/LearnedCheckbox";
+import { LearnedToggle } from "../components/LearnedToggle";
 
 const statsMapAtom = unwrap(statsAtom, (prev) => prev ?? new Map<string, CaseStatsDto>());
 
@@ -119,7 +119,7 @@ const CaseCard=memo(function CaseCard({ c, stats, onOpen }: { c: CaseDto; stats?
         {c.name !== c.id && <div className="case-name">{c.name}</div>}
         <div className="case-stats">{stats ? <><b>{fmtTime(stats.best)}</b> · {fmtTime(stats.mean)}</> : <span className="muted">—</span>}</div>
       </button>
-      <LearnedCheckbox caseId={c.id} />
+      <LearnedToggle caseId={c.id} />
     </div>
   );
 });
@@ -166,7 +166,7 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
             <h1>{c.id}</h1>
             {c.name !== c.id && <p>{c.name}</p>}
             <div className="chips"><span className="chip">{c.group}</span>{c.subgroup && c.subgroup !== c.group && <span className="chip">{c.subgroup}</span>}{c.probability && <span className="chip">P = {c.probability}</span>}</div>
-            <LearnedCheckbox caseId={c.id} />
+            <LearnedToggle caseId={c.id} />
           </div>
         </header>
         <section className="card">

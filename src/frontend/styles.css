@@ -314,12 +314,12 @@ a.chip:hover { color: var(--accent); }
 .case-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 6px 10px; border-radius: 16px; text-align: center; content-visibility: auto; contain-intrinsic-size: 168px; transition: background .15s; }
 .case-card:hover { background: var(--hover); }
 .case-card-open { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; border-radius: 10px; }
-.learned-checkbox { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 4px 8px; border-radius: 8px; color: var(--text-2); font-size: 12px; cursor: pointer; }
-.learned-checkbox:hover { background: var(--hover); }
-.learned-checkbox:has(:checked) { color: var(--good); }
-.learned-checkbox input { width: 16px; height: 16px; margin: 0; accent-color: var(--good); cursor: pointer; }
-.learned-checkbox input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.case-card svg, .case-card img { margin-bottom: 6px; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); }
+.learned-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 80px; min-height: 30px; margin-top: 6px; padding: 4px 10px; border-radius: 999px; background: var(--hover); color: var(--readable-muted); font-size: 11px; font-weight: 600; white-space: nowrap; transition: background .15s, color .15s; }
+.learned-toggle:hover { background: var(--surface-3); color: var(--text); }
+.learned-toggle[aria-pressed="true"] { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); }
+.learned-toggle[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--good) 20%, transparent); }
+.learned-toggle svg { width: 13px; height: 13px; flex: none; }
+.case-card-open svg, .case-card-open img { margin-bottom: 6px; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); }
 .case-id { font-size: 15px; font-weight: 700; }
 .case-name { max-width: 100%; color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .case-stats { color: var(--readable-muted); font: 12px var(--mono); }
@@ -449,7 +449,7 @@ a.chip:hover { color: var(--accent); }
   .floating-sheet { padding: 16px; }
   .grid-cases { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
   .case-card { padding: 10px 4px 8px; }
-  .case-card svg, .case-card img { width: 80px; height: 80px; }
+  .case-card-open svg, .case-card-open img { width: 80px; height: 80px; }
   .detail-hero { gap: 14px; }
   .detail-hero svg, .detail-hero img { width: 110px; height: 110px; }
   .detail-hero h1 { font-size: 24px; }
