@@ -106,6 +106,9 @@ pub struct Cubix {
     fields: HashMap<String, Entity<TextInput>>,
     focus: FocusHandle,
     timer: Entity<Timer>,
+    hide: f32,
+    hide_from: f32,
+    hide_since: std::time::Instant,
     sessions: HashMap<String, i64>,
     pending_solve: Value,
     training: Value,
@@ -241,6 +244,9 @@ impl Cubix {
             scrolls: HashMap::new(),
             virtual_lists: HashMap::new(),
             selector_open: HashMap::new(),
+            hide: 0.,
+            hide_from: 0.,
+            hide_since: std::time::Instant::now(),
             #[cfg(feature = "reference")]
             virtual_rows_rendered: 0,
         };
@@ -248,11 +254,14 @@ impl Cubix {
             .push(cx.subscribe(&app.timer, |this, _, stopped: &Stopped, cx| {
                 this.save_solve(stopped.0, cx)
             }));
-        app.subscriptions.push(
-            cx.subscribe(&app.timer, |_, _, _: &crate::timer::PhaseChanged, cx| {
+        app.subscriptions.push(cx.subscribe(
+            &app.timer,
+            |this, _, _: &crate::timer::PhaseChanged, cx| {
+                this.hide_from = this.hide;
+                this.hide_since = std::time::Instant::now();
                 cx.notify()
-            }),
-        );
+            },
+        ));
         for name in ["search", "cases"] {
             let field = app.fields[name].clone();
             let name = name.to_string();
@@ -295,6 +304,7 @@ impl Cubix {
                             if let Ok(v) = serde_json::from_slice::<Value>(&bytes) {
                                 if let Some(fields) = v["fields"].as_object() {for (name,value) in fields {if let Some(f)=s.fields.get(name) {f.update(cx,|f,cx|f.set(value.as_str().unwrap_or("").into(),cx));}}}
                                 for action in list(&v["actions"]) {if let Some(a)=action.as_str() {s.action(a,window,cx);}}
+                                match v["timer"].as_str() {Some("press")=>s.timer.update(cx,|t,cx|t.press(cx)),Some("release")=>s.timer.update(cx,|t,cx|t.release(cx)),_=>{}}
                                 if let Some(route)=v["route"].as_str(){s.page=route.into();s.refresh();cx.notify();}
                                 if v["quit"]==true {cx.quit();}
                             }
@@ -1408,7 +1418,9 @@ impl Cubix {
         puzzle = puzzle.child(icon("IconChevronDown", 12.));
         row()
             .absolute()
-            .bottom(px(if self.width <= 760. { 8. } else { 10. }))
+            .bottom(px(
+                if self.width <= 760. { 8. } else { 10. } - self.hide * 120.
+            ))
             .left_0()
             .w_full()
             .justify_center()
@@ -1586,7 +1598,8 @@ impl Cubix {
             .top_0()
             .w(px(center_width))
             .h_full();
-        if self.timer.read(cx).phase != Phase::Running {
+        let hide = self.hide;
+        if hide < 1. {
             let mut above = col()
                 .w_full()
                 .max_w(px(720.))
@@ -1749,7 +1762,7 @@ impl Cubix {
             center = center.child(
                 div()
                     .absolute()
-                    .bottom(px(self.height - timer_top + gap))
+                    .bottom(px(self.height - timer_top + gap + hide * (timer_top + 40.)))
                     .w_full()
                     .child(above),
             );
@@ -1769,7 +1782,11 @@ impl Cubix {
             center = center.child(
                 div()
                     .absolute()
-                    .top(px(timer_top + timer_height + gap))
+                    .top(px(timer_top
+                        + timer_height
+                        + gap
+                        + hide
+                            * (self.height - timer_top - timer_height - gap + 40.)))
                     .w_full()
                     .child(stats),
             );
@@ -1782,23 +1799,23 @@ impl Cubix {
                 .child(self.timer.clone()),
         );
         let mut workspace = div().size_full().relative().child(center);
-        if self.timer.read(cx).phase != Phase::Running {
+        if hide < 1. {
             workspace = workspace.child(
                 div()
                     .absolute()
                     .left(px(14.))
                     .right(px(14.))
-                    .bottom(px(72.))
+                    .bottom(px(72. - hide * 240.))
                     .child(toolbar),
             );
         }
-        if self.timer.read(cx).phase != Phase::Running {
+        if hide < 1. {
             if wide {
                 if training {
                     workspace = workspace.child(
                         div()
                             .absolute()
-                            .left(px(24.))
+                            .left(px(24. - hide * (rail + 48.)))
                             .top(px(12.))
                             .bottom(px(12.))
                             .w(px(rail))
@@ -1815,7 +1832,7 @@ impl Cubix {
                 workspace = workspace.child(
                     div()
                         .absolute()
-                        .right(px(24.))
+                        .right(px(24. - hide * (rail + 48.)))
                         .top(px(12.))
                         .bottom(px(100.))
                         .w(px(rail))
@@ -1825,7 +1842,7 @@ impl Cubix {
                             col()
                         }),
                 );
-            } else if self.show_times || self.show_cases && training {
+            } else if hide == 0. && (self.show_times || self.show_cases && training) {
                 let panel = if self.show_times {
                     self.times(cx)
                 } else {
@@ -3130,7 +3147,7 @@ impl Cubix {
 impl Render for Cubix {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if std::env::var_os("CUBIX_TRACE").is_some() {
-            eprintln!("render {}", self.page);
+            eprintln!("render {} hide={}", self.page, self.hide);
         }
         self.width = window.viewport_size().width.into();
         self.height = window.viewport_size().height.into();
@@ -3155,6 +3172,23 @@ impl Render for Cubix {
             timer.compact = self.width <= 700.;
             timer.enabled = enabled;
         });
+        let running = self.timer.read(cx).phase == Phase::Running;
+        let target = if running { 1. } else { 0. };
+        if self.hide != target || self.hide_from != target {
+            let t = (self.hide_since.elapsed().as_secs_f32() / 0.35).min(1.);
+            let eased = if t < 0.5 {
+                4. * t * t * t
+            } else {
+                1. - (-2. * t + 2.).powi(3) / 2.
+            };
+            self.hide = self.hide_from + (target - self.hide_from) * eased;
+            if t < 1. {
+                window.request_animation_frame();
+            } else {
+                self.hide = target;
+                self.hide_from = target;
+            }
+        }
         let practice = ["playground", "training"].contains(&self.page.as_str());
         let guest =
             self.guest() && ["profile", "community", "messages"].contains(&self.page.as_str());
@@ -3180,7 +3214,6 @@ impl Render for Cubix {
                 _ => self.empty("Loading…"),
             }
         };
-        let running = self.timer.read(cx).phase == Phase::Running;
         let mut app = div()
             .id("cubix")
             .size_full()
@@ -3334,7 +3367,7 @@ impl Render for Cubix {
                     .child(content),
             );
         }
-        if !running && !guide {
+        if self.hide < 1. && !guide {
             app = app.child(self.nav(cx));
         }
         if !self.overlay.is_empty() {
