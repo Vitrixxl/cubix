@@ -1,4 +1,5 @@
 //! Durable, idempotent uploads and an incremental, account-scoped change feed.
+//! Every mutation bumps the owner's cursor; live sockets relay it so other devices pull at once.
 use crate::{
     AppState, api,
     db::{all, one},
@@ -27,7 +28,7 @@ pub fn migrate(db: &Connection) -> Result<()> {
           UNIQUE(user_id,kind,entity_id));
         CREATE INDEX IF NOT EXISTS idx_sync_owner ON sync_changes(user_id,seq);",
     )?;
-    for table in ["sessions", "solves"] {
+    for table in ["sessions", "solves", "learned_cases"] {
         for (event, row, deleted) in [
             ("INSERT", "NEW", 0),
             ("UPDATE", "NEW", 0),
@@ -45,6 +46,16 @@ pub fn migrate(db: &Connection) -> Result<()> {
     Ok(())
 }
 
+/// Latest change sequence owned by a user; devices compare it with their local cursor.
+pub fn cursor(db: &Connection, uid: &str) -> Result<i64> {
+    Ok(one(
+        db,
+        "SELECT coalesce(max(seq),0) AS seq FROM sync_changes WHERE user_id=?",
+        [uid],
+    )?
+    .and_then(|r| r["seq"].as_i64())
+    .unwrap_or(0))
+}
 pub fn pull(db: &Connection, uid: &str, after: i64) -> Result<Value> {
     let rows = all(
         db,
@@ -112,7 +123,8 @@ pub fn push(
                 .is_some_and(|s| s.parse::<u64>().is_ok_and(|id| id > 0));
             if !((method == "POST" && ["sessions", "solves"].contains(&path))
                 || (solve && ["PATCH", "DELETE"].contains(&method))
-                || (method == "PATCH" && path == "account"))
+                || (method == "PATCH" && path == "account")
+                || (method == "PUT" && path == "learned"))
             {
                 return Err(ApiError::validation());
             }

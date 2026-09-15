@@ -3,7 +3,7 @@ import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { isPuzzle, puzzleInfo, puzzleOf, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
 import type { CaseDto, CaseStatsDto, Stage, UserDto } from "../../src/shared/types";
 import { sets as catalogSets } from "../../src/client/local/catalog";
-import { api } from "./api";
+import { api, local } from "./api";
 import { storage } from "./platform/storage";
 
 // ---------------------------------------------------------------------------
@@ -78,8 +78,6 @@ export const stageAtom = atom(get => {
 export const setByStageAtom = perPuzzleAtom<Partial<Record<Stage, string>>>("cubix.algs.setByCube", { F2L: "f2l", OLL: "oll", PLL: "pll" });
 export const learningFilterAtom = persisted<"all" | "learned" | "not-learned">("cubix.algs.learningFilter", "all");
 export const collapsedAlgorithmGroupsAtom = persisted<Record<string, boolean>>("cubix.algs.collapsedGroups", {});
-/** Case IDs are unique across puzzles and sets; learning is independent of timed solves. */
-export const learnedCaseIdsAtom = persisted<string[]>("cubix.algs.learnedCaseIds", []);
 
 // ---------------------------------------------------------------------------
 // Data
@@ -88,6 +86,11 @@ export const casesAtom = atom<Promise<CaseDto[]>>(async get => api.cases(get(puz
 export const setsAtom = atom(async get => api.sets(get(puzzleAtom)));
 /** bump to refetch stats */
 export const statsVersionAtom = atom(0);
+/** Case IDs are unique across puzzles and sets; learning is independent of timed solves.
+ * Marks live in the local-first workspace, so they sync across devices; writing toggles one case. */
+export const learnedCaseIdsAtom = atom(get => { get(statsVersionAtom); return local.learned(); }, (_get, _set, caseId: string) => {
+  void api.setLearned(caseId, !local.learned().includes(caseId)).catch(() => { /* Reported by the sync indicator. */ });
+});
 /** Last deleted solve, so the open lists update without refetching every timer tick. */
 export const deletedSolveIdAtom = atom<number | null>(null);
 export const statsAtom = atom(async get => {

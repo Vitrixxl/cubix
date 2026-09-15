@@ -36,7 +36,13 @@ function connect(){
  if(!token||local.current().isGuest)return;
  chat=local.api.connectChat();const current=chat;
  current.on('open',()=>current.send({type:'auth',token}));
- current.on('message',({data})=>{if(data.type==='ready')emit({event:'chat',value:'online'});if(data.type==='changed'){emit({event:'changed'});void local.restore();}if(data.type==='error')emit({event:'chatError',value:data});});
+ current.on('message',({data})=>{
+  if(data.type==='ready'){emit({event:'chat',value:'online'});void local.remoteChanged(data.cursor);}
+  if(data.type==='changed'){emit({event:'changed'});void local.restore();}
+  // Another device of this account changed practice data; pull it before the next periodic restore.
+  if(data.type==='sync')void local.remoteChanged(data.cursor);
+  if(data.type==='error')emit({event:'chatError',value:data});
+ });
  current.on('close',()=>{if(chat!==current)return;chat=undefined;emit({event:'chat',value:'connecting'});reconnect=setTimeout(connect,3000);});
  current.on('error',()=>{});
 }
@@ -60,7 +66,7 @@ let mutations=Promise.resolve();
 async function handle(req:any){
  try{
  let value:unknown;
- if(req.method==='init')value={protocol:2,user:local.current(),storage:values,origin};
+ if(req.method==='init')value={protocol:2,user:local.current(),storage:values,origin,learned:local.learned()};
  else if(req.method==='snapshot'){
    const q=req.args[0],context=q.context;
    const trainingMode=q.page==='training';
@@ -81,7 +87,7 @@ async function handle(req:any){
      if(!lastAdvance||lastAdvance.key!==q.advanceKey)lastAdvance={key:q.advanceKey,promise:trainingMode?Promise.resolve({training:training('next',context.puzzle,q.selected,q.randomAuf,context.solveMode)}):generatePracticeScramble(context).then(scramble=>({scramble}))};
      jobs[trainingMode?'training':'scramble']=lastAdvance.promise.then(v=>v[trainingMode?'training':'scramble']);
    }
-   value={revision:q.revision,...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async([key,promise])=>[key,await promise])))};
+   value={revision:q.revision,learned:local.learned(),...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async([key,promise])=>[key,await promise])))};
  }
  else if(req.method==='preference'){storage.setItem(req.args[0],JSON.stringify(req.args[1]));value=true;}
  else if(req.method==='cubePreview')value=cubePreview(req.args[0],req.args[1],req.args[2]);

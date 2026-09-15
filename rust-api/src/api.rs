@@ -233,7 +233,19 @@ pub async fn dispatch(
     let copy = state.clone();
     state
         .db
-        .call(move |db| route(db, &copy, method.as_str(), &path, &query, &body, &token))
+        .call(move |db| {
+            let value = route(db, &copy, method.as_str(), &path, &query, &body, &token)?;
+            // Other devices of the same account learn about committed practice changes immediately.
+            if method != Method::GET
+                && !path.starts_with("auth/")
+                && !path.starts_with("social/")
+                && let Some(user) = accounts::auth(db, &token)?
+            {
+                let uid = user["id"].as_str().unwrap();
+                copy.hub.notify_sync(uid, crate::sync::cursor(db, uid)?);
+            }
+            Ok(value)
+        })
         .await
         .map(Json)
 }
@@ -566,6 +578,44 @@ pub(crate) fn route(
             params![id, uid],
             "Unknown solve",
         ),
+        ("GET", ["learned"]) => Ok(json!(
+            all(
+                db,
+                "SELECT case_id FROM learned_cases WHERE user_id=? AND learned=1 ORDER BY case_id",
+                [uid]
+            )?
+            .iter()
+            .map(|r| r["case_id"].clone())
+            .collect::<Vec<_>>()
+        )),
+        ("PUT", ["learned"]) => {
+            let case = string(body, "caseId", 1, 100)?;
+            let learned = body
+                .get("learned")
+                .and_then(Value::as_bool)
+                .ok_or_else(ApiError::validation)?;
+            if !state.catalog.by_id.contains_key(case) {
+                return Err(ApiError::new(400, "Unknown case"));
+            }
+            // Two statements rather than UPSERT: an UPSERT's conflict clause would override the
+            // INSERT OR REPLACE inside the sync journal trigger.
+            let updated = db.execute(
+                "UPDATE learned_cases SET learned=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?",
+                params![learned as i64, uid, case],
+            )?;
+            if updated == 0 {
+                db.execute(
+                    "INSERT INTO learned_cases(user_id,case_id,learned) VALUES(?,?,?)",
+                    params![uid, case, learned as i64],
+                )?;
+            }
+            required(
+                db,
+                "SELECT * FROM learned_cases WHERE user_id=? AND case_id=?",
+                params![uid, case],
+                "Unknown case",
+            )
+        }
         ("GET", ["social", "friends"]) => social::friends(db, uid),
         ("POST", ["social", "friends"]) => {
             let name = string(body, "username", 3, 24)?.trim();

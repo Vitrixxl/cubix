@@ -345,3 +345,75 @@ test('niche training sessions, case statistics and modes survive guest import an
   }
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(10);
 });
+
+test("learning marks are local for guests, imported on sign-in, synchronized between devices and migrated from the old preference",async () => {
+  const {remote,db} = setup(); const storage = new Storage();
+  // A device updated from the pre-sync app carries its marks as a preference; stale identifiers are dropped.
+  storage.setItem("cubix.algs.learnedCaseIds",JSON.stringify(["PLL Aa","not a case"]));
+  const a = device(remote,storage); a.control.offline=true;
+  expect(a.local.learned()).toEqual(["PLL Aa"]);
+  expect(a.storage.getItem("cubix.algs.learnedCaseIds")).toBeNull();
+  await a.api.setLearned("PLL Ab",true); await a.api.setLearned("PLL Aa",false);
+  await expect(a.api.setLearned("PLL Zz",true)).rejects.toThrow("Unknown case");
+  expect(a.control.requests).toBe(0);
+  const reopened = device(remote,a.storage); reopened.control.offline=true;
+  expect(await reopened.api.learnedCases()).toEqual(["PLL Ab"]);
+  reopened.control.offline=false;
+  const auth = await reopened.api.register("learned_alice","a-long-test-password");
+  await reopened.local.sync(); expect(reopened.local.status().pending).toBe(0);
+  expect(await remote(auth.token).learnedCases()).toEqual(["PLL Ab"]);
+  const b = device(remote); await b.api.login("learned_alice","a-long-test-password"); await b.local.sync();
+  expect(b.local.learned()).toEqual(["PLL Ab"]);
+  // Repeated toggles of one case collapse into its latest mark before upload.
+  await b.api.setLearned("OLL 1",true); await b.api.setLearned("OLL 1",false); await b.api.setLearned("OLL 2",true);
+  expect(JSON.parse(b.storage.getItem("cubix.local.v1:workspace:"+auth.user.id)!).outbox.filter((op: any)=>op.kind==="learned")).toHaveLength(2);
+  await b.local.sync(); expect(b.local.status().pending).toBe(0);
+  expect(await remote(auth.token).learnedCases()).toEqual(["OLL 2","PLL Ab"]);
+  // A pending offline mark wins over the stale server state until it is uploaded.
+  reopened.control.offline=true; await reopened.api.setLearned("PLL Ab",false); reopened.control.offline=false;
+  await b.api.setLearned("PLL Ab",true); await b.local.sync();
+  await reopened.local.sync(); expect(reopened.local.status().pending).toBe(0);
+  expect(await remote(auth.token).learnedCases()).toEqual(["OLL 2"]);
+  expect(reopened.local.learned()).toEqual(["OLL 2"]);
+  await b.local.sync(); expect(b.local.learned()).toEqual(["OLL 2"]);
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM sync_changes WHERE kind='learned_cases'").get()?.n).toBe(3);
+  await b.api.logout();
+  expect(b.local.learned()).toEqual([]);
+});
+
+test("a live socket announces the account's own changes so other devices pull immediately",async () => {
+  const {remote,origin} = setup(); const a = device(remote);
+  const auth = await a.api.register("live_alice","a-long-test-password"); await a.local.sync();
+  const ws = new WebSocket(origin.replace("http:","ws:")+"/api/social/live");
+  cleanup.push(() => ws.close());
+  const messages: any[] = [];
+  const next = (type: string) => new Promise<any>((resolve,reject) => {
+    const timeout = setTimeout(() => reject(new Error(`Missing ${type} message`)),2000);
+    const listener = (event: MessageEvent) => { const data = JSON.parse(String(event.data)); if (data.type === type) { clearTimeout(timeout); ws.removeEventListener("message",listener); resolve(data); } };
+    ws.addEventListener("message",listener);
+  });
+  ws.addEventListener("message",event => messages.push(JSON.parse(String(event.data))));
+  const ready = next("ready");
+  ws.addEventListener("open",() => ws.send(JSON.stringify({type:"auth",token:auth.token})));
+  const cursorAtConnect = (await ready).cursor;
+  expect(cursorAtConnect).toBe(JSON.parse(a.storage.getItem("cubix.local.v1:workspace:"+auth.user.id)!).cursor);
+  // Device B (plain HTTP) records a time and a learning mark; the socket of device A hears about both.
+  const b = device(remote); await b.api.login("live_alice","a-long-test-password");
+  const announced = next("sync");
+  const solve = await b.api.addSolve({timeMs:4321}); await b.api.setLearned("PLL Aa",true); await b.local.sync();
+  const notice = await announced;
+  expect(notice.cursor).toBeGreaterThan(cursorAtConnect);
+  expect(a.local.learned()).toEqual([]);
+  await a.local.remoteChanged(notice.cursor);
+  expect(a.local.learned()).toEqual(["PLL Aa"]);
+  expect((await a.api.solves("playground"))[0].time_ms).toBe(solve.time_ms);
+  // Being up to date, the same notification does not trigger another request.
+  const before = a.control.requests; await a.local.remoteChanged(notice.cursor); expect(a.control.requests).toBe(before);
+  // Direct REST writes are announced too, and social messages stay separate.
+  const rest = next("sync"); await remote(auth.token).deleteSolve((await remote(auth.token).solves("playground"))[0].id); await rest;
+  await new Promise(resolve => setTimeout(resolve,100));
+  // Only ready and sync frames ever reach this socket: no social noise for practice writes.
+  expect(messages.map(m => m.type).filter(t => t !== "sync")).toEqual(["ready"]);
+  expect(messages.at(-1).cursor).toBeGreaterThan(notice.cursor);
+});

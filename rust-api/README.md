@@ -21,7 +21,7 @@ sont automatiques. `--init-db` effectue seulement cette initialisation.
   simultanées maximum, puis HTTP 429 pour éviter une croissance mémoire incontrôlée.
 - Tokens aléatoires de 256 bits, condensats SHA-256 en base, expiration après 30 jours.
   La conversion d’un invité invalide ses anciens tokens de manière atomique.
-- Notifications WebSocket indexées par utilisateur, avec une file d’invalidation d’une place.
+- Notifications WebSocket indexées par utilisateur, avec des drapeaux fusionnés (social, sync) par socket.
   Authentification dans les cinq secondes, heartbeat/message valide toutes les 60 secondes.
   Le token est vérifié sur les messages entrants et avant les notifications sortantes.
 - Trames/messages limités à 16 Kio ; tampon de lecture de 4 Kio par WebSocket.
@@ -81,7 +81,15 @@ Un test de quelques minutes ne permet pas de conclure sur une fuite mémoire à 
 
 `GET /api/sync?after=<curseur>` renvoie au plus 500 changements appartenant à l’utilisateur authentifié.
 Les triggers SQLite enregistrent également les modifications provenant des routes historiques.
-Le journal conserve la dernière révision de chaque session/temps et les suppressions.
+Le journal conserve la dernière révision de chaque session, temps et marque d’apprentissage
+(`learned_cases`, `PUT /api/learned` avec `{caseId, learned}` ; `GET /api/learned` liste les cas appris)
+ainsi que les suppressions.
+
+Chaque écriture réussie (routes historiques ou `POST /api/sync`) envoie `{"type":"sync","cursor":N}` sur les
+WebSockets `/api/social/live` du même compte, où `N` est le dernier numéro du journal. Un appareil dont le curseur
+local est inférieur tire immédiatement les changements ; le message `ready` porte aussi ce curseur pour rattraper
+une reconnexion. Les signaux social et sync sont fusionnés par socket : une rafale d’écritures produit au plus un
+message de chaque type.
 
 `POST /api/sync` applique une liste de 1 à 100 opérations dans une transaction, pour un compte enregistré.
 Chaque opération possède un identifiant stable, une méthode, un chemin autorisé et un corps ; les créations

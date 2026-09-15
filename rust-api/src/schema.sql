@@ -16,6 +16,14 @@
     );
     CREATE INDEX IF NOT EXISTS idx_solves_case ON solves(case_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_solves_session ON solves(session_id);
+    CREATE TABLE IF NOT EXISTS learned_cases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      case_id TEXT NOT NULL,
+      learned INTEGER NOT NULL DEFAULT 1 CHECK(learned IN (0, 1)),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      UNIQUE(user_id, case_id)
+    );
 
 
     CREATE TABLE IF NOT EXISTS users (

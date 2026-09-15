@@ -13,21 +13,37 @@ use axum::{
 };
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
-use std::{collections::HashMap, sync::Mutex, time::Duration};
-use tokio::sync::mpsc;
+use std::{
+    collections::HashMap,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicI64, AtomicU8, Ordering},
+    },
+    time::Duration,
+};
+use tokio::sync::Notify;
 use uuid::Uuid;
 
-/// Invalidation messages are coalesced in bounded queues and indexed by participant.
+/// Live sockets indexed by participant. Signals are coalesced flags, so a burst of
+/// changes produces at most one social and one sync message per socket.
+const SOCIAL: u8 = 1;
+const SYNC: u8 = 2;
 #[derive(Default)]
-pub struct Hub(Mutex<HashMap<String, HashMap<Uuid, mpsc::Sender<()>>>>);
+pub struct Slot {
+    flags: AtomicU8,
+    cursor: AtomicI64,
+    wake: Notify,
+}
+#[derive(Default)]
+pub struct Hub(Mutex<HashMap<String, HashMap<Uuid, Arc<Slot>>>>);
 impl Hub {
-    fn add(&self, user: String, id: Uuid, tx: mpsc::Sender<()>) {
+    fn add(&self, user: String, id: Uuid, slot: Arc<Slot>) {
         self.0
             .lock()
             .unwrap()
             .entry(user)
             .or_default()
-            .insert(id, tx);
+            .insert(id, slot);
     }
     fn remove(&self, user: &str, id: &Uuid) {
         let mut map = self.0.lock().unwrap();
@@ -38,15 +54,25 @@ impl Hub {
             }
         }
     }
-    pub fn notify(&self, users: &[&str]) {
+    fn signal(&self, users: &[&str], flag: u8, cursor: i64) {
         let map = self.0.lock().unwrap();
         for user in users {
             if let Some(sockets) = map.get(*user) {
-                for tx in sockets.values() {
-                    let _ = tx.try_send(());
+                for slot in sockets.values() {
+                    slot.cursor.fetch_max(cursor, Ordering::AcqRel);
+                    slot.flags.fetch_or(flag, Ordering::AcqRel);
+                    slot.wake.notify_one();
                 }
             }
         }
+    }
+    /// Friends or conversations changed for these users.
+    pub fn notify(&self, users: &[&str]) {
+        self.signal(users, SOCIAL, 0);
+    }
+    /// The user's own practice data changed up to `cursor`; every device of that account pulls.
+    pub fn notify_sync(&self, user: &str, cursor: i64) {
+        self.signal(&[user], SYNC, cursor);
     }
 }
 pub fn friendship(db: &Connection, a: &str, b: &str) -> Result<Option<Value>> {
@@ -192,16 +218,18 @@ async fn live(state: AppState, mut socket: WebSocket, ip: std::net::IpAddr) {
     let id = Uuid::new_v4();
     let mut user_id: Option<String> = None;
     let mut token = String::new();
-    let (tx, mut rx) = mpsc::channel(1);
+    let slot = Arc::new(Slot::default());
     let deadline = tokio::time::sleep(Duration::from_secs(5));
     tokio::pin!(deadline);
     loop {
         tokio::select! {
             _=&mut deadline=>{close(&mut socket).await; break;}
-            notification=rx.recv(),if user_id.is_some()=>{
-                if notification.is_none() { break; }
+            _=slot.wake.notified(),if user_id.is_some()=>{
+                let flags=slot.flags.swap(0,Ordering::AcqRel);
+                if flags==0 { continue; }
                 if authenticated(&state,token.clone()).await.is_err() { close(&mut socket).await; break; }
-                if !send(&mut socket,json!({"type":"changed"})).await { break; }
+                if flags&SOCIAL!=0 && !send(&mut socket,json!({"type":"changed"})).await { break; }
+                if flags&SYNC!=0 && !send(&mut socket,json!({"type":"sync","cursor":slot.cursor.load(Ordering::Acquire)})).await { break; }
             }
             incoming=socket.recv()=>{
                 let Some(Ok(message))=incoming else {break};
@@ -219,14 +247,21 @@ async fn live(state: AppState, mut socket: WebSocket, ip: std::net::IpAddr) {
                 }
                 let Ok(user)=authenticated(&state,token.clone()).await else {close(&mut socket).await;break};
                 let uid=user["id"].as_str().unwrap().to_owned();
-                if user_id.is_none() {state.hub.add(uid.clone(),id,tx.clone());user_id=Some(uid.clone());}
+                if user_id.is_none() {state.hub.add(uid.clone(),id,slot.clone());user_id=Some(uid.clone());}
                 deadline.as_mut().reset(tokio::time::Instant::now()+Duration::from_secs(60));
                 let response=if kind=="send" {
                     let peer=string(&body,"peer",0,64).map(str::to_owned); let client=body["clientId"].clone();
                     let hub=state.hub.clone();
                     let result=match peer {Ok(peer)=>state.db.call(move |db|persist(db,&hub,&uid,&peer,&body)).await,Err(e)=>Err(e)};
                     match result {Ok(message)=>json!({"type":"sent","clientId":client,"message":message}),Err(e)=>json!({"type":"error","clientId":client,"status":e.status,"error":e.message})}
-                } else { json!({"type":if kind=="auth"{"ready"}else{"pong"}}) };
+                } else if kind=="auth" {
+                    // The current cursor lets a reconnecting device pull immediately if it fell behind.
+                    let owner=uid.clone();
+                    match state.db.call(move |db|crate::sync::cursor(db,&owner)).await {
+                        Ok(cursor)=>json!({"type":"ready","cursor":cursor}),
+                        Err(_)=>{close(&mut socket).await;break}
+                    }
+                } else { json!({"type":"pong"}) };
                 if !send(&mut socket,response).await {break;}
             }
         }

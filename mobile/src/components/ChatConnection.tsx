@@ -4,7 +4,8 @@ import { AppState } from "react-native";
 import { api, authToken, local, localChanged } from "../api";
 import { chatActivityAtom, chatConnectionAtom, chatVersionAtom, userAtom } from "../state";
 
-/** Live notifications supplement the durable local outbox; writes never depend on this socket. */
+/** Live notifications supplement the durable local outbox; writes never depend on this socket.
+ * `sync` messages announce changes made on the account's other devices, which are pulled at once. */
 export function ChatConnection() {
   const user = useAtomValue(userAtom);
   const sessionToken = authToken.get();
@@ -26,10 +27,11 @@ export function ChatConnection() {
       current.on("message", ({ data }) => {
         if (disposed || socket !== current) return;
         if (data.type === "ready") {
-          local.invalidateSocial();
+          local.invalidateSocial(); void local.remoteChanged(data.cursor);
           delay = 1000; setConnection("online"); bump(v => v + 1);
           heartbeat = setInterval(() => { if (current.ws.readyState === 1) current.send({ type: "ping" }); }, 20000);
         } else if (data.type === "changed") { local.invalidateSocial(); setActivity(true); bump(v => v + 1); }
+        else if (data.type === "sync") void local.remoteChanged(data.cursor);
       });
       current.on("close", event => {
         if (disposed || socket !== current) return;

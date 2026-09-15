@@ -1,19 +1,21 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import { ApiError, createApiClient, type AddSolveBody, type SendMessageBody } from "../api-client";
-import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, ChatMessageDto, FriendDto } from "../../shared/types";
+import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, ChatMessageDto, FriendDto, LearnedCaseDto } from "../../shared/types";
 import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "delete" | "bio" | "message"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; sessions: Record<number, Session>; solves: Record<number, Solve>; outbox: Operation[]; cursor: number; cache: Record<string, unknown> }
+type Operation = { id: string; kind: "session" | "solve" | "penalty" | "delete" | "bio" | "message" | "learned"; localId: number; body: any; createdAt: string; error?: string };
+interface Workspace { version: 1; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number; cache: Record<string, unknown> }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
+/** Learning marks were device preferences before they joined the synchronized workspace. */
+const LEGACY_LEARNED_KEY = "cubix.algs.learnedCaseIds";
 const GUEST: UserDto = { id: "local-guest", username: "Guest", bio: "", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
-const empty = (): Workspace => ({ version:1, sessions:{}, solves:{}, outbox:[], cursor:0, cache:{} });
+const empty = (): Workspace => ({ version:1, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:0, cache:{} });
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
@@ -43,8 +45,31 @@ export function createLocalClient(options: {
   };
   const current = () => read<UserDto>("user",GUEST);
   const owner = () => current().isGuest ? "guest" : current().id;
-  const data = (id = owner()) => read<Workspace>("workspace:" + id,empty());
+  const operation = (workspace: Workspace, id: string, kind: Operation["kind"], localId: number, body: any, createdAt = new Date().toISOString()) => {
+    if (id === "guest") return;
+    // Only the latest learning mark of a case needs to reach the server.
+    if (kind === "learned") workspace.outbox = workspace.outbox.filter(op => !(op.kind === "learned" && !op.error && op.body.caseId === body.caseId));
+    workspace.outbox.push({ id:crypto.randomUUID(), kind, localId, body, createdAt });
+  };
   const save = (id: string, value: Workspace) => write("workspace:" + id,value);
+  const data = (id = owner()) => {
+    const workspace = read<Workspace>("workspace:" + id,empty());
+    workspace.learned ??= {};
+    const legacyText = storage.getItem(LEGACY_LEARNED_KEY);
+    if (legacyText !== null) {
+      // One-time import of the pre-sync device preference; a signed-in account uploads it too.
+      let legacy: unknown = [];
+      try { legacy = JSON.parse(legacyText); } catch { legacy = []; }
+      for (const caseId of Array.isArray(legacy) ? legacy.filter((v): v is string => typeof v === "string" && cases.some(c => c.id === v)) : []) {
+        workspace.learned[caseId] = true;
+        operation(workspace,id,"learned",0,{ caseId, learned:true });
+      }
+      save(id,workspace);
+      // Imported once: other workspaces on this device receive the marks through the guest import.
+      storage.removeItem(LEGACY_LEARNED_KEY);
+    }
+    return workspace;
+  };
   const lock = <T>(name: string, action: () => Promise<T>) => options.lock ? options.lock(name,action) : action();
   const edit = <T>(id: string, action: (workspace: Workspace) => T) => lock("cubix-local",async () => {
     const workspace = data(id); const result = action(workspace); save(id,workspace); return result;
@@ -62,9 +87,7 @@ export function createLocalClient(options: {
     if (options.autoSync === false) return;
     if (!scheduled) scheduled = setTimeout(() => { scheduled = undefined; void sync(); },250);
   };
-  const operation = (workspace: Workspace, id: string, kind: Operation["kind"], localId: number, body: unknown, createdAt = new Date().toISOString()) => {
-    if (id !== "guest") workspace.outbox.push({ id:crypto.randomUUID(), kind, localId, body, createdAt });
-  };
+  const learnedIds = (workspace = data()) => Object.keys(workspace.learned).filter(id => workspace.learned[id]).sort();
   const liveSolves = (workspace = data()) => Object.values(workspace.solves).filter(s => !s.deleted);
   const sessionServerId = (workspace: Workspace, id: number | null | undefined) => id == null ? null : workspace.sessions[id]?.serverId ?? (id > 0 ? id : undefined);
   const solveServerId = (workspace: Workspace, id: number) => workspace.solves[id]?.serverId ?? (id > 0 ? id : undefined);
@@ -81,6 +104,10 @@ export function createLocalClient(options: {
         account.solves[solve.id] = { ...solve, serverId:undefined };
         operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, ...contextOf(solve) },solve.created_at);
       }
+      for (const caseId of learnedIds(guest)) if (!account.learned[caseId]) {
+        account.learned[caseId] = true;
+        operation(account,user.id,"learned",0,{ caseId, learned:true });
+      }
       save(user.id,account); save("guest",empty());
     });
   }
@@ -93,9 +120,14 @@ export function createLocalClient(options: {
 
   async function merge(id: string, changes: Awaited<ReturnType<Remote["syncPull"]>>["changes"], cursor: number) {
     await edit(id, workspace => {
-      const dirty = new Set(workspace.outbox.map(op => `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
+      const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
       for (const change of [...changes].sort((a,b) => Number(a.kind === "solves") - Number(b.kind === "solves"))) {
-        if (change.kind === "sessions") {
+        if (change.kind === "learned_cases") {
+          // A pending local mark wins until it is uploaded; the server then orders both edits.
+          const row = change.value as LearnedCaseDto | null;
+          if (!row || dirty.has(`learned:${row.case_id}`)) continue;
+          if (row.learned) workspace.learned[row.case_id] = true; else delete workspace.learned[row.case_id];
+        } else if (change.kind === "sessions") {
           const existing = Object.values(workspace.sessions).find(s => s.serverId === change.id);
           const localId = existing?.id ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
@@ -146,7 +178,7 @@ export function createLocalClient(options: {
             }
             result = await remote.sendMessage(peer,body);
           } else {
-            let path = op.kind === "session" ? "sessions" : op.kind === "bio" ? "account" : "solves";
+            let path = op.kind === "session" ? "sessions" : op.kind === "bio" ? "account" : op.kind === "learned" ? "learned" : "solves";
             const body = { ...op.body };
             if (op.kind === "solve") {
               const sid = sessionServerId(workspace,body.sessionId);
@@ -158,7 +190,7 @@ export function createLocalClient(options: {
               if (!serverId) throw new Error("The solve is waiting to synchronize.");
               path += "/" + serverId;
             }
-            const method = op.kind === "delete" ? "DELETE" : ["penalty","bio"].includes(op.kind) ? "PATCH" : "POST";
+            const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" ? "PUT" : ["penalty","bio"].includes(op.kind) ? "PATCH" : "POST";
             result = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           }
           // Write only the acknowledgement; preserve edits made while the request was in flight.
@@ -291,6 +323,13 @@ export function createLocalClient(options: {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.deleted = true; operation(workspace,id,"delete",solveId,{}); return solve;
     }),
+    learnedCases: async () => learnedIds(),
+    setLearned: async (caseId: string, learned: boolean) => localMutation((workspace,id) => {
+      if (!cases.some(c => c.id === caseId)) throw new Error("Unknown case.");
+      if (learned) workspace.learned[caseId] = true; else delete workspace.learned[caseId];
+      operation(workspace,id,"learned",0,{ caseId, learned });
+      return { caseId, learned };
+    }),
     stats: async (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
     caseHistory: async (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
     profile: async (username: string, signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
@@ -358,6 +397,9 @@ export function createLocalClient(options: {
     } catch (error) { if (error instanceof ApiError && error.status === 401) options.clearToken(); }
   }
   return { api, sync, restore, current,
+    learned: () => learnedIds(),
+    /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
+    remoteChanged: (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync(),
     invalidateSocial: () => { socialEpoch++; refreshedAt.clear(); },
     retry: async () => { await edit(owner(),d => { for (const op of d.outbox) delete op.error; }); await sync(); },
     status: () => status,

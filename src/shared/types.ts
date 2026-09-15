@@ -73,6 +73,14 @@ export interface SessionDto {
   created_at: string;
 }
 
+/** Learning status is independent of timed solves and follows the account across devices. */
+export interface LearnedCaseDto {
+  id: number;
+  case_id: string;
+  learned: 0 | 1;
+  updated_at: string;
+}
+
 export interface CaseStatsDto {
   caseId: string;
   count: number;

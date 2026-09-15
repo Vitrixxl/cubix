@@ -59,7 +59,8 @@ curl --fail http://localhost:3000/api/health
 docker compose logs -f api
 ```
 
-Le service expose `/api/*` et la WebSocket `/api/social/live`.
+Le service expose `/api/*` et la WebSocket `/api/social/live`, qui transporte les notifications
+sociales et les notifications de synchronisation entre les appareils d'un même compte.
 Les anciennes pages web, les fichiers statiques et `/aaaaadmin` renvoient 404.
 L'image ne contient que le serveur Rust ; aucun build JavaScript n'est nécessaire.
 Les comptes, temps, sessions, amitiés et messages restent dans le volume `cubix-data`.
@@ -106,7 +107,9 @@ Le chronomètre et l'entraînement enregistrent les temps sur l'appareil avant t
 synchronisation. Sans compte, les temps restent locaux. Un compte ajoute la
 synchronisation et les fonctions sociales ; les opérations en attente sont conservées
 hors ligne et reprises au retour du réseau. Une déconnexion ou une session expirée
-ne supprime pas les temps en attente. Les guides et le catalogue sont embarqués.
+ne supprime pas les temps en attente. Les marques « appris / à apprendre » des cas suivent
+le même mécanisme. Tant qu'un appareil est connecté, il reçoit en direct les changements
+faits sur les autres appareils du compte. Les guides et le catalogue sont embarqués.
 
 Le desktop utilise `$XDG_DATA_HOME/cubix-desktop/storage.json` ou
 `~/.local/share/cubix-desktop/storage.json` (`CUBIX_DESKTOP_DATA` pour changer le dossier).

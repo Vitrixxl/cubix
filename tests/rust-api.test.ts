@@ -138,3 +138,32 @@ rustTest("practice migration preserves existing cube histories and remains safe 
   expect(niche.body).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"blindfolded",scramble_type:"competition"});
   expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
 });
+
+rustTest("learning marks are validated, upserted per account and journaled for sync", async () => {
+  const path = fixture();
+  const app = createRustApi(path);
+  cleanups.push(() => app.server.stop());
+  const call = client(app);
+  const alice = (await call("/auth/register", "POST", { username: "learn_alice", password: "a-long-test-password" })).body;
+  const bob = (await call("/auth/register", "POST", { username: "learn_bob", password: "a-long-test-password" })).body;
+  expect((await call("/learned", "GET", undefined, alice.token)).body).toEqual([]);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true }, alice.token)).status).toBe(200);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true }, alice.token)).body.learned).toBe(1);
+  expect((await call("/learned", "PUT", { caseId: "2x2 PBL Adjacent / adjacent", learned: true }, alice.token)).status).toBe(200);
+  expect((await call("/learned", "PUT", { caseId: "PLL Zz", learned: true }, alice.token)).status).toBe(400);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: "yes" }, alice.token)).status).toBe(422);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true })).status).toBe(401);
+  expect((await call("/learned", "GET", undefined, alice.token)).body).toEqual(["2x2 PBL Adjacent / adjacent", "PLL Aa"]);
+  expect((await call("/learned", "GET", undefined, bob.token)).body).toEqual([]);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: false }, alice.token)).body.learned).toBe(0);
+  expect((await call("/learned", "GET", undefined, alice.token)).body).toEqual(["2x2 PBL Adjacent / adjacent"]);
+  const pulled = (await call("/sync?after=0", "GET", undefined, alice.token)).body;
+  expect(pulled.changes.map((c: any) => [c.kind, c.value.case_id, c.value.learned])).toEqual([["learned_cases", "2x2 PBL Adjacent / adjacent", 1], ["learned_cases", "PLL Aa", 0]]);
+  const op = { id: crypto.randomUUID(), method: "PUT", path: "learned", body: { caseId: "OLL 1", learned: true } };
+  const pushed = (await call("/sync", "POST", { operations: [op] }, alice.token)).body;
+  expect(pushed.results[0].value.case_id).toBe("OLL 1");
+  expect((await call("/sync", "POST", { operations: [op] }, alice.token)).body).toEqual(pushed);
+  expect((await call("/sync", "POST", { operations: [{ ...op, id: crypto.randomUUID(), method: "POST" }] }, alice.token)).status).toBe(422);
+  const db = new Database(path); cleanups.unshift(() => db.close());
+  expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
+});

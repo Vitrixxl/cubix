@@ -6,10 +6,10 @@ import { IconCheck } from "./icons";
 
 export function LearnedToggle({ caseId }: { caseId: string }) {
   const t = useTheme();
-  const [learnedIds, setLearnedIds] = useAtom(learnedCaseIdsAtom);
+  const [learnedIds, toggle] = useAtom(learnedCaseIdsAtom);
   const learned = learnedIds.includes(caseId);
   return <Pressable accessibilityRole="button" accessibilityState={{ selected: learned }} accessibilityLabel={`${caseId} learned`}
-    onPress={() => setLearnedIds(previous => previous.includes(caseId) ? previous.filter(id => id !== caseId) : [...previous, caseId])}
+    onPress={() => toggle(caseId)}
     style={({ pressed }) => [styles.toggle, { backgroundColor: learned ? (pressed ? t.goodSoftStrong : t.goodSoft) : pressed ? t.surface3 : t.hover }]}>
     {learned && <IconCheck size={13} color={t.good} />}
     <Text style={[styles.text, { color: learned ? t.good : t.readableMuted }]}>{learned ? "Learned" : "To learn"}</Text>

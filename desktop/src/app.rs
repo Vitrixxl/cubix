@@ -533,6 +533,13 @@ impl Cubix {
                     return;
                 }
                 self.solves = list(&value["solves"]);
+                // Learning marks synchronize across devices, so each snapshot carries the current set.
+                if let Some(v) = value.get("learned") {
+                    self.learned = list(v)
+                        .iter()
+                        .filter_map(|v| v.as_str().map(str::to_owned))
+                        .collect();
+                }
                 if self.page == "training" {
                     if let Some(id) = value["session"]["id"].as_i64() {
                         self.sessions.entry(self.context_key()).or_insert(id);
@@ -614,11 +621,7 @@ impl Cubix {
                     .get("cubix.training.randomAuf")
                     .and_then(Value::as_bool)
                     .unwrap_or(true);
-                self.learned = self
-                    .prefs
-                    .get("cubix.algs.learnedCaseIds")
-                    .map(list)
-                    .unwrap_or_default()
+                self.learned = list(&value["learned"])
                     .iter()
                     .filter_map(|v| v.as_str().map(str::to_owned))
                     .collect();
@@ -872,13 +875,11 @@ impl Cubix {
                 return;
             }
             "learn" => {
-                if !self.learned.remove(arg) {
+                let learned = !self.learned.remove(arg);
+                if learned {
                     self.learned.insert(arg.into());
                 }
-                self.pref(
-                    "cubix.algs.learnedCaseIds",
-                    json!(self.learned.iter().collect::<Vec<_>>()),
-                );
+                self.call("learn", "setLearned", json!([arg, learned]));
             }
             "set" => {
                 let c = list(&self.catalog["sets"])

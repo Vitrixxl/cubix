@@ -96,7 +96,12 @@ test("live updates reach only participants; revoked sockets cannot receive updat
   e.ws.send(JSON.stringify({ type: "send", peer: alice.user.id, ...body("Not a friend") }));
   await denied;
   expect((await bob.api.messages(alice.user.id))[0].text).toBe("Hello in real time");
+  // Practice changes of one account never reach other accounts' sockets.
+  await alice.api.addSolve({ timeMs: 1000 });
+  await a.wait("sync");
+  await new Promise(resolve => setTimeout(resolve, 50));
   expect(e.events).toEqual(["ready", "error"]);
+  expect(b.events.filter(type => type === "sync")).toEqual([]);
   await bob.api.logout();
   const closed = new Promise<CloseEvent>(resolve => b.ws.addEventListener("close", resolve, { once: true }));
   await alice.api.sendMessage(bob.user.id, body("Stored while offline"));

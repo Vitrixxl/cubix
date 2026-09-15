@@ -1,5 +1,5 @@
 import { puzzleId, type PuzzleInput, type PracticeFilter, type PuzzleId, type SolveMode, type ScrambleType, type CubeSize } from "../shared/puzzles";
-import type { AuthDto, UserDto, ProfileDto, FriendDto, ChatMessageDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty } from "../shared/types";
+import type { AuthDto, UserDto, ProfileDto, FriendDto, ChatMessageDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto } from "../shared/types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -7,7 +7,10 @@ export class ApiError extends Error {
 export interface SendMessageBody { text: string; solveId?: number; clientId: string }
 export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null }
 type ChatInput = { type: "auth"; token: string } | { type: "ping" } | ({ type: "send"; peer: string } & SendMessageBody);
-type ChatOutput = { type: "ready" | "changed" | "pong" }
+/** `sync` carries the account's latest change cursor; devices behind it pull immediately. */
+type ChatOutput = { type: "changed" | "pong" }
+  | { type: "ready"; cursor?: number }
+  | { type: "sync"; cursor: number }
   | { type: "sent"; clientId: string; message: ChatMessageDto }
   | { type: "error"; clientId: string; status: number; error: string };
 type ChatEvents = { open: Event; message: { data: ChatOutput }; close: CloseEvent; error: Event };
@@ -31,8 +34,10 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     return value as T;
   }
   return {
-    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves"; id: number; value: SessionDto | SolveDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}`),
-    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | UserDto | null }[] }>("/sync", "POST", { operations }),
+    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}`),
+    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | UserDto | LearnedCaseDto | null }[] }>("/sync", "POST", { operations }),
+    learnedCases: () => request<string[]>("/learned"),
+    setLearned: (caseId: string, learned: boolean) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned }),
     friends: () => request<FriendDto[]>("/social/friends"),
     addFriend: (username: string) => request<FriendDto[]>("/social/friends", "POST", { username }),
     acceptFriend: (id: number) => request<FriendDto[]>(`/social/friends/${id}/accept`, "POST"),
