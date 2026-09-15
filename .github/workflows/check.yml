@@ -81,21 +81,28 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: cubix-linux-x64
-          path: packaging/arch
+          path: packaging/aur/cubix-bin
       - name: Package prebuilt desktop
         shell: bash
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' desktop/Cargo.toml | head -n1)
           version="$version.r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)"
+          tag="desktop-${GITHUB_SHA}"
+          cd packaging/aur/cubix-bin
+          # The tarball is named like the release asset so makepkg uses it instead of downloading.
+          mv cubix-linux-x64.tar.gz "cubix-linux-x64-$tag.tar.gz"
+          ./render.sh "$tag" "$version" "$(sha256sum "cubix-linux-x64-$tag.tar.gz" | cut -d' ' -f1)"
           useradd --create-home builder
-          chown -R builder:builder packaging/arch
-          cd packaging/arch
-          runuser -u builder -- env CUBIX_PACKAGE_VERSION="$version" makepkg --nodeps --force
+          chown -R builder:builder .
+          runuser -u builder -- makepkg --nodeps --force
+          runuser -u builder -- makepkg --printsrcinfo > .SRCINFO
           cp cubix-bin-*.pkg.tar.zst cubix-linux-x86_64.pkg.tar.zst
+          cp "cubix-linux-x64-$tag.tar.gz" cubix-linux-x64.tar.gz
           sha256sum cubix-linux-x86_64.pkg.tar.zst > cubix-linux-x86_64.pkg.tar.zst.sha256
           pacman -Qip cubix-linux-x86_64.pkg.tar.zst
       - name: Publish binary release
+        id: release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -112,10 +119,27 @@ jobs:
             echo 'This commit already has a release.'
             exit 0
           fi
+          cd packaging/aur/cubix-bin
           gh release create "$tag" \
-            packaging/arch/cubix-linux-x86_64.pkg.tar.zst \
-            packaging/arch/cubix-linux-x86_64.pkg.tar.zst.sha256 \
-            packaging/arch/cubix-linux-x64.tar.gz \
+            cubix-linux-x86_64.pkg.tar.zst \
+            cubix-linux-x86_64.pkg.tar.zst.sha256 \
+            cubix-linux-x64.tar.gz \
+            PKGBUILD \
+            .SRCINFO \
             --target "$GITHUB_SHA" --title "Cubix desktop ${GITHUB_SHA:0:7}" \
-            --notes 'Prebuilt Linux x86_64 desktop. Run ./update.sh to install without Rust or Bun. The Arch package replaces cubix-git and preserves application data.' \
+            --notes 'Prebuilt Linux x86_64 desktop. Install with `yay -S cubix-bin` (updated through `yay -Syu`) or run ./update.sh. The package replaces cubix-git and preserves application data.' \
             --latest
+          echo published=true >> "$GITHUB_OUTPUT"
+      - name: Publish cubix-bin to the AUR
+        if: steps.release.outputs.published == 'true' && env.AUR_SSH_PRIVATE_KEY != ''
+        shell: bash
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          # Without the AUR_SSH_PRIVATE_KEY secret, run packaging/aur/publish-bin.sh manually instead.
+          pacman -S --noconfirm --needed openssh
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
+          ssh-keyscan -t ed25519,rsa aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND='ssh -i ~/.ssh/aur -o IdentitiesOnly=yes'
+          packaging/aur/publish-bin.sh packaging/aur/cubix-bin

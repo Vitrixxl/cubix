@@ -27,17 +27,17 @@ l'exécution. Seul Linux a été validé ; macOS et Windows nécessitent leurs p
 
 ## Installer sous Linux
 
-Sur Arch Linux x86_64, depuis la racine du dépôt :
+Sur Arch Linux x86_64 :
 
 ```sh
-./update.sh
+yay -S cubix-bin
 ```
 
-Cette commande installe le dernier paquet précompilé GitHub, sans Rust ni Bun.
-Les dépendances graphiques restent nécessaires. Le paquet `cubix-bin` remplace
-l'ancien `cubix-git` et conserve les données. La compilation décrite plus haut
-concerne le développement.
-
+Le paquet est précompilé par la CI depuis les releases GitHub et suit les mises à
+jour de `yay -Syu`. Sans yay, `./update.sh` depuis la racine du dépôt installe le
+même paquet avec pacman. Les dépendances graphiques restent nécessaires. `cubix-bin`
+remplace l'ancien `cubix-git` et conserve les données. La compilation décrite plus
+haut concerne le développement.
 
 Pour une installation utilisateur sans paquet système :
 

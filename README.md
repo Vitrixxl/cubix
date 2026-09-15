@@ -6,15 +6,17 @@ API en **Rust / Axum / SQLite**. L'application web et la PWA ne sont plus prises
 
 ## Desktop
 
-Installer ou mettre à jour le binaire précompilé sur Arch Linux x86_64 :
+Sur Arch Linux x86_64, le paquet précompilé `cubix-bin` s'installe et se met à jour
+avec yay, sans compilateur :
 
 ```sh
-./update.sh
+yay -S cubix-bin      # installation
+yay -Syu              # mise à jour avec le reste du système
 ```
 
-Aucun compilateur ni compte AUR n'est nécessaire. Le script télécharge la dernière
-release GitHub, vérifie son SHA-256 puis installe le paquet `cubix-bin`.
-Les releases sont produites après validation de `main` par la CI.
+Chaque validation de `main` par la CI publie une release GitHub et met à jour le
+paquet AUR. Sans yay, `./update.sh` télécharge la dernière release, vérifie son
+SHA-256 et installe le même paquet avec pacman.
 
 Pour développer ou compiler soi-même :
 
@@ -29,15 +31,8 @@ les schémas et les polices. Bun n'est pas nécessaire sur la machine cible.
 Linux X11/Wayland avec un pilote Vulkan est la plateforme validée.
 Voir [le guide desktop](desktop/README.md) pour les dépendances et l'installation locale.
 
-Le paquet Arch `cubix-git` est préparé dans [packaging/aur](packaging/aur/README.md).
-Après publication des sources sur `main` et du paquet sur l'AUR :
-
-```sh
-yay -S cubix-git
-```
-
-Cette commande nécessite une publication AUR effective ; le PKGBUILD seul dans
-ce dépôt ne la rend pas encore disponible.
+Les recettes Arch (`cubix-bin` précompilé, `cubix-git` depuis les sources) sont
+décrites dans [packaging/aur](packaging/aur/README.md).
 
 ## Android
 

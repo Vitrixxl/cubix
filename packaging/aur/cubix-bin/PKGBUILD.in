@@ -1,18 +1,21 @@
-# Internal release packaging: consumes an already built desktop bundle.
+# Maintainer: Vitrixxl <https://github.com/Vitrixxl>
+# Rendered by packaging/aur/cubix-bin/render.sh from a GitHub desktop release.
 pkgname=cubix-bin
-pkgver=${CUBIX_PACKAGE_VERSION:-0.1.0}
+pkgver=@PKGVER@
 pkgrel=1
 pkgdesc='Native speedcubing timer, algorithm library and trainer (prebuilt)'
 arch=('x86_64')
 url='https://github.com/Vitrixxl/cubix'
+# Upstream has not declared a project-wide license; bundled licenses are installed below.
 depends=('glibc' 'gcc-libs' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'wayland' 'fontconfig' 'freetype2' 'vulkan-icd-loader')
 optdepends=('vulkan-driver: GPU rendering' 'xdg-desktop-portal: desktop integration' 'xdg-utils: open external links')
 provides=('cubix')
 conflicts=('cubix' 'cubix-git')
+# The engine embeds a Bun executable payload that stripping would corrupt.
 options=('!strip' '!debug')
-# Produced locally by CI, not fetched from a remote source.
-source=('cubix-linux-x64.tar.gz')
-sha256sums=('SKIP')
+_tag=@TAG@
+source=("cubix-linux-x64-${_tag}.tar.gz::${url}/releases/download/${_tag}/cubix-linux-x64.tar.gz")
+sha256sums=('@SHA256@')
 
 package() {
   local bundle="$srcdir/cubix-linux-x64"
