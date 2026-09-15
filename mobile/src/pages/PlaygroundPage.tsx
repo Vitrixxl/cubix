@@ -14,7 +14,7 @@ import { generatePracticeScramble } from "../lib/practiceScramble";
 import { AlgText } from "../components/AlgText";
 import { IconShuffle, IconTimer } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
-import { PracticeContent, PracticeReadout, TimerChrome, TouchArea } from "../components/Practice";
+import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { Select } from "../components/Select";
 import { SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
@@ -95,6 +95,8 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const scroll = usePreservedList<SolveDto>(`playground-times:${contextKey(context)}`);
   const bigCube = !info.cubeSize || info.cubeSize > 3;
   const scrambleSize = layout.phone ? (bigCube ? 16 : 21) : layout.short ? 19 : Math.max(22, Math.min(30, layout.width * 0.022));
+  // Phones centre the scramble, timer and stats as one group instead of pinning the timer mid-screen.
+  const grouped = layout.phone && !layout.landscape;
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
 
   return <View style={styles.page}>
@@ -107,7 +109,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           </View>
         </TimerChrome>
         <View style={[styles.stack, layout.landscape && styles.stackLandscape, { paddingHorizontal: layout.pagePadding, paddingBottom: layout.short ? layout.navSpace + actionHeight + 32 : 44 }]}>
-          <TimerChrome hidden={running} style={[styles.scramble, layout.landscape && styles.landscapeLeft]}>
+          <TimerChrome hidden={running} exit="up" style={[styles.scramble, layout.landscape && styles.landscapeLeft, grouped && styles.grouped]}>
             <PracticeContent>
             <Caption style={{ marginBottom: 8, textAlign: "center" }}>{info.label} · {scrambleLabel(context.scrambleType)}</Caption>
             {generating ? <Muted style={{ textAlign: "center" }}>Generating…</Muted> : generationError ? <View style={{ alignItems: "center", gap: 4 }}><Text style={{ color: t.danger, fontSize: 13, textAlign: "center" }}>{generationError}</Text><MiniBtn label="Retry" onPress={() => void generateNext()} /></View>
@@ -115,8 +117,8 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             </PracticeContent>
           </TimerChrome>
           <PracticeReadout landscape={layout.landscape}>
-          <View style={[styles.timerSlot]}><TimerSurface timer={timer} fontSize={timerSize} short={layout.short} /></View>
-          <TimerChrome hidden={running} style={[styles.stats, layout.landscape && { flex: 0 }, { gap: layout.phone ? 14 : Math.max(16, Math.min(layout.width * 0.035, 40)) }]}>
+          <TimerSlot running={running} style={styles.timerSlot}><TimerSurface timer={timer} fontSize={timerSize} short={layout.short} /></TimerSlot>
+          <TimerChrome hidden={running} exit="down" style={[styles.stats, (layout.landscape || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : Math.max(16, Math.min(layout.width * 0.035, 40)) }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Mean" value={fmtTime(mean(times))} valueSize={layout.phone ? 18 : 22} />
@@ -125,7 +127,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           </TimerChrome>
           </PracticeReadout>
         </View>
-        <TimerChrome hidden={running} style={[styles.bottomActions, { bottom: layout.navSpace + 20, paddingHorizontal: layout.pagePadding }]}>
+        <TimerChrome hidden={running} exit="down" style={[styles.bottomActions, { bottom: layout.navSpace + 20, paddingHorizontal: layout.pagePadding }]}>
           <View onLayout={event => setActionHeight(event.nativeEvent.layout.height)} style={styles.bottomActionRow}>
             <Select value={context.scrambleType} disabled={busy || !!timer.saveError} flat="toolbar" accessibilityLabel="Scramble type" options={info.scrambles.map(type => ({ value: type, label: scrambleLabel(type) }))} onChange={value => setScrambleType(value as ScrambleType)} />
             <Select value={context.solveMode} disabled={busy || !!timer.saveError} flat="toolbar" accessibilityLabel="Solve mode" options={SOLVE_MODES.map(mode => ({ value: mode.id, label: mode.label }))} onChange={value => setSolveMode(value as SolveMode)} />
@@ -168,6 +170,8 @@ export const styles = StyleSheet.create({
   stack: { flex: 1, alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 720, alignSelf: "center", paddingVertical: 44 },
   stackLandscape: { flexDirection: "row", maxWidth: 850, paddingTop: 44, paddingBottom: 72, columnGap: 20 },
   scramble: { width: "100%", maxWidth: 680, flex: 1, justifyContent: "flex-end", alignItems: "center" },
+  /** Phone portrait: the block takes its content height and only shrinks when the screen is too small. */
+  grouped: { flex: 0, flexShrink: 1, minHeight: 0 },
   timerSlot: { width: "100%", alignItems: "center" },
   stats: { flexDirection: "row", justifyContent: "center", width: "100%", maxWidth: 560, flex: 1, alignItems: "flex-start" },
   landscapeLeft: { width: "48%", flex: undefined, height: "100%", justifyContent: "center" },

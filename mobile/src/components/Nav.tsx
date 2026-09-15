@@ -1,8 +1,9 @@
-import { memo, useEffect, useRef } from "react";
+import { memo } from "react";
 import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Page } from "../state";
+import { useExit } from "../hooks/useExit";
 import { useTheme } from "../theme";
 import { IconBook, IconSettings, IconTimer, IconTraining, IconUser, type Icon } from "./icons";
 
@@ -29,14 +30,13 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const fullWidth = phone || height <= 500;
-  const opacity = useRef(new Animated.Value(1)).current;
-  useEffect(() => { Animated.timing(opacity, { toValue: hidden ? 0 : 1, duration: 250, useNativeDriver: true }).start(); }, [hidden, opacity]);
+  const { ref, transform } = useExit(hidden, "down");
   if (collapsed) return null;
   const items = [...NAV, { page: "settings" as const, label: "Settings", icon: IconSettings }];
-  return <Animated.View pointerEvents={hidden ? "none" : "auto"} style={[styles.nav, fullWidth
+  return <Animated.View ref={ref} pointerEvents={hidden ? "none" : "auto"} style={[styles.nav, fullWidth
     ? [styles.bar, { paddingBottom: insets.bottom + 4, marginLeft: insets.left + NAV_SIDE_GAP, marginRight: insets.right + NAV_SIDE_GAP, borderColor: t.line }]
     : [styles.island, { bottom: insets.bottom + 10, borderColor: t.line }],
-    { opacity, backgroundColor: t.surface }]}>
+    { transform, backgroundColor: t.surface }]}>
     {items.map(({ page, label, icon: Icon }) => {
       const current = page === "settings" ? settingsOpen : !settingsOpen && active === page;
       return <Pressable key={page} accessibilityRole={page === "settings" ? "button" : "tab"}

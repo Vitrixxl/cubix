@@ -1,13 +1,19 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Animated, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { useCentre, useExit, type ExitDirection } from "../hooks/useExit";
 import type { TimerApi } from "../hooks/useTimer";
 import { responder } from "./TimerSurface";
 
-/** `[data-timer-chrome]`: fades out while the timer runs. */
-export function TimerChrome({ hidden, children, style, pointerEvents = "box-none" }: { hidden: boolean; children: ReactNode; style?: StyleProp<ViewStyle>; pointerEvents?: "box-none" | "auto" }) {
-  const opacity = useRef(new Animated.Value(hidden ? 0 : 1)).current;
-  useEffect(() => { Animated.timing(opacity, { toValue: hidden ? 0 : 1, duration: 250, useNativeDriver: true }).start(); }, [hidden, opacity]);
-  return <Animated.View pointerEvents={hidden ? "none" : pointerEvents} style={[style, { opacity }]}>{children}</Animated.View>;
+/** `[data-timer-chrome]`: slides off screen toward `exit` while the timer runs, like the desktop page. */
+export function TimerChrome({ hidden, exit = "up", children, style, pointerEvents = "box-none" }: { hidden: boolean; exit?: ExitDirection; children: ReactNode; style?: StyleProp<ViewStyle>; pointerEvents?: "box-none" | "auto" }) {
+  const { ref, transform } = useExit(hidden, exit);
+  return <Animated.View ref={ref} pointerEvents={hidden ? "none" : pointerEvents} style={[style, { transform }]}>{children}</Animated.View>;
+}
+
+/** Holds the timer: while it runs, the slot glides to the centre of the screen and returns afterwards. */
+export function TimerSlot({ running, children, style }: { running: boolean; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { ref, transform } = useCentre(running);
+  return <Animated.View ref={ref} style={[style, { transform }]}>{children}</Animated.View>;
 }
 
 /**
@@ -31,7 +37,8 @@ export function PracticeContent({ children, revealEnd = false }: { children: Rea
     const frame = requestAnimationFrame(() => viewport.current?.scrollToEnd({ animated: true }));
     return () => cancelAnimationFrame(frame);
   }, [revealEnd]);
-  return <ScrollView ref={viewport} style={{ flex: 1, width: "100%" }} contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+  // Basis "auto" sizes the viewport to its content when the block is not flexible (grouped phone layout).
+  return <ScrollView ref={viewport} style={{ flexGrow: 1, flexShrink: 1, flexBasis: "auto", minHeight: 0, width: "100%" }} contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }} nestedScrollEnabled keyboardShouldPersistTaps="handled"
     onContentSizeChange={() => { if (revealEnd) viewport.current?.scrollToEnd({ animated: true }); }}>
     <View style={{ width: "100%", alignItems: "center" }} onStartShouldSetResponder={() => true} onResponderTerminationRequest={() => true}>{children}</View>
   </ScrollView>;

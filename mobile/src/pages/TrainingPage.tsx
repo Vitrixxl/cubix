@@ -18,7 +18,7 @@ import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
 import { IconBack, IconEye, IconGrid, IconShuffle, IconSkip, IconTimer, IconUndo } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
-import { PracticeContent, PracticeReadout, TimerChrome, TouchArea } from "../components/Practice";
+import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { SolveRow } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
@@ -116,6 +116,7 @@ function TrainingSession() {
   };
   const nextCase = () => { if (!busy) { pick(selectedCases); timer.reset(); } };
   const times = solves.map(solve => effective(solve.time_ms, solve.penalty));
+  const grouped = layout.phone && !layout.landscape;
   const cubeSize = layout.landscape ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
   const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
@@ -133,7 +134,7 @@ function TrainingSession() {
           <View style={[base.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}>{!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer size={15} color={iconColor} />} disabled={busy} onPress={() => setShowTimes(true)} phone={layout.phone} />}</View>
         </TimerChrome>
         <View style={[base.stack, layout.landscape && base.stackLandscape, layout.phone && !layout.landscape && { paddingTop: 52, paddingBottom: 88 }, { paddingHorizontal: layout.pagePadding }]}>
-          {current ? <TimerChrome hidden={running} style={[styles.trainingCase, layout.landscape && base.landscapeLeft]}>
+          {current ? <TimerChrome hidden={running} exit="up" style={[styles.trainingCase, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <PracticeContent revealEnd={revealed}>
             <View style={styles.heading}>
               <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, { marginRight: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.readableMuted} /></Pressable>
@@ -151,14 +152,14 @@ function TrainingSession() {
             {primary && revealed && <View style={[styles.solution, { borderTopColor: t.line }]}><Caption style={{ marginBottom: 8 }}>Solution</Caption><AlgText alg={shownAlgorithm} size={layout.phone ? 15 : 18} style={{ textAlign: "center" }} /></View>}
             {primary && <Pressable disabled={busy} onPress={() => setRevealed(v => !v)} style={({ pressed }) => [styles.reveal, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconEye size={14} color={t.readableMuted} /><Text style={{ color: t.readableMuted, fontSize: 13, fontWeight: "600" }}>{revealed ? "Hide solution" : "Show solution"}</Text></Pressable>}
             </PracticeContent>
-          </TimerChrome> : <TimerChrome hidden={running} style={[styles.empty, layout.landscape && base.landscapeLeft]}>
+          </TimerChrome> : <TimerChrome hidden={running} exit="up" style={[styles.empty, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <IconGrid size={34} color={t.accent} />
             <Text style={{ color: t.text, fontSize: 22, fontWeight: "700", marginTop: 10 }}>Choose your cases</Text>
             <Muted style={{ marginTop: 6, textAlign: "center" }}>Open Cases and select the algorithms to practise.</Muted>
           </TimerChrome>}
           <PracticeReadout landscape={layout.landscape}>
-          <View style={[base.timerSlot]}><TimerSurface timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} /></View>
-          <TimerChrome hidden={running} style={[base.stats, (layout.landscape || layout.short) && { flex: 0 }, { gap: layout.phone ? 14 : 40 }]}>
+          <TimerSlot running={running} style={base.timerSlot}><TimerSurface timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} /></TimerSlot>
+          <TimerChrome hidden={running} exit="down" style={[base.stats, (layout.landscape || layout.short || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : 40 }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Mean" value={fmtTime(mean(times))} valueSize={layout.phone ? 18 : 22} />
