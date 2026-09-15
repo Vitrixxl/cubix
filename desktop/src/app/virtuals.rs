@@ -310,40 +310,64 @@ impl Cubix {
                         if solve["penalty"] == "+2" { "+" } else { "" }
                     )
                 };
+                let guest = self.guest();
                 row()
+                    .w_full()
                     .h(px(46.))
                     .gap(px(8.))
                     .child(
                         txt(model["index"].to_string(), 11.)
-                            .w(px(20.))
+                            .flex_none()
+                            .min_w(px(26.))
+                            .whitespace_nowrap()
+                            .font_family("Geist Mono")
                             .text_color(t.muted),
                     )
                     .child(
                         self.btn(format!("solve:{id}"), value, false, cx)
                             .px_0()
                             .font_family("Geist Mono")
+                            .whitespace_nowrap()
                             .text_color(t.text)
                             .flex_1(),
                     )
                     .child(
-                        self.btn(
-                            format!("penalty:{id}:+2"),
-                            "+2",
-                            solve["penalty"] == "+2",
-                            cx,
-                        )
-                        .px(px(5.))
-                        .text_size(px(12.)),
-                    )
-                    .child(
-                        self.btn(
-                            format!("penalty:{id}:dnf"),
-                            "DNF",
-                            solve["penalty"] == "dnf",
-                            cx,
-                        )
-                        .px(px(5.))
-                        .text_size(px(12.)),
+                        row()
+                            .flex_none()
+                            .gap(px(2.))
+                            .child(
+                                self.btn(
+                                    format!("penalty:{id}:+2"),
+                                    "+2",
+                                    solve["penalty"] == "+2",
+                                    cx,
+                                )
+                                .px(px(5.))
+                                .text_size(px(12.)),
+                            )
+                            .child(
+                                self.btn(
+                                    format!("penalty:{id}:dnf"),
+                                    "DNF",
+                                    solve["penalty"] == "dnf",
+                                    cx,
+                                )
+                                .px(px(5.))
+                                .text_size(px(12.)),
+                            )
+                            .when(!guest, |r| {
+                                r.child(
+                                    self.btn(format!("share:{id}"), "", false, cx)
+                                        .px(px(5.))
+                                        .child(icon("IconShare", 14.)),
+                                )
+                            })
+                            .child(
+                                self.btn(format!("delete:{id}"), "", false, cx)
+                                    .px(px(5.))
+                                    .hover(move |s| s.bg(t.hover).text_color(t.danger))
+                                    .child(icon("IconTrash", 14.)),
+                            ),
                     )
             }
             _ => div(),

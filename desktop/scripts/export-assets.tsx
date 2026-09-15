@@ -19,7 +19,7 @@ for(const [index,c] of cases.entries()){
 }
 for(const [name,Icon] of Object.entries(icons)) await Bun.write(`desktop/assets/icons/${name}.svg`,svgDocument(renderToStaticMarkup(createElement(Icon)).replaceAll('currentColor','#ffffff')));
 // Native control icons use the same 24px stroke geometry as the shared icons.
-for (const [name,path] of Object.entries({IconChevronDown:'M6 9l6 6 6-6',IconChevronRight:'M9 6l6 6-6 6',IconPlus:'M12 6v12M6 12h12'})) {
+for (const [name,path] of Object.entries({IconChevronDown:'M6 9l6 6 6-6',IconChevronRight:'M9 6l6 6-6 6',IconPlus:'M12 6v12M6 12h12',IconShare:'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',IconTrash:'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6'})) {
  await Bun.write(`desktop/assets/icons/${name}.svg`, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`);
 }
 await Bun.write('desktop/assets/catalog.json',JSON.stringify({cases:catalog,sets,puzzles}));
