@@ -1,12 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { PUZZLES } from "../../../src/shared/puzzles";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_VERSION, latestReleaseAtom, useReleaseCheck } from "../release";
 import { colorModeAtom, cubeSwitchLockedAtom, puzzleAtom, routeAtom, themeAtom, type ThemeId } from "../state";
 import { useTheme } from "../theme";
 import { PuzzleIcon } from "./PuzzlePicker";
-import { Sheet } from "./Sheet";
+import { Sheet, SheetScrollView } from "./Sheet";
 import { Btn, Segmented } from "./ui";
 
 const THEMES: { id: ThemeId; name: string; color: string }[] = [
@@ -55,8 +55,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [puzzle, setPuzzle] = useAtom(puzzleAtom);
   const locked = useAtomValue(cubeSwitchLockedAtom);
   useReleaseCheck(open);
-  return <Sheet open={open} onClose={onClose} title="Settings" tall>
-    <ScrollView contentContainerStyle={{ gap: 22, paddingTop: 12, paddingBottom: 16 }}>
+  return <Sheet open={open} onClose={onClose} title="Settings">
+    <SheetScrollView contentContainerStyle={{ gap: 22, paddingTop: 12, paddingBottom: 16 }}>
       <View style={{ gap: 12 }}>
         <Text style={[styles.label, { color: t.text }]}>Puzzle</Text>
         <View style={styles.puzzles} accessibilityLabel="Puzzle selection">
@@ -68,7 +68,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </View>
       </View>
       <AppearanceSettings onNavigate={onClose} />
-    </ScrollView>
+    </SheetScrollView>
   </Sheet>;
 }
 
