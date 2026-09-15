@@ -10,6 +10,7 @@ import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
+import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { AlgText } from "../components/AlgText";
 import { IconShuffle, IconTimer } from "../components/icons";
@@ -44,7 +45,6 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
   useEffect(() => { if (deletedSolveId !== null) setSolves(list => list.filter(solve => solve.id !== deletedSolveId)); }, [deletedSolveId]);
   const wide = layout.wide;
-  const session = useRef<number | null>(null);
 
   const generateNext = useCallback(async () => {
     const id = ++request.current;
@@ -60,17 +60,19 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   }, [context, setScramble]);
   useEffect(() => {
     let active = true;
-    const refresh = () => { void api.solves("playground", 1000, context.puzzle, context).then(list => { if (active) setSolves([...list].reverse()); }); };
+    // Only this launch's session is listed (see lib/launchSession); every solve still syncs to the profile.
+    const refresh = () => {
+      const session = launchSessionId("playground", context);
+      if (session === null) { setSolves([]); return; }
+      void api.solves("playground", 1000, context.puzzle, context).then(list => { if (active) setSolves(list.filter(s => s.session_id === session).reverse()); });
+    };
     refresh();
     const unsubscribe = localChanged.on(refresh);
     if (!scramble) void generateNext();
     return () => { active = false; request.current++; unsubscribe(); };
   }, []);
 
-  const ensureSession = async () => {
-    if (session.current === null) session.current = (await api.createSession("playground", [], context.puzzle, context)).id;
-    return session.current;
-  };
+  const ensureSession = () => ensureLaunchSession("playground", context);
   const onStop = useCallback(async (ms: number) => {
     setSaving(true);
     try {

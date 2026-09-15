@@ -56,6 +56,12 @@ mode `standard`, type `random-moves` pour le Playground ou `case` pour l’entra
 Les API acceptent `puzzle`, `solveMode` et `scrambleType` dans les filtres et les créations.
 Par exemple : `?puzzle=333&solveMode=one-handed&scrambleType=2gen-ru`.
 Un temps hérite du contexte de sa session et les contextes incompatibles sont rejetés.
+
+Les sessions appartiennent au lancement de l’application : chaque démarrage du client PC ou
+mobile ouvre sa propre session par contexte (créée au premier temps), jamais reprise d’un
+lancement précédent ni d’un autre appareil. Le panneau des temps et les statistiques de la page
+ne montrent que cette session ; les temps sont tout de même synchronisés et comptent dans le
+profil, où l’historique reste global.
 Le paramètre historique `cubeSize` reste accepté. Les identifiants et compatibilités sont définis
 dans `../data/puzzles.json`, partagé avec Rust.
 Le build distribue cubing.js et ses workers dans le dossier `vendor/cubing/` du paquet, sans dépendre d’un CDN.

@@ -75,7 +75,6 @@ async function handle(req:any){
      solves:local.api.solves(trainingMode?'training':'playground',1000,context.puzzle,context),
      stats:local.api.stats(context.puzzle,filter),
    };
-   if(trainingMode)jobs.session=local.api.latestSession('training',context.puzzle,context);
    if(q.page==='profile')jobs.profile=local.api.profile(q.username,undefined,q.profilePuzzle,q.profileFilter);
    if(q.caseId)jobs.caseHistory=local.api.caseHistory(q.caseId,filter);
    if(!local.current().isGuest&&['community','messages','profile'].includes(q.page)){

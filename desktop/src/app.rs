@@ -337,6 +337,14 @@ impl Cubix {
     fn context(&self) -> Value {
         json!({"puzzle":self.puzzle,"solveMode":self.solve_mode,"scrambleType":if self.page=="training"{"case"}else{&self.scramble_type}})
     }
+    /// Each launch practises in its own session per context: the times panel and the stats only
+    /// show solves recorded since the application started, while every solve still synchronizes
+    /// to the account and counts in the profile. Nothing is restored from earlier launches.
+    fn keep_launch_session(&mut self) {
+        let id = self.sessions.get(&self.context_key()).copied();
+        self.solves
+            .retain(|v| id.is_some_and(|id| v["session_id"] == id));
+    }
     fn context_key(&self) -> String {
         format!(
             "{}:{}:{}:{}",
@@ -550,14 +558,7 @@ impl Cubix {
                         .filter_map(|v| v.as_str().map(str::to_owned))
                         .collect();
                 }
-                if self.page == "training" {
-                    if let Some(id) = value["session"]["id"].as_i64() {
-                        self.sessions.entry(self.context_key()).or_insert(id);
-                    }
-                    let id = self.sessions.get(&self.context_key());
-                    self.solves
-                        .retain(|v| id.is_some_and(|id| v["session_id"] == *id));
-                }
+                self.keep_launch_session();
                 self.solves.reverse();
                 self.stats = list(&value["stats"]);
                 if let Some(v) = value.get("profile") {
@@ -649,18 +650,9 @@ impl Cubix {
                 }
                 self.next_case();
             }
-            "sessionRestore" => {
-                if let Some(id) = value["id"].as_i64() {
-                    self.sessions.entry(self.context_key()).or_insert(id);
-                }
-            }
             "solves" => {
                 self.solves = list(&value);
-                if self.page == "training" {
-                    let id = self.sessions.get(&self.context_key());
-                    self.solves
-                        .retain(|v| id.is_some_and(|id| v["session_id"] == *id));
-                }
+                self.keep_launch_session();
                 self.solves.reverse();
             }
             "stats" => self.stats = list(&value),

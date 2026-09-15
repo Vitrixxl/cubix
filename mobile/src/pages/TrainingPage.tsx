@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
 import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from "../../../src/shared/cube";
-import { puzzleInfo } from "../../../src/shared/puzzles";
+import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
 import type { CaseDto, SolveDto } from "../../../src/shared/types";
 import { api, localChanged } from "../api";
 import { casesAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, puzzleAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, solveModeAtom, statsVersionAtom } from "../state";
@@ -13,6 +13,7 @@ import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { executableAlg, maskForStage, shortId } from "../lib/caseState";
+import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
 import { AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
@@ -58,18 +59,18 @@ function TrainingSession() {
   const [showSelector, setShowSelector] = useState(wide);
   const [showTimes, setShowTimes] = useState(wide);
   useEffect(() => { setShowSelector(wide); setShowTimes(wide); }, [wide]);
-  const session = useRef<number | null>(null);
+  // The session belongs to this launch; the panel only lists its solves (see lib/launchSession).
+  const context: PracticeContext = { puzzle, solveMode, scrambleType: "case" };
   useEffect(() => {
     let active = true;
-    const restore = async () => {
-      const latest = await api.latestSession("training", puzzle, { solveMode, scrambleType: "case" });
-      if (!active || !latest) return;
-      if (session.current === null) session.current = latest.id;
+    const refresh = async () => {
+      const session = launchSessionId("training", context);
+      if (session === null) { if (active) setSolves([]); return; }
       const rows = await api.solves("training", 1000, puzzle, { solveMode, scrambleType: "case" });
-      if (active) setSolves(rows.filter(s => s.session_id === session.current).reverse());
+      if (active) setSolves(rows.filter(s => s.session_id === session).reverse());
     };
-    void restore();
-    const unsubscribe = localChanged.on(() => void restore());
+    void refresh();
+    const unsubscribe = localChanged.on(() => void refresh());
     return () => { active = false; unsubscribe(); };
   }, []);
 
@@ -80,10 +81,7 @@ function TrainingSession() {
   useEffect(() => { if (!current || !selected.includes(current.c.id)) pick(selectedCases); }, [selectedCases, pick]);
   useEffect(() => { if (route.page === "training" && route.autostart) setRoute({ page: "training" }); }, []);
 
-  const ensureSession = async () => {
-    if (session.current === null) session.current = (await api.createSession("training", selected, puzzle, { solveMode, scrambleType: "case" })).id;
-    return session.current;
-  };
+  const ensureSession = () => ensureLaunchSession("training", context, selected);
   const onStop = useCallback(async (ms: number) => {
     if (!current) return;
     setSaving(true);
