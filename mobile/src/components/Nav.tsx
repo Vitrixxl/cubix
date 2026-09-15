@@ -13,10 +13,17 @@ export const NAV: { page: Page; label: string; icon: Icon }[] = [
   { page: "profile", label: "Account", icon: IconUser },
 ];
 
-/** Stable icon-only tabs, with settings separate from navigation history. */
-export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsOpen, chatActivity, hidden, phone }: {
+/** Side gap of the phone bar, so its rounded top corners show against the page. */
+export const NAV_SIDE_GAP = 6;
+
+/**
+ * Stable icon-only tabs, with settings separate from navigation history.
+ * Phones get a full-width bar in the layout flow, under the page content; larger screens keep
+ * the floating island above the content.
+ */
+export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsOpen, chatActivity, hidden, collapsed, phone }: {
   active: Page; onNavigate: (page: Page) => void; onSettings: () => void; settingsOpen: boolean;
-  chatActivity: boolean; hidden: boolean; phone: boolean;
+  chatActivity: boolean; hidden: boolean; collapsed?: boolean; phone: boolean;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -24,10 +31,11 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
   const fullWidth = phone || height <= 500;
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => { Animated.timing(opacity, { toValue: hidden ? 0 : 1, duration: 250, useNativeDriver: true }).start(); }, [hidden, opacity]);
+  if (collapsed) return null;
   const items = [...NAV, { page: "settings" as const, label: "Settings", icon: IconSettings }];
   return <Animated.View pointerEvents={hidden ? "none" : "auto"} style={[styles.nav, fullWidth
-    ? { bottom: 0, paddingBottom: insets.bottom + 6, paddingLeft: insets.left + 8, paddingRight: insets.right + 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }
-    : { bottom: insets.bottom + 10, alignSelf: "center", width: 360, borderRadius: 22, padding: 6, borderWidth: 1, borderColor: t.line },
+    ? [styles.bar, { paddingBottom: insets.bottom + 4, marginLeft: insets.left + NAV_SIDE_GAP, marginRight: insets.right + NAV_SIDE_GAP, borderColor: t.line }]
+    : [styles.island, { bottom: insets.bottom + 10, borderColor: t.line }],
     { opacity, backgroundColor: t.surface }]}>
     {items.map(({ page, label, icon: Icon }) => {
       const current = page === "settings" ? settingsOpen : !settingsOpen && active === page;
@@ -46,7 +54,11 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
 });
 
 const styles = StyleSheet.create({
-  nav: { position: "absolute", width: "100%", flexDirection: "row", alignItems: "center", paddingTop: 6, zIndex: 40 },
+  nav: { flexDirection: "row", alignItems: "center", paddingTop: 6, zIndex: 40 },
+  /** Phone: sits in the layout flow under the content, rounded on top, a sliver of page on each side. */
+  bar: { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderBottomWidth: 0, paddingHorizontal: 4 },
+  /** Larger screens: floating island above the content. */
+  island: { position: "absolute", alignSelf: "center", width: 360, borderRadius: 22, padding: 6, borderWidth: 1 },
   item: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center" },
   icon: { width: 48, height: 44, borderRadius: 15, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   dot: { position: "absolute", top: 5, right: 6, width: 6, height: 6, borderRadius: 3 },

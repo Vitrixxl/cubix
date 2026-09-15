@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SyncStatus } from "../../../src/client/local/client";
 import { local, syncStatusChanged } from "../api";
 import { useTheme } from "../theme";
@@ -8,16 +7,16 @@ import { Sheet } from "./Sheet";
 import { Muted } from "./ui";
 const AccountForm = lazy(() => import("../pages/AccountPage").then(m => ({ default: m.AccountForm })));
 
-export function SyncIndicator({ hidden }: { hidden: boolean }) {
+/** `offset`: distance from the window bottom, clearing the navigation bar. */
+export function SyncIndicator({ hidden, offset }: { hidden: boolean; offset: number }) {
   const t = useTheme();
-  const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<SyncStatus>(local.status);
   const [signIn, setSignIn] = useState(false);
   useEffect(() => syncStatusChanged.on(status => { setStatus(status); if (status.state === "synced" || status.state === "syncing") setSignIn(false); }), []);
   if (hidden || (status.state !== "error" && status.state !== "signin")) return null;
   const label = status.state === "signin" ? "Sign in again" : "Couldn't save · Retry";
   return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => status.state === "signin" ? setSignIn(true) : void local.retry()} style={[styles.indicator, { bottom: 84 + insets.bottom, backgroundColor: t.danger }, t.shadow]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => status.state === "signin" ? setSignIn(true) : void local.retry()} style={[styles.indicator, { bottom: offset, backgroundColor: t.danger }, t.shadow]}>
       <View style={styles.badge}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>!</Text></View>
       <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>{label}</Text>
     </Pressable>

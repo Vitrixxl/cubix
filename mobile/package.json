@@ -13,6 +13,7 @@
     "apk": "bun scripts/build-apk.ts",
     "postinstall": "bun scripts/build-scrambler.ts && bun scripts/build-cases.ts",
     "pc": "bun scripts/run-android.ts",
+    "serve:apk": "bun scripts/serve-apk.ts",
     "doctor": "bunx expo-doctor",
     "test": "bun test tests",
     "test:scrambler": "bun run build:scrambler && bun scripts/test-scrambler.ts"

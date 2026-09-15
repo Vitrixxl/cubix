@@ -57,7 +57,7 @@ function Boot() {
 
 function Shell() {
   const insets = useSafeAreaInsets();
-  const { phone } = useLayout();
+  const { phone, navInFlow, insets: safe } = useLayout();
   const running = useAtomValue(timerRunningAtom);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useAtom(keyboardVisibleAtom);
@@ -109,9 +109,9 @@ function Shell() {
       </Suspense>
     </View>
     </KeyboardAvoidingView>
+    <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} chatActivity={chatActivity} hidden={running || keyboardVisible} collapsed={navInFlow && keyboardVisible} phone={phone} />
     <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-    <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} chatActivity={chatActivity} hidden={running || keyboardVisible} phone={phone} />
-    <SyncIndicator hidden={running} />
+    <SyncIndicator hidden={running} offset={navInFlow ? 74 + safe.bottom : 84 + safe.bottom} />
   </SolveMenuProvider>;
 }
 

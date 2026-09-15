@@ -100,6 +100,7 @@ bun run apk --debug               # APK debug ; nécessite Metro
 bun run start                     # Metro pour le debug
 bun run pc --build                # rebuild release puis lancement
 bun run pc --headless             # émulateur sans fenêtre, pour les tests
+bun run serve:apk                 # sert build/cubix-release-arm64.apk sur le réseau local (port 8790)
 ```
 
 Le build régénère les sources et, lorsque la configuration native change, le projet
@@ -124,8 +125,9 @@ l’émulateur Android, l’adresse de l’hôte est `http://10.0.2.2:PORT`.
 - Compte, fusion des temps invités, synchronisation différée, profils, amis,
   messagerie en direct et partage des temps.
 - Thèmes clair/sombre et six accents, guides natifs disponibles sans le site web.
-- Navigation mobile sur toute la largeur : icônes Timer, Algorithms, Training,
-  Account et Settings. Account regroupe Profile, Friends et Messages ; Settings
+- Navigation mobile : barre en bas du layout (pas superposée au contenu), coins
+  supérieurs arrondis et fine marge latérale ; icônes Timer, Algorithms, Training,
+  Account et Settings. Elle disparaît quand le clavier est ouvert. Account regroupe Profile, Friends et Messages ; Settings
   ouvre le choix du puzzle, le thème, l’accent et l’aide.
 - Écrans limités à la hauteur de la fenêtre ; listes et fiches ont leur propre zone
   de défilement. Panneaux adaptés au format de l’écran.
