@@ -17,9 +17,9 @@ else
   esac
   case "$tag" in ''|*[!a-zA-Z0-9._-]*) printf '%s\n' 'Invalid release tag.' >&2; exit 1 ;; esac
   mkdir "$work/release"
-  for name in PKGBUILD .SRCINFO; do
-    curl --fail --silent --show-error --location --retry 3 --output "$work/release/$name" "$repo/releases/download/$tag/$name"
-  done
+  # The release stores .SRCINFO as SRCINFO because GitHub asset names cannot start with a dot.
+  curl --fail --silent --show-error --location --retry 3 --output "$work/release/PKGBUILD" "$repo/releases/download/$tag/PKGBUILD"
+  curl --fail --silent --show-error --location --retry 3 --output "$work/release/.SRCINFO" "$repo/releases/download/$tag/SRCINFO"
   source=$work/release
 fi
 grep -q '^pkgname=cubix-bin$' "$source/PKGBUILD" || { printf '%s\n' 'Not a cubix-bin PKGBUILD.' >&2; exit 1; }

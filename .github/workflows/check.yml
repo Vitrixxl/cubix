@@ -97,6 +97,8 @@ jobs:
           chown -R builder:builder .
           runuser -u builder -- makepkg --nodeps --force
           runuser -u builder -- makepkg --printsrcinfo > .SRCINFO
+          # GitHub asset names cannot start with a dot; publish-bin.sh restores the name.
+          cp .SRCINFO SRCINFO
           cp cubix-bin-*.pkg.tar.zst cubix-linux-x86_64.pkg.tar.zst
           cp "cubix-linux-x64-$tag.tar.gz" cubix-linux-x64.tar.gz
           sha256sum cubix-linux-x86_64.pkg.tar.zst > cubix-linux-x86_64.pkg.tar.zst.sha256
@@ -125,7 +127,7 @@ jobs:
             cubix-linux-x86_64.pkg.tar.zst.sha256 \
             cubix-linux-x64.tar.gz \
             PKGBUILD \
-            .SRCINFO \
+            SRCINFO \
             --target "$GITHUB_SHA" --title "Cubix desktop ${GITHUB_SHA:0:7}" \
             --notes 'Prebuilt Linux x86_64 desktop. Install with `yay -S cubix-bin` (updated through `yay -Syu`) or run ./update.sh. The package replaces cubix-git and preserves application data.' \
             --latest
