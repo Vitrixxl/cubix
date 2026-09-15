@@ -10,6 +10,7 @@
   "include": [
     "index.ts",
     "App.tsx",
+    "app.config.ts",
     "src/**/*",
     "scripts/**/*",
     "../src/shared/**/*",

@@ -1,6 +1,8 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PUZZLES } from "../../../src/shared/puzzles";
+import { updateAvailable } from "../lib/release";
+import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_VERSION, latestReleaseAtom, useReleaseCheck } from "../release";
 import { colorModeAtom, cubeSwitchLockedAtom, puzzleAtom, routeAtom, themeAtom, type ThemeId } from "../state";
 import { useTheme } from "../theme";
 import { PuzzleIcon } from "./PuzzlePicker";
@@ -31,13 +33,28 @@ export function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } =
       </View>
     </Row>
     <Row label="Help"><Btn small label="Open the guides" onPress={() => { onNavigate?.(); navigate({ page: "guides" }); }} /></Row>
+    <VersionRow />
   </View>;
+}
+
+/** Shows the installed build and, once the server announces a newer one, the download button. */
+function VersionRow() {
+  const t = useTheme();
+  const latest = useAtomValue(latestReleaseAtom);
+  const outdated = updateAvailable(APP_BUILD, latest);
+  return <Row label="Version">
+    <View style={styles.version}>
+      <Text style={{ color: t.text2, fontSize: 13 }} accessibilityLabel="Installed version">{APP_VERSION}{APP_COMMIT ? ` · ${APP_COMMIT}` : ""}</Text>
+      {outdated && <Btn small variant="primary" label="Download update" accessibilityHint={`Build ${latest?.commit?.slice(0, 7)}`} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)} />}
+    </View>
+  </Row>;
 }
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTheme();
   const [puzzle, setPuzzle] = useAtom(puzzleAtom);
   const locked = useAtomValue(cubeSwitchLockedAtom);
+  useReleaseCheck(open);
   return <Sheet open={open} onClose={onClose} title="Settings" tall>
     <ScrollView contentContainerStyle={{ gap: 22, paddingTop: 12, paddingBottom: 16 }}>
       <View style={{ gap: 12 }}>
@@ -66,5 +83,6 @@ const styles = StyleSheet.create({
   puzzle: { width: "31%", flexGrow: 1, minHeight: 64, maxWidth: "34%", flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, borderRadius: 14, borderWidth: 1 },
   label: { fontSize: 14, fontWeight: "600" },
   swatches: { flexDirection: "row", gap: 8 },
+  version: { flexDirection: "row", alignItems: "center", gap: 12 },
   swatch: { width: 26, height: 26, borderRadius: 13 },
 });

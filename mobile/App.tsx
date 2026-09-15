@@ -14,6 +14,7 @@ import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { useLayout } from "./src/hooks/useLayout";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
+import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
 import { chatActivityAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
 import { buildTheme, ThemeContext, useTheme } from "./src/theme";
@@ -77,6 +78,7 @@ function Shell() {
     const retry = setInterval(reconnect, 30000);
     return () => { unsubscribe(); appState.remove(); clearInterval(retry); };
   }, [setUser, bumpStats]);
+  useReleaseCheck(true);
   const [route, setRoute] = useAtom(routeAtom);
   const goBack = useSetAtom(goBackAtom);
   const [chatActivity, setChatActivity] = useAtom(chatActivityAtom);

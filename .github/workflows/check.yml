@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -27,6 +29,11 @@ jobs:
           curl --fail http://localhost:3000/api/health
           curl --fail http://localhost:3000/api/cases > /tmp/cases.json
           node --input-type=module -e "import {readFileSync} from 'node:fs'; if(JSON.parse(readFileSync('/tmp/cases.json','utf8')).length !== 228) process.exit(1)"
+          # The image derives the mobile build number from the checkout's commit date.
+          curl --fail http://localhost:3000/api/mobile/release > /tmp/release.json
+          cat /tmp/release.json
+          test "$(node -p "JSON.parse(require('fs').readFileSync('/tmp/release.json','utf8')).build")" = "$(( $(git log -1 --format=%ct) / 60 ))"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/mobile/apk)" = 307
           for path in / /index.html /aaaaadmin /pwa/icon-192.png /sw.js; do
             test "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")" = 404
           done
@@ -62,8 +69,57 @@ jobs:
         with:
           name: cubix-linux-x64
           path: artifacts/cubix-linux-x64.tar.gz
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile
+        working-directory: mobile
+      - name: Prepare the release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # Without the secrets the APK keeps the generated debug key, like local builds.
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo 'No ANDROID_KEYSTORE_BASE64 secret: signing with the debug key.'
+            exit 0
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/cubix.keystore"
+          {
+            echo "CUBIX_ANDROID_KEYSTORE=$RUNNER_TEMP/cubix.keystore"
+            echo "CUBIX_ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "CUBIX_ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "CUBIX_ANDROID_KEY_PASSWORD=${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+          } >> "$GITHUB_ENV"
+      - name: Build the ARM64 release APK
+        working-directory: mobile
+        run: |
+          # Same build number as the Docker image: commit time in minutes.
+          export CUBIX_BUILD_NUMBER=$(( $(git log -1 --format=%ct) / 60 ))
+          export CUBIX_COMMIT=$GITHUB_SHA
+          bun scripts/build-apk.ts --arm64 --output=build/cubix-android-arm64.apk
+          sha256sum build/cubix-android-arm64.apk > build/cubix-android-arm64.apk.sha256
+          ls -l build/cubix-android-arm64.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cubix-android-arm64
+          path: |
+            mobile/build/cubix-android-arm64.apk
+            mobile/build/cubix-android-arm64.apk.sha256
   release:
-    needs: [test, desktop]
+    needs: [test, desktop, android]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     container: archlinux:base-devel
@@ -81,6 +137,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: cubix-linux-x64
+          path: packaging/aur/cubix-bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: cubix-android-arm64
           path: packaging/aur/cubix-bin
       - name: Package prebuilt desktop
         shell: bash
@@ -128,8 +188,10 @@ jobs:
             cubix-linux-x64.tar.gz \
             PKGBUILD \
             SRCINFO \
-            --target "$GITHUB_SHA" --title "Cubix desktop ${GITHUB_SHA:0:7}" \
-            --notes 'Prebuilt Linux x86_64 desktop. Install with `yay -S cubix-bin` (updated through `yay -Syu`) or run ./update.sh. The package replaces cubix-git and preserves application data.' \
+            cubix-android-arm64.apk \
+            cubix-android-arm64.apk.sha256 \
+            --target "$GITHUB_SHA" --title "Cubix ${GITHUB_SHA:0:7}" \
+            --notes 'Prebuilt Linux x86_64 desktop and Android ARM64 APK. Desktop: install with `yay -S cubix-bin` (updated through `yay -Syu`) or run ./update.sh; the package replaces cubix-git and preserves application data. Android: the application offers the APK in Settings once the API runs this commit.' \
             --latest
           echo published=true >> "$GITHUB_OUTPUT"
       - name: Publish cubix-bin to the AUR

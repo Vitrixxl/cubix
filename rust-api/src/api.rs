@@ -205,6 +205,7 @@ pub async fn dispatch(
     if method == Method::GET {
         match path.as_str() {
             "health" => return Ok(Json(json!({"ok":true}))),
+            "mobile/release" => return Ok(Json(crate::release::info())),
             "moves" => return Ok(Json(state.catalog.moves.clone())),
             "sets" => {
                 return Ok(Json(practice::catalog(

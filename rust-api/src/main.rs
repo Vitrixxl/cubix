@@ -5,6 +5,7 @@ mod catalog;
 mod db;
 mod error;
 mod practice;
+mod release;
 mod social;
 mod stats;
 mod sync;
@@ -53,7 +54,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
     let args: Vec<_> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--version") {
-        println!("cubix-api {}", env!("CARGO_PKG_VERSION"));
+        println!(
+            "cubix-api {} (build {})",
+            env!("CARGO_PKG_VERSION"),
+            release::build_number().map_or("unknown".into(), |b| b.to_string())
+        );
         return Ok(());
     }
     let mut host = env_or("CUBIX_HOST", "127.0.0.1");
@@ -125,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
     let api = Router::new()
         .route("/api/social/live", get(social::upgrade))
+        .route("/api/mobile/apk", get(release::apk))
         .route("/api/{*path}", any(api::dispatch))
         .with_state(state)
         .layer(DefaultBodyLimit::max(2 * 1024 * 1024))

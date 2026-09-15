@@ -96,3 +96,14 @@ Chaque opération possède un identifiant stable, une méthode, un chemin autori
 incluent leur date originale ISO. Une réception répétée renvoie le résultat déjà enregistré ; réutiliser
 l’identifiant avec un contenu différent échoue. Les contrôles d’appartenance des routes habituelles restent appliqués.
 Les messages utilisent leur mécanisme existant de déduplication par `clientId`.
+
+## Release mobile
+
+`GET /api/mobile/release` renvoie `{version, build, commit, apk}` : la version Cargo, le
+numéro de build du serveur, son commit et l’URL de l’APK ARM64 de la dernière release GitHub.
+`GET /api/mobile/apk` redirige (307) vers cette URL ; le serveur ne stocke pas l’APK.
+
+Le numéro de build est la date du commit en minutes, lue dans `CUBIX_BUILD_NUMBER` ;
+`CUBIX_COMMIT` porte le SHA. Le `Dockerfile` les calcule depuis `.git` (un clone
+superficiel suffit) et les écrit dans `/app/.env`, chargé au démarrage. Sans ces variables,
+`build` et `commit` valent `null` et l’application mobile ne propose jamais de mise à jour.

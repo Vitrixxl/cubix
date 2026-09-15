@@ -1,5 +1,6 @@
 **
 !Dockerfile
+!.git
 !rust-api/
 rust-api/*
 !rust-api/Cargo.toml

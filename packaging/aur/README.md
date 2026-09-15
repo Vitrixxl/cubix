@@ -30,7 +30,7 @@ Après chaque validation de `main`, la CI :
    la version `<version>.r<commits>.g<sha>` et le SHA-256 de l'archive ;
 3. construit le paquet avec ce PKGBUILD, génère `.SRCINFO` et publie le tout dans la
    release GitHub `desktop-<sha>` (paquet, empreinte, archive, `PKGBUILD`, `.SRCINFO` publié
-   sous le nom `SRCINFO`) ;
+   sous le nom `SRCINFO`, ainsi que l'APK Android `cubix-android-arm64.apk` et son empreinte) ;
 4. pousse `PKGBUILD` et `.SRCINFO` sur l'AUR si le secret GitHub `AUR_SSH_PRIVATE_KEY`
    contient la clé privée SSH d'un compte AUR mainteneur de `cubix-bin`.
 

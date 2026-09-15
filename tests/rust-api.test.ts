@@ -167,3 +167,18 @@ rustTest("learning marks are validated, upserted per account and journaled for s
   const db = new Database(path); cleanups.unshift(() => db.close());
   expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
 });
+
+rustTest("Rust announces the mobile build it was deployed with and redirects to the latest APK", async () => {
+  const app = createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
+  const call = client(app);
+  expect((await call("/mobile/release")).body).toEqual({
+    version: "0.1.0", build: 29800000, commit: "0123456789abcdef",
+    apk: "https://github.com/Vitrixxl/cubix/releases/latest/download/cubix-android-arm64.apk",
+  });
+  const redirect = await fetch(`http://127.0.0.1:${app.server.port}/api/mobile/apk`, { redirect: "manual" });
+  expect(redirect.status).toBe(307);
+  expect(redirect.headers.get("location")).toBe("https://github.com/Vitrixxl/cubix/releases/latest/download/cubix-android-arm64.apk");
+  // A server started outside Docker or CI has no build number; the application then never prompts.
+  const bare = client(createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "", CUBIX_COMMIT: "" }));
+  expect((await bare("/mobile/release")).body).toMatchObject({ build: null, commit: null });
+});

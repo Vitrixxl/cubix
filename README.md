@@ -44,6 +44,14 @@ bun run build:android   # construire mobile/build/cubix-release.apk
 L'APK release fonctionne sans Metro. Installation, prérequis Android et
 validation : [guide mobile](mobile/README.md).
 
+Chaque validation de `main` publie aussi `cubix-android-arm64.apk` dans la release
+GitHub. L'API le sert par redirection sur `/api/mobile/apk` et annonce son propre
+numéro de build sur `/api/mobile/release`. L'application compare ce numéro au sien
+et affiche un bouton de téléchargement dans les paramètres quand elle est en retard.
+Le numéro de build est la date du commit en minutes : il est calculé par
+`mobile/app.config.ts` pour l'APK et par le `Dockerfile` pour l'API, donc une mise à
+jour n'est proposée qu'après `pihost update cubix` sur le serveur.
+
 ## API
 
 Docker et Docker Compose suffisent pour héberger le serveur :
