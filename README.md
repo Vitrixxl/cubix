@@ -68,6 +68,8 @@ Les anciennes pages web, les fichiers statiques et `/aaaaadmin` renvoient 404.
 L'image ne contient que le serveur Rust ; aucun build JavaScript n'est nécessaire.
 Les comptes, temps, sessions, amitiés et messages restent dans le volume `cubix-data`.
 `docker compose down` conserve ce volume. `CUBIX_PORT=8080` change le port publié.
+La compilation Rust dans l'image est limitée à deux jobs pour tenir en mémoire sur un
+Raspberry Pi ; `docker compose build --build-arg CARGO_BUILD_JOBS=4` lève cette limite.
 
 Les applications utilisent `https://cubix.vitrixxl.fr` par défaut. Pour travailler
 avec une API locale :
