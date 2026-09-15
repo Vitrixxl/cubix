@@ -76,6 +76,8 @@ pub struct Cubix {
     engine: Engine,
     images: Images,
     catalog: Value,
+    cases_cache: Option<(String, std::rc::Rc<Vec<Value>>)>,
+    sets_cache: Option<(String, std::rc::Rc<Vec<Value>>)>,
     cube_view: Entity<CubeView>,
     cube_key: String,
     cube_scenes: HashMap<String, std::sync::Arc<Scene>>,
@@ -145,7 +147,7 @@ pub struct Cubix {
     advance_pending: bool,
     advance_key: String,
     scrolls: HashMap<String, ScrollHandle>,
-    virtual_lists: HashMap<String, (ListState, Vec<Value>, f32)>,
+    virtual_lists: HashMap<String, (ListState, std::rc::Rc<Vec<Value>>, f32)>,
     selector_open: HashMap<String, bool>,
     #[cfg(feature = "reference")]
     virtual_rows_rendered: u64,
@@ -179,6 +181,8 @@ impl Cubix {
                 .unwrap(),
             images: Images::new(root),
             catalog,
+            cases_cache: None,
+            sets_cache: None,
             cube_view: cx.new(|_| CubeView::new()),
             cube_key: String::new(),
             cube_scenes: HashMap::new(),
@@ -351,31 +355,45 @@ impl Cubix {
             self.page, self.puzzle, self.solve_mode, self.scramble_type
         )
     }
-    fn all_cases(&self) -> Vec<Value> {
-        list(&self.catalog["cases"])
-            .into_iter()
-            .filter(|c| {
-                puzzle(c)
-                    == *if self.page == "profile" {
-                        &self.profile_filter.0
-                    } else {
-                        &self.puzzle
-                    }
-            })
-            .collect()
+    fn filter_puzzle(&self) -> &str {
+        if self.page == "profile" {
+            &self.profile_filter.0
+        } else {
+            &self.puzzle
+        }
     }
-    fn all_sets(&self) -> Vec<Value> {
-        list(&self.catalog["sets"])
-            .into_iter()
-            .filter(|c| {
-                puzzle(c)
-                    == *if self.page == "profile" {
-                        &self.profile_filter.0
-                    } else {
-                        &self.puzzle
-                    }
-            })
-            .collect()
+    // The catalogue never mutates after load, so the per-puzzle case/set
+    // lists (each entry carries algorithm lists and cube state arrays) are
+    // cached instead of being deep-cloned and re-filtered out of the full
+    // ~1300-entry catalogue on every render, which was the dominant cost
+    // behind laggy scrolling on the catalog/selector pages.
+    fn all_cases(&mut self) -> std::rc::Rc<Vec<Value>> {
+        let key = self.filter_puzzle().to_owned();
+        if self.cases_cache.as_ref().map(|(k, _)| k) != Some(&key) {
+            let cases = self.catalog["cases"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|c| puzzle(c) == key)
+                .cloned()
+                .collect();
+            self.cases_cache = Some((key, std::rc::Rc::new(cases)));
+        }
+        self.cases_cache.as_ref().unwrap().1.clone()
+    }
+    fn all_sets(&mut self) -> std::rc::Rc<Vec<Value>> {
+        let key = self.filter_puzzle().to_owned();
+        if self.sets_cache.as_ref().map(|(k, _)| k) != Some(&key) {
+            let sets = self.catalog["sets"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|c| puzzle(c) == key)
+                .cloned()
+                .collect();
+            self.sets_cache = Some((key, std::rc::Rc::new(sets)));
+        }
+        self.sets_cache.as_ref().unwrap().1.clone()
     }
     fn find_case(&self, id: &str) -> Value {
         self.catalog["cases"]
@@ -2441,8 +2459,8 @@ impl Cubix {
             let cols = ((width + 4.) / 100.).floor();
             let tile = (width - (cols - 1.) * 4.) / cols;
             let mut stages = vec!["all".to_string()];
-            for set in self.all_sets() {
-                let stage = s(&set, "stage").to_owned();
+            for set in self.all_sets().iter() {
+                let stage = s(set, "stage").to_owned();
                 if !stages.contains(&stage) {
                     stages.push(stage);
                 }
@@ -2473,8 +2491,8 @@ impl Cubix {
                         .text_color(self.theme.muted),
                     ),
             );
-            for set in self.all_sets() {
-                let id = s(&set, "id");
+            for set in self.all_sets().iter() {
+                let id = s(set, "id");
                 let chosen: Vec<_> = cases
                     .iter()
                     .filter(|c| {
@@ -2485,7 +2503,7 @@ impl Cubix {
                                 s(c, "id"),
                                 s(c, "name"),
                                 s(c, "group"),
-                                s(&set, "label")
+                                s(set, "label")
                             )
                             .to_lowercase()
                             .contains(&self.field("cases", cx).trim().to_lowercase())
@@ -2497,7 +2515,7 @@ impl Cubix {
                 }
                 let key = format!("profile:{id}");
                 let mut block = col().gap(px(4.)).child(
-                    self.btn(format!("collapse:{key}"), s(&set, "label"), false, cx)
+                    self.btn(format!("collapse:{key}"), s(set, "label"), false, cx)
                         .px(px(0.))
                         .text_color(self.theme.text),
                 );

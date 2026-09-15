@@ -5,21 +5,21 @@ impl Cubix {
         let entry = self.virtual_lists.entry(key).or_insert_with(|| {
             (
                 ListState::new(rows.len(), ListAlignment::Top, px(120.)),
-                vec![],
+                std::rc::Rc::new(vec![]),
                 0.,
             )
         });
-        if entry.1 != rows || entry.2 != self.width {
+        if *entry.1 != rows || entry.2 != self.width {
             let offset = entry.0.logical_scroll_top();
             entry.0.reset(rows.len());
             if offset.item_ix < rows.len() {
                 entry.0.scroll_to(offset);
             }
-            entry.1 = rows;
+            entry.1 = std::rc::Rc::new(rows);
             entry.2 = self.width;
         }
         let state = entry.0.clone();
-        let rows = std::rc::Rc::new(entry.1.clone());
+        let rows = entry.1.clone();
         let weak = cx.entity().downgrade();
         div().flex_1().min_h_0().w_full().child(
             gpui::list(state, move |ix, _, cx| {
@@ -377,7 +377,7 @@ impl Cubix {
         let cases = self.all_cases();
         let sets = self.all_sets();
         let mut stages = Vec::new();
-        for set in &sets {
+        for set in sets.iter() {
             let stage = s(set, "stage").to_owned();
             if !stages.contains(&stage) {
                 stages.push(stage);
@@ -481,8 +481,8 @@ impl Cubix {
         };
         let tile = (width - 8.) / 3.;
         let mut models = Vec::new();
-        for set in self.all_sets() {
-            let id = s(&set, "id");
+        for set in self.all_sets().iter() {
+            let id = s(set, "id");
             let ids: Vec<_> = cases
                 .iter()
                 .filter(|c| {
