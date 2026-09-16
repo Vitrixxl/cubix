@@ -1,5 +1,5 @@
 /** Install the standalone GPUI build and its launcher for the current user. */
-import {cp, mkdir, mkdtemp, rename, symlink, chmod} from 'node:fs/promises';
+import {cp, mkdir, mkdtemp, rename, rm, symlink, chmod} from 'node:fs/promises';
 import {homedir} from 'node:os';
 import {join, resolve} from 'node:path';
 
@@ -43,4 +43,10 @@ await chmod(staged, 0o644);
 await rename(staged, entry);
 await run(['update-desktop-database', applications]);
 await run(['gtk-update-icon-cache', '-f', '-t', join(data, 'icons/hicolor')]);
-console.log(`Installed Cubix GPUI: ${entry}`);
+// A `cubix` command for the shell; ~/.local/bin is on the PATH of most desktop sessions.
+const bin = join(homedir(), '.local/bin');
+await mkdir(bin, {recursive: true});
+const launcher = join(bin, 'cubix');
+await rm(launcher, {force: true});
+await symlink(join(current, 'cubix-desktop'), launcher);
+console.log(`Installed Cubix GPUI: ${entry} (command: ${launcher})`);

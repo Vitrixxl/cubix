@@ -37,7 +37,7 @@ make uninstall  # retirer l'application, les données sont conservées
 
 `make deps` installe les paquets système avec pacman ou apt (sans yay), puis Bun et
 Rust s'ils manquent. L'installation utilise `~/.local/share/cubix-gpui` (ou
-`$XDG_DATA_HOME`), une entrée de menu Cubix et son icône ; elle requiert
+`$XDG_DATA_HOME`), une entrée de menu Cubix, son icône et une commande `cubix` dans `~/.local/bin` ; elle requiert
 `desktop-file-utils` et `gtk-update-icon-cache`. Relancer `make` après un `git pull`
 pour actualiser cette copie. Aucun paquet système ni release précompilée n'est publié.
 

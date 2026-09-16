@@ -16,7 +16,7 @@ make                    # dépendances (pacman ou apt, Bun, Rust), compilation, 
 
 `make` installe les paquets système nécessaires sans yay, Bun et Rust s'ils manquent,
 construit l'application autonome dans `artifacts/gpui/cubix-linux-x64` puis l'installe
-pour l'utilisateur courant (`~/.local/share/cubix-gpui`, entrée de menu et icône).
+pour l'utilisateur courant (`~/.local/share/cubix-gpui`, entrée de menu, icône et commande `cubix` dans `~/.local/bin`).
 Relancer `make` après un `git pull` pour mettre à jour. `make uninstall` retire
 l'application en conservant les données. `make run` compile et lance le desktop
 depuis le dépôt.

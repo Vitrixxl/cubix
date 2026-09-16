@@ -54,7 +54,7 @@ run: node_modules/.bin
 	CARGO="$(CARGO)" sh desktop/run.sh
 
 uninstall:
-	rm -rf "$(DATA)/cubix-gpui" "$(DATA)/applications/fr.vitrixxl.cubix.desktop" "$(DATA)/icons/hicolor/512x512/apps/fr.vitrixxl.cubix.png"
+	rm -rf "$(DATA)/cubix-gpui" "$(DATA)/applications/fr.vitrixxl.cubix.desktop" "$(DATA)/icons/hicolor/512x512/apps/fr.vitrixxl.cubix.png" "$(HOME)/.local/bin/cubix"
 	-update-desktop-database "$(DATA)/applications" 2>/dev/null
 	@echo 'Cubix removed. Application data in $(DATA)/cubix-desktop was kept.'
 
