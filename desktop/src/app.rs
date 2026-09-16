@@ -1425,18 +1425,35 @@ impl Cubix {
         } else {
             font_size
         };
-        let timer_top = self.height / 2. - font_size * 1.1 / 2. - 38.;
+        let mut timer_top = self.height / 2. - font_size * 1.1 / 2. - 38.;
         let timer_height = font_size * 1.1 + 76.;
         let gap = (self.height * 0.026).clamp(14., 28.);
         let mut top = row().w_full().justify_center().flex_wrap().gap(px(8.));
         if training {
-            top = top
-                .child(if !wide {
+            if !wide {
+                top = top.child(
                     self.btn("cases", "Cases", self.show_cases, cx)
-                        .child(icon("IconGrid", 15.))
-                } else {
-                    self.btn("cases", "", false, cx).w(px(0.))
-                })
+                        .child(icon("IconGrid", 15.)),
+                );
+            }
+            if let Some(id) = self.training["id"]
+                .as_str()
+                .map(str::to_owned)
+                .filter(|_| !self.selected.is_empty())
+            {
+                let learned = self.learned.contains(&id);
+                top = top.child(
+                    self.btn(format!("learn:{id}"), "", false, cx)
+                        .text_color(if learned {
+                            self.theme.good
+                        } else {
+                            self.theme.muted
+                        })
+                        .when(learned, |d| d.child(icon("IconCheck", 14.)))
+                        .child(if learned { "Learned" } else { "Mark learned" }),
+                );
+            }
+            top = top
                 .child(
                     self.btn("auf", "Random AUF", self.random_auf, cx)
                         .text_color(if self.random_auf {
@@ -1519,99 +1536,86 @@ impl Cubix {
                     .filter(|_| !self.selected.is_empty())
                 {
                     let c = self.find_case(&id);
-                    above = above.child(
-                        row()
-                            .justify_center()
-                            .flex_wrap()
-                            .gap(px(10.))
-                            .child(
-                                self.btn("previous", "", false, cx)
-                                    .child(icon("IconBack", 16.)),
-                            )
-                            .child(
-                                self.btn(format!("case:{id}"), id, false, cx)
-                                    .text_size(px(22.))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(self.theme.text),
-                            )
-                            .child(
-                                txt(
-                                    if s(&c, "name") == s(&c, "id") {
-                                        s(&c, "group")
-                                    } else {
-                                        s(&c, "name")
-                                    }
-                                    .to_owned(),
-                                    13.,
-                                )
-                                .text_color(self.theme.muted),
-                            )
-                            .child(self.btn("next", "", false, cx).child(icon("IconSkip", 16.))),
-                    );
-                    let cube_size = if self.revealed || self.height < 700. {
-                        92.
+                    let small = self.height < 700.;
+                    let setup_font = if small { 16. } else { 19. };
+                    let algo_font = if small { 15. } else { 17. };
+                    // Two lines of each algorithm always stay visible.
+                    let min_text = setup_font * 1.6 * 2. + algo_font * 1.6 * 2.;
+                    // Header row, two labels and the gaps between the blocks.
+                    let fixed = 42. + 23. + 8. + 23. + 8. + 8.;
+                    let cube_size = (timer_top - gap - fixed - min_text).clamp(56., 150.);
+                    let overflow = gap + fixed + cube_size + min_text - timer_top;
+                    if overflow > 0. {
+                        // Short window: let the timer slide down as far as the
+                        // stats and toolbar allow rather than clipping the header.
+                        let slack = self.height - 118. - (timer_top + timer_height + gap + 64.);
+                        timer_top += overflow.min(slack.max(0.));
+                    }
+                    let text_budget = (timer_top - gap - fixed - cube_size).max(min_text);
+                    let setup_height = text_budget * setup_font / (setup_font + algo_font);
+                    let algo_height = text_budget - setup_height;
+                    let subtitle = if s(&c, "name") == s(&c, "id") {
+                        s(&c, "group")
                     } else {
-                        150.
+                        s(&c, "name")
+                    }
+                    .to_owned();
+                    let arrow = |s: &Self, action: &str, ic: &str| {
+                        s.btn(action, "", false, cx)
+                            .w(px(38.))
+                            .justify_center()
+                            .child(icon(ic, 16.))
                     };
                     let cube = if !self.cube_key.is_empty() {
                         self.animated_cube(cube_size)
                     } else {
                         self.diagram(&c, cube_size)
                     };
-                    let text_budget =
-                        (timer_top - gap - 76. - if self.revealed { 100. } else { 62. }).max(44.);
-                    let text_height = if self.revealed {
-                        text_budget / 2.
-                    } else {
-                        text_budget
+                    let block = |s: &Self, label: &str, id: &str, alg: &str, size: f32, h: f32| {
+                        col()
+                            .w_full()
+                            .items_center()
+                            .gap(px(6.))
+                            .child(
+                                txt(label, 11.)
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(s.theme.muted),
+                            )
+                            .child(s.practice_alg(id, alg, size, h))
                     };
-                    let mut setup = col()
-                        .flex_1()
-                        .min_w_0()
-                        .items_center()
-                        .gap(px(6.))
+                    above = above
                         .child(
-                            txt("SETUP", 11.)
-                                .font_weight(FontWeight::BOLD)
-                                .text_color(self.theme.muted),
+                            row()
+                                .items_center()
+                                .justify_center()
+                                .gap(px(10.))
+                                .child(arrow(self, "previous", "IconBack"))
+                                .child(
+                                    self.btn(format!("case:{id}"), id.clone(), false, cx)
+                                        .text_size(px(22.))
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_color(self.theme.text),
+                                )
+                                .child(txt(subtitle, 13.).text_color(self.theme.muted))
+                                .child(arrow(self, "next", "IconChevronRight")),
                         )
-                        .child(self.practice_alg(
+                        .child(block(
+                            self,
+                            "SETUP",
                             "setup",
                             s(&self.training, "setup"),
-                            if self.height < 700. { 16. } else { 19. },
-                            text_height,
-                        ));
-                    if self.revealed {
-                        setup = setup.child(
-                            col()
-                                .w_full()
-                                .border_t_1()
-                                .border_color(self.theme.line)
-                                .pt(px(6.))
-                                .gap(px(4.))
-                                .child(txt("SOLUTION", 11.).text_color(self.theme.muted))
-                                .child(self.practice_alg(
-                                    "solution",
-                                    s(&self.training, "algorithm"),
-                                    16.,
-                                    text_height,
-                                )),
-                        );
-                    }
-                    setup = setup.child(
-                        self.btn(
+                            setup_font,
+                            setup_height,
+                        ))
+                        .child(block(
+                            self,
+                            "ALGORITHM",
                             "solution",
-                            if self.revealed {
-                                "Hide solution"
-                            } else {
-                                "Show solution"
-                            },
-                            false,
-                            cx,
-                        )
-                        .child(icon("IconEye", 14.)),
-                    );
-                    above = above.child(row().w_full().gap(px(12.)).child(cube).child(setup));
+                            s(&self.training, "algorithm"),
+                            algo_font,
+                            algo_height,
+                        ))
+                        .child(cube);
                 } else {
                     above = above
                         .child(icon("IconGrid", 34.).text_color(self.theme.accent))

@@ -2,7 +2,7 @@
 //! and move definitions come from the shared, tested TypeScript cube model.
 use gpui::{prelude::*, *};
 use serde::Deserialize;
-use std::{f32::consts::FRAC_PI_2, sync::Arc, time::Instant};
+use std::{f32::consts::FRAC_PI_2, sync::{Arc, OnceLock}, time::Instant};
 
 const YAW: f32 = std::f32::consts::FRAC_PI_4;
 const PITCH: f32 = 0.55;
@@ -20,6 +20,10 @@ pub struct Scene {
     colors: Vec<u32>,
     states: Vec<Vec<usize>>,
     moves: Vec<Move>,
+    /// Final pose from the default camera, shared by every static thumbnail so
+    /// case lists do not re-project the whole cube on each animation frame.
+    #[serde(skip)]
+    thumbnail: OnceLock<Arc<Vec<Polygon>>>,
 }
 impl Scene {
     pub fn from_value(value: &serde_json::Value) -> Option<Arc<Self>> {
@@ -152,12 +156,20 @@ fn polygons(scene: &Scene, seconds: f32, yaw: f32, pitch: f32) -> Vec<Polygon> {
 }
 
 pub fn drawing(scene: Arc<Scene>, seconds: f32, yaw: f32, pitch: f32) -> impl IntoElement {
+    let faces = if seconds >= scene.duration() && yaw == YAW && pitch == PITCH {
+        scene
+            .thumbnail
+            .get_or_init(|| Arc::new(polygons(&scene, seconds, yaw, pitch)))
+            .clone()
+    } else {
+        Arc::new(polygons(&scene, seconds, yaw, pitch))
+    };
     canvas(
         |_, _, _| (),
         move |bounds, _, window, _| {
             let unit =
                 f32::from(bounds.size.width.min(bounds.size.height)) / (scene.size as f32 * 1.95);
-            for polygon in polygons(&scene, seconds, yaw, pitch) {
+            for polygon in faces.iter() {
                 let mut path = PathBuilder::fill();
                 for (i, v) in polygon.vertices.iter().enumerate() {
                     let p = point(
@@ -272,6 +284,7 @@ mod tests {
                         };
                         count
                     ],
+                    thumbnail: Default::default(),
                 };
                 assert_eq!(scene.duration(), duration);
                 assert_eq!(scene.frame(0.), (0, 0.));
