@@ -35,6 +35,21 @@ pub struct AppState {
     admin: Arc<Option<admin::Admin>>,
     traffic: Arc<traffic::Traffic>,
 }
+/// Resolves once the process that started this server has exited, when `CUBIX_EXIT_WITH_PARENT`
+/// is set. Test runners spawn one server per test; a runner killed mid-way must not leave
+/// hundreds of servers behind. A parent that dies gets replaced by init (or a subreaper).
+async fn orphaned() {
+    if std::env::var_os("CUBIX_EXIT_WITH_PARENT").is_none() {
+        std::future::pending::<()>().await;
+    }
+    let parent = std::os::unix::process::parent_id();
+    loop {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        if std::os::unix::process::parent_id() != parent {
+            return;
+        }
+    }
+}
 fn env_or(name: &str, fallback: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| fallback.to_owned())
 }
@@ -179,6 +194,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     tokio::select! {
         _=tokio::signal::ctrl_c()=>{},
+        _=orphaned()=>{eprintln!("Parent process gone; stopping.");},
         result=servers.join_next()=>{if let Some(result)=result {result??;}},
     }
     servers.abort_all();

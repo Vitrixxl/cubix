@@ -307,7 +307,7 @@ async function main() {
   );
   const log = openSync(join(OUT, "server.log"), "w");
   const server = spawn(join(ROOT, "rust-api/target/release/cubix-api"), [], {
-    cwd: ROOT, env: { ...process.env, PORT:port, CUBIX_HOST:"127.0.0.1", CUBIX_EXTRA_PORTS:ports.slice(1).join(","), CUBIX_DB:dbPath },
+    cwd: ROOT, env: { CUBIX_EXIT_WITH_PARENT: "1",  ...process.env, PORT:port, CUBIX_HOST:"127.0.0.1", CUBIX_EXTRA_PORTS:ports.slice(1).join(","), CUBIX_DB:dbPath },
     stdio:["ignore",log,log],
   });
   closeSync(log);
