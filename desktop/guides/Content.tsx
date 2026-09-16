@@ -12,8 +12,8 @@ export function GuideContent({ page }: { page: Guide }) {
         <section><h2>Averages</h2><p>Best, mean, Ao5 and Ao12 with +2 and DNF handled the WCA way.</p><p><a href="/guides/ao5-ao12/">Ao5 and Ao12 explained</a></p></section>
       </div>
       <h2>Questions</h2>
-      <details><summary>Is Cubix free? Do I need an account?</summary><p>Yes, it is free. Guest practice is saved on your device. An account adds sync between devices and friends.</p></details>
-      <details><summary>Does it work offline?</summary><p>Once installed, the app works without a connection. Sync and messages need a connection.</p></details>
+      <details><summary>Is Cubix free? Do I need an account?</summary><p>Yes, it is free. Guest practice is saved on your device. An account adds sync between devices and achievements that follow you everywhere.</p></details>
+      <details><summary>Does it work offline?</summary><p>Once installed, the app works without a connection. Sync needs a connection.</p></details>
       <details><summary>Does it work on a phone?</summary><p>Yes. Hold a free area of the screen to arm the timer, release to start, tap to stop.</p></details>
       <details><summary>Is this an official competition timer?</summary><p>No. Cubix is a practice tool and is not affiliated with Rubik’s or the World Cube Association.</p></details>
     </>}

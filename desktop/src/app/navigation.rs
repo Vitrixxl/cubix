@@ -5,8 +5,6 @@ use super::*;
 pub(super) struct Location {
     page: String,
     case: String,
-    profile: String,
-    peer: String,
     profile_mode: String,
     profile_filter: (String, String, String),
     editing: bool,
@@ -17,8 +15,6 @@ impl Cubix {
         Location {
             page: self.page.clone(),
             case: self.case_id.clone(),
-            profile: self.profile_user.clone(),
-            peer: self.peer.clone(),
             profile_mode: self.profile_mode.clone(),
             profile_filter: self.profile_filter.clone(),
             editing: self.editing,
@@ -60,8 +56,6 @@ impl Cubix {
         }
         self.page = next.page;
         self.case_id = next.case;
-        self.profile_user = next.profile;
-        self.peer = next.peer;
         self.profile_mode = next.profile_mode;
         self.profile_filter = next.profile_filter;
         self.editing = next.editing;

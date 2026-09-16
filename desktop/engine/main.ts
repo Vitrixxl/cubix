@@ -28,22 +28,20 @@ const storage={getItem:(k:string)=>values[k]??null,setItem:(k:string,v:string)=>
 const tokenKey=`cubix.auth:${origin}`;
 const emit=(value:unknown)=>process.stdout.write(JSON.stringify(value)+'\n');
 const local=createLocalClient({storage,getToken:()=>storage.getItem(tokenKey),setToken:t=>storage.setItem(tokenKey,t),clearToken:()=>storage.removeItem(tokenKey),remote:token=>createApiClient(origin,{getToken:()=>token}),changed:()=>emit({event:'changed'}),status:status=>emit({event:'sync',value:status})});
-let chat:ReturnType<typeof local.api.connectChat>|undefined;
-let chatToken:string|null=null,reconnect:ReturnType<typeof setTimeout>|undefined;
+let live:ReturnType<typeof local.api.connectLive>|undefined;
+let liveToken:string|null=null,reconnect:ReturnType<typeof setTimeout>|undefined;
 function connect(){
- const token=storage.getItem(tokenKey);if(token===chatToken&&chat)return;
- chat?.close();chat=undefined;chatToken=token;
+ const token=storage.getItem(tokenKey);if(token===liveToken&&live)return;
+ live?.close();live=undefined;liveToken=token;
  if(!token||local.current().isGuest)return;
- chat=local.api.connectChat();const current=chat;
+ live=local.api.connectLive();const current=live;
  current.on('open',()=>current.send({type:'auth',token}));
  current.on('message',({data})=>{
-  if(data.type==='ready'){emit({event:'chat',value:'online'});void local.remoteChanged(data.cursor);}
-  if(data.type==='changed'){emit({event:'changed'});void local.restore();}
+  if(data.type==='ready'){emit({event:'live',value:'online'});void local.remoteChanged(data.cursor);}
   // Another device of this account changed practice data; pull it before the next periodic restore.
   if(data.type==='sync')void local.remoteChanged(data.cursor);
-  if(data.type==='error')emit({event:'chatError',value:data});
  });
- current.on('close',()=>{if(chat!==current)return;chat=undefined;emit({event:'chat',value:'connecting'});reconnect=setTimeout(connect,3000);});
+ current.on('close',()=>{if(live!==current)return;live=undefined;emit({event:'live',value:'connecting'});reconnect=setTimeout(connect,3000);});
  current.on('error',()=>{});
 }
 let lastAdvance:{key:string,promise:Promise<Record<string,unknown>>}|undefined;
@@ -60,7 +58,7 @@ function training(action:string,puzzle:PuzzleId,ids:string[],useAuf:boolean,solv
    else {const {c,auf}=entry;const setup=size?combineAuf(c.setup,auf):c.setup;
      return {id:c.id,canPrevious:history.index>0,setup,algorithm:size?compensateAuf(executableAlg(c.algorithms[0]),auf):executableAlg(c.algorithms[0]),svg:size?renderToStaticMarkup(createElement(StaticCubeSvg,{state:applyAlg(solved(size),setup),size:300,mask:maskForStage(c.stage)})):null};}
 }
-const methods=new Set(Object.keys(local.api).filter(k=>!['connectChat'].includes(k)));
+const methods=new Set(Object.keys(local.api).filter(k=>!['connectLive'].includes(k)));
 const lines=createInterface({input:process.stdin,crlfDelay:Infinity});
 let mutations=Promise.resolve();
 async function handle(req:any){
@@ -75,13 +73,8 @@ async function handle(req:any){
      solves:local.api.solves(trainingMode?'training':'playground',1000,context.puzzle,context),
      stats:local.api.stats(context.puzzle,filter),
    };
-   if(q.page==='profile')jobs.profile=local.api.profile(q.username,undefined,q.profilePuzzle,q.profileFilter);
+   if(q.page==='profile'){jobs.profile=local.api.profile(undefined,undefined,q.profilePuzzle,q.profileFilter);jobs.achievements=local.api.achievements();}
    if(q.caseId)jobs.caseHistory=local.api.caseHistory(q.caseId,filter);
-   if(!local.current().isGuest&&['community','messages','profile'].includes(q.page)){
-     jobs.friends=local.api.friends();
-     if(q.page==='community')jobs.users=local.api.users(q.search??'');
-     if(q.peer)jobs.messages=local.api.messages(q.peer);
-   }
    if(q.advance){
      if(!lastAdvance||lastAdvance.key!==q.advanceKey)lastAdvance={key:q.advanceKey,promise:trainingMode?Promise.resolve({training:training('next',context.puzzle,q.selected,q.randomAuf,context.solveMode)}):generatePracticeScramble(context).then(scramble=>({scramble}))};
      jobs[trainingMode?'training':'scramble']=lastAdvance.promise.then(v=>v[trainingMode?'training':'scramble']);
@@ -103,11 +96,11 @@ async function handle(req:any){
  else if(req.method==='sync'){await local.retry();value=local.status();}
  else if(methods.has(req.method))value=await (local.api as any)[req.method](...req.args);
  else throw new Error('Unknown engine method');
- function display(v:any):any {if(Array.isArray(v))return v.map(display);if(v&&typeof v==='object'){const out=Object.fromEntries(Object.entries(v).map(([k,v])=>[k,display(v)]));if(typeof v.at==='string')out.displayDate=fmtDate(v.at);if(typeof v.createdAt==='string')out.displayDate=fmtDate(v.createdAt);if(typeof v.createdAt==='string'&&v.username)out.joined=new Date(v.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'});return out;}return v;}
+ function display(v:any):any {if(Array.isArray(v))return v.map(display);if(v&&typeof v==='object'){const out=Object.fromEntries(Object.entries(v).map(([k,v])=>[k,display(v)]));if(typeof v.at==='string')out.displayDate=fmtDate(v.at);if(typeof v.createdAt==='string')out.displayDate=fmtDate(v.createdAt);if(typeof v.createdAt==='string'&&v.username)out.joined=new Date(v.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'});if(typeof v.unlockedAt==='string')out.unlockedDate=new Date(v.unlockedAt).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});return out;}return v;}
  emit({id:req.id,value:display(value??null)});connect();
  }catch(error){emit({id:req.id,error:(error as Error).message});}
 }
 lines.on('line',line=>{try{const req=JSON.parse(line);mutations=mutations.then(()=>handle(req));}catch(error){emit({event:'error',value:'Invalid engine request'});}});
-const retry=setInterval(()=>{void local.restore();connect();if(chat?.ws.readyState===WebSocket.OPEN)chat.send({type:'ping'});},30000);
-lines.on('close',()=>{clearInterval(retry);clearTimeout(reconnect);local.stop();chat?.close();process.exit(0);});
+const retry=setInterval(()=>{void local.restore();connect();if(live?.ws.readyState===WebSocket.OPEN)live.send({type:'ping'});},30000);
+lines.on('close',()=>{clearInterval(retry);clearTimeout(reconnect);local.stop();live?.close();process.exit(0);});
 void local.restore().then(connect);

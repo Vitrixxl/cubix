@@ -27,32 +27,19 @@ l'exécution. Seul Linux a été validé ; macOS et Windows nécessitent leurs p
 
 ## Installer sous Linux
 
-Sur Arch Linux x86_64 :
+Depuis la racine du dépôt :
 
 ```sh
-yay -S cubix-bin
+make            # dépendances, compilation et installation utilisateur
+make install    # réinstaller un paquet autonome déjà construit
+make uninstall  # retirer l'application, les données sont conservées
 ```
 
-Le paquet est précompilé par la CI depuis les releases GitHub et suit les mises à
-jour de `yay -Syu`. Sans yay, `./update.sh` depuis la racine du dépôt installe le
-même paquet avec pacman. Les dépendances graphiques restent nécessaires. `cubix-bin`
-remplace l'ancien `cubix-git` et conserve les données. La compilation décrite plus
-haut concerne le développement.
-
-Pour une installation utilisateur sans paquet système :
-
-```sh
-bun desktop/install-linux.ts
-# Ou installer le paquet autonome déjà construit :
-bun desktop/install-linux.ts --skip-build
-```
-
-L'installateur requiert `desktop-file-utils` et `gtk-update-icon-cache`.
-Il utilise `~/.local/share/cubix-gpui` (ou `$XDG_DATA_HOME`), une entrée de menu
-Cubix et son icône. Relancer l'installateur pour actualiser cette copie.
-
-Pour Arch/yay, voir [le paquet AUR](../packaging/aur/README.md).
-Le paquet système installe la commande `cubix` et l'entrée de menu Cubix.
+`make deps` installe les paquets système avec pacman ou apt (sans yay), puis Bun et
+Rust s'ils manquent. L'installation utilise `~/.local/share/cubix-gpui` (ou
+`$XDG_DATA_HOME`), une entrée de menu Cubix et son icône ; elle requiert
+`desktop-file-utils` et `gtk-update-icon-cache`. Relancer `make` après un `git pull`
+pour actualiser cette copie. Aucun paquet système ni release précompilée n'est publié.
 
 ## Configuration et tests
 

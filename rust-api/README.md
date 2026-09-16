@@ -21,7 +21,7 @@ sont automatiques. `--init-db` effectue seulement cette initialisation.
   simultanées maximum, puis HTTP 429 pour éviter une croissance mémoire incontrôlée.
 - Tokens aléatoires de 256 bits, condensats SHA-256 en base, expiration après 30 jours.
   La conversion d’un invité invalide ses anciens tokens de manière atomique.
-- Notifications WebSocket indexées par utilisateur, avec des drapeaux fusionnés (social, sync) par socket.
+- Notifications WebSocket `/api/live` indexées par utilisateur, avec un drapeau `sync` fusionné par socket.
   Authentification dans les cinq secondes, heartbeat/message valide toutes les 60 secondes.
   Le token est vérifié sur les messages entrants et avant les notifications sortantes.
 - Trames/messages limités à 16 Kio ; tampon de lecture de 4 Kio par WebSocket.
@@ -37,7 +37,7 @@ sh scripts/rust.sh clippy -- -D warnings
 ```
 
 Les tests HTTP/WebSocket démarrent de vrais binaires Rust et des bases temporaires.
-Ils couvrent les permissions, migrations, statistiques, tokens, messages, pagination,
+Ils couvrent les permissions, migrations, statistiques, tokens, pagination,
 conservation des données et conversions concurrentes d’un invité.
 
 ## Benchmark
@@ -86,22 +86,26 @@ Le journal conserve la dernière révision de chaque session, temps et marque d�
 ainsi que les suppressions.
 
 Chaque écriture réussie (routes historiques ou `POST /api/sync`) envoie `{"type":"sync","cursor":N}` sur les
-WebSockets `/api/social/live` du même compte, où `N` est le dernier numéro du journal. Un appareil dont le curseur
+WebSockets `/api/live` du même compte, où `N` est le dernier numéro du journal. Un appareil dont le curseur
 local est inférieur tire immédiatement les changements ; le message `ready` porte aussi ce curseur pour rattraper
-une reconnexion. Les signaux social et sync sont fusionnés par socket : une rafale d’écritures produit au plus un
-message de chaque type.
+une reconnexion. Le signal est fusionné par socket : une rafale d’écritures produit au plus un message.
 
 `POST /api/sync` applique une liste de 1 à 100 opérations dans une transaction, pour un compte enregistré.
 Chaque opération possède un identifiant stable, une méthode, un chemin autorisé et un corps ; les créations
 incluent leur date originale ISO. Une réception répétée renvoie le résultat déjà enregistré ; réutiliser
 l’identifiant avec un contenu différent échoue. Les contrôles d’appartenance des routes habituelles restent appliqués.
-Les messages utilisent leur mécanisme existant de déduplication par `clientId`.
 
 ## Release mobile
 
-`GET /api/mobile/release` renvoie `{version, build, commit, apk}` : la version Cargo, le
-numéro de build du serveur, son commit et l’URL de l’APK ARM64 de la dernière release GitHub.
-`GET /api/mobile/apk` redirige (307) vers cette URL ; le serveur ne stocke pas l’APK.
+`GET /api/mobile/release` renvoie `{version, build, commit, apk, apkBuild, apkCommit, apkSha256,
+apkSize, apkUploadedAt}` : la version Cargo, le build et le commit du serveur, le chemin de
+téléchargement et la description de l’APK stocké (`null` tant qu’aucun n’a été envoyé).
+`GET /api/mobile/apk` sert l’APK (404 sans APK). `PUT /api/mobile/apk` avec
+`Authorization: Bearer <CUBIX_ADMIN_PASSWORD>`, `X-Cubix-Build` et `X-Cubix-Commit` remplace
+l’APK de façon atomique (256 Mio maximum, le corps doit être une archive ZIP). Le fichier et
+ses métadonnées vivent dans `CUBIX_APK_DIR`, par défaut le dossier `apk` à côté de la base,
+donc dans le volume Docker. `scripts/deploy.ts` compile l’APK sur la machine de développement
+et l’envoie après `pihost update cubix`.
 
 Le numéro de build est la date du commit en minutes, lue dans `CUBIX_BUILD_NUMBER` ;
 `CUBIX_COMMIT` porte le SHA. Le `Dockerfile` les calcule depuis `.git` (un clone

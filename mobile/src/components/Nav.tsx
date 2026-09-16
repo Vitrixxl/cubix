@@ -22,9 +22,9 @@ export const NAV_SIDE_GAP = 6;
  * Phones get a full-width bar in the layout flow, under the page content; larger screens keep
  * the floating island above the content.
  */
-export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsOpen, chatActivity, hidden, collapsed, phone }: {
+export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsOpen, hidden, collapsed, phone }: {
   active: Page; onNavigate: (page: Page) => void; onSettings: () => void; settingsOpen: boolean;
-  chatActivity: boolean; hidden: boolean; collapsed?: boolean; phone: boolean;
+  hidden: boolean; collapsed?: boolean; phone: boolean;
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -46,7 +46,6 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
         {({ pressed }) => <View style={styles.icon}>
           {(current || pressed) && <Svg width={48} height={44} style={StyleSheet.absoluteFill} pointerEvents="none"><Rect width={48} height={44} rx={15} ry={15} fill={current ? t.accentSoft : t.hover} /></Svg>}
           <Icon size={25} strokeWidth={1.8} color={current ? t.accent : t.readableMuted} />
-          {page === "profile" && chatActivity && <View style={[styles.dot, { backgroundColor: t.danger }]} accessibilityLabel="New messages" />}
         </View>}
       </Pressable>;
     })}
@@ -61,5 +60,4 @@ const styles = StyleSheet.create({
   island: { position: "absolute", alignSelf: "center", width: 360, borderRadius: 22, padding: 6, borderWidth: 1 },
   item: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center" },
   icon: { width: 48, height: 44, borderRadius: 15, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  dot: { position: "absolute", top: 5, right: 6, width: 6, height: 6, borderRadius: 3 },
 });

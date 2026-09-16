@@ -43,12 +43,9 @@ export const IconEye = (p: SVGProps<SVGSVGElement>) => (
 export const IconUser = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a8 8 0 0 1 16 0v2" /></svg>
 );
-export const IconUsers = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}><circle cx="9" cy="8" r="3.5" /><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 4a4 4 0 0 1 0 8M18 15a6 6 0 0 1 4 6" /></svg>
+export const IconTrophy = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5" /></svg>
 );
-export const IconSearch = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
-);
-export const IconMessage = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 3V11.5A8.5 8.5 0 0 1 9.5 3h3a8.5 8.5 0 0 1 8.5 8.5Z" /><path d="M7 9h8M7 13h5" /></svg>
+export const IconLock = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
 );

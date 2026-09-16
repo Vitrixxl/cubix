@@ -168,16 +168,32 @@ rustTest("learning marks are validated, upserted per account and journaled for s
   expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
 });
 
-rustTest("Rust announces the mobile build it was deployed with and redirects to the latest APK", async () => {
+rustTest("Rust announces its build, stores the uploaded APK and serves it back", async () => {
   const app = createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
   const call = client(app);
+  const origin = `http://127.0.0.1:${app.server.port}`;
   expect((await call("/mobile/release")).body).toEqual({
-    version: "0.1.0", build: 29800000, commit: "0123456789abcdef",
-    apk: "https://github.com/Vitrixxl/cubix/releases/latest/download/cubix-android-arm64.apk",
+    version: "0.1.0", build: 29800000, commit: "0123456789abcdef", apk: "/api/mobile/apk",
+    apkBuild: null, apkCommit: null, apkSha256: null, apkSize: null, apkUploadedAt: null,
   });
-  const redirect = await fetch(`http://127.0.0.1:${app.server.port}/api/mobile/apk`, { redirect: "manual" });
-  expect(redirect.status).toBe(307);
-  expect(redirect.headers.get("location")).toBe("https://github.com/Vitrixxl/cubix/releases/latest/download/cubix-android-arm64.apk");
+  expect((await fetch(`${origin}/api/mobile/apk`)).status).toBe(404);
+  // A fake ZIP with the APK magic: the server checks the container, not the Android signature.
+  const apk = new Uint8Array(2048); apk.set([0x50, 0x4b, 0x03, 0x04]);
+  const put = (headers: Record<string, string>, body: Uint8Array<ArrayBuffer> = apk) => fetch(`${origin}/api/mobile/apk`, { method: "PUT", headers, body: new Blob([body]) });
+  const stamped = { "X-Cubix-Build": "29800000", "X-Cubix-Commit": "0123456789abcdef" };
+  expect((await put(stamped)).status).toBe(401);
+  expect((await put({ ...stamped, Authorization: "Bearer wrong-password-here" })).status).toBe(401);
+  const auth = { ...stamped, Authorization: "Bearer synthetic-admin-test-password" };
+  expect((await put({ ...auth, "X-Cubix-Build": "0" })).status).toBe(422);
+  expect((await put(auth, new TextEncoder().encode("not an apk".repeat(200)))).status).toBe(422);
+  const stored = await put(auth);
+  expect(stored.status).toBe(200);
+  expect(await stored.json()).toMatchObject({ apkBuild: 29800000, apkCommit: "0123456789abcdef", apkSize: 2048 });
+  const download = await fetch(`${origin}/api/mobile/apk`);
+  expect(download.status).toBe(200);
+  expect(download.headers.get("content-type")).toBe("application/vnd.android.package-archive");
+  expect(new Uint8Array(await download.arrayBuffer())).toEqual(apk);
+  expect((await call("/mobile/release")).body).toMatchObject({ apkBuild: 29800000, apkSha256: expect.stringMatching(/^[0-9a-f]{64}$/) });
   // A server started outside Docker or CI has no build number; the application then never prompts.
   const bare = client(createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "", CUBIX_COMMIT: "" }));
   expect((await bare("/mobile/release")).body).toMatchObject({ build: null, commit: null });

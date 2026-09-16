@@ -61,6 +61,26 @@ impl Admin {
             revoked: watch::channel(()).0,
         }))
     }
+    /// Argon2 check on a blocking thread, at most two at a time so a burst of guesses cannot
+    /// exhaust memory. Shared by the admin login and the APK upload.
+    pub async fn verify(&self, password: String) -> Result<bool> {
+        let permit = self
+            .permits
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| ApiError::new(429, "Try again shortly"))?;
+        let hash = self.hash.clone();
+        tokio::task::spawn_blocking(move || {
+            let _permit = permit;
+            PasswordHash::new(&hash).is_ok_and(|hash| {
+                Argon2::default()
+                    .verify_password(password.as_bytes(), &hash)
+                    .is_ok()
+            })
+        })
+        .await
+        .map_err(ApiError::internal)
+    }
 }
 fn cookie(headers: &HeaderMap) -> Option<String> {
     headers
@@ -112,23 +132,7 @@ pub async fn dispatch(
     if path == "/api/admin/login" && method == Method::POST {
         let body: Value = serde_json::from_slice(&bytes).map_err(|_| ApiError::validation())?;
         let password = crate::api::string(&body, "password", 1, 256)?.to_owned();
-        let permit = admin
-            .permits
-            .clone()
-            .try_acquire_owned()
-            .map_err(|_| ApiError::new(429, "Try again shortly"))?;
-        let hash = admin.hash.clone();
-        let valid = tokio::task::spawn_blocking(move || {
-            let _permit = permit;
-            PasswordHash::new(&hash).is_ok_and(|hash| {
-                Argon2::default()
-                    .verify_password(password.as_bytes(), &hash)
-                    .is_ok()
-            })
-        })
-        .await
-        .map_err(ApiError::internal)?;
-        if !valid {
+        if !admin.verify(password).await? {
             return Err(ApiError::new(401, "Incorrect password"));
         }
         let token = random_token();
@@ -217,7 +221,7 @@ async fn dashboard(
     let users=state.db.call(move |db| {
         let counts=one(db,"SELECT count(*) total,coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests FROM users",[])?.unwrap();
         let matching=one(db,"SELECT count(*) count FROM users WHERE (? OR password_hash IS NOT NULL) AND instr(lower(username),?)>0",params![guests,q])?.unwrap();
-        let rows=all(db,"SELECT u.id,u.username,u.bio,u.created_at AS createdAt,(u.password_hash IS NULL) AS isGuest,(SELECT count(*) FROM solves s WHERE s.user_id=u.id) AS solves,(SELECT count(*) FROM sessions s WHERE s.user_id=u.id) AS sessions FROM users u WHERE (? OR u.password_hash IS NOT NULL) AND instr(lower(u.username),?)>0 ORDER BY u.created_at DESC,u.id LIMIT 50 OFFSET ?",params![guests,q,page*50])?;
+        let rows=all(db,"SELECT u.id,u.username,u.created_at AS createdAt,(u.password_hash IS NULL) AS isGuest,(SELECT count(*) FROM solves s WHERE s.user_id=u.id) AS solves,(SELECT count(*) FROM sessions s WHERE s.user_id=u.id) AS sessions FROM users u WHERE (? OR u.password_hash IS NOT NULL) AND instr(lower(u.username),?)>0 ORDER BY u.created_at DESC,u.id LIMIT 50 OFFSET ?",params![guests,q,page*50])?;
         Ok(json!({"counts":counts,"matching":matching["count"],"rows":rows,"page":page}))
     }).await?;
     Ok(json!({"expiresAt":expires,"traffic":traffic,"users":users}))

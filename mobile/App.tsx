@@ -6,8 +6,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import { AppState, BackHandler, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { local, localChanged } from "./src/api";
-import { ChatConnection } from "./src/components/ChatConnection";
-import { AccountTabs } from "./src/components/AccountTabs";
+import { LiveConnection } from "./src/components/LiveConnection";
 import { SettingsDialog } from "./src/components/Settings";
 import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
@@ -16,20 +15,17 @@ import { useLayout } from "./src/hooks/useLayout";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
-import { chatActivityAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
+import { colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
 import { buildTheme, ThemeContext, useTheme } from "./src/theme";
 
-const CommunityPage = lazy(() => import("./src/pages/AccountPage").then(m => ({ default: m.CommunityPage })));
 const ProfilePage = lazy(() => import("./src/pages/AccountPage").then(m => ({ default: m.ProfilePage })));
 const AlgorithmsPage = lazy(() => import("./src/pages/AlgorithmsPage").then(m => ({ default: m.AlgorithmsPage })));
 const TrainingPage = lazy(() => import("./src/pages/TrainingPage").then(m => ({ default: m.TrainingPage })));
-const MessagesPage = lazy(() => import("./src/pages/MessagesPage").then(m => ({ default: m.MessagesPage })));
 const GuidesPage = lazy(() => import("./src/pages/GuidesPage").then(m => ({ default: m.GuidesPage })));
 
 /** Which navigation entry a route belongs to. */
 function navPage(route: Route): Page {
   if (route.page === "guides") return "profile";
-  if (route.page === "messages" || route.page === "community") return "profile";
   return route.page;
 }
 
@@ -81,8 +77,6 @@ function Shell() {
   useReleaseCheck(true);
   const [route, setRoute] = useAtom(routeAtom);
   const goBack = useSetAtom(goBackAtom);
-  const [chatActivity, setChatActivity] = useAtom(chatActivityAtom);
-  useEffect(() => { if (route.page === "messages") setChatActivity(false); }, [route.page, chatActivity, setChatActivity]);
   // The hardware back button walks the in-app history, like the browser's back button.
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => running || goBack());
@@ -91,25 +85,22 @@ function Shell() {
   const navigate = useCallback((page: Page) => setRoute({ page } as Route), [setRoute]);
   const active = navPage(route);
   return <SolveMenuProvider>
-    <ChatConnection />
+    <LiveConnection />
     <ScramblerHost />
     <KeyboardAvoidingView behavior={Platform.OS === "android" ? "height" : undefined} style={styles.main}>
     <View style={[styles.main, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      {!!user && !user.isGuest && !keyboardVisible && ["profile", "community", "messages"].includes(route.page) && !(route.page === "profile" && (route.username || route.caseId)) && <AccountTabs route={route} />}
       <Suspense fallback={<Boot />}>
         {!user ? <Boot /> : <>
           {route.page === "algorithms" && <AlgorithmsPage />}
           {route.page === "training" && <TrainingPage />}
           {route.page === "playground" && <PlaygroundPage />}
-          {route.page === "messages" && <MessagesPage solveId={route.solveId} />}
           {route.page === "guides" && <GuidesPage guide={route.guide} />}
-          {route.page === "community" && <CommunityPage />}
-          {route.page === "profile" && <ProfilePage key={route.username ?? "self"} username={route.username} mode={route.mode} caseId={route.caseId} />}
+          {route.page === "profile" && <ProfilePage mode={route.mode} caseId={route.caseId} />}
         </>}
       </Suspense>
     </View>
     </KeyboardAvoidingView>
-    <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} chatActivity={chatActivity} hidden={running || keyboardVisible} collapsed={navInFlow && keyboardVisible} phone={phone} />
+    <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} hidden={running || keyboardVisible} collapsed={navInFlow && keyboardVisible} phone={phone} />
     <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     <SyncIndicator hidden={running} offset={navInFlow ? 74 + safe.bottom : 84 + safe.bottom} />
   </SolveMenuProvider>;

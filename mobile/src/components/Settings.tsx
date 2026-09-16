@@ -45,7 +45,7 @@ function VersionRow() {
   return <Row label="Version">
     <View style={styles.version}>
       <Text style={{ color: t.text2, fontSize: 13 }} accessibilityLabel="Installed version">{APP_VERSION}{APP_COMMIT ? ` · ${APP_COMMIT}` : ""}</Text>
-      {outdated && <Btn small variant="primary" label="Download update" accessibilityHint={`Build ${latest?.commit?.slice(0, 7)}`} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)} />}
+      {outdated && <Btn small variant="primary" label="Download update" accessibilityHint={`Build ${latest?.apkCommit?.slice(0, 7)}`} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)} />}
     </View>
   </Row>;
 }

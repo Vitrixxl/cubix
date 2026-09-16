@@ -1,9 +1,9 @@
 use crate::practice;
 use crate::{
     AppState, accounts,
-    db::{all, one, required},
+    db::{all, required},
     error::{ApiError, Result},
-    social, stats,
+    stats,
 };
 use argon2::{
     Algorithm, Argon2, Params as ArgonParams, Version,
@@ -18,23 +18,13 @@ use axum::{
 use rand::rngs::OsRng;
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 pub fn string<'a>(body: &'a Value, key: &str, min: usize, max: usize) -> Result<&'a str> {
     body.get(key)
         .and_then(Value::as_str)
         .filter(|s| (min..=max).contains(&s.chars().count()))
         .ok_or_else(ApiError::validation)
-}
-pub fn optional_positive_int(body: &Value, key: &str) -> Result<Option<i64>> {
-    match body.get(key) {
-        None => Ok(None),
-        Some(v) => v
-            .as_i64()
-            .filter(|v| *v >= 1)
-            .map(Some)
-            .ok_or_else(ApiError::validation),
-    }
 }
 fn optional_string<'a>(body: &'a Value, key: &str) -> Result<Option<&'a str>> {
     match body.get(key) {
@@ -239,7 +229,6 @@ pub async fn dispatch(
             // Other devices of the same account learn about committed practice changes immediately.
             if method != Method::GET
                 && !path.starts_with("auth/")
-                && !path.starts_with("social/")
                 && let Some(user) = accounts::auth(db, &token)?
             {
                 let uid = user["id"].as_str().unwrap();
@@ -251,67 +240,6 @@ pub async fn dispatch(
         .map(Json)
 }
 
-fn profile(
-    db: &Connection,
-    state: &AppState,
-    username: &str,
-    user: &Value,
-    filter: practice::Filter,
-) -> Result<Value> {
-    let target = accounts::by_username(db, username)?
-        .filter(|_| !user["password_hash"].is_null())
-        .ok_or_else(|| ApiError::new(404, "This profile is unavailable."))?;
-    let solves = all(
-        db,
-        "SELECT * FROM solves WHERE user_id=? AND puzzle_id=? AND solve_mode=? AND (case_id IS NOT NULL OR ? IS NULL OR scramble_type=?) ORDER BY created_at,id",
-        params![
-            target["id"].as_str(),
-            filter.puzzle,
-            filter.solve_mode,
-            filter.scramble_type,
-            filter.scramble_type
-        ],
-    )?;
-    // Preserve first-seen case order, as in the web API's Map.
-    let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
-    for s in &solves {
-        if let Some(id) = s["case_id"].as_str().filter(|s| !s.is_empty()) {
-            if let Some((_, rows)) = groups.iter_mut().find(|(key, _)| key == id) {
-                rows.push(s.clone());
-            } else {
-                groups.push((id.to_owned(), vec![s.clone()]));
-            }
-        }
-    }
-    let cases: Vec<_> = groups
-        .iter()
-        .filter_map(|(id, rows)| {
-            state.catalog.by_id.get(id).map(|case| {
-                let mut h = stats::history(id, rows);
-                h["name"] = case["name"].clone();
-                h["stage"] = case["stage"].clone();
-                h
-            })
-        })
-        .collect();
-    let days: HashSet<_> = solves
-        .iter()
-        .filter_map(|s| {
-            s["created_at"]
-                .as_str()
-                .map(|v| v.chars().take(10).collect::<String>())
-        })
-        .collect();
-    let playground: Vec<_> = solves
-        .iter()
-        .filter(|s| s["case_id"].is_null())
-        .cloned()
-        .collect();
-    Ok(
-        json!({"user":accounts::public(&target),"totalSolves":solves.len(),"trainingSolves":solves.len()-playground.len(),"activeDays":days.len(),
-        "playground":stats::history("playground",&playground),"cases":cases}),
-    )
-}
 fn session(db: &Connection, id: f64, user: &str) -> Result<Value> {
     required(
         db,
@@ -370,38 +298,8 @@ pub(crate) fn route(
         }
     }
     let parts: Vec<_> = path.split('/').collect();
-    if parts.first() == Some(&"social") && user["password_hash"].is_null() {
-        return Err(ApiError::new(
-            403,
-            "Create an account to chat with friends.",
-        ));
-    }
     match (method, parts.as_slice()) {
         ("GET", ["auth", "me"]) => Ok(accounts::public(&user)),
-        ("PATCH", ["account"]) => {
-            if user["password_hash"].is_null() {
-                return Err(ApiError::new(
-                    403,
-                    "Create an account to edit your profile.",
-                ));
-            }
-            let bio = string(body, "bio", 0, 240)?.trim();
-            db.execute("UPDATE users SET bio=? WHERE id=?", params![bio, uid])?;
-            let mut u = user;
-            u["bio"] = json!(bio);
-            Ok(accounts::public(&u))
-        }
-        ("GET", ["users"]) => {
-            if user["password_hash"].is_null() {
-                return Err(ApiError::new(403, "Sign in to discover other cubers."));
-            }
-            let q = query.get("q").map(String::as_str).unwrap_or("");
-            if q.chars().count() > 80 {
-                return Err(ApiError::validation());
-            }
-            Ok(json!(all(db,"SELECT * FROM users WHERE password_hash IS NOT NULL AND instr(lower(username),?)>0 ORDER BY username LIMIT 30",[q.trim().to_lowercase()])?.iter().map(accounts::public).collect::<Vec<_>>()))
-        }
-        ("GET", ["users", name]) => profile(db, state, name, &user, practice::query(query)?),
         ("GET", ["stats"]) => {
             let filter = practice::query(query)?;
             let rows = all(
@@ -538,10 +436,10 @@ pub(crate) fn route(
                     "Case, cube and practice context do not match.",
                 ));
             }
-            if let Some(s) = selected_session {
-                if (s["mode"] == "training") != case.is_some_and(|s| !s.is_empty()) {
-                    return Err(ApiError::new(400, "Case and session mode do not match."));
-                }
+            if let Some(s) = selected_session
+                && (s["mode"] == "training") != case.is_some_and(|s| !s.is_empty())
+            {
+                return Err(ApiError::new(400, "Case and session mode do not match."));
             }
             if case.is_some_and(|s| !s.is_empty() && !state.catalog.by_id.contains_key(s)) {
                 return Err(ApiError::new(400, "Unknown case"));
@@ -617,65 +515,6 @@ pub(crate) fn route(
                 "Unknown case",
             )
         }
-        ("GET", ["social", "friends"]) => social::friends(db, uid),
-        ("POST", ["social", "friends"]) => {
-            let name = string(body, "username", 3, 24)?.trim();
-            let peer = accounts::by_username(db, name)?
-                .filter(|p| p["id"] != uid)
-                .ok_or_else(|| ApiError::new(400, "Enter another cuber's exact username."))?;
-            let pid = peer["id"].as_str().unwrap();
-            if social::friendship(db, uid, pid)?.is_some() {
-                return Err(ApiError::new(
-                    409,
-                    "A friendship or request already exists.",
-                ));
-            }
-            let (a, b) = if uid < pid { (uid, pid) } else { (pid, uid) };
-            db.execute(
-                "INSERT INTO friendships(user_a,user_b,requested_by) VALUES(?,?,?)",
-                params![a, b, uid],
-            )?;
-            state.hub.notify(&[uid, pid]);
-            social::friends(db, uid)
-        }
-        ("POST", ["social", "friends", id, "accept"]) => {
-            let f = one(db, "SELECT * FROM friendships WHERE id=?", [id])?
-                .filter(|f| {
-                    (f["user_a"] == uid || f["user_b"] == uid)
-                        && f["requested_by"] != uid
-                        && f["status"] == "pending"
-                })
-                .ok_or_else(|| ApiError::new(404, "Invitation unavailable."))?;
-            db.execute("UPDATE friendships SET status='accepted' WHERE id=?", [id])?;
-            state
-                .hub
-                .notify(&[f["user_a"].as_str().unwrap(), f["user_b"].as_str().unwrap()]);
-            social::friends(db, uid)
-        }
-        ("DELETE", ["social", "friends", id]) => {
-            let f = one(db, "SELECT * FROM friendships WHERE id=?", [id])?
-                .filter(|f| f["user_a"] == uid || f["user_b"] == uid)
-                .ok_or_else(|| ApiError::new(404, "Friendship unavailable."))?;
-            db.execute("DELETE FROM friendships WHERE id=?", [id])?;
-            state
-                .hub
-                .notify(&[f["user_a"].as_str().unwrap(), f["user_b"].as_str().unwrap()]);
-            Ok(json!({"ok":true}))
-        }
-        ("GET", ["social", "solves", id]) => social::own_solve(
-            db,
-            id.parse()
-                .map_err(|_| ApiError::new(404, "Time unavailable."))?,
-            uid,
-        )?
-        .ok_or_else(|| ApiError::new(404, "Time unavailable.")),
-        ("GET", ["social", "messages", peer]) => social::messages(
-            db,
-            uid,
-            peer,
-            query_int(query, "before", 9007199254740991, i64::MAX)?,
-        ),
-        ("POST", ["social", "messages", peer]) => social::persist(db, &state.hub, uid, peer, body),
         _ => Err(ApiError::new(404, "Not found")),
     }
 }

@@ -15,16 +15,15 @@ export type Route =
   | { page: "algorithms"; caseId?: string }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
-  | { page: "community" }
-  | { page: "messages"; solveId?: number }
-  | { page: "profile"; username?: string; mode?: "playground" | "training"; caseId?: string };
+  | { page: "profile"; mode?: ProfileMode; caseId?: string };
+export type ProfileMode = "playground" | "training" | "achievements";
 export type Page = Route["page"];
 
 const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
   try {
     const saved = JSON.parse(storage.getItem(LAST_TAB_KEY) ?? "null");
-    if (saved && ["playground", "algorithms", "training", "community", "profile"].includes(saved.page)) return { page: saved.page };
+    if (saved && ["playground", "algorithms", "training", "profile"].includes(saved.page)) return { page: saved.page };
   } catch { /* Open the default tab. */ }
   return { page: "playground" };
 }
@@ -134,12 +133,7 @@ export const playgroundScrambleAtom = atom(get => {
 });
 
 export const userAtom = atom<UserDto | null>(null);
-export const chatVersionAtom = atom(0);
-export const chatConnectionAtom = atom<"offline" | "connecting" | "online">("offline");
-export const chatActivityAtom = atom(false);
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);
 /** The Android keyboard covers the floating navigation; reclaim that space in forms. */
 export const keyboardVisibleAtom = atom(false);
-/** Conversation opened from the friends list; never persisted. */
-export const chatPeerAtom = atom("");

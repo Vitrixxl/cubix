@@ -90,9 +90,9 @@ pub struct Cubix {
     profile_mode: String,
     profile_stage: String,
     profile_filter: (String, String, String),
+    achievement_group: String,
+    achievement_filter: String,
     catalog_stage: String,
-    profile_user: String,
-    peer: String,
     puzzle: String,
     solve_mode: String,
     scramble_type: String,
@@ -101,10 +101,8 @@ pub struct Cubix {
     solves: Vec<Value>,
     stats: Vec<Value>,
     profile: Value,
+    achievements: Value,
     case_history: Value,
-    friends: Vec<Value>,
-    users: Vec<Value>,
-    messages: Vec<Value>,
     fields: HashMap<String, Entity<TextInput>>,
     focus: FocusHandle,
     timer: Entity<Timer>,
@@ -129,13 +127,10 @@ pub struct Cubix {
     control_bounds: std::rc::Rc<std::cell::RefCell<HashMap<String, Bounds<Pixels>>>>,
     select_index: usize,
     overlay_solve: Option<Value>,
-    confirm_remove: bool,
-    attachment: Option<Value>,
     error: String,
     saving: bool,
     generating: bool,
     sync: Value,
-    chat: String,
     theme_name: String,
     light: bool,
     width: f32,
@@ -166,10 +161,7 @@ impl Cubix {
         for (name, hint, password) in [
             ("username", "", false),
             ("password", "", true),
-            ("bio", "Your main cube, your next goal…", false),
-            ("search", "Search cubers…", false),
             ("cases", "Search cases…", false),
-            ("message", "Write a message…", false),
         ] {
             fields.insert(name.into(), cx.new(|cx| TextInput::new(hint, password, cx)));
         }
@@ -192,9 +184,9 @@ impl Cubix {
             profile_mode: "playground".into(),
             profile_stage: "all".into(),
             profile_filter: ("333".into(), "standard".into(), "random-moves".into()),
+            achievement_group: "all".into(),
+            achievement_filter: "all".into(),
             catalog_stage: String::new(),
-            profile_user: String::new(),
-            peer: String::new(),
             puzzle: "333".into(),
             solve_mode: "standard".into(),
             scramble_type: "random-moves".into(),
@@ -203,10 +195,8 @@ impl Cubix {
             solves: vec![],
             stats: vec![],
             profile: Value::Null,
+            achievements: Value::Null,
             case_history: Value::Null,
-            friends: vec![],
-            users: vec![],
-            messages: vec![],
             fields,
             focus,
             timer,
@@ -228,13 +218,10 @@ impl Cubix {
             control_bounds: Default::default(),
             select_index: 0,
             overlay_solve: None,
-            confirm_remove: false,
-            attachment: None,
             error: String::new(),
             saving: false,
             generating: false,
             sync: Value::Null,
-            chat: "connecting".into(),
             theme_name: "t3-code".into(),
             light: false,
             width: 1280.,
@@ -266,17 +253,9 @@ impl Cubix {
                 cx.notify()
             },
         ));
-        for name in ["search", "cases"] {
-            let field = app.fields[name].clone();
-            let name = name.to_string();
-            app.subscriptions
-                .push(cx.observe(&field, move |this, _, cx| {
-                    if name == "search" && !this.guest() {
-                        this.call("users", "users", json!([this.field("search", cx)]));
-                    }
-                    cx.notify();
-                }));
-        }
+        let field = app.fields["cases"].clone();
+        app.subscriptions
+            .push(cx.observe(&field, move |_, _, cx| cx.notify()));
         cx.spawn(async move |this, cx| {
             while let Ok(message) = rx.recv().await {
                 if this
@@ -313,7 +292,7 @@ impl Cubix {
                                 if v["quit"]==true {cx.quit();}
                             }
                         }
-                        let state=json!({"page":s.page,"case":s.case_id,"puzzle":s.puzzle,"pending":s.engine.pending.len(),"error":s.error,"solves":s.solves.len(),"friends":s.friends,"messages":s.messages.len(),"training":s.training["id"],"phase":format!("{:?}",s.timer.read(cx).phase),"saving":s.saving,"generating":s.generating,"selected":s.selected,"learned":s.learned,"overlay":s.overlay,"virtualRowsRendered":s.virtual_rows_rendered,"scramble":s.scramble,"solveMode":s.solve_mode,"selectIndex":s.select_index,"metrics":s.metrics(),"bounds":s.control_bounds.borrow().iter().map(|(k,b)|(k.clone(),json!({"x":f32::from(b.origin.x),"y":f32::from(b.origin.y),"w":f32::from(b.size.width),"h":f32::from(b.size.height)}))).collect::<serde_json::Map<_,_>>()});
+                        let state=json!({"page":s.page,"case":s.case_id,"puzzle":s.puzzle,"pending":s.engine.pending.len(),"error":s.error,"solves":s.solves.len(),"achievements":s.achievements["unlocked"],"training":s.training["id"],"phase":format!("{:?}",s.timer.read(cx).phase),"saving":s.saving,"generating":s.generating,"selected":s.selected,"learned":s.learned,"overlay":s.overlay,"virtualRowsRendered":s.virtual_rows_rendered,"scramble":s.scramble,"solveMode":s.solve_mode,"selectIndex":s.select_index,"metrics":s.metrics(),"bounds":s.control_bounds.borrow().iter().map(|(k,b)|(k.clone(),json!({"x":f32::from(b.origin.x),"y":f32::from(b.origin.y),"w":f32::from(b.size.width),"h":f32::from(b.size.height)}))).collect::<serde_json::Map<_,_>>()});
                         let _ = std::fs::write(directory.join("state.tmp"),state.to_string());
                         let _ = std::fs::rename(directory.join("state.tmp"),directory.join("state.json"));
                     }).is_err(){break;}
@@ -502,13 +481,7 @@ impl Cubix {
     }
     fn request_snapshot(&mut self) {
         self.snapshot_busy = true;
-        let username = if self.profile_user.is_empty() {
-            s(&self.user, "username")
-        } else {
-            &self.profile_user
-        }
-        .to_string();
-        self.call("snapshot","snapshot",json!([{"revision":self.snapshot_revision,"context":self.context(),"page":self.page,"caseId":self.case_id,"username":username,"profilePuzzle":self.profile_filter.0,"profileFilter":{"solveMode":self.profile_filter.1,"scrambleType":self.profile_filter.2},"peer":self.peer,"advance":self.advance_pending,"advanceKey":self.advance_key,"selected":self.selected,"randomAuf":self.random_auf}]));
+        self.call("snapshot","snapshot",json!([{"revision":self.snapshot_revision,"context":self.context(),"page":self.page,"caseId":self.case_id,"profilePuzzle":self.profile_filter.0,"profileFilter":{"solveMode":self.profile_filter.1,"scrambleType":self.profile_filter.2},"advance":self.advance_pending,"advanceKey":self.advance_key,"selected":self.selected,"randomAuf":self.random_auf}]));
     }
     fn receive(&mut self, message: Value, cx: &mut Context<Self>) {
         if std::env::var_os("CUBIX_TRACE").is_some() {
@@ -517,7 +490,7 @@ impl Cubix {
         if let Some(event) = message["event"].as_str() {
             match event {
                 "sync" => self.sync = message["value"].clone(),
-                "chat" => self.chat = s(&message, "value").into(),
+                "live" => {}
                 "changed" => {
                     self.refresh();
                     return;
@@ -585,14 +558,8 @@ impl Cubix {
                 if let Some(v) = value.get("caseHistory") {
                     self.case_history = v.clone();
                 }
-                if let Some(v) = value.get("friends") {
-                    self.friends = list(v);
-                }
-                if let Some(v) = value.get("users") {
-                    self.users = list(v);
-                }
-                if let Some(v) = value.get("messages") {
-                    self.messages = list(v);
+                if let Some(v) = value.get("achievements") {
+                    self.achievements = v.clone();
                 }
                 if let Some(v) = value.get("training") {
                     self.training = v.clone();
@@ -676,18 +643,6 @@ impl Cubix {
             "stats" => self.stats = list(&value),
             "profile" => self.profile = value,
             "caseHistory" => self.case_history = value,
-            "friends" => self.friends = list(&value),
-            "users" => self.users = list(&value),
-            "messages" => self.messages = list(&value),
-            "older" => {
-                let mut older = list(&value);
-                for m in &self.messages {
-                    if !older.iter().any(|v| v["id"] == m["id"]) {
-                        older.push(m.clone());
-                    }
-                }
-                self.messages = older;
-            }
             "scramble" => {
                 self.scramble = value.as_str().unwrap_or("").into();
                 self.generating = false;
@@ -713,7 +668,6 @@ impl Cubix {
                 self.sessions.clear();
                 self.user = json!({"isGuest":true,"username":"Guest"});
                 self.editing = false;
-                self.profile_user.clear();
                 self.refresh();
             }
             "session" => {
@@ -728,26 +682,9 @@ impl Cubix {
                 self.advance_key = format!("{}:{}", self.context_key(), value["id"]);
                 self.refresh();
             }
-            "bio" => {
-                self.user = value;
-                self.editing = false;
-                self.saving = false;
-                self.refresh();
-            }
-            "sent" => {
-                self.fields["message"].update(cx, |f, cx| f.set(String::new(), cx));
-                self.attachment = None;
-                self.saving = false;
-                self.call("messages", "messages", json!([self.peer]));
-            }
             "mutated" => {
                 self.saving = false;
                 self.overlay.clear();
-                self.refresh();
-            }
-            "shared" => {
-                self.attachment = Some(value);
-                self.page = "messages".into();
                 self.refresh();
             }
             _ => return,
@@ -878,7 +815,6 @@ impl Cubix {
                     );
                 }
                 self.case_id.clear();
-                self.profile_user.clear();
                 self.overlay.clear();
                 self.show_times = arg == "training" && self.width >= 1024.;
                 self.show_cases = self.show_times;
@@ -1078,18 +1014,7 @@ impl Cubix {
                     json!([self.field("username", cx), self.field("password", cx)]),
                 );
             }
-            "edit" => {
-                self.editing = !self.editing;
-                self.fields["bio"].update(cx, |f, cx| f.set(s(&self.user, "bio").into(), cx));
-            }
-            "bio" => {
-                self.saving = true;
-                self.call(
-                    "bio",
-                    "updateAccount",
-                    json!([{"bio":self.field("bio",cx)}]),
-                );
-            }
+            "edit" => self.editing = !self.editing,
             "logout" => self.call("logout", "logout", json!([])),
             "profilePuzzle" => {
                 self.profile_filter.0 = arg.into();
@@ -1117,6 +1042,33 @@ impl Cubix {
                 self.refresh();
             }
             "profileMode" => self.profile_mode = arg.into(),
+            "achievementGroup" => {
+                self.achievement_group = arg.into();
+                self.overlay.clear();
+            }
+            "achievementFilter" => self.achievement_filter = arg.into(),
+            "caseStep" => {
+                // Previous/next case of the same set, from the catalogue detail page.
+                let c = self.find_case(&self.case_id);
+                let set = s(&c, "set").to_owned();
+                let ids: Vec<String> = self
+                    .all_cases()
+                    .iter()
+                    .filter(|v| s(v, "set") == set)
+                    .map(|v| s(v, "id").to_owned())
+                    .collect();
+                if let Some(index) = ids.iter().position(|id| *id == self.case_id) {
+                    let next = if arg == "previous" {
+                        index.checked_sub(1)
+                    } else {
+                        Some(index + 1).filter(|i| *i < ids.len())
+                    };
+                    if let Some(next) = next {
+                        self.case_id = ids[next].clone();
+                        self.refresh();
+                    }
+                }
+            }
             "selectorToggle" => {
                 let count = self
                     .all_cases()
@@ -1149,55 +1101,11 @@ impl Cubix {
                     }
                 }
             }
-            "profile" => {
-                self.profile_user = arg.into();
-                self.profile_filter = (
-                    self.puzzle.clone(),
-                    self.solve_mode.clone(),
-                    self.scramble_type.clone(),
-                );
-                self.page = "profile".into();
-                self.refresh();
-            }
             "profileCase" => {
                 self.case_id = arg.into();
                 self.overlay = "profileCase".into();
                 self.refresh();
             }
-            "addFriend" => self.call("mutated", "addFriend", json!([arg])),
-            "acceptFriend" => self.call(
-                "mutated",
-                "acceptFriend",
-                json!([arg.parse::<i64>().unwrap_or(0)]),
-            ),
-            "removeFriend" => {
-                self.call(
-                    "mutated",
-                    "removeFriend",
-                    json!([arg.parse::<i64>().unwrap_or(0)]),
-                );
-                self.confirm_remove = false;
-                self.peer.clear();
-            }
-            "confirmRemove" => self.confirm_remove = !self.confirm_remove,
-            "chat" => {
-                self.peer = arg.into();
-                self.page = "messages".into();
-                self.refresh();
-            }
-            "send" => {
-                let text = self.field("message", cx);
-                if !text.trim().is_empty() || self.attachment.is_some() {
-                    self.saving = true;
-                    self.call("sent","sendMessage",json!([self.peer,{"text":text,"solveId":self.attachment.as_ref().map(|v|v["id"].clone()),"clientId":format!("desktop-{}",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())}]));
-                }
-            }
-            "older" => {
-                if let Some(first) = self.messages.first() {
-                    self.call("older", "messages", json!([self.peer, first["id"]]));
-                }
-            }
-            "attachment" => self.attachment = None,
             "penalty" => {
                 let (id, p) = arg.split_once(':').unwrap();
                 let id = id.parse::<i64>().unwrap();
@@ -1228,14 +1136,6 @@ impl Cubix {
                     .find(|s| s["id"].to_string() == arg)
                     .cloned();
                 self.overlay = "solve".into();
-            }
-            "share" => {
-                self.call(
-                    "shared",
-                    "sharedSolve",
-                    json!([arg.parse::<i64>().unwrap_or(0)]),
-                );
-                self.overlay.clear();
             }
             "help" => {
                 self.page = match self.page.as_str() {
@@ -1365,11 +1265,7 @@ impl Cubix {
             .gap(px(16.))
     }
     fn nav(&self, cx: &Context<Self>) -> Div {
-        let active = if self.page == "messages" || !self.profile_user.is_empty() {
-            "community"
-        } else {
-            &self.page
-        };
+        let active = &self.page;
         let mut tabs = row()
             .gap(px(2.))
             .p(px(4.))
@@ -1381,7 +1277,6 @@ impl Cubix {
             ("playground", "Timer", "IconCube"),
             ("algorithms", "Algorithms", "IconGrid"),
             ("training", "Training", "IconTimer"),
-            ("community", "Friends", "IconUsers"),
             ("profile", "Account", "IconUser"),
         ] {
             let selected = active == page;
@@ -2050,16 +1945,79 @@ impl Cubix {
         } else {
             body = body.child(self.empty("No solves yet."));
         }
+        // The body keeps only a small bottom padding: the action bar below it sits above the
+        // floating navbar and carries the padding the navbar needs.
+        let body = body.pb(px(12.));
         col()
             .size_full()
             .gap(px(12.))
             .child(
+                row().justify_between().child(
+                    self.btn("back", "", false, cx)
+                        .child(icon("IconBack", 16.))
+                        .child(s(&c, "setLabel").to_string()),
+                ),
+            )
+            .child(body)
+            .child(self.detail_actions(&c, cx))
+    }
+    /// Previous / Learned / Train / Next, mirrored by the left and right arrow keys.
+    fn detail_actions(&mut self, c: &Value, cx: &Context<Self>) -> Div {
+        let set = s(c, "set").to_owned();
+        let ids: Vec<String> = self
+            .all_cases()
+            .iter()
+            .filter(|v| s(v, "set") == set)
+            .map(|v| s(v, "id").to_owned())
+            .collect();
+        let index = ids.iter().position(|id| *id == self.case_id);
+        let has_previous = index.is_some_and(|i| i > 0);
+        let has_next = index.is_some_and(|i| i + 1 < ids.len());
+        let learned = self.learned.contains(&self.case_id);
+        let step = |s: &Self, action: &str, ic: &str, enabled: bool| {
+            s.btn(action, "", false, cx)
+                .w(px(38.))
+                .justify_center()
+                .opacity(if enabled { 1. } else { 0.35 })
+                .child(icon(ic, 16.))
+        };
+        row()
+            .items_center()
+            .justify_between()
+            .gap(px(8.))
+            .pb(px(if self.width <= 760. { 64. } else { 68. }))
+            .child(
                 row()
-                    .justify_between()
+                    .items_center()
+                    .gap(px(4.))
+                    .child(step(self, "caseStep:previous", "IconBack", has_previous))
                     .child(
-                        self.btn("back", "", false, cx)
-                            .child(icon("IconBack", 16.))
-                            .child(s(&c, "setLabel").to_string()),
+                        txt(
+                            format!(
+                                "{} / {}",
+                                index.map_or(0, |i| i + 1),
+                                ids.len()
+                            ),
+                            12.,
+                        )
+                        .min_w(px(48.))
+                        .text_center()
+                        .text_color(self.theme.muted),
+                    )
+                    .child(step(self, "caseStep:next", "IconChevronRight", has_next)),
+            )
+            .child(
+                row()
+                    .gap(px(8.))
+                    .child(
+                        self.btn(format!("learn:{}", self.case_id), "", false, cx)
+                            .text_color(if learned {
+                                self.theme.good
+                            } else {
+                                self.theme.text
+                            })
+                            .when(learned, |d| d.child(icon("IconCheck", 14.)))
+                            .child(if learned { "Learned" } else { "Mark learned" }),
                     )
                     .child(
                         self.btn("train", "", true, cx)
@@ -2069,7 +2027,6 @@ impl Cubix {
                             .child("Train"),
                     ),
             )
-            .child(body)
     }
     fn heading(&self, text: &str) -> Div {
         txt(text.to_uppercase(), 11.)
@@ -2143,7 +2100,7 @@ impl Cubix {
                     if self.login {
                         "Your local times are merged into your account."
                     } else {
-                        "An account syncs your times between devices and lets you add friends."
+                        "An account keeps your times, statistics and achievements in sync between devices."
                     },
                     14.,
                 )
@@ -2198,123 +2155,20 @@ impl Cubix {
             )
     }
     fn guest_page(&mut self, cx: &Context<Self>) -> Div {
-        let (title, intro) = match self.page.as_str() {
-            "community" => (
-                "Friends",
-                "Sign in to find other cubers, share times and chat.",
-            ),
-            "messages" => ("Messages", "Sign in to chat with friends."),
-            _ => (
-                "Account",
-                "Practise as a guest, or sign in to keep your times on every device.",
-            ),
-        };
-        let mut scroll = self
+        let scroll = self
             .scroll("guest")
             .gap(px(22.))
-            .child(bold(title, 26.))
-            .child(txt(intro, 14.).text_color(self.theme.muted))
-            .child(self.account_form(cx));
-        if self.page != "messages" {
-            scroll = scroll.child(self.appearance(cx));
-        }
-        col().size_full().child(scroll)
-    }
-    fn friend_actions(&self, member: &Value, cx: &Context<Self>) -> Div {
-        let id = s(member, "id");
-        if id == s(&self.user, "id") {
-            return row();
-        }
-        let friend = self.friends.iter().find(|f| s(f, "userId") == id);
-        let mut buttons = row().gap(px(6.));
-        if let Some(friend) = friend {
-            if friend["status"] == "accepted" {
-                buttons = buttons
-                    .child(
-                        self.btn(format!("chat:{id}"), "", true, cx)
-                            .child(icon("IconMessage", 16.))
-                            .child("Message"),
-                    )
-                    .child(txt("Friends", 13.).text_color(self.theme.muted));
-            } else if friend["incoming"].as_bool().unwrap_or(false) {
-                buttons = buttons
-                    .child(self.btn(format!("acceptFriend:{}", friend["id"]), "Accept", true, cx))
-                    .child(self.btn(
-                        format!("removeFriend:{}", friend["id"]),
-                        "Decline",
-                        false,
-                        cx,
-                    ));
-            } else {
-                buttons = buttons
-                    .child(txt("Pending", 13.).text_color(self.theme.muted))
-                    .child(self.btn(
-                        format!("removeFriend:{}", friend["id"]),
-                        "Cancel",
-                        false,
-                        cx,
-                    ));
-            }
-        } else {
-            buttons = buttons.child(self.btn(
-                format!("addFriend:{}", s(member, "username")),
-                "Add friend",
-                true,
-                cx,
-            ));
-        }
-        buttons
-    }
-    fn community(&mut self, cx: &Context<Self>) -> Div {
-        let mut scroll = self.scroll("members").gap(px(0.));
-        let mut members = self.users.clone();
-        for friend in &self.friends {
-            if friend["status"] == "pending" && !members.iter().any(|m| m["id"] == friend["userId"])
-            {
-                members.push(json!({"id":friend["userId"],"username":friend["username"],"bio":""}));
-            }
-        }
-        if members.is_empty() {
-            scroll = scroll.child(self.empty("No cubers found."));
-        }
-        for member in members {
-            scroll = scroll.child(
-                row()
-                    .gap(px(10.))
-                    .py(px(12.))
-                    .px(px(4.))
-                    .border_b_1()
-                    .border_color(self.theme.line)
-                    .child(
-                        self.btn(format!("profile:{}", s(&member, "username")), "", false, cx)
-                            .flex_1()
-                            .px(px(0.))
-                            .gap(px(12.))
-                            .child(self.avatar(&member, 36.))
-                            .child(col().child(bold(s(&member, "username"), 15.)).when(
-                                !s(&member, "bio").is_empty(),
-                                |d| {
-                                    d.child(
-                                        txt(s(&member, "bio"), 13.).text_color(self.theme.muted),
-                                    )
-                                },
-                            )),
-                    )
-                    .child(self.friend_actions(&member, cx)),
-            );
-        }
-        col()
-            .size_full()
-            .gap(px(16.))
+            .child(bold("Account", 26.))
             .child(
-                row().justify_between().child(bold("Friends", 26.)).child(
-                    self.btn("chat:", "", true, cx)
-                        .child(icon("IconMessage", 16.))
-                        .child("Messages"),
-                ),
+                txt(
+                    "Practise as a guest, or sign in to keep your times, statistics and achievements on every device.",
+                    14.,
+                )
+                .text_color(self.theme.muted),
             )
-            .child(self.input("search"))
-            .child(scroll)
+            .child(self.account_form(cx))
+            .child(self.appearance(cx));
+        col().size_full().child(scroll)
     }
     fn profile_page(&mut self, cx: &Context<Self>) -> Div {
         if self.profile.is_null() {
@@ -2322,67 +2176,32 @@ impl Cubix {
         }
         let profile = self.profile.clone();
         let user = &profile["user"];
-        let own = self.profile_user.is_empty() || s(user, "id") == s(&self.user, "id");
-        let mut header = row().flex_wrap().gap(px(14.));
-        if !own {
-            header = header.child(
-                self.btn("nav:community", "Friends", false, cx)
-                    .child(icon("IconBack", 16.)),
-            );
-        }
-        header = header.child(self.avatar(user, 60.)).child(
-            col()
-                .flex_1()
-                .min_w(px(140.))
-                .gap(px(2.))
-                .child(bold(s(user, "username"), 24.))
-                .child(
-                    txt(
-                        if s(user, "bio").is_empty() {
-                            format!("Joined {}", s(user, "joined"))
-                        } else {
-                            s(user, "bio").to_owned()
-                        },
-                        14.,
-                    )
-                    .text_color(self.theme.muted),
-                ),
-        );
-        if own {
-            header = header.child(self.btn(
+        let own = true;
+        let header = row()
+            .flex_wrap()
+            .gap(px(14.))
+            .child(self.avatar(user, 60.))
+            .child(
+                col()
+                    .flex_1()
+                    .min_w(px(140.))
+                    .gap(px(2.))
+                    .child(bold(s(user, "username"), 24.))
+                    .child(
+                        txt(format!("Joined {}", s(user, "joined")), 14.)
+                            .text_color(self.theme.muted),
+                    ),
+            )
+            .child(self.btn(
                 "edit",
-                if self.editing { "Close" } else { "Edit" },
+                if self.editing { "Close" } else { "Settings" },
                 true,
                 cx,
             ));
-        } else {
-            header = header.child(self.friend_actions(user, cx));
-        }
         let mut body = self.scroll("profile").gap(px(16.));
         if self.editing {
             body = body
-                .child(
-                    col()
-                        .max_w(px(420.))
-                        .gap(px(12.))
-                        .child(txt("Bio", 13.).text_color(self.theme.secondary))
-                        .child(self.input("bio"))
-                        .child(
-                            row()
-                                .gap(px(12.))
-                                .child(
-                                    self.btn(
-                                        "bio",
-                                        if self.saving { "Saving…" } else { "Save" },
-                                        true,
-                                        cx,
-                                    )
-                                    .bg(self.theme.accent)
-                                    .text_color(gpui::white()),
-                                )
-                                .child(self.btn("logout", "Sign out", false, cx)),
-                        ),
-                )
+                .child(self.btn("logout", "Sign out", false, cx).mr_auto())
                 .child(self.appearance(cx));
         }
         body = body.child(
@@ -2403,17 +2222,38 @@ impl Cubix {
                             "Training",
                             self.profile_mode == "training",
                             cx,
-                        )),
+                        ))
+                        .child(
+                            self.btn(
+                                "profileMode:achievements",
+                                "Achievements",
+                                self.profile_mode == "achievements",
+                                cx,
+                            )
+                            .child(
+                                txt(
+                                    format!(
+                                        "{}",
+                                        self.achievements["unlocked"].as_u64().unwrap_or(0)
+                                    ),
+                                    12.,
+                                )
+                                .font_family("Geist Mono")
+                                .text_color(self.theme.muted),
+                            ),
+                        ),
                 )
-                .child(
-                    self.btn(
-                        "menu:profilePuzzles",
-                        self.label("puzzles", &self.profile_filter.0),
-                        true,
-                        cx,
+                .when(self.profile_mode != "achievements", |d| {
+                    d.child(
+                        self.btn(
+                            "menu:profilePuzzles",
+                            self.label("puzzles", &self.profile_filter.0),
+                            true,
+                            cx,
+                        )
+                        .child(icon("IconChevronDown", 12.)),
                     )
-                    .child(icon("IconChevronDown", 12.)),
-                )
+                })
                 .when(self.profile_mode == "playground", |d| {
                     d.child(
                         self.btn(
@@ -2425,23 +2265,39 @@ impl Cubix {
                         .child(icon("IconChevronDown", 12.)),
                     )
                 })
-                .child(
-                    self.btn(
-                        "menu:profileModes",
-                        self.label("solveModes", &self.profile_filter.1),
-                        true,
-                        cx,
+                .when(self.profile_mode != "achievements", |d| {
+                    d.child(
+                        self.btn(
+                            "menu:profileModes",
+                            self.label("solveModes", &self.profile_filter.1),
+                            true,
+                            cx,
+                        )
+                        .child(icon("IconChevronDown", 12.)),
                     )
-                    .child(icon("IconChevronDown", 12.)),
-                ),
+                }),
         );
         let mut summary = row().flex_wrap().gap(px(24.));
+        if self.profile_mode == "achievements" {
+            summary = summary.child(self.kpi(
+                "Unlocked",
+                format!(
+                    "{} / {}",
+                    self.achievements["unlocked"].as_u64().unwrap_or(0),
+                    self.achievements["total"].as_u64().unwrap_or(0)
+                ),
+                24.,
+            ));
+        }
         for (label, key) in [
             ("Solves", "totalSolves"),
             ("Training", "trainingSolves"),
             ("Cases", "cases"),
             ("Active days", "activeDays"),
         ] {
+            if self.profile_mode == "achievements" && ["trainingSolves", "cases"].contains(&key) {
+                continue;
+            }
             summary = summary.child(self.kpi(
                 label,
                 if key == "cases" {
@@ -2453,7 +2309,9 @@ impl Cubix {
             ));
         }
         body = body.child(summary);
-        if self.profile_mode == "training" {
+        if self.profile_mode == "achievements" {
+            body = self.achievements_list(body, cx);
+        } else if self.profile_mode == "training" {
             let cases = self.all_cases();
             let width = self.width.min(1100.) - 48.;
             let cols = ((width + 4.) / 100.).floor();
@@ -2567,6 +2425,170 @@ impl Cubix {
                 });
         }
         col().size_full().gap(px(14.)).child(header).child(body)
+    }
+    /// Groups in display order: every puzzle with goals, then the general goals.
+    fn achievement_groups(&self) -> Vec<String> {
+        let mut groups = Vec::new();
+        for a in list(&self.achievements["achievements"]) {
+            let group = s(&a, "group").to_owned();
+            if !groups.contains(&group) {
+                groups.push(group);
+            }
+        }
+        groups
+    }
+    fn achievements_list(&mut self, mut body: Stateful<Div>, cx: &Context<Self>) -> Stateful<Div> {
+        let all = list(&self.achievements["achievements"]);
+        let group_label = if self.achievement_group == "all" {
+            "All puzzles".to_owned()
+        } else {
+            self.achievement_group.clone()
+        };
+        body = body.child(
+            row()
+                .flex_wrap()
+                .gap(px(12.))
+                .child(
+                    self.btn("menu:achievementGroups", group_label, true, cx)
+                        .child(icon("IconChevronDown", 12.)),
+                )
+                .child(
+                    row()
+                        .gap(px(4.))
+                        .children(
+                            [("all", "All"), ("unlocked", "Unlocked"), ("locked", "Locked")]
+                                .into_iter()
+                                .map(|(id, label)| {
+                                    self.btn(
+                                        format!("achievementFilter:{id}"),
+                                        label,
+                                        self.achievement_filter == id,
+                                        cx,
+                                    )
+                                }),
+                        ),
+                ),
+        );
+        let mut shown = 0;
+        for group in self.achievement_groups() {
+            if self.achievement_group != "all" && self.achievement_group != group {
+                continue;
+            }
+            let members: Vec<_> = all.iter().filter(|a| s(a, "group") == group).collect();
+            let unlocked = members
+                .iter()
+                .filter(|a| a["unlocked"] == true)
+                .count();
+            let visible: Vec<_> = members
+                .iter()
+                .filter(|a| match self.achievement_filter.as_str() {
+                    "unlocked" => a["unlocked"] == true,
+                    "locked" => a["unlocked"] != true,
+                    _ => true,
+                })
+                .collect();
+            if visible.is_empty() {
+                continue;
+            }
+            shown += visible.len();
+            let puzzle_id = s(members[0], "puzzle").to_owned();
+            let mut block = col().gap(px(2.)).child(
+                row()
+                    .gap(px(8.))
+                    .min_h(px(38.))
+                    .pt(px(10.))
+                    .child(if puzzle_id.is_empty() {
+                        icon("IconTrophy", 16.)
+                    } else {
+                        puzzle_icon(&puzzle_id, 18.)
+                    })
+                    .child(txt(group.clone(), 15.).font_weight(FontWeight::SEMIBOLD).flex_1())
+                    .child(
+                        txt(format!("{unlocked} / {}", members.len()), 12.)
+                            .font_family("Geist Mono")
+                            .text_color(self.theme.muted),
+                    ),
+            );
+            for a in visible {
+                let done = a["unlocked"] == true;
+                let ratio = number(&a["ratio"]).clamp(0., 1.) as f32;
+                let t = self.theme;
+                block = block.child(
+                    row()
+                        .gap(px(12.))
+                        .py(px(10.))
+                        .px(px(2.))
+                        .border_b_1()
+                        .border_color(t.line)
+                        .when(!done, |d| d.opacity(0.72))
+                        .child(
+                            div()
+                                .size(px(40.))
+                                .flex_none()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded(px(12.))
+                                .bg(if done { t.soft } else { t.surface2 })
+                                .text_color(if done { t.accent } else { t.muted })
+                                .child(if done {
+                                    icon("IconTrophy", 18.)
+                                } else {
+                                    icon("IconLock", 16.)
+                                }),
+                        )
+                        .child(
+                            col()
+                                .flex_1()
+                                .min_w(px(0.))
+                                .gap(px(3.))
+                                .child(
+                                    row()
+                                        .justify_between()
+                                        .gap(px(10.))
+                                        .child(bold(s(a, "title"), 14.))
+                                        .child(
+                                            txt(
+                                                if done && !s(a, "unlockedDate").is_empty() {
+                                                    s(a, "unlockedDate")
+                                                } else {
+                                                    s(a, "detail")
+                                                },
+                                                12.,
+                                            )
+                                            .font_family("Geist Mono")
+                                            .text_color(if done { t.accent } else { t.muted }),
+                                        ),
+                                )
+                                .child(txt(s(a, "description"), 12.).text_color(t.muted))
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .h(px(3.))
+                                        .mt(px(4.))
+                                        .rounded(px(2.))
+                                        .bg(t.surface2)
+                                        .child(
+                                            div()
+                                                .h(px(3.))
+                                                .rounded(px(2.))
+                                                .w(relative(ratio))
+                                                .bg(if done { t.accent } else { t.muted }),
+                                        ),
+                                ),
+                        ),
+                );
+            }
+            body = body.child(block);
+        }
+        if shown == 0 {
+            body = body.child(self.empty(if self.achievement_filter == "unlocked" {
+                "Nothing unlocked here yet. Keep practising!"
+            } else {
+                "Everything here is unlocked."
+            }));
+        }
+        body
     }
     fn profile_stats(&mut self, data: &Value, cx: &Context<Self>) -> Div {
         let mut metrics = row().flex_wrap().gap(px(24.));
@@ -2719,7 +2741,7 @@ impl Cubix {
         .h(px(240.));
         div().w_full().h(px(240.)).child(paint)
     }
-    fn shared_card(&self, solve: &Value) -> Div {
+    fn solve_card(&self, solve: &Value) -> Div {
         col()
             .gap(px(2.))
             .p(px(10.))
@@ -2744,207 +2766,6 @@ impl Cubix {
             .when(!s(solve, "scramble").is_empty(), |d| {
                 d.child(txt(s(solve, "scramble"), 12.).font_family("Geist Mono"))
             })
-    }
-    fn messages_page(&mut self, cx: &Context<Self>) -> Div {
-        let accepted: Vec<_> = self
-            .friends
-            .iter()
-            .filter(|f| f["status"] == "accepted")
-            .cloned()
-            .collect();
-        let peer = accepted
-            .iter()
-            .find(|f| s(f, "userId") == self.peer)
-            .cloned();
-        let compact = self.width <= 700.;
-        let mut threads = self.scroll("threads").gap(px(2.)).pb(px(0.));
-        if accepted.is_empty() {
-            threads = threads.child(self.empty("Add friends to start a conversation."));
-        }
-        for friend in &accepted {
-            let user = json!({"username":friend["username"]});
-            threads = threads.child(
-                self.btn(
-                    format!("chat:{}", s(friend, "userId")),
-                    "",
-                    s(friend, "userId") == self.peer,
-                    cx,
-                )
-                .py(px(8.))
-                .px(px(10.))
-                .gap(px(10.))
-                .child(self.avatar(&user, 32.))
-                .child(bold(s(friend, "username"), 14.)),
-            );
-        }
-        let mut layout = row().items_start().flex_1().min_h(px(0.)).gap(px(16.));
-        if !compact || peer.is_none() {
-            layout = layout.child(
-                col()
-                    .w(px(if compact { self.width - 28. } else { 220. }))
-                    .h_full()
-                    .child(threads),
-            );
-        }
-        if let Some(peer) = peer {
-            let mut header = row()
-                .gap(px(8.))
-                .pb(px(10.))
-                .border_b_1()
-                .border_color(self.theme.line)
-                .when(compact, |d| {
-                    d.child(
-                        self.btn("chat:", "", false, cx)
-                            .child(icon("IconBack", 16.)),
-                    )
-                })
-                .child(bold(s(&peer, "username"), 16.).flex_1());
-            if self.confirm_remove {
-                header = header
-                    .child(
-                        self.btn(format!("removeFriend:{}", peer["id"]), "Confirm", false, cx)
-                            .text_color(self.theme.danger),
-                    )
-                    .child(self.btn("confirmRemove", "Cancel", false, cx));
-            } else {
-                header = header.child(
-                    self.btn("confirmRemove", "Remove friend", false, cx)
-                        .text_size(px(12.)),
-                );
-            }
-            let mut messages = self.scroll("messages").pb(px(0.)).py(px(12.)).gap(px(8.));
-            if self.messages.len() >= 50 {
-                messages = messages.child(self.btn("older", "Load older messages", false, cx));
-            }
-            if self.messages.is_empty() {
-                messages = messages.child(self.empty("No messages yet."));
-            }
-            for message in &self.messages {
-                let own = message["senderId"] == self.user["id"];
-                messages = messages.child(
-                    col()
-                        .max_w(relative(0.8))
-                        .px(px(14.))
-                        .py(px(8.))
-                        .rounded(px(18.))
-                        .bg(if own {
-                            self.theme.soft
-                        } else {
-                            self.theme.surface2
-                        })
-                        .when(own, |d| d.ml_auto())
-                        .when(!own, |d| d.mr_auto())
-                        .when(!message["solve"].is_null(), |d| {
-                            d.child(self.shared_card(&message["solve"]))
-                        })
-                        .when(!s(message, "text").is_empty(), |d| {
-                            d.child(txt(s(message, "text"), 14.))
-                        })
-                        .child(
-                            txt(
-                                if message["id"].as_i64().unwrap_or(0) < 0 {
-                                    "Sending…"
-                                } else {
-                                    s(message, "createdAt").get(11..16).unwrap_or("")
-                                },
-                                10.,
-                            )
-                            .mt(px(4.))
-                            .text_color(self.theme.muted),
-                        ),
-                );
-            }
-            let mut composer = col()
-                .gap(px(8.))
-                .pt(px(10.))
-                .border_t_1()
-                .border_color(self.theme.line);
-            if let Some(solve) = &self.attachment {
-                composer = composer.child(row().child(self.shared_card(solve)).child(self.btn(
-                    "attachment",
-                    "Remove",
-                    false,
-                    cx,
-                )));
-            }
-            composer = composer.child(
-                row()
-                    .gap(px(8.))
-                    .child(div().flex_1().child(self.input("message")))
-                    .child(
-                        self.btn("send", if self.saving { "…" } else { "Send" }, true, cx)
-                            .min_h(px(40.))
-                            .bg(self.theme.accent)
-                            .text_color(gpui::white()),
-                    ),
-            );
-            layout = layout.child(
-                col()
-                    .flex_1()
-                    .h_full()
-                    .min_w(px(0.))
-                    .child(header)
-                    .child(messages)
-                    .child(composer),
-            );
-        } else if !compact {
-            let mut empty = col()
-                .flex_1()
-                .h_full()
-                .justify_center()
-                .items_center()
-                .gap(px(12.))
-                .child(
-                    txt(
-                        if self.attachment.is_some() {
-                            "Choose a friend to send this time."
-                        } else {
-                            "Choose a friend to open a conversation."
-                        },
-                        14.,
-                    )
-                    .text_color(self.theme.muted),
-                );
-            if let Some(s) = &self.attachment {
-                empty = empty.child(self.shared_card(s)).child(self.btn(
-                    "attachment",
-                    "Cancel",
-                    false,
-                    cx,
-                ));
-            }
-            layout = layout.child(empty);
-        }
-        col()
-            .size_full()
-            .pb(px(72.))
-            .gap(px(12.))
-            .child(
-                row()
-                    .gap(px(12.))
-                    .child(
-                        self.btn("nav:community", "", false, cx)
-                            .child(icon("IconBack", 16.))
-                            .child("Friends"),
-                    )
-                    .child(bold("Messages", 20.).flex_1())
-                    .child(
-                        txt(
-                            if self.chat == "online" {
-                                "Connected"
-                            } else {
-                                "Reconnecting…"
-                            },
-                            12.,
-                        )
-                        .text_color(if self.chat == "online" {
-                            self.theme.good
-                        } else {
-                            self.theme.muted
-                        }),
-                    ),
-            )
-            .child(layout)
     }
     fn select_options(&self) -> (&'static str, Vec<Value>, String) {
         match self.overlay.as_str() {
@@ -2972,6 +2793,17 @@ impl Cubix {
                     self.profile_filter.2.clone(),
                 )
             }
+            "achievementGroups" => (
+                "achievementGroup",
+                std::iter::once(json!({"id":"all","label":"All puzzles"}))
+                    .chain(
+                        self.achievement_groups()
+                            .into_iter()
+                            .map(|g| json!({"id":g,"label":g})),
+                    )
+                    .collect(),
+                self.achievement_group.clone(),
+            ),
             "puzzles" => (
                 "puzzle",
                 list(&self.catalog["puzzles"]["puzzles"]),
@@ -3031,10 +2863,7 @@ impl Cubix {
         if self.overlay == "solve" {
             if let Some(solve) = &self.overlay_solve {
                 menu = menu
-                    .child(self.shared_card(solve))
-                    .when(!self.guest(), |d| {
-                        d.child(self.btn(format!("share:{}", solve["id"]), "Share", false, cx))
-                    })
+                    .child(self.solve_card(solve))
                     .child(
                         self.btn(format!("delete:{}", solve["id"]), "Delete", false, cx)
                             .text_color(self.theme.danger),
@@ -3200,8 +3029,7 @@ impl Render for Cubix {
             }
         }
         let practice = ["playground", "training"].contains(&self.page.as_str());
-        let guest =
-            self.guest() && ["profile", "community", "messages"].contains(&self.page.as_str());
+        let guest = self.guest() && self.page == "profile";
         let guide = self.page.ends_with("Guide");
         let content = if guide {
             self.guide_page(cx)
@@ -3218,8 +3046,6 @@ impl Render for Cubix {
                         self.detail(cx)
                     }
                 }
-                "community" => self.community(cx),
-                "messages" => self.messages_page(cx),
                 "profile" => self.profile_page(cx),
                 _ => self.empty("Loading…"),
             }
@@ -3293,15 +3119,8 @@ impl Render for Cubix {
                     }
                 }
                 if typing {
-                    if key == "enter" {
-                        let action = if s.page == "messages" {
-                            "send"
-                        } else if s.editing {
-                            "bio"
-                        } else {
-                            "auth"
-                        };
-                        s.action(action, window, cx);
+                    if key == "enter" && !s.editing {
+                        s.action("auth", window, cx);
                     }
                     return;
                 }
@@ -3319,8 +3138,7 @@ impl Render for Cubix {
                         "1" => "nav:playground",
                         "2" => "nav:algorithms",
                         "3" => "nav:training",
-                        "4" => "nav:community",
-                        "5" => "nav:profile",
+                        "4" => "nav:profile",
                         "n" => "next",
                         "p" => "previous",
                         "c" => "cases",
@@ -3334,6 +3152,14 @@ impl Render for Cubix {
                         s.action(action, window, cx);
                     }
                     return;
+                }
+                // Arrow keys step through the cases of the open set on the catalogue detail page.
+                if s.page == "algorithms" && !s.case_id.is_empty() && s.overlay.is_empty() {
+                    match key {
+                        "left" => s.action("caseStep:previous", window, cx),
+                        "right" => s.action("caseStep:next", window, cx),
+                        _ => {}
+                    }
                 }
                 if ["playground", "training"].contains(&s.page.as_str()) && s.overlay.is_empty() {
                     let running = s.timer.read(cx).phase == Phase::Running;

@@ -16,7 +16,7 @@ import { SolveRow } from "./SolveMenus";
 import { TimesChart } from "./TimesChart";
 import { Btn, Caption, Empty, H1, Input, Kpi, Muted, Segmented, mono } from "./ui";
 
-export function ProfileStats({ data, own }: { data: CaseHistoryDto; own: boolean }) {
+export function ProfileStats({ data }: { data: CaseHistoryDto }) {
   const t = useTheme();
   const metrics: [string, number | null][] = [["Best", data.summary.best], ["Mean", data.summary.mean], ["Ao5", data.summary.ao5], ["Ao12", data.summary.ao12], ["Best Ao5", data.summary.bestAo5], ["Best Ao12", data.summary.bestAo12]];
   const recent = data.history.slice(-20).reverse();
@@ -26,7 +26,7 @@ export function ProfileStats({ data, own }: { data: CaseHistoryDto; own: boolean
     <View style={styles.sectionHeading}><Text style={{ color: t.text, fontSize: 17, fontWeight: "700" }}>Recent times</Text><Muted>{data.summary.count} solves</Muted></View>
     <View style={{ maxWidth: 520 }}>
       <View style={[styles.tr, { borderBottomColor: t.line }]}><Th width={44}>#</Th><Th width={110}>Time</Th><Th>Date</Th></View>
-      {recent.map((s, i) => <SolveRow key={s.id} solveId={s.id} disabled={!own} style={[styles.tr, { borderBottomColor: t.line }]}>
+      {recent.map((s, i) => <SolveRow key={s.id} solveId={s.id} style={[styles.tr, { borderBottomColor: t.line }]}>
         <Text style={[styles.td, { width: 44, color: t.readableMuted }]}>{data.history.length - i}</Text>
         <Text style={[styles.td, { width: 110 }, mono(t, 15), s.time === null && { color: t.danger }]}>{s.time === null ? "DNF" : fmtTime(s.time)}{s.penalty === "+2" ? "+" : ""}</Text>
         <Text style={[styles.td, { color: t.readableMuted, flex: 1 }]}>{fmtDate(s.at)}</Text>
@@ -94,24 +94,24 @@ export function ProfileCaseGallery({ cases, sets, profile, onOpen, phone, header
     </Pressable> : <View style={styles.grid}>{row.cases.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} onOpen={onOpen} />)}</View>} />;
 }
 
-export function ProfileCaseDetails({ c, data, own, username, phone, onClose }: { c: CaseDto; data?: CaseHistoryDto; own: boolean; username: string; phone: boolean; onClose: () => void }) {
+export function ProfileCaseDetails({ c, data, phone, onClose }: { c: CaseDto; data?: CaseHistoryDto; phone: boolean; onClose: () => void }) {
   const t = useTheme();
-  const scroll = usePreservedScroll(`profile-case:${username}:${c.id}`);
+  const scroll = usePreservedScroll(`profile-case:${c.id}`);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
   const setPuzzle = useSetAtom(puzzleAtom);
   const setRoute = useSetAtom(routeAtom);
   return <>
     <View style={styles.topline}>
-      {phone ? <Btn variant="ghost" icon={<IconBack size={16} color={t.text2} />} label="All cases" onPress={onClose} /> : <Caption>{username}</Caption>}
+      {phone ? <Btn variant="ghost" icon={<IconBack size={16} color={t.text2} />} label="All cases" onPress={onClose} /> : <Caption>Case statistics</Caption>}
       {!phone && <Btn variant="ghost" iconOnly icon={<IconClose size={16} color={t.readableMuted} />} accessibilityLabel="Close" onPress={onClose} />}
     </View>
     <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 8 }}>
       <View style={styles.detailHeading}>
         <CaseDiagram c={c} size={96} />
         <View style={{ flex: 1, minWidth: 120 }}><H1 size={24}>{c.id}</H1><Muted>{c.name !== c.id ? c.name : c.group} · {data?.summary.count ?? 0} solves</Muted></View>
-        {own && <Btn icon={<IconTimer size={16} color={t.text} />} label="Train" onPress={() => { setPuzzle(puzzleOf(c)); setSelection([c.id]); setRoute({ page: "training" }); }} />}
+        <Btn icon={<IconTimer size={16} color={t.text} />} label="Train" onPress={() => { setPuzzle(puzzleOf(c)); setSelection([c.id]); setRoute({ page: "training" }); }} />
       </View>
-      {data?.summary.count ? <ProfileStats key={c.id} data={data} own={own} /> : <Empty>Not trained yet.</Empty>}
+      {data?.summary.count ? <ProfileStats key={c.id} data={data} /> : <Empty>Not trained yet.</Empty>}
     </ScrollView>
   </>;
 }

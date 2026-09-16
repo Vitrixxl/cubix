@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { createLocalClient } from "../src/client/local/client";
 import { createApiClient } from "../src/client/api-client";
 import { createRustApi, openDb } from "./backend";
+import { history } from "../src/client/local/stats";
 import type { SessionDto, SolveDto } from "../src/shared/types";
 
 class Storage {
@@ -141,24 +142,6 @@ test("legacy server guests are downloaded once; expired sessions retain the loca
   expect(a.local.status().pending).toBe(0);
 });
 
-test("offline messages and unsynced solve attachments are delivered once after reconnecting",async () => {
-  const {remote} = setup(); const a = device(remote);
-  const alice = await a.api.register("msg_alice","a-long-test-password");
-  const bob = await remote(null).register("msg_bob","a-long-test-password");
-  const [invite] = await remote(alice.token).addFriend("msg_bob"); await remote(bob.token).acceptFriend(invite.id);
-  a.control.offline=true;
-  const solve = await a.api.addSolve({timeMs:999});
-  const body={text:"Offline PB",solveId:solve.id,clientId:crypto.randomUUID()};
-  const message = await a.api.sendMessage(bob.user.id,body);
-  expect(message.id).toBeLessThan(0);
-  expect((await a.api.messages(bob.user.id))[0].text).toBe("Offline PB");
-  await a.api.sendMessage(bob.user.id,body);
-  a.control.offline=false; await a.local.sync();
-  const rows = await remote(bob.token).messages(alice.user.id);
-  expect(rows).toHaveLength(1); expect(rows[0].solve?.time_ms).toBe(999);
-  expect((await a.api.messages(bob.user.id)).filter(m=>m.id<0)).toHaveLength(0);
-});
-
 test("storage quota failures leave saved history intact and are reported instead of pretending to save",async () => {
   const {remote} = setup(); const storage = new Storage(), a = device(remote,storage);
   await a.api.addSolve({timeMs:1000});
@@ -241,8 +224,8 @@ test("cube context survives offline storage, guest import, sync and another devi
     expect(await b.api.cases(cube)).toEqual(await remote(auth.token).cases(cube));
     expect(await b.api.sets(cube)).toEqual(await remote(auth.token).sets(cube));
     const localProfile = await b.api.profile(auth.user.username,undefined,cube);
-    const serverProfile = await remote(auth.token).profile(auth.user.username,undefined,cube);
-    expect(localProfile.playground.summary).toEqual(serverProfile.playground.summary);
+    const serverRows = await remote(auth.token).solves("playground",100,cube);
+    expect(localProfile.playground.summary).toEqual(history("playground",serverRows).summary);
     expect(localProfile.totalSolves).toBe(cube === 3 ? 1 : 2);
     expect(localProfile.playground.summary.best).toBe(cube === 3 ? 3333 : cube*2000);
     expect(await b.api.solves("playground",100,cube)).toHaveLength(1);
@@ -289,9 +272,8 @@ test("practice labels survive offline reopening, guest import and sync while his
     expect(localRows).toMatchObject(serverRows);
     expect(serverRows).toHaveLength(1);
     const localProfile = await b.api.profile(auth.user.username,undefined,context.puzzle,context);
-    const serverProfile = await remote(auth.token).profile(auth.user.username,undefined,context.puzzle,context);
-    expect(localProfile.playground.summary).toEqual(serverProfile.playground.summary);
-    expect(serverProfile.playground.summary.best).toBe(1000+i*1000);
+    expect(localProfile.playground.summary).toEqual(history("playground",serverRows).summary);
+    expect(localProfile.playground.summary.best).toBe(1000+i*1000);
   }
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE puzzle_id='sq1' AND cube_size IS NULL AND solve_mode='standard' AND scramble_type='competition'").get()?.n).toBe(1);
 });
@@ -340,8 +322,8 @@ test('niche training sessions, case statistics and modes survive guest import an
     expect((await b.api.caseHistory(c.id,context)).summary.best).toBe(4321);
     expect((await b.api.caseHistory(c.id)).summary.best).toBe(1000);
     const local=await b.api.profile(auth.user.username,undefined,puzzle,context);
-    const server=await remote(auth.token).profile(auth.user.username,undefined,puzzle,context);
-    expect(local.trainingSolves).toBe(1);expect(local.cases).toEqual(server.cases);
+    const server=await remote(auth.token).stats(puzzle,context);
+    expect(local.trainingSolves).toBe(1);expect(local.cases.map(c=>c.summary)).toEqual(server);
   }
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(10);
 });
@@ -385,7 +367,7 @@ test("learning marks are local for guests, imported on sign-in, synchronized bet
 test("a live socket announces the account's own changes so other devices pull immediately",async () => {
   const {remote,origin} = setup(); const a = device(remote);
   const auth = await a.api.register("live_alice","a-long-test-password"); await a.local.sync();
-  const ws = new WebSocket(origin.replace("http:","ws:")+"/api/social/live");
+  const ws = new WebSocket(origin.replace("http:","ws:")+"/api/live");
   cleanup.push(() => ws.close());
   const messages: any[] = [];
   const next = (type: string) => new Promise<any>((resolve,reject) => {
@@ -410,10 +392,10 @@ test("a live socket announces the account's own changes so other devices pull im
   expect((await a.api.solves("playground"))[0].time_ms).toBe(solve.time_ms);
   // Being up to date, the same notification does not trigger another request.
   const before = a.control.requests; await a.local.remoteChanged(notice.cursor); expect(a.control.requests).toBe(before);
-  // Direct REST writes are announced too, and social messages stay separate.
+  // Direct REST writes are announced too.
   const rest = next("sync"); await remote(auth.token).deleteSolve((await remote(auth.token).solves("playground"))[0].id); await rest;
   await new Promise(resolve => setTimeout(resolve,100));
-  // Only ready and sync frames ever reach this socket: no social noise for practice writes.
+  // Only ready and sync frames ever reach this socket.
   expect(messages.map(m => m.type).filter(t => t !== "sync")).toEqual(["ready"]);
   expect(messages.at(-1).cursor).toBeGreaterThan(notice.cursor);
 });

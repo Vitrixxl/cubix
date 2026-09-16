@@ -17,7 +17,7 @@ pub fn digest(token: &str) -> String {
     format!("{:x}", Sha256::digest(token.as_bytes()))
 }
 pub fn public(user: &Value) -> Value {
-    json!({"id":user["id"],"username":user["username"],"bio":user["bio"],"isGuest":user["password_hash"].is_null(),"createdAt":user["created_at"]})
+    json!({"id":user["id"],"username":user["username"],"isGuest":user["password_hash"].is_null(),"createdAt":user["created_at"]})
 }
 pub fn auth(db: &Connection, token: &str) -> Result<Option<Value>> {
     let Some(token) = token.strip_prefix("Bearer ") else {

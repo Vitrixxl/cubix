@@ -1,24 +1,27 @@
 # Cubix
 
 Application native de speedcubing : chronomètre, algorithmes, entraînement,
-statistiques et messagerie. Desktop en **Rust / GPUI**, Android en **React Native**,
-API en **Rust / Axum / SQLite**. L'application web et la PWA ne sont plus prises en charge.
+statistiques et succès. Un compte sert uniquement à synchroniser ses temps entre
+appareils. Desktop en **Rust / GPUI**, Android en **React Native**, API en
+**Rust / Axum / SQLite**. L'application web et la PWA ne sont plus prises en charge.
 
 ## Desktop
 
-Sur Arch Linux x86_64, le paquet précompilé `cubix-bin` s'installe et se met à jour
-avec yay, sans compilateur :
+Le desktop se compile depuis les sources : cloner le dépôt puis lancer `make`.
 
 ```sh
-yay -S cubix-bin      # installation
-yay -Syu              # mise à jour avec le reste du système
+git clone https://github.com/Vitrixxl/cubix && cd cubix
+make                    # dépendances (pacman ou apt, Bun, Rust), compilation, installation
 ```
 
-Chaque validation de `main` par la CI publie une release GitHub et met à jour le
-paquet AUR. Sans yay, `./update.sh` télécharge la dernière release, vérifie son
-SHA-256 et installe le même paquet avec pacman.
+`make` installe les paquets système nécessaires sans yay, Bun et Rust s'ils manquent,
+construit l'application autonome dans `artifacts/gpui/cubix-linux-x64` puis l'installe
+pour l'utilisateur courant (`~/.local/share/cubix-gpui`, entrée de menu et icône).
+Relancer `make` après un `git pull` pour mettre à jour. `make uninstall` retire
+l'application en conservant les données. `make run` compile et lance le desktop
+depuis le dépôt.
 
-Pour développer ou compiler soi-même :
+Pour développer :
 
 ```sh
 bun install --frozen-lockfile
@@ -31,9 +34,6 @@ les schémas et les polices. Bun n'est pas nécessaire sur la machine cible.
 Linux X11/Wayland avec un pilote Vulkan est la plateforme validée.
 Voir [le guide desktop](desktop/README.md) pour les dépendances et l'installation locale.
 
-Les recettes Arch (`cubix-bin` précompilé, `cubix-git` depuis les sources) sont
-décrites dans [packaging/aur](packaging/aur/README.md).
-
 ## Android
 
 ```sh
@@ -44,13 +44,15 @@ bun run build:android   # construire mobile/build/cubix-release.apk
 L'APK release fonctionne sans Metro. Installation, prérequis Android et
 validation : [guide mobile](mobile/README.md).
 
-Chaque validation de `main` publie aussi `cubix-android-arm64.apk` dans la release
-GitHub. L'API le sert par redirection sur `/api/mobile/apk` et annonce son propre
-numéro de build sur `/api/mobile/release`. L'application compare ce numéro au sien
-et affiche un bouton de téléchargement dans les paramètres quand elle est en retard.
-Le numéro de build est la date du commit en minutes : il est calculé par
-`mobile/app.config.ts` pour l'APK et par le `Dockerfile` pour l'API, donc une mise à
-jour n'est proposée qu'après `pihost update cubix` sur le serveur.
+`bun run deploy` (ou `make deploy`) pousse `main`, met à jour le serveur avec
+`pihost update cubix`, compile ici l'APK ARM64 à basse priorité puis l'envoie à l'API
+(`PUT /api/mobile/apk`, mot de passe admin). L'API stocke l'APK à côté de sa base et le
+sert sur `/api/mobile/apk` ; `/api/mobile/release` annonce son build et celui de l'APK.
+L'application compare le build de l'APK au sien et affiche un bouton de téléchargement
+dans les paramètres quand elle est en retard. Le numéro de build est la date du commit
+en minutes : il est calculé par `mobile/app.config.ts` pour l'APK et par le `Dockerfile`
+pour l'API. Aucune release GitHub n'intervient. L'APK n'est pas compilé sur le Raspberry
+Pi : Gradle dépasse sa mémoire et Google ne publie pas de NDK Android pour Linux ARM64.
 
 ## API
 
@@ -62,11 +64,11 @@ curl --fail http://localhost:3000/api/health
 docker compose logs -f api
 ```
 
-Le service expose `/api/*` et la WebSocket `/api/social/live`, qui transporte les notifications
-sociales et les notifications de synchronisation entre les appareils d'un même compte.
+Le service expose `/api/*` et la WebSocket `/api/live`, qui transporte les notifications
+de synchronisation entre les appareils d'un même compte.
 Les anciennes pages web, les fichiers statiques et `/aaaaadmin` renvoient 404.
 L'image ne contient que le serveur Rust ; aucun build JavaScript n'est nécessaire.
-Les comptes, temps, sessions, amitiés et messages restent dans le volume `cubix-data`.
+Les comptes, temps, sessions et marques d'apprentissage restent dans le volume `cubix-data`.
 `docker compose down` conserve ce volume. `CUBIX_PORT=8080` change le port publié.
 La compilation Rust dans l'image est limitée à deux jobs pour tenir en mémoire sur un
 Raspberry Pi ; `docker compose build --build-arg CARGO_BUILD_JOBS=4` lève cette limite.
@@ -110,7 +112,7 @@ Voir [la documentation du serveur](rust-api/README.md).
 
 Le chronomètre et l'entraînement enregistrent les temps sur l'appareil avant toute
 synchronisation. Sans compte, les temps restent locaux. Un compte ajoute la
-synchronisation et les fonctions sociales ; les opérations en attente sont conservées
+synchronisation ; les opérations en attente sont conservées
 hors ligne et reprises au retour du réseau. Une déconnexion ou une session expirée
 ne supprime pas les temps en attente. Les marques « appris / à apprendre » des cas suivent
 le même mécanisme. Tant qu'un appareil est connecté, il reçoit en direct les changements
@@ -143,7 +145,7 @@ src/shared/     contrats TypeScript et modèle du cube
 rust-api/       API, authentification, WebSockets et migrations SQLite
 data/           catalogues embarqués
 assets/cases/   schémas sources des puzzles
-packaging/aur/  PKGBUILD et métadonnées Arch
+Makefile        dépendances, compilation et installation du desktop
 tests/          tests des clients et de l'API réelle
 ```
 

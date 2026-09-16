@@ -33,7 +33,8 @@ jobs:
           curl --fail http://localhost:3000/api/mobile/release > /tmp/release.json
           cat /tmp/release.json
           test "$(node -p "JSON.parse(require('fs').readFileSync('/tmp/release.json','utf8')).build")" = "$(( $(git log -1 --format=%ct) / 60 ))"
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/mobile/apk)" = 307
+          # No APK is uploaded in CI; the route answers 404 until `bun run deploy` stores one.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/mobile/apk)" = 404
           for path in / /index.html /aaaaadmin /pwa/icon-192.png /sw.js; do
             test "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")" = 404
           done
@@ -63,12 +64,6 @@ jobs:
           CUBIX_ENGINE_EXE="$PWD/artifacts/gpui/cubix-linux-x64/cubix-engine" bun desktop/engine/smoke.ts
           sed 's|@APP@|/usr/lib/cubix|g' desktop/linux/fr.vitrixxl.cubix.desktop > /tmp/cubix.desktop
           desktop-file-validate /tmp/cubix.desktop
-      - name: Archive standalone desktop
-        run: tar -C artifacts/gpui -czf artifacts/cubix-linux-x64.tar.gz cubix-linux-x64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cubix-linux-x64
-          path: artifacts/cubix-linux-x64.tar.gz
   android:
     runs-on: ubuntu-latest
     steps:
@@ -118,92 +113,3 @@ jobs:
           path: |
             mobile/build/cubix-android-arm64.apk
             mobile/build/cubix-android-arm64.apk.sha256
-  release:
-    needs: [test, desktop, android]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    container: archlinux:base-devel
-    permissions:
-      contents: write
-    concurrency:
-      group: cubix-desktop-release
-      cancel-in-progress: false
-    steps:
-      - name: Install packaging utilities
-        run: pacman -Syu --noconfirm git github-cli
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/download-artifact@v4
-        with:
-          name: cubix-linux-x64
-          path: packaging/aur/cubix-bin
-      - uses: actions/download-artifact@v4
-        with:
-          name: cubix-android-arm64
-          path: packaging/aur/cubix-bin
-      - name: Package prebuilt desktop
-        shell: bash
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' desktop/Cargo.toml | head -n1)
-          version="$version.r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)"
-          tag="desktop-${GITHUB_SHA}"
-          cd packaging/aur/cubix-bin
-          # The tarball is named like the release asset so makepkg uses it instead of downloading.
-          mv cubix-linux-x64.tar.gz "cubix-linux-x64-$tag.tar.gz"
-          ./render.sh "$tag" "$version" "$(sha256sum "cubix-linux-x64-$tag.tar.gz" | cut -d' ' -f1)"
-          useradd --create-home builder
-          chown -R builder:builder .
-          runuser -u builder -- makepkg --nodeps --force
-          runuser -u builder -- makepkg --printsrcinfo > .SRCINFO
-          # GitHub asset names cannot start with a dot; publish-bin.sh restores the name.
-          cp .SRCINFO SRCINFO
-          cp cubix-bin-*.pkg.tar.zst cubix-linux-x86_64.pkg.tar.zst
-          cp "cubix-linux-x64-$tag.tar.gz" cubix-linux-x64.tar.gz
-          sha256sum cubix-linux-x86_64.pkg.tar.zst > cubix-linux-x86_64.pkg.tar.zst.sha256
-          pacman -Qip cubix-linux-x86_64.pkg.tar.zst
-      - name: Publish binary release
-        id: release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          # A slow older run must not replace a more recent release.
-          current=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [ "$current" != "$GITHUB_SHA" ]; then
-            echo 'A newer main commit exists; skipping this release.'
-            exit 0
-          fi
-          tag="desktop-${GITHUB_SHA}"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo 'This commit already has a release.'
-            exit 0
-          fi
-          cd packaging/aur/cubix-bin
-          gh release create "$tag" \
-            cubix-linux-x86_64.pkg.tar.zst \
-            cubix-linux-x86_64.pkg.tar.zst.sha256 \
-            cubix-linux-x64.tar.gz \
-            PKGBUILD \
-            SRCINFO \
-            cubix-android-arm64.apk \
-            cubix-android-arm64.apk.sha256 \
-            --target "$GITHUB_SHA" --title "Cubix ${GITHUB_SHA:0:7}" \
-            --notes 'Prebuilt Linux x86_64 desktop and Android ARM64 APK. Desktop: install with `yay -S cubix-bin` (updated through `yay -Syu`) or run ./update.sh; the package replaces cubix-git and preserves application data. Android: the application offers the APK in Settings once the API runs this commit.' \
-            --latest
-          echo published=true >> "$GITHUB_OUTPUT"
-      - name: Publish cubix-bin to the AUR
-        if: steps.release.outputs.published == 'true' && env.AUR_SSH_PRIVATE_KEY != ''
-        shell: bash
-        env:
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-        run: |
-          # Without the AUR_SSH_PRIVATE_KEY secret, run packaging/aur/publish-bin.sh manually instead.
-          pacman -S --noconfirm --needed openssh
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
-          ssh-keyscan -t ed25519,rsa aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null
-          export GIT_SSH_COMMAND='ssh -i ~/.ssh/aur -o IdentitiesOnly=yes'
-          packaging/aur/publish-bin.sh packaging/aur/cubix-bin

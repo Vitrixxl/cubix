@@ -19,12 +19,14 @@ impl Db {
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
         db.set_prepared_statement_cache_capacity(64);
         db.execute_batch(include_str!("schema.sql"))?;
+        // Profile and social features were retired: accounts only sync practice data now.
         let columns = all(&db, "PRAGMA table_info(users)", [])?;
-        for name in ["is_private", "display_name"] {
+        for name in ["is_private", "display_name", "bio"] {
             if columns.iter().any(|c| c["name"] == name) {
                 db.execute_batch(&format!("ALTER TABLE users DROP COLUMN {name}"))?;
             }
         }
+        db.execute_batch("DROP TABLE IF EXISTS chat_messages; DROP TABLE IF EXISTS friendships;")?;
         for table in ["sessions", "solves"] {
             if !all(&db, &format!("PRAGMA table_info({table})"), [])?
                 .iter()

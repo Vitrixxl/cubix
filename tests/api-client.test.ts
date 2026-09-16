@@ -34,9 +34,8 @@ test("Native client preserves authentication, dates and parameterized solve/hist
   const account = await api.register("native_user", "a-long-test-password");
   setToken(account.token);
   expect(account.user.id).toBe(guest.user.id);
-  expect((await api.updateAccount({ bio: "Testing HTTP" })).bio).toBe("Testing HTTP");
-  expect((await api.users("native_user"))[0].username).toBe("native_user");
-  expect((await api.profile("native_user")).totalSolves).toBe(1);
+  expect(account.user).not.toHaveProperty("bio");
+  expect((await api.stats())[0].caseId).toBe(c.id);
   await api.deleteSolve(solve.id);
   expect(await api.solves("training")).toEqual([]);
 });
@@ -50,7 +49,7 @@ test("Native client preserves API errors, session expiry and request cancellatio
   await expect(api.deleteSolve(-1)).rejects.toBeInstanceOf(ApiError);
   const controller = new AbortController();
   controller.abort();
-  await expect(api.users("test", controller.signal)).rejects.toThrow();
+  await expect(api.cases(3, controller.signal)).rejects.toThrow();
   await api.logout();
   await expect(api.stats()).rejects.toMatchObject({ status: 401 });
   expect(expired()).toBe(1);

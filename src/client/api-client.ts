@@ -1,19 +1,16 @@
 import { puzzleId, type PuzzleInput, type PracticeFilter, type PuzzleId, type SolveMode, type ScrambleType, type CubeSize } from "../shared/puzzles";
-import type { AuthDto, UserDto, ProfileDto, FriendDto, ChatMessageDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto } from "../shared/types";
+import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto } from "../shared/types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export interface SendMessageBody { text: string; solveId?: number; clientId: string }
 export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null }
-type ChatInput = { type: "auth"; token: string } | { type: "ping" } | ({ type: "send"; peer: string } & SendMessageBody);
+type LiveInput = { type: "auth"; token: string } | { type: "ping" };
 /** `sync` carries the account's latest change cursor; devices behind it pull immediately. */
-type ChatOutput = { type: "changed" | "pong" }
+type LiveOutput = { type: "pong" }
   | { type: "ready"; cursor?: number }
-  | { type: "sync"; cursor: number }
-  | { type: "sent"; clientId: string; message: ChatMessageDto }
-  | { type: "error"; clientId: string; status: number; error: string };
-type ChatEvents = { open: Event; message: { data: ChatOutput }; close: CloseEvent; error: Event };
+  | { type: "sync"; cursor: number };
+type LiveEvents = { open: Event; message: { data: LiveOutput }; close: CloseEvent; error: Event };
 
 const practiceQuery = (puzzle: PuzzleInput, filter: PracticeFilter = {}) => new URLSearchParams({ puzzle: puzzleId(puzzle), solveMode: filter.solveMode ?? "standard", ...(filter.scrambleType ? {scrambleType: filter.scrambleType} : {}) }).toString();
 /** Shared HTTP/WebSocket client; the Rust server owns persistence and auth. */
@@ -35,29 +32,23 @@ export function createApiClient(origin: string, options: { getToken: () => strin
   }
   return {
     syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}`),
-    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | UserDto | LearnedCaseDto | null }[] }>("/sync", "POST", { operations }),
+    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | null }[] }>("/sync", "POST", { operations }),
     learnedCases: () => request<string[]>("/learned"),
     setLearned: (caseId: string, learned: boolean) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned }),
-    friends: () => request<FriendDto[]>("/social/friends"),
-    addFriend: (username: string) => request<FriendDto[]>("/social/friends", "POST", { username }),
-    acceptFriend: (id: number) => request<FriendDto[]>(`/social/friends/${id}/accept`, "POST"),
-    removeFriend: (id: number) => request<{ ok: boolean }>(`/social/friends/${id}`, "DELETE"),
-    sharedSolve: (id: number) => request<SolveDto>(`/social/solves/${id}`),
-    messages: (peer: string, before?: number) => request<ChatMessageDto[]>(`/social/messages/${encodeURIComponent(peer)}${before === undefined ? "" : `?before=${before}`}`),
-    sendMessage: (peer: string, body: SendMessageBody) => request<ChatMessageDto>(`/social/messages/${encodeURIComponent(peer)}`, "POST", body),
-    connectChat: () => {
-      const ws = new WebSocket(base.replace(/^http/, "ws") + "/social/live");
+    /** Live sync notifications for the signed-in account; practice writes never depend on it. */
+    connectLive: () => {
+      const ws = new WebSocket(base.replace(/^http/, "ws") + "/live");
       return {
         ws,
-        send: (message: ChatInput) => ws.send(JSON.stringify(message)),
+        send: (message: LiveInput) => ws.send(JSON.stringify(message)),
         close: () => ws.close(),
-        on<T extends keyof ChatEvents>(type: T, listener: (event: ChatEvents[T]) => void) {
+        on<T extends keyof LiveEvents>(type: T, listener: (event: LiveEvents[T]) => void) {
           ws.addEventListener(type, event => {
             if (type === "message") {
-              let data: ChatOutput;
+              let data: LiveOutput;
               try { data = JSON.parse(String((event as MessageEvent).data)); } catch { return; }
-              listener({ data } as ChatEvents[T]);
-            } else listener(event as ChatEvents[T]);
+              listener({ data } as LiveEvents[T]);
+            } else listener(event as LiveEvents[T]);
           });
         },
       };
@@ -67,11 +58,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     register: (username: string, password: string) => request<AuthDto>("/auth/register", "POST", { username, password }, undefined, true),
     login: (username: string, password: string) => request<AuthDto>("/auth/login", "POST", { username, password }, undefined, true),
     logout: () => request<{ ok: boolean }>("/auth/logout", "POST", undefined, undefined, true),
-    updateAccount: (body: { bio: string }) => request<UserDto>("/account", "PATCH", body),
-    users: (query: string, signal?: AbortSignal) => request<UserDto[]>(`/users?q=${encodeURIComponent(query)}`, "GET", undefined, signal),
-    profile: (username: string, signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => request<ProfileDto>(`/users/${encodeURIComponent(username)}?${practiceQuery(cubeSize, filter)}`, "GET", undefined, signal),
-    sets: (cubeSize: PuzzleInput = 3) => request<SetDto[]>(`/sets?${practiceQuery(cubeSize)}`),
-    cases: (cubeSize: PuzzleInput = 3) => request<CaseDto[]>(`/cases?${practiceQuery(cubeSize)}`),
+    sets: (cubeSize: PuzzleInput = 3, signal?: AbortSignal) => request<SetDto[]>(`/sets?${practiceQuery(cubeSize)}`, "GET", undefined, signal),
+    cases: (cubeSize: PuzzleInput = 3, signal?: AbortSignal) => request<CaseDto[]>(`/cases?${practiceQuery(cubeSize)}`, "GET", undefined, signal),
     stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => request<CaseStatsDto[]>(`/stats?${practiceQuery(cubeSize, filter)}`),
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => request<CaseHistoryDto>(`/cases/${encodeURIComponent(caseId)}/stats?${practiceQuery(3,filter)}`),
     createSession: (mode: SessionMode, caseIds: string[] = [], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => request<SessionDto>("/sessions", "POST", { mode, caseIds, puzzle: puzzleId(cubeSize), ...filter }),

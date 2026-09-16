@@ -123,7 +123,6 @@ pub fn push(
                 .is_some_and(|s| s.parse::<u64>().is_ok_and(|id| id > 0));
             if !((method == "POST" && ["sessions", "solves"].contains(&path))
                 || (solve && ["PATCH", "DELETE"].contains(&method))
-                || (method == "PATCH" && path == "account")
                 || (method == "PUT" && path == "learned"))
             {
                 return Err(ApiError::validation());

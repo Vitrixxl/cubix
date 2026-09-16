@@ -32,10 +32,9 @@ for(const account of [false,true]){
  if(solve){await act(`solve:${solve.id}`);await shot('time-actions');}
  await nav('algorithms');await shot('catalog');await act('case:F2L 1');await shot('case-detail');await nav('algorithms');const catalog=await Bun.file('desktop/assets/catalog.json').json();const advanced=catalog.sets.find((s:any)=>s.label==='F2L Advanced');await act(`set:${advanced.id}`);await shot('advanced-catalog');
  await nav('training');await shot('training');await act('solution');await shot('training-solution');if(width<1024){await act('cases');await shot('case-selector');}
- await nav('profile');await shot('account-register');await act('authMode:login');await shot('account-login');await nav('community');await shot('friends-guest');await nav('messages');await shot('messages-guest');
+ await nav('profile');await shot('account-register');await act('authMode:login');await shot('account-login');
  }else{
- await nav('profile');await shot('profile');await act('edit');await shot('settings');await act('light:light');await shot('settings-light');await act('light:dark','edit','profileMode:training');await shot('profile-training');await act('profileCase:F2L 1');await shot('profile-case');await nav('community');await shot('friends');await nav('messages');await shot('conversations');
- const friend=state.friends.find((f:any)=>f.username==='reference_sam');await act(`chat:${friend.userId}`);await shot('conversation');await act('confirmRemove');await shot('friend-remove-confirmation');
+ await nav('profile');await shot('profile');await act('edit');await shot('settings');await act('light:light');await shot('settings-light');await act('light:dark','edit','profileMode:training');await shot('profile-training');await act('profileCase:F2L 1');await shot('profile-case');await act('back','profileMode:achievements');await shot('profile-achievements');
  await nav('playground');await act('menu:puzzles');await shot('puzzle-menu');await act('menu:puzzles');
  for(const theme of ['t3-code','t3-chat','grove','ocean','ember','iris'])for(const mode of ['dark','light']){await act(`theme:${theme}`,`light:${mode}`);await shot(`timer-${theme}-${mode}`);}
  for(const page of ['overviewGuide','algorithmsGuide','trainingGuide','timerGuide','averagesGuide']){await command({route:page});await shot(page);}

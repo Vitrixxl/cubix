@@ -23,7 +23,7 @@ function setup(path = ":memory:") {
   return { db, call, register };
 }
 
-describe("Accounts and community profiles", () => {
+describe("Accounts", () => {
   test("guest registration preserves history, rotates token, and survives reopening the database", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cubix-account-"));
     cleanups.unshift(() => rmSync(dir, { recursive: true, force: true }));
@@ -36,6 +36,7 @@ describe("Accounts and community profiles", () => {
     expect(alice.user.username).toBe("alice");
     expect(alice.user).not.toHaveProperty("displayName");
     expect(alice.user).not.toHaveProperty("isPrivate");
+    expect(alice.user).not.toHaveProperty("bio");
     expect((await call("/solves", "GET", undefined, guest.token)).status).toBe(401);
     expect((await call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
     const second = setup(db.path);
@@ -46,74 +47,58 @@ describe("Accounts and community profiles", () => {
     expect(db.db.query<any, [string]>("SELECT * FROM auth_tokens WHERE token_hash = ?").get(alice.token)).toBeNull();
   });
 
-  test("registered profiles appear in the community and show correct progress to other members", async () => {
+  test("statistics are private to each account and the retired social routes are gone", async () => {
     const { call, register } = setup();
     const alice = await register("alice"); const bob = await register("bob");
-    const guest = (await call("/auth/guest", "POST")).body;
     const session = (await call("/sessions", "POST", { mode: "playground" }, alice.token)).body;
     for (const [index, timeMs] of [10000, 11000, 12000, 13000, 14000].entries())
       await call("/solves", "POST", { sessionId: session.id, timeMs, penalty: index === 0 ? "+2" : "none" }, alice.token);
     const training = (await call("/sessions", "POST", { mode: "training" }, alice.token)).body;
     await call("/solves", "POST", { sessionId: training.id, caseId: CASES[0].id, timeMs: 1500 }, alice.token);
-    expect((await call("/users", "GET", undefined, bob.token)).body.map((u: any) => u.username)).toEqual(["alice", "bob"]);
-    expect((await call("/users?q=ali", "GET", undefined, bob.token)).body).toHaveLength(1);
-    expect((await call("/users/alice", "GET", undefined, bob.token)).status).toBe(200);
-    expect((await call("/users/alice", "GET", undefined, alice.token)).body.totalSolves).toBe(6);
-    expect((await call("/account", "PATCH", { bio: "Road to sub-10" }, alice.token)).status).toBe(200);
-    const profile = await call("/users/ALICE", "GET", undefined, bob.token);
-    expect(profile.status).toBe(200);
-    expect(profile.body.user.bio).toBe("Road to sub-10");
-    expect(profile.body.user).not.toHaveProperty("isPrivate");
-    expect(profile.body.user).not.toHaveProperty("displayName");
-    expect(profile.body.user).not.toHaveProperty("password_hash");
-    expect(profile.body.playground.summary.ao5).toBeCloseTo(12333.333);
-    expect(profile.body.playground.summary.best).toBe(11000);
-    expect(profile.body.cases[0].summary.best).toBe(1500);
-    expect(profile.body.trainingSolves).toBe(1);
-    expect(profile.body.activeDays).toBe(1);
-    expect(profile.headers.get("cache-control")).toBe("no-store");
-    expect((await call("/users?q=ALICE", "GET", undefined, bob.token)).body).toHaveLength(1);
-    expect((await call("/users", "GET", undefined, guest.token)).status).toBe(403);
-    expect((await call("/users/alice", "GET", undefined, guest.token)).status).toBe(404);
-    expect((await call("/users/alice")).status).toBe(401);
-    expect((await call(`/users/${guest.user.username}`, "GET", undefined, bob.token)).status).toBe(404);
-    expect((await call("/users/missing", "GET", undefined, bob.token)).status).toBe(404);
-    await call("/account", "PATCH", { bio: "" }, alice.token);
-    expect((await call("/users/alice", "GET", undefined, bob.token)).status).toBe(200);
-    expect((await call("/users?q=alice", "GET", undefined, bob.token)).body).toHaveLength(1);
+    const stats = await call("/stats", "GET", undefined, alice.token);
+    expect(stats.status).toBe(200);
+    expect(stats.body[0].best).toBe(1500);
+    expect(stats.headers.get("cache-control")).toBe("no-store");
+    expect((await call("/stats", "GET", undefined, bob.token)).body).toEqual([]);
+    expect((await call("/solves", "GET", undefined, alice.token)).body).toHaveLength(5);
+    for (const path of ["/users", "/users/alice", "/social/friends", "/social/messages/bob"])
+      expect((await call(path, "GET", undefined, bob.token)).status).toBe(404);
+    expect((await call("/account", "PATCH", { bio: "Road to sub-10" }, alice.token)).status).toBe(404);
+    expect((await call("/social/friends", "POST", { username: "alice" }, bob.token)).status).toBe(404);
   });
 
-  test("removing legacy profile fields preserves unique usernames, tokens and solve history across reopenings", async () => {
+  test("removing legacy profile and social tables preserves unique usernames, tokens and solve history across reopenings", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cubix-visibility-migration-"));
     cleanups.unshift(() => rmSync(dir, { recursive: true, force: true }));
     const { db, call, register } = setup(join(dir, "test.db"));
     const alice = await register("alice"); const bob = await register("bob");
     const session = (await call("/sessions", "POST", { mode: "playground" }, alice.token)).body;
     const solve = (await call("/solves", "POST", { sessionId: session.id, timeMs: 12340 }, alice.token)).body;
-    await call("/account", "PATCH", { bio: "Still cubing" }, alice.token);
-    // Reproduce the old schema with one private and one public account.
+    // Reproduce the old schema: profile fields, friendships and conversations.
     db.db.exec("ALTER TABLE users ADD COLUMN is_private INTEGER NOT NULL DEFAULT 1");
     db.db.exec("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''");
-    db.db.query("UPDATE users SET display_name = ? WHERE id = ?").run("Alice Legacy", alice.user.id);
-    db.db.query("UPDATE users SET is_private = 0 WHERE id = ?").run(bob.user.id);
+    db.db.exec("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''");
+    db.db.exec("CREATE TABLE friendships (id INTEGER PRIMARY KEY, user_a TEXT NOT NULL REFERENCES users(id), user_b TEXT NOT NULL REFERENCES users(id), requested_by TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending')");
+    db.db.exec("CREATE TABLE chat_messages (id INTEGER PRIMARY KEY, sender_id TEXT NOT NULL REFERENCES users(id), recipient_id TEXT NOT NULL REFERENCES users(id), text TEXT NOT NULL, client_id TEXT NOT NULL)");
+    db.db.query("UPDATE users SET display_name = ?, bio = ? WHERE id = ?").run("Alice Legacy", "Still cubing", alice.user.id);
+    const [a, b] = [alice.user.id, bob.user.id].sort();
+    db.db.query("INSERT INTO friendships(user_a,user_b,requested_by,status) VALUES(?,?,?,'accepted')").run(a, b, a);
+    db.db.query("INSERT INTO chat_messages(sender_id,recipient_id,text,client_id) VALUES(?,?,?,?)").run(alice.user.id, bob.user.id, "hello", "c1");
     const migrated = setup(db.path);
-    expect(migrated.db.db.query<{ name: string }, []>("PRAGMA table_info(users)").all().map(c => c.name)).not.toContain("is_private");
-    expect(migrated.db.db.query<{ name: string }, []>("PRAGMA table_info(users)").all().map(c => c.name)).not.toContain("display_name");
-    expect((await migrated.call("/auth/me", "GET", undefined, alice.token)).body.id).toBe(alice.user.id);
-    expect((await migrated.call("/users", "GET", undefined, bob.token)).body.map((u: any) => u.username)).toEqual(["alice", "bob"]);
-    const profile = await migrated.call("/users/alice", "GET", undefined, bob.token);
-    expect(profile.status).toBe(200);
-    expect(profile.body.user.username).toBe("alice");
-    expect(profile.body.user).not.toHaveProperty("displayName");
-    expect((await migrated.call("/users?q=Legacy", "GET", undefined, bob.token)).body).toEqual([]);
-    expect(profile.body.user.bio).toBe("Still cubing");
-    expect(profile.body.playground.summary.best).toBe(12340);
+    const columns = migrated.db.db.query<{ name: string }, []>("PRAGMA table_info(users)").all().map(c => c.name);
+    expect(columns).not.toContain("is_private");
+    expect(columns).not.toContain("display_name");
+    expect(columns).not.toContain("bio");
+    expect(migrated.db.db.query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE name IN ('friendships','chat_messages')").all()).toEqual([]);
+    expect((await migrated.call("/auth/me", "GET", undefined, alice.token)).body).toMatchObject({ id: alice.user.id, username: "alice" });
+    expect((await migrated.call("/auth/me", "GET", undefined, alice.token)).body).not.toHaveProperty("bio");
     expect((await migrated.call(`/sessions/${session.id}`, "GET", undefined, alice.token)).status).toBe(200);
     expect((await migrated.call("/solves", "GET", undefined, alice.token)).body[0].id).toBe(solve.id);
     expect(migrated.db.db.query("PRAGMA foreign_key_check").all()).toEqual([]);
     const reopened = setup(db.path);
     expect((await reopened.call("/auth/login", "POST", { username: "alice", password: "a-long-test-password" })).status).toBe(200);
-    expect((await reopened.call("/users/alice", "GET", undefined, bob.token)).body.totalSolves).toBe(1);
+    expect((await reopened.call("/auth/register", "POST", { username: "ALICE", password: "a-long-password" })).status).toBe(409);
+    expect((await reopened.call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
   });
 
   test("every personal endpoint rejects another user's session or solve", async () => {
@@ -143,7 +128,6 @@ describe("Accounts and community profiles", () => {
     expect(login.status).toBe(200);
     await call("/auth/logout", "POST", undefined, login.body.token);
     expect((await call("/auth/me", "GET", undefined, login.body.token)).status).toBe(401);
-    expect((await call("/account", "PATCH", { bio: "x".repeat(241) }, alice.token)).status).toBe(422);
     db.db.query("UPDATE auth_tokens SET expires_at = 0").run();
     expect((await call("/stats", "GET", undefined, alice.token)).status).toBe(401);
   });

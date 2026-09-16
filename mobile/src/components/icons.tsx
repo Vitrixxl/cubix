@@ -19,9 +19,9 @@ export const IconUndo = (p: IconProps) => <Svg {...base(p)}><Path d="M9 14L4 9l5
 export const IconSkip = (p: IconProps) => <Svg {...base(p)}><Path d="M5 4l10 8-10 8zM19 5v14" /></Svg>;
 export const IconEye = (p: IconProps) => <Svg {...base(p)}><Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><Circle cx="12" cy="12" r="3" /></Svg>;
 export const IconUser = (p: IconProps) => <Svg {...base(p)}><Circle cx="12" cy="8" r="4" /><Path d="M4 21v-2a8 8 0 0 1 16 0v2" /></Svg>;
-export const IconUsers = (p: IconProps) => <Svg {...base(p)}><Circle cx="9" cy="8" r="3.5" /><Path d="M2 21v-2a7 7 0 0 1 14 0v2M16 4a4 4 0 0 1 0 8M18 15a6 6 0 0 1 4 6" /></Svg>;
-export const IconSearch = (p: IconProps) => <Svg {...base(p)}><Circle cx="10.5" cy="10.5" r="6.5" /><Path d="m16 16 5 5" /></Svg>;
-export const IconMessage = (p: IconProps) => <Svg {...base(p)}><Path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 3V11.5A8.5 8.5 0 0 1 9.5 3h3a8.5 8.5 0 0 1 8.5 8.5Z" /><Path d="M7 9h8M7 13h5" /></Svg>;
+export const IconTrophy = (p: IconProps) => <Svg {...base(p)}><Path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" /><Path d="M7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5" /></Svg>;
+export const IconLock = (p: IconProps) => <Svg {...base(p)}><Rect x="4" y="11" width="16" height="10" rx="2" /><Path d="M8 11V7a4 4 0 0 1 8 0v4" /></Svg>;
+export const IconNext = (p: IconProps) => <Svg {...base(p)}><Path d="M9 6l6 6-6 6" /></Svg>;
 export const IconChevronDown = (p: IconProps) => <Svg {...base(p)}><Path d="m6 9 6 6 6-6" /></Svg>;
 export const IconInfo = (p: IconProps) => <Svg width={p.size ?? 15} height={p.size ?? 15} viewBox="0 0 20 20" fill="none" stroke={p.color} strokeWidth={1.5}><Circle cx="10" cy="10" r="8" /><Path d="M10 9v5" /><Circle cx="10" cy="6" r=".7" fill={p.color} stroke="none" /></Svg>;
 export type Icon = (p: IconProps) => React.JSX.Element;

@@ -1,13 +1,13 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { contextLabel } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
-import { deletedSolveIdAtom, routeAtom, statsVersionAtom, userAtom } from "../state";
+import { deletedSolveIdAtom, statsVersionAtom } from "../state";
 import { useTheme } from "../theme";
 import { AlgText } from "./AlgText";
-import { IconClose, IconInfo, IconMessage } from "./icons";
+import { IconClose, IconInfo } from "./icons";
 import { Popover, useAnchor, type Anchor } from "./Popover";
 import { FormError, MiniBtn } from "./ui";
 
@@ -15,16 +15,12 @@ interface Menu { id: number; anchor: Anchor }
 const MenuContext = createContext<{
   open: (id: number, anchor: Anchor) => void;
   deleteTime: (target: Menu) => Promise<void>;
-  share: (id: number) => void;
-  canShare: boolean;
   deleting: boolean;
-}>({ open: () => {}, deleteTime: async () => {}, share: () => {}, canShare: false, deleting: false });
+}>({ open: () => {}, deleteTime: async () => {}, deleting: false });
 
 /** Shared actions for inline buttons and long-press time menus. */
 export function SolveMenuProvider({ children }: { children: ReactNode }) {
   const t = useTheme();
-  const user = useAtomValue(userAtom);
-  const setRoute = useSetAtom(routeAtom);
   const notifyDeleted = useSetAtom(deletedSolveIdAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
   const [menu, setMenu] = useState<Menu | null>(null);
@@ -40,12 +36,9 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
     catch (e) { setError((e as Error).message); setMenu(target); }
     finally { deletePending.current = false; setDeleting(false); }
   };
-  const share = (id: number) => { setMenu(null); setRoute({ page: "messages", solveId: id }); };
-  const canShare = !!user && !user.isGuest;
-  return <MenuContext.Provider value={{ open, deleteTime, share, canShare, deleting }}>
+  return <MenuContext.Provider value={{ open, deleteTime, deleting }}>
     {children}
     <Popover anchor={menu?.anchor ?? null} onClose={() => setMenu(null)} width={180}>
-      {canShare && <MenuItem icon={<IconMessage size={15} color={t.accent} />} label="Share" disabled={deleting} onPress={() => share(menu!.id)} />}
       <MenuItem icon={<IconClose size={15} color={t.danger} />} label={deleting ? "Deleting…" : "Delete"} danger disabled={deleting} onPress={() => { if (menu) void deleteTime(menu); }} />
       {error ? <View style={{ padding: 8 }}><FormError>{error}</FormError></View> : null}
     </Popover>
@@ -69,13 +62,12 @@ export function SolveRow({ solveId, children, style, disabled }: { solveId: numb
     style={[style, pressed && { backgroundColor: t.hover }]}>{children}</Pressable>;
 }
 
-/** Direct access to sharing and deletion in the practice time list. */
+/** Direct access to deletion in the practice time list. */
 export function SolveActionButtons({ solveId }: { solveId: number }) {
   const t = useTheme();
-  const { canShare, share, deleteTime, deleting } = useContext(MenuContext);
+  const { deleteTime, deleting } = useContext(MenuContext);
   const ref = useRef<View>(null);
   return <>
-    {canShare && <MiniBtn accessibilityRole="button" accessibilityLabel="Share solve" icon={<IconMessage size={15} color={t.accent} />} disabled={deleting} onPress={() => share(solveId)} />}
     <View ref={ref} collapsable={false}>
       <MiniBtn accessibilityRole="button" accessibilityLabel="Delete solve" danger icon={<IconClose size={15} color={t.danger} />} disabled={deleting}
         onPress={() => ref.current?.measureInWindow((x, y, width, height) => { void deleteTime({ id: solveId, anchor: { x, y, width, height } }); })} />

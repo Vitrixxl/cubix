@@ -12,7 +12,7 @@ téléphone physique.
 | Expo Doctor | 21 contrôles sur 21 |
 | Compatibilité des dépendances Expo | Réussie |
 | Export Android / Hermes | Réussi |
-| Tests partagés : mélanges, entraînement, stockage local, catalogue, API et social | 39 tests réussis |
+| Tests partagés : mélanges, entraînement, stockage local, catalogue, API et succès | voir `bun run test` |
 | Timer tactile : maintien, arrêt unique, arrière-plan, erreur et nouvelle tentative | 4 tests, 23 assertions |
 | Moteur embarqué : 11 événements et 2 orbites 3×3 | 13 scénarios réussis dans Chromium |
 
@@ -32,21 +32,18 @@ et détails, sélection de plusieurs cas, AUF, affichage de solution, navigation
 entre cas, sauvegarde et annulation en entraînement. Les actions Random moves,
 Standard et New scramble sont en bas ; Times reste en haut.
 
-Comptes : inscription, import des temps invités, édition du profil, reconnexion
-et conservation des temps. Social : demandes et acceptation d’amis, suppression,
-messages entrants et sortants, livraison après reconnexion d’un message envoyé
-hors ligne, partage d’un temps. Graphique et tableau de profil contrôlés avec
-26 temps. Thèmes clair / sombre et guides embarqués vérifiés.
+Comptes : inscription, import des temps invités, reconnexion et conservation des
+temps. Succès : liste par puzzle, filtres tous / débloqués / verrouillés et
+progression. Graphique et tableau de profil contrôlés avec 26 temps. Thèmes clair / sombre et guides embarqués vérifiés.
 
 Les vues de pratique et les listes ont été contrôlées en portrait, sur un format
 360 × 640 et en paysage 640 × 360. Les listes défilent dans leur zone ; la page
-reste à la hauteur de la fenêtre. Le clavier Android laisse le champ de message
-visible. La navigation mobile occupe toute la largeur avec quatre onglets à icônes seules
+reste à la hauteur de la fenêtre. La navigation mobile occupe toute la largeur avec quatre onglets à icônes seules
 et un bouton Réglages ; contrôlée en portrait 360 × 640 et en paysage 640 × 360,
 avec changement d’onglet. La sélection arrondie est dessinée en SVG. Le dialogue
 Réglages regroupe les 11 puzzles, le thème, l’accent et l’aide ; le changement de
-puzzle et de thème a été vérifié. Le compte regroupe Profil, Amis et Messages,
-avec ouverture d’une conversation du compte de test. Les actions du timer sont
+puzzle et de thème a été vérifié. Le compte regroupe Timer, Training et
+Achievements. Les actions du timer sont
 espacées de la navigation. Aucun crash JavaScript ou Android observé pendant ces parcours.
 
 Les filtres Learned / Not learned utilisent le statut marqué sur les cas, avec

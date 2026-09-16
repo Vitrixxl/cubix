@@ -4,9 +4,9 @@ mod api;
 mod catalog;
 mod db;
 mod error;
+mod live;
 mod practice;
 mod release;
-mod social;
 mod stats;
 mod sync;
 mod traffic;
@@ -29,7 +29,7 @@ use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer};
 pub struct AppState {
     db: db::Db,
     catalog: Arc<catalog::Catalog>,
-    hub: Arc<social::Hub>,
+    hub: Arc<live::Hub>,
     attempts: Arc<Mutex<HashMap<String, (u32, i64)>>>,
     passwords: Arc<Semaphore>,
     admin: Arc<Option<admin::Admin>>,
@@ -115,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         traffic: traffic.clone(),
         db,
         catalog: Arc::new(catalog::Catalog::load()),
-        hub: Arc::new(social::Hub::default()),
+        hub: Arc::new(live::Hub::default()),
         attempts: Arc::new(Mutex::new(HashMap::new())),
         passwords: Arc::new(Semaphore::new(4)),
     };
@@ -129,8 +129,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HeaderValue::from_static("no-store"),
         ));
     let api = Router::new()
-        .route("/api/social/live", get(social::upgrade))
-        .route("/api/mobile/apk", get(release::apk))
+        .route("/api/live", get(live::upgrade))
+        // The APK upload carries a whole Android build, far above the JSON limit below.
+        .route(
+            "/api/mobile/apk",
+            get(release::apk)
+                .put(release::upload)
+                .layer(DefaultBodyLimit::max(256 * 1024 * 1024)),
+        )
         .route("/api/{*path}", any(api::dispatch))
         .with_state(state)
         .layer(DefaultBodyLimit::max(2 * 1024 * 1024))
@@ -146,7 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             traffic::monitor,
         ));
     // Optional extra listeners let local load generators use separate TCP port pools.
-    // All listeners share the same runtime, SQLite worker, authentication and chat hub.
+    // All listeners share the same runtime, SQLite worker, authentication and live hub.
     let mut ports = vec![port];
     ports.extend(
         env_or("CUBIX_EXTRA_PORTS", "")

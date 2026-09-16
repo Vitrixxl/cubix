@@ -115,7 +115,6 @@ export interface CaseHistoryDto {
 export interface UserDto {
   id: string;
   username: string;
-  bio: string;
   isGuest: boolean;
   createdAt: string;
 }
@@ -129,18 +128,29 @@ export interface ProfileDto {
   activeDays: number;
 }
 
-export interface FriendDto {
-  id: number;
-  userId: string;
-  username: string;
-  status: "pending" | "accepted";
-  incoming: boolean;
+/** Computed locally from synchronized solves and learning marks, so every device agrees. */
+export type AchievementCategory = "knowledge" | "speed" | "average" | "volume" | "dedication";
+export interface AchievementDto {
+  id: string;
+  title: string;
+  description: string;
+  category: AchievementCategory;
+  /** Section the achievement is listed under: a puzzle label or "General". */
+  group: string;
+  puzzle?: PuzzleId;
+  /** Current value and goal in the achievement's own unit (cases, solves, days or milliseconds). */
+  progress: number;
+  target: number;
+  /** Completion between 0 and 1, already inverted for time goals. */
+  ratio: number;
+  /** Short human-readable progress, e.g. "12 / 21 cases" or "Best 23.45 · goal 20.00". */
+  detail: string;
+  unlocked: boolean;
+  /** Date of the solve that unlocked it; absent for learning goals. */
+  unlockedAt?: string;
 }
-export interface ChatMessageDto {
-  id: number;
-  senderId: string;
-  recipientId: string;
-  text: string;
-  solve: SolveDto | null;
-  createdAt: string;
+export interface AchievementSummaryDto {
+  unlocked: number;
+  total: number;
+  achievements: AchievementDto[];
 }

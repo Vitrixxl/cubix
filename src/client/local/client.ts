@@ -1,21 +1,22 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
-import { ApiError, createApiClient, type AddSolveBody, type SendMessageBody } from "../api-client";
-import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, ChatMessageDto, FriendDto, LearnedCaseDto } from "../../shared/types";
+import { ApiError, createApiClient, type AddSolveBody } from "../api-client";
+import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto } from "../../shared/types";
 import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
+import { achievements } from "../lib/achievements";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "delete" | "bio" | "message" | "learned"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number; cache: Record<string, unknown> }
+type Operation = { id: string; kind: "session" | "solve" | "penalty" | "delete" | "learned"; localId: number; body: any; createdAt: string; error?: string };
+interface Workspace { version: 1; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
 const LEGACY_LEARNED_KEY = "cubix.algs.learnedCaseIds";
-const GUEST: UserDto = { id: "local-guest", username: "Guest", bio: "", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
-const empty = (): Workspace => ({ version:1, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:0, cache:{} });
+const GUEST: UserDto = { id: "local-guest", username: "Guest", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
+const empty = (): Workspace => ({ version:1, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:0 });
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
@@ -53,8 +54,10 @@ export function createLocalClient(options: {
   };
   const save = (id: string, value: Workspace) => write("workspace:" + id,value);
   const data = (id = owner()) => {
-    const workspace = read<Workspace>("workspace:" + id,empty());
+    const workspace = read<Workspace & { cache?: unknown }>("workspace:" + id,empty());
     workspace.learned ??= {};
+    // Retired social caches (friends, conversations) are dropped from older workspaces.
+    if (workspace.cache !== undefined) { delete workspace.cache; workspace.outbox = workspace.outbox.filter(op => !["bio","message"].includes(op.kind)); save(id,workspace); }
     const legacyText = storage.getItem(LEGACY_LEARNED_KEY);
     if (legacyText !== null) {
       // One-time import of the pre-sync device preference; a signed-in account uploads it too.
@@ -163,46 +166,30 @@ export function createLocalClient(options: {
         const verified = await remote.me();
         if (verified.id !== user.id || verified.isGuest) throw new ApiError(401,"Sign in to synchronize this account.");
         if (!stillCurrent()) return;
-        if (!data(id).outbox.some(op => op.kind === "bio")) write("user",verified);
+        write("user",verified);
         while (stillCurrent()) {
           const workspace = data(id), op = workspace.outbox.find(op => !op.error);
           if (!op) break;
           activeOperation = op.id;
-          let result: any;
-          if (op.kind === "message") {
-            const { peer, ...body } = op.body;
-            if (body.solveId != null) {
-              const serverId = solveServerId(workspace,body.solveId);
-              if (!serverId) throw new Error("The attached solve is waiting to synchronize.");
-              body.solveId = serverId;
-            }
-            result = await remote.sendMessage(peer,body);
-          } else {
-            let path = op.kind === "session" ? "sessions" : op.kind === "bio" ? "account" : op.kind === "learned" ? "learned" : "solves";
-            const body = { ...op.body };
-            if (op.kind === "solve") {
-              const sid = sessionServerId(workspace,body.sessionId);
-              if (sid === undefined) throw new Error("The session is waiting to synchronize.");
-              body.sessionId = sid;
-            }
-            if (op.kind === "penalty" || op.kind === "delete") {
-              const serverId = solveServerId(workspace,op.localId);
-              if (!serverId) throw new Error("The solve is waiting to synchronize.");
-              path += "/" + serverId;
-            }
-            const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" ? "PUT" : ["penalty","bio"].includes(op.kind) ? "PATCH" : "POST";
-            result = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
+          let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : "solves";
+          const body = { ...op.body };
+          if (op.kind === "solve") {
+            const sid = sessionServerId(workspace,body.sessionId);
+            if (sid === undefined) throw new Error("The session is waiting to synchronize.");
+            body.sessionId = sid;
           }
+          if (op.kind === "penalty" || op.kind === "delete") {
+            const serverId = solveServerId(workspace,op.localId);
+            if (!serverId) throw new Error("The solve is waiting to synchronize.");
+            path += "/" + serverId;
+          }
+          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" ? "PUT" : op.kind === "penalty" ? "PATCH" : "POST";
+          const result: any = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
             if (op.kind === "session" && latest.sessions[op.localId]) latest.sessions[op.localId].serverId = result.id;
             if (op.kind === "solve" && latest.solves[op.localId]) latest.solves[op.localId].serverId = result.id;
             if (op.kind === "delete") delete latest.solves[op.localId];
-            if (op.kind === "message") {
-              const key = "messages:" + op.body.peer;
-              const messages = (latest.cache[key] ?? []) as ChatMessageDto[];
-              latest.cache[key] = [...messages.filter(m => m.id !== op.localId && m.id !== result.id), result];
-            }
             latest.outbox = latest.outbox.filter(item => item.id !== op.id);
           });
         }
@@ -235,37 +222,6 @@ export function createLocalClient(options: {
     return syncing;
   }
 
-  // Cached social reads stay available offline. These caches are isolated by account.
-  const refreshes = new Map<string, Promise<unknown>>();
-  const refreshedAt = new Map<string,number>();
-  let socialEpoch = 0;
-  function refreshCache<T>(key: string, load: (remote: Remote) => Promise<T>, combine?: (previous: T | undefined, value: T) => T) {
-    const id = owner(), token = options.getToken(), requestKey = id+":"+key;
-    if (id === "guest" || !token || refreshes.has(requestKey) || Date.now() - (refreshedAt.get(requestKey) ?? 0) < 2000) return;
-    refreshedAt.set(requestKey,Date.now());
-    const epoch = socialEpoch;
-    const promise = load(options.remote(token)).then(async value => {
-      let changed = false;
-      await edit(id,workspace => {
-        const previous = workspace.cache[key] as T | undefined;
-        const next = combine ? combine(previous,value) : value;
-        if (JSON.stringify(previous) !== JSON.stringify(next)) { workspace.cache[key] = next; changed = true; }
-      });
-      if (changed && owner() === id) notify();
-    }).catch(() => {}).finally(() => {
-      refreshes.delete(requestKey);
-      // A live notification can arrive while this request still contains older data.
-      if (epoch !== socialEpoch && owner() === id && options.getToken() === token) {
-        refreshedAt.delete(requestKey);
-        refreshCache(key,load,combine);
-      }
-    });
-    refreshes.set(requestKey,promise);
-  }
-  async function cached<T>(key: string, load: (remote: Remote) => Promise<T>, fallback: T): Promise<T> {
-    refreshCache(key,load);
-    return data().cache[key] as T ?? fallback;
-  }
   async function localMutation<T>(change: (workspace: Workspace, id: string) => T): Promise<T> {
     const id = owner();
     let value: T;
@@ -332,53 +288,12 @@ export function createLocalClient(options: {
     }),
     stats: async (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
     caseHistory: async (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
-    profile: async (username: string, signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
-      if (username === current().username) return profile(current(),liveSolves(),cubeSize,filter);
-      const value = await cached("profile:"+username+":"+puzzleId(cubeSize)+":"+JSON.stringify(filter),r => r.profile(username,signal,cubeSize,filter),null);
-      if (!value) throw new Error("This profile has not been downloaded yet. Reconnect to load it.");
-      return value;
-    },
-    updateAccount: async (body: {bio: string}) => {
-      if (current().isGuest) throw new Error("Sign in to edit your profile.");
-      if (body.bio.length > 240) throw new Error("Your bio must be at most 240 characters.");
-      await localMutation((workspace,id) => operation(workspace,id,"bio",0,body));
-      const user = {...current(),bio:body.bio}; write("user",user); return user;
-    },
-    friends: () => cached("friends",r => r.friends(),[] as FriendDto[]),
-    users: (query: string, signal?: AbortSignal) => cached("users:"+query,r => r.users(query,signal),[] as UserDto[]),
-    sharedSolve: async (id: number) => {
-      const solve = data().solves[id]; if (solve && !solve.deleted) return solve;
-      return options.remote(options.getToken()).sharedSolve(id);
-    },
-    messages: async (peer: string,before?: number) => {
-      const key = "messages:"+peer;
-      const combine = (previous: ChatMessageDto[] | undefined, rows: ChatMessageDto[]) => [...new Map([...(previous ?? []),...rows].map(m => [m.id,m])).values()].sort((a,b) => a.createdAt.localeCompare(b.createdAt) || a.id-b.id).slice(-500);
-      if (before !== undefined && options.getToken()) {
-        // Explicit pagination can wait for the network; opening the conversation never does.
-        try { const id = owner(); const rows = await options.remote(options.getToken()).messages(peer,before); await edit(id,d => { d.cache[key] = combine(d.cache[key] as ChatMessageDto[] | undefined,rows); }); return rows; } catch {}
-      } else refreshCache(key,r => r.messages(peer),combine);
-      const messages = (data().cache[key] ?? []) as ChatMessageDto[];
-      return messages.filter(m => before === undefined || m.id > 0 && m.id < before).sort((a,b) => a.createdAt.localeCompare(b.createdAt) || a.id-b.id).slice(-50);
-    },
-    sendMessage: async (peer: string, body: SendMessageBody) => {
-      if (current().isGuest) throw new Error("Sign in to send messages.");
-      return localMutation((workspace,id) => {
-        const pending = workspace.outbox.find(op => op.kind === "message" && op.body.clientId === body.clientId);
-        const key = "messages:"+peer, rows = (workspace.cache[key] ?? []) as ChatMessageDto[];
-        if (pending) return rows.find(m => m.id === pending.localId)!;
-        const solve = body.solveId == null ? null : workspace.solves[body.solveId];
-        if (body.solveId != null && (!solve || solve.deleted)) throw new Error("Unknown local solve.");
-        const message: ChatMessageDto = {id:newId(),senderId:current().id,recipientId:peer,text:body.text,solve:solve ?? null,createdAt:new Date().toISOString()};
-        workspace.cache[key] = [...rows,message];
-        operation(workspace,id,"message",message.id,{peer,...body}); return message;
-      });
-    },
+    /** Only the signed-in account's own statistics exist; the username is kept for API parity. */
+    profile: async (_username?: string, _signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter),
+    achievements: async () => achievements(liveSolves(),learnedIds()),
   };
-  // Remote-only account/social actions must always use the current credentials.
-  api.connectChat = () => options.remote(options.getToken()).connectChat();
-  api.addFriend = async username => { const id = owner(); const value = await options.remote(options.getToken()).addFriend(username); await edit(id,d => {d.cache.friends=value;}); return value; };
-  api.acceptFriend = async id => { const account = owner(); const value = await options.remote(options.getToken()).acceptFriend(id); await edit(account,d => {d.cache.friends=value;}); return value; };
-  api.removeFriend = async id => { const account = owner(); const value = await options.remote(options.getToken()).removeFriend(id); await edit(account,d => {delete d.cache.friends;}); return value; };
+  // The live socket must always use the current credentials.
+  api.connectLive = () => options.remote(options.getToken()).connectLive();
 
   async function restore() {
     const token = options.getToken();
@@ -400,7 +315,6 @@ export function createLocalClient(options: {
     learned: () => learnedIds(),
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync(),
-    invalidateSocial: () => { socialEpoch++; refreshedAt.clear(); },
     retry: async () => { await edit(owner(),d => { for (const op of d.outbox) delete op.error; }); await sync(); },
     status: () => status,
     changed: () => { notify(); schedule(); },

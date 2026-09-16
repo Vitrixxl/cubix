@@ -1,7 +1,7 @@
 # Cubix Mobile
 
 Application Expo / React Native pour Android. Les écrans sont natifs : chronomètre,
-algorithmes, entraînement, profils, amis, messages, préférences et guides hors ligne.
+algorithmes, entraînement, compte, succès, préférences et guides hors ligne.
 Le moteur de cube, le catalogue, les formats, les statistiques et le client de
 synchronisation sont partagés avec le dépôt.
 
@@ -38,10 +38,11 @@ Il contient les architectures **arm64-v8a** (téléphones) et **x86_64** (émula
 `Constants.expoConfig.extra.build` reçoivent la date du commit en minutes, et
 `extra.commit` le SHA. `CUBIX_BUILD_NUMBER` et `CUBIX_COMMIT` remplacent ces
 valeurs (la CI les fixe). Les paramètres affichent la version et le commit installés ;
-lorsque `GET /api/mobile/release` annonce un build plus récent, un bouton
-« Download update » ouvre `/api/mobile/apk`, qui redirige vers l'APK ARM64 de la
-dernière release GitHub. Le navigateur télécharge le fichier et Android propose
-l'installation par-dessus la version en place.
+lorsque `GET /api/mobile/release` annonce un APK (`apkBuild`) plus récent, un bouton
+« Download update » ouvre `/api/mobile/apk`, qui sert l'APK ARM64 stocké par le serveur.
+`bun run deploy` à la racine compile cet APK en local et l'envoie après la mise à jour
+du serveur. Le navigateur télécharge le fichier et Android propose l'installation
+par-dessus la version en place, à condition que la signature soit la même.
 
 La CI signe l'APK avec le keystore des secrets `ANDROID_KEYSTORE_BASE64`,
 `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` et `ANDROID_KEY_PASSWORD`
@@ -122,12 +123,12 @@ l’émulateur Android, l’adresse de l’hôte est `http://10.0.2.2:PORT`.
   statistiques, graphiques et liens vidéo.
 - Entraînement : recherche et sélection, sélection de sets/groupes, AUF aléatoire,
   solution masquée, navigation précédent/suivant et annulation du dernier temps.
-- Compte, fusion des temps invités, synchronisation différée, profils, amis,
-  messagerie en direct et partage des temps.
+- Compte, fusion des temps invités, synchronisation différée et succès calculés
+  localement à partir des temps synchronisés.
 - Thèmes clair/sombre et six accents, guides natifs disponibles sans le site web.
 - Navigation mobile : barre en bas du layout (pas superposée au contenu), coins
   supérieurs arrondis et fine marge latérale ; icônes Timer, Algorithms, Training,
-  Account et Settings. Elle disparaît quand le clavier est ouvert. Account regroupe Profile, Friends et Messages ; Settings
+  Account et Settings. Elle disparaît quand le clavier est ouvert. Account regroupe Timer, Training et Achievements ; Settings
   ouvre le choix du puzzle, le thème, l’accent et l’aide.
 - Écrans limités à la hauteur de la fenêtre ; listes et fiches ont leur propre zone
   de défilement. Panneaux adaptés au format de l’écran.
@@ -146,7 +147,7 @@ initialisations des moteurs de recherche peuvent prendre plusieurs secondes.
 
 Les raccourcis clavier du web sont remplacés par les contrôles tactiles. Les vidéos
 et sources externes s’ouvrent dans le navigateur Android. Le backend reste nécessaire
-pour les comptes, la synchronisation et les fonctions sociales.
+pour les comptes et la synchronisation.
 
 ## Vérifications
 
@@ -158,7 +159,7 @@ bun run --cwd mobile typecheck
 bun run --cwd mobile doctor
 bun run --cwd mobile test
 bun run --cwd mobile test:scrambler # Chromium/Brave ou CHROMIUM_PATH
-bun test tests/practice-scramble.test.ts tests/training-history.test.ts tests/local-first.test.ts tests/niche-catalog.test.ts tests/catalog-cache.test.ts tests/social.test.ts tests/api-client.test.ts tests/multi-cube.test.ts
+bun test tests/practice-scramble.test.ts tests/training-history.test.ts tests/local-first.test.ts tests/niche-catalog.test.ts tests/catalog-cache.test.ts tests/api-client.test.ts tests/multi-cube.test.ts tests/achievements.test.ts
 ```
 
 Les tests partagés utilisent des bases temporaires, sans modifier les comptes du

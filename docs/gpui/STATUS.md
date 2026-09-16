@@ -4,7 +4,7 @@ Le desktop est désormais le client PC maintenu. L'ancienne interface web, sa PW
 et les outils de comparaison avec le navigateur ont été retirés.
 
 Les fonctionnalités natives existantes sont conservées : chronomètre monotone,
-catalogue, entraînement, comptes, profils, amis, messages, thèmes et guides.
+catalogue, entraînement, comptes, succès, thèmes et guides.
 Le moteur utilise `src/client` avec Android pour les données et la synchronisation.
 Les contrôles de test natifs restent derrière la fonctionnalité Cargo `reference`.
 

@@ -28,7 +28,6 @@
 
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-      bio TEXT NOT NULL DEFAULT '',
       password_hash TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
@@ -38,26 +37,6 @@
     );
     CREATE INDEX IF NOT EXISTS idx_auth_expiry ON auth_tokens(expires_at);
 
-
-    CREATE TABLE IF NOT EXISTS friendships (
-      id INTEGER PRIMARY KEY,
-      user_a TEXT NOT NULL REFERENCES users(id),
-      user_b TEXT NOT NULL REFERENCES users(id),
-      requested_by TEXT NOT NULL REFERENCES users(id),
-      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'accepted')),
-      UNIQUE(user_a, user_b), CHECK(user_a < user_b)
-    );
-    CREATE TABLE IF NOT EXISTS chat_messages (
-      id INTEGER PRIMARY KEY,
-      sender_id TEXT NOT NULL REFERENCES users(id),
-      recipient_id TEXT NOT NULL REFERENCES users(id),
-      text TEXT NOT NULL,
-      solve_snapshot TEXT,
-      client_id TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-      UNIQUE(sender_id, client_id)
-    );
-    CREATE INDEX IF NOT EXISTS idx_chat_pair ON chat_messages(sender_id, recipient_id, id);
 
 CREATE TABLE IF NOT EXISTS admin_tokens (
  token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL, password_version TEXT NOT NULL

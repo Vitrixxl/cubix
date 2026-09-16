@@ -1,7 +1,7 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { unwrap } from "jotai/utils";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
+import { Animated, FlatList, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { formatAlg } from "../../../src/shared/cube";
 import { puzzleInfo, puzzleOf } from "../../../src/shared/puzzles";
@@ -15,7 +15,7 @@ import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { displayAlg, shortId } from "../lib/caseState";
 import { AlgorithmBadges, AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { IconBack, IconChevronDown, IconTimer } from "../components/icons";
+import { IconBack, IconChevronDown, IconNext, IconTimer } from "../components/icons";
 import { LearnedToggle } from "../components/LearnedToggle";
 import { TimesChart } from "../components/TimesChart";
 import { Btn, Caption, Chip, Empty, H1, Kpi, MiniBtn, Muted, Segmented, mono } from "../components/ui";
@@ -32,7 +32,7 @@ export function AlgorithmsPage() {
   const selected = caseId ? cases.find(c => c.id === caseId) : undefined;
   const { pagePadding, phone } = useLayout();
   return <View style={[styles.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18 }]}>
-    {selected ? <CaseDetail key={selected.id} c={selected} stats={stats.get(selected.id)} onBack={() => setRoute({ page: "algorithms" })} />
+    {selected ? <CaseDetail key={selected.id} c={selected} cases={cases} stats={stats.get(selected.id)} onBack={() => setRoute({ page: "algorithms" })} />
       : <AlgorithmBrowser key={puzzle} puzzle={puzzle} cases={cases} sets={sets} stats={stats} />}
   </View>;
 }
@@ -156,10 +156,34 @@ const CaseCard = memo(function CaseCard({ c, stats, onOpen, width, phone }: { c:
   </View>;
 });
 
-function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; onBack: () => void }) {
+/** Horizontal swipe threshold, in points, before the detail page steps to a neighbouring case. */
+const SWIPE_DISTANCE = 64;
+
+function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[]; stats?: CaseStatsDto; onBack: () => void }) {
   const t = useTheme();
   const { navSpace, phone } = useLayout();
   const setRoute = useSetAtom(routeAtom);
+  // Neighbours come from the same set so a swipe never jumps from PLL into OLL.
+  const siblings = useMemo(() => cases.filter(other => other.set === c.set), [cases, c.set]);
+  const index = siblings.findIndex(other => other.id === c.id);
+  const previous = index > 0 ? siblings[index - 1] : undefined;
+  const next = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined;
+  const step = useCallback((target?: CaseDto) => { if (target) setRoute({ page: "algorithms", caseId: target.id }); }, [setRoute]);
+  const drag = useRef(new Animated.Value(0)).current;
+  const neighbours = useRef({ previous, next, step });
+  neighbours.current = { previous, next, step };
+  // The responder only claims clearly horizontal moves so vertical scrolling and taps keep working.
+  const swipe = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 16 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 2,
+    onPanResponderMove: (_, gesture) => drag.setValue(gesture.dx / 3),
+    onPanResponderRelease: (_, gesture) => {
+      const { previous, next, step } = neighbours.current;
+      const target = gesture.dx <= -SWIPE_DISTANCE ? next : gesture.dx >= SWIPE_DISTANCE ? previous : undefined;
+      Animated.spring(drag, { toValue: 0, useNativeDriver: true, speed: 30, bounciness: 4 }).start();
+      step(target);
+    },
+    onPanResponderTerminate: () => Animated.spring(drag, { toValue: 0, useNativeDriver: true }).start(),
+  }), [drag]);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
   const solveMode = useAtomValue(solveModeAtom);
   const scroll = usePreservedScroll(`case:${c.id}:detail`);
@@ -168,9 +192,14 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
   useEffect(() => { let alive = true; api.caseHistory(c.id, { solveMode }).then(h => alive && setHistory(h)); return () => { alive = false; }; }, [c.id, stats?.count, solveMode]);
   const train = () => { setSelection([c.id]); setRoute({ page: "training", autostart: true }); };
   const summary = history?.summary ?? stats;
-  return <View style={styles.browser}>
+  return <Animated.View style={[styles.browser, { transform: [{ translateX: drag }] }]} {...swipe.panHandlers}>
     <View style={styles.toolbar}>
       <Btn small variant="ghost" icon={<IconBack size={16} color={t.text2} />} label={c.setLabel} onPress={onBack} />
+      <View style={styles.stepper}>
+        <Btn small variant="ghost" iconOnly icon={<IconBack size={16} color={previous ? t.text2 : t.muted} />} disabled={!previous} onPress={() => step(previous)} accessibilityLabel="Previous case" />
+        <Text style={[mono(t, 12), { color: t.text2, minWidth: 44, textAlign: "center" }]}>{index + 1} / {siblings.length}</Text>
+        <Btn small variant="ghost" iconOnly icon={<IconNext size={16} color={next ? t.text2 : t.muted} />} disabled={!next} onPress={() => step(next)} accessibilityLabel="Next case" />
+      </View>
       <Btn small variant="primary" icon={<IconTimer size={16} color="#fff" />} label="Train" onPress={train} />
     </View>
     <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ gap: 22, paddingTop: 4, paddingHorizontal: 4, paddingBottom: navSpace }}>
@@ -204,13 +233,14 @@ function CaseDetail({ c, stats, onBack }: { c: CaseDto; stats?: CaseStatsDto; on
         </> : <Empty>No solves yet.</Empty>}
       </View>
     </ScrollView>
-  </View>;
+  </Animated.View>;
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, width: "100%", maxWidth: 1100, alignSelf: "center", minHeight: 0 },
   browser: { flex: 1, gap: 12, minHeight: 0 },
   toolbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", columnGap: 12, rowGap: 10 },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 2 },
   stageHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 18, marginBottom: 6 },
   groupTitle: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, marginBottom: 4 },
   groupToggle: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 38, minWidth: 0 },

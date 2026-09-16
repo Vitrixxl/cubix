@@ -32,7 +32,6 @@ type User = {
   id: string;
   username: string;
   token: string;
-  peer: string;
   sessionId: number;
 };
 const quantile = (values: number[], q: number) =>
@@ -47,7 +46,6 @@ async function worker() {
     wsClosed = 0,
     pongs = 0,
     changes = 0;
-  const lastMessage = new Map<string, number>();
   let heartbeats: ReturnType<typeof setInterval>;
   process.on("message", async (message: any) => {
     try {
@@ -70,7 +68,7 @@ async function worker() {
               (user) =>
                 new Promise<void>((resolve) => {
                   const socket = new WebSocket(
-                    URL.replace("http:", "ws:") + "/api/social/live",
+                    URL.replace("http:", "ws:") + "/api/live",
                   );
                   let done = false,
                     ready = false;
@@ -97,7 +95,7 @@ async function worker() {
                       sockets.push(socket);
                       finish(true);
                     } else if (data.type === "pong") pongs++;
-                    else if (data.type === "changed") changes++;
+                    else if (data.type === "sync") changes++;
                   });
                   socket.addEventListener("error", () => finish(false));
                   socket.addEventListener("close", () => {
@@ -151,7 +149,7 @@ async function worker() {
               body: any;
             if (kind < 4) path = "/solves?mode=training&limit=50";
             else if (kind < 7) path = "/stats";
-            else if (kind < 10) path = "/users/" + user.username;
+            else if (kind < 10) path = "/solves?mode=playground&limit=50";
             else if (kind < 13) {
               path = "/solves";
               method = "POST";
@@ -161,27 +159,12 @@ async function worker() {
                 timeMs: 12000 + (seq % 8000),
                 scramble: "R U R' U'",
               };
-            } else if (kind < 15) path = "/social/friends";
-            else if (kind < 17) path = "/social/messages/" + user.peer;
-            else if (
-              kind === 17 &&
-              Date.now() - (lastMessage.get(user.id) ?? 0) >= 1100
-            ) {
-              path = "/social/messages/" + user.peer;
-              method = "POST";
-              body = {
-                text: "Isolated load test",
-                clientId: crypto.randomUUID(),
-              };
-              lastMessage.set(user.id, Date.now());
-            } else if (kind === 18) path = "/users?q=stress_";
+            } else if (kind < 15) path = "/learned";
+            else if (kind < 17) path = "/sessions";
+            else if (kind === 17) path = "/sync?since=0&limit=100";
+            else if (kind === 18) path = "/mobile/release";
             else path = "/auth/me";
-            const label =
-              method +
-              " " +
-              path
-                .replace(/\/users\/stress_\d+/, "/users/:username")
-                .replace(/\/social\/messages\/[^?]+/, "/social/messages/:peer");
+            const label = method + " " + path;
             const bucket = (routes[label] ??= {
               count: 0,
               errors: 0,
@@ -282,9 +265,6 @@ async function main() {
   const insertSolve = db.query(
     "INSERT INTO solves(session_id,case_id,time_ms,scramble,user_id) VALUES(?,?,?,?,?)",
   );
-  const insertFriend = db.query(
-    "INSERT INTO friendships(user_a,user_b,requested_by,status) VALUES(?,?,?,'accepted')",
-  );
   console.log(
     "Seeding",
     userCount,
@@ -313,13 +293,7 @@ async function main() {
           "R U R' U'",
           id,
         );
-      users.push({ id, username, token, peer: "", sessionId: i + 1 });
-    }
-    for (let i = 0; i < userCount; i += 2) {
-      users[i].peer = users[i + 1].id;
-      users[i + 1].peer = users[i].id;
-      const [a, b] = [users[i].id, users[i + 1].id].sort();
-      insertFriend.run(a, b, a);
+      users.push({ id, username, token, sessionId: i + 1 });
     }
   })();
   db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
@@ -581,7 +555,7 @@ async function main() {
     const finalDb = openDb(dbPath);
     const counts = finalDb.db
       .query(
-        "SELECT (SELECT COUNT(*) FROM solves) AS solves, (SELECT COUNT(*) FROM chat_messages) AS messages",
+        "SELECT (SELECT COUNT(*) FROM solves) AS solves",
       )
       .get();
     finalDb.db.close();
