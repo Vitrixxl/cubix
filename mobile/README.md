@@ -37,17 +37,16 @@ Il contient les architectures **arm64-v8a** (téléphones) et **x86_64** (émula
 `app.config.ts` complète `app.json` : le `versionCode` Android et
 `Constants.expoConfig.extra.build` reçoivent la date du commit en minutes, et
 `extra.commit` le SHA. `CUBIX_BUILD_NUMBER` et `CUBIX_COMMIT` remplacent ces
-valeurs (la CI les fixe). Les paramètres affichent la version et le commit installés ;
+valeurs. Les paramètres affichent la version et le commit installés ;
 lorsque `GET /api/mobile/release` annonce un APK (`apkBuild`) plus récent, un bouton
 « Download update » ouvre `/api/mobile/apk`, qui sert l'APK ARM64 stocké par le serveur.
 `bun run deploy` à la racine compile cet APK en local et l'envoie après la mise à jour
 du serveur. Le navigateur télécharge le fichier et Android propose l'installation
 par-dessus la version en place, à condition que la signature soit la même.
 
-La CI signe l'APK avec le keystore des secrets `ANDROID_KEYSTORE_BASE64`,
-`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` et `ANDROID_KEY_PASSWORD`
-(plugin `plugins/withReleaseSigning.js`, variables `CUBIX_ANDROID_*` au moment du
-build Gradle). Sans ces secrets, comme en local, l'APK garde la clé de
+Le build signe l'APK avec le keystore désigné par `CUBIX_ANDROID_KEYSTORE`,
+`CUBIX_ANDROID_KEYSTORE_PASSWORD`, `CUBIX_ANDROID_KEY_ALIAS` et `CUBIX_ANDROID_KEY_PASSWORD`
+(plugin `plugins/withReleaseSigning.js`). Sans ces variables, l'APK garde la clé de
 développement générée par Expo : les builds s'installent alors les uns par-dessus les
 autres, mais cette clé est publique. Changer de clé oblige à désinstaller
 l'application une fois. Créer le keystore :
