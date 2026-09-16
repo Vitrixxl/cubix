@@ -1540,9 +1540,11 @@ impl Cubix {
                     let setup_font = if small { 16. } else { 19. };
                     let algo_font = if small { 15. } else { 17. };
                     // Two lines of each algorithm always stay visible.
-                    let min_text = setup_font * 1.6 * 2. + algo_font * 1.6 * 2.;
-                    // Header row, two labels and the gaps between the blocks.
-                    let fixed = 42. + 23. + 8. + 23. + 8. + 8.;
+                    let revealed = self.revealed;
+                    let min_text =
+                        setup_font * 1.6 * 2. + if revealed { algo_font * 1.6 * 2. } else { 0. };
+                    // Header row, labels, the show/hide button and the gaps between blocks.
+                    let fixed = 42. + 31. + if revealed { 31. + 40. } else { 40. } + 8.;
                     let cube_size = (timer_top - gap - fixed - min_text).clamp(56., 150.);
                     let overflow = gap + fixed + cube_size + min_text - timer_top;
                     if overflow > 0. {
@@ -1552,7 +1554,11 @@ impl Cubix {
                         timer_top += overflow.min(slack.max(0.));
                     }
                     let text_budget = (timer_top - gap - fixed - cube_size).max(min_text);
-                    let setup_height = text_budget * setup_font / (setup_font + algo_font);
+                    let setup_height = if revealed {
+                        text_budget * setup_font / (setup_font + algo_font)
+                    } else {
+                        text_budget
+                    };
                     let algo_height = text_budget - setup_height;
                     let subtitle = if s(&c, "name") == s(&c, "id") {
                         s(&c, "group")
@@ -1607,14 +1613,25 @@ impl Cubix {
                             setup_font,
                             setup_height,
                         ))
-                        .child(block(
-                            self,
-                            "ALGORITHM",
-                            "solution",
-                            s(&self.training, "algorithm"),
-                            algo_font,
-                            algo_height,
-                        ))
+                        .when(revealed, |d| {
+                            d.child(block(
+                                self,
+                                "ALGORITHM",
+                                "solution",
+                                s(&self.training, "algorithm"),
+                                algo_font,
+                                algo_height,
+                            ))
+                        })
+                        .child(
+                            self.btn(
+                                "solution",
+                                if revealed { "Hide solution" } else { "Show solution" },
+                                false,
+                                cx,
+                            )
+                            .child(icon("IconEye", 14.)),
+                        )
                         .child(cube);
                 } else {
                     above = above
