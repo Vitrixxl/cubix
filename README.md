@@ -46,7 +46,7 @@ validation : [guide mobile](mobile/README.md).
 
 `bun run deploy` (ou `make deploy`) pousse `main`, met à jour le serveur avec
 `pihost update cubix`, compile ici l'APK ARM64 à basse priorité puis l'envoie à l'API
-(`PUT /api/mobile/apk`, mot de passe admin). L'API stocke l'APK à côté de sa base et le
+(`PUT /api/mobile/apk`, mot de passe admin du serveur lu par SSH ou `CUBIX_DEPLOY_PASSWORD`). L'API stocke l'APK à côté de sa base et le
 sert sur `/api/mobile/apk` ; `/api/mobile/release` annonce son build et celui de l'APK.
 L'application compare le build de l'APK au sien et affiche un bouton de téléchargement
 dans les paramètres quand elle est en retard. Le numéro de build est la date du commit

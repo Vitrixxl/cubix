@@ -8,8 +8,9 @@
  *
  * The APK is not built on the Pi: Gradle needs more memory than the board has and Google
  * ships no ARM64 Linux NDK, so the phone build always happens on the developer's machine.
- * `CUBIX_ADMIN_PASSWORD` authorises the upload; when unset it is read over SSH from the
- * server's `.env`. `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
+ * `CUBIX_DEPLOY_PASSWORD` (the server's admin password) authorises the upload; when unset it
+ * is read over SSH from the server's `.env`. The local `.env`, which Bun loads automatically,
+ * holds the development password and must not be used here. `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -68,9 +69,9 @@ if (deployed.apkBuild === build && deployed.apkCommit === head) { console.log("T
 // Low CPU priority: Gradle should not make the machine unusable while it runs.
 run("nice", ["-n", "19", "bun", "scripts/build-apk.ts", "--arm64", `--output=${APK}`], { cwd: resolve(root, "mobile") });
 
-let password = process.env.CUBIX_ADMIN_PASSWORD ?? "";
+let password = process.env.CUBIX_DEPLOY_PASSWORD ?? "";
 if (!password) password = run("ssh", [PI, "sed", "-n", "'s/^CUBIX_ADMIN_PASSWORD=//p'", `/srv/pihost/apps/${APP}/repo/.env`], { capture: true }).replace(/^["']|["']$/g, "");
-if (!password) { console.error("No admin password: set CUBIX_ADMIN_PASSWORD or configure it on the server."); process.exit(1); }
+if (!password) { console.error("No admin password: set CUBIX_DEPLOY_PASSWORD or configure CUBIX_ADMIN_PASSWORD on the server."); process.exit(1); }
 
 const bytes = readFileSync(APK);
 console.log(`Uploading ${(bytes.length / 1048576).toFixed(1)} MiB to ${ORIGIN}/api/mobile/apk`);
