@@ -3,9 +3,10 @@ import { Animated, Easing, useWindowDimensions, type View } from "react-native";
 
 export type ExitDirection = "up" | "down" | "left" | "right";
 
-/** Same curve as the desktop practice page: 350 ms, ease in-out. */
-const slide = (value: Animated.Value, toValue: number) =>
-  Animated.timing(value, { toValue, duration: 350, easing: Easing.inOut(Easing.ease), useNativeDriver: true }).start();
+/** Same timings as the desktop practice page: elements clear the screen fast when the timer starts (180 ms) and come back at ease (350 ms). */
+const HIDE_MS = 180, SHOW_MS = 350;
+const slide = (value: Animated.Value, toValue: number, duration: number) =>
+  Animated.timing(value, { toValue, duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }).start();
 
 /**
  * Slides an element off screen toward its own edge while `hidden`, and back when shown.
@@ -17,15 +18,15 @@ export function useExit(hidden: boolean, exit: ExitDirection) {
   const size = useRef(window); size.current = window;
   const offset = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!hidden) { slide(offset, 0); return; }
+    if (!hidden) { slide(offset, 0, SHOW_MS); return; }
     const vertical = exit === "up" || exit === "down";
     const sign = exit === "up" || exit === "left" ? -1 : 1;
     const fallback = vertical ? size.current.height : size.current.width;
     const node = ref.current;
-    if (!node) { slide(offset, sign * fallback); return; }
+    if (!node) { slide(offset, sign * fallback, HIDE_MS); return; }
     node.measureInWindow((x, y, width, height) => {
       const distance = exit === "up" ? y + height : exit === "down" ? size.current.height - y : exit === "left" ? x + width : size.current.width - x;
-      slide(offset, sign * (distance > 0 ? distance + 12 : fallback));
+      slide(offset, sign * (distance > 0 ? distance + 12 : fallback), HIDE_MS);
     });
   }, [hidden, exit, offset]);
   const transform = exit === "up" || exit === "down" ? [{ translateY: offset }] : [{ translateX: offset }];
@@ -39,8 +40,8 @@ export function useCentre(active: boolean) {
   const size = useRef(window); size.current = window;
   const offset = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (!active) { slide(offset, 0); return; }
-    ref.current?.measureInWindow((_x, y, _width, height) => slide(offset, size.current.height / 2 - (y + height / 2)));
+    if (!active) { slide(offset, 0, SHOW_MS); return; }
+    ref.current?.measureInWindow((_x, y, _width, height) => slide(offset, size.current.height / 2 - (y + height / 2), HIDE_MS));
   }, [active, offset]);
   return { ref, transform: [{ translateY: offset }] };
 }

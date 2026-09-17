@@ -3221,7 +3221,9 @@ impl Render for Cubix {
         let running = self.timer.read(cx).phase == Phase::Running;
         let target = if running { 1. } else { 0. };
         if self.hide != target || self.hide_from != target {
-            let t = (self.hide_since.elapsed().as_secs_f32() / 0.35).min(1.);
+            // Elements clear the screen fast when the timer starts and come back at ease.
+            let duration = if running { 0.18 } else { 0.35 };
+            let t = (self.hide_since.elapsed().as_secs_f32() / duration).min(1.);
             let eased = if t < 0.5 {
                 4. * t * t * t
             } else {

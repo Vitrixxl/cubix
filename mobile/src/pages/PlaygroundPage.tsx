@@ -19,7 +19,11 @@ import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } f
 import { Select } from "../components/Select";
 import { SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
+import { Bone } from "../components/Bone";
 import { Caption, Empty, Kpi, MiniBtn, Muted, mono } from "../components/ui";
+
+/** Generation shorter than this stays invisible: the previous scramble simply becomes the next one. */
+const SLOW_GENERATION_MS = 120;
 
 export function PlaygroundPage() {
   const context = useAtomValue(practiceContextAtom);
@@ -35,6 +39,10 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const setSolveMode = useSetAtom(solveModeAtom);
   const setScrambleType = useSetAtom(scrambleTypeAtom);
   const [generating, setGenerating] = useState(false);
+  // Only a generation that takes a while (cubing.js in the native engine) shows its skeleton; instant
+  // ones would otherwise flash an empty frame between the previous scramble and the next.
+  const [slow, setSlow] = useState(false);
+  const slowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [generationError, setGenerationError] = useState("");
   const request = useRef(0);
   const lockCube = useSetAtom(cubeSwitchLockedAtom);
@@ -49,15 +57,18 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const generateNext = useCallback(async () => {
     const id = ++request.current;
     setGenerating(true); setGenerationError("");
+    clearTimeout(slowTimer.current);
+    slowTimer.current = setTimeout(() => { if (request.current === id) setSlow(true); }, SLOW_GENERATION_MS);
     try {
       const next = await generatePracticeScramble(context);
       if (request.current === id) setScramble(next);
     } catch (error) {
       if (request.current === id) setGenerationError((error as Error).message);
     } finally {
-      if (request.current === id) setGenerating(false);
+      if (request.current === id) { clearTimeout(slowTimer.current); setGenerating(false); setSlow(false); }
     }
   }, [context, setScramble]);
+  useEffect(() => () => clearTimeout(slowTimer.current), []);
   useEffect(() => {
     let active = true;
     // Only this launch's session is listed (see lib/launchSession); every solve still syncs to the profile.
@@ -114,7 +125,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           <TimerChrome hidden={running} exit="up" style={[styles.scramble, layout.landscape && styles.landscapeLeft, grouped && styles.grouped]}>
             <PracticeContent>
             <Caption style={{ marginBottom: 8, textAlign: "center" }}>{info.label} · {scrambleLabel(context.scrambleType)}</Caption>
-            {generating ? <Muted style={{ textAlign: "center" }}>Generating…</Muted> : generationError ? <View style={{ alignItems: "center", gap: 4 }}><Text style={{ color: t.danger, fontSize: 13, textAlign: "center" }}>{generationError}</Text><MiniBtn label="Retry" onPress={() => void generateNext()} /></View>
+            {generating && (slow || !scramble) ? <View style={{ width: "100%", alignItems: "center", paddingHorizontal: layout.phone ? 12 : 0 }}><Bone width="92%" text={scrambleSize} /><Bone width="80%" text={scrambleSize} /></View> : generationError ? <View style={{ alignItems: "center", gap: 4 }}><Text style={{ color: t.danger, fontSize: 13, textAlign: "center" }}>{generationError}</Text><MiniBtn label="Retry" onPress={() => void generateNext()} /></View>
               : <AlgText alg={scramble} size={scrambleSize} lineHeight={scrambleSize * (layout.phone ? 1.55 : 1.6)} wordSpacing={1} style={{ textAlign: "center", paddingHorizontal: layout.phone ? 12 : 0 }} />}
             </PracticeContent>
           </TimerChrome>
@@ -133,7 +144,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           <View onLayout={event => setActionHeight(event.nativeEvent.layout.height)} style={styles.bottomActionRow}>
             <Select value={context.scrambleType} disabled={busy || !!timer.saveError} flat="toolbar" accessibilityLabel="Scramble type" options={info.scrambles.map(type => ({ value: type, label: scrambleLabel(type) }))} onChange={value => setScrambleType(value as ScrambleType)} />
             <Select value={context.solveMode} disabled={busy || !!timer.saveError} flat="toolbar" accessibilityLabel="Solve mode" options={SOLVE_MODES.map(mode => ({ value: mode.id, label: mode.label }))} onChange={value => setSolveMode(value as SolveMode)} />
-            <ToolbarAction icon={<IconShuffle size={15} color={t.text2} />} label="New scramble" disabled={busy || generating || !!timer.saveError} onPress={nextScramble} phone={layout.phone} />
+            <ToolbarAction icon={<IconShuffle size={15} color={t.text2} />} label="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} phone={layout.phone} />
           </View>
         </TimerChrome>
       </TouchArea>

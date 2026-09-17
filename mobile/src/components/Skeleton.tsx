@@ -1,30 +1,14 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import type { ReactNode } from "react";
+import { StyleSheet, View } from "react-native";
 import type { Page } from "../state";
-import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { styles as practice } from "../pages/PlaygroundPage";
+import { Bone } from "./Bone";
 
 /**
  * Loading placeholders that copy the real screens: the same layout styles, the same sizes, with
  * pulsing blocks where text, controls and diagrams will render. Shown only while the app boots.
  */
-
-/** One placeholder block; `text` sizes it like a line of text of that font size. */
-export function Bone({ width, height, radius = 8, text, style, strong }: { width?: number | `${number}%`; height?: number; radius?: number; text?: number; style?: StyleProp<ViewStyle>; strong?: boolean }) {
-  const t = useTheme();
-  const pulse = useRef(new Animated.Value(0.55)).current;
-  useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0.55, duration: 700, useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-  const size = text !== undefined ? { height: Math.round(text * 0.72), marginVertical: Math.round(text * 0.36), borderRadius: Math.round(text * 0.3) } : { height, borderRadius: radius };
-  return <Animated.View style={[{ width: width ?? "100%", backgroundColor: strong ? t.surface3 : t.surface2, opacity: pulse }, size, style]} />;
-}
 
 function Kpis({ count, phone }: { count: number; phone: boolean }) {
   return <>{Array.from({ length: count }, (_, i) => <View key={i} style={{ alignItems: "center", flex: 1 }}>
