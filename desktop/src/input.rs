@@ -64,6 +64,9 @@ impl TextInput {
             ),
         }
     }
+    pub fn focus(&self, window: &mut Window) {
+        self.focus_handle.focus(window);
+    }
     pub fn set(&mut self, value: String, cx: &mut Context<Self>) {
         self.content = value.into();
         self.selected_range = self.content.len()..self.content.len();

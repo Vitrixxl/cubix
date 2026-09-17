@@ -33,6 +33,31 @@ fn puzzle(v: &Value) -> String {
         .map(str::to_owned)
         .unwrap_or_else(|| v["cube_size"].as_u64().unwrap_or(3).to_string().repeat(3))
 }
+/// "OLL · Fish", "F2L · Disconnected Pairs": the set a case belongs to and its group.
+fn case_kind(c: &Value) -> String {
+    let (set, group) = (s(c, "setLabel"), s(c, "group"));
+    if group.is_empty() || group.eq_ignore_ascii_case(set) {
+        set.to_owned()
+    } else {
+        format!("{set} · {group}")
+    }
+}
+/// Every whitespace-separated word of the query must appear in the case's id, name, set, stage or group.
+fn case_matches(c: &Value, query: &str) -> bool {
+    let haystack = format!(
+        "{} {} {} {} {} {}",
+        s(c, "id"),
+        s(c, "name"),
+        s(c, "setLabel"),
+        s(c, "stage"),
+        s(c, "group"),
+        s(c, "subgroup")
+    )
+    .to_lowercase();
+    query
+        .split_whitespace()
+        .all(|word| haystack.contains(&word.to_lowercase()))
+}
 fn row() -> Div {
     div().flex().items_center()
 }
@@ -162,6 +187,7 @@ impl Cubix {
             ("username", "", false),
             ("password", "", true),
             ("cases", "Search cases…", false),
+            ("search", "Search a case: oll fish, pll t, f2l 6…", false),
         ] {
             fields.insert(name.into(), cx.new(|cx| TextInput::new(hint, password, cx)));
         }
@@ -373,6 +399,32 @@ impl Cubix {
             self.sets_cache = Some((key, std::rc::Rc::new(sets)));
         }
         self.sets_cache.as_ref().unwrap().1.clone()
+    }
+    /// Cases of the current puzzle matching the Ctrl+K query, in catalogue order.
+    fn search_results(&mut self, cx: &App) -> Vec<Value> {
+        let query = self.field("search", cx).trim().to_lowercase();
+        if query.is_empty() {
+            return Vec::new();
+        }
+        self.all_cases()
+            .iter()
+            .filter(|c| case_matches(c, &query))
+            .take(12)
+            .cloned()
+            .collect()
+    }
+    fn open_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.overlay = "search".into();
+        self.select_index = 0;
+        let field = self.input("search");
+        field.update(cx, |f, cx| f.set(String::new(), cx));
+        field.read(cx).focus(window);
+        cx.notify();
+    }
+    fn close_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.overlay.clear();
+        self.focus.focus(window);
+        cx.notify();
     }
     fn find_case(&self, id: &str) -> Value {
         self.catalog["cases"]
@@ -824,6 +876,7 @@ impl Cubix {
             "case" => {
                 self.page = "algorithms".into();
                 self.case_id = arg.into();
+                self.overlay.clear();
                 self.refresh();
             }
             "back" => {
@@ -1453,21 +1506,20 @@ impl Cubix {
                         .child(if learned { "Learned" } else { "Mark learned" }),
                 );
             }
-            top = top
-                .child(
-                    self.btn("auf", "Random AUF", self.random_auf, cx)
-                        .text_color(if self.random_auf {
-                            self.theme.accent
-                        } else {
-                            self.theme.secondary
-                        })
-                        .bg(if self.random_auf {
-                            self.theme.soft
-                        } else {
-                            gpui::transparent_black()
-                        })
-                        .child(icon("IconShuffle", 15.)),
-                );
+            top = top.child(
+                self.btn("auf", "Random AUF", self.random_auf, cx)
+                    .text_color(if self.random_auf {
+                        self.theme.accent
+                    } else {
+                        self.theme.secondary
+                    })
+                    .bg(if self.random_auf {
+                        self.theme.soft
+                    } else {
+                        gpui::transparent_black()
+                    })
+                    .child(icon("IconShuffle", 15.)),
+            );
         } else {
             top = top.child(
                 row()
@@ -1560,12 +1612,7 @@ impl Cubix {
                         text_budget
                     };
                     let algo_height = text_budget - setup_height;
-                    let subtitle = if s(&c, "name") == s(&c, "id") {
-                        s(&c, "group")
-                    } else {
-                        s(&c, "name")
-                    }
-                    .to_owned();
+                    let subtitle = case_kind(&c);
                     let arrow = |s: &Self, action: &str, ic: &str| {
                         s.btn(action, "", false, cx)
                             .w(px(38.))
@@ -1597,7 +1644,7 @@ impl Cubix {
                                 .gap(px(10.))
                                 .child(arrow(self, "previous", "IconBack"))
                                 .child(
-                                    self.btn(format!("case:{id}"), id.clone(), false, cx)
+                                    self.btn(format!("case:{id}"), s(&c, "name"), false, cx)
                                         .text_size(px(22.))
                                         .font_weight(FontWeight::BOLD)
                                         .text_color(self.theme.text),
@@ -1626,7 +1673,11 @@ impl Cubix {
                         .child(
                             self.btn(
                                 "solution",
-                                if revealed { "Hide solution" } else { "Show solution" },
+                                if revealed {
+                                    "Hide solution"
+                                } else {
+                                    "Show solution"
+                                },
                                 false,
                                 cx,
                             )
@@ -2014,11 +2065,7 @@ impl Cubix {
                     .child(step(self, "caseStep:previous", "IconBack", has_previous))
                     .child(
                         txt(
-                            format!(
-                                "{} / {}",
-                                index.map_or(0, |i| i + 1),
-                                ids.len()
-                            ),
+                            format!("{} / {}", index.map_or(0, |i| i + 1), ids.len()),
                             12.,
                         )
                         .min_w(px(48.))
@@ -2474,20 +2521,22 @@ impl Cubix {
                         .child(icon("IconChevronDown", 12.)),
                 )
                 .child(
-                    row()
-                        .gap(px(4.))
-                        .children(
-                            [("all", "All"), ("unlocked", "Unlocked"), ("locked", "Locked")]
-                                .into_iter()
-                                .map(|(id, label)| {
-                                    self.btn(
-                                        format!("achievementFilter:{id}"),
-                                        label,
-                                        self.achievement_filter == id,
-                                        cx,
-                                    )
-                                }),
-                        ),
+                    row().gap(px(4.)).children(
+                        [
+                            ("all", "All"),
+                            ("unlocked", "Unlocked"),
+                            ("locked", "Locked"),
+                        ]
+                        .into_iter()
+                        .map(|(id, label)| {
+                            self.btn(
+                                format!("achievementFilter:{id}"),
+                                label,
+                                self.achievement_filter == id,
+                                cx,
+                            )
+                        }),
+                    ),
                 ),
         );
         let mut shown = 0;
@@ -2496,10 +2545,7 @@ impl Cubix {
                 continue;
             }
             let members: Vec<_> = all.iter().filter(|a| s(a, "group") == group).collect();
-            let unlocked = members
-                .iter()
-                .filter(|a| a["unlocked"] == true)
-                .count();
+            let unlocked = members.iter().filter(|a| a["unlocked"] == true).count();
             let visible: Vec<_> = members
                 .iter()
                 .filter(|a| match self.achievement_filter.as_str() {
@@ -2523,7 +2569,11 @@ impl Cubix {
                     } else {
                         puzzle_icon(&puzzle_id, 18.)
                     })
-                    .child(txt(group.clone(), 15.).font_weight(FontWeight::SEMIBOLD).flex_1())
+                    .child(
+                        txt(group.clone(), 15.)
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .flex_1(),
+                    )
                     .child(
                         txt(format!("{unlocked} / {}", members.len()), 12.)
                             .font_family("Geist Mono")
@@ -2856,7 +2906,9 @@ impl Cubix {
             .rounded(px(16.))
             .bg(self.theme.surface)
             .border_1()
-            .border_color(self.theme.line);
+            .border_color(self.theme.line)
+            // Clicks inside the panel must not reach the dismiss layer underneath.
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation());
         let (kind, values, current) = self.select_options();
         let count = values.len();
         for (index, value) in values.into_iter().enumerate() {
@@ -2883,12 +2935,10 @@ impl Cubix {
         }
         if self.overlay == "solve" {
             if let Some(solve) = &self.overlay_solve {
-                menu = menu
-                    .child(self.solve_card(solve))
-                    .child(
-                        self.btn(format!("delete:{}", solve["id"]), "Delete", false, cx)
-                            .text_color(self.theme.danger),
-                    );
+                menu = menu.child(self.solve_card(solve)).child(
+                    self.btn(format!("delete:{}", solve["id"]), "Delete", false, cx)
+                        .text_color(self.theme.danger),
+                );
             }
         }
         if self.overlay == "profileCase" {
@@ -2948,7 +2998,54 @@ impl Cubix {
                 );
             }
         }
-        let modal = ["profileCase", "chartTable"].contains(&self.overlay.as_str());
+        if self.overlay == "search" {
+            let results = self.search_results(cx);
+            let query = self.field("search", cx);
+            let index = self.select_index.min(results.len().saturating_sub(1));
+            let width = (self.width - 24.).min(560.);
+            let mut list_view = col().gap(px(2.)).id("search-results");
+            for (i, c) in results.iter().enumerate() {
+                let id = s(c, "id").to_owned();
+                let pic = self.diagram(c, 40.);
+                list_view = list_view.child(
+                    self.btn(format!("case:{id}"), "", i == index, cx)
+                        .w_full()
+                        .gap(px(12.))
+                        .px(px(10.))
+                        .py(px(6.))
+                        .child(pic)
+                        .child(
+                            col()
+                                .flex_1()
+                                .min_w_0()
+                                .child(bold(s(c, "name"), 14.))
+                                .child(txt(case_kind(c), 12.).text_color(self.theme.muted)),
+                        )
+                        .child(txt(id, 12.).text_color(self.theme.muted)),
+                );
+            }
+            if results.is_empty() {
+                list_view = list_view.child(
+                    txt(
+                        if query.trim().is_empty() {
+                            "Type a set, a group or a case: oll, oll fish, pll t, f2l 6…"
+                        } else {
+                            "No case matches."
+                        },
+                        13.,
+                    )
+                    .p(px(10.))
+                    .text_color(self.theme.muted),
+                );
+            }
+            menu = menu
+                .w(px(width))
+                .p(px(12.))
+                .gap(px(10.))
+                .child(self.input("search"))
+                .child(list_view);
+        }
+        let modal = ["profileCase", "chartTable", "search"].contains(&self.overlay.as_str());
         let mut layer = div().absolute().inset_0().child(
             div()
                 .id("dismiss-overlay")
@@ -2957,16 +3054,19 @@ impl Cubix {
                 .bg(if modal { rgba(0x00000099) } else { rgba(0) })
                 .on_mouse_down(
                     MouseButton::Left,
-                    cx.listener(|s, _, _, cx| {
+                    cx.listener(|s, _, window, cx| {
                         s.overlay.clear();
+                        s.focus.focus(window);
                         cx.notify();
                     }),
                 ),
         );
         let mut position = div().absolute();
         if modal {
+            let modal_width =
+                (self.width - 24.).min(if self.overlay == "search" { 560. } else { 760. });
             position = position
-                .left(px((self.width - (self.width - 24.).min(760.)) / 2.))
+                .left(px((self.width - modal_width) / 2.))
                 .top(px(20.));
         } else if count > 0 {
             let anchor = self
@@ -3111,6 +3211,39 @@ impl Render for Cubix {
                 if event.keystroke.modifiers.alt && matches!(key, "left" | "right") {
                     s.travel(key == "left", window, cx);
                     cx.stop_propagation();
+                    return;
+                }
+                let ctrl = event.keystroke.modifiers.control || event.keystroke.modifiers.platform;
+                if ctrl && key == "k" && s.overlay != "search" {
+                    s.open_search(window, cx);
+                    cx.stop_propagation();
+                    return;
+                }
+                if s.overlay == "search" {
+                    // Ctrl+J / Ctrl+K (or the arrows) move through the results; Enter opens the case.
+                    let results = s.search_results(cx);
+                    let count = results.len();
+                    match key {
+                        "escape" => s.close_search(window, cx),
+                        "down" | "j" if count > 0 && (key == "down" || ctrl) => {
+                            s.select_index = (s.select_index + 1) % count
+                        }
+                        "up" | "k" if count > 0 && (key == "up" || ctrl) => {
+                            s.select_index = (s.select_index + count - 1) % count
+                        }
+                        "enter" if count > 0 => {
+                            let id = crate::app::s(
+                                &results[s.select_index.min(results.len() - 1)],
+                                "id",
+                            )
+                            .to_owned();
+                            s.close_search(window, cx);
+                            s.action(&format!("case:{id}"), window, cx);
+                        }
+                        _ => return,
+                    }
+                    cx.stop_propagation();
+                    cx.notify();
                     return;
                 }
                 if !s.overlay.is_empty() {
