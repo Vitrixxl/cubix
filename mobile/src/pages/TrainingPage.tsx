@@ -17,7 +17,7 @@ import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
 import { AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
-import { IconBack, IconEye, IconGrid, IconShuffle, IconSkip, IconTimer, IconUndo } from "../components/icons";
+import { IconBack, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
 import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { SolveRow } from "../components/SolveMenus";
@@ -140,7 +140,7 @@ function TrainingSession() {
                 <Text style={[styles.caseTitle, { color: t.text, fontSize: layout.phone ? 18 : 22, textDecorationColor: t.readableMuted }]}>{current.c.id}</Text>
                 <Muted size={13} style={{ textAlign: "center" }}>{current.c.name !== current.c.id ? current.c.name : current.c.group}</Muted>
               </Pressable>
-              <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconSkip size={16} color={t.readableMuted} /></Pressable>
+              <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>
             </View>
             <View style={styles.setup}>
               <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
