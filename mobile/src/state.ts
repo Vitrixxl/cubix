@@ -103,6 +103,9 @@ export const statsAtom = atom(async get => {
 // ---------------------------------------------------------------------------
 export const selectedCaseIdsAtom = perPuzzleAtom<string[]>("cubix.training.selectionByCube", []);
 export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true);
+/** Selected cases still to learn, as the training page last saw them for a puzzle. Kept outside the
+ * page so marking the last one learned from its details and coming back still celebrates. */
+export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
 
 export type ThemeId = "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";
 export const themeAtom = persisted<ThemeId>("cubix.ui.theme", "t3-code");

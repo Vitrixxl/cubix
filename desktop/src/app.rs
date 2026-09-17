@@ -149,6 +149,11 @@ pub struct Cubix {
     sets: HashMap<String, String>,
     selected: HashSet<String>,
     learned: HashSet<String>,
+    /// Selected training cases still to learn; once learning empties it, the page celebrates.
+    learn_goal: HashSet<String>,
+    learn_notice: Option<std::time::Instant>,
+    /// The goal was met away from the training page: show the notice when it next appears.
+    learn_notice_pending: bool,
     random_auf: bool,
     overlay: String,
     control_bounds: std::rc::Rc<std::cell::RefCell<HashMap<String, Bounds<Pixels>>>>,
@@ -242,6 +247,9 @@ impl Cubix {
             sets: HashMap::new(),
             selected: HashSet::new(),
             learned: HashSet::new(),
+            learn_goal: HashSet::new(),
+            learn_notice: None,
+            learn_notice_pending: false,
             random_auf: true,
             overlay: String::new(),
             control_bounds: Default::default(),
@@ -321,7 +329,7 @@ impl Cubix {
                                 if v["quit"]==true {cx.quit();}
                             }
                         }
-                        let state=json!({"page":s.page,"case":s.case_id,"puzzle":s.puzzle,"pending":s.engine.pending.len(),"error":s.error,"solves":s.solves.len(),"achievements":s.achievements["unlocked"],"training":s.training["id"],"phase":format!("{:?}",s.timer.read(cx).phase),"saving":s.saving,"generating":s.generating,"selected":s.selected,"learned":s.learned,"overlay":s.overlay,"virtualRowsRendered":s.virtual_rows_rendered,"scramble":s.scramble,"solveMode":s.solve_mode,"selectIndex":s.select_index,"metrics":s.metrics(),"bounds":s.control_bounds.borrow().iter().map(|(k,b)|(k.clone(),json!({"x":f32::from(b.origin.x),"y":f32::from(b.origin.y),"w":f32::from(b.size.width),"h":f32::from(b.size.height)}))).collect::<serde_json::Map<_,_>>()});
+                        let state=json!({"page":s.page,"case":s.case_id,"puzzle":s.puzzle,"pending":s.engine.pending.len(),"error":s.error,"solves":s.solves.len(),"achievements":s.achievements["unlocked"],"training":s.training["id"],"phase":format!("{:?}",s.timer.read(cx).phase),"saving":s.saving,"generating":s.generating,"selected":s.selected,"learned":s.learned,"learnNotice":s.learn_notice.is_some()||s.learn_notice_pending,"overlay":s.overlay,"virtualRowsRendered":s.virtual_rows_rendered,"scramble":s.scramble,"solveMode":s.solve_mode,"selectIndex":s.select_index,"metrics":s.metrics(),"bounds":s.control_bounds.borrow().iter().map(|(k,b)|(k.clone(),json!({"x":f32::from(b.origin.x),"y":f32::from(b.origin.y),"w":f32::from(b.size.width),"h":f32::from(b.size.height)}))).collect::<serde_json::Map<_,_>>()});
                         let _ = std::fs::write(directory.join("state.tmp"),state.to_string());
                         let _ = std::fs::rename(directory.join("state.tmp"),directory.join("state.json"));
                     }).is_err(){break;}
@@ -603,6 +611,7 @@ impl Cubix {
                         .iter()
                         .filter_map(|v| v.as_str().map(str::to_owned))
                         .collect();
+                    self.sync_learning_goal(cx);
                 }
                 self.keep_launch_session();
                 self.solves.reverse();
@@ -684,6 +693,7 @@ impl Cubix {
                     .unwrap_or("all")
                     .into();
                 self.load_context();
+                self.sync_learning_goal(cx);
                 self.refresh();
                 if self.scramble.is_empty() {
                     self.new_scramble();
@@ -1219,8 +1229,49 @@ impl Cubix {
             _ => {}
         }
         self.record_navigation(previous_location);
+        self.sync_learning_goal(cx);
         self.focus.focus(window);
         cx.notify();
+    }
+    /// Recomputes the cases still to learn. Only a learning change that empties a non-empty goal
+    /// celebrates: deselecting the remaining cases does not.
+    fn sync_learning_goal(&mut self, cx: &Context<Self>) {
+        let pending: HashSet<String> = self
+            .selected
+            .iter()
+            .filter(|id| !self.learned.contains(*id))
+            .cloned()
+            .collect();
+        let met = !self.learn_goal.is_empty()
+            && !self.selected.is_empty()
+            && pending.is_empty()
+            && self.learn_goal.iter().all(|id| self.learned.contains(id));
+        self.learn_goal = pending;
+        if met {
+            if self.page == "training" {
+                self.show_learning_notice(cx);
+            } else {
+                self.learn_notice_pending = true;
+            }
+        }
+    }
+    fn show_learning_notice(&mut self, cx: &Context<Self>) {
+        self.learn_notice_pending = false;
+        self.learn_notice = Some(std::time::Instant::now());
+        cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(4200))
+                .await;
+            let _ = this.update(cx, |s, cx| {
+                if s.learn_notice
+                    .is_some_and(|since| since.elapsed().as_millis() >= 4000)
+                {
+                    s.learn_notice = None;
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
     }
     fn prepare_cube(&mut self, cx: &mut Context<Self>) {
         let spec = if self.page == "playground" {
@@ -1582,6 +1633,32 @@ impl Cubix {
             .w(px(center_width))
             .h_full();
         let hide = self.hide;
+        if training && self.learn_notice_pending {
+            self.show_learning_notice(cx);
+        }
+        if training && hide < 1. && self.learn_notice.is_some() {
+            center = center.child(
+                div()
+                    .absolute()
+                    .top(px(12. - hide * 120.))
+                    .w_full()
+                    .flex()
+                    .justify_center()
+                    .child(
+                        row()
+                            .gap(px(8.))
+                            .px(px(14.))
+                            .py(px(8.))
+                            .rounded(px(12.))
+                            .bg(self.theme.surface2)
+                            .text_size(px(13.))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(self.theme.good)
+                            .child(icon("IconCheck", 14.))
+                            .child("Well done! Every selected case is learned."),
+                    ),
+            );
+        }
         if hide < 1. {
             let mut above = col()
                 .w_full()

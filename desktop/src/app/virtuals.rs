@@ -430,7 +430,8 @@ impl Cubix {
             let chosen: Vec<_> = chosen
                 .into_iter()
                 .filter(|c| {
-                    self.learning_filter == "all" || (self.learning_filter == "learned") == self.learned.contains(s(c, "id"))
+                    self.learning_filter == "all"
+                        || (self.learning_filter == "learned") == self.learned.contains(s(c, "id"))
                 })
                 .collect();
             let mut groups = Vec::new();
@@ -475,10 +476,22 @@ impl Cubix {
             ));
         }
         let mut filters = row().gap(px(4.));
-        for (filter, label, count) in [("learned", "Learned", learned), ("not-learned", "Not learned", total - learned)] {
+        for (filter, label, count) in [
+            ("learned", "Learned", learned),
+            ("not-learned", "Not learned", total - learned),
+        ] {
             filters = filters.child(
-                self.btn(format!("learningFilter:{filter}"), label, self.learning_filter == filter, cx)
-                    .child(txt(count.to_string(), 12.).font_family("Geist Mono").font_weight(FontWeight::NORMAL)),
+                self.btn(
+                    format!("learningFilter:{filter}"),
+                    label,
+                    self.learning_filter == filter,
+                    cx,
+                )
+                .child(
+                    txt(count.to_string(), 12.)
+                        .font_family("Geist Mono")
+                        .font_weight(FontWeight::NORMAL),
+                ),
             );
         }
         let toolbar = row().flex_wrap().gap(px(12.)).child(tabs).child(filters);

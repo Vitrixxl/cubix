@@ -1,13 +1,14 @@
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
+import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningGoal";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
 import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from "../../../src/shared/cube";
 import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
 import type { CaseDto, SolveDto } from "../../../src/shared/types";
 import { api, localChanged } from "../api";
-import { casesAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, puzzleAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, solveModeAtom, statsVersionAtom } from "../state";
+import { casesAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, solveModeAtom, statsVersionAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
@@ -17,7 +18,7 @@ import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
 import { AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
-import { IconBack, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
+import { IconBack, IconCheck, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
 import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { SolveRow } from "../components/SolveMenus";
@@ -43,6 +44,8 @@ function TrainingSession() {
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const [selected, setSelected] = useAtom(selectedCaseIdsAtom);
+  const [learnedIds, toggleLearned] = useAtom(learnedCaseIdsAtom);
+  const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const [useAuf, setUseAuf] = useAtom(randomAufAtom);
   const [route, setRoute] = useAtom(routeAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
@@ -80,6 +83,14 @@ function TrainingSession() {
   }, [useAuf, supportsAuf]);
   useEffect(() => { if (!current || !selected.includes(current.c.id)) pick(selectedCases); }, [selectedCases, pick]);
   useEffect(() => { if (route.page === "training" && route.autostart) setRoute({ page: "training" }); }, []);
+  // Celebrate once every selected case is learned, whether marked here or from the case details.
+  const store = useStore();
+  const [celebratedAt, setCelebratedAt] = useState(0);
+  useEffect(() => {
+    const previous = store.get(learningGoalAtom);
+    if (previous?.puzzle === puzzle && learningGoalMet(previous.pending, selected, learned)) setCelebratedAt(Date.now());
+    store.set(learningGoalAtom, { puzzle, pending: pendingCases(selected, learned) });
+  }, [store, puzzle, selected, learned]);
 
   const ensureSession = () => ensureLaunchSession("training", context, selected);
   const onStop = useCallback(async (ms: number) => {
@@ -119,6 +130,7 @@ function TrainingSession() {
   const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
   const iconColor = t.text2;
+  const currentLearned = !!current && learned.has(current.c.id);
 
   return <View style={base.page}>
     <View style={[base.workspace, wide && base.workspaceWide]}>
@@ -131,6 +143,7 @@ function TrainingSession() {
           <View style={[base.toolbarGroup, { justifyContent: "center" }]}>{supportsAuf && <ToolbarAction icon={<IconShuffle size={15} color={useAuf ? t.accent : iconColor} />} label="Random AUF" pressed={useAuf} disabled={busy} onPress={() => setUseAuf(v => !v)} phone={layout.phone} />}</View>
           <View style={[base.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}>{!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer size={15} color={iconColor} />} disabled={busy} onPress={() => setShowTimes(true)} phone={layout.phone} />}</View>
         </TimerChrome>
+        <LearnedNotice at={celebratedAt} hidden={running} top={layout.phone ? 48 : 56} />
         <View style={[base.stack, layout.landscape && base.stackLandscape, layout.phone && !layout.landscape && { paddingTop: 52, paddingBottom: 88 }, { paddingHorizontal: layout.pagePadding }]}>
           {current ? <TimerChrome hidden={running} exit="up" style={[styles.trainingCase, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <PracticeContent revealEnd={revealed}>
@@ -150,7 +163,13 @@ function TrainingSession() {
               </View>
             </View>
             {primary && revealed && <View style={[styles.solution, { borderTopColor: t.line }]}><Caption style={{ marginBottom: 8 }}>Solution</Caption><AlgText alg={shownAlgorithm} size={layout.phone ? 15 : 18} style={{ textAlign: "center" }} /></View>}
-            {primary && <Pressable disabled={busy} onPress={() => setRevealed(v => !v)} style={({ pressed }) => [styles.reveal, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconEye size={14} color={t.readableMuted} /><Text style={{ color: t.readableMuted, fontSize: 13, fontWeight: "600" }}>{revealed ? "Hide solution" : "Show solution"}</Text></Pressable>}
+            <View style={styles.caseActions}>
+              {primary && <Pressable disabled={busy} onPress={() => setRevealed(v => !v)} style={({ pressed }) => [styles.reveal, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconEye size={14} color={t.readableMuted} /><Text style={{ color: t.readableMuted, fontSize: 13, fontWeight: "600" }}>{revealed ? "Hide solution" : "Show solution"}</Text></Pressable>}
+              <Pressable disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityRole="button" accessibilityState={{ selected: currentLearned }} accessibilityLabel={`${current.c.id} learned`} style={({ pressed }) => [styles.reveal, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}>
+                {currentLearned && <IconCheck size={14} color={t.good} />}
+                <Text style={{ color: currentLearned ? t.good : t.readableMuted, fontSize: 13, fontWeight: "600" }}>{currentLearned ? "Learned" : "Mark learned"}</Text>
+              </Pressable>
+            </View>
             </PracticeContent>
           </TimerChrome> : <TimerChrome hidden={running} exit="up" style={[styles.empty, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <IconGrid size={34} color={t.accent} />
@@ -173,6 +192,27 @@ function TrainingSession() {
     </View>
     <StopSurface timer={timer} />
   </View>;
+}
+
+/** A brief line of praise above the case once every selected case is learned; fades out on its own. */
+function LearnedNotice({ at, hidden, top }: { at: number; hidden: boolean; top: number }) {
+  const t = useTheme();
+  const opacity = useRef(new Animated.Value(0)).current;
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!at) return;
+    setShown(true);
+    Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    const hide = setTimeout(() => Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setShown(false)), 4000);
+    return () => clearTimeout(hide);
+  }, [at, opacity]);
+  if (!shown || hidden) return null;
+  return <Animated.View pointerEvents="none" style={[styles.notice, { top, opacity }]}>
+    <View style={[styles.noticeBody, { backgroundColor: t.surface2 }]}>
+      <IconCheck size={14} color={t.good} />
+      <Text style={{ color: t.good, fontSize: 13, fontWeight: "600" }}>Well done! Every selected case is learned.</Text>
+    </View>
+  </Animated.View>;
 }
 
 function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[]; solves: SolveDto[]; onUndo: () => void }) {
@@ -215,7 +255,10 @@ const styles = StyleSheet.create({
   setup: { alignItems: "center", gap: 10, marginTop: 12, width: "100%" },
   cubeShadow: { shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 8, shadowOffset: { width: 0, height: 8 } },
   solution: { width: "100%", maxWidth: 600, marginTop: 12, paddingTop: 12, borderTopWidth: 1, alignItems: "center" },
-  reveal: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, marginTop: 4, paddingHorizontal: 14, borderRadius: 10 },
+  caseActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 4 },
+  reveal: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 14, borderRadius: 10 },
+  notice: { position: "absolute", left: 0, right: 0, zIndex: 3, alignItems: "center" },
+  noticeBody: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 },
   empty: { alignItems: "center", paddingVertical: 20, paddingHorizontal: 12, flex: 1, justifyContent: "flex-end" },
   sessionCase: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 10, paddingHorizontal: 2 },
   sessionCube: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
