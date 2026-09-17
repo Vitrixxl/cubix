@@ -155,19 +155,22 @@ function ActionButton({ size, label, on, danger, disabled, onPress, children }: 
   </Pressable>;
 }
 
-/** The small "i" button on a time, opening its date, scramble and comment. */
-export function SolveInfoButton({ solve }: { solve: SolveDto }) {
+/** The small "i" button on a time, opening its date and comment, plus the scramble when the row has one. */
+export function SolveInfoButton({ solve }: { solve: SolveDto | SolveSummary }) {
   const t = useTheme();
   const { ref, anchor, open, close } = useAnchor();
   const date = useMemo(() => fmtDate(solve.created_at), [solve.created_at]);
+  const full = "scramble" in solve ? solve : null;
   return <>
     <View ref={ref} collapsable={false}><MiniBtn accessibilityLabel="Show solve details" icon={<IconInfo size={15} color={t.readableMuted} />} onPress={open} /></View>
     <Popover anchor={anchor} onClose={close} width={280} alignRight gap={8}>
       <View style={{ paddingHorizontal: 8, paddingVertical: 6, gap: 2 }}>
-        <Text style={[styles.label, { color: t.readableMuted }]}>{contextLabel(solve)}</Text>
+        <Text style={[styles.label, { color: t.readableMuted }]}>{full ? contextLabel(full) : "Date"}</Text>
         <Text style={{ color: t.text, fontSize: 13, fontWeight: "500" }}>{date}</Text>
-        <Text style={[styles.label, { color: t.readableMuted, marginTop: 8 }]}>Scramble</Text>
-        {solve.scramble ? <AlgText alg={solve.scramble} size={13} selectable /> : <Text style={{ color: t.text, fontSize: 13 }}>No scramble recorded.</Text>}
+        {full && <>
+          <Text style={[styles.label, { color: t.readableMuted, marginTop: 8 }]}>Scramble</Text>
+          {full.scramble ? <AlgText alg={full.scramble} size={13} selectable /> : <Text style={{ color: t.text, fontSize: 13 }}>No scramble recorded.</Text>}
+        </>}
         {solve.comment ? <>
           <Text style={[styles.label, { color: t.readableMuted, marginTop: 8 }]}>Comment</Text>
           <Text style={{ color: t.text, fontSize: 13 }} selectable>{solve.comment}</Text>

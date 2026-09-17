@@ -6,8 +6,8 @@ import type { HistoryPoint } from "../../../src/shared/types";
 import { FONT, useTheme } from "../theme";
 import { IconComment } from "./icons";
 import { Select } from "./Select";
-import { SolveRow, useSolveMenu } from "./SolveMenus";
-import { Btn, Empty, MiniBtn, Muted, Segmented, mono } from "./ui";
+import { SolveActionButtons, SolveInfoButton, SolveRow } from "./SolveMenus";
+import { Btn, Empty, Muted, Segmented, mono } from "./ui";
 
 /**
  * The history of one selection, three ways: single times with the rolling ao5 per solve, the best
@@ -150,7 +150,6 @@ function LineChart({ series, count: n, first, last, height: H, tooltip }: { seri
 /** Every solve of the selection, sorted as asked; a row shows its comment and lets you edit it. */
 function SolvesTable({ history }: { history: HistoryPoint[] }) {
   const t = useTheme();
-  const { editComment, busy } = useSolveMenu();
   const [sort, setSort] = useState<Sort>("newest");
   const [commented, setCommented] = useState(false);
   const [shown, setShown] = useState(PAGE);
@@ -171,20 +170,18 @@ function SolvesTable({ history }: { history: HistoryPoint[] }) {
       </Btn>
     </View>
     <View style={[styles.line, { borderBottomWidth: 1, borderBottomColor: t.line }]}>
-      <Text style={[styles.th, { width: 48, color: t.readableMuted }]}>#</Text>
-      <Text style={[styles.th, { width: 96, color: t.readableMuted }]}>Time</Text>
-      <Text style={[styles.th, { flex: 1, color: t.readableMuted }]}>Date</Text>
-      <View style={{ width: 36 }} />
+      <Text style={[styles.th, { width: 40, color: t.readableMuted }]}>#</Text>
+      <Text style={[styles.th, { width: 88, color: t.readableMuted }]}>Time</Text>
+      <Text style={[styles.th, { flex: 1, color: t.readableMuted, textAlign: "right" }]}>Actions</Text>
     </View>
-    {rows.length === 0 && <Empty><Muted>{commented ? "No commented solve yet. Long-press a time or tap its bubble to add one." : "No solves match."}</Muted></Empty>}
+    {rows.length === 0 && <Empty><Muted>{commented ? "No commented solve yet. Tap the bubble on a time to add one." : "No solves match."}</Muted></Empty>}
     {rows.slice(0, shown).map(({ h, index }) => {
       const solve = { id: h.id, time_ms: h.timeMs, penalty: h.penalty, created_at: h.at, comment: h.comment };
       return <SolveRow key={h.id} solve={solve} style={[styles.rowBlock, { borderBottomColor: t.line }]}>
         <View style={styles.line}>
-          <Text style={[styles.td, { width: 48, color: t.readableMuted }]}>{index}</Text>
-          <Text style={[styles.td, { width: 96 }, mono(t, 15), h.time === null && { color: t.danger }]}>{h.time === null ? "DNF" : fmtTime(h.time)}{h.penalty === "+2" ? "+" : ""}</Text>
-          <Text style={[styles.td, { flex: 1, color: t.readableMuted }]} numberOfLines={1}>{fmtDate(h.at)}</Text>
-          <MiniBtn accessibilityRole="button" accessibilityLabel={h.comment ? "Edit comment" : "Add comment"} disabled={busy} icon={<IconComment size={15} color={h.comment ? t.accent : t.readableMuted} />} onPress={() => editComment(solve)} />
+          <Text style={[styles.td, { width: 40, color: t.readableMuted }]}>{index}</Text>
+          <Text style={[styles.td, { width: 88 }, mono(t, 15), h.time === null && { color: t.danger }]}>{h.time === null ? "DNF" : fmtTime(h.time)}{h.penalty === "+2" ? "+" : ""}</Text>
+          <View style={styles.actions}><SolveInfoButton solve={solve} /><SolveActionButtons solve={solve} /></View>
         </View>
         {h.comment ? <Text style={[styles.comment, { color: t.text }]}>{h.comment}</Text> : null}
       </SolveRow>;
@@ -204,6 +201,7 @@ const styles = StyleSheet.create({
   tableBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 },
   line: { flexDirection: "row", alignItems: "center" },
   rowBlock: { borderBottomWidth: 1, borderRadius: 8 },
+  actions: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2, paddingRight: 4 },
   th: { paddingHorizontal: 10, paddingVertical: 8, fontSize: 12, fontWeight: "600" },
   td: { paddingHorizontal: 10, paddingVertical: 9, fontSize: 14, fontWeight: "500" },
   comment: { fontSize: 13, lineHeight: 18, paddingHorizontal: 10, paddingBottom: 9, marginTop: -4 },
