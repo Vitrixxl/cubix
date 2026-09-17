@@ -15,7 +15,7 @@ use axum::{
     Router,
     extract::DefaultBodyLimit,
     http::{HeaderValue, header},
-    routing::{any, get},
+    routing::{any, get, put},
 };
 use std::{
     collections::HashMap,
@@ -152,6 +152,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .put(release::upload)
                 .layer(DefaultBodyLimit::max(256 * 1024 * 1024)),
         )
+        // Over-the-air JavaScript updates: the bundle weighs a few megabytes.
+        .route(
+            "/api/mobile/updates/assets/{hash}",
+            get(release::asset)
+                .put(release::upload_asset)
+                .layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
+        )
+        .route("/api/mobile/updates", put(release::publish))
+        .route("/api/mobile/updates/manifest", get(release::manifest))
         .route("/api/{*path}", any(api::dispatch))
         .with_state(state)
         .layer(DefaultBodyLimit::max(2 * 1024 * 1024))

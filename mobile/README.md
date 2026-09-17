@@ -37,12 +37,21 @@ Il contient les architectures **arm64-v8a** (téléphones) et **x86_64** (émula
 `app.config.ts` complète `app.json` : le `versionCode` Android et
 `Constants.expoConfig.extra.build` reçoivent la date du commit en minutes, et
 `extra.commit` le SHA. `CUBIX_BUILD_NUMBER` et `CUBIX_COMMIT` remplacent ces
-valeurs. Les paramètres affichent la version et le commit installés ;
-lorsque `GET /api/mobile/release` annonce un APK (`apkBuild`) plus récent, un bouton
-« Download update » ouvre `/api/mobile/apk`, qui sert l'APK ARM64 stocké par le serveur.
-`bun run deploy` à la racine compile cet APK en local et l'envoie après la mise à jour
-du serveur. Le navigateur télécharge le fichier et Android propose l'installation
-par-dessus la version en place, à condition que la signature soit la même.
+valeurs. `app.config.ts` fixe aussi la `runtimeVersion` d'expo-updates : un hachage des
+fichiers natifs (`NATIVE_INPUTS`), et l'URL des mises à jour, `<API>/api/mobile/updates/manifest`.
+
+Deux chemins de mise à jour existent. Le JavaScript et les assets voyagent à la volée :
+`bun scripts/export-update.ts` exporte le bundle dans `build/updates/` avec un
+`update.json` que `bun run deploy` (racine) publie sur l'API. Au lancement, expo-updates
+démarre sur le bundle en cache et télécharge le plus récent pour le démarrage suivant ;
+les paramètres relancent cette vérification et affichent « Restart to update » quand un
+bundle attend. Une mise à jour n'est servie qu'aux APK de même `runtimeVersion`.
+Quand le natif change (dépendance, app.json, plugin, icône, police), la runtime version
+change avec lui : `bun run deploy` compile alors l'APK ARM64 et l'envoie ; les paramètres
+proposent « Download update », qui ouvre `/api/mobile/apk`. Le navigateur télécharge le
+fichier et Android propose l'installation par-dessus la version en place, à condition
+que la signature soit la même. Les builds debug (`bun run pc`) ignorent expo-updates et
+chargent le code depuis Metro.
 
 Le build signe l'APK avec le keystore désigné par `CUBIX_ANDROID_KEYSTORE`,
 `CUBIX_ANDROID_KEYSTORE_PASSWORD`, `CUBIX_ANDROID_KEY_ALIAS` et `CUBIX_ANDROID_KEY_PASSWORD`

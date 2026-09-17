@@ -13,8 +13,17 @@ test("the update button only appears for a known installed build behind the stor
   expect(updateAvailable(29_800_000, parseRelease({ version: "0.1.0", build: null, commit: null, apk: "x" }))).toBe(false);
 });
 
+test("an APK with the installed runtime version is delivered over the air instead", () => {
+  const server = parseRelease({ version: "0.1.0", build: 29_800_010, commit: "abc", apk: "/api/mobile/apk", apkBuild: 29_800_010, apkCommit: "abc", apkRuntimeVersion: "rt-1" });
+  expect(updateAvailable(29_800_000, server, "rt-1")).toBe(false);
+  expect(updateAvailable(29_800_000, server, "rt-0")).toBe(true);
+  // Builds made before expo-updates, on either side, keep the plain build comparison.
+  expect(updateAvailable(29_800_000, server, null)).toBe(true);
+  expect(updateAvailable(29_800_000, parseRelease({ version: "0.1.0", build: 29_800_010, commit: "abc", apk: "/api/mobile/apk", apkBuild: 29_800_010, apkCommit: "abc" }), "rt-1")).toBe(true);
+});
+
 test("malformed release answers are ignored", () => {
   expect(parseRelease(null)).toBeNull();
   expect(parseRelease({ build: 3 })).toBeNull();
-  expect(parseRelease({ version: "0.1.0", apk: "x", build: "12", commit: "", apkBuild: "7" })).toEqual({ version: "0.1.0", apk: "x", build: null, commit: null, apkBuild: null, apkCommit: null });
+  expect(parseRelease({ version: "0.1.0", apk: "x", build: "12", commit: "", apkBuild: "7" })).toEqual({ version: "0.1.0", apk: "x", build: null, commit: null, apkBuild: null, apkCommit: null, apkRuntimeVersion: null });
 });

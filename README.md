@@ -45,14 +45,26 @@ L'APK release fonctionne sans Metro. Installation, prérequis Android et
 validation : [guide mobile](mobile/README.md).
 
 `bun run deploy` (ou `make deploy`) pousse `main`, met à jour le serveur avec
-`pihost update cubix`, compile ici l'APK ARM64 à basse priorité puis l'envoie à l'API
-(`PUT /api/mobile/apk`, mot de passe admin du serveur lu par SSH ou `CUBIX_DEPLOY_PASSWORD`). L'API stocke l'APK à côté de sa base et le
-sert sur `/api/mobile/apk` ; `/api/mobile/release` annonce son build et celui de l'APK.
-L'application compare le build de l'APK au sien et affiche un bouton de téléchargement
-dans les paramètres quand elle est en retard. Le numéro de build est la date du commit
-en minutes : il est calculé par `mobile/app.config.ts` pour l'APK et par le `Dockerfile`
-pour l'API. Aucune release GitHub n'intervient. L'APK n'est pas compilé sur le Raspberry
-Pi : Gradle dépasse sa mémoire et Google ne publie pas de NDK Android pour Linux ARM64.
+`pihost update cubix`, puis livre le mobile de deux façons (mot de passe admin du serveur
+lu par SSH ou `CUBIX_DEPLOY_PASSWORD`) :
+
+- **Mise à jour à la volée (expo-updates)**, à chaque déploiement : `expo export` produit
+  le bundle JavaScript et ses assets, envoyés à l'API (`PUT /api/mobile/updates/assets/<sha256>`
+  puis `PUT /api/mobile/updates`). Les applications installées interrogent
+  `GET /api/mobile/updates/manifest` au lancement, téléchargent le bundle en arrière-plan
+  et l'appliquent au démarrage suivant, sans réinstallation. Ouvrir les paramètres
+  relance la vérification et propose « Restart to update » dès qu'un bundle est prêt.
+- **APK**, seulement quand le natif change : `mobile/app.config.ts` dérive une
+  `runtimeVersion` des fichiers natifs (app.json, plugins, bun.lock, icônes, police).
+  Si elle diffère de celle de l'APK stocké, le script compile l'APK ARM64 à basse priorité
+  et l'envoie (`PUT /api/mobile/apk`) ; l'application affiche alors « Download update ».
+  `--apk` force l'APK, `--skip-apk` ou `--update-only` s'en dispensent, `--apk-only` ne fait que lui.
+
+L'API stocke ces fichiers à côté de sa base ; `/api/mobile/release` annonce son build,
+celui de l'APK, sa runtime version et les updates publiées. Le numéro de build est la date
+du commit en minutes : il est calculé par `mobile/app.config.ts` pour l'APK et par le
+`Dockerfile` pour l'API. Aucune release GitHub n'intervient. L'APK n'est pas compilé sur le
+Raspberry Pi : Gradle dépasse sa mémoire et Google ne publie pas de NDK Android pour Linux ARM64.
 
 ## API
 

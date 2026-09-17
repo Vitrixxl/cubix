@@ -2,7 +2,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { PUZZLES } from "../../../src/shared/puzzles";
 import { updateAvailable } from "../lib/release";
-import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_VERSION, latestReleaseAtom, useReleaseCheck } from "../release";
+import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
 import { colorModeAtom, cubeSwitchLockedAtom, puzzleAtom, routeAtom, themeAtom, type ThemeId } from "../state";
 import { useTheme } from "../theme";
 import { PuzzleIcon } from "./PuzzlePicker";
@@ -37,14 +37,19 @@ export function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } =
   </View>;
 }
 
-/** Shows the installed build and, once the server announces a newer one, the download button. */
+/**
+ * Shows the installed build. A JavaScript update fetched over the air only needs a restart;
+ * a new native build needs the APK the server announces.
+ */
 function VersionRow() {
   const t = useTheme();
   const latest = useAtomValue(latestReleaseAtom);
-  const outdated = updateAvailable(APP_BUILD, latest);
+  const pending = useOtaPending();
+  const outdated = !pending && updateAvailable(APP_BUILD, latest, APP_RUNTIME);
   return <Row label="Version">
     <View style={styles.version}>
       <Text style={{ color: t.text2, fontSize: 13 }} accessibilityLabel="Installed version">{APP_VERSION}{APP_COMMIT ? ` · ${APP_COMMIT}` : ""}</Text>
+      {pending && <Btn small variant="primary" label="Restart to update" onPress={() => void restartWithUpdate()} />}
       {outdated && <Btn small variant="primary" label="Download update" accessibilityHint={`Build ${latest?.apkCommit?.slice(0, 7)}`} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)} />}
     </View>
   </Row>;
@@ -55,6 +60,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [puzzle, setPuzzle] = useAtom(puzzleAtom);
   const locked = useAtomValue(cubeSwitchLockedAtom);
   useReleaseCheck(open);
+  useOtaCheck(open);
   return <Sheet open={open} onClose={onClose} title="Settings">
     <SheetScrollView contentContainerStyle={{ gap: 22, paddingTop: 12, paddingBottom: 16 }}>
       <View style={{ gap: 12 }}>

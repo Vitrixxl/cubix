@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { buildNumber, commitHash } from "../app.config";
+import { NATIVE_INPUTS, buildNumber, commitHash, runtimeVersion } from "../app.config";
 
 const root = resolve(import.meta.dir, "..");
 const debug = process.argv.includes("--debug");
@@ -25,7 +25,7 @@ env.ANDROID_SDK_ROOT = env.ANDROID_HOME;
 const build = buildNumber();
 env.CUBIX_BUILD_NUMBER = String(build);
 env.CUBIX_COMMIT = commitHash();
-console.log(`Build ${build} (${env.CUBIX_COMMIT.slice(0, 7) || "no commit"})`);
+console.log(`Build ${build} (${env.CUBIX_COMMIT.slice(0, 7) || "no commit"}), runtime ${runtimeVersion()}`);
 env.PATH = `${env.JAVA_HOME}/bin:${env.ANDROID_HOME}/platform-tools:${env.PATH}`;
 
 // Multiple terminals may request a build. Only one may regenerate/compile Android at a time.
@@ -68,8 +68,7 @@ run("bun", ["scripts/build-cases.ts"]);
 // Expo regenerates Android from configuration; avoid discarding Gradle's native build cache
 // when only JavaScript has changed. App config, dependencies and assets invalidate this stamp.
 const fingerprint = createHash("sha256");
-for (const path of ["app.json", "app.config.ts", "plugins/withReleaseSigning.js", "bun.lock", "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png", "assets/fonts/cubing-icons.ttf"])
-  fingerprint.update(readFileSync(resolve(root, path)));
+for (const path of NATIVE_INPUTS) fingerprint.update(readFileSync(resolve(root, path)));
 fingerprint.update(`build:${build}`);
 const hash = fingerprint.digest("hex"), stamp = resolve(root, ".expo/android-prebuild.sha256");
 if (process.argv.includes("--prebuild") || !existsSync(resolve(root, "android/gradlew")) || !existsSync(stamp) || readFileSync(stamp, "utf8") !== hash) {

@@ -174,13 +174,13 @@ rustTest("Rust announces its build, stores the uploaded APK and serves it back",
   const origin = `http://127.0.0.1:${app.server.port}`;
   expect((await call("/mobile/release")).body).toEqual({
     version: "0.1.0", build: 29800000, commit: "0123456789abcdef", apk: "/api/mobile/apk",
-    apkBuild: null, apkCommit: null, apkSha256: null, apkSize: null, apkUploadedAt: null,
+    apkBuild: null, apkCommit: null, apkRuntimeVersion: null, apkSha256: null, apkSize: null, apkUploadedAt: null, updates: {},
   });
   expect((await fetch(`${origin}/api/mobile/apk`)).status).toBe(404);
   // A fake ZIP with the APK magic: the server checks the container, not the Android signature.
   const apk = new Uint8Array(2048); apk.set([0x50, 0x4b, 0x03, 0x04]);
   const put = (headers: Record<string, string>, body: Uint8Array<ArrayBuffer> = apk) => fetch(`${origin}/api/mobile/apk`, { method: "PUT", headers, body: new Blob([body]) });
-  const stamped = { "X-Cubix-Build": "29800000", "X-Cubix-Commit": "0123456789abcdef" };
+  const stamped = { "X-Cubix-Build": "29800000", "X-Cubix-Commit": "0123456789abcdef", "X-Cubix-Runtime": "rt-abc123" };
   expect((await put(stamped)).status).toBe(401);
   expect((await put({ ...stamped, Authorization: "Bearer wrong-password-here" })).status).toBe(401);
   const auth = { ...stamped, Authorization: "Bearer synthetic-admin-test-password" };
@@ -188,7 +188,7 @@ rustTest("Rust announces its build, stores the uploaded APK and serves it back",
   expect((await put(auth, new TextEncoder().encode("not an apk".repeat(200)))).status).toBe(422);
   const stored = await put(auth);
   expect(stored.status).toBe(200);
-  expect(await stored.json()).toMatchObject({ apkBuild: 29800000, apkCommit: "0123456789abcdef", apkSize: 2048 });
+  expect(await stored.json()).toMatchObject({ apkBuild: 29800000, apkCommit: "0123456789abcdef", apkRuntimeVersion: "rt-abc123", apkSize: 2048 });
   const download = await fetch(`${origin}/api/mobile/apk`);
   expect(download.status).toBe(200);
   expect(download.headers.get("content-type")).toBe("application/vnd.android.package-archive");
@@ -197,4 +197,55 @@ rustTest("Rust announces its build, stores the uploaded APK and serves it back",
   // A server started outside Docker or CI has no build number; the application then never prompts.
   const bare = client(createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "", CUBIX_COMMIT: "" }));
   expect((await bare("/mobile/release")).body).toMatchObject({ build: null, commit: null });
+});
+
+rustTest("Rust publishes over-the-air updates following the expo-updates protocol", async () => {
+  const app = createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
+  const call = client(app);
+  const origin = `http://127.0.0.1:${app.server.port}`;
+  const auth = { Authorization: "Bearer synthetic-admin-test-password" };
+  const sha = async (bytes: Uint8Array<ArrayBuffer>) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), b => b.toString(16).padStart(2, "0")).join("");
+  const bundle = new TextEncoder().encode("console.log('cubix')"), font = new Uint8Array([0, 1, 0, 0, 7, 7]);
+  const [bundleHash, fontHash] = [await sha(bundle), await sha(font)];
+  const manifestRequest = (runtime: string) => fetch(`${origin}/api/mobile/updates/manifest`, { headers: { "expo-protocol-version": "1", "expo-platform": "android", "expo-runtime-version": runtime } });
+  // Nothing published yet: an empty 204 tells expo-updates there is nothing newer.
+  const empty = await manifestRequest("rt-1");
+  expect([empty.status, empty.headers.get("expo-protocol-version")]).toEqual([204, "1"]);
+  const putAsset = (hash: string, body: Uint8Array<ArrayBuffer>, headers: Record<string, string> = auth) => fetch(`${origin}/api/mobile/updates/assets/${hash}`, { method: "PUT", headers, body: new Blob([body]) });
+  expect((await putAsset(bundleHash, bundle, {})).status).toBe(401);
+  expect((await putAsset(bundleHash, font)).status).toBe(422);
+  expect((await putAsset(bundleHash, bundle)).status).toBe(200);
+  const publish = (body: unknown) => fetch(`${origin}/api/mobile/updates`, { method: "PUT", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const update = {
+    runtimeVersion: "rt-1", build: 29800000, commit: "0123456789abcdef",
+    launchAsset: { hash: bundleHash, key: "bundle", contentType: "application/javascript", fileExtension: ".hbc" },
+    assets: [{ hash: fontHash, key: "da7645c389387fd772478c57e440d2cb", contentType: "font/ttf", fileExtension: ".ttf" }],
+    expoClient: { name: "Cubix", version: "0.1.0", extra: { build: 29800000, commit: "0123456789abcdef" } },
+  };
+  // The font was never uploaded: the manifest must not point at a missing file.
+  expect((await publish(update)).status).toBe(422);
+  expect((await putAsset(fontHash, font)).status).toBe(200);
+  expect((await publish({ ...update, runtimeVersion: "../etc" })).status).toBe(422);
+  const published = await publish(update);
+  expect(published.status).toBe(200);
+  expect((await published.json()).updates).toEqual({ "rt-1": { id: expect.stringMatching(/^[0-9a-f-]{36}$/), build: 29800000, commit: "0123456789abcdef", createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/) } });
+  const answer = await manifestRequest("rt-1");
+  expect([answer.status, answer.headers.get("expo-protocol-version"), answer.headers.get("expo-sfv-version")]).toEqual([200, "1", "0"]);
+  const manifest = await answer.json();
+  const base64url = (hex: string) => Buffer.from(hex, "hex").toString("base64url");
+  expect(manifest).toMatchObject({
+    runtimeVersion: "rt-1",
+    launchAsset: { hash: base64url(bundleHash), key: "bundle", contentType: "application/javascript", fileExtension: ".hbc", url: `${origin}/api/mobile/updates/assets/${bundleHash}` },
+    assets: [{ hash: base64url(fontHash), key: "da7645c389387fd772478c57e440d2cb", contentType: "font/ttf", fileExtension: ".ttf", url: `${origin}/api/mobile/updates/assets/${fontHash}` }],
+    extra: { expoClient: { name: "Cubix", extra: { build: 29800000 } } },
+  });
+  // Republishing the same commit keeps the update id, so phones do not fetch it twice.
+  expect((await publish(update)).status).toBe(200);
+  expect((await (await manifestRequest("rt-1")).json()).id).toBe(manifest.id);
+  expect((await manifestRequest("rt-2")).status).toBe(204);
+  const download = await fetch(manifest.launchAsset.url);
+  expect(download.status).toBe(200);
+  expect(new Uint8Array(await download.arrayBuffer())).toEqual(bundle);
+  expect((await fetch(`${origin}/api/mobile/updates/assets/${"0".repeat(64)}`)).status).toBe(404);
+  expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ commit: "0123456789abcdef" });
 });
