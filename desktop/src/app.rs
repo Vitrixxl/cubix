@@ -934,11 +934,17 @@ impl Cubix {
                     self.next_case();
                 }
             }
-            "selectSet" => {
+            "selectSet" | "selectGroup" => {
                 let ids: Vec<_> = self
                     .all_cases()
                     .iter()
-                    .filter(|c| s(c, "set") == arg)
+                    .filter(|c| {
+                        if kind == "selectSet" {
+                            s(c, "set") == arg
+                        } else {
+                            format!("{}:{}", s(c, "set"), s(c, "group")) == arg
+                        }
+                    })
                     .map(|c| s(c, "id").to_string())
                     .collect();
                 let all = ids.iter().all(|id| self.selected.contains(id));

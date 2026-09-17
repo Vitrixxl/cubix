@@ -175,6 +175,24 @@ impl Cubix {
                     )
             }
 
+            "selectorGroup" => row().w_full().pt(px(4.)).child(
+                self.btn(format!("selectGroup:{}", s(model, "key")), "", false, cx)
+                    .w_full()
+                    .min_w_0()
+                    .h(px(32.))
+                    .px(px(10.))
+                    .gap(px(8.))
+                    .text_size(px(13.))
+                    .text_color(t.secondary)
+                    .child(txt(s(model, "label"), 13.).text_ellipsis())
+                    .child(
+                        txt(format!("{}/{}", model["count"], model["total"]), 12.)
+                            .flex_none()
+                            .font_family("Geist Mono")
+                            .font_weight(FontWeight::NORMAL)
+                            .text_color(t.muted),
+                    ),
+            ),
             "empty" => self.empty(s(model, "text")),
             "tiles" => {
                 let tile = number(&model["width"]) as f32;
@@ -503,8 +521,36 @@ impl Cubix {
                 .copied()
                 .unwrap_or(count > 0 || !query.is_empty());
             models.push(json!({"kind":"selectorHeader","key":id,"label":set["label"],"stage":set["stage"],"count":count,"total":ids.len(),"open":open}));
-            if open {
-                for row in ids.chunks(3) {
+            if !open {
+                continue;
+            }
+            // Same sub-headings as the algorithms page ("Connected Pairs", "Dot", …), each
+            // toggling its whole group; a set with a single group keeps a plain grid.
+            let mut groups: Vec<&str> = Vec::new();
+            for c in cases.iter().filter(|c| s(c, "set") == id) {
+                let group = s(c, "group");
+                if !groups.contains(&group) {
+                    groups.push(group);
+                }
+            }
+            for group in &groups {
+                let members: Vec<_> = cases
+                    .iter()
+                    .filter(|c| s(c, "set") == id && s(c, "group") == *group)
+                    .map(|c| s(c, "id"))
+                    .filter(|case_id| ids.contains(case_id))
+                    .collect();
+                if members.is_empty() {
+                    continue;
+                }
+                if groups.len() > 1 {
+                    let count = members
+                        .iter()
+                        .filter(|id| self.selected.contains(**id))
+                        .count();
+                    models.push(json!({"kind":"selectorGroup","key":format!("{id}:{group}"),"label":group,"count":count,"total":members.len()}));
+                }
+                for row in members.chunks(3) {
                     models
                         .push(json!({"kind":"tiles","tileKind":"selector","width":tile,"ids":row}));
                 }
