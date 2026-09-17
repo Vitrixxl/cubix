@@ -1,7 +1,7 @@
 import { useSetAtom } from "jotai";
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { fmtDate, fmtTime } from "../../../src/client/lib/format";
+import { fmtTime } from "../../../src/client/lib/format";
 import type { CaseDto, CaseHistoryDto, ProfileDto, SetDto } from "../../../src/shared/types";
 import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
 import { puzzleOf } from "../../../src/shared/puzzles";
@@ -11,32 +11,16 @@ import { usePreservedList } from "../hooks/usePreservedList";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { shortId } from "../lib/caseState";
 import { CaseDiagram } from "./CaseDiagram";
-import { IconBack, IconClose, IconTimer } from "./icons";
-import { SolveRow } from "./SolveMenus";
+import { IconBack, IconChevronDown, IconClose, IconTimer } from "./icons";
 import { TimesChart } from "./TimesChart";
 import { Btn, Caption, Empty, H1, Input, Kpi, Muted, Segmented, mono } from "./ui";
 
 export function ProfileStats({ data }: { data: CaseHistoryDto }) {
-  const t = useTheme();
-  const metrics: [string, number | null][] = [["Best", data.summary.best], ["Mean", data.summary.mean], ["Ao5", data.summary.ao5], ["Ao12", data.summary.ao12], ["Best Ao5", data.summary.bestAo5], ["Best Ao12", data.summary.bestAo12]];
-  const recent = data.history.slice(-20).reverse();
+  const metrics: [string, number | null][] = [["Best", data.summary.best], ["Best Ao5", data.summary.bestAo5], ["Best Ao12", data.summary.bestAo12]];
   return <>
     <View style={styles.kpiRow}>{metrics.map(([label, value]) => <Kpi key={label} label={label} value={fmtTime(value)} />)}</View>
-    <TimesChart history={data.history} ao5={data.ao5} height={240} />
-    <View style={styles.sectionHeading}><Text style={{ color: t.text, fontSize: 17, fontWeight: "700" }}>Recent times</Text><Muted>{data.summary.count} solves</Muted></View>
-    <View style={{ maxWidth: 520 }}>
-      <View style={[styles.tr, { borderBottomColor: t.line }]}><Th width={44}>#</Th><Th width={110}>Time</Th><Th>Date</Th></View>
-      {recent.map((s, i) => <SolveRow key={s.id} solve={{ id: s.id, time_ms: s.timeMs, penalty: s.penalty, created_at: s.at, comment: s.comment }} style={[styles.tr, { borderBottomColor: t.line }]}>
-        <Text style={[styles.td, { width: 44, color: t.readableMuted }]}>{data.history.length - i}</Text>
-        <Text style={[styles.td, { width: 110 }, mono(t, 15), s.time === null && { color: t.danger }]}>{s.time === null ? "DNF" : fmtTime(s.time)}{s.penalty === "+2" ? "+" : ""}</Text>
-        <Text style={[styles.td, { color: t.readableMuted, flex: 1 }]} numberOfLines={1}>{fmtDate(s.at)}{s.comment ? ` · ${s.comment}` : ""}</Text>
-      </SolveRow>)}
-    </View>
+    <TimesChart history={data.history} ao5={data.ao5} ao12={data.ao12} height={240} />
   </>;
-}
-function Th({ children, width }: { children: string; width?: number }) {
-  const t = useTheme();
-  return <Text style={[styles.th, { color: t.readableMuted, width, flex: width ? undefined : 1 }]}>{children}</Text>;
 }
 
 const CaseTile = memo(function CaseTile({ c, stats, onOpen }: { c: CaseDto; stats?: CaseHistoryDto; onOpen: (id: string) => void }) {
@@ -59,15 +43,23 @@ export function ProfileCaseGallery({ cases, sets, profile, onOpen, phone, header
   const q = query.trim().toLowerCase();
   const { width, pagePadding, navSpace } = useLayout();
   const columns = Math.max(2, Math.floor((Math.min(width, 1100) - pagePadding * 2) / 92));
-  type Row = { key: string } & ({ kind: "set"; set: SetDto; cases: CaseDto[] } | { kind: "cases"; cases: CaseDto[] });
+  // Sets, then the case groups of the algorithm list, both collapsible.
+  type Row = { key: string } & ({ kind: "set"; set: SetDto; cases: CaseDto[] } | { kind: "group"; group: string; cases: CaseDto[]; expanded: boolean } | { kind: "cases"; cases: CaseDto[] });
   const rows = useMemo(() => {
     const result: Row[] = [];
     for (const set of sets) {
       const list = cases.filter(c => c.set === set.id && (stage === "all" || c.stage === stage) && (!q || `${c.id} ${c.name} ${c.group} ${set.label}`.toLowerCase().includes(q)));
       if (!list.length) continue;
       result.push({ key: set.id, kind: "set", set, cases: list });
-      if (!closed[set.id]) for (let i = 0; i < list.length; i += columns)
-        result.push({ key: `${set.id}:${i}`, kind: "cases", cases: list.slice(i, i + columns) });
+      if (closed[set.id]) continue;
+      const groups = new Map<string, CaseDto[]>();
+      for (const c of list) groups.set(c.group, [...(groups.get(c.group) ?? []), c]);
+      for (const [group, members] of groups) {
+        const key = `${set.id}:${group}`, expanded = !closed[key];
+        result.push({ key, kind: "group", group, cases: members, expanded });
+        if (expanded) for (let i = 0; i < members.length; i += columns)
+          result.push({ key: `${key}:${i}`, kind: "cases", cases: members.slice(i, i + columns) });
+      }
     }
     return result;
   }, [sets, cases, stage, q, closed, columns]);
@@ -90,6 +82,10 @@ export function ProfileCaseGallery({ cases, sets, profile, onOpen, phone, header
     ListEmptyComponent={<Empty>No cases match.</Empty>}
     renderItem={({ item: row }) => row.kind === "set" ? <Pressable accessibilityState={{ expanded: !closed[row.set.id] }} onPress={() => setClosed({ ...closed, [row.set.id]: !closed[row.set.id] })} style={styles.summary}>
       <Text style={{ color: t.text, fontSize: 15, fontWeight: "600" }}>{row.set.label}</Text>
+      <Text style={[mono(t, 12), { color: t.readableMuted }]}>{row.cases.filter(c => byCase.has(c.id)).length} / {row.cases.length}</Text>
+    </Pressable> : row.kind === "group" ? <Pressable accessibilityState={{ expanded: row.expanded }} onPress={() => setClosed({ ...closed, [row.key]: row.expanded })} style={styles.groupHeader}>
+      <View style={{ transform: [{ rotate: row.expanded ? "0deg" : "-90deg" }] }}><IconChevronDown size={14} color={t.text2} /></View>
+      <Text style={{ color: t.text2, fontSize: 14, fontWeight: "600", flexShrink: 1 }} numberOfLines={1}>{row.group}</Text>
       <Text style={[mono(t, 12), { color: t.readableMuted }]}>{row.cases.filter(c => byCase.has(c.id)).length} / {row.cases.length}</Text>
     </Pressable> : <View style={styles.grid}>{row.cases.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} onOpen={onOpen} />)}</View>} />;
 }
@@ -118,13 +114,10 @@ export function ProfileCaseDetails({ c, data, phone, onClose }: { c: CaseDto; da
 
 const styles = StyleSheet.create({
   kpiRow: { flexDirection: "row", flexWrap: "wrap", columnGap: 24, rowGap: 12 },
-  sectionHeading: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginTop: 8 },
-  tr: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1 },
-  th: { paddingHorizontal: 10, paddingVertical: 8, fontSize: 12, fontWeight: "600" },
-  td: { paddingHorizontal: 10, paddingVertical: 9, fontSize: 14, fontWeight: "500" },
   tile: { width: "24%", minWidth: 88, flexGrow: 1, alignItems: "center", gap: 2, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 14 },
   toolbar: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12, rowGap: 10 },
   summary: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 38, paddingVertical: 4 },
+  groupHeader: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 34, marginTop: 2 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 4, paddingBottom: 10 },
   topline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: 8 },
   detailHeading: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 16 },

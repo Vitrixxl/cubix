@@ -106,6 +106,9 @@ function MenuItem({ icon, label, danger, disabled, onPress }: { icon: ReactNode;
   </Pressable>;
 }
 
+/** The shared solve actions, for lists that draw their own buttons. */
+export const useSolveMenu = () => useContext(MenuContext);
+
 /** Wrap a time row: a long press opens the time menu at the touch point. */
 export function SolveRow({ solve, children, style, disabled }: { solve: SolveSummary; children: ReactNode; style?: object; disabled?: boolean }) {
   const { open } = useContext(MenuContext);

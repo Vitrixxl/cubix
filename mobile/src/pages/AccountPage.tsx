@@ -5,12 +5,12 @@ import { fmtTime } from "../../../src/client/lib/format";
 import { puzzleInfo, scrambleLabel, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { AchievementSummaryDto } from "../../../src/shared/types";
 import { api, authToken, local } from "../api";
-import { deletedSolveIdAtom, goBackAtom, previousRouteAtom, puzzleAtom, routeAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode, type Route } from "../state";
+import { deletedSolveIdAtom, goBackAtom, puzzleAtom, routeAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode } from "../state";
 import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { AchievementGrid, AchievementGroups } from "../components/Achievements";
-import { IconBack, IconNext, IconUser } from "../components/icons";
+import { IconNext, IconUser } from "../components/icons";
 import { ProfileCaseDetails, ProfileCaseGallery, ProfileStats } from "../components/ProfileProgress";
 import { PuzzleSelect } from "../components/PuzzlePicker";
 import { Select } from "../components/Select";
@@ -70,11 +70,10 @@ const StatTile = memo(function StatTile({ label, value, suffix, detail, width, o
   </Pressable>;
 });
 
-/** The toolbar of a detail view: back to its parent, a title and optional controls. */
-function DetailBar({ title, onBack, children }: { title: string; onBack: () => void; children?: ReactNode }) {
+/** The toolbar of a detail view: a title and optional controls. The account tab and the back button lead up. */
+function DetailBar({ title, children }: { title: string; children?: ReactNode }) {
   const t = useTheme();
   return <View style={styles.detailBar}>
-    <Btn small variant="ghost" icon={<IconBack size={16} color={t.text2} />} label="Profile" onPress={onBack} />
     <Text style={[styles.detailTitle, { color: t.text }]} numberOfLines={1}>{title}</Text>
     {children}
   </View>;
@@ -103,7 +102,6 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
   const [user, setUser] = useAtom(userAtom);
   const setRoute = useSetAtom(routeAtom);
   const goBack = useSetAtom(goBackAtom);
-  const previousRoute = useAtomValue(previousRouteAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
   const catalog = useMemo(() => local.read.catalog(cube), [cube]);
   const profile = useMemo(() => local.read.profile(cube, { solveMode, scrambleType }), [cube, solveMode, scrambleType, user?.id, deletedSolveId, statsVersion]);
@@ -117,8 +115,6 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
     if (openedFromGallery.current) { openedFromGallery.current = false; goBack(); }
     else setRoute({ page: "profile", mode: "training" });
   };
-  /** Step up to a parent view: pop the history when it leads there, push it otherwise. */
-  const up = (parent: Route) => { if (previousRoute && JSON.stringify(previousRoute) === JSON.stringify(parent)) goBack(); else setRoute(parent); };
   const scroll = usePreservedScroll(`profile:${cube}:${solveMode}:${scrambleType}:${mode ?? "overview"}:${group ?? ""}`);
   if (!user) return null;
   const guest = user.isGuest;
@@ -137,29 +133,28 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
 
   if (mode === "training") return <View style={page}>
     <ProfileCaseGallery cases={catalog.cases} sets={catalog.sets} profile={profile} onOpen={openCase} phone={phone} scrollKey={`profile-gallery:${cube}:${solveMode}`}
-      header={<DetailBar title="Training" onBack={() => up({ page: "profile" })}><PuzzleSelect value={cube} onChange={setCube} compact /></DetailBar>} />
+      header={<DetailBar title="Training"><PuzzleSelect value={cube} onChange={setCube} compact /></DetailBar>} />
     <Sheet open={!phone && !!selectedCase} title={`${selectedCase?.id ?? "Case"} statistics`} header={false} tall wide onClose={closeCase}>{details}</Sheet>
   </View>;
 
   if (mode === "achievements" && group) return <View style={page}>
-    <AchievementGrid summary={summary} group={group} header={<DetailBar title={group} onBack={() => up({ page: "profile", mode: "achievements" })} />} scrollKey={`profile-achievements:${group}`} />
+    <AchievementGrid summary={summary} group={group} header={<DetailBar title={group} />} scrollKey={`profile-achievements:${group}`} />
   </View>;
 
   if (mode === "achievements") return <View style={page}>
     <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ gap: 16, paddingBottom: navSpace }}>
-      <DetailBar title="Achievements" onBack={() => up({ page: "profile" })}><Text style={[mono(t, 13), { color: t.readableMuted }]}>{summary.unlocked} / {summary.total}</Text></DetailBar>
+      <DetailBar title="Achievements"><Text style={[mono(t, 13), { color: t.readableMuted }]}>{summary.unlocked} / {summary.total}</Text></DetailBar>
       <AchievementGroups summary={summary} onOpen={name => setRoute({ page: "profile", mode: "achievements", group: name })} />
     </ScrollView>
   </View>;
 
   if (mode === "playground") return <View style={page}>
     <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ gap: 16, paddingBottom: navSpace }}>
-      <DetailBar title="Timer" onBack={() => up({ page: "profile" })}>
-        <Select value={scrambleType} accessibilityLabel="Scramble type" minWidth={140} options={puzzleInfo(cube).scrambles.map(type => ({ value: type, label: scrambleLabel(type) }))} onChange={value => setScrambleType(value as ScrambleType)} />
-      </DetailBar>
-      <View style={styles.toolbar}>
-        <PuzzleSelect value={cube} onChange={setCube} />
-        <Select value={solveMode} accessibilityLabel="Solve mode" minWidth={140} options={SOLVE_MODES.map(m => ({ value: m.id, label: m.label }))} onChange={value => setSolveMode(value as SolveMode)} />
+      <DetailBar title="Solve" />
+      <View style={styles.filterRow}>
+        <PuzzleSelect value={cube} onChange={setCube} compact={phone} />
+        <Select value={solveMode} accessibilityLabel="Solve mode" minWidth={140} style={phone && styles.filterSelect} options={SOLVE_MODES.map(m => ({ value: m.id, label: m.label }))} onChange={value => setSolveMode(value as SolveMode)} />
+        <Select value={scrambleType} accessibilityLabel="Scramble type" minWidth={140} style={phone && styles.filterSelect} options={puzzleInfo(cube).scrambles.map(type => ({ value: type, label: scrambleLabel(type) }))} onChange={value => setScrambleType(value as ScrambleType)} />
       </View>
       {profile.playground.summary.count ? <ProfileStats data={profile.playground} />
         : <Empty icon={<IconUser size={28} color={t.readableMuted} />}><Muted>No times in this selection yet.</Muted><Btn small label="Open the timer" onPress={() => setRoute({ page: "playground" })} /></Empty>}
@@ -189,7 +184,7 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
         <Select value={solveMode} accessibilityLabel="Solve mode" minWidth={140} options={SOLVE_MODES.map(m => ({ value: m.id, label: m.label }))} onChange={value => setSolveMode(value as SolveMode)} />
       </View>
       <View style={styles.tiles}>
-        <StatTile width={tileWidth} label="Timer · best" value={timer.count ? fmtTime(timer.best) : "—"} detail={timer.count ? `${plural(timer.count, "solve")} · Ao5 ${fmtTime(timer.ao5)}` : `No ${scrambleLabel(scrambleType).toLowerCase()} solves yet`} onPress={() => setRoute({ page: "profile", mode: "playground" })} />
+        <StatTile width={tileWidth} label="Solve · best" value={timer.count ? fmtTime(timer.best) : "—"} detail={timer.count ? `${plural(timer.count, "solve")} · Ao5 ${fmtTime(timer.ao5)}` : `No ${scrambleLabel(scrambleType).toLowerCase()} solves yet`} onPress={() => setRoute({ page: "profile", mode: "playground" })} />
         <StatTile width={tileWidth} label="Training" value={String(trained)} suffix={` / ${catalog.cases.length}`} detail={trained ? `cases trained · ${plural(profile.trainingSolves, "solve")}` : "No case trained yet"} onPress={() => setRoute({ page: "profile", mode: "training" })} />
         <StatTile width={tileWidth} label="Achievements" value={String(summary.unlocked)} suffix={` / ${summary.total}`} detail={next ? `Next: ${next.title} · ${Math.round(next.ratio * 100)}%` : "Everything unlocked"} onPress={() => setRoute({ page: "profile", mode: "achievements" })} />
         <StatTile width={tileWidth} label="Active days" value={String(profile.activeDays)} detail={`${plural(profile.totalSolves, "solve")} in total`} />
@@ -207,6 +202,9 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   fieldLabel: { fontSize: 13, fontWeight: "600" },
   toolbar: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 12, rowGap: 10 },
+  /** The three solve filters stay on one line; on a phone the two labelled ones share the width. */
+  filterRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  filterSelect: { flex: 1, minWidth: 0 },
   profileHeader: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 14 },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: TILE_GAP },
   tile: { minHeight: 124, borderRadius: 18, padding: 16, gap: 6, justifyContent: "space-between" },

@@ -246,7 +246,7 @@ const CasePage = memo(function CasePage({ c, stats, width }: { c: CaseDto; stats
           <Kpi label="Solves" value={String(summary.count)} /><Kpi label="Best" value={fmtTime(summary.best)} /><Kpi label="Mean" value={fmtTime(summary.mean)} />
           <Kpi label="Ao5" value={fmtTime(summary.ao5)} /><Kpi label="Ao12" value={fmtTime(summary.ao12)} /><Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
         </View>
-        <TimesChart history={history.history} ao5={history.ao5} />
+        <TimesChart history={history.history} ao5={history.ao5} ao12={history.ao12} />
       </> : <Empty>No solves yet.</Empty>}
     </View>
   </ScrollView>;
