@@ -5,6 +5,10 @@ use serde::Deserialize;
 use std::{f32::consts::FRAC_PI_2, sync::{Arc, OnceLock}, time::Instant};
 
 const YAW: f32 = std::f32::consts::FRAC_PI_4;
+/// Stickerless speedcube: coloured pieces run to the cube edge and meet at
+/// hairline seams over a dark core, with no black rim around each sticker.
+const CORE: u32 = 0x121216;
+const SEAM: f32 = 0.05;
 const PITCH: f32 = 0.55;
 type V = [f32; 3];
 
@@ -86,72 +90,124 @@ fn geometry(size: usize, face: usize, row: usize, col: usize) -> (V, V) {
         _ => ([-h, h - r, c - h], [-1., 0., 0.]),
     }
 }
+/// Screen-space polygon in cube units, already in paint order.
 struct Polygon {
-    vertices: [V; 4],
-    depth: f32,
+    points: Vec<[f32; 2]>,
     color: u32,
+}
+
+/// Convex hull (Andrew's monotone chain) of the projected corners of a box,
+/// so a rigid block is painted as one seamless silhouette instead of many
+/// abutting quads whose anti-aliased edges leave hairlines and gaps.
+fn hull(mut points: Vec<[f32; 2]>) -> Vec<[f32; 2]> {
+    points.sort_by(|a, b| a[0].total_cmp(&b[0]).then(a[1].total_cmp(&b[1])));
+    points.dedup();
+    if points.len() < 3 {
+        return points;
+    }
+    let cross = |o: [f32; 2], a: [f32; 2], b: [f32; 2]| {
+        (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    };
+    let chain = |iter: &mut dyn Iterator<Item = &[f32; 2]>| {
+        let mut out: Vec<[f32; 2]> = Vec::new();
+        for p in iter {
+            while out.len() >= 2 && cross(out[out.len() - 2], out[out.len() - 1], *p) <= 0. {
+                out.pop();
+            }
+            out.push(*p);
+        }
+        out.pop();
+        out
+    };
+    let mut lower = chain(&mut points.iter());
+    let upper = chain(&mut points.iter().rev());
+    lower.extend(upper);
+    lower
 }
 
 fn polygons(scene: &Scene, seconds: f32, yaw: f32, pitch: f32) -> Vec<Polygon> {
     let (index, fraction) = scene.frame(seconds);
     let state = &scene.states[index];
-    let movement = scene.moves.get(index);
-    let pose = |v: V, p: V| {
-        let v = if let Some(m) = movement.filter(|m| m.layers.contains(&p[m.axis])) {
-            rotate(
-                v,
-                m.axis,
-                fraction * FRAC_PI_2 * if m.q == 3 { -1. } else { m.q as f32 },
-            )
-        } else {
-            v
-        };
-        camera(v, yaw, pitch)
-    };
-    let mut faces = Vec::new();
-    let mut quad = |p: V, n: V, half: f32, offset: f32, color: u32| {
-        if pose(n, p)[2] <= 0.0001 {
-            return;
-        }
-        let axis = n.iter().position(|v| *v != 0.).unwrap();
-        let mut u = [0.; 3];
-        u[(axis + 1) % 3] = half;
-        let mut v = [0.; 3];
-        v[(axis + 2) % 3] = half;
-        let center = add(p, scale(n, offset));
-        let vertices = [(-1., -1.), (1., -1.), (1., 1.), (-1., 1.)]
-            .map(|(a, b)| pose(add(center, add(scale(u, a), scale(v, b))), p));
-        let depth = vertices.iter().map(|v| v[2]).sum::<f32>() / 4.;
-        faces.push(Polygon {
-            vertices,
-            depth,
-            color,
-        });
-    };
-    // Closed cubies provide the dark interior exposed during slice rotations.
     let h = (scene.size - 1) as f32 / 2.;
-    for x in 0..scene.size {
-        for y in 0..scene.size {
-            for z in 0..scene.size {
-                let p = [x as f32 - h, y as f32 - h, z as f32 - h];
-                for face in 0..6 {
-                    let (_, n) = geometry(scene.size, face, 0, 0);
-                    quad(p, n, 0.49, 0.49, 0x101015);
-                }
-            }
+    // A move splits the cube into rigid slabs along its axis: the turning
+    // layers and the resting ones. Between moves the whole cube is one block.
+    let movement = scene.moves.get(index).filter(|_| fraction > 0.);
+    let axis = movement.map_or(0, |m| m.axis);
+    let moving = |layer: usize| {
+        movement.is_some_and(|m| m.layers.contains(&(layer as f32 - h)))
+    };
+    let angle = movement.map_or(0., |m| {
+        fraction * FRAC_PI_2 * if m.q == 3 { -1. } else { m.q as f32 }
+    });
+    let pose = |v: V, turning: bool| {
+        camera(if turning { rotate(v, axis, angle) } else { v }, yaw, pitch)
+    };
+    let mut slabs: Vec<(usize, usize, bool)> = Vec::new();
+    for layer in 0..scene.size {
+        match slabs.last_mut() {
+            Some((_, end, turning)) if *turning == moving(layer) => *end = layer,
+            _ => slabs.push((layer, layer, moving(layer))),
         }
     }
-    for (slot, origin) in state.iter().enumerate() {
-        let area = scene.size * scene.size;
-        let (p, n) = geometry(
-            scene.size,
-            slot / area,
-            slot % area / scene.size,
-            slot % scene.size,
-        );
-        quad(p, n, 0.435, 0.501, scene.colors[*origin]);
+    // Slabs are separated by planes normal to the axis, so painting them from
+    // the far side of that axis to the near side is an exact occlusion order.
+    let mut direction = [0.; 3];
+    direction[axis] = 1.;
+    let facing = camera(direction, yaw, pitch)[2];
+    slabs.sort_by(|a, b| (a.0 as f32 * facing).total_cmp(&(b.0 as f32 * facing)));
+
+    let area = scene.size * scene.size;
+    let mut faces = Vec::new();
+    for (start, end, turning) in slabs {
+        let mut lo = [-h - 0.5; 3];
+        let mut hi = [h + 0.5; 3];
+        lo[axis] = start as f32 - h - 0.5;
+        hi[axis] = end as f32 - h + 0.5;
+        let corners = (0..8)
+            .map(|i| {
+                let pick = |k: usize| if i >> k & 1 == 0 { lo[k] } else { hi[k] };
+                let v = pose([pick(0), pick(1), pick(2)], turning);
+                [v[0], v[1]]
+            })
+            .collect();
+        faces.push(Polygon {
+            points: hull(corners),
+            color: CORE,
+        });
+        for (slot, origin) in state.iter().enumerate() {
+            let (p, n) = geometry(
+                scene.size,
+                slot / area,
+                slot % area / scene.size,
+                slot % scene.size,
+            );
+            let layer = (p[axis] + h).round() as usize;
+            if layer < start || layer > end || pose(n, turning)[2] <= 0.0001 {
+                continue;
+            }
+            let normal_axis = n.iter().position(|v| *v != 0.).unwrap();
+            let center = add(p, scale(n, 0.5));
+            // Pull back from neighbouring pieces only; stay flush with the cube edge.
+            let extent = |k: usize, sign: f32| {
+                let mut e = [0.; 3];
+                let outside = (p[k] + sign * 0.5).abs() >= h + 0.5 - 0.0001;
+                e[k] = sign * if outside { 0.5 } else { 0.5 - SEAM };
+                e
+            };
+            let (a, b) = ((normal_axis + 1) % 3, (normal_axis + 2) % 3);
+            let points = [(-1., -1.), (1., -1.), (1., 1.), (-1., 1.)]
+                .iter()
+                .map(|&(sa, sb)| {
+                    let w = pose(add(center, add(extent(a, sa), extent(b, sb))), turning);
+                    [w[0], w[1]]
+                })
+                .collect();
+            faces.push(Polygon {
+                points,
+                color: scene.colors[*origin],
+            });
+        }
     }
-    faces.sort_by(|a, b| a.depth.total_cmp(&b.depth));
     faces
 }
 
@@ -171,7 +227,7 @@ pub fn drawing(scene: Arc<Scene>, seconds: f32, yaw: f32, pitch: f32) -> impl In
                 f32::from(bounds.size.width.min(bounds.size.height)) / (scene.size as f32 * 1.95);
             for polygon in faces.iter() {
                 let mut path = PathBuilder::fill();
-                for (i, v) in polygon.vertices.iter().enumerate() {
+                for (i, v) in polygon.points.iter().enumerate() {
                     let p = point(
                         bounds.center().x + px(v[0] * unit),
                         bounds.center().y - px(v[1] * unit),

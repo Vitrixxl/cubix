@@ -1,6 +1,6 @@
 import { memo, useId } from "react";
 import type { CubeState } from "../../shared/cube";
-import { ISO_STROKE, ISO_VIEWBOX, TOP_STROKE, TOP_VIEWBOX, isoCells, topLayerCells, usesTopLayerView, type CubeMask } from "../../shared/cubeDiagram";
+import { ISO_HULL, ISO_VIEWBOX, SEAM_FILL, TILE_STROKE, TOP_VIEWBOX, isoCells, topLayerCells, usesTopLayerView, type CubeMask } from "../../shared/cubeDiagram";
 export { FACE_COLORS, type CubeMask } from "../../shared/cubeAppearance";
 
 /** Lightweight isometric cube for static previews: one SVG, no CSS 3D transforms. Geometry and colours come from `shared/cubeDiagram`. */
@@ -9,7 +9,7 @@ export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, ma
   if (usesTopLayerView(state, mask)) return (
     <svg className={className} width={size} height={size} viewBox={TOP_VIEWBOX} role="img" aria-labelledby={titleId} focusable="false">
       <title id={titleId}>{mask === "OLL" ? "OLL top-layer case preview" : "PLL top-layer case preview"}</title>
-      <g {...TOP_STROKE} strokeLinejoin="round">
+      <g {...TILE_STROKE}>
         {topLayerCells(state, mask).map(({ key, ...rect }) => <rect key={key} {...rect} />)}
       </g>
     </svg>
@@ -17,7 +17,8 @@ export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, ma
   return (
     <svg className={className} width={size} height={size} viewBox={ISO_VIEWBOX} role="img" aria-labelledby={titleId} focusable="false">
       <title id={titleId}>Rubik's Cube case preview</title>
-      <g {...ISO_STROKE} strokeLinejoin="round">
+      <polygon points={ISO_HULL} fill={SEAM_FILL} />
+      <g {...TILE_STROKE}>
         {isoCells(state, mask).map(({ key, ...polygon }) => <polygon key={key} {...polygon} />)}
       </g>
     </svg>
