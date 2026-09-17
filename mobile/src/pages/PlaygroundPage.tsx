@@ -115,7 +115,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             <PracticeContent>
             <Caption style={{ marginBottom: 8, textAlign: "center" }}>{info.label} · {scrambleLabel(context.scrambleType)}</Caption>
             {generating ? <Muted style={{ textAlign: "center" }}>Generating…</Muted> : generationError ? <View style={{ alignItems: "center", gap: 4 }}><Text style={{ color: t.danger, fontSize: 13, textAlign: "center" }}>{generationError}</Text><MiniBtn label="Retry" onPress={() => void generateNext()} /></View>
-              : <AlgText alg={scramble} size={scrambleSize} lineHeight={scrambleSize * (layout.phone ? 1.55 : 1.6)} wordSpacing={layout.phone ? 0 : 1} style={{ textAlign: "center" }} />}
+              : <AlgText alg={scramble} size={scrambleSize} lineHeight={scrambleSize * (layout.phone ? 1.55 : 1.6)} wordSpacing={1} style={{ textAlign: "center", paddingHorizontal: layout.phone ? 12 : 0 }} />}
             </PracticeContent>
           </TimerChrome>
           <PracticeReadout landscape={layout.landscape}>

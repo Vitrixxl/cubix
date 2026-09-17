@@ -144,7 +144,7 @@ function TrainingSession() {
               <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
               <View style={{ width: "100%", maxWidth: 620, alignItems: "center" }}>
                 <Caption style={{ marginBottom: 8 }}>Setup</Caption>
-                <AlgText alg={shownSetup} size={setupSize} lineHeight={setupSize * 1.7} style={{ textAlign: "center" }} />
+                <AlgText alg={shownSetup} size={setupSize} lineHeight={setupSize * 1.7} wordSpacing={layout.phone ? 1 : 0} style={{ textAlign: "center", paddingHorizontal: layout.phone ? 12 : 0 }} />
               </View>
             </View>
             {primary && revealed && <View style={[styles.solution, { borderTopColor: t.line }]}><Caption style={{ marginBottom: 8 }}>Solution</Caption><AlgText alg={shownAlgorithm} size={layout.phone ? 15 : 18} style={{ textAlign: "center" }} /></View>}
