@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/deploy-on-push.sh",
+            "timeout": 900,
+            "statusMessage": "Deploying cubix after push to main"
+          }
+        ]
+      }
+    ]
+  }
+}

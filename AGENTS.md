@@ -1,9 +1,12 @@
 # Consignes pour les agents
 
-Après chaque commit sur `main`, pousser le commit, mettre à jour le serveur et
-publier l'APK avec la commande suivante (elle enchaîne `git push`,
-`ssh vitrix@82.67.236.74 pihost update cubix`, la compilation de l'APK ARM64 en
-local puis son envoi à l'API) :
+Chaque `git push` de `main` met automatiquement en prod : un hook Claude Code
+(`.claude/settings.json` → `.claude/hooks/deploy-on-push.sh`) lance
+`bun run deploy` après tout `git push` de `main` exécuté depuis ce dépôt. La
+commande enchaîne `git push`, `ssh vitrix@82.67.236.74 pihost update cubix`, la
+publication de la mise à jour OTA et, si le natif a changé, la compilation de
+l'APK ARM64 en local puis son envoi à l'API. Elle peut aussi être lancée à la
+main :
 
 ```sh
 bun run deploy
