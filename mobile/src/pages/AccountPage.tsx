@@ -14,6 +14,7 @@ import { ProfileCaseDetails, ProfileCaseGallery, ProfileStats } from "../compone
 import { PuzzleSelect } from "../components/PuzzlePicker";
 import { Select } from "../components/Select";
 import { Sheet } from "../components/Sheet";
+import { SolvingCube } from "../components/SolvingCube";
 import { Avatar, Btn, Empty, FormError, H1, Input, Kpi, Muted, Segmented } from "../components/ui";
 
 export function AccountForm({ initialMode = "register" }: { initialMode?: "register" | "login" } = {}) {
@@ -108,7 +109,7 @@ export function ProfilePage({ mode = "playground", caseId }: { mode?: ProfileMod
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };
-  if (!profile || !summary) return <View style={[styles.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18 }]}>{error ? <Empty><FormError>{error}</FormError></Empty> : <Empty>Loading…</Empty>}</View>;
+  if (!profile || !summary) return <View style={[styles.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18 }]}>{error ? <Empty><FormError>{error}</FormError></Empty> : <Empty><SolvingCube size={104} /></Empty>}</View>;
   const selectedCase = cases.find(c => c.id === caseId);
   const selectedStats = profile.cases.find(c => c.summary.caseId === caseId);
   const details = selectedCase && <ProfileCaseDetails c={selectedCase} data={selectedStats} phone={phone} onClose={closeCase} />;

@@ -3,20 +3,21 @@ import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { Provider, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { AppState, BackHandler, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { AppState, BackHandler, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { local, localChanged } from "./src/api";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { SettingsDialog } from "./src/components/Settings";
 import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
+import { SolvingCube } from "./src/components/SolvingCube";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { useLayout } from "./src/hooks/useLayout";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
 import { colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
-import { buildTheme, ThemeContext, useTheme } from "./src/theme";
+import { buildTheme, ThemeContext } from "./src/theme";
 
 const ProfilePage = lazy(() => import("./src/pages/AccountPage").then(m => ({ default: m.ProfilePage })));
 const AlgorithmsPage = lazy(() => import("./src/pages/AlgorithmsPage").then(m => ({ default: m.AlgorithmsPage })));
@@ -46,9 +47,9 @@ function Themed({ children }: { children: React.ReactNode }) {
   </ThemeContext.Provider>;
 }
 
+/** Shown while fonts load, the account restores or a page's code arrives. */
 function Boot() {
-  const t = useTheme();
-  return <View style={styles.boot}><Text style={{ color: t.muted, fontSize: 14 }}>Loading…</Text></View>;
+  return <View style={styles.boot}><SolvingCube size={120} /></View>;
 }
 
 function Shell() {
