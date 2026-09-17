@@ -1,6 +1,6 @@
 import { applyAlg, solved, type CubeState } from "../../../src/shared/cube";
 import type { CaseDto, Stage } from "../../../src/shared/types";
-import type { CubeMask } from "../components/StaticCubeSvg";
+import type { CubeMask } from "../../../src/shared/cubeAppearance";
 
 const cache = new Map<string, CubeState>();
 

@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { openDb as database } from "../scripts/sqlite";
 import type { CaseDto } from "../src/shared/types";
 
-const sets = JSON.parse(readFileSync(resolve('rust-api/catalog-sets.json'), 'utf8')) as {id:string;label:string;stage:string}[];
+const sets = JSON.parse(readFileSync(resolve('data/catalog-sets.json'), 'utf8')) as {id:string;label:string;stage:string}[];
 export const CASES: CaseDto[] = sets.flatMap(set => {
   const data = JSON.parse(readFileSync(resolve('data', set.id + '.json'), 'utf8'));
   return data.cases.map((c: any) => ({ id:c.id,name:c.name,stage:set.stage,set:set.id,setLabel:set.label,group:c.group,

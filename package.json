@@ -12,6 +12,7 @@
     "test": "bun run build:api && bun test --timeout 15000 ./tests && bun scripts/test-cube.ts && sh scripts/rust.sh test --locked",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/rust-api.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
     "build:db": "tsx scripts/build-db.ts",
+    "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-catalog.ts",
     "import:history": "sh scripts/rust.sh serve --import-history",
     "launch": "sh desktop/run.sh",
     "stress": "tsx scripts/stress-api.ts",

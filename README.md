@@ -143,7 +143,7 @@ mobile/         application Android React Native
 src/client/     client HTTP/WS, stockage/sync, statistiques et schémas partagés
 src/shared/     contrats TypeScript et modèle du cube
 rust-api/       API, authentification, WebSockets et migrations SQLite
-data/           catalogues embarqués
+data/           catalogues embarqués (catalog.json généré par `bun run build:catalog`)
 assets/cases/   schémas sources des puzzles
 Makefile        dépendances, compilation et installation du desktop
 tests/          tests des clients et de l'API réelle

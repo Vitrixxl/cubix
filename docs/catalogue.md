@@ -66,6 +66,27 @@ Le paramètre historique `cubeSize` reste accepté. Les identifiants et compatib
 dans `../data/puzzles.json`, partagé avec Rust.
 Le build distribue cubing.js et ses workers dans le dossier `vendor/cubing/` du paquet, sans dépendre d’un CDN.
 
+## Un seul catalogue : `data/catalog.json`
+
+Tous les clients lisent le même fichier généré, `../data/catalog.json` : le serveur Rust l'embarque
+avec `include_str!`, le client local TypeScript (desktop et mobile) l'importe, `desktop/scripts/export-assets.tsx`
+en rend les schémas SVG et `mobile/scripts/build-cases.ts` y résout les schémas des puzzles non cubiques.
+Aucun client ne fusionne plus les sources lui-même. Le fichier contient `sets`, `cases` (CFOP, réduction
+4×4–7×7, multi-cube, puzzles non cubiques), `puzzles` et `moves`.
+
+```sh
+bun run build:catalog   # multi-cube + niche + assemblage de data/catalog.json
+```
+
+Les entrées curées restent dans `data/` : `catalog-sets.json` (métadonnées des sets CFOP, dans l'ordre),
+`f2l*.json`, `oll.json`, `pll.json`, `2look-*.json`, `multi-cube.json`, `niche-catalog.json`,
+`puzzles.json` et `moves.json`. Le test `tests/catalog.test.ts` échoue si `catalog.json` n'a pas été
+régénéré après une modification de ces entrées.
+
+Les schémas de cube (géométrie isométrique, vue dernière couche OLL/PLL, couleurs et masques) viennent
+de `src/shared/cubeDiagram.ts` ; le web, l'export desktop et `react-native-svg` dessinent les mêmes
+cellules, donc un cas a la même image partout.
+
 `bun scripts/build-cube-catalog.ts` reconstruit `../data/multi-cube.json`, partagé par les clients natifs
 et le serveur Rust. Les sources des nouveaux algorithmes sont conservées avec chaque cas :
 [J Perm Ortega](https://www.jperm.net/algs/2x2/oll), [PBL](https://www.jperm.net/algs/2x2/pbl),
@@ -90,6 +111,6 @@ Les tests vérifient les inverses, les pièces préservées et la légalité des
 | [andyjudson/cfop](https://github.com/andyjudson/cfop) | Noms et probabilités |
 | [cubing.js](https://js.cubing.net/cubing/) | Vérification et génération des setups |
 
-La croix est en bas (blanc), la dernière face est jaune et la face avant est verte.
+La croix est en bas (blanc), la dernière face est jaune ; les schémas affichent la face avant bleue et la droite rouge (`src/shared/cubeAppearance.ts`).
 Les cas F2L visent le slot avant-droit. Les sources brutes sont conservées dans `data/raw` ;
 `bun run build:db` reconstruit et vérifie le catalogue.
