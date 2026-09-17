@@ -111,6 +111,8 @@ pub struct Cubix {
     page: String,
     back_stack: Vec<navigation::Location>,
     forward_stack: Vec<navigation::Location>,
+    /// Trackpad travel accumulated for the two-finger history swipe.
+    swipe: navigation::Swipe,
     case_id: String,
     profile_mode: String,
     profile_stage: String,
@@ -194,6 +196,7 @@ impl Cubix {
         let mut app = Self {
             back_stack: Vec::new(),
             forward_stack: Vec::new(),
+            swipe: navigation::Swipe::default(),
             engine,
             guides: serde_json::from_slice(&std::fs::read(root.join("guides.json")).unwrap())
                 .unwrap(),
@@ -3197,6 +3200,9 @@ impl Render for Cubix {
                     cx.stop_propagation();
                 }),
             )
+            .on_scroll_wheel(cx.listener(|s, event: &ScrollWheelEvent, window, cx| {
+                s.swipe(event, window, cx);
+            }))
             .on_key_down(cx.listener(|s, event: &KeyDownEvent, window, cx| {
                 if s.timer.read(cx).phase == Phase::Running && !event.is_held {
                     s.timer.update(cx, |t, cx| t.press(cx));

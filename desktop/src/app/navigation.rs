@@ -10,7 +10,53 @@ pub(super) struct Location {
     editing: bool,
     profile_case: bool,
 }
+/// Horizontal trackpad travel since the fingers last paused, so one swipe navigates once.
+#[derive(Default)]
+pub(super) struct Swipe {
+    x: f32,
+    y: f32,
+    last: Option<std::time::Instant>,
+    fired: bool,
+}
+/// Fingers must travel about this far sideways (in scroll pixels) before the history moves.
+const SWIPE_DISTANCE: f32 = 200.;
+/// A pause this long between scroll frames starts a fresh swipe.
+const SWIPE_GAP: std::time::Duration = std::time::Duration::from_millis(250);
+
 impl Cubix {
+    /// Two fingers sliding sideways on the trackpad walk the history: left goes back, right goes
+    /// forward. Only continuous (pixel) deltas count, so a mouse wheel never navigates, and a
+    /// mostly vertical swipe is left to the scroll containers.
+    pub(super) fn swipe(
+        &mut self,
+        event: &ScrollWheelEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let ScrollDelta::Pixels(delta) = event.delta else {
+            return;
+        };
+        let now = std::time::Instant::now();
+        if self
+            .swipe
+            .last
+            .is_none_or(|last| now.duration_since(last) > SWIPE_GAP)
+        {
+            self.swipe = Swipe::default();
+        }
+        self.swipe.last = Some(now);
+        self.swipe.x += f32::from(delta.x);
+        self.swipe.y += f32::from(delta.y);
+        if self.swipe.fired
+            || self.swipe.x.abs() < SWIPE_DISTANCE
+            || self.swipe.x.abs() < self.swipe.y.abs() * 1.5
+        {
+            return;
+        }
+        self.swipe.fired = true;
+        // With natural scrolling the delta follows the content, so fingers moving left give a positive x.
+        self.travel(self.swipe.x > 0., window, cx);
+    }
     pub(super) fn location(&self) -> Location {
         Location {
             page: self.page.clone(),
