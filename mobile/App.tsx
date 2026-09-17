@@ -1,28 +1,28 @@
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
-import { Provider, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { AppState, BackHandler, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Provider, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { AppState, BackHandler, InteractionManager, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { local, localChanged } from "./src/api";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { SettingsDialog } from "./src/components/Settings";
 import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
-import { SolvingCube } from "./src/components/SolvingCube";
+import { PageSkeleton } from "./src/components/Skeleton";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { useLayout } from "./src/hooks/useLayout";
+import { PUZZLES } from "../src/shared/puzzles";
+import { ProfilePage } from "./src/pages/AccountPage";
+import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
+import { GuidesPage } from "./src/pages/GuidesPage";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
+import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
-import { colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
+import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
 import { buildTheme, ThemeContext } from "./src/theme";
-
-const ProfilePage = lazy(() => import("./src/pages/AccountPage").then(m => ({ default: m.ProfilePage })));
-const AlgorithmsPage = lazy(() => import("./src/pages/AlgorithmsPage").then(m => ({ default: m.AlgorithmsPage })));
-const TrainingPage = lazy(() => import("./src/pages/TrainingPage").then(m => ({ default: m.TrainingPage })));
-const GuidesPage = lazy(() => import("./src/pages/GuidesPage").then(m => ({ default: m.GuidesPage })));
 
 /** Which navigation entry a route belongs to. */
 function navPage(route: Route): Page {
@@ -47,9 +47,18 @@ function Themed({ children }: { children: React.ReactNode }) {
   </ThemeContext.Provider>;
 }
 
-/** Shown while fonts load, the account restores or a page's code arrives. */
+/**
+ * Shown while the icon font loads (it ships in the binary, so normally never): the skeleton of the
+ * page about to appear, under the real navigation bar, so the screen does not change shape.
+ */
 function Boot() {
-  return <View style={styles.boot}><SolvingCube size={120} /></View>;
+  const insets = useSafeAreaInsets();
+  const { phone } = useLayout();
+  const page = navPage(useAtomValue(routeAtom));
+  return <>
+    <View style={[styles.main, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}><PageSkeleton page={page} /></View>
+    <Nav active={page} onNavigate={() => {}} onSettings={() => {}} settingsOpen={false} hidden={false} phone={phone} />
+  </>;
 }
 
 function Shell() {
@@ -76,6 +85,17 @@ function Shell() {
     return () => { unsubscribe(); appState.remove(); clearInterval(retry); };
   }, [setUser, bumpStats]);
   useReleaseCheck(true);
+  // Warm every page's data once the first screen is up: the catalogue of each puzzle and the current
+  // puzzle's cases, sets and statistics, so switching tabs later never computes anything visible.
+  const store = useStore();
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      for (const puzzle of PUZZLES) local.read.catalog(puzzle.id);
+      store.get(casesAtom); store.get(setsAtom); store.get(statsAtom);
+      local.read.achievements();
+    });
+    return () => task.cancel();
+  }, [store]);
   const [route, setRoute] = useAtom(routeAtom);
   const goBack = useSetAtom(goBackAtom);
   // The hardware back button walks the in-app history, like the browser's back button.
@@ -90,13 +110,14 @@ function Shell() {
     <ScramblerHost />
     <KeyboardAvoidingView behavior={Platform.OS === "android" ? "height" : undefined} style={styles.main}>
     <View style={[styles.main, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <Suspense fallback={<Boot />}>
-        {!user ? <Boot /> : <>
+      {/* Nothing suspends any more; the boundary only guards against a future async atom. */}
+      <Suspense fallback={<PageSkeleton page={active} />}>
+        {!user ? <PageSkeleton page={active} /> : <>
           {route.page === "algorithms" && <AlgorithmsPage />}
           {route.page === "training" && <TrainingPage />}
           {route.page === "playground" && <PlaygroundPage />}
           {route.page === "guides" && <GuidesPage guide={route.guide} />}
-          {route.page === "profile" && <ProfilePage mode={route.mode} caseId={route.caseId} />}
+          {route.page === "profile" && <ProfilePage mode={route.mode} caseId={route.caseId} group={route.group} />}
         </>}
       </Suspense>
     </View>
@@ -110,5 +131,4 @@ function Shell() {
 const styles = StyleSheet.create({
   app: { flex: 1 },
   main: { flex: 1, minHeight: 0 },
-  boot: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

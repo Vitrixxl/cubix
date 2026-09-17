@@ -135,9 +135,15 @@ l’émulateur Android, l’adresse de l’hôte est `http://10.0.2.2:PORT`.
   localement à partir des temps synchronisés.
 - Thèmes clair/sombre et six accents, guides natifs disponibles sans le site web.
 - Navigation mobile : barre en bas du layout (pas superposée au contenu), coins
-  supérieurs arrondis et fine marge latérale ; icônes Timer, Algorithms, Training,
-  Account et Settings. Elle disparaît quand le clavier est ouvert. Account regroupe Timer, Training et Achievements ; Settings
-  ouvre le choix du puzzle, le thème, l’accent et l’aide.
+  supérieurs arrondis et fine marge latérale ; icônes Algorithms, Training, Timer
+  (au centre), Account et Settings. Elle disparaît quand le clavier est ouvert.
+  Account affiche quatre cases (Timer, Training, Achievements, jours actifs) qui
+  ouvrent les détails ; les succès sont regroupés par puzzle en cases, chaque
+  succès en petite case avec son pourcentage. Settings ouvre le choix du puzzle,
+  le thème, l’accent et l’aide.
+- Aucun chargement après le lancement : catalogue, statistiques et succès sont
+  lus de façon synchrone depuis le stockage local et préchauffés au démarrage ;
+  les rares attentes affichent un squelette de la page à venir.
 - Écrans limités à la hauteur de la fenêtre ; listes et fiches ont leur propre zone
   de défilement. Panneaux adaptés au format de l’écran.
 

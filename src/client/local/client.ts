@@ -230,11 +230,20 @@ export function createLocalClient(options: {
     notify(); schedule(); return value;
   }
 
+  /** Synchronous reads of local data, for screens that must render without any loading state. */
+  const reads = {
+    catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
+    stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
+    caseHistory: (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
+    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter),
+    achievements: () => achievements(liveSolves(),learnedIds()),
+  };
+
   const api = {
     ...options.remote(options.getToken()),
     me: async () => current(),
-    cases: async (cubeSize: PuzzleInput = 3) => catalog(cubeSize).cases,
-    sets: async (cubeSize: PuzzleInput = 3) => catalog(cubeSize).sets,
+    cases: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).cases,
+    sets: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).sets,
     register: async (username: string,password: string) => authenticate(await options.remote(null).register(username,password)),
     login: async (username: string,password: string) => authenticate(await options.remote(null).login(username,password)),
     logout: async () => {
@@ -286,11 +295,11 @@ export function createLocalClient(options: {
       operation(workspace,id,"learned",0,{ caseId, learned });
       return { caseId, learned };
     }),
-    stats: async (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
-    caseHistory: async (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
+    stats: async (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => reads.stats(cubeSize,filter),
+    caseHistory: async (caseId: string, filter: PracticeFilter = {}) => reads.caseHistory(caseId,filter),
     /** Only the signed-in account's own statistics exist; the username is kept for API parity. */
-    profile: async (_username?: string, _signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter),
-    achievements: async () => achievements(liveSolves(),learnedIds()),
+    profile: async (_username?: string, _signal?: AbortSignal, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => reads.profile(cubeSize,filter),
+    achievements: async () => reads.achievements(),
   };
   // The live socket must always use the current credentials.
   api.connectLive = () => options.remote(options.getToken()).connectLive();
@@ -311,7 +320,7 @@ export function createLocalClient(options: {
       notify();
     } catch (error) { if (error instanceof ApiError && error.status === 401) options.clearToken(); }
   }
-  return { api, sync, restore, current,
+  return { api, read: reads, sync, restore, current,
     learned: () => learnedIds(),
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync(),

@@ -15,7 +15,8 @@ export type Route =
   | { page: "algorithms"; caseId?: string }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
-  | { page: "profile"; mode?: ProfileMode; caseId?: string };
+  | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string };
+/** A profile detail view; no mode shows the overview tiles. */
 export type ProfileMode = "playground" | "training" | "achievements";
 export type Page = Route["page"];
 
@@ -43,6 +44,8 @@ export const goBackAtom = atom(null, (get, set) => {
   return true;
 });
 export const canGoBackAtom = atom(get => get(historyAtom).length > 1);
+/** The route a back step would return to, so detail views can pop instead of pushing their parent. */
+export const previousRouteAtom = atom(get => get(historyAtom).at(-2) ?? null);
 
 // ---------------------------------------------------------------------------
 // Persisted preferences (synchronous MMKV storage, read on init)
@@ -81,8 +84,10 @@ export const collapsedAlgorithmGroupsAtom = persisted<Record<string, boolean>>("
 // ---------------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------------
-export const casesAtom = atom<Promise<CaseDto[]>>(async get => api.cases(get(puzzleAtom)));
-export const setsAtom = atom(async get => api.sets(get(puzzleAtom)));
+// The catalogue ships with the app and personal statistics are computed from the local workspace, so
+// every data atom is synchronous: no screen ever suspends or shows a loader after boot.
+export const casesAtom = atom<CaseDto[]>(get => local.read.catalog(get(puzzleAtom)).cases);
+export const setsAtom = atom(get => local.read.catalog(get(puzzleAtom)).sets);
 /** bump to refetch stats */
 export const statsVersionAtom = atom(0);
 /** Case IDs are unique across puzzles and sets; learning is independent of timed solves.
@@ -92,9 +97,9 @@ export const learnedCaseIdsAtom = atom(get => { get(statsVersionAtom); return lo
 });
 /** Last deleted solve, so the open lists update without refetching every timer tick. */
 export const deletedSolveIdAtom = atom<number | null>(null);
-export const statsAtom = atom(async get => {
+export const statsAtom = atom(get => {
   get(statsVersionAtom);
-  const list = await api.stats(get(puzzleAtom), { solveMode: get(solveModeAtom) });
+  const list = local.read.stats(get(puzzleAtom), { solveMode: get(solveModeAtom) });
   return new Map<string, CaseStatsDto>(list.map(s => [s.caseId, s]));
 });
 
@@ -135,7 +140,8 @@ export const playgroundScrambleAtom = atom(get => {
   set(scramblesAtom, { ...get(scramblesAtom), [`${c.puzzle}:${c.solveMode}:${c.scrambleType}`]: value });
 });
 
-export const userAtom = atom<UserDto | null>(null);
+/** Read synchronously from the local workspace, so the shell never waits for an account. */
+export const userAtom = atom<UserDto | null>(local.current());
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);
 /** The Android keyboard covers the floating navigation; reclaim that space in forms. */

@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { SyncStatus } from "../../../src/client/local/client";
 import { local, syncStatusChanged } from "../api";
+import { AccountForm } from "../pages/AccountPage";
 import { useTheme } from "../theme";
 import { Sheet } from "./Sheet";
-import { Muted } from "./ui";
-const AccountForm = lazy(() => import("../pages/AccountPage").then(m => ({ default: m.AccountForm })));
+
 
 /** `offset`: distance from the window bottom, clearing the navigation bar. */
 export function SyncIndicator({ hidden, offset }: { hidden: boolean; offset: number }) {
@@ -20,7 +20,7 @@ export function SyncIndicator({ hidden, offset }: { hidden: boolean; offset: num
       <View style={styles.badge}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>!</Text></View>
       <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>{label}</Text>
     </Pressable>
-    <Sheet open={signIn} title="Sign in" onClose={() => setSignIn(false)}><Suspense fallback={<Muted>Loading…</Muted>}><AccountForm initialMode="login" /></Suspense></Sheet>
+    <Sheet open={signIn} title="Sign in" onClose={() => setSignIn(false)}><AccountForm initialMode="login" /></Sheet>
   </>;
 }
 

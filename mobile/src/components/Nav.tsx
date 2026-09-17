@@ -7,10 +7,11 @@ import { useExit } from "../hooks/useExit";
 import { useTheme } from "../theme";
 import { IconBook, IconSettings, IconTimer, IconTraining, IconUser, type Icon } from "./icons";
 
+/** The timer sits in the middle of the five tabs (settings included), as the app's home. */
 export const NAV: { page: Page; label: string; icon: Icon }[] = [
-  { page: "playground", label: "Timer", icon: IconTimer },
   { page: "algorithms", label: "Algorithms", icon: IconBook },
   { page: "training", label: "Training", icon: IconTraining },
+  { page: "playground", label: "Timer", icon: IconTimer },
   { page: "profile", label: "Account", icon: IconUser },
 ];
 

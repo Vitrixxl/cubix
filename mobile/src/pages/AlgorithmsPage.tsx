@@ -1,13 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { unwrap } from "jotai/utils";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { formatAlg } from "../../../src/shared/cube";
 import { puzzleInfo, puzzleOf } from "../../../src/shared/puzzles";
-import type { CaseDto, CaseHistoryDto, CaseStatsDto, SetDto, Stage } from "../../../src/shared/types";
-import { api } from "../api";
-import { casesAtom, collapsedAlgorithmGroupsAtom, puzzleAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, solveModeAtom, stageAtom, statsAtom, learningFilterAtom, learnedCaseIdsAtom } from "../state";
+import type { CaseDto, CaseStatsDto, SetDto, Stage } from "../../../src/shared/types";
+import { local } from "../api";
+import { casesAtom, collapsedAlgorithmGroupsAtom, puzzleAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, solveModeAtom, stageAtom, statsAtom, statsVersionAtom, learningFilterAtom, learnedCaseIdsAtom } from "../state";
 import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
@@ -20,19 +19,17 @@ import { LearnedToggle } from "../components/LearnedToggle";
 import { TimesChart } from "../components/TimesChart";
 import { Btn, Caption, Chip, Empty, H1, Kpi, MiniBtn, Muted, Segmented, mono } from "../components/ui";
 
-const statsMapAtom = unwrap(statsAtom, prev => prev ?? new Map<string, CaseStatsDto>());
-
 export function AlgorithmsPage() {
   const puzzle = useAtomValue(puzzleAtom);
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
-  const stats = useAtomValue(statsMapAtom);
+  const stats = useAtomValue(statsAtom);
   const [route, setRoute] = useAtom(routeAtom);
   const caseId = route.page === "algorithms" ? route.caseId : undefined;
   const selected = caseId ? cases.find(c => c.id === caseId) : undefined;
   const { pagePadding, phone } = useLayout();
   return <View style={[styles.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18 }]}>
-    {selected ? <CaseDetail key={selected.id} c={selected} cases={cases} stats={stats.get(selected.id)} onBack={() => setRoute({ page: "algorithms" })} />
+    {selected ? <CaseDetail key={selected.set} c={selected} cases={cases} stats={stats} onBack={() => setRoute({ page: "algorithms" })} />
       : <AlgorithmBrowser key={puzzle} puzzle={puzzle} cases={cases} sets={sets} stats={stats} />}
   </View>;
 }
@@ -156,43 +153,39 @@ const CaseCard = memo(function CaseCard({ c, stats, onOpen, width, phone }: { c:
   </View>;
 });
 
-/** Horizontal swipe threshold, in points, before the detail page steps to a neighbouring case. */
-const SWIPE_DISTANCE = 64;
-
-function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[]; stats?: CaseStatsDto; onBack: () => void }) {
+/**
+ * A case detail is one page of a horizontal pager over its set: the neighbouring cases are rendered
+ * beside it, a swipe settles on the next or previous one and the pager stops at both ends.
+ */
+function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[]; stats: Map<string, CaseStatsDto>; onBack: () => void }) {
   const t = useTheme();
-  const { navSpace, phone } = useLayout();
   const setRoute = useSetAtom(routeAtom);
-  // Neighbours come from the same set so a swipe never jumps from PLL into OLL.
+  // Pages come from the same set so a swipe never jumps from PLL into OLL.
   const siblings = useMemo(() => cases.filter(other => other.set === c.set), [cases, c.set]);
-  const index = siblings.findIndex(other => other.id === c.id);
+  const index = Math.max(0, siblings.findIndex(other => other.id === c.id));
   const previous = index > 0 ? siblings[index - 1] : undefined;
-  const next = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined;
+  const next = index < siblings.length - 1 ? siblings[index + 1] : undefined;
   const step = useCallback((target?: CaseDto) => { if (target) setRoute({ page: "algorithms", caseId: target.id }); }, [setRoute]);
-  const drag = useRef(new Animated.Value(0)).current;
-  const neighbours = useRef({ previous, next, step });
-  neighbours.current = { previous, next, step };
-  // The responder only claims clearly horizontal moves so vertical scrolling and taps keep working.
-  const swipe = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 16 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 2,
-    onPanResponderMove: (_, gesture) => drag.setValue(gesture.dx / 3),
-    onPanResponderRelease: (_, gesture) => {
-      const { previous, next, step } = neighbours.current;
-      const target = gesture.dx <= -SWIPE_DISTANCE ? next : gesture.dx >= SWIPE_DISTANCE ? previous : undefined;
-      Animated.spring(drag, { toValue: 0, useNativeDriver: true, speed: 30, bounciness: 4 }).start();
-      step(target);
-    },
-    onPanResponderTerminate: () => Animated.spring(drag, { toValue: 0, useNativeDriver: true }).start(),
-  }), [drag]);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
-  const solveMode = useAtomValue(solveModeAtom);
-  const scroll = usePreservedScroll(`case:${c.id}:detail`);
-  const [history, setHistory] = useState<CaseHistoryDto | null>(null);
-  const isCube = !!puzzleInfo(puzzleOf(c)).cubeSize;
-  useEffect(() => { let alive = true; api.caseHistory(c.id, { solveMode }).then(h => alive && setHistory(h)); return () => { alive = false; }; }, [c.id, stats?.count, solveMode]);
   const train = () => { setSelection([c.id]); setRoute({ page: "training", autostart: true }); };
-  const summary = history?.summary ?? stats;
-  return <Animated.View style={[styles.browser, { transform: [{ translateX: drag }] }]} {...swipe.panHandlers}>
+  const [width, setWidth] = useState(0);
+  const list = useRef<FlatList<CaseDto>>(null);
+  // The page the list currently rests on; the stepper and route changes scroll to the new one.
+  const shown = useRef(index);
+  useEffect(() => {
+    if (shown.current === index || !width) return;
+    shown.current = index;
+    list.current?.scrollToIndex({ index, animated: true });
+  }, [index, width]);
+  const settle = (offset: number) => {
+    if (!width) return;
+    const target = Math.min(siblings.length - 1, Math.max(0, Math.round(offset / width)));
+    if (target === shown.current) return;
+    shown.current = target;
+    step(siblings[target]);
+  };
+  const renderPage = useCallback(({ item }: { item: CaseDto }) => <CasePage c={item} stats={stats.get(item.id)} width={width} />, [stats, width]);
+  return <View style={styles.browser}>
     <View style={styles.toolbar}>
       <Btn small variant="ghost" icon={<IconBack size={16} color={t.text2} />} label={c.setLabel} onPress={onBack} />
       <View style={styles.stepper}>
@@ -202,39 +195,62 @@ function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[];
       </View>
       <Btn small variant="primary" icon={<IconTimer size={16} color="#fff" />} label="Train" onPress={train} />
     </View>
-    <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ gap: 22, paddingTop: 4, paddingHorizontal: 4, paddingBottom: navSpace }}>
-      <View style={[styles.hero, { gap: phone ? 14 : 24 }]}>
-        <CaseDiagram c={c} size={phone ? 110 : 150} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <H1 size={phone ? 24 : 30}>{c.id}</H1>
-          {c.name !== c.id && <Text style={{ color: t.text2, fontSize: 15, marginTop: 2, marginBottom: 10 }}>{c.name}</Text>}
-          <View style={styles.chips}><Chip label={c.group} />{c.subgroup && c.subgroup !== c.group && <Chip label={c.subgroup} />}{c.probability && <Chip label={`P = ${c.probability}`} />}</View>
-          <View style={{ alignSelf: "flex-start" }}><LearnedToggle caseId={c.id} /></View>
-        </View>
-      </View>
-      <View style={styles.card2}>
-        <Caption>Setup</Caption>
-        <AlgText alg={isCube ? formatAlg(c.setup) : c.setup} size={phone ? 17 : 21} lineHeight={(phone ? 17 : 21) * 1.7} />
-        {c.setups_alt.length > 0 && <Muted size={13}>Also: {c.setups_alt.map((setup, i) => <Text key={i}>{i > 0 && " · "}<AlgText alg={isCube ? formatAlg(setup) : setup} size={13} color={t.readableMuted} /></Text>)}</Muted>}
-        {c.notes && <Muted size={13}>{c.notes}</Muted>}
-      </View>
-      <View style={styles.card2}>
-        <Caption>Algorithms</Caption>
-        <View>{c.algorithms.map((a, i) => <View key={i} style={[styles.algRow, { borderBottomColor: t.line }]}><AlgText alg={displayAlg(a)} size={phone ? 15 : 18} style={{ flexShrink: 1 }} /><AlgorithmBadges algorithm={a} primary={i === 0} /></View>)}</View>
-      </View>
-      <View style={styles.card2}>
-        <Caption>Statistics</Caption>
-        {summary && summary.count > 0 ? <>
-          <View style={styles.kpiRow}>
-            <Kpi label="Solves" value={String(summary.count)} /><Kpi label="Best" value={fmtTime(summary.best)} /><Kpi label="Mean" value={fmtTime(summary.mean)} />
-            <Kpi label="Ao5" value={fmtTime(summary.ao5)} /><Kpi label="Ao12" value={fmtTime(summary.ao12)} /><Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
-          </View>
-          {history && <TimesChart history={history.history} ao5={history.ao5} />}
-        </> : <Empty>No solves yet.</Empty>}
-      </View>
-    </ScrollView>
-  </Animated.View>;
+    <View style={{ flex: 1, minHeight: 0 }} onLayout={event => setWidth(Math.round(event.nativeEvent.layout.width))}>
+      {width > 0 && <FlatList ref={list} horizontal pagingEnabled showsHorizontalScrollIndicator={false} bounces={false} overScrollMode="never"
+        data={siblings} keyExtractor={item => item.id} renderItem={renderPage}
+        initialScrollIndex={index} getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+        initialNumToRender={1} maxToRenderPerBatch={2} windowSize={3} removeClippedSubviews={false}
+        onMomentumScrollEnd={event => settle(event.nativeEvent.contentOffset.x)}
+        onScrollEndDrag={event => { if (!event.nativeEvent.velocity?.x) settle(event.nativeEvent.contentOffset.x); }}
+        onScrollToIndexFailed={({ index: target }) => list.current?.scrollToOffset({ offset: width * target, animated: false })}
+        style={{ flex: 1 }} />}
+    </View>
+  </View>;
 }
+
+/** One page of the case pager: diagram, setups, algorithms and the case's own statistics. */
+const CasePage = memo(function CasePage({ c, stats, width }: { c: CaseDto; stats?: CaseStatsDto; width: number }) {
+  const t = useTheme();
+  const { navSpace, phone } = useLayout();
+  const solveMode = useAtomValue(solveModeAtom);
+  const statsVersion = useAtomValue(statsVersionAtom);
+  // Computed from the local workspace, so the page never waits for its history.
+  const history = useMemo(() => local.read.caseHistory(c.id, { solveMode }), [c.id, solveMode, statsVersion]);
+  const scroll = usePreservedScroll(`case:${c.id}:detail`);
+  const isCube = !!puzzleInfo(puzzleOf(c)).cubeSize;
+  const summary = history.summary.count ? history.summary : stats;
+  return <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ width }} contentContainerStyle={{ gap: 22, paddingTop: 4, paddingHorizontal: 4, paddingBottom: navSpace }}>
+    <View style={[styles.hero, { gap: phone ? 14 : 24 }]}>
+      <CaseDiagram c={c} size={phone ? 110 : 150} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <H1 size={phone ? 24 : 30}>{c.id}</H1>
+        {c.name !== c.id && <Text style={{ color: t.text2, fontSize: 15, marginTop: 2, marginBottom: 10 }}>{c.name}</Text>}
+        <View style={styles.chips}><Chip label={c.group} />{c.subgroup && c.subgroup !== c.group && <Chip label={c.subgroup} />}{c.probability && <Chip label={`P = ${c.probability}`} />}</View>
+        <View style={{ alignSelf: "flex-start" }}><LearnedToggle caseId={c.id} /></View>
+      </View>
+    </View>
+    <View style={styles.card2}>
+      <Caption>Setup</Caption>
+      <AlgText alg={isCube ? formatAlg(c.setup) : c.setup} size={phone ? 17 : 21} lineHeight={(phone ? 17 : 21) * 1.7} />
+      {c.setups_alt.length > 0 && <Muted size={13}>Also: {c.setups_alt.map((setup, i) => <Text key={i}>{i > 0 && " · "}<AlgText alg={isCube ? formatAlg(setup) : setup} size={13} color={t.readableMuted} /></Text>)}</Muted>}
+      {c.notes && <Muted size={13}>{c.notes}</Muted>}
+    </View>
+    <View style={styles.card2}>
+      <Caption>Algorithms</Caption>
+      <View>{c.algorithms.map((a, i) => <View key={i} style={[styles.algRow, { borderBottomColor: t.line }]}><AlgText alg={displayAlg(a)} size={phone ? 15 : 18} style={{ flexShrink: 1 }} /><AlgorithmBadges algorithm={a} primary={i === 0} /></View>)}</View>
+    </View>
+    <View style={styles.card2}>
+      <Caption>Statistics</Caption>
+      {summary && summary.count > 0 ? <>
+        <View style={styles.kpiRow}>
+          <Kpi label="Solves" value={String(summary.count)} /><Kpi label="Best" value={fmtTime(summary.best)} /><Kpi label="Mean" value={fmtTime(summary.mean)} />
+          <Kpi label="Ao5" value={fmtTime(summary.ao5)} /><Kpi label="Ao12" value={fmtTime(summary.ao12)} /><Kpi label="Best Ao5" value={fmtTime(summary.bestAo5)} />
+        </View>
+        <TimesChart history={history.history} ao5={history.ao5} />
+      </> : <Empty>No solves yet.</Empty>}
+    </View>
+  </ScrollView>;
+});
 
 const styles = StyleSheet.create({
   page: { flex: 1, width: "100%", maxWidth: 1100, alignSelf: "center", minHeight: 0 },
