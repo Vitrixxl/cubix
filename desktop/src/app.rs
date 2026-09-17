@@ -3220,15 +3220,15 @@ impl Render for Cubix {
                     return;
                 }
                 if s.overlay == "search" {
-                    // Ctrl+J / Ctrl+K (or the arrows) move through the results; Enter opens the case.
+                    // Ctrl+J / Ctrl+K, Ctrl+N / Ctrl+P (or the arrows) move through the results; Enter opens the case.
                     let results = s.search_results(cx);
                     let count = results.len();
                     match key {
                         "escape" => s.close_search(window, cx),
-                        "down" | "j" if count > 0 && (key == "down" || ctrl) => {
+                        "down" | "j" | "n" if count > 0 && (key == "down" || ctrl) => {
                             s.select_index = (s.select_index + 1) % count
                         }
-                        "up" | "k" if count > 0 && (key == "up" || ctrl) => {
+                        "up" | "k" | "p" if count > 0 && (key == "up" || ctrl) => {
                             s.select_index = (s.select_index + count - 1) % count
                         }
                         "enter" if count > 0 => {
