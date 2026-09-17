@@ -3288,11 +3288,12 @@ impl Render for Cubix {
                     return;
                 }
                 if event.keystroke.modifiers.alt {
+                    // AZERTY reports the unshifted digit row as & é " ' rather than 1 2 3 4.
                     let action = match key {
-                        "1" => "nav:playground",
-                        "2" => "nav:algorithms",
-                        "3" => "nav:training",
-                        "4" => "nav:profile",
+                        "1" | "&" => "nav:playground",
+                        "2" | "é" => "nav:algorithms",
+                        "3" | "\"" => "nav:training",
+                        "4" | "'" => "nav:profile",
                         "n" => "next",
                         "p" => "previous",
                         "c" => "cases",
