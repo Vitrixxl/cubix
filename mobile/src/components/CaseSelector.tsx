@@ -36,6 +36,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   type Row = { key: string } & (
     | { kind: "stage"; stage: string }
     | { kind: "set"; set: SetDto; ids: string[]; count: number; expanded: boolean }
+    | { kind: "group"; group: string; ids: string[]; count: number }
     | { kind: "cases"; cases: CaseDto[] }
   );
   const rows = useMemo(() => {
@@ -50,8 +51,14 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
         const ids = list.map(c => c.id), count = ids.filter(id => sel.has(id)).length;
         const expanded = !!q || (open[set.id] ?? (defaultExpanded || count > 0));
         result.push({ key: set.id, kind: "set", set, ids, count, expanded });
-        if (expanded) for (let i = 0; i < list.length; i += 3)
-          result.push({ key: `${set.id}:${i}`, kind: "cases", cases: list.slice(i, i + 3) });
+        if (!expanded) continue;
+        const groups = new Map<string, CaseDto[]>();
+        for (const c of list) groups.set(c.group, [...(groups.get(c.group) ?? []), c]);
+        for (const [group, members] of groups) {
+          if (groups.size > 1) result.push({ key: `${set.id}:${group}`, kind: "group", group, ids: members.map(c => c.id), count: members.filter(c => sel.has(c.id)).length });
+          for (let i = 0; i < members.length; i += 3)
+            result.push({ key: `${set.id}:${group}:${i}`, kind: "cases", cases: members.slice(i, i + 3) });
+        }
       }
     }
     return result;
@@ -80,6 +87,10 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
             </Pressable>
           </View>;
         }
+        if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={`Toggle all ${row.group} cases`} onPress={() => toggleSet(row.ids)} style={({ pressed }) => [styles.groupHeader, { backgroundColor: pressed ? t.hover : "transparent" }]}>
+          <Text numberOfLines={1} style={[styles.groupLabel, { color: t.text2, flexShrink: 1 }]}>{row.group}</Text>
+          <Text style={[styles.count, { color: t.readableMuted }]}>{row.count}/{row.ids.length}</Text>
+        </Pressable>;
         return <View style={styles.grid}>{row.cases.map(c => <Tile key={c.id} c={c} on={sel.has(c.id)} onPress={() => toggleCase(c.id)} onLongPress={() => { onOpenCase?.(); setRoute({ page: "algorithms", caseId: c.id }); }} />)}</View>;
       }} />
   </View>;
@@ -106,6 +117,8 @@ const styles = StyleSheet.create({
   setLabel: { fontSize: 14, fontWeight: "600" },
   count: { fontSize: 12, fontFamily: "monospace" },
   chevron: { marginLeft: "auto", fontSize: 14 },
+  groupHeader: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 32, marginTop: 4, paddingHorizontal: 6, borderRadius: 8 },
+  groupLabel: { fontSize: 13, fontWeight: "600" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 4, paddingTop: 2, paddingBottom: 10 },
   tile: { width: "32%", alignItems: "center", gap: 4, paddingTop: 8, paddingBottom: 6, borderRadius: 14 },
   tileId: { fontSize: 12, fontWeight: "600", paddingHorizontal: 4, maxWidth: "100%" },

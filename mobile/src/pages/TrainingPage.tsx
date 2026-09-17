@@ -136,8 +136,10 @@ function TrainingSession() {
             <PracticeContent revealEnd={revealed}>
             <View style={styles.heading}>
               <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, { marginRight: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.readableMuted} /></Pressable>
-              <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityLabel="Open case details"><Text style={[styles.caseTitle, { color: t.text, fontSize: layout.phone ? 18 : 22, textDecorationColor: t.readableMuted }]}>{current.c.id}</Text></Pressable>
-              <Muted size={13}>{current.c.name !== current.c.id ? current.c.name : current.c.group}</Muted>
+              <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityLabel="Open case details" style={styles.caseHeading}>
+                <Text style={[styles.caseTitle, { color: t.text, fontSize: layout.phone ? 18 : 22, textDecorationColor: t.readableMuted }]}>{current.c.id}</Text>
+                <Muted size={13} style={{ textAlign: "center" }}>{current.c.name !== current.c.id ? current.c.name : current.c.group}</Muted>
+              </Pressable>
               <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconSkip size={16} color={t.readableMuted} /></Pressable>
             </View>
             <View style={styles.setup}>
@@ -206,7 +208,8 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
 
 const styles = StyleSheet.create({
   trainingCase: { width: "100%", flex: 1, justifyContent: "flex-end", alignItems: "center" },
-  heading: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", columnGap: 10, rowGap: 4 },
+  heading: { flexDirection: "row", alignItems: "center", justifyContent: "center", columnGap: 10 },
+  caseHeading: { alignItems: "center", gap: 2, flexShrink: 1 },
   caseNav: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   caseTitle: { fontWeight: "700", textDecorationLine: "underline" },
   setup: { alignItems: "center", gap: 10, marginTop: 12, width: "100%" },
