@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import { useKeepAwake } from "expo-keep-awake";
-import { memo, useEffect, useLayoutEffect, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { timerRunningAtom } from "../state";
@@ -25,7 +25,7 @@ const LiveTime = memo(function LiveTime({ startedAt, style }: { startedAt: numbe
  * Any touch on the page background arms the timer too (see `TouchArea`); while running, a
  * full-screen layer catches the stopping tap.
  */
-export function TimerSurface({ timer, disabled = false, fontSize, short }: { timer: TimerApi; disabled?: boolean; fontSize: number; short?: boolean }) {
+export function TimerSurface({ timer, disabled = false, fontSize, short, actions }: { timer: TimerApi; disabled?: boolean; fontSize: number; short?: boolean; actions?: ReactNode }) {
   useKeepAwake("cubix-practice", { suppressDeactivateWarnings: true });
   const t = useTheme();
   const { phase, elapsed } = timer;
@@ -44,6 +44,8 @@ export function TimerSurface({ timer, disabled = false, fontSize, short }: { tim
   return <View style={styles.surface} {...responder(timer, disabled)}>
     {phase === "running" ? <LiveTime startedAt={timer.startedAt} style={valueStyle} /> : <Text style={valueStyle}>{text}</Text>}
     <Text style={[styles.hint, { color: t.readableMuted, marginTop: short ? 4 : 6, minHeight: short ? 14 : 20 }]}>{hint}</Text>
+    {/* The row keeps its height whether or not a fresh time offers its buttons, so the timer never jumps. */}
+    <View style={[styles.actions, { height: short ? 36 : 44 }]}>{phase === "running" ? null : actions}</View>
     {timer.saveError ? <View style={[styles.saveError, { backgroundColor: t.dangerSoft }]}><FormError style={{ flexShrink: 1 }}>{timer.saveError}</FormError><Btn small label="Retry" onPress={timer.retrySave} /></View> : null}
   </View>;
 }
@@ -68,6 +70,7 @@ export function StopSurface({ timer }: { timer: TimerApi }) {
 const styles = StyleSheet.create({
   surface: { width: "100%", alignItems: "center", paddingTop: 38, paddingBottom: 8 },
   hint: { fontSize: 12, fontWeight: "500" },
+  actions: { width: "100%", alignItems: "center", justifyContent: "center", marginTop: 2 },
   saveError: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
   stop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 },
 });

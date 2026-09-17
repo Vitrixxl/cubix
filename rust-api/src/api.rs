@@ -32,6 +32,17 @@ fn optional_string<'a>(body: &'a Value, key: &str) -> Result<Option<&'a str>> {
         Some(v) => v.as_str().map(Some).ok_or_else(ApiError::validation),
     }
 }
+/// A solve note: absent, cleared (`null` or blank) or trimmed text of at most 500 characters.
+fn comment(body: &Value) -> Result<Option<Option<String>>> {
+    match body.get("comment") {
+        None => Ok(None),
+        Some(Value::Null) => Ok(Some(None)),
+        Some(_) => {
+            let text = string(body, "comment", 0, 500)?.trim();
+            Ok(Some(Some(text.to_owned()).filter(|t| !t.is_empty())))
+        }
+    }
+}
 fn enum_string<'a>(body: &'a Value, key: &str, allowed: &[&str]) -> Result<&'a str> {
     let s = string(body, key, 0, 32)?;
     if allowed.contains(&s) {
@@ -419,6 +430,7 @@ pub(crate) fn route(
                 "none"
             };
             let scramble = optional_string(body, "scramble")?;
+            let comment = comment(body)?.flatten();
             let selected_session = sid.map(|id| session(db, id, uid)).transpose()?;
             let selected_case = case.and_then(|id| state.catalog.by_id.get(id));
             let context = practice::Context::from_body(
@@ -446,13 +458,14 @@ pub(crate) fn route(
             }
             required(
                 db,
-                "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING *",
+                "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?) RETURNING *",
                 params![
                     sid,
                     case,
                     time.round(),
                     penalty,
                     scramble,
+                    comment,
                     uid,
                     context.cube_size(),
                     context.puzzle,
@@ -463,11 +476,20 @@ pub(crate) fn route(
             )
         }
         ("PATCH", ["solves", id]) => {
-            let penalty = enum_string(body, "penalty", &["none", "+2", "dnf"])?;
+            // Either field may be edited on its own; the other keeps its value.
+            let penalty = if body.get("penalty").is_some() {
+                Some(enum_string(body, "penalty", &["none", "+2", "dnf"])?)
+            } else {
+                None
+            };
+            let comment = comment(body)?;
+            if penalty.is_none() && comment.is_none() {
+                return Err(ApiError::validation());
+            }
             required(
                 db,
-                "UPDATE solves SET penalty=? WHERE id=? AND user_id=? RETURNING *",
-                params![penalty, id, uid],
+                "UPDATE solves SET penalty=COALESCE(?,penalty),comment=CASE WHEN ? THEN ? ELSE comment END WHERE id=? AND user_id=? RETURNING *",
+                params![penalty, comment.is_some(), comment.flatten(), id, uid],
                 "Unknown solve",
             )
         }

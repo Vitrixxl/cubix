@@ -328,7 +328,7 @@ impl Cubix {
                         if solve["penalty"] == "+2" { "+" } else { "" }
                     )
                 };
-                let guest = self.guest();
+                let commented = !s(solve, "comment").is_empty();
                 row()
                     .w_full()
                     .h(px(46.))
@@ -347,7 +347,10 @@ impl Cubix {
                             .font_family("Geist Mono")
                             .whitespace_nowrap()
                             .text_color(t.text)
-                            .flex_1(),
+                            .flex_1()
+                            .when(commented, |d| {
+                                d.child(icon("IconComment", 12.).text_color(t.muted))
+                            }),
                     )
                     .child(
                         row()
@@ -373,13 +376,12 @@ impl Cubix {
                                 .px(px(5.))
                                 .text_size(px(12.)),
                             )
-                            .when(!guest, |r| {
-                                r.child(
-                                    self.btn(format!("share:{id}"), "", false, cx)
-                                        .px(px(5.))
-                                        .child(icon("IconShare", 14.)),
-                                )
-                            })
+                            .child(
+                                self.btn(format!("comment:{id}"), "", false, cx)
+                                    .px(px(5.))
+                                    .when(commented, |d| d.text_color(t.accent))
+                                    .child(icon("IconComment", 14.)),
+                            )
                             .child(
                                 self.btn(format!("delete:{id}"), "", false, cx)
                                     .px(px(5.))

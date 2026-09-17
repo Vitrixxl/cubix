@@ -23,7 +23,7 @@ const guides: Record<GuideId, { title: string; lead: string; sections: [string, 
     sections: [
       ["1. Choose a puzzle and scramble", "Open Settings with the gear in the navigation bar to change the active puzzle, theme or accent. Choose a scramble type and solve mode in the toolbar. New scramble generates another one."],
       ["2. Start", "Hold a free area of the screen for 0.3 seconds until the time turns green, then release. Releasing early cancels. Buttons and lists do not start the timer."],
-      ["3. Stop and review", "Tap the screen to stop. Your time is saved and the next scramble appears. Open Times to inspect scrambles and apply +2 or DNF. Use the button on the right of each time to delete it."],
+      ["3. Stop and review", "Tap the screen to stop. Your time is saved and the next scramble appears. Four buttons under the time let you delete it, mark it DNF, add a +2 (the flag) or write a comment. Open Times to inspect scrambles and comments, change penalties, or delete an earlier time with the button on its right."],
       ["Modes", "Standard, one-handed and blindfolded modes keep separate histories. Blindfolded time includes memorisation. Guest times stay on this device; sign in to sync them."],
     ],
   },

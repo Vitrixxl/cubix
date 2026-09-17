@@ -12,6 +12,7 @@
       time_ms INTEGER NOT NULL,
       penalty TEXT NOT NULL DEFAULT 'none',
       scramble TEXT,
+      comment TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
     CREATE INDEX IF NOT EXISTS idx_solves_case ON solves(case_id, created_at);

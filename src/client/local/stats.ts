@@ -14,7 +14,7 @@ export function history(caseId: string, rows: SolveDto[]): CaseHistoryDto {
   return { summary: { caseId, count: solves.length, best: best(times), worst: valid.reduce<number | null>((max,n) => max === null ? n : Math.max(max,n), null),
     mean: mean(times), ao5: ao5.at(-1) ?? null, ao12: ao12.at(-1) ?? null, bestAo5: best(ao5), bestAo12: best(ao12), last: times.at(-1) ?? null, lastAt: solves.at(-1)?.created_at ?? null },
     history: solves.map((s,i) => { const time = times[i]; if (time !== null) minimum = minimum === null ? time : Math.min(minimum,time);
-      return { id:s.id, time, penalty:s.penalty, at:s.created_at, best:minimum, sessionId:s.session_id }; }), ao5, ao12 };
+      return { id:s.id, time, timeMs:s.time_ms, penalty:s.penalty, comment:s.comment ?? null, at:s.created_at, best:minimum, sessionId:s.session_id }; }), ao5, ao12 };
 }
 export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}): ProfileDto {
   const solves = rows.filter(s => matchesPractice(s, cubeSize, s.case_id ? {solveMode:filter.solveMode} : filter));

@@ -4,7 +4,7 @@ import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, S
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null }
+export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null; comment?: string | null }
 type LiveInput = { type: "auth"; token: string } | { type: "ping" };
 /** `sync` carries the account's latest change cursor; devices behind it pull immediately. */
 type LiveOutput = { type: "pong" }
@@ -67,5 +67,7 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     addSolve: (body: AddSolveBody) => request<SolveDto>("/solves", "POST", body),
     deleteSolve: (id: number) => request<SolveDto>(`/solves/${id}`, "DELETE"),
     setPenalty: (id: number, penalty: Penalty) => request<SolveDto>(`/solves/${id}`, "PATCH", { penalty }),
+    /** An empty or null comment clears the note. */
+    setComment: (id: number, comment: string | null) => request<SolveDto>(`/solves/${id}`, "PATCH", { comment }),
   };
 }

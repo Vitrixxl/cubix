@@ -91,6 +91,15 @@ test("two devices exchange changes and deletions; cached account work never move
   const copied = (await b.api.solves("training"))[0];
   await b.api.setPenalty(copied.id,"dnf"); await b.local.sync(); await a.local.sync();
   expect((await a.api.solves("training"))[0].penalty).toBe("dnf");
+  // Notes travel with the solve: written on one device, edited offline, cleared from the other.
+  await b.api.setComment(copied.id," slow recognition "); await b.local.sync(); await a.local.sync();
+  expect((await a.api.solves("training"))[0].comment).toBe("slow recognition");
+  expect((await a.api.solves("training"))[0].penalty).toBe("dnf");
+  await a.api.setComment(solve.id,"first"); await a.api.setComment(solve.id,"second");
+  await a.local.sync(); await b.local.sync();
+  expect((await b.api.solves("training"))[0].comment).toBe("second");
+  await a.api.setComment(solve.id,null); await a.local.sync(); await b.local.sync();
+  expect((await b.api.solves("training"))[0].comment).toBeNull();
   await b.api.deleteSolve(copied.id); await b.local.sync();
   await a.api.setPenalty(solve.id,"+2"); await a.local.sync();
   expect(await a.api.solves("training")).toEqual([]);

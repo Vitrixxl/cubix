@@ -1,7 +1,7 @@
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { isPuzzle, puzzleInfo, puzzleOf, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
-import type { CaseDto, CaseStatsDto, Stage, UserDto } from "../../src/shared/types";
+import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/shared/types";
 import { sets as catalogSets } from "../../src/client/local/catalog";
 import { api, local } from "./api";
 import { storage } from "./platform/storage";
@@ -97,6 +97,8 @@ export const learnedCaseIdsAtom = atom(get => { get(statsVersionAtom); return lo
 });
 /** Last deleted solve, so the open lists update without refetching every timer tick. */
 export const deletedSolveIdAtom = atom<number | null>(null);
+/** The latest penalty or comment edit; practice pages patch their session list from it. */
+export const updatedSolveAtom = atom<SolveDto | null>(null);
 export const statsAtom = atom(get => {
   get(statsVersionAtom);
   const list = local.read.stats(get(puzzleAtom), { solveMode: get(solveModeAtom) });

@@ -49,3 +49,9 @@ export const IconTrophy = (p: SVGProps<SVGSVGElement>) => (
 export const IconLock = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
 );
+export const IconFlag = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><path d="M5 21V4" /><path d="M5 4h12l-3 4 3 4H5" /></svg>
+);
+export const IconComment = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5z" /></svg>
+);

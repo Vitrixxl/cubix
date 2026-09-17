@@ -49,6 +49,13 @@ impl Db {
             }
             db.execute_batch(&format!("CREATE INDEX IF NOT EXISTS idx_{table}_cube ON {table}(user_id,cube_size,created_at)"))?;
         }
+        // Free-text notes on a solve arrived after the first accounts.
+        if !all(&db, "PRAGMA table_info(solves)", [])?
+            .iter()
+            .any(|c| c["name"] == "comment")
+        {
+            db.execute_batch("ALTER TABLE solves ADD COLUMN comment TEXT")?;
+        }
         crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
         let (tx, mut rx) = mpsc::channel::<Job>(1024);

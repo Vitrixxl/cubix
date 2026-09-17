@@ -31,6 +31,11 @@ test("Native client preserves authentication, dates and parameterized solve/hist
   expect((await api.caseHistory(c.id)).history[0].id).toBe(solve.id);
   expect((await api.solves("training"))[0].created_at).toBe(solve.created_at);
   expect((await api.setPenalty(solve.id, "+2")).penalty).toBe("+2");
+  const noted = await api.setComment(solve.id, "  lockup on the last F2L pair  ");
+  expect(noted.comment).toBe("lockup on the last F2L pair");
+  expect(noted.penalty).toBe("+2");
+  expect((await api.setPenalty(solve.id, "none")).comment).toBe("lockup on the last F2L pair");
+  expect((await api.setComment(solve.id, "")).comment).toBeNull();
   const account = await api.register("native_user", "a-long-test-password");
   setToken(account.token);
   expect(account.user.id).toBe(guest.user.id);

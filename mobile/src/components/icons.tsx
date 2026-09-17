@@ -23,5 +23,7 @@ export const IconTrophy = (p: IconProps) => <Svg {...base(p)}><Path d="M8 21h8M1
 export const IconLock = (p: IconProps) => <Svg {...base(p)}><Rect x="4" y="11" width="16" height="10" rx="2" /><Path d="M8 11V7a4 4 0 0 1 8 0v4" /></Svg>;
 export const IconNext = (p: IconProps) => <Svg {...base(p)}><Path d="M9 6l6 6-6 6" /></Svg>;
 export const IconChevronDown = (p: IconProps) => <Svg {...base(p)}><Path d="m6 9 6 6 6-6" /></Svg>;
+export const IconFlag = (p: IconProps) => <Svg {...base(p)}><Path d="M5 21V4" /><Path d="M5 4h12l-3 4 3 4H5" /></Svg>;
+export const IconComment = (p: IconProps) => <Svg {...base(p)}><Path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5z" /></Svg>;
 export const IconInfo = (p: IconProps) => <Svg width={p.size ?? 15} height={p.size ?? 15} viewBox="0 0 20 20" fill="none" stroke={p.color} strokeWidth={1.5}><Circle cx="10" cy="10" r="8" /><Path d="M10 9v5" /><Circle cx="10" cy="6" r=".7" fill={p.color} stroke="none" /></Svg>;
 export type Icon = (p: IconProps) => React.JSX.Element;

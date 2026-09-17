@@ -59,6 +59,8 @@ export interface SolveDto {
   time_ms: number;
   penalty: Penalty;
   scramble: string | null;
+  /** Free-text note; absent in data saved before notes existed. */
+  comment?: string | null;
   created_at: string;
 }
 
@@ -98,7 +100,10 @@ export interface CaseStatsDto {
 export interface HistoryPoint {
   id: number;
   time: number | null;
+  /** Raw time before penalties, for editing the solve from a history row. */
+  timeMs: number;
   penalty: Penalty;
+  comment: string | null;
   at: string;
   /** best time so far (running minimum) */
   best: number | null;

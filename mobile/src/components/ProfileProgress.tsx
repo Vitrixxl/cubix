@@ -26,10 +26,10 @@ export function ProfileStats({ data }: { data: CaseHistoryDto }) {
     <View style={styles.sectionHeading}><Text style={{ color: t.text, fontSize: 17, fontWeight: "700" }}>Recent times</Text><Muted>{data.summary.count} solves</Muted></View>
     <View style={{ maxWidth: 520 }}>
       <View style={[styles.tr, { borderBottomColor: t.line }]}><Th width={44}>#</Th><Th width={110}>Time</Th><Th>Date</Th></View>
-      {recent.map((s, i) => <SolveRow key={s.id} solveId={s.id} style={[styles.tr, { borderBottomColor: t.line }]}>
+      {recent.map((s, i) => <SolveRow key={s.id} solve={{ id: s.id, time_ms: s.timeMs, penalty: s.penalty, created_at: s.at, comment: s.comment }} style={[styles.tr, { borderBottomColor: t.line }]}>
         <Text style={[styles.td, { width: 44, color: t.readableMuted }]}>{data.history.length - i}</Text>
         <Text style={[styles.td, { width: 110 }, mono(t, 15), s.time === null && { color: t.danger }]}>{s.time === null ? "DNF" : fmtTime(s.time)}{s.penalty === "+2" ? "+" : ""}</Text>
-        <Text style={[styles.td, { color: t.readableMuted, flex: 1 }]}>{fmtDate(s.at)}</Text>
+        <Text style={[styles.td, { color: t.readableMuted, flex: 1 }]} numberOfLines={1}>{fmtDate(s.at)}{s.comment ? ` · ${s.comment}` : ""}</Text>
       </SolveRow>)}
     </View>
   </>;

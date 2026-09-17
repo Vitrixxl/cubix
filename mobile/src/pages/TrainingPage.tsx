@@ -8,7 +8,7 @@ import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from "../../..
 import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
 import type { CaseDto, SolveDto } from "../../../src/shared/types";
 import { api, localChanged } from "../api";
-import { casesAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, solveModeAtom, statsVersionAtom } from "../state";
+import { casesAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, routeAtom, selectedCaseIdsAtom, setsAtom, solveModeAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
@@ -18,10 +18,10 @@ import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
 import { AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
-import { IconBack, IconCheck, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
+import { IconBack, IconCheck, IconComment, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
 import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
-import { SolveRow } from "../components/SolveMenus";
+import { LastSolveActions, SolveRow } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { Caption, Kpi, MiniBtn, Muted, mono } from "../components/ui";
@@ -58,6 +58,10 @@ function TrainingSession() {
   const [solves, setSolves] = useState<SolveDto[]>([]);
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
   useEffect(() => { if (deletedSolveId !== null) setSolves(list => list.filter(solve => solve.id !== deletedSolveId)); }, [deletedSolveId]);
+  const updatedSolve = useAtomValue(updatedSolveAtom);
+  useEffect(() => { if (updatedSolve) setSolves(list => list.map(solve => solve.id === updatedSolve.id ? updatedSolve : solve)); }, [updatedSolve]);
+  // The time just recorded keeps its buttons under the timer until the next attempt or its deletion.
+  const [lastSolveId, setLastSolveId] = useState<number | null>(null);
   const wide = layout.wide;
   const [showSelector, setShowSelector] = useState(wide);
   const [showTimes, setShowTimes] = useState(wide);
@@ -101,6 +105,7 @@ function TrainingSession() {
       const setupText = cube ? combineAuf(current.c.setup, current.auf) : current.c.setup;
       const solve = await api.addSolve({ sessionId, caseId: current.c.id, timeMs: ms, scramble: setupText, puzzle, solveMode, scrambleType: "case" });
       setSolves(s => [...s.filter(item => item.id !== solve.id), solve]);
+      setLastSolveId(solve.id);
       bumpStats(v => v + 1);
       pick(selectedCases);
     } finally { setSaving(false); }
@@ -109,6 +114,7 @@ function TrainingSession() {
 
   const remove = async (id: number) => { await api.deleteSolve(id); setSolves(s => s.filter(x => x.id !== id)); bumpStats(v => v + 1); };
   const undoLast = () => { const last = solves.at(-1); if (last) void remove(last.id); };
+  const lastSolve = lastSolveId === null ? null : solves.find(solve => solve.id === lastSolveId) ?? null;
   const primary = current?.c.algorithms[0];
   const shownSetup = current ? (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup) : "";
   // The picture must show the cube exactly as it is after the displayed setup, random U turn included.
@@ -177,7 +183,7 @@ function TrainingSession() {
             <Muted style={{ marginTop: 6, textAlign: "center" }}>Open Cases and select the algorithms to practise.</Muted>
           </TimerChrome>}
           <PracticeReadout landscape={layout.landscape}>
-          <TimerSlot running={running} style={base.timerSlot}><TimerSurface timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} /></TimerSlot>
+          <TimerSlot running={running} style={base.timerSlot}><TimerSurface timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>
           <TimerChrome hidden={running} exit="down" style={[base.stats, (layout.landscape || layout.short || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : 40 }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
@@ -237,7 +243,7 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={styles.sessionTitle}><Text style={{ color: t.text, fontSize: 14, fontWeight: "700" }}>{shortId(c)}</Text><Text style={[mono(t, 12), { color: t.readableMuted }]}>{list.length ? `${list.length} · best ${fmtTime(b)} · mean ${fmtTime(mean(times))}` : "no time yet"}</Text></View>
             {list.length > 0 && <View style={styles.sessionTimes}>
-              {[...list].reverse().map(s => { const time = effective(s.time_ms, s.penalty); const isBest = time !== null && time === b; return <SolveRow key={s.id} solveId={s.id} style={styles.sessionTime}><Text style={[mono(t, 14, isBest ? "600" : "500"), { color: s.penalty === "dnf" ? t.danger : isBest ? t.accent : t.text2 }]}>{fmtSolve(s.time_ms, s.penalty)}</Text></SolveRow>; })}
+              {[...list].reverse().map(s => { const time = effective(s.time_ms, s.penalty); const isBest = time !== null && time === b; return <SolveRow key={s.id} solve={s} style={styles.sessionTime}><Text style={[mono(t, 14, isBest ? "600" : "500"), { color: s.penalty === "dnf" ? t.danger : isBest ? t.accent : t.text2 }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>{s.comment ? <IconComment size={11} color={t.readableMuted} /> : null}</SolveRow>; })}
             </View>}
           </View>
         </View>;
@@ -264,5 +270,5 @@ const styles = StyleSheet.create({
   sessionCube: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   sessionTitle: { flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: 8, rowGap: 4 },
   sessionTimes: { flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 4, marginTop: 4 },
-  sessionTime: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 },
+  sessionTime: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 },
 });

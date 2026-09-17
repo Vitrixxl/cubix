@@ -159,6 +159,10 @@ pub struct Cubix {
     control_bounds: std::rc::Rc<std::cell::RefCell<HashMap<String, Bounds<Pixels>>>>,
     select_index: usize,
     overlay_solve: Option<Value>,
+    /// The solve whose note is being edited in the comment overlay.
+    comment_solve: i64,
+    /// The time just recorded: it keeps its buttons under the timer until the next attempt or its deletion.
+    last_solve: i64,
     error: String,
     saving: bool,
     generating: bool,
@@ -195,6 +199,7 @@ impl Cubix {
             ("password", "", true),
             ("cases", "Search cases…", false),
             ("search", "Search a case: oll fish, pll t, f2l 6…", false),
+            ("comment", "What happened on this solve?", false),
         ] {
             fields.insert(name.into(), cx.new(|cx| TextInput::new(hint, password, cx)));
         }
@@ -255,6 +260,8 @@ impl Cubix {
             control_bounds: Default::default(),
             select_index: 0,
             overlay_solve: None,
+            comment_solve: 0,
+            last_solve: 0,
             error: String::new(),
             saving: false,
             generating: false,
@@ -743,6 +750,7 @@ impl Cubix {
             }
             "saved" => {
                 self.pending_solve = Value::Null;
+                self.last_solve = value["id"].as_i64().unwrap_or(0);
                 self.advance_pending = true;
                 self.advance_key = format!("{}:{}", self.context_key(), value["id"]);
                 self.refresh();
@@ -1201,6 +1209,34 @@ impl Cubix {
                     self.call("mutated", "deleteSolve", json!([last["id"]]));
                 }
             }
+            "comment" => {
+                let id = arg.parse::<i64>().unwrap_or(0);
+                let existing = self
+                    .solves
+                    .iter()
+                    .find(|s| s["id"] == id)
+                    .map(|s| crate::app::s(s, "comment").to_owned())
+                    .unwrap_or_default();
+                self.comment_solve = id;
+                self.overlay = "comment".into();
+                let field = self.input("comment");
+                field.update(cx, |f, cx| f.set(existing, cx));
+                field.read(cx).focus(window);
+            }
+            "commentSave" | "commentClear" => {
+                let text = if kind == "commentClear" {
+                    Value::Null
+                } else {
+                    json!(self.field("comment", cx).trim())
+                };
+                self.saving = true;
+                self.call("mutated", "setComment", json!([self.comment_solve, text]));
+                self.focus.focus(window);
+            }
+            "commentCancel" => {
+                self.overlay.clear();
+                self.focus.focus(window);
+            }
             "solve" => {
                 self.overlay_solve = self
                     .solves
@@ -1539,7 +1575,9 @@ impl Cubix {
             font_size
         };
         let mut timer_top = self.height / 2. - font_size * 1.1 / 2. - 38.;
-        let timer_height = font_size * 1.1 + 76.;
+        // The timer itself, then the row of buttons for the time just recorded.
+        let actions_height = 44.;
+        let timer_height = font_size * 1.1 + 76. + actions_height;
         let gap = (self.height * 0.026).clamp(14., 28.);
         let mut top = row().w_full().justify_center().flex_wrap().gap(px(8.));
         if training {
@@ -1842,16 +1880,54 @@ impl Cubix {
                         .text_center(),
                 );
             }
+            let t = self.theme;
+            let mut actions = row()
+                .w_full()
+                .h(px(actions_height))
+                .justify_center()
+                .gap(px(8.));
+            if let Some(last) = self
+                .solves
+                .iter()
+                .find(|s| s["id"] == self.last_solve)
+                .filter(|_| !self.saving)
+                .cloned()
+            {
+                let id = last["id"].to_string();
+                let commented = !s(&last, "comment").is_empty();
+                actions = actions
+                    .child(
+                        self.btn(format!("delete:{id}"), "", false, cx)
+                            .px(px(10.))
+                            .text_color(t.danger)
+                            .hover(move |s| s.bg(t.hover).text_color(t.danger))
+                            .child(icon("IconClose", 16.)),
+                    )
+                    .child(
+                        self.btn(format!("penalty:{id}:dnf"), "DNF", last["penalty"] == "dnf", cx)
+                            .px(px(10.))
+                            .text_size(px(12.)),
+                    )
+                    .child(
+                        self.btn(format!("penalty:{id}:+2"), "+2", last["penalty"] == "+2", cx)
+                            .px(px(10.))
+                            .gap(px(4.))
+                            .child(icon("IconFlag", 15.)),
+                    )
+                    .child(
+                        self.btn(format!("comment:{id}"), "", false, cx)
+                            .px(px(10.))
+                            .when(commented, |d| d.text_color(t.accent))
+                            .child(icon("IconComment", 16.)),
+                    );
+            }
             center = center.child(
                 div()
                     .absolute()
-                    .top(px(timer_top
-                        + timer_height
-                        + gap
-                        + hide
-                            * (self.height - timer_top - timer_height - gap + 40.)))
+                    .top(px(timer_top + timer_height - actions_height
+                        + hide * (self.height - timer_top - timer_height + 40.)))
                     .w_full()
-                    .child(stats),
+                    .child(col().w_full().child(actions).child(stats.mt(px(gap)))),
             );
         }
         center = center.child(
@@ -2923,6 +2999,17 @@ impl Cubix {
             .when(!s(solve, "scramble").is_empty(), |d| {
                 d.child(txt(s(solve, "scramble"), 12.).font_family("Geist Mono"))
             })
+            .when(!s(solve, "comment").is_empty(), |d| {
+                d.child(
+                    row()
+                        .items_start()
+                        .gap(px(6.))
+                        .mt(px(4.))
+                        .text_color(self.theme.secondary)
+                        .child(icon("IconComment", 13.).mt(px(2.)))
+                        .child(txt(s(solve, "comment"), 13.).flex_1()),
+                )
+            })
     }
     fn select_options(&self) -> (&'static str, Vec<Value>, String) {
         match self.overlay.as_str() {
@@ -3021,11 +3108,75 @@ impl Cubix {
         }
         if self.overlay == "solve" {
             if let Some(solve) = &self.overlay_solve {
-                menu = menu.child(self.solve_card(solve)).child(
-                    self.btn(format!("delete:{}", solve["id"]), "Delete", false, cx)
+                let commented = !s(solve, "comment").is_empty();
+                menu = menu
+                    .child(self.solve_card(solve))
+                    .child(
+                        self.btn(
+                            format!("comment:{}", solve["id"]),
+                            if commented { "Edit comment" } else { "Add comment" },
+                            false,
+                            cx,
+                        )
+                        .child(icon("IconComment", 14.)),
+                    )
+                    .child(
+                        self.btn(format!("delete:{}", solve["id"]), "Delete", false, cx)
+                            .text_color(self.theme.danger),
+                    );
+            }
+        }
+        if self.overlay == "comment" {
+            let solve = self
+                .solves
+                .iter()
+                .find(|s| s["id"] == self.comment_solve)
+                .cloned()
+                .unwrap_or(Value::Null);
+            let commented = !s(&solve, "comment").is_empty();
+            let value = if solve["penalty"] == "dnf" {
+                "DNF".into()
+            } else {
+                ft(&solve["time_ms"])
+            };
+            let mut foot = row().w_full().gap(px(6.));
+            if commented {
+                foot = foot.justify_between().child(
+                    self.btn("commentClear", "Remove", false, cx)
                         .text_color(self.theme.danger),
                 );
+            } else {
+                foot = foot.justify_end();
             }
+            foot = foot.child(
+                row()
+                    .gap(px(6.))
+                    .child(self.btn("commentCancel", "Cancel", false, cx))
+                    .child(
+                        self.btn("commentSave", "Save", true, cx)
+                            .text_color(self.theme.accent),
+                    ),
+            );
+            menu = menu
+                .w(px((self.width - 24.).min(440.)))
+                .p(px(16.))
+                .gap(px(12.))
+                .child(
+                    row()
+                        .justify_between()
+                        .child(self.heading("Comment"))
+                        .child(
+                            self.btn("commentCancel", "", false, cx)
+                                .child(icon("IconClose", 16.)),
+                        ),
+                )
+                .child(
+                    txt(format!("{} · {}", value, puzzle(&solve)), 13.)
+                        .font_family("Geist Mono")
+                        .text_color(self.theme.muted),
+                )
+                .child(self.input("comment"))
+                .child(foot);
         }
         if self.overlay == "profileCase" {
             let c = self.find_case(&self.case_id);
@@ -3131,7 +3282,8 @@ impl Cubix {
                 .child(self.input("search"))
                 .child(list_view);
         }
-        let modal = ["profileCase", "chartTable", "search"].contains(&self.overlay.as_str());
+        let modal =
+            ["profileCase", "chartTable", "search", "comment"].contains(&self.overlay.as_str());
         let mut layer = div().absolute().inset_0().child(
             div()
                 .id("dismiss-overlay")
@@ -3149,8 +3301,11 @@ impl Cubix {
         );
         let mut position = div().absolute();
         if modal {
-            let modal_width =
-                (self.width - 24.).min(if self.overlay == "search" { 560. } else { 760. });
+            let modal_width = (self.width - 24.).min(match self.overlay.as_str() {
+                "search" => 560.,
+                "comment" => 440.,
+                _ => 760.,
+            });
             position = position
                 .left(px((self.width - modal_width) / 2.))
                 .top(px(20.));
@@ -3362,6 +3517,16 @@ impl Render for Cubix {
                         cx.notify();
                         return;
                     }
+                }
+                if typing && s.overlay == "comment" {
+                    match key {
+                        "enter" => s.action("commentSave", window, cx),
+                        "escape" => s.action("commentCancel", window, cx),
+                        _ => return,
+                    }
+                    cx.stop_propagation();
+                    cx.notify();
+                    return;
                 }
                 if typing {
                     if key == "enter" && !s.editing {

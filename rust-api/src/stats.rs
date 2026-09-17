@@ -36,7 +36,7 @@ pub fn history(case_id: &str, solves: &[Value]) -> Value {
     let mut best: Option<f64> = None;
     let entries: Vec<_> = solves.iter().zip(&times).map(|(s, time)| {
         if let Some(t) = time { best = Some(best.map_or(*t, |b| b.min(*t))); }
-        json!({"id":s["id"],"time":time,"penalty":s["penalty"],"at":s["created_at"],"best":best,"sessionId":s["session_id"]})
+        json!({"id":s["id"],"time":time,"timeMs":s["time_ms"],"penalty":s["penalty"],"comment":s["comment"],"at":s["created_at"],"best":best,"sessionId":s["session_id"]})
     }).collect();
     json!({"summary":{
         "caseId":case_id,"count":solves.len(),"best":minimum(valid.iter().copied()),"worst":valid.iter().copied().reduce(f64::max),

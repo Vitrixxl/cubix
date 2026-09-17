@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { averageOf, best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
 import { contextKey, puzzleInfo, scrambleLabel, SOLVE_MODES, type PracticeContext, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
-import type { Penalty, SolveDto } from "../../../src/shared/types";
+import type { SolveDto } from "../../../src/shared/types";
 import { api, localChanged } from "../api";
-import { cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom } from "../state";
+import { cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom, updatedSolveAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
@@ -17,7 +17,7 @@ import { IconShuffle, IconTimer } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
 import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { Select } from "../components/Select";
-import { SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
+import { LastSolveActions, SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { Bone } from "../components/Bone";
 import { Caption, Empty, Kpi, MiniBtn, Muted, mono } from "../components/ui";
@@ -52,6 +52,10 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const [solves, setSolves] = useState<SolveDto[]>([]);
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
   useEffect(() => { if (deletedSolveId !== null) setSolves(list => list.filter(solve => solve.id !== deletedSolveId)); }, [deletedSolveId]);
+  const updatedSolve = useAtomValue(updatedSolveAtom);
+  useEffect(() => { if (updatedSolve) setSolves(list => list.map(solve => solve.id === updatedSolve.id ? updatedSolve : solve)); }, [updatedSolve]);
+  // The time just recorded keeps its buttons under the timer until the next attempt or its deletion.
+  const [lastSolveId, setLastSolveId] = useState<number | null>(null);
   const wide = layout.wide;
 
   const generateNext = useCallback(async () => {
@@ -90,16 +94,13 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
       const sessionId = await ensureSession();
       const solve = await api.addSolve({ sessionId, caseId: null, timeMs: ms, scramble, ...context });
       setSolves(s => [...s.filter(item => item.id !== solve.id), solve]);
+      setLastSolveId(solve.id);
       void generateNext();
     } finally { setSaving(false); }
   }, [scramble, context, generateNext]);
   const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError });
 
-  const penalty = async (s: SolveDto, p: Penalty) => {
-    const next = s.penalty === p ? "none" : p;
-    const updated = await api.setPenalty(s.id, next);
-    setSolves(list => list.map(x => (x.id === s.id ? updated : x)));
-  };
+  const lastSolve = lastSolveId === null ? null : solves.find(solve => solve.id === lastSolveId) ?? null;
   const times = solves.map(s => effective(s.time_ms, s.penalty));
   const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
   const running = timer.phase === "running";
@@ -130,7 +131,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             </PracticeContent>
           </TimerChrome>
           <PracticeReadout landscape={layout.landscape}>
-          <TimerSlot running={running} style={styles.timerSlot}><TimerSurface timer={timer} fontSize={timerSize} short={layout.short} /></TimerSlot>
+          <TimerSlot running={running} style={styles.timerSlot}><TimerSurface timer={timer} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>
           <TimerChrome hidden={running} exit="down" style={[styles.stats, (layout.landscape || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : Math.max(16, Math.min(layout.width * 0.035, 40)) }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
@@ -153,14 +154,12 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           <View style={styles.panelHeader}><Muted size={13}>{solves.length} solve{solves.length === 1 ? "" : "s"}</Muted></View>
           <FlatList {...scroll} data={[...solves].reverse()} keyExtractor={solve => String(solve.id)} initialNumToRender={16} maxToRenderPerBatch={12} windowSize={5} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingRight: 4, paddingBottom: layout.navSpace }}
             ListEmptyComponent={<Empty>No times yet.</Empty>}
-            renderItem={({ item: s, index: i }) => <SolveRow key={s.id} solveId={s.id} style={styles.solveRow}>
+            renderItem={({ item: s, index: i }) => <SolveRow key={s.id} solve={s} style={styles.solveRow}>
               <Text style={[mono(t, 12), { width: 26, color: t.muted }]}>{solves.length - i}</Text>
               <Text style={[mono(t, 16, "600"), { minWidth: 64 }, s.penalty === "dnf" && { color: t.danger }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>
               <View style={styles.actions}>
                 <SolveInfoButton solve={s} />
-                <MiniBtn label="+2" on={s.penalty === "+2"} onPress={() => void penalty(s, "+2")} />
-                <MiniBtn label="DNF" on={s.penalty === "dnf"} onPress={() => void penalty(s, "dnf")} />
-                <SolveActionButtons solveId={s.id} />
+                <SolveActionButtons solve={s} />
               </View>
             </SolveRow>}
           />

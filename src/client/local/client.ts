@@ -9,7 +9,7 @@ import { achievements } from "../lib/achievements";
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "delete" | "learned"; localId: number; body: any; createdAt: string; error?: string };
+type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned"; localId: number; body: any; createdAt: string; error?: string };
 interface Workspace { version: 1; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
@@ -105,7 +105,7 @@ export function createLocalClient(options: {
       }
       for (const solve of liveSolves(guest)) if (!account.solves[solve.id]) {
         account.solves[solve.id] = { ...solve, serverId:undefined };
-        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, ...contextOf(solve) },solve.created_at);
+        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...contextOf(solve) },solve.created_at);
       }
       for (const caseId of learnedIds(guest)) if (!account.learned[caseId]) {
         account.learned[caseId] = true;
@@ -178,12 +178,12 @@ export function createLocalClient(options: {
             if (sid === undefined) throw new Error("The session is waiting to synchronize.");
             body.sessionId = sid;
           }
-          if (op.kind === "penalty" || op.kind === "delete") {
+          if (op.kind === "penalty" || op.kind === "comment" || op.kind === "delete") {
             const serverId = solveServerId(workspace,op.localId);
             if (!serverId) throw new Error("The solve is waiting to synchronize.");
             path += "/" + serverId;
           }
-          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" ? "PUT" : op.kind === "penalty" ? "PATCH" : "POST";
+          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
           const result: any = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
@@ -275,7 +275,7 @@ export function createLocalClient(options: {
       // Preserve insertion order even for imports/tests producing several solves in one millisecond.
       const latest = Object.values(workspace.solves).reduce((at,s) => Math.max(at,Date.parse(s.created_at)),0);
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
-      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,created_at:createdAt };
+      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,created_at:createdAt };
       workspace.solves[solve.id] = solve;
       operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms},solve.created_at); return solve;
     }),
@@ -283,6 +283,15 @@ export function createLocalClient(options: {
     setPenalty: async (solveId: number, penalty: Penalty) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.penalty = penalty; operation(workspace,id,"penalty",solveId,{penalty}); return solve;
+    }),
+    /** Trimmed; an empty text clears the note. Only the latest note of a solve needs uploading. */
+    setComment: async (solveId: number, comment: string | null) => localMutation((workspace,id) => {
+      const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
+      const text = comment?.trim() || null;
+      if ((text ?? "").length > 500) throw new Error("Comments are limited to 500 characters.");
+      solve.comment = text;
+      workspace.outbox = workspace.outbox.filter(op => !(op.kind === "comment" && !op.error && op.localId === solveId));
+      operation(workspace,id,"comment",solveId,{comment:text}); return solve;
     }),
     deleteSolve: async (solveId: number) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
