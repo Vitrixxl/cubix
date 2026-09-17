@@ -1,12 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
-import { fmtDate, fmtTime } from "../../../src/client/lib/format";
+import { effective, fmtDate, fmtTime } from "../../../src/client/lib/format";
 import type { HistoryPoint } from "../../../src/shared/types";
 import { FONT, useTheme } from "../theme";
 import { IconComment } from "./icons";
 import { Select } from "./Select";
-import { SolveActionButtons, SolveInfoButton, SolveRow } from "./SolveMenus";
+import { SolveActionButtons, SolveInfoButton, SolveRow, useSolveMenu } from "./SolveMenus";
 import { Btn, Empty, Muted, Segmented, mono } from "./ui";
 
 /**
@@ -153,14 +153,21 @@ function SolvesTable({ history }: { history: HistoryPoint[] }) {
   const [sort, setSort] = useState<Sort>("newest");
   const [commented, setCommented] = useState(false);
   const [shown, setShown] = useState(PAGE);
+  const { optimistic } = useSolveMenu();
   const rows = useMemo(() => {
-    const list = history.map((h, i) => ({ h, index: i + 1 })).filter(({ h }) => !commented || !!h.comment);
+    // A pending penalty or deletion shows before the history is recomputed.
+    const list = history.flatMap((h, i) => {
+      const pending = optimistic.get(h.id);
+      if (pending === null) return [];
+      const row = pending ? { ...h, penalty: pending.penalty, comment: pending.comment ?? null, time: effective(h.timeMs, pending.penalty) } : h;
+      return commented && !row.comment ? [] : [{ h: row, index: i + 1 }];
+    });
     const byTime = (a: HistoryPoint, b: HistoryPoint, direction: 1 | -1) => a.time === null ? (b.time === null ? 0 : 1) : b.time === null ? -1 : (a.time - b.time) * direction;
     if (sort === "newest") list.reverse();
     else if (sort === "fastest") list.sort((a, b) => byTime(a.h, b.h, 1) || b.index - a.index);
     else if (sort === "slowest") list.sort((a, b) => byTime(a.h, b.h, -1) || b.index - a.index);
     return list;
-  }, [history, sort, commented]);
+  }, [history, sort, commented, optimistic]);
   const commentCount = useMemo(() => history.filter(h => h.comment).length, [history]);
   return <View style={{ gap: 6 }}>
     <View style={styles.tableBar}>
@@ -170,8 +177,7 @@ function SolvesTable({ history }: { history: HistoryPoint[] }) {
       </Btn>
     </View>
     <View style={[styles.line, { borderBottomWidth: 1, borderBottomColor: t.line }]}>
-      <Text style={[styles.th, { width: 40, color: t.readableMuted }]}>#</Text>
-      <Text style={[styles.th, { width: 88, color: t.readableMuted }]}>Time</Text>
+      <Text style={[styles.th, { width: 96, color: t.readableMuted }]}>Time</Text>
       <Text style={[styles.th, { flex: 1, color: t.readableMuted, textAlign: "right" }]}>Actions</Text>
     </View>
     {rows.length === 0 && <Empty><Muted>{commented ? "No commented solve yet. Tap the bubble on a time to add one." : "No solves match."}</Muted></Empty>}
@@ -179,9 +185,8 @@ function SolvesTable({ history }: { history: HistoryPoint[] }) {
       const solve = { id: h.id, time_ms: h.timeMs, penalty: h.penalty, created_at: h.at, comment: h.comment };
       return <SolveRow key={h.id} solve={solve} style={[styles.rowBlock, { borderBottomColor: t.line }]}>
         <View style={styles.line}>
-          <Text style={[styles.td, { width: 40, color: t.readableMuted }]}>{index}</Text>
-          <Text style={[styles.td, { width: 88 }, mono(t, 15), h.time === null && { color: t.danger }]}>{h.time === null ? "DNF" : fmtTime(h.time)}{h.penalty === "+2" ? "+" : ""}</Text>
-          <View style={styles.actions}><SolveInfoButton solve={solve} /><SolveActionButtons solve={solve} /></View>
+          <Text style={[styles.td, { width: 96 }, mono(t, 15), h.time === null && { color: t.danger }]}>{h.time === null ? "DNF" : fmtTime(h.time)}{h.penalty === "+2" ? "+" : ""}</Text>
+          <View style={styles.actions}><SolveInfoButton solve={solve} index={index} /><SolveActionButtons solve={solve} /></View>
         </View>
         {h.comment ? <Text style={[styles.comment, { color: t.text }]}>{h.comment}</Text> : null}
       </SolveRow>;

@@ -25,7 +25,9 @@ const MenuContext = createContext<{
   togglePenalty: (solve: SolveSummary, penalty: Penalty) => Promise<void>;
   editComment: (solve: SolveSummary) => void;
   busy: boolean;
-}>({ open: () => {}, deleteTime: async () => {}, togglePenalty: async () => {}, editComment: () => {}, busy: false });
+  /** Mutations in flight, as the rows should already look: `null` for a deletion. Lists apply it on top of their data. */
+  optimistic: ReadonlyMap<number, SolveSummary | null>;
+}>({ open: () => {}, deleteTime: async () => {}, togglePenalty: async () => {}, editComment: () => {}, busy: false, optimistic: new Map() });
 
 /** Shared solve actions: the buttons under a fresh time, the list rows and the long-press menu. */
 export function SolveMenuProvider({ children }: { children: ReactNode }) {
@@ -49,13 +51,23 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
     catch (e) { setError((e as Error).message); }
     finally { pending.current = false; setBusy(false); }
   }, []);
+  // The expected result shows at once; it is dropped in the same render as the refreshed data, or on failure.
+  const [optimistic, setOptimistic] = useState<ReadonlyMap<number, SolveSummary | null>>(new Map());
+  const expect = (id: number, value: SolveSummary | null) => setOptimistic(current => new Map(current).set(id, value));
+  const settle = (id: number) => setOptimistic(current => { const next = new Map(current); next.delete(id); return next; });
   const deleteTime = useCallback((id: number) => run(async () => {
-    await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); setMenu(null);
+    expect(id, null);
+    try { await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); setMenu(null); }
+    finally { settle(id); }
   }), [run, notifyDeleted, bumpStats]);
   const togglePenalty = useCallback((solve: SolveSummary, penalty: Penalty) => run(async () => {
-    const updated = await api.setPenalty(solve.id, solve.penalty === penalty ? "none" : penalty);
-    notifyUpdated(updated); bumpStats(v => v + 1);
-    setMenu(current => current && current.solve.id === solve.id ? { ...current, solve: updated } : current);
+    const next: Penalty = solve.penalty === penalty ? "none" : penalty;
+    expect(solve.id, { ...solve, penalty: next });
+    try {
+      const updated = await api.setPenalty(solve.id, next);
+      notifyUpdated(updated); bumpStats(v => v + 1);
+      setMenu(current => current && current.solve.id === solve.id ? { ...current, solve: updated } : current);
+    } finally { settle(solve.id); }
   }), [run, notifyUpdated, bumpStats]);
   const editComment = useCallback((solve: SolveSummary) => { setMenu(null); setError(""); setDraft(solve.comment ?? ""); setEditing(solve); }, []);
   const saveComment = (text: string | null) => run(async () => {
@@ -64,7 +76,7 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
     notifyUpdated(updated); bumpStats(v => v + 1); setEditing(null);
   });
   const menuSolve = menu?.solve;
-  return <MenuContext.Provider value={{ open, deleteTime, togglePenalty, editComment, busy }}>
+  return <MenuContext.Provider value={{ open, deleteTime, togglePenalty, editComment, busy, optimistic }}>
     {children}
     <Popover anchor={menu?.anchor ?? null} onClose={() => setMenu(null)} width={230}>
       {menuSolve && <View style={styles.menuHead}>
@@ -156,7 +168,7 @@ function ActionButton({ size, label, on, danger, disabled, onPress, children }: 
 }
 
 /** The small "i" button on a time, opening its date and comment, plus the scramble when the row has one. */
-export function SolveInfoButton({ solve }: { solve: SolveDto | SolveSummary }) {
+export function SolveInfoButton({ solve, index }: { solve: SolveDto | SolveSummary; index?: number }) {
   const t = useTheme();
   const { ref, anchor, open, close } = useAnchor();
   const date = useMemo(() => fmtDate(solve.created_at), [solve.created_at]);
@@ -165,7 +177,7 @@ export function SolveInfoButton({ solve }: { solve: SolveDto | SolveSummary }) {
     <View ref={ref} collapsable={false}><MiniBtn accessibilityLabel="Show solve details" icon={<IconInfo size={15} color={t.readableMuted} />} onPress={open} /></View>
     <Popover anchor={anchor} onClose={close} width={280} alignRight gap={8}>
       <View style={{ paddingHorizontal: 8, paddingVertical: 6, gap: 2 }}>
-        <Text style={[styles.label, { color: t.readableMuted }]}>{full ? contextLabel(full) : "Date"}</Text>
+        <Text style={[styles.label, { color: t.readableMuted }]}>{full ? contextLabel(full) : index !== undefined ? `Solve #${index}` : "Date"}</Text>
         <Text style={{ color: t.text, fontSize: 13, fontWeight: "500" }}>{date}</Text>
         {full && <>
           <Text style={[styles.label, { color: t.readableMuted, marginTop: 8 }]}>Scramble</Text>
