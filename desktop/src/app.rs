@@ -3291,7 +3291,7 @@ impl Render for Cubix {
                     // AZERTY reports the unshifted digit row as & é " ' rather than 1 2 3 4.
                     let action = match key {
                         "1" | "&" => "nav:playground",
-                        "2" | "é" => "nav:algorithms",
+                        "2" | "é" | "eacute" => "nav:algorithms",
                         "3" | "\"" => "nav:training",
                         "4" | "'" => "nav:profile",
                         "n" => "next",
