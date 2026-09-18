@@ -9,6 +9,16 @@ const YAW: f32 = std::f32::consts::FRAC_PI_4;
 /// hairline seams over a dark core, with no black rim around each sticker.
 const CORE: u32 = 0x121216;
 const SEAM: f32 = 0.05;
+/// Corner radius of centres, and of edges on their centre side, in piece units.
+const ROUND: f32 = 0.26;
+/// Softer radius for the inner tip of corner pieces.
+const CORNER_ROUND: f32 = 0.12;
+/// Rounded cube vertices: the rounding starts this far along each cube edge
+/// and pulls the point where the three colours meet inwards by `TIP_DEPTH`
+/// on every axis. `TIP` must stay above `3 * TIP_DEPTH`.
+const TIP: f32 = 0.12;
+const TIP_DEPTH: f32 = 0.024;
+const ARC_STEPS: usize = 6;
 const PITCH: f32 = 0.55;
 type V = [f32; 3];
 
@@ -90,6 +100,25 @@ fn geometry(size: usize, face: usize, row: usize, col: usize) -> (V, V) {
         _ => ([-h, h - r, c - h], [-1., 0., 0.]),
     }
 }
+/// Seam between two faces near a cube vertex: a curve from the cube edge that
+/// runs along axis `k` to the pulled-in tip, tangent to the edge at its start
+/// and perpendicular to the cube diagonal at the tip. The three faces of a
+/// corner share these curves, so their colours still meet without a gap.
+fn tip_curve(vertex: V, k: usize) -> impl Iterator<Item = V> {
+    let sign = vertex.map(f32::signum);
+    let (mut start, mut control) = (vertex, vertex);
+    start[k] -= sign[k] * TIP;
+    control[k] -= sign[k] * 3. * TIP_DEPTH;
+    let tip = add(vertex, scale(sign, -TIP_DEPTH));
+    (0..=ARC_STEPS).map(move |step| {
+        let t = step as f32 / ARC_STEPS as f32;
+        add(
+            add(scale(start, (1. - t) * (1. - t)), scale(control, 2. * t * (1. - t))),
+            scale(tip, t * t),
+        )
+    })
+}
+
 /// Screen-space polygon in cube units, already in paint order.
 struct Polygon {
     points: Vec<[f32; 2]>,
@@ -163,11 +192,21 @@ fn polygons(scene: &Scene, seconds: f32, yaw: f32, pitch: f32) -> Vec<Polygon> {
         let mut hi = [h + 0.5; 3];
         lo[axis] = start as f32 - h - 0.5;
         hi[axis] = end as f32 - h + 0.5;
+        // Box corners that are cube vertices follow the rounded tip, so the
+        // dark core never pokes out past the coloured pieces.
         let corners = (0..8)
-            .map(|i| {
+            .flat_map(|i| {
                 let pick = |k: usize| if i >> k & 1 == 0 { lo[k] } else { hi[k] };
-                let v = pose([pick(0), pick(1), pick(2)], turning);
-                [v[0], v[1]]
+                let v = [pick(0), pick(1), pick(2)];
+                if v.iter().all(|c| c.abs() >= h + 0.5 - 0.0001) {
+                    (0..3).flat_map(|k| tip_curve(v, k)).collect()
+                } else {
+                    vec![v]
+                }
+            })
+            .map(|v| {
+                let w = pose(v, turning);
+                [w[0], w[1]]
             })
             .collect();
         faces.push(Polygon {
@@ -195,13 +234,46 @@ fn polygons(scene: &Scene, seconds: f32, yaw: f32, pitch: f32) -> Vec<Polygon> {
                 e
             };
             let (a, b) = ((normal_axis + 1) % 3, (normal_axis + 2) % 3);
-            let points = [(-1., -1.), (1., -1.), (1., 1.), (-1., 1.)]
-                .iter()
-                .map(|&(sa, sb)| {
-                    let w = pose(add(center, add(extent(a, sa), extent(b, sb))), turning);
-                    [w[0], w[1]]
-                })
-                .collect();
+            let outside = |k: usize, sign: f32| (p[k] + sign * 0.5).abs() >= h + 0.5 - 0.0001;
+            // Every corner that touches no cube edge is rounded: all four on a
+            // centre, the centre side of an edge, and the inner tip of a corner
+            // piece, which only gets a softer radius.
+            let sides = [(a, -1.), (a, 1.), (b, -1.), (b, 1.)];
+            let is_corner = sides.iter().filter(|&&(k, sign)| outside(k, sign)).count() >= 2;
+            let mut points = Vec::new();
+            for (sa, sb) in [(-1., -1.), (1., -1.), (1., 1.), (-1., 1.)] {
+                let tip = add(extent(a, sa), extent(b, sb));
+                if outside(a, sa) && outside(b, sb) {
+                    // Cube vertex: in along one shared seam, out along the other.
+                    let (first, last) = if sa * sb > 0. { (b, a) } else { (a, b) };
+                    let vertex = add(center, tip);
+                    let seam_in = tip_curve(vertex, first);
+                    let seam_out: Vec<V> = tip_curve(vertex, last).collect();
+                    for v in seam_in.chain(seam_out.into_iter().rev().skip(1)) {
+                        let w = pose(v, turning);
+                        points.push([w[0], w[1]]);
+                    }
+                    continue;
+                }
+                if outside(a, sa) || outside(b, sb) {
+                    let w = pose(add(center, tip), turning);
+                    points.push([w[0], w[1]]);
+                    continue;
+                }
+                let radius = if is_corner { CORNER_ROUND } else { ROUND };
+                let mut arc_center = tip;
+                arc_center[a] -= sa * radius;
+                arc_center[b] -= sb * radius;
+                let start = f32::atan2(sb, sa) - std::f32::consts::FRAC_PI_4;
+                for step in 0..=ARC_STEPS {
+                    let (sin, cos) = (start + FRAC_PI_2 * step as f32 / ARC_STEPS as f32).sin_cos();
+                    let mut v = arc_center;
+                    v[a] += cos * radius;
+                    v[b] += sin * radius;
+                    let w = pose(add(center, v), turning);
+                    points.push([w[0], w[1]]);
+                }
+            }
             faces.push(Polygon {
                 points,
                 color: scene.colors[*origin],
