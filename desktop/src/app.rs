@@ -1066,6 +1066,7 @@ impl Cubix {
                 self.solve_mode = arg.into();
                 self.save_per_puzzle("cubix.practice.modeByPuzzle", json!(arg));
                 self.overlay.clear();
+                self.scramble.clear();
                 self.new_scramble();
                 self.refresh();
             }
@@ -1074,6 +1075,7 @@ impl Cubix {
                 self.scramble_type = arg.into();
                 self.save_per_puzzle("cubix.practice.typeByPuzzle", json!(arg));
                 self.overlay.clear();
+                self.scramble.clear();
                 self.new_scramble();
                 self.refresh();
             }
@@ -1842,7 +1844,8 @@ impl Cubix {
                             .font_weight(FontWeight::BOLD)
                             .text_color(self.theme.muted),
                     )
-                    .child(if self.generating {
+                    // A new scramble of the same context replaces the shown one in place: no placeholder frame.
+                    .child(if self.generating && self.scramble.is_empty() {
                         txt("Generating…", 16.).text_color(self.theme.muted)
                     } else {
                         self.practice_alg(

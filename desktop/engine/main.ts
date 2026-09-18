@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { cases } from '../../src/client/local/catalog';
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { puzzleInfo, type PuzzleId } from '../../src/shared/puzzles';
+import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
 import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync, openSync, fsyncSync, closeSync } from 'node:fs';
 import { join } from 'node:path';
 import {homedir} from 'node:os';
@@ -45,6 +45,22 @@ function connect(){
  current.on('error',()=>{});
 }
 let lastAdvance:{key:string,promise:Promise<Record<string,unknown>>}|undefined;
+// One scramble per context is generated ahead, so asking for a new one answers without waiting for the search.
+const nextScrambles=new Map<string,Promise<string>>();
+const scrambleKey=(context:PracticeContext)=>`${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
+function prefetchScramble(context:PracticeContext){
+   const key=scrambleKey(context);
+   if(nextScrambles.has(key))return;
+   const promise=generatePracticeScramble(context);
+   promise.catch(()=>{if(nextScrambles.get(key)===promise)nextScrambles.delete(key);});
+   nextScrambles.set(key,promise);
+}
+function takeScramble(context:PracticeContext){
+   const key=scrambleKey(context),ready=nextScrambles.get(key)??generatePracticeScramble(context);
+   nextScrambles.delete(key);
+   prefetchScramble(context);
+   return ready;
+}
 const trainingHistories=new Map<string,TrainingHistory>();
 function training(action:string,puzzle:PuzzleId,ids:string[],useAuf:boolean,solveMode:string){
    const key=`${puzzle}:${solveMode}`;
@@ -76,14 +92,15 @@ async function handle(req:any){
    if(q.page==='profile'){jobs.profile=local.api.profile(undefined,undefined,q.profilePuzzle,q.profileFilter);jobs.achievements=local.api.achievements();}
    if(q.caseId)jobs.caseHistory=local.api.caseHistory(q.caseId,filter);
    if(q.advance){
-     if(!lastAdvance||lastAdvance.key!==q.advanceKey)lastAdvance={key:q.advanceKey,promise:trainingMode?Promise.resolve({training:training('next',context.puzzle,q.selected,q.randomAuf,context.solveMode)}):generatePracticeScramble(context).then(scramble=>({scramble}))};
+     if(!lastAdvance||lastAdvance.key!==q.advanceKey)lastAdvance={key:q.advanceKey,promise:trainingMode?Promise.resolve({training:training('next',context.puzzle,q.selected,q.randomAuf,context.solveMode)}):takeScramble(context).then(scramble=>({scramble}))};
      jobs[trainingMode?'training':'scramble']=lastAdvance.promise.then(v=>v[trainingMode?'training':'scramble']);
    }
+   if(!trainingMode)prefetchScramble(context);
    value={revision:q.revision,learned:local.learned(),...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async([key,promise])=>[key,await promise])))};
  }
  else if(req.method==='preference'){storage.setItem(req.args[0],JSON.stringify(req.args[1]));value=true;}
  else if(req.method==='cubePreview')value=cubePreview(req.args[0],req.args[1],req.args[2]);
- else if(req.method==='scramble')value=await generatePracticeScramble(req.args[0]);
+ else if(req.method==='scramble')value=await takeScramble(req.args[0]);
  else if(req.method==='training'){
    value=training(req.args[0],req.args[1],req.args[2],req.args[3],req.args[4]);
  }
