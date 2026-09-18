@@ -6,7 +6,7 @@ use gpui::{
     EntityInputHandler, FocusHandle, Focusable, GlobalElementId, Hsla, KeyBinding, LayoutId,
     MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
     ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle, Window, actions, div,
-    fill, point, prelude::*, px, relative, rgb, rgba, size,
+    fill, point, prelude::*, px, relative, rgb, size,
 };
 use unicode_segmentation::*;
 
@@ -32,7 +32,7 @@ actions!(
 
 pub struct TextInput {
     pub password: bool,
-    pub colors: (Hsla, Hsla, Hsla),
+    pub colors: (Hsla, Hsla, Hsla, Hsla),
     focus_handle: FocusHandle,
     pub content: SharedString,
     placeholder: SharedString,
@@ -61,6 +61,7 @@ impl TextInput {
                 rgb(0x1c1c24).into(),
                 rgb(0xeef0f5).into(),
                 rgb(0xa9adba).into(),
+                rgb(0xff4d8d).into(),
             ),
         }
     }
@@ -482,6 +483,7 @@ impl Element for TextElement {
         let selected_range = input.display_offset(input.selected_range.start)
             ..input.display_offset(input.selected_range.end);
         let cursor = input.display_offset(input.cursor_offset());
+        let accent = input.colors.3;
         let style = window.text_style();
 
         let (display_text, text_color) = if content.is_empty() {
@@ -548,7 +550,7 @@ impl Element for TextElement {
                         point(bounds.left() + cursor_pos, bounds.top()),
                         size(px(2.), bounds.bottom() - bounds.top()),
                     ),
-                    gpui::blue(),
+                    accent,
                 )),
             )
         } else {
@@ -564,7 +566,7 @@ impl Element for TextElement {
                             bounds.bottom(),
                         ),
                     ),
-                    rgba(0x3311ff30),
+                    accent.opacity(0.25),
                 )),
                 None,
             )

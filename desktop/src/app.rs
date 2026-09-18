@@ -830,6 +830,20 @@ impl Cubix {
         active: bool,
         cx: &Context<Self>,
     ) -> Stateful<Div> {
+        let t = self.theme;
+        let hover = (if active { t.surface3 } else { t.hover }, t.text);
+        self.btn_hover(id, label, active, hover, cx)
+    }
+    /// A button with its own hover (background, text) colours: GPUI accepts a
+    /// single hover style per element.
+    fn btn_hover(
+        &self,
+        id: impl Into<String>,
+        label: impl AsRef<str>,
+        active: bool,
+        hover: (Hsla, Hsla),
+        cx: &Context<Self>,
+    ) -> Stateful<Div> {
         let id = id.into();
         let action = id.clone();
         let anchor = id.starts_with("menu:") || id == "next";
@@ -851,7 +865,7 @@ impl Cubix {
                 gpui::transparent_black()
             })
             .text_color(if active { t.text } else { t.muted })
-            .hover(move |s| s.bg(t.hover).text_color(t.text))
+            .hover(move |s| s.bg(hover.0).text_color(hover.1))
             .on_click(cx.listener(move |this, _, window, cx| this.action(&action, window, cx)))
             .when(!label.as_ref().is_empty(), |d| {
                 d.child(label.as_ref().to_string())
@@ -1469,8 +1483,13 @@ impl Cubix {
             ("profile", "Account", "IconUser"),
         ] {
             let selected = active == page;
+            let hover = if selected {
+                (self.theme.soft, self.theme.accent)
+            } else {
+                (self.theme.hover, self.theme.text)
+            };
             let mut b = self
-                .btn(format!("nav:{page}"), "", false, cx)
+                .btn_hover(format!("nav:{page}"), "", false, hover, cx)
                 .h(px(34.))
                 .px(px(if selected { 10. } else { 0. }))
                 .gap(px(7.))
@@ -3409,7 +3428,7 @@ impl Render for Cubix {
         self.prepare_cube(cx);
         let t = self.theme;
         for field in self.fields.values() {
-            field.update(cx, |f, _| f.colors = (t.surface2, t.text, t.muted));
+            field.update(cx, |f, _| f.colors = (t.surface2, t.text, t.muted, t.accent));
         }
         let enabled = !self.saving
             && !self.generating
