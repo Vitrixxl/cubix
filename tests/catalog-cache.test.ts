@@ -11,7 +11,7 @@ test('all puzzle algorithms persist across client reopening without fetching or 
   expect(s.writes()).toBe(PUZZLES.length);
 });
 test('outdated, malformed and unavailable caches recover from the shipped catalogue',()=>{
-  for(const bad of ['{',JSON.stringify({version:'old',cases:[],sets:[]})]){const s=storage();s.setItem(CATALOG_CACHE_PREFIX+'333',bad);expect(createCatalogCache(s)(3).cases.length).toBe(228);expect(JSON.parse(s.getItem(CATALOG_CACHE_PREFIX+'333')!).cases.length).toBe(228);}
+  for(const bad of ['{',JSON.stringify({version:'old',cases:[],sets:[]})]){const s=storage();s.setItem(CATALOG_CACHE_PREFIX+'333',bad);expect(createCatalogCache(s)(3).cases.length).toBe(700);expect(JSON.parse(s.getItem(CATALOG_CACHE_PREFIX+'333')!).cases.length).toBe(700);}
   const unavailable={getItem:()=>{throw Error('denied');},setItem:()=>{throw Error('full');},removeItem:()=>{throw Error('denied');}};
   expect(createCatalogCache(unavailable)('sq1').cases.length).toBe(29);
 });

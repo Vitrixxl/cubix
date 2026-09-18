@@ -1,0 +1,3718 @@
+{
+  "set": "ZBLL AS",
+  "generated": "2026-09-18",
+  "count": 72,
+  "sources": {
+    "speedcubedb": {
+      "url": "https://speedcubedb.com/a/3x3/",
+      "provides": "setups, algorithmes alternatifs classés par votes, movecount ETM/STM, liens YouTube"
+    },
+    "jperm": {
+      "url": "https://jperm.net/algs/",
+      "provides": "algorithme recommandé par cas, groupes de formes, probabilités, 2-look OLL/PLL"
+    },
+    "f2ltrainer": {
+      "url": "https://github.com/Dave2ooo/F2LTrainer",
+      "license": "MIT",
+      "provides": "F2L 41 cas + 60 avancés + 33 experts, avec scrambles de setup"
+    },
+    "andyjudson_cfop": {
+      "url": "https://github.com/andyjudson/cfop",
+      "license": "MIT",
+      "provides": "noms des cas OLL/PLL, probabilités"
+    },
+    "cubing_js": {
+      "url": "https://js.cubing.net/cubing/",
+      "license": "MPL-2.0/GPL-3.0",
+      "provides": "calcul des setups (inverse) et vérification de chaque cas"
+    }
+  },
+  "conventions": {
+    "orientation": "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)",
+    "setup": "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle",
+    "verified": "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près"
+  },
+  "cases": [
+    {
+      "id": "ZBLL AS 1",
+      "name": "ZBLL AS 1",
+      "group": "AS1",
+      "stickers": {
+        "U": "yybyyyryg",
+        "B": "yborrrrrr",
+        "F": "yrooooooo",
+        "L": "bgggggggg",
+        "R": "yorbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R2 D R' U2 R D' R' U' R' U R U' R' U R U2 R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U R' U R' D R2 U' R' U R2 D' R' U2 R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U R' U' L' U2 R U' R' U2 L U' R U2 R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R2 F' U' F U R F R' F' R2 U2 R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' U' R U R' U' R U R D R' U2 R D' R2 y",
+      "setups_alt": [
+        "R U2' R' U2' B' U R U R' U' B R U' R' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 2",
+      "name": "ZBLL AS 2",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyryyygyo",
+        "B": "yrbbbbbbb",
+        "F": "ybbgggggg",
+        "L": "rgorrrrrr",
+        "R": "yogoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U2 F' R U R' U' R' F R2 U R' U R",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R2 F2 U' R2 U' R2 U F2 U R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U2 R U R' U' R U R' U' R' D' R U2 R' D R2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R2 F2 D' F2 U' F2 D F2 U R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R U' R2 F' R U R U' R' F U2 R y2",
+      "setups_alt": [
+        "R' U' F2' U' R2' U R2' U F2' R2' U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 3",
+      "name": "ZBLL AS 3",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyoyyybyr",
+        "B": "ybgbbbbbb",
+        "F": "yrggggggg",
+        "L": "oorrrrrrr",
+        "R": "ygboooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U R U R' U R U2 R' U' R2 D R' U2 R D' R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "D R2 U' R U' R2 U R' U R2 D' R U2 R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R D' R U2 R' D R U2 R U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' R' F R U2 F' U' F U' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R D R' U2 R D' R2 U R U2 R' U' R U' R' U' R y2",
+      "setups_alt": [
+        "R' U2' R U' L U' R2' U L' U' R2' U' R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 4",
+      "name": "ZBLL AS 4",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyryyygyo",
+        "B": "ybbbbbbbb",
+        "F": "yobgggggg",
+        "L": "rgorrrrrr",
+        "R": "yrgoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R' D' R U2 R' D R2 U' R' U2 R U R' U R U R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U2 R' U2 F' R U R U' R' F R' U2 R U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r U' r' U2 R' F R U2 F2 U' R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R U2 R' U' R' U R F' R U2 R' U2 R' F",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U' R' U' R U' R' U2 R U R2 D' R U2 R' D R y",
+      "setups_alt": [
+        "F' U2' F' R2' u' L F2' L' u R2' F2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 5",
+      "name": "ZBLL AS 5",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyoyyybyr",
+        "B": "ygggggggg",
+        "F": "ybgbbbbbb",
+        "L": "ooroooooo",
+        "R": "yrbrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' F U2 F' R F R' U2 R F'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F U2 R' D' R U2 R' D R F' R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 x R' U B2 U' R U R' B2 R U' x'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 12,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U R2 D R2 D' R2 U' R2 D R2 D' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' U2 R F' R' F U2 F' R y2",
+      "setups_alt": [
+        "F R' U2' R F' R' F U2' F' R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 6",
+      "name": "ZBLL AS 6",
+      "group": "AS1",
+      "stickers": {
+        "U": "yygyyyoyb",
+        "B": "yorbbbbbb",
+        "F": "yrrgggggg",
+        "L": "gbbrrrrrr",
+        "R": "ygooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' F U' F' U' R F U' R' U' R F'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R' U R' U' R U' R D R' U R D' U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 18,
+          "stm": 18,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F U' F' U' R F U' R' U' R F' U",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L' R' D2 R U R' D2 R2 U' L U R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 12,
+          "stm": 12,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' U R U F' R' U F U F' R y2",
+      "setups_alt": [
+        "z' D U R2' U' L' U R2' z R2' U L' U' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 7",
+      "name": "ZBLL AS 7",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyryyygyo",
+        "B": "yrboooooo",
+        "F": "yobrrrrrr",
+        "L": "rbobbbbbb",
+        "R": "ygggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R2 D r' U2 r R' U' R D' R' U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R B' r2 R2 U2 r' U' r U2 R' r2 B R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' R U' R' U R' D' R U' R' r U2 r' D R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' F R' F' R' U2 R' U2 R2 U2 R U2 F R2 F'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U' R D R' U R r' U2 r D' R2 y2",
+      "setups_alt": [
+        "F R2' F' U2' R' U2' R2' U2' R U2' R F R F' R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 8",
+      "name": "ZBLL AS 8",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyryyygyo",
+        "B": "yoboooooo",
+        "F": "yrbrrrrrr",
+        "L": "rgobbbbbb",
+        "R": "ybggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U2 R' U' R2 D R' U2 R D' R' U' R' U R U R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U' R U' R U R' U' R' U2 F R U R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R2 U R2 U R U2 R' U2 R' U' D R' U R D'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R2 F' R2 U R2 D' F' U' D F' U F2 R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U' R' U' R U R D R' U2 R D' R2 U R U2 R' y",
+      "setups_alt": [
+        "L' U' L U' R U2' L' U' R' U2' L U' R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 9",
+      "name": "ZBLL AS 9",
+      "group": "AS1",
+      "stickers": {
+        "U": "yybyyyryg",
+        "B": "ygooooooo",
+        "F": "yrorrrrrr",
+        "L": "bogbbbbbb",
+        "R": "ybrgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U' R U' R D R' U' R D' R' U R' U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U' R U' R' U R' D' R U' R' D R U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R D' R' U2 R D R' D' R' U2 R U' D R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U2 L' U2 R U2 L U L' R' U2 L",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U' R D R' U R D' R' U R' U R y2",
+      "setups_alt": [
+        "L' U2' R L U' L' U2' R' U2' L U2' R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 10",
+      "name": "ZBLL AS 10",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyryyygyo",
+        "B": "ygboooooo",
+        "F": "yrbrrrrrr",
+        "L": "rbobbbbbb",
+        "R": "yoggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U2 R D R' U' R D' R' U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U R' D' R U' R' D R U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U L U' R U' R' L' U L U' R U2 L'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R D R' U' R D' R' U R' U' R U' R' U2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U' R D R' U R D' R' U2 R' y'",
+      "setups_alt": [
+        "L U2' R' U L' U' L R U R' U L' U' R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 11",
+      "name": "ZBLL AS 11",
+      "group": "AS1",
+      "stickers": {
+        "U": "yyoyyybyr",
+        "B": "ygggggggg",
+        "F": "yogbbbbbb",
+        "L": "orroooooo",
+        "R": "ybbrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R2 D R' U R D' R' U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U R U' L2 U2 R' U R U2 L' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "U R U R' U' D R' U' R U R2 U' R U R2 D'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F' r U R U' r' F r' F' r U' r' F2 r",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U' R D R' U' R D' R2 y2",
+      "setups_alt": [
+        "R U R' U R U' R D R' U' R D' R2' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 12",
+      "name": "ZBLL AS 12",
+      "group": "AS1",
+      "stickers": {
+        "U": "yybyyyryg",
+        "B": "ygooooooo",
+        "F": "yoorrrrrr",
+        "L": "bbgbbbbbb",
+        "R": "yrrgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' U' R U' R' U R' D' R U R' D R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' r U2 R' U' R U' r' F R' F' R U R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U' L' U R' U' L R' U2 R U R' U R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 D' R U' R' D R U' R U R' U R y'",
+      "setups_alt": [
+        "R2' D' R U' R' D R U' R U R' U R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 13",
+      "name": "ZBLL AS 13",
+      "group": "AS2",
+      "stickers": {
+        "U": "yyoyyygyr",
+        "B": "ybbbbbbbb",
+        "F": "yrggggggg",
+        "L": "rgorrrrrr",
+        "R": "yoboooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U' R' U2 R U' R2 D' R U' R' D R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L U' R' U L' U R2 U R2 U R2 U2 R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' R U2 R D R' U R D' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' R U' R2 D' R U R' D R U R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' D' R U R' D R2 U R' U2 R U R'",
+      "setups_alt": [
+        "R' D' R U R' D R2' U R' U2' R U R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 14",
+      "name": "ZBLL AS 14",
+      "group": "AS2",
+      "stickers": {
+        "U": "yyoyyygyr",
+        "B": "ybboooooo",
+        "F": "yogrrrrrr",
+        "L": "rrobbbbbb",
+        "R": "ygbgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "S U2 R U2 R' U2 R' F R f'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 10,
+          "stm": 10,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' F' R U R' U' R' F R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U2 R' U2 R U' R' L U' R U R' L'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U' R U F' U2 R' U2 R F U' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "f R' F' R U2 R U2 R' U2 S'",
+      "setups_alt": [
+        "R U R2' F' R U R U' R' F U R U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 15",
+      "name": "ZBLL AS 15",
+      "group": "AS2",
+      "stickers": {
+        "U": "yybyyyoyg",
+        "B": "ygrgggggg",
+        "F": "yoobbbbbb",
+        "L": "grboooooo",
+        "R": "ybrrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R U2 R' U2 L' U R U' R' L",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' F U2 F' U' R' F U' F' U R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U2 R' U2 r' F R F' r R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U2 R' U2 L' U R U' M' x'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "L' R U R' U' L U2 R U2 R' y2",
+      "setups_alt": [
+        "x M U R' U' L U2' R U2' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 16",
+      "name": "ZBLL AS 16",
+      "group": "AS2",
+      "stickers": {
+        "U": "yybyyyoyg",
+        "B": "ybrbbbbbb",
+        "F": "yoogggggg",
+        "L": "ggbrrrrrr",
+        "R": "yrroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R' U2 R' D' R U R' D R2 U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U' L' U2 R U' R' U2 R L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R2 D' R U' R' D R U2 R y",
+      "setups_alt": [
+        "L' R' U2' R U R' U2' L U R U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 17",
+      "name": "ZBLL AS 17",
+      "group": "AS2",
+      "stickers": {
+        "U": "yyryyybyo",
+        "B": "yrgoooooo",
+        "F": "yobrrrrrr",
+        "L": "ogrbbbbbb",
+        "R": "ybggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R' U' R U' R' F' R U R' U R U' R' U' R' F R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U R' F U' R2 U' R2 U F' U R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U2 R' D' R U' R' D U' R2 U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U2 R' D' r U2 r' R U' R' D R2 U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' F' R U R U R' U' R U' R' F R U R' U R U' R' y'",
+      "setups_alt": [
+        "R' U' F U' R2' U R2' U F' R U' R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 18",
+      "name": "ZBLL AS 18",
+      "group": "AS2",
+      "stickers": {
+        "U": "yyryyybyo",
+        "B": "yogbbbbbb",
+        "F": "yrbgggggg",
+        "L": "obrrrrrrr",
+        "R": "yggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R2 D R' U R D' R2 U' r' F R F' M'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "6GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 D R' U R D' R2 U' L' U R U' R' L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R L' U' L U R' U' L' U2 R U' L U R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F2 D F' U F D' F2 R' F U' F' U R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "M F R' F' r U R2 D R' U' R D' R2 y'",
+      "setups_alt": [
+        "L U' R' U L' U2' R U L U' R' U L' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 19",
+      "name": "ZBLL AS 19",
+      "group": "AS2",
+      "stickers": {
+        "U": "yygyyyryb",
+        "B": "yoobbbbbb",
+        "F": "yrrgggggg",
+        "L": "bggrrrrrr",
+        "R": "ybooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 S R U R' U' R' F R S' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 S R U R' U' R' F R f' F R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R' F' U2 R U F' R' U R U F R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U' L U2 R' U R U2 R' U2 L' U' L U' L'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U R U' R' S R' F' R U R U' R' S' y2",
+      "setups_alt": [
+        "L U L' U L U2' R U2' R' U' R U2' L' U R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 20",
+      "name": "ZBLL AS 20",
+      "group": "AS2",
+      "stickers": {
+        "U": "yygyyyryb",
+        "B": "yrogggggg",
+        "F": "yorbbbbbb",
+        "L": "bbgoooooo",
+        "R": "ygorrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U' R U' R2 D' r U2 r' D R2",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R D' R U' R D R' U R2 D' R U2 D R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 D' r U2 r' D R2 U R' U R y2",
+      "setups_alt": [
+        "R2' D' r U2' r' D R2' U R' U R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 21",
+      "name": "ZBLL AS 21",
+      "group": "AS2",
+      "stickers": {
+        "U": "yygyyyryb",
+        "B": "yrogggggg",
+        "F": "ybrbbbbbb",
+        "L": "bggoooooo",
+        "R": "yoorrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U' R U' R2 D' R U2 R' D R2",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U' R U' R2 D' R U2 R' D R2 U",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U' R U' R2 D' R U2 R' D R2 U'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 D' R U2 R' D R2 U R' U R y2",
+      "setups_alt": [
+        "R2' D' R U2' R' D R2' U R' U R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 22",
+      "name": "ZBLL AS 22",
+      "group": "AS2",
+      "stickers": {
+        "U": "yyoyyygyr",
+        "B": "yrboooooo",
+        "F": "ybgrrrrrr",
+        "L": "roobbbbbb",
+        "R": "ygbgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R U2 R' U' R U R' U2 R' F R U R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' F' r U R' U' r' F R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L U L' U L U2 L2 R U R' U' L U2 R U2 R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R U R' U' R' F' R U2 R U' R' U R U2 R' y2",
+      "setups_alt": [
+        "R U R2' F' r U R U' r' F U R U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 23",
+      "name": "ZBLL AS 23",
+      "group": "AS2",
+      "stickers": {
+        "U": "yygyyyryb",
+        "B": "ygooooooo",
+        "F": "yorrrrrrr",
+        "L": "brgbbbbbb",
+        "R": "ybogggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U2 R' D' R U2 R' D R U' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' R U' R' U R U' R' U R' F' R U R U' R' F R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U' R U' R' U y' R' U2 R U' R' U' R B",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F R U R2 U' R U' R U R2 U R2 U' R' U F'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R' U R' D' R U2 R' D R U2 R",
+      "setups_alt": [
+        "R' F' R U R' U' R' F R U' R U R' U' R U R' U R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 24",
+      "name": "ZBLL AS 24",
+      "group": "AS2",
+      "stickers": {
+        "U": "yybyyyoyg",
+        "B": "yorbbbbbb",
+        "F": "ybogggggg",
+        "L": "grbrrrrrr",
+        "R": "ygroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' R U R' F R U R' U' R' F' R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L U2 L' U2 R' U L2 U' R U L' U' L'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U2 R' F R2 U' R' U' R U R' F'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U R' F R U R' U' R' F' R2 U'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 F R U R U' R' F' R U' R' U R",
+      "setups_alt": [
+        "R2' F R U R U' R' F' R U' R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 25",
+      "name": "ZBLL AS 25",
+      "group": "AS3",
+      "stickers": {
+        "U": "yyoyyybyg",
+        "B": "ybrrrrrrr",
+        "F": "yrooooooo",
+        "L": "ggrgggggg",
+        "R": "yobbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U2 R' U' R U R D R' U2 R D' R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 D R' U2 R D' R' U' R' U R U2 R' y",
+      "setups_alt": [
+        "R2' D R' U2' R D' R' U' R' U R U2' R' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 26",
+      "name": "ZBLL AS 26",
+      "group": "AS3",
+      "stickers": {
+        "U": "yybyyyryo",
+        "B": "yrggggggg",
+        "F": "ybbbbbbbb",
+        "L": "oggoooooo",
+        "R": "yorrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U2 R' F' R U R U' R' F U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "U2 R' U2 R' F' R U R U' R' F U2 R U2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 F' R U R' U' R' F R U2 R y2",
+      "setups_alt": [
+        "R' U2' F' R U R' U' R' F R U2' R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 27",
+      "name": "ZBLL AS 27",
+      "group": "AS3",
+      "stickers": {
+        "U": "yygyyyoyr",
+        "B": "ybbbbbbbb",
+        "F": "yrggggggg",
+        "L": "robrrrrrr",
+        "R": "ygooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R2 D' R U2 R' D R U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' F' R U R' U' R' F R2 U' R' U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U' L U F R U2 R' U' x U2 L U r'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 13,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L' U2 L R U R' F' R U R' U' R' F R2 U' R' U2 L' U2 L",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 20,
+          "stm": 20,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R' U' R' D' R U2 R' D R2",
+      "setups_alt": [
+        "R' U2' R U R' U' R' D' R U2' R' D R2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 28",
+      "name": "ZBLL AS 28",
+      "group": "AS3",
+      "stickers": {
+        "U": "yyoyyybyg",
+        "B": "yoroooooo",
+        "F": "ygorrrrrr",
+        "L": "grrbbbbbb",
+        "R": "ybbgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 F U R U' R' U R U' R2 F' R U2 R U2 R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U2 R2 D' R U' R' D R2 U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R D R2 U' R U' R' U2 R2 D' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L U2 F L' U' L U L F' L' U2 L'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R' U2 R' F R2 U R' U' R U R' U' F' y2",
+      "setups_alt": [
+        "R2' D R2' U2' R U R' U R2' D' R' U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 29",
+      "name": "ZBLL AS 29",
+      "group": "AS3",
+      "stickers": {
+        "U": "yybyyyryo",
+        "B": "ybggggggg",
+        "F": "ygbbbbbbb",
+        "L": "orgoooooo",
+        "R": "yorrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y F U R U' R' U R U' R' U R2 D R' U' R D' R2 F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 18,
+          "stm": 18,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U2 R U R2 D' R U' R' D R2 U R' U' R U R' U R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R' U R2 D' R U' R' D R' U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U' R' F D U R U' R' U R U' R' D' R' F' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R2 D R' U R D' R2 U' R U R' U' R U R' U' F' y'",
+      "setups_alt": [
+        "R' U2' R2' U R D' R U R' D R2' U' R U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 30",
+      "name": "ZBLL AS 30",
+      "group": "AS3",
+      "stickers": {
+        "U": "yyryyygyb",
+        "B": "yoobbbbbb",
+        "F": "yrrgggggg",
+        "L": "bborrrrrr",
+        "R": "yggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 L' U R U' L U R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U L U' R U L'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r' F R F' r U R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 7,
+          "stm": 7,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "z D' R U R' D R U' z'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 9,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U' L' U R' U' L y2",
+      "setups_alt": [
+        "L U' R' U L' U' R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 31",
+      "name": "ZBLL AS 31",
+      "group": "AS3",
+      "stickers": {
+        "U": "yyoyyybyg",
+        "B": "ybrgggggg",
+        "F": "ygobbbbbb",
+        "L": "goroooooo",
+        "R": "yrbrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U R U R' U' R' D' R U R' D R U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L' U R' U' R L U2 R' U' R2 U2 R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U R D R' U R D' R' U' R' U R U R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R' U R U L' U R' U L U L' U L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R' U' R' D' R U' R' D R U R U' R' U' R y2",
+      "setups_alt": [
+        "L' U' L U' L' U' R U' L U' R' U' R U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 32",
+      "name": "ZBLL AS 32",
+      "group": "AS3",
+      "stickers": {
+        "U": "yygyyyoyr",
+        "B": "yrbbbbbbb",
+        "F": "yoggggggg",
+        "L": "rbbrrrrrr",
+        "R": "ygooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R2 F' R U R U R' U' R U' R' F R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 D R' U' R D' R U' R' U R2 U R' U' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 U' R' U R2 U R' U' R D' R U' R' D",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U' R U R' U' R' D' R U R' D R U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' F' R U R' U R U' R' U' R' F R2 U' R' y'",
+      "setups_alt": [
+        "R' U2' R' D' R U' R' D R U R U' R' U R U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 33",
+      "name": "ZBLL AS 33",
+      "group": "AS3",
+      "stickers": {
+        "U": "yyoyyybyg",
+        "B": "ygrgggggg",
+        "F": "yrobbbbbb",
+        "L": "goroooooo",
+        "R": "ybbrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U2 R' U' R U R D r' U2 r D' R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U2 R' D' R U R' D R U' R U R' U' R U R' U R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' U R U' L R U R U R U' R' U' R2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 D r' U2 r D' R' U' R' U R U2 R' y",
+      "setups_alt": [
+        "R2' U R U R' U' R' U' R' L' U R' U' L y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 34",
+      "name": "ZBLL AS 34",
+      "group": "AS3",
+      "stickers": {
+        "U": "yybyyyryo",
+        "B": "yggoooooo",
+        "F": "yrbrrrrrr",
+        "L": "obgbbbbbb",
+        "R": "yorgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U R U' R2 D U2 R' U' R U D' R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U2 R F2 R' U R' U' R2 F2 R2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "S U' R U R U' R2 U R F R' f'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U R U' R' U R U2 R D' R U' R' D R U R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' D U' R' U R U2 D' R2 U R' U' R' y",
+      "setups_alt": [
+        "R2' F2' R2' U R U' R F2' R' U2' R' U R U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 35",
+      "name": "ZBLL AS 35",
+      "group": "AS3",
+      "stickers": {
+        "U": "yybyyyryo",
+        "B": "ybgrrrrrr",
+        "F": "yrboooooo",
+        "L": "ooggggggg",
+        "R": "ygrbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y R D' U R U' R' U2 D R2 U' R U R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L U D' L U' L' U2 D L2 U' L U L",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' F' U' f R U R2 U' R U R U' S'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "5GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R' U R2 D' U2 R U R' U' D R' y'",
+      "setups_alt": [
+        "L' U' L' U L2' D' U2' L U L' D U' L' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 36",
+      "name": "ZBLL AS 36",
+      "group": "AS3",
+      "stickers": {
+        "U": "yybyyyryo",
+        "B": "yoggggggg",
+        "F": "ybbbbbbbb",
+        "L": "orgoooooo",
+        "R": "ygrrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "R2 D' r U2 r' D R U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F R U' R' U R U R2 F' R U R U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 18,
+          "stm": 18,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U' R F2 R' U R2 U2 R' U R U R' F2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R' U' R' D' r U2 r' D R2",
+      "setups_alt": [
+        "F2' R U' R' U' R U2' R2' U' R F2' R' U R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 37",
+      "name": "ZBLL AS 37",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyoyyygyb",
+        "B": "yrrbbbbbb",
+        "F": "ygrgggggg",
+        "L": "goorrrrrr",
+        "R": "ybboooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U R' U' R' F R2 U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R' U' R2 D R' U R D' R' U2 R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L R U2 R' U' R U2 L' U' R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U2 R' F2 R U2 R U2 R' F R U R' U' R' F R2 U2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 22,
+          "stm": 22,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U' R2 F' R U R U' R' F R U' R'",
+      "setups_alt": [
+        "R U R' U R U L U2' R' U R U2' R' L'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 38",
+      "name": "ZBLL AS 38",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyryyybyg",
+        "B": "yoorrrrrr",
+        "F": "ygooooooo",
+        "L": "bbrgggggg",
+        "R": "yrgbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 f' L F L' U2 L' U2 L U2 S",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 10,
+          "stm": 10,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L' R' U R U' L R' U' R U2 R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R2 U' R U' R2 D' R U R' D R U R U' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R2 D' R U2 R' D R2 U' R' U R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "S' U2 L' U2 L U2 L F' L' f y2",
+      "setups_alt": [
+        "R U R' U' R U R2' D' R U2' R' D R2' U2' R' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 39",
+      "name": "ZBLL AS 39",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyryyybyg",
+        "B": "ybobbbbbb",
+        "F": "yrogggggg",
+        "L": "borrrrrrr",
+        "R": "yggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y' F U R' U' R F' U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 L' R U' L U R' U2 L' U2 L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 10,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "x' M' U' R U L' U2 R' U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 x M U' L U R' U2 L' U2 L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 9,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U F R' U R U' F' y",
+      "setups_alt": [
+        "R' U2' R U2' L U' R' U M x"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 40",
+      "name": "ZBLL AS 40",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyoyyygyb",
+        "B": "ybrrrrrrr",
+        "F": "yoroooooo",
+        "L": "ggogggggg",
+        "R": "yrbbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' F' R U R' U' R' F R2 U' R' U R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R D R' U R D' R2 U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R2 D' R U R' D R U2 R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U' R' U2 L' U R U' L2 U' R' U L'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R U R2 F' R U R U' R' F U R",
+      "setups_alt": [
+        "R' U R U2' R' U R2' D R' U R D' R' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 41",
+      "name": "ZBLL AS 41",
+      "group": "AS4",
+      "stickers": {
+        "U": "yybyyyoyr",
+        "B": "yrgoooooo",
+        "F": "yogrrrrrr",
+        "L": "ogbbbbbbb",
+        "R": "ybrgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R' U2 R U R' U' F' R U2 R' U' R U' R' F",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R2 D R' U2 R D' R U' R2 U' R' U R' U R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L' U R U' L U' R D R' U2 R D' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U R' U' R' D R' U' R D' R U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F' R U R' U R U2 R' F U R U' R' U2 R U' R' y'",
+      "setups_alt": [
+        "R' U2' R' D R' U R D' R U R U' R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 42",
+      "name": "ZBLL AS 42",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyoyyygyb",
+        "B": "ygroooooo",
+        "F": "ybrrrrrrr",
+        "L": "goobbbbbb",
+        "R": "yrbgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "R2 D' R U' R' D F R U R U' R' F' R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "F U R' U' R F' R2 D' R U R' D R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L' U R U' L U2 R' U' L' U R U' L R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U' R U' R D r' U2 r D' R' U2 R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' F R U R' U' R' F' D' R U R' D R2",
+      "setups_alt": [
+        "R L' U R' U' L U R U2' L' U R' U' L y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 43",
+      "name": "ZBLL AS 43",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyryyybyg",
+        "B": "yoogggggg",
+        "F": "yrobbbbbb",
+        "L": "bgroooooo",
+        "R": "ybgrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R2 D r' U2 r D' R2 U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 11,
+          "stm": 11,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R2 D r' U2 r D' R2 y2",
+      "setups_alt": [
+        "R U R' U R2' D r' U2' r D' R2' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 44",
+      "name": "ZBLL AS 44",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyryyybyg",
+        "B": "yrobbbbbb",
+        "F": "yoogggggg",
+        "L": "bbrrrrrrr",
+        "R": "yggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R' U R U' R2 F R F' r U' r' U r U r'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' U' R' U2 R U R' U R2 U r' F R' F' r",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R D' R U' R' D U' R' U R U R2 U' R' U R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U2 L' U2 L U L' U2 R U' L",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "r U' r' U' r U r' F R' F' R2 U R' U' R U' R' y'",
+      "setups_alt": [
+        "L' U R' U2' L U' L' U2' L U2' R U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 45",
+      "name": "ZBLL AS 45",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyoyyygyb",
+        "B": "yorbbbbbb",
+        "F": "ygrgggggg",
+        "L": "gborrrrrr",
+        "R": "yrboooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R U' R D R' U2 R D' R' U2 R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U R U L U' R' U L' U R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U2 R D R' U2 R D' R' U R' U R U2 R'",
+      "setups_alt": [
+        "R U R' U' L U' R U L' U' R' U' R U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 46",
+      "name": "ZBLL AS 46",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyoyyygyb",
+        "B": "ygrrrrrrr",
+        "F": "yrroooooo",
+        "L": "gbogggggg",
+        "R": "yobbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R' U' R' D' R U' R' D R2 U' R' U R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U' R U' R' F' R U R' U' R' F R U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U' R U' R U R D R' U' R D' R U2 R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U' R U R U' R' U2 R L U' R2 U L' U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U' R U R2 D' R U R' D R U R U2 R'",
+      "setups_alt": [
+        "R' U2' L U' R2' U L' R' U2' R U R' U' R' U R y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 47",
+      "name": "ZBLL AS 47",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyryyybyg",
+        "B": "ygogggggg",
+        "F": "yoobbbbbb",
+        "L": "brroooooo",
+        "R": "ybgrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R2 D R' U2 R D' R2 U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R2 D R' U2 R D' R2 y2",
+      "setups_alt": [
+        "R U R' U R2' D R' U2' R D' R2' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 48",
+      "name": "ZBLL AS 48",
+      "group": "AS4",
+      "stickers": {
+        "U": "yyoyyygyb",
+        "B": "yoroooooo",
+        "F": "ybrrrrrrr",
+        "L": "grobbbbbb",
+        "R": "ygbgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "R U' R' U2 R U' R' U R' D' R U2 R' D R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' F' R U2 R' U2 R' F R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U R' F' R U2 R' U2 R' F R2 U' R' U'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y F R U R2 U2 R2 U R2 U R F'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' D' R U2 R' D R U' R U R' U2 R U R'",
+      "setups_alt": [
+        "F R' U' R2' U' R2' U2' R2' U' R' F' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 49",
+      "name": "ZBLL AS 49",
+      "group": "AS5",
+      "stickers": {
+        "U": "yybyyygyr",
+        "B": "yoobbbbbb",
+        "F": "ybggggggg",
+        "L": "brorrrrrr",
+        "R": "ygroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U' R' F' R U R' U' R' F R2 U' R' U2 R U' R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 L' U R' U' L U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U' R' U2 R U' R' U2 R' D' R U R' D R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U2 R U R2 F' R U R U' R' F R U R' y'",
+      "setups_alt": [
+        "R U R' U L' U R U' L U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 50",
+      "name": "ZBLL AS 50",
+      "group": "AS5",
+      "stickers": {
+        "U": "yygyyybyo",
+        "B": "yrrrrrrrr",
+        "F": "ybboooooo",
+        "L": "ggrgggggg",
+        "R": "yoobbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U2 R2 U' R2 U' R' F U' R' U' R U F'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R2 U' R2 F' R U R' U' R' F U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R2 U' R2 U' R' U2 R' F' R U R' U' R' F R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R' D R' U' R D' R2 U R' U' R' U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U' R' U R U F' R U R2 U R2 U2 R' y",
+      "setups_alt": [
+        "F U' R' U R U F' R U R2' U R2' U2' R' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 51",
+      "name": "ZBLL AS 51",
+      "group": "AS5",
+      "stickers": {
+        "U": "yygyyybyo",
+        "B": "ygrgggggg",
+        "F": "yobbbbbbb",
+        "L": "grroooooo",
+        "R": "yborrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "R U R' F' R U2 R' U' R U' R' F R U' R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F R F' U2 R U' R' U' F R' F' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 F R U' R2 U' R U' R' U2 R2 U R' F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' F' R U R' U R U2 R' F R U' R'",
+      "setups_alt": [
+        "F R U' R2' U2' R U R' U R2' U R' F' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 52",
+      "name": "ZBLL AS 52",
+      "group": "AS5",
+      "stickers": {
+        "U": "yygyyybyo",
+        "B": "ybrgggggg",
+        "F": "yobbbbbbb",
+        "L": "ggroooooo",
+        "R": "yrorrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U' R U' L U' R' U L' U2 R",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "L' U' L U' R U' L' U R' U2 L",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R D R' U R D' R' U2 R' U' R U2 R' U' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' F R f' U2 R U' R' U' f R' F' R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 L U' R U L' U R' U R y2",
+      "setups_alt": [
+        "R' U2' L U' R U L' U R' U R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 53",
+      "name": "ZBLL AS 53",
+      "group": "AS5",
+      "stickers": {
+        "U": "yyoyyyryb",
+        "B": "yrggggggg",
+        "F": "yorbbbbbb",
+        "L": "oggoooooo",
+        "R": "ybbrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 F R' F' R U R U' R2 F R U R' U' F' U R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L' U R U' L U L' U R' U' L U R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' r R D R' U R U' D' L' U R' U' x'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 12,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U2 R' D' R U R' D F R U R U' R' F' R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' F U R U' R' F' R2 U R' U' R' F R F' y2",
+      "setups_alt": [
+        "R' U2' L R2' U2' R' U' R U2' L' U R2' U R y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 54",
+      "name": "ZBLL AS 54",
+      "group": "AS5",
+      "stickers": {
+        "U": "yygyyybyo",
+        "B": "ygrbbbbbb",
+        "F": "ybbgggggg",
+        "L": "gorrrrrrr",
+        "R": "yrooooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 F R2 U R2 U R2 U2 R' U2 R' U' R U' R' F'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "F' U2 R' D R U' R' D' R f R' F R f'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "5GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U' F2 R U2 R' U2 R' F2 R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R' U' R U L' U L U2 R' U' L' U2 L",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R U R' U R U2 R U2 R2 U' R2 U' R2 F' y2",
+      "setups_alt": [
+        "L' U2' L U R U2' L' U' L U' R' U R U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 55",
+      "name": "ZBLL AS 55",
+      "group": "AS5",
+      "stickers": {
+        "U": "yyryyyoyg",
+        "B": "ybboooooo",
+        "F": "ygorrrrrr",
+        "L": "robbbbbbb",
+        "R": "yrggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' F U' R' U R U F' R' U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U2 L U' R U L' R' U R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U R' U R U' R' U r' F R F' r U2 R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R' U' R F U' R' U' R U F' y",
+      "setups_alt": [
+        "R' U2' R U R' U' R L U' R' U L' U2' R y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 56",
+      "name": "ZBLL AS 56",
+      "group": "AS5",
+      "stickers": {
+        "U": "yyoyyyryb",
+        "B": "ybgrrrrrr",
+        "F": "ygroooooo",
+        "L": "ooggggggg",
+        "R": "yrbbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' F R U' R' U R U2 R' U' F' R U R' U' R' F R F'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 18,
+          "stm": 18,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R' U' R U R' r' F R F' r U2 R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R' U' R U R' L' U R U' L U2 R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' F' U' F U R F R U R' U' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F R' F' R U R U' R' F U R U2 R' U' R U R' F' y",
+      "setups_alt": [
+        "R U2' L' U R' U' L R U' R' U R U2' R' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 57",
+      "name": "ZBLL AS 57",
+      "group": "AS5",
+      "stickers": {
+        "U": "yyryyyoyg",
+        "B": "ygboooooo",
+        "F": "yrorrrrrr",
+        "L": "robbbbbbb",
+        "R": "ybggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R2 U R2 F' R U R' U R U2 R' F R2 U' R2",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U L' U2 R U2 L U2 L' R' U2 L",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U2 R' F' R U R' U F U F' U R' F R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 17,
+          "stm": 17,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U' R D R2 U2 R U R' U R2 D' R' U R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 U R2 F' R U2 R' U' R U' R' F R2 U' R2 y",
+      "setups_alt": [
+        "L' U2' R L U2' L' U2' R' U2' L U' R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 58",
+      "name": "ZBLL AS 58",
+      "group": "AS5",
+      "stickers": {
+        "U": "yyryyyoyg",
+        "B": "yrbrrrrrr",
+        "F": "ybooooooo",
+        "L": "robgggggg",
+        "R": "yggbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y' F R U R' U' R U R' F R' F' R U' F'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L' U2 R U' R' U2 L R U R' U' R U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 18,
+          "stm": 18,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "F U R' F R F' R U' R' U R U' R' F' y",
+      "setups_alt": [
+        "F U R' F R F' R U' R' U R U' R' F' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 59",
+      "name": "ZBLL AS 59",
+      "group": "AS5",
+      "stickers": {
+        "U": "yyoyyyryb",
+        "B": "yrggggggg",
+        "F": "ygrbbbbbb",
+        "L": "obgoooooo",
+        "R": "yobrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R' U F' R U R' U' R' F R U2 R U2 R' U' R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R2 U' R2 B R' U2 R U R' U R B' R2 U R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R' U R' D' R2 U R' U R U2 R2 D R U' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U L' U R U' L U' R U' R U R' U2 R2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U R U2 R' U2 R' F' R U R U' R' F U' R y2",
+      "setups_alt": [
+        "R2' U2' R U' R' U R' U L' U R' U' L U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 60",
+      "name": "ZBLL AS 60",
+      "group": "AS5",
+      "stickers": {
+        "U": "yybyyygyr",
+        "B": "yrooooooo",
+        "F": "yggrrrrrr",
+        "L": "boobbbbbb",
+        "R": "ybrgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R U' R2 D' U' R U' R' U2 D R2 U R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R' U R2 U2 D R' U' R D' U' R2 U' R",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y L R U2 R' U' L' U2 R' U L U' R2 U R' U L'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 16,
+          "stm": 16,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U' R2 D' U2 R U R' U D R2 U R' y",
+      "setups_alt": [
+        "L U' R U' R2' U L' U' R U2' L U R U2' R' L' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 61",
+      "name": "ZBLL AS 61",
+      "group": "AS6",
+      "stickers": {
+        "U": "yybyyygyo",
+        "B": "yorrrrrrr",
+        "F": "ygboooooo",
+        "L": "grogggggg",
+        "R": "ybrbbbbbb"
+      },
+      "algorithms": [
+        {
+          "alg": "y R2 U R2 U R' U2 R' U R U R' U' R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U R U' R U R2 U R U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 17,
+          "stm": 17,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' F R U R' U F' U' F U' R U R' U' F'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R2 U' R' U' R' U R U R U' R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R2 U R U' R' U' R U2 R U' R2 U' R2 y'",
+      "setups_alt": [
+        "R2' U' R2' U' R U R2' U' R2' U R' U R2' y"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 62",
+      "name": "ZBLL AS 62",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "yoggggggg",
+        "F": "ygrbbbbbb",
+        "L": "obboooooo",
+        "R": "yrgrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' U' R U R U2 R' U' R U' R' U R' U R",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 U R2 U R U2 R' U R U R U' R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U' R' U' R U' R U R U R U' R' U' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 S' l' U' L U' L' U2 l U2 S",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 10,
+          "stm": 10,
+          "gen": "4GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R U' R U R' U R U2 R' U' R' U R y'",
+      "setups_alt": [
+        "R' U2' R U R U R U R' U' R U R U' R U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 63",
+      "name": "ZBLL AS 63",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "yogbbbbbb",
+        "F": "ybrgggggg",
+        "L": "orbrrrrrr",
+        "R": "yggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R U R' U R' U' R U' R' U2 R U R U' R'",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U' R' U' R' U' R' U R U R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 U' R U R U R' U2 R U R2 U R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R2 F2 R' U2 R' U' R U' R F2 R2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U' R' U2 R U R' U R U' R U' R' y2",
+      "setups_alt": [
+        "R2' U' R' U' R U R U R U R U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 64",
+      "name": "ZBLL AS 64",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "yrgoooooo",
+        "F": "ybrrrrrrr",
+        "L": "ogbbbbbbb",
+        "R": "yoggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R' U' R U' R U R2 U R U' R U R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 17,
+          "stm": 17,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U R' U' R U R2 U' R2 U' R' U R U' R' U R' U R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U' R2 U R' U' R3 U' R' U R U R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 17,
+          "stm": 17,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 U' R' U R U R' U2 R' U R2 U R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U' R' U R' U' R2 U' R' U R' U R y",
+      "setups_alt": [
+        "R' U' R U' R U R' U' R U R2' U R2' U' R' U R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 65",
+      "name": "ZBLL AS 65",
+      "group": "AS6",
+      "stickers": {
+        "U": "yybyyygyo",
+        "B": "yrrbbbbbb",
+        "F": "ygbgggggg",
+        "L": "gborrrrrr",
+        "R": "yoroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' R2 U R2 U R2 U2 R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U' R' U R U' R U R U R U' R' U' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 R U R2 U' R' U' R U R' U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R' U2 R U2 R U2 R' U' R U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R2 U2 R2 U' R2 U' R2 U R",
+      "setups_alt": [
+        "R' U2' R2' U2' R2' U' R2' U' R2' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 66",
+      "name": "ZBLL AS 66",
+      "group": "AS6",
+      "stickers": {
+        "U": "yybyyygyo",
+        "B": "yrroooooo",
+        "F": "ybbrrrrrr",
+        "L": "goobbbbbb",
+        "R": "ygrgggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U2 R' U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' L U2 L' U' L U' L'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' M' U2 R U2 M R' U' R U' R' U2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 11,
+          "stm": 11,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R' U' R U' R' U2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 8,
+          "stm": 8,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R U2 R' y'",
+      "setups_alt": [
+        "R U R' U R U2' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 67",
+      "name": "ZBLL AS 67",
+      "group": "AS6",
+      "stickers": {
+        "U": "yybyyygyo",
+        "B": "ybrbbbbbb",
+        "F": "yrbgggggg",
+        "L": "ggorrrrrr",
+        "R": "yoroooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R U2 R2 U2 R2 U R2 U R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R U2 R2 U' R U' R' U2 R U2 R U2 R'",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U2 R U' R U' R U R U R U' R' U' R2",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R2 U' R' U R U' R' U' R2 U R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R2 U' R2 U' R2 U2 R2 U2 R'",
+      "setups_alt": [
+        "R U R2' U' R2' U' R2' U2' R2' U2' R'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 68",
+      "name": "ZBLL AS 68",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "ybgbbbbbb",
+        "F": "yrrgggggg",
+        "L": "oobrrrrrr",
+        "R": "yggoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "R' U' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 7,
+          "stm": 7,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r' F' r U' r' F2 r",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 7,
+          "stm": 7,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U' R' U' R U R' U R U' R' U R U2 R' U2 R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R' U2 R U2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 8,
+          "stm": 8,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R U R' U R",
+      "setups_alt": [
+        "R' U2' R U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 69",
+      "name": "ZBLL AS 69",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "yrgoooooo",
+        "F": "yorrrrrrr",
+        "L": "obbbbbbbb",
+        "R": "ygggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y R U R' U' R' U' R U R U' R' U' R' U R",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R2 U' R' U' R' U R U R2 U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U' R U R U R' U' R' U R U R U' R' y'",
+      "setups_alt": [
+        "R' U' R U R U R' U' R' U R U R U' R' y'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 70",
+      "name": "ZBLL AS 70",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "yogbbbbbb",
+        "F": "yrrgggggg",
+        "L": "ogbrrrrrr",
+        "R": "ybgoooooo"
+      },
+      "algorithms": [
+        {
+          "alg": "y R' U' R U R U2 R' U' R' U R U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 5,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R U R' U' R' U2 R U R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 15,
+          "stm": 15,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R2 U R U R2 U' R' U' R2 U' R U' R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' U' R U' R2 U' R' U' R2 U R U R2",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 13,
+          "stm": 13,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R U R' U R' U' R U R U2 R' U' R' U R y'",
+      "setups_alt": [
+        "R2' U' R' U' R2' U R U R2' U R' U R"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 71",
+      "name": "ZBLL AS 71",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "ybggggggg",
+        "F": "ygrbbbbbb",
+        "L": "orboooooo",
+        "R": "yogrrrrrr"
+      },
+      "algorithms": [
+        {
+          "alg": "y2 R U R' U R' U' R2 U' R2 U2 R",
+          "source": "speedcubedb",
+          "votes": 4,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U2 R2 U' R2 U' R' U R' U R",
+          "source": "speedcubedb",
+          "votes": 3,
+          "etm": 11,
+          "stm": 11,
+          "gen": "2GEN",
+          "verified": true
+        },
+        {
+          "alg": "y2 r U R' U R' U' R2 U' r' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 12,
+          "stm": 12,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y' R U' R' U' R U' R' U R U' R' U R U R' U' R U2 R'",
+          "source": "speedcubedb",
+          "votes": 0,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' U2 R2 U R2 U R U' R U' R' y2",
+      "setups_alt": [
+        "R' U2' R2' U R2' U R U' R U' R' y2'"
+      ],
+      "verified": true
+    },
+    {
+      "id": "ZBLL AS 72",
+      "name": "ZBLL AS 72",
+      "group": "AS6",
+      "stickers": {
+        "U": "yyryyyoyb",
+        "B": "yggoooooo",
+        "F": "ybrrrrrrr",
+        "L": "oobbbbbbb",
+        "R": "yrggggggg"
+      },
+      "algorithms": [
+        {
+          "alg": "y' R2 D' R U2 R' D R U R' F R U R U' R' F' R",
+          "source": "speedcubedb",
+          "votes": 6,
+          "etm": 17,
+          "stm": 17,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R' F2 R D R' D' F2 U' R2 U R' U' R2",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 13,
+          "stm": 13,
+          "gen": "4GEN",
+          "verified": true
+        },
+        {
+          "alg": "R2 U' S R2 S' R2 U R U' R U' R' U2 R",
+          "source": "speedcubedb",
+          "votes": 2,
+          "etm": 14,
+          "stm": 14,
+          "gen": "3GEN",
+          "verified": true
+        },
+        {
+          "alg": "y R U' R U R' U R U2 R' U' R' U' R U' R' U R U' R'",
+          "source": "speedcubedb",
+          "votes": 1,
+          "etm": 19,
+          "stm": 19,
+          "gen": "2GEN",
+          "verified": true
+        }
+      ],
+      "setup": "R' F R U R' U' R' F' R U' R' D' R U2 R' D R2 y",
+      "setups_alt": [
+        "R2' U R' U R U2' R U2' R U R' U R2' U R' y'"
+      ],
+      "verified": true
+    }
+  ]
+}

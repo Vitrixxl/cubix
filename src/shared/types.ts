@@ -1,7 +1,7 @@
 /** HTTP and WebSocket contracts for the Rust API and native clients. */
 
 import type { CubeSize, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
-export type Stage = "F2L" | "OLL" | "PLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
+export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
 export const STAGES: readonly Stage[] = ["F2L", "OLL", "PLL"];
 
 export interface AlgEntry {

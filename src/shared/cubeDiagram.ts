@@ -144,7 +144,7 @@ export function isoCells(state: CubeState, mask: CubeMask): IsoCell[] {
  * else keeps the isometric cube.
  */
 export type DiagramView = "iso" | "top" | "unfolded";
-export const viewForStage = (stage: string): DiagramView => stage === "OLL" || stage === "PLL" || stage === "Parity" ? "top" : stage === "PBL" ? "unfolded" : "iso";
+export const viewForStage = (stage: string): DiagramView => stage === "OLL" || stage === "PLL" || stage === "ZBLL" || stage === "Parity" ? "top" : stage === "PBL" ? "unfolded" : "iso";
 /** Without a stage, the mask alone tells a last-layer case. */
 export const viewForMask = (mask: CubeMask): DiagramView => mask === "OLL" || mask === "PLL" ? "top" : "iso";
 export type TopCell = IsoCell;

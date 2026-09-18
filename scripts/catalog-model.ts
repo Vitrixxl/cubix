@@ -16,12 +16,14 @@ export interface Catalog { generated: string; sets: SetDto[]; cases: CaseDto[]; 
 export const reducedAlg = (alg: string, size: number) => alg.replace(/\b([UDFBRL])w|[udfbrl]/g, token => `${size - 1}${token[0].toUpperCase()}w`);
 
 export function buildCatalog(generated = new Date().toISOString().slice(0, 10)): Catalog {
-  const metadata = read<{ id: string; label: string; stage: Stage; description: string }[]>("catalog-sets.json");
-  const sets: SetDto[] = [], cases: CaseDto[] = [];
-  for (const meta of metadata) {
+  // `big_cubes: false` keeps a set on the 3×3: ZBLL is not worth repeating for every reduced cube.
+  const metadata = read<{ id: string; label: string; stage: Stage; description: string; big_cubes?: boolean }[]>("catalog-sets.json");
+  const sets: SetDto[] = [], cases: CaseDto[] = [], small = new Set<string>();
+  for (const { big_cubes = true, ...meta } of metadata) {
     const doc = read<{ cases: (Omit<CaseDto, "algorithms"> & { algorithms: (AlgEntry & { verified?: boolean })[] })[] }>(`${meta.id}.json`);
     const set: SetDto = { ...meta, count: doc.cases.length };
     sets.push(set);
+    if (!big_cubes) small.add(set.id);
     for (const c of doc.cases) cases.push({
       id: c.id, name: c.name, stage: set.stage, set: set.id, setLabel: set.label, group: c.group,
       ...(c.subgroup ? { subgroup: c.subgroup } : {}), ...(c.probability ? { probability: c.probability } : {}),
@@ -29,7 +31,7 @@ export function buildCatalog(generated = new Date().toISOString().slice(0, 10)):
       algorithms: c.algorithms.map(({ verified, ...alg }) => alg),
     });
   }
-  const baseSets = [...sets], baseCases = [...cases];
+  const baseSets = sets.filter(set => !small.has(set.id)), baseCases = cases.filter(c => !small.has(c.set));
   for (const file of ["multi-cube.json", "niche-catalog.json"]) {
     const extra = read<{ sets: SetDto[]; cases: CaseDto[] }>(file);
     sets.push(...extra.sets); cases.push(...extra.cases);

@@ -77,6 +77,7 @@ function checkDiagrams(file: string, isOll: boolean) {
   console.log(`${file}: ${checked} diagrams compared`);
 }
 checkDiagrams("speedcubedb_pll.json", false);
+checkDiagrams("speedcubedb_zbll.json", false);
 checkDiagrams("speedcubedb_oll.json", true);
 
 // 3. consolidated data ----------------------------------------------------------
@@ -104,7 +105,8 @@ function reached(s: CubeState, check: Check): boolean {
   }
   return false;
 }
-for (const [file, check] of [["pll.json", "solved"], ["oll.json", "oll"], ["f2l.json", "f2l"], ["f2l-advanced.json", "f2l"], ["f2l-expert.json", "f2l"], ["2look-oll.json", "oll"], ["2look-pll.json", "solved"]] as const) {
+const ZBLL_FILES = ["t", "u", "l", "pi", "h", "s", "as"].map(shape => `zbll-${shape}.json`);
+for (const [file, check] of [...ZBLL_FILES.map(file => [file, "solved"] as const), ["pll.json", "solved"], ["oll.json", "oll"], ["f2l.json", "f2l"], ["f2l-advanced.json", "f2l"], ["f2l-expert.json", "f2l"], ["2look-oll.json", "oll"], ["2look-pll.json", "solved"]] as const) {
   const doc = read(`data/${file}`);
   let n = 0;
   for (const c of doc.cases) {
@@ -126,7 +128,7 @@ for (const [file, check] of [["pll.json", "solved"], ["oll.json", "oll"], ["f2l.
 // The algorithm displayed during training must solve the exact state rendered
 // after Random AUF, not merely the canonical case orientation.
 assert(compensateAuf("U R U' R'", "U") === "R U' R'", "F2L 1 AUF is simplified for display");
-for (const file of ["pll.json", "oll.json", "f2l.json", "f2l-advanced.json", "f2l-expert.json", "2look-oll.json", "2look-pll.json"]) {
+for (const file of [...ZBLL_FILES, "pll.json", "oll.json", "f2l.json", "f2l-advanced.json", "f2l-expert.json", "2look-oll.json", "2look-pll.json"]) {
   const doc = read(`data/${file}`);
   for (const c of doc.cases) {
     const primary = c.algorithms[0];

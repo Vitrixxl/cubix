@@ -46,7 +46,7 @@ test("anonymous practice is entirely local and survives reopening offline",async
   await a.api.setPenalty(solve.id,"+2");
   expect(a.control.requests).toBe(0);
   const reopened = device(remote,a.storage); reopened.control.offline=true;
-  expect((await reopened.api.cases()).length).toBe(228);
+  expect((await reopened.api.cases()).length).toBe(700);
   expect((await reopened.api.solves("training"))[0].id).toBe(solve.id);
   expect((await reopened.api.caseHistory("PLL Aa")).summary.best).toBe(3234);
   expect((await reopened.api.profile("Guest")).trainingSolves).toBe(1);

@@ -11,7 +11,8 @@ de cas, son dernier mélange et ses préférences de catalogue. Le changement es
 l’armement, le chronométrage et l’enregistrement d’un temps.
 
 - **2×2** : Ortega OLL (7 cas) et PBL (5 cas).
-- **3×3** : catalogue CFOP existant (228 cas).
+- **3×3** : catalogue CFOP (228 cas) et ZBLL complet (472 cas en 7 sets : T, U, L, Pi, H, S, AS).
+  ZBLL reste propre au 3×3 (`big_cubes: false` dans `catalog-sets.json`) pour ne pas alourdir le catalogue.
 - **4×4 à 7×7** : exercices de centres, appariement des arêtes et parités par profondeur,
   puis les 228 cas CFOP adaptés à la résolution après réduction. Les exercices de centres
   et d’arêtes couvrent des séquences utiles ; la construction intuitive n’est pas un catalogue exhaustif.
@@ -79,7 +80,7 @@ bun run build:catalog   # multi-cube + niche + assemblage de data/catalog.json
 ```
 
 Les entrées curées restent dans `data/` : `catalog-sets.json` (métadonnées des sets CFOP, dans l'ordre),
-`f2l*.json`, `oll.json`, `pll.json`, `2look-*.json`, `multi-cube.json`, `niche-catalog.json`,
+`f2l*.json`, `oll.json`, `pll.json`, `2look-*.json`, `zbll-*.json`, `multi-cube.json`, `niche-catalog.json`,
 `puzzles.json` et `moves.json`. Le test `tests/catalog.test.ts` échoue si `catalog.json` n'a pas été
 régénéré après une modification de ces entrées.
 
@@ -105,12 +106,13 @@ Les tests vérifient les inverses, les pièces préservées et la légalité des
 
 | Source | Utilisation |
 | --- | --- |
-| [SpeedCubeDB](https://speedcubedb.com/a/3x3/) | Algorithmes, setups, votes et vidéos |
+| [SpeedCubeDB](https://speedcubedb.com/a/3x3/) | Algorithmes, setups, votes et vidéos ; ZBLL via `bun scripts/fetch-zbll.ts` |
 | [J Perm](https://jperm.net/algs/) | Recommandations et groupes OLL/PLL |
 | [F2LTrainer](https://github.com/Dave2ooo/F2LTrainer) | Cas F2L standard, avancés et experts |
 | [andyjudson/cfop](https://github.com/andyjudson/cfop) | Noms et probabilités |
 | [cubing.js](https://js.cubing.net/cubing/) | Vérification et génération des setups |
 
 La croix est en bas (blanc), la dernière face est jaune ; les schémas affichent la face avant bleue et la droite rouge (`src/shared/cubeAppearance.ts`).
-Les cas F2L visent le slot avant-droit. Les sources brutes sont conservées dans `data/raw` ;
+Les cas F2L visent le slot avant-droit. Chaque cas ZBLL est vérifié : l'algorithme résout le cube,
+le F2L et l'orientation des arêtes sont intacts, et les 472 états sont distincts à un AUF près. Les sources brutes sont conservées dans `data/raw` ;
 `bun run build:db` reconstruit et vérifie le catalogue.

@@ -123,7 +123,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
       renderItem={({ item: row }) => {
         if (row.kind === "stage") return <View style={[styles.stageHeader, row.stage === sections[0]?.stage && { marginTop: 2 }]}>
           <Text style={{ color: t.text, fontSize: 20, fontWeight: "700" }}>{row.stage}</Text>
-          {row.section.variants.length > 1 && <Segmented small options={row.section.variants.map(v => ({ id: v.id, label: v.label, count: v.count }))} value={row.section.active.id} onChange={id => setSetByStage(previous => ({ ...previous, [row.stage]: id }))} />}
+          {row.section.variants.length > 1 && <Segmented small options={row.section.variants.map(v => ({ id: v.id, label: v.label.replace(`${row.stage} `, ""), count: v.count }))} value={row.section.active.id} onChange={id => setSetByStage(previous => ({ ...previous, [row.stage]: id }))} />}
         </View>;
         if (row.kind === "group") return <View style={styles.groupTitle}>
           <Pressable onPress={() => setCollapsed(previous => ({ ...previous, [row.key]: !previous[row.key] }))} style={styles.groupToggle} accessibilityState={{ expanded: row.expanded }}>

@@ -40,5 +40,54 @@
     "label": "PLL",
     "stage": "PLL",
     "description": "All 21 permutation-of-the-last-layer cases."
+  },
+  {
+    "id": "zbll-t",
+    "label": "ZBLL T",
+    "stage": "ZBLL",
+    "description": "The 72 one-look last-layer cases with oriented edges and the T corner pattern.",
+    "big_cubes": false
+  },
+  {
+    "id": "zbll-u",
+    "label": "ZBLL U",
+    "stage": "ZBLL",
+    "description": "The 72 one-look last-layer cases with oriented edges and the U corner pattern.",
+    "big_cubes": false
+  },
+  {
+    "id": "zbll-l",
+    "label": "ZBLL L",
+    "stage": "ZBLL",
+    "description": "The 72 one-look last-layer cases with oriented edges and the L corner pattern.",
+    "big_cubes": false
+  },
+  {
+    "id": "zbll-pi",
+    "label": "ZBLL Pi",
+    "stage": "ZBLL",
+    "description": "The 72 one-look last-layer cases with oriented edges and the Pi corner pattern.",
+    "big_cubes": false
+  },
+  {
+    "id": "zbll-h",
+    "label": "ZBLL H",
+    "stage": "ZBLL",
+    "description": "The 40 one-look last-layer cases with oriented edges and the H corner pattern.",
+    "big_cubes": false
+  },
+  {
+    "id": "zbll-s",
+    "label": "ZBLL S",
+    "stage": "ZBLL",
+    "description": "The 72 one-look last-layer cases with oriented edges and the Sune corner pattern.",
+    "big_cubes": false
+  },
+  {
+    "id": "zbll-as",
+    "label": "ZBLL AS",
+    "stage": "ZBLL",
+    "description": "The 72 one-look last-layer cases with oriented edges and the Anti-Sune corner pattern.",
+    "big_cubes": false
   }
 ]

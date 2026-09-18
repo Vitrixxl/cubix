@@ -14,7 +14,7 @@ export function caseState(c: CaseDto): CubeState {
   return s;
 }
 
-export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" ? "OLL" : stage === "PLL" ? "PLL" : stage === "F2L" ? "F2L" : "full");
+export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" ? "OLL" : stage === "PLL" || stage === "ZBLL" ? "PLL" : stage === "F2L" ? "F2L" : "full");
 
 /** Algorithm as the user should execute it from the shown case (pre-AUF included). */
 export const displayAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `(${a.pre_auf}) ${a.alg}` : a.alg);

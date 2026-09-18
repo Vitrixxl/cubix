@@ -11,7 +11,7 @@
 import { Alg } from "cubing/alg";
 import { cube3x3x3 } from "cubing/puzzles";
 import type { KPattern } from "cubing/kpuzzle";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -206,7 +206,7 @@ function checkSetupsAlt(setups: string[], alg: string, check: Check): string[] {
 
 function finish(c: CaseEntry): CaseEntry {
   stats.cases++;
-  c.verified = c.algorithms.length > 0 && verify(c.setup, c.algorithms[0].alg, c.id.startsWith("OLL") ? "oll" : c.id.startsWith("PLL") ? "solved" : "f2l");
+  c.verified = c.algorithms.length > 0 && verify(c.setup, c.algorithms[0].alg, c.id.startsWith("OLL") ? "oll" : /^(PLL|ZBLL)/.test(c.id) ? "solved" : "f2l");
   if (!c.verified) stats.casesFailed.push(c.id);
   return c;
 }
@@ -245,6 +245,53 @@ function buildPLL(): CaseEntry[] {
       verified: false,
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// ZBLL (472 cas : arêtes déjà orientées, un seul algo finit la dernière couche)
+// ---------------------------------------------------------------------------
+const ZBLL_SHAPES = ["T", "U", "L", "Pi", "H", "S", "AS"];
+
+/** Clé d'un état de dernière couche, identique pour les 16 variantes AUF avant/après. */
+function lastLayerKey(setup: string): string {
+  const keys: string[] = [];
+  for (const pre of AUFS)
+    for (const post of AUFS) {
+      const d = SOLVED.applyAlg(`${pre} ${setup} ${post}`.trim()).patternData;
+      keys.push(JSON.stringify([d.EDGES.pieces, d.EDGES.orientation, d.CORNERS.pieces, d.CORNERS.orientation]));
+    }
+  return keys.sort()[0];
+}
+
+function buildZBLL(): Map<string, CaseEntry[]> {
+  console.log("== ZBLL");
+  const scdb = readJson<any[]>("speedcubedb_zbll.json");
+  const seen = new Map<string, string>();
+  const byShape = new Map<string, CaseEntry[]>(ZBLL_SHAPES.map((shape) => [shape, []]));
+  for (const c of scdb) {
+    const { algs, setup } = mergeAlgs("solved", scdbAlgs(c.alts));
+    const entry = finish({
+      id: c.name,
+      name: c.name,
+      group: c.subgroup,
+      stickers: c.stickers ?? undefined,
+      algorithms: algs,
+      setup,
+      setups_alt: checkSetupsAlt([c.setup], algs[0].alg, "solved"),
+      verified: false,
+    });
+    // Un cas ZBLL laisse le F2L intact, les arêtes orientées et au moins un coin à orienter.
+    const state = normalizeOrientation(SOLVED.applyAlg(setup));
+    const zbll = state !== null && piecesOk(state, "f2l") && state.patternData.EDGES.orientation.every((o) => o === 0) && state.patternData.CORNERS.orientation.some((o) => o !== 0);
+    const key = lastLayerKey(setup);
+    if (!zbll || seen.has(key)) {
+      console.warn(`  ! ${c.name} : ${zbll ? `même état que ${seen.get(key)}` : "pas un état ZBLL"}`);
+      stats.casesFailed.push(c.name);
+    }
+    seen.set(key, c.name);
+    byShape.get(c.shape)!.push(entry);
+  }
+  return byShape;
 }
 
 // ---------------------------------------------------------------------------
@@ -347,7 +394,10 @@ const SOURCES = {
 };
 
 const out = (name: string, set: string, cases: CaseEntry[], extra: Record<string, unknown> = {}) => {
-  const doc = { set, generated: new Date().toISOString().slice(0, 10), count: cases.length, sources: SOURCES, conventions: { orientation: "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)", setup: "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle", verified: "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près" }, ...extra, cases };
+  // Un set inchangé garde sa date : relancer le script ne touche que ce qui a bougé.
+  const previous = existsSync(join(OUT, name)) ? JSON.parse(readFileSync(join(OUT, name), "utf8")) : null;
+  const unchanged = previous && JSON.stringify(previous.cases) === JSON.stringify(JSON.parse(JSON.stringify(cases)));
+  const doc = { set, generated: unchanged ? previous.generated : new Date().toISOString().slice(0, 10), count: cases.length, sources: SOURCES, conventions: { orientation: "cross en bas (D), dernière couche en haut (U) ; les algos F2L visent le slot avant-droit (FR)", setup: "appliquer `setup` sur un cube résolu pour obtenir le cas ; `setups_alt` sont des alternatives équivalentes ; ajouter un AUF aléatoire (U/U2/U') avant pour varier l'angle", verified: "setup + algorithms[0] ramène l'état attendu (résolu / OLL fait / paire insérée) à un AUF près" }, ...extra, cases };
   if (!VERIFY_ONLY) writeFileSync(join(OUT, name), JSON.stringify(doc, null, 2) + "\n");
   console.log(`-> ${name}: ${cases.length} cas, ${cases.reduce((n, c) => n + c.algorithms.length, 0)} algos`);
 };
@@ -357,6 +407,7 @@ const oll = buildOLL();
 const f2l = buildF2L();
 const lookOll = build2Look("jperm_2lookoll.json", "2L-OLL", "oll");
 const lookPll = build2Look("jperm_2lookpll.json", "2L-PLL", "solved");
+const zbll = buildZBLL();
 
 out("pll.json", "PLL", pll);
 out("oll.json", "OLL", oll);
@@ -365,6 +416,7 @@ out("f2l-advanced.json", "F2L advanced", f2l.advanced);
 out("f2l-expert.json", "F2L expert", f2l.expert);
 out("2look-oll.json", "2-look OLL", lookOll);
 out("2look-pll.json", "2-look PLL", lookPll);
+for (const [shape, cases] of zbll) out(`zbll-${shape.toLowerCase()}.json`, `ZBLL ${shape}`, cases);
 
 console.log("\n== Résumé");
 console.log(`cas: ${stats.cases} | algos conservés: ${stats.algs} | algos retirés: ${stats.algsDropped} | setups alternatifs retirés: ${stats.setupsAltDropped}`);

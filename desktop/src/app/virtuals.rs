@@ -52,7 +52,13 @@ impl Cubix {
                         .h(px(32.))
                         .px(px(12.))
                         .text_size(px(12.))
-                        .child(s(&set, "label").to_owned())
+                        // The stage title already reads "ZBLL": its switches only name the corner pattern.
+                        .child(
+                            s(&set, "label")
+                                .strip_prefix(&format!("{} ", s(model, "stage")))
+                                .unwrap_or(s(&set, "label"))
+                                .to_owned(),
+                        )
                         .child(
                             txt(set["count"].to_string(), 12.)
                                 .font_family("Geist Mono")
