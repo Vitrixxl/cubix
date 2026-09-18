@@ -1,12 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
-import { averageOf, best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
+import { averageOf, best, effective, fmtSolve, fmtTime, mean, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { contextKey, puzzleInfo, scrambleLabel, SOLVE_MODES, type PracticeContext, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { api, localChanged } from "../api";
-import { cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom, updatedSolveAtom } from "../state";
+import { cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom, updatedSolveAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
@@ -19,7 +19,7 @@ import { PanelButton, PracticePanel, ToolbarAction } from "../components/Practic
 import { Notice, PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { Select } from "../components/Select";
 import { LastSolveActions, SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
-import { StopSurface, TimerSurface } from "../components/TimerSurface";
+import { StopSurface, TimeEntryField, TimerSurface } from "../components/TimerSurface";
 import { Bone } from "../components/Bone";
 import { Caption, Empty, Kpi, MiniBtn, Muted, mono } from "../components/ui";
 
@@ -39,6 +39,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const info = puzzleInfo(context.puzzle);
   const setSolveMode = useSetAtom(solveModeAtom);
   const setScrambleType = useSetAtom(scrambleTypeAtom);
+  const [entry, setEntry] = useAtom(timeEntryAtom);
   const [generating, setGenerating] = useState(false);
   // Only a generation that takes a while (cubing.js in the native engine) shows its skeleton; instant
   // ones would otherwise flash an empty frame between the previous scramble and the next.
@@ -92,6 +93,8 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
 
   const ensureSession = () => ensureLaunchSession("playground", context);
   const onStop = useCallback(async (ms: number) => {
+    // Casual timing records nothing: the time stays on screen and the next scramble comes up.
+    if (entry === "casual") { setLastSolveId(null); void generateNext(); return; }
     setSaving(true);
     try {
       const sessionId = await ensureSession();
@@ -103,8 +106,12 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
       if (message) setRecord({ at: Date.now(), message });
       void generateNext();
     } finally { setSaving(false); }
-  }, [scramble, context, generateNext]);
+  }, [scramble, context, generateNext, entry]);
   const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError });
+  // A typed time is saved like a timed one; a failed save keeps the time for a retry.
+  const [typedError, setTypedError] = useState<{ message: string; ms: number } | null>(null);
+  const submitTyped = (ms: number) => { setTypedError(null); onStop(ms).catch(error => setTypedError({ message: (error as Error).message, ms })); };
+  const typing = entry === "typing";
 
   const lastSolve = lastSolveId === null ? null : solves.find(solve => solve.id === lastSolveId) ?? null;
   const times = solves.map(s => effective(s.time_ms, s.penalty));
@@ -122,7 +129,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   return <View style={styles.page}>
     <View style={[styles.workspace, wide && styles.workspaceWide]}>
       {wide && <View style={{ flex: 1 }} />}
-      <TouchArea timer={timer} enabled={!timer.saveError} style={[styles.center, wide && { flex: 2.6 }]}>
+      <TouchArea timer={timer} enabled={!typing && !timer.saveError} style={[styles.center, wide && { flex: 2.6 }]}>
         <TimerChrome hidden={running} style={[styles.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
           <View style={[styles.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}>
             {!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer size={15} color={t.text2} />} disabled={busy} onPress={() => setShowTimes(true)} phone={layout.phone} />}
@@ -138,7 +145,9 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             </PracticeContent>
           </TimerChrome>
           <PracticeReadout landscape={layout.landscape}>
-          <TimerSlot running={running} style={styles.timerSlot}><TimerSurface timer={timer} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>
+          <TimerSlot running={running} style={styles.timerSlot}>{typing
+            ? <TimeEntryField fontSize={timerSize} short={layout.short} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message} onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} />
+            : <TimerSurface timer={timer} fontSize={timerSize} short={layout.short} unsaved={entry === "casual"} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} />}</TimerSlot>
           <TimerChrome hidden={running} exit="down" style={[styles.stats, (layout.landscape || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : Math.max(16, Math.min(layout.width * 0.035, 40)) }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
@@ -152,6 +161,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           <View onLayout={event => setActionHeight(event.nativeEvent.layout.height)} style={styles.bottomActionRow}>
             <Select value={context.scrambleType} disabled={busy || !!timer.saveError} flat="toolbar" accessibilityLabel="Scramble type" options={info.scrambles.map(type => ({ value: type, label: scrambleLabel(type) }))} onChange={value => setScrambleType(value as ScrambleType)} />
             <Select value={context.solveMode} disabled={busy || !!timer.saveError} flat="toolbar" accessibilityLabel="Solve mode" options={SOLVE_MODES.map(mode => ({ value: mode.id, label: mode.label }))} onChange={value => setSolveMode(value as SolveMode)} />
+            <Select value={entry} disabled={busy || !!timer.saveError || !!typedError} flat="toolbar" accessibilityLabel="Time entry" minWidth={150} options={TIME_ENTRIES.map(item => ({ value: item.id, label: item.label }))} onChange={value => setEntry(value as TimeEntry)} />
             <ToolbarAction icon={<IconShuffle size={15} color={t.text2} />} label="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} phone={layout.phone} />
           </View>
         </TimerChrome>

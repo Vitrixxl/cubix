@@ -58,6 +58,13 @@ fn case_matches(c: &Value, query: &str) -> bool {
         .split_whitespace()
         .all(|word| haystack.contains(&word.to_lowercase()))
 }
+fn entry_label(id: &str) -> &'static str {
+    match id {
+        "typing" => "Typing",
+        "casual" => "Casual",
+        _ => "Timer",
+    }
+}
 fn row() -> Div {
     div().flex().items_center()
 }
@@ -124,6 +131,8 @@ pub struct Cubix {
     solve_mode: String,
     scramble_type: String,
     scramble: String,
+    /// How times reach the timer page: "timer", "typing" (from an external timer) or "casual" (nothing recorded).
+    entry: String,
     user: Value,
     solves: Vec<Value>,
     stats: Vec<Value>,
@@ -202,9 +211,13 @@ impl Cubix {
             ("cases", "Search cases…", false),
             ("search", "Search a case: oll fish, pll t, f2l 6…", false),
             ("comment", "What happened on this solve?", false),
+            ("time", "0.00", false),
         ] {
             fields.insert(name.into(), cx.new(|cx| TextInput::new(hint, password, cx)));
         }
+        fields["time"].update(cx, |f, _| {
+            f.filter = Some(|ch| ch.is_ascii_digit() || matches!(ch, '.' | ',' | ':'))
+        });
         let mut app = Self {
             back_stack: Vec::new(),
             forward_stack: Vec::new(),
@@ -232,6 +245,7 @@ impl Cubix {
             solve_mode: "standard".into(),
             scramble_type: "random-moves".into(),
             scramble: String::new(),
+            entry: "timer".into(),
             user: json!({"isGuest":true,"username":"Guest"}),
             solves: vec![],
             stats: vec![],
@@ -300,9 +314,11 @@ impl Cubix {
                 cx.notify()
             },
         ));
-        let field = app.fields["cases"].clone();
-        app.subscriptions
-            .push(cx.observe(&field, move |_, _, cx| cx.notify()));
+        for name in ["cases", "time"] {
+            let field = app.fields[name].clone();
+            app.subscriptions
+                .push(cx.observe(&field, move |_, _, cx| cx.notify()));
+        }
         cx.spawn(async move |this, cx| {
             while let Ok(message) = rx.recv().await {
                 if this
@@ -363,6 +379,10 @@ impl Cubix {
     fn pref(&mut self, key: &str, value: Value) {
         self.prefs.insert(key.into(), value.clone());
         self.call("pref", "preference", json!([key, value]));
+    }
+    /// The timer page takes typed times instead of running the timer.
+    fn typing(&self) -> bool {
+        self.page == "playground" && self.entry == "typing"
     }
     fn context(&self) -> Value {
         json!({"puzzle":self.puzzle,"solveMode":self.solve_mode,"scrambleType":if self.page=="training"{"case"}else{&self.scramble_type}})
@@ -695,6 +715,13 @@ impl Cubix {
                     .iter()
                     .filter_map(|v| v.as_str().map(str::to_owned))
                     .collect();
+                self.entry = self
+                    .prefs
+                    .get("cubix.timer.entry")
+                    .and_then(Value::as_str)
+                    .filter(|value| matches!(*value, "typing" | "casual"))
+                    .unwrap_or("timer")
+                    .into();
                 self.learning_filter = self
                     .prefs
                     .get("cubix.algs.learningFilter")
@@ -789,6 +816,13 @@ impl Cubix {
         );
     }
     fn save_solve(&mut self, ms: f64, cx: &mut Context<Self>) {
+        // Casual timing records nothing: the time stays on screen and the next scramble comes up.
+        if self.page == "playground" && self.entry == "casual" {
+            self.last_solve = 0;
+            self.new_scramble();
+            cx.notify();
+            return;
+        }
         self.saving = true;
         let mut body = self.context();
         body["timeMs"] = json!(ms.round() as u64);
@@ -1089,6 +1123,21 @@ impl Cubix {
                 self.scramble.clear();
                 self.new_scramble();
                 self.refresh();
+            }
+            "entry" => {
+                self.timer.update(cx, |t, cx| t.reset(cx));
+                self.entry = arg.into();
+                self.pref("cubix.timer.entry", json!(arg));
+                self.fields["time"].update(cx, |f, cx| f.set(String::new(), cx));
+                self.overlay.clear();
+            }
+            "submitTime" => {
+                if let Some(ms) = crate::timer::parse_typed(&self.field("time", cx))
+                    .filter(|_| !self.generating && !self.scramble.is_empty())
+                {
+                    self.fields["time"].update(cx, |f, cx| f.set(String::new(), cx));
+                    self.save_solve(ms, cx);
+                }
             }
             "scrambleType" => {
                 self.timer.update(cx, |t, cx| t.reset(cx));
@@ -1699,6 +1748,10 @@ impl Cubix {
                             cx,
                         )
                         .child(icon("IconChevronDown", 12.)),
+                    )
+                    .child(
+                        self.btn("menu:entries", entry_label(&self.entry), false, cx)
+                            .child(icon("IconChevronDown", 12.)),
                     ),
             );
         }
@@ -2002,13 +2055,37 @@ impl Cubix {
                     .child(col().w_full().child(actions).child(stats.mt(px(gap)))),
             );
         }
-        center = center.child(
-            div()
-                .absolute()
-                .top(px(timer_top))
-                .w_full()
-                .child(self.timer.clone()),
-        );
+        center = center.child(div().absolute().top(px(timer_top)).w_full().child(
+            if self.typing() {
+                // The field takes the place and metrics of the timer, so switching entry never moves the page.
+                let text = self.field("time", cx);
+                let hint = if text.is_empty() {
+                    "Type your time, then Enter: 1234 is 12.34".to_string()
+                } else {
+                    match crate::timer::parse_typed(&text) {
+                        Some(ms) => format!("{} · Enter to save", crate::timer::time(ms)),
+                        None => "Not a time".into(),
+                    }
+                };
+                col()
+                    .w_full()
+                    .items_center()
+                    .pt(px(38.))
+                    .pb(px(8.))
+                    .child(self.input("time"))
+                    .child(
+                        div()
+                            .mt(px(10.))
+                            .h(px(20.))
+                            .text_size(px(13.))
+                            .text_color(self.theme.muted)
+                            .child(hint),
+                    )
+                    .into_any_element()
+            } else {
+                self.timer.clone().into_any_element()
+            },
+        ));
         let mut workspace = div().size_full().relative().child(center);
         if hide < 1. {
             workspace = workspace.child(
@@ -3130,6 +3207,14 @@ impl Cubix {
                 list(&self.catalog["puzzles"]["solveModes"]),
                 self.solve_mode.clone(),
             ),
+            "entries" => (
+                "entry",
+                ["timer", "typing", "casual"]
+                    .into_iter()
+                    .map(|id| json!({"id":id,"label":entry_label(id)}))
+                    .collect(),
+                self.entry.clone(),
+            ),
             "scrambles" => (
                 "scrambleType",
                 list(&self.catalog["puzzles"]["scrambles"])
@@ -3443,8 +3528,19 @@ impl Render for Cubix {
             timer.theme = t;
             timer.font_size = size;
             timer.compact = self.width <= 700.;
-            timer.enabled = enabled;
+            timer.enabled = enabled && !self.typing();
+            timer.unsaved = self.page == "playground" && self.entry == "casual";
         });
+        // The typed-time field holds the focus whenever it is on screen with nothing above it.
+        let time = self.fields["time"].clone();
+        time.update(cx, |f, _| f.display = Some(size));
+        if self.typing() && self.overlay.is_empty() {
+            if self.focus.is_focused(window) {
+                time.read(cx).focus(window);
+            }
+        } else if time.read(cx).focus_handle(cx).is_focused(window) {
+            self.focus.focus(window);
+        }
         let running = self.timer.read(cx).phase == Phase::Running;
         let target = if running { 1. } else { 0. };
         if self.hide != target || self.hide_from != target {
@@ -3526,6 +3622,16 @@ impl Render for Cubix {
                     .values()
                     .any(|f| f.read(cx).focus_handle(cx).is_focused(window));
                 let key = event.keystroke.key.as_str();
+                // The typed-time field keeps the page shortcuts: only plain keys belong to it.
+                let timing = s.typing()
+                    && s.overlay.is_empty()
+                    && s.fields["time"].read(cx).focus_handle(cx).is_focused(window);
+                let typing = typing && !(timing && event.keystroke.modifiers.alt);
+                if timing && key == "enter" {
+                    s.action("submitTime", window, cx);
+                    cx.stop_propagation();
+                    return;
+                }
                 if event.keystroke.modifiers.alt && matches!(key, "left" | "right") {
                     s.travel(key == "left", window, cx);
                     cx.stop_propagation();
@@ -3644,7 +3750,10 @@ impl Render for Cubix {
                         _ => {}
                     }
                 }
-                if ["playground", "training"].contains(&s.page.as_str()) && s.overlay.is_empty() {
+                if ["playground", "training"].contains(&s.page.as_str())
+                    && s.overlay.is_empty()
+                    && !s.typing()
+                {
                     let running = s.timer.read(cx).phase == Phase::Running;
                     if running
                         || key == "space"

@@ -2,6 +2,7 @@ import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { isPuzzle, puzzleInfo, puzzleOf, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
 import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/shared/types";
+import type { TimeEntry } from "../../src/client/lib/format";
 import { sets as catalogSets } from "../../src/client/local/catalog";
 import { api, local } from "./api";
 import { storage } from "./platform/storage";
@@ -132,6 +133,8 @@ export const scrambleTypeAtom = atom(get => {
 }, (get, set, type: ScrambleType) => {
   if (!get(cubeSwitchLockedAtom) && puzzleInfo(get(puzzleAtom)).scrambles.includes(type)) set(preferredScrambleTypeAtom, type);
 });
+/** Timer page only: run the timer, type a time from an external timer, or time without recording. */
+export const timeEntryAtom = persisted<TimeEntry>("cubix.timer.entry", "timer");
 export const practiceContextAtom = atom(get => ({ puzzle: get(puzzleAtom), solveMode: get(solveModeAtom), scrambleType: get(scrambleTypeAtom) }));
 const scramblesAtom = persisted<Record<string, string>>("cubix.playground.scrambleByContext", {});
 export const playgroundScrambleAtom = atom(get => {

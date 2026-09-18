@@ -19,6 +19,8 @@ pub struct Timer {
     pub theme: Theme,
     pub font_size: f32,
     pub compact: bool,
+    /// Casual timing: the hint says the time will not be recorded.
+    pub unsaved: bool,
     epoch: u64,
 }
 impl EventEmitter<Stopped> for Timer {}
@@ -32,6 +34,7 @@ impl Timer {
             theme: Theme::new("t3-code", false),
             font_size: 89.6,
             compact: false,
+            unsaved: false,
             epoch: 0,
         }
     }
@@ -122,6 +125,35 @@ pub fn time(ms: f64) -> String {
         format!("{seconds:.2}")
     }
 }
+/// A time typed by hand, in ms. Bare digits read from the right like csTimer ("1234" → 12.34,
+/// "12345" → 1:23.45); otherwise "12.34", "1:23.45" or "1:02:03.4". Mirrors `parseTypedTime`.
+pub fn parse_typed(text: &str) -> Option<f64> {
+    let value = text.trim().replacen(',', ".", 1);
+    let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    let ms = if digits(&value) {
+        let n: u64 = value.parse().ok()?;
+        (n / 1_000_000 * 3600 + n / 10_000 % 100 * 60 + n / 100 % 100) * 1000 + n % 100 * 10
+    } else {
+        let (whole, fraction) = value.split_once('.').unwrap_or((&value, ""));
+        let mut units: Vec<&str> = whole.split(':').collect();
+        let seconds = units.pop()?;
+        if units.len() > 2
+            || units.iter().any(|unit| !digits(unit))
+            || !(seconds.is_empty() || digits(seconds))
+            || !(fraction.is_empty() || digits(fraction))
+            || seconds.is_empty() && fraction.is_empty()
+        {
+            return None;
+        }
+        let mut total: u64 = 0;
+        for unit in units.iter().copied().chain([if seconds.is_empty() { "0" } else { seconds }]) {
+            total = total.checked_mul(60)?.checked_add(unit.parse().ok()?)?;
+        }
+        let millis: u64 = format!("{:0<3.3}", fraction).parse().ok()?;
+        total.checked_mul(1000)?.checked_add(millis)?
+    };
+    (ms > 0 && ms < 36_000_000).then_some(ms as f64)
+}
 impl Render for Timer {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let color = match self.phase {
@@ -140,6 +172,13 @@ impl Render for Timer {
                         "Tap to stop"
                     } else {
                         "Any key to stop"
+                    }
+                }
+                _ if self.unsaved => {
+                    if self.compact {
+                        "Not saved · hold, then release to start"
+                    } else {
+                        "Not saved · hold Space, release to start"
                     }
                 }
                 _ => {
@@ -200,5 +239,31 @@ impl Render for Timer {
                     .text_color(self.theme.muted)
                     .child(hint),
             )
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::parse_typed;
+
+    #[test]
+    fn typed_times() {
+        for (text, ms) in [
+            ("1234", 12340.),
+            ("90", 900.),
+            ("12345", 83450.),
+            ("1020345", 3723450.),
+            ("12.34", 12340.),
+            (" 12,3 ", 12300.),
+            (".5", 500.),
+            ("9.8765", 9876.),
+            ("1:23.45", 83450.),
+            ("1:5", 65000.),
+            ("1:02:03.4", 3723400.),
+        ] {
+            assert_eq!(parse_typed(text), Some(ms), "{text}");
+        }
+        for text in ["", "0", "0.00", ".", "1:", ":5", "12.3.4", "abc", "-5", "99999999999"] {
+            assert_eq!(parse_typed(text), None, "{text}");
+        }
     }
 }

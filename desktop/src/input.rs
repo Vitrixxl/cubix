@@ -33,6 +33,10 @@ actions!(
 pub struct TextInput {
     pub password: bool,
     pub colors: (Hsla, Hsla, Hsla, Hsla),
+    /// Display size: a bare, centred monospace readout of this font size instead of a form field.
+    pub display: Option<f32>,
+    /// Characters the field accepts; everything else typed or pasted is dropped.
+    pub filter: Option<fn(char) -> bool>,
     focus_handle: FocusHandle,
     pub content: SharedString,
     placeholder: SharedString,
@@ -56,6 +60,8 @@ impl TextInput {
             last_layout: None,
             last_bounds: None,
             is_selecting: false,
+            display: None,
+            filter: None,
             password,
             colors: (
                 rgb(0x1c1c24).into(),
@@ -351,9 +357,13 @@ impl EntityInputHandler for TextInput {
             .map(|range_utf16| self.range_from_utf16(range_utf16))
             .or(self.marked_range.clone())
             .unwrap_or(self.selected_range.clone());
+        let new_text: String = match self.filter {
+            Some(accepts) => new_text.chars().filter(|ch| accepts(*ch)).collect(),
+            None => new_text.into(),
+        };
 
         self.content =
-            (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
+            (self.content[0..range.start].to_owned() + &new_text + &self.content[range.end..])
                 .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
@@ -434,6 +444,7 @@ struct PrepaintState {
     line: Option<ShapedLine>,
     cursor: Option<PaintQuad>,
     selection: Option<PaintQuad>,
+    origin: Point<Pixels>,
 }
 
 impl IntoElement for TextElement {
@@ -541,6 +552,11 @@ impl Element for TextElement {
             .text_system()
             .shape_line(display_text, font_size, &runs, None);
 
+        // A display readout is centred in its bounds; every later measure uses the shifted bounds.
+        let mut bounds = bounds;
+        if input.display.is_some() {
+            bounds.origin.x += ((bounds.size.width - line.width) / 2.).max(px(0.));
+        }
         let cursor_pos = line.x_for_index(cursor);
         let (selection, cursor) = if selected_range.is_empty() {
             (
@@ -575,6 +591,7 @@ impl Element for TextElement {
             line: Some(line),
             cursor,
             selection,
+            origin: bounds.origin,
         }
     }
 
@@ -588,6 +605,7 @@ impl Element for TextElement {
         window: &mut Window,
         cx: &mut App,
     ) {
+        let bounds = Bounds::new(prepaint.origin, bounds.size);
         let focus_handle = self.input.read(cx).focus_handle.clone();
         window.handle_input(
             &focus_handle,
@@ -616,6 +634,7 @@ impl Element for TextElement {
 
 impl Render for TextInput {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let display = self.display;
         div()
             .flex()
             .key_context("TextInput")
@@ -638,21 +657,31 @@ impl Render for TextInput {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::on_mouse_up))
             .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .bg(self.colors.0)
-            .text_color(self.colors.1)
-            .rounded(px(12.))
             .w_full()
             .overflow_hidden()
-            .line_height(px(20.))
-            .text_size(px(14.))
-            .child(
-                div()
-                    .h(px(40.))
-                    .w_full()
-                    .px(px(14.))
-                    .py(px(10.))
+            .map(|d| match display {
+                Some(size) => d
+                    .font_family("Geist Mono")
+                    .font_weight(gpui::FontWeight(550.))
+                    .text_color(self.colors.3)
+                    .line_height(px(size * 1.1))
+                    .text_size(px(size))
                     .child(TextElement { input: cx.entity() }),
-            )
+                None => d
+                    .bg(self.colors.0)
+                    .text_color(self.colors.1)
+                    .rounded(px(12.))
+                    .line_height(px(20.))
+                    .text_size(px(14.))
+                    .child(
+                        div()
+                            .h(px(40.))
+                            .w_full()
+                            .px(px(14.))
+                            .py(px(10.))
+                            .child(TextElement { input: cx.entity() }),
+                    ),
+            })
     }
 }
 
