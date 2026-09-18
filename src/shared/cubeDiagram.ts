@@ -138,10 +138,15 @@ export function isoCells(state: CubeState, mask: CubeMask): IsoCell[] {
   }));
 }
 
-/** Top-layer view for 3×3 OLL and PLL: the U face plus the side stickers around it. */
-export const usesTopLayerView = (state: CubeState, mask: CubeMask) => cubeSize(state) === 3 && (mask === "OLL" || mask === "PLL");
-// Side stickers ordered as they appear around a top-down U face.
-const TOP_LAYER_SIDES = { back: [29, 28, 27], right: [38, 37, 36], front: [18, 19, 20], left: [45, 46, 47] } as const;
+/**
+ * Which picture explains a case best. Last-layer cases (OLL, PLL, parities) are read from above with the side
+ * stickers folded out around the U face; PBL needs both layers, so the side faces are folded out whole; everything
+ * else keeps the isometric cube.
+ */
+export type DiagramView = "iso" | "top" | "unfolded";
+export const viewForStage = (stage: string): DiagramView => stage === "OLL" || stage === "PLL" || stage === "Parity" ? "top" : stage === "PBL" ? "unfolded" : "iso";
+/** Without a stage, the mask alone tells a last-layer case. */
+export const viewForMask = (mask: CubeMask): DiagramView => mask === "OLL" || mask === "PLL" ? "top" : "iso";
 export type TopCell = IsoCell;
 /** Rectangle as a polygon with one radius per corner: top-left, top-right, bottom-right, bottom-left. */
 function roundedRect(x: number, y: number, width: number, height: number, radii: readonly number[]): string {
@@ -151,22 +156,33 @@ function roundedRect(x: number, y: number, width: number, height: number, radii:
     return arc([cx - sx * radius, cy - sy * radius], sx * sy > 0 ? onVertical : onHorizontal, sx * sy > 0 ? onHorizontal : onVertical);
   }));
 }
-export function topLayerCells(state: CubeState, mask: CubeMask): TopCell[] {
+/** View from above for any cube size: the U face, and around it `depth` rows of every side face (one row for the top layer). */
+export function topLayerCells(state: CubeState, mask: CubeMask, view: DiagramView = "top"): TopCell[] {
+  const n = cubeSize(state), area = n * n, last = n - 1, depth = view === "unfolded" ? n : 1;
   const fill = (slot: number) => stickerHex(state, slot, mask);
-  // Same piece shapes as the isometric view: a rounded centre, edges rounded on their centre side, a softer inner tip on corners.
+  // The drawing spans 13..107: U tiles one pitch apart, side rows half a pitch thick, 5 units between U and the sides.
+  const gap = Math.max(1.5, 6 / n), pitch = (84 + (3 - depth) * gap) / (n + depth), tile = pitch - gap, thickness = (pitch - gap) / 2, rowPitch = thickness + gap;
+  const start = 13 + depth * rowPitch - gap + 5, end = start + n * pitch - gap;
+  // Same piece shapes as the isometric view: rounded centres, edges rounded on their centre side, a softer inner tip on corners.
   const radius = (column: number, row: number, sx: number, sy: number) => {
-    if (column === 1 + sx || row === 1 + sy) return 2;
-    return (column === 1 || row === 1 ? ROUND : CORNER_ROUND) * 22;
+    if (column === (sx < 0 ? 0 : last) || row === (sy < 0 ? 0 : last)) return 6 / n;
+    return ((column === 0 || column === last) && (row === 0 || row === last) ? CORNER_ROUND : ROUND) * pitch;
   };
-  const side = (slot: number, key: string, x: number, y: number, width: number, height: number) => ({ key: `${key}-${slot}`, points: roundedRect(x, y, width, height, [1.5, 1.5, 1.5, 1.5]), fill: fill(slot) });
-  return ([
-    ...Array.from({ length: 9 }, (_, slot) => {
-      const column = slot % 3, row = Math.floor(slot / 3);
-      return { key: `u-${slot}`, points: roundedRect(28 + column * 22, 28 + row * 22, 20, 20, CORNERS.map(([sx, sy]) => radius(column, row, sx, sy))), fill: fill(slot) };
-    }),
-    ...TOP_LAYER_SIDES.back.map((slot, i) => side(slot, "b", 28 + i * 22, 13, 20, 10)),
-    ...TOP_LAYER_SIDES.right.map((slot, i) => side(slot, "r", 97, 28 + i * 22, 10, 20)),
-    ...TOP_LAYER_SIDES.front.map((slot, i) => side(slot, "f", 28 + i * 22, 97, 20, 10)),
-    ...TOP_LAYER_SIDES.left.map((slot, i) => side(slot, "l", 13, 28 + i * 22, 10, 20)),
-  ]).map(tile => ({ ...tile, stroke: tile.fill }));
+  const sideRadius = Array<number>(4).fill(Math.min(1.5, thickness / 4));
+  const side = (slot: number, x: number, y: number, width: number, height: number) => ({ key: `s-${slot}`, points: roundedRect(x, y, width, height, sideRadius), fill: fill(slot) });
+  const tiles = Array.from({ length: area }, (_, slot) => {
+    const column = slot % n, row = Math.floor(slot / n);
+    return { key: `u-${slot}`, points: roundedRect(start + column * pitch, start + row * pitch, tile, tile, CORNERS.map(([sx, sy]) => radius(column, row, sx, sy))), fill: fill(slot) };
+  });
+  // Side faces in U, D, F, B, R, L order; row 0 of each touches U and `i` runs along the U face as seen from above.
+  for (let row = 0; row < depth; row++) for (let i = 0; i < n; i++) {
+    const along = start + i * pitch, before = start - 5 - thickness - row * rowPitch, after = end + 5 + row * rowPitch;
+    tiles.push(
+      side(3 * area + row * n + last - i, along, before, tile, thickness),
+      side(4 * area + row * n + last - i, after, along, thickness, tile),
+      side(2 * area + row * n + i, along, after, tile, thickness),
+      side(5 * area + row * n + i, before, along, thickness, tile),
+    );
+  }
+  return tiles.map(tile => ({ ...tile, stroke: tile.fill }));
 }

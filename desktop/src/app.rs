@@ -1323,7 +1323,8 @@ impl Cubix {
                 &self.case_id
             };
             let c = self.find_case(id);
-            if id.is_empty() || !s(&c, "diagram").is_empty() {
+            // Flat cases (last layer seen from above) are explained by their diagram, not by the 3D cube.
+            if id.is_empty() || !s(&c, "diagram").is_empty() || c["flat"] == true {
                 None
             } else {
                 let setup = if self.page == "training" {
@@ -1383,6 +1384,19 @@ impl Cubix {
             node = node.child(img(image).size_full());
         }
         node
+    }
+    /// The drawn case of the training page carries its random AUF, unlike the catalogue picture.
+    fn training_diagram(&mut self, c: &Value, size: f32) -> Div {
+        let drawn = self.training["svg"].as_str().filter(|_| c["flat"] == true);
+        let Some(source) = drawn else {
+            return self.diagram(c, size);
+        };
+        let key = format!("training:{}:{}", s(c, "id"), s(&self.training, "setup"));
+        let image = self.images.svg(&key, source);
+        div()
+            .size(px(size))
+            .flex_none()
+            .when_some(image, |d, image| d.child(img(image).size_full()))
     }
     fn kpi(&self, label: &str, value: String, size: f32) -> Div {
         col()
@@ -1748,7 +1762,7 @@ impl Cubix {
                     let cube = if !self.cube_key.is_empty() {
                         self.animated_cube(cube_size)
                     } else {
-                        self.diagram(&c, cube_size)
+                        self.training_diagram(&c, cube_size)
                     };
                     let block = |s: &Self, label: &str, id: &str, alg: &str, size: f32, h: f32| {
                         col()

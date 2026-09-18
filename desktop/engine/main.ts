@@ -8,6 +8,7 @@ import { generatePracticeScramble } from './practiceScramble';
 import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from '../../src/shared/cube';
 import { executableAlg, maskForStage } from '../../src/client/lib/caseState';
 import { StaticCubeSvg } from '../../src/client/diagrams/StaticCubeSvg';
+import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
 import { cases } from '../../src/client/local/catalog';
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
@@ -72,7 +73,7 @@ function training(action:string,puzzle:PuzzleId,ids:string[],useAuf:boolean,solv
    const entry=history.entries[history.index];
    if(!entry)return null;
    else {const {c,auf}=entry;const setup=size?combineAuf(c.setup,auf):c.setup;
-     return {id:c.id,canPrevious:history.index>0,setup,algorithm:size?compensateAuf(executableAlg(c.algorithms[0]),auf):executableAlg(c.algorithms[0]),svg:size?renderToStaticMarkup(createElement(StaticCubeSvg,{state:applyAlg(solved(size),setup),size:300,mask:maskForStage(c.stage)})):null};}
+     return {id:c.id,canPrevious:history.index>0,setup,algorithm:size?compensateAuf(executableAlg(c.algorithms[0]),auf):executableAlg(c.algorithms[0]),svg:size?renderToStaticMarkup(createElement(StaticCubeSvg,{state:applyAlg(solved(size),setup),size:300,mask:maskForStage(c.stage),view:viewForStage(c.stage)})):null};}
 }
 const methods=new Set(Object.keys(local.api).filter(k=>!['connectLive'].includes(k)));
 const lines=createInterface({input:process.stdin,crlfDelay:Infinity});
@@ -108,7 +109,7 @@ async function handle(req:any){
    const [c,useAuf]=req.args,size=puzzleInfo(c.puzzle_id??String(c.cube_size??3).repeat(3)).cubeSize;
    const auf=useAuf&&size?randomAuf():'';
    const setup=size?combineAuf(c.setup,auf):c.setup;
-   value={setup,algorithm:size?compensateAuf(executableAlg(c.algorithms[0]),auf):executableAlg(c.algorithms[0]),svg:size?renderToStaticMarkup(createElement(StaticCubeSvg,{state:applyAlg(solved(size),setup),size:300,mask:maskForStage(c.stage)})):null};
+   value={setup,algorithm:size?compensateAuf(executableAlg(c.algorithms[0]),auf):executableAlg(c.algorithms[0]),svg:size?renderToStaticMarkup(createElement(StaticCubeSvg,{state:applyAlg(solved(size),setup),size:300,mask:maskForStage(c.stage),view:viewForStage(c.stage)})):null};
  }
  else if(req.method==='sync'){await local.retry();value=local.status();}
  else if(methods.has(req.method))value=await (local.api as any)[req.method](...req.args);

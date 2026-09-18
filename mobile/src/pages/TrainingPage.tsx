@@ -23,6 +23,7 @@ import { PanelButton, PracticePanel, ToolbarAction } from "../components/Practic
 import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { LastSolveActions, SolveRow } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
+import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { Caption, Kpi, MiniBtn, Muted, mono } from "../components/ui";
 import { styles as base } from "./PlaygroundPage";
@@ -162,7 +163,7 @@ function TrainingSession() {
               <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>
             </View>
             <View style={styles.setup}>
-              <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
+              <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} view={viewForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
               <View style={{ width: "100%", maxWidth: 620, alignItems: "center" }}>
                 <Caption style={{ marginBottom: 8 }}>Setup</Caption>
                 <AlgText alg={shownSetup} size={setupSize} lineHeight={setupSize * 1.7} wordSpacing={layout.phone ? 1 : 0} style={{ textAlign: "center", paddingHorizontal: layout.phone ? 12 : 0 }} />

@@ -1,5 +1,6 @@
 import { cubePreview } from '../engine/cubePreview';
 import { maskForStage } from '../../src/client/lib/caseState';
+import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -16,7 +17,9 @@ for(const [index,c] of cases.entries()){
  const file=`cases/${index}.svg`;
  const svg=c.diagram?await readFile(`assets${c.diagram}`,'utf8'):renderToStaticMarkup(createElement(CaseDiagram,{c,size:300}));
  await Bun.write(`desktop/assets/${file}`,svgDocument(svg));
- catalog.push({...c,asset:file,...(!c.diagram ? {cube:cubePreview(c.setup,c.cube_size ?? 3,maskForStage(c.stage),false)} : {})});
+ // Cases read from above keep their diagram on the desktop; the others are shown on the 3D cube.
+ const flat=!c.diagram&&viewForStage(c.stage)!=='iso';
+ catalog.push({...c,asset:file,...(flat ? {flat} : !c.diagram ? {cube:cubePreview(c.setup,c.cube_size ?? 3,maskForStage(c.stage),false)} : {})});
 }
 for(const [name,Icon] of Object.entries(icons)) await Bun.write(`desktop/assets/icons/${name}.svg`,svgDocument(renderToStaticMarkup(createElement(Icon)).replaceAll('currentColor','#ffffff')));
 // Native control icons use the same 24px stroke geometry as the shared icons.
