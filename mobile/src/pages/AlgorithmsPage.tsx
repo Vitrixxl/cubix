@@ -195,7 +195,9 @@ function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[];
       </View>
       <Btn small variant="primary" icon={<IconTimer size={16} color="#fff" />} label="Train" onPress={train} />
     </View>
-    <View style={{ flex: 1, minHeight: 0 }} onLayout={event => setWidth(Math.round(event.nativeEvent.layout.width))}>
+    {/* The exact width, never rounded: native paging steps by the real width of the list, so pages a fraction
+        of a point narrower drift a little further out of line with every swipe. */}
+    <View style={{ flex: 1, minHeight: 0 }} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
       {width > 0 && <FlatList ref={list} horizontal pagingEnabled showsHorizontalScrollIndicator={false} bounces={false} overScrollMode="never"
         data={siblings} keyExtractor={item => item.id} renderItem={renderPage}
         initialScrollIndex={index} getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
