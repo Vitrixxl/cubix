@@ -22,6 +22,8 @@ export const TOP_VIEWBOX = "0 0 120 120";
 export const SEAM_FILL = "#121216";
 /** Each tile is stroked in its own colour so its corners come out slightly rounded. */
 export const TILE_STROKE = { strokeWidth: 0.9, strokeLinejoin: "round" } as const;
+/** Hairline drawn over the cube edges, where two colours of one piece meet. */
+export const EDGE_STROKE = { fill: "none", stroke: SEAM_FILL, strokeWidth: 0.6, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 // Half the seam between two neighbouring tiles, as a fraction of one tile.
 const GAP = 0.05;
 // Same piece shapes as the desktop 3D cube, in tile units: centres and the centre side of edges are rounded,
@@ -106,6 +108,23 @@ export function isoHull(state: CubeState): string {
     })));
   }
   return hull;
+}
+
+const edges = new Map<number, string[]>();
+/** The three cube edges between the visible faces, following the rounded vertices; drawn over the tiles. */
+export function isoEdges(state: CubeState): string[] {
+  const dimension = cubeSize(state);
+  let lines = edges.get(dimension);
+  if (!lines) {
+    const n = dimension, near: Vector = [n, 0, n], middle: Vector = [n / 2, n / 2, n / 2];
+    const toward = (from: Vector, to: Vector): Vector => [Math.sign(to[0] - from[0]), Math.sign(to[1] - from[1]), Math.sign(to[2] - from[2])];
+    const far: Vector[] = [[0, 0, n], [n, 0, 0], [n, n, n]];
+    edges.set(dimension, lines = far.map(vertex => format([
+      ...tipCurve(near, toward(near, vertex), toward(near, middle)).reverse(),
+      ...tipCurve(vertex, toward(vertex, near), toward(vertex, middle)),
+    ].map(point => project(point, dimension)))));
+  }
+  return lines;
 }
 
 export interface IsoCell { key: string; points: string; fill: string; stroke: string }

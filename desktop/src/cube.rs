@@ -123,6 +123,8 @@ fn tip_curve(vertex: V, k: usize) -> impl Iterator<Item = V> {
 struct Polygon {
     points: Vec<[f32; 2]>,
     color: u32,
+    /// Open hairline instead of a filled shape.
+    line: bool,
 }
 
 /// Convex hull (Andrew's monotone chain) of the projected corners of a box,
@@ -212,7 +214,9 @@ fn polygons(scene: &Scene, seconds: f32, yaw: f32, pitch: f32) -> Vec<Polygon> {
         faces.push(Polygon {
             points: hull(corners),
             color: CORE,
+            line: false,
         });
+        let mut edges = Vec::new();
         for (slot, origin) in state.iter().enumerate() {
             let (p, n) = geometry(
                 scene.size,
@@ -277,8 +281,42 @@ fn polygons(scene: &Scene, seconds: f32, yaw: f32, pitch: f32) -> Vec<Polygon> {
             faces.push(Polygon {
                 points,
                 color: scene.colors[*origin],
+                line: false,
             });
+            // Where two colours of one piece meet on a cube edge, a hairline
+            // separates them. The face with the lower axis draws the shared edge.
+            for (k, along) in [(a, b), (b, a)] {
+                for sign in [-1., 1.] {
+                    let mut neighbour = [0.; 3];
+                    neighbour[k] = sign;
+                    if k < normal_axis || !outside(k, sign) || pose(neighbour, turning)[2] <= 0.0001 {
+                        continue;
+                    }
+                    let end = |side: f32| {
+                        let v = add(center, add(extent(k, sign), extent(along, side)));
+                        if outside(along, side) {
+                            tip_curve(v, along).collect()
+                        } else {
+                            vec![v]
+                        }
+                    };
+                    edges.push(Polygon {
+                        points: end(-1.)
+                            .into_iter()
+                            .rev()
+                            .chain(end(1.))
+                            .map(|v| {
+                                let w = pose(v, turning);
+                                [w[0], w[1]]
+                            })
+                            .collect(),
+                        color: CORE,
+                        line: true,
+                    });
+                }
+            }
         }
+        faces.extend(edges);
     }
     faces
 }
@@ -298,7 +336,11 @@ pub fn drawing(scene: Arc<Scene>, seconds: f32, yaw: f32, pitch: f32) -> impl In
             let unit =
                 f32::from(bounds.size.width.min(bounds.size.height)) / (scene.size as f32 * 1.95);
             for polygon in faces.iter() {
-                let mut path = PathBuilder::fill();
+                let mut path = if polygon.line {
+                    PathBuilder::stroke(px(1.))
+                } else {
+                    PathBuilder::fill()
+                };
                 for (i, v) in polygon.points.iter().enumerate() {
                     let p = point(
                         bounds.center().x + px(v[0] * unit),
@@ -310,7 +352,9 @@ pub fn drawing(scene: Arc<Scene>, seconds: f32, yaw: f32, pitch: f32) -> impl In
                         path.line_to(p);
                     }
                 }
-                path.close();
+                if !polygon.line {
+                    path.close();
+                }
                 if let Ok(path) = path.build() {
                     window.paint_path(path, rgb(polygon.color));
                 }

@@ -1,6 +1,6 @@
 import { memo, useId } from "react";
 import type { CubeState } from "../../shared/cube";
-import { ISO_VIEWBOX, SEAM_FILL, TILE_STROKE, TOP_VIEWBOX, isoCells, isoHull, topLayerCells, usesTopLayerView, type CubeMask } from "../../shared/cubeDiagram";
+import { EDGE_STROKE, ISO_VIEWBOX, SEAM_FILL, TILE_STROKE, TOP_VIEWBOX, isoCells, isoEdges, isoHull, topLayerCells, usesTopLayerView, type CubeMask } from "../../shared/cubeDiagram";
 export { FACE_COLORS, type CubeMask } from "../../shared/cubeAppearance";
 
 /** Lightweight isometric cube for static previews: one SVG, no CSS 3D transforms. Geometry and colours come from `shared/cubeDiagram`. */
@@ -20,6 +20,9 @@ export const StaticCubeSvg = memo(function StaticCubeSvg({ state, size = 110, ma
       <polygon points={isoHull(state)} fill={SEAM_FILL} />
       <g {...TILE_STROKE}>
         {isoCells(state, mask).map(({ key, ...polygon }) => <polygon key={key} {...polygon} />)}
+      </g>
+      <g {...EDGE_STROKE}>
+        {isoEdges(state).map(points => <polyline key={points} points={points} />)}
       </g>
     </svg>
   );
