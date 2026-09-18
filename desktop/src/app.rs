@@ -154,6 +154,8 @@ pub struct Cubix {
     learn_notice: Option<std::time::Instant>,
     /// The goal was met away from the training page: show the notice when it next appears.
     learn_notice_pending: bool,
+    /// Praise for the timer solve that just beat a personal best, with the moment it appeared.
+    record_notice: Option<(String, std::time::Instant)>,
     random_auf: bool,
     overlay: String,
     control_bounds: std::rc::Rc<std::cell::RefCell<HashMap<String, Bounds<Pixels>>>>,
@@ -255,6 +257,7 @@ impl Cubix {
             learn_goal: HashSet::new(),
             learn_notice: None,
             learn_notice_pending: false,
+            record_notice: None,
             random_auf: true,
             overlay: String::new(),
             control_bounds: Default::default(),
@@ -336,7 +339,7 @@ impl Cubix {
                                 if v["quit"]==true {cx.quit();}
                             }
                         }
-                        let state=json!({"page":s.page,"case":s.case_id,"puzzle":s.puzzle,"pending":s.engine.pending.len(),"error":s.error,"solves":s.solves.len(),"achievements":s.achievements["unlocked"],"training":s.training["id"],"phase":format!("{:?}",s.timer.read(cx).phase),"saving":s.saving,"generating":s.generating,"selected":s.selected,"learned":s.learned,"learnNotice":s.learn_notice.is_some()||s.learn_notice_pending,"overlay":s.overlay,"virtualRowsRendered":s.virtual_rows_rendered,"scramble":s.scramble,"solveMode":s.solve_mode,"selectIndex":s.select_index,"metrics":s.metrics(),"bounds":s.control_bounds.borrow().iter().map(|(k,b)|(k.clone(),json!({"x":f32::from(b.origin.x),"y":f32::from(b.origin.y),"w":f32::from(b.size.width),"h":f32::from(b.size.height)}))).collect::<serde_json::Map<_,_>>()});
+                        let state=json!({"page":s.page,"case":s.case_id,"puzzle":s.puzzle,"pending":s.engine.pending.len(),"error":s.error,"solves":s.solves.len(),"achievements":s.achievements["unlocked"],"training":s.training["id"],"phase":format!("{:?}",s.timer.read(cx).phase),"saving":s.saving,"generating":s.generating,"selected":s.selected,"learned":s.learned,"learnNotice":s.learn_notice.is_some()||s.learn_notice_pending,"recordNotice":s.record_notice.as_ref().map(|(message,_)|message.clone()),"overlay":s.overlay,"virtualRowsRendered":s.virtual_rows_rendered,"scramble":s.scramble,"solveMode":s.solve_mode,"selectIndex":s.select_index,"metrics":s.metrics(),"bounds":s.control_bounds.borrow().iter().map(|(k,b)|(k.clone(),json!({"x":f32::from(b.origin.x),"y":f32::from(b.origin.y),"w":f32::from(b.size.width),"h":f32::from(b.size.height)}))).collect::<serde_json::Map<_,_>>()});
                         let _ = std::fs::write(directory.join("state.tmp"),state.to_string());
                         let _ = std::fs::rename(directory.join("state.tmp"),directory.join("state.json"));
                     }).is_err(){break;}
@@ -753,6 +756,9 @@ impl Cubix {
                 self.last_solve = value["id"].as_i64().unwrap_or(0);
                 self.advance_pending = true;
                 self.advance_key = format!("{}:{}", self.context_key(), value["id"]);
+                if let Some(message) = value["record"].as_str() {
+                    self.show_record_notice(message.into(), cx);
+                }
                 self.refresh();
             }
             "mutated" => {
@@ -1311,6 +1317,24 @@ impl Cubix {
         })
         .detach();
     }
+    fn show_record_notice(&mut self, message: String, cx: &Context<Self>) {
+        self.record_notice = Some((message, std::time::Instant::now()));
+        cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(4200))
+                .await;
+            let _ = this.update(cx, |s, cx| {
+                if s.record_notice
+                    .as_ref()
+                    .is_some_and(|(_, since)| since.elapsed().as_millis() >= 4000)
+                {
+                    s.record_notice = None;
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
+    }
     fn prepare_cube(&mut self, cx: &mut Context<Self>) {
         let spec = if self.page == "playground" {
             self.puzzle_info()["cubeSize"]
@@ -1690,7 +1714,19 @@ impl Cubix {
         if training && self.learn_notice_pending {
             self.show_learning_notice(cx);
         }
-        if training && hide < 1. && self.learn_notice.is_some() {
+        let notice = if training {
+            self.learn_notice.map(|_| {
+                (
+                    "IconCheck",
+                    "Well done! Every selected case is learned.".to_string(),
+                )
+            })
+        } else {
+            self.record_notice
+                .as_ref()
+                .map(|(message, _)| ("IconTrophy", message.clone()))
+        };
+        if let Some((name, message)) = notice.filter(|_| hide < 1.) {
             center = center.child(
                 div()
                     .absolute()
@@ -1708,8 +1744,8 @@ impl Cubix {
                             .text_size(px(13.))
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(self.theme.good)
-                            .child(icon("IconCheck", 14.))
-                            .child("Well done! Every selected case is learned."),
+                            .child(icon(name, 14.))
+                            .child(message),
                     ),
             );
         }

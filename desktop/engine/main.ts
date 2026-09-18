@@ -18,6 +18,7 @@ import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync, openSyn
 import { join } from 'node:path';
 import {homedir} from 'node:os';
 import {fmtDate} from '../../src/client/lib/format';
+import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { createInterface } from 'node:readline';
 const origin=process.env.CUBIX_API_ORIGIN??'https://cubix.vitrixxl.fr';
 const root=process.env.CUBIX_DESKTOP_DATA??join(process.env.XDG_DATA_HOME??join(homedir(),'.local/share'),'cubix-desktop');
@@ -110,6 +111,12 @@ async function handle(req:any){
    const auf=useAuf&&size?randomAuf():'';
    const setup=size?combineAuf(c.setup,auf):c.setup;
    value={setup,algorithm:size?compensateAuf(executableAlg(c.algorithms[0]),auf):executableAlg(c.algorithms[0]),svg:size?renderToStaticMarkup(createElement(StaticCubeSvg,{state:applyAlg(solved(size),setup),size:300,mask:maskForStage(c.stage),view:viewForStage(c.stage)})):null};
+ }
+ else if(req.method==='addSolve'){
+   // A timer solve that beats the all-time single, Ao5 or Ao12 of its context comes back with its praise.
+   const body=req.args[0],solve=await local.api.addSolve(body);
+   const record=body.caseId?null:recordMessage(solveRecords((await local.api.solves('playground',Infinity,body.puzzle,body)).reverse(),solve.id));
+   value={...solve,record};
  }
  else if(req.method==='sync'){await local.retry();value=local.status();}
  else if(methods.has(req.method))value=await (local.api as any)[req.method](...req.args);

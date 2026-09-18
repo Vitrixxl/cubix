@@ -2,6 +2,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { averageOf, best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
+import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { contextKey, puzzleInfo, scrambleLabel, SOLVE_MODES, type PracticeContext, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { api, localChanged } from "../api";
@@ -13,9 +14,9 @@ import { usePreservedList } from "../hooks/usePreservedList";
 import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { AlgText } from "../components/AlgText";
-import { IconShuffle, IconTimer } from "../components/icons";
+import { IconShuffle, IconTimer, IconTrophy } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
-import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
+import { Notice, PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { Select } from "../components/Select";
 import { LastSolveActions, SolveActionButtons, SolveInfoButton, SolveRow } from "../components/SolveMenus";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
@@ -56,6 +57,8 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   useEffect(() => { if (updatedSolve) setSolves(list => list.map(solve => solve.id === updatedSolve.id ? updatedSolve : solve)); }, [updatedSolve]);
   // The time just recorded keeps its buttons under the timer until the next attempt or its deletion.
   const [lastSolveId, setLastSolveId] = useState<number | null>(null);
+  // A solve that beats the all-time single, Ao5 or Ao12 of this context is praised for a moment.
+  const [record, setRecord] = useState({ at: 0, message: "" });
   const wide = layout.wide;
 
   const generateNext = useCallback(async () => {
@@ -95,6 +98,9 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
       const solve = await api.addSolve({ sessionId, caseId: null, timeMs: ms, scramble, ...context });
       setSolves(s => [...s.filter(item => item.id !== solve.id), solve]);
       setLastSolveId(solve.id);
+      // Records span every launch, unlike the listed session.
+      const message = recordMessage(solveRecords((await api.solves("playground", Infinity, context.puzzle, context)).reverse(), solve.id));
+      if (message) setRecord({ at: Date.now(), message });
       void generateNext();
     } finally { setSaving(false); }
   }, [scramble, context, generateNext]);
@@ -122,6 +128,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             {!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer size={15} color={t.text2} />} disabled={busy} onPress={() => setShowTimes(true)} phone={layout.phone} />}
           </View>
         </TimerChrome>
+        <Notice at={record.at} hidden={running} top={layout.phone ? 48 : 56} icon={<IconTrophy size={14} color={t.good} />} message={record.message} />
         <View style={[styles.stack, layout.landscape && styles.stackLandscape, { paddingHorizontal: layout.pagePadding, paddingBottom: layout.short ? layout.navSpace + actionHeight + 32 : 44 }]}>
           <TimerChrome hidden={running} exit="up" style={[styles.scramble, layout.landscape && styles.landscapeLeft, grouped && styles.grouped]}>
             <PracticeContent>

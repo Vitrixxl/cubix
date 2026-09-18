@@ -1,8 +1,9 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Animated, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useCentre, useExit, type ExitDirection } from "../hooks/useExit";
 import type { TimerApi } from "../hooks/useTimer";
 import { responder } from "./TimerSurface";
+import { useTheme } from "../theme";
 
 /** `[data-timer-chrome]`: slides off screen toward `exit` while the timer runs, like the desktop page. */
 export function TimerChrome({ hidden, exit = "up", children, style, pointerEvents = "box-none" }: { hidden: boolean; exit?: ExitDirection; children: ReactNode; style?: StyleProp<ViewStyle>; pointerEvents?: "box-none" | "auto" }) {
@@ -44,4 +45,29 @@ export function PracticeContent({ children, revealEnd = false }: { children: Rea
   </ScrollView>;
 }
 
-const styles = StyleSheet.create({ area: { flex: 1, minHeight: 0 } });
+/** A brief line of praise at the top of the practice area, shown at each new `at`; fades out on its own. */
+export function Notice({ at, hidden, top, icon, message }: { at: number; hidden: boolean; top: number; icon: ReactNode; message: string }) {
+  const t = useTheme();
+  const opacity = useRef(new Animated.Value(0)).current;
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!at) return;
+    setShown(true);
+    Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    const hide = setTimeout(() => Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setShown(false)), 4000);
+    return () => clearTimeout(hide);
+  }, [at, opacity]);
+  if (!shown || hidden) return null;
+  return <Animated.View pointerEvents="none" style={[styles.notice, { top, opacity }]}>
+    <View style={[styles.noticeBody, { backgroundColor: t.surface2 }]}>
+      {icon}
+      <Text style={{ color: t.good, fontSize: 13, fontWeight: "600" }}>{message}</Text>
+    </View>
+  </Animated.View>;
+}
+
+const styles = StyleSheet.create({
+  area: { flex: 1, minHeight: 0 },
+  notice: { position: "absolute", left: 0, right: 0, zIndex: 3, alignItems: "center" },
+  noticeBody: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 },
+});

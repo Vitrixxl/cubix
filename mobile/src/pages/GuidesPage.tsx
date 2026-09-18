@@ -51,6 +51,7 @@ const guides: Record<GuideId, { title: string; lead: string; sections: [string, 
       ["Average of 12 (Ao12)", "Drop the best and worst of twelve consecutive results and average the ten remaining. Twelve solves from 10 to 21 seconds give an Ao12 of 15.50."],
       ["+2 and DNF", "A +2 adds two seconds before sorting. A DNF counts as the worst result. One DNF is dropped as the worst; two or more make the average DNF."],
       ["Best and mean", "Best is the fastest valid result. Mean averages all valid results without dropping any. Ao5 and Ao12 use the most recent five or twelve results and stay blank until enough solves exist."],
+      ["Personal bests", "A timer solve that beats your all-time best single, Ao5 or Ao12 for the puzzle, scramble type and solve mode shows a brief green message. The first result sets the record without beating one."],
     ],
   },
 };

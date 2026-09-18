@@ -45,6 +45,7 @@ export function GuideContent({ page }: { page: Guide }) {
       <h2>Average of 12 (Ao12)</h2><p>Same idea with twelve results: drop the best and worst, average the ten left. Twelve solves from 10 to 21 seconds give an Ao12 of <strong>15.50</strong>.</p>
       <h2>+2 and DNF</h2><p>A +2 adds two seconds before sorting. A DNF counts as the worst result. One DNF is dropped as the worst; two or more make the average DNF.</p>
       <h2>Best and mean</h2><p>Best is the fastest valid result. Mean averages all valid results without dropping any. Ao5 and Ao12 use the most recent five or twelve results and stay blank until enough solves exist.</p>
+      <h2>Personal bests</h2><p>A timer solve that beats your all-time best single, Ao5 or Ao12 for the puzzle, scramble type and solve mode shows a brief green message. The first result sets the record without beating one.</p>
       <p>Official rules: <a href="https://www.worldcubeassociation.org/regulations/#9b">WCA formats</a> and <a href="https://www.worldcubeassociation.org/regulations/#9f">results</a>.</p>
     </>}
     <nav className="public-links" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>

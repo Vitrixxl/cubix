@@ -1,6 +1,6 @@
 import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
 import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningGoal";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
@@ -20,7 +20,7 @@ import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
 import { IconBack, IconCheck, IconComment, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
-import { PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
+import { Notice, PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { LastSolveActions, SolveRow } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
@@ -150,7 +150,7 @@ function TrainingSession() {
           <View style={[base.toolbarGroup, { justifyContent: "center" }]}>{supportsAuf && <ToolbarAction icon={<IconShuffle size={15} color={useAuf ? t.accent : iconColor} />} label="Random AUF" pressed={useAuf} disabled={busy} onPress={() => setUseAuf(v => !v)} phone={layout.phone} />}</View>
           <View style={[base.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}>{!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer size={15} color={iconColor} />} disabled={busy} onPress={() => setShowTimes(true)} phone={layout.phone} />}</View>
         </TimerChrome>
-        <LearnedNotice at={celebratedAt} hidden={running} top={layout.phone ? 48 : 56} />
+        <Notice at={celebratedAt} hidden={running} top={layout.phone ? 48 : 56} icon={<IconCheck size={14} color={t.good} />} message="Well done! Every selected case is learned." />
         <View style={[base.stack, layout.landscape && base.stackLandscape, layout.phone && !layout.landscape && { paddingTop: 52, paddingBottom: 88 }, { paddingHorizontal: layout.pagePadding }]}>
           {current ? <TimerChrome hidden={running} exit="up" style={[styles.trainingCase, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <PracticeContent revealEnd={revealed}>
@@ -201,27 +201,6 @@ function TrainingSession() {
   </View>;
 }
 
-/** A brief line of praise above the case once every selected case is learned; fades out on its own. */
-function LearnedNotice({ at, hidden, top }: { at: number; hidden: boolean; top: number }) {
-  const t = useTheme();
-  const opacity = useRef(new Animated.Value(0)).current;
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    if (!at) return;
-    setShown(true);
-    Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    const hide = setTimeout(() => Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setShown(false)), 4000);
-    return () => clearTimeout(hide);
-  }, [at, opacity]);
-  if (!shown || hidden) return null;
-  return <Animated.View pointerEvents="none" style={[styles.notice, { top, opacity }]}>
-    <View style={[styles.noticeBody, { backgroundColor: t.surface2 }]}>
-      <IconCheck size={14} color={t.good} />
-      <Text style={{ color: t.good, fontSize: 13, fontWeight: "600" }}>Well done! Every selected case is learned.</Text>
-    </View>
-  </Animated.View>;
-}
-
 function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[]; solves: SolveDto[]; onUndo: () => void }) {
   const t = useTheme();
   const { navSpace } = useLayout();
@@ -264,8 +243,6 @@ const styles = StyleSheet.create({
   solution: { width: "100%", maxWidth: 600, marginTop: 12, paddingTop: 12, borderTopWidth: 1, alignItems: "center" },
   caseActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 4 },
   reveal: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 14, borderRadius: 10 },
-  notice: { position: "absolute", left: 0, right: 0, zIndex: 3, alignItems: "center" },
-  noticeBody: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 },
   empty: { alignItems: "center", paddingVertical: 20, paddingHorizontal: 12, flex: 1, justifyContent: "flex-end" },
   sessionCase: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 10, paddingHorizontal: 2 },
   sessionCube: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
