@@ -2183,13 +2183,16 @@ impl Cubix {
             )
     }
     fn times(&mut self, cx: &Context<Self>) -> Div {
-        let mut rows: Vec<_> = self
-            .solves
-            .iter()
-            .enumerate()
-            .rev()
-            .map(|(i, solve)| json!({"kind":"solve","index":i+1,"solve":solve}))
-            .collect();
+        let mut rows: Vec<_> = if self.page == "training" {
+            self.session_rows()
+        } else {
+            self.solves
+                .iter()
+                .enumerate()
+                .rev()
+                .map(|(i, solve)| json!({"kind":"solve","index":i+1,"solve":solve}))
+                .collect()
+        };
         if rows.is_empty() {
             rows.push(json!({"kind":"empty","text":"No times yet."}));
         }
@@ -2227,6 +2230,38 @@ impl Cubix {
                     }),
             )
             .child(content)
+    }
+    /// Training session as on mobile: one row per practised case with its diagram and its times,
+    /// the cases with most solves first, the selected cases without a time yet at the end.
+    fn session_rows(&mut self) -> Vec<Value> {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_case: HashMap<String, Vec<Value>> = HashMap::new();
+        for solve in &self.solves {
+            let id = s(solve, "case_id");
+            if id.is_empty() {
+                continue;
+            }
+            if !by_case.contains_key(id) {
+                order.push(id.to_owned());
+            }
+            by_case.entry(id.to_owned()).or_default().push(solve.clone());
+        }
+        order.sort_by_key(|id| std::cmp::Reverse(by_case[id].len()));
+        let cases = self.all_cases();
+        for c in cases.iter() {
+            let id = s(c, "id");
+            if self.selected.contains(id) && !by_case.contains_key(id) {
+                order.push(id.to_owned());
+            }
+        }
+        order
+            .iter()
+            .filter_map(|id| {
+                let c = cases.iter().find(|c| s(c, "id") == id)?;
+                let solves = by_case.remove(id).unwrap_or_default();
+                Some(json!({"kind":"sessionCase","case":c,"solves":solves}))
+            })
+            .collect()
     }
     fn detail(&mut self, cx: &Context<Self>) -> Div {
         let c = self.find_case(&self.case_id);
@@ -3264,10 +3299,40 @@ impl Cubix {
             );
         }
         if self.overlay == "solve" {
-            if let Some(solve) = &self.overlay_solve {
+            // The card follows the penalty just toggled; the solve list is the fresh source.
+            let solve = self.overlay_solve.as_ref().map(|shown| {
+                self.solves
+                    .iter()
+                    .find(|solve| solve["id"] == shown["id"])
+                    .unwrap_or(shown)
+                    .clone()
+            });
+            if let Some(solve) = &solve {
                 let commented = !s(solve, "comment").is_empty();
                 menu = menu
                     .child(self.solve_card(solve))
+                    .child(
+                        row()
+                            .gap(px(4.))
+                            .child(
+                                self.btn(
+                                    format!("penalty:{}:+2", solve["id"]),
+                                    "+2",
+                                    solve["penalty"] == "+2",
+                                    cx,
+                                )
+                                .flex_1(),
+                            )
+                            .child(
+                                self.btn(
+                                    format!("penalty:{}:dnf", solve["id"]),
+                                    "DNF",
+                                    solve["penalty"] == "dnf",
+                                    cx,
+                                )
+                                .flex_1(),
+                            ),
+                    )
                     .child(
                         self.btn(
                             format!("comment:{}", solve["id"]),

@@ -33,7 +33,7 @@ export function TimerSurface({ timer, disabled = false, fontSize, short, actions
   useLayoutEffect(() => { setRunning(phase === "running"); }, [phase, setRunning]);
   useLayoutEffect(() => () => { setRunning(false); }, [setRunning]);
   const armed = phase === "ready" || phase === "holding";
-  const text = armed ? "0.00" : fmtTime(elapsed, { blank: "0.00" });
+  const text = armed ? "0.000" : fmtTime(elapsed, { blank: "0.000" });
   const hint = disabled ? "Select cases to begin"
     : phase === "running" ? "Tap to stop"
     : phase === "ready" ? "Release to start"

@@ -120,9 +120,9 @@ pub fn time(ms: f64) -> String {
     let minutes = (ms / 60000.).floor() as u64;
     let seconds = (ms % 60000.) / 1000.;
     if minutes > 0 {
-        format!("{minutes}:{seconds:05.2}")
+        format!("{minutes}:{seconds:06.3}")
     } else {
-        format!("{seconds:.2}")
+        format!("{seconds:.3}")
     }
 }
 /// A time typed by hand, in ms. Bare digits read from the right like csTimer ("1234" → 12.34,
@@ -218,7 +218,7 @@ impl Render for Timer {
                     .text_color(color)
                     .children(
                         (if matches!(self.phase, Phase::Holding | Phase::Ready) {
-                            "0.00".to_owned()
+                            "0.000".to_owned()
                         } else {
                             time(self.elapsed)
                         })

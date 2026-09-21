@@ -396,6 +396,111 @@ impl Cubix {
                             ),
                     )
             }
+            "sessionCase" => {
+                let c = model["case"].clone();
+                let solves = list(&model["solves"]);
+                let id = s(&c, "id");
+                let short = id.split_once(' ').map(|(_, v)| v).unwrap_or(id).to_owned();
+                let effective = |solve: &Value| {
+                    if solve["penalty"] == "dnf" {
+                        None
+                    } else {
+                        Some(
+                            number(&solve["time_ms"])
+                                + if solve["penalty"] == "+2" { 2000. } else { 0. },
+                        )
+                    }
+                };
+                let valid: Vec<f64> = solves.iter().filter_map(effective).collect();
+                let best = valid.iter().copied().reduce(f64::min);
+                // The best time is the highlighted badge; only the mean needs words, once there is more than one time.
+                let summary = (valid.len() > 1)
+                    .then(|| format!("mean {}", time(valid.iter().sum::<f64>() / valid.len() as f64)));
+                // Times as small square-cornered badges, newest first; a click opens the solve.
+                let mut badges = row().flex_wrap().gap(px(6.));
+                for solve in solves.iter().rev() {
+                    let value = effective(solve);
+                    let label = if solve["penalty"] == "dnf" {
+                        "DNF".to_owned()
+                    } else {
+                        format!(
+                            "{}{}",
+                            time(value.unwrap_or(0.)),
+                            if solve["penalty"] == "+2" { "+" } else { "" }
+                        )
+                    };
+                    let is_best = value.is_some() && value == best;
+                    let commented = !s(solve, "comment").is_empty();
+                    badges = badges.child(
+                        self.btn(format!("solve:{}", solve["id"]), label, false, cx)
+                            .h(px(24.))
+                            .min_h(px(24.))
+                            .px(px(7.))
+                            .gap(px(4.))
+                            .rounded(px(6.))
+                            .bg(if is_best { t.soft } else { t.surface2 })
+                            .font_family("Geist Mono")
+                            .text_size(px(12.))
+                            .text_color(if solve["penalty"] == "dnf" {
+                                t.danger
+                            } else if is_best {
+                                t.accent
+                            } else {
+                                t.text
+                            })
+                            .when(commented, |d| {
+                                d.child(icon("IconComment", 11.).text_color(t.muted))
+                            }),
+                    );
+                }
+                // The case is named under its picture; beside it, its times or a plain dash while it has none.
+                row()
+                    .w_full()
+                    .items_start()
+                    .gap(px(14.))
+                    .py(px(10.))
+                    .child(
+                        col()
+                            .w(px(60.))
+                            .flex_none()
+                            .items_center()
+                            .gap(px(5.))
+                            .child(self.diagram(&c, 44.))
+                            .child(
+                                txt(short, 11.)
+                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .text_color(t.secondary)
+                                    .whitespace_nowrap(),
+                            ),
+                    )
+                    // As tall as the picture at least, so the dash or the times centre on it rather than on the name.
+                    .child(
+                        col()
+                            .flex_1()
+                            .min_w_0()
+                            .min_h(px(44.))
+                            .justify_center()
+                            .gap(px(7.))
+                            .when(solves.is_empty(), |d| {
+                                d.child(
+                                    div()
+                                        .w(px(14.))
+                                        .h(px(2.))
+                                        .rounded(px(1.))
+                                        .bg(t.muted.opacity(0.6)),
+                                )
+                            })
+                            .when_some(summary, |d, summary| {
+                                d.child(
+                                    txt(summary, 11.)
+                                        .font_family("Geist Mono")
+                                        .whitespace_nowrap()
+                                        .text_color(t.muted),
+                                )
+                            })
+                            .when(!solves.is_empty(), |d| d.child(badges)),
+                    )
+            }
             _ => div(),
         }
     }

@@ -218,14 +218,20 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
         const list = byCase.get(c.id) ?? [];
         const times = list.map(s => effective(s.time_ms, s.penalty));
         const b = best(times);
+        // The case is named under its picture; beside it, its times as badges or a plain dash while it has none.
         return <View key={c.id} style={styles.sessionCase}>
-          <View style={styles.sessionCube}><CaseDiagram c={c} size={40} /></View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={styles.sessionTitle}><Text style={{ color: t.text, fontSize: 14, fontWeight: "700" }}>{shortId(c)}</Text><Text style={[mono(t, 12), { color: t.readableMuted }]}>{list.length ? `${list.length} · best ${fmtTime(b)} · mean ${fmtTime(mean(times))}` : "no time yet"}</Text></View>
-            {list.length > 0 && <View style={styles.sessionTimes}>
-              {[...list].reverse().map(s => { const time = effective(s.time_ms, s.penalty); const isBest = time !== null && time === b; return <SolveRow key={s.id} solve={s} style={styles.sessionTime}><Text style={[mono(t, 14, isBest ? "600" : "500"), { color: s.penalty === "dnf" ? t.danger : isBest ? t.accent : t.text2 }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>{s.comment ? <IconComment size={11} color={t.readableMuted} /> : null}</SolveRow>; })}
-            </View>}
+          <View style={styles.sessionCube}>
+            <CaseDiagram c={c} size={44} />
+            <Text numberOfLines={1} style={{ color: t.text2, fontSize: 11, fontWeight: "600" }}>{shortId(c)}</Text>
           </View>
+          {/* As tall as the picture at least, so the dash or the times centre on it rather than on the name. */}
+          {list.length === 0 ? <View style={styles.sessionBody}><View style={[styles.sessionDash, { backgroundColor: t.muted, opacity: 0.6 }]} /></View> : <View style={styles.sessionBody}>
+            {/* The best time is the highlighted badge; only the mean needs words, once there is more than one time. */}
+            {times.filter(time => time !== null).length > 1 && <Text numberOfLines={1} style={[mono(t, 11), { color: t.readableMuted }]}>mean {fmtTime(mean(times))}</Text>}
+            <View style={styles.sessionTimes}>
+              {[...list].reverse().map(s => { const time = effective(s.time_ms, s.penalty); const isBest = time !== null && time === b; return <SolveRow key={s.id} solve={s} style={[styles.sessionTime, { backgroundColor: isBest ? t.accentSoft : t.surface2 }]}><Text style={[mono(t, 12, isBest ? "600" : "500"), { color: s.penalty === "dnf" ? t.danger : isBest ? t.accent : t.text }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>{s.comment ? <IconComment size={11} color={t.readableMuted} /> : null}</SolveRow>; })}
+            </View>
+          </View>}
         </View>;
       })}
     </ScrollView>
@@ -244,9 +250,10 @@ const styles = StyleSheet.create({
   caseActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 4 },
   reveal: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 14, borderRadius: 10 },
   empty: { alignItems: "center", paddingVertical: 20, paddingHorizontal: 12, flex: 1, justifyContent: "flex-end" },
-  sessionCase: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 10, paddingHorizontal: 2 },
-  sessionCube: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  sessionTitle: { flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: 8, rowGap: 4 },
-  sessionTimes: { flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 4, marginTop: 4 },
-  sessionTime: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 6 },
+  sessionCase: { flexDirection: "row", alignItems: "flex-start", gap: 14, paddingVertical: 10, paddingHorizontal: 2 },
+  sessionBody: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center", gap: 7 },
+  sessionCube: { width: 60, alignItems: "center", gap: 5 },
+  sessionDash: { width: 14, height: 2, borderRadius: 1 },
+  sessionTimes: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  sessionTime: { flexDirection: "row", alignItems: "center", gap: 4, height: 24, paddingHorizontal: 7, borderRadius: 6 },
 });

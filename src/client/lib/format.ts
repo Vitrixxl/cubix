@@ -1,13 +1,13 @@
 import type { Penalty } from "../../shared/types";
 
-/** 12345 → "12.34", 61234 → "1:01.23" */
+/** Times read to the millisecond: 12345 → "12.345", 61234 → "1:01.234" */
 export function fmtTime(ms: number | null | undefined, opts: { blank?: string } = {}): string {
   if (ms === null || ms === undefined || Number.isNaN(ms)) return opts.blank ?? "–";
   const total = Math.max(0, ms);
   const minutes = Math.floor(total / 60000);
   const seconds = (total % 60000) / 1000;
-  if (minutes > 0) return `${minutes}:${seconds.toFixed(2).padStart(5, "0")}`;
-  return seconds.toFixed(2);
+  if (minutes > 0) return `${minutes}:${seconds.toFixed(3).padStart(6, "0")}`;
+  return seconds.toFixed(3);
 }
 
 /** How a time reaches the timer page: the built-in timer, a time typed from an external timer, or a timer that records nothing. */
