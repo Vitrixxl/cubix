@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "sh desktop/run.sh",
+    "dev": "bun desktop/dev.ts",
     "build": "bun desktop/package.ts",
     "build:api": "sh scripts/rust.sh build --release --locked",
     "start": "sh scripts/rust.sh serve",
@@ -14,7 +14,7 @@
     "build:db": "tsx scripts/build-db.ts",
     "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-catalog.ts",
     "import:history": "sh scripts/rust.sh serve --import-history",
-    "launch": "sh desktop/run.sh",
+    "launch": "bun desktop/dev.ts",
     "stress": "tsx scripts/stress-api.ts",
     "mobile": "bun run --cwd mobile pc",
     "build:android": "bun run --cwd mobile apk",
@@ -22,20 +22,25 @@
     "dev:api": "bun run build:api && bun run start",
     "build:desktop": "bun desktop/package.ts",
     "build:assets": "bun desktop/scripts/export-assets.tsx",
-    "test:desktop": "bun desktop/engine/build.ts && bun desktop/engine/smoke.ts"
+    "test:desktop": "bun desktop/engine/build.ts && bun desktop/engine/smoke.ts && bun test desktop/tests",
+    "build:desktop:ui": "bun desktop/build.ts",
+    "publish:desktop": "bun desktop/publish.ts",
+    "test:desktop:ui": "bun desktop/testing/electron.ts"
   },
   "dependencies": {
     "@cubing/icons": "^3.0.5",
     "cubing": "^0.63.4",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@types/bun": "^1.3.0",
     "@types/node": "^24.0.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.0.0",
+    "electron": "^44.4.3",
+    "playwright": "^1.63.0",
     "tsx": "^4.0.0",
     "typescript": "^5",
     "ws": "^8.0.0"
@@ -44,5 +49,8 @@
     "node": ">=24.0.0",
     "bun": ">=1.4.0"
   },
-  "packageManager": "bun@1.4.0"
+  "packageManager": "bun@1.4.0",
+  "trustedDependencies": [
+    "electron"
+  ]
 }

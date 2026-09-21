@@ -3,6 +3,7 @@ mod admin;
 mod api;
 mod catalog;
 mod db;
+mod desktop_release;
 mod error;
 mod live;
 mod practice;
@@ -145,6 +146,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
     let api = Router::new()
         .route("/api/live", get(live::upgrade))
+        .route(
+            "/api/desktop/releases/{target}",
+            get(desktop_release::manifest).put(desktop_release::publish),
+        )
+        .route(
+            "/api/desktop/assets/{hash}",
+            get(desktop_release::asset)
+                .put(desktop_release::upload_asset)
+                .layer(DefaultBodyLimit::max(512 * 1024 * 1024)),
+        )
         // The APK upload carries a whole Android build, far above the JSON limit below.
         .route(
             "/api/mobile/apk",

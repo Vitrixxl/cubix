@@ -23,6 +23,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { publishDesktop } from "../desktop/publish";
 import { runtimeVersion } from "../mobile/app.config";
 
 const root = resolve(import.meta.dir, "..");
@@ -105,6 +106,11 @@ if (!apkOnly) {
     const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, readFileSync(resolve(UPDATE_DIR, "update.json")));
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
   }
+}
+// Desktop releases share the API and are built locally with Bun, including the Electron runtime.
+if (!apkOnly && !updateOnly) {
+  run("bun", ["desktop/package.ts"]);
+  await publishDesktop(ORIGIN, adminPassword());
 }
 if (updateOnly || skipApk) process.exit(0);
 

@@ -2,37 +2,27 @@
 
 Application native de speedcubing : chronomètre, algorithmes, entraînement,
 statistiques et succès. Un compte sert uniquement à synchroniser ses temps entre
-appareils. Desktop en **Rust / GPUI**, Android en **React Native**, API en
+appareils. Desktop en **Electron / Bun**, Android en **React Native**, API en
 **Rust / Axum / SQLite**. L'application web et la PWA ne sont plus prises en charge.
 
 ## Desktop
 
-Le desktop se compile depuis les sources : cloner le dépôt puis lancer `make`.
-
-```sh
-git clone https://github.com/Vitrixxl/cubix && cd cubix
-make                    # dépendances (pacman ou apt, Bun, Rust), compilation, installation
-```
-
-`make` installe les paquets système nécessaires sans yay, Bun et Rust s'ils manquent,
-construit l'application autonome dans `artifacts/gpui/cubix-linux-x64` puis l'installe
-pour l'utilisateur courant (`~/.local/share/cubix-gpui`, entrée de menu, icône et commande `cubix` dans `~/.local/bin`).
-Relancer `make` après un `git pull` pour mettre à jour. `make uninstall` retire
-l'application en conservant les données. `make run` compile et lance le desktop
-depuis le dépôt.
-
-Pour développer :
+Le desktop utilise Electron pour l'interface et un moteur Bun pour les données.
+Le lanceur récupère automatiquement les mises à jour signées depuis l'API,
+sans sudo, et démarre la version installée lorsqu'il est hors ligne.
 
 ```sh
 bun install --frozen-lockfile
-bun run dev             # construire et lancer le desktop
-bun run build:desktop   # paquet autonome dans artifacts/gpui/cubix-linux-x64
+bun run dev             # construire avec bun build et lancer Electron
+bun run build:desktop   # paquet autonome dans artifacts/electron/cubix-linux-x64
+make install            # installation utilisateur, menu et commande cubix
 ```
 
-Le paquet contient le binaire GPUI, un moteur Bun compilé, les mélanges, les guides,
-les schémas et les polices. Bun n'est pas nécessaire sur la machine cible.
-Linux X11/Wayland avec un pilote Vulkan est la plateforme validée.
-Voir [le guide desktop](desktop/README.md) pour les dépendances et l'installation locale.
+`make` construit et installe le desktop dans `~/.local/share/cubix-electron`.
+Bun, Node et Rust ne sont pas requis sur la machine cible. Les données GPUI
+existantes sont conservées dans `~/.local/share/cubix-desktop`.
+Linux x64 est validé ; les autres plateformes nécessitent leurs propres builds.
+Voir [le guide desktop](desktop/README.md) pour la signature, la publication et les tests.
 
 ## Android
 
@@ -45,7 +35,7 @@ L'APK release fonctionne sans Metro. Installation, prérequis Android et
 validation : [guide mobile](mobile/README.md).
 
 `bun run deploy` (ou `make deploy`) pousse `main`, met à jour le serveur avec
-`pihost update cubix`, puis livre le mobile de deux façons (mot de passe admin du serveur
+`pihost update cubix`, publie le desktop Electron signé, puis livre le mobile de deux façons (mot de passe admin du serveur
 lu par SSH ou `CUBIX_DEPLOY_PASSWORD`) :
 
 - **Mise à jour à la volée (expo-updates)**, à chaque déploiement : `expo export` produit
@@ -82,8 +72,10 @@ Les anciennes pages web, les fichiers statiques et `/aaaaadmin` renvoient 404.
 L'image ne contient que le serveur Rust ; aucun build JavaScript n'est nécessaire.
 Les comptes, temps, sessions et marques d'apprentissage restent dans le volume `cubix-data`.
 `docker compose down` conserve ce volume. `CUBIX_PORT=8080` change le port publié.
-La compilation Rust dans l'image est limitée à deux jobs pour tenir en mémoire sur un
-Raspberry Pi ; `docker compose build --build-arg CARGO_BUILD_JOBS=4` lève cette limite.
+Sur la Raspberry Pi de 4 Go, la compilation Rust utilise un seul job, sans LTO et
+avec 16 unités de génération de code. Les builds Electron et Android se font en
+local. Les assets desktop sont servis par blocs de 64 Kio et les uploads sont
+sérialisés, pour garder une consommation mémoire limitée.
 
 Les applications utilisent `https://cubix.vitrixxl.fr` par défaut. Pour travailler
 avec une API locale :
@@ -150,7 +142,7 @@ bun run stress          # API isolée, base et résultats temporaires sous artif
 ```
 
 ```text
-desktop/        interface GPUI, moteur Bun et packaging natif
+desktop/        interface Electron, moteur Bun, lanceur et mises à jour signées
 mobile/         application Android React Native
 src/client/     client HTTP/WS, stockage/sync, statistiques et schémas partagés
 src/shared/     contrats TypeScript et modèle du cube

@@ -7,11 +7,16 @@
     "guides/*.ts",
     "testing/*.ts",
     "package.ts",
-    "install-linux.ts"
+    "install-linux.ts",
+    "renderer/**/*.ts",
+    "renderer/**/*.tsx",
+    "electron/**/*.ts",
+    "*.ts"
   ],
   "exclude": [
     "bin",
     "target",
-    "assets"
+    "assets",
+    "dist"
   ]
 }

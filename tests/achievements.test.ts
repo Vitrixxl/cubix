@@ -20,7 +20,7 @@ test("an empty history unlocks nothing and lists every puzzle, learning set and 
   // Reduced big cubes reuse the 3×3 sets, so they carry no duplicate learning goals.
   expect(summary.achievements.some(a => a.id === "learn:4x4-pll")).toBe(false);
   expect(byId(summary.achievements, "learn:4x4-parity").group).toBe("4×4");
-  expect(byId(summary.achievements, "333:single:20").detail).toBe("No solve yet · goal 20.00");
+  expect(byId(summary.achievements, "333:single:20").detail).toBe("No solve yet · goal 20.000");
 });
 
 test("learning every case of a set unlocks its mastery goal and counts towards the totals", () => {
@@ -44,7 +44,7 @@ test("time goals use full scrambles only, honour penalties and remember when the
   ];
   const list = achievements(rows, []).achievements;
   expect(byId(list, "333:single:30")).toMatchObject({ unlocked: true, unlockedAt: at(1) });
-  expect(byId(list, "333:single:20")).toMatchObject({ unlocked: true, unlockedAt: at(5), progress: 18000, detail: "Best 18.00 · goal 20.00" });
+  expect(byId(list, "333:single:20")).toMatchObject({ unlocked: true, unlockedAt: at(5), progress: 18000, detail: "Best 18.000 · goal 20.000" });
   expect(byId(list, "333:single:15").unlocked).toBe(false);
   expect(byId(list, "333:single:15").ratio).toBeCloseTo(15000 / 18000);
   expect(byId(list, "333:solves:1")).toMatchObject({ unlocked: true, unlockedAt: at(1), detail: "6 / 1 solves" });

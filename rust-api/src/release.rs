@@ -202,7 +202,7 @@ pub async fn upload(
 }
 
 /// Checks the admin password sent as `Authorization: Bearer <password>`.
-async fn authorize(state: &AppState, headers: &HeaderMap) -> Result<()> {
+pub(crate) async fn authorize(state: &AppState, headers: &HeaderMap) -> Result<()> {
     let admin = state.admin.as_ref().as_ref().ok_or_else(|| {
         ApiError::new(
             503,

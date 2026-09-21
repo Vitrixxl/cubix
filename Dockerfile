@@ -1,9 +1,9 @@
 FROM rust:1.98-bookworm AS backend
 WORKDIR /app
-# Each rustc job can take over a gigabyte with LTO; a Raspberry Pi must not compile on all
-# cores at once or the host swaps and locks up. Override with --build-arg CARGO_BUILD_JOBS=4.
-ARG CARGO_BUILD_JOBS=2
-ENV CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS
+# Keep the 4 GiB Pi responsive: one compiler, no LTO, smaller code generation units.
+# Desktop and mobile are built on the developer machine, never in this image.
+ARG CARGO_BUILD_JOBS=1
+ENV CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
 COPY rust-api ./rust-api
 COPY data ./data
 RUN cargo build --locked --release --manifest-path rust-api/Cargo.toml

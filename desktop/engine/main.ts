@@ -1,5 +1,5 @@
 import { cubePreview } from './cubePreview';
-/** Headless data engine. The GPUI process owns every pixel and the monotonic timer.
+/** Headless Bun data engine shared by Electron and the archived GPUI reference.
  * Reusing the shared client preserves its local-first synchronization and HTTP/WS protocol.
  */
 import { createLocalClient } from '../../src/client/local/client';

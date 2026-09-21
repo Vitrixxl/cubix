@@ -1,7 +1,7 @@
 import { applyMove, parseAlg, solved } from '../../src/shared/cube';
 import { stickerColors, type CubeMask } from '../../src/shared/cubeAppearance';
 
-/** GPUI consumes the exact shared permutations; no second move parser in Rust. */
+/** Desktop renderers consume the exact shared permutations, without a second move parser. */
 export function cubePreview(setup: string, size: number, mask: CubeMask, animated = true) {
   if (!Number.isInteger(size) || size < 2 || size > 7) throw new Error('Unsupported cube size');
   const moves = parseAlg(setup, size);

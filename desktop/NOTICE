@@ -1,4 +1,4 @@
-Text input is adapted from the GPUI 0.2.2 input example.
+The archived GPUI text input is adapted from the GPUI 0.2.2 input example.
 Copyright Zed Industries, Inc. and contributors. Licensed under Apache-2.0.
 https://github.com/zed-industries/zed/tree/main/crates/gpui
 
@@ -13,3 +13,6 @@ cubing.js and random-uint-below are distributed with their upstream licenses.
 The packaged cubing.js worker files retain their module structure. The build
 rewrites bare random-uint-below imports to explicit relative paths for standalone
 Bun execution. Those modified JavaScript sources are included in vendor/cubing.
+
+Electron and Chromium are redistributed with their licenses in runtime/.
+React and React DOM are distributed under the MIT license.

@@ -1,20 +1,148 @@
-/** Build a self-contained native application directory for the current desktop OS. */
-import {cp,mkdir,rm} from 'node:fs/promises';
-import {resolve,join} from 'node:path';
-const root=resolve(import.meta.dir,'..');process.chdir(root);
-async function run(args:string[]){const p=Bun.spawn(args,{stdout:'inherit',stderr:'inherit'});if(await p.exited)throw Error(`Build failed: ${args[0]}`);}
-await run(['bun','desktop/scripts/export-assets.tsx']);
-await run(['bun','desktop/engine/build.ts']);
-const cargo=process.env.CARGO??Bun.which('cargo')??join(process.env.HOME??process.env.USERPROFILE!,'.cargo','bin',process.platform==='win32'?'cargo.exe':'cargo');
-await run([cargo,'build','--manifest-path','desktop/Cargo.toml','--release','--locked']);
-const name=`cubix-${process.platform}-${process.arch}`;const out=resolve('artifacts/gpui',name);await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
-const ext=process.platform==='win32'?'.exe':'';
-await cp(join(process.env.CARGO_TARGET_DIR??'desktop/target',`release/cubix-desktop${ext}`),join(out,`cubix-desktop${ext}`));
-await run(['bun','build','desktop/bin/main.js','--compile','--outfile',join(out,`cubix-engine${ext}`)]);
-await cp('desktop/assets',join(out,'assets'),{recursive:true});
-await cp('desktop/bin/vendor',join(out,'vendor'),{recursive:true});
-await cp('desktop/linux',join(out,'linux'),{recursive:true});
-await cp('desktop/NOTICE',join(out,'NOTICE'));
-await cp('desktop/licenses',join(out,'licenses'),{recursive:true});
-await cp('desktop/README.md',join(out,'README.md'));
-console.log(out);
+/** Bundle Electron, the Bun engine and an independent Bun launcher. No Electron Forge/Vite/Webpack. */
+import {
+  cp,
+  mkdir,
+  readdir,
+  stat,
+  readFile,
+  writeFile,
+  chmod,
+  rm,
+} from "node:fs/promises";
+import { resolve, join } from "node:path";
+import { homedir } from "node:os";
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  sign,
+} from "node:crypto";
+import { sha256, type Manifest, type ReleaseFile } from "./updater";
+import "./build";
+process.chdir(resolve(import.meta.dir, ".."));
+const run = async (args: string[]) => {
+  const p = Bun.spawn(args, { stdout: "inherit", stderr: "inherit" });
+  if (await p.exited) throw Error(`Failed: ${args[0]}`);
+};
+if (!(await Bun.file("node_modules/electron/path.txt").exists()))
+  await run(["bun", "node_modules/electron/install.js"]);
+const target = `${process.platform}-${process.arch}`,
+  base = resolve("artifacts/electron", `cubix-${target}`),
+  stage = join(base, "release");
+await rm(stage, { recursive: true, force: true });
+await mkdir(join(stage, "app"), { recursive: true });
+await cp("desktop/dist", join(stage, "app"), { recursive: true });
+await run([
+  "bun",
+  "build",
+  "desktop/bin/main.js",
+  "--compile",
+  "--outfile",
+  join(
+    stage,
+    "app",
+    process.platform === "win32" ? "cubix-engine.exe" : "cubix-engine",
+  ),
+]);
+await cp("desktop/bin/vendor", join(stage, "app/vendor"), { recursive: true });
+await cp("node_modules/electron/dist", join(stage, "runtime"), {
+  recursive: true,
+  dereference: true,
+});
+await cp("desktop/NOTICE", join(stage, "NOTICE"));
+await cp("desktop/licenses", join(stage, "licenses"), { recursive: true });
+const keyPath =
+  process.env.CUBIX_DESKTOP_SIGNING_KEY ??
+  join(
+    process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
+    "cubix",
+    "desktop-signing.pem",
+  );
+let pem: string;
+try {
+  pem = await readFile(keyPath, "utf8");
+} catch (e: any) {
+  if (e.code !== "ENOENT") throw e;
+  await mkdir(resolve(keyPath, ".."), { recursive: true, mode: 0o700 });
+  pem = generateKeyPairSync("ed25519")
+    .privateKey.export({ type: "pkcs8", format: "pem" })
+    .toString();
+  await writeFile(keyPath, pem, { mode: 0o600, flag: "wx" });
+  console.log(
+    `Desktop signing key created at ${keyPath}. Keep it to publish compatible updates.`,
+  );
+}
+const key = createPrivateKey(pem),
+  publicKey = createPublicKey(key)
+    .export({ type: "spki", format: "pem" })
+    .toString();
+const files: ReleaseFile[] = [];
+async function walk(dir: string, prefix = "") {
+  for (const item of (await readdir(dir, { withFileTypes: true })).sort(
+    (a, b) => a.name.localeCompare(b.name),
+  )) {
+    const rel = prefix + item.name,
+      path = join(dir, item.name);
+    if (item.isDirectory()) await walk(path, rel + "/");
+    else if (item.isFile()) {
+      const info = await stat(path);
+      files.push({
+        path: rel,
+        sha256: sha256(await readFile(path)),
+        size: info.size,
+        executable: !!(info.mode & 0o111),
+      });
+    }
+  }
+}
+await walk(stage);
+const commit = Bun.spawnSync(["git", "rev-parse", "HEAD"])
+  .stdout.toString()
+  .trim();
+const manifest: Manifest = {
+  schema: 1,
+  target,
+  build: Number(process.env.CUBIX_DESKTOP_BUILD ?? Date.now()),
+  commit,
+  files,
+};
+const raw = JSON.stringify(manifest),
+  signed = {
+    manifest: raw,
+    signature: sign(null, Buffer.from(raw), key).toString("base64"),
+  };
+await Bun.write(join(stage, "release.json"), raw);
+await Bun.write(join(stage, "signed-release.json"), JSON.stringify(signed));
+await Bun.write(join(base, "release.json"), JSON.stringify(signed));
+await run([
+  "bun",
+  "build",
+  "desktop/launcher.ts",
+  "--compile",
+  "--outfile",
+  join(base, process.platform === "win32" ? "cubix.exe" : "cubix"),
+]);
+await run([
+  "bun",
+  "build",
+  "desktop/electron/splash.ts",
+  "--target=node",
+  "--format=cjs",
+  "--external=electron",
+  "--outfile",
+  join(base, "splash.cjs"),
+]);
+await Bun.write(
+  join(base, "launcher.json"),
+  JSON.stringify({
+    target,
+    publicKey,
+    origin: process.env.CUBIX_API_ORIGIN ?? "https://cubix.vitrixxl.fr",
+  }),
+);
+const id = sha256(raw);
+await mkdir(join(base, "releases"), { recursive: true });
+// Keep the build inspectable and ready to run through the same pointer as installed copies.
+await cp(stage, join(base, "releases", id), { recursive: true });
+await Bun.write(join(base, "current.json"), JSON.stringify({ id }));
+console.log(`Electron application: ${base}`);

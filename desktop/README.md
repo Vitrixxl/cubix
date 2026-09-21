@@ -1,61 +1,94 @@
-# Cubix desktop
+# Cubix desktop — Electron + Bun
 
-Application native Rust / GPUI. Un processus Bun sans navigateur gère le client
-partagé, le stockage local, la synchronisation et les mélanges. Les guides et les
-polices sont inclus dans le paquet ; le serveur ne fournit aucune interface web.
+Electron affiche l'interface React et canvas. Le moteur Bun autonome conserve le
+stockage local, la synchronisation HTTP/WebSocket, les mélanges et les statistiques.
+Les fichiers utilisateur restent dans `~/.local/share/cubix-desktop` : une migration
+depuis GPUI conserve les comptes, les temps, les préférences et les sélections.
+L'API reste en Rust/Axum et ne sert aucune page web.
 
 ## Construire et lancer
 
-Prérequis : Bun 1.4+, Rust/Cargo 1.98+, compilateur C/C++, Clang et pkg-config.
-Sur Arch : `base-devel`, `rust`, `clang`, `pkgconf`, `bun`, `libxcb`,
-`libxkbcommon`, `libxkbcommon-x11`, `wayland`, `fontconfig`, `freetype2` et
-`vulkan-icd-loader`, avec un pilote Vulkan adapté au GPU.
-
-Depuis la racine :
+Prérequis de construction : Bun 1.4+ et les bibliothèques nécessaires à Electron.
+Aucun compilateur Rust n'est requis pour le desktop. Rust reste nécessaire à l'API.
 
 ```sh
 bun install --frozen-lockfile
-bun run dev
-bun run build:desktop
-./artifacts/gpui/cubix-linux-x64/cubix-desktop
+bun run dev                 # construire avec bun build, puis ouvrir Electron
+bun run build:desktop       # paquet autonome, avec Chromium et Bun inclus
+./artifacts/electron/cubix-linux-x64/cubix
+make install                # installer le dernier paquet pour l'utilisateur courant
 ```
 
-`CARGO` permet de choisir Cargo et `CARGO_TARGET_DIR` son cache de compilation.
-Le dossier autonome contient les deux exécutables, `assets`, `vendor` et les
-licences. Garder ces fichiers ensemble. Bun et le dépôt ne sont pas requis à
-l'exécution. Seul Linux a été validé ; macOS et Windows nécessitent leurs propres builds.
+`make` construit et installe. L'installation Linux place le lanceur dans
+`~/.local/share/cubix-electron`, crée l'entrée de menu Cubix et la commande
+`~/.local/bin/cubix`. Elle ne demande pas sudo. `make uninstall` conserve les données.
+Le lanceur compilé fonctionne sans Bun, Node, Cargo ni le dépôt sur la machine cible.
 
-## Installer sous Linux
+Toutes les entrées JavaScript sont compilées par `bun build` : renderer navigateur,
+main/preload Electron, moteur Bun et lanceur (`--compile`). Electron exécute son
+main dans son Node intégré et le renderer dans Chromium ; Bun exécute le moteur,
+le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge.
 
-Depuis la racine du dépôt :
+## Mises à jour
+
+Au lancement, une fenêtre Cubix affiche la recherche puis le téléchargement.
+Le lanceur interroge `GET /api/desktop/releases/linux-x64` (cible propre au build).
+Le serveur renvoie un manifeste signé Ed25519 qui identifie chaque fichier par
+son SHA-256. Les fichiers inchangés sont réutilisés ; seuls les nouveaux fichiers
+sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
+
+Une release est préparée dans un répertoire distinct. Le pointeur `current.json`
+est remplacé uniquement après vérification de tous les fichiers. L'application
+fonctionne hors ligne avec la release installée. Si une nouvelle version ne confirme
+pas son démarrage, le lanceur restaure la précédente et évite de retenter cette même
+release défectueuse. `update-error.log`, `application.log` et `last-launch.json`
+aident à diagnostiquer un problème. Les mises à jour ne touchent pas aux données.
+
+La première construction crée une clé privée dans
+`~/.config/cubix/desktop-signing.pem` (permissions 0600). Conserver et sauvegarder
+cette clé : les lanceurs installés n'acceptent que les releases signées par elle.
+`CUBIX_DESKTOP_SIGNING_KEY` permet de fournir une autre clé PEM Ed25519.
+La clé privée n'est jamais copiée dans le paquet ni envoyée au serveur.
 
 ```sh
-make            # dépendances, compilation et installation utilisateur
-make install    # réinstaller un paquet autonome déjà construit
-make uninstall  # retirer l'application, les données sont conservées
+bun run build:desktop
+CUBIX_DEPLOY_PASSWORD=… bun run publish:desktop
+# Ou le déploiement complet existant :
+bun run deploy
 ```
 
-`make deps` installe les paquets système avec pacman ou apt (sans yay), puis Bun et
-Rust s'ils manquent. L'installation utilise `~/.local/share/cubix-gpui` (ou
-`$XDG_DATA_HOME`), une entrée de menu Cubix, son icône et une commande `cubix` dans `~/.local/bin` ; elle requiert
-`desktop-file-utils` et `gtk-update-icon-cache`. Relancer `make` après un `git pull`
-pour actualiser cette copie. Aucun paquet système ni release précompilée n'est publié.
+Le déploiement complet publie désormais aussi le desktop de la plateforme qui
+exécute le build. Les modes `--apk-only` et `--update-only` restent spécifiques au
+mobile. `--skip-apk` publie l'OTA mobile et le desktop. Les uploads desktop utilisent
+le même mot de passe administrateur que les releases mobiles. Le serveur stocke
+les releases dans `apk/desktop` à côté de la base (ou sous `CUBIX_APK_DIR`).
+Une première installation de cette version Electron est nécessaire pour activer
+le nouveau lanceur sur une ancienne installation GPUI.
 
-## Configuration et tests
+## Configuration et validation
 
-`CUBIX_API_ORIGIN` choisit l'origine API (défaut `https://cubix.vitrixxl.fr`).
-`CUBIX_DESKTOP_DATA` choisit le répertoire des données privées. Les invités
-restent locaux ; les comptes utilisent l'API de synchronisation existante.
-Les boutons souris arrière/suivant et Alt+Gauche/Droite naviguent dans l'historique.
+- `CUBIX_API_ORIGIN` : origine API, défaut `https://cubix.vitrixxl.fr`.
+- `CUBIX_DESKTOP_DATA` : dossier des données privées.
+- `CUBIX_DESKTOP_BUILD` : numéro de build monotone, défaut timestamp en millisecondes.
+- `CUBIX_ORIGIN` : origine du serveur de publication.
 
 ```sh
 bun run typecheck
-bun run test:desktop
-CUBIX_ENGINE_EXE="$PWD/artifacts/gpui/cubix-linux-x64/cubix-engine" bun desktop/engine/smoke.ts
+bun run test:desktop             # moteur Bun et updater signé
+bun run test:desktop:ui          # vrais écrans Electron
+bun desktop/testing/flows.ts     # interactions, API temporaire, thèmes, guides
+bun desktop/testing/launcher.ts  # mise à jour, rollback, quarantaine et démarrage hors ligne
+bun desktop/testing/compare.ts   # captures GPUI/Electron déterministes (build GPUI reference)
 ```
 
-Les tests du moteur utilisent un répertoire temporaire et une origine loopback.
-Les outils de test d'interface historiques sont dans `desktop/testing` ; ils
-nécessitent les fixtures locales `artifacts/gpui/reference-storage.json`, X11,
-xdotool et le build `--features reference`. Les commandes de contrôle sont absentes
-d'un build normal et refusent les origines API distantes.
+Les tests d'interface utilisent Playwright piloté par Bun, un affichage X11 et des
+dossiers temporaires. Les tests de parcours requièrent le binaire API construit.
+Les captures sont dans `artifacts/electron/testing`. Sous CI, lancer ces tests dans
+Xvfb. Le code GPUI dans `desktop/src` et ses outils de référence sont conservés pour
+comparer le rendu, mais ne font pas partie du build Electron.
+Linux x64 est la plateforme validée dans cet environnement. macOS et Windows
+requièrent leurs propres builds et une validation de leurs installateurs.
+
+Sur la Raspberry Pi, Docker compile uniquement l’API Rust avec un job, sans LTO.
+Les transferts desktop utilisent des fichiers immuables lus par blocs de 64 Kio ;
+les uploads sont traités un par un et vérifiés avant publication.

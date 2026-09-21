@@ -1,0 +1,117 @@
+import { test, expect } from "bun:test";
+import { generateKeyPairSync, sign } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  installUpdate,
+  currentRelease,
+  rollback,
+  validateRelease,
+  sha256,
+  type Manifest,
+} from "../updater";
+const keys = generateKeyPairSync("ed25519"),
+  publicKey = keys.publicKey.export({ type: "spki", format: "pem" }).toString();
+function signed(manifest: Manifest) {
+  const raw = JSON.stringify(manifest);
+  return {
+    manifest: raw,
+    signature: sign(null, Buffer.from(raw), keys.privateKey).toString("base64"),
+  };
+}
+const manifest = (build: number, text = "hello"): Manifest => ({
+  schema: 1,
+  target: "linux-x64",
+  build,
+  commit: "abc",
+  files: [
+    "app/main.cjs",
+    "app/package.json",
+    "app/renderer/index.html",
+    "runtime/electron",
+  ].map((path) => ({
+    path,
+    sha256: sha256(text),
+    size: Buffer.byteLength(text),
+    executable: path === "runtime/electron",
+  })),
+});
+test("signed releases reject tampering, path traversal, duplicates and wrong target", () => {
+  const m = manifest(1),
+    v = signed(m);
+  expect(validateRelease(v, publicKey, "linux-x64")).toEqual(m);
+  expect(() =>
+    validateRelease(
+      { ...v, manifest: v.manifest + " " },
+      publicKey,
+      "linux-x64",
+    ),
+  ).toThrow();
+  expect(() => validateRelease(v, publicKey, "linux-arm64")).toThrow();
+  for (const path of [
+    "../escape",
+    "/tmp/escape",
+    "app/../../escape",
+    "app\\escape",
+    "app/../escape",
+    "app/main.cjs",
+  ]) {
+    const m = manifest(1);
+    m.files.push({ ...m.files[0], path });
+    expect(() => validateRelease(signed(m), publicKey, "linux-x64")).toThrow();
+  }
+});
+test("atomic installation, offline retention, changed files, rollback and quarantine", async () => {
+  const base = await mkdtemp(join(tmpdir(), "cubix-update-"));
+  let release = signed(manifest(1)),
+    body = "hello",
+    downloads = 0,
+    fail = false;
+  const server = Bun.serve({
+    port: 0,
+    fetch(req) {
+      if (new URL(req.url).pathname.includes("/releases/"))
+        return Response.json(release);
+      downloads++;
+      return fail ? new Response("bad") : new Response(body);
+    },
+  });
+  const options = {
+    base,
+    origin: server.url.origin,
+    publicKey,
+    target: "linux-x64",
+  };
+  try {
+    const first = await installUpdate(options);
+    expect(first?.manifest.build).toBe(1);
+    expect(
+      await readFile(
+        join(base, "releases", first!.id, "runtime/electron"),
+        "utf8",
+      ),
+    ).toBe("hello");
+    const before = downloads;
+    release = signed(manifest(2));
+    const second = await installUpdate(options);
+    expect(second?.manifest.build).toBe(2);
+    expect(downloads).toBe(before);
+    release = signed(manifest(3, "updated"));
+    body = "updated";
+    fail = true;
+    await expect(installUpdate(options)).rejects.toThrow();
+    expect((await currentRelease(base))?.id).toBe(second?.id);
+    fail = false;
+    const third = await installUpdate(options);
+    expect(third?.manifest.build).toBe(3);
+    expect((await rollback(base, third!.id))?.id).toBe(second?.id);
+    expect((await installUpdate(options))?.id).toBe(second?.id);
+    server.stop();
+    await expect(installUpdate(options)).rejects.toThrow();
+    expect((await currentRelease(base))?.id).toBe(second?.id);
+  } finally {
+    server.stop();
+    await rm(base, { recursive: true, force: true });
+  }
+});
