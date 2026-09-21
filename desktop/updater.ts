@@ -26,6 +26,26 @@ export type Manifest = {
 export type SignedRelease = { manifest: string; signature: string };
 export const sha256 = (bytes: Uint8Array | string) =>
   createHash("sha256").update(bytes).digest("hex");
+/** Large releases may span the server's per-minute request allowance. */
+export async function releaseRequest(
+  url: string | URL,
+  options: RequestInit = {},
+  timeout = 180000,
+) {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(url, {
+      ...options,
+      signal: AbortSignal.timeout(timeout),
+      redirect: "error",
+    });
+    if (response.status !== 429 || attempt >= 3) return response;
+    const retry = response.headers.get("retry-after");
+    const delay =
+      retry && Number.isFinite(Number(retry)) ? Number(retry) * 1000 : 60000;
+    await response.body?.cancel();
+    await Bun.sleep(Math.min(180000, Math.max(1000, delay)));
+  }
+}
 export function validateRelease(
   signed: SignedRelease,
   publicKey: string,
@@ -175,9 +195,8 @@ export async function installUpdate({
         onProgress(
           `Mise à jour de Cubix… ${Math.floor((done / manifest.files.length) * 100)} %`,
         );
-        const asset = await fetch(
+        const asset = await releaseRequest(
           new URL(`/api/desktop/assets/${f.sha256}`, url),
-          { signal: AbortSignal.timeout(180000), redirect: "error" },
         );
         if (!asset.ok || !asset.body)
           throw Error(`Download failed: ${asset.status}`);

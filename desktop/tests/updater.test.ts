@@ -9,6 +9,7 @@ import {
   rollback,
   validateRelease,
   sha256,
+  releaseRequest,
   type Manifest,
 } from "../updater";
 const keys = generateKeyPairSync("ed25519"),
@@ -36,6 +37,26 @@ const manifest = (build: number, text = "hello"): Manifest => ({
     size: Buffer.byteLength(text),
     executable: path === "runtime/electron",
   })),
+});
+test("asset transfers resume after the server's rate limit", async () => {
+  let requests = 0;
+  const server = Bun.serve({
+    port: 0,
+    fetch() {
+      return requests++ === 0
+        ? new Response("limited", {
+            status: 429,
+            headers: { "Retry-After": "0" },
+          })
+        : new Response("asset");
+    },
+  });
+  try {
+    expect(await (await releaseRequest(server.url)).text()).toBe("asset");
+    expect(requests).toBe(2);
+  } finally {
+    server.stop();
+  }
 });
 test("signed releases reject tampering, path traversal, duplicates and wrong target", () => {
   const m = manifest(1),

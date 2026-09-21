@@ -1,6 +1,6 @@
 /** Publish the locally built signed release through the authenticated Cubix API. */
 import { resolve, join } from "node:path";
-import type { Manifest, SignedRelease } from "./updater";
+import { releaseRequest, type Manifest, type SignedRelease } from "./updater";
 export async function publishDesktop(origin: string, password: string) {
   const base = resolve(
       "artifacts/electron",
@@ -10,28 +10,42 @@ export async function publishDesktop(origin: string, password: string) {
       join(base, "release.json"),
     ).json()) as SignedRelease,
     manifest = JSON.parse(signed.manifest) as Manifest;
-  for (const f of manifest.files) {
+  const unique = [
+    ...new Map(manifest.files.map((f) => [f.sha256, f])).values(),
+  ];
+  let checked = 0;
+  for (const f of unique) {
+    if (checked++ % 100 === 0)
+      console.log(`Desktop assets: ${checked - 1}/${unique.length}`);
     const url = `${origin}/api/desktop/assets/${f.sha256}`;
-    const exists = await fetch(url, {
-      method: "HEAD",
-      signal: AbortSignal.timeout(15000),
-    });
-    if (exists.ok) continue;
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${password}`,
-        "Content-Type": "application/octet-stream",
+    const exists = await releaseRequest(
+      url,
+      {
+        method: "HEAD",
       },
-      body: Bun.file(join(base, "release", f.path)),
-      signal: AbortSignal.timeout(300000),
-    });
+      15000,
+    );
+    if (exists.ok) continue;
+    if (exists.status !== 404)
+      throw Error(`Desktop asset check failed: ${exists.status}`);
+    const response = await releaseRequest(
+      url,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${password}`,
+          "Content-Type": "application/octet-stream",
+        },
+        body: Bun.file(join(base, "release", f.path)),
+      },
+      300000,
+    );
     if (!response.ok)
       throw Error(
         `Desktop upload failed (${f.path}): ${response.status} ${await response.text()}`,
       );
   }
-  const response = await fetch(
+  const response = await releaseRequest(
     `${origin}/api/desktop/releases/${manifest.target}`,
     {
       method: "PUT",
@@ -40,8 +54,8 @@ export async function publishDesktop(origin: string, password: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(signed),
-      signal: AbortSignal.timeout(15000),
     },
+    15000,
   );
   if (!response.ok)
     throw Error(
