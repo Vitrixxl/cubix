@@ -1,3 +1,4 @@
+import { catalogSections } from "../../../src/client/lib/practiceCatalog";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
@@ -44,14 +45,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   const [stage, setStage] = useAtom(stageAtom);
   const [setByStage, setSetByStage] = useAtom(setByStageAtom);
   const setRoute = useSetAtom(routeAtom), setSelection = useSetAtom(selectedCaseIdsAtom);
-  const sections = useMemo(() => [...new Set(sets.map(set => set.stage))].map(stage => {
-    const variants = sets.filter(set => set.stage === stage);
-    const active = variants.find(set => set.id === setByStage[stage]) ?? variants[0];
-    const all = cases.filter(c => c.set === active.id), learnedCount = all.filter(c => learned.has(c.id)).length;
-    const groups = new Map<string, CaseDto[]>();
-    for (const c of all.filter(c => learningFilter === "all" || (learningFilter === "learned") === learned.has(c.id))) { const list = groups.get(c.group) ?? []; list.push(c); groups.set(c.group, list); }
-    return { stage, variants, active, all, learnedCount, groups: [...groups] };
-  }), [sets, cases, setByStage, learned, learningFilter]);
+  const sections = useMemo(() => catalogSections(cases, sets, setByStage, learned, learningFilter), [sets, cases, setByStage, learned, learningFilter]);
   const inner = Math.min(width, 1100) - 2 * (phone ? 14 : 24) - 4;
   const columns = Math.max(2, Math.floor(inner / (phone ? 104 : 128)));
   const cardWidth = Math.floor((inner - 4 * (columns - 1)) / columns);

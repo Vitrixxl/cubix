@@ -5,7 +5,10 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["react-native", "bun"]
+    "types": [
+      "react-native",
+      "bun"
+    ]
   },
   "include": [
     "index.ts",
@@ -16,9 +19,11 @@
     "../src/shared/**/*",
     "../src/client/local/**/*",
     "../src/client/api-client.ts",
-    "../src/client/lib/format.ts",
-    "../src/client/lib/trainingHistory.ts",
-    "../src/client/lib/practiceScrambleCore.ts"
+    "../src/client/lib/**/*"
   ],
-  "exclude": ["node_modules", "android", "ios"]
+  "exclude": [
+    "node_modules",
+    "android",
+    "ios"
+  ]
 }

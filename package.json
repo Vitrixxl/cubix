@@ -8,7 +8,7 @@
     "build": "bun desktop/package.ts",
     "build:api": "sh scripts/rust.sh build --release --locked",
     "start": "sh scripts/rust.sh serve",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p desktop",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p desktop && bun run --cwd mobile typecheck",
     "test": "bun run build:api && bun test --timeout 15000 ./tests && bun scripts/test-cube.ts && sh scripts/rust.sh test --locked",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/rust-api.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
     "build:db": "tsx scripts/build-db.ts",

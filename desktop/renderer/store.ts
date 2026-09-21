@@ -1,12 +1,9 @@
+import { LaunchSessions } from "../../src/client/lib/launchSessions";
+import { toggleSelection } from "../../src/client/lib/practiceCatalog";
+import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import {
-  fmtTime,
-  effective,
-  averageOf,
-  best,
-  mean,
-} from "../../src/client/lib/format";
+import { fmtTime } from "../../src/client/lib/format";
 export const catalog = catalogData as any;
 export const puzzleOf = (c: any) =>
   c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3);
@@ -72,7 +69,7 @@ export class Store {
   profileScramble = "random-moves";
   achievementGroup = "all";
   achievementFilter = "all";
-  sessions = new Map<string, number>();
+  sessions = new LaunchSessions();
   lastSolve = 0;
   notice = "";
   replay = 0;
@@ -293,18 +290,9 @@ export class Store {
     this.saving = true;
     this.emit();
     try {
-      let sessionId = this.sessions.get(pending.key);
-      if (!sessionId) {
-        const session = await call(
-          "createSession",
-          pending.page,
-          pending.selected,
-          pending.body.puzzle,
-          pending.body,
-        );
-        sessionId = session.id;
-        this.sessions.set(pending.key, sessionId!);
-      }
+      const sessionId = await this.sessions.ensure(pending.key, () => call(
+        "createSession", pending.page, pending.selected, pending.body.puzzle, pending.body,
+      ));
       const solve = await call("addSolve", { ...pending.body, sessionId });
       this.pendingSolve = null;
       this.lastSolve = solve.id;
@@ -434,11 +422,7 @@ export class Store {
                     .map((c: any) => c.id);
           if (kind === "clear") this.selected.clear();
           else if (kind === "train") this.selected = new Set(ids);
-          else {
-            const all = ids.every((id: string) => this.selected.has(id));
-            for (const id of ids)
-              all ? this.selected.delete(id) : this.selected.add(id);
-          }
+          else this.selected = toggleSelection(this.selected, ids);
           this.per("cubix.training.selectionByCube", [...this.selected]);
           this.goal = new Set(
             [...this.selected].filter((id) => !this.learned.has(id)),
@@ -669,20 +653,14 @@ export class Store {
     }
   }
   metrics() {
-    const all = this.solves.map((s) => effective(s.time_ms, s.penalty));
+    const summary = practiceSummary(this.solves);
     return [
-      ["Solves", String(all.length)],
-      ["Best", fmtTime(best(all))],
-      ["Mean", fmtTime(mean(all))],
-      ...(this.page === "training"
-        ? []
-        : [
-            ["Ao5", fmtTime(all.length >= 5 ? averageOf(all.slice(-5)) : null)],
-            [
-              "Ao12",
-              fmtTime(all.length >= 12 ? averageOf(all.slice(-12)) : null),
-            ],
-          ]),
+      ["Solves", String(summary.count)],
+      ["Best", fmtTime(summary.best)],
+      ["Mean", fmtTime(summary.mean)],
+      ...(this.page === "training" ? [] : [
+        ["Ao5", fmtTime(summary.ao5)], ["Ao12", fmtTime(summary.ao12)],
+      ]),
     ];
   }
 }

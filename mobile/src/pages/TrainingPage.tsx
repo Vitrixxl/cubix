@@ -1,7 +1,8 @@
+import { practiceSummary, trainingSessionRows } from "../../../src/client/lib/practiceSummary";
 import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { best, effective, fmtSolve, fmtTime, mean } from "../../../src/client/lib/format";
+import { effective, fmtSolve, fmtTime } from "../../../src/client/lib/format";
 import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningGoal";
 import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
 import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from "../../../src/shared/cube";
@@ -131,7 +132,7 @@ function TrainingSession() {
     navigateCase({ type: "previous" }); setRevealed(false); timer.reset();
   };
   const nextCase = () => { if (!busy) { pick(selectedCases); timer.reset(); } };
-  const times = solves.map(solve => effective(solve.time_ms, solve.penalty));
+  const summary = practiceSummary(solves);
   const grouped = layout.phone && !layout.landscape;
   const cubeSize = layout.landscape ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
   const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
@@ -187,8 +188,8 @@ function TrainingSession() {
           <TimerSlot running={running} style={base.timerSlot}><TimerSurface timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>
           <TimerChrome hidden={running} exit="down" style={[base.stats, (layout.landscape || layout.short || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : 40 }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
-            <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
-            <Kpi center label="Mean" value={fmtTime(mean(times))} valueSize={layout.phone ? 18 : 22} />
+            <Kpi center label="Best" value={fmtTime(summary.best)} valueSize={layout.phone ? 18 : 22} />
+            <Kpi center label="Mean" value={fmtTime(summary.mean)} valueSize={layout.phone ? 18 : 22} />
           </TimerChrome>
           </PracticeReadout>
         </View>
@@ -205,19 +206,15 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
   const t = useTheme();
   const { navSpace } = useLayout();
   const scroll = usePreservedScroll(`training-times:${selectedCases[0]?.puzzle_id ?? selectedCases[0]?.cube_size ?? 3}`);
-  const byCase = useMemo(() => { const m = new Map<string, SolveDto[]>(); for (const s of solves) if (s.case_id) m.set(s.case_id, [...(m.get(s.case_id) ?? []), s]); return m; }, [solves]);
-  const ordered = [...selectedCases].sort((a, b) => (byCase.get(b.id)?.length ?? 0) - (byCase.get(a.id)?.length ?? 0));
-  const allTimes = solves.map(s => effective(s.time_ms, s.penalty));
+  const ordered = useMemo(() => trainingSessionRows(selectedCases, solves), [selectedCases, solves]);
+  const summary = practiceSummary(solves);
   return <View style={base.panel}>
     <View style={base.panelHeader}>
-      <Muted size={13} style={{ flexShrink: 1 }}>{solves.length} solve{solves.length === 1 ? "" : "s"}{solves.length > 0 && ` · best ${fmtTime(best(allTimes))} · mean ${fmtTime(mean(allTimes))}`}</Muted>
+      <Muted size={13} style={{ flexShrink: 1 }}>{solves.length} solve{solves.length === 1 ? "" : "s"}{solves.length > 0 && ` · best ${fmtTime(summary.best)} · mean ${fmtTime(summary.mean)}`}</Muted>
       <MiniBtn icon={<IconUndo size={13} color={t.readableMuted} />} label="Undo" onPress={onUndo} disabled={!solves.length} />
     </View>
     <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingRight: 4, paddingBottom: navSpace }}>
-      {ordered.map(c => {
-        const list = byCase.get(c.id) ?? [];
-        const times = list.map(s => effective(s.time_ms, s.penalty));
-        const b = best(times);
+      {ordered.map(({ c, solves: list, best: b, mean: average, validCount }) => {
         // The case is named under its picture; beside it, its times as badges or a plain dash while it has none.
         return <View key={c.id} style={styles.sessionCase}>
           <View style={styles.sessionCube}>
@@ -227,7 +224,7 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
           {/* As tall as the picture at least, so the dash or the times centre on it rather than on the name. */}
           {list.length === 0 ? <View style={styles.sessionBody}><View style={[styles.sessionDash, { backgroundColor: t.muted, opacity: 0.6 }]} /></View> : <View style={styles.sessionBody}>
             {/* The best time is the highlighted badge; only the mean needs words, once there is more than one time. */}
-            {times.filter(time => time !== null).length > 1 && <Text numberOfLines={1} style={[mono(t, 11), { color: t.readableMuted }]}>mean {fmtTime(mean(times))}</Text>}
+            {validCount > 1 && <Text numberOfLines={1} style={[mono(t, 11), { color: t.readableMuted }]}>mean {fmtTime(average)}</Text>}
             <View style={styles.sessionTimes}>
               {[...list].reverse().map(s => { const time = effective(s.time_ms, s.penalty); const isBest = time !== null && time === b; return <SolveRow key={s.id} solve={s} style={[styles.sessionTime, { backgroundColor: isBest ? t.accentSoft : t.surface2 }]}><Text style={[mono(t, 12, isBest ? "600" : "500"), { color: s.penalty === "dnf" ? t.danger : isBest ? t.accent : t.text }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>{s.comment ? <IconComment size={11} color={t.readableMuted} /> : null}</SolveRow>; })}
             </View>

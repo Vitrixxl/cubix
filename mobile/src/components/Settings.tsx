@@ -1,22 +1,16 @@
+import { THEMES } from "../../../src/client/lib/theme";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { PUZZLES } from "../../../src/shared/puzzles";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
-import { colorModeAtom, cubeSwitchLockedAtom, puzzleAtom, routeAtom, themeAtom, type ThemeId } from "../state";
+import { colorModeAtom, cubeSwitchLockedAtom, puzzleAtom, routeAtom, themeAtom } from "../state";
 import { useTheme } from "../theme";
 import { PuzzleIcon } from "./PuzzlePicker";
 import { Sheet, SheetScrollView } from "./Sheet";
 import { Btn, Segmented } from "./ui";
 
-const THEMES: { id: ThemeId; name: string; color: string }[] = [
-  { id: "t3-code", name: "Blue", color: "#3987e5" },
-  { id: "t3-chat", name: "Pink", color: "#ed2677" },
-  { id: "grove", name: "Green", color: "#39ad78" },
-  { id: "ocean", name: "Cyan", color: "#42a4dc" },
-  { id: "ember", name: "Orange", color: "#e1783f" },
-  { id: "iris", name: "Purple", color: "#9a67df" },
-];
+
 
 /** Device preferences: they apply to guests as well as signed-in cubers. */
 export function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } = {}) {

@@ -1,3 +1,4 @@
+import { LaunchSessions } from "../../../src/client/lib/launchSessions";
 import { contextKey, type PracticeContext } from "../../../src/shared/puzzles";
 import type { SessionMode } from "../../../src/shared/types";
 import { api, local } from "../api";
@@ -7,7 +8,7 @@ import { api, local } from "../api";
  * with the first solve and never restored from an earlier launch or another device. Solves still
  * synchronize to the account and count in the profile; only the session grouping stays local.
  */
-const sessions = new Map<string, number>();
+const sessions = new LaunchSessions();
 
 const key = (mode: SessionMode, context: PracticeContext) => `${local.current()?.id ?? "guest"}:${mode}:${contextKey(context)}`;
 
@@ -18,9 +19,5 @@ export function launchSessionId(mode: SessionMode, context: PracticeContext): nu
 
 /** The launch session for the context, created on first use. */
 export async function ensureLaunchSession(mode: SessionMode, context: PracticeContext, caseIds: string[] = []): Promise<number> {
-  const existing = launchSessionId(mode, context);
-  if (existing !== null) return existing;
-  const session = await api.createSession(mode, caseIds, context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType });
-  sessions.set(key(mode, context), session.id);
-  return session.id;
+  return sessions.ensure(key(mode, context), () => api.createSession(mode, caseIds, context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType }));
 }

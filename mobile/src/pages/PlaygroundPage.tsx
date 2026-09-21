@@ -1,7 +1,8 @@
+import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
-import { averageOf, best, effective, fmtSolve, fmtTime, mean, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
+import { fmtSolve, fmtTime, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { contextKey, puzzleInfo, scrambleLabel, SOLVE_MODES, type PracticeContext, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
@@ -114,7 +115,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const typing = entry === "typing";
 
   const lastSolve = lastSolveId === null ? null : solves.find(solve => solve.id === lastSolveId) ?? null;
-  const times = solves.map(s => effective(s.time_ms, s.penalty));
+  const summary = practiceSummary(solves);
   const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
   const running = timer.phase === "running";
   useEffect(() => { lockCube(busy || !!timer.saveError); return () => lockCube(false); }, [busy, timer.saveError, lockCube]);
@@ -150,10 +151,10 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
             : <TimerSurface timer={timer} fontSize={timerSize} short={layout.short} unsaved={entry === "casual"} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} />}</TimerSlot>
           <TimerChrome hidden={running} exit="down" style={[styles.stats, (layout.landscape || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : Math.max(16, Math.min(layout.width * 0.035, 40)) }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
-            <Kpi center label="Best" value={fmtTime(best(times))} valueSize={layout.phone ? 18 : 22} />
-            <Kpi center label="Mean" value={fmtTime(mean(times))} valueSize={layout.phone ? 18 : 22} />
-            <Kpi center label="Ao5" value={fmtTime(times.length >= 5 ? averageOf(times.slice(-5)) : null)} valueSize={layout.phone ? 18 : 22} />
-            <Kpi center label="Ao12" value={fmtTime(times.length >= 12 ? averageOf(times.slice(-12)) : null)} valueSize={layout.phone ? 18 : 22} />
+            <Kpi center label="Best" value={fmtTime(summary.best)} valueSize={layout.phone ? 18 : 22} />
+            <Kpi center label="Mean" value={fmtTime(summary.mean)} valueSize={layout.phone ? 18 : 22} />
+            <Kpi center label="Ao5" value={fmtTime(summary.ao5)} valueSize={layout.phone ? 18 : 22} />
+            <Kpi center label="Ao12" value={fmtTime(summary.ao12)} valueSize={layout.phone ? 18 : 22} />
           </TimerChrome>
           </PracticeReadout>
         </View>

@@ -19,3 +19,6 @@ export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" ? "OLL"
 /** Algorithm as the user should execute it from the shown case (pre-AUF included). */
 export const displayAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `(${a.pre_auf}) ${a.alg}` : a.alg);
 export const executableAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `${a.pre_auf} ${a.alg}` : a.alg);
+
+/** "F2L 12" → "12", "PLL T" → "T". */
+export const shortId = (c: Pick<CaseDto, "id">) => c.id.replace(/^\S+\s+/, "");

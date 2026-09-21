@@ -1,3 +1,4 @@
+import type { ThemeId } from "../../src/client/lib/theme";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { isPuzzle, puzzleInfo, puzzleOf, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
@@ -115,7 +116,7 @@ export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true
  * page so marking the last one learned from its details and coming back still celebrates. */
 export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
 
-export type ThemeId = "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";
+export type { ThemeId } from "../../src/client/lib/theme";
 export const themeAtom = persisted<ThemeId>("cubix.ui.theme", "t3-code");
 export const colorModeAtom = persisted<"light" | "dark">("cubix.ui.colorMode", "dark");
 

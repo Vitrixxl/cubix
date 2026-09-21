@@ -156,3 +156,18 @@ tests/          tests des clients et de l'API réelle
 Les écrans restent à la hauteur de la fenêtre ; seules les listes et panneaux
 internes défilent. Les explications se trouvent dans les guides accessibles via l'aide.
 Les [sources du catalogue et modes de pratique](docs/catalogue.md) sont documentés séparément.
+
+La logique de pratique commune au mobile et au desktop se trouve dans
+`src/client/lib/` : chrono (`practiceTimer`), thèmes (`theme`), catalogue et
+sélections (`practiceCatalog`), indicateurs et regroupement des temps
+(`practiceSummary`), sessions du lancement (`launchSessions`) et représentation
+des cas (`caseState`). Ces modules TypeScript ne dépendent ni de React Native,
+ni d’Electron, ni d’un stockage spécifique. Les interfaces les consomment via
+leurs adaptateurs : clavier/RAF côté desktop, tactile/AppState côté mobile.
+Les composants, la navigation et les mises à jour restent propres à chaque plateforme.
+
+`bun run typecheck` vérifie le code partagé et les deux applications.
+`bun test tests/practice-shared.test.ts` vérifie les règles communes ;
+`bun run --cwd mobile test` vérifie aussi leur intégration au chrono mobile.
+Les parcours réels Electron sont dans `desktop/testing/flows.ts` (après
+`bun run build:desktop:ui`, avec un affichage X11 disponible sous Linux).

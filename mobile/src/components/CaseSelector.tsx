@@ -1,3 +1,4 @@
+import { groupCases, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import { useSetAtom } from "jotai";
 import { memo, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
@@ -31,8 +32,8 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   const setRoute = useSetAtom(routeAtom);
   const sel = useMemo(() => new Set(selected), [selected]);
   const q = query.trim().toLowerCase();
-  const toggleCase = (id: string) => { const next = new Set(sel); if (next.has(id)) next.delete(id); else next.add(id); onChange([...next]); };
-  const toggleSet = (ids: string[]) => { const all = ids.every(id => sel.has(id)); const next = new Set(sel); for (const id of ids) all ? next.delete(id) : next.add(id); onChange([...next]); };
+  const toggleCase = (id: string) => onChange([...toggleSelection(sel, [id])]);
+  const toggleSet = (ids: string[]) => onChange([...toggleSelection(sel, ids)]);
   type Row = { key: string } & (
     | { kind: "stage"; stage: string }
     | { kind: "set"; set: SetDto; ids: string[]; count: number; expanded: boolean }
@@ -52,8 +53,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
         const expanded = !!q || (open[set.id] ?? (defaultExpanded || count > 0));
         result.push({ key: set.id, kind: "set", set, ids, count, expanded });
         if (!expanded) continue;
-        const groups = new Map<string, CaseDto[]>();
-        for (const c of list) groups.set(c.group, [...(groups.get(c.group) ?? []), c]);
+        const groups = groupCases(list);
         for (const [group, members] of groups) {
           if (groups.size > 1) result.push({ key: `${set.id}:${group}`, kind: "group", group, ids: members.map(c => c.id), count: members.filter(c => sel.has(c.id)).length });
           for (let i = 0; i < members.length; i += 3)

@@ -1,3 +1,7 @@
+import { trainingSessionRows } from "../../src/client/lib/practiceSummary";
+import { catalogSections } from "../../src/client/lib/practiceCatalog";
+import { PracticeTimer } from "../../src/client/lib/practiceTimer";
+import { shortId, maskForStage } from "../../src/client/lib/caseState";
 import React, {
   useEffect,
   useLayoutEffect,
@@ -15,10 +19,7 @@ import {
   fmtSolve,
   parseTypedTime,
   effective,
-  best,
-  mean,
 } from "../../src/client/lib/format";
-import { maskForStage } from "../../src/client/lib/caseState";
 import { GuideContent } from "../guides/Content";
 import { GUIDES, type Guide } from "../guides/pages";
 import "./styles.css";
@@ -188,64 +189,38 @@ function useViewport() {
   return v;
 }
 function useTimer(enabled: boolean) {
-  const [phase, setPhase] = useState("Idle"),
-    [elapsed, setElapsed] = useState(0),
-    ref = useRef({
-      phase: "Idle",
-      start: 0,
-      hold: 0 as ReturnType<typeof setTimeout> | 0,
-      frame: 0,
-      enabled,
-    });
-  ref.current.enabled = enabled;
-  const update = (phase: string) => {
-    ref.current.phase = phase;
-    setPhase(phase);
-    s.running = phase === "Running";
-    s.emit();
-  };
-  const stop = () => {
-    if (ref.current.phase !== "Running") return;
-    const ms = performance.now() - ref.current.start;
-    setElapsed(ms);
-    update("Idle");
-    cancelAnimationFrame(ref.current.frame);
-    void s.save(ms);
-  };
-  const press = () => {
-    if (ref.current.phase === "Running") {
-      stop();
-      return;
-    }
-    if (!ref.current.enabled || ref.current.phase !== "Idle") return;
-    update("Holding");
-    ref.current.hold = setTimeout(() => {
-      if (ref.current.phase === "Holding") update("Ready");
-    }, 300);
-  };
-  const release = () => {
-    clearTimeout(ref.current.hold);
-    if (ref.current.phase === "Ready") {
-      ref.current.start = performance.now();
-      update("Running");
-      const tick = () => {
-        if (ref.current.phase !== "Running") return;
-        setElapsed(performance.now() - ref.current.start);
-        ref.current.frame = requestAnimationFrame(tick);
-      };
-      tick();
-    } else if (ref.current.phase === "Holding") update("Idle");
-  };
-  useEffect(() => {
-    update("Idle");
-    setElapsed(0);
-    clearTimeout(ref.current.hold);
-    cancelAnimationFrame(ref.current.frame);
-  }, [s.timerEpoch]);
+  const [phase, setPhase] = useState("Idle");
+  const [elapsed, setElapsed] = useState(0);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  const frame = useRef(0);
+  const [timer] = useState(() => new PracticeTimer({
+    canStart: () => enabledRef.current,
+    onStop: ms => { void s.save(ms); },
+    onChange: snapshot => {
+      const running = snapshot.phase === "running";
+      setPhase(snapshot.phase === "stopped" ? "Idle" : snapshot.phase[0].toUpperCase() + snapshot.phase.slice(1));
+      setElapsed(snapshot.elapsed);
+      s.running = running;
+      s.emit();
+      cancelAnimationFrame(frame.current);
+      if (running) {
+        const tick = () => {
+          if (timer.snapshot.phase !== "running") return;
+          setElapsed(performance.now() - timer.snapshot.startedAt);
+          frame.current = requestAnimationFrame(tick);
+        };
+        tick();
+      }
+    },
+  }));
+  const { press, release } = timer;
+  const stop = () => { if (timer.snapshot.phase === "running") timer.press(); };
+  useEffect(() => { timer.reset(); }, [s.timerEpoch, timer]);
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (ref.current.phase === "Running") {
+      if (timer.snapshot.phase === "running") {
         e.preventDefault();
         stop();
         return;
@@ -264,14 +239,9 @@ function useTimer(enabled: boolean) {
     const up = (e: KeyboardEvent) => {
       if (e.code === "Space") release();
     };
-    const blur = () => {
-      if (["Holding", "Ready"].includes(ref.current.phase)) {
-        clearTimeout(ref.current.hold);
-        update("Idle");
-      }
-    };
+    const blur = timer.cancelArming;
     const pointer = () => {
-      if (ref.current.phase === "Running") stop();
+      if (timer.snapshot.phase === "running") stop();
     };
     addEventListener("keydown", down);
     addEventListener("keyup", up);
@@ -282,8 +252,8 @@ function useTimer(enabled: boolean) {
       removeEventListener("keyup", up);
       removeEventListener("blur", blur);
       removeEventListener("pointerdown", pointer);
-      clearTimeout(ref.current.hold);
-      cancelAnimationFrame(ref.current.frame);
+      timer.dispose();
+      cancelAnimationFrame(frame.current);
       s.running = false;
     };
   }, []);
@@ -693,36 +663,24 @@ function Times() {
       </Row>
       <div className="scroll times-list">
         {training
-          ? s
-              .cases()
-              .filter(
-                (c: any) =>
-                  s.selected.has(c.id) ||
-                  s.solves.some((v) => v.case_id === c.id),
-              )
-              .sort(
-                (a: any, b: any) =>
-                  s.solves.filter((v) => v.case_id === b.id).length -
-                  s.solves.filter((v) => v.case_id === a.id).length,
-              )
-              .map((c: any) => {
-                const solves = s.solves.filter((v) => v.case_id === c.id),
-                  valid = solves.map((v) => effective(v.time_ms, v.penalty)),
-                  fastest = best(valid);
+          ? trainingSessionRows<any, any>(
+              s.cases().filter((c: any) => s.selected.has(c.id) || s.solves.some(v => v.case_id === c.id)),
+              s.solves,
+            ).map(({ c, solves, best: fastest, mean: average, validCount }) => {
                 return (
                   <Row key={c.id} className="session-case">
                     <div className="session-picture">
                       <Diagram c={c} size={44} />
-                      <span>{c.id.split(" ").slice(1).join(" ") || c.id}</span>
+                      <span>{shortId(c)}</span>
                     </div>
                     <div className="session-values">
                       {!solves.length ? (
                         <span className="muted">—</span>
                       ) : (
                         <>
-                          {valid.filter((v) => v !== null).length > 1 && (
+                          {validCount > 1 && (
                             <small className="mono muted">
-                              mean {fmtTime(mean(valid))}
+                              mean {fmtTime(average)}
                             </small>
                           )}
                           <Row className="wrap">
@@ -853,7 +811,7 @@ function Selector() {
                           >
                             <Diagram c={c} size={58} />
                             <span>
-                              {c.id.split(" ").slice(1).join(" ") || c.id}
+                              {shortId(c)}
                             </span>
                             {s.selected.has(c.id) && (
                               <span className="selected-check">✓</span>
@@ -884,16 +842,10 @@ function useScrollPosition(key: string) {
 }
 function Catalog() {
   const scroll = useScrollPosition(`catalog:${s.puzzle}`);
-  const sets = s.allSets(),
-    cases = s.cases(),
-    stages = [...new Set(sets.map((v: any) => v.stage))] as string[],
-    active = (stage: string) =>
-      sets.find((v: any) => v.id === s.sets[stage]) ??
-      sets.find((v: any) => v.stage === stage),
-    chosen = stages.flatMap((stage) =>
-      cases.filter((c: any) => c.set === active(stage).id),
-    ),
-    learned = chosen.filter((c: any) => s.learned.has(c.id)).length;
+  const sections = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, s.learningFilter);
+  const stages = sections.map(section => section.stage);
+  const learned = sections.reduce((sum, section) => sum + section.learnedCount, 0);
+  const total = sections.reduce((sum, section) => sum + section.all.length, 0);
   return (
     <div className="page catalog-page">
       <Row className="wrap catalog-toolbar">
@@ -919,20 +871,12 @@ function Catalog() {
             action="learningFilter:not-learned"
             active={s.learningFilter === "not-learned"}
           >
-            Not learned <span className="mono">{chosen.length - learned}</span>
+            Not learned <span className="mono">{total - learned}</span>
           </Button>
         </Row>
       </Row>
       <div ref={scroll} className="scroll catalog-scroll">
-        {stages.map((stage) => {
-          const set = active(stage),
-            items = cases.filter(
-              (c: any) =>
-                c.set === set.id &&
-                (s.learningFilter === "all" ||
-                  s.learned.has(c.id) === (s.learningFilter === "learned")),
-            ),
-            groups = [...new Set(items.map((c: any) => c.group))] as string[];
+        {sections.map(({ stage, active: set, variants, groups }) => {
           return (
             <section
               id={"stage-" + stage}
@@ -942,9 +886,7 @@ function Catalog() {
               <Row className="between wrap stage-title">
                 <h2>{stage}</h2>
                 <Row>
-                  {sets
-                    .filter((v: any) => v.stage === stage)
-                    .map((v: any) => (
+                  {variants.map((v: any) => (
                       <Button
                         key={v.id}
                         action={"set:" + v.id}
@@ -958,14 +900,14 @@ function Catalog() {
                     ))}
                 </Row>
               </Row>
-              {!items.length && (
+              {!groups.length && (
                 <Empty>
                   {s.learningFilter === "learned"
                     ? "No learned cases in this set yet."
                     : "No not learned cases in this set."}
                 </Empty>
               )}
-              {groups.map((group) => {
+              {groups.map(([group, members]) => {
                 const key = set.id + ":" + group;
                 return (
                   <section key={group} className="catalog-group">
@@ -980,7 +922,7 @@ function Catalog() {
                       >
                         {group}
                         <small>
-                          {items.filter((c: any) => c.group === group).length}
+                          {members.length}
                         </small>
                       </Button>
                       <Button action={"train:" + key} icon="IconTimer">
@@ -989,9 +931,7 @@ function Catalog() {
                     </Row>
                     {!s.collapsed.has(key) && (
                       <div className="catalog-grid">
-                        {items
-                          .filter((c: any) => c.group === group)
-                          .map((c: any) => {
+                        {members.map((c: any) => {
                             const st = s.stats.find((v) => v.caseId === c.id);
                             return (
                               <div key={c.id} className="catalog-tile">
@@ -1002,7 +942,7 @@ function Catalog() {
                                 >
                                   <Diagram c={c} />
                                   <strong>
-                                    {c.id.split(" ").slice(1).join(" ") || c.id}
+                                    {shortId(c)}
                                   </strong>
                                   {c.name !== c.id && (
                                     <span className="tile-name">{c.name}</span>
@@ -1503,7 +1443,7 @@ function Profile() {
                           >
                             <Diagram c={c} size={72} />
                             <strong>
-                              {c.id.split(" ").slice(1).join(" ") || c.id}
+                              {shortId(c)}
                             </strong>
                             <small className="mono accent">
                               {st ? fmtTime(st.summary.best) : "—"}
