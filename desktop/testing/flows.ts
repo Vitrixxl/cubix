@@ -211,6 +211,8 @@ try {
     [390, 844],
     [800, 600],
     [1280, 800],
+    [1920, 1080],
+    [2560, 1440],
   ]) {
     await app.evaluate(
       ({ BrowserWindow }, { width, height }) =>
@@ -218,6 +220,29 @@ try {
       { width, height },
     );
     await page.waitForTimeout(150);
+    for (const route of ["training", "playground"]) {
+      await act("nav:" + route);
+      const centers = await page.evaluate(() => {
+        const middle = (selector: string) => {
+          const rect = document
+            .querySelector(selector)!
+            .getBoundingClientRect();
+          return rect.x + rect.width / 2;
+        };
+        return {
+          width: innerWidth,
+          above: middle(".practice-above"),
+          timer: middle(".timer"),
+          metrics: middle(".practice-metrics"),
+        };
+      });
+      assert.equal(centers.width, width);
+      for (const center of [centers.above, centers.timer, centers.metrics])
+        assert(
+          Math.abs(center - width / 2) < 1,
+          `${route} must remain centered at ${width}px: ${JSON.stringify(centers)}`,
+        );
+    }
     await act("menu:modes");
     await page.keyboard.press("End");
     await page.keyboard.press("Enter");
@@ -238,8 +263,13 @@ try {
     await act("nav:playground");
   }
   console.log("Responsive layout and keyboard menus");
-  const fixture = await page.evaluate(async () => (await window.cubix.call('init')).storage);
-  await Bun.write('artifacts/electron/testing/account-storage.json',JSON.stringify(fixture));
+  const fixture = await page.evaluate(
+    async () => (await window.cubix.call("init")).storage,
+  );
+  await Bun.write(
+    "artifacts/electron/testing/account-storage.json",
+    JSON.stringify(fixture),
+  );
   assert.deepEqual(errors, []);
   await Bun.write(
     "artifacts/electron/testing/flows.json",
