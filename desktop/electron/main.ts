@@ -5,6 +5,11 @@ import { join } from "node:path";
 import { existsSync, writeFileSync } from "node:fs";
 
 const root = app.getAppPath();
+app.setName("Cubix");
+if (process.platform === "linux") {
+  app.setDesktopName("fr.vitrixxl.cubix.desktop");
+  app.commandLine.appendSwitch("class", "Cubix");
+}
 let engine: ReturnType<typeof spawn>;
 let window: BrowserWindow;
 let sequence = 0;

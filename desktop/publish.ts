@@ -1,6 +1,11 @@
 /** Publish the locally built signed release through the authenticated Cubix API. */
 import { resolve, join } from "node:path";
-import { releaseRequest, type Manifest, type SignedRelease } from "./updater";
+import {
+  releaseRequest,
+  validateRelease,
+  type Manifest,
+  type SignedRelease,
+} from "./updater";
 export async function publishDesktop(origin: string, password: string) {
   const base = resolve(
       "artifacts/electron",
@@ -10,9 +15,28 @@ export async function publishDesktop(origin: string, password: string) {
       join(base, "release.json"),
     ).json()) as SignedRelease,
     manifest = JSON.parse(signed.manifest) as Manifest;
+  // The API checks every blob before publishing a manifest. Reuse that inventory
+  // so a small update doesn't issue thousands of HEAD requests to the Pi.
+  const publishedAssets = new Set<string>();
+  const previous = await releaseRequest(
+    `${origin}/api/desktop/releases/${manifest.target}`,
+    {},
+    15000,
+  );
+  if (previous.ok) {
+    const config = await Bun.file(join(base, "launcher.json")).json();
+    const release = validateRelease(
+      await previous.json(),
+      config.publicKey,
+      manifest.target,
+    );
+    for (const file of release.files) publishedAssets.add(file.sha256);
+  } else if (previous.status !== 404 && previous.status !== 204) {
+    throw Error(`Desktop release check failed: ${previous.status}`);
+  }
   const unique = [
     ...new Map(manifest.files.map((f) => [f.sha256, f])).values(),
-  ];
+  ].filter((f) => !publishedAssets.has(f.sha256));
   let checked = 0;
   for (const f of unique) {
     if (checked++ % 100 === 0)
