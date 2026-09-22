@@ -12,7 +12,7 @@
     "test": "bun run build:api && bun test --timeout 15000 ./tests && bun scripts/test-cube.ts && sh scripts/rust.sh test --locked",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/rust-api.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
     "build:db": "tsx scripts/build-db.ts",
-    "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-catalog.ts",
+    "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-case-images.ts && bun scripts/build-catalog.ts",
     "import:history": "sh scripts/rust.sh serve --import-history",
     "launch": "bun desktop/dev.ts",
     "stress": "tsx scripts/stress-api.ts",
@@ -31,6 +31,7 @@
   "dependencies": {
     "@cubing/icons": "^3.0.5",
     "cubing": "^0.63.4",
+    "motion": "^13.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "sonner": "^2.0.8"
@@ -43,6 +44,7 @@
     "@types/ws": "^8.0.0",
     "electron": "^44.4.3",
     "playwright": "^1.63.0",
+    "sharp": "^0.35.4",
     "tsx": "^4.0.0",
     "typescript": "^5",
     "ws": "^8.0.0"

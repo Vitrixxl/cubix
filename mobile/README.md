@@ -77,8 +77,9 @@ bun run typecheck
 bun run doctor
 ```
 
-`bun install` génère aussi le bundle des générateurs cubing.js et les 99 schémas SVG
-à partir des fichiers du dépôt. Node et Bun sont nécessaires ; les versions sont
+`bun install` génère aussi le bundle des générateurs cubing.js et copie les 99 schémas PNG
+des puzzles non cubiques (`assets/cases/*.png` du dépôt, produits par `bun scripts/build-case-images.ts`
+à la racine : l'application affiche des bitmaps, car chaque élément d'un SVG devient une vue native). Node et Bun sont nécessaires ; les versions sont
 indiquées dans le `package.json` racine.
 
 Chaîne Android de ce PC, installée sans paquets système :

@@ -71,7 +71,8 @@ Le build distribue cubing.js et ses workers dans le dossier `vendor/cubing/` du 
 
 Tous les clients lisent le même fichier généré, `../data/catalog.json` : le serveur Rust l'embarque
 avec `include_str!`, le client local TypeScript (desktop et mobile) l'importe, `desktop/scripts/export-assets.tsx`
-en rend les schémas SVG et `mobile/scripts/build-cases.ts` y résout les schémas des puzzles non cubiques.
+en rend les schémas SVG et `mobile/scripts/build-cases.ts` y résout les schémas des puzzles non cubiques
+(`scripts/build-case-images.ts` rasterise leurs SVG en PNG dans `assets/cases/`, versionnés, pour le mobile).
 Aucun client ne fusionne plus les sources lui-même. Le fichier contient `sets`, `cases` (CFOP, réduction
 4×4–7×7, multi-cube, puzzles non cubiques), `puzzles` et `moves`.
 
@@ -86,7 +87,8 @@ régénéré après une modification de ces entrées.
 
 Les schémas de cube (géométrie isométrique, vue dernière couche OLL/PLL, couleurs et masques) viennent
 de `src/shared/cubeDiagram.ts` ; le web, l'export desktop et `react-native-svg` dessinent les mêmes
-cellules, donc un cas a la même image partout.
+cellules, donc un cas a la même image partout. Le mobile les reçoit fusionnées en un chemin par couleur
+(`diagramPaths`, mémorisé par état) : une poignée de vues natives par schéma au lieu d'une par facette.
 
 `bun scripts/build-cube-catalog.ts` reconstruit `../data/multi-cube.json`, partagé par les clients natifs
 et le serveur Rust. Les sources des nouveaux algorithmes sont conservées avec chaque cas :

@@ -10,6 +10,7 @@ import { LiveConnection } from "./src/components/LiveConnection";
 import { SettingsDialog } from "./src/components/Settings";
 import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
+import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { PageSkeleton } from "./src/components/Skeleton";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { useLayout } from "./src/hooks/useLayout";
@@ -96,6 +97,13 @@ function Shell() {
     });
     return () => task.cancel();
   }, [store]);
+  // Then the diagrams of the current puzzle's cases, so the algorithm list and selector open without geometry work.
+  const cases = useAtomValue(casesAtom);
+  useEffect(() => {
+    let cancel = () => {};
+    const task = InteractionManager.runAfterInteractions(() => { cancel = prefetchCaseDiagrams(cases); });
+    return () => { task.cancel(); cancel(); };
+  }, [cases]);
   const [route, setRoute] = useAtom(routeAtom);
   const goBack = useSetAtom(goBackAtom);
   // The hardware back button walks the in-app history, like the browser's back button.

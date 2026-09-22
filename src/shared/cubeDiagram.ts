@@ -186,3 +186,44 @@ export function topLayerCells(state: CubeState, mask: CubeMask, view: DiagramVie
   }
   return tiles.map(tile => ({ ...tile, stroke: tile.fill }));
 }
+
+export interface DiagramPath { fill: string; d: string }
+export interface DiagramPaths {
+  /** Silhouette under the tiles; only in the isometric view. */
+  hull?: string;
+  /** One path per colour holding every tile of that colour, stroked in its own colour. */
+  tiles: DiagramPath[];
+  /** The three cube edges as one path; only in the isometric view. */
+  edges?: string;
+}
+/** "x,y x,y …" polygon points as one closed subpath. */
+const subpath = (points: string) => `M${points.replaceAll(" ", "L")}Z`;
+/** Cells merged into one path per colour, in first-seen order. */
+export function mergeCells(cells: IsoCell[]): DiagramPath[] {
+  const byFill = new Map<string, string[]>();
+  for (const { points, fill } of cells) {
+    let parts = byFill.get(fill);
+    if (!parts) byFill.set(fill, parts = []);
+    parts.push(subpath(points));
+  }
+  return [...byFill].map(([fill, parts]) => ({ fill, d: parts.join("") }));
+}
+const pathCache = new WeakMap<CubeState, Map<string, DiagramPaths>>();
+/**
+ * The whole diagram as a handful of paths instead of one polygon per sticker: renderers that create a
+ * native node per element (react-native-svg) mount a 3×3 in about eight nodes rather than thirty.
+ * Memoised per state, mask and view, so a list re-rendering the same cases does no geometry twice.
+ */
+export function diagramPaths(state: CubeState, mask: CubeMask, view: DiagramView = viewForMask(mask)): DiagramPaths {
+  let views = pathCache.get(state);
+  if (!views) pathCache.set(state, views = new Map());
+  const key = `${mask}:${view}`;
+  let paths = views.get(key);
+  if (!paths) {
+    paths = view === "iso"
+      ? { hull: isoHull(state), tiles: mergeCells(isoCells(state, mask)), edges: isoEdges(state).map(points => `M${points.replaceAll(" ", "L")}`).join("") }
+      : { tiles: mergeCells(topLayerCells(state, mask, view)) };
+    views.set(key, paths);
+  }
+  return paths;
+}
