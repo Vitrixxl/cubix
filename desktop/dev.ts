@@ -1,5 +1,6 @@
 delete process.env.ELECTRON_RUN_AS_NODE;
 import { resolve } from "node:path";
+import { electronLaunchOptions } from "./platform";
 process.chdir(resolve(import.meta.dir, ".."));
 const build = Bun.spawn(["bun", "desktop/build.ts"], {
   stdout: "inherit",
@@ -21,12 +22,9 @@ const electron = resolve(
       ? "Electron.app/Contents/MacOS/Electron"
       : "electron",
 );
-const platformArgs =
-  process.platform === "linux" && !process.env.WAYLAND_DISPLAY
-    ? ["--ozone-platform=x11"]
-    : [];
-const child = Bun.spawn([electron, ...platformArgs, "desktop/dist"], {
-  env: { ...process.env, CUBIX_BUN: process.execPath },
+const platform = await electronLaunchOptions();
+const child = Bun.spawn([electron, ...platform.args, "desktop/dist"], {
+  env: { ...platform.env, CUBIX_BUN: process.execPath },
   stdout: "inherit",
   stderr: "inherit",
 });

@@ -2,6 +2,7 @@ delete process.env.ELECTRON_RUN_AS_NODE;
 /** Compiled with bun build --compile. No Bun installation or administrator rights required. */
 import { mkdir, readFile, rm, writeFile, open } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { electronLaunchOptions } from "./platform";
 import {
   currentRelease,
   installUpdate,
@@ -53,19 +54,16 @@ try {
           ? "runtime/Electron.app/Contents/MacOS/Electron"
           : "runtime/electron",
     );
-  const platformArgs =
-    process.platform === "linux" && !process.env.WAYLAND_DISPLAY
-      ? ["--ozone-platform=x11"]
-      : [];
+  const platform = await electronLaunchOptions();
   const startedAt = performance.now();
   const launch = async (id: string) => {
     const ready = join(base, `ready-${process.pid}`);
     await rm(ready, { force: true });
     const child = Bun.spawn(
-      [executable(id), ...platformArgs, join(base, "releases", id, "app")],
+      [executable(id), ...platform.args, join(base, "releases", id, "app")],
       {
         env: {
-          ...process.env,
+          ...platform.env,
           CUBIX_LAUNCH_READY: ready,
           CUBIX_LAUNCHER_PATH: process.execPath,
           CUBIX_RELEASE_ID: id,

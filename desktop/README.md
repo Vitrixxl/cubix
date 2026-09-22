@@ -71,6 +71,9 @@ le nouveau lanceur sur une ancienne installation GPUI.
 
 ## Configuration et validation
 
+- `CUBIX_DESKTOP_GPU=system` : conserver la sélection graphique du système. Par défaut,
+  sur les PC hybrides Intel/AMD + NVIDIA, le lanceur utilise le GPU intégré et évite
+  le scan Vulkan qui réveille la carte dédiée. L’accélération OpenGL reste active.
 - `CUBIX_API_ORIGIN` : origine API, défaut `https://cubix.vitrixxl.fr`.
 - `CUBIX_DESKTOP_DATA` : dossier des données privées.
 - `CUBIX_DESKTOP_BUILD` : numéro de build monotone, défaut timestamp en millisecondes.
