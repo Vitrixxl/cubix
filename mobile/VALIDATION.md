@@ -1,5 +1,25 @@
 # Validation du port Android
 
+## Correction du crash des algorithmes du 22 septembre 2026
+
+Le bundle publié `c132128` provoque une `IllegalArgumentException` dans
+`com.horcrux.svg.PathParser.parse` à l'ouverture des F2L du 3×3 : le contour
+isométrique fournit des coordonnées de polygone à la propriété `d` d'un `Path`.
+Le dernier onglet étant mémorisé, le même rendu échoue au lancement suivant.
+
+Reproduit avec l'APK ARM64 distribué et sa mise à jour OTA dans l'émulateur
+Android 36, avec traduction ARM64. Le bundle corrigé a ensuite été injecté
+uniquement dans le cache de cet émulateur, sans effacer les données : reprise
+directe de la liste 3×3, affichage des schémas, ouverture d'une fiche, retour et
+défilement sans erreur native. Aucun téléphone physique testé pour ce correctif.
+
+Le test de régression échoue avant la conversion du contour en tracé fermé,
+puis réussit après correction. La syntaxe des contours, arêtes et tuiles est
+vérifiée pour tous les cas cubiques du catalogue. TypeScript du dépôt et les
+11 tests mobiles passent également.
+
+## Validation initiale
+
 Vérification locale du 14 septembre 2026. Les résultats ci-dessous concernent le
 code et les outils présents dans ce dépôt ; ils ne valent pas mesure sur un
 téléphone physique.

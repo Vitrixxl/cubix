@@ -19,7 +19,9 @@ describe('merged diagram paths', () => {
   test('the isometric diagram keeps its hull and three edges; the top view has neither', () => {
     const state = applyAlg(solved(), "F R U R' U' F'");
     const iso = diagramPaths(state, 'full', 'iso');
-    expect(iso.hull).toBeDefined();
+    // Android's native PathParser rejects polygon coordinates in a Path's d prop.
+    expect(iso.hull).toMatch(/^M[-\d.,L]+Z$/);
+    expect(subpaths(iso.hull!)).toBe(1);
     expect(subpaths(iso.edges!)).toBe(3);
     const top = diagramPaths(state, 'OLL', 'top');
     expect(top.hull).toBeUndefined();
@@ -34,7 +36,10 @@ describe('merged diagram paths', () => {
   });
   test('every catalogue cube case renders in a handful of paths', () => {
     for (const c of cases.filter(c => !c.diagram)) {
-      const { tiles } = diagramPaths(caseState(c), maskForStage(c.stage), viewForStage(c.stage));
+      const { hull, tiles, edges } = diagramPaths(caseState(c), maskForStage(c.stage), viewForStage(c.stage));
+      if (hull) expect(hull, c.id).toMatch(/^M[-\d.,L]+Z$/);
+      if (edges) expect(edges, c.id).toMatch(/^(M[-\d.,L]+)+$/);
+      for (const { d } of tiles) expect(d, c.id).toMatch(/^(M[-\d.,L]+Z)+$/);
       expect(tiles.length, c.id).toBeGreaterThan(0);
       expect(tiles.length, c.id).toBeLessThanOrEqual(8);
     }

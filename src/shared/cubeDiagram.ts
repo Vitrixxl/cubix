@@ -221,7 +221,7 @@ export function diagramPaths(state: CubeState, mask: CubeMask, view: DiagramView
   let paths = views.get(key);
   if (!paths) {
     paths = view === "iso"
-      ? { hull: isoHull(state), tiles: mergeCells(isoCells(state, mask)), edges: isoEdges(state).map(points => `M${points.replaceAll(" ", "L")}`).join("") }
+      ? { hull: subpath(isoHull(state)), tiles: mergeCells(isoCells(state, mask)), edges: isoEdges(state).map(points => `M${points.replaceAll(" ", "L")}`).join("") }
       : { tiles: mergeCells(topLayerCells(state, mask, view)) };
     views.set(key, paths);
   }
