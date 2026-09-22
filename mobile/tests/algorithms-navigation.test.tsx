@@ -40,7 +40,7 @@ mock.module("../src/components/ui", () => Object.fromEntries([
   ["mono", () => ({})],
 ]));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
-const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedAlgorithmGroupsAtom } = await import("../src/state");
+const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedAlgorithmGroupsAtom, stageAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;
 afterEach(async () => { if (renderer) await act(() => renderer.unmount()); });
@@ -48,6 +48,7 @@ async function mount() {
   const store = createStore();
   store.set(routeAtom, { page: "algorithms" });
   store.set(learningFilterAtom, "all");
+  store.set(stageAtom, "OLL");
   store.set(collapsedAlgorithmGroupsAtom, {});
   await act(() => { renderer = create(<Provider store={store}><AlgorithmsPage /></Provider>); });
   return store;
@@ -64,6 +65,23 @@ async function open(id: string) {
 async function swipe(index: number) {
   await act(() => pager().props.onMomentumScrollEnd({ nativeEvent: { contentOffset: { x: 362 * index } } }));
 }
+
+test("the phone selector displays only its stage, including when the learning filter has no matches", async () => {
+  await mount();
+  const stageSelect = () => renderer.root.findAllByType("Select" as any).find(node => node.props.accessibilityLabel.startsWith("Algorithm stage:"))!;
+  const visibleIds = () => browser().props.data.flatMap((row: any) => row.kind === "cards" ? row.cases.map((c: any) => c.id) : []);
+  expect(visibleIds()).toEqual(["OLL 1", "OLL 3", "OLL 2", "OLL 4"]);
+  await act(() => stageSelect().props.onChange("PLL"));
+  expect(visibleIds()).toEqual(["PLL Aa"]);
+  const filter = () => renderer.root.findAllByType("Select" as any).find(node => node.props.accessibilityLabel === "Learning status")!;
+  expect(filter().props.options.find((option: any) => option.value === "learned").label).toBe("Learned · 0");
+  await act(() => filter().props.onChange("learned"));
+  expect(stageSelect().props.value).toBe("PLL");
+  expect(visibleIds()).toEqual([]);
+  expect(browser().props.data.some((row: any) => row.kind === "empty")).toBe(true);
+  await act(() => stageSelect().props.onChange("OLL"));
+  expect(visibleIds()).toEqual(["OLL 4"]);
+});
 
 test("opening and swiping keep the scrolled list mounted; hardware back returns directly to it", async () => {
   const store = await mount();

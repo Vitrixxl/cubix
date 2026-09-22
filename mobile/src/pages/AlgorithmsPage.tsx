@@ -61,6 +61,8 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   const [setByStage, setSetByStage] = useAtom(setByStageAtom);
   const setRoute = useSetAtom(routeAtom), setSelection = useSetAtom(selectedCaseIdsAtom);
   const sections = useMemo(() => catalogSections(cases, sets, setByStage, learned, learningFilter), [sets, cases, setByStage, learned, learningFilter]);
+  const activeSection = sections.find(section => section.stage === stage) ?? sections[0];
+  const visibleSections = useMemo(() => phone ? (activeSection ? [activeSection] : []) : sections, [phone, activeSection, sections]);
   const inner = Math.min(width, 1100) - 2 * (phone ? 14 : 24) - 4;
   const columns = Math.max(2, Math.floor(inner / (phone ? 104 : 128)));
   const cardWidth = Math.floor((inner - 4 * (columns - 1)) / columns);
@@ -73,7 +75,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   );
   const rows = useMemo(() => {
     const result: Row[] = [];
-    for (const section of sections) {
+    for (const section of visibleSections) {
       const { stage, active, groups } = section;
       result.push({ key: stage, stage, kind: "stage", section });
       for (const [group, list] of groups) {
@@ -85,8 +87,8 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
       if (!groups.length) result.push({ key: `${stage}:empty`, stage, kind: "empty" });
     }
     return result;
-  }, [sections, collapsed, columns]);
-  const listKey = `algorithms:${puzzle}:${learningFilter}:${columns}`;
+  }, [visibleSections, collapsed, columns]);
+  const listKey = `algorithms:${puzzle}:${learningFilter}:${columns}${phone ? `:${activeSection?.active.id ?? "empty"}` : ""}`;
   const scroll = usePreservedList<Row>(listKey);
   const pendingJump = useRef<number | null>(null);
   const jumpTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -125,7 +127,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
     </View>}
     <FlatList key={listKey} {...scroll} data={rows} keyExtractor={row => row.key}
       initialNumToRender={8} maxToRenderPerBatch={6} windowSize={5} scrollEventThrottle={64}
-      viewabilityConfig={viewability.current} onViewableItemsChanged={trackStage}
+      viewabilityConfig={viewability.current} onViewableItemsChanged={phone ? undefined : trackStage}
       onScrollToIndexFailed={({ index, averageItemLength }) => {
         scroll.ref.current?.scrollToOffset({ offset: averageItemLength * index, animated: false });
         clearTimeout(jumpTimer.current);
@@ -136,7 +138,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
       onScrollBeginDrag={() => { pendingJump.current = null; clearTimeout(jumpTimer.current); }}
       style={{ flex: 1 }} contentContainerStyle={{ paddingRight: 4, paddingBottom: phone ? 4 : navSpace }}
       renderItem={({ item: row }) => {
-        if (row.kind === "stage") return <View style={[styles.stageHeader, row.stage === sections[0]?.stage && { marginTop: 2 }]}>
+        if (row.kind === "stage") return <View style={[styles.stageHeader, row.stage === visibleSections[0]?.stage && { marginTop: 2 }]}>
           <Text style={{ color: t.text, fontSize: 20, fontWeight: "700" }}>{row.stage}</Text>
           {row.section.variants.length > 1 && <Segmented small options={row.section.variants.map(v => ({ id: v.id, label: v.label.replace(`${row.stage} `, ""), count: v.count }))} value={row.section.active.id} onChange={id => setSetByStage(previous => ({ ...previous, [row.stage]: id }))} />}
         </View>;
@@ -152,13 +154,13 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
         return <Empty><Muted>{learningFilter === "learned" ? "No learned cases in this set yet." : "No not learned cases in this set."}</Muted><Btn small label="Show all cases" onPress={() => setLearningFilter("all")} /></Empty>;
       }} />
     {phone && <View style={[styles.bottomToolbar, { borderTopColor: t.line }]}>
-      <Select value={stage} options={sections.map(s => ({ value: s.stage, label: s.stage }))} onChange={jumpTo}
-        accessibilityLabel={`Algorithm stage: ${stage}`} disabled={!sections.length} style={styles.stageSelect} minWidth={140} />
+      <Select value={activeSection?.stage ?? stage} options={sections.map(s => ({ value: s.stage, label: s.stage }))} onChange={setStage}
+        accessibilityLabel={`Algorithm stage: ${activeSection?.stage ?? stage}`} disabled={!sections.length} style={styles.stageSelect} minWidth={140} />
       <Select value={learningFilter} onChange={setLearningFilter} accessibilityLabel="Learning status" style={styles.filterSelect}
         options={[
           { value: "all", label: "All cases" },
-          { value: "learned", label: `Learned · ${sections.reduce((sum, s) => sum + s.learnedCount, 0)}` },
-          { value: "not-learned", label: `Not learned · ${sections.reduce((sum, s) => sum + s.all.length - s.learnedCount, 0)}` },
+          { value: "learned", label: `Learned · ${activeSection?.learnedCount ?? 0}` },
+          { value: "not-learned", label: `Not learned · ${(activeSection?.all.length ?? 0) - (activeSection?.learnedCount ?? 0)}` },
         ]} />
     </View>}
   </View>;
