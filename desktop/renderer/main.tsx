@@ -173,11 +173,11 @@ function Nav() {
     </nav>
   );
 }
-/** Full-window page frame that slides in from the side the navigation came from. */
+/** Full-window page frame: the pages sit side by side and slide together like a carousel. */
 const SLIDE = {
-  enter: (direction: number) => ({ x: `${direction * 100}%`, opacity: 1 }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({ x: `${direction * -30}%`, opacity: 0.4 }),
+  enter: (direction: number) => ({ x: `${direction * 100}%` }),
+  center: { x: "0%" },
+  exit: (direction: number) => ({ x: `${direction * -100}%` }),
 };
 function Frame({ children }: Props) {
   const present = useIsPresent();
@@ -191,7 +191,7 @@ function Frame({ children }: Props) {
       initial="enter"
       animate="center"
       exit="exit"
-      transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
     >
       {children}
     </motion.div>
