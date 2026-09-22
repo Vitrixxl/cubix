@@ -14,7 +14,7 @@ import { storage } from "./platform/storage";
 export type GuideId = "about" | "timer" | "algorithms" | "training" | "averages";
 export type Route =
   | { page: "guides"; guide?: GuideId }
-  | { page: "algorithms"; caseId?: string }
+  | { page: "algorithms"; caseId?: string; caseIds?: string[] }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
   | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string };
@@ -36,6 +36,11 @@ export const routeAtom = atom(get => get(historyAtom).at(-1)!, (get, set, route:
   if (JSON.stringify(current) === JSON.stringify(route)) return;
   set(historyAtom, [...get(historyAtom), route].slice(-60));
   try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: route.page })); } catch { /* Navigation must still work without storage. */ }
+});
+/** Change the current view without adding a step to the hardware back history. */
+export const replaceRouteAtom = atom(null, (get, set, route: Route) => {
+  set(historyAtom, [...get(historyAtom).slice(0, -1), route]);
+  try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: route.page })); } catch { /* Best effort. */ }
 });
 /** Pop one entry; returns false when there is nothing to go back to. */
 export const goBackAtom = atom(null, (get, set) => {

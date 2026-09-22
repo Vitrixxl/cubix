@@ -1,4 +1,4 @@
-import { catalogSections } from "../../../src/client/lib/practiceCatalog";
+import { catalogSections, groupCases } from "../../../src/client/lib/practiceCatalog";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
@@ -7,7 +7,7 @@ import { formatAlg } from "../../../src/shared/cube";
 import { puzzleInfo, puzzleOf } from "../../../src/shared/puzzles";
 import type { CaseDto, CaseStatsDto, SetDto, Stage } from "../../../src/shared/types";
 import { local } from "../api";
-import { casesAtom, collapsedAlgorithmGroupsAtom, puzzleAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, solveModeAtom, stageAtom, statsAtom, statsVersionAtom, learningFilterAtom, learnedCaseIdsAtom } from "../state";
+import { casesAtom, collapsedAlgorithmGroupsAtom, puzzleAtom, routeAtom, replaceRouteAtom, goBackAtom, previousRouteAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, solveModeAtom, stageAtom, statsAtom, statsVersionAtom, learningFilterAtom, learnedCaseIdsAtom } from "../state";
 import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
@@ -25,13 +25,27 @@ export function AlgorithmsPage() {
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const stats = useAtomValue(statsAtom);
-  const [route, setRoute] = useAtom(routeAtom);
+  const route = useAtomValue(routeAtom);
+  const previousRoute = useAtomValue(previousRouteAtom);
+  const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom);
   const caseId = route.page === "algorithms" ? route.caseId : undefined;
   const selected = caseId ? cases.find(c => c.id === caseId) : undefined;
   const { pagePadding, phone } = useLayout();
+  const closeCase = () => {
+    if (previousRoute?.page === "algorithms" && !previousRoute.caseId) goBack();
+    else replaceRoute({ page: "algorithms" });
+  };
   return <View style={[styles.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18 }]}>
-    {selected ? <CaseDetail key={selected.set} c={selected} cases={cases} stats={stats} onBack={() => setRoute({ page: "algorithms" })} />
-      : <AlgorithmBrowser key={puzzle} puzzle={puzzle} cases={cases} sets={sets} stats={stats} />}
+    <View style={styles.browser}>
+      {/* Keep the native list and its viewport mounted while a case is open. */}
+      <View style={{ flex: 1, opacity: selected ? 0 : 1 }} pointerEvents={selected ? "none" : "auto"}
+        accessibilityElementsHidden={!!selected} importantForAccessibility={selected ? "no-hide-descendants" : "auto"}>
+        <AlgorithmBrowser key={puzzle} puzzle={puzzle} cases={cases} sets={sets} stats={stats} />
+      </View>
+      {selected && <View style={StyleSheet.absoluteFill}>
+        <CaseDetail key={selected.set} c={selected} cases={cases} stats={stats} onBack={closeCase} />
+      </View>}
+    </View>
   </View>;
 }
 
@@ -91,7 +105,13 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
     }
     if (viewableItems[0]) setStage(viewableItems[0].item.stage);
   }, [setStage]);
-  const openCase = useCallback((id: string) => setRoute({ page: "algorithms", caseId: id }), [setRoute]);
+  const openCase = useCallback((id: string) => {
+    const visible = rows.flatMap(row => row.kind === "cards" ? row.cases : []);
+    const selected = visible.find(c => c.id === id);
+    // Freeze the visible order for this visit, including filters and collapsed groups.
+    const caseIds = visible.filter(c => c.set === selected?.set).map(c => c.id);
+    setRoute({ page: "algorithms", caseId: id, caseIds });
+  }, [rows, setRoute]);
   const trainAll = (list: CaseDto[]) => { setSelection(list.map(c => c.id)); setRoute({ page: "training", autostart: true }); };
   return <View style={styles.browser}>
     <View style={styles.toolbar}>
@@ -154,12 +174,25 @@ const CaseCard = memo(function CaseCard({ c, stats, onOpen, width, phone }: { c:
 function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[]; stats: Map<string, CaseStatsDto>; onBack: () => void }) {
   const t = useTheme();
   const setRoute = useSetAtom(routeAtom);
+  const route = useAtomValue(routeAtom);
+  const replaceRoute = useSetAtom(replaceRouteAtom);
+  const caseIds = route.page === "algorithms" ? route.caseIds : undefined;
   // Pages come from the same set so a swipe never jumps from PLL into OLL.
-  const siblings = useMemo(() => cases.filter(other => other.set === c.set), [cases, c.set]);
+  const siblings = useMemo(() => {
+    const members = cases.filter(other => other.set === c.set);
+    if (caseIds?.includes(c.id)) {
+      const byId = new Map(members.map(other => [other.id, other]));
+      return caseIds.flatMap(id => { const other = byId.get(id); return other ? [other] : []; });
+    }
+    // Details opened from training still follow the catalogue's group order.
+    return [...groupCases(members).values()].flat();
+  }, [cases, c.set, c.id, caseIds]);
   const index = Math.max(0, siblings.findIndex(other => other.id === c.id));
   const previous = index > 0 ? siblings[index - 1] : undefined;
   const next = index < siblings.length - 1 ? siblings[index + 1] : undefined;
-  const step = useCallback((target?: CaseDto) => { if (target) setRoute({ page: "algorithms", caseId: target.id }); }, [setRoute]);
+  const step = useCallback((target?: CaseDto) => {
+    if (target) replaceRoute({ page: "algorithms", caseId: target.id, caseIds });
+  }, [replaceRoute, caseIds]);
   const setSelection = useSetAtom(selectedCaseIdsAtom);
   const train = () => { setSelection([c.id]); setRoute({ page: "training", autostart: true }); };
   const [width, setWidth] = useState(0);
