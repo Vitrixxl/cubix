@@ -25,7 +25,7 @@ const LiveTime = memo(function LiveTime({ startedAt, style }: { startedAt: numbe
  * Any touch on the page background arms the timer too (see `TouchArea`); while running, a
  * full-screen layer catches the stopping tap.
  */
-export function TimerSurface({ timer, disabled = false, fontSize, short, actions, unsaved = false }: { timer: TimerApi; disabled?: boolean; fontSize: number; short?: boolean; actions?: ReactNode; /** Casual timing: the hint says the time will not be recorded. */ unsaved?: boolean }) {
+export function TimerSurface({ timer, disabled = false, fontSize, short, actions, reserveActions = true, unsaved = false }: { timer: TimerApi; disabled?: boolean; fontSize: number; short?: boolean; actions?: ReactNode; reserveActions?: boolean; /** Casual timing: the hint says the time will not be recorded. */ unsaved?: boolean }) {
   useKeepAwake("cubix-practice", { suppressDeactivateWarnings: true });
   const t = useTheme();
   const { phase, elapsed } = timer;
@@ -42,11 +42,11 @@ export function TimerSurface({ timer, disabled = false, fontSize, short, actions
     : "Hold, then release to start";
   const color = phase === "holding" ? t.danger : phase === "ready" ? t.good : t.accent;
   const valueStyle = { fontFamily: FONT.mono, fontSize, lineHeight: fontSize * 1.1, fontWeight: "700" as const, letterSpacing: -fontSize * 0.04, color, fontVariant: ["tabular-nums" as const], includeFontPadding: false };
-  return <View style={styles.surface} {...responder(timer, disabled)}>
+  return <View style={[styles.surface, short && { paddingTop: 16 }]} {...responder(timer, disabled)}>
     {phase === "running" ? <LiveTime startedAt={timer.startedAt} style={valueStyle} /> : <Text style={valueStyle}>{text}</Text>}
     <Text style={[styles.hint, { color: t.readableMuted, marginTop: short ? 4 : 6, minHeight: short ? 14 : 20 }]}>{hint}</Text>
     {/* The row keeps its height whether or not a fresh time offers its buttons, so the timer never jumps. */}
-    <View style={[styles.actions, { height: short ? 36 : 44 }]}>{phase === "running" ? null : actions}</View>
+    {reserveActions && <View style={[styles.actions, { height: short ? 36 : 44 }]}>{phase === "running" ? null : actions}</View>}
     {timer.saveError ? <View style={[styles.saveError, { backgroundColor: t.dangerSoft }]}><FormError style={{ flexShrink: 1 }}>{timer.saveError}</FormError><Btn small label="Retry" onPress={timer.retrySave} /></View> : null}
   </View>;
 }
@@ -55,7 +55,7 @@ export function TimerSurface({ timer, disabled = false, fontSize, short, actions
  * Typing entry: the readout becomes a field for a time measured on an external timer. It takes the
  * place and metrics of `TimerSurface`, so switching entry never moves the page.
  */
-export function TimeEntryField({ fontSize, short, disabled = false, actions, error, onRetry, onSubmit }: { fontSize: number; short?: boolean; disabled?: boolean; actions?: ReactNode; error?: string; onRetry?: () => void; onSubmit: (ms: number) => void }) {
+export function TimeEntryField({ fontSize, short, disabled = false, actions, reserveActions = true, error, onRetry, onSubmit }: { fontSize: number; short?: boolean; disabled?: boolean; actions?: ReactNode; reserveActions?: boolean; error?: string; onRetry?: () => void; onSubmit: (ms: number) => void }) {
   const t = useTheme();
   const [text, setText] = useState("");
   const ms = parseTypedTime(text);
@@ -63,12 +63,12 @@ export function TimeEntryField({ fontSize, short, disabled = false, actions, err
     : ms === null ? "Not a time"
     : `${fmtTime(ms)} · confirm to save`;
   const submit = () => { if (ms === null || disabled) return; setText(""); onSubmit(ms); };
-  return <View style={styles.surface}>
+  return <View style={[styles.surface, short && { paddingTop: 16 }]}>
     <TextInput value={text} onChangeText={value => setText(value.replace(/[^\d.,:]/g, ""))} onSubmitEditing={submit} submitBehavior="submit"
       keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.00" placeholderTextColor={t.muted} selectionColor={t.accent} accessibilityLabel="Time"
       style={[styles.entry, { fontFamily: FONT.mono, fontSize, lineHeight: fontSize * 1.1, height: fontSize * 1.1, letterSpacing: -fontSize * 0.04, color: text && ms === null ? t.danger : t.accent }]} />
     <Text style={[styles.hint, { color: t.readableMuted, marginTop: short ? 4 : 6, minHeight: short ? 14 : 20 }]}>{hint}</Text>
-    <View style={[styles.actions, { height: short ? 36 : 44 }]}>{actions}</View>
+    {reserveActions && <View style={[styles.actions, { height: short ? 36 : 44 }]}>{actions}</View>}
     {error ? <View style={[styles.saveError, { backgroundColor: t.dangerSoft }]}><FormError style={{ flexShrink: 1 }}>{error}</FormError><Btn small label="Retry" onPress={onRetry} /></View> : null}
   </View>;
 }

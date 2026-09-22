@@ -21,7 +21,7 @@ import { CaseDiagram } from "../components/CaseDiagram";
 import { CaseSelector } from "../components/CaseSelector";
 import { IconBack, IconCheck, IconComment, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
 import { PanelButton, PracticePanel, ToolbarAction } from "../components/PracticePanel";
-import { Notice, PracticeContent, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
+import { Notice, PracticeContent, PracticeDock, PracticeReadout, TimerChrome, TimerSlot, TouchArea } from "../components/Practice";
 import { LastSolveActions, SolveRow } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
@@ -134,11 +134,20 @@ function TrainingSession() {
   const nextCase = () => { if (!busy) { pick(selectedCases); timer.reset(); } };
   const summary = practiceSummary(solves);
   const grouped = layout.phone && !layout.landscape;
+  const docked = layout.phone || layout.landscape;
   const cubeSize = layout.landscape ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
   const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
   const iconColor = t.text2;
   const currentLearned = !!current && learned.has(current.c.id);
+
+  const caseActions = current && (<View style={[styles.caseActions, docked && { marginTop: 0, flexShrink: 1 }]}>
+    {primary && <Pressable disabled={busy} accessibilityRole="button" accessibilityLabel={revealed ? "Hide solution" : "Show solution"} onPress={() => setRevealed(v => !v)} style={({ pressed }) => [styles.reveal, docked && { minHeight: 44, paddingHorizontal: 8 }, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconEye size={14} color={t.readableMuted} /><Text style={{ color: t.readableMuted, fontSize: 13, fontWeight: "600" }}>{revealed ? (docked ? "Hide" : "Hide solution") : (docked ? "Solution" : "Show solution")}</Text></Pressable>}
+    <Pressable disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityRole="button" accessibilityState={{ selected: currentLearned }} accessibilityLabel={`${current.c.id} learned`} style={({ pressed }) => [styles.reveal, docked && { minHeight: 44, paddingHorizontal: 8 }, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}>
+      {currentLearned && <IconCheck size={14} color={t.good} />}
+      <Text style={{ color: currentLearned ? t.good : t.readableMuted, fontSize: 13, fontWeight: "600" }}>{currentLearned ? "Learned" : (docked ? "Learn" : "Mark learned")}</Text>
+    </Pressable>
+  </View>);
 
   return <View style={base.page}>
     <View style={[base.workspace, wide && base.workspaceWide]}>
@@ -146,22 +155,22 @@ function TrainingSession() {
         <CaseSelector cases={cases} sets={sets} selected={selected} onChange={setSelected} defaultExpanded={wide} onOpenCase={() => setShowSelector(false)} />
       </PracticePanel>
       <TouchArea timer={timer} enabled={!!current && !saving && !timer.saveError} style={[base.center, wide && { flex: 2.6 }]}>
-        <TimerChrome hidden={running} style={[base.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
+        {!docked && <TimerChrome hidden={running} style={[base.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
           <View style={[base.toolbarGroup, { flex: 1 }]}>{!wide && !showSelector && <PanelButton title="Cases" icon={<IconGrid size={15} color={iconColor} />} count={selectedCases.length} disabled={busy} onPress={() => setShowSelector(true)} phone={layout.phone} />}</View>
           <View style={[base.toolbarGroup, { justifyContent: "center" }]}>{supportsAuf && <ToolbarAction icon={<IconShuffle size={15} color={useAuf ? t.accent : iconColor} />} label="Random AUF" pressed={useAuf} disabled={busy} onPress={() => setUseAuf(v => !v)} phone={layout.phone} />}</View>
           <View style={[base.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}>{!wide && !showTimes && <PanelButton title="Times" icon={<IconTimer size={15} color={iconColor} />} disabled={busy} onPress={() => setShowTimes(true)} phone={layout.phone} />}</View>
-        </TimerChrome>
-        <Notice at={celebratedAt} hidden={running} top={layout.phone ? 48 : 56} icon={<IconCheck size={14} color={t.good} />} message="Well done! Every selected case is learned." />
-        <View style={[base.stack, layout.landscape && base.stackLandscape, layout.phone && !layout.landscape && { paddingTop: 52, paddingBottom: 88 }, { paddingHorizontal: layout.pagePadding }]}>
+        </TimerChrome>}
+        <Notice at={celebratedAt} hidden={running} top={docked ? 8 : 56} icon={<IconCheck size={14} color={t.good} />} message="Well done! Every selected case is learned." />
+        <View style={[base.stack, layout.landscape && base.stackLandscape, docked && { paddingTop: layout.landscape ? 8 : 16, paddingBottom: layout.landscape ? 8 : 16 }, { paddingHorizontal: layout.pagePadding }]}>
           {current ? <TimerChrome hidden={running} exit="up" style={[styles.trainingCase, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <PracticeContent revealEnd={revealed}>
             <View style={styles.heading}>
-              <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, { marginRight: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.readableMuted} /></Pressable>
+              {!docked && <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, { marginRight: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.readableMuted} /></Pressable>}
               <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityLabel="Open case details" style={styles.caseHeading}>
                 <Text style={[styles.caseTitle, { color: t.text, fontSize: layout.phone ? 18 : 22, textDecorationColor: t.readableMuted }]}>{current.c.id}</Text>
                 <Muted size={13} style={{ textAlign: "center" }}>{current.c.name !== current.c.id ? current.c.name : current.c.group}</Muted>
               </Pressable>
-              <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>
+              {!docked && <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>}
             </View>
             <View style={styles.setup}>
               <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} view={viewForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
@@ -171,13 +180,7 @@ function TrainingSession() {
               </View>
             </View>
             {primary && revealed && <View style={[styles.solution, { borderTopColor: t.line }]}><Caption style={{ marginBottom: 8 }}>Solution</Caption><AlgText alg={shownAlgorithm} size={layout.phone ? 15 : 18} style={{ textAlign: "center" }} /></View>}
-            <View style={styles.caseActions}>
-              {primary && <Pressable disabled={busy} onPress={() => setRevealed(v => !v)} style={({ pressed }) => [styles.reveal, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconEye size={14} color={t.readableMuted} /><Text style={{ color: t.readableMuted, fontSize: 13, fontWeight: "600" }}>{revealed ? "Hide solution" : "Show solution"}</Text></Pressable>}
-              <Pressable disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityRole="button" accessibilityState={{ selected: currentLearned }} accessibilityLabel={`${current.c.id} learned`} style={({ pressed }) => [styles.reveal, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}>
-                {currentLearned && <IconCheck size={14} color={t.good} />}
-                <Text style={{ color: currentLearned ? t.good : t.readableMuted, fontSize: 13, fontWeight: "600" }}>{currentLearned ? "Learned" : "Mark learned"}</Text>
-              </Pressable>
-            </View>
+            {!docked && caseActions}
             </PracticeContent>
           </TimerChrome> : <TimerChrome hidden={running} exit="up" style={[styles.empty, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <IconGrid size={34} color={t.accent} />
@@ -185,7 +188,7 @@ function TrainingSession() {
             <Muted style={{ marginTop: 6, textAlign: "center" }}>Open Cases and select the algorithms to practise.</Muted>
           </TimerChrome>}
           <PracticeReadout landscape={layout.landscape}>
-          <TimerSlot running={running} style={base.timerSlot}><TimerSurface timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>
+          <TimerSlot running={running} style={base.timerSlot}><TimerSurface reserveActions={!docked} timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>
           <TimerChrome hidden={running} exit="down" style={[base.stats, (layout.landscape || layout.short || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : 40 }]}>
             <Kpi center label="Solves" value={String(solves.length)} valueSize={layout.phone ? 18 : 22} />
             <Kpi center label="Best" value={fmtTime(summary.best)} valueSize={layout.phone ? 18 : 22} />
@@ -193,6 +196,19 @@ function TrainingSession() {
           </TimerChrome>
           </PracticeReadout>
         </View>
+        {docked && <PracticeDock hidden={running}>
+          <View style={base.dockLastSolve}>{lastSolve && !saving && <LastSolveActions solve={lastSolve} compact />}</View>
+          {current && <View style={base.dockRow}>
+            <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityRole="button" accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.text2} /></Pressable>
+            {caseActions}
+            <Pressable disabled={busy} onPress={nextCase} accessibilityRole="button" accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.text2} /></Pressable>
+          </View>}
+          <View style={base.dockRow}>
+            <PanelButton title="Cases" icon={<IconGrid size={15} color={iconColor} />} count={selectedCases.length} disabled={busy} onPress={() => setShowSelector(true)} phone />
+            {supportsAuf && <ToolbarAction icon={<IconShuffle size={15} color={useAuf ? t.accent : iconColor} />} label="AUF" pressed={useAuf} disabled={busy} onPress={() => setUseAuf(v => !v)} phone />}
+            <PanelButton title="Times" icon={<IconTimer size={15} color={iconColor} />} disabled={busy} onPress={() => setShowTimes(true)} phone />
+          </View>
+        </PracticeDock>}
       </TouchArea>
       <PracticePanel open={showTimes} wide={wide} side="right" title="Session" icon={<IconTimer size={15} color={iconColor} />} disabled={busy} onOpen={() => setShowTimes(true)} onClose={() => setShowTimes(false)}>
         <TimesPanel selectedCases={selectedCases} solves={solves} onUndo={undoLast} />
@@ -236,6 +252,7 @@ function TimesPanel({ selectedCases, solves, onUndo }: { selectedCases: CaseDto[
 }
 
 const styles = StyleSheet.create({
+  dockCaseNav: { width: 44, height: 44 },
   trainingCase: { width: "100%", flex: 1, justifyContent: "flex-end", alignItems: "center" },
   heading: { flexDirection: "row", alignItems: "center", justifyContent: "center", columnGap: 10 },
   caseHeading: { alignItems: "center", gap: 2, flexShrink: 1 },

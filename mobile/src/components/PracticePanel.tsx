@@ -47,6 +47,6 @@ const styles = StyleSheet.create({
   heading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, minHeight: 40, paddingBottom: 4 },
   title: { fontSize: 16, fontWeight: "700" },
   action: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, minHeight: 34, paddingHorizontal: 12, borderRadius: 10 },
-  actionPhone: { minHeight: 32, paddingHorizontal: 10 },
+  actionPhone: { minHeight: 44, paddingHorizontal: 10 },
   actionText: { fontSize: 13, fontWeight: "600" },
 });

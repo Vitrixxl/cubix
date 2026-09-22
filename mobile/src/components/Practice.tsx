@@ -4,11 +4,23 @@ import { useCentre, useExit, type ExitDirection } from "../hooks/useExit";
 import type { TimerApi } from "../hooks/useTimer";
 import { responder } from "./TimerSurface";
 import { useTheme } from "../theme";
+import { useLayout } from "../hooks/useLayout";
 
 /** `[data-timer-chrome]`: slides off screen toward `exit` while the timer runs, like the desktop page. */
 export function TimerChrome({ hidden, exit = "up", children, style, pointerEvents = "box-none" }: { hidden: boolean; exit?: ExitDirection; children: ReactNode; style?: StyleProp<ViewStyle>; pointerEvents?: "box-none" | "auto" }) {
   const { ref, transform } = useExit(hidden, exit);
   return <Animated.View ref={ref} pointerEvents={hidden ? "none" : pointerEvents} style={[style, { transform }]}>{children}</Animated.View>;
+}
+
+/** Mobile controls keep their own space above navigation, including while the timer runs. */
+export function PracticeDock({ hidden, children }: { hidden: boolean; children: ReactNode }) {
+  const t = useTheme();
+  const { pagePadding } = useLayout();
+  return <TimerChrome hidden={hidden} exit="down" style={{ flexShrink: 0, paddingHorizontal: pagePadding, paddingBottom: 8 }}>
+    <View onStartShouldSetResponder={() => true} style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line, paddingTop: 6, gap: 4 }}>
+      {children}
+    </View>
+  </TimerChrome>;
 }
 
 /** Holds the timer: while it runs, the slot glides to the centre of the screen and returns afterwards. */

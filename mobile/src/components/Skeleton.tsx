@@ -4,6 +4,7 @@ import type { Page } from "../state";
 import { useLayout } from "../hooks/useLayout";
 import { styles as practice } from "../pages/PlaygroundPage";
 import { Bone } from "./Bone";
+import { PracticeDock } from "./Practice";
 
 /**
  * Loading placeholders that copy the real screens: the same layout styles, the same sizes, with
@@ -17,18 +18,27 @@ function Kpis({ count, phone }: { count: number; phone: boolean }) {
   </View>)}</>;
 }
 
+function DockSkeleton() {
+  return <PracticeDock hidden={false}>
+    <View style={practice.dockLastSolve} />
+    <View style={practice.dockRow}>{[0, 1, 2].map(i => <Bone key={i} width="30%" height={44} radius={10} />)}</View>
+    <View style={practice.dockRow}><Bone width={104} height={44} radius={10} /><Bone width={86} height={44} radius={10} /></View>
+  </PracticeDock>;
+}
+
 /** The timer page: scramble, timer and statistics grouped in the middle, actions at the bottom. */
 export function PlaygroundSkeleton() {
   const layout = useLayout();
   const scrambleSize = layout.phone ? 21 : layout.short ? 19 : Math.max(22, Math.min(30, layout.width * 0.022));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
   const grouped = layout.phone && !layout.landscape;
+  const docked = layout.phone || layout.landscape;
   return <View style={practice.page}><View style={practice.workspace}>
     <View style={practice.center}>
-      <View style={[practice.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
+      {!docked && <View style={[practice.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
         <View style={[practice.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}>{!layout.wide && <Bone width={74} height={30} radius={8} />}</View>
-      </View>
-      <View style={[practice.stack, layout.landscape && practice.stackLandscape, { paddingHorizontal: layout.pagePadding, paddingBottom: layout.short ? layout.navSpace + 72 : 44 }]}>
+      </View>}
+      <View style={[practice.stack, layout.landscape && practice.stackLandscape, { paddingHorizontal: layout.pagePadding, paddingTop: docked ? (layout.landscape ? 8 : 16) : 44, paddingBottom: docked ? (layout.landscape ? 8 : 16) : layout.short ? layout.navSpace + 72 : 44 }]}>
         <View style={[practice.scramble, layout.landscape && practice.landscapeLeft, grouped && practice.grouped]}>
           <Bone width={150} text={11} style={{ marginBottom: 8 }} />
           <View style={{ width: "100%", alignItems: "center", paddingHorizontal: layout.phone ? 12 : 0 }}>
@@ -39,9 +49,9 @@ export function PlaygroundSkeleton() {
         <View style={[practice.timerSlot, { paddingVertical: 20 }]}><Bone width={Math.round(timerSize * 2.6)} height={Math.round(timerSize * 1.1)} radius={12} /></View>
         <View style={[practice.stats, (layout.landscape || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : Math.max(16, Math.min(layout.width * 0.035, 40)) }]}><Kpis count={5} phone={layout.phone} /></View>
       </View>
-      <View style={[practice.bottomActions, { bottom: layout.navSpace + 20, paddingHorizontal: layout.pagePadding }]}>
+      {docked ? <DockSkeleton /> : <View style={[practice.bottomActions, { bottom: layout.navSpace + 20, paddingHorizontal: layout.pagePadding }]}>
         <View style={practice.bottomActionRow}><Bone width={118} height={34} radius={10} /><Bone width={96} height={34} radius={10} /><Bone width={124} height={30} radius={8} /></View>
-      </View>
+      </View>}
     </View>
   </View></View>;
 }
@@ -50,22 +60,23 @@ export function PlaygroundSkeleton() {
 export function TrainingSkeleton() {
   const layout = useLayout();
   const grouped = layout.phone && !layout.landscape;
+  const docked = layout.phone || layout.landscape;
   const cubeSize = layout.landscape ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
   const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
   return <View style={practice.page}><View style={practice.workspace}>
     <View style={practice.center}>
-      <View style={[practice.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
+      {!docked && <View style={[practice.toolbar, { paddingHorizontal: layout.pagePadding, paddingTop: layout.phone ? 8 : 12 }]}>
         <View style={[practice.toolbarGroup, { flex: 1 }]}><Bone width={84} height={30} radius={8} /></View>
         <View style={[practice.toolbarGroup, { justifyContent: "center" }]}><Bone width={104} height={30} radius={8} /></View>
         <View style={[practice.toolbarGroup, { flex: 1, justifyContent: "flex-end" }]}><Bone width={74} height={30} radius={8} /></View>
-      </View>
-      <View style={[practice.stack, layout.landscape && practice.stackLandscape, grouped && { paddingTop: 52, paddingBottom: 88 }, { paddingHorizontal: layout.pagePadding }]}>
+      </View>}
+      <View style={[practice.stack, layout.landscape && practice.stackLandscape, docked && { paddingTop: layout.landscape ? 8 : 16, paddingBottom: layout.landscape ? 8 : 16 }, { paddingHorizontal: layout.pagePadding }]}>
         <View style={[{ width: "100%", alignItems: "center", justifyContent: "flex-end" }, layout.landscape ? practice.landscapeLeft : grouped ? practice.grouped : { flex: 1 }]}>
           <View style={{ flexDirection: "row", alignItems: "center", columnGap: 10 }}>
-            <Bone width={32} height={32} radius={9} style={{ marginRight: 6 }} />
+            {!docked && <Bone width={32} height={32} radius={9} style={{ marginRight: 6 }} />}
             <View style={{ alignItems: "center", gap: 2 }}><Bone width={72} text={layout.phone ? 18 : 22} /><Bone width={110} text={13} /></View>
-            <Bone width={32} height={32} radius={9} style={{ marginLeft: 6 }} />
+            {!docked && <Bone width={32} height={32} radius={9} style={{ marginLeft: 6 }} />}
           </View>
           <View style={{ alignItems: "center", gap: 10, marginTop: 12, width: "100%" }}>
             <Bone width={cubeSize} height={cubeSize} radius={Math.round(cubeSize * 0.12)} strong />
@@ -74,11 +85,12 @@ export function TrainingSkeleton() {
               <Bone width="70%" text={setupSize} />
             </View>
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 4, marginTop: 4 }}><Bone width={122} height={36} radius={10} /><Bone width={112} height={36} radius={10} /></View>
+          {!docked && <View style={{ flexDirection: "row", justifyContent: "center", gap: 4, marginTop: 4 }}><Bone width={122} height={36} radius={10} /><Bone width={112} height={36} radius={10} /></View>}
         </View>
         <View style={[practice.timerSlot, { paddingVertical: 20 }]}><Bone width={Math.round(timerSize * 2.6)} height={Math.round(timerSize * 1.1)} radius={12} /></View>
         <View style={[practice.stats, (layout.landscape || layout.short || grouped) && { flex: 0 }, { gap: layout.phone ? 14 : 40 }]}><Kpis count={3} phone={layout.phone} /></View>
       </View>
+      {docked && <DockSkeleton />}
     </View>
   </View></View>;
 }
@@ -110,20 +122,22 @@ export function AlgorithmsSkeleton() {
 
 /** The profile overview: account header, selectors and the four statistic tiles. */
 export function ProfileSkeleton() {
-  const { pagePadding, phone, width } = useLayout();
-  const columns = width >= 900 ? 4 : 2;
-  const tileWidth = Math.floor((Math.min(width, 1100) - pagePadding * 2 - 10 * (columns - 1)) / columns);
-  return <View style={[skeleton.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18, gap: 18 }]}>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-      <Bone width={60} height={60} radius={30} />
-      <View style={{ flex: 1 }}><Bone width={130} text={24} /><Bone width={170} text={14} /></View>
-      <Bone width={82} height={34} radius={12} />
+  const { pagePadding, phone, short, landscape, navSpace } = useLayout();
+  return <View style={[skeleton.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18, paddingBottom: navSpace, gap: short ? 8 : 12 }, landscape && { flexDirection: "row" }]}>
+    <View style={[{ gap: short ? 8 : 12 }, landscape && { width: 200 }]}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Bone width={short ? 36 : 60} height={short ? 36 : 60} radius={30} />
+        <View style={{ flex: 1 }}><Bone width="70%" text={short ? 20 : 24} /><Bone width="90%" text={12} /></View>
+        {!landscape && <Bone width={72} height={34} radius={12} />}
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}><Bone width={54} height={40} radius={12} strong /><View style={{ flex: 1 }}><Bone width="100%" height={40} radius={12} strong /></View></View>
     </View>
-    <View style={skeleton.toolbar}><Bone width={180} height={40} radius={12} strong /><Bone width={150} height={40} radius={12} strong /></View>
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-      {Array.from({ length: 4 }, (_, i) => <View key={i} style={{ width: tileWidth, minHeight: 124, borderRadius: 18, padding: 16, gap: 6 }}>
-        <Bone width="100%" height={124} radius={18} style={StyleSheet.absoluteFill} />
-        <Bone width={70} text={13} strong /><Bone width={110} text={34} strong /><Bone width={130} text={12} strong />
+    <View style={{ flex: 1, minHeight: 0, flexDirection: "column", gap: 8 }}>
+      {Array.from({ length: 4 }, (_, i) => <View key={i} style={{ flex: 1, minHeight: 0, overflow: "hidden", borderRadius: 18, padding: short ? 8 : 16, justifyContent: "space-between" }}>
+        <Bone width="100%" radius={18} style={[StyleSheet.absoluteFill, { height: "100%" }]} />
+        <Bone width={80} text={13} strong />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}><Bone width="36%" text={short ? 23 : 34} strong /><Bone width="45%" text={15} strong /></View>
+        {!short && <Bone width="75%" text={11} strong />}
       </View>)}
     </View>
   </View>;
