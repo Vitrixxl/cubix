@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("cubix", {
   ready: () => ipcRenderer.invoke("app:ready"),
+  availableUpdate: () => ipcRenderer.invoke("update:available"),
+  restartUpdate: (id: string) => ipcRenderer.invoke("update:restart", id),
   call: (method: string, ...args: unknown[]) =>
     ipcRenderer.invoke("engine:call", method, args),
   open: (url: string) => ipcRenderer.invoke("external:open", url),

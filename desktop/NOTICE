@@ -16,3 +16,5 @@ Bun execution. Those modified JavaScript sources are included in vendor/cubing.
 
 Electron and Chromium are redistributed with their licenses in runtime/.
 React and React DOM are distributed under the MIT license.
+
+Sonner notifications: Copyright Emil Kowalski, MIT license (licenses/Sonner-MIT.txt).

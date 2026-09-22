@@ -10,8 +10,7 @@ const source = resolve(
     `artifacts/electron/cubix-${process.platform}-${process.arch}`,
   ),
   base = await mkdtemp(join(tmpdir(), "cubix-launcher-test-"));
-const old = await Bun.file(join(source, "current.json")).json(),
-  config = await Bun.file(join(source, "launcher.json")).json();
+const old = await Bun.file(join(source, "current.json")).json();
 const original = (await Bun.file(
   join(source, "releases", old.id, "release.json"),
 ).json()) as Manifest;
@@ -41,21 +40,50 @@ const key = createPrivateKey(
 let published = signed;
 const assets = new Map([[file.sha256, changed]]);
 let downloads = 0;
+let releaseManifest!: () => void;
+let releaseAsset!: () => void;
+const manifestGate = new Promise<void>((resolve) => { releaseManifest = resolve; });
+const assetGate = new Promise<void>((resolve) => { releaseAsset = resolve; });
 const server = Bun.serve({
   port: 0,
-  fetch(req) {
+  async fetch(req) {
     const url = new URL(req.url);
-    if (url.pathname.startsWith("/api/desktop/releases/"))
+    if (url.pathname.startsWith("/api/desktop/releases/")) {
+      await manifestGate;
       return Response.json(published);
+    }
     const asset = assets.get(url.pathname.split("/").at(-1)!);
     if (asset !== undefined) {
       downloads++;
+      await assetGate;
       return new Response(asset);
     }
     return new Response("missing", { status: 404 });
   },
 });
 let child: ReturnType<typeof Bun.spawn> | undefined;
+let appPid: number | undefined;
+// Electron outlives the launcher; retain its PID so tests clean up their own app.
+const stop = async () => {
+  const ps = Bun.spawnSync(["ps", "-eo", "pid=,ppid="])
+    .stdout.toString().trim().split("\n")
+    .map((line) => line.trim().split(/\s+/).map(Number));
+  const descendants = (pid: number): number[] => ps
+    .filter(([, ppid]) => ppid === pid)
+    .flatMap(([id]) => [...descendants(id), id]);
+  for (const pid of new Set([
+    ...(appPid ? [...descendants(appPid), appPid] : []),
+    ...(child ? [...descendants(child.pid), child.pid] : []),
+  ])) {
+    try { process.kill(pid, "SIGTERM"); } catch {}
+  }
+  if (child) await child.exited;
+  appPid = undefined;
+};
+const updated = async () => {
+  assert.equal(await child!.exited, 0);
+  return await Bun.file(join(base, "current.json")).json();
+};
 try {
   await mkdir(join(base, "releases"), { recursive: true });
   await cp(join(source, "releases", old.id), join(base, "releases", old.id), {
@@ -76,8 +104,11 @@ try {
       stderr: "pipe",
     });
     for (let i = 0; i < 450; i++) {
-      if (await Bun.file(join(base, "last-launch.json")).exists())
-        return await Bun.file(join(base, "last-launch.json")).json();
+      if (await Bun.file(join(base, "last-launch.json")).exists()) {
+        const result = await Bun.file(join(base, "last-launch.json")).json();
+        appPid = result.pid;
+        return result;
+      }
       if (child.exitCode !== null)
         throw Error(await new Response(child.stderr as ReadableStream).text());
       await Bun.sleep(100);
@@ -87,35 +118,33 @@ try {
         (await Bun.file(join(base, "application.log")).text()),
     );
   };
-  const launched = await launch();
-  assert.equal(launched.id, sha256(raw));
+  const first = await launch();
+  assert.equal(first.id, old.id);
+  assert.equal(downloads, 0);
+  // A server that has not answered cannot hold the installed app's startup.
+  process.kill(appPid!, 0);
+  console.log(`Compiled launcher: ready in ${first.startupMs} ms before update server responds`);
+  releaseManifest();
+  for (let i = 0; i < 200 && !downloads; i++) await Bun.sleep(100);
   assert.equal(downloads, 1);
+  assert.equal((await Bun.file(join(base, "current.json")).json()).id, old.id);
+  process.kill(appPid!, 0);
+  const updater = child!;
+  process.kill(appPid!, "SIGTERM");
+  await Bun.sleep(500);
+  const reopened = await launch();
+  assert.equal(reopened.id, old.id);
+  assert.equal(downloads, 1);
+  assert.equal((await updated()).id, old.id);
+  assert.equal(updater.exitCode, null);
+  console.log("Compiled launcher: closing and reopening stays fast during an unfinished download");
+  child = updater;
+  releaseAsset();
+  assert.equal((await updated()).id, sha256(raw));
   assert.equal(
-    await Bun.file(join(base, "releases", launched.id, path)).text(),
+    await Bun.file(join(base, "releases", sha256(raw), path)).text(),
     changed,
   );
-  console.log(
-    "Compiled launcher: authenticated update, one changed download, real Electron/Bun startup",
-  );
-  // Terminate only descendants created by this test before testing offline startup.
-  const stop = async () => {
-    if (!child) return;
-    const ps = Bun.spawnSync(["ps", "-eo", "pid=,ppid="])
-      .stdout.toString()
-      .trim()
-      .split("\n")
-      .map((l) => l.trim().split(/\s+/).map(Number));
-    const descendants = (pid: number): number[] =>
-      ps
-        .filter(([, ppid]) => ppid === pid)
-        .flatMap(([id]) => [...descendants(id), id]);
-    for (const pid of descendants(child.pid))
-      try {
-        process.kill(pid, "SIGTERM");
-      } catch {}
-    child.kill();
-    await child.exited;
-  };
   await stop();
   const broken = structuredClone(manifest);
   broken.build++;
@@ -130,33 +159,42 @@ try {
     signature: sign(null, Buffer.from(badRaw), key).toString("base64"),
   };
   await Bun.sleep(200);
+  const launched = await launch();
+  assert.equal(launched.id, sha256(raw));
+  assert.equal((await updated()).id, sha256(badRaw));
+  assert.equal(downloads, 2);
+  console.log("Compiled launcher: prepared update runs on the next launch");
+  await stop();
+  await Bun.sleep(200);
   const recovered = await launch();
   assert.equal(recovered.id, launched.id);
   assert.equal(
     (await Bun.file(join(base, "failed.json")).json()).id,
     sha256(badRaw),
   );
+  await updated();
   assert.equal(downloads, 2);
-  console.log(
-    "Compiled launcher: failed Electron release rolls back to the healthy version",
-  );
+  console.log("Compiled launcher: failed release rolls back and stays quarantined");
   await stop();
   await Bun.sleep(200);
   assert.equal((await launch()).id, launched.id);
+  await updated();
   assert.equal(downloads, 2);
-  console.log("Compiled launcher: failed release remains quarantined");
   await stop();
   server.stop();
   await Bun.sleep(200);
   const offline = await launch();
   assert.equal(offline.id, launched.id);
-  console.log("Compiled launcher: offline startup retains installed release");
+  await updated();
+  console.log(`Compiled launcher: offline startup ready in ${offline.startupMs} ms`);
   await stop();
   await Bun.write(
     "artifacts/electron/testing/launcher.json",
     JSON.stringify(
       {
         passed: true,
+        startupMs: first.startupMs,
+        nonBlockingUpdates: true,
         changedDownloads: downloads,
         updated: true,
         offline: true,
@@ -168,7 +206,9 @@ try {
     ),
   );
 } finally {
-  child?.kill();
+  releaseManifest();
+  releaseAsset();
+  await stop();
   server.stop();
   await rm(base, { recursive: true, force: true });
 }

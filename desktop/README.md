@@ -31,8 +31,11 @@ le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge
 
 ## Mises à jour
 
-Au lancement, une fenêtre Cubix affiche la recherche puis le téléchargement.
-Le lanceur interroge `GET /api/desktop/releases/linux-x64` (cible propre au build).
+Au lancement, Cubix ouvre directement la version installée, sans attendre le réseau.
+Une fois l’application démarrée, le lanceur recherche et télécharge les mises à jour
+en arrière-plan. Une notification Sonner propose de redémarrer dès que la mise à
+jour est vérifiée et prête. Elle attend la fin du chrono et de la sauvegarde en
+cours ; on peut la fermer pour appliquer la mise à jour au prochain lancement. Le lanceur interroge `GET /api/desktop/releases/linux-x64` (cible propre au build).
 Le serveur renvoie un manifeste signé Ed25519 qui identifie chaque fichier par
 son SHA-256. Les fichiers inchangés sont réutilisés ; seuls les nouveaux fichiers
 sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
@@ -42,7 +45,8 @@ est remplacé uniquement après vérification de tous les fichiers. L'applicatio
 fonctionne hors ligne avec la release installée. Si une nouvelle version ne confirme
 pas son démarrage, le lanceur restaure la précédente et évite de retenter cette même
 release défectueuse. `update-error.log`, `application.log` et `last-launch.json`
-aident à diagnostiquer un problème. Les mises à jour ne touchent pas aux données.
+aident à diagnostiquer un problème ; `last-launch.json` contient aussi la durée du
+démarrage en millisecondes (`startupMs`). Les mises à jour ne touchent pas aux données.
 
 La première construction crée une clé privée dans
 `~/.config/cubix/desktop-signing.pem` (permissions 0600). Conserver et sauvegarder
@@ -76,8 +80,10 @@ le nouveau lanceur sur une ancienne installation GPUI.
 bun run typecheck
 bun run test:desktop             # moteur Bun et updater signé
 bun run test:desktop:ui          # vrais écrans Electron
+bun run test:desktop:responsive  # fenêtres étroites/courtes, aucun chevauchement
 bun desktop/testing/flows.ts     # interactions, API temporaire, thèmes, guides
 bun desktop/testing/launcher.ts  # mise à jour, rollback, quarantaine et démarrage hors ligne
+bun desktop/testing/update-notification.ts # notification et vrai redémarrage après build:desktop
 bun desktop/testing/compare.ts   # captures GPUI/Electron déterministes (build GPUI reference)
 ```
 

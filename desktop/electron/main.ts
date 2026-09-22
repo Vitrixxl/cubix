@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell, Menu } from "electron";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
 import { existsSync, writeFileSync } from "node:fs";
 
 const root = app.getAppPath();
@@ -14,6 +15,33 @@ let engine: ReturnType<typeof spawn>;
 let window: BrowserWindow;
 let sequence = 0;
 let quitting = false;
+let restarting = false;
+let updateTimer: ReturnType<typeof setInterval> | undefined;
+const launcher = process.env.CUBIX_LAUNCHER_PATH;
+const releaseId = process.env.CUBIX_RELEASE_ID;
+let announcedUpdate: string | null = null;
+async function availableUpdate(): Promise<string | null> {
+  if (!launcher || !releaseId || !existsSync(launcher)) return null;
+  try {
+    const base = dirname(launcher);
+    const pointer = JSON.parse(await readFile(join(base, "current.json"), "utf8"));
+    if (!/^[a-f0-9]{64}$/.test(pointer.id) || pointer.id === releaseId) return null;
+    // current.json only changes after every file has been downloaded and verified.
+    const next = JSON.parse(await readFile(join(base, "releases", pointer.id, "release.json"), "utf8"));
+    const current = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
+    return next.build > current.build ? pointer.id : null;
+  } catch {
+    return null;
+  }
+}
+async function checkUpdate() {
+  const id = await availableUpdate();
+  if (id !== announcedUpdate) {
+    announcedUpdate = id;
+    notify({ event: "update", value: id });
+  }
+  return id;
+}
 const notify = (message: unknown) => {
   if (
     !quitting &&
@@ -121,6 +149,24 @@ else {
         )
           writeFileSync(process.env.CUBIX_LAUNCH_READY, "ready");
       });
+      const trusted = (event: Electron.IpcMainInvokeEvent) =>
+        event.sender === window.webContents &&
+        event.senderFrame === window.webContents.mainFrame;
+      ipcMain.handle("update:available", (event) => {
+        if (!trusted(event)) throw Error("Invalid update request");
+        return checkUpdate();
+      });
+      ipcMain.handle("update:restart", async (event, id) => {
+        if (!trusted(event)) throw Error("Invalid update request");
+        if (restarting) return;
+        if (!launcher || !id || id !== await availableUpdate())
+          throw Error("Cette mise à jour n’est plus disponible.");
+        if (pending.size) throw Error("Une opération est en cours. Réessaie dans un instant.");
+        restarting = true;
+        // Relaunch through the updater so the new release keeps startup checks and rollback.
+        app.relaunch({ execPath: launcher, args: [] });
+        setImmediate(() => app.quit());
+      });
       ipcMain.handle("external:open", (_event, url) => {
         if (typeof url === "string" && /^https?:\/\//.test(url))
           return shell.openExternal(url);
@@ -149,6 +195,7 @@ else {
       });
       await window.loadFile(join(root, "renderer/index.html"));
       window.show();
+      updateTimer = setInterval(() => { void checkUpdate(); }, 2000);
     })
     .catch((error) => {
       console.error(error);
@@ -157,6 +204,7 @@ else {
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => {
     quitting = true;
+    clearInterval(updateTimer);
     engine?.stdin?.end();
   });
 }

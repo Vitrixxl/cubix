@@ -1,5 +1,7 @@
 export interface Bridge {
   ready: () => Promise<void>;
+  availableUpdate: () => Promise<string | null>;
+  restartUpdate: (id: string) => Promise<void>;
   call: (method: string, ...args: any[]) => Promise<any>;
   open: (url: string) => Promise<void>;
   onEvent: (callback: (event: any) => void) => () => void;

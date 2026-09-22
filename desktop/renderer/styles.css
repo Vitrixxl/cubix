@@ -302,12 +302,15 @@ img {
 .practice-center {
   position: absolute;
   top: 0;
-  height: 100%;
+  bottom: calc(var(--toolbar-height) + 84px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto minmax(min-content, 0.65fr);
+  gap: var(--gap);
+  padding-bottom: 8px;
 }
 .practice-above {
-  position: absolute;
-  left: 0;
-  right: 0;
+  min-height: 0;
+  height: 100%;
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
@@ -316,7 +319,21 @@ img {
   align-items: center;
   gap: 8px;
   text-align: center;
+  justify-content: safe flex-end;
+  overflow: hidden;
   transition: transform 0.35s;
+}
+.practice-above > canvas,
+.practice-above > .svg-diagram,
+.practice-above > .heading,
+.practice-above > .case-caption {
+  flex-shrink: 0;
+}
+.practice-above .practice-alg {
+  min-height: 0;
+}
+.practice-above .practice-alg > .heading {
+  flex-shrink: 0;
 }
 .alg {
   color: var(--text);
@@ -333,9 +350,9 @@ img {
   scrollbar-width: thin;
 }
 .timer {
-  position: absolute;
   width: 100%;
-  padding: 38px 0 8px;
+  min-width: 0;
+  padding: 8px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -380,7 +397,7 @@ img {
   box-shadow: none;
 }
 .practice-below {
-  position: absolute;
+  min-width: 0;
   width: 100%;
   transition: transform 0.35s;
 }
@@ -402,6 +419,7 @@ img {
 }
 .practice-metrics .kpi {
   flex: 1;
+  min-width: 0;
   text-align: center;
 }
 .kpi .value {
@@ -410,7 +428,8 @@ img {
   margin-top: 4px;
 }
 .practice-metrics .value {
-  font-size: clamp(18px, 1.6vw, 24px);
+  font-size: clamp(14px, 1.6vw, 24px);
+  overflow-wrap: anywhere;
 }
 .practice-toolbar {
   position: absolute;
@@ -1063,7 +1082,7 @@ progress {
     padding: 0 10px;
   }
   .practice-metrics {
-    gap: 12px !important;
+    gap: 6px !important;
   }
 }
 .chart {
@@ -1252,6 +1271,12 @@ progress {
 }
 .stage-title {
   width: 100%;
+  flex-wrap: wrap;
+}
+.stage-title > .row {
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .stage-title > .row {
   margin-left: auto;
@@ -1452,4 +1477,103 @@ progress {
   gap: 6px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Reserve the toolbar's measured height, including wrapped rows, above navigation. */
+@media (max-height: 650px) {
+  .practice-center {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+  .solve-actions {
+    height: 34px;
+  }
+  .timer-hint {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .practice-above {
+    gap: 6px;
+  }
+  .training-above .case-kind {
+    display: none;
+  }
+  .training-above .case-caption {
+    flex-wrap: nowrap;
+    max-width: 100%;
+  }
+  .training-above .case-title {
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+    font-size: 17px;
+  }
+}
+@media (max-width: 480px) {
+  .practice-toolbar {
+    left: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+  .practice-toolbar > .row {
+    gap: 0;
+  }
+  .practice-toolbar .button {
+    padding: 0 7px;
+    font-size: 12px;
+  }
+  .practice-metrics .kpi-label {
+    font-size: 11px;
+  }
+  .catalog-toolbar {
+    flex-wrap: wrap;
+  }
+  .catalog-toolbar > .row {
+    flex-wrap: wrap;
+  }
+  .detail-hero {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .detail-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .profile-summary {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .setting {
+    flex-wrap: wrap;
+  }
+}
+
+.solve-actions:empty {
+  display: none;
+}
+@media (max-height: 550px) {
+  .training-above {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    align-items: end;
+  }
+  .training-above > .case-caption,
+  .training-above > .button,
+  .training-above:not(.revealed) > .practice-alg {
+    grid-column: 1 / -1;
+  }
+  .training-above > .button {
+    justify-self: center;
+  }
+  .training-above > .practice-alg {
+    max-height: 100%;
+  }
+  .training-above .practice-alg > div:last-child {
+    max-height: none !important;
+    min-height: 0;
+  }
 }

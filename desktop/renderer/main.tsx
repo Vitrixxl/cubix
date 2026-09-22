@@ -14,6 +14,7 @@ import { store as s, catalog, matches } from "./store";
 import { call } from "./bridge";
 import { accents, theme } from "./theme";
 import { Cube } from "./Cube";
+import { UpdateNotification } from "./UpdateNotification";
 import {
   fmtTime,
   fmtSolve,
@@ -265,14 +266,24 @@ function Practice() {
     wide = w >= 1024 && h >= 600,
     rail = Math.max(220, Math.min(280, Math.min(w - 96, 1200) / 4.28)),
     centerWidth = w - (wide ? rail * 2 + 96 : 28),
-    font =
-      w <= 700
-        ? Math.max(56, Math.min(84, w * 0.15))
-        : Math.max(60, Math.min(108, w * 0.07)),
-    gap = Math.max(14, Math.min(28, h * 0.026));
-  let timerTop = h / 2 - (font * 1.1) / 2 - 38;
-  const timerHeight = font * 1.1 + 120,
-    enabled =
+    font = Math.max(40, Math.min(w <= 700 ? 84 : 108, centerWidth * 0.15, h * 0.12)),
+    gap = h < 650 ? 6 : Math.max(10, Math.min(24, h * 0.022));
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const aboveRef = useRef<HTMLDivElement>(null);
+  const [toolbarHeight, setToolbarHeight] = useState(76);
+  const [aboveHeight, setAboveHeight] = useState(180);
+  useLayoutEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === toolbarRef.current) setToolbarHeight(entry.contentRect.height);
+        if (entry.target === aboveRef.current) setAboveHeight(entry.contentRect.height);
+      }
+    });
+    if (toolbarRef.current) observer.observe(toolbarRef.current);
+    if (aboveRef.current) observer.observe(aboveRef.current);
+    return () => observer.disconnect();
+  }, []);
+  const enabled =
       !s.saving &&
       !s.generating &&
       !s.error &&
@@ -291,22 +302,11 @@ function Practice() {
     small = h < 700,
     setupFont = small ? 16 : 19,
     algoFont = small ? 15 : 17,
-    minText = setupFont * 3.2 + (s.revealed ? algoFont * 3.2 : 0),
-    fixed = 42 + 31 + (s.revealed ? 71 : 40) + 8;
-  const previewSize = training
-    ? Math.max(56, Math.min(150, timerTop - gap - fixed - minText))
-    : h < 700
-      ? 96
-      : 156;
-  if (training && c) {
-    const overflow = gap + fixed + previewSize + minText - timerTop;
-    if (overflow > 0)
-      timerTop += Math.min(
-        overflow,
-        Math.max(0, h - 118 - (timerTop + timerHeight + gap + 64)),
-      );
-  }
-  const textBudget = Math.max(minText, timerTop - gap - fixed - previewSize),
+    minText = setupFont * 1.6 + (s.revealed ? algoFont * 1.6 : 0),
+    fixed = s.revealed ? 170 : 138;
+  const previewBudget = aboveHeight - (training ? fixed + minText : 104),
+    previewSize = (training && h <= 550) || previewBudget < 32 ? 0 : Math.min(training ? 150 : h < 700 ? 96 : 156, previewBudget),
+    textBudget = Math.max(minText, aboveHeight - fixed - previewSize),
     setupHeight = s.revealed
       ? (textBudget * setupFont) / (setupFont + algoFont)
       : textBudget;
@@ -327,7 +327,7 @@ function Practice() {
       className={"practice " + (timer.phase === "Running" ? "running" : "")}
       style={
         {
-          "--timer-top": timerTop + "px",
+          "--toolbar-height": toolbarHeight + "px",
           "--gap": gap + "px",
           "--rail": rail + "px",
         } as React.CSSProperties
@@ -335,7 +335,7 @@ function Practice() {
     >
       <div
         className="practice-center"
-        style={{ width: centerWidth, left: (w - centerWidth) / 2 }}
+        style={{ width: centerWidth, left: (w - centerWidth) / 2, paddingTop: s.notice ? 48 : 12 }}
       >
         {s.notice && (
           <div className="notice">
@@ -343,7 +343,7 @@ function Practice() {
             {s.notice}
           </div>
         )}
-        <div className="practice-above" style={{ bottom: h - timerTop + gap }}>
+        <div ref={aboveRef} className={"practice-above" + (training ? " training-above" + (s.revealed ? " revealed" : "") : "")}>
           {training ? (
             c && s.selected.size ? (
               <>
@@ -376,7 +376,7 @@ function Practice() {
                   {s.revealed ? "Hide solution" : "Show solution"}
                   <Icon name="IconEye" size={14} />
                 </Button>
-                {hasCube ? (
+                {previewSize > 0 && (hasCube ? (
                   <Cube
                     setup={s.training.setup}
                     cubeSize={c.cube_size ?? 3}
@@ -392,7 +392,7 @@ function Practice() {
                   />
                 ) : (
                   <Diagram c={c} size={previewSize} />
-                )}
+                ))}
               </>
             ) : (
               <>
@@ -406,7 +406,7 @@ function Practice() {
             )
           ) : (
             <>
-              {hasCube && (
+              {hasCube && previewSize > 0 && (
                 <Cube
                   setup={s.scramble}
                   cubeSize={cubeSize}
@@ -423,7 +423,7 @@ function Practice() {
                 style={{
                   maxHeight: Math.max(
                     40,
-                    timerTop - gap - (hasCube ? previewSize : 0) - 48,
+                    aboveHeight - (hasCube ? previewSize : 0) - 40,
                   ),
                 }}
               >
@@ -448,7 +448,6 @@ function Practice() {
           data-phase={timer.phase}
           style={
             {
-              top: timerTop,
               "--timer-font": font + "px",
             } as React.CSSProperties
           }
@@ -500,10 +499,7 @@ function Practice() {
               : hint}
           </div>
         </div>
-        <div
-          className="practice-below"
-          style={{ top: timerTop + timerHeight - 44 }}
-        >
+        <div className="practice-below">
           <Row className="solve-actions">
             {last && !s.saving && (
               <>
@@ -546,7 +542,7 @@ function Practice() {
           </div>
         </div>
       </div>
-      <div className="practice-toolbar">
+      <div className="practice-toolbar" ref={toolbarRef}>
         <Row>
           {training ? (
             <>
@@ -1974,6 +1970,7 @@ function App() {
         <Profile />
       )}
       {!guide && <Nav />}
+      <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
       {s.overlay && <Overlay key={s.overlay} />}{" "}
       {s.error && (
         <div role="alert" className="error">
