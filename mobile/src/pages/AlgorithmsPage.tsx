@@ -17,6 +17,7 @@ import { AlgorithmBadges, AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { IconBack, IconChevronDown, IconNext, IconTimer } from "../components/icons";
 import { LearnedToggle } from "../components/LearnedToggle";
+import { Select } from "../components/Select";
 import { TimesChart } from "../components/TimesChart";
 import { Btn, Caption, Chip, Empty, H1, Kpi, MiniBtn, Muted, Segmented, mono } from "../components/ui";
 
@@ -114,14 +115,14 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   }, [rows, setRoute]);
   const trainAll = (list: CaseDto[]) => { setSelection(list.map(c => c.id)); setRoute({ page: "training", autostart: true }); };
   return <View style={styles.browser}>
-    <View style={styles.toolbar}>
+    {!phone && <View style={styles.toolbar}>
       <Segmented options={sections.map(s => ({ id: s.stage, label: s.stage }))} value={stage} onChange={jumpTo} />
       <View style={{ flexDirection: "row", gap: 4 }} accessibilityLabel="Learning status">
         {(["learned", "not-learned"] as const).map(filter => <Btn key={filter} small pressed={learningFilter === filter} onPress={() => setLearningFilter(value => value === filter ? "all" : filter)} label={filter === "learned" ? "Learned" : "Not learned"}>
           <Text style={[mono(t, 12), { color: t.readableMuted }]}>{sections.reduce((sum, s) => sum + (filter === "learned" ? s.learnedCount : s.all.length - s.learnedCount), 0)}</Text>
         </Btn>)}
       </View>
-    </View>
+    </View>}
     <FlatList key={listKey} {...scroll} data={rows} keyExtractor={row => row.key}
       initialNumToRender={8} maxToRenderPerBatch={6} windowSize={5} scrollEventThrottle={64}
       viewabilityConfig={viewability.current} onViewableItemsChanged={trackStage}
@@ -133,7 +134,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
         }, 100);
       }}
       onScrollBeginDrag={() => { pendingJump.current = null; clearTimeout(jumpTimer.current); }}
-      style={{ flex: 1 }} contentContainerStyle={{ paddingRight: 4, paddingBottom: navSpace }}
+      style={{ flex: 1 }} contentContainerStyle={{ paddingRight: 4, paddingBottom: phone ? 4 : navSpace }}
       renderItem={({ item: row }) => {
         if (row.kind === "stage") return <View style={[styles.stageHeader, row.stage === sections[0]?.stage && { marginTop: 2 }]}>
           <Text style={{ color: t.text, fontSize: 20, fontWeight: "700" }}>{row.stage}</Text>
@@ -150,6 +151,16 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
         if (row.kind === "cards") return <View style={styles.grid}>{row.cases.map(c => <CaseCard key={c.id} c={c} stats={stats.get(c.id)} onOpen={openCase} width={cardWidth} phone={phone} />)}</View>;
         return <Empty><Muted>{learningFilter === "learned" ? "No learned cases in this set yet." : "No not learned cases in this set."}</Muted><Btn small label="Show all cases" onPress={() => setLearningFilter("all")} /></Empty>;
       }} />
+    {phone && <View style={[styles.bottomToolbar, { borderTopColor: t.line }]}>
+      <Select value={stage} options={sections.map(s => ({ value: s.stage, label: s.stage }))} onChange={jumpTo}
+        accessibilityLabel={`Algorithm stage: ${stage}`} disabled={!sections.length} style={styles.stageSelect} minWidth={140} />
+      <Select value={learningFilter} onChange={setLearningFilter} accessibilityLabel="Learning status" style={styles.filterSelect}
+        options={[
+          { value: "all", label: "All cases" },
+          { value: "learned", label: `Learned · ${sections.reduce((sum, s) => sum + s.learnedCount, 0)}` },
+          { value: "not-learned", label: `Not learned · ${sections.reduce((sum, s) => sum + s.all.length - s.learnedCount, 0)}` },
+        ]} />
+    </View>}
   </View>;
 }
 
@@ -285,6 +296,9 @@ const styles = StyleSheet.create({
   page: { flex: 1, width: "100%", maxWidth: 1100, alignSelf: "center", minHeight: 0 },
   browser: { flex: 1, gap: 12, minHeight: 0 },
   toolbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", columnGap: 12, rowGap: 10 },
+  bottomToolbar: { flexDirection: "row", alignItems: "center", gap: 8, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 8, paddingBottom: 8 },
+  stageSelect: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: "space-between" },
+  filterSelect: { flex: 1.6, minWidth: 0, minHeight: 44, justifyContent: "space-between" },
   stepper: { flexDirection: "row", alignItems: "center", gap: 2 },
   stageHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 18, marginBottom: 6 },
   groupTitle: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, marginBottom: 4 },

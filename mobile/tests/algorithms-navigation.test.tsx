@@ -31,6 +31,7 @@ mock.module("../src/api", () => ({ api: {}, local: {
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ navSpace: 80, phone: true, width: 390, pagePadding: 14 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
 mock.module("../src/components/LearnedToggle", () => ({ LearnedToggle: () => null }));
+mock.module("../src/components/Select", () => ({ Select: "Select" }));
 mock.module("../src/components/TimesChart", () => ({ TimesChart: () => null }));
 mock.module("../src/components/AlgText", () => ({ AlgorithmBadges: () => null, AlgText: () => null }));
 mock.module("../src/components/icons", () => ({ IconBack: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
