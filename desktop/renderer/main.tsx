@@ -173,14 +173,24 @@ function Nav() {
     </nav>
   );
 }
-/** Full-window page frame: the pages sit side by side and slide together like a carousel. */
+/**
+ * Full-window page frame: the pages sit side by side and slide together like a carousel.
+ * Animating `transform` lets Motion hand the tween to the compositor (WAAPI), so the slide
+ * keeps moving even while the incoming page does its first heavy render on the main thread.
+ */
 const SLIDE = {
-  enter: (direction: number) => ({ x: `${direction * 100}%` }),
-  center: { x: "0%" },
-  exit: (direction: number) => ({ x: `${direction * -100}%` }),
+  enter: (direction: number) => ({ transform: `translateX(${direction * 100}%)` }),
+  center: { transform: "translateX(0%)" },
+  exit: (direction: number) => ({ transform: `translateX(${direction * -100}%)` }),
 };
 function Frame({ children }: Props) {
   const present = useIsPresent();
+  // Commit the empty frame first so the slide starts immediately; the page mounts one frame later.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   return (
     <motion.div
       className="page-frame"
@@ -193,7 +203,7 @@ function Frame({ children }: Props) {
       exit="exit"
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
     >
-      {children}
+      {mounted && children}
     </motion.div>
   );
 }

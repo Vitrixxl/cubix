@@ -27,7 +27,7 @@ export function UpdateNotification({ busy, light }: { busy: boolean; light: bool
       id: toastId,
       description: "Elle est prête à être installée. Redémarre Cubix pour l’appliquer.",
       duration: Infinity,
-      closeButton: true,
+      closeButton: false,
       onDismiss: () => setDismissed(update),
       action: {
         label: "Redémarrer",
@@ -52,7 +52,6 @@ export function UpdateNotification({ busy, light }: { busy: boolean; light: bool
     toastOptions={{
       style: { background: "var(--surface)", color: "var(--text)", borderColor: "var(--line)" },
       actionButtonStyle: { background: "var(--accent)", color: "white" },
-      closeButtonAriaLabel: "Plus tard",
     }}
   />;
 }
