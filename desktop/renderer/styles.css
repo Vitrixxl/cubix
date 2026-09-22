@@ -240,47 +240,63 @@ img {
 .page > .scroll {
   padding-bottom: 82px;
 }
+.page-frame {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+.page-frame[data-exiting] {
+  pointer-events: none;
+}
 .nav {
   position: absolute;
   z-index: 10;
-  bottom: 10px;
+  bottom: 12px;
   left: 0;
   width: 100%;
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   pointer-events: none;
   transition: transform 0.35s;
 }
 .nav-shell {
   display: flex;
   align-items: center;
-  padding: 4px;
-  border-radius: 14px;
+  padding: 5px;
+  border-radius: 16px;
   background: var(--surface);
   border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   pointer-events: auto;
 }
 .nav-tabs {
-  gap: 2px;
+  gap: 3px;
 }
 .nav .button {
-  height: 34px;
-  font-size: 12px;
+  height: 40px;
+  min-height: 40px;
+  font-size: 13px;
+  padding: 0 16px;
+  border-radius: 12px;
+  transition: background 0.15s, color 0.15s;
 }
-.nav .unselected {
-  width: 38px;
-  padding: 0;
+.nav .nav-tab .icon {
+  width: 18px;
+  height: 18px;
+}
+.nav .unselected:hover {
+  background: var(--hover);
+  color: var(--text);
 }
 .nav .selected,
 .nav .selected:hover {
-  padding: 0 10px;
   background: var(--soft);
   color: var(--accent);
 }
 .puzzle-button {
-  padding: 0 10px;
-  gap: 6px;
+  padding: 0 14px;
+  gap: 8px;
   color: var(--text);
 }
 .avatar {
@@ -1024,9 +1040,15 @@ progress {
   }
   .nav {
     bottom: 8px;
+    gap: 6px;
   }
-  .nav .unselected {
-    width: 36px;
+  .nav .button {
+    height: 38px;
+    min-height: 38px;
+    padding: 0 12px;
+  }
+  .nav .unselected .nav-label {
+    display: none;
   }
   .page {
     padding: 12px 14px 0;

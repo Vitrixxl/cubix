@@ -8,14 +8,17 @@ delete process.env.ELECTRON_RUN_AS_NODE;
 const dir = await mkdtemp(join(tmpdir(), "cubix-responsive-"));
 const app = await electron.launch({
   executablePath: resolve("node_modules/electron/dist/electron"),
-  args: ["--ozone-platform=x11", resolve("desktop/dist"), `--user-data-dir=${join(dir, "chromium")}`],
+  args: [`--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`, resolve("desktop/dist"), `--user-data-dir=${join(dir, "chromium")}`],
   env: { ...process.env, CUBIX_BUN: process.execPath, CUBIX_DESKTOP_DATA: dir, CUBIX_API_ORIGIN: "http://127.0.0.1:47139" },
 });
 try {
   const page = await app.firstWindow();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  const click = (action: string) => page.locator(`[data-action="${action}"]`).first().click();
+  const click = async (action: string) => {
+    await page.locator(`[data-action="${action}"]`).first().click();
+    await page.waitForSelector("[data-exiting]", { state: "detached" });
+  };
   await page.waitForSelector(".scramble .alg");
   await mkdir("artifacts/electron/testing", { recursive: true });
   const resize = async (width: number, height: number) => {

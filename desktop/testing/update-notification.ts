@@ -63,7 +63,7 @@ try {
   };
   app = await electron.launch({
     executablePath: join(base, "releases", old.id, "runtime/electron"),
-    args: ["--ozone-platform=x11", join(base, "releases", old.id, "app"), `--user-data-dir=${join(base, "config/Cubix")}`],
+    args: [`--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`, join(base, "releases", old.id, "app"), `--user-data-dir=${join(base, "config/Cubix")}`],
     env,
   });
   const page = await app.firstWindow();

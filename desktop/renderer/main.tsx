@@ -10,6 +10,7 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { createRoot } from "react-dom/client";
+import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { store as s, catalog, matches } from "./store";
 import { call } from "./bridge";
 import { accents, theme } from "./theme";
@@ -133,6 +134,12 @@ function Alg({ text, size = 18 }: { text: string; size?: number }) {
     </div>
   );
 }
+const TABS: [page: string, label: string, icon: string, shortcut: string][] = [
+  ["playground", "Timer", "IconCube", "Alt+1"],
+  ["algorithms", "Algorithms", "IconGrid", "Alt+2"],
+  ["training", "Training", "IconTimer", "Alt+3"],
+  ["profile", "Account", "IconUser", "Alt+4"],
+];
 function Nav() {
   return (
     <nav className="nav">
@@ -141,33 +148,53 @@ function Nav() {
           action="menu:puzzles"
           className="puzzle-button"
           icon={"Puzzle" + s.puzzle}
+          title="Choose a puzzle"
         >
           <span className="desktop-label">{s.label("puzzles", s.puzzle)}</span>
           <Icon name="IconChevronDown" size={12} />
         </Button>
       </div>
-      <div className="nav-shell nav-tabs">
-        {[
-          ["playground", "Timer", "IconCube"],
-          ["algorithms", "Algorithms", "IconGrid"],
-          ["training", "Training", "IconTimer"],
-          ["profile", "Account", "IconUser"],
-        ].map(([page, label, icon]) => (
+      <div className="nav-shell nav-tabs" role="tablist" aria-label="Sections">
+        {TABS.map(([page, label, icon, shortcut]) => (
           <Button
             key={page}
             action={"nav:" + page}
-            title={label}
-            className={s.page === page ? "selected" : "unselected"}
+            title={`${label} (${shortcut})`}
+            className={"nav-tab " + (s.page === page ? "selected" : "unselected")}
             icon={page === "profile" && !s.user.isGuest ? undefined : icon}
           >
             {page === "profile" && !s.user.isGuest && (
-              <Avatar user={s.user} size={20} />
-            )}{" "}
-            {s.page === page ? label : null}
+              <Avatar user={s.user} size={18} />
+            )}
+            <span className="nav-label">{label}</span>
           </Button>
         ))}
       </div>
     </nav>
+  );
+}
+/** Full-window page frame that slides in from the side the navigation came from. */
+const SLIDE = {
+  enter: (direction: number) => ({ x: `${direction * 100}%`, opacity: 1 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: `${direction * -30}%`, opacity: 0.4 }),
+};
+function Frame({ children }: Props) {
+  const present = useIsPresent();
+  return (
+    <motion.div
+      className="page-frame"
+      data-exiting={present ? undefined : ""}
+      inert={!present}
+      custom={s.direction}
+      variants={SLIDE}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+    >
+      {children}
+    </motion.div>
   );
 }
 function Avatar({ user, size = 60 }: { user: any; size?: number }) {
@@ -1954,20 +1981,28 @@ function App() {
     >
       {!s.ready ? (
         <Empty>{s.error || "Loading…"}</Empty>
-      ) : guide ? (
-        <Guides />
-      ) : ["playground", "training"].includes(s.page) ? (
-        <Practice key={s.page} />
-      ) : s.page === "algorithms" ? (
-        s.caseId ? (
-          <Detail />
-        ) : (
-          <Catalog />
-        )
-      ) : s.user.isGuest ? (
-        <Account />
       ) : (
-        <Profile />
+        <MotionConfig reducedMotion="user">
+          <AnimatePresence initial={false} custom={s.direction}>
+            <Frame key={guide ? s.page : s.page + (s.caseId ? ":case" : "")}>
+              {guide ? (
+                <Guides />
+              ) : ["playground", "training"].includes(s.page) ? (
+                <Practice />
+              ) : s.page === "algorithms" ? (
+                s.caseId ? (
+                  <Detail />
+                ) : (
+                  <Catalog />
+                )
+              ) : s.user.isGuest ? (
+                <Account />
+              ) : (
+                <Profile />
+              )}
+            </Frame>
+          </AnimatePresence>
+        </MotionConfig>
       )}
       {!guide && <Nav />}
       <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />

@@ -17,6 +17,18 @@ export const matches = (c: any, q: string) =>
         .toLowerCase()
         .includes(word),
     );
+const PAGE_ORDER = ["playground", "algorithms", "training", "profile"];
+/** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
+export function slideDirection(
+  from: { page: string; caseId: string },
+  to: { page: string; caseId: string },
+): 1 | -1 {
+  if (from.page === to.page) return to.caseId && !from.caseId ? 1 : !to.caseId && from.caseId ? -1 : 1;
+  const a = PAGE_ORDER.indexOf(from.page), b = PAGE_ORDER.indexOf(to.page);
+  if (b < 0) return 1;
+  if (a < 0) return -1;
+  return b > a ? 1 : -1;
+}
 export class Store {
   listeners = new Set<() => void>();
   version = 0;
@@ -76,6 +88,8 @@ export class Store {
   timerEpoch = 0;
   running = false;
   history: any[] = [];
+  /** Slide direction of the next page transition: 1 pushes in from the right, -1 from the left. */
+  direction = 1;
   forward: any[] = [];
   revision = 0;
   request = 0;
@@ -329,6 +343,7 @@ export class Store {
     };
   }
   navigate(page: string, caseId = "") {
+    this.direction = slideDirection(this.location(), { page, caseId });
     this.history.push(this.location());
     this.forward = [];
     this.page = page;
@@ -348,6 +363,7 @@ export class Store {
       other = back ? this.forward : this.history;
     const next = stack.pop();
     if (!next) return;
+    this.direction = back ? -1 : 1;
     other.push(this.location());
     Object.assign(this, next);
     this.overlay = "";

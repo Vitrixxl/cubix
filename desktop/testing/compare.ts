@@ -59,7 +59,7 @@ for (const [w, h, label] of [
     app = await electron.launch({
       executablePath: resolve("node_modules/electron/dist/electron"),
       args: [
-        "--ozone-platform=x11",
+        `--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`,
         resolve("desktop/dist"),
         `--user-data-dir=${join(dir, "chromium")}`,
       ],

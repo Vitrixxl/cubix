@@ -7,7 +7,7 @@ const dir = await mkdtemp(join(tmpdir(), "cubix-electron-ui-"));
 const app = await electron.launch({
   executablePath: resolve("node_modules/electron/dist/electron"),
   args: [
-    "--ozone-platform=x11",
+    `--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`,
     resolve("desktop/dist"),
     `--user-data-dir=${join(dir, "chromium")}`,
   ],
@@ -43,6 +43,7 @@ try {
     ["nav:profile", "account"],
   ] as const) {
     await page.locator(`[data-action="${action}"]`).first().click();
+    await page.waitForSelector("[data-exiting]", { state: "detached" });
     await page.waitForTimeout(300);
     await page.screenshot({ path: `artifacts/electron/testing/${name}.png` });
     if (name === "catalog")

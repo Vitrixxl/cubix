@@ -30,7 +30,7 @@ for (let i = 0; i < 100; i++) {
 const app = await electron.launch({
   executablePath: resolve("node_modules/electron/dist/electron"),
   args: [
-    "--ozone-platform=x11",
+    `--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`,
     resolve("desktop/dist"),
     `--user-data-dir=${join(dir, "chromium")}`,
   ],
@@ -50,6 +50,7 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   const act = async (a: string) => {
     await page.locator(`[data-action="${a}"]`).first().click();
+    await page.waitForSelector("[data-exiting]", { state: "detached" });
   };
   const phase = async (p: string) =>
     page.waitForSelector(`[data-phase="${p}"]`);
