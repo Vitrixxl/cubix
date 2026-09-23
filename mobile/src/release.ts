@@ -33,7 +33,7 @@ export function useReleaseCheck(active: boolean) {
 }
 /**
  * Asks the update server for a newer JavaScript bundle while `active` and downloads it.
- * expo-updates already does this at launch; opening the settings repeats it so a cuber who
+ * The startup gate applies updates before practice; opening settings repeats the check so a cuber who
  * keeps the application open still sees the "Restart to update" button. Disabled in debug
  * builds, where Metro serves the code.
  */

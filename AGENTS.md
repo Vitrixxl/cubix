@@ -21,3 +21,7 @@ accessibles via l’aide, jamais sous l’espace de pratique.
 Tous les tests doivent être exécutés en headless, sans ouvrir de fenêtre sur le
 bureau utilisateur. Pour Electron sous Linux, utiliser `xvfb-run -a`; pour
 l’émulateur Android, utiliser `-no-window` avec des données de test isolées.
+
+Limiter la charge CPU locale : une seule tâche coûteuse à la fois, priorité basse
+et plafond CPU. Ne pas lancer de compilation ou d’émulateur non limité en
+arrière-plan sur le PC utilisateur. Privilégier les vérifications légères.

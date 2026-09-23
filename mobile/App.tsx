@@ -12,6 +12,7 @@ import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { PageSkeleton } from "./src/components/Skeleton";
+import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { useLayout } from "./src/hooks/useLayout";
 import { PUZZLES } from "../src/shared/puzzles";
@@ -33,7 +34,7 @@ function navPage(route: Route): Page {
 
 export function App() {
   const [fontsLoaded, fontError] = useFonts({ "cubing-icons": require("./assets/fonts/cubing-icons.ttf") });
-  return <SafeAreaProvider><Provider><Themed>{fontsLoaded || fontError ? <Shell /> : <Boot />}</Themed></Provider></SafeAreaProvider>;
+  return <SafeAreaProvider><Provider><Themed><StartupGate fontsReady={!!(fontsLoaded || fontError)}><Shell /></StartupGate></Themed></Provider></SafeAreaProvider>;
 }
 
 function Themed({ children }: { children: React.ReactNode }) {
@@ -46,20 +47,6 @@ function Themed({ children }: { children: React.ReactNode }) {
     <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
     <View style={[styles.app, { backgroundColor: theme.bg }]}>{children}</View>
   </ThemeContext.Provider>;
-}
-
-/**
- * Shown while the icon font loads (it ships in the binary, so normally never): the skeleton of the
- * page about to appear, under the real navigation bar, so the screen does not change shape.
- */
-function Boot() {
-  const insets = useSafeAreaInsets();
-  const { phone } = useLayout();
-  const page = navPage(useAtomValue(routeAtom));
-  return <>
-    <View style={[styles.main, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}><PageSkeleton page={page} /></View>
-    <Nav active={page} onNavigate={() => {}} onSettings={() => {}} settingsOpen={false} hidden={false} phone={phone} />
-  </>;
 }
 
 function Shell() {

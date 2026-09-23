@@ -40,6 +40,7 @@ const key = createPrivateKey(
 let published = signed;
 const assets = new Map([[file.sha256, changed]]);
 let downloads = 0;
+let stalled = false;
 let releaseManifest!: () => void;
 let releaseAsset!: () => void;
 const manifestGate = new Promise<void>((resolve) => { releaseManifest = resolve; });
@@ -49,6 +50,7 @@ const server = Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname.startsWith("/api/desktop/releases/")) {
+      if (stalled) await new Promise(() => {});
       await manifestGate;
       return Response.json(published);
     }
@@ -99,6 +101,7 @@ try {
         CUBIX_DESKTOP_DATA: join(base, "data"),
         CUBIX_API_ORIGIN: server.url.origin,
         XDG_CONFIG_HOME: join(base, "config"),
+        WAYLAND_DISPLAY: "",
       },
       stdout: "pipe",
       stderr: "pipe",
@@ -118,33 +121,25 @@ try {
         (await Bun.file(join(base, "application.log")).text()),
     );
   };
-  const first = await launch();
-  assert.equal(first.id, old.id);
-  assert.equal(downloads, 0);
-  // A server that has not answered cannot hold the installed app's startup.
-  process.kill(appPid!, 0);
-  console.log(`Compiled launcher: ready in ${first.startupMs} ms before update server responds`);
+  const starting = launch();
+  await Bun.sleep(1000);
+  assert.equal(await Bun.file(join(base, "last-launch.json")).exists(), false, "practice must not start during the update check");
   releaseManifest();
   for (let i = 0; i < 200 && !downloads; i++) await Bun.sleep(100);
   assert.equal(downloads, 1);
+  assert.equal(await Bun.file(join(base, "last-launch.json")).exists(), false, "practice must not start during the download");
   assert.equal((await Bun.file(join(base, "current.json")).json()).id, old.id);
-  process.kill(appPid!, 0);
-  const updater = child!;
-  process.kill(appPid!, "SIGTERM");
-  await Bun.sleep(500);
-  const reopened = await launch();
-  assert.equal(reopened.id, old.id);
-  assert.equal(downloads, 1);
-  assert.equal((await updated()).id, old.id);
-  assert.equal(updater.exitCode, null);
-  console.log("Compiled launcher: closing and reopening stays fast during an unfinished download");
-  child = updater;
   releaseAsset();
+  const first = await starting;
+  assert.equal(first.id, sha256(raw), "the first app window runs the new version");
   assert.equal((await updated()).id, sha256(raw));
-  assert.equal(
-    await Bun.file(join(base, "releases", sha256(raw), path)).text(),
-    changed,
-  );
+  assert.equal(await Bun.file(join(base, "releases", sha256(raw), path)).text(), changed);
+  console.log(`Compiled launcher: checked, downloaded and opened the updated app in ${first.startupMs} ms`);
+  await stop();
+  const unchanged = await launch();
+  assert.equal(unchanged.id, first.id);
+  await updated();
+  assert.equal(downloads, 1, "unchanged release must not download again");
   await stop();
   const broken = structuredClone(manifest);
   broken.build++;
@@ -161,27 +156,29 @@ try {
   await Bun.sleep(200);
   const launched = await launch();
   assert.equal(launched.id, sha256(raw));
-  assert.equal((await updated()).id, sha256(badRaw));
+  assert.equal((await updated()).id, sha256(raw), "bad release rolls back during the same startup");
+  assert.equal((await Bun.file(join(base, "failed.json")).json()).id, sha256(badRaw));
   assert.equal(downloads, 2);
-  console.log("Compiled launcher: prepared update runs on the next launch");
+  console.log("Compiled launcher: failed update rolls back during startup and stays quarantined");
   await stop();
-  await Bun.sleep(200);
-  const recovered = await launch();
-  assert.equal(recovered.id, launched.id);
-  assert.equal(
-    (await Bun.file(join(base, "failed.json")).json()).id,
-    sha256(badRaw),
-  );
-  await updated();
-  assert.equal(downloads, 2);
-  console.log("Compiled launcher: failed release rolls back and stays quarantined");
-  await stop();
-  await Bun.sleep(200);
   assert.equal((await launch()).id, launched.id);
   await updated();
   assert.equal(downloads, 2);
   await stop();
-  server.stop();
+  if (process.env.CUBIX_TEST_LEGACY_LAUNCHER) {
+    await cp(process.env.CUBIX_TEST_LEGACY_LAUNCHER, join(base, "cubix"));
+    assert.equal((await launch()).id, launched.id);
+    await updated();
+    assert.equal(sha256(await readFile(join(base, "cubix"))), sha256(await readFile(join(source, "cubix"))));
+    await stop();
+    console.log("Legacy installed launcher upgrades itself from the signed bootstrap");
+  }
+  stalled = true;
+  const timeout = await launch();
+  assert.equal(timeout.id, launched.id);
+  assert.ok(timeout.startupMs < 8000, "an unresponsive server must not block startup indefinitely");
+  await updated(); await stop();
+  server.stop(true);
   await Bun.sleep(200);
   const offline = await launch();
   assert.equal(offline.id, launched.id);
@@ -194,7 +191,7 @@ try {
       {
         passed: true,
         startupMs: first.startupMs,
-        nonBlockingUpdates: true,
+        updateBeforeLaunch: true,
         changedDownloads: downloads,
         updated: true,
         offline: true,

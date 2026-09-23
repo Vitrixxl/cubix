@@ -95,46 +95,58 @@ try {
     await child.exited;
     return null;
   };
-  let healthyId = current.id;
-  let child = await launch(healthyId);
-  if (!child) {
-    const previous = await rollback(base, current.id);
-    if (previous) {
-      healthyId = previous.id;
-      child = await launch(healthyId);
-    }
-  }
-  if (!child) throw Error("Cubix could not start. See application.log.");
-  // Release the startup lock before network work so closing and reopening the
-  // app also stays fast while a download is in progress. Only one updater may
-  // install or prune releases at a time.
+  // Keep the main application closed until the newest signed release is ready.
+  const splash = Bun.spawn([executable(current.id), ...platform.args, join(base, "splash.cjs")], {
+    env: { ...platform.env, CUBIX_SPLASH_DATA: join(base, "splash-profile") },
+    stdin: "pipe", stdout: "ignore", stderr: "ignore",
+  });
+  const progress = (message: string) => {
+    try { splash.stdin.write(JSON.stringify({ message }) + "\n"); } catch { /* Splash may have been closed. */ }
+  };
   const updateLock = join(base, "update.lock");
-  const updating = child.exitCode === null && await acquireLock(updateLock);
+  let updating = false;
+  let selected = current;
   try {
-    await rm(lock, { force: true });
-    acquired = false;
+    // A previous launcher may still be finishing its background download.
+    progress("Recherche de mises à jour…");
+    const deadline = Date.now() + 180000;
+    while (!(updating = await acquireLock(updateLock)) && Date.now() < deadline)
+      await Bun.sleep(100);
     if (updating) {
       try {
-        await pruneReleases(base, healthyId);
-        // The verified update will be used on the next launch.
-        await installUpdate({
+        selected = await installUpdate({
           base,
           origin: process.env.CUBIX_API_ORIGIN ?? config.origin,
           publicKey: config.publicKey,
           target: config.target,
-        });
-      } catch (e) {
-        await writeFile(
-          join(base, "update-error.log"),
-          new Date().toISOString() + " " + String(e) + "\n",
-        );
+          onProgress: progress,
+        }) ?? current;
+        await rm(join(base, "update-error.log"), { force: true });
+      } catch (error) {
+        await writeFile(join(base, "update-error.log"), new Date().toISOString() + " " + String(error) + "\n");
+        selected = await currentRelease(base) ?? current;
       }
     }
+    progress("Ouverture de Cubix…");
+    let healthyId = selected.id;
+    let child = await launch(healthyId);
+    if (!child) {
+      progress("Restauration de la version précédente…");
+      const previous = await rollback(base, selected.id);
+      if (previous) {
+        healthyId = previous.id;
+        child = await launch(healthyId);
+      }
+    }
+    if (!child) throw Error("Cubix could not start. See application.log.");
+    if (updating) await pruneReleases(base, healthyId);
   } finally {
+    splash.stdin.end();
+    await splash.exited;
     if (updating) await rm(updateLock, { force: true });
   }
 } finally {
   if (acquired) await rm(lock, { force: true });
 }
-// Electron owns the app lifetime; the updater exits once its work is complete.
+// Electron owns the app lifetime after startup has completed.
 process.exit(0);

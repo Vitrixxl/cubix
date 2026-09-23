@@ -95,6 +95,25 @@ async function walk(dir: string, prefix = "") {
     }
   }
 }
+await mkdir(join(stage, "bootstrap"), { recursive: true });
+await run([
+  "bun",
+  "build",
+  "desktop/launcher.ts",
+  "--compile",
+  "--outfile",
+  join(stage, "bootstrap", process.platform === "win32" ? "cubix.exe" : "cubix"),
+]);
+await run([
+  "bun",
+  "build",
+  "desktop/electron/splash.ts",
+  "--target=node",
+  "--format=cjs",
+  "--external=electron",
+  "--outfile",
+  join(stage, "bootstrap/splash.cjs"),
+]);
 await walk(stage);
 const commit = Bun.spawnSync(["git", "rev-parse", "HEAD"])
   .stdout.toString()
@@ -114,24 +133,8 @@ const raw = JSON.stringify(manifest),
 await Bun.write(join(stage, "release.json"), raw);
 await Bun.write(join(stage, "signed-release.json"), JSON.stringify(signed));
 await Bun.write(join(base, "release.json"), JSON.stringify(signed));
-await run([
-  "bun",
-  "build",
-  "desktop/launcher.ts",
-  "--compile",
-  "--outfile",
-  join(base, process.platform === "win32" ? "cubix.exe" : "cubix"),
-]);
-await run([
-  "bun",
-  "build",
-  "desktop/electron/splash.ts",
-  "--target=node",
-  "--format=cjs",
-  "--external=electron",
-  "--outfile",
-  join(base, "splash.cjs"),
-]);
+for (const name of [process.platform === "win32" ? "cubix.exe" : "cubix", "splash.cjs"])
+  await cp(join(stage, "bootstrap", name), join(base, name));
 await Bun.write(
   join(base, "launcher.json"),
   JSON.stringify({

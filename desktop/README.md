@@ -31,11 +31,13 @@ le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge
 
 ## Mises à jour
 
-Au lancement, Cubix ouvre directement la version installée, sans attendre le réseau.
-Une fois l’application démarrée, le lanceur recherche et télécharge les mises à jour
-en arrière-plan. Une notification Sonner propose de redémarrer dès que la mise à
-jour est vérifiée et prête. Elle attend la fin du chrono et de la sauvegarde en
-cours ; on peut la fermer pour appliquer la mise à jour au prochain lancement. Le lanceur interroge `GET /api/desktop/releases/linux-x64` (cible propre au build).
+Au lancement, Cubix affiche un écran de chargement, recherche la dernière version
+et télécharge les fichiers modifiés avant d’ouvrir l’application. La nouvelle version
+est utilisée immédiatement, sans redémarrage manuel et sans interrompre un chrono.
+En cas de réseau indisponible ou de téléchargement invalide, la version installée
+reste utilisable. Le lanceur interroge `GET /api/desktop/releases/linux-x64`.
+Le lanceur lui-même et son écran de chargement sont distribués dans les releases
+signées, afin de mettre aussi à niveau les installations antérieures.
 Le serveur renvoie un manifeste signé Ed25519 qui identifie chaque fichier par
 son SHA-256. Les fichiers inchangés sont réutilisés ; seuls les nouveaux fichiers
 sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.

@@ -1,4 +1,5 @@
 /** Signed, content-addressed releases. Downloads never modify the running release. */
+import { setTimeout as sleep } from "node:timers/promises";
 import { createHash, createPublicKey, verify } from "node:crypto";
 import {
   chmod,
@@ -43,7 +44,7 @@ export async function releaseRequest(
     const delay =
       retry && Number.isFinite(Number(retry)) ? Number(retry) * 1000 : 60000;
     await response.body?.cancel();
-    await Bun.sleep(Math.min(180000, Math.max(1000, delay)));
+    await sleep(Math.min(180000, Math.max(1000, delay)));
   }
 }
 export function validateRelease(
@@ -264,5 +265,23 @@ export async function pruneReleases(base: string, healthyId: string) {
         force: true,
       });
     }
+  }
+}
+
+/** Promote the signed bootstrap shipped with a release, including on legacy installations.
+ * Linux permits replacing the executable while the old launcher finishes its work. */
+export async function refreshLauncher(base: string, release: { id: string; manifest: Manifest }) {
+  for (const name of [process.platform === "win32" ? "cubix.exe" : "cubix", "splash.cjs"]) {
+    const file = release.manifest.files.find(file => file.path === `bootstrap/${name}`);
+    if (!file) continue;
+    const source = join(base, "releases", release.id, file.path), destination = join(base, name);
+    const bytes = await readFile(source);
+    if (sha256(bytes) !== file.sha256) throw Error("Invalid bootstrap checksum");
+    try { if (sha256(await readFile(destination)) === file.sha256) continue; } catch {}
+    const temporary = destination + `.new-${process.pid}`;
+    try {
+      await writeFile(temporary, bytes, { mode: file.executable ? 0o755 : 0o644 });
+      await rename(temporary, destination);
+    } finally { await rm(temporary, { force: true }); }
   }
 }

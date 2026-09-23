@@ -1,3 +1,4 @@
+import { refreshLauncher } from "../updater";
 import { app, BrowserWindow, ipcMain, shell, Menu } from "electron";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -69,6 +70,13 @@ else {
     .whenReady()
     .then(async () => {
       Menu.setApplicationMenu(null);
+      // Legacy launchers receive the new startup updater through signed releases too.
+      if (launcher && releaseId) {
+        try {
+          const manifest = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
+          await refreshLauncher(dirname(launcher), { id: releaseId, manifest });
+        } catch (error) { console.error("Launcher update:", error); }
+      }
       engine = existsSync(
         join(
           root,

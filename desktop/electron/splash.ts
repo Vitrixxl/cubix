@@ -1,5 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { createInterface } from "node:readline";
+if (process.env.CUBIX_SPLASH_DATA) app.setPath("userData", process.env.CUBIX_SPLASH_DATA);
+app.setName("Cubix startup");
 let window: BrowserWindow;
 let message = "Recherche de mises à jour…";
 app.whenReady().then(async () => {
@@ -30,7 +32,7 @@ createInterface({ input: process.stdin })
   .on("line", (line) => {
     try {
       message = JSON.parse(line).message;
-      if (window)
+      if (window && !window.isDestroyed())
         void window.webContents.executeJavaScript(
           `document.getElementById('status').textContent=${JSON.stringify(message)}`,
         );
