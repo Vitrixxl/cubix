@@ -445,7 +445,7 @@ img {
 }
 .practice-metrics .value {
   font-size: clamp(14px, 1.6vw, 24px);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 .practice-toolbar {
   position: absolute;
