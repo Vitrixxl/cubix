@@ -6,8 +6,9 @@ export const FACE_HEX: Record<Face, number> = {
   U: 0xffe62a, D: 0xece8e2, F: 0x3d7ce0, B: 0x1abe57, R: 0xeb4242, L: 0xff801f,
 };
 export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, `#${FACE_HEX[f].toString(16).padStart(6, '0')}`])) as Record<Face, string>;
-const GREY = 0x3a3a42;
-const DIM = 0x24242a;
+// Neutral stickers remain readable against both light and dark app backgrounds.
+const GREY = 0x90909a;
+const DIM = 0x686872;
 
 /** Assign colours to physical stickers once, using the final centre orientation.
  * The same colours follow those stickers throughout the animation.

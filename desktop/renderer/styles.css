@@ -763,8 +763,6 @@ img {
 .tile-open > .diagram,
 .tile-open > canvas {
   margin-bottom: 6px;
-  background: var(--diagram);
-  border-radius: 12px;
 }
 .tile-open > strong {
   font-size: 15px;

@@ -26,17 +26,17 @@ describe('native cube preview', () => {
       expect(scene.colors[state[22]], c.id).toBe(FACE_HEX.F);
       expect(scene.colors[state[40]], c.id).toBe(FACE_HEX.R);
       const visible = [...state.slice(0, 9), ...state.slice(18, 27), ...state.slice(36, 45)];
-      expect(visible.every(origin => [FACE_HEX.F, FACE_HEX.R, FACE_HEX.D, 0x3a3a42].includes(scene.colors[origin])), c.id).toBe(true);
+      expect(visible.every(origin => [FACE_HEX.F, FACE_HEX.R, FACE_HEX.D, 0x90909a].includes(scene.colors[origin])), c.id).toBe(true);
     }
   });
   test('OLL highlights orientation only; PLL hides the lower layers', () => {
     const state = applyAlg(solved(), "R U R' U R U2 R'");
     const oll = stickerColors(state, 'OLL');
     expect(oll.filter(c => c === FACE_HEX.U)).toHaveLength(9);
-    expect(oll.every(c => [FACE_HEX.U, 0x3a3a42, 0x24242a].includes(c))).toBe(true);
+    expect(oll.every(c => [FACE_HEX.U, 0x90909a, 0x686872].includes(c))).toBe(true);
     const pll = stickerColors(state, 'PLL');
     for (const [slot, geometry] of slotsFor().entries()) {
-      if (geometry.p[1] !== 1) expect(pll[state[slot]]).toBe(0x24242a);
+      if (geometry.p[1] !== 1) expect(pll[state[slot]]).toBe(0x686872);
     }
   });
   test('random AUF stays reflected in the displayed state', () => {
