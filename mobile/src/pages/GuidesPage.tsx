@@ -39,6 +39,7 @@ const guides: Record<GuideId, { title: string; lead: string; sections: [string, 
   training: {
     title: "Using the algorithm trainer", lead: "Repeat selected cases to work on recognition and execution separately from full solves.",
     sections: [
+      ["Daily learning (3×3)", "Choose Learn F2L, Learn OLL or Learn PLL in the 3×3 training toolbar. Repeat the algorithm of the day as often as you like, then mark it learned. It stays assigned across restarts and missed days until learned; the next case arrives on the following local calendar day. You can keep practising today’s case after learning it, or undo Learned. Each track remembers its own case. Free practice restores your manual selection. Daily assignments stay on this device for each account; learned marks synchronise with your account."],
       ["Set up a session", "On phones, the controls are in the bottom toolbar. Open Cases, search or expand a set, then select cases individually or select a whole set. Apply the displayed setup to your cube. Hold a free area of the screen, release when green, then tap to stop."],
       ["Review attempts", "Open Times to review results by case. Undo removes the last time. Previous and next restore your case history, including its random U turn. Open a case title to inspect its details."],
       ["Recognition", "Start with a few cases you confuse. Keep the solution hidden to practise recognition and reveal it when needed. Random AUF changes the U alignment; the diagram and solution account for that adjustment."],

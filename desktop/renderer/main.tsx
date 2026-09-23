@@ -1,3 +1,4 @@
+import { LEARNING_TRACKS } from "../../src/client/lib/dailyLearning";
 import { trainingSessionRows } from "../../src/client/lib/practiceSummary";
 import { catalogSections } from "../../src/client/lib/practiceCatalog";
 import { PracticeTimer } from "../../src/client/lib/practiceTimer";
@@ -241,6 +242,7 @@ function useTimer(enabled: boolean) {
       setPhase(snapshot.phase === "stopped" ? "Idle" : snapshot.phase[0].toUpperCase() + snapshot.phase.slice(1));
       setElapsed(snapshot.elapsed);
       s.running = running;
+      s.learningFrozen = ["holding", "ready", "running"].includes(snapshot.phase);
       s.emit();
       cancelAnimationFrame(frame.current);
       if (running) {
@@ -294,11 +296,20 @@ function useTimer(enabled: boolean) {
       timer.dispose();
       cancelAnimationFrame(frame.current);
       s.running = false;
+      s.learningFrozen = false;
     };
   }, []);
   return { phase, elapsed, press, release };
 }
 function Practice() {
+  useEffect(() => {
+    const tick = () => { void s.refreshLearning().catch(s.fail); };
+    tick();
+    const interval = setInterval(tick, 30000);
+    window.addEventListener("focus", tick);
+    return () => { clearInterval(interval); window.removeEventListener("focus", tick); };
+  }, []);
+  const learning = s.learningMode !== "practice";
   const { w, h } = useViewport(),
     training = s.page === "training",
     wide = w >= 1024 && h >= 600,
@@ -325,7 +336,7 @@ function Practice() {
       !s.saving &&
       !s.generating &&
       !s.error &&
-      (!training || !!s.selected.size),
+      (!training || (!!s.practiceSelected.size && s.practiceSelected.has(s.training?.id))),
     timer = useTimer(enabled),
     typing = !training && s.entry === "typing";
   const [typed, setTyped] = useState("");
@@ -383,18 +394,17 @@ function Practice() {
         )}
         <div ref={aboveRef} className={"practice-above" + (training ? " training-above" + (s.revealed ? " revealed" : "") : "")}>
           {training ? (
-            c && s.selected.size ? (
+            c && s.practiceSelected.has(c.id) ? (
               <>
-                <Row className="case-caption">
-                  <Button action="previous" icon="IconBack" />
+                <Row className={"case-caption" + (learning ? " daily-caption" : "")}>
+                  {!learning && <Button action="previous" icon="IconBack" />}
                   <Button action={"case:" + c.id} className="case-title">
                     {c.name}
                   </Button>
-                  <span className="muted case-kind">
-                    {c.setLabel}
-                    {c.group && c.group !== c.setLabel ? " · " + c.group : ""}
+                  <span className={learning ? "muted daily-status" : "muted case-kind"}>
+                    {learning ? s.dailyStatus : c.setLabel + (c.group && c.group !== c.setLabel ? " · " + c.group : "")}
                   </span>
-                  <Button action="next" icon="IconChevronRight" />
+                  {!learning && <Button action="next" icon="IconChevronRight" />}
                 </Row>
                 <div className="practice-alg">
                   <Heading>Setup</Heading>
@@ -435,11 +445,9 @@ function Practice() {
             ) : (
               <>
                 <Icon name="IconGrid" size={34} />
-                <h2>Choose your cases</h2>
-                <p className="muted">Select the cases you want to practise.</p>
-                <Button action="cases" active>
-                  Choose cases
-                </Button>
+                <h2>{learning ? "Track complete" : "Choose your cases"}</h2>
+                <p className="muted">{learning ? s.dailyStatus : "Select the cases you want to practise."}</p>
+                {!learning && <Button action="cases" active>Choose cases</Button>}
               </>
             )
           ) : (
@@ -584,7 +592,8 @@ function Practice() {
         <Row>
           {training ? (
             <>
-              {!wide && (
+              {s.puzzle === "333" && <Button action="menu:learningModes">{learning ? `Learn ${s.learningMode}` : w <= 700 || h <= 550 ? "Practice" : "Free practice"}<Icon name="IconChevronDown" size={12} /></Button>}
+              {!learning && !wide && (
                 <Button action="cases" active={s.showCases} icon="IconGrid">
                   Cases
                 </Button>
@@ -603,7 +612,7 @@ function Practice() {
                 active={s.randomAuf}
                 className={s.randomAuf ? "soft" : ""}
               >
-                Random AUF
+                {w <= 700 || h <= 550 ? "AUF" : "Random AUF"}
                 <Icon name="IconShuffle" size={15} />
               </Button>
             </>
@@ -648,7 +657,7 @@ function Practice() {
       </div>
       {wide ? (
         <>
-          {training && (
+          {training && !learning && (
             <aside className="rail left">
               {s.showCases ? (
                 <Selector />
@@ -666,7 +675,7 @@ function Practice() {
           )}
         </>
       ) : (
-        ((s.showCases && training) || s.showTimes) && (
+        ((s.showCases && training && !learning) || s.showTimes) && (
           <div
             className="sheet-backdrop"
             onClick={() => {
@@ -698,7 +707,7 @@ function Times() {
       <div className="scroll times-list">
         {training
           ? trainingSessionRows<any, any>(
-              s.cases().filter((c: any) => s.selected.has(c.id) || s.solves.some(v => v.case_id === c.id)),
+              s.cases().filter((c: any) => s.practiceSelected.has(c.id) || s.solves.some(v => v.case_id === c.id)),
               s.solves,
             ).map(({ c, solves, best: fastest, mean: average, validCount }) => {
                 return (
@@ -2019,6 +2028,8 @@ function options(): { action: string; values: any[]; current: string } {
         ),
         current: s.overlay === "scrambles" ? s.scrambleType : s.profileScramble,
       };
+    case "learningModes":
+      return { action: "learningMode", values: [{ id: "practice", label: "Free practice" }, ...LEARNING_TRACKS.map(id => ({ id, label: `Learn ${id}` }))], current: s.learningMode };
     case "entries":
       return {
         action: "entry",

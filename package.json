@@ -25,6 +25,7 @@
     "test:desktop": "bun desktop/engine/build.ts && bun desktop/engine/smoke.ts && bun test desktop/tests",
     "build:desktop:ui": "bun desktop/build.ts",
     "publish:desktop": "bun desktop/publish.ts",
+    "test:desktop:learning": "bun desktop/build.ts && bun desktop/testing/learning.ts",
     "test:desktop:ui": "bun desktop/testing/electron.ts",
     "test:desktop:responsive": "bun desktop/build.ts && bun desktop/testing/responsive.ts"
   },

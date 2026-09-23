@@ -2220,3 +2220,7 @@ progress {
     display: none;
   }
 }
+
+/* Keep the daily assignment visible even where optional case metadata is hidden. */
+.daily-caption { flex-direction: column; gap: 0; }
+.daily-status { font-size: 12px; line-height: 1.4; text-align: center; }

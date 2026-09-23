@@ -1,3 +1,4 @@
+import { dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
@@ -87,6 +88,7 @@ export class Store {
   replay = 0;
   timerEpoch = 0;
   running = false;
+  learningFrozen = false;
   history: any[] = [];
   /** Slide direction of the next page transition: 1 pushes in from the right, -1 from the left. */
   direction = 1;
@@ -133,6 +135,24 @@ export class Store {
     this.generating = false;
     this.emit();
   };
+  get learningPlan(): LearningPlan { return this.prefs[learningKey(this.user.id ?? "guest")] ?? EMPTY_LEARNING_PLAN; }
+  get learningMode() { return this.puzzle === "333" && isLearningTrack(this.learningPlan.mode) ? this.learningPlan.mode : "practice"; }
+  get daily() { const mode = this.learningMode; return isLearningTrack(mode) ? this.learningPlan.tracks[mode] : undefined; }
+  get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(this.daily ? [this.daily.caseId] : []); }
+  get dailyStatus() { return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned, this.daily) : ""; }
+  reconcileLearning() {
+    const mode = this.learningMode;
+    if (!isLearningTrack(mode) || this.learningFrozen || this.pendingSolve) return;
+    const plan = this.learningPlan;
+    const assignment = dailyAssignment(plan.tracks[mode], learningCases(catalog.cases, mode), this.learned, localDay());
+    if (assignment !== plan.tracks[mode]) this.pref(learningKey(this.user.id ?? "guest"), { ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
+  }
+  async refreshLearning() {
+    if (this.learningFrozen || this.saving || this.pendingSolve) return;
+    this.reconcileLearning();
+    if (this.learningMode !== "practice" && this.training?.id !== this.daily?.caseId) { this.timerEpoch++; await this.nextCase(); }
+    this.emit();
+  }
   async init() {
     try {
       const v = await call("init");
@@ -206,7 +226,7 @@ export class Store {
           scrambleType: this.profileScramble,
         },
         advance: false,
-        selected: [...this.selected],
+        selected: [...this.practiceSelected],
         randomAuf: this.randomAuf,
       });
       if (request !== this.request) return;
@@ -215,6 +235,7 @@ export class Store {
         .reverse();
       this.stats = v.stats;
       this.learned = new Set(v.learned);
+      await this.refreshLearning();
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
       if (v.caseHistory) this.caseHistory = v.caseHistory;
@@ -251,8 +272,11 @@ export class Store {
     }
   }
   async nextCase(direction = "next") {
+    this.reconcileLearning();
     const puzzle = this.puzzle,
-      selected = [...this.selected];
+      mode = this.learningMode,
+      selected = [...this.practiceSelected];
+    if (mode !== "practice") direction = "next";
     const value = await call(
       "training",
       direction,
@@ -261,7 +285,7 @@ export class Store {
       this.randomAuf,
       this.solveMode,
     );
-    if (puzzle !== this.puzzle || selected.join() !== [...this.selected].join())
+    if (puzzle !== this.puzzle || mode !== this.learningMode || selected.join() !== [...this.practiceSelected].join())
       return;
     this.training = value;
     this.revealed = false;
@@ -287,7 +311,7 @@ export class Store {
     this.pendingSolve = {
       key: this.contextKey(),
       page: this.page,
-      selected: [...this.selected],
+      selected: [...this.practiceSelected],
       body: {
         ...this.context(),
         timeMs: Math.round(ms),
@@ -392,6 +416,15 @@ export class Store {
         case "historyForward":
           this.travel(false);
           break;
+        case "learningMode": {
+          if (this.learningFrozen || this.puzzle !== "333" || !(arg === "practice" || isLearningTrack(arg)) || this.pendingSolve) break;
+          this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: arg });
+          this.showCases = false;
+          this.overlay = "";
+          this.timerEpoch++;
+          await this.nextCase();
+          break;
+        }
         case "learn": {
           const learned = !this.learned.has(arg);
           learned ? this.learned.add(arg) : this.learned.delete(arg);
@@ -424,6 +457,7 @@ export class Store {
         case "selectGroup":
         case "clear":
         case "train": {
+          if (kind === "train" && this.learningMode !== "practice") this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: "practice" });
           const ids =
             kind === "select"
               ? [arg]
