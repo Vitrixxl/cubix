@@ -57,3 +57,22 @@ test("native rollback and restart failure cannot create an automatic reload loop
   expect(await c.run()).toBe("reloading");
   expect(c.api.attempted()).toBe("fixed");
 });
+
+test("a queued check waits for Expo's native startup download", async () => {
+  let active = true;
+  let finish!: (id: string) => void;
+  const c = client({ nativeDownloadActive: () => active, check: () => new Promise(resolve => { finish = resolve; }) });
+  let settled = false;
+  const result = runStartupUpdate(c.api, () => {}, { check: 40, download: 1000 }).then(value => { settled = true; return value; });
+  await Bun.sleep(150);
+  expect(settled).toBe(false);
+  active = false; finish("new");
+  expect(await result).toBe("reloading");
+  expect(c.calls).toContain("reload");
+});
+
+test("a stuck native startup download still has a deadline", async () => {
+  const c = client({ nativeDownloadActive: () => true, check: () => new Promise(() => {}) });
+  expect(await runStartupUpdate(c.api, () => {}, { check: 10, download: 30 })).toBe("ready");
+  expect(c.calls).not.toContain("reload");
+});

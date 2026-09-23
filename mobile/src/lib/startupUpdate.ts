@@ -8,12 +8,21 @@ export interface StartupUpdateClient {
   attempted: () => string | null;
   remember: (id: string) => void;
   clearAttempt: () => void;
+  nativeDownloadActive?: () => boolean;
 }
-async function within<T>(work: Promise<T>, milliseconds: number): Promise<T> {
+async function within<T>(work: Promise<T>, milliseconds: number, nativeDownload?: { active: () => boolean; maximum: number }): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
+  let deadline = Date.now() + milliseconds;
+  const maximum = Date.now() + (nativeDownload?.maximum ?? milliseconds);
   try {
     return await Promise.race([work, new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(Error("Startup update timed out")), milliseconds);
+      const tick = () => {
+        if (nativeDownload?.active()) deadline = Date.now() + milliseconds;
+        const remaining = Math.min(deadline, maximum) - Date.now();
+        if (remaining <= 0) reject(Error("Startup update timed out"));
+        else timer = setTimeout(tick, nativeDownload ? Math.min(250, remaining) : remaining);
+      };
+      tick();
     })]);
   } finally { clearTimeout(timer!); }
 }
@@ -23,7 +32,11 @@ export async function runStartupUpdate(client: StartupUpdateClient, phase: (phas
   if (!client.enabled) return "ready";
   try {
     phase("checking");
-    const target = await within(client.check(), limits.check);
+    // Expo serializes explicit checks behind its native ON_LOAD download. Keep
+    // the startup screen while it downloads, then allow a normal check timeout.
+    const target = await within(client.check(), limits.check, client.nativeDownloadActive ? {
+      active: client.nativeDownloadActive, maximum: limits.download + limits.check,
+    } : undefined);
     if (!target || target === client.currentId || target === client.attempted()) return "ready";
     phase("downloading");
     const downloaded = await within(client.download(), limits.download);
