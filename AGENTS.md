@@ -17,3 +17,7 @@ Vérifier que la commande se termine avec succès et signaler toute erreur de mi
 Les écrans de l’application doivent rester à la hauteur de la fenêtre, sans
 défilement de la page. Placer les textes explicatifs dans les pages de guides
 accessibles via l’aide, jamais sous l’espace de pratique.
+
+Tous les tests doivent être exécutés en headless, sans ouvrir de fenêtre sur le
+bureau utilisateur. Pour Electron sous Linux, utiliser `xvfb-run -a`; pour
+l’émulateur Android, utiliser `-no-window` avec des données de test isolées.

@@ -2224,3 +2224,6 @@ progress {
 /* Keep the daily assignment visible even where optional case metadata is hidden. */
 .daily-caption { flex-direction: column; gap: 0; }
 .daily-status { font-size: 12px; line-height: 1.4; text-align: center; }
+
+.learning-groups { display: flex; flex-direction: column; gap: 8px; }
+.learning-groups .button { min-width: 44px; min-height: 44px; }

@@ -1,7 +1,7 @@
 import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
-import { reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
+import { orderedGroups, moveLearningGroup, reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
 import { casesAtom, cubeSwitchLockedAtom, learnedCaseIdsAtom, puzzleAtom, userAtom } from "../state";
 import { storage } from "../platform/storage";
 
@@ -26,11 +26,11 @@ export function useDailyLearning() {
   const reviewPool = useMemo(() => reviewCases(cases, learned, puzzle).map(c => c.id), [cases, learned, puzzle]);
   const [reviewIds, setReviewIds] = useState(reviewPool);
   useEffect(() => { if (!locked) setReviewIds(previous => previous.join("\n") === reviewPool.join("\n") ? previous : reviewPool); }, [locked, reviewPool]);
-  const pool = useMemo(() => isLearningTrack(mode) ? learningCases(cases, mode) : [], [cases, mode]);
+  const pool = useMemo(() => isLearningTrack(mode) ? learningCases(cases, mode, plan.groupOrder?.[mode]) : [], [cases, mode, plan.groupOrder]);
   const assignment = useMemo(() => isLearningTrack(mode) ? dailyAssignment(plan.tracks[mode], pool, learned, day) : undefined, [plan, mode, pool, learned, day]);
   const save = (next: LearningPlan) => { storage.setItem(key, JSON.stringify(next)); setPlan(next); };
   useEffect(() => {
     if (isLearningTrack(mode) && assignment !== plan.tracks[mode]) save({ ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
   }, [assignment, mode, plan]);
-  return { mode, assignment, reviewIds, status: mode === "review" ? `Review learned · ${reviewIds.length} cases` : learningStatus(pool, learned, assignment), setMode: (mode: LearningMode) => save({ ...plan, mode }) };
+  return { groups: orderedGroups(pool, isLearningTrack(mode) ? plan.groupOrder?.[mode] : []), moveGroup: (index: number, direction: number) => { if (!locked && isLearningTrack(mode)) save(moveLearningGroup(plan, mode, cases, index, direction)); }, mode, assignment, reviewIds, status: mode === "review" ? `Review learned · ${reviewIds.length} cases` : learningStatus(pool, learned, assignment), setMode: (mode: LearningMode) => save({ ...plan, mode }) };
 }

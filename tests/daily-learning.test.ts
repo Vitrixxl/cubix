@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { cases } from "../src/client/local/catalog";
-import { reviewCases, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
+import { orderedGroups, moveLearningGroup, EMPTY_LEARNING_PLAN, reviewCases, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
 const pool = learningCases(cases, "PLL");
 const empty = new Set<string>();
 const today = "2026-09-23";
@@ -60,4 +60,23 @@ test("global review includes all learned stages and excludes other puzzles and u
   expect(learningModeForPuzzle("review", "222")).toBe("review");
   expect(learningModeForPuzzle("PLL", "222")).toBe("practice");
   expect(trainingModeOptions("222").map(o => o.value)).toEqual(["practice", "review"]);
+});
+
+test("group priority normalizes saved groups and schedules unlearned cases without replacing today's case", () => {
+  const order = ["Edges Only", "missing", "Edges Only"];
+  const sorted = learningCases(cases, "PLL", order);
+  expect(orderedGroups(pool, order)).toEqual(["Edges Only", "Adjacent Corner Swap", "Diagonal Corner Swap"]);
+  expect(sorted.length).toBe(pool.length);
+  expect(sorted[0]!.group).toBe("Edges Only");
+  const pinned = dailyAssignment(undefined, pool, empty, today)!;
+  expect(dailyAssignment(pinned, sorted, empty, "2026-09-24")).toBe(pinned);
+  const done = dailyAssignment(pinned, sorted, new Set([pinned.caseId]), today)!;
+  expect(dailyAssignment(done, sorted, new Set([pinned.caseId]), today)).toBe(done);
+  expect(dailyAssignment(done, sorted, new Set([pinned.caseId]), "2026-09-24")?.caseId).toBe(sorted[0]!.id);
+  const learned = new Set(sorted.filter(c => c.group === "Edges Only").map(c => c.id));
+  expect(dailyAssignment(undefined, sorted, learned, today)?.caseId).toBe(pool[0]!.id);
+  const plan = moveLearningGroup(EMPTY_LEARNING_PLAN, "PLL", cases, 2, -1);
+  expect(plan.groupOrder?.PLL).toEqual(["Adjacent Corner Swap", "Edges Only", "Diagonal Corner Swap"]);
+  expect(plan.groupOrder?.OLL).toBeUndefined();
+  expect(moveLearningGroup(plan, "PLL", cases, 0, -1)).toBe(plan);
 });

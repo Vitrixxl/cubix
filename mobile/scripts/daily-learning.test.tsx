@@ -71,3 +71,23 @@ test("mobile global review tracks all learned stages, freezes during attempts, a
   await act(() => daily.setMode("F2L"));
   expect(daily.assignment).toEqual(pinned);
 });
+
+test("mobile group order persists per track and keeps the assigned case", async () => {
+  const store = await mount();
+  await act(() => daily.setMode("PLL"));
+  const pinned = daily.assignment;
+  await act(() => daily.moveGroup(2, -1));
+  await act(() => daily.moveGroup(1, -1));
+  expect(daily.groups[0]).toBe("Edges Only");
+  expect(daily.assignment).toEqual(pinned);
+  await act(() => store.set(cubeSwitchLockedAtom, true));
+  await act(() => daily.moveGroup(0, 1));
+  expect(daily.groups[0]).toBe("Edges Only");
+  await act(() => store.set(cubeSwitchLockedAtom, false));
+  await act(() => daily.setMode("OLL"));
+  expect(daily.groups[0]).toBe("Dot");
+  await act(() => daily.setMode("PLL"));
+  await act(() => renderer.unmount()); await mount(store);
+  expect(daily.groups[0]).toBe("Edges Only");
+  expect(daily.assignment).toEqual(pinned);
+});

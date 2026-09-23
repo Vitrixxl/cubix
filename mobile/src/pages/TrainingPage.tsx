@@ -27,6 +27,7 @@ import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { useDailyLearning } from "../hooks/useDailyLearning";
+import { Sheet, SheetScrollView } from "../components/Sheet";
 import { Select } from "../components/Select";
 import { trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { Caption, Kpi, MiniBtn, Muted, mono } from "../components/ui";
@@ -51,6 +52,7 @@ function TrainingSession() {
   const sets = useAtomValue(setsAtom);
   const [freeSelected, setSelected] = useAtom(selectedCaseIdsAtom);
   const daily = useDailyLearning();
+  const [showGroups, setShowGroups] = useState(false);
   const learning = daily.mode !== "practice";
   const reviewing = daily.mode === "review";
   const selected = useMemo(() => reviewing ? daily.reviewIds : learning ? daily.assignment ? [daily.assignment.caseId] : [] : freeSelected, [reviewing, daily.reviewIds, learning, daily.assignment?.caseId, freeSelected]);
@@ -158,7 +160,7 @@ function TrainingSession() {
     </Pressable>
   </View>);
 
-  const learningSelect = <Select<LearningMode> value={daily.mode} accessibilityLabel="Learning mode" options={trainingModeOptions(puzzle)} onChange={mode => { daily.setMode(mode); setShowSelector(false); timer.reset(); }} disabled={busy || !!timer.saveError} flat="toolbar" />;
+  const learningSelect = <><Select<LearningMode> value={daily.mode} accessibilityLabel="Learning mode" options={trainingModeOptions(puzzle)} onChange={mode => { daily.setMode(mode); setShowSelector(false); timer.reset(); }} disabled={busy || !!timer.saveError} flat="toolbar" />{learning && !reviewing && <PanelButton title="Groups" icon={<IconGrid size={15} color={iconColor} />} disabled={busy || !!timer.saveError} onPress={() => setShowGroups(true)} phone={docked} />}</>;
 
   return <View style={base.page}>
     <View style={[base.workspace, wide && base.workspaceWide]}>
@@ -226,6 +228,16 @@ function TrainingSession() {
         <TimesPanel selectedCases={selectedCases} solves={solves} onUndo={undoLast} />
       </PracticePanel>
     </View>
+    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title={`Group order · ${daily.mode}`} tall>
+      <SheetScrollView>
+        {daily.groups.map((group, i) => <View key={group} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}>
+          <Text style={{ flex: 1, color: t.text, fontSize: 14 }}>{i + 1}. {group}</Text>
+          {([-1, 1] as const).map(direction => <Pressable key={direction} accessibilityRole="button" accessibilityLabel={`Move ${group} ${direction === -1 ? "up" : "down"}`} disabled={busy || !!timer.saveError || i + direction < 0 || i + direction >= daily.groups.length} onPress={() => daily.moveGroup(i, direction)} style={({ pressed }) => ({ width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? t.hover : "transparent", opacity: i + direction < 0 || i + direction >= daily.groups.length ? 0.3 : 1 })}>
+            <Text style={{ color: t.text, fontSize: 22 }}>{direction === -1 ? "↑" : "↓"}</Text>
+          </Pressable>)}
+        </View>)}
+      </SheetScrollView>
+    </Sheet>
     <StopSurface timer={timer} />
   </View>;
 }

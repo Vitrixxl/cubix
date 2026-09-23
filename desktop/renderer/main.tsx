@@ -595,6 +595,7 @@ function Practice() {
           {training ? (
             <>
               {<Button action="menu:learningModes">{reviewing ? "Review learned" : learning ? `Learn ${s.learningMode}` : w <= 700 || h <= 550 ? "Practice" : "Free practice"}<Icon name="IconChevronDown" size={12} /></Button>}
+              {learning && !reviewing && <Button action="menu:learningGroups" icon="IconGrid">Groups</Button>}
               {!learning && !wide && (
                 <Button action="cases" active={s.showCases} icon="IconGrid">
                   Cases
@@ -2155,6 +2156,20 @@ function Overlay() {
       </div>
     );
   }
+  if (s.overlay === "learningGroups") return (
+    <div className="modal-backdrop" onClick={close}>
+      <div className="modal" role="dialog" aria-label="Group order" onClick={e => e.stopPropagation()}>
+        <Row className="between"><h2>Group order · {s.learningMode}</h2><Button action="close" icon="IconClose" title="Close group order" /></Row>
+        <div className="scroll learning-groups">
+          {s.learningGroups.map((group, i) => <Row key={group} className="between" >
+            <span style={{ flex: 1, minWidth: 0 }}>{i + 1}. {group}</span>
+            <Button action={`moveLearningGroup:${i}:-1`} title={`Move ${group} up`} disabled={i === 0}>↑</Button>
+            <Button action={`moveLearningGroup:${i}:1`} title={`Move ${group} down`} disabled={i === s.learningGroups.length - 1}>↓</Button>
+          </Row>)}
+        </div>
+      </div>
+    </div>
+  );
   const solve = s.overlaySolve;
   return (
     <div className="modal-backdrop" onClick={close}>

@@ -30,6 +30,13 @@ try {
   await page.waitForSelector(".daily-status:text('Algorithm of the day')");
   const first = await page.locator(".case-title").getAttribute("data-action");
   assert.ok(first);
+  await click("menu:learningGroups");
+  await click("moveLearningGroup:2:-1");
+  await click("moveLearningGroup:1:-1");
+  assert.match(await page.locator(".learning-groups").innerText(), /^1\. Edges Only/);
+  assert.equal(await page.getByRole("button", { name: "Move Edges Only up", exact: true }).isDisabled(), true);
+  await click("close");
+  assert.equal(await page.locator(".case-title").getAttribute("data-action"), first);
   await click("solution");
   await mkdir("artifacts/electron/testing", { recursive: true });
   for (const [width, height] of [[360, 540], [390, 844], [640, 480], [1280, 800]]) {
@@ -60,6 +67,17 @@ try {
   await mode("Learn OLL");
   await page.waitForSelector(".daily-status:text('Algorithm of the day')");
   const oll = await page.locator(".case-title").getAttribute("data-action");
+  await page.setViewportSize({ width: 360, height: 540 });
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Escape");
+  if (await page.locator(".sheet-backdrop").count()) await page.locator('.sheet [data-action="times"]').click();
+  await click("menu:learningGroups");
+  assert.equal(await page.locator(".learning-groups > .row").count(), 15);
+  await page.getByRole("button", { name: "Move I Shape up", exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: "artifacts/electron/testing/group-order-360x540.png" });
+  await click("close");
+  await page.setViewportSize({ width: 1280, height: 800 });
   assert.notEqual(oll, first);
   await mode("Learn PLL");
   await page.waitForSelector(".daily-status:text('next tomorrow')");
@@ -72,6 +90,9 @@ try {
   await page.waitForSelector(".timer"); await click("nav:training");
   await page.waitForSelector(".daily-status:text('next tomorrow')");
   assert.equal(await page.locator(".case-title").getAttribute("data-action"), first, "daily assignment survives restart");
+  await click("menu:learningGroups");
+  assert.match(await page.locator(".learning-groups").innerText(), /^1\. Edges Only/);
+  await click("close");
   await click(first.replace("case:", "learn:"));
   await page.waitForSelector(".daily-status:text('Algorithm of the day')");
   // Review mixes all learned stages without changing the manual or daily selection.
@@ -85,8 +106,12 @@ try {
     await click("next");
     await page.waitForFunction(id => document.querySelector(".case-title")?.getAttribute("data-action") !== `case:${id}`, before);
   }
+  if (await page.locator(".rail.right").count()) await page.locator('.rail.right [data-action="times"]').click();
   await page.setViewportSize({ width: 360, height: 540 });
-  await page.waitForTimeout(200);
+  await page.waitForFunction(() => innerWidth === 360);
+  await page.waitForTimeout(400);
+  await page.keyboard.press("Escape");
+  if (await page.locator(".sheet-backdrop").count()) await page.locator('.sheet [data-action="times"]').click();
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: "artifacts/electron/testing/review-360x540.png" });
   const removed = (await page.locator(".case-title").getAttribute("data-action"))!.slice(5);
@@ -103,7 +128,7 @@ try {
   assert.equal(await page.getByRole("option", { name: "Learn PLL", exact: true }).count(), 0);
   assert.equal(await page.getByRole("option", { name: "Review learned", exact: true }).count(), 1);
   assert.deepEqual(errors, []);
-  console.log("Daily learning and global learned review: repetition, completion, undo, track switch, free selection, restart, 3×3 restriction and 4 viewport sizes passed.");
+  console.log("Daily learning, group ordering and global review: completion, undo, persistence, track isolation, 3×3 restriction and responsive layouts passed.");
 } catch (error) { console.error(await pageError(app)); throw error; } finally { await app.close(); await rm(dir, { recursive: true, force: true }); }
 
 async function pageError(app: any) { return (await app.firstWindow()).locator(".error").textContent({ timeout: 200 }).catch(() => "No app error"); }
