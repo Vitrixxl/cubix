@@ -29,6 +29,12 @@ fn supplied<'a>(value: &'a Value, key: &str) -> Result<Option<&'a str>> {
         .map(|v| v.as_str().ok_or_else(ApiError::validation))
         .transpose()
 }
+pub fn normalize_scramble_type(kind: &str) -> &str {
+    match kind {
+        "competition" | "random-moves" => "normal",
+        _ => kind,
+    }
+}
 pub fn puzzle_of(value: &Value) -> String {
     text(value, "puzzle_id")
         .map(str::to_owned)
@@ -51,18 +57,17 @@ impl Context {
         Self {
             puzzle: puzzle_of(value),
             solve_mode: text(value, "solve_mode").unwrap_or("standard").into(),
-            scramble_type: text(value, "scramble_type")
-                .unwrap_or(
-                    if value["mode"] == "training"
-                        || value["algorithms"].is_array()
-                        || value["case_id"].as_str().is_some_and(|s| !s.is_empty())
-                    {
-                        "case"
-                    } else {
-                        "random-moves"
-                    },
-                )
-                .into(),
+            scramble_type: normalize_scramble_type(text(value, "scramble_type").unwrap_or(
+                if value["mode"] == "training"
+                    || value["algorithms"].is_array()
+                    || value["case_id"].as_str().is_some_and(|s| !s.is_empty())
+                {
+                    "case"
+                } else {
+                    "normal"
+                },
+            ))
+            .into(),
         }
     }
     pub fn from_body(body: &Value, fallback: Option<&Value>, training: bool) -> Result<Self> {
@@ -87,15 +92,11 @@ impl Context {
         let mode = supplied(body, "solveMode")?
             .or_else(|| inherited.as_ref().map(|c| c.solve_mode.as_str()))
             .unwrap_or("standard");
-        let kind = supplied(body, "scrambleType")?
-            .or_else(|| inherited.as_ref().map(|c| c.scramble_type.as_str()))
-            .unwrap_or(if training {
-                "case"
-            } else if info["cubeSize"].is_null() {
-                "competition"
-            } else {
-                "random-moves"
-            });
+        let kind = normalize_scramble_type(
+            supplied(body, "scrambleType")?
+                .or_else(|| inherited.as_ref().map(|c| c.scramble_type.as_str()))
+                .unwrap_or(if training { "case" } else { "normal" }),
+        );
         validate_mode(mode)?;
         if (training && kind != "case")
             || (!training
@@ -155,7 +156,9 @@ pub fn query(query: &HashMap<String, String>) -> Result<Filter> {
         .map(String::as_str)
         .unwrap_or("standard");
     validate_mode(mode)?;
-    let kind = query.get("scrambleType").cloned();
+    let kind = query
+        .get("scrambleType")
+        .map(|kind| normalize_scramble_type(kind).to_owned());
     if kind.as_ref().is_some_and(|k| {
         k != "case" && !info["scrambles"].as_array().unwrap().iter().any(|v| v == k)
     }) {
@@ -191,7 +194,7 @@ pub fn migrate(db: &Connection) -> Result<()> {
                     ALTER TABLE {table} ADD COLUMN cube_size INTEGER CHECK(cube_size BETWEEN 2 AND 7);
                     UPDATE {table} SET cube_size=CAST(substr(puzzle_id,1,1) AS INTEGER);
                     ALTER TABLE {table} ADD COLUMN solve_mode TEXT NOT NULL DEFAULT 'standard';
-                    ALTER TABLE {table} ADD COLUMN scramble_type TEXT NOT NULL DEFAULT 'random-moves';"))?;
+                    ALTER TABLE {table} ADD COLUMN scramble_type TEXT NOT NULL DEFAULT 'normal';"))?;
                 let training = if table == "sessions" {
                     "mode='training'"
                 } else {
@@ -200,6 +203,19 @@ pub fn migrate(db: &Connection) -> Result<()> {
                 db.execute_batch(&format!(
                     "UPDATE {table} SET scramble_type='case' WHERE {training}"
                 ))?;
+            }
+            // Replace the old column default too: even an INSERT omitting the field must store normal.
+            if columns
+                .iter()
+                .any(|c| c["name"] == "scramble_type" && c["dflt_value"] == "'random-moves'")
+            {
+                db.execute_batch(&format!("DROP INDEX IF EXISTS idx_{table}_practice;
+                    ALTER TABLE {table} RENAME COLUMN scramble_type TO legacy_scramble_type;
+                    ALTER TABLE {table} ADD COLUMN scramble_type TEXT NOT NULL DEFAULT 'normal';
+                    UPDATE {table} SET scramble_type=CASE WHEN legacy_scramble_type IN ('competition','random-moves') THEN 'normal' ELSE legacy_scramble_type END;
+                    ALTER TABLE {table} DROP COLUMN legacy_scramble_type;"))?;
+            } else {
+                db.execute_batch(&format!("UPDATE {table} SET scramble_type='normal' WHERE scramble_type IN ('competition','random-moves');"))?;
             }
             db.execute_batch(&format!("CREATE INDEX IF NOT EXISTS idx_{table}_practice ON {table}(user_id,puzzle_id,solve_mode,scramble_type,created_at)"))?;
         }

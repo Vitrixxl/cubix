@@ -76,7 +76,7 @@ rustTest(
     ).not.toContain("display_name");
     expect(
       db.query<any, []>("SELECT * FROM solves WHERE id=1").get(),
-    ).toMatchObject({ time_ms: 9000, user_id: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "random-moves" });
+    ).toMatchObject({ time_ms: 9000, user_id: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "normal" });
     const guest = (await call("/auth/guest", "POST")).body;
     expect((await call("/solves", "GET", undefined, guest.token)).body).toEqual(
       [],
@@ -123,11 +123,11 @@ rustTest("practice migration preserves existing cube histories and remains safe 
   const before = db.query("SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,puzzle_id,cube_size,solve_mode,scramble_type FROM solves ORDER BY id").all();
   expect(before).toMatchObject([
     {id:1,puzzle_id:"777",cube_size:7,solve_mode:"standard",scramble_type:"case",time_ms:9000,penalty:"+2",scramble:"R U"},
-    {id:2,puzzle_id:"444",cube_size:4,solve_mode:"standard",scramble_type:"random-moves",time_ms:42000},
+    {id:2,puzzle_id:"444",cube_size:4,solve_mode:"standard",scramble_type:"normal",time_ms:42000},
   ]);
   expect(db.query("SELECT puzzle_id,solve_mode,scramble_type FROM sessions ORDER BY id").all()).toEqual([
     {puzzle_id:"777",solve_mode:"standard",scramble_type:"case"},
-    {puzzle_id:"444",solve_mode:"standard",scramble_type:"random-moves"},
+    {puzzle_id:"444",solve_mode:"standard",scramble_type:"normal"},
   ]);
   server.server.stop();
   const call = client(createRustApi(path));
@@ -135,7 +135,7 @@ rustTest("practice migration preserves existing cube histories and remains safe 
   const auth = (await call("/auth/register","POST",{username:"migration_labels",password:"a-long-test-password"})).body;
   const niche = await call("/solves","POST",{puzzle:"sq1",solveMode:"blindfolded",timeMs:5000},auth.token);
   expect(niche.status).toBe(200);
-  expect(niche.body).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"blindfolded",scramble_type:"competition"});
+  expect(niche.body).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"blindfolded",scramble_type:"normal"});
   expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
 });
 
@@ -248,4 +248,58 @@ rustTest("Rust publishes over-the-air updates following the expo-updates protoco
   expect(new Uint8Array(await download.arrayBuffer())).toEqual(bundle);
   expect((await fetch(`${origin}/api/mobile/updates/assets/${"0".repeat(64)}`)).status).toBe(404);
   expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ commit: "0123456789abcdef" });
+});
+
+rustTest("Normal migration merges both histories and receipts, fixes defaults and tolerates old-client retries", async () => {
+  const path = fixture(), db = new Database(path); cleanups.unshift(() => db.close());
+  const app = createRustApi(path), call = client(app);
+  const auth = (await call("/auth/register","POST",{username:"normal_migration",password:"a-long-test-password"})).body;
+  const operations = ["competition","random-moves"].map((scrambleType,index) => ({
+    id:`normal-session-${index}`,method:"POST",path:"sessions",createdAt:`2026-01-0${index+1}T00:00:00.000Z`,
+    body:{mode:"playground",puzzle:"333",solveMode:"standard",scrambleType},
+  }));
+  const response = await call("/sync","POST",{operations},auth.token);
+  expect(response.status).toBe(200);
+  const sessions = response.body.results.map((r:any)=>r.value);
+  for (const [index,timeMs] of [10000,20000,30000,40000,50000].entries()) {
+    expect((await call("/solves","POST",{sessionId:sessions[index % 2].id,timeMs,penalty:index === 0 ? "+2" : "none",scramble:"R U",comment:"Keep this note"},auth.token)).status).toBe(200);
+  }
+  app.server.stop();
+  // Recreate the previous schema default and stored context values, including lost-ack receipts.
+  for (const table of ["sessions","solves"]) db.exec(`DROP INDEX idx_${table}_practice;
+    ALTER TABLE ${table} RENAME COLUMN scramble_type TO saved_scramble_type;
+    ALTER TABLE ${table} ADD COLUMN scramble_type TEXT NOT NULL DEFAULT 'random-moves';
+    UPDATE ${table} SET scramble_type=CASE WHEN id % 2=0 THEN 'competition' ELSE 'random-moves' END;
+    ALTER TABLE ${table} DROP COLUMN saved_scramble_type;
+    CREATE INDEX idx_${table}_practice ON ${table}(user_id,puzzle_id,solve_mode,scramble_type,created_at);`);
+  for (const [index,op] of operations.entries()) db.query("UPDATE sync_receipts SET payload=?,result=? WHERE operation_id=?").run(JSON.stringify(op),JSON.stringify({...sessions[index],scramble_type:op.body.scrambleType}),op.id);
+  const before = db.query("SELECT * FROM solves ORDER BY id").all() as any[];
+  const oldCursor = (db.query("SELECT max(seq) n FROM sync_changes").get() as any).n;
+  const migrated = createRustApi(path), next = client(migrated);
+  expect(db.query("SELECT * FROM solves ORDER BY id").all()).toEqual(before.map(row=>({...row,scramble_type:"normal"})));
+  for (const table of ["sessions","solves"]) {
+    expect((db.query(`SELECT count(*) n FROM ${table} WHERE scramble_type!='normal'`).get() as any).n).toBe(0);
+    expect((db.query(`PRAGMA table_info(${table})`).all() as any[]).find(row=>row.name==="scramble_type").dflt_value).toBe("'normal'");
+  }
+  expect(JSON.stringify(db.query("SELECT payload,result FROM sync_receipts").all())).not.toMatch(/competition|random-moves/);
+  const changes = (await next(`/sync?after=${oldCursor}`,"GET",undefined,auth.token)).body.changes;
+  expect(changes.filter((row:any)=>row.kind==="solves")).toHaveLength(5);
+  expect(changes.every((row:any)=>row.value.scramble_type==="normal")).toBe(true);
+  for (const type of ["normal","competition","random-moves"]) {
+    const rows = (await next(`/solves?mode=playground&puzzle=333&scrambleType=${type}`,"GET",undefined,auth.token)).body;
+    expect(rows).toHaveLength(5);
+    expect(rows.every((row:any)=>row.scramble_type==="normal")).toBe(true);
+  }
+  // Both a still-old device and an upgraded device can retry the same operation.
+  for (const ops of [operations,operations.map(op=>({...op,body:{...op.body,scrambleType:"normal"}}))]) {
+    const replay = await next("/sync","POST",{operations:ops},auth.token);
+    expect(replay.status).toBe(200);
+    expect(replay.body).toEqual(response.body);
+  }
+  expect((db.query("SELECT count(*) n FROM sessions").get() as any).n).toBe(2);
+  expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
+  const migratedCursor = (db.query("SELECT max(seq) n FROM sync_changes").get() as any).n;
+  migrated.server.stop();
+  createRustApi(path);
+  expect((db.query("SELECT max(seq) n FROM sync_changes").get() as any).n).toBe(migratedCursor);
 });

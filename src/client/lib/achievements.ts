@@ -30,7 +30,7 @@ const TOTAL_GOALS = [100, 1000, 10000];
 
 const chronological = (a: SolveDto, b: SolveDto) => a.created_at.localeCompare(b.created_at) || a.id - b.id;
 /** Full-scramble solves only: partial-scramble drills (2-gen, last layer…) are not solves. */
-const fullScramble = (s: SolveDto) => !s.case_id && ["competition", "random-moves"].includes(scrambleTypeOf(s));
+const fullScramble = (s: SolveDto) => !s.case_id && scrambleTypeOf(s) === "normal";
 const label = (id: PuzzleId) => PUZZLES.find(p => p.id === id)?.label ?? id;
 const seconds = (n: number) => n >= 60 && n % 60 === 0 ? `${n / 60}:00` : String(n);
 

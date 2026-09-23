@@ -237,13 +237,13 @@ impl Cubix {
             case_id: String::new(),
             profile_mode: "playground".into(),
             profile_stage: "all".into(),
-            profile_filter: ("333".into(), "standard".into(), "random-moves".into()),
+            profile_filter: ("333".into(), "standard".into(), "normal".into()),
             achievement_group: "all".into(),
             achievement_filter: "all".into(),
             catalog_stage: String::new(),
             puzzle: "333".into(),
             solve_mode: "standard".into(),
-            scramble_type: "random-moves".into(),
+            scramble_type: "normal".into(),
             scramble: String::new(),
             entry: "timer".into(),
             user: json!({"isGuest":true,"username":"Guest"}),
@@ -518,11 +518,7 @@ impl Cubix {
             .prefs
             .get("cubix.practice.typeByPuzzle")
             .and_then(|v| v[&self.puzzle].as_str())
-            .unwrap_or(if self.puzzle_info()["cubeSize"].is_null() {
-                "competition"
-            } else {
-                "random-moves"
-            })
+            .unwrap_or("normal")
             .into();
         self.selected = self
             .prefs
@@ -1176,7 +1172,7 @@ impl Cubix {
                 if !list(&info["scrambles"]).contains(&json!(self.profile_filter.2)) {
                     self.profile_filter.2 = info["scrambles"][0]
                         .as_str()
-                        .unwrap_or("competition")
+                        .unwrap_or("normal")
                         .into();
                 }
                 self.overlay.clear();

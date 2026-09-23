@@ -1,4 +1,4 @@
-import { randomCubeScramble, SCRAMBLE_LENGTHS } from "../../shared/scramble";
+import { SCRAMBLE_LENGTHS } from "../../shared/scramble";
 import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../shared/cube";
 import { puzzleInfo, validContext, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
@@ -46,8 +46,7 @@ export async function generatePracticeScramble(context: PracticeContext, engine:
   if (!validContext(context)) throw new Error("Unsupported puzzle or scramble type.");
   const { puzzle, scrambleType: type } = context;
   const size = puzzleInfo(puzzle).cubeSize;
-  if (type === "competition") return engine.randomScrambleForEvent(competitionEvent(context));
-  if (type === "random-moves" && size) return randomCubeScramble(size);
+  if (type === "normal") return engine.randomScrambleForEvent(competitionEvent(context));
   if (type.startsWith("2gen-") || type.startsWith("3gen-")) return moves(type.split("-")[1].toUpperCase().split(""), undefined, size === 2 ? 15 : 25);
   if (type === "half-turns") return moves(["R", "L", "U", "D", "F", "B"], ["2"], size === 2 ? 15 : 30);
   if (type === "outer-turns" && size) return moves(["R", "L", "U", "D", "F", "B"], undefined, SCRAMBLE_LENGTHS[size]);

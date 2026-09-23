@@ -6,8 +6,7 @@
       "cubeSize": 2,
       "twisty": "2x2x2",
       "scrambles": [
-        "competition",
-        "random-moves",
+        "normal",
         "2gen-ru",
         "2gen-rf",
         "3gen-ruf",
@@ -20,8 +19,7 @@
       "cubeSize": 3,
       "twisty": "3x3x3",
       "scrambles": [
-        "competition",
-        "random-moves",
+        "normal",
         "2gen-ru",
         "2gen-lu",
         "2gen-rf",
@@ -43,8 +41,7 @@
       "cubeSize": 4,
       "twisty": "4x4x4",
       "scrambles": [
-        "competition",
-        "random-moves",
+        "normal",
         "outer-turns",
         "half-turns"
       ]
@@ -55,8 +52,7 @@
       "cubeSize": 5,
       "twisty": "5x5x5",
       "scrambles": [
-        "competition",
-        "random-moves",
+        "normal",
         "outer-turns",
         "half-turns"
       ]
@@ -67,8 +63,7 @@
       "cubeSize": 6,
       "twisty": "6x6x6",
       "scrambles": [
-        "competition",
-        "random-moves",
+        "normal",
         "outer-turns",
         "half-turns"
       ]
@@ -79,8 +74,7 @@
       "cubeSize": 7,
       "twisty": "7x7x7",
       "scrambles": [
-        "competition",
-        "random-moves",
+        "normal",
         "outer-turns",
         "half-turns"
       ]
@@ -91,7 +85,7 @@
       "cubeSize": null,
       "twisty": "square1",
       "scrambles": [
-        "competition"
+        "normal"
       ]
     },
     {
@@ -100,7 +94,7 @@
       "cubeSize": null,
       "twisty": "pyraminx",
       "scrambles": [
-        "competition"
+        "normal"
       ]
     },
     {
@@ -109,7 +103,7 @@
       "cubeSize": null,
       "twisty": "skewb",
       "scrambles": [
-        "competition"
+        "normal"
       ]
     },
     {
@@ -118,7 +112,7 @@
       "cubeSize": null,
       "twisty": "megaminx",
       "scrambles": [
-        "competition"
+        "normal"
       ]
     },
     {
@@ -127,18 +121,14 @@
       "cubeSize": null,
       "twisty": "clock",
       "scrambles": [
-        "competition"
+        "normal"
       ]
     }
   ],
   "scrambles": [
     {
-      "id": "competition",
-      "label": "Event scramble"
-    },
-    {
-      "id": "random-moves",
-      "label": "Random moves"
+      "id": "normal",
+      "label": "Normal"
     },
     {
       "id": "2gen-ru",

@@ -42,6 +42,13 @@ pub fn migrate(db: &Connection) -> Result<()> {
             db.execute_batch(&format!("INSERT INTO sync_changes(user_id,kind,entity_id) SELECT user_id,'{table}',id FROM {table} WHERE user_id IS NOT NULL;"))?;
         }
     }
+    // Receipts are part of the database too; canonicalize only context fields, never user text.
+    db.execute_batch(
+        "UPDATE sync_receipts SET payload=json_set(payload,'$.body.scrambleType','normal')
+        WHERE json_extract(payload,'$.body.scrambleType') IN ('competition','random-moves');
+        UPDATE sync_receipts SET result=json_set(result,'$.scramble_type','normal')
+        WHERE json_extract(result,'$.scramble_type') IN ('competition','random-moves');",
+    )?;
     db.execute_batch("COMMIT;")?;
     Ok(())
 }
@@ -98,6 +105,12 @@ pub fn push(
     let result = (|| {
         let mut results = Vec::new();
         for op in operations {
+            let mut op = op.clone();
+            if let Some(kind) = op["body"]["scrambleType"].as_str() {
+                let kind = crate::practice::normalize_scramble_type(kind).to_owned();
+                op["body"]["scrambleType"] = json!(kind);
+            }
+            let op = &op;
             let operation_id = api::string(op, "id", 1, 100)?;
             let payload = op.to_string();
             if let Some(receipt) = one(
@@ -105,7 +118,9 @@ pub fn push(
                 "SELECT payload,result FROM sync_receipts WHERE user_id=? AND operation_id=?",
                 params![uid, operation_id],
             )? {
-                if receipt["payload"] != payload {
+                let recorded: Value = serde_json::from_str(receipt["payload"].as_str().unwrap())
+                    .map_err(ApiError::internal)?;
+                if recorded != *op {
                     return Err(ApiError::new(
                         409,
                         "Operation ID already used with different data",

@@ -32,7 +32,7 @@ export function GuideContent({ page }: { page: Guide }) {
     </>}
     {page === 'timerGuide' && <>
       <p className="public-lead">Cubix times physical solves with your keyboard or touchscreen. <a href="/">Open the timer</a> and follow these steps.</p>
-      <h2>1. Choose a puzzle and scramble</h2><p>The puzzle selector in the navigation bar changes the puzzle everywhere. The scramble type is chosen below the timer. New scramble generates another one. The controls, including Times, sit together at the bottom above the navigation.</p>
+      <h2>1. Choose a puzzle and scramble</h2><p>The puzzle selector in the navigation bar changes the puzzle everywhere. The scramble type is chosen below the timer. Normal generates a scramble for the selected WCA event. New scramble generates another one. The controls, including Times, sit together at the bottom above the navigation.</p>
       <p>The 3D cube plays the complete scramble in three seconds for 2×2 and 3×3 cubes. Each larger size adds one second, from four seconds for 4×4 to seven seconds for 7×7. Drag it to change the viewing angle or use Replay to watch the scramble again. Long scrambles scroll inside their text area while the cube and timer remain visible.</p>
       <h2>2. Start</h2><p>Hold Space for 0.3 seconds until the time turns green, then release. Releasing early cancels. On a phone, hold a free area of the screen and release when ready.</p>
       <h2>3. Stop and review</h2><p>Press any key or tap the screen to stop. The time is saved and the next scramble appears. Four buttons under the time let you delete it, mark it DNF, add a +2 (the flag) or write a comment. Open Times to see scrambles and comments, change penalties, or delete an earlier time with a right click or long press.</p>

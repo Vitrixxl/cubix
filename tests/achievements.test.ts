@@ -4,7 +4,7 @@ import { cases } from "../src/client/local/catalog";
 import type { SolveDto } from "../src/shared/types";
 
 let next = 1;
-const solve = (overrides: Partial<SolveDto> & { created_at: string }): SolveDto => ({ id: next++, session_id: null, case_id: null, time_ms: 20000, penalty: "none", scramble: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "random-moves", ...overrides });
+const solve = (overrides: Partial<SolveDto> & { created_at: string }): SolveDto => ({ id: next++, session_id: null, case_id: null, time_ms: 20000, penalty: "none", scramble: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "normal", ...overrides });
 const at = (day: number, index = 0) => new Date(Date.UTC(2026, 0, day, 10, index)).toISOString();
 const byId = (list: ReturnType<typeof achievements>["achievements"], id: string) => list.find(a => a.id === id)!;
 
@@ -72,7 +72,7 @@ test("averages, one-handed and blindfolded goals each read their own history", (
 
 test("volume, active days and streaks count every puzzle and mode", () => {
   const rows = [
-    ...Array.from({ length: 12 }, (_, i) => solve({ puzzle_id: "pyram", cube_size: null, scramble_type: "competition", time_ms: 5000, created_at: at(1 + i) })),
+    ...Array.from({ length: 12 }, (_, i) => solve({ puzzle_id: "pyram", cube_size: null, scramble_type: "normal", time_ms: 5000, created_at: at(1 + i) })),
     ...Array.from({ length: 4 }, (_, i) => solve({ case_id: "PLL Aa", scramble_type: "case", time_ms: 1500, created_at: at(20 + i * 2) })),
   ];
   const list = achievements(rows, []).achievements;

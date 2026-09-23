@@ -17,7 +17,7 @@ const run = async (args: string[]) => {
 const scramble = "R U R' U' F2 D L2 B U2 R2 F' D2";
 const fixture = {
   "cubix.playground.scrambleByContext": JSON.stringify({
-    "333:standard:random-moves": scramble,
+    "333:standard:normal": scramble,
   }),
   "cubix.training.selectionByCube": JSON.stringify({ "333": ["F2L 1"] }),
   "cubix.training.randomAuf": "false",

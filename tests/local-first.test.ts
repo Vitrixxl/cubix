@@ -253,11 +253,11 @@ test("cube context survives offline storage, guest import, sync and another devi
 test("practice labels survive offline reopening, guest import and sync while histories stay separate", async () => {
   const {remote,db} = setup(); const a = device(remote); a.control.offline = true;
   const contexts = [
-    {puzzle:"333", solveMode:"standard", scrambleType:"random-moves"},
+    {puzzle:"333", solveMode:"standard", scrambleType:"normal"},
     {puzzle:"333", solveMode:"standard", scrambleType:"2gen-ru"},
     {puzzle:"333", solveMode:"one-handed", scrambleType:"2gen-ru"},
-    {puzzle:"333", solveMode:"blindfolded", scrambleType:"competition"},
-    ...(["sq1","pyram","skewb","minx","clock"] as const).map(puzzle => ({puzzle, solveMode:"standard", scrambleType:"competition"} as const)),
+    {puzzle:"333", solveMode:"blindfolded", scrambleType:"normal"},
+    ...(["sq1","pyram","skewb","minx","clock"] as const).map(puzzle => ({puzzle, solveMode:"standard", scrambleType:"normal"} as const)),
   ] as const;
   for (const [i,context] of contexts.entries()) {
     const session = await a.api.createSession("playground",[],context.puzzle,context);
@@ -284,7 +284,7 @@ test("practice labels survive offline reopening, guest import and sync while his
     expect(localProfile.playground.summary).toEqual(history("playground",serverRows).summary);
     expect(localProfile.playground.summary.best).toBe(1000+i*1000);
   }
-  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE puzzle_id='sq1' AND cube_size IS NULL AND solve_mode='standard' AND scramble_type='competition'").get()?.n).toBe(1);
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE puzzle_id='sq1' AND cube_size IS NULL AND solve_mode='standard' AND scramble_type='normal'").get()?.n).toBe(1);
 });
 
 test("both APIs inherit context, reject incompatible labels and isolate training modes", async () => {
@@ -292,14 +292,14 @@ test("both APIs inherit context, reject incompatible labels and isolate training
   const auth = await a.api.register("practice_validation","a-long-test-password");
   for (const api of [a.api,remote(auth.token)]) {
     const direct = await api.addSolve({puzzle:"sq1",timeMs:3000});
-    expect(direct).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"standard",scramble_type:"competition"});
+    expect(direct).toMatchObject({puzzle_id:"sq1",cube_size:null,solve_mode:"standard",scramble_type:"normal"});
     await expect(api.createSession("playground",[],"sq1",{scrambleType:"2gen-ru"})).rejects.toThrow();
     await expect(api.createSession("training",["PLL Aa"],"sq1")).rejects.toThrow();
     await expect(api.createSession("playground",[],3,{solveMode:"invalid" as any})).rejects.toThrow();
     await expect(api.addSolve({puzzle:"sq1",cubeSize:3,timeMs:100})).rejects.toThrow();
     const session = await api.createSession("playground",[],3,{solveMode:"one-handed",scrambleType:"2gen-ru"});
     await expect(api.addSolve({sessionId:session.id,solveMode:"standard",timeMs:100})).rejects.toThrow();
-    await expect(api.addSolve({sessionId:session.id,scrambleType:"random-moves",timeMs:100})).rejects.toThrow();
+    await expect(api.addSolve({sessionId:session.id,scrambleType:"normal",timeMs:100})).rejects.toThrow();
     const training = await api.createSession("training",["PLL Aa"],3,{solveMode:"blindfolded"});
     await api.addSolve({sessionId:training.id,caseId:"PLL Aa",timeMs:8000});
     expect((await api.caseHistory("PLL Aa")).summary.count).toBe(0);
@@ -407,4 +407,51 @@ test("a live socket announces the account's own changes so other devices pull im
   // Only ready and sync frames ever reach this socket.
   expect(messages.map(m => m.type).filter(t => t !== "sync")).toEqual(["ready"]);
   expect(messages.at(-1).cursor).toBeGreaterThan(notice.cursor);
+});
+
+test("legacy local scramble histories merge offline without losing solves, dates or penalties", async () => {
+  const {remote} = setup(); const a = device(remote);
+  const first = await a.api.createSession("playground");
+  const second = await a.api.createSession("playground");
+  for (const [index, timeMs] of [10000,20000,30000,40000,50000].entries()) {
+    await a.api.addSolve({sessionId:index < 2 ? first.id : second.id,timeMs,penalty:index === 0 ? "+2" : "none",scramble:"R U"});
+  }
+  await a.api.addSolve({puzzle:"222",timeMs:1000});
+  await a.api.addSolve({puzzle:"333",solveMode:"one-handed",timeMs:2000});
+  const key = "cubix.local.v1:workspace:guest";
+  const old = JSON.parse(a.storage.getItem(key)!);
+  delete old.normalScrambles;
+  for (const row of [...Object.values(old.sessions), ...Object.values(old.solves)] as any[]) row.scramble_type = row.id === first.id || row.session_id === first.id ? "random-moves" : "competition";
+  a.storage.setItem(key,JSON.stringify(old));
+  a.storage.setItem("cubix.practice.typeByPuzzle",JSON.stringify({333:"random-moves",222:"competition",444:"half-turns"}));
+  a.storage.setItem("cubix.playground.scrambleByContext",JSON.stringify({"333:standard:random-moves":"R", "333:standard:competition":"U", "444:standard:half-turns":"R2"}));
+  const reopened = device(remote,a.storage); reopened.control.offline=true;
+  const result = await reopened.api.profile("Guest",undefined,3,{scrambleType:"normal"});
+  expect(result.playground.summary).toMatchObject({count:5,best:12000,mean:30400,ao5:30000});
+  const saved = JSON.parse(a.storage.getItem(key)!);
+  for (const [id,row] of Object.entries(old.solves) as [string,any][]) expect(saved.solves[id]).toEqual({...row,scramble_type:"normal"});
+  for (const [id,row] of Object.entries(old.sessions) as [string,any][]) expect(saved.sessions[id]).toEqual({...row,scramble_type:"normal"});
+  expect(a.storage.getItem(key)).not.toMatch(/competition|random-moves/);
+  expect(JSON.parse(a.storage.getItem("cubix.practice.typeByPuzzle")!)).toEqual({333:"normal",222:"normal",444:"half-turns"});
+  expect(JSON.parse(a.storage.getItem("cubix.playground.scrambleByContext")!)).toEqual({"444:standard:half-turns":"R2"});
+  expect(reopened.control.requests).toBe(0);
+});
+
+test("pending legacy uploads retain their operation IDs and retry a lost acknowledgement once", async () => {
+  const {remote,db} = setup(); const a = device(remote);
+  const auth = await a.api.register("normal_retry","a-long-test-password");
+  const session = await a.api.createSession("playground");
+  await a.api.addSolve({sessionId:session.id,timeMs:12345});
+  a.control.loseAck=true; await a.local.sync();
+  const key = `cubix.local.v1:workspace:${auth.user.id}`;
+  const old = JSON.parse(a.storage.getItem(key)!); delete old.normalScrambles;
+  for (const row of [...Object.values(old.sessions),...Object.values(old.solves)] as any[]) row.scramble_type="random-moves";
+  for (const op of old.outbox) op.body.scrambleType="random-moves";
+  a.storage.setItem(key,JSON.stringify(old));
+  const reopened = device(remote,a.storage);
+  expect(JSON.parse(a.storage.getItem(key)!).outbox.map((op:any)=>op.id)).toEqual(old.outbox.map((op:any)=>op.id));
+  await reopened.local.sync();
+  expect(reopened.local.status().pending).toBe(0);
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM sessions").get()?.n).toBe(1);
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE scramble_type='normal'").get()?.n).toBe(1);
 });

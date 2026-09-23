@@ -1,5 +1,5 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
-import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import { ApiError, createApiClient, type AddSolveBody } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto } from "../../shared/types";
 import { cases } from "./catalog";
@@ -10,13 +10,13 @@ type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
 type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number }
+interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
 const LEGACY_LEARNED_KEY = "cubix.algs.learnedCaseIds";
 const GUEST: UserDto = { id: "local-guest", username: "Guest", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
-const empty = (): Workspace => ({ version:1, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:0 });
+const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:0 });
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
@@ -29,6 +29,21 @@ export function createLocalClient(options: {
   lock?: <T>(name: string, action: () => Promise<T>) => Promise<T>;
 }) {
   const { storage } = options;
+  // Stored preferences are shared by mobile and desktop. Discard obsolete cached scrambles:
+  // the next Normal attempt must be generated with the event generator.
+  for (const key of ["cubix.practice.typeByPuzzle", "cubix.playground.scrambleByContext"]) {
+    const raw = storage.getItem(key);
+    if (!raw) continue;
+    let values: Record<string, string>;
+    try { values = JSON.parse(raw); } catch { continue; }
+    if (!values || typeof values !== "object" || Array.isArray(values)) continue;
+    let changed = false;
+    for (const [id, value] of Object.entries(values)) {
+      if (key.endsWith("typeByPuzzle") && typeof value === "string" && value !== normalizeScrambleType(value)) { values[id] = normalizeScrambleType(value); changed = true; }
+      if (key.endsWith("scrambleByContext") && /:(competition|random-moves)$/.test(id)) { delete values[id]; changed = true; }
+    }
+    if (changed) storage.setItem(key, JSON.stringify(values));
+  }
   const catalog = createCatalogCache(storage);
   const read = <T>(key: string, fallback: T): T => {
     const text = storage.getItem(PREFIX + key);
@@ -56,6 +71,13 @@ export function createLocalClient(options: {
   const data = (id = owner()) => {
     const workspace = read<Workspace & { cache?: unknown }>("workspace:" + id,empty());
     workspace.learned ??= {};
+    if (!workspace.normalScrambles) {
+      for (const row of [...Object.values(workspace.sessions), ...Object.values(workspace.solves)]) row.scramble_type = scrambleTypeOf(row);
+      // Keep operation IDs: retries of a committed upload must remain idempotent.
+      for (const op of workspace.outbox) if (typeof op.body.scrambleType === "string") op.body.scrambleType = normalizeScrambleType(op.body.scrambleType);
+      workspace.normalScrambles = true;
+      save(id, workspace);
+    }
     // Retired social caches (friends, conversations) are dropped from older workspaces.
     if (workspace.cache !== undefined) { delete workspace.cache; workspace.outbox = workspace.outbox.filter(op => !["bio","message"].includes(op.kind)); save(id,workspace); }
     const legacyText = storage.getItem(LEGACY_LEARNED_KEY);
@@ -135,7 +157,7 @@ export function createLocalClient(options: {
           const localId = existing?.id ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
           if (!change.value) delete workspace.sessions[localId];
-          else workspace.sessions[localId] = { ...change.value as SessionDto, id:localId, serverId:change.id };
+          else workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id };
         } else {
           const existing = Object.values(workspace.solves).find(s => s.serverId === change.id);
           const localId = existing?.id ?? (id === "guest" ? newId() : change.id);
@@ -144,7 +166,7 @@ export function createLocalClient(options: {
           else {
             const row = change.value as SolveDto;
             const sid = Object.values(workspace.sessions).find(s => s.serverId === row.session_id)?.id ?? row.session_id;
-            workspace.solves[localId] = { ...row, id:localId, session_id:sid, serverId:change.id };
+            workspace.solves[localId] = { ...row, scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
           }
         }
       }
@@ -255,7 +277,7 @@ export function createLocalClient(options: {
     },
     latestSession: async (mode: SessionMode, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => Object.values(data().sessions).filter(s => s.mode === mode && matchesPractice(s,cubeSize,filter)).sort((a,b) => b.created_at.localeCompare(a.created_at))[0] ?? null,
     createSession: async (mode: SessionMode, caseIds: string[] = [], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => localMutation((workspace,id) => {
-      const context = { puzzle: puzzleId(cubeSize), solveMode: filter.solveMode ?? "standard", scrambleType: filter.scrambleType ?? (mode === "training" ? "case" : puzzleInfo(cubeSize)?.cubeSize ? "random-moves" : "competition") };
+      const context = { puzzle: puzzleId(cubeSize), solveMode: filter.solveMode ?? "standard", scrambleType: normalizeScrambleType(filter.scrambleType ?? (mode === "training" ? "case" : "normal")) };
       if (!validContext(context, mode === "training") || caseIds.some(id => !cases.some(c => c.id === id && puzzleOf(c) === context.puzzle))) throw new Error("Case, cube and practice context do not match.");
       const session: Session = { id:newId(), cube_size:puzzleInfo(cubeSize).cubeSize, puzzle_id:context.puzzle, solve_mode:context.solveMode, scramble_type:context.scrambleType, mode, case_ids:caseIds, created_at:new Date().toISOString() };
       workspace.sessions[session.id] = session;
@@ -267,7 +289,7 @@ export function createLocalClient(options: {
       const c = cases.find(c => c.id === body.caseId);
       const inherited = contextOf(session ?? (c ? { ...c, case_id:c.id } : {}));
       const puzzle = body.puzzle ?? (body.cubeSize ? puzzleId(body.cubeSize) : inherited.puzzle);
-      const context = { puzzle, solveMode: body.solveMode ?? inherited.solveMode, scrambleType: body.scrambleType ?? (session || c ? inherited.scrambleType : puzzleInfo(puzzle)?.cubeSize ? "random-moves" : "competition") };
+      const context = { puzzle, solveMode: body.solveMode ?? inherited.solveMode, scrambleType: normalizeScrambleType(body.scrambleType ?? (session || c ? inherited.scrambleType : "normal")) };
       if (!validContext(context, !!body.caseId) || (body.cubeSize && puzzleInfo(context.puzzle).cubeSize !== body.cubeSize) || (session && JSON.stringify(contextOf(session)) !== JSON.stringify(context)) || (c && puzzleOf(c) !== context.puzzle)) throw new Error("Case, cube and practice context do not match.");
       if (session && (session.mode === "training") !== !!body.caseId) throw new Error("Case and session mode do not match.");
       if (!Number.isFinite(body.timeMs) || body.timeMs < 0) throw new Error("Invalid solve time.");

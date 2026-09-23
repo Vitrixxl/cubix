@@ -4,6 +4,7 @@ import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { fmtTime } from "../../src/client/lib/format";
+import { normalizeScrambleType } from "../../src/shared/puzzles";
 export const catalog = catalogData as any;
 export const puzzleOf = (c: any) =>
   c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3);
@@ -38,7 +39,7 @@ export class Store {
   caseId = "";
   puzzle = "333";
   solveMode = "standard";
-  scrambleType = "random-moves";
+  scrambleType = "normal";
   entry = "timer";
   themeName = "t3-code";
   light = false;
@@ -78,7 +79,7 @@ export class Store {
   profileStage = "all";
   profilePuzzle = "333";
   profileSolveMode = "standard";
-  profileScramble = "random-moves";
+  profileScramble = "normal";
   achievementGroup = "all";
   achievementFilter = "all";
   sessions = new LaunchSessions();
@@ -171,9 +172,9 @@ export class Store {
     );
     this.solveMode =
       this.prefs["cubix.practice.modeByPuzzle"]?.[p] ?? "standard";
-    this.scrambleType =
+    this.scrambleType = normalizeScrambleType(
       this.prefs["cubix.practice.typeByPuzzle"]?.[p] ??
-      (this.info()?.cubeSize ? "random-moves" : "competition");
+      "normal");
     this.selected = new Set(
       this.prefs["cubix.training.selectionByCube"]?.[p] ?? [],
     );

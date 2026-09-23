@@ -40,8 +40,25 @@ test("last-layer and case scrambles preserve solved blocks", async () => {
 });
 
 test("legacy records have stable labels", () => {
-  expect(contextOf({})).toEqual({puzzle:"333",solveMode:"standard",scrambleType:"random-moves"});
+  expect(contextOf({})).toEqual({puzzle:"333",solveMode:"standard",scrambleType:"normal"});
   expect(contextOf({cube_size:7,case_id:"case"})).toEqual({puzzle:"777",solveMode:"standard",scrambleType:"case"});
   expect(validContext({puzzle:"sq1",solveMode:"standard",scrambleType:"2gen-ru"})).toBe(false);
 
+});
+
+test("Normal uses the WCA event generator for every puzzle and solve mode", async () => {
+  const { PUZZLES } = await import("../src/shared/puzzles");
+  const events: string[] = [];
+  const engine = { randomScrambleForEvent: async (event: string) => { events.push(event); return "R U"; }, orbitScramble: async () => { throw Error("Unexpected orbit generator"); } };
+  for (const puzzle of PUZZLES) {
+    expect(puzzle.scrambles.filter(type => type === "normal")).toHaveLength(1);
+    expect(puzzle.scrambles).not.toContain("competition");
+    expect(puzzle.scrambles).not.toContain("random-moves");
+    expect(await generatePracticeScramble({ puzzle: puzzle.id, solveMode: "standard", scrambleType: "normal" }, engine)).toBe("R U");
+  }
+  expect(events).toEqual(PUZZLES.map(puzzle => puzzle.id));
+  for (const puzzle of ["333", "444", "555"] as const) await generatePracticeScramble({ puzzle, solveMode: "blindfolded", scrambleType: "normal" }, engine);
+  await generatePracticeScramble({ puzzle: "333", solveMode: "one-handed", scrambleType: "normal" }, engine);
+  expect(events.slice(-4)).toEqual(["333bf", "444bf", "555bf", "333oh"]);
+  for (const scramble_type of ["competition", "random-moves"] as const) expect(contextOf({ scramble_type }).scrambleType).toBe("normal");
 });

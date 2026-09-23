@@ -8,7 +8,7 @@ void (async()=>{const reader=p.stdout.getReader();const decoder=new TextDecoder(
 function call(method:string,...args:any[]){return new Promise<any>((resolve,reject)=>{const key=++id;const timer=setTimeout(()=>reject(Error(`Timeout: ${method}`)),45000);pending.set(key,{resolve:(v:any)=>{clearTimeout(timer);resolve(v);},reject:(e:any)=>{clearTimeout(timer);reject(e);}});p.stdin.write(JSON.stringify({id:key,method,args})+'\n');});}
 try{
 const init=await call('init');if(!init.user.isGuest)throw Error('Expected guest');
-for(const puzzle of ['222','333','444','555','666','777','pyram','skewb','sq1','minx','clock']){const text=await call('scramble',{puzzle,solveMode:'standard',scrambleType:'competition'});if(!text?.length)throw Error('Empty scramble');console.log(puzzle,'competition',text.length);}
+for(const puzzle of ['222','333','444','555','666','777','pyram','skewb','sq1','minx','clock']){const text=await call('scramble',{puzzle,solveMode:'standard',scrambleType:'normal'});if(!text?.length)throw Error('Empty scramble');console.log(puzzle,'normal',text.length);}
 const first=await call('training','next','333',['F2L 1','F2L 2'],true,'standard');await call('training','next','333',['F2L 1','F2L 2'],true,'standard');const previous=await call('training','previous','333',['F2L 1','F2L 2'],true,'standard');if(first.setup!==previous.setup||first.algorithm!==previous.algorithm)throw Error('Training history mismatch');console.log('training history: OK');
 const session=await call('createSession','training',['F2L 1'],'333',{solveMode:'standard',scrambleType:'case'});
 await call('addSolve',{sessionId:session.id,caseId:'F2L 1',timeMs:3456,scramble:first.setup,puzzle:'333'});

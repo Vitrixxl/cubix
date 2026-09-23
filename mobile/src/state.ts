@@ -132,7 +132,7 @@ const preferredSolveModeAtom = perPuzzleAtom<SolveMode>("cubix.practice.modeByPu
 export const solveModeAtom = atom(get => { const mode = get(preferredSolveModeAtom); return SOLVE_MODES.some(m => m.id === mode) ? mode : "standard"; }, (get, set, mode: SolveMode) => {
   if (!get(cubeSwitchLockedAtom) && SOLVE_MODES.some(m => m.id === mode)) set(preferredSolveModeAtom, mode);
 });
-const preferredScrambleTypeAtom = perPuzzleAtom<ScrambleType>("cubix.practice.typeByPuzzle", "random-moves");
+const preferredScrambleTypeAtom = perPuzzleAtom<ScrambleType>("cubix.practice.typeByPuzzle", "normal");
 export const scrambleTypeAtom = atom(get => {
   const info = puzzleInfo(get(puzzleAtom)), preferred = get(preferredScrambleTypeAtom);
   return info.scrambles.includes(preferred) ? preferred : info.scrambles[0];
