@@ -146,9 +146,9 @@ function TrainingSession() {
   const summary = practiceSummary(solves);
   const grouped = layout.phone && !layout.landscape;
   const docked = layout.phone || layout.landscape;
-  const compactSetup = grouped && layout.short;
-  const cubeSize = layout.landscape || compactSetup ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
-  const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
+  const compactSetup = layout.landscape || grouped && layout.short;
+  const cubeSize = layout.landscape ? 56 : compactSetup ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
+  const setupSize = layout.landscape ? 14 : layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
   const iconColor = t.text2;
   const currentLearned = !!current && learned.has(current.c.id);
@@ -211,13 +211,18 @@ function TrainingSession() {
           </PracticeReadout>
         </View>
         {docked && <PracticeDock hidden={running}>
-          <View style={base.dockLastSolve}>{lastSolve && !saving && <LastSolveActions solve={lastSolve} compact />}</View>
-          {current && <View style={base.dockRow}>
+          <View style={[base.dockLastSolve, layout.landscape && !lastSolve && { height: 0 }]}>{lastSolve && !saving && <LastSolveActions solve={lastSolve} compact />}</View>
+          {current && !layout.landscape && <View style={base.dockRow}>
             {!learning && <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityRole="button" accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.text2} /></Pressable>}
             {caseActions}
             {(!learning || reviewing) && <Pressable disabled={busy} onPress={nextCase} accessibilityRole="button" accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.text2} /></Pressable>}
           </View>}
           <View style={[base.dockRow, { flexWrap: "wrap" }]}>
+            {layout.landscape && current && <>
+              {!learning && <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityRole="button" accessibilityLabel="Previous case" style={styles.dockCaseNav}><IconBack size={16} color={t.text2} /></Pressable>}
+              {caseActions}
+              {(!learning || reviewing) && <Pressable disabled={busy} onPress={nextCase} accessibilityRole="button" accessibilityLabel="Next case" style={styles.dockCaseNav}><IconNext size={16} color={t.text2} /></Pressable>}
+            </>}
             {learningSelect}
             {!learning && <PanelButton title="Cases" icon={<IconGrid size={15} color={iconColor} />} count={selectedCases.length} disabled={busy} onPress={() => setShowSelector(true)} phone />}
             {supportsAuf && <ToolbarAction icon={<IconShuffle size={15} color={useAuf ? t.accent : iconColor} />} label="AUF" pressed={useAuf} disabled={busy} onPress={() => setUseAuf(v => !v)} phone />}
