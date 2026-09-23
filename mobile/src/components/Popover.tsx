@@ -27,7 +27,9 @@ export function Popover({ anchor, onClose, children, width, alignRight, gap = 4,
   const spaceAbove = anchor.y - insets.top - margin;
   const contentHeight = size?.height ?? 0;
   const above = contentHeight > spaceBelow && spaceAbove > spaceBelow;
-  const limit = Math.max(120, (above ? spaceAbove : spaceBelow) - gap);
+  // Measure in the larger available space before deciding which side fits.
+  // Measuring against the space below first hides overflow from the flip check.
+  const limit = Math.max(0, (size ? (above ? spaceAbove : spaceBelow) : Math.max(spaceAbove, spaceBelow)) - gap);
   const top = above ? Math.max(insets.top + margin, anchor.y - gap - Math.min(contentHeight, limit)) : anchor.y + anchor.height + gap;
   const preferredLeft = alignRight ? anchor.x + anchor.width - (size?.width ?? width ?? 0) : anchor.x;
   const left = Math.max(margin, Math.min(preferredLeft, window.width - (size?.width ?? width ?? 0) - margin));

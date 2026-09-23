@@ -146,7 +146,8 @@ function TrainingSession() {
   const summary = practiceSummary(solves);
   const grouped = layout.phone && !layout.landscape;
   const docked = layout.phone || layout.landscape;
-  const cubeSize = layout.landscape ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
+  const compactSetup = grouped && layout.short;
+  const cubeSize = layout.landscape || compactSetup ? 72 : layout.short ? 96 : layout.phone ? 112 : 150;
   const setupSize = layout.short ? 16 : layout.phone ? 17 : Math.max(19, Math.min(25, layout.width * 0.018));
   const timerSize = layout.short ? Math.max(48, Math.min(layout.height * 0.09, 72)) : layout.phone ? Math.max(56, Math.min(layout.width * 0.15, 84)) : Math.max(60, Math.min(layout.width * 0.07, 108));
   const iconColor = t.text2;
@@ -185,11 +186,11 @@ function TrainingSession() {
               </Pressable>
               {!docked && (!learning || reviewing) && <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>}
             </View>
-            <View style={styles.setup}>
+            <View style={[styles.setup, compactSetup && { flexDirection: "row", gap: 12, marginTop: 8 }]}>
               <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} view={viewForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
-              <View style={{ width: "100%", maxWidth: 620, alignItems: "center" }}>
+              <View style={{ width: compactSetup ? undefined : "100%", flex: compactSetup ? 1 : undefined, maxWidth: 620, alignItems: "center" }}>
                 <Caption style={{ marginBottom: 8 }}>Setup</Caption>
-                <AlgText alg={shownSetup} size={setupSize} lineHeight={setupSize * 1.7} wordSpacing={layout.phone ? 1 : 0} style={{ textAlign: "center", paddingHorizontal: layout.phone ? 12 : 0 }} />
+                <AlgText alg={shownSetup} size={setupSize} lineHeight={setupSize * 1.7} wordSpacing={layout.phone ? 1 : 0} style={{ textAlign: "center", paddingHorizontal: layout.phone && !compactSetup ? 12 : 0 }} />
               </View>
             </View>
             {primary && revealed && <View style={[styles.solution, { borderTopColor: t.line }]}><Caption style={{ marginBottom: 8 }}>Solution</Caption><AlgText alg={shownAlgorithm} size={layout.phone ? 15 : 18} style={{ textAlign: "center" }} /></View>}
