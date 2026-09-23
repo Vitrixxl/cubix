@@ -1077,7 +1077,7 @@ function Detail() {
           ))}
         </section>
         <Heading>Statistics</Heading>
-        <ProfileStats data={s.caseHistory} />
+        <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
       </div>
       <Row className="detail-actions between">
         <Row>
@@ -1147,151 +1147,502 @@ function Appearance() {
     </div>
   );
 }
-function Account() {
+function AccountForm() {
   const [username, setUser] = useState(""),
     [password, setPassword] = useState("");
   return (
-    <div className="page guest-page">
-      <div className="scroll col">
-        <h1>Account</h1>
-        <p className="muted">
-          Practise as a guest, or sign in to keep your times, statistics and
-          achievements on every device.
-        </p>
-        <form
-          className="col account-form"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (s.saving) return;
-            s.saving = true;
-            s.emit();
-            try {
-              const v = await call(
-                s.login ? "login" : "register",
-                username,
-                password,
-              );
-              s.user = v.user;
-              s.sessions.clear();
-              setPassword("");
-              await s.refresh();
-            } catch (e) {
-              s.fail(e);
-            } finally {
-              s.saving = false;
-              s.emit();
-            }
-          }}
-        >
+    <form
+      className="col account-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (s.saving) return;
+        s.saving = true;
+        s.emit();
+        try {
+          const v = await call(
+            s.login ? "login" : "register",
+            username,
+            password,
+          );
+          s.user = v.user;
+          s.sessions.clear();
+          s.profileMode = "overview";
+          setPassword("");
+          await s.refresh();
+        } catch (e) {
+          s.fail(e);
+        } finally {
+          s.saving = false;
+          s.emit();
+        }
+      }}
+    >
+      <Row>
+        <Button action="authMode:login" active={s.login}>
+          Sign in
+        </Button>
+        <Button action="authMode:register" active={!s.login}>
+          Create account
+        </Button>
+      </Row>
+      <p className="muted">
+        {s.login
+          ? "Your local times are merged into your account."
+          : "An account keeps your times, statistics and achievements in sync between devices."}
+      </p>
+      <label>
+        Username
+        <input
+          value={username}
+          onChange={(e) => setUser(e.target.value)}
+          autoComplete="username"
+          required
+        />
+      </label>
+      <label>
+        Password
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={s.login ? "current-password" : "new-password"}
+          required
+        />
+      </label>
+      {!s.login && (
+        <small className="muted">
+          3–24 letters, digits or underscores. Password: 10 characters or
+          more.
+        </small>
+      )}
+      <button type="submit" className="button primary" disabled={s.saving}>
+        {s.saving ? "One moment…" : s.login ? "Sign in" : "Create account"}
+      </button>
+    </form>
+  );
+}
+const plural = (count: number, noun: string) =>
+  `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+/** The next achievement to reach, by progress. */
+function nextAchievement() {
+  return (s.achievements?.achievements ?? [])
+    .filter((a: any) => !a.unlocked)
+    .sort((a: any, b: any) => b.ratio - a.ratio)[0];
+}
+function Progress({ ratio, done = true }: { ratio: number; done?: boolean }) {
+  return (
+    <div
+      className={"progress " + (done ? "unlocked" : "")}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(Math.max(0, Math.min(1, ratio)) * 100)}
+    >
+      <div style={{ width: Math.max(0, Math.min(1, ratio)) * 100 + "%" }} />
+    </div>
+  );
+}
+function Sparkline({ values }: { values: (number | null)[] }) {
+  const points = values.filter((v): v is number => v != null).slice(-40);
+  if (points.length < 2) return null;
+  const low = Math.min(...points),
+    high = Math.max(low + 1, Math.max(...points));
+  const d = points
+    .map(
+      (v, i) =>
+        `${i ? "L" : "M"}${(i / (points.length - 1)) * 100} ${2 + (1 - (v - low) / (high - low)) * 28}`,
+    )
+    .join(" ");
+  return (
+    <svg
+      className="sparkline"
+      viewBox="0 0 100 32"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <path
+        d={d}
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="1.6"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+/** Labelled bars inside an overview card, e.g. one per stage or per pending goal. */
+function MiniBars({
+  rows,
+}: {
+  rows: { label: string; value: string; ratio: number; done?: boolean }[];
+}) {
+  if (!rows.length) return null;
+  return (
+    <div className="mini-bars">
+      {rows.map((r) => (
+        <div key={r.label} className="mini-bar">
+          <span className="mini-bar-label">{r.label}</span>
+          <Progress ratio={r.ratio} done={r.done ?? true} />
+          <span className="mono mini-bar-value">{r.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+const dayKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** Solves per day over the last weeks, one column per week, Monday at the top. */
+function ActivityHeatmap({ dates, weeks = 16 }: { dates: string[]; weeks?: number }) {
+  const counts = new Map<string, number>();
+  for (const iso of dates) {
+    const key = dayKey(new Date(iso));
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const today = new Date(),
+    end = new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+    offset = (end.getDay() + 6) % 7,
+    start = new Date(end);
+  start.setDate(end.getDate() - offset - (weeks - 1) * 7);
+  const peak = Math.max(1, ...counts.values()),
+    cells: { key: string; count: number; future: boolean }[] = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = dayKey(d);
+    cells.push({ key, count: counts.get(key) ?? 0, future: d > end });
+  }
+  return (
+    <div
+      className="heatmap"
+      role="img"
+      aria-label={`Solves per day over the last ${weeks} weeks`}
+      style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))` }}
+    >
+      {cells.map((c) => (
+        <span
+          key={c.key}
+          title={`${c.key}: ${plural(c.count, "solve")}`}
+          className={"heat " + (c.future ? "future" : "")}
+          style={
+            c.count
+              ? {
+                  background: `color-mix(in srgb, var(--accent) ${30 + Math.round((c.count / peak) * 70)}%, var(--surface2))`,
+                }
+              : undefined
+          }
+        />
+      ))}
+    </div>
+  );
+}
+/** Overview card: one headline figure, two supporting metrics and a one-line detail. */
+function StatCard({
+  icon,
+  label,
+  value,
+  suffix,
+  metrics,
+  detail,
+  progress,
+  action,
+  children,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  suffix?: string;
+  metrics: { label: string; value: string }[];
+  detail: string;
+  progress?: number;
+  action?: string;
+} & Props) {
+  const inner = (
+    <>
+      <div className="stat-card-head">
+        <span className="stat-card-icon">
+          <Icon name={icon} size={15} />
+        </span>
+        <span className="stat-card-label">{label}</span>
+        {action && <Icon name="IconChevronRight" size={14} />}
+      </div>
+      <div className="stat-card-body">
+        <div className="stat-card-value mono">
+          {value}
+          {suffix && <span className="stat-card-suffix">{suffix}</span>}
+        </div>
+        <div className="stat-card-metrics">
+          {metrics.map((m) => (
+            <div key={m.label} className="stat-card-metric">
+              <small className="muted">{m.label}</small>
+              <span className="mono">{m.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {children}
+      <div className="stat-card-foot">
+        <small className="muted">{detail}</small>
+        {progress !== undefined && <Progress ratio={progress} />}
+      </div>
+    </>
+  );
+  const title = `${label}: ${value}${suffix ?? ""}. ${detail}`;
+  return action ? (
+    <button
+      type="button"
+      data-action={action}
+      className="stat-card clickable"
+      aria-label={title}
+      onClick={(e) => {
+        e.currentTarget.blur();
+        void s.action(action, e.currentTarget);
+      }}
+    >
+      {inner}
+    </button>
+  ) : (
+    <div className="stat-card" aria-label={title}>
+      {inner}
+    </div>
+  );
+}
+function ProfileFilters({ scramble = false }: { scramble?: boolean }) {
+  return (
+    <Row className="profile-filters">
+      <Button action="menu:profilePuzzles" active icon={"Puzzle" + s.profilePuzzle}>
+        {s.label("puzzles", s.profilePuzzle)}
+        <Icon name="IconChevronDown" size={12} />
+      </Button>
+      {scramble && (
+        <Button action="menu:profileScrambles" active>
+          {s.label("scrambles", s.profileScramble)}
+          <Icon name="IconChevronDown" size={12} />
+        </Button>
+      )}
+      <Button action="menu:profileModes" active>
+        {s.label("solveModes", s.profileSolveMode)}
+        <Icon name="IconChevronDown" size={12} />
+      </Button>
+    </Row>
+  );
+}
+function Overview() {
+  const p = s.profile,
+    timer = p.playground?.summary ?? { count: 0 },
+    cases = s.cases(s.profilePuzzle),
+    learned = cases.filter((c: any) => s.learned.has(c.id)).length,
+    trained = p.cases?.length ?? 0,
+    unlocked = s.achievements?.unlocked ?? 0,
+    total = s.achievements?.total ?? 0,
+    next = nextAchievement(),
+    stages = [...new Set<string>(cases.map((c: any) => c.stage))].map((stage) => {
+      const members = cases.filter((c: any) => c.stage === stage),
+        done = members.filter((c: any) => s.learned.has(c.id)).length;
+      return { label: stage, value: `${done} / ${members.length}`, ratio: members.length ? done / members.length : 0 };
+    }),
+    goals = (s.achievements?.achievements ?? [])
+      .filter((a: any) => !a.unlocked)
+      .sort((a: any, b: any) => b.ratio - a.ratio)
+      .slice(0, 3)
+      .map((a: any) => ({ label: a.title, value: `${Math.round(a.ratio * 100)}%`, ratio: a.ratio })),
+    activity = [
+      ...(p.playground?.history ?? []).map((v: any) => v.at),
+      ...(p.cases ?? []).flatMap((c: any) => (c.history ?? []).map((v: any) => v.at)),
+    ].filter(Boolean);
+  const latest = [timer.lastAt, ...(p.cases ?? []).map((c: any) => c.summary?.lastAt)]
+    .filter((at): at is string => !!at)
+    .sort()
+    .at(-1);
+  return (
+    <div className="overview">
+      {s.user.isGuest && (
+        <div className="guest-banner">
+          <Icon name="IconUser" size={18} />
+          <div className="col">
+            <strong>You are practising as a guest</strong>
+            <small className="muted">
+              Times stay on this device. An account syncs them between devices
+              and keeps your achievements.
+            </small>
+          </div>
           <Row>
-            <Button action="authMode:login" active={s.login}>
-              Sign in
-            </Button>
-            <Button action="authMode:register" active={!s.login}>
+            <Button action="account:login">Sign in</Button>
+            <Button action="account:register" className="primary">
               Create account
             </Button>
           </Row>
-          <p className="muted">
-            {s.login
-              ? "Your local times are merged into your account."
-              : "An account keeps your times, statistics and achievements in sync between devices."}
-          </p>
-          <label>
-            Username
-            <input
-              value={username}
-              onChange={(e) => setUser(e.target.value)}
-              autoComplete="username"
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={s.login ? "current-password" : "new-password"}
-              required
-            />
-          </label>
-          {!s.login && (
-            <small className="muted">
-              3–24 letters, digits or underscores. Password: 10 characters or
-              more.
-            </small>
-          )}
-          <button type="submit" className="button primary" disabled={s.saving}>
-            {s.saving ? "One moment…" : s.login ? "Sign in" : "Create account"}
-          </button>
-        </form>
-        <Appearance />
+        </div>
+      )}
+      <div className="stat-grid">
+        <StatCard
+          icon="IconCube"
+          label="Timer"
+          value={timer.count ? fmtTime(timer.best) : "—"}
+          metrics={[
+            { label: "Ao5", value: fmtTime(timer.ao5) },
+            { label: "Ao12", value: fmtTime(timer.ao12) },
+            { label: "Mean", value: fmtTime(timer.mean) },
+          ]}
+          detail={
+            timer.count
+              ? `Best of ${plural(timer.count, "solve")} · ${s.label("scrambles", s.profileScramble)}`
+              : "No solves in this selection yet"
+          }
+          action="profileMode:playground"
+        >
+          <Sparkline values={(p.playground?.history ?? []).map((v: any) => v.time)} />
+        </StatCard>
+        <StatCard
+          icon="IconTimer"
+          label="Training"
+          value={String(trained)}
+          suffix={` / ${cases.length}`}
+          metrics={[
+            { label: "Learned", value: String(learned) },
+            { label: "Solves", value: String(p.trainingSolves ?? 0) },
+          ]}
+          detail={`${plural(trained, "case")} trained · ${cases.length ? Math.round((learned / cases.length) * 100) : 0}% learned`}
+          progress={cases.length ? learned / cases.length : 0}
+          action="profileMode:training"
+        >
+          <MiniBars rows={stages.slice(0, 4)} />
+        </StatCard>
+        <StatCard
+          icon="IconTrophy"
+          label="Achievements"
+          value={String(unlocked)}
+          suffix={` / ${total}`}
+          metrics={[
+            { label: "Remaining", value: String(total - unlocked) },
+            { label: "Next goal", value: next ? `${Math.round(next.ratio * 100)}%` : "100%" },
+          ]}
+          detail={next ? `Next: ${next.title} · ${next.detail}` : "Everything unlocked"}
+          progress={total ? unlocked / total : 0}
+          action="profileMode:achievements"
+        >
+          <MiniBars rows={goals} />
+        </StatCard>
+        <StatCard
+          icon="IconCalendar"
+          label="Activity"
+          value={String(p.activeDays ?? 0)}
+          suffix={` ${(p.activeDays ?? 0) === 1 ? "day" : "days"}`}
+          metrics={[
+            { label: "Total solves", value: String(p.totalSolves ?? 0) },
+            {
+              label: "Per active day",
+              value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—",
+            },
+          ]}
+          detail={latest ? `Last practice: ${shortDate(latest)}` : "No practice recorded yet"}
+        >
+          <ActivityHeatmap dates={activity} />
+        </StatCard>
       </div>
     </div>
   );
 }
-function ProfileStats({ data }: { data: any }) {
-  if (!data?.summary?.count) return <Empty>No solves yet.</Empty>;
-  const summary = data.summary,
-    history = data.history ?? [];
+function StatStrip({ summary }: { summary: any }) {
   return (
-    <div className="col stats">
-      <Row className="wrap">
-        {[
-          ["Best", "best"],
-          ["Mean", "mean"],
-          ["Ao5", "ao5"],
-          ["Ao12", "ao12"],
-          ["Best Ao5", "bestAo5"],
-          ["Best Ao12", "bestAo12"],
-        ].map(([label, key]) => (
-          <Kpi key={key} label={label} value={fmtTime(summary[key])} />
-        ))}
-      </Row>
-      <Row className="between">
-        <Row>
-          <span className="accent">━ Single</span>
-          <span style={{ color: "var(--series)" }}>━ Ao5</span>
-        </Row>
-        <Button action="menu:chartTable">Table</Button>
-      </Row>
-      <Chart data={data} />
-      <Row className="between">
-        <h3>Recent times</h3>
-        <span className="muted">{history.length} solves</span>
-      </Row>
-      <div className="history-solves">
-        <Row className="history-row muted">
-          <span>#</span>
-          <span>Time</span>
-          <span>Date</span>
-        </Row>
-        {[...history]
-          .reverse()
-          .slice(0, 20)
-          .map((v: any, i: number) => (
-            <button
-              key={v.id}
-              className="button history-row"
-              onClick={() => void s.action("solve:" + v.id)}
-            >
-              <span>{history.length - i}</span>
-              <span>{v.time == null ? "DNF" : fmtTime(v.time)}</span>
-              <span>{v.displayDate}</span>
-            </button>
-          ))}
+    <div className="stat-strip">
+      {[
+        ["Best", fmtTime(summary.best), "accent"],
+        ["Ao5", fmtTime(summary.ao5), ""],
+        ["Ao12", fmtTime(summary.ao12), ""],
+        ["Mean", fmtTime(summary.mean), ""],
+        ["Best Ao5", fmtTime(summary.bestAo5), ""],
+        ["Best Ao12", fmtTime(summary.bestAo12), ""],
+        ["Solves", String(summary.count), ""],
+      ].map(([label, value, cls]) => (
+        <div key={label} className="stat-tile">
+          <small className="muted">{label}</small>
+          <span className={"mono " + cls}>{value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+/** Solve statistics for a selection: figures, the chart and the history side by side. */
+function TimerStats({
+  data,
+  empty,
+  compact = false,
+}: {
+  data: any;
+  empty: React.ReactNode;
+  compact?: boolean;
+}) {
+  if (!data?.summary?.count) return <Empty>{empty}</Empty>;
+  const history: any[] = data.history ?? [];
+  const rows = [...history].reverse().slice(0, compact ? 30 : 200);
+  return (
+    <div className={"stats " + (compact ? "compact" : "")}>
+      <StatStrip summary={data.summary} />
+      <div className="stats-grid">
+        <div className="panel chart-panel">
+          <Row className="between">
+            <h3>Progress</h3>
+            <Row className="chart-legend">
+              <span className="accent">━ Single</span>
+              <span style={{ color: "var(--series)" }}>━ Ao5</span>
+            </Row>
+          </Row>
+          <Chart data={data} />
+        </div>
+        <div className="panel history-panel">
+          <Row className="between">
+            <h3>Recent times</h3>
+            <span className="muted">{plural(history.length, "solve")}</span>
+          </Row>
+          <div className="scroll history-solves">
+            {rows.map((v: any, i: number) => {
+              const index = history.length - 1 - i,
+                previous = history[index - 1],
+                pb =
+                  v.time != null &&
+                  v.time === v.best &&
+                  (!previous || previous.best == null || previous.best > v.time);
+              return (
+                <button
+                  key={v.id}
+                  className="button history-row"
+                  onClick={() => void s.action("solve:" + v.id)}
+                  title={v.comment || undefined}
+                >
+                  <span className="muted">{index + 1}</span>
+                  <span className={"mono " + (v.time == null ? "muted" : "")}>
+                    {v.time == null ? "DNF" : fmtTime(v.time)}
+                  </span>
+                  <span className="history-tags">
+                    {pb && <span className="tag">PB</span>}
+                    {v.penalty === "+2" && <span className="tag muted">+2</span>}
+                    {v.comment && <Icon name="IconComment" size={12} />}
+                  </span>
+                  <span className="muted">{v.displayDate}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 function Chart({ data }: { data: any }) {
-  const values = (data?.history ?? []).map((v: any) => v.time),
+  const [hover, setHover] = useState<number | null>(null);
+  const history: any[] = data?.history ?? [],
+    values = history.map((v: any) => v.time),
     averages = data?.ao5 ?? [],
     all = [...values, ...averages].filter((v: any) => v != null),
     low = all.length ? Math.min(...all) : 0,
     high = Math.max(low + 1, all.length ? Math.max(...all) : 1),
     range = (high - low) * 1.24,
-    lo = low - (high - low) * 0.12;
+    lo = low - (high - low) * 0.12,
+    n = Math.max(1, values.length - 1);
+  const x = (i: number) => 6 + (i / n) * 788,
+    y = (v: number) => 12 + (1 - (v - lo) / range) * 202;
   const path = (series: any[]) => {
     let pen = false;
     return series
@@ -1300,199 +1651,318 @@ function Chart({ data }: { data: any }) {
           pen = false;
           return "";
         }
-        const p = `${pen ? "L" : "M"}${44 + (i / Math.max(1, values.length - 1)) * 740} ${12 + (1 - (v - lo) / range) * 202}`;
+        const p = `${pen ? "L" : "M"}${x(i)} ${y(v)}`;
         pen = true;
         return p;
       })
       .join(" ");
   };
+  const point = hover != null ? history[hover] : null,
+    value = point ? (point.time ?? averages[hover!]) : null;
   return (
-    <svg
-      className="chart"
-      viewBox="0 0 800 240"
-      preserveAspectRatio="none"
-      role="img"
-      aria-label="Solve times"
-    >
-      {[0, 1, 2, 3].map((i) => (
-        <path
-          key={i}
-          d={`M44 ${12 + (i / 3) * 202} H784`}
-          stroke="var(--line)"
-        />
-      ))}
-      <path
-        d={path(values)}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="1.8"
-      />
-      <path
-        d={path(averages)}
-        fill="none"
-        stroke="var(--series)"
-        strokeWidth="1.8"
-      />
-    </svg>
+    <div className="chart-area">
+      <div className="chart-axis" aria-hidden="true">
+        {[0, 1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className="mono"
+            style={{ top: ((12 + (i / 3) * 202) / 240) * 100 + "%" }}
+          >
+            {fmtTime(lo + range * (1 - i / 3))}
+          </span>
+        ))}
+      </div>
+      <div
+        className="chart-plot"
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect(),
+            f = ((e.clientX - rect.left) / rect.width) * 800;
+          setHover(
+            Math.max(0, Math.min(values.length - 1, Math.round(((f - 6) / 788) * n))),
+          );
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <svg
+          className="chart"
+          viewBox="0 0 800 240"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Solve times"
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <path
+              key={i}
+              d={`M0 ${12 + (i / 3) * 202} H800`}
+              stroke="var(--line)"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          <path
+            d={path(values)}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="1.8"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={path(averages)}
+            fill="none"
+            stroke="var(--series)"
+            strokeWidth="1.8"
+            vectorEffect="non-scaling-stroke"
+          />
+          {hover != null && (
+            <line
+              x1={x(hover)}
+              x2={x(hover)}
+              y1={0}
+              y2={240}
+              stroke="var(--muted)"
+              strokeDasharray="3 3"
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </svg>
+        {point && (
+          <>
+            {value != null && (
+              <div
+                className="chart-dot"
+                style={{ left: (x(hover!) / 8) + "%", top: (y(value) / 240) * 100 + "%" }}
+              />
+            )}
+            <div
+              className={"chart-tip " + (x(hover!) > 480 ? "flip" : "")}
+              style={{ left: (x(hover!) / 8) + "%" }}
+            >
+              <strong className="mono">
+                {point.time == null ? "DNF" : fmtTime(point.time)}
+              </strong>
+              {averages[hover!] != null && (
+                <span className="mono" style={{ color: "var(--series)" }}>
+                  Ao5 {fmtTime(averages[hover!])}
+                </span>
+              )}
+              <small className="muted">
+                #{hover! + 1} · {point.displayDate}
+              </small>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
+function TrainingProgress() {
+  const p = s.profile,
+    cases = s.cases(s.profilePuzzle),
+    learned = cases.filter((c: any) => s.learned.has(c.id)).length;
+  return (
+    <>
+      <Row className="wrap profile-toolbar-row">
+        <Row>
+          {["all", ...new Set(cases.map((c: any) => c.stage))].map((stage) => (
+            <Button
+              key={stage as string}
+              action={"profileStage:" + stage}
+              active={s.profileStage === stage}
+            >
+              {stage === "all" ? "All" : (stage as string)}
+            </Button>
+          ))}
+        </Row>
+        <input
+          placeholder="Search cases…"
+          aria-label="Search cases"
+          value={s.query}
+          onChange={(e) => {
+            s.query = e.target.value;
+            s.emit();
+          }}
+        />
+        <small className="muted">
+          {p.cases?.length ?? 0} / {cases.length} trained · {learned} learned
+        </small>
+      </Row>
+      <div className="scroll col profile-cases">
+        {s.allSets(s.profilePuzzle).map((set: any) => {
+          const chosen = cases.filter(
+            (c: any) =>
+              c.set === set.id &&
+              (s.profileStage === "all" || s.profileStage === c.stage) &&
+              matches(c, s.query),
+          );
+          if (!chosen.length) return null;
+          const key = "profile:" + set.id,
+            trained = chosen.filter((c: any) =>
+              p.cases?.some((v: any) => v.summary?.caseId === c.id),
+            ).length;
+          return (
+            <section key={key}>
+              <Button action={"collapse:" + key} className="profile-set-title">
+                <Icon
+                  name={s.collapsed.has(key) ? "IconChevronRight" : "IconChevronDown"}
+                  size={12}
+                />
+                {set.label}
+                <small className="mono muted">
+                  {trained} / {chosen.length}
+                </small>
+              </Button>
+              {!s.collapsed.has(key) && (
+                <div className="profile-grid">
+                  {chosen.map((c: any) => {
+                    const st = p.cases?.find(
+                      (v: any) => v.summary?.caseId === c.id,
+                    );
+                    return (
+                      <Button
+                        key={c.id}
+                        action={"profileCase:" + c.id}
+                        className={"profile-tile " + (st ? "" : "untrained")}
+                      >
+                        <Diagram c={c} size={72} />
+                        <strong>{shortId(c)}</strong>
+                        <small className="mono accent">
+                          {st ? fmtTime(st.summary.best) : "—"}
+                        </small>
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+function Settings() {
+  const guest = s.user.isGuest;
+  return (
+    <div className="scroll col settings">
+      <div className="panel col">
+        {guest ? (
+          <>
+            <h3>Account</h3>
+            <AccountForm />
+          </>
+        ) : (
+          <Row className="between wrap">
+            <Row>
+              <Avatar user={s.user} size={44} />
+              <div className="col">
+                <strong>{s.user.username}</strong>
+                <small className="muted">Joined {s.profile?.user?.joined}</small>
+              </div>
+            </Row>
+            <Button action="logout">Sign out</Button>
+          </Row>
+        )}
+      </div>
+      <div className="panel col">
+        <h3>Appearance</h3>
+        <Appearance />
+      </div>
+    </div>
+  );
+}
+const PROFILE_SECTIONS: [mode: string, label: string, icon: string][] = [
+  ["overview", "Overview", "IconChart"],
+  ["playground", "Timer", "IconCube"],
+  ["training", "Training", "IconTimer"],
+  ["achievements", "Achievements", "IconTrophy"],
+];
 function Profile() {
   const p = s.profile;
   if (!p) return <Empty>Loading…</Empty>;
-  const cases = s.cases(s.profilePuzzle);
+  const guest = s.user.isGuest,
+    mode = guest
+      ? s.profileMode === "settings"
+        ? "account"
+        : s.profileMode
+      : s.profileMode === "account"
+        ? "settings"
+        : s.profileMode,
+    sections: [string, string, string][] = [
+      ...PROFILE_SECTIONS,
+      guest ? ["account", "Account", "IconUser"] : ["settings", "Settings", "IconSettings"],
+    ],
+    title = sections.find(([m]) => m === mode)?.[1] ?? "Overview";
   return (
     <div className="page profile-page">
-      <Row className="profile-header">
-        <Avatar user={p.user} />
-        <div className="col">
-          <h1>{p.user.username}</h1>
-          <p className="muted">Joined {p.user.joined}</p>
-        </div>
-        <Button action="edit" active>
-          {s.editing ? "Close" : "Settings"}
-        </Button>
-      </Row>
-      <div className="scroll col">
-        {s.editing && (
-          <>
-            <Button action="logout">Sign out</Button>
-            <Appearance />
-          </>
-        )}
-        <Row className="wrap">
-          <Row>
-            {[
-              ["playground", "Timer"],
-              ["training", "Training"],
-              ["achievements", "Achievements"],
-            ].map(([key, label]) => (
+      <div className="profile-layout">
+        <aside className="profile-side">
+          <Row className="profile-header">
+            <Avatar user={guest ? { username: "G" } : p.user} size={44} />
+            <div className="col">
+              <strong>{guest ? "Guest" : p.user.username}</strong>
+              <small className="muted">
+                {guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
+              </small>
+            </div>
+          </Row>
+          <nav className="profile-nav" aria-label="Account sections">
+            {sections.map(([m, label, icon]) => (
               <Button
-                key={key}
-                action={"profileMode:" + key}
-                active={s.profileMode === key}
+                key={m}
+                action={"profileMode:" + m}
+                icon={icon}
+                className={"profile-nav-item " + (mode === m ? "selected" : "")}
               >
                 {label}
-                {key === "achievements" && (
-                  <span className="mono muted">
-                    {s.achievements?.unlocked ?? 0}
-                  </span>
+                {m === "achievements" && (
+                  <span className="mono muted count">{s.achievements?.unlocked ?? 0}</span>
                 )}
               </Button>
             ))}
-          </Row>
-          {s.profileMode !== "achievements" && (
-            <>
-              <Button action="menu:profilePuzzles" active>
-                {s.label("puzzles", s.profilePuzzle)}
-                <Icon name="IconChevronDown" />
-              </Button>
-              {s.profileMode === "playground" && (
-                <Button action="menu:profileScrambles" active>
-                  {s.label("scrambles", s.profileScramble)}
-                  <Icon name="IconChevronDown" />
-                </Button>
-              )}
-              <Button action="menu:profileModes" active>
-                {s.label("solveModes", s.profileSolveMode)}
-                <Icon name="IconChevronDown" />
-              </Button>
-            </>
+          </nav>
+          {guest && (
+            <Button action="account:login" className="primary profile-cta">
+              Sign in
+            </Button>
           )}
-        </Row>
-        <Row className="wrap profile-summary">
-          {s.profileMode === "achievements" && (
-            <Kpi
-              label="Unlocked"
-              value={`${s.achievements?.unlocked ?? 0} / ${s.achievements?.total ?? 0}`}
+        </aside>
+        <section className="profile-main" aria-label={title}>
+          <header className="profile-toolbar">
+            <h2>{title}</h2>
+            {["overview", "training"].includes(mode) && <ProfileFilters />}
+            {mode === "playground" && <ProfileFilters scramble />}
+            {mode === "achievements" && s.achievements && (
+              <Row className="achievement-total">
+                <span className="mono muted">
+                  {s.achievements.unlocked} / {s.achievements.total}
+                </span>
+                <Progress
+                  ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0}
+                />
+              </Row>
+            )}
+          </header>
+          {mode === "playground" ? (
+            <TimerStats
+              data={p.playground}
+              empty={
+                <div className="col center">
+                  <span>No times in this selection yet.</span>
+                  <Button action="nav:playground" className="primary">
+                    Open the timer
+                  </Button>
+                </div>
+              }
             />
+          ) : mode === "training" ? (
+            <TrainingProgress />
+          ) : mode === "achievements" ? (
+            <Achievements />
+          ) : mode === "settings" || mode === "account" ? (
+            <Settings />
+          ) : (
+            <Overview />
           )}
-          <Kpi label="Solves" value={p.totalSolves ?? 0} />
-          {s.profileMode !== "achievements" && (
-            <>
-              <Kpi label="Training" value={p.trainingSolves ?? 0} />
-              <Kpi label="Cases" value={p.cases?.length ?? 0} />
-            </>
-          )}
-          <Kpi label="Active days" value={p.activeDays ?? 0} />
-        </Row>
-        {s.profileMode === "achievements" ? (
-          <Achievements />
-        ) : s.profileMode === "training" ? (
-          <>
-            <Row className="wrap">
-              {["all", ...new Set(cases.map((c: any) => c.stage))].map(
-                (stage) => (
-                  <Button
-                    key={stage as string}
-                    action={"profileStage:" + stage}
-                    active={s.profileStage === stage}
-                  >
-                    {stage === "all" ? "All" : (stage as string)}
-                  </Button>
-                ),
-              )}
-              <input
-                placeholder="Search cases…"
-                value={s.query}
-                onChange={(e) => {
-                  s.query = e.target.value;
-                  s.emit();
-                }}
-              />
-              <small className="muted">
-                {p.cases?.length ?? 0} / {cases.length} trained
-              </small>
-            </Row>
-            {s.allSets(s.profilePuzzle).map((set: any) => {
-              const chosen = cases.filter(
-                (c: any) =>
-                  c.set === set.id &&
-                  (s.profileStage === "all" || s.profileStage === c.stage) &&
-                  matches(c, s.query),
-              );
-              if (!chosen.length) return null;
-              const key = "profile:" + set.id;
-              return (
-                <section key={key}>
-                  <Button
-                    action={"collapse:" + key}
-                    className="profile-set-title"
-                  >
-                    {set.label}
-                  </Button>
-                  {!s.collapsed.has(key) && (
-                    <div className="profile-grid">
-                      {chosen.map((c: any) => {
-                        const st = p.cases?.find(
-                          (v: any) => v.summary?.caseId === c.id,
-                        );
-                        return (
-                          <Button
-                            key={c.id}
-                            action={"profileCase:" + c.id}
-                            className={
-                              "profile-tile " + (st ? "" : "untrained")
-                            }
-                          >
-                            <Diagram c={c} size={72} />
-                            <strong>
-                              {shortId(c)}
-                            </strong>
-                            <small className="mono accent">
-                              {st ? fmtTime(st.summary.best) : "—"}
-                            </small>
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </>
-        ) : (
-          <ProfileStats data={p.playground} />
-        )}
+        </section>
       </div>
     </div>
   );
@@ -1503,10 +1973,10 @@ function Achievements() {
   let shown = 0;
   return (
     <>
-      <Row className="wrap">
+      <Row className="wrap profile-toolbar-row">
         <Button action="menu:achievementGroups" active>
           {s.achievementGroup === "all" ? "All puzzles" : s.achievementGroup}
-          <Icon name="IconChevronDown" />
+          <Icon name="IconChevronDown" size={12} />
         </Button>
         {["all", "unlocked", "locked"].map((f) => (
           <Button
@@ -1518,78 +1988,76 @@ function Achievements() {
           </Button>
         ))}
       </Row>
-      {groups
-        .filter(
-          (group) =>
-            s.achievementGroup === "all" || s.achievementGroup === group,
-        )
-        .map((group) => {
-          const members = items.filter((a: any) => a.group === group),
-            visible = members.filter(
-              (a: any) =>
-                s.achievementFilter === "all" ||
-                a.unlocked === (s.achievementFilter === "unlocked"),
-            );
-          shown += visible.length;
-          if (!visible.length) return null;
-          return (
-            <section className="achievement-group" key={group}>
-              <Row className="achievement-heading">
-                <Icon
-                  name={
-                    members[0].puzzle
-                      ? "Puzzle" + members[0].puzzle
-                      : "IconTrophy"
-                  }
-                  size={18}
-                />
-                <strong>{group}</strong>
-                <small className="mono muted">
-                  {members.filter((a: any) => a.unlocked).length} /{" "}
-                  {members.length}
-                </small>
-              </Row>
-              {visible.map((a: any) => (
-                <Row
-                  key={a.id}
-                  className={
-                    "achievement-row " + (a.unlocked ? "unlocked" : "")
-                  }
-                >
-                  <div className="achievement-icon">
-                    <Icon
-                      name={a.unlocked ? "IconTrophy" : "IconLock"}
-                      size={18}
-                    />
-                  </div>
-                  <div className="col">
-                    <Row className="between">
-                      <strong>{a.title}</strong>
-                      <span className="mono muted">
-                        {a.unlockedDate ?? a.detail}
-                      </span>
-                    </Row>
-                    <p className="muted">{a.description}</p>
-                    <div className="progress">
-                      <div
-                        style={{
-                          width: Math.max(0, Math.min(1, a.ratio)) * 100 + "%",
-                        }}
-                      />
-                    </div>
-                  </div>
+      <div className="scroll col achievements">
+        {groups
+          .filter(
+            (group) =>
+              s.achievementGroup === "all" || s.achievementGroup === group,
+          )
+          .map((group) => {
+            const members = items.filter((a: any) => a.group === group),
+              visible = members.filter(
+                (a: any) =>
+                  s.achievementFilter === "all" ||
+                  a.unlocked === (s.achievementFilter === "unlocked"),
+              );
+            shown += visible.length;
+            if (!visible.length) return null;
+            return (
+              <section className="achievement-group" key={group}>
+                <Row className="achievement-heading">
+                  <Icon
+                    name={
+                      members[0].puzzle
+                        ? "Puzzle" + members[0].puzzle
+                        : "IconTrophy"
+                    }
+                    size={18}
+                  />
+                  <strong>{group}</strong>
+                  <small className="mono muted">
+                    {members.filter((a: any) => a.unlocked).length} /{" "}
+                    {members.length}
+                  </small>
                 </Row>
-              ))}
-            </section>
-          );
-        })}
-      {!shown && (
-        <Empty>
-          {s.achievementFilter === "unlocked"
-            ? "Nothing unlocked here yet. Keep practising!"
-            : "Everything here is unlocked."}
-        </Empty>
-      )}
+                <div className="achievement-list">
+                  {visible.map((a: any) => (
+                    <Row
+                      key={a.id}
+                      className={
+                        "achievement-row " + (a.unlocked ? "unlocked" : "")
+                      }
+                    >
+                      <div className="achievement-icon">
+                        <Icon
+                          name={a.unlocked ? "IconTrophy" : "IconLock"}
+                          size={18}
+                        />
+                      </div>
+                      <div className="col">
+                        <Row className="between">
+                          <strong>{a.title}</strong>
+                          <span className="mono muted">
+                            {a.unlockedDate ?? a.detail}
+                          </span>
+                        </Row>
+                        <p className="muted">{a.description}</p>
+                        <Progress ratio={a.ratio} done={a.unlocked} />
+                      </div>
+                    </Row>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        {!shown && (
+          <Empty>
+            {s.achievementFilter === "unlocked"
+              ? "Nothing unlocked here yet. Keep practising!"
+              : "Everything here is unlocked."}
+          </Empty>
+        )}
+      </div>
     </>
   );
 }
@@ -1795,7 +2263,14 @@ function Overlay() {
     <div className="modal-backdrop" onClick={close}>
       <div
         ref={ref}
-        className={"modal " + (s.overlay === "search" ? "search-modal" : "")}
+        className={
+          "modal " +
+          (s.overlay === "search"
+            ? "search-modal"
+            : s.overlay === "profileCase"
+              ? "stats-modal"
+              : "")
+        }
         onClick={(e) => e.stopPropagation()}
       >
         <Row className="between">
@@ -1845,14 +2320,8 @@ function Overlay() {
               ))}
             </div>
           </>
-        ) : s.overlay === "chartTable" ? (
-          <div className="scroll">
-            <ProfileStats
-              data={s.caseId ? s.caseHistory : s.profile?.playground}
-            />
-          </div>
         ) : s.overlay === "profileCase" ? (
-          <ProfileStats data={s.caseHistory} />
+          <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
         ) : s.overlay === "comment" ? (
           <form
             className="col"
@@ -2005,8 +2474,6 @@ function App() {
                 ) : (
                   <Catalog />
                 )
-              ) : s.user.isGuest ? (
-                <Account />
               ) : (
                 <Profile />
               )}

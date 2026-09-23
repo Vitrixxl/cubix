@@ -66,7 +66,6 @@ export class Store {
   showCases = innerWidth >= 1024;
   revealed = false;
   randomAuf = true;
-  editing = false;
   login = false;
   overlay = "";
   overlaySolve: any = null;
@@ -75,7 +74,7 @@ export class Store {
   query = "";
   learningFilter = "all";
   catalogStage = "";
-  profileMode = "playground";
+  profileMode = "overview";
   profileStage = "all";
   profilePuzzle = "333";
   profileSolveMode = "standard";
@@ -520,14 +519,15 @@ export class Store {
         case "authMode":
           this.login = arg === "login";
           break;
-        case "edit":
-          this.editing = !this.editing;
+        case "account":
+          this.login = arg === "login";
+          this.profileMode = "account";
           break;
         case "logout":
           await call("logout");
           this.user = { isGuest: true, username: "Guest" };
           this.sessions.clear();
-          this.editing = false;
+          this.profileMode = "overview";
           await this.refresh();
           break;
         case "profilePuzzle":

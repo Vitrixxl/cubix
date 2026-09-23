@@ -11,6 +11,9 @@ export function GuideContent({ page }: { page: Guide }) {
         <section><h2>Training</h2><p>Pick the cases you want to drill. Cubix shows a setup, times your execution and tracks your progress per case.</p><p><a href="/guides/algorithm-training/">Training guide</a></p></section>
         <section><h2>Averages</h2><p>Best, mean, Ao5 and Ao12 with +2 and DNF handled the WCA way.</p><p><a href="/guides/ao5-ao12/">Ao5 and Ao12 explained</a></p></section>
       </div>
+      <h2>Your account page</h2>
+      <p>The Account tab is your dashboard. Overview shows four cards for the selected puzzle and solve mode: your best time with Ao5 and Ao12, the cases you have trained and learned, your unlocked achievements with the next goal, and your active days. Click a card to open its section.</p>
+      <p>Timer lists best, mean, Ao5 and Ao12 for one puzzle, scramble type and solve mode, with a chart of every solve and the rolling Ao5; hover the chart to read a solve, click a row to edit it. Training shows each case with its best attempt; open one for its own chart. Achievements groups goals per puzzle. Settings holds the theme, the accent colour and sign-out. Guests see the same dashboard for the times stored on this device.</p>
       <h2>Questions</h2>
       <details><summary>Is Cubix free? Do I need an account?</summary><p>Yes, it is free. Guest practice is saved on your device. An account adds sync between devices and achievements that follow you everywhere.</p></details>
       <details><summary>Does it work offline?</summary><p>Once installed, the app works without a connection. Sync needs a connection.</p></details>

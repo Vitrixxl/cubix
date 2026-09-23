@@ -48,6 +48,17 @@ app.on("console", (message) => {
 try {
   const page = await app.firstWindow();
   page.on("pageerror", (e) => errors.push(e.message));
+  // A headless window starts at 1×1 and ignores window sizing: emulate the viewport instead.
+  const headless = process.env.CUBIX_OZONE_PLATFORM === "headless";
+  const resizeWindow = (width: number, height: number) =>
+    headless
+      ? page.setViewportSize({ width, height })
+      : app.evaluate(
+          ({ BrowserWindow }, { width, height }) =>
+            BrowserWindow.getAllWindows()[0].setContentSize(width, height),
+          { width, height },
+        );
+  if (headless) await resizeWindow(1280, 800);
   const act = async (a: string) => {
     await page.locator(`[data-action="${a}"]`).first().click();
     await page.waitForSelector("[data-exiting]", { state: "detached" });
@@ -148,13 +159,20 @@ try {
   await page.waitForSelector(".practice-alg:nth-of-type(3)");
   console.log("Catalogue, search, history, training solve and solution");
   await act("nav:profile");
+  await page.waitForSelector(".stat-card");
+  await shot("profile-guest");
+  await act("account:register");
   await page.getByLabel("Username", { exact: true }).fill("electron_tester");
   await page
     .getByLabel("Password", { exact: true })
     .fill("electron-test-password");
   await page.locator("form button[type=submit]").click();
-  await page.waitForSelector(".profile-header");
+  await page.locator(".profile-header", { hasText: "electron_tester" }).waitFor();
+  await page.waitForSelector(".stat-card");
   await shot("profile");
+  await act("profileMode:playground");
+  await page.waitForSelector(".chart");
+  await shot("profile-timer");
   await act("profileMode:training");
   await shot("profile-training");
   await act("profileCase:PLL T");
@@ -168,7 +186,7 @@ try {
   console.log(
     "Account registration imports guest solves, profile, achievements",
   );
-  await act("edit");
+  await act("profileMode:settings");
   for (const name of [
     "t3-code",
     "t3-chat",
@@ -215,11 +233,7 @@ try {
     [1920, 1080],
     [2560, 1440],
   ]) {
-    await app.evaluate(
-      ({ BrowserWindow }, { width, height }) =>
-        BrowserWindow.getAllWindows()[0].setContentSize(width, height),
-      { width, height },
-    );
+    await resizeWindow(width, height);
     await page.waitForTimeout(150);
     for (const route of ["training", "playground"]) {
       await act("nav:" + route);
