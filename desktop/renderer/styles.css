@@ -961,23 +961,23 @@ progress {
   border: 1px solid var(--line);
   border-radius: 18px;
 }
-.error {
-  position: absolute;
-  z-index: 60;
-  bottom: 84px;
-  left: 24px;
-  right: 24px;
-  border-radius: 12px;
-  padding: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  background: var(--danger);
-  color: white;
+[data-sonner-toast].error-toast {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--surface)) !important;
 }
-.error .button {
-  color: white;
+[data-sonner-toast].error-toast [data-icon] {
+  color: var(--danger);
+}
+[data-sonner-toast].error-toast [data-content] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-sonner-toast].error-toast [data-description] {
+  max-height: min(30vh, 180px);
+  overflow-y: auto;
+  color: var(--secondary);
+}
+[data-sonner-toast].error-toast [data-button] {
+  flex-shrink: 0;
 }
 @media (max-width: 760px) {
   .desktop-label {

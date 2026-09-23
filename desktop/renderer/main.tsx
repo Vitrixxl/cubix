@@ -17,6 +17,7 @@ import { call } from "./bridge";
 import { accents, theme } from "./theme";
 import { Cube } from "./Cube";
 import { UpdateNotification } from "./UpdateNotification";
+import { ErrorNotification } from "./ErrorNotification";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import {
   fmtTime,
@@ -2379,20 +2380,8 @@ function App() {
       )}
       {!guide && <Nav />}
       <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
-      {s.overlay && <Overlay key={s.overlay} />}{" "}
-      {s.error && (
-        <div role="alert" className="error">
-          {s.error}
-          <button
-            className="button"
-            onClick={() => {
-              void s.retry();
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {s.overlay && <Overlay key={s.overlay} />}
+      <ErrorNotification message={s.error} />
     </main>
   );
 }

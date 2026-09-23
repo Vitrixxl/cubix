@@ -352,6 +352,7 @@ export class Store {
   }
   async retry() {
     this.error = "";
+    this.emit();
     if (!this.ready) return this.init();
     if (this.pendingSolve) await this.savePending();
     try {
