@@ -28,7 +28,7 @@ import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { useDailyLearning } from "../hooks/useDailyLearning";
 import { Select } from "../components/Select";
-import { LEARNING_TRACKS, type LearningMode } from "../../../src/client/lib/dailyLearning";
+import { trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { Caption, Kpi, MiniBtn, Muted, mono } from "../components/ui";
 import { styles as base } from "./PlaygroundPage";
 
@@ -52,7 +52,8 @@ function TrainingSession() {
   const [freeSelected, setSelected] = useAtom(selectedCaseIdsAtom);
   const daily = useDailyLearning();
   const learning = daily.mode !== "practice";
-  const selected = useMemo(() => learning ? daily.assignment ? [daily.assignment.caseId] : [] : freeSelected, [learning, daily.assignment?.caseId, freeSelected]);
+  const reviewing = daily.mode === "review";
+  const selected = useMemo(() => reviewing ? daily.reviewIds : learning ? daily.assignment ? [daily.assignment.caseId] : [] : freeSelected, [reviewing, daily.reviewIds, learning, daily.assignment?.caseId, freeSelected]);
   const [learnedIds, toggleLearned] = useAtom(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const [useAuf, setUseAuf] = useAtom(randomAufAtom);
@@ -157,7 +158,7 @@ function TrainingSession() {
     </Pressable>
   </View>);
 
-  const learningSelect = puzzle === "333" && <Select<LearningMode> value={daily.mode} accessibilityLabel="Learning mode" options={[{ value: "practice", label: "Free practice" }, ...LEARNING_TRACKS.map(value => ({ value, label: `Learn ${value}` }))]} onChange={mode => { daily.setMode(mode); setShowSelector(false); timer.reset(); }} disabled={busy || !!timer.saveError} flat="toolbar" />;
+  const learningSelect = <Select<LearningMode> value={daily.mode} accessibilityLabel="Learning mode" options={trainingModeOptions(puzzle)} onChange={mode => { daily.setMode(mode); setShowSelector(false); timer.reset(); }} disabled={busy || !!timer.saveError} flat="toolbar" />;
 
   return <View style={base.page}>
     <View style={[base.workspace, wide && base.workspaceWide]}>
@@ -180,7 +181,7 @@ function TrainingSession() {
                 <Text style={[styles.caseTitle, { color: t.text, fontSize: layout.phone ? 18 : 22, textDecorationColor: t.readableMuted }]}>{current.c.id}</Text>
                 <Muted size={13} style={{ textAlign: "center" }}>{learning ? daily.status : current.c.name !== current.c.id ? current.c.name : current.c.group}</Muted>
               </Pressable>
-              {!docked && !learning && <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>}
+              {!docked && (!learning || reviewing) && <Pressable disabled={busy} onPress={nextCase} accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, { marginLeft: 6, backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.readableMuted} /></Pressable>}
             </View>
             <View style={styles.setup}>
               <View style={styles.cubeShadow}>{shownState ? <StaticCubeSvg state={shownState} size={cubeSize} mask={maskForStage(current.c.stage)} view={viewForStage(current.c.stage)} /> : <CaseDiagram c={current.c} size={cubeSize} />}</View>
@@ -194,7 +195,7 @@ function TrainingSession() {
             </PracticeContent>
           </TimerChrome> : <TimerChrome hidden={running} exit="up" style={[styles.empty, layout.landscape && base.landscapeLeft, grouped && base.grouped]}>
             <IconGrid size={34} color={t.accent} />
-            <Text style={{ color: t.text, fontSize: 22, fontWeight: "700", marginTop: 10 }}>{learning ? "Track complete" : "Choose your cases"}</Text>
+            <Text style={{ color: t.text, fontSize: 22, fontWeight: "700", marginTop: 10 }}>{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</Text>
             <Muted style={{ marginTop: 6, textAlign: "center" }}>{learning ? daily.status : "Open Cases and select the algorithms to practise."}</Muted>
           </TimerChrome>}
           <PracticeReadout landscape={layout.landscape}>
@@ -211,7 +212,7 @@ function TrainingSession() {
           {current && <View style={base.dockRow}>
             {!learning && <Pressable disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityRole="button" accessibilityLabel="Previous case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy || caseHistory.index <= 0 ? 0.45 : 1 }]}><IconBack size={16} color={t.text2} /></Pressable>}
             {caseActions}
-            {!learning && <Pressable disabled={busy} onPress={nextCase} accessibilityRole="button" accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.text2} /></Pressable>}
+            {(!learning || reviewing) && <Pressable disabled={busy} onPress={nextCase} accessibilityRole="button" accessibilityLabel="Next case" style={({ pressed }) => [styles.caseNav, styles.dockCaseNav, { backgroundColor: pressed ? t.hover : "transparent", opacity: busy ? 0.45 : 1 }]}><IconNext size={16} color={t.text2} /></Pressable>}
           </View>}
           <View style={[base.dockRow, { flexWrap: "wrap" }]}>
             {learningSelect}

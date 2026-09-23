@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { cases } from "../src/client/local/catalog";
-import { dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
+import { reviewCases, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
 const pool = learningCases(cases, "PLL");
 const empty = new Set<string>();
 const today = "2026-09-23";
@@ -46,4 +46,18 @@ test("completed track remains reviewable and unknown catalogue IDs recover", () 
 test("local calendar dates and account keys do not mix", () => {
   expect(localDay(new Date(2026, 0, 2, 0, 1))).toBe("2026-01-02");
   expect(learningKey("alice")).not.toBe(learningKey("bob"));
+});
+
+test("global review includes all learned stages and excludes other puzzles and unknown cases", () => {
+  const known = ["F2L 1", "OLL 1", "PLL Aa"];
+  const other = cases.find(c => (c.puzzle_id === "222" || c.cube_size === 2))!;
+  const learned = new Set([...known, other.id, "missing"]);
+  expect(reviewCases(cases, learned, "333").map(c => c.id).sort()).toEqual([...known].sort());
+  learned.delete("OLL 1");
+  expect(reviewCases(cases, learned, "333").map(c => c.id)).not.toContain("OLL 1");
+  expect(reviewCases(cases, learned, "222").map(c => c.id)).toEqual([other.id]);
+  expect(reviewCases(cases, new Set(), "333")).toEqual([]);
+  expect(learningModeForPuzzle("review", "222")).toBe("review");
+  expect(learningModeForPuzzle("PLL", "222")).toBe("practice");
+  expect(trainingModeOptions("222").map(o => o.value)).toEqual(["practice", "review"]);
 });

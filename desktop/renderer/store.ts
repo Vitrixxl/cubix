@@ -1,4 +1,4 @@
-import { dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
+import { reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
@@ -47,6 +47,7 @@ export class Store {
   user: any = { isGuest: true, username: "Guest" };
   learned = new Set<string>();
   selected = new Set<string>();
+  reviewIds: string[] = [];
   sets: Record<string, string> = {};
   collapsed = new Set<string>();
   selectorOpen: Record<string, boolean> = {};
@@ -136,13 +137,15 @@ export class Store {
     this.emit();
   };
   get learningPlan(): LearningPlan { return this.prefs[learningKey(this.user.id ?? "guest")] ?? EMPTY_LEARNING_PLAN; }
-  get learningMode() { return this.puzzle === "333" && isLearningTrack(this.learningPlan.mode) ? this.learningPlan.mode : "practice"; }
+  get learningMode() { return learningModeForPuzzle(this.learningPlan.mode, this.puzzle); }
   get daily() { const mode = this.learningMode; return isLearningTrack(mode) ? this.learningPlan.tracks[mode] : undefined; }
-  get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(this.daily ? [this.daily.caseId] : []); }
-  get dailyStatus() { return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned, this.daily) : ""; }
+  get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(this.learningMode === "review" ? this.reviewIds : this.daily ? [this.daily.caseId] : []); }
+  get dailyStatus() { if (this.learningMode === "review") return `Review learned · ${this.reviewIds.length} cases`; return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned, this.daily) : ""; }
   reconcileLearning() {
     const mode = this.learningMode;
-    if (!isLearningTrack(mode) || this.learningFrozen || this.pendingSolve) return;
+    if (this.learningFrozen || this.pendingSolve) return;
+    this.reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle).map(c => c.id);
+    if (!isLearningTrack(mode)) return;
     const plan = this.learningPlan;
     const assignment = dailyAssignment(plan.tracks[mode], learningCases(catalog.cases, mode), this.learned, localDay());
     if (assignment !== plan.tracks[mode]) this.pref(learningKey(this.user.id ?? "guest"), { ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
@@ -150,7 +153,7 @@ export class Store {
   async refreshLearning() {
     if (this.learningFrozen || this.saving || this.pendingSolve) return;
     this.reconcileLearning();
-    if (this.learningMode !== "practice" && this.training?.id !== this.daily?.caseId) { this.timerEpoch++; await this.nextCase(); }
+    if (this.learningMode !== "practice" && !this.practiceSelected.has(this.training?.id) && (this.training || this.practiceSelected.size)) { this.timerEpoch++; await this.nextCase(); }
     this.emit();
   }
   async init() {
@@ -253,7 +256,7 @@ export class Store {
   }
   async nextScramble() {
     const revision = ++this.revision,
-      context = this.context();
+      context = { ...this.context(), scrambleType: this.scrambleType };
     this.generating = true;
     this.emit();
     try {
@@ -417,7 +420,7 @@ export class Store {
           this.travel(false);
           break;
         case "learningMode": {
-          if (this.learningFrozen || this.puzzle !== "333" || !(arg === "practice" || isLearningTrack(arg)) || this.pendingSolve) break;
+          if (this.learningFrozen || !(arg === "practice" || arg === "review" || this.puzzle === "333" && isLearningTrack(arg)) || this.pendingSolve) break;
           this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: arg });
           this.showCases = false;
           this.overlay = "";

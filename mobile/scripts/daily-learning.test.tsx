@@ -54,3 +54,20 @@ test("mobile advances yesterday's completed case on launch and isolates accounts
   store.set(userAtom, { id: "bob" }); await mount(store);
   expect(daily.mode).toBe("practice");
 });
+
+test("mobile global review tracks all learned stages, freezes during attempts, and preserves the daily case", async () => {
+  const store = await mount();
+  await act(() => daily.setMode("F2L"));
+  const pinned = daily.assignment;
+  await act(() => { store.set(learnedCaseIdsAtom, ["F2L 2", "OLL 1", "PLL Aa"]); daily.setMode("review"); });
+  expect(daily.reviewIds.slice().sort()).toEqual(["F2L 2", "OLL 1", "PLL Aa"].sort());
+  await act(() => store.set(cubeSwitchLockedAtom, true));
+  await act(() => store.set(learnedCaseIdsAtom, ["F2L 2", "PLL Aa"]));
+  expect(daily.reviewIds).toContain("OLL 1");
+  await act(() => store.set(cubeSwitchLockedAtom, false));
+  expect(daily.reviewIds).not.toContain("OLL 1");
+  await act(() => store.set(learnedCaseIdsAtom, []));
+  expect(daily.reviewIds).toEqual([]);
+  await act(() => daily.setMode("F2L"));
+  expect(daily.assignment).toEqual(pinned);
+});

@@ -1,4 +1,4 @@
-import { LEARNING_TRACKS } from "../../src/client/lib/dailyLearning";
+import { trainingModeOptions } from "../../src/client/lib/dailyLearning";
 import { trainingSessionRows } from "../../src/client/lib/practiceSummary";
 import { catalogSections } from "../../src/client/lib/practiceCatalog";
 import { PracticeTimer } from "../../src/client/lib/practiceTimer";
@@ -310,6 +310,7 @@ function Practice() {
     return () => { clearInterval(interval); window.removeEventListener("focus", tick); };
   }, []);
   const learning = s.learningMode !== "practice";
+  const reviewing = s.learningMode === "review";
   const { w, h } = useViewport(),
     training = s.page === "training",
     wide = w >= 1024 && h >= 600,
@@ -445,7 +446,7 @@ function Practice() {
             ) : (
               <>
                 <Icon name="IconGrid" size={34} />
-                <h2>{learning ? "Track complete" : "Choose your cases"}</h2>
+                <h2>{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</h2>
                 <p className="muted">{learning ? s.dailyStatus : "Select the cases you want to practise."}</p>
                 {!learning && <Button action="cases" active>Choose cases</Button>}
               </>
@@ -592,7 +593,7 @@ function Practice() {
         <Row>
           {training ? (
             <>
-              {s.puzzle === "333" && <Button action="menu:learningModes">{learning ? `Learn ${s.learningMode}` : w <= 700 || h <= 550 ? "Practice" : "Free practice"}<Icon name="IconChevronDown" size={12} /></Button>}
+              {<Button action="menu:learningModes">{reviewing ? "Review learned" : learning ? `Learn ${s.learningMode}` : w <= 700 || h <= 550 ? "Practice" : "Free practice"}<Icon name="IconChevronDown" size={12} /></Button>}
               {!learning && !wide && (
                 <Button action="cases" active={s.showCases} icon="IconGrid">
                   Cases
@@ -607,6 +608,7 @@ function Practice() {
                   {s.learned.has(c.id) ? "Learned" : "Mark learned"}
                 </Button>
               )}
+              {reviewing && <Button action="next" icon="IconChevronRight">Next</Button>}
               <Button
                 action="auf"
                 active={s.randomAuf}
@@ -2029,7 +2031,7 @@ function options(): { action: string; values: any[]; current: string } {
         current: s.overlay === "scrambles" ? s.scrambleType : s.profileScramble,
       };
     case "learningModes":
-      return { action: "learningMode", values: [{ id: "practice", label: "Free practice" }, ...LEARNING_TRACKS.map(id => ({ id, label: `Learn ${id}` }))], current: s.learningMode };
+      return { action: "learningMode", values: trainingModeOptions(s.puzzle).map(({ value, label }) => ({ id: value, label })), current: s.learningMode };
     case "entries":
       return {
         action: "entry",

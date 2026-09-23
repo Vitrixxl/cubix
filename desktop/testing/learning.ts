@@ -13,6 +13,9 @@ try {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   const click = async (action: string) => {
+    console.log("Action", action);
+    const alert = await page.locator(".error").textContent({ timeout: 100 }).catch(() => "");
+    if (alert) throw Error(alert);
     await page.locator(`[data-action="${action}"]`).first().click();
     await page.waitForSelector("[data-exiting]", { state: "detached" });
   };
@@ -71,9 +74,36 @@ try {
   assert.equal(await page.locator(".case-title").getAttribute("data-action"), first, "daily assignment survives restart");
   await click(first.replace("case:", "learn:"));
   await page.waitForSelector(".daily-status:text('Algorithm of the day')");
+  // Review mixes all learned stages without changing the manual or daily selection.
+  const known = ["F2L 2", "OLL 1", first.slice(5)];
+  await page.evaluate(async ids => { for (const id of ids) await window.cubix.call("setLearned", id, true); }, known);
+  await mode("Review learned");
+  await page.waitForSelector(".daily-status:text('3 cases')");
+  for (let i = 0; i < 6; i++) {
+    const before = (await page.locator(".case-title").getAttribute("data-action"))!.slice(5);
+    assert.ok(known.includes(before), "review only shows learned cases");
+    await click("next");
+    await page.waitForFunction(id => document.querySelector(".case-title")?.getAttribute("data-action") !== `case:${id}`, before);
+  }
+  await page.setViewportSize({ width: 360, height: 540 });
+  await page.waitForTimeout(200);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: "artifacts/electron/testing/review-360x540.png" });
+  const removed = (await page.locator(".case-title").getAttribute("data-action"))!.slice(5);
+  await click(`learn:${removed}`);
+  await page.waitForSelector(".daily-status:text('2 cases')");
+  assert.notEqual(await page.locator(".case-title").getAttribute("data-action"), `case:${removed}`);
+  await page.evaluate(async ids => { for (const id of ids) await window.cubix.call("setLearned", id, false); }, known);
+  await page.waitForSelector("h2:text('No learned cases yet')");
+  await mode("Free practice");
+  await page.waitForSelector('.case-title[data-action="case:F2L 2"]');
   await click("menu:puzzles");
   await page.getByRole("option", { name: "2×2", exact: true }).click();
-  await page.waitForSelector('[data-action="menu:learningModes"]', { state: "detached" });
+  await click("menu:learningModes");
+  assert.equal(await page.getByRole("option", { name: "Learn PLL", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("option", { name: "Review learned", exact: true }).count(), 1);
   assert.deepEqual(errors, []);
-  console.log("Daily learning: repetition, completion, undo, track switch, free selection, restart, 3×3 restriction and 4 viewport sizes passed.");
-} finally { await app.close(); await rm(dir, { recursive: true, force: true }); }
+  console.log("Daily learning and global learned review: repetition, completion, undo, track switch, free selection, restart, 3×3 restriction and 4 viewport sizes passed.");
+} catch (error) { console.error(await pageError(app)); throw error; } finally { await app.close(); await rm(dir, { recursive: true, force: true }); }
+
+async function pageError(app: any) { return (await app.firstWindow()).locator(".error").textContent({ timeout: 200 }).catch(() => "No app error"); }
