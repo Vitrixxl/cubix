@@ -16,6 +16,7 @@ import { call } from "./bridge";
 import { accents, theme } from "./theme";
 import { Cube } from "./Cube";
 import { UpdateNotification } from "./UpdateNotification";
+import { HistoryChart, type ChartRange } from "./HistoryChart";
 import {
   fmtTime,
   fmtSolve,
@@ -1564,7 +1565,7 @@ function StatStrip({ summary }: { summary: any }) {
     </div>
   );
 }
-/** Solve statistics for a selection: figures, the chart and the history side by side. */
+/** Solve statistics with a shared visible period for the chart and history. */
 function TimerStats({
   data,
   empty,
@@ -1575,8 +1576,14 @@ function TimerStats({
   compact?: boolean;
 }) {
   if (!data?.summary?.count) return <Empty>{empty}</Empty>;
+  const history = data.history ?? [];
+  return <TimerStatsView key={`${history[0]?.id}:${history.at(-1)?.id}:${history.length}`} data={data} compact={compact} />;
+}
+function TimerStatsView({ data, compact }: { data: any; compact: boolean }) {
   const history: any[] = data.history ?? [];
-  const rows = [...history].reverse().slice(0, compact ? 30 : 200);
+  const [range, setRange] = useState<ChartRange>([0, history.length - 1]);
+  const rows = history.slice(range[0], range[1] + 1).reverse();
+  const zoomed = range[0] > 0 || range[1] < history.length - 1;
   return (
     <div className={"stats " + (compact ? "compact" : "")}>
       <StatStrip summary={data.summary} />
@@ -1589,16 +1596,16 @@ function TimerStats({
               <span style={{ color: "var(--series)" }}>━ Ao5</span>
             </Row>
           </Row>
-          <Chart data={data} />
+          <HistoryChart history={history} averages={data.ao5 ?? []} range={range} onRange={setRange} />
         </div>
         <div className="panel history-panel">
           <Row className="between">
-            <h3>Recent times</h3>
-            <span className="muted">{plural(history.length, "solve")}</span>
+            <h3>{zoomed ? "Selected times" : "Recent times"}</h3>
+            <span className="muted">{plural(rows.length, "solve")}</span>
           </Row>
-          <div className="scroll history-solves">
+          <div className="scroll history-solves" key={range.join(":")}>
             {rows.map((v: any, i: number) => {
-              const index = history.length - 1 - i,
+              const index = range[1] - i,
                 previous = history[index - 1],
                 pb =
                   v.time != null &&
@@ -1626,130 +1633,6 @@ function TimerStats({
             })}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-function Chart({ data }: { data: any }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const history: any[] = data?.history ?? [],
-    values = history.map((v: any) => v.time),
-    averages = data?.ao5 ?? [],
-    all = [...values, ...averages].filter((v: any) => v != null),
-    low = all.length ? Math.min(...all) : 0,
-    high = Math.max(low + 1, all.length ? Math.max(...all) : 1),
-    range = (high - low) * 1.24,
-    lo = low - (high - low) * 0.12,
-    n = Math.max(1, values.length - 1);
-  const x = (i: number) => 6 + (i / n) * 788,
-    y = (v: number) => 12 + (1 - (v - lo) / range) * 202;
-  const path = (series: any[]) => {
-    let pen = false;
-    return series
-      .map((v, i) => {
-        if (v == null) {
-          pen = false;
-          return "";
-        }
-        const p = `${pen ? "L" : "M"}${x(i)} ${y(v)}`;
-        pen = true;
-        return p;
-      })
-      .join(" ");
-  };
-  const point = hover != null ? history[hover] : null,
-    value = point ? (point.time ?? averages[hover!]) : null;
-  return (
-    <div className="chart-area">
-      <div className="chart-axis" aria-hidden="true">
-        {[0, 1, 2, 3].map((i) => (
-          <span
-            key={i}
-            className="mono"
-            style={{ top: ((12 + (i / 3) * 202) / 240) * 100 + "%" }}
-          >
-            {fmtTime(lo + range * (1 - i / 3))}
-          </span>
-        ))}
-      </div>
-      <div
-        className="chart-plot"
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect(),
-            f = ((e.clientX - rect.left) / rect.width) * 800;
-          setHover(
-            Math.max(0, Math.min(values.length - 1, Math.round(((f - 6) / 788) * n))),
-          );
-        }}
-        onMouseLeave={() => setHover(null)}
-      >
-        <svg
-          className="chart"
-          viewBox="0 0 800 240"
-          preserveAspectRatio="none"
-          role="img"
-          aria-label="Solve times"
-        >
-          {[0, 1, 2, 3].map((i) => (
-            <path
-              key={i}
-              d={`M0 ${12 + (i / 3) * 202} H800`}
-              stroke="var(--line)"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-          <path
-            d={path(values)}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="1.8"
-            vectorEffect="non-scaling-stroke"
-          />
-          <path
-            d={path(averages)}
-            fill="none"
-            stroke="var(--series)"
-            strokeWidth="1.8"
-            vectorEffect="non-scaling-stroke"
-          />
-          {hover != null && (
-            <line
-              x1={x(hover)}
-              x2={x(hover)}
-              y1={0}
-              y2={240}
-              stroke="var(--muted)"
-              strokeDasharray="3 3"
-              vectorEffect="non-scaling-stroke"
-            />
-          )}
-        </svg>
-        {point && (
-          <>
-            {value != null && (
-              <div
-                className="chart-dot"
-                style={{ left: (x(hover!) / 8) + "%", top: (y(value) / 240) * 100 + "%" }}
-              />
-            )}
-            <div
-              className={"chart-tip " + (x(hover!) > 480 ? "flip" : "")}
-              style={{ left: (x(hover!) / 8) + "%" }}
-            >
-              <strong className="mono">
-                {point.time == null ? "DNF" : fmtTime(point.time)}
-              </strong>
-              {averages[hover!] != null && (
-                <span className="mono" style={{ color: "var(--series)" }}>
-                  Ao5 {fmtTime(averages[hover!])}
-                </span>
-              )}
-              <small className="muted">
-                #{hover! + 1} · {point.displayDate}
-              </small>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

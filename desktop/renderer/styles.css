@@ -1529,6 +1529,7 @@ progress {
   flex-direction: column;
   gap: 14px;
   min-height: 0;
+  min-width: 0;
 }
 .profile-header {
   gap: 12px;
@@ -1795,7 +1796,8 @@ progress {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 .panel {
@@ -1819,10 +1821,11 @@ progress {
 }
 .chart-area {
   flex: 1;
-  min-height: 160px;
+  min-height: 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 4px 10px;
 }
 .chart-axis {
   position: relative;
@@ -1838,6 +1841,55 @@ progress {
 .chart-plot {
   position: relative;
   min-height: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+.chart-plot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.chart-plot.panning {
+  cursor: grabbing;
+}
+.chart-dates {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.chart-dates span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chart-reset {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  z-index: 2;
+  min-height: 26px;
+  padding: 3px 8px;
+  font-size: 11px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+}
+.chart-selection-label {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 11px;
+  text-align: center;
+  pointer-events: none;
 }
 .chart {
   display: block;
@@ -1944,6 +1996,7 @@ progress {
 }
 .stats.compact .stats-grid {
   grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
   flex: none;
 }
 .stats.compact .chart-area {
@@ -2008,7 +2061,7 @@ progress {
 }
 @media (max-width: 900px) {
   .profile-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     gap: 12px;
   }
@@ -2039,7 +2092,7 @@ progress {
   }
   .stats-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(200px, 1fr) minmax(160px, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
   .stat-strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2049,6 +2102,12 @@ progress {
   }
 }
 @media (max-width: 640px) {
+  .stats:not(.compact) .stat-strip {
+    grid-template-columns: repeat(7, minmax(110px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface3) transparent;
+  }
   .stat-grid {
     grid-template-columns: 1fr;
     grid-template-rows: none;
@@ -2059,6 +2118,29 @@ progress {
   }
 }
 @media (max-height: 640px) {
+  .stats:not(.compact) {
+    gap: 8px;
+  }
+  .stats:not(.compact) .stat-strip {
+    grid-template-columns: repeat(7, minmax(90px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface3) transparent;
+  }
+  .stats:not(.compact) .stat-tile {
+    padding: 6px 8px;
+  }
+  .stats:not(.compact) .stat-tile span {
+    font-size: 17px;
+  }
+  .stats:not(.compact) .stats-grid {
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 8px;
+  }
+  .stats:not(.compact) .panel {
+    padding: 8px 10px;
+    gap: 6px;
+  }
   .stat-card {
     padding: 10px 14px;
     gap: 6px;
@@ -2071,6 +2153,15 @@ progress {
   }
   .stat-grid {
     grid-template-rows: repeat(2, minmax(120px, 1fr));
+  }
+}
+@media (max-height: 640px) and (max-width: 900px) {
+  .profile-side {
+    flex-wrap: nowrap;
+  }
+  .profile-nav {
+    flex: 1;
+    min-width: 0;
   }
 }
 .mini-bars {
