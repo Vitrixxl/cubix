@@ -173,6 +173,14 @@ function Nav() {
           </Button>
         ))}
       </div>
+      <div className="nav-shell">
+        <Button
+          action="settings"
+          className={"nav-tab " + (s.overlay === "settings" ? "selected" : "unselected")}
+          icon="IconSettings"
+          title="Settings (Alt+S)"
+        />
+      </div>
     </nav>
   );
 }
@@ -1180,7 +1188,7 @@ function AccountForm() {
           );
           s.user = v.user;
           s.sessions.clear();
-          s.profileMode = "overview";
+          s.overlay = "";
           setPassword("");
           await s.refresh();
         } catch (e) {
@@ -1738,7 +1746,7 @@ function TrainingProgress() {
 function Settings() {
   const guest = s.user.isGuest;
   return (
-    <div className="scroll col settings">
+    <div className="col settings">
       <div className="panel col">
         {guest ? (
           <>
@@ -1775,17 +1783,8 @@ function Profile() {
   const p = s.profile;
   if (!p) return <Empty>Loading…</Empty>;
   const guest = s.user.isGuest,
-    mode = guest
-      ? s.profileMode === "settings"
-        ? "account"
-        : s.profileMode
-      : s.profileMode === "account"
-        ? "settings"
-        : s.profileMode,
-    sections: [string, string, string][] = [
-      ...PROFILE_SECTIONS,
-      guest ? ["account", "Account", "IconUser"] : ["settings", "Settings", "IconSettings"],
-    ],
+    sections = PROFILE_SECTIONS,
+    mode = sections.some(([m]) => m === s.profileMode) ? s.profileMode : "overview",
     title = sections.find(([m]) => m === mode)?.[1] ?? "Overview";
   return (
     <div className="page profile-page">
@@ -1853,8 +1852,6 @@ function Profile() {
             <TrainingProgress />
           ) : mode === "achievements" ? (
             <Achievements />
-          ) : mode === "settings" || mode === "account" ? (
-            <Settings />
           ) : (
             <Overview />
           )}
@@ -2181,7 +2178,9 @@ function Overlay() {
             ? "search-modal"
             : s.overlay === "profileCase"
               ? "stats-modal"
-              : "")
+              : s.overlay === "settings"
+                ? "settings-modal"
+                : "")
         }
         onClick={(e) => e.stopPropagation()}
       >
@@ -2193,7 +2192,9 @@ function Overlay() {
                 ? "Comment"
                 : s.overlay === "profileCase"
                   ? s.caseId
-                  : "Solve"}
+                  : s.overlay === "settings"
+                    ? "Settings"
+                    : "Solve"}
           </h2>
           <Button action="close" icon="IconClose" />
         </Row>
@@ -2232,6 +2233,8 @@ function Overlay() {
               ))}
             </div>
           </>
+        ) : s.overlay === "settings" ? (
+          <Settings />
         ) : s.overlay === "profileCase" ? (
           <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
         ) : s.overlay === "comment" ? (
@@ -2326,6 +2329,7 @@ function App() {
             Digit2: "nav:algorithms",
             Digit3: "nav:training",
             Digit4: "nav:profile",
+            KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
             KeyC: "cases",

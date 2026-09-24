@@ -568,7 +568,10 @@ export class Store {
           break;
         case "account":
           this.login = arg === "login";
-          this.profileMode = "account";
+          this.overlay = "settings";
+          break;
+        case "settings":
+          this.overlay = this.overlay === "settings" ? "" : "settings";
           break;
         case "logout":
           await call("logout");

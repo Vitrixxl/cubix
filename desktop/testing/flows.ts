@@ -186,7 +186,8 @@ try {
   console.log(
     "Account registration imports guest solves, profile, achievements",
   );
-  await act("profileMode:settings");
+  await act("settings");
+  await page.waitForSelector(".settings-modal");
   for (const name of [
     "t3-code",
     "t3-chat",

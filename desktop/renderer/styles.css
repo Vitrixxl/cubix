@@ -2045,13 +2045,20 @@ progress {
   margin: 0;
 }
 .settings {
-  flex: 1;
-  gap: 12px;
-  max-width: 640px;
-  padding-bottom: 12px;
+  gap: 20px;
 }
 .settings .panel {
   flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.settings .panel h3 {
+  margin: 0;
+}
+.settings-modal {
+  width: min(520px, 100%);
 }
 .settings .setting:last-child {
   border-bottom: 0;
