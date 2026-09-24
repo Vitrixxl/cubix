@@ -8,7 +8,7 @@ use axum::{
     Json,
     body::Body,
     extract::{Path, Request, State},
-    http::{HeaderMap, header},
+    http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use http_body_util::BodyExt;
@@ -154,25 +154,56 @@ pub async fn upload_asset(
     let size = result?;
     Ok(Json(json!({"size":size})).into_response())
 }
-pub async fn asset(Path(digest): Path<String>) -> Result<Response> {
+/// Assets are immutable, so a `Range: bytes=N-` request resumes a download exactly where an
+/// earlier session stopped: the desktop application fetches the launcher binary this way.
+pub async fn asset(Path(digest): Path<String>, headers: HeaderMap) -> Result<Response> {
     if !hash(&digest) {
         return Err(ApiError::new(404, "Unknown asset"));
     }
     let path = root().join("assets").join(digest);
-    let file = tokio::fs::File::open(path)
+    let mut file = tokio::fs::File::open(path)
         .await
         .map_err(|_| ApiError::new(404, "Unknown asset"))?;
     let size = file.metadata().await.map_err(ApiError::internal)?.len();
+    let offset = headers
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("bytes="))
+        .and_then(|value| value.strip_suffix('-'))
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|offset| *offset > 0 && *offset < size);
+    if let Some(offset) = offset {
+        use tokio::io::AsyncSeekExt;
+        file.seek(std::io::SeekFrom::Start(offset))
+            .await
+            .map_err(ApiError::internal)?;
+    }
     let mut response = (
         [
             (header::CONTENT_TYPE, "application/octet-stream"),
             (header::CACHE_CONTROL, "public, max-age=31536000, immutable"),
+            (header::ACCEPT_RANGES, "bytes"),
         ],
         Body::from_stream(ReaderStream::with_capacity(file, 64 * 1024)),
     )
         .into_response();
-    response
-        .headers_mut()
-        .insert(header::CONTENT_LENGTH, size.into());
+    match offset {
+        Some(offset) => {
+            *response.status_mut() = StatusCode::PARTIAL_CONTENT;
+            let range = format!("bytes {}-{}/{}", offset, size - 1, size);
+            response.headers_mut().insert(
+                header::CONTENT_RANGE,
+                HeaderValue::from_str(&range).map_err(ApiError::internal)?,
+            );
+            response
+                .headers_mut()
+                .insert(header::CONTENT_LENGTH, (size - offset).into());
+        }
+        None => {
+            response
+                .headers_mut()
+                .insert(header::CONTENT_LENGTH, size.into());
+        }
+    }
     Ok(response)
 }

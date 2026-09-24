@@ -219,7 +219,7 @@ else {
             if (await installLauncherBinary(base, manifest, process.env.CUBIX_API_ORIGIN ?? config.origin))
               console.log("Launcher binary updated.");
           } catch (error) { console.error("Launcher binary update:", error); }
-        })(), 15000);
+        })(), 5000);
       updateTimer = setInterval(() => { void checkUpdate(); }, 2000);
     })
     .catch((error) => {

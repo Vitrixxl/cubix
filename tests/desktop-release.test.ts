@@ -46,6 +46,16 @@ test("desktop API requires admin auth, verifies asset hashes and publishes only 
   expect((await request("/assets/" + hash, "PUT", bytes)).status).toBe(200);
   expect(await (await request("/assets/" + hash)).text()).toBe(bytes);
   expect((await request("/assets/" + hash, "HEAD")).status).toBe(200);
+  // Immutable assets resume: the desktop app fetches the launcher binary across sessions.
+  const resumed = await app.handle(new Request("http://test/api/desktop/assets/" + hash, { headers: { Range: "bytes=8-" } }));
+  expect(resumed.status).toBe(206);
+  expect(resumed.headers.get("content-range")).toBe(`bytes 8-${bytes.length - 1}/${bytes.length}`);
+  expect(resumed.headers.get("accept-ranges")).toBe("bytes");
+  expect(await resumed.text()).toBe(bytes.slice(8));
+  // Ranges the server does not support fall back to the whole asset.
+  const whole = await app.handle(new Request("http://test/api/desktop/assets/" + hash, { headers: { Range: "bytes=0-3" } }));
+  expect(whole.status).toBe(200);
+  expect(await whole.text()).toBe(bytes);
   expect(
     (await request("/releases/linux-x64", "PUT", envelope, false)).status,
   ).toBe(401);

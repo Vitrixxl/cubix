@@ -197,3 +197,55 @@ test("the announced launcher binary is validated, then installed in place by the
     expect(await installLauncherBinary(base, manifest(1), server.url.origin)).toBe(false);
   } finally { server.stop(true); await rm(base, { recursive: true, force: true }); }
 });
+
+test("the launcher binary download resumes across sessions and survives servers without Range", async () => {
+  const { downloadAssetToFile, installLauncherBinary } = await import("../updater");
+  const { stat } = await import("node:fs/promises");
+  const body = Buffer.alloc(300000);
+  for (let i = 0; i < body.length; i++) body[i] = (i * 7) & 0xff;
+  const file = { size: body.length, sha256: sha256(body) };
+  let stallAfter = 120000, ranges: string[] = [], honourRange = true;
+  const server = Bun.serve({ port: 0, fetch(req) {
+    const range = req.headers.get("range"); if (range) ranges.push(range);
+    const offset = honourRange && range ? Number(range.slice("bytes=".length, -1)) : 0;
+    const stream = new ReadableStream({ async start(controller) {
+      for (let at = offset; at < body.length; at += 50000) {
+        if (at >= stallAfter) { await Bun.sleep(600); }
+        controller.enqueue(body.subarray(at, at + 50000));
+        await Bun.sleep(5);
+      }
+      controller.close();
+    } });
+    return new Response(stream, { status: offset ? 206 : 200, headers: offset ? { "content-range": `bytes ${offset}-${body.length - 1}/${body.length}` } : {} });
+  } });
+  const base = await mkdtemp(join(tmpdir(), "cubix-resume-"));
+  const path = join(base, "cubix");
+  try {
+    // First session: the transfer stalls; the partial file stays for next time.
+    const stalled = await downloadAssetToFile(server.url, file, path, { idleTimeout: 200 }).then(() => null, (e) => e);
+    expect(stalled?.name).toBe("TimeoutError");
+    const partial = (await stat(path + ".part")).size;
+    expect(partial).toBeGreaterThan(0); expect(partial).toBeLessThan(body.length);
+    // Second session resumes from there and only fetches the rest.
+    stallAfter = Infinity;
+    await downloadAssetToFile(server.url, file, path, { idleTimeout: 2000, mode: 0o755 });
+    expect(ranges).toEqual([`bytes=${partial}-`]);
+    expect((await readFile(path)).equals(body)).toBe(true);
+    expect((await stat(path)).mode & 0o777).toBe(0o755);
+    expect(await Bun.file(path + ".part").exists()).toBe(false);
+    // A server that ignores Range answers 200: the leftover part is thrown away and the whole file re-read.
+    honourRange = false;
+    await writeFile(path + ".part", body.subarray(0, 1000));
+    await downloadAssetToFile(server.url, file, join(base, "again"), { idleTimeout: 2000 });
+    expect((await readFile(join(base, "again"))).equals(body)).toBe(true);
+    // The application entry point uses the same path for the announced launcher.
+    await writeFile(path, "old");
+    const manifestWithLauncher = { ...manifest(1), launcher: file };
+    const origin = server.url.origin;
+    const assetServer = Bun.serve({ port: 0, fetch: (req) => fetch(new URL(new URL(req.url).pathname.endsWith(file.sha256) ? "/" : "/missing", origin), { headers: req.headers }) });
+    try {
+      expect(await installLauncherBinary(base, manifestWithLauncher, assetServer.url.origin)).toBe(true);
+      expect((await readFile(path)).equals(body)).toBe(true);
+    } finally { assetServer.stop(true); }
+  } finally { server.stop(true); await rm(base, { recursive: true, force: true }); }
+});

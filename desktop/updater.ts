@@ -1,13 +1,16 @@
 /** Signed, content-addressed releases. Downloads never modify the running release. */
 import { setTimeout as sleep } from "node:timers/promises";
 import { createHash, createPublicKey, verify } from "node:crypto";
+import { createReadStream } from "node:fs";
 import {
   chmod,
   copyFile,
   mkdir,
+  open,
   readFile,
   rename,
   rm,
+  stat,
   writeFile,
 } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
@@ -187,6 +190,60 @@ export async function fetchAsset(
     clearTimeout(timer);
   }
 }
+/**
+ * Stream one asset to `path` on disk. A `.part` file left by an earlier session is resumed with a
+ * `Range` request when the server honours it (206), otherwise the download restarts. The signed digest
+ * is checked over the whole file before it replaces `path`. A stall keeps the partial file for next time.
+ */
+export async function downloadAssetToFile(
+  url: string | URL,
+  file: { size: number; sha256: string },
+  path: string,
+  { onProgress = () => {}, idleTimeout = 120000, mode = 0o644 }: { onProgress?: (bytes: number) => void; idleTimeout?: number; mode?: number } = {},
+): Promise<void> {
+  const partial = `${path}.part`;
+  let offset = 0;
+  try {
+    offset = (await stat(partial)).size;
+    if (offset >= file.size) offset = 0;
+  } catch {}
+  const controller = new AbortController();
+  let timer = setTimeout(() => controller.abort(), idleTimeout);
+  const touch = () => { clearTimeout(timer); timer = setTimeout(() => controller.abort(), idleTimeout); };
+  let discard = false;
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal, redirect: "error",
+      headers: offset ? { range: `bytes=${offset}-` } : {},
+    });
+    if (!response.ok || !response.body) throw Error(`Download failed: ${response.status}`);
+    if (response.status !== 206) offset = 0;
+    const handle = await open(partial, offset ? "a" : "w");
+    let size = offset;
+    try {
+      for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
+        size += chunk.length;
+        if (size > file.size) { discard = true; throw Error("Download larger than signed size"); }
+        await handle.write(chunk);
+        touch();
+        onProgress(size);
+      }
+    } finally { await handle.close(); }
+    if (size !== file.size) { discard = true; throw Error("Download incomplete"); }
+    const hash = createHash("sha256");
+    for await (const chunk of createReadStream(partial)) hash.update(chunk as Buffer);
+    if (hash.digest("hex") !== file.sha256) { discard = true; throw Error("Download integrity check failed"); }
+    await chmod(partial, mode);
+    await rename(partial, path);
+  } catch (error) {
+    if (discard) await rm(partial, { force: true });
+    if (controller.signal.aborted)
+      throw Object.assign(Error("The download stalled."), { name: "TimeoutError", cause: error });
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 async function json(path: string) {
   try {
     return JSON.parse(await readFile(path, "utf8"));
@@ -355,12 +412,8 @@ export async function installLauncherBinary(base: string, manifest: Manifest, or
   if (!asset) return false;
   const destination = join(base, process.platform === "win32" ? "cubix.exe" : "cubix");
   try { if (sha256(await readFile(destination)) === asset.sha256) return false; } catch {}
-  const bytes = await fetchAsset(new URL(`/api/desktop/assets/${asset.sha256}`, origin), asset, { onProgress, idleTimeout: 120000 });
-  const temporary = `${destination}.new-${process.pid}`;
-  try {
-    await writeFile(temporary, bytes, { mode: 0o755 });
-    await rename(temporary, destination);
-  } finally { await rm(temporary, { force: true }); }
+  // Resumable across sessions: a short session still brings the binary a little closer.
+  await downloadAssetToFile(new URL(`/api/desktop/assets/${asset.sha256}`, origin), asset, destination, { onProgress, idleTimeout: 120000, mode: 0o755 });
   return true;
 }
 
