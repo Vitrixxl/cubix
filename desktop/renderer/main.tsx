@@ -905,6 +905,9 @@ function Catalog() {
           ))}
         </Row>
         <Row>
+          <Button action="methods" icon="IconBook" title="Solving methods">
+            Methods
+          </Button>
           <Button
             action="learningFilter:learned"
             active={s.learningFilter === "learned"}
@@ -1956,6 +1959,8 @@ function Guides() {
         <article
           className="guide-content"
           onClick={(e) => {
+            const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
+            if (button) return void s.action(button.dataset.action!);
             const a = (e.target as HTMLElement).closest("a");
             if (!a) return;
             e.preventDefault();
@@ -1974,7 +1979,7 @@ function Guides() {
               );
           }}
         >
-          <GuideContent page={s.page as Guide} />
+          <GuideContent page={s.page as Guide} puzzle={s.guidePuzzle} method={s.guideMethod} />
         </article>
       </div>
     </div>

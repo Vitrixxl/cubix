@@ -34,7 +34,7 @@ mock.module("../src/components/LearnedToggle", () => ({ LearnedToggle: () => nul
 mock.module("../src/components/Select", () => ({ Select: "Select" }));
 mock.module("../src/components/TimesChart", () => ({ TimesChart: () => null }));
 mock.module("../src/components/AlgText", () => ({ AlgorithmBadges: () => null, AlgText: () => null }));
-mock.module("../src/components/icons", () => ({ IconBack: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
+mock.module("../src/components/icons", () => ({ IconBack: () => null, IconBook: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
 mock.module("../src/components/ui", () => Object.fromEntries([
   ...["Btn", "Caption", "Chip", "Empty", "H1", "Kpi", "MiniBtn", "Muted", "Segmented"].map(name => [name, name]),
   ["mono", () => ({})],

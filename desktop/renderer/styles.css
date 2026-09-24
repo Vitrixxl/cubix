@@ -2234,3 +2234,21 @@ progress {
 
 .learning-groups { display: flex; flex-direction: column; gap: 8px; }
 .learning-groups .button { min-width: 44px; min-height: 44px; }
+
+.method-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 16px;
+}
+.guide-content .method-tabs .button {
+  color: #a9adba;
+}
+.guide-content .method-tabs .button:hover {
+  background: #1c1c22;
+  color: #eef0f5;
+}
+.guide-content .method-tabs .button.active {
+  background: #30303a;
+  color: #eef0f5;
+}

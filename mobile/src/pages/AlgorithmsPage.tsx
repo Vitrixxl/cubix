@@ -15,7 +15,7 @@ import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { displayAlg, shortId } from "../lib/caseState";
 import { AlgorithmBadges, AlgText } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { IconBack, IconChevronDown, IconNext, IconTimer } from "../components/icons";
+import { IconBack, IconBook, IconChevronDown, IconNext, IconTimer } from "../components/icons";
 import { LearnedToggle } from "../components/LearnedToggle";
 import { Select } from "../components/Select";
 import { TimesChart } from "../components/TimesChart";
@@ -116,10 +116,12 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
     setRoute({ page: "algorithms", caseId: id, caseIds });
   }, [rows, setRoute]);
   const trainAll = (list: CaseDto[]) => { setSelection(list.map(c => c.id)); setRoute({ page: "training", autostart: true }); };
+  const openMethods = () => setRoute({ page: "guides", guide: "methods" });
   return <View style={styles.browser}>
     {!phone && <View style={styles.toolbar}>
       <Segmented options={sections.map(s => ({ id: s.stage, label: s.stage }))} value={stage} onChange={jumpTo} />
-      <View style={{ flexDirection: "row", gap: 4 }} accessibilityLabel="Learning status">
+      <View style={{ flexDirection: "row", gap: 4 }}>
+        <Btn small variant="ghost" icon={<IconBook size={15} color={t.text2} />} label="Methods" accessibilityLabel="Solving methods" onPress={openMethods} />
         {(["learned", "not-learned"] as const).map(filter => <Btn key={filter} small pressed={learningFilter === filter} onPress={() => setLearningFilter(value => value === filter ? "all" : filter)} label={filter === "learned" ? "Learned" : "Not learned"}>
           <Text style={[mono(t, 12), { color: t.readableMuted }]}>{sections.reduce((sum, s) => sum + (filter === "learned" ? s.learnedCount : s.all.length - s.learnedCount), 0)}</Text>
         </Btn>)}
@@ -162,6 +164,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
           { value: "learned", label: `Learned · ${activeSection?.learnedCount ?? 0}` },
           { value: "not-learned", label: `Not learned · ${(activeSection?.all.length ?? 0) - (activeSection?.learnedCount ?? 0)}` },
         ]} />
+      <Btn iconOnly icon={<IconBook size={18} color={t.text2} />} accessibilityLabel="Solving methods" onPress={openMethods} style={{ width: 44, minHeight: 44 }} />
     </View>}
   </View>;
 }

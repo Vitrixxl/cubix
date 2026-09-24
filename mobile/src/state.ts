@@ -11,7 +11,7 @@ import { storage } from "./platform/storage";
 // ---------------------------------------------------------------------------
 // Routing: one atom plus a bounded history so the Android back button behaves like the browser.
 // ---------------------------------------------------------------------------
-export type GuideId = "about" | "timer" | "algorithms" | "training" | "averages";
+export type GuideId = "about" | "timer" | "algorithms" | "training" | "methods" | "averages";
 export type Route =
   | { page: "guides"; guide?: GuideId }
   | { page: "algorithms"; caseId?: string; caseIds?: string[] }

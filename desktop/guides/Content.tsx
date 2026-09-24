@@ -1,6 +1,8 @@
+import type { PuzzleId } from '../../src/shared/puzzles';
+import { MethodsGuide } from './Methods';
 import { GUIDES, type Guide } from './pages';
 
-export function GuideContent({ page }: { page: Guide }) {
+export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guide; puzzle?: PuzzleId; method?: string }) {
   return <section className="public-content" id="about-cubix" aria-label="About Cubix" data-timer-ignore>
     <header><p className="public-eyebrow">CUBIX · GUIDES</p><h1>{GUIDES[page].heading}</h1></header>
     {page === 'overviewGuide' && <>
@@ -24,6 +26,7 @@ export function GuideContent({ page }: { page: Guide }) {
       <p className="public-lead">The library lists every case with its diagram, setup and algorithms. Open a case to compare its algorithms and see your statistics.</p>
       <h2>3D case previews</h2><p>Drag the cube to inspect it from another angle. Replay scramble shows the setup in three seconds for 2×2 and 3×3 cubes, then adds one second per size: four seconds for 4×4, up to seven seconds for 7×7. Blue is the front reference and red is the right reference. OLL highlights orientation, PLL highlights the last layer, and F2L hides last-layer pieces.</p>
       <h2>Browse by stage</h2><p>F2L pairs a corner and an edge to finish the first two layers. OLL orients the last layer. PLL permutes it. ZBLL finishes the last layer in one algorithm when its edges are already oriented, sorted by corner pattern (T, U, L, Pi, H, S, AS). Use the stage tabs to jump between them and the set switches to choose 2-look or full variants.</p>
+      <h2>Solving methods</h2><p>Methods in the toolbar opens a short explanation of each way to solve the selected puzzle, such as CFOP, Roux or ZZ on the 3×3. See <a href="/guides/solving-methods/">Solving methods</a>.</p>
       <h2>From reference to practice</h2><p>Press Train on a case or Train all on a group to open the <a href="/training/">trainer</a> with that selection. Trained cases show their best and mean time on their card.</p>
       <p>Sources are shown next to each algorithm. The <a href="https://github.com/Vitrixxl/cubix">Cubix source repository</a> documents the catalogue.</p>
     </>}
@@ -46,6 +49,7 @@ export function GuideContent({ page }: { page: Guide }) {
       <h2>Modes</h2><p>Standard, one-handed and blindfolded keep separate histories. Blindfolded time includes memorisation. Guest times stay on your device; sign in to sync them.</p>
       <p>For official competitions, follow the <a href="https://www.worldcubeassociation.org/regulations/">WCA Regulations</a>.</p>
     </>}
+    {page === 'methodsGuide' && <MethodsGuide puzzle={puzzle} method={method} />}
     {page === 'averagesGuide' && <>
       <p className="public-lead">A single best shows what happened once. An average shows how you usually solve. Here is how the <a href="/">Cubix timer</a> calculates them.</p>
       <h2>Average of 5 (Ao5)</h2><p>Take five consecutive results, drop the fastest and the slowest, average the remaining three. For 10.00, 12.00, 13.00, 14.00 and 20.00: (12 + 13 + 14) ÷ 3 = <strong>13.00</strong>.</p>
@@ -55,7 +59,7 @@ export function GuideContent({ page }: { page: Guide }) {
       <h2>Personal bests</h2><p>A timer solve that beats your all-time best single, Ao5 or Ao12 for the puzzle, scramble type and solve mode shows a brief green message. The first result sets the record without beating one.</p>
       <p>Official rules: <a href="https://www.worldcubeassociation.org/regulations/#9b">WCA formats</a> and <a href="https://www.worldcubeassociation.org/regulations/#9f">results</a>.</p>
     </>}
-    <nav className="public-links" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>
+    <nav className="public-links" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/solving-methods/">Solving methods</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>
     <footer><p>Cubix is an independent speedcubing app. Rubik’s is a trademark of its respective owner. <a href="https://github.com/Vitrixxl/cubix">Source code</a></p></footer>
   </section>;
 }

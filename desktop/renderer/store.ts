@@ -6,7 +6,7 @@ import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { fmtTime } from "../../src/client/lib/format";
-import { normalizeScrambleType } from "../../src/shared/puzzles";
+import { isPuzzle, normalizeScrambleType, type PuzzleId } from "../../src/shared/puzzles";
 export const catalog = catalogData as any;
 export const puzzleOf = (c: any) =>
   c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3);
@@ -77,6 +77,9 @@ export class Store {
   query = "";
   learningFilter = "all";
   catalogStage = "";
+  /** Puzzle and method shown by the solving methods guide, independent of the active puzzle. */
+  guidePuzzle: PuzzleId = "333";
+  guideMethod = "";
   profileMode = "overview";
   profileStage = "all";
   profilePuzzle = "333";
@@ -695,6 +698,18 @@ export class Store {
           break;
         case "close":
           this.overlay = "";
+          break;
+        case "methods":
+          this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
+          this.guideMethod = "";
+          this.navigate("methodsGuide");
+          break;
+        case "guidePuzzle":
+          if (isPuzzle(arg)) this.guidePuzzle = arg;
+          this.guideMethod = "";
+          break;
+        case "guideMethod":
+          this.guideMethod = arg;
           break;
         case "help":
           this.navigate(

@@ -1,13 +1,17 @@
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useState } from "react";
 import { Linking, ScrollView, Text, View } from "react-native";
-import { goBackAtom, routeAtom, type GuideId } from "../state";
+import { METHODS } from "../../../src/shared/methods";
+import { PUZZLES, type PuzzleId } from "../../../src/shared/puzzles";
+import { goBackAtom, puzzleAtom, routeAtom, type GuideId } from "../state";
 import { useLayout } from "../hooks/useLayout";
 import { useTheme } from "../theme";
+import { Select } from "../components/Select";
 import { Btn, Caption, H1, Muted } from "../components/ui";
 import { IconBack } from "../components/icons";
 
 // Bundled with the app: help remains available offline, independently of the website.
-const guides: Record<GuideId, { title: string; lead: string; sections: [string, string][] }> = {
+const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string; sections: [string, string][] }> = {
   about: {
     title: "About Cubix", lead: "Cubix is a free cube timer and algorithm trainer. No account is needed to start.",
     sections: [
@@ -32,6 +36,7 @@ const guides: Record<GuideId, { title: string; lead: string; sections: [string, 
     title: "Using the algorithm library", lead: "Open a case to compare its algorithms, view its setup and review your statistics.",
     sections: [
       ["Browse by stage", "F2L pairs a corner and an edge to finish the first two layers. OLL orients the last layer. PLL permutes it. ZBLL finishes the last layer in one algorithm when its edges are already oriented, sorted by corner pattern (T, U, L, Pi, H, S, AS). On phones, the stage selector at the bottom shows only the selected stage; larger screens use stage tabs to jump between sections. Set switches choose 2-look or full variants. Other puzzles have their own stages and sets."],
+      ["Solving methods", "The book button in the toolbar opens a short explanation of each way to solve the selected puzzle, such as CFOP, Roux or ZZ on the 3×3. It is also listed with the guides below."],
       ["From reference to practice", "Press Train on a case or Train all on a group to open the trainer with that selection. Trained cases show their best and mean time on their card. Learned and Not learned filter the catalogue by the learning status you mark on each case. On phones, choose All cases in the bottom filter to reset it. On larger screens, press the active filter again to show all cases."],
       ["Learning and sources", "Mark a case as learned independently of timed solves. Sources, recommendations, move counts and available video links appear next to each algorithm."],
     ],
@@ -62,14 +67,43 @@ const guides: Record<GuideId, { title: string; lead: string; sections: [string, 
 export function GuidesPage({ guide = "about" }: { guide?: GuideId }) {
   const t = useTheme(), layout = useLayout();
   const back = useSetAtom(goBackAtom), navigate = useSetAtom(routeAtom);
-  const content = guides[guide];
+  const content = guide === "methods" ? undefined : guides[guide];
+  const titles = Object.entries({ ...guides, methods: { title: "Solving methods" } }) as [GuideId, { title: string }][];
   return <View style={{ flex: 1, minHeight: 0, width: "100%", maxWidth: 850, alignSelf: "center", paddingHorizontal: layout.pagePadding, paddingTop: 12 }}>
     <Btn small variant="ghost" icon={<IconBack size={16} color={t.text2} />} label="Back" onPress={() => { if (!back()) navigate({ page: "profile" }); }} style={{ alignSelf: "flex-start", marginBottom: 12 }} />
     <ScrollView key={guide} style={{ flex: 1 }} contentContainerStyle={{ gap: 20, paddingBottom: layout.navSpace }}>
-      <Caption>CUBIX · GUIDES</Caption><H1 size={28}>{content.title}</H1><Muted>{content.lead}</Muted>
-      {content.sections.map(([title, body]) => <View key={title} style={{ gap: 8 }}><Text style={{ color: t.text, fontSize: 18, fontWeight: "700" }}>{title}</Text><Text style={{ color: t.text2, fontSize: 15, lineHeight: 24 }}>{body}</Text></View>)}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{Object.entries(guides).map(([id, value]) => <Btn key={id} small pressed={id === guide} label={value.title} onPress={() => navigate({ page: "guides", guide: id as GuideId })} />)}</View>
+      <Caption>CUBIX · GUIDES</Caption>
+      {content ? <>
+        <H1 size={28}>{content.title}</H1><Muted>{content.lead}</Muted>
+        {content.sections.map(([title, body]) => <Section key={title} title={title} body={body} />)}
+      </> : <MethodsGuide />}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{titles.map(([id, value]) => <Btn key={id} small pressed={id === guide} label={value.title} onPress={() => navigate({ page: "guides", guide: id })} />)}</View>
       <Btn small label="Cubix source code" onPress={() => void Linking.openURL("https://github.com/Vitrixxl/cubix")} style={{ alignSelf: "flex-start" }} />
     </ScrollView>
   </View>;
+}
+
+function Section({ title, body }: { title: string; body: string }) {
+  const t = useTheme();
+  return <View style={{ gap: 8 }}><Text style={{ color: t.text, fontSize: 18, fontWeight: "700" }}>{title}</Text><Text style={{ color: t.text2, fontSize: 15, lineHeight: 24 }}>{body}</Text></View>;
+}
+
+/** Opens on the active puzzle; choosing another one here does not change it. */
+function MethodsGuide() {
+  const [puzzle, setPuzzle] = useState<PuzzleId>(useAtomValue(puzzleAtom));
+  const [methodId, setMethodId] = useState("");
+  const methods = METHODS[puzzle], method = methods.find(m => m.id === methodId) ?? methods[0]!;
+  return <>
+    <H1 size={28}>Solving methods</H1>
+    <Muted>How each puzzle is usually solved, from a first solve to speed methods. Choose a puzzle, then a method.</Muted>
+    <View style={{ gap: 10 }}>
+      <Select value={puzzle} options={PUZZLES.map(p => ({ value: p.id, label: p.label }))} onChange={value => { setPuzzle(value); setMethodId(""); }}
+        accessibilityLabel={`Puzzle: ${PUZZLES.find(p => p.id === puzzle)?.label}`} style={{ alignSelf: "flex-start" }} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityLabel="Method">
+        {methods.map(m => <Btn key={m.id} small pressed={m === method} label={m.name} onPress={() => setMethodId(m.id)} />)}
+      </View>
+    </View>
+    <Section title={method.name} body={method.summary} />
+    {method.steps.map((step, i) => <Section key={step.title} title={`${i + 1}. ${step.title}`} body={step.text} />)}
+  </>;
 }
