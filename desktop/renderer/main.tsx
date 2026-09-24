@@ -424,10 +424,20 @@ function Practice() {
                     </div>
                   </div>
                 )}
-                <Button action="solution">
-                  {s.revealed ? "Hide solution" : "Show solution"}
-                  <Icon name="IconEye" size={14} />
-                </Button>
+                <Row className="practice-help">
+                  <Button action="solution">
+                    {s.revealed ? "Hide solution" : "Show solution"}
+                    <Icon name="IconEye" size={14} />
+                  </Button>
+                  {c.algorithms[0]?.youtube && (
+                    <Button
+                      action={"url:" + c.algorithms[0].youtube}
+                      title="Watch finger tricks video"
+                    >
+                      Watch video
+                    </Button>
+                  )}
+                </Row>
                 {previewSize > 0 && (hasCube ? (
                   <Cube
                     setup={s.training.setup}

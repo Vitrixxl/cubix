@@ -342,6 +342,7 @@ img {
 .practice-above > canvas,
 .practice-above > .svg-diagram,
 .practice-above > .heading,
+.practice-above > .practice-help,
 .practice-above > .case-caption {
   flex-shrink: 0;
 }
@@ -1497,11 +1498,11 @@ progress {
     align-items: end;
   }
   .training-above > .case-caption,
-  .training-above > .button,
+  .training-above > .practice-help,
   .training-above:not(.revealed) > .practice-alg {
     grid-column: 1 / -1;
   }
-  .training-above > .button {
+  .training-above > .practice-help {
     justify-self: center;
   }
   .training-above > .practice-alg {
