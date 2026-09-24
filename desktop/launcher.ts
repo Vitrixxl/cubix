@@ -152,6 +152,10 @@ try {
           target: config.target,
           onProgress: progress,
           onUpdate: openWindow,
+          launcherBinary: true,
+          onWarning: async (message) => {
+            await writeFile(join(base, "launcher.log"), new Date().toISOString() + " " + message + "\n", { flag: "a" });
+          },
         }) ?? current;
         await rm(join(base, "update-error.log"), { force: true });
       } catch (error) {

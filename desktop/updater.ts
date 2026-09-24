@@ -2,6 +2,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { createHash, createPublicKey, verify } from "node:crypto";
 import { createReadStream } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import {
   chmod,
   copyFile,
@@ -20,15 +21,16 @@ export type ReleaseFile = {
   size: number;
   executable: boolean;
 };
-export type LauncherAsset = { sha256: string; size: number };
+/** The launcher binary as published: its raw digest and size, and when available a gzip variant that halves the download. */
+export type LauncherAsset = { sha256: string; size: number; gzip?: { sha256: string; size: number } };
 export type Manifest = {
   schema: 1;
   target: string;
   build: number;
   commit: string;
   files: ReleaseFile[];
-  /** The launcher binary is announced rather than listed: the running application fetches it in the
-   * background, because at startup a slow connection cannot bring it in within the launcher's deadlines. */
+  /** The launcher binary is announced rather than listed: the launcher installs it after the release
+   * files (resumable, compressed), and the application retries in the background if that failed. */
   launcher?: LauncherAsset;
 };
 export type SignedRelease = { manifest: string; signature: string };
@@ -124,15 +126,12 @@ export function validateRelease(
     seen.add(f.path.toLowerCase());
     total += f.size;
   }
-  if (
-    v.launcher !== undefined &&
-    (typeof v.launcher !== "object" ||
-      v.launcher === null ||
-      !/^[a-f0-9]{64}$/.test(v.launcher.sha256) ||
-      !Number.isSafeInteger(v.launcher.size) ||
-      v.launcher.size < 1 ||
-      v.launcher.size > 512 * 1024 * 1024)
-  )
+  const validAsset = (asset: unknown) =>
+    typeof asset === "object" && asset !== null &&
+    /^[a-f0-9]{64}$/.test((asset as LauncherAsset).sha256) &&
+    Number.isSafeInteger((asset as LauncherAsset).size) &&
+    (asset as LauncherAsset).size >= 1 && (asset as LauncherAsset).size <= 512 * 1024 * 1024;
+  if (v.launcher !== undefined && (!validAsset(v.launcher) || (v.launcher.gzip !== undefined && !validAsset(v.launcher.gzip))))
     throw Error("Invalid launcher asset");
   if (
     total > 2 * 1024 ** 3 ||
@@ -268,6 +267,8 @@ export async function installUpdate({
   target,
   onProgress = () => {},
   onUpdate = async () => {},
+  launcherBinary = false,
+  onWarning = () => {},
 }: {
   base: string;
   origin: string;
@@ -276,6 +277,10 @@ export async function installUpdate({
   onProgress?: (text: string) => void;
   /** Called once, before the first download, when a newer release really has files to fetch. */
   onUpdate?: () => void | Promise<void>;
+  /** Also bring the announced launcher binary up to date, after the release files (the launcher itself does this). */
+  launcherBinary?: boolean;
+  /** A launcher binary that could not be fetched does not fail the update: the release is current already. */
+  onWarning?: (message: string) => void;
 }) {
   const url = new URL(origin);
   if (
@@ -297,11 +302,29 @@ export async function installUpdate({
   const signed = (await response.json()) as SignedRelease,
     manifest = validateRelease(signed, publicKey, target),
     id = sha256(signed.manifest);
+  const binaryPath = join(base, process.platform === "win32" ? "cubix.exe" : "cubix");
+  const binaryOutdated = async () => {
+    if (!launcherBinary || !manifest.launcher) return false;
+    try { return sha256(await readFile(binaryPath)) !== manifest.launcher.sha256; } catch { return true; }
+  };
   if (
     current &&
     (current.id === id || current.manifest.build >= manifest.build)
-  )
+  ) {
+    // Same release, but a launcher binary left behind by an earlier interrupted download.
+    if (await binaryOutdated()) {
+      await onUpdate();
+      let reported = -1;
+      const asset = manifest.launcher!.gzip ?? manifest.launcher!;
+      try {
+        await installLauncherBinary(base, manifest, origin, bytes => {
+          const percent = Math.min(100, Math.floor((bytes / asset.size) * 100));
+          if (percent !== reported) { reported = percent; onProgress(`Téléchargement de la mise à jour… ${percent} %`); }
+        });
+      } catch (error) { onWarning(`Launcher binary: ${String(error)}`); }
+    }
     return current;
+  }
   // A previously failed release stays quarantined until a different release is published.
   const failed = await json(join(base, "failed.json"));
   if (failed?.id === id) return current;
@@ -333,7 +356,10 @@ export async function installUpdate({
       if (copied) await chmod(path, f.executable ? 0o755 : 0o644);
       else pending.push(f);
     }
-    const total = pending.reduce((sum, f) => sum + f.size, 0);
+    // The launcher binary counts in the same bar, so the bar tells the truth about the whole update.
+    const binary = await binaryOutdated();
+    const binaryAsset = binary ? manifest.launcher!.gzip ?? manifest.launcher! : null;
+    const total = pending.reduce((sum, f) => sum + f.size, 0) + (binaryAsset?.size ?? 0);
     let received = 0, reported = -1;
     const report = (bytes: number) => {
       const percent = total ? Math.min(100, Math.floor(((received + bytes) / total) * 100)) : 100;
@@ -341,7 +367,7 @@ export async function installUpdate({
       reported = percent;
       onProgress(`Téléchargement de la mise à jour… ${percent} %`);
     };
-    if (pending.length) {
+    if (pending.length || binaryAsset) {
       await onUpdate();
       report(0);
     }
@@ -363,6 +389,14 @@ export async function installUpdate({
         JSON.stringify({ id: current.id }),
       );
     await setCurrent(base, id);
+    if (binaryAsset) {
+      // After the release is current: an interrupted binary download resumes at the next start.
+      try {
+        await installLauncherBinary(base, manifest, origin, report);
+        received += binaryAsset.size;
+        report(0);
+      } catch (error) { onWarning(`Launcher binary: ${String(error)}`); }
+    }
     return { id, manifest };
   } catch (e) {
     await rm(stage, { recursive: true, force: true });
@@ -404,15 +438,30 @@ export async function pruneReleases(base: string, healthyId: string) {
   }
 }
 
-/** Replace the installed launcher binary with the one the release announces, when it differs. Runs
- * inside the application after startup, where a slow download costs nothing; Linux allows replacing
- * the executable of the launcher process that started us. Returns whether a new binary was installed. */
+/** Replace the installed launcher binary with the one the release announces, when it differs. The
+ * launcher does this during the update; the application retries in the background if it failed.
+ * Linux allows replacing the executable of the launcher process that started us. The gzip variant is
+ * preferred when published: half the bytes. Returns whether a new binary was installed. */
 export async function installLauncherBinary(base: string, manifest: Manifest, origin: string, onProgress?: (bytes: number) => void) {
   const asset = manifest.launcher;
   if (!asset) return false;
   const destination = join(base, process.platform === "win32" ? "cubix.exe" : "cubix");
   try { if (sha256(await readFile(destination)) === asset.sha256) return false; } catch {}
   // Resumable across sessions: a short session still brings the binary a little closer.
+  if (asset.gzip) {
+    const compressed = `${destination}.gz`;
+    await downloadAssetToFile(new URL(`/api/desktop/assets/${asset.gzip.sha256}`, origin), asset.gzip, compressed, { onProgress, idleTimeout: 120000 });
+    try {
+      const bytes = gunzipSync(await readFile(compressed));
+      if (bytes.length !== asset.size || sha256(bytes) !== asset.sha256) throw Error("Launcher binary integrity check failed");
+      const temporary = `${destination}.new-${process.pid}`;
+      try {
+        await writeFile(temporary, bytes, { mode: 0o755 });
+        await rename(temporary, destination);
+      } finally { await rm(temporary, { force: true }); }
+    } finally { await rm(compressed, { force: true }); }
+    return true;
+  }
   await downloadAssetToFile(new URL(`/api/desktop/assets/${asset.sha256}`, origin), asset, destination, { onProgress, idleTimeout: 120000, mode: 0o755 });
   return true;
 }

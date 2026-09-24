@@ -32,6 +32,7 @@ export async function publishDesktop(origin: string, password: string) {
     );
     for (const file of release.files) publishedAssets.add(file.sha256);
     if (release.launcher) publishedAssets.add(release.launcher.sha256);
+    if (release.launcher?.gzip) publishedAssets.add(release.launcher.gzip.sha256);
   } else if (previous.status !== 404 && previous.status !== 204) {
     throw Error(`Desktop release check failed: ${previous.status}`);
   }
@@ -39,6 +40,7 @@ export async function publishDesktop(origin: string, password: string) {
   const uploads = [
     ...manifest.files,
     ...(manifest.launcher ? [{ ...manifest.launcher, path: launcherPath }] : []),
+    ...(manifest.launcher?.gzip ? [{ ...manifest.launcher.gzip, path: `${launcherPath}.gz` }] : []),
   ];
   const unique = [
     ...new Map(uploads.map((f) => [f.sha256, f])).values(),

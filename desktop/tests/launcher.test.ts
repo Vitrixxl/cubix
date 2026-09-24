@@ -48,21 +48,31 @@ async function fixture() {
   await writeFile(join(base,'current.json'),JSON.stringify({id:old}));
   await cp(join(suite,'cubix'),join(base,'cubix'));
   let release=signed(initial), fail=false;
+  const extras=new Map<string,Uint8Array>();
   let gate:Promise<void>=Promise.resolve();
   let assetGate:Promise<void>=Promise.resolve();
   let requests=0,downloads=0;
   const server=Bun.serve({port:0,async fetch(req){
     if(new URL(req.url).pathname.includes('/releases/')){requests++;await gate;return fail?new Response('failure',{status:503}):Response.json(release);}
     downloads++;await assetGate;
-    const hash=new URL(req.url).pathname.split('/').at(-1);
+    const hash=new URL(req.url).pathname.split('/').at(-1)!;
+    if(extras.has(hash))return new Response(extras.get(hash)!);
     const body=[...files.values()].find(body=>sha256(body)===hash);
     return body===undefined?new Response('missing',{status:404}):new Response(body);
   }});
   await writeFile(join(base,'launcher.json'),JSON.stringify({origin:server.url.origin,target:'linux-x64',publicKey}));
-  const launch=(env:Record<string,string>={})=>Bun.spawn([join(base,'cubix')],{env:{...process.env,DISPLAY:'',WAYLAND_DISPLAY:'',CUBIX_API_ORIGIN:server.url.origin,FIXTURE_LAUNCHES:join(base,'launches'),FIXTURE_STATUS:join(base,'status'),...env},stdout:'pipe',stderr:'pipe'});
+  const launch=(env:Record<string,string>={},executable='cubix')=>Bun.spawn([join(base,executable)],{env:{...process.env,DISPLAY:'',WAYLAND_DISPLAY:'',CUBIX_API_ORIGIN:server.url.origin,FIXTURE_LAUNCHES:join(base,'launches'),FIXTURE_STATUS:join(base,'status'),...env},stdout:'pipe',stderr:'pipe'});
   const text=async(name:string)=>await Bun.file(join(base,name)).exists()?await readFile(join(base,name),'utf8'):'';
   return {base,old,server,launch,launched:()=>text('launches'),status:()=>text('status'),
     publish(){files.set('app/main.cjs','updated'); release=signed(manifest(2));return sha256(release.manifest);},
+    /** Publish with a new launcher binary announced (gzip variant served); returns the release id and the binary. */
+    publishLauncher(){
+      files.set('app/main.cjs','updated');
+      const binary=Buffer.from(`#!/bin/sh\necho launcher ${Date.now()}\n`), gz=Bun.gzipSync(binary);
+      extras.set(sha256(gz),gz);
+      const m={...manifest(2),launcher:{sha256:sha256(binary),size:binary.length,gzip:{sha256:sha256(gz),size:gz.length}}};
+      release=signed(m);return {id:sha256(release.manifest),binary};
+    },
     fail(){fail=true;},tamper(){release.signature='invalid';},
     hold(){let done!:()=>void;gate=new Promise(resolve=>{done=resolve});return done;},
     holdAssets(){let done!:()=>void;assetGate=new Promise(resolve=>{done=resolve});return done;},
@@ -115,3 +125,21 @@ test('closing the startup window before the app starts cancels the launch',async
     expect(await Bun.file(join(f.base,'last-launch.json')).exists()).toBe(false);
   }finally{f.server.stop();}
 });
+test('the launcher installs its own announced binary during the update, before opening the app',async()=>{
+  const f=await fixture();const {id,binary}=f.publishLauncher();try{
+    const child=f.launch();expect(await child.exited).toBe(0);
+    expect((await f.launched()).trim()).toBe(`${id} -`);
+    expect((await readFile(join(f.base,'cubix'))).equals(binary)).toBe(true);
+    expect(await Bun.file(join(f.base,'cubix.gz')).exists()).toBe(false);
+    const status=await f.status();
+    expect(status).toContain('Téléchargement de la mise à jour… 100 %');
+    expect(status).toContain('"phase":"opening"');
+    // A relaunch with the same release and binary has nothing to do and opens the app directly.
+    // (The installed "binary" is the fixture's stand-in, so the real launcher runs from a sibling name.)
+    await cp(join(suite,'cubix'),join(f.base,'cubix-again'));
+    const again=f.launch({},'cubix-again');expect(await again.exited).toBe(0);
+    expect((await f.launched()).trim().split('\n')).toHaveLength(2);
+    expect((await f.status()).match(/"phase":"opening"/g)).toHaveLength(1);
+    expect((await readFile(join(f.base,'cubix'))).equals(binary)).toBe(true);
+  }finally{f.server.stop();}
+},15000);

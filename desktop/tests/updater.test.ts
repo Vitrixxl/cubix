@@ -249,3 +249,32 @@ test("the launcher binary download resumes across sessions and survives servers 
     } finally { assetServer.stop(true); }
   } finally { server.stop(true); await rm(base, { recursive: true, force: true }); }
 });
+
+test("a gzip launcher asset is preferred, decompressed and checked against the raw digest", async () => {
+  const { installLauncherBinary } = await import("../updater");
+  const binary = Buffer.from("#!/bin/sh\necho compressed launcher\n".repeat(50));
+  const gz = Bun.gzipSync(binary);
+  const launcher = { sha256: sha256(binary), size: binary.length, gzip: { sha256: sha256(gz), size: gz.length } };
+  expect(validateRelease(signed({ ...manifest(1), launcher }), publicKey, "linux-x64").launcher).toEqual(launcher);
+  expect(() => validateRelease(signed({ ...manifest(1), launcher: { ...launcher, gzip: { sha256: "no", size: 1 } } } as any), publicKey, "linux-x64")).toThrow("launcher asset");
+  let rawRequests = 0;
+  const server = Bun.serve({ port: 0, fetch: (req) => {
+    const path = new URL(req.url).pathname;
+    if (path.endsWith(launcher.gzip.sha256)) return new Response(gz);
+    if (path.endsWith(launcher.sha256)) { rawRequests++; return new Response(binary); }
+    return new Response("missing", { status: 404 });
+  } });
+  const base = await mkdtemp(join(tmpdir(), "cubix-launcher-gzip-"));
+  try {
+    await writeFile(join(base, "cubix"), "old", { mode: 0o755 });
+    expect(await installLauncherBinary(base, { ...manifest(1), launcher }, server.url.origin)).toBe(true);
+    expect((await readFile(join(base, "cubix"))).equals(binary)).toBe(true);
+    expect(rawRequests).toBe(0);
+    expect(await Bun.file(join(base, "cubix.gz")).exists()).toBe(false);
+    // A gzip whose content does not match the announced binary is rejected and leaves the old launcher.
+    const wrong = { ...launcher, sha256: "0".repeat(64) };
+    await writeFile(join(base, "cubix"), "old");
+    await expect(installLauncherBinary(base, { ...manifest(1), launcher: wrong }, server.url.origin)).rejects.toThrow("integrity");
+    expect(await readFile(join(base, "cubix"), "utf8")).toBe("old");
+  } finally { server.stop(true); await rm(base, { recursive: true, force: true }); }
+});

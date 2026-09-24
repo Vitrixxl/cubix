@@ -49,11 +49,14 @@ serveur en erreur ouvrent aussi la version installée, avec une notification
 « Mise à jour impossible ». Le lanceur interroge `GET /api/desktop/releases/linux-x64`.
 La fenêtre de démarrage et son rendu (`bootstrap/` dans la release) sont
 distribués dans les releases signées, afin de mettre aussi à niveau les
-installations antérieures. Le binaire du lanceur (~80 Mo) n’est qu’annoncé par le
-manifeste (`launcher`) : l’application le télécharge en arrière-plan après son
-ouverture et le remplace sur place, car au démarrage une connexion lente ne le
-ramènerait pas dans les délais. Les téléchargements ont un délai d’inactivité, pas
-de durée totale, et la barre suit les octets reçus. Le serveur renvoie un manifeste signé Ed25519 qui
+installations antérieures. Le binaire du lanceur (~80 Mo, ~37 Mo en gzip) n’est
+pas listé dans les fichiers mais annoncé par le manifeste (`launcher`) : le lanceur
+le télécharge après les fichiers de la release, compressé et avec reprise (`.part`
+et requêtes `Range`), puis se remplace sur place avant d’ouvrir l’application, de
+sorte que rien ne reste en retard. Si ce téléchargement échoue, l’application déjà
+à jour s’ouvre quand même et le reprend en arrière-plan. Les téléchargements ont un
+délai d’inactivité, pas de durée totale, et la barre suit les octets reçus, binaire
+du lanceur compris. Le serveur renvoie un manifeste signé Ed25519 qui
 identifie chaque fichier par son SHA-256. Les fichiers inchangés sont réutilisés ;
 seuls les nouveaux fichiers sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
 

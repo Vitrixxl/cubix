@@ -127,6 +127,9 @@ const launcherName = process.platform === "win32" ? "cubix.exe" : "cubix";
 const launcherFile = files.find((f) => f.path === `bootstrap/${launcherName}`);
 if (!launcherFile) throw Error("Launcher binary missing from the release bootstrap");
 files.splice(files.indexOf(launcherFile), 1);
+// Published compressed as well: half the bytes over a slow connection during startup.
+const compressedLauncher = Bun.gzipSync(await readFile(join(stage, "bootstrap", launcherName)), { level: 9 });
+await writeFile(join(stage, "bootstrap", `${launcherName}.gz`), compressedLauncher);
 const commit = Bun.spawnSync(["git", "rev-parse", "HEAD"])
   .stdout.toString()
   .trim();
@@ -136,7 +139,10 @@ const manifest: Manifest = {
   build: Number(process.env.CUBIX_DESKTOP_BUILD ?? Date.now()),
   commit,
   files,
-  launcher: { sha256: launcherFile.sha256, size: launcherFile.size },
+  launcher: {
+    sha256: launcherFile.sha256, size: launcherFile.size,
+    gzip: { sha256: sha256(compressedLauncher), size: compressedLauncher.length },
+  },
 };
 const raw = JSON.stringify(manifest),
   signed = {
