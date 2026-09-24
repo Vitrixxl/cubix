@@ -15,9 +15,11 @@ import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/reac
 import { store as s, catalog, matches } from "./store";
 import { call } from "./bridge";
 import { accents, theme } from "./theme";
+import { Icon, ActionButton } from "./ui";
 import { Cube } from "./Cube";
 import { UpdateNotification } from "./UpdateNotification";
 import { ErrorNotification } from "./ErrorNotification";
+import { StartupNotification } from "./StartupNotification";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import {
   fmtTime,
@@ -33,19 +35,6 @@ type Props = {
   className?: string;
   style?: React.CSSProperties;
 };
-function Icon({ name, size = 16 }: { name: string; size?: number }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="icon"
-      style={{
-        width: size,
-        height: size,
-        maskImage: `url(../assets/icons/${name}.svg)`,
-      }}
-    />
-  );
-}
 function Button({
   action,
   children,
@@ -63,12 +52,12 @@ function Button({
   disabled?: boolean;
 } & Props) {
   return (
-    <button
-      type="button"
+    <ActionButton
+      icon={icon}
       data-action={action}
       title={title ?? (typeof children === "string" ? children : action)}
       aria-label={title ?? (typeof children === "string" ? children : action)}
-      className={`button ${active ? "active" : ""} ${className}`}
+      className={`${active ? "active" : ""} ${className}`}
       style={style}
       disabled={disabled}
       onClick={(e) => {
@@ -76,8 +65,8 @@ function Button({
         void s.action(action, e.currentTarget);
       }}
     >
-      {icon && <Icon name={icon} />} {children}
-    </button>
+      {children}
+    </ActionButton>
   );
 }
 function Row({ children, className = "", style }: Props) {
@@ -2401,6 +2390,7 @@ function App() {
       <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
       {s.overlay && <Overlay key={s.overlay} />}
       <ErrorNotification message={s.error} />
+      <StartupNotification />
     </main>
   );
 }

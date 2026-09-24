@@ -136,3 +136,15 @@ test("atomic installation, offline retention, changed files, rollback and quaran
     await rm(base, { recursive: true, force: true });
   }
 });
+
+test("only connection failures count as being offline", async () => {
+  const { isOfflineError } = await import("../updater");
+  const refused = await fetch("http://127.0.0.1:9", { signal: AbortSignal.timeout(2000) }).then(() => null, (e) => e);
+  expect(isOfflineError(refused)).toBe(true);
+  expect(isOfflineError(Object.assign(new Error("The operation timed out"), { name: "TimeoutError" }))).toBe(true);
+  expect(isOfflineError(Object.assign(new Error("getaddrinfo ENOTFOUND cubix.example"), { code: "ENOTFOUND" }))).toBe(true);
+  expect(isOfflineError(new Error("Release server: 503"))).toBe(false);
+  expect(isOfflineError(new Error("Invalid release signature"))).toBe(false);
+  expect(isOfflineError(new Error("Download integrity check failed"))).toBe(false);
+  expect(isOfflineError(null)).toBe(false);
+});

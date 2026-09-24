@@ -20,7 +20,7 @@ async function run(args: string[]) {
 if (!process.argv.includes("--skip-build"))
   await run(["bun", "desktop/package.ts"]);
 const source = resolve(`artifacts/electron/cubix-linux-${process.arch}`);
-for (const file of ["cubix", "launcher.json", "current.json"]) {
+for (const file of ["cubix", "launcher.json", "current.json", "splash.cjs", "launcher/preload.cjs", "launcher/renderer/index.html", "launcher/renderer/launcher.js", "launcher/renderer/launcher.css"]) {
   if (!(await Bun.file(join(source, file)).exists()))
     throw Error(`Missing build: ${file}`);
 }
@@ -40,6 +40,8 @@ await cp(
   join(base, "releases", current.id),
   { recursive: true },
 );
+// Install the startup renderer before switching its entrypoint.
+await cp(join(source, "launcher"), join(base, "launcher"), {recursive:true});
 for (const name of ["cubix", "splash.cjs", "launcher.json"]) {
   await cp(join(source, name), join(base, name + ".new"));
   if (name === "cubix") await chmod(join(base, name + ".new"), 0o755);

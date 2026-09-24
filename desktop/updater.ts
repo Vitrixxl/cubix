@@ -47,6 +47,21 @@ export async function releaseRequest(
     await sleep(Math.min(180000, Math.max(1000, delay)));
   }
 }
+/**
+ * Whether an update failure means the server could not be reached at all: no network, DNS failure,
+ * refused or dropped connection, or a timeout. The launcher then opens the installed release offline.
+ * HTTP errors, invalid signatures and damaged downloads are not connection problems.
+ */
+export function isOfflineError(error: unknown): boolean {
+  const failure = error as { code?: unknown; name?: unknown; message?: unknown; cause?: unknown } | null;
+  if (!failure || typeof failure !== "object") return false;
+  const codes = ["ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EAI_AGAIN", "ETIMEDOUT", "ENETUNREACH", "ENETDOWN", "EHOSTUNREACH", "EPIPE",
+    "ConnectionRefused", "ConnectionClosed", "FailedToOpenSocket", "DNSException", "UNABLE_TO_CONNECT"];
+  if (typeof failure.code === "string" && codes.includes(failure.code)) return true;
+  if (failure.name === "TimeoutError" || failure.name === "AbortError" || failure.name === "ConnectTimeoutError") return true;
+  if (failure.cause && failure.cause !== error && isOfflineError(failure.cause)) return true;
+  return /fetch failed|unable to connect|network|socket|connection|timed? ?out/i.test(String(failure.message ?? ""));
+}
 export function validateRelease(
   signed: SignedRelease,
   publicKey: string,
@@ -194,7 +209,7 @@ export async function installUpdate({
       }
       if (!copied) {
         onProgress(
-          `Mise à jour de Cubix… ${Math.floor((done / manifest.files.length) * 100)} %`,
+          `Téléchargement de la mise à jour… ${Math.floor((done / manifest.files.length) * 100)} %`,
         );
         const asset = await releaseRequest(
           new URL(`/api/desktop/assets/${f.sha256}`, url),
@@ -268,16 +283,17 @@ export async function pruneReleases(base: string, healthyId: string) {
   }
 }
 
-/** Promote the signed bootstrap shipped with a release, including on legacy installations.
- * Linux permits replacing the executable while the old launcher finishes its work. */
+/** Promote the signed bootstrap shipped with a release (launcher binary, startup window and its
+ * renderer), including on legacy installations. Linux permits replacing the executable while the
+ * old launcher finishes its work. */
 export async function refreshLauncher(base: string, release: { id: string; manifest: Manifest }) {
-  for (const name of [process.platform === "win32" ? "cubix.exe" : "cubix", "splash.cjs"]) {
-    const file = release.manifest.files.find(file => file.path === `bootstrap/${name}`);
-    if (!file) continue;
-    const source = join(base, "releases", release.id, file.path), destination = join(base, name);
+  for (const file of release.manifest.files) {
+    if (!file.path.startsWith("bootstrap/")) continue;
+    const source = join(base, "releases", release.id, file.path), destination = join(base, file.path.slice("bootstrap/".length));
     const bytes = await readFile(source);
     if (sha256(bytes) !== file.sha256) throw Error("Invalid bootstrap checksum");
     try { if (sha256(await readFile(destination)) === file.sha256) continue; } catch {}
+    await mkdir(resolve(destination, ".."), { recursive: true });
     const temporary = destination + `.new-${process.pid}`;
     try {
       await writeFile(temporary, bytes, { mode: file.executable ? 0o755 : 0o644 });

@@ -1,5 +1,7 @@
 export interface Bridge {
   ready: () => Promise<void>;
+  /** Why the launcher opened this version without updating, if it did. */
+  startup: () => Promise<{ notice: "offline" | "update-failed" | null }>;
   availableUpdate: () => Promise<string | null>;
   restartUpdate: (id: string) => Promise<void>;
   call: (method: string, ...args: any[]) => Promise<any>;

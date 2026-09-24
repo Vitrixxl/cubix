@@ -14,6 +14,7 @@ import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { PageSkeleton } from "./src/components/Skeleton";
 import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
+import { Toast } from "./src/components/Toast";
 import { useLayout } from "./src/hooks/useLayout";
 import { PUZZLES } from "../src/shared/puzzles";
 import { ProfilePage } from "./src/pages/AccountPage";
@@ -120,6 +121,7 @@ function Shell() {
     <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} hidden={running || keyboardVisible} collapsed={navInFlow && keyboardVisible} phone={phone} />
     <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     <SyncIndicator hidden={running} offset={navInFlow ? 74 + safe.bottom : 84 + safe.bottom} />
+    <Toast />
   </SolveMenuProvider>;
 }
 

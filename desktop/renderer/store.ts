@@ -1,3 +1,4 @@
+import {appearanceFromStorage} from "../appearance";
 import { orderedGroups, moveLearningGroup, reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
@@ -167,8 +168,9 @@ export class Store {
           this.prefs[k] = JSON.parse(raw as string);
         } catch {}
       }
-      this.themeName = this.prefs["cubix.ui.theme"] ?? "t3-code";
-      this.light = this.prefs["cubix.ui.colorMode"] === "light";
+      const appearance = appearanceFromStorage(v.storage);
+      this.themeName = appearance.themeName;
+      this.light = appearance.light;
       this.puzzle = this.prefs["cubix.puzzle"] ?? "333";
       this.randomAuf = this.prefs["cubix.training.randomAuf"] ?? true;
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";

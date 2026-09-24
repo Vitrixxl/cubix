@@ -42,9 +42,14 @@ fichiers natifs (`NATIVE_INPUTS`), et l'URL des mises à jour, `<API>/api/mobile
 
 Deux chemins de mise à jour existent. Le JavaScript et les assets voyagent à la volée :
 `bun scripts/export-update.ts` exporte le bundle dans `build/updates/` avec un
-`update.json` que `bun run deploy` (racine) publie sur l'API. Au lancement, expo-updates
-démarre sur le bundle en cache et télécharge le plus récent pour le démarrage suivant ;
-les paramètres relancent cette vérification et affichent « Restart to update » quand un
+`update.json` que `bun run deploy` (racine) publie sur l'API. Au lancement, l'écran de
+démarrage (`StartupGate` + `Launcher`) affiche le cube de Cubix qui s'assemble, le même
+écran que le lanceur desktop, pendant que `startupUpdate` recherche et télécharge le
+bundle le plus récent puis redémarre dessus ; l'application ne s'ouvre qu'une fois le
+cube formé, et le cube se désassemble puis se réassemble tant que le chargement dure.
+Sans connexion (le serveur ne répond pas à `GET /api/mobile/release` en 6 s), la version
+installée s'ouvre directement et une notification « Mode hors ligne » l'annonce.
+Les paramètres relancent la vérification et affichent « Restart to update » quand un
 bundle attend. Une mise à jour n'est servie qu'aux APK de même `runtimeVersion`.
 Quand le natif change (dépendance, app.json, plugin, icône, police), la runtime version
 change avec lui : `bun run deploy` compile alors l'APK ARM64 et l'envoie ; les paramètres
@@ -144,7 +149,9 @@ l’émulateur Android, l’adresse de l’hôte est `http://10.0.2.2:PORT`.
   le thème, l’accent et l’aide.
 - Aucun chargement après le lancement : catalogue, statistiques et succès sont
   lus de façon synchrone depuis le stockage local et préchauffés au démarrage ;
-  les rares attentes affichent un squelette de la page à venir.
+  les rares attentes affichent un squelette de la page à venir. Le seul écran
+  d'attente est celui du démarrage, avec le cube animé partagé avec le desktop
+  (`src/client/lib/launcherCube.ts`).
 - Écrans limités à la hauteur de la fenêtre ; listes et fiches ont leur propre zone
   de défilement. Panneaux adaptés au format de l’écran.
 

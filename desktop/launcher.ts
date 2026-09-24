@@ -1,14 +1,18 @@
 delete process.env.ELECTRON_RUN_AS_NODE;
 /** Compiled with bun build --compile. No Bun installation or administrator rights required. */
+import { createInterface } from "node:readline";
+import { Readable } from "node:stream";
 import { mkdir, readFile, rm, writeFile, open } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { electronLaunchOptions } from "./platform";
 import {
   currentRelease,
   installUpdate,
+  isOfflineError,
   rollback,
   pruneReleases,
 } from "./updater";
+import type { StartupNotice } from "./launcher-state";
 const base = dirname(process.execPath),
   config = JSON.parse(await readFile(join(base, "launcher.json"), "utf8"));
 await mkdir(base, { recursive: true });
@@ -56,7 +60,7 @@ try {
     );
   const platform = await electronLaunchOptions();
   const startedAt = performance.now();
-  const launch = async (id: string) => {
+  const launch = async (id: string, notice: StartupNotice | null) => {
     const ready = join(base, `ready-${process.pid}`);
     await rm(ready, { force: true });
     const child = Bun.spawn(
@@ -67,6 +71,8 @@ try {
           CUBIX_LAUNCH_READY: ready,
           CUBIX_LAUNCHER_PATH: process.execPath,
           CUBIX_RELEASE_ID: id,
+          // The application tells the cuber why it opened without updating.
+          ...(notice ? { CUBIX_STARTUP_NOTICE: notice } : {}),
         },
         stdout: "ignore",
         stderr: Bun.file(join(base, "application.log")),
@@ -95,17 +101,37 @@ try {
     await child.exited;
     return null;
   };
-  // Keep the main application closed until the newest signed release is ready.
+  // Keep the main application closed until the newest signed release is ready. The startup window
+  // shows the shared cube animation; it reports on stdout when it is painted, when the cube stands
+  // and when the cuber closes it.
   const splash = Bun.spawn([executable(current.id), ...platform.args, join(base, "splash.cjs")], {
     env: { ...platform.env, CUBIX_SPLASH_DATA: join(base, "splash-profile") },
-    stdin: "pipe", stdout: "ignore", stderr: "ignore",
+    stdin: "pipe", stdout: "pipe", stderr: Bun.file(join(base, "launcher.log")),
   });
-  const progress = (message: string) => {
-    try { splash.stdin.write(JSON.stringify({ message }) + "\n"); } catch { /* Splash may have been closed. */ }
+  const window = { closed: false, settled: false, cancelled: false };
+  void splash.exited.then(() => { window.closed = true; });
+  void (async () => {
+    try {
+      for await (const line of createInterface({ input: Readable.fromWeb(splash.stdout as any) })) {
+        if (line === "settled") window.settled = true;
+        else if (line === "cancel") window.cancelled = true;
+      }
+    } catch { /* The window is gone. */ }
+  })();
+  const progress = (message: string, phase: "checking" | "opening" = "checking") => {
+    if (window.closed) return;
+    try { splash.stdin.write(JSON.stringify({ message, phase }) + "\n"); } catch { /* Splash may have been closed. */ }
+  };
+  /** Let the cube finish standing before the application takes over; a window that never
+   * painted (no display, slow machine) must not hold the start for long. */
+  const settled = async () => {
+    const deadline = Date.now() + 8000;
+    while (!window.settled && !window.cancelled && !window.closed && Date.now() < deadline) await Bun.sleep(50);
   };
   const updateLock = join(base, "update.lock");
   let updating = false;
   let selected = current;
+  let notice: StartupNotice | null = null;
   try {
     // A previous launcher may still be finishing its background download.
     progress("Recherche de mises à jour…");
@@ -124,24 +150,29 @@ try {
         await rm(join(base, "update-error.log"), { force: true });
       } catch (error) {
         await writeFile(join(base, "update-error.log"), new Date().toISOString() + " " + String(error) + "\n");
+        // Without a connection the installed version simply opens; any other failure is reported too.
+        notice = isOfflineError(error) ? "offline" : "update-failed";
         selected = await currentRelease(base) ?? current;
       }
     }
-    progress("Ouverture de Cubix…");
-    let healthyId = selected.id;
-    let child = await launch(healthyId);
-    if (!child) {
-      progress("Restauration de la version précédente…");
-      const previous = await rollback(base, selected.id);
-      if (previous) {
-        healthyId = previous.id;
-        child = await launch(healthyId);
+    progress(notice === "offline" ? "Hors ligne. Ouverture de Cubix…" : "Ouverture de Cubix…", "opening");
+    await settled();
+    if (!window.cancelled) {
+      let healthyId = selected.id;
+      let child = await launch(healthyId, notice);
+      if (!child) {
+        progress("Restauration de la version précédente…", "opening");
+        const previous = await rollback(base, selected.id);
+        if (previous) {
+          healthyId = previous.id;
+          child = await launch(healthyId, notice);
+        }
       }
+      if (!child) throw Error("Cubix could not start. See application.log.");
+      if (updating) await pruneReleases(base, healthyId);
     }
-    if (!child) throw Error("Cubix could not start. See application.log.");
-    if (updating) await pruneReleases(base, healthyId);
   } finally {
-    splash.stdin.end();
+    if (!window.closed) splash.stdin.end();
     await splash.exited;
     if (updating) await rm(updateLock, { force: true });
   }

@@ -114,6 +114,12 @@ await run([
   "--outfile",
   join(stage, "bootstrap/splash.cjs"),
 ]);
+// The startup window's renderer: the same React primitives, stylesheet, icons and fonts as the app.
+await run(["bun", "build", "desktop/renderer/launcher.tsx", "--target=browser", "--outdir", join(stage, "bootstrap/launcher/renderer"), "--minify", "--define", 'process.env.NODE_ENV="production"']);
+await run(["bun", "build", "desktop/electron/splash-preload.ts", "--target=node", "--format=cjs", "--external=electron", "--outfile", join(stage, "bootstrap/launcher/preload.cjs")]);
+await cp("desktop/renderer/launcher.html", join(stage, "bootstrap/launcher/renderer/index.html"));
+for (const directory of ["fonts", "icons"]) await cp(join("desktop/assets", directory), join(stage, "bootstrap/launcher/assets", directory), { recursive: true });
+await cp("desktop/linux/fr.vitrixxl.cubix.png", join(stage, "bootstrap/launcher/assets/icon.png"));
 await walk(stage);
 const commit = Bun.spawnSync(["git", "rev-parse", "HEAD"])
   .stdout.toString()
@@ -133,8 +139,8 @@ const raw = JSON.stringify(manifest),
 await Bun.write(join(stage, "release.json"), raw);
 await Bun.write(join(stage, "signed-release.json"), JSON.stringify(signed));
 await Bun.write(join(base, "release.json"), JSON.stringify(signed));
-for (const name of [process.platform === "win32" ? "cubix.exe" : "cubix", "splash.cjs"])
-  await cp(join(stage, "bootstrap", name), join(base, name));
+for (const name of [process.platform === "win32" ? "cubix.exe" : "cubix", "splash.cjs", "launcher"])
+  await cp(join(stage, "bootstrap", name), join(base, name), { recursive: true });
 await Bun.write(
   join(base, "launcher.json"),
   JSON.stringify({

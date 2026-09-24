@@ -160,6 +160,12 @@ else {
       const trusted = (event: Electron.IpcMainInvokeEvent) =>
         event.sender === window.webContents &&
         event.senderFrame === window.webContents.mainFrame;
+      ipcMain.handle("app:startup", (event) => {
+        if (!trusted(event)) throw Error("Invalid startup request");
+        // Set by the launcher when it opened this version without updating.
+        const notice = process.env.CUBIX_STARTUP_NOTICE;
+        return { notice: notice === "offline" || notice === "update-failed" ? notice : null };
+      });
       ipcMain.handle("update:available", (event) => {
         if (!trusted(event)) throw Error("Invalid update request");
         return checkUpdate();

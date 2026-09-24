@@ -31,24 +31,33 @@ le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge
 
 ## Mises à jour
 
-Au lancement, Cubix affiche un écran de chargement, recherche la dernière version
-et télécharge les fichiers modifiés avant d’ouvrir l’application. La nouvelle version
-est utilisée immédiatement, sans redémarrage manuel et sans interrompre un chrono.
-En cas de réseau indisponible ou de téléchargement invalide, la version installée
-reste utilisable. Le lanceur interroge `GET /api/desktop/releases/linux-x64`.
-Le lanceur lui-même et son écran de chargement sont distribués dans les releases
-signées, afin de mettre aussi à niveau les installations antérieures.
-Le serveur renvoie un manifeste signé Ed25519 qui identifie chaque fichier par
-son SHA-256. Les fichiers inchangés sont réutilisés ; seuls les nouveaux fichiers
-sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
+Au lancement, une fenêtre de démarrage affiche le cube de Cubix qui s’assemble
+pendant que le lanceur recherche la dernière version et télécharge les fichiers
+modifiés avant d’ouvrir l’application. C’est le même écran que sur téléphone :
+mêmes styles, composants React, icônes et polices Geist que l’application, avec le
+thème et le mode clair/sombre enregistrés. Si la vérification dure, le cube se
+désassemble puis se réassemble en boucle ; l’application ne s’ouvre qu’une fois le
+cube formé, jamais au milieu d’un flash. La nouvelle version est utilisée
+immédiatement, sans redémarrage manuel. « Annuler » ferme la fenêtre sans ouvrir
+l’application.
+
+Sans connexion, le lanceur ouvre directement la version installée et l’application
+affiche une notification « Mode hors ligne » ; une mise à jour invalide ou un
+serveur en erreur ouvrent aussi la version installée, avec une notification
+« Mise à jour impossible ». Le lanceur interroge `GET /api/desktop/releases/linux-x64`.
+Le lanceur lui-même, sa fenêtre de démarrage et son rendu (`bootstrap/` dans la
+release) sont distribués dans les releases signées, afin de mettre aussi à niveau
+les installations antérieures. Le serveur renvoie un manifeste signé Ed25519 qui
+identifie chaque fichier par son SHA-256. Les fichiers inchangés sont réutilisés ;
+seuls les nouveaux fichiers sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
 
 Une release est préparée dans un répertoire distinct. Le pointeur `current.json`
-est remplacé uniquement après vérification de tous les fichiers. L'application
-fonctionne hors ligne avec la release installée. Si une nouvelle version ne confirme
-pas son démarrage, le lanceur restaure la précédente et évite de retenter cette même
-release défectueuse. `update-error.log`, `application.log` et `last-launch.json`
-aident à diagnostiquer un problème ; `last-launch.json` contient aussi la durée du
-démarrage en millisecondes (`startupMs`). Les mises à jour ne touchent pas aux données.
+est remplacé uniquement après vérification de tous les fichiers. Si une nouvelle
+version ne confirme pas son démarrage, le lanceur restaure la précédente pendant le
+même démarrage et évite de retenter cette même release défectueuse.
+`update-error.log`, `launcher.log`, `application.log` et `last-launch.json` aident à
+diagnostiquer un problème ; `last-launch.json` contient aussi la durée du démarrage en
+millisecondes (`startupMs`). Les mises à jour ne touchent pas aux données.
 
 La première construction crée une clé privée dans
 `~/.config/cubix/desktop-signing.pem` (permissions 0600). Conserver et sauvegarder
@@ -87,6 +96,7 @@ bun run test:desktop             # moteur Bun et updater signé
 bun run test:desktop:ui          # vrais écrans Electron
 bun run test:desktop:responsive  # fenêtres étroites/courtes, aucun chevauchement
 bun desktop/testing/flows.ts     # interactions, API temporaire, thèmes, guides
+bun desktop/testing/launcher-appearance.ts # fenêtre de démarrage : 12 variantes de thème dans Xvfb isolé
 bun desktop/testing/launcher.ts  # mise à jour, rollback, quarantaine et démarrage hors ligne
 bun desktop/testing/update-notification.ts # notification et vrai redémarrage après build:desktop
 bun desktop/testing/compare.ts   # captures GPUI/Electron déterministes (build GPUI reference)

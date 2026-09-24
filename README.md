@@ -9,7 +9,8 @@ appareils. Desktop en **Electron / Bun**, Android en **React Native**, API en
 
 Le desktop utilise Electron pour l'interface et un moteur Bun pour les données.
 Le lanceur récupère automatiquement les mises à jour signées depuis l'API,
-sans sudo, et démarre la version installée lorsqu'il est hors ligne.
+sans sudo, puis ouvre l’application à jour. Hors ligne, il ouvre la version installée
+et l’application le signale dans une notification.
 
 ```sh
 bun install --frozen-lockfile
@@ -41,8 +42,10 @@ lu par SSH ou `CUBIX_DEPLOY_PASSWORD`) :
 - **Mise à jour à la volée (expo-updates)**, à chaque déploiement : `expo export` produit
   le bundle JavaScript et ses assets, envoyés à l'API (`PUT /api/mobile/updates/assets/<sha256>`
   puis `PUT /api/mobile/updates`). Les applications installées interrogent
-  `GET /api/mobile/updates/manifest` au lancement, téléchargent le bundle en arrière-plan
-  et l'appliquent au démarrage suivant, sans réinstallation. Ouvrir les paramètres
+  `GET /api/mobile/updates/manifest` au lancement, derrière l'écran de démarrage au cube
+  animé (le même que le lanceur desktop), téléchargent le bundle et redémarrent dessus
+  avant d'ouvrir la pratique, sans réinstallation. Sans connexion, la version installée
+  s'ouvre et une notification « Mode hors ligne » l'annonce. Ouvrir les paramètres
   relance la vérification et propose « Restart to update » dès qu'un bundle est prêt.
 - **APK**, seulement quand le natif change : `mobile/app.config.ts` dérive une
   `runtimeVersion` des fichiers natifs (app.json, plugins, bun.lock, icônes, police).
