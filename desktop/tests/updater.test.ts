@@ -148,3 +148,52 @@ test("only connection failures count as being offline", async () => {
   expect(isOfflineError(new Error("Download integrity check failed"))).toBe(false);
   expect(isOfflineError(null)).toBe(false);
 });
+
+test("assets stream with a byte progress and an inactivity deadline instead of a total one", async () => {
+  const { fetchAsset } = await import("../updater");
+  const body = Buffer.alloc(300000, 7);
+  let stall = false;
+  const server = Bun.serve({ port: 0, fetch() {
+    const stream = new ReadableStream({ async start(controller) {
+      for (let offset = 0; offset < body.length; offset += 100000) {
+        controller.enqueue(body.subarray(offset, offset + 100000));
+        await Bun.sleep(stall ? 400 : 60);
+      }
+      controller.close();
+    } });
+    return new Response(stream);
+  } });
+  try {
+    const file = { size: body.length, sha256: sha256(body) };
+    const seen: number[] = [];
+    // Slower than a whole-transfer deadline of 100 ms, yet every chunk arrives within the idle window.
+    const bytes = await fetchAsset(server.url, file, { onProgress: (b) => seen.push(b), idleTimeout: 250 });
+    expect(bytes.equals(body)).toBe(true);
+    expect(seen.at(-1)).toBe(body.length);
+    expect(seen.length).toBeGreaterThanOrEqual(3);
+    stall = true;
+    const stalled = await fetchAsset(server.url, file, { idleTimeout: 150 }).then(() => null, (e) => e);
+    expect(stalled?.name).toBe("TimeoutError");
+    await expect(fetchAsset(server.url, { ...file, sha256: "0".repeat(64) }, { idleTimeout: 2000 })).rejects.toThrow("integrity");
+  } finally { server.stop(true); }
+});
+
+test("the announced launcher binary is validated, then installed in place by the application", async () => {
+  const { installLauncherBinary } = await import("../updater");
+  const binary = Buffer.from("#!/bin/sh\necho new launcher\n");
+  const launcher = { sha256: sha256(binary), size: binary.length };
+  expect(validateRelease(signed({ ...manifest(1), launcher }), publicKey, "linux-x64").launcher).toEqual(launcher);
+  expect(() => validateRelease(signed({ ...manifest(1), launcher: { sha256: "zz", size: 1 } } as any), publicKey, "linux-x64")).toThrow("launcher asset");
+  const base = await mkdtemp(join(tmpdir(), "cubix-launcher-binary-"));
+  const server = Bun.serve({ port: 0, fetch: (req) => new URL(req.url).pathname.endsWith(launcher.sha256) ? new Response(binary) : new Response("missing", { status: 404 }) });
+  try {
+    await writeFile(join(base, "cubix"), "old", { mode: 0o755 });
+    expect(await installLauncherBinary(base, { ...manifest(1), launcher }, server.url.origin)).toBe(true);
+    expect((await readFile(join(base, "cubix"))).equals(binary)).toBe(true);
+    expect(((await import("node:fs/promises")).stat(join(base, "cubix")).then((s) => s.mode & 0o755))).resolves.toBe(0o755);
+    // Already current: nothing is fetched again.
+    expect(await installLauncherBinary(base, { ...manifest(1), launcher }, "http://127.0.0.1:9")).toBe(false);
+    // Releases without an announced binary leave the installed launcher alone.
+    expect(await installLauncherBinary(base, manifest(1), server.url.origin)).toBe(false);
+  } finally { server.stop(true); await rm(base, { recursive: true, force: true }); }
+});

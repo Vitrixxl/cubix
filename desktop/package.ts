@@ -121,6 +121,12 @@ await cp("desktop/renderer/launcher.html", join(stage, "bootstrap/launcher/rende
 for (const directory of ["fonts", "icons"]) await cp(join("desktop/assets", directory), join(stage, "bootstrap/launcher/assets", directory), { recursive: true });
 await cp("desktop/linux/fr.vitrixxl.cubix.png", join(stage, "bootstrap/launcher/assets/icon.png"));
 await walk(stage);
+// The launcher binary is announced, not listed: at startup a slow connection could not download its
+// ~80 MB within the launcher's deadlines, so the running application fetches it in the background.
+const launcherName = process.platform === "win32" ? "cubix.exe" : "cubix";
+const launcherFile = files.find((f) => f.path === `bootstrap/${launcherName}`);
+if (!launcherFile) throw Error("Launcher binary missing from the release bootstrap");
+files.splice(files.indexOf(launcherFile), 1);
 const commit = Bun.spawnSync(["git", "rev-parse", "HEAD"])
   .stdout.toString()
   .trim();
@@ -130,6 +136,7 @@ const manifest: Manifest = {
   build: Number(process.env.CUBIX_DESKTOP_BUILD ?? Date.now()),
   commit,
   files,
+  launcher: { sha256: launcherFile.sha256, size: launcherFile.size },
 };
 const raw = JSON.stringify(manifest),
   signed = {

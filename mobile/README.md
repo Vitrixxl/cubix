@@ -43,10 +43,10 @@ fichiers natifs (`NATIVE_INPUTS`), et l'URL des mises à jour, `<API>/api/mobile
 Deux chemins de mise à jour existent. Le JavaScript et les assets voyagent à la volée :
 `bun scripts/export-update.ts` exporte le bundle dans `build/updates/` avec un
 `update.json` que `bun run deploy` (racine) publie sur l'API. Au lancement, l'écran de
-démarrage (`StartupGate` + `Launcher`) affiche le cube de Cubix qui s'assemble, le même
+démarrage (`StartupGate` + `Launcher`) affiche un cube mélangé qui se résout, le même
 écran que le lanceur desktop, pendant que `startupUpdate` recherche et télécharge le
 bundle le plus récent puis redémarre dessus ; l'application ne s'ouvre qu'une fois le
-cube formé, et le cube se désassemble puis se réassemble tant que le chargement dure.
+cube résolu, et le cube se remélange puis se résout de nouveau tant que le chargement dure.
 Sans connexion (le serveur ne répond pas à `GET /api/mobile/release` en 6 s), la version
 installée s'ouvre directement et une notification « Mode hors ligne » l'annonce.
 Les paramètres relancent la vérification et affichent « Restart to update » quand un

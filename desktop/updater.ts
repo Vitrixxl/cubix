@@ -17,12 +17,16 @@ export type ReleaseFile = {
   size: number;
   executable: boolean;
 };
+export type LauncherAsset = { sha256: string; size: number };
 export type Manifest = {
   schema: 1;
   target: string;
   build: number;
   commit: string;
   files: ReleaseFile[];
+  /** The launcher binary is announced rather than listed: the running application fetches it in the
+   * background, because at startup a slow connection cannot bring it in within the launcher's deadlines. */
+  launcher?: LauncherAsset;
 };
 export type SignedRelease = { manifest: string; signature: string };
 export const sha256 = (bytes: Uint8Array | string) =>
@@ -118,6 +122,16 @@ export function validateRelease(
     total += f.size;
   }
   if (
+    v.launcher !== undefined &&
+    (typeof v.launcher !== "object" ||
+      v.launcher === null ||
+      !/^[a-f0-9]{64}$/.test(v.launcher.sha256) ||
+      !Number.isSafeInteger(v.launcher.size) ||
+      v.launcher.size < 1 ||
+      v.launcher.size > 512 * 1024 * 1024)
+  )
+    throw Error("Invalid launcher asset");
+  if (
     total > 2 * 1024 ** 3 ||
     !seen.has("app/main.cjs") ||
     !seen.has("app/package.json") ||
@@ -125,6 +139,53 @@ export function validateRelease(
   )
     throw Error("Incomplete release");
   return v;
+}
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+/**
+ * Download one content-addressed asset and verify its signed size and digest. The deadline is on
+ * inactivity, not on the whole transfer, so a large file on a slow connection still arrives.
+ * Plain fetch only: this also runs inside the Electron application, outside Bun.
+ */
+export async function fetchAsset(
+  url: string | URL,
+  file: { size: number; sha256: string },
+  { onProgress = () => {}, idleTimeout = 60000 }: { onProgress?: (bytes: number) => void; idleTimeout?: number } = {},
+): Promise<Buffer> {
+  const controller = new AbortController();
+  let timer = setTimeout(() => controller.abort(), idleTimeout);
+  const touch = () => { clearTimeout(timer); timer = setTimeout(() => controller.abort(), idleTimeout); };
+  try {
+    let response: Response;
+    for (let attempt = 0; ; attempt++) {
+      response = await fetch(url, { signal: controller.signal, redirect: "error" });
+      if (response.status !== 429 || attempt >= 3) break;
+      const retry = Number(response.headers.get("retry-after"));
+      await response.body?.cancel();
+      await pause(Math.min(180000, Math.max(1000, Number.isFinite(retry) && retry > 0 ? retry * 1000 : 60000)));
+      touch();
+    }
+    if (!response.ok || !response.body) throw Error(`Download failed: ${response.status}`);
+    const hash = createHash("sha256");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
+      size += chunk.length;
+      if (size > file.size) throw Error("Download larger than signed size");
+      hash.update(chunk);
+      chunks.push(Buffer.from(chunk));
+      touch();
+      onProgress(size);
+    }
+    if (size !== file.size || hash.digest("hex") !== file.sha256)
+      throw Error("Download integrity check failed");
+    return Buffer.concat(chunks);
+  } catch (error) {
+    if (controller.signal.aborted)
+      throw Object.assign(Error("The download stalled."), { name: "TimeoutError", cause: error });
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 async function json(path: string) {
   try {
@@ -190,7 +251,9 @@ export async function installUpdate({
   await mkdir(stage, { recursive: true });
   try {
     const existing = new Map(current?.manifest.files.map((f) => [f.path, f]));
-    let done = 0;
+    // Unchanged files are copied from the installed release; the rest is downloaded with a
+    // progress that follows bytes, not file counts, since a release is a few large files.
+    const pending: ReleaseFile[] = [];
     for (const f of manifest.files) {
       const path = resolve(stage, f.path);
       if (!path.startsWith(resolve(stage) + sep))
@@ -207,29 +270,24 @@ export async function installUpdate({
           }
         } catch {}
       }
-      if (!copied) {
-        onProgress(
-          `Téléchargement de la mise à jour… ${Math.floor((done / manifest.files.length) * 100)} %`,
-        );
-        const asset = await releaseRequest(
-          new URL(`/api/desktop/assets/${f.sha256}`, url),
-        );
-        if (!asset.ok || !asset.body)
-          throw Error(`Download failed: ${asset.status}`);
-        const chunks: Uint8Array[] = [];
-        let size = 0;
-        for await (const chunk of asset.body as any) {
-          size += chunk.length;
-          if (size > f.size) throw Error("Download larger than signed size");
-          chunks.push(chunk);
-        }
-        const bytes = Buffer.concat(chunks);
-        if (size !== f.size || sha256(bytes) !== f.sha256)
-          throw Error("Download integrity check failed");
-        await writeFile(path, bytes);
-      }
+      if (copied) await chmod(path, f.executable ? 0o755 : 0o644);
+      else pending.push(f);
+    }
+    const total = pending.reduce((sum, f) => sum + f.size, 0);
+    let received = 0, reported = -1;
+    const report = (bytes: number) => {
+      const percent = total ? Math.min(100, Math.floor(((received + bytes) / total) * 100)) : 100;
+      if (percent === reported) return;
+      reported = percent;
+      onProgress(`Téléchargement de la mise à jour… ${percent} %`);
+    };
+    if (pending.length) report(0);
+    for (const f of pending) {
+      const bytes = await fetchAsset(new URL(`/api/desktop/assets/${f.sha256}`, url), f, { onProgress: report });
+      received += f.size;
+      const path = resolve(stage, f.path);
+      await writeFile(path, bytes);
       await chmod(path, f.executable ? 0o755 : 0o644);
-      done++;
     }
     await writeFile(join(stage, "release.json"), JSON.stringify(manifest));
     await writeFile(join(stage, "signed-release.json"), JSON.stringify(signed));
@@ -281,6 +339,23 @@ export async function pruneReleases(base: string, healthyId: string) {
       });
     }
   }
+}
+
+/** Replace the installed launcher binary with the one the release announces, when it differs. Runs
+ * inside the application after startup, where a slow download costs nothing; Linux allows replacing
+ * the executable of the launcher process that started us. Returns whether a new binary was installed. */
+export async function installLauncherBinary(base: string, manifest: Manifest, origin: string, onProgress?: (bytes: number) => void) {
+  const asset = manifest.launcher;
+  if (!asset) return false;
+  const destination = join(base, process.platform === "win32" ? "cubix.exe" : "cubix");
+  try { if (sha256(await readFile(destination)) === asset.sha256) return false; } catch {}
+  const bytes = await fetchAsset(new URL(`/api/desktop/assets/${asset.sha256}`, origin), asset, { onProgress, idleTimeout: 120000 });
+  const temporary = `${destination}.new-${process.pid}`;
+  try {
+    await writeFile(temporary, bytes, { mode: 0o755 });
+    await rename(temporary, destination);
+  } finally { await rm(temporary, { force: true }); }
+  return true;
 }
 
 /** Promote the signed bootstrap shipped with a release (launcher binary, startup window and its

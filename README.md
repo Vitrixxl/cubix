@@ -43,7 +43,7 @@ lu par SSH ou `CUBIX_DEPLOY_PASSWORD`) :
   le bundle JavaScript et ses assets, envoyés à l'API (`PUT /api/mobile/updates/assets/<sha256>`
   puis `PUT /api/mobile/updates`). Les applications installées interrogent
   `GET /api/mobile/updates/manifest` au lancement, derrière l'écran de démarrage au cube
-  animé (le même que le lanceur desktop), téléchargent le bundle et redémarrent dessus
+  mélangé qui se résout (le même que le lanceur desktop), téléchargent le bundle et redémarrent dessus
   avant d'ouvrir la pratique, sans réinstallation. Sans connexion, la version installée
   s'ouvre et une notification « Mode hors ligne » l'annonce. Ouvrir les paramètres
   relance la vérification et propose « Restart to update » dès qu'un bundle est prêt.

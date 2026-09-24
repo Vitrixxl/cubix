@@ -31,11 +31,17 @@ export async function publishDesktop(origin: string, password: string) {
       manifest.target,
     );
     for (const file of release.files) publishedAssets.add(file.sha256);
+    if (release.launcher) publishedAssets.add(release.launcher.sha256);
   } else if (previous.status !== 404 && previous.status !== 204) {
     throw Error(`Desktop release check failed: ${previous.status}`);
   }
+  const launcherPath = `bootstrap/${manifest.target.startsWith("win32") ? "cubix.exe" : "cubix"}`;
+  const uploads = [
+    ...manifest.files,
+    ...(manifest.launcher ? [{ ...manifest.launcher, path: launcherPath }] : []),
+  ];
   const unique = [
-    ...new Map(manifest.files.map((f) => [f.sha256, f])).values(),
+    ...new Map(uploads.map((f) => [f.sha256, f])).values(),
   ].filter((f) => !publishedAssets.has(f.sha256));
   let checked = 0;
   for (const f of unique) {

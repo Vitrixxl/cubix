@@ -1,27 +1,29 @@
 /**
- * The startup cube shared by the desktop launcher window and the phone launcher screen:
- * a stickerless 3×3 seen from a corner, like the application icon, whose 27 pieces fly in
- * from an exploded cloud while the whole model turns into its final pose.
+ * The startup cube shared by the desktop launcher window and the phone launcher screen: a stickerless
+ * 3×3 seen from a corner like the application icon, scrambled, that solves itself move by move and
+ * ends standing as the solved model.
  *
- * Everything here is pure geometry and timing. Each renderer (DOM SVG, react-native-svg)
- * draws the polygons of `launcherCubeFrame` and drives the progress with `launcherProgress`.
+ * Everything here is pure geometry and timing. Each renderer (DOM SVG, react-native-svg) draws the
+ * polygons of `launcherCubeFrame` and drives the progress with `launcherProgress`.
  */
 
-export type LauncherFill = "U" | "F" | "R" | "core";
+export type LauncherFill = "U" | "D" | "F" | "B" | "R" | "L" | "core";
 export interface LauncherPolygon { key: string; points: string; fill: LauncherFill; opacity: number }
 export const LAUNCHER_VIEWBOX = "0 0 120 120";
-/** Colours of the application icon: white top, green left, red right over a dark core. */
-export const LAUNCHER_PALETTE: Record<LauncherFill, string> = { U: "#ece8e2", F: "#22bf5b", R: "#e94444", core: "#121216" };
+/** Colours of the application icon (white top, green front, red right) and their opposites, over a dark core. */
+export const LAUNCHER_PALETTE: Record<LauncherFill, string> = {
+  U: "#ece8e2", D: "#ffd93b", F: "#22bf5b", B: "#3d7ce0", R: "#e94444", L: "#ff8a1f", core: "#262630",
+};
 
-/** Milliseconds of each phase of one cycle: pieces assemble, the model stands, pieces fly apart, a beat of nothing. */
-export const LAUNCHER_TIMING = { assemble: 1500, hold: 550, disassemble: 900, pause: 250 } as const;
+/** Milliseconds of each phase of one cycle: the cube solves, stands, scrambles back, a beat of nothing. */
+export const LAUNCHER_TIMING = { assemble: 1800, hold: 550, disassemble: 1000, pause: 250 } as const;
 export const LAUNCHER_CYCLE = LAUNCHER_TIMING.assemble + LAUNCHER_TIMING.hold + LAUNCHER_TIMING.disassemble + LAUNCHER_TIMING.pause;
-/** How long the finished model stands before the launcher hands over to the application. */
+/** How long the solved model stands before the launcher hands over to the application. */
 export const LAUNCHER_SETTLE = 400;
 
 /**
- * Assembly progress (0 = exploded cloud, 1 = finished model) at `elapsed` ms since the launcher appeared.
- * Cycles repeat until loading is done; once `finishAt` (see `launcherFinishAt`) is reached the model stays assembled.
+ * Solving progress (0 = scrambled, 1 = solved) at `elapsed` ms since the launcher appeared. Cycles repeat
+ * until loading is done; once `finishAt` (see `launcherFinishAt`) is reached the model stays solved.
  */
 export function launcherProgress(elapsed: number, finishAt = Infinity): number {
   if (elapsed >= finishAt) return 1;
@@ -34,9 +36,9 @@ export function launcherProgress(elapsed: number, finishAt = Infinity): number {
 }
 
 /**
- * When the model next stands assembled, given that loading finished at `elapsed`. During the standing phase
- * that is now; while pieces assemble it is the end of that phase; while they fly apart it is the end of the
- * next assembly, so the reverse and forward replay is never cut in the middle.
+ * When the model next stands solved, given that loading finished at `elapsed`. During the standing phase
+ * that is now; while the cube solves it is the end of that solve; while it scrambles back it is the end of
+ * the next solve, so the reverse and forward replay is never cut in the middle.
  */
 export function launcherFinishAt(elapsed: number): number {
   const start = Math.floor(Math.max(0, elapsed) / LAUNCHER_CYCLE) * LAUNCHER_CYCLE;
@@ -49,25 +51,76 @@ export function launcherFinishAt(elapsed: number): number {
 
 type Vector = readonly [number, number, number];
 type Point = readonly [number, number];
-const FINAL_YAW = -Math.PI / 4, FINAL_PITCH = Math.atan(1 / Math.SQRT2);
-/** The model starts turned away and lower, and rolls into the icon's pose while its pieces arrive. */
-const START_YAW = FINAL_YAW - 0.55, START_PITCH = 0.22;
-/** Distance a piece starts from its final place, in cube units. */
-const EXPLODE = 2.6;
-/** The back pieces land first; the front ones may start this fraction of the assembly later. */
-const STAGGER = 0.3;
+type Matrix = readonly [Vector, Vector, Vector];
+/** A quarter-turn move: the layer at `layer` along `axis` turns `turns` right-hand quarter turns about +axis. */
+interface Move { axis: 0 | 1 | 2; layer: -1 | 0 | 1; turns: 1 | 2 | 3 }
+const FACE_AXIS: Record<Exclude<LauncherFill, "core">, { axis: 0 | 1 | 2; sign: 1 | -1 }> = {
+  R: { axis: 0, sign: 1 }, L: { axis: 0, sign: -1 }, U: { axis: 1, sign: 1 }, D: { axis: 1, sign: -1 }, F: { axis: 2, sign: 1 }, B: { axis: 2, sign: -1 },
+};
+/** Standard notation: a clockwise face turn seen from that face is a negative right-hand turn about its outward normal. */
+function move(notation: string): Move {
+  const face = FACE_AXIS[notation[0] as keyof typeof FACE_AXIS];
+  const clockwise = notation.endsWith("'") ? 3 : notation.endsWith("2") ? 2 : 1;
+  const turns = ((face.sign > 0 ? 4 - clockwise : clockwise) % 4) as 1 | 2 | 3;
+  return { axis: face.axis, layer: face.sign, turns };
+}
+/** The scramble the cube starts from; solving plays it backwards. */
+export const LAUNCHER_SCRAMBLE = ["R", "U'", "F2", "L", "D", "B'"] as const;
+const SOLUTION: readonly Move[] = [...LAUNCHER_SCRAMBLE].reverse().map(notation => {
+  const m = move(notation);
+  return { ...m, turns: ((4 - m.turns) % 4) as 1 | 2 | 3 };
+});
+
+const IDENTITY: Matrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+/** Right-hand quarter turn about +axis, as an integer matrix (columns are the images of the axes). */
+const QUARTER: readonly Matrix[] = [
+  [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+  [[0, 0, -1], [0, 1, 0], [1, 0, 0]],
+  [[0, 1, 0], [-1, 0, 0], [0, 0, 1]],
+];
+const apply = (m: Matrix, v: Vector): Vector => [
+  m[0][0] * v[0] + m[1][0] * v[1] + m[2][0] * v[2],
+  m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2],
+  m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2],
+];
+const multiply = (a: Matrix, b: Matrix): Matrix => [apply(a, b[0]), apply(a, b[1]), apply(a, b[2])];
+const transpose = (m: Matrix): Matrix => [[m[0][0], m[1][0], m[2][0]], [m[0][1], m[1][1], m[2][1]], [m[0][2], m[1][2], m[2][2]]];
+/** Continuous right-hand rotation by `angle` about +axis, matching QUARTER at 90°. */
+function turn(axis: number, angle: number) {
+  const c = Math.cos(angle), s = Math.sin(angle), a = (axis + 1) % 3, b = (axis + 2) % 3;
+  return (v: Vector): Vector => {
+    const out = [...v] as [number, number, number];
+    out[a] = c * v[a] - s * v[b];
+    out[b] = s * v[a] + c * v[b];
+    return out;
+  };
+}
+
+interface Piece { home: Vector; position: Vector; orientation: Matrix }
+/** Pieces in a fixed order, so keys stay stable between frames. */
+const HOMES: readonly Vector[] = Array.from({ length: 27 }, (_, index) => [(index % 3) - 1, Math.floor(index / 3) % 3 - 1, Math.floor(index / 9) - 1] as const);
+function applyMove(pieces: readonly Piece[], m: Move): Piece[] {
+  let rotation = IDENTITY;
+  for (let i = 0; i < m.turns; i++) rotation = multiply(QUARTER[m.axis], rotation);
+  return pieces.map(piece => piece.position[m.axis] !== m.layer ? piece
+    : { ...piece, position: apply(rotation, piece.position), orientation: multiply(rotation, piece.orientation) });
+}
+/** State before each solving move; the last entry is the solved cube. */
+const STATES: readonly (readonly Piece[])[] = (() => {
+  let state: readonly Piece[] = HOMES.map(home => ({ home, position: home, orientation: IDENTITY }));
+  for (const notation of LAUNCHER_SCRAMBLE) state = applyMove(state, move(notation));
+  const states = [state];
+  for (const m of SOLUTION) states.push(state = applyMove(state, m));
+  return states;
+})();
+
+const YAW = -Math.PI / 4, PITCH = Math.atan(1 / Math.SQRT2);
 /** Half the seam between two neighbouring stickers, in cube units. */
 const GAP = 0.055;
 const SCALE = 21.5, CENTER = 60;
-
-const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const FILL_OF: Record<string, LauncherFill> = { "0,1": "R", "0,-1": "L", "1,1": "U", "1,-1": "D", "2,1": "F", "2,-1": "B" };
+const smooth = (t: number) => t * t * (3 - 2 * t);
 const clamp = (t: number) => Math.min(1, Math.max(0, t));
-interface Sticker { axis: 0 | 1 | 2; sign: 1 | -1; fill: "U" | "F" | "R" }
-const STICKERS: readonly Sticker[] = [
-  { axis: 1, sign: 1, fill: "U" }, { axis: 2, sign: 1, fill: "F" }, { axis: 0, sign: 1, fill: "R" },
-];
-/** Pieces in a fixed order, so keys stay stable between frames. */
-const PIECES: readonly Vector[] = Array.from({ length: 27 }, (_, index) => [(index % 3) - 1, Math.floor(index / 3) % 3 - 1, Math.floor(index / 9) - 1] as const);
 
 function view(yaw: number, pitch: number) {
   const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
@@ -96,49 +149,50 @@ function hull(points: Point[]): Point[] {
 }
 
 /**
- * Polygons of one frame in painting order, in the 120×120 view box. `progress` is the assembly progress and
- * `time` (ms) only adds a slow sway once the model stands, so it reads as a solid object rather than a picture.
+ * Polygons of one frame in painting order, in the 120×120 view box. `progress` is the solving progress and
+ * `time` (ms) only adds a slow sway once the cube is solved, so it reads as a solid object rather than a picture.
  */
 export function launcherCubeFrame(progress: number, time = 0): LauncherPolygon[] {
   const t = clamp(progress);
-  const pose = easeOut(t);
   const sway = t >= 1 ? 0.035 * Math.sin(time / 850) : 0;
-  const camera = view(START_YAW + (FINAL_YAW - START_YAW) * pose + sway, START_PITCH + (FINAL_PITCH - START_PITCH) * pose);
-  const forward = camera([0, 0, 1]), right = camera([1, 0, 0]), up = camera([0, 1, 0]);
-  // Camera-space depth (toward the viewer) of a piece decides both its arrival order and its painting order.
-  const depthOf = (p: Vector) => camera(p)[2];
-  const pieces = PIECES.map((home, index) => {
-    const finalDepth = depthOf(home);
-    const frontness = (finalDepth / Math.sqrt(3) + 1) / 2;
-    const local = easeOut(clamp((t - STAGGER * frontness) / (1 - STAGGER)));
-    const length = Math.hypot(...home) || 1;
-    const away = EXPLODE * (1 - local);
-    const center: Vector = [home[0] + home[0] / length * away, home[1] + home[1] / length * away, home[2] + home[2] / length * away];
-    return { index, home, center, local };
-  }).filter(piece => piece.local > 0).sort((a, b) => depthOf(a.center) - depthOf(b.center));
+  const camera = view(YAW + sway, PITCH);
+  // The cube fades in over the first moments of a solve (and out at the end of a scramble back).
+  const opacity = Math.round(clamp(t * 8) * 100) / 100;
+  const count = SOLUTION.length;
+  const step = Math.min(count - 1, Math.floor(t * count));
+  const fraction = t >= 1 ? 0 : smooth(t * count - step);
+  const pieces = STATES[t >= 1 ? count : step];
+  const current = SOLUTION[step];
+  const angle = fraction * (Math.PI / 2) * (current.turns === 3 ? -1 : current.turns);
+  const spin = turn(current.axis, angle);
+  const place = (piece: Piece, v: Vector) => fraction > 0 && piece.position[current.axis] === current.layer ? spin(v) : v;
+  const depthOf = (v: Vector) => camera(v)[2];
+  const ordered = pieces.map((piece, index) => ({ piece, index })).sort((a, b) => depthOf(place(a.piece, a.piece.position)) - depthOf(place(b.piece, b.piece.position)));
   const polygons: LauncherPolygon[] = [];
-  const corner = (center: Vector, dx: number, dy: number, dz: number): Vector => [center[0] + dx, center[1] + dy, center[2] + dz];
-  for (const { index, home, center, local } of pieces) {
-    // A piece fades in over the first part of its flight, so the cloud does not pop into view.
-    const opacity = Math.round(Math.min(1, local * 2.5) * 100) / 100;
+  for (const { piece, index } of ordered) {
+    const { position, orientation } = piece;
+    const local = transpose(orientation);
     const corners: Point[] = [];
-    for (let bit = 0; bit < 8; bit++) corners.push(project(camera(corner(center, bit & 1 ? 0.5 : -0.5, bit & 2 ? 0.5 : -0.5, bit & 4 ? 0.5 : -0.5))));
+    for (let bit = 0; bit < 8; bit++) corners.push(project(camera(place(piece, [position[0] + (bit & 1 ? 0.5 : -0.5), position[1] + (bit & 2 ? 0.5 : -0.5), position[2] + (bit & 4 ? 0.5 : -0.5)]))));
     polygons.push({ key: `p${index}`, points: format(hull(corners)), fill: "core", opacity });
-    for (const sticker of STICKERS) {
-      // Only the three faces of a piece on the outside of the finished cube carry colour; the rest is core plastic.
-      if (home[sticker.axis] !== sticker.sign) continue;
-      const normal = sticker.axis === 0 ? right : sticker.axis === 1 ? up : forward;
-      if (normal[2] <= 0.02) continue;
-      const [a, b] = ([[1, 2], [2, 0], [0, 1]] as const)[sticker.axis];
+    for (let axis = 0; axis < 3; axis++) for (const sign of [1, -1] as const) {
+      // A face carries colour only if, in the piece's own frame, it is one of its outer faces at home.
+      const normal: Vector = axis === 0 ? [sign, 0, 0] : axis === 1 ? [0, sign, 0] : [0, 0, sign];
+      const own = apply(local, normal);
+      const ownAxis = own.findIndex(v => v !== 0), ownSign = own[ownAxis];
+      if (piece.home[ownAxis] !== ownSign) continue;
+      // Culling by the true normal, including a turning layer.
+      if (camera(place(piece, normal))[2] <= 0.02) continue;
+      const a = (axis + 1) % 3, b = (axis + 2) % 3;
       const points = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sa, sb]) => {
-        const offset = [0, 0, 0] as [number, number, number];
-        offset[sticker.axis] = sticker.sign * 0.5;
+        const corner = [...position] as [number, number, number];
+        corner[axis] += sign * 0.5;
         // Seams appear between neighbouring stickers; an edge on the outside of the cube stays flush.
-        offset[a] = sa * (0.5 - (home[a] + sa * 0.5 === sa * 1.5 ? 0 : GAP));
-        offset[b] = sb * (0.5 - (home[b] + sb * 0.5 === sb * 1.5 ? 0 : GAP));
-        return project(camera(corner(center, offset[0], offset[1], offset[2])));
-      });
-      polygons.push({ key: `p${index}${sticker.fill}`, points: format(points), fill: sticker.fill, opacity });
+        corner[a] += sa * (0.5 - (position[a] === sa ? 0 : GAP));
+        corner[b] += sb * (0.5 - (position[b] === sb ? 0 : GAP));
+        return corner as Vector;
+      }).map(v => place(piece, v));
+      polygons.push({ key: `p${index}-${ownAxis}${ownSign > 0 ? "+" : "-"}`, points: format(points.map(v => project(camera(v)))), fill: FILL_OF[`${ownAxis},${ownSign}`], opacity });
     }
   }
   return polygons;

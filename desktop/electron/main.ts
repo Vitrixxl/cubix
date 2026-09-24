@@ -1,4 +1,4 @@
-import { refreshLauncher } from "../updater";
+import { installLauncherBinary, refreshLauncher } from "../updater";
 import { app, BrowserWindow, ipcMain, shell, Menu } from "electron";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -209,6 +209,17 @@ else {
       });
       await window.loadFile(join(root, "renderer/index.html"));
       window.show();
+      // The launcher binary itself is large: bring it in quietly after startup, never during it.
+      if (launcher && releaseId && existsSync(launcher))
+        setTimeout(() => void (async () => {
+          try {
+            const base = dirname(launcher);
+            const manifest = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
+            const config = JSON.parse(await readFile(join(base, "launcher.json"), "utf8"));
+            if (await installLauncherBinary(base, manifest, process.env.CUBIX_API_ORIGIN ?? config.origin))
+              console.log("Launcher binary updated.");
+          } catch (error) { console.error("Launcher binary update:", error); }
+        })(), 15000);
       updateTimer = setInterval(() => { void checkUpdate(); }, 2000);
     })
     .catch((error) => {

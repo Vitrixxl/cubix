@@ -31,13 +31,13 @@ le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge
 
 ## Mises à jour
 
-Au lancement, une fenêtre de démarrage affiche le cube de Cubix qui s’assemble
-pendant que le lanceur recherche la dernière version et télécharge les fichiers
+Au lancement, une fenêtre de démarrage affiche un cube mélangé qui se résout
+mouvement par mouvement pendant que le lanceur recherche la dernière version et télécharge les fichiers
 modifiés avant d’ouvrir l’application. C’est le même écran que sur téléphone :
 mêmes styles, composants React, icônes et polices Geist que l’application, avec le
 thème et le mode clair/sombre enregistrés. Si la vérification dure, le cube se
-désassemble puis se réassemble en boucle ; l’application ne s’ouvre qu’une fois le
-cube formé, jamais au milieu d’un flash. La nouvelle version est utilisée
+remélange puis se résout de nouveau en boucle ; l’application ne s’ouvre qu’une fois
+le cube résolu, jamais au milieu d’un flash. La nouvelle version est utilisée
 immédiatement, sans redémarrage manuel. « Annuler » ferme la fenêtre sans ouvrir
 l’application.
 
@@ -45,9 +45,13 @@ Sans connexion, le lanceur ouvre directement la version installée et l’applic
 affiche une notification « Mode hors ligne » ; une mise à jour invalide ou un
 serveur en erreur ouvrent aussi la version installée, avec une notification
 « Mise à jour impossible ». Le lanceur interroge `GET /api/desktop/releases/linux-x64`.
-Le lanceur lui-même, sa fenêtre de démarrage et son rendu (`bootstrap/` dans la
-release) sont distribués dans les releases signées, afin de mettre aussi à niveau
-les installations antérieures. Le serveur renvoie un manifeste signé Ed25519 qui
+La fenêtre de démarrage et son rendu (`bootstrap/` dans la release) sont
+distribués dans les releases signées, afin de mettre aussi à niveau les
+installations antérieures. Le binaire du lanceur (~80 Mo) n’est qu’annoncé par le
+manifeste (`launcher`) : l’application le télécharge en arrière-plan après son
+ouverture et le remplace sur place, car au démarrage une connexion lente ne le
+ramènerait pas dans les délais. Les téléchargements ont un délai d’inactivité, pas
+de durée totale, et la barre suit les octets reçus. Le serveur renvoie un manifeste signé Ed25519 qui
 identifie chaque fichier par son SHA-256. Les fichiers inchangés sont réutilisés ;
 seuls les nouveaux fichiers sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
 
