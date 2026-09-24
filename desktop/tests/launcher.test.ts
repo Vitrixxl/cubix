@@ -79,20 +79,23 @@ test('compiled launcher waits for manifest AND assets, then launches the updated
     expect((await Bun.file(join(f.base,'last-launch.json')).json()).id).toBe(id);
     expect((await Bun.file(join(f.base,'current.json')).json()).id).toBe(id);
     const status=await f.status();
-    expect(status).toContain('Recherche de mises à jour');
+    // The window opened for the download and followed it byte by byte, then let the cube stand.
+    expect(status).toContain('Téléchargement de la mise à jour… 0 %');
+    expect(status).toContain('Téléchargement de la mise à jour… 100 %');
     expect(status).toContain('"phase":"opening"');
     expect(status.indexOf('"phase":"opening"')).toBe(status.lastIndexOf('"phase":"opening"'));
   } finally {release();assets();child?.kill();f.server.stop();}
 },15000);
-test('no update launches current only after verification, without any notice',async()=>{
-  const f=await fixture();try{const child=f.launch();expect(await child.exited).toBe(0);expect((await f.launched()).trim()).toBe(`${f.old} -`);expect(f.requests()).toBe(1);expect(f.downloads()).toBe(0);}finally{f.server.stop();}
+test('no update launches current directly, without any window or notice',async()=>{
+  const f=await fixture();try{const child=f.launch();expect(await child.exited).toBe(0);expect((await f.launched()).trim()).toBe(`${f.old} -`);expect(f.requests()).toBe(1);expect(f.downloads()).toBe(0);expect(await f.status()).toBe('');}finally{f.server.stop();}
 });
 test('without a connection the installed version opens and the app is told it is offline',async()=>{
   const f=await fixture();f.publish();f.server.stop(true);
   const child=f.launch();expect(await child.exited).toBe(0);
   expect((await f.launched()).trim()).toBe(`${f.old} offline`);
   expect(await Bun.file(join(f.base,'update-error.log')).exists()).toBe(true);
-  expect(await f.status()).toContain('Hors ligne. Ouverture de Cubix');
+  // Nothing was downloaded, so no window ever opened.
+  expect(await f.status()).toBe('');
 });
 for(const failure of ['server','signature'] as const)test(`a ${failure} failure opens the installed version and reports the failed update`,async()=>{
   const f=await fixture();try{f.publish();if(failure==='server')f.fail();else f.tamper();const child=f.launch();expect(await child.exited).toBe(0);expect((await f.launched()).trim()).toBe(`${f.old} update-failed`);expect(await Bun.file(join(f.base,'update-error.log')).exists()).toBe(true);expect((await Bun.file(join(f.base,'current.json')).json()).id).toBe(f.old);}finally{f.server.stop();}
@@ -106,7 +109,7 @@ test('a new version that fails to start rolls back to the previous one during th
   }finally{f.server.stop();}
 });
 test('closing the startup window before the app starts cancels the launch',async()=>{
-  const f=await fixture();try{
+  const f=await fixture();f.publish();try{
     const child=f.launch({FIXTURE_CANCEL:'1'});expect(await child.exited).toBe(0);
     expect(await f.launched()).toBe('');
     expect(await Bun.file(join(f.base,'last-launch.json')).exists()).toBe(false);

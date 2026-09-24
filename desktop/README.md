@@ -31,13 +31,15 @@ le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge
 
 ## Mises à jour
 
-Au lancement, une fenêtre de démarrage affiche un cube mélangé qui se résout
-mouvement par mouvement pendant que le lanceur recherche la dernière version et télécharge les fichiers
-modifiés avant d’ouvrir l’application. C’est le même écran que sur téléphone :
-mêmes styles, composants React, icônes et polices Geist que l’application, avec le
-thème et le mode clair/sombre enregistrés. Si la vérification dure, le cube se
-remélange puis se résout de nouveau en boucle ; l’application ne s’ouvre qu’une fois
-le cube résolu, jamais au milieu d’un flash. La nouvelle version est utilisée
+Au lancement, le lanceur recherche la dernière version sans rien afficher ; sans
+mise à jour (ou hors ligne), l’application s’ouvre directement. Quand des fichiers
+doivent être téléchargés, une fenêtre de démarrage affiche un cube mélangé qui se
+résout mouvement par mouvement pendant le téléchargement, avant d’ouvrir
+l’application. C’est le même écran que sur téléphone : mêmes styles, composants
+React, icônes et polices Geist que l’application, avec le thème et le mode
+clair/sombre enregistrés. Si le téléchargement dure, le cube se remélange puis se
+résout de nouveau en boucle ; l’application ne s’ouvre qu’une fois le cube résolu,
+jamais au milieu d’un flash. La nouvelle version est utilisée
 immédiatement, sans redémarrage manuel. « Annuler » ferme la fenêtre sans ouvrir
 l’application.
 

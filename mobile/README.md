@@ -42,11 +42,12 @@ fichiers natifs (`NATIVE_INPUTS`), et l'URL des mises à jour, `<API>/api/mobile
 
 Deux chemins de mise à jour existent. Le JavaScript et les assets voyagent à la volée :
 `bun scripts/export-update.ts` exporte le bundle dans `build/updates/` avec un
-`update.json` que `bun run deploy` (racine) publie sur l'API. Au lancement, l'écran de
-démarrage (`StartupGate` + `Launcher`) affiche un cube mélangé qui se résout, le même
-écran que le lanceur desktop, pendant que `startupUpdate` recherche et télécharge le
-bundle le plus récent puis redémarre dessus ; l'application ne s'ouvre qu'une fois le
-cube résolu, et le cube se remélange puis se résout de nouveau tant que le chargement dure.
+`update.json` que `bun run deploy` (racine) publie sur l'API. Au lancement, `StartupGate`
+garde l'écran natif pendant que `startupUpdate` vérifie les mises à jour ; sans mise à jour
+l'application s'ouvre directement. Quand un bundle se télécharge, l'écran `Launcher`
+affiche un cube mélangé qui se résout, le même écran que le lanceur desktop, puis
+l'application redémarre dessus ; le cube se remélange puis se résout de nouveau tant que
+le téléchargement dure.
 Sans connexion (le serveur ne répond pas à `GET /api/mobile/release` en 6 s), la version
 installée s'ouvre directement et une notification « Mode hors ligne » l'annonce.
 Les paramètres relancent la vérification et affichent « Restart to update » quand un

@@ -102,29 +102,34 @@ try {
     return null;
   };
   // Keep the main application closed until the newest signed release is ready. The startup window
-  // shows the shared cube animation; it reports on stdout when it is painted, when the cube stands
-  // and when the cuber closes it.
-  const splash = Bun.spawn([executable(current.id), ...platform.args, join(base, "splash.cjs")], {
-    env: { ...platform.env, CUBIX_SPLASH_DATA: join(base, "splash-profile") },
-    stdin: "pipe", stdout: "pipe", stderr: Bun.file(join(base, "launcher.log")),
-  });
+  // only appears when an update really has to be downloaded; it shows the shared cube animation and
+  // reports on stdout when it is painted, when the cube stands and when the cuber closes it.
+  let splash: ReturnType<typeof Bun.spawn> | undefined;
   const window = { closed: false, settled: false, cancelled: false };
-  void splash.exited.then(() => { window.closed = true; });
-  void (async () => {
-    try {
-      for await (const line of createInterface({ input: Readable.fromWeb(splash.stdout as any) })) {
-        if (line === "settled") window.settled = true;
-        else if (line === "cancel") window.cancelled = true;
-      }
-    } catch { /* The window is gone. */ }
-  })();
+  const openWindow = () => {
+    if (splash) return;
+    splash = Bun.spawn([executable(current.id), ...platform.args, join(base, "splash.cjs")], {
+      env: { ...platform.env, CUBIX_SPLASH_DATA: join(base, "splash-profile") },
+      stdin: "pipe", stdout: "pipe", stderr: Bun.file(join(base, "launcher.log")),
+    });
+    void splash.exited.then(() => { window.closed = true; });
+    void (async () => {
+      try {
+        for await (const line of createInterface({ input: Readable.fromWeb(splash!.stdout as any) })) {
+          if (line === "settled") window.settled = true;
+          else if (line === "cancel") window.cancelled = true;
+        }
+      } catch { /* The window is gone. */ }
+    })();
+  };
   const progress = (message: string, phase: "checking" | "opening" = "checking") => {
-    if (window.closed) return;
-    try { splash.stdin.write(JSON.stringify({ message, phase }) + "\n"); } catch { /* Splash may have been closed. */ }
+    if (!splash || window.closed) return;
+    try { (splash.stdin as any).write(JSON.stringify({ message, phase }) + "\n"); } catch { /* Splash may have been closed. */ }
   };
   /** Let the cube finish standing before the application takes over; a window that never
    * painted (no display, slow machine) must not hold the start for long. */
   const settled = async () => {
+    if (!splash) return;
     const deadline = Date.now() + 8000;
     while (!window.settled && !window.cancelled && !window.closed && Date.now() < deadline) await Bun.sleep(50);
   };
@@ -146,6 +151,7 @@ try {
           publicKey: config.publicKey,
           target: config.target,
           onProgress: progress,
+          onUpdate: openWindow,
         }) ?? current;
         await rm(join(base, "update-error.log"), { force: true });
       } catch (error) {
@@ -172,8 +178,10 @@ try {
       if (updating) await pruneReleases(base, healthyId);
     }
   } finally {
-    if (!window.closed) splash.stdin.end();
-    await splash.exited;
+    if (splash) {
+      if (!window.closed) (splash.stdin as any).end();
+      await splash.exited;
+    }
     if (updating) await rm(updateLock, { force: true });
   }
 } finally {

@@ -210,12 +210,15 @@ export async function installUpdate({
   publicKey,
   target,
   onProgress = () => {},
+  onUpdate = async () => {},
 }: {
   base: string;
   origin: string;
   publicKey: string;
   target: string;
   onProgress?: (text: string) => void;
+  /** Called once, before the first download, when a newer release really has files to fetch. */
+  onUpdate?: () => void | Promise<void>;
 }) {
   const url = new URL(origin);
   if (
@@ -281,7 +284,10 @@ export async function installUpdate({
       reported = percent;
       onProgress(`Téléchargement de la mise à jour… ${percent} %`);
     };
-    if (pending.length) report(0);
+    if (pending.length) {
+      await onUpdate();
+      report(0);
+    }
     for (const f of pending) {
       const bytes = await fetchAsset(new URL(`/api/desktop/assets/${f.sha256}`, url), f, { onProgress: report });
       received += f.size;

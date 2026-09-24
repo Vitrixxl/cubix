@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { atom, getDefaultStore } from "jotai";
 let finishCheck!: (value: unknown) => void, finishDownload!: (value: unknown) => void;
-let checks = 0, reloads = 0, mounts = 0;
+let checks = 0, reloads = 0, mounts = 0, splashHidden = 0;
 let launcher: { message: string; finish: boolean; onHidden: () => void } | undefined;
 let release: () => Promise<unknown> = async () => null;
 const toastAtom = atom<{ title: string } | null>(null);
@@ -17,6 +17,7 @@ mock.module("../src/platform/storage", () => ({ storage: {
 } }));
 mock.module("../src/release", () => ({ fetchRelease: () => release() }));
 mock.module("../src/components/Toast", () => ({ toastAtom, Toast: () => null }));
+mock.module("expo-splash-screen", () => ({ preventAutoHideAsync: async () => {}, hideAsync: async () => { splashHidden++; } }));
 // The screen itself is drawn with react-native-svg; here it only records what the gate asks of it.
 mock.module("../src/components/Launcher", () => ({ Launcher: (props: typeof launcher & object) => { launcher = props; return createElement("Launcher", { finish: props!.finish }, props!.message); } }));
 mock.module("expo-updates", () => ({
@@ -28,17 +29,21 @@ mock.module("expo-updates", () => ({
 }));
 const { StartupGate } = await import("../src/components/StartupGate");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-test("mobile startup holds practice through download and reload, including remount", async () => {
+test("the cube screen only appears for a download and holds practice through the reload, including remount", async () => {
   function Practice() { mounts++; return null; }
   let renderer!: ReactTestRenderer;
   const mount = () => { renderer = create(<StartupGate fontsReady><Practice /></StartupGate>); };
   await act(mount);
   await act(async () => { await Bun.sleep(1); }); // the connectivity probe answers
-  expect(JSON.stringify(renderer.toJSON())).toContain("Recherche de mises à jour");
-  expect(launcher!.finish).toBe(false);
+  // While checking, nothing is drawn: the native splash stays up.
+  expect(renderer.toJSON()).toBeNull();
+  expect(launcher).toBeUndefined();
+  expect(splashHidden).toBe(0);
   expect(mounts).toBe(0);
   await act(() => finishCheck({ isAvailable: true, manifest: { id: "new" } }));
   expect(JSON.stringify(renderer.toJSON())).toContain("50 %");
+  expect(launcher!.finish).toBe(false);
+  expect(splashHidden).toBe(1);
   await act(() => renderer.unmount());
   await act(mount);
   expect(checks).toBe(1);
@@ -52,10 +57,11 @@ test("mobile startup holds practice through download and reload, including remou
   expect(mounts).toBe(0);
   await act(() => renderer.unmount());
 });
-test("without a connection the app opens under the cube and announces offline mode once the screen is gone", async () => {
+test("without an update the app opens directly; offline, it announces offline mode at once", async () => {
   // A fresh module instance: the startup promise is remembered per JavaScript session.
   mock.module("../src/platform/storage", () => ({ storage: { getItem: () => "new", setItem: () => {}, removeItem: () => {} } }));
   release = () => Promise.reject(Error("Network request failed"));
+  launcher = undefined;
   const { StartupGate: Gate } = await import(`../src/components/StartupGate?offline=${Date.now()}`);
   function Practice() { mounts++; return null; }
   let renderer!: ReactTestRenderer;
@@ -63,11 +69,9 @@ test("without a connection the app opens under the cube and announces offline mo
   // The remembered attempt "new" means the update on offer was already tried: the installed version opens.
   await act(() => finishCheck({ isAvailable: true, manifest: { id: "new" } }));
   await act(async () => { await Bun.sleep(5); });
-  expect(launcher!.finish).toBe(true);
-  expect(launcher!.message).toBe("Hors ligne. Ouverture de Cubix…");
+  expect(launcher).toBeUndefined();
   expect(mounts).toBeGreaterThan(0);
-  expect(getDefaultStore().get(toastAtom)).toBeNull();
-  await act(() => launcher!.onHidden());
+  expect(splashHidden).toBeGreaterThan(1);
   expect(getDefaultStore().get(toastAtom)?.title).toBe("Mode hors ligne");
   await act(() => renderer.unmount());
 });
