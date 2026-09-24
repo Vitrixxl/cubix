@@ -24,15 +24,18 @@ try {
     await click("menu:learningModes");
     await page.getByRole("option", { name: label, exact: true }).click();
   };
-  const dragGroup = async (group: string, target: string) => {
+  const dragGroup = async (group: string, target: string, area: "text" | "padding" = "text") => {
     const handle = page.getByRole("button", { name: `Move ${group}`, exact: true });
     await handle.scrollIntoViewIfNeeded();
-    const from = (await handle.boundingBox())!;
+    const row = page.locator(".learning-group").filter({ has: handle });
+    const from = (await (area === "text" ? row.locator(".learning-group-name") : row).boundingBox())!;
     const to = (await page.getByRole("button", { name: `Move ${target}`, exact: true }).boundingBox())!;
-    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    const x = from.x + (area === "text" ? 8 : 3);
+    const y = from.y + from.height / 2;
+    await page.mouse.move(x, y);
     await page.mouse.down();
     for (let step = 1; step <= 20; step++) {
-      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + (to.y - from.y) * step / 20);
+      await page.mouse.move(x, y + (to.y + to.height / 2 - y) * step / 20);
       await page.waitForTimeout(20);
     }
     await page.mouse.up();
@@ -98,7 +101,7 @@ try {
   if (await page.locator(".sheet-backdrop").count()) await page.locator('.sheet [data-action="times"]').click();
   await click("menu:learningGroups");
   assert.equal(await page.locator(".learning-group").count(), 15);
-  await dragGroup("I Shape", "Small L Shape");
+  await dragGroup("I Shape", "Small L Shape", "padding");
   assert.equal(await page.locator(".learning-group-name").nth(13).textContent(), "I Shape");
   const dialogBox = (await page.getByRole("dialog", { name: "Group order" }).boundingBox())!;
   assert.ok(dialogBox.y >= 0 && dialogBox.y + dialogBox.height <= 540, "dialog stays within the viewport");

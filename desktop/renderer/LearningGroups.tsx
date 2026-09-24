@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Reorder, useDragControls } from "motion/react";
+import { Reorder } from "motion/react";
 import { store as s } from "./store";
 
 export function LearningGroups() {
@@ -37,11 +37,10 @@ function GroupItem({ group, index, count, save, move }: {
   save: (group: string) => void;
   move: (group: string, key: string) => void;
 }) {
-  const controls = useDragControls();
-  return <Reorder.Item value={group} className="learning-group" dragListener={false} dragControls={controls} onDragEnd={() => save(group)} whileDrag={{ boxShadow: "0 6px 20px #0004", borderColor: "var(--accent)" }}>
+  return <Reorder.Item value={group} className="learning-group" onDragEnd={() => save(group)} whileDrag={{ boxShadow: "0 6px 20px #0004", borderColor: "var(--accent)" }}>
     <span className="learning-group-number" aria-hidden="true">{index + 1}.</span>
     <span className="learning-group-name">{group}</span>
-    <button type="button" className="button learning-group-handle" aria-label={`Move ${group}`} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Drag to reorder · ↑ / ↓" onPointerDown={event => controls.start(event)} onKeyDown={event => {
+    <button type="button" className="button learning-group-handle" aria-label={`Move ${group}`} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Drag to reorder · ↑ / ↓" onKeyDown={event => {
       if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
       event.preventDefault();
       event.stopPropagation();
