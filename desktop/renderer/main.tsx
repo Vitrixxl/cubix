@@ -21,6 +21,7 @@ import { UpdateNotification } from "./UpdateNotification";
 import { ErrorNotification } from "./ErrorNotification";
 import { StartupNotification } from "./StartupNotification";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
+import { LearningGroups } from "./LearningGroups";
 import {
   fmtTime,
   fmtSolve,
@@ -2149,15 +2150,9 @@ function Overlay() {
   }
   if (s.overlay === "learningGroups") return (
     <div className="modal-backdrop" onClick={close}>
-      <div className="modal" role="dialog" aria-label="Group order" onClick={e => e.stopPropagation()}>
+      <div className="modal learning-groups-modal" role="dialog" aria-modal="true" aria-label="Group order" onClick={e => e.stopPropagation()}>
         <Row className="between"><h2>Group order · {s.learningMode}</h2><Button action="close" icon="IconClose" title="Close group order" /></Row>
-        <div className="scroll learning-groups">
-          {s.learningGroups.map((group, i) => <Row key={group} className="between" >
-            <span style={{ flex: 1, minWidth: 0 }}>{i + 1}. {group}</span>
-            <Button action={`moveLearningGroup:${i}:-1`} title={`Move ${group} up`} disabled={i === 0}>↑</Button>
-            <Button action={`moveLearningGroup:${i}:1`} title={`Move ${group} down`} disabled={i === s.learningGroups.length - 1}>↓</Button>
-          </Row>)}
-        </div>
+        <LearningGroups key={s.learningMode} />
       </div>
     </div>
   );

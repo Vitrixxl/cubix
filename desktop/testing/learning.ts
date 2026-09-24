@@ -23,6 +23,20 @@ try {
     await click("menu:learningModes");
     await page.getByRole("option", { name: label, exact: true }).click();
   };
+  const dragGroup = async (group: string, target: string) => {
+    const handle = page.getByRole("button", { name: `Move ${group}`, exact: true });
+    await handle.scrollIntoViewIfNeeded();
+    const from = (await handle.boundingBox())!;
+    const to = (await page.getByRole("button", { name: `Move ${target}`, exact: true }).boundingBox())!;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    for (let step = 1; step <= 20; step++) {
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + (to.y - from.y) * step / 20);
+      await page.waitForTimeout(20);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+  };
   await page.waitForSelector(".timer");
   await click("nav:algorithms"); await click("case:F2L 2"); await click("train");
   await page.waitForSelector('.case-title[data-action="case:F2L 2"]');
@@ -31,10 +45,15 @@ try {
   const first = await page.locator(".case-title").getAttribute("data-action");
   assert.ok(first);
   await click("menu:learningGroups");
-  await click("moveLearningGroup:2:-1");
-  await click("moveLearningGroup:1:-1");
-  assert.match(await page.locator(".learning-groups").innerText(), /^1\. Edges Only/);
-  assert.equal(await page.getByRole("button", { name: "Move Edges Only up", exact: true }).isDisabled(), true);
+  const originalGroups = await page.locator(".learning-group-name").allTextContents();
+  await dragGroup("Edges Only", originalGroups[0]!);
+  assert.equal(await page.locator(".learning-group-name").first().textContent(), "Edges Only");
+  const edgesHandle = page.getByRole("button", { name: "Move Edges Only", exact: true });
+  await edgesHandle.focus();
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.locator(".learning-group-name").nth(1).textContent(), "Edges Only");
+  await page.keyboard.press("Home");
+  assert.equal(await page.locator(".learning-group-name").first().textContent(), "Edges Only");
   await click("close");
   assert.equal(await page.locator(".case-title").getAttribute("data-action"), first);
   await click("solution");
@@ -72,8 +91,11 @@ try {
   await page.keyboard.press("Escape");
   if (await page.locator(".sheet-backdrop").count()) await page.locator('.sheet [data-action="times"]').click();
   await click("menu:learningGroups");
-  assert.equal(await page.locator(".learning-groups > .row").count(), 15);
-  await page.getByRole("button", { name: "Move I Shape up", exact: true }).click();
+  assert.equal(await page.locator(".learning-group").count(), 15);
+  await dragGroup("I Shape", "Small L Shape");
+  assert.equal(await page.locator(".learning-group-name").nth(13).textContent(), "I Shape");
+  const dialogBox = (await page.getByRole("dialog", { name: "Group order" }).boundingBox())!;
+  assert.ok(dialogBox.y >= 0 && dialogBox.y + dialogBox.height <= 540, "dialog stays within the viewport");
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth), false);
   await page.screenshot({ path: "artifacts/electron/testing/group-order-360x540.png" });
   await click("close");
@@ -91,7 +113,7 @@ try {
   await page.waitForSelector(".daily-status:text('next tomorrow')");
   assert.equal(await page.locator(".case-title").getAttribute("data-action"), first, "daily assignment survives restart");
   await click("menu:learningGroups");
-  assert.match(await page.locator(".learning-groups").innerText(), /^1\. Edges Only/);
+  assert.equal(await page.locator(".learning-group-name").first().textContent(), "Edges Only");
   await click("close");
   await click(first.replace("case:", "learn:"));
   await page.waitForSelector(".daily-status:text('Algorithm of the day')");
