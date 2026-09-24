@@ -22,7 +22,8 @@ const run = (args: string[], capture = false) => {
   if (result.status !== 0) process.exit(result.status ?? 1);
   return result.stdout ?? "";
 };
-run(["expo", "export", "--platform", "android", "--output-dir", out]);
+// Do not reuse transforms from a development/test export with another API origin.
+run(["expo", "export", "--clear", "--platform", "android", "--output-dir", out]);
 // What the application reads through Constants.expoConfig when it runs this update.
 const expoClient = JSON.parse(run(["expo", "config", "--type", "public", "--json"], true)) as Record<string, unknown>;
 

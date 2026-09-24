@@ -2,10 +2,12 @@ import { createApiClient } from "../../src/client/api-client";
 import { createLocalClient, type SyncStatus } from "../../src/client/local/client";
 import { storage } from "./platform/storage";
 import { createEvent } from "./platform/events";
+import Constants from "expo-constants";
+import { apiOrigin } from "./lib/apiOrigin";
 export { ApiError } from "../../src/client/api-client";
 
-/** Production API by default; `EXPO_PUBLIC_API_ORIGIN` points a development build at a local server. */
-export const API_ORIGIN = (process.env.EXPO_PUBLIC_API_ORIGIN ?? "https://cubix.vitrixxl.fr").replace(/\/$/, "");
+/** app.config.ts configures both OTA delivery and API traffic for the running update. */
+export const API_ORIGIN = apiOrigin(Constants.expoConfig?.updates?.url);
 export const tokenKey = `cubix.auth:${API_ORIGIN}`;
 export const authToken = {
   get: () => storage.getItem(tokenKey),

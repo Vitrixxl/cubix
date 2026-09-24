@@ -25,6 +25,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { publishDesktop } from "../desktop/publish";
 import { runtimeVersion } from "../mobile/app.config";
+import { validateProductionUpdate } from "../mobile/scripts/validate-update";
 
 const root = resolve(import.meta.dir, "..");
 const PI = process.env.CUBIX_PI ?? "vitrix@82.67.236.74";
@@ -96,8 +97,9 @@ if (!apkOnly) {
   if (published?.commit === head) console.log(`The server already publishes this commit for runtime ${runtime}.`);
   else {
     run("bun", ["scripts/export-update.ts", `--output=${UPDATE_DIR}`], { cwd: resolve(root, "mobile") });
-    const update = JSON.parse(readFileSync(resolve(UPDATE_DIR, "update.json"), "utf8")) as { runtimeVersion: string; launchAsset: { path: string; hash: string }; assets: { path: string; hash: string }[] };
+    const update = JSON.parse(readFileSync(resolve(UPDATE_DIR, "update.json"), "utf8")) as { runtimeVersion: string; expoClient: { updates: { url: string } }; launchAsset: { path: string; hash: string }; assets: { path: string; hash: string }[] };
     if (update.runtimeVersion !== runtime) { console.error(`The export targets runtime ${update.runtimeVersion}, expected ${runtime}.`); process.exit(1); }
+    validateProductionUpdate(update, readFileSync(resolve(UPDATE_DIR, update.launchAsset.path)));
     for (const asset of [update.launchAsset, ...update.assets]) {
       const bytes = readFileSync(resolve(UPDATE_DIR, asset.path));
       console.log(`Uploading ${asset.path} (${(bytes.length / 1024).toFixed(0)} KiB)`);
