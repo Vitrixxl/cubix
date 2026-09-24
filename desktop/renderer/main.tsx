@@ -347,9 +347,13 @@ function Practice() {
   }, [typing, s.overlay, s.timerEpoch]);
   const c = training ? s.find(s.training?.id) : null,
     cubeSize = training ? 0 : s.info()?.cubeSize,
+    scrambleCubeSize = training ? c?.cube_size ?? 3 : cubeSize,
+    scrambleFont = !scrambleCubeSize || scrambleCubeSize > 3
+      ? Math.max(16, Math.min(20, w * 0.015))
+      : Math.max(22, Math.min(30, w * 0.022)),
     hasCube = training ? c && !c.flat && !c.diagram : !!cubeSize,
     small = h < 700,
-    setupFont = small ? 16 : 19,
+    setupFont = scrambleFont,
     algoFont = small ? 15 : 17,
     minText = setupFont * 1.6 + (s.revealed ? algoFont * 1.6 : 0),
     fixed = s.revealed ? 170 : 138;
@@ -478,11 +482,7 @@ function Practice() {
                 ) : (
                   <Alg
                     text={s.scramble}
-                    size={
-                      !cubeSize || cubeSize > 3
-                        ? Math.max(16, Math.min(20, w * 0.015))
-                        : Math.max(22, Math.min(30, w * 0.022))
-                    }
+                    size={scrambleFont}
                   />
                 )}
               </div>
