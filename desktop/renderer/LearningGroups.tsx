@@ -11,7 +11,7 @@ export function LearningGroups() {
     setGroups(next);
   };
   const save = (group: string) => {
-    s.reorderLearningGroups(current.current);
+    void s.reorderLearningGroups(current.current).catch(s.fail);
     announce(`${group}, position ${current.current.indexOf(group) + 1} of ${current.current.length}`);
   };
   const move = (group: string, key: string) => {

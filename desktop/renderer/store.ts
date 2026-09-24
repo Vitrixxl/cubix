@@ -143,13 +143,17 @@ export class Store {
   get learningPlan(): LearningPlan { return this.prefs[learningKey(this.user.id ?? "guest")] ?? EMPTY_LEARNING_PLAN; }
   get learningMode() { return learningModeForPuzzle(this.learningPlan.mode, this.puzzle); }
   get learningGroups() { const mode = this.learningMode; return isLearningTrack(mode) ? orderedGroups(learningCases(catalog.cases, mode), this.learningPlan.groupOrder?.[mode]) : []; }
-  reorderLearningGroups(groups: string[]) {
+  async reorderLearningGroups(groups: string[]) {
     const mode = this.learningMode;
     if (this.running || this.learningFrozen || this.saving || this.pendingSolve || !isLearningTrack(mode)) return;
     const order = orderedGroups(learningCases(catalog.cases, mode), groups);
-    if (order.every((group, index) => group === this.learningGroups[index])) return;
-    this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, groupOrder: { ...this.learningPlan.groupOrder, [mode]: order } });
-    this.emit();
+    const previousOrder = this.learningGroups;
+    if (order.every((group, index) => group === previousOrder[index])) return;
+    const plan = this.learningPlan;
+    // An explicit priority change also updates today's case; ordinary refreshes keep it pinned.
+    const assignment = dailyAssignment(undefined, learningCases(catalog.cases, mode, order), this.learned, localDay()) ?? plan.tracks[mode];
+    this.pref(learningKey(this.user.id ?? "guest"), { ...plan, groupOrder: { ...plan.groupOrder, [mode]: order }, tracks: { ...plan.tracks, [mode]: assignment } });
+    await this.refreshLearning();
   }
   get daily() { const mode = this.learningMode; return isLearningTrack(mode) ? this.learningPlan.tracks[mode] : undefined; }
   get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(this.learningMode === "review" ? this.reviewIds : this.daily ? [this.daily.caseId] : []); }
