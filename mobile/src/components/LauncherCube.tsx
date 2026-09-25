@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
-import { LAUNCHER_PALETTE, LAUNCHER_SETTLE, LAUNCHER_VIEWBOX, launcherCubeFrame, launcherFinishAt, launcherProgress, type LauncherPolygon } from "../../../src/client/lib/launcherCube";
+import Svg, { Polygon, Polyline } from "react-native-svg";
+import { LAUNCHER_SETTLE, LAUNCHER_VIEWBOX, launcherCubeFrame, launcherFinishAt, launcherProgress, type LauncherPolygon } from "../../../src/client/lib/launcherCube";
 
 /**
- * The startup cube, drawn from the same frames as the desktop launcher window. Pieces assemble, the
- * model stands, then the replay runs backwards and forwards again while loading continues. Once
+ * The startup cube, drawn from the same frames as the desktop launcher window: the desktop timer's cube
+ * solves itself, the model stands, then the replay runs backwards and forwards again while loading continues. Once
  * `finish` is set the current pass completes, the model stands for a moment and `onSettled` fires.
  */
 export function LauncherCube({ size, finish, onSettled }: { size: number; finish: boolean; onSettled?: () => void }) {
@@ -37,6 +37,8 @@ export function LauncherCube({ size, finish, onSettled }: { size: number; finish
     return () => cancelAnimationFrame(frame);
   }, []);
   return <Svg width={size} height={size} viewBox={LAUNCHER_VIEWBOX}>
-    {polygons.map(p => <Polygon key={p.key} points={p.points} fill={LAUNCHER_PALETTE[p.fill]} stroke={LAUNCHER_PALETTE[p.fill]} strokeWidth={0.9} strokeLinejoin="round" opacity={p.opacity} />)}
+    {polygons.map(p => p.line
+      ? <Polyline key={p.key} points={p.points} fill="none" stroke={p.color} strokeWidth={120 / size} opacity={p.opacity} />
+      : <Polygon key={p.key} points={p.points} fill={p.color} opacity={p.opacity} />)}
   </Svg>;
 }
