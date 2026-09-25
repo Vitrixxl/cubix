@@ -291,7 +291,19 @@ img {
   pointer-events: auto;
 }
 .nav-tabs {
+  position: relative;
   gap: 3px;
+}
+/* Fainter copy of the selected frame that follows the hovered tab. */
+.nav-hover {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  border-radius: 12px;
+  background: var(--soft);
+  opacity: 0;
+  pointer-events: none;
 }
 .nav .button {
   height: 40px;
@@ -308,6 +320,9 @@ img {
 .nav .unselected:hover {
   background: var(--hover);
   color: var(--text);
+}
+.nav .nav-tabs .unselected:hover {
+  background: transparent;
 }
 .nav .selected,
 .nav .selected:hover {

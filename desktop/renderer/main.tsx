@@ -167,6 +167,16 @@ const TABS: [page: string, label: string, icon: string, shortcut: string][] = [
   ["profile", "Account", "IconUser", "Alt+4"],
 ];
 function Nav() {
+  const tabs = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [box, setBox] = useState({ x: 0, width: 0 });
+  // The hover frame rests under the selected tab, so it always sets off from there.
+  const target = hovered ?? s.page;
+  useLayoutEffect(() => {
+    const el = tabs.current?.querySelector<HTMLElement>(`[data-action="nav:${target}"]`);
+    if (el && (el.offsetLeft !== box.x || el.offsetWidth !== box.width))
+      setBox({ x: el.offsetLeft, width: el.offsetWidth });
+  });
   return (
     <nav className="nav">
       <div className="nav-shell">
@@ -180,7 +190,23 @@ function Nav() {
           <Icon name="IconChevronDown" size={12} />
         </Button>
       </div>
-      <div className="nav-shell nav-tabs" role="tablist" aria-label="Sections">
+      <div
+        ref={tabs}
+        className="nav-shell nav-tabs"
+        role="tablist"
+        aria-label="Sections"
+        onPointerOver={(e) => {
+          const action = (e.target as HTMLElement).closest("[data-action]")?.getAttribute("data-action");
+          if (action?.startsWith("nav:")) setHovered(action.slice(4));
+        }}
+        onPointerLeave={() => setHovered(null)}
+      >
+        <motion.span
+          className="nav-hover"
+          initial={false}
+          animate={{ x: box.x, width: box.width, opacity: target === s.page ? 0 : 0.5 }}
+          transition={{ ...HIGHLIGHT, opacity: { duration: 0.15 } }}
+        />
         {TABS.map(([page, label, icon, shortcut]) => (
           <Button
             key={page}
