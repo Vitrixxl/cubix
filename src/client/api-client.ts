@@ -1,5 +1,5 @@
 import { puzzleId, type PuzzleInput, type PracticeFilter, type PuzzleId, type SolveMode, type ScrambleType, type CubeSize } from "../shared/puzzles";
-import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto } from "../shared/types";
+import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto, LearningGroupOrderDto } from "../shared/types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -31,8 +31,9 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     return value as T;
   }
   return {
-    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}`),
-    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | null }[] }>("/sync", "POST", { operations }),
+    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}&learningGroups=1`),
+    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | null }[] }>("/sync", "POST", { operations }),
+    setLearningGroupOrder: (track: LearningGroupOrderDto["track"], groups: string[]) => request<LearningGroupOrderDto>("/learning-group-order", "PUT", { track, groups }),
     learnedCases: () => request<string[]>("/learned"),
     setLearned: (caseId: string, learned: boolean) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned }),
     /** Live sync notifications for the signed-in account; practice writes never depend on it. */

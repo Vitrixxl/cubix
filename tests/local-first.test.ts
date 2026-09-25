@@ -4,6 +4,10 @@ import { createApiClient } from "../src/client/api-client";
 import { createRustApi, openDb } from "./backend";
 import { history } from "../src/client/local/stats";
 import type { SessionDto, SolveDto } from "../src/shared/types";
+import { learningCases, learningKey, orderedGroups, type LearningTrack } from "../src/client/lib/dailyLearning";
+import { cases } from "../src/client/local/catalog";
+
+const trackGroups = (track: LearningTrack) => orderedGroups(learningCases(cases,track));
 
 class Storage {
   values = new Map<string,string>();
@@ -373,6 +377,79 @@ test("learning marks are local for guests, imported on sign-in, synchronized bet
   expect(b.local.learned()).toEqual([]);
 });
 
+test("learning group priorities travel both ways, preserve other tracks, and survive offline edits and lost acknowledgements", async () => {
+  const { remote, db } = setup();
+  const a = device(remote);
+  const auth = await a.api.register("order_alice","a-long-test-password");
+  const b = device(remote); await b.api.login(auth.user.username,"a-long-test-password");
+  const oll = trackGroups("OLL").reverse(), pll = trackGroups("PLL").reverse(), f2l = trackGroups("F2L").reverse();
+  await a.api.setLearningGroupOrder("OLL",oll);
+  await a.api.setLearningGroupOrder("PLL",pll);
+  await a.local.sync(); await b.local.sync();
+  expect(b.local.learningGroupOrder()).toEqual({ OLL:oll, PLL:pll });
+  b.control.offline = true;
+  await b.api.setLearningGroupOrder("F2L",f2l);
+  await b.api.setLearningGroupOrder("OLL",trackGroups("OLL"));
+  await b.local.sync();
+  expect(b.local.status().state).toBe("offline");
+  const reopened = device(remote,b.storage);
+  reopened.control.loseAck = true; await reopened.local.sync();
+  expect(reopened.local.status().pending).toBe(2);
+  await reopened.local.sync(); await a.local.sync();
+  expect(a.local.learningGroupOrder()).toEqual({ OLL:trackGroups("OLL"), PLL:pll, F2L:f2l });
+  expect(reopened.local.status().pending).toBe(0);
+  expect(db.db.query<{ n:number }, []>("SELECT count(*) n FROM learning_group_orders").get()?.n).toBe(3);
+  await a.api.logout();
+  expect(a.local.learningGroupOrder()).toEqual({});
+  await a.api.register("order_bob","a-long-test-password"); await a.local.sync();
+  expect(a.local.learningGroupOrder()).toEqual({});
+  await a.api.logout(); await a.api.login(auth.user.username,"a-long-test-password"); await a.local.sync();
+  expect(a.local.learningGroupOrder().F2L).toEqual(f2l);
+});
+
+test("legacy and guest group priorities migrate once without replacing priorities already stored online", async () => {
+  const { remote } = setup();
+  const storage = new Storage();
+  storage.setItem(learningKey("local-guest"),JSON.stringify({ mode:"PLL", tracks:{}, groupOrder:{ PLL:[...trackGroups("PLL")].reverse() } }));
+  const a = device(remote,storage);
+  expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL").reverse());
+  const auth = await a.api.register("legacy_order","a-long-test-password"); await a.local.sync();
+  expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL").reverse());
+  // This device still has a pre-sync preference and a cursor beyond the cloud order.
+  const stale = new Storage();
+  stale.setItem("cubix.local.v1:user",JSON.stringify(auth.user)); stale.setItem("token",auth.token);
+  stale.setItem(learningKey(auth.user.id),JSON.stringify({ groupOrder:{ PLL:trackGroups("PLL"), OLL:trackGroups("OLL").reverse() } }));
+  stale.setItem("cubix.local.v1:workspace:"+auth.user.id,JSON.stringify({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:(await remote(auth.token).syncPull(0)).cursor }));
+  const b = device(remote,stale); await b.local.sync(); await a.local.sync();
+  expect(b.local.learningGroupOrder()).toEqual({ PLL:trackGroups("PLL").reverse(), OLL:trackGroups("OLL").reverse() });
+  expect(a.local.learningGroupOrder()).toEqual(b.local.learningGroupOrder());
+  await a.api.logout();
+  expect(a.local.learningGroupOrder()).toEqual({});
+  expect(device(remote,a.storage).local.learningGroupOrder()).toEqual({});
+});
+
+test("a newer group edit made during an upload survives the earlier acknowledgement", async () => {
+  const { remote } = setup();
+  const gate = Promise.withResolvers<void>(), started = Promise.withResolvers<void>();
+  let pause = true;
+  const a = device(token => {
+    const api = remote(token);
+    return { ...api, syncPush: async operations => {
+      const result = await api.syncPush(operations);
+      if (pause) { pause = false; started.resolve(); await gate.promise; }
+      return result;
+    } };
+  });
+  const auth = await a.api.register("inflight_order","a-long-test-password");
+  await a.api.setLearningGroupOrder("PLL",trackGroups("PLL").reverse());
+  const syncing = a.local.sync(); await started.promise;
+  await a.api.setLearningGroupOrder("PLL",trackGroups("PLL"));
+  gate.resolve(); await syncing;
+  expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL"));
+  const b = device(remote); await b.api.login(auth.user.username,"a-long-test-password"); await b.local.sync();
+  expect(b.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL"));
+});
+
 test("a live socket announces the account's own changes so other devices pull immediately",async () => {
   const {remote,origin} = setup(); const a = device(remote);
   const auth = await a.api.register("live_alice","a-long-test-password"); await a.local.sync();
@@ -392,12 +469,13 @@ test("a live socket announces the account's own changes so other devices pull im
   // Device B (plain HTTP) records a time and a learning mark; the socket of device A hears about both.
   const b = device(remote); await b.api.login("live_alice","a-long-test-password");
   const announced = next("sync");
-  const solve = await b.api.addSolve({timeMs:4321}); await b.api.setLearned("PLL Aa",true); await b.local.sync();
+  const solve = await b.api.addSolve({timeMs:4321}); await b.api.setLearned("PLL Aa",true); await b.api.setLearningGroupOrder("PLL",trackGroups("PLL").reverse()); await b.local.sync();
   const notice = await announced;
   expect(notice.cursor).toBeGreaterThan(cursorAtConnect);
   expect(a.local.learned()).toEqual([]);
   await a.local.remoteChanged(notice.cursor);
   expect(a.local.learned()).toEqual(["PLL Aa"]);
+  expect(a.local.learningGroupOrder().PLL).toEqual(trackGroups("PLL").reverse());
   expect((await a.api.solves("playground"))[0].time_ms).toBe(solve.time_ms);
   // Being up to date, the same notification does not trigger another request.
   const before = a.control.requests; await a.local.remoteChanged(notice.cursor); expect(a.control.requests).toBe(before);

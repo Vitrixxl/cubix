@@ -1,7 +1,7 @@
 use crate::practice;
 use crate::{
     AppState, accounts,
-    db::{all, required},
+    db::{all, one, required},
     error::{ApiError, Result},
     stats,
 };
@@ -299,7 +299,7 @@ pub(crate) fn route(
             if after < 0 {
                 return Err(ApiError::validation());
             }
-            return crate::sync::pull(db, uid, after);
+            return crate::sync::pull(db, uid, after, query.get("learningGroups").is_some_and(|v| v == "1"));
         }
         if method == "POST" {
             if user["password_hash"].is_null() {
@@ -499,6 +499,33 @@ pub(crate) fn route(
             params![id, uid],
             "Unknown solve",
         ),
+        ("PUT", ["learning-group-order"]) => {
+            let track = enum_string(body, "track", &["F2L", "OLL", "PLL"])?;
+            let groups = body["groups"].as_array().filter(|g| !g.is_empty() && g.len() <= 100)
+                .ok_or_else(ApiError::validation)?;
+            let only_if_missing = match body.get("onlyIfMissing") {
+                None => false,
+                Some(value) => value.as_bool().ok_or_else(ApiError::validation)?,
+            };
+            let set = track.to_lowercase();
+            let mut seen = std::collections::HashSet::new();
+            for group in groups {
+                let name = group.as_str().ok_or_else(ApiError::validation)?;
+                if !seen.insert(name) || !state.catalog.by_id.values().any(|c| c["set"] == set && c["group"] == name) {
+                    return Err(ApiError::validation());
+                }
+            }
+            // Legacy device preferences may seed a track, but never replace an existing cloud order.
+            let existing = one(db, "SELECT id FROM learning_group_orders WHERE user_id=? AND track=?", params![uid, track])?;
+            if existing.is_none() {
+                db.execute("INSERT INTO learning_group_orders(user_id,track,groups) VALUES(?,?,?)", params![uid, track, body["groups"].to_string()])?;
+            } else if !only_if_missing {
+                db.execute("UPDATE learning_group_orders SET groups=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND track=?", params![body["groups"].to_string(), uid, track])?;
+            }
+            let mut value = required(db, "SELECT * FROM learning_group_orders WHERE user_id=? AND track=?", params![uid, track], "Unknown learning track")?;
+            value["groups"] = serde_json::from_str(value["groups"].as_str().unwrap_or("[]")).map_err(ApiError::internal)?;
+            Ok(value)
+        }
         ("GET", ["learned"]) => Ok(json!(
             all(
                 db,

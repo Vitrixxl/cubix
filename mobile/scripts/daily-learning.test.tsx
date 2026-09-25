@@ -1,9 +1,22 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { Provider, createStore, atom } from "jotai";
-import { learningKey, localDay } from "../../src/client/lib/dailyLearning";
+import { learningKey, localDay, learningCases, orderedGroups, type LearningTrack } from "../../src/client/lib/dailyLearning";
+import type { LearningGroupOrder } from "../../src/shared/types";
+import { createEvent } from "../src/platform/events";
 import { cases } from "../../src/client/local/catalog";
 const stored = new Map<string, string>();
+const changed = createEvent();
+let activeUser = "alice";
+const groupOrders = new Map<string, LearningGroupOrder>();
+mock.module("../src/api", () => ({
+  localChanged: changed,
+  local: { learningGroupOrder: () => groupOrders.get(activeUser) ?? {} },
+  api: { setLearningGroupOrder: async (track: LearningTrack, groups: string[]) => {
+    groupOrders.set(activeUser, { ...groupOrders.get(activeUser), [track]: orderedGroups(learningCases(cases,track),groups) });
+    changed.emit();
+  } },
+}));
 mock.module("../src/platform/storage", () => ({ storage: { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => stored.set(k, v) } }));
 let resume: (state: string) => void;
 mock.module("react-native", () => ({ AppState: { addEventListener: (_: string, cb: typeof resume) => { resume = cb; return { remove() {} }; } } }));
@@ -13,8 +26,9 @@ const { useDailyLearning } = await import("../src/hooks/useDailyLearning");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;
 let daily: ReturnType<typeof useDailyLearning>;
-afterEach(async () => { if (renderer) await act(() => renderer.unmount()); stored.clear(); });
+afterEach(async () => { if (renderer) await act(() => renderer.unmount()); stored.clear(); groupOrders.clear(); });
 async function mount(store = createStore()) {
+  activeUser = store.get(userAtom).id;
   function Harness() { daily = useDailyLearning(); return null; }
   await act(() => { renderer = create(<Provider store={store}><Harness /></Provider>); });
   return store;
@@ -41,6 +55,19 @@ test("mobile advances immediately and preserves the next case across tracks and 
   expect(daily.mode).toBe("practice");
   await act(() => store.set(puzzleAtom, "333"));
   expect(daily.assignment?.caseId).toBe(next);
+});
+
+test("mobile applies an order received from another device, deferring it until the attempt unlocks", async () => {
+  const store = await mount();
+  await act(() => daily.setMode("PLL"));
+  const original = [...daily.groups];
+  await act(() => store.set(cubeSwitchLockedAtom,true));
+  await act(() => { groupOrders.set("alice", { PLL: [...original].reverse() }); changed.emit(); });
+  expect(daily.groups).toEqual(original);
+  await act(() => store.set(cubeSwitchLockedAtom,false));
+  expect(daily.groups).toEqual([...original].reverse());
+  await act(() => { groupOrders.set("alice", { PLL: original }); changed.emit(); });
+  expect(daily.groups).toEqual(original);
 });
 test("mobile advances yesterday's completed case on launch and isolates accounts", async () => {
   stored.set(learningKey("alice"), JSON.stringify({ mode: "PLL", tracks: { PLL: { caseId: "PLL Aa", assignedOn: "2020-01-01", completedOn: "2020-01-02" } } }));

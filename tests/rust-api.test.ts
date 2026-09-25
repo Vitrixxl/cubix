@@ -168,6 +168,33 @@ rustTest("learning marks are validated, upserted per account and journaled for s
   expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
 });
 
+rustTest("learning order validates tracks and groups, isolates accounts, and replays uploads idempotently", async () => {
+  const path = fixture();
+  const app = createRustApi(path); cleanups.push(() => app.server.stop());
+  const call = client(app);
+  const alice = (await call("/auth/register", "POST", { username:"priority_alice", password:"a-long-test-password" })).body;
+  const bob = (await call("/auth/register", "POST", { username:"priority_bob", password:"a-long-test-password" })).body;
+  const body = { track:"PLL", groups:["Edges Only","Adjacent Corner Swap","Diagonal Corner Swap"] };
+  expect((await call("/learning-group-order","PUT",body)).status).toBe(401);
+  for (const invalid of [{ ...body, track:"ZBLL" }, { ...body, groups:[] }, { ...body, groups:["Unknown"] }, { ...body, groups:["Edges Only","Edges Only"] }, { ...body, groups:["Dot"] }, { ...body, onlyIfMissing:"yes" }]) {
+    expect((await call("/learning-group-order","PUT",invalid,alice.token)).status).toBe(422);
+  }
+  const op = { id:crypto.randomUUID(), method:"PUT", path:"learning-group-order", body };
+  const first = await call("/sync","POST",{ operations:[op] },alice.token);
+  expect(first.status).toBe(200);
+  expect(first.body.results[0].value.groups).toEqual(body.groups);
+  expect((await call("/sync","POST",{ operations:[op] },alice.token)).body).toEqual(first.body);
+  const cursor = (await call("/sync?after=0","GET",undefined,alice.token)).body.cursor;
+  expect((await call("/sync?after=0","GET",undefined,bob.token)).body.changes).toEqual([]);
+  const reversed = [...body.groups].reverse();
+  expect((await call("/learning-group-order","PUT",{ ...body, groups:reversed, onlyIfMissing:true },alice.token)).body.groups).toEqual(body.groups);
+  expect((await call("/learning-group-order","PUT",{ ...body, groups:reversed },alice.token)).body.groups).toEqual(reversed);
+  expect((await call(`/sync?after=${cursor}`,"GET",undefined,alice.token)).body.changes).toEqual([]);
+  const changes = (await call(`/sync?after=${cursor}&learningGroups=1`,"GET",undefined,alice.token)).body.changes;
+  expect(changes).toHaveLength(1);
+  expect(changes[0]).toMatchObject({ kind:"learning_group_orders", value:{ track:"PLL", groups:reversed } });
+});
+
 rustTest("Rust announces its build, stores the uploaded APK and serves it back", async () => {
   const app = createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
   const call = client(app);

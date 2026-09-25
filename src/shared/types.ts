@@ -4,6 +4,14 @@ import type { CubeSize, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
 export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
 export const STAGES: readonly Stage[] = ["F2L", "OLL", "PLL"];
 
+export type LearningGroupOrder = Partial<Record<"F2L" | "OLL" | "PLL", string[]>>;
+export interface LearningGroupOrderDto {
+  id: number;
+  track: "F2L" | "OLL" | "PLL";
+  groups: string[];
+  updated_at: string;
+}
+
 export interface AlgEntry {
   alg: string;
   source: string;

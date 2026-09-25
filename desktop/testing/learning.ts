@@ -131,6 +131,12 @@ try {
   assert.equal(await page.locator(".case-title").getAttribute("data-action"), next, "next unlearned assignment survives restart");
   await click("menu:learningGroups");
   assert.equal(await page.locator(".learning-group-name").first().textContent(), "Edges Only");
+  // A workspace update (the same notification emitted after sync) refreshes an already-open list.
+  await page.evaluate(groups => window.cubix.call("setLearningGroupOrder", "PLL", groups), originalGroups);
+  await page.waitForFunction(group => document.querySelector(".learning-group-name")?.textContent === group, originalGroups[0]);
+  const restored = ["Edges Only", ...originalGroups.filter(group => group !== "Edges Only")];
+  await page.evaluate(groups => window.cubix.call("setLearningGroupOrder", "PLL", groups), restored);
+  await page.waitForFunction(() => document.querySelector(".learning-group-name")?.textContent === "Edges Only");
   await click("close");
 
   // Review mixes all learned stages without changing the manual or daily selection.

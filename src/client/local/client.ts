@@ -1,7 +1,8 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import { ApiError, createApiClient, type AddSolveBody } from "../api-client";
-import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto } from "../../shared/types";
+import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto, LearningGroupOrder, LearningGroupOrderDto } from "../../shared/types";
+import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGroups, type LearningTrack } from "../lib/dailyLearning";
 import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
@@ -9,14 +10,14 @@ import { achievements } from "../lib/achievements";
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; outbox: Operation[]; cursor: number }
+type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned" | "learning-order"; localId: number; body: any; createdAt: string; error?: string };
+interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; groupOrder: LearningGroupOrder; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
 const LEGACY_LEARNED_KEY = "cubix.algs.learnedCaseIds";
 const GUEST: UserDto = { id: "local-guest", username: "Guest", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
-const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, outbox:[], cursor:0 });
+const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, groupOrder:{}, outbox:[], cursor:0 });
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
@@ -65,12 +66,32 @@ export function createLocalClient(options: {
     if (id === "guest") return;
     // Only the latest learning mark of a case needs to reach the server.
     if (kind === "learned") workspace.outbox = workspace.outbox.filter(op => !(op.kind === "learned" && !op.error && op.body.caseId === body.caseId));
+    if (kind === "learning-order") workspace.outbox = workspace.outbox.filter(op => !(op.kind === kind && op.body.track === body.track));
     workspace.outbox.push({ id:crypto.randomUUID(), kind, localId, body, createdAt });
   };
   const save = (id: string, value: Workspace) => write("workspace:" + id,value);
   const data = (id = owner()) => {
-    const workspace = read<Workspace & { cache?: unknown }>("workspace:" + id,empty());
+    const stored = read<(Workspace & { cache?: unknown }) | null>("workspace:" + id,null);
+    const workspace: Workspace & { cache?: unknown } = stored ?? empty();
     workspace.learned ??= {};
+    if (!stored?.groupOrder) {
+      workspace.groupOrder = {};
+      // Old clients advanced past order events they could not consume; replay once on upgrade.
+      workspace.cursor = 0;
+      // Seed once per workspace. A device upgraded later cannot overwrite an order already online.
+      for (const key of id === "guest" ? [learningKey("guest"), learningKey(GUEST.id)] : [learningKey(id)]) {
+        let legacy: unknown;
+        try { legacy = JSON.parse(storage.getItem(key) ?? "null")?.groupOrder; } catch { continue; }
+        for (const track of LEARNING_TRACKS) {
+          const saved = (legacy as LearningGroupOrder | null)?.[track];
+          if (!Array.isArray(saved) || !saved.some(g => typeof g === "string" && learningCases(cases,track).some(c => c.group === g))) continue;
+          const groups = orderedGroups(learningCases(cases,track),saved);
+          workspace.groupOrder[track] = groups;
+          operation(workspace,id,"learning-order",0,{ track, groups, onlyIfMissing:true });
+        }
+      }
+      save(id,workspace);
+    }
     if (!workspace.normalScrambles) {
       for (const row of [...Object.values(workspace.sessions), ...Object.values(workspace.solves)]) row.scramble_type = scrambleTypeOf(row);
       // Keep operation IDs: retries of a committed upload must remain idempotent.
@@ -134,6 +155,10 @@ export function createLocalClient(options: {
         account.learned[caseId] = true;
         operation(account,user.id,"learned",0,{ caseId, learned:true });
       }
+      for (const track of LEARNING_TRACKS) if (guest.groupOrder[track] && !account.groupOrder[track]) {
+        account.groupOrder[track] = guest.groupOrder[track];
+        operation(account,user.id,"learning-order",0,{ track, groups:guest.groupOrder[track], onlyIfMissing:true });
+      }
       save(user.id,account); save("guest",empty());
     });
   }
@@ -148,7 +173,11 @@ export function createLocalClient(options: {
     await edit(id, workspace => {
       const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
       for (const change of [...changes].sort((a,b) => Number(a.kind === "solves") - Number(b.kind === "solves"))) {
-        if (change.kind === "learned_cases") {
+        if (change.kind === "learning_group_orders") {
+          const row = change.value as LearningGroupOrderDto | null;
+          if (!row || !isLearningTrack(row.track) || workspace.outbox.some(op => op.kind === "learning-order" && op.body.track === row.track)) continue;
+          workspace.groupOrder[row.track] = orderedGroups(learningCases(cases,row.track),row.groups);
+        } else if (change.kind === "learned_cases") {
           // A pending local mark wins until it is uploaded; the server then orders both edits.
           const row = change.value as LearnedCaseDto | null;
           if (!row || dirty.has(`learned:${row.case_id}`)) continue;
@@ -159,7 +188,7 @@ export function createLocalClient(options: {
           if (dirty.has(`sessions:${localId}`)) continue;
           if (!change.value) delete workspace.sessions[localId];
           else workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id };
-        } else {
+        } else if (change.kind === "solves") {
           const existing = Object.values(workspace.solves).find(s => s.serverId === change.id);
           const localId = existing?.id ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`solves:${localId}`)) continue;
@@ -194,7 +223,7 @@ export function createLocalClient(options: {
           const workspace = data(id), op = workspace.outbox.find(op => !op.error);
           if (!op) break;
           activeOperation = op.id;
-          let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : "solves";
+          let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : op.kind === "learning-order" ? "learning-group-order" : "solves";
           const body = { ...op.body };
           if (op.kind === "solve") {
             const sid = sessionServerId(workspace,body.sessionId);
@@ -206,13 +235,16 @@ export function createLocalClient(options: {
             if (!serverId) throw new Error("The solve is waiting to synchronize.");
             path += "/" + serverId;
           }
-          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
+          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
           const result: any = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
             if (op.kind === "session" && latest.sessions[op.localId]) latest.sessions[op.localId].serverId = result.id;
             if (op.kind === "solve" && latest.solves[op.localId]) latest.solves[op.localId].serverId = result.id;
             if (op.kind === "delete") delete latest.solves[op.localId];
+            if (op.kind === "learning-order" && result && !latest.outbox.some(item => item.kind === op.kind && item.body.track === op.body.track && item.id !== op.id)) {
+              latest.groupOrder[result.track as LearningTrack] = orderedGroups(learningCases(cases,result.track),result.groups);
+            }
             latest.outbox = latest.outbox.filter(item => item.id !== op.id);
           });
         }
@@ -332,6 +364,13 @@ export function createLocalClient(options: {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.deleted = true; operation(workspace,id,"delete",solveId,{}); return solve;
     }),
+    setLearningGroupOrder: async (track: LearningTrack, groups: string[]) => localMutation((workspace,id) => {
+      if (!isLearningTrack(track)) throw new Error("Unknown learning track.");
+      const order = orderedGroups(learningCases(cases,track),groups);
+      workspace.groupOrder[track] = order;
+      operation(workspace,id,"learning-order",0,{ track, groups:order });
+      return order;
+    }),
     learnedCases: async () => learnedIds(),
     setLearned: async (caseId: string, learned: boolean) => localMutation((workspace,id) => {
       if (!cases.some(c => c.id === caseId)) throw new Error("Unknown case.");
@@ -366,6 +405,7 @@ export function createLocalClient(options: {
   }
   return { api, read: reads, sync, restore, current, reconnected,
     learned: () => learnedIds(),
+    learningGroupOrder: () => data().groupOrder,
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync(),
     retry: async () => { await edit(owner(),d => { for (const op of d.outbox) delete op.error; }); await sync(); },

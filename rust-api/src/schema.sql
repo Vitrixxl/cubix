@@ -26,6 +26,15 @@
       UNIQUE(user_id, case_id)
     );
 
+    CREATE TABLE IF NOT EXISTS learning_group_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      track TEXT NOT NULL CHECK(track IN ('F2L', 'OLL', 'PLL')),
+      groups TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      UNIQUE(user_id, track)
+    );
+
 
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE COLLATE NOCASE,

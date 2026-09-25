@@ -83,7 +83,7 @@ let mutations=Promise.resolve();
 async function handle(req:any){
  try{
  let value:unknown;
- if(req.method==='init')value={protocol:2,user:local.current(),storage:values,origin,learned:local.learned()};
+ if(req.method==='init')value={protocol:2,user:local.current(),storage:values,origin,learned:local.learned(),learningGroupOrder:local.learningGroupOrder()};
  else if(req.method==='snapshot'){
    const q=req.args[0],context=q.context;
    const trainingMode=q.page==='training';
@@ -99,7 +99,7 @@ async function handle(req:any){
      jobs[trainingMode?'training':'scramble']=lastAdvance.promise.then(v=>v[trainingMode?'training':'scramble']);
    }
    if(!trainingMode)prefetchScramble(context);
-   value={revision:q.revision,learned:local.learned(),...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async([key,promise])=>[key,await promise])))};
+   value={revision:q.revision,learned:local.learned(),learningGroupOrder:local.learningGroupOrder(),...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async([key,promise])=>[key,await promise])))};
  }
  else if(req.method==='preference'){storage.setItem(req.args[0],JSON.stringify(req.args[1]));value=true;}
  else if(req.method==='cubePreview')value=cubePreview(req.args[0],req.args[1],req.args[2]);

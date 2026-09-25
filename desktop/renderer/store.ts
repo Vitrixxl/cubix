@@ -37,6 +37,7 @@ export class Store {
   version = 0;
   ready = false;
   prefs: Record<string, any> = {};
+  learningGroupOrder: NonNullable<LearningPlan["groupOrder"]> = {};
   page = "playground";
   caseId = "";
   puzzle = "333";
@@ -140,7 +141,7 @@ export class Store {
     this.generating = false;
     this.emit();
   };
-  get learningPlan(): LearningPlan { return this.prefs[learningKey(this.user.id ?? "guest")] ?? EMPTY_LEARNING_PLAN; }
+  get learningPlan(): LearningPlan { return { ...(this.prefs[learningKey(this.user.id ?? "guest")] ?? EMPTY_LEARNING_PLAN), groupOrder: this.learningGroupOrder }; }
   get learningMode() { return learningModeForPuzzle(this.learningPlan.mode, this.puzzle); }
   get learningGroups() { const mode = this.learningMode; return isLearningTrack(mode) ? orderedGroups(learningCases(catalog.cases, mode), this.learningPlan.groupOrder?.[mode]) : []; }
   async reorderLearningGroups(groups: string[]) {
@@ -149,6 +150,8 @@ export class Store {
     const order = orderedGroups(learningCases(catalog.cases, mode), groups);
     const previousOrder = this.learningGroups;
     if (order.every((group, index) => group === previousOrder[index])) return;
+    await call("setLearningGroupOrder", mode, order);
+    this.learningGroupOrder = { ...this.learningGroupOrder, [mode]: order };
     const plan = this.learningPlan;
     // An explicit priority change also updates today's case; ordinary refreshes keep it pinned.
     const assignment = dailyAssignment(undefined, learningCases(catalog.cases, mode, order), this.learned, localDay()) ?? plan.tracks[mode];
@@ -191,6 +194,7 @@ export class Store {
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.learned = new Set(v.learned);
+      this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
       this.ready = true;
       this.emit();
@@ -256,6 +260,7 @@ export class Store {
         .reverse();
       this.stats = v.stats;
       this.learned = new Set(v.learned);
+      this.learningGroupOrder = v.learningGroupOrder ?? {};
       await this.refreshLearning();
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
