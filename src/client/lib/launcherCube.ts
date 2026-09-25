@@ -156,8 +156,8 @@ export function launcherCubeFrame(progress: number, time = 0): LauncherPolygon[]
   const t = clamp(progress);
   const sway = t >= 1 ? 0.035 * Math.sin(time / 850) : 0;
   const camera = view(YAW + sway, PITCH);
-  // The cube fades in over the first moments of a solve (and out at the end of a scramble back).
-  const opacity = Math.round(clamp(t * 8) * 100) / 100;
+  // No fade: the cube is fully drawn from the first frame and stays on screen, scrambled, between cycles.
+  const opacity = 1;
   const count = SOLUTION.length;
   const step = Math.min(count - 1, Math.floor(t * count));
   const fraction = t >= 1 ? 0 : smooth(t * count - step);

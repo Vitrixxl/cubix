@@ -50,13 +50,12 @@ test("the scramble really is undone: the final frame is the solved cube seen lik
   }
 });
 
-test("the cube starts scrambled, showing colours from the hidden faces, and fades in", () => {
+test("the cube starts scrambled, showing colours from the hidden faces, fully drawn from the first frame", () => {
   const start = launcherCubeFrame(0.001);
   expect(count(start, "core")).toBe(27);
   const fills = new Set(start.filter(p => p.fill !== "core").map(p => p.fill));
   expect(fills.size).toBeGreaterThanOrEqual(5);
-  expect(start.every(p => p.opacity < 0.1)).toBe(true);
-  expect(launcherCubeFrame(0.2).every(p => p.opacity === 1)).toBe(true);
+  for (const frame of [launcherCubeFrame(0), start, launcherCubeFrame(0.2)]) expect(frame.every(p => p.opacity === 1)).toBe(true);
   // Mid-move, a turning layer shows more than three faces of some pieces.
   expect(new Set(launcherCubeFrame(0.5).map(p => p.fill)).size).toBeGreaterThan(4);
 });
