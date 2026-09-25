@@ -18,20 +18,18 @@ export function learningCases(cases: readonly CaseDto[], track: LearningTrack, o
   const groups = orderedGroups(pool, order);
   return pool.sort((a, b) => groups.indexOf(a.group) - groups.indexOf(b.group));
 }
-/** Unlearned cases stay pinned even after missed days. Completion earns the rest of the day;
- * returning tomorrow picks the first remaining case in the chosen group order. Undo reopens the same case. */
+/** Unlearned cases stay pinned across repetitions and restarts. Marking a case learned
+ * immediately picks the first remaining case in the chosen group order. */
 export function dailyAssignment(previous: DailyAssignment | undefined, cases: readonly CaseDto[], learned: ReadonlySet<string>, today: string): DailyAssignment | undefined {
   if (previous && cases.some(c => c.id === previous.caseId)) {
     if (!learned.has(previous.caseId)) return previous.completedOn ? { caseId: previous.caseId, assignedOn: previous.assignedOn } : previous;
-    if (!previous.completedOn) return { ...previous, completedOn: today };
-    if (previous.completedOn >= today) return previous;
   }
   const next = cases.find(c => !learned.has(c.id));
-  return next ? { caseId: next.id, assignedOn: today } : previous && cases.some(c => c.id === previous.caseId) ? previous : undefined;
+  return next ? { caseId: next.id, assignedOn: today } : undefined;
 }
-export function learningStatus(cases: readonly CaseDto[], learned: ReadonlySet<string>, assignment?: DailyAssignment): string {
+export function learningStatus(cases: readonly CaseDto[], learned: ReadonlySet<string>): string {
   const count = cases.filter(c => learned.has(c.id)).length;
-  const status = count === cases.length && cases.length > 0 ? "Track complete" : assignment && learned.has(assignment.caseId) ? "Done today · next tomorrow" : "Algorithm of the day";
+  const status = count === cases.length && cases.length > 0 ? "Track complete" : "Algorithm to learn";
   return `${status} · ${count}/${cases.length} learned`;
 }
 

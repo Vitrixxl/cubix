@@ -27,7 +27,8 @@ import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { StopSurface, TimerSurface } from "../components/TimerSurface";
 import { useDailyLearning } from "../hooks/useDailyLearning";
-import { Sheet, SheetScrollView } from "../components/Sheet";
+import { Sheet } from "../components/Sheet";
+import { LearningGroups } from "../components/LearningGroups";
 import { Select } from "../components/Select";
 import { trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { Caption, Kpi, MiniBtn, Muted, mono } from "../components/ui";
@@ -234,15 +235,8 @@ function TrainingSession() {
         <TimesPanel selectedCases={selectedCases} solves={solves} onUndo={undoLast} />
       </PracticePanel>
     </View>
-    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title={`Group order · ${daily.mode}`} tall>
-      <SheetScrollView>
-        {daily.groups.map((group, i) => <View key={group} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 }}>
-          <Text style={{ flex: 1, color: t.text, fontSize: 14 }}>{i + 1}. {group}</Text>
-          {([-1, 1] as const).map(direction => <Pressable key={direction} accessibilityRole="button" accessibilityLabel={`Move ${group} ${direction === -1 ? "up" : "down"}`} disabled={busy || !!timer.saveError || i + direction < 0 || i + direction >= daily.groups.length} onPress={() => daily.moveGroup(i, direction)} style={({ pressed }) => ({ width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? t.hover : "transparent", opacity: i + direction < 0 || i + direction >= daily.groups.length ? 0.3 : 1 })}>
-            <Text style={{ color: t.text, fontSize: 22 }}>{direction === -1 ? "↑" : "↓"}</Text>
-          </Pressable>)}
-        </View>)}
-      </SheetScrollView>
+    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title={`Group order · ${daily.mode}`} tall dismissOnBodyDrag={false}>
+      {showGroups && <LearningGroups key={daily.mode} groups={daily.groups} disabled={busy || !!timer.saveError} onReorder={daily.reorderGroups} />}
     </Sheet>
     <StopSurface timer={timer} />
   </View>;

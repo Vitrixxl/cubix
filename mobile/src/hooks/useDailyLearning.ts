@@ -1,7 +1,7 @@
 import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
-import { orderedGroups, moveLearningGroup, reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
+import { orderedGroups, reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
 import { casesAtom, cubeSwitchLockedAtom, learnedCaseIdsAtom, puzzleAtom, userAtom } from "../state";
 import { storage } from "../platform/storage";
 
@@ -32,5 +32,9 @@ export function useDailyLearning() {
   useEffect(() => {
     if (isLearningTrack(mode) && assignment !== plan.tracks[mode]) save({ ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
   }, [assignment, mode, plan]);
-  return { groups: orderedGroups(pool, isLearningTrack(mode) ? plan.groupOrder?.[mode] : []), moveGroup: (index: number, direction: number) => { if (!locked && isLearningTrack(mode)) save(moveLearningGroup(plan, mode, cases, index, direction)); }, mode, assignment, reviewIds, status: mode === "review" ? `Review learned · ${reviewIds.length} cases` : learningStatus(pool, learned, assignment), setMode: (mode: LearningMode) => save({ ...plan, mode }) };
+  const reorderGroups = (groups: string[]) => {
+    if (locked || !isLearningTrack(mode)) return;
+    save({ ...plan, groupOrder: { ...plan.groupOrder, [mode]: orderedGroups(pool, groups) } });
+  };
+  return { groups: orderedGroups(pool, isLearningTrack(mode) ? plan.groupOrder?.[mode] : []), reorderGroups, mode, assignment, reviewIds, status: mode === "review" ? `Review learned · ${reviewIds.length} cases` : learningStatus(pool, learned), setMode: (mode: LearningMode) => save({ ...plan, mode }) };
 }

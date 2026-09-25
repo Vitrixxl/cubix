@@ -157,7 +157,7 @@ export class Store {
   }
   get daily() { const mode = this.learningMode; return isLearningTrack(mode) ? this.learningPlan.tracks[mode] : undefined; }
   get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(this.learningMode === "review" ? this.reviewIds : this.daily ? [this.daily.caseId] : []); }
-  get dailyStatus() { if (this.learningMode === "review") return `Review learned · ${this.reviewIds.length} cases`; return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned, this.daily) : ""; }
+  get dailyStatus() { if (this.learningMode === "review") return `Review learned · ${this.reviewIds.length} cases`; return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned) : ""; }
   reconcileLearning() {
     const mode = this.learningMode;
     if (this.learningFrozen || this.pendingSolve) return;

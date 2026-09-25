@@ -19,28 +19,33 @@ test("first unknown case is pinned through repetitions, restart and missed days"
   const restored = JSON.parse(JSON.stringify(first));
   expect(dailyAssignment(restored, pool, learned, "2026-10-15")).toEqual(first);
 });
-test("learning an overdue case waits until the day after completion", () => {
+test("marking learned advances immediately and skips other learned cases", () => {
   const first = dailyAssignment(undefined, pool, empty, today)!;
-  const learned = new Set([first.caseId]);
-  const completed = dailyAssignment(first, pool, learned, "2026-09-27")!;
-  expect(completed.completedOn).toBe("2026-09-27");
-  expect(dailyAssignment(completed, pool, learned, "2026-09-27")).toBe(completed);
-  expect(dailyAssignment(completed, pool, learned, "2026-09-28")?.caseId).toBe(pool[1]!.id);
-  expect(learningStatus(pool, learned, completed)).toContain("next tomorrow");
+  const learned = new Set([first.caseId, pool[1]!.id]);
+  const next = dailyAssignment(first, pool, learned, today)!;
+  expect(next).toEqual({ caseId: pool[2]!.id, assignedOn: today });
+  expect(dailyAssignment(next, pool, learned, today)).toBe(next);
+  learned.add(next.caseId);
+  expect(dailyAssignment(next, pool, learned, today)?.caseId).toBe(pool[3]!.id);
+  expect(learningStatus(pool, learned)).toBe("Algorithm to learn · 3/21 learned");
 });
-test("undo reopens the pinned case and does not silently advance", () => {
-  const first = dailyAssignment(undefined, pool, empty, today)!;
-  const done = dailyAssignment(first, pool, new Set([first.caseId]), today)!;
-  const undone = dailyAssignment(done, pool, empty, "2026-09-24")!;
-  expect(undone).toEqual(first);
-  expect(learningStatus(pool, empty, undone)).toContain("Algorithm of the day");
+test("saved completed cases advance regardless of the completion date", () => {
+  for (const completedOn of [undefined, "2026-09-22", today, "2026-09-27"]) {
+    const saved = { caseId: pool[0]!.id, assignedOn: "2026-09-20", completedOn };
+    expect(dailyAssignment(saved, pool, new Set([saved.caseId]), today))
+      .toEqual({ caseId: pool[1]!.id, assignedOn: today });
+    expect(dailyAssignment(saved, pool, empty, today))
+      .toEqual({ caseId: saved.caseId, assignedOn: saved.assignedOn });
+  }
 });
-test("completed track remains reviewable and unknown catalogue IDs recover", () => {
+test("completed track has no assignment and unknown catalogue IDs recover", () => {
   const all = new Set(pool.map(c => c.id));
   expect(dailyAssignment(undefined, pool, all, today)).toBeUndefined();
   expect(learningStatus(pool, all)).toBe("Track complete · 21/21 learned");
   const last = { caseId: pool.at(-1)!.id, assignedOn: today, completedOn: today };
-  expect(dailyAssignment(last, pool, all, "2026-10-01")).toBe(last);
+  expect(dailyAssignment(last, pool, all, today)).toBeUndefined();
+  all.delete(last.caseId);
+  expect(dailyAssignment(undefined, pool, all, today)?.caseId).toBe(last.caseId);
   expect(dailyAssignment({ caseId: "removed", assignedOn: today }, pool, empty, today)?.caseId).toBe(pool[0]!.id);
 });
 test("local calendar dates and account keys do not mix", () => {
@@ -71,6 +76,7 @@ test("group priority normalizes saved groups and schedules unlearned cases witho
   const pinned = dailyAssignment(undefined, pool, empty, today)!;
   expect(dailyAssignment(pinned, sorted, empty, "2026-09-24")).toBe(pinned);
   const done = dailyAssignment(pinned, sorted, new Set([pinned.caseId]), today)!;
+  expect(done.caseId).toBe(sorted[0]!.id);
   expect(dailyAssignment(done, sorted, new Set([pinned.caseId]), today)).toBe(done);
   expect(dailyAssignment(done, sorted, new Set([pinned.caseId]), "2026-09-24")?.caseId).toBe(sorted[0]!.id);
   const learned = new Set(sorted.filter(c => c.group === "Edges Only").map(c => c.id));

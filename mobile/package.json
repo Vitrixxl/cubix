@@ -15,7 +15,7 @@
     "pc": "bun scripts/run-android.ts",
     "serve:apk": "bun scripts/serve-apk.ts",
     "doctor": "bunx expo-doctor",
-    "test": "bun test tests && bun test ./scripts/daily-learning.test.tsx && bun test ./scripts/startup-gate.test.tsx",
+    "test": "bun test tests && bun test ./scripts/daily-learning.test.tsx && bun test ./scripts/learning-groups.test.tsx && bun test ./scripts/startup-gate.test.tsx",
     "test:scrambler": "bun run build:scrambler && bun scripts/test-scrambler.ts"
   },
   "dependencies": {

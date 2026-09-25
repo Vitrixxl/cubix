@@ -100,6 +100,7 @@ export function createLocalClient(options: {
     const workspace = data(id); const result = action(workspace); save(id,workspace); return result;
   });
   let syncing: Promise<void> | null = null;
+  let reconnecting: Promise<void> | null = null;
   let scheduled: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
   let status: SyncStatus = { state: current().isGuest ? "local" : "offline", pending:data().outbox.length };
@@ -244,6 +245,18 @@ export function createLocalClient(options: {
     return syncing;
   }
 
+  /** A restored connection must refresh even when the server cursor has not changed.
+   * Wait out a request started before the reconnect, which may still fail offline. */
+  function reconnected(): Promise<void> {
+    if (reconnecting) return reconnecting;
+    const id = owner(), token = options.getToken();
+    reconnecting = (async () => {
+      if (syncing) await syncing;
+      if (!stopped && owner() === id && options.getToken() === token) await sync();
+    })().finally(() => { reconnecting = null; });
+    return reconnecting;
+  }
+
   async function localMutation<T>(change: (workspace: Workspace, id: string) => T): Promise<T> {
     const id = owner();
     let value: T;
@@ -351,7 +364,7 @@ export function createLocalClient(options: {
       notify();
     } catch (error) { if (error instanceof ApiError && error.status === 401) options.clearToken(); }
   }
-  return { api, read: reads, sync, restore, current,
+  return { api, read: reads, sync, restore, current, reconnected,
     learned: () => learnedIds(),
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync(),

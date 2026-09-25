@@ -45,7 +45,7 @@ try {
   await click("nav:algorithms"); await click("case:F2L 2"); await click("train");
   await page.waitForSelector('.case-title[data-action="case:F2L 2"]');
   await mode("Learn PLL");
-  await page.waitForSelector(".daily-status:text('Algorithm of the day')");
+  await page.waitForSelector(".daily-status:text('Algorithm to learn')");
   const originalCase = await page.locator(".case-title").getAttribute("data-action");
   assert.ok(originalCase);
   await click("menu:learningGroups");
@@ -90,10 +90,12 @@ try {
   await page.waitForSelector('[data-action^="penalty:"]');
   assert.equal(await page.locator(".case-title").getAttribute("data-action"), first, "timed attempts stay on the daily case");
   await click(first.replace("case:", "learn:"));
-  await page.waitForSelector(".daily-status:text('next tomorrow')");
-  assert.equal(await page.locator(".case-title").getAttribute("data-action"), first);
+  await page.waitForFunction(id => document.querySelector(".case-title")?.getAttribute("data-action") !== id, first);
+  const next = await page.locator(".case-title").getAttribute("data-action");
+  assert.ok(next);
+  await page.waitForSelector(".daily-status:text('1/21 learned')");
   await mode("Learn OLL");
-  await page.waitForSelector(".daily-status:text('Algorithm of the day')");
+  await page.waitForSelector(".daily-status:text('Algorithm to learn')");
   const oll = await page.locator(".case-title").getAttribute("data-action");
   await page.setViewportSize({ width: 360, height: 540 });
   await page.waitForTimeout(400);
@@ -117,21 +119,20 @@ try {
   await page.setViewportSize({ width: 1280, height: 800 });
   assert.notEqual(oll, first);
   await mode("Learn PLL");
-  await page.waitForSelector(".daily-status:text('next tomorrow')");
-  assert.equal(await page.locator(".case-title").getAttribute("data-action"), first);
+  await page.waitForSelector(".daily-status:text('Algorithm to learn')");
+  assert.equal(await page.locator(".case-title").getAttribute("data-action"), next);
   await mode("Free practice");
   await page.waitForSelector('.case-title[data-action="case:F2L 2"]');
   await mode("Learn PLL");
   await app.close();
   app = await launch(); page = await app.firstWindow();
   await page.waitForSelector(".timer"); await click("nav:training");
-  await page.waitForSelector(".daily-status:text('next tomorrow')");
-  assert.equal(await page.locator(".case-title").getAttribute("data-action"), first, "daily assignment survives restart");
+  await page.waitForSelector(".daily-status:text('Algorithm to learn')");
+  assert.equal(await page.locator(".case-title").getAttribute("data-action"), next, "next unlearned assignment survives restart");
   await click("menu:learningGroups");
   assert.equal(await page.locator(".learning-group-name").first().textContent(), "Edges Only");
   await click("close");
-  await click(first.replace("case:", "learn:"));
-  await page.waitForSelector(".daily-status:text('Algorithm of the day')");
+
   // Review mixes all learned stages without changing the manual or daily selection.
   const known = ["F2L 2", "OLL 1", first.slice(5)];
   await page.evaluate(async ids => { for (const id of ids) await window.cubix.call("setLearned", id, true); }, known);

@@ -25,7 +25,7 @@ export function LiveConnection() {
       current.on("message", ({ data }) => {
         if (disposed || socket !== current) return;
         if (data.type === "ready") {
-          void local.remoteChanged(data.cursor);
+          void local.reconnected();
           delay = 1000;
           heartbeat = setInterval(() => { if (current.ws.readyState === 1) current.send({ type: "ping" }); }, 20000);
         } else if (data.type === "sync") void local.remoteChanged(data.cursor);

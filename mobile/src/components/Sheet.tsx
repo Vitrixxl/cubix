@@ -24,7 +24,7 @@ export function SheetScrollView({ onScroll, ...props }: ScrollViewProps) {
  * On phones the drawer sizes to its content up to a maximum height (`tall` sheets always fill it)
  * and can be dragged down to dismiss, from the handle, the header, or a `SheetScrollView` at its top.
  */
-export function Sheet({ open, onClose, children, title, header = true, tall, wide }: { open: boolean; onClose: () => void; children: ReactNode; title: string; header?: boolean; tall?: boolean; wide?: boolean }) {
+export function Sheet({ open, onClose, children, title, header = true, tall, wide, dismissOnBodyDrag = true }: { open: boolean; onClose: () => void; children: ReactNode; title: string; header?: boolean; tall?: boolean; wide?: boolean; dismissOnBodyDrag?: boolean }) {
   const t = useTheme();
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -90,7 +90,7 @@ export function Sheet({ open, onClose, children, title, header = true, tall, wid
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} pointerEvents="box-none" style={[styles.host, phone ? { justifyContent: "flex-end" } : { justifyContent: "center", alignItems: "center" }]}>
       <Animated.View onLayout={phone ? event => setSheetHeight(Math.round(event.nativeEvent.layout.height)) : undefined}
         style={[styles.sheet, phone ? phoneStyle : desktopStyle, { backgroundColor: t.surface, transform: [{ translateY: translate }] }, !phone && { opacity: progress }, t.shadow]}
-        {...(phone ? bodyResponder.panHandlers : {})}>
+        {...(phone && dismissOnBodyDrag ? bodyResponder.panHandlers : {})}>
         {phone && <View {...handleResponder.panHandlers} style={styles.grab} accessibilityLabel={`Drag down to close ${title.toLowerCase()}`}><View style={[styles.handle, { backgroundColor: t.line }]} /></View>}
         {header && <View style={styles.heading} {...(phone ? handleResponder.panHandlers : {})}><Text style={[styles.title, { color: t.text }]}>{title}</Text><Btn variant="ghost" iconOnly small icon={<IconClose size={16} color={t.readableMuted} />} accessibilityLabel={`Close ${title.toLowerCase()}`} onPress={onClose} style={{ width: 32, minHeight: 32 }} /></View>}
         <SheetScrollContext.Provider value={scrollContext}>

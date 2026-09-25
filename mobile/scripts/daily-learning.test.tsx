@@ -19,27 +19,28 @@ async function mount(store = createStore()) {
   await act(() => { renderer = create(<Provider store={store}><Harness /></Provider>); });
   return store;
 }
-test("mobile track, case and completion survive remount; other puzzles stay free", async () => {
+test("mobile advances immediately and preserves the next case across tracks and remounts", async () => {
   const store = await mount();
   await act(() => daily.setMode("F2L"));
   const first = daily.assignment!.caseId;
   expect(first).toBe("F2L 1");
   await act(() => store.set(learnedCaseIdsAtom, [first]));
-  expect(daily.assignment?.completedOn).toBe(localDay());
-  expect(daily.status).toContain("next tomorrow");
+  const next = daily.assignment!.caseId;
+  expect(next).toBe("F2L 2");
+  expect(daily.status).toBe("Algorithm to learn · 1/41 learned");
   await act(() => daily.setMode("OLL"));
   expect(daily.assignment?.caseId).toBe("OLL 1");
   await act(() => daily.setMode("F2L"));
-  expect(daily.assignment?.caseId).toBe(first);
+  expect(daily.assignment?.caseId).toBe(next);
   await act(() => renderer.unmount()); await mount(store);
   expect(daily.mode).toBe("F2L");
-  expect(daily.status).toContain("next tomorrow");
+  expect(daily.assignment?.caseId).toBe(next);
   await act(() => store.set(learnedCaseIdsAtom, []));
   expect(daily.assignment?.completedOn).toBeUndefined();
   await act(() => store.set(puzzleAtom, "222"));
   expect(daily.mode).toBe("practice");
   await act(() => store.set(puzzleAtom, "333"));
-  expect(daily.assignment?.caseId).toBe(first);
+  expect(daily.assignment?.caseId).toBe(next);
 });
 test("mobile advances yesterday's completed case on launch and isolates accounts", async () => {
   stored.set(learningKey("alice"), JSON.stringify({ mode: "PLL", tracks: { PLL: { caseId: "PLL Aa", assignedOn: "2020-01-01", completedOn: "2020-01-02" } } }));
@@ -76,12 +77,13 @@ test("mobile group order persists per track and keeps the assigned case", async 
   const store = await mount();
   await act(() => daily.setMode("PLL"));
   const pinned = daily.assignment;
-  await act(() => daily.moveGroup(2, -1));
-  await act(() => daily.moveGroup(1, -1));
+  const reordered = [...daily.groups];
+  reordered.unshift(reordered.splice(2, 1)[0]!);
+  await act(() => daily.reorderGroups(reordered));
   expect(daily.groups[0]).toBe("Edges Only");
   expect(daily.assignment).toEqual(pinned);
   await act(() => store.set(cubeSwitchLockedAtom, true));
-  await act(() => daily.moveGroup(0, 1));
+  await act(() => daily.reorderGroups([...daily.groups].reverse()));
   expect(daily.groups[0]).toBe("Edges Only");
   await act(() => store.set(cubeSwitchLockedAtom, false));
   await act(() => daily.setMode("OLL"));
@@ -91,3 +93,30 @@ test("mobile group order persists per track and keeps the assigned case", async 
   expect(daily.groups[0]).toBe("Edges Only");
   expect(daily.assignment).toEqual(pinned);
 });
+
+test.each(["F2L", "OLL", "PLL"] as const)("mobile %s drag order survives reopening and ignores unknown or duplicate groups", async track => {
+  const store = await mount();
+  await act(() => daily.setMode(track));
+  const original = [...daily.groups];
+  const reordered = [...original].reverse();
+  await act(() => daily.reorderGroups([...reordered, reordered[0]!, "unknown"]));
+  expect(daily.groups).toEqual(reordered);
+  await act(() => renderer.unmount()); await mount(store);
+  expect(daily.groups).toEqual(reordered);
+  const other = track === "OLL" ? "PLL" : "OLL";
+  await act(() => daily.setMode(other));
+  await act(() => daily.setMode(track));
+  expect(daily.groups).toEqual(reordered);
+});
+
+ test("mobile skips a saved case completed today and finishes the track", async () => {
+  stored.set(learningKey("alice"), JSON.stringify({ mode: "OLL", tracks: { OLL: { caseId: "OLL 1", assignedOn: localDay(), completedOn: localDay() } } }));
+  const store = createStore();
+  const ids = cases.filter(c => c.set === "oll").map(c => c.id);
+  store.set(learnedCaseIdsAtom, ids.filter(id => id !== "OLL 2"));
+  await mount(store);
+  expect(daily.assignment?.caseId).toBe("OLL 2");
+  await act(() => store.set(learnedCaseIdsAtom, ids));
+  expect(daily.assignment).toBeUndefined();
+  expect(daily.status).toBe("Track complete · 57/57 learned");
+ });

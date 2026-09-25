@@ -39,7 +39,8 @@ function connect(){
  live=local.api.connectLive();const current=live;
  current.on('open',()=>current.send({type:'auth',token}));
  current.on('message',({data})=>{
-  if(data.type==='ready'){emit({event:'live',value:'online'});void local.remoteChanged(data.cursor);}
+  if(live!==current)return;
+  if(data.type==='ready'){emit({event:'live',value:'online'});void local.reconnected();}
   // Another device of this account changed practice data; pull it before the next periodic restore.
   if(data.type==='sync')void local.remoteChanged(data.cursor);
  });
