@@ -2315,7 +2315,8 @@ function Overlay() {
         innerWidth - 292,
         Math.max(12, anchor?.x ?? (innerWidth - 280) / 2),
       ),
-      height = Math.min(menu.values.length * 42 + 16, innerHeight - 32),
+      // Rows, padding and border: the menu only scrolls when the window is too short.
+      height = Math.min(menu.values.length * 42 + 18, innerHeight - 32),
       top = anchor
         ? Math.max(12, anchor.y - height - 8)
         : Math.max(12, (innerHeight - height) / 2);

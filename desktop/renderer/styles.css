@@ -931,6 +931,8 @@ progress {
 }
 .select-menu {
   position: absolute;
+  display: flex;
+  flex-direction: column;
   width: 280px;
   padding: 8px;
   background: var(--surface);
