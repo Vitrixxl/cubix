@@ -40,7 +40,17 @@ try {
   await act("nav:profile");
   await act("profileMode:playground");
   const rows = page.locator(".history-row"), plot = page.locator(".chart-plot");
-  await page.waitForFunction(() => document.querySelectorAll(".history-row").length === 600);
+  // Chart and table share one panel; its header states how many solves the period holds.
+  const view = async (name: "Chart" | "Table") => {
+    await page.getByRole("button", { name, exact: true }).click();
+    await page.locator(name === "Chart" ? ".chart-plot" : ".solves-head").waitFor();
+  };
+  const shownCount = () => page.evaluate(() => Number(document.querySelector(".solves-count")?.textContent?.split(" ")[0] ?? 0));
+  await page.waitForFunction(() => document.querySelector(".solves-count")?.textContent === "600 solves");
+  assert.equal(await rows.count(), 0);
+  await view("Table");
+  assert.equal(await rows.count(), 100); // The table draws its rows in pages.
+  await view("Chart");
   const summary = await page.locator(".stat-strip").innerText();
   const bounds = async () => {
     const box = (await plot.boundingBox())!;
@@ -57,29 +67,34 @@ try {
   };
   const selectedCount = async (expected?: number) => {
     await page.waitForFunction(n => {
-      const count = document.querySelectorAll(".history-row").length;
+      const count = Number(document.querySelector(".solves-count")?.textContent?.split(" ")[0] ?? 0);
       return n == null ? count > 1 && count < 600 : count === n;
     }, expected);
-    return rows.count();
+    return shownCount();
   };
   await drag(0.25, 0.65);
   const selected = await selectedCount();
   assert(selected > 230 && selected < 250, `Selected ${selected}`);
-  assert.equal(await page.locator(".history-panel h3").innerText(), "Selected times");
+  assert.equal(await page.locator(".solves-count").innerText(), `${selected} of 600 solves`);
   assert.equal(await page.locator(".stat-strip").innerText(), summary);
+  await view("Table"); // The selection carries over to the table and back.
+  assert.equal(await shownCount(), selected);
   const beforePan = await rows.first().innerText();
+  await view("Chart");
   await drag(0.6, 0.3, true);
-  assert.equal(await rows.count(), selected);
+  assert.equal(await shownCount(), selected);
+  await view("Table");
   assert.notEqual(await rows.first().innerText(), beforePan);
+  await view("Chart");
   const b = await bounds();
   await page.mouse.move(b.x + b.width / 2, b.y);
   await page.mouse.wheel(0, -220);
-  await page.waitForFunction(n => document.querySelectorAll(".history-row").length < n, selected);
-  const zoomCount = await rows.count();
+  await page.waitForFunction(n => Number(document.querySelector(".solves-count")?.textContent?.split(" ")[0]) < n, selected);
+  const zoomCount = await shownCount();
   assert(zoomCount > 1);
   await plot.focus();
   await page.keyboard.press("ArrowLeft");
-  assert.equal(await rows.count(), zoomCount);
+  assert.equal(await shownCount(), zoomCount);
   await page.keyboard.press("Home");
   await selectedCount(600);
   await drag(0.7, 0.3); // Reverse selections work too.
@@ -103,25 +118,63 @@ try {
   await selectedCount(600);
   console.log("Chart: selection, reverse selection, zoom, pan, reset, keyboard and cancellation passed");
 
+  await view("Table");
+  const times = () => page.locator(".history-row > span:nth-child(2)").allInnerTexts();
+  const seconds = (v: string) => (v === "DNF" ? Infinity : Number(v));
+  await page.getByRole("button", { name: "Sort solves" }).click();
+  await page.getByRole("option", { name: "Fastest first" }).click();
+  const fastest = (await times()).slice(0, 20).map(seconds);
+  assert.deepEqual(fastest, [...fastest].sort((a, b) => a - b));
+  await page.getByRole("button", { name: "Sort solves" }).click();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.getByRole("button", { name: "Sort solves" }).innerText(), "Slowest first");
+  assert.equal((await times())[0], "1:23.000"); // DNFs stay last in both directions, as on mobile.
+  await page.getByRole("button", { name: "Sort solves" }).click();
+  await page.getByRole("option", { name: "Newest first" }).click();
+  await page.getByRole("button", { name: "Show more (500 left)" }).click();
+  assert.equal(await rows.count(), 200);
+
+  const first = page.locator(".solve-row").first(),
+    newest = await first.locator(".history-row").innerText();
+  await first.getByRole("button", { name: "+2 penalty" }).click();
+  await page.waitForFunction(() => document.querySelector(".solve-row .history-tags")?.textContent?.includes("+2"));
+  await first.getByRole("button", { name: "Add comment" }).click();
+  await page.locator(".modal textarea").fill("Missed the last AUF");
+  await page.getByRole("button", { name: "Save" }).click();
+  await page.locator(".solve-comment", { hasText: "Missed the last AUF" }).waitFor();
+  await page.getByRole("button", { name: "Show only commented solves" }).click();
+  await page.waitForFunction(() => document.querySelectorAll(".history-row").length === 1);
+  await page.locator(".solve-row").first().getByRole("button", { name: "Delete solve" }).click();
+  await page.getByText("No commented solve yet").waitFor();
+  await page.getByRole("button", { name: "Show only commented solves" }).click();
+  await selectedCount(599);
+  assert.notEqual(await page.locator(".history-row").first().innerText(), newest);
+  console.log("Table: sort menu (mouse and keyboard), paging, +2, comment, commented filter and delete passed");
+
   await mkdir("artifacts/electron/testing", { recursive: true });
   for (const [width, height] of [[1920, 1080], [1280, 800], [800, 600], [640, 480], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(100);
-    const layout = await page.evaluate(() => {
-      const chart = document.querySelector(".chart-panel")!.getBoundingClientRect();
-      const history = document.querySelector(".history-panel")!.getBoundingClientRect();
-      const nav = document.querySelector(".nav")!.getBoundingClientRect();
-      const plot = document.querySelector(".chart-plot")!.getBoundingClientRect();
-      const profile = document.querySelector(".profile-main")!;
-      return {
-        stacked: chart.bottom <= history.top && Math.abs(chart.left - history.left) < 1,
-        visible: history.bottom <= nav.top && plot.height >= 40 && chart.right <= innerWidth && history.right <= innerWidth,
-        fits: document.documentElement.scrollHeight === innerHeight && document.documentElement.scrollWidth === innerWidth,
-        internalFits: profile.scrollHeight <= profile.clientHeight + 1,
-      };
-    });
-    await page.screenshot({ path: `artifacts/electron/testing/history-chart-${width}.png` });
-    assert.deepEqual(layout, { stacked: true, visible: true, fits: true, internalFits: true }, `${width}×${height}`);
+    for (const name of ["Table", "Chart"] as const) {
+      await view(name);
+      await page.waitForTimeout(100);
+      const layout = await page.evaluate(() => {
+        const panel = document.querySelector(".stats-grid > .panel")!.getBoundingClientRect();
+        const nav = document.querySelector(".nav")!.getBoundingClientRect();
+        const plot = document.querySelector(".chart-plot")?.getBoundingClientRect();
+        const bar = document.querySelector(".stats-grid > .panel > .row")!;
+        const profile = document.querySelector(".profile-main")!;
+        return {
+          visible: panel.bottom <= nav.top && panel.right <= innerWidth && (!plot || plot.height >= 40),
+          barFits: bar.scrollWidth <= bar.clientWidth + 1,
+          fits: document.documentElement.scrollHeight === innerHeight && document.documentElement.scrollWidth === innerWidth,
+          internalFits: profile.scrollHeight <= profile.clientHeight + 1,
+        };
+      });
+      await page.screenshot({ path: `artifacts/electron/testing/history-${name.toLowerCase()}-${width}.png` });
+      assert.deepEqual(layout, { visible: true, barFits: true, fits: true, internalFits: true }, `${name} ${width}×${height}`);
+    }
   }
   await page.setViewportSize({ width: 1280, height: 800 });
   for (const [label, count] of [["2×2", 1], ["4×4", 7], ["5×5", 0]] as const) {

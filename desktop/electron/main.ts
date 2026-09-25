@@ -245,10 +245,13 @@ else {
       });
       window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
       window.webContents.on("will-navigate", (event) => event.preventDefault());
-      window.on("app-command", (_event, command) => {
-        if (command === "browser-backward" || command === "browser-forward")
-          window.webContents.send("engine:event", { event: command });
-      });
+      // Mouse back/forward: Windows only reports them as app commands; elsewhere the renderer sees the
+      // mouseup itself, and Linux would otherwise get both and travel twice.
+      if (process.platform === "win32")
+        window.on("app-command", (_event, command) => {
+          if (command === "browser-backward" || command === "browser-forward")
+            window.webContents.send("engine:event", { event: command });
+        });
       await window.loadFile(join(root, "renderer/index.html"));
       window.show();
       // The launcher binary itself is large: bring it in quietly after startup, never during it.

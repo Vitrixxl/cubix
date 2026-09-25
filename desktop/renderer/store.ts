@@ -89,6 +89,8 @@ export class Store {
   profileScramble = "normal";
   achievementGroup = "all";
   achievementFilter = "all";
+  /** Whether solve statistics show the progress chart or the solves table. */
+  statsView = "chart";
   sessions = new LaunchSessions();
   lastSolve = 0;
   notice = "";
@@ -196,6 +198,7 @@ export class Store {
       this.randomAuf = this.prefs["cubix.training.randomAuf"] ?? true;
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
+      this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
@@ -429,6 +432,17 @@ export class Store {
     void this.refresh();
     this.emit();
   }
+  /** A solve of the timer session or of a profile history, shaped like a timer solve. */
+  findSolve(id: number) {
+    const row = [
+      ...(this.profile?.playground?.history ?? []),
+      ...(this.caseHistory?.history ?? []),
+    ].find((v: any) => v.id === id);
+    return (
+      this.solves.find((v) => v.id === id) ??
+      (row ? { ...row, time_ms: row.timeMs } : this.overlaySolve)
+    );
+  }
   async action(action: string, element?: HTMLElement) {
     if (this.running || this.saving) return;
     this.error = "";
@@ -640,6 +654,10 @@ export class Store {
         case "achievementFilter":
           this.achievementFilter = arg;
           break;
+        case "statsView":
+          this.statsView = arg;
+          this.pref("cubix.profile.statsView", arg);
+          break;
         case "caseStep": {
           const c = this.find(this.caseId),
             ids = this.cases()
@@ -677,20 +695,20 @@ export class Store {
           break;
         case "penalty": {
           const [id, penalty] = arg.split(":");
-          const solve =
-            this.solves.find((s) => s.id === Number(id)) ?? this.overlaySolve;
+          const solve = this.findSolve(Number(id));
           await call(
             "setPenalty",
             Number(id),
             solve?.penalty === penalty ? "none" : penalty,
           );
-          this.overlay = "";
+          // Rows of a case's history edit in place, keeping its dialog open.
+          if (this.overlay !== "profileCase") this.overlay = "";
           await this.refresh();
           break;
         }
         case "delete":
           await call("deleteSolve", Number(arg));
-          this.overlay = "";
+          if (this.overlay !== "profileCase") this.overlay = "";
           await this.refresh();
           break;
         case "undo":
@@ -700,8 +718,7 @@ export class Store {
           }
           break;
         case "comment":
-          this.overlaySolve =
-            this.solves.find((s) => s.id === Number(arg)) ?? this.overlaySolve;
+          this.overlaySolve = this.findSolve(Number(arg));
           this.overlay = "comment";
           break;
         case "solve":

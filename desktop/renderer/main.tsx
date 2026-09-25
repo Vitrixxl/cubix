@@ -1583,77 +1583,6 @@ function Activity({
     </section>
   );
 }
-/** Overview card: one headline figure, two supporting metrics and a one-line detail. */
-function StatCard({
-  icon,
-  label,
-  value,
-  suffix,
-  metrics,
-  detail,
-  progress,
-  action,
-  children,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  suffix?: string;
-  metrics: { label: string; value: string }[];
-  detail: string;
-  progress?: number;
-  action?: string;
-} & Props) {
-  const inner = (
-    <>
-      <div className="stat-card-head">
-        <span className="stat-card-icon">
-          <Icon name={icon} size={15} />
-        </span>
-        <span className="stat-card-label">{label}</span>
-        {action && <Icon name="IconChevronRight" size={14} />}
-      </div>
-      <div className="stat-card-body">
-        <div className="stat-card-value mono">
-          {value}
-          {suffix && <span className="stat-card-suffix">{suffix}</span>}
-        </div>
-        <div className="stat-card-metrics">
-          {metrics.map((m) => (
-            <div key={m.label} className="stat-card-metric">
-              <small className="muted">{m.label}</small>
-              <span className="mono">{m.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="stat-card-chart">{children}</div>
-      <div className="stat-card-foot">
-        <small className="muted">{detail}</small>
-        {progress !== undefined && <Progress ratio={progress} />}
-      </div>
-    </>
-  );
-  const title = `${label}: ${value}${suffix ?? ""}. ${detail}`;
-  return action ? (
-    <button
-      type="button"
-      data-action={action}
-      className="stat-card clickable"
-      aria-label={title}
-      onClick={(e) => {
-        e.currentTarget.blur();
-        void s.action(action, e.currentTarget);
-      }}
-    >
-      {inner}
-    </button>
-  ) : (
-    <div className="stat-card" aria-label={title}>
-      {inner}
-    </div>
-  );
-}
 function ProfileFilters({ scramble = false }: { scramble?: boolean }) {
   return (
     <Row className="profile-filters">
@@ -1674,12 +1603,56 @@ function ProfileFilters({ scramble = false }: { scramble?: boolean }) {
     </Row>
   );
 }
-function Overview() {
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+/** Section link of the overview: a plain button that opens a profile page. */
+function Go({ action, className = "", label, children }: { action: string; label: string } & Props) {
+  return (
+    <button
+      type="button"
+      data-action={action}
+      className={"ov-go " + className}
+      aria-label={label}
+      onClick={(e) => {
+        e.currentTarget.blur();
+        void s.action(action, e.currentTarget);
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+/** Ring gauge: a track and an accent arc, with the caption in the middle. */
+function Ring({ ratio, size = 58, stroke = 5, children }: { ratio: number; size?: number; stroke?: number } & Props) {
+  const r = (size - stroke) / 2,
+    c = 2 * Math.PI * r;
+  return (
+    <span className="ring" style={{ width: size, height: size }} aria-hidden="true">
+      <svg viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface2)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - clamp01(ratio))}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <span className="ring-label mono">{children}</span>
+    </span>
+  );
+}
+function overviewData() {
   const p = s.profile,
     timer = p.playground?.summary ?? { count: 0 },
     cases = s.cases(s.profilePuzzle),
     learned = cases.filter((c: any) => s.learned.has(c.id)).length,
     trained = p.cases?.length ?? 0,
+    trainingSolves: number = p.trainingSolves ?? 0,
     unlocked = s.achievements?.unlocked ?? 0,
     total = s.achievements?.total ?? 0,
     next = nextAchievement(),
@@ -1691,16 +1664,163 @@ function Overview() {
     goals = (s.achievements?.achievements ?? [])
       .filter((a: any) => !a.unlocked)
       .sort((a: any, b: any) => b.ratio - a.ratio)
-      .slice(0, 3)
+      .slice(0, 4)
       .map((a: any) => ({ label: a.title, value: `${Math.round(a.ratio * 100)}%`, ratio: a.ratio })),
     activity: ActivitySolve[] = [
       ...(p.playground?.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: true })),
       ...(p.cases ?? []).flatMap((c: any) => (c.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: false }))),
-    ].filter((v) => v.at);
-  const latest = [timer.lastAt, ...(p.cases ?? []).map((c: any) => c.summary?.lastAt)]
-    .filter((at): at is string => !!at)
-    .sort()
-    .at(-1);
+    ].filter((v) => v.at),
+    latest = [timer.lastAt, ...(p.cases ?? []).map((c: any) => c.summary?.lastAt)]
+      .filter((at): at is string => !!at)
+      .sort()
+      .at(-1),
+    learnedRatio = cases.length ? learned / cases.length : 0,
+    unlockedRatio = total ? unlocked / total : 0;
+  return {
+    timer,
+    history: (p.playground?.history ?? []) as any[],
+    timerTimes: (p.playground?.history ?? []).map((v: any) => v.time as number | null),
+    timerDetail: timer.count
+      ? `Best of ${plural(timer.count, "solve")} · ${s.label("scrambles", s.profileScramble)}`
+      : "No solves in this selection yet",
+    cases,
+    learned,
+    trained,
+    trainingSolves,
+    learnedRatio,
+    trainingDetail: `${plural(trained, "case")} trained · ${Math.round(learnedRatio * 100)}% learned`,
+    unlocked,
+    total,
+    unlockedRatio,
+    next,
+    achievementDetail: next ? `Next: ${next.title} · ${next.detail}` : "Everything unlocked",
+    stages,
+    goals,
+    activity,
+    latest,
+  };
+}
+type OverviewData = ReturnType<typeof overviewData>;
+/** Best single in front, best Ao5 and Ao12 side by side beneath it. */
+function TimerBests({ d }: { d: OverviewData }) {
+  const t = d.timer,
+    figure = (label: string, value: number | null, className = "") => (
+      <span key={label} className={"ov-hero-figure " + className}>
+        <span className="ov-hero-value mono">{t.count ? fmtTime(value) : "—"}</span>
+        <small className="muted">{label}</small>
+      </span>
+    );
+  return (
+    <span className="ov-bests">
+      {figure("Best single", t.best, "lead")}
+      <span className="ov-bests-row">
+        {figure("Best Ao5", t.bestAo5)}
+        {figure("Best Ao12", t.bestAo12)}
+      </span>
+    </span>
+  );
+}
+/** Latest solves, newest first, as many as the column can show. */
+function RecentSolves({ d }: { d: OverviewData }) {
+  const history = d.history,
+    recent = history.slice(-30).reverse();
+  if (!recent.length) return null;
+  return (
+    <span className="ov-recent">
+      <small className="muted ov-recent-title">Recent solves</small>
+      {recent.map((v, i) => {
+        const index = history.length - 1 - i,
+          previous = history[index - 1],
+          pb = v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time);
+        return (
+          <span key={v.id} className="ov-recent-row">
+            <span className={"mono " + (v.time == null ? "muted" : pb ? "accent" : "")}>
+              {v.time == null ? "DNF" : fmtTime(v.time)}
+            </span>
+            <span className="history-tags">
+              {pb && <span className="tag">PB</span>}
+              {v.penalty === "+2" && <span className="tag muted">+2</span>}
+            </span>
+            <span className="muted">{v.displayDate}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+type GaugeSection = { action: string; label: string; ratio: number; value: string; suffix: string; detail: string; rows: OverviewData["stages"] };
+const gaugeSections = (d: OverviewData): GaugeSection[] => [
+  {
+    action: "profileMode:training",
+    label: "Training",
+    ratio: d.learnedRatio,
+    value: String(d.trained),
+    suffix: `/ ${d.cases.length} cases`,
+    detail: `${d.learned} learned · ${plural(d.trainingSolves, "solve")}`,
+    rows: d.stages,
+  },
+  {
+    action: "profileMode:achievements",
+    label: "Achievements",
+    ratio: d.unlockedRatio,
+    value: String(d.unlocked),
+    suffix: `/ ${d.total} unlocked`,
+    detail: d.achievementDetail,
+    rows: d.goals,
+  },
+];
+/** Ring, figure and detail on one line, bars underneath. */
+function GaugeCard({ g }: { g: GaugeSection }) {
+  return (
+    <Go action={g.action} className="ov-ring-card" label={`${g.label}: ${g.value} ${g.suffix}. ${g.detail}`}>
+      <span className="ov-ring-head">
+        <Ring ratio={g.ratio}>{Math.round(g.ratio * 100)}%</Ring>
+        <span className="ov-ring-text">
+          <span className="stat-card-label">{g.label}</span>
+          <span className="ov-ring-value mono">
+            {g.value}
+            <span className="stat-card-suffix">{g.suffix}</span>
+          </span>
+          <small className="muted">{g.detail}</small>
+        </span>
+        <Icon name="IconChevronRight" size={14} />
+      </span>
+      <MiniBars rows={g.rows} />
+    </Go>
+  );
+}
+/** Under the heatmap: a full-width timer band with the chart on its right, then training and achievements side by side. */
+function OverviewBands({ d }: { d: OverviewData }) {
+  return (
+    <div className="ov-bands">
+      <Go action="profileMode:playground" className="ov-band-timer" label={`Timer: ${d.timerDetail}`}>
+        <span className="stat-card-head">
+          <span className="stat-card-icon">
+            <Icon name="IconCube" size={15} />
+          </span>
+          <span className="stat-card-label">Timer</span>
+          <small className="muted">{d.timerDetail}</small>
+          <Icon name="IconChevronRight" size={14} />
+        </span>
+        <span className="ov-band-figures">
+          <TimerBests d={d} />
+          <RecentSolves d={d} />
+        </span>
+        <span className="ov-band-chart">
+          <Sparkline values={d.timerTimes} />
+        </span>
+      </Go>
+      <div className="ov-band-pair">
+        {gaugeSections(d).map((g) => (
+          <GaugeCard key={g.label} g={g} />
+        ))}
+      </div>
+    </div>
+  );
+}
+function Overview() {
+  const p = s.profile,
+    d = overviewData();
   return (
     <div className="overview">
       {s.user.isGuest && (
@@ -1722,64 +1842,15 @@ function Overview() {
         </div>
       )}
       <Activity
-        solves={activity}
+        solves={d.activity}
         summary={[
           { label: (p.activeDays ?? 0) === 1 ? "active day" : "active days", value: String(p.activeDays ?? 0) },
           { label: "total solves", value: (p.totalSolves ?? 0).toLocaleString() },
           { label: "per active day", value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—" },
         ]}
-        detail={latest ? `Last practice: ${shortDate(latest)}` : "No practice recorded yet"}
+        detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
       />
-      <div className="stat-grid">
-        <StatCard
-          icon="IconCube"
-          label="Timer"
-          value={timer.count ? fmtTime(timer.best) : "—"}
-          metrics={[
-            { label: "Ao5", value: fmtTime(timer.ao5) },
-            { label: "Ao12", value: fmtTime(timer.ao12) },
-            { label: "Mean", value: fmtTime(timer.mean) },
-          ]}
-          detail={
-            timer.count
-              ? `Best of ${plural(timer.count, "solve")} · ${s.label("scrambles", s.profileScramble)}`
-              : "No solves in this selection yet"
-          }
-          action="profileMode:playground"
-        >
-          <Sparkline values={(p.playground?.history ?? []).map((v: any) => v.time)} />
-        </StatCard>
-        <StatCard
-          icon="IconTimer"
-          label="Training"
-          value={String(trained)}
-          suffix={` / ${cases.length}`}
-          metrics={[
-            { label: "Learned", value: String(learned) },
-            { label: "Solves", value: String(p.trainingSolves ?? 0) },
-          ]}
-          detail={`${plural(trained, "case")} trained · ${cases.length ? Math.round((learned / cases.length) * 100) : 0}% learned`}
-          progress={cases.length ? learned / cases.length : 0}
-          action="profileMode:training"
-        >
-          <MiniBars rows={stages.slice(0, 4)} />
-        </StatCard>
-        <StatCard
-          icon="IconTrophy"
-          label="Achievements"
-          value={String(unlocked)}
-          suffix={` / ${total}`}
-          metrics={[
-            { label: "Remaining", value: String(total - unlocked) },
-            { label: "Next goal", value: next ? `${Math.round(next.ratio * 100)}%` : "100%" },
-          ]}
-          detail={next ? `Next: ${next.title} · ${next.detail}` : "Everything unlocked"}
-          progress={total ? unlocked / total : 0}
-          action="profileMode:achievements"
-        >
-          <MiniBars rows={goals} />
-        </StatCard>
-      </div>
+      <OverviewBands d={d} />
     </div>
   );
 }
@@ -1803,6 +1874,15 @@ function StatStrip({ summary }: { summary: any }) {
     </div>
   );
 }
+type SolveSort = "newest" | "oldest" | "fastest" | "slowest";
+const SOLVE_SORTS: { id: SolveSort; label: string }[] = [
+  { id: "newest", label: "Newest first" },
+  { id: "oldest", label: "Oldest first" },
+  { id: "fastest", label: "Fastest first" },
+  { id: "slowest", label: "Slowest first" },
+];
+/** Rows drawn before the table asks for more; long timer histories stay light. */
+const SOLVE_PAGE = 100;
 /** Solve statistics with a shared visible period for the chart and history. */
 function TimerStats({
   data,
@@ -1813,66 +1893,282 @@ function TimerStats({
   empty: React.ReactNode;
   compact?: boolean;
 }) {
+  // The table order and filter survive the remount that follows a deleted solve.
+  const [sort, setSort] = useState<SolveSort>("newest"),
+    [commented, setCommented] = useState(false);
   if (!data?.summary?.count) return <Empty>{empty}</Empty>;
   const history = data.history ?? [];
-  return <TimerStatsView key={`${history[0]?.id}:${history.at(-1)?.id}:${history.length}`} data={data} compact={compact} />;
+  return (
+    <TimerStatsView
+      key={`${history[0]?.id}:${history.at(-1)?.id}:${history.length}`}
+      data={data}
+      compact={compact}
+      table={{ sort, setSort, commented, setCommented }}
+    />
+  );
 }
-function TimerStatsView({ data, compact }: { data: any; compact: boolean }) {
+type SolveTableState = {
+  sort: SolveSort;
+  setSort: (sort: SolveSort) => void;
+  commented: boolean;
+  setCommented: (commented: boolean) => void;
+};
+function TimerStatsView({ data, compact, table }: { data: any; compact: boolean; table: SolveTableState }) {
   const history: any[] = data.history ?? [];
   const [range, setRange] = useState<ChartRange>([0, history.length - 1]);
-  const rows = history.slice(range[0], range[1] + 1).reverse();
-  const zoomed = range[0] > 0 || range[1] < history.length - 1;
+  const zoomed = range[0] > 0 || range[1] < history.length - 1,
+    count = range[1] - range[0] + 1,
+    total = <span className="muted solves-count">{zoomed ? `${count} of ${history.length} solves` : plural(count, "solve")}</span>;
   return (
     <div className={"stats " + (compact ? "compact" : "")}>
       <StatStrip summary={data.summary} />
       <div className="stats-grid">
-        <div className="panel chart-panel">
-          <Row className="between">
-            <h3>Progress</h3>
-            <Row className="chart-legend">
-              <span className="accent">━ Single</span>
-              <span style={{ color: "var(--series)" }}>━ Ao5</span>
+        {s.statsView === "table" ? (
+          <SolvesTable history={history} range={range} total={total} {...table} />
+        ) : (
+          <div className="panel chart-panel">
+            <Row className="between">
+              <Row>
+                <StatsViewToggle />
+                {total}
+              </Row>
+              <Row className="chart-legend">
+                <span className="accent">━ Single</span>
+                <span style={{ color: "var(--series)" }}>━ Ao5</span>
+              </Row>
             </Row>
-          </Row>
-          <HistoryChart history={history} averages={data.ao5 ?? []} range={range} onRange={setRange} />
-        </div>
-        <div className="panel history-panel">
-          <Row className="between">
-            <h3>{zoomed ? "Selected times" : "Recent times"}</h3>
-            <span className="muted">{plural(rows.length, "solve")}</span>
-          </Row>
-          <div className="scroll history-solves" key={range.join(":")}>
-            {rows.map((v: any, i: number) => {
-              const index = range[1] - i,
-                previous = history[index - 1],
-                pb =
-                  v.time != null &&
-                  v.time === v.best &&
-                  (!previous || previous.best == null || previous.best > v.time);
-              return (
-                <button
-                  key={v.id}
-                  className="button history-row"
-                  onClick={() => void s.action("solve:" + v.id)}
-                  title={v.comment || undefined}
-                >
-                  <span className="muted">{index + 1}</span>
-                  <span className={"mono " + (v.time == null ? "muted" : "")}>
-                    {v.time == null ? "DNF" : fmtTime(v.time)}
-                  </span>
-                  <span className="history-tags">
-                    {pb && <span className="tag">PB</span>}
-                    {v.penalty === "+2" && <span className="tag muted">+2</span>}
-                    {v.comment && <Icon name="IconComment" size={12} />}
-                  </span>
-                  <span className="muted">{v.displayDate}</span>
-                </button>
-              );
-            })}
+            <HistoryChart history={history} averages={data.ao5 ?? []} range={range} onRange={setRange} />
           </div>
-        </div>
+        )}
       </div>
     </div>
+  );
+}
+/** Chart or table: the solves of the period drawn over time, or listed with their actions. */
+function StatsViewToggle() {
+  const id = useId();
+  return (
+    <Row className="stats-view-toggle">
+      {[
+        ["chart", "Chart", "IconChart"],
+        ["table", "Table", "IconGrid"],
+      ].map(([view, label, icon]) => (
+        <Button key={view} action={"statsView:" + view} active={s.statsView === view} highlight={"stats-view" + id} icon={icon} title={label}>
+          <span className="stats-view-label">{label}</span>
+        </Button>
+      ))}
+    </Row>
+  );
+}
+/** Every solve of the visible period, sorted as asked, each with its penalty, comment and delete buttons. */
+function SolvesTable({
+  history,
+  range,
+  total,
+  sort,
+  setSort,
+  commented,
+  setCommented,
+}: { history: any[]; range: ChartRange; total: React.ReactNode } & SolveTableState) {
+  const [shown, setShown] = useState(SOLVE_PAGE);
+  const byTime = (a: any, b: any, direction: 1 | -1) =>
+    a.time == null ? (b.time == null ? 0 : 1) : b.time == null ? -1 : (a.time - b.time) * direction;
+  const rows = history
+    .slice(range[0], range[1] + 1)
+    .map((v, i) => {
+      const index = range[0] + i,
+        previous = history[index - 1];
+      return {
+        v,
+        index,
+        pb: v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time),
+      };
+    })
+    .filter((r) => !commented || r.v.comment);
+  if (sort === "newest") rows.reverse();
+  else if (sort === "fastest") rows.sort((a, b) => byTime(a.v, b.v, 1) || b.index - a.index);
+  else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
+  const commentCount = history.filter((v) => v.comment).length;
+  return (
+    <div className="panel history-panel">
+      <Row className="between solves-bar">
+        <Row>
+          <StatsViewToggle />
+          {total}
+        </Row>
+        <Row>
+          <LocalSelect label="Sort solves" value={sort} options={SOLVE_SORTS} onChange={setSort} />
+          <button
+            type="button"
+            className={"button " + (commented ? "soft" : "")}
+            aria-pressed={commented}
+            aria-label="Show only commented solves"
+            title="Show only commented solves"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              setCommented(!commented);
+            }}
+          >
+            <Icon name="IconComment" size={14} />
+            <span className="solves-label">Commented</span>
+            <span className="mono muted">{commentCount}</span>
+          </button>
+        </Row>
+      </Row>
+      <div className="solves-head muted">
+        <span>#</span>
+        <span>Time</span>
+        <span>Date</span>
+        <span>Actions</span>
+      </div>
+      <div className="scroll history-solves" key={`${range.join(":")}:${sort}:${commented}`}>
+        {!rows.length && (
+          <Empty>{commented ? "No commented solve yet. Add one with the bubble on a time." : "No solves match."}</Empty>
+        )}
+        {rows.slice(0, shown).map(({ v, index, pb }) => (
+          <div key={v.id} className="solve-row">
+            <button
+              type="button"
+              className="button history-row"
+              title="Show the scramble and details"
+              onClick={() => void s.action("solve:" + v.id)}
+            >
+              <span className="muted">{index + 1}</span>
+              <span className={"mono " + (v.time == null ? "danger" : pb ? "accent" : "")}>
+                {v.time == null ? "DNF" : fmtTime(v.time)}
+              </span>
+              <span className="history-tags">
+                {pb && <span className="tag">PB</span>}
+                {v.penalty === "+2" && <span className="tag muted">+2</span>}
+              </span>
+              <span className="muted">{v.displayDate}</span>
+            </button>
+            <span className="solve-row-actions">
+              <Button action={`penalty:${v.id}:+2`} className={v.penalty === "+2" ? "soft" : ""} title="+2 penalty">
+                +2
+              </Button>
+              <Button action={`penalty:${v.id}:dnf`} className={v.penalty === "dnf" ? "soft" : ""} title="Did not finish">
+                DNF
+              </Button>
+              <Button
+                action={"comment:" + v.id}
+                icon="IconComment"
+                className={v.comment ? "accent" : ""}
+                title={v.comment ? "Edit comment" : "Add comment"}
+              />
+              <Button action={"delete:" + v.id} icon="IconTrash" className="danger" title="Delete solve" />
+            </span>
+            {v.comment && <p className="solve-comment">{v.comment}</p>}
+          </div>
+        ))}
+        {rows.length > shown && (
+          <button type="button" className="button solves-more" onClick={() => setShown(shown + SOLVE_PAGE)}>
+            Show more ({rows.length - shown} left)
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+/**
+ * A select menu held by its component rather than the app overlay, so it can open inside a dialog
+ * without replacing it. It looks and moves like the app's select menus.
+ */
+function LocalSelect<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { id: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  const trigger = useRef<HTMLButtonElement>(null),
+    [anchor, setAnchor] = useState<DOMRect | null>(null),
+    [index, setIndex] = useState(0);
+  const pick = (id: T) => {
+    setAnchor(null);
+    onChange(id);
+  };
+  useEffect(() => {
+    if (!anchor) return;
+    // Captured before the app overlay's listener, so Escape does not also close a surrounding dialog.
+    const key = (e: KeyboardEvent) => {
+      if (!["Escape", "ArrowDown", "ArrowUp", "Home", "End", "Enter"].includes(e.key)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") setAnchor(null);
+      else if (e.key === "Enter") pick(options[index].id);
+      else
+        setIndex((i) =>
+          e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? options.length - 1
+              : (i + (e.key === "ArrowDown" ? 1 : -1) + options.length) % options.length,
+        );
+    };
+    addEventListener("keydown", key, true);
+    return () => removeEventListener("keydown", key, true);
+  }, [anchor, index]);
+  const host = trigger.current?.closest(".app"),
+    height = options.length * 42 + 18,
+    below = anchor && anchor.bottom + 6 + height <= innerHeight - 12;
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        className="button active"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={!!anchor}
+        onClick={(e) => {
+          e.currentTarget.blur();
+          setIndex(Math.max(0, options.findIndex((o) => o.id === value)));
+          setAnchor(anchor ? null : e.currentTarget.getBoundingClientRect());
+        }}
+      >
+        {options.find((o) => o.id === value)?.label}
+        <Icon name="IconChevronDown" size={12} />
+      </button>
+      {anchor &&
+        host &&
+        createPortal(
+          <div className="menu-backdrop local-menu" onClick={() => setAnchor(null)}>
+            <div
+              className="select-menu"
+              role="listbox"
+              aria-label={label}
+              style={{
+                left: Math.min(innerWidth - 292, Math.max(12, anchor.right - 280)),
+                top: below ? anchor.bottom + 6 : Math.max(12, anchor.y - height - 6),
+                transformOrigin: below ? "top right" : "bottom right",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {options.map((o, i) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  role="option"
+                  aria-selected={o.id === value}
+                  style={{ "--i": i } as React.CSSProperties}
+                  className={"button menu-option " + (index === i ? "active" : "")}
+                  onMouseEnter={() => setIndex(i)}
+                  onClick={() => pick(o.id)}
+                >
+                  <span>{o.label}</span>
+                  {o.id === value && <Icon name="IconCheck" />}
+                </button>
+              ))}
+            </div>
+          </div>,
+          host,
+        )}
+    </>
   );
 }
 function TrainingProgress() {

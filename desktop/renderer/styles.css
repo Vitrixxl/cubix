@@ -1735,40 +1735,6 @@ progress {
 .guest-banner .row {
   gap: 4px;
 }
-.stat-grid {
-  flex-shrink: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: auto;
-  gap: 14px 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-}
-/* Head, figures, chart and footer share rows across the three cards so they line up. */
-.stat-card {
-  display: grid;
-  grid-template-rows: subgrid;
-  grid-row: span 4;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  font: inherit;
-  overflow: hidden;
-}
-.stat-card + .stat-card {
-  padding-left: 24px;
-  border-left: 1px solid var(--line);
-}
-.stat-card.clickable:hover .stat-card-head,
-.stat-card.clickable:hover .stat-card-head > .icon:last-child {
-  color: var(--accent);
-}
-.stat-card.clickable:hover .stat-card-head > .icon:last-child {
-  transform: translateX(2px);
-}
 .stat-card-head {
   display: flex;
   align-items: center;
@@ -1788,66 +1754,12 @@ progress {
   font-size: 13px;
   font-weight: 600;
 }
-.stat-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.stat-card-value {
-  min-width: 0;
-  font-size: clamp(26px, 2.6vw, 34px);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.8px;
-  color: var(--accent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .stat-card-suffix {
   font-size: 14px;
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0;
   margin-left: 6px;
-}
-.stat-card-metrics {
-  display: flex;
-  gap: 18px;
-}
-.stat-card-chart {
-  display: flex;
-  align-items: stretch;
-  min-height: 64px;
-}
-.stat-card-metric {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-card-metric small {
-  font-size: 11px;
-  white-space: nowrap;
-}
-.stat-card-metric span {
-  font-size: 15px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.stat-card-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.stat-card-foot small {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.stat-card-foot .progress {
-  margin: 0;
 }
 .sparkline {
   position: relative;
@@ -1914,7 +1826,7 @@ progress {
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 12px;
 }
 .panel {
@@ -2090,6 +2002,74 @@ progress {
   margin-left: auto;
   white-space: nowrap;
 }
+.stats-view-toggle {
+  gap: 2px;
+}
+.stats-view-toggle .button {
+  min-height: 32px;
+  padding: 0 12px;
+}
+.solves-count {
+  font-size: 12px;
+  white-space: nowrap;
+}
+/* Column titles line up with the rows: number, time, date on the right, then the actions. */
+.solves-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -6px -12px;
+  padding: 0 0 6px 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+}
+.solves-head > span:first-child {
+  width: 34px;
+}
+.solves-head > span:nth-child(2) {
+  flex: 1;
+}
+.solves-head > span:nth-child(3) {
+  margin-right: -4px;
+}
+.solves-head > span:last-child,
+.solve-row-actions {
+  width: 150px;
+}
+.solves-head > span:last-child {
+  text-align: right;
+  padding-right: 8px;
+}
+.solve-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+}
+.solve-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.solve-row-actions .button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.solve-comment {
+  grid-column: 1 / -1;
+  padding: 0 6px 8px 50px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.solves-more {
+  align-self: center;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
 .tag {
   font-size: 10px;
   font-weight: 700;
@@ -2112,8 +2092,7 @@ progress {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .stats.compact .stats-grid {
-  grid-template-columns: 1fr;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto;
   flex: none;
 }
 .stats.compact .chart-area {
@@ -2184,10 +2163,6 @@ progress {
   align-self: flex-start;
 }
 @media (max-width: 900px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  }
   .stat-strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -2202,18 +2177,18 @@ progress {
     scrollbar-width: thin;
     scrollbar-color: var(--surface3) transparent;
   }
-  .stat-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-  .stat-card + .stat-card {
-    padding-left: 0;
-    padding-top: 24px;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
   .guest-banner {
     flex-wrap: wrap;
+  }
+  .solves-label,
+  .solves-count,
+  .stats-view-label,
+  .solves-head > span:nth-child(3),
+  .solve-row .history-row > span:last-child {
+    display: none;
+  }
+  .stats-view-toggle .button {
+    padding: 0 10px;
   }
 }
 @media (max-height: 640px) {
@@ -2233,7 +2208,6 @@ progress {
     font-size: 17px;
   }
   .stats:not(.compact) .stats-grid {
-    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
     gap: 8px;
   }
   .stats:not(.compact) .panel {
@@ -2242,22 +2216,6 @@ progress {
   }
   .overview {
     gap: 12px;
-  }
-  .stat-grid {
-    padding-top: 12px;
-  }
-  .stat-card-foot,
-  .stat-card-chart {
-    display: none;
-  }
-  .stat-card {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    grid-row: auto;
-  }
-  .stat-card-value {
-    font-size: 26px;
   }
 }
 .mini-bars {
@@ -2421,4 +2379,272 @@ progress {
 .guide-content .method-tabs .button.active {
   background: #30303a;
   color: #eef0f5;
+}
+/* Overview under the heatmap: a timer band with the chart on its right, then the two gauges side by side. */
+.ov-go {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.ov-go > .icon:last-child {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.ov-go:hover > .icon:last-child {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+.ov-go:hover .stat-card-head,
+.ov-go:hover .stat-card-head > .icon:last-child,
+.ov-go:hover .ov-ring-text .stat-card-label {
+  color: var(--accent);
+}
+.ov-bands {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.ov-band-timer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 32px;
+  row-gap: 14px;
+  min-height: 0;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.ov-band-timer .stat-card-head {
+  grid-column: 1 / -1;
+  transition: color 0.15s ease;
+}
+.ov-band-timer .stat-card-head > small {
+  margin-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-band-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  min-height: 0;
+  container: ov-figures / size;
+}
+.ov-hero-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ov-hero-figure small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-hero-value {
+  font-size: clamp(28px, 2.6vw, 38px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+/* Best single leads, the two best averages sit side by side under it. */
+.ov-bests {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+.ov-bests .lead .ov-hero-value {
+  font-size: clamp(38px, 4.2vw, 60px);
+  letter-spacing: -1.5px;
+}
+.ov-bests-row {
+  display: flex;
+  gap: 32px;
+  min-width: 0;
+}
+.ov-recent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 24px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+}
+.ov-recent-title {
+  padding-bottom: 6px;
+  font-weight: 600;
+}
+.ov-recent-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.ov-recent-row > .mono {
+  font-size: 14px;
+  font-weight: 600;
+}
+/* Short column: everything on one line, smaller. */
+@container ov-figures (max-height: 300px) {
+  .ov-band-figures {
+    justify-content: flex-end;
+  }
+  .ov-bests {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px 28px;
+  }
+  .ov-bests-row {
+    display: contents;
+  }
+  .ov-bests .ov-hero-value,
+  .ov-bests .lead .ov-hero-value {
+    font-size: clamp(26px, 2.4vw, 34px);
+    letter-spacing: -1px;
+  }
+}
+.ov-band-chart {
+  display: flex;
+  min-height: 72px;
+  min-width: 0;
+}
+.ov-band-chart .sparkline {
+  margin: 6px 4px;
+  min-height: 0;
+}
+.ov-band-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  min-height: 0;
+  padding-top: 18px;
+  overflow: hidden;
+}
+.ov-ring-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: hidden;
+}
+.ov-ring-card + .ov-ring-card {
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+.ov-ring-card .mini-bars {
+  align-content: start;
+  gap: 8px 10px;
+  padding-bottom: 20px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+}
+.ov-ring-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ov-ring-head > .icon:last-child {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.ov-ring-card:hover .ov-ring-head > .icon:last-child {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+.ov-ring-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.ov-ring-text .stat-card-label {
+  color: var(--secondary);
+  transition: color 0.15s ease;
+}
+.ov-ring-text small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-ring-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ring {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+@media (max-height: 860px) {
+  .ov-recent {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .ov-band-pair {
+    grid-template-columns: 1fr;
+  }
+  .ov-ring-card + .ov-ring-card {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+@media (max-height: 640px) {
+  .ov-ring-card .mini-bars {
+    display: none;
+  }
+  .ov-bands {
+    padding-top: 12px;
+  }
+  .ov-band-timer {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    column-gap: 20px;
+    row-gap: 8px;
+    padding-bottom: 12px;
+  }
+  .ov-band-pair {
+    padding-top: 12px;
+  }
 }
