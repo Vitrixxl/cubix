@@ -11,6 +11,7 @@ import { SettingsDialog } from "./src/components/Settings";
 import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
+import { PageStack } from "./src/components/PageStack";
 import { PageSkeleton } from "./src/components/Skeleton";
 import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
@@ -24,13 +25,17 @@ import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
-import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
+import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, navPage, profileFiltersAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
 import { buildTheme, ThemeContext } from "./src/theme";
 
-/** Which navigation entry a route belongs to. */
-function navPage(route: Route): Page {
-  if (route.page === "guides") return "profile";
-  return route.page;
+function renderPage(route: Route) {
+  switch (route.page) {
+    case "algorithms": return <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} />;
+    case "training": return <TrainingPage />;
+    case "playground": return <PlaygroundPage />;
+    case "guides": return <GuidesPage guide={route.guide} />;
+    case "profile": return <ProfilePage mode={route.mode} caseId={route.caseId} group={route.group} />;
+  }
 }
 
 export function App() {
@@ -101,6 +106,9 @@ function Shell() {
   }, [goBack, running]);
   const navigate = useCallback((page: Page) => setRoute({ page } as Route), [setRoute]);
   const active = navPage(route);
+  // The profile's filters last while its pages are browsed and reset once another tab is opened.
+  const resetProfileFilters = useSetAtom(profileFiltersAtom);
+  useEffect(() => { if (active !== "profile") resetProfileFilters(f => Object.keys(f).length ? {} : f); }, [active, resetProfileFilters]);
   return <SolveMenuProvider>
     <LiveConnection />
     <ScramblerHost />
@@ -108,13 +116,7 @@ function Shell() {
     <View style={[styles.main, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
       {/* Nothing suspends any more; the boundary only guards against a future async atom. */}
       <Suspense fallback={<PageSkeleton page={active} />}>
-        {!user ? <PageSkeleton page={active} /> : <>
-          {route.page === "algorithms" && <AlgorithmsPage />}
-          {route.page === "training" && <TrainingPage />}
-          {route.page === "playground" && <PlaygroundPage />}
-          {route.page === "guides" && <GuidesPage guide={route.guide} />}
-          {route.page === "profile" && <ProfilePage mode={route.mode} caseId={route.caseId} group={route.group} />}
-        </>}
+        {!user ? <PageSkeleton page={active} /> : <PageStack route={route} render={renderPage} />}
       </Suspense>
     </View>
     </KeyboardAvoidingView>

@@ -1,7 +1,7 @@
 import { catalogSections, groupCases } from "../../../src/client/lib/practiceCatalog";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
+import { Animated, FlatList, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { formatAlg } from "../../../src/shared/cube";
 import { puzzleInfo, puzzleOf } from "../../../src/shared/puzzles";
@@ -10,6 +10,7 @@ import { local } from "../api";
 import { casesAtom, collapsedAlgorithmGroupsAtom, puzzleAtom, routeAtom, replaceRouteAtom, goBackAtom, previousRouteAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, solveModeAtom, stageAtom, statsAtom, statsVersionAtom, learningFilterAtom, learnedCaseIdsAtom } from "../state";
 import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
+import { useSlide } from "../hooks/useSlide";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { displayAlg, shortId } from "../lib/caseState";
@@ -21,31 +22,36 @@ import { Select } from "../components/Select";
 import { TimesChart } from "../components/TimesChart";
 import { Btn, Caption, Chip, Empty, H1, Kpi, MiniBtn, Muted, Segmented, mono } from "../components/ui";
 
-export function AlgorithmsPage() {
+/** The route is passed in rather than read, so a page sliding out keeps showing what it showed. */
+export function AlgorithmsPage({ caseId, caseIds }: { caseId?: string; caseIds?: string[] }) {
   const puzzle = useAtomValue(puzzleAtom);
   const cases = useAtomValue(casesAtom);
   const sets = useAtomValue(setsAtom);
   const stats = useAtomValue(statsAtom);
-  const route = useAtomValue(routeAtom);
   const previousRoute = useAtomValue(previousRouteAtom);
   const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom);
-  const caseId = route.page === "algorithms" ? route.caseId : undefined;
   const selected = caseId ? cases.find(c => c.id === caseId) : undefined;
-  const { pagePadding, phone } = useLayout();
+  const { pagePadding, phone, width } = useLayout();
+  // Opening a case pushes the list off to the left and brings the detail in from the right; closing reverses it.
+  // The detail stays rendered while it slides out.
+  const [shown, setShown] = useState(selected);
+  if (selected && selected !== shown) setShown(selected);
+  const progress = useSlide(!!selected, () => setShown(undefined));
+  const detail = selected ?? shown;
   const closeCase = () => {
     if (previousRoute?.page === "algorithms" && !previousRoute.caseId) goBack();
     else replaceRoute({ page: "algorithms" });
   };
   return <View style={[styles.page, { paddingHorizontal: pagePadding, paddingTop: phone ? 12 : 18 }]}>
-    <View style={styles.browser}>
+    <View style={[styles.browser, { overflow: "hidden" }]}>
       {/* Keep the native list and its viewport mounted while a case is open. */}
-      <View style={{ flex: 1, opacity: selected ? 0 : 1 }} pointerEvents={selected ? "none" : "auto"}
+      <Animated.View style={{ flex: 1, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, -width] }) }] }} pointerEvents={selected ? "none" : "auto"}
         accessibilityElementsHidden={!!selected} importantForAccessibility={selected ? "no-hide-descendants" : "auto"}>
         <AlgorithmBrowser key={puzzle} puzzle={puzzle} cases={cases} sets={sets} stats={stats} />
-      </View>
-      {selected && <View style={StyleSheet.absoluteFill}>
-        <CaseDetail key={selected.set} c={selected} cases={cases} stats={stats} onBack={closeCase} />
-      </View>}
+      </Animated.View>
+      {detail && <Animated.View pointerEvents={selected ? "auto" : "none"} style={[StyleSheet.absoluteFill, { transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [width, 0] }) }] }]}>
+        <CaseDetail key={detail.set} c={detail} caseIds={caseIds} cases={cases} stats={stats} onBack={closeCase} />
+      </Animated.View>}
     </View>
   </View>;
 }
@@ -187,12 +193,10 @@ const CaseCard = memo(function CaseCard({ c, stats, onOpen, width, phone }: { c:
  * A case detail is one page of a horizontal pager over its set: the neighbouring cases are rendered
  * beside it, a swipe settles on the next or previous one and the pager stops at both ends.
  */
-function CaseDetail({ c, cases, stats, onBack }: { c: CaseDto; cases: CaseDto[]; stats: Map<string, CaseStatsDto>; onBack: () => void }) {
+function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?: string[]; cases: CaseDto[]; stats: Map<string, CaseStatsDto>; onBack: () => void }) {
   const t = useTheme();
   const setRoute = useSetAtom(routeAtom);
-  const route = useAtomValue(routeAtom);
   const replaceRoute = useSetAtom(replaceRouteAtom);
-  const caseIds = route.page === "algorithms" ? route.caseIds : undefined;
   // Pages come from the same set so a swipe never jumps from PLL into OLL.
   const siblings = useMemo(() => {
     const members = cases.filter(other => other.set === c.set);

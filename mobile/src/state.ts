@@ -21,6 +21,10 @@ export type Route =
 /** A profile detail view; no mode shows the overview tiles. */
 export type ProfileMode = "playground" | "training" | "achievements";
 export type Page = Route["page"];
+/** Which navigation entry a route belongs to. */
+export function navPage(route: Route): Exclude<Page, "guides"> {
+  return route.page === "guides" ? "profile" : route.page;
+}
 
 const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
@@ -31,15 +35,21 @@ function initialRoute(): Route {
   return { page: "playground" };
 }
 const historyAtom = atom<Route[]>([initialRoute()]);
+/** How the current route was reached, so page transitions can slide forward on a push and back on a pop. */
+export type NavigationKind = "push" | "replace" | "pop";
+const navigationKindAtom = atom<NavigationKind>("push");
+export const lastNavigationAtom = atom(get => get(navigationKindAtom));
 export const routeAtom = atom(get => get(historyAtom).at(-1)!, (get, set, route: Route) => {
   const current = get(historyAtom).at(-1)!;
   if (JSON.stringify(current) === JSON.stringify(route)) return;
   set(historyAtom, [...get(historyAtom), route].slice(-60));
+  set(navigationKindAtom, "push");
   try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: route.page })); } catch { /* Navigation must still work without storage. */ }
 });
 /** Change the current view without adding a step to the hardware back history. */
 export const replaceRouteAtom = atom(null, (get, set, route: Route) => {
   set(historyAtom, [...get(historyAtom).slice(0, -1), route]);
+  set(navigationKindAtom, "replace");
   try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: route.page })); } catch { /* Best effort. */ }
 });
 /** Pop one entry; returns false when there is nothing to go back to. */
@@ -47,12 +57,18 @@ export const goBackAtom = atom(null, (get, set) => {
   const history = get(historyAtom);
   if (history.length <= 1) return false;
   set(historyAtom, history.slice(0, -1));
+  set(navigationKindAtom, "pop");
   try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: history.at(-2)!.page })); } catch { /* Best effort. */ }
   return true;
 });
 export const canGoBackAtom = atom(get => get(historyAtom).length > 1);
 /** The route a back step would return to, so detail views can pop instead of pushing their parent. */
 export const previousRouteAtom = atom(get => get(historyAtom).at(-2) ?? null);
+/**
+ * The profile's own puzzle and solve filters: they browse other puzzles without touching the rest of the app,
+ * and are shared by the overview and its detail pages. Unset values follow the app; leaving the profile clears them.
+ */
+export const profileFiltersAtom = atom<{ cube?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType }>({});
 
 // ---------------------------------------------------------------------------
 // Persisted preferences (synchronous MMKV storage, read on init)

@@ -1,11 +1,11 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { puzzleInfo, scrambleLabel, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { AchievementSummaryDto } from "../../../src/shared/types";
 import { api, authToken, local } from "../api";
-import { deletedSolveIdAtom, goBackAtom, learnedCaseIdsAtom, puzzleAtom, routeAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode } from "../state";
+import { deletedSolveIdAtom, goBackAtom, learnedCaseIdsAtom, previousRouteAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode } from "../state";
 import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
@@ -109,12 +109,13 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
   const t = useTheme();
   const { navSpace, pagePadding, phone, short, landscape } = useLayout();
   // The profile browses any puzzle without touching the puzzle used by the rest of the app.
-  const appPuzzle = useAtomValue(puzzleAtom);
-  const [cube, setCube] = useState<PuzzleId>(appPuzzle);
-  const appSolveMode = useAtomValue(solveModeAtom);
-  const [solveMode, setSolveMode] = useState<SolveMode>(appSolveMode);
-  const appScrambleType = useAtomValue(scrambleTypeAtom);
-  const [preferredScrambleType, setScrambleType] = useState<ScrambleType>(appScrambleType);
+  const [filters, setFilters] = useAtom(profileFiltersAtom);
+  const appPuzzle = useAtomValue(puzzleAtom), appSolveMode = useAtomValue(solveModeAtom), appScrambleType = useAtomValue(scrambleTypeAtom);
+  const cube = filters.cube ?? appPuzzle, solveMode = filters.solveMode ?? appSolveMode;
+  const preferredScrambleType = filters.scrambleType ?? appScrambleType;
+  const setCube = useCallback((value: PuzzleId) => setFilters(f => ({ ...f, cube: value })), [setFilters]);
+  const setSolveMode = (value: SolveMode) => setFilters(f => ({ ...f, solveMode: value }));
+  const setScrambleType = (value: ScrambleType) => setFilters(f => ({ ...f, scrambleType: value }));
   const scrambleType = puzzleInfo(cube).scrambles.includes(preferredScrambleType) ? preferredScrambleType : puzzleInfo(cube).scrambles[0];
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
   const statsVersion = useAtomValue(statsVersionAtom);
@@ -122,7 +123,8 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const [user, setUser] = useAtom(userAtom);
   const setRoute = useSetAtom(routeAtom);
-  const goBack = useSetAtom(goBackAtom);
+  const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom);
+  const previousRoute = useAtomValue(previousRouteAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
   const catalog = useMemo(() => local.read.catalog(cube), [cube]);
   const profile = useMemo(() => local.read.profile(cube, { solveMode, scrambleType }), [cube, solveMode, scrambleType, user?.id, deletedSolveId, statsVersion]);
@@ -130,11 +132,10 @@ export function ProfilePage({ mode, caseId, group }: { mode?: ProfileMode; caseI
   const [accountOpen, setAccountOpen] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const openedFromGallery = useRef(false);
-  const openCase = useCallback((id: string) => { openedFromGallery.current = true; setRoute({ page: "profile", mode: "training", caseId: id }); }, [setRoute]);
+  const openCase = useCallback((id: string) => setRoute({ page: "profile", mode: "training", caseId: id }), [setRoute]);
   const closeCase = () => {
-    if (openedFromGallery.current) { openedFromGallery.current = false; goBack(); }
-    else setRoute({ page: "profile", mode: "training" });
+    if (previousRoute?.page === "profile" && previousRoute.mode === "training" && !previousRoute.caseId) goBack();
+    else replaceRoute({ page: "profile", mode: "training" });
   };
   const scroll = usePreservedScroll(`profile:${cube}:${solveMode}:${scrambleType}:${mode ?? "overview"}:${group ?? ""}`);
   if (!user) return null;

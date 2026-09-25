@@ -1,10 +1,17 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
-import { createStore, Provider } from "jotai";
+import { createStore, Provider, useAtomValue } from "jotai";
 
 // Render the real browser, pager and routing atoms with native drawing replaced by host nodes.
+// Slides finish at once so each step sees the settled page.
+class AnimatedValue { constructor(public value: number) {} interpolate() { return this; } }
 mock.module("react-native", () => ({
+  Animated: {
+    View: "Animated.View", Value: AnimatedValue,
+    timing: (value: AnimatedValue, { toValue }: { toValue: number }) => ({ start: (done?: (r: { finished: boolean }) => void) => { value.value = toValue; done?.({ finished: true }); }, stop() {} }),
+  },
+  Easing: { bezier: () => (t: number) => t },
   AppState: { addEventListener: () => ({ remove() {} }) },
   View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView",
   FlatList: ({ renderItem, data, horizontal, ...props }: any) => createElement("FlatList", { ...props, data, horizontal },
@@ -44,13 +51,18 @@ const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedA
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;
 afterEach(async () => { if (renderer) await act(() => renderer.unmount()); });
+/** Pass the route in as the shell does. */
+function Routed() {
+  const route = useAtomValue(routeAtom);
+  return route.page === "algorithms" ? <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} /> : <AlgorithmsPage />;
+}
 async function mount() {
   const store = createStore();
   store.set(routeAtom, { page: "algorithms" });
   store.set(learningFilterAtom, "all");
   store.set(stageAtom, "OLL");
   store.set(collapsedAlgorithmGroupsAtom, {});
-  await act(() => { renderer = create(<Provider store={store}><AlgorithmsPage /></Provider>); });
+  await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
   return store;
 }
 const browser = () => renderer.root.findAllByType("FlatList" as any).find(node => !node.props.horizontal)!;
