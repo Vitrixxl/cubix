@@ -45,9 +45,15 @@ function Button({
   style,
   title,
   disabled = false,
+  highlight,
 }: {
   action: string;
   active?: boolean;
+  /**
+   * Animated active background: a layout id makes it glide between the buttons sharing it,
+   * `true` fades it in and out on a lone toggle.
+   */
+  highlight?: string | boolean;
   icon?: string;
   title?: string;
   disabled?: boolean;
@@ -58,7 +64,7 @@ function Button({
       data-action={action}
       title={title ?? (typeof children === "string" ? children : action)}
       aria-label={title ?? (typeof children === "string" ? children : action)}
-      className={`${active ? "active" : ""} ${className}`}
+      className={`${active ? "active" : ""} ${highlight ? "highlighted" : ""} ${className}`}
       style={style}
       disabled={disabled}
       onClick={(e) => {
@@ -66,10 +72,34 @@ function Button({
         void s.action(action, e.currentTarget);
       }}
     >
+      {typeof highlight === "string" ? (
+        active && (
+          <motion.span
+            layoutId={highlight}
+            className="button-highlight"
+            transition={HIGHLIGHT}
+          />
+        )
+      ) : (
+        highlight && (
+          <AnimatePresence initial={false}>
+            {active && (
+              <motion.span
+                className="button-highlight"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={HIGHLIGHT}
+              />
+            )}
+          </AnimatePresence>
+        )
+      )}
       {children}
     </ActionButton>
   );
 }
+const HIGHLIGHT = { type: "spring", bounce: 0.18, duration: 0.4 } as const;
 function Row({ children, className = "", style }: Props) {
   return (
     <div className={"row " + className} style={style}>
@@ -154,6 +184,8 @@ function Nav() {
             action={"nav:" + page}
             title={`${label} (${shortcut})`}
             className={"nav-tab " + (s.page === page ? "selected" : "unselected")}
+            active={s.page === page}
+            highlight="nav-tab"
             icon={page === "profile" && !s.user.isGuest ? undefined : icon}
           >
             {page === "profile" && !s.user.isGuest && (
@@ -167,6 +199,8 @@ function Nav() {
         <Button
           action="settings"
           className={"nav-tab " + (s.overlay === "settings" ? "selected" : "unselected")}
+          active={s.overlay === "settings"}
+          highlight
           icon="IconSettings"
           title="Settings (Alt+S)"
         />
@@ -622,6 +656,7 @@ function Practice() {
               <Button
                 action="auf"
                 active={s.randomAuf}
+                highlight
                 className={s.randomAuf ? "soft" : ""}
               >
                 {w <= 700 || h <= 550 ? "AUF" : "Random AUF"}
@@ -662,7 +697,12 @@ function Practice() {
               New scramble
             </Button>
           )}
-          <Button action="times" active={s.showTimes} icon="IconTimer">
+          <Button
+            action="times"
+            active={s.showTimes}
+            highlight
+            icon="IconTimer"
+          >
             Times
           </Button>
         </Row>
@@ -2373,10 +2413,10 @@ function App() {
       }
       style={theme(s.themeName, s.light) as React.CSSProperties}
     >
-      {!s.ready ? (
-        <Empty>{s.error || "Loading…"}</Empty>
-      ) : (
-        <MotionConfig reducedMotion="user">
+      <MotionConfig reducedMotion="user">
+        {!s.ready ? (
+          <Empty>{s.error || "Loading…"}</Empty>
+        ) : (
           <AnimatePresence initial={false} custom={s.direction}>
             <Frame key={guide ? s.page : s.page + (s.caseId ? ":case" : "")}>
               {guide ? (
@@ -2394,9 +2434,9 @@ function App() {
               )}
             </Frame>
           </AnimatePresence>
-        </MotionConfig>
-      )}
-      {!guide && <Nav />}
+        )}
+        {!guide && <Nav />}
+      </MotionConfig>
       <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
       {s.overlay && <Overlay key={s.overlay} />}
       <ErrorNotification message={s.error} />

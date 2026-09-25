@@ -202,6 +202,26 @@ img {
   background: var(--surface3);
   color: var(--text);
 }
+/* Buttons with a Motion highlight draw their active background as a sliding layer. */
+.button.highlighted {
+  position: relative;
+  isolation: isolate;
+}
+.button.highlighted.active,
+.button.highlighted.active:hover {
+  background: transparent !important;
+}
+.button-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--surface3);
+}
+.soft > .button-highlight,
+.nav .selected > .button-highlight {
+  background: var(--soft);
+}
 .button.primary,
 .button.primary:hover {
   background: var(--accent);
