@@ -1641,7 +1641,7 @@ progress {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 28px;
   overflow: auto;
   scrollbar-width: none;
 }
@@ -1668,31 +1668,29 @@ progress {
   gap: 4px;
 }
 .stat-grid {
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
 }
 .stat-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 0;
+  gap: 12px;
   min-width: 0;
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--text);
   text-align: left;
   font: inherit;
   overflow: hidden;
 }
-.stat-card.clickable:hover {
-  background: var(--surface2);
+.stat-card.clickable:hover .stat-card-head,
+.stat-card.clickable:hover .stat-card-head > .icon:last-child {
+  color: var(--accent);
 }
 .stat-card-head {
   display: flex;
@@ -1705,13 +1703,7 @@ progress {
   color: var(--muted);
 }
 .stat-card-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 9px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--soft);
   color: var(--accent);
 }
 .stat-card-label {
@@ -1720,13 +1712,12 @@ progress {
 }
 .stat-card-body {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 10px;
 }
 .stat-card-value {
-  flex: 1;
   min-width: 0;
-  font-size: clamp(26px, 2.6vw, 36px);
+  font-size: clamp(26px, 2.6vw, 34px);
   font-weight: 700;
   letter-spacing: -0.8px;
   color: var(--accent);
@@ -1744,7 +1735,6 @@ progress {
 .stat-card-metrics {
   display: flex;
   gap: 14px;
-  flex: 1.2;
 }
 .stat-card-metric {
   flex: 1;
@@ -1774,9 +1764,7 @@ progress {
 }
 .sparkline {
   width: 100%;
-  flex: 1;
-  min-height: 24px;
-  max-height: 56px;
+  height: 48px;
   opacity: 0.85;
 }
 .stat-strip {
@@ -2115,9 +2103,6 @@ progress {
     padding: 0 10px;
     font-size: 13px;
   }
-  .stat-grid {
-    grid-template-rows: repeat(2, minmax(130px, 1fr));
-  }
   .stats-grid {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -2138,8 +2123,7 @@ progress {
   }
   .stat-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: none;
-    grid-auto-rows: minmax(120px, auto);
+    gap: 24px;
   }
   .guest-banner {
     flex-wrap: wrap;
@@ -2169,8 +2153,16 @@ progress {
     padding: 8px 10px;
     gap: 6px;
   }
+  .overview {
+    gap: 12px;
+  }
+  .stat-grid {
+    padding-top: 12px;
+  }
+  .stat-card-foot {
+    display: none;
+  }
   .stat-card {
-    padding: 10px 14px;
     gap: 6px;
   }
   .stat-card-value {
@@ -2178,9 +2170,6 @@ progress {
   }
   .sparkline {
     display: none;
-  }
-  .stat-grid {
-    grid-template-rows: repeat(2, minmax(120px, 1fr));
   }
 }
 @media (max-height: 640px) and (max-width: 900px) {
@@ -2222,19 +2211,60 @@ progress {
   font-size: 11px;
   white-space: nowrap;
 }
-.heatmap {
+.activity {
+  flex-shrink: 0;
   display: flex;
-  justify-content: center;
-  flex: 1;
-  min-height: 0;
-  max-height: 102px;
-  align-self: stretch;
-  overflow: hidden;
 }
-.heatmap-grid {
+.activity-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100%;
+}
+.activity-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.activity-head h3 {
+  margin: 0;
+  margin-right: auto;
+  font-size: 15px;
+  font-weight: 600;
+}
+.activity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.activity-summary .mono {
+  font-weight: 600;
+}
+.heatmap {
   display: grid;
-  grid-auto-flow: column;
-  align-content: start;
+}
+.heat-label {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
+  align-self: center;
+}
+.activity-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.heat-legend {
+  gap: 3px;
+}
+.heat-legend small {
+  margin: 0 4px;
+  font-size: 11px;
 }
 .heat {
   display: block;
@@ -2281,8 +2311,7 @@ progress {
   gap: 14px;
 }
 @media (max-height: 640px) {
-  .mini-bars,
-  .heatmap {
+  .mini-bars {
     display: none;
   }
 }

@@ -1377,28 +1377,46 @@ const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 type ActivitySolve = { at: string; time: number | null; timer: boolean };
 type DayStats = { count: number; best: number | null; ao5: number | null; ao12: number | null };
-const HEAT_GAP = 3;
+const HEAT_GAP = 3,
+  HEAT_LABEL = 28;
+const heatColor = (ratio: number) =>
+  `color-mix(in srgb, var(--accent) ${30 + Math.round(ratio * 70)}%, var(--surface2))`;
 /** Best rolling average of `size` over a day's timer solves, in order. */
 const bestAverage = (times: (number | null)[], size: number) =>
   best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size))));
-/** Solves per day as square cells, one column per week, Monday at the top; as many weeks as fit. */
-function ActivityHeatmap({ solves }: { solves: ActivitySolve[] }) {
-  const ref = useRef<HTMLDivElement>(null),
-    [fit, setFit] = useState({ weeks: 16, cell: 10 }),
+/** GitHub-style activity: solves per day, one column per week (Monday on top), up to a year wide. */
+function Activity({
+  solves,
+  summary,
+  detail,
+}: {
+  solves: ActivitySolve[];
+  summary: { label: string; value: string }[];
+  detail: string;
+}) {
+  const ref = useRef<HTMLElement>(null),
+    [fit, setFit] = useState({ weeks: 53, cell: 12 }),
     [hover, setHover] = useState<{ key: string; rect: DOMRect } | null>(null);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
-      const { width, height } = el.getBoundingClientRect(),
-        cell = Math.max(6, Math.min(14, Math.floor((height - 6 * HEAT_GAP) / 7))),
-        weeks = Math.max(1, Math.min(53, Math.floor((width + HEAT_GAP) / (cell + HEAT_GAP))));
+      const avail = el.getBoundingClientRect().width - HEAT_LABEL - HEAT_GAP,
+        weeks = Math.max(1, Math.min(53, Math.floor((avail + HEAT_GAP) / (9 + HEAT_GAP)))),
+        cell = Math.max(
+          9,
+          Math.min(innerHeight <= 640 ? 10 : innerHeight < 800 ? 12 : 17, Math.floor((avail + HEAT_GAP) / weeks - HEAT_GAP)),
+        );
       setFit((f) => (f.weeks === weeks && f.cell === cell ? f : { weeks, cell }));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    return () => observer.disconnect();
+    addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      removeEventListener("resize", measure);
+    };
   }, []);
   const days = new Map<string, { count: number; times: (number | null)[] }>();
   for (const solve of solves) {
@@ -1422,39 +1440,86 @@ function ActivityHeatmap({ solves }: { solves: ActivitySolve[] }) {
     const key = dayKey(d);
     cells.push({ key, date: d, count: days.get(key)?.count ?? 0, future: d > end });
   }
-  const hovered = hover && cells.find((c) => c.key === hover.key),
+  // A month label sits over the first week starting in that month, unless the next label is too close.
+  const months: { week: number; label: string }[] = [];
+  for (let w = 0; w < weeks; w++) {
+    const month = cells[w * 7].date.getMonth();
+    if (w && month === cells[(w - 1) * 7].date.getMonth()) continue;
+    if (months.length && w - months.at(-1)!.week < 3) months.pop();
+    months.push({ week: w, label: cells[w * 7].date.toLocaleDateString(undefined, { month: "short" }) });
+  }
+  const shown = cells.reduce((sum, c) => sum + c.count, 0),
+    width = HEAT_LABEL + weeks * (cell + HEAT_GAP),
+    hovered = hover && cells.find((c) => c.key === hover.key),
     times = (hover && days.get(hover.key)?.times) ?? [],
     stats: DayStats | null = hovered
       ? { count: hovered.count, best: best(times), ao5: bestAverage(times, 5), ao12: bestAverage(times, 12) }
       : null;
   return (
-    <div ref={ref} className="heatmap" onMouseLeave={() => setHover(null)}>
-      <div
-        className="heatmap-grid"
-        role="img"
-        aria-label={`Solves per day over the last ${weeks} weeks`}
-        style={{
-          gridTemplateColumns: `repeat(${weeks}, ${cell}px)`,
-          gridTemplateRows: `repeat(7, ${cell}px)`,
-          gap: HEAT_GAP,
-        }}
-      >
-        {cells.map((c) => (
-          <span
-            key={c.key}
-            className={"heat " + (c.future ? "future" : "")}
-            onMouseEnter={(e) =>
-              c.future ? setHover(null) : setHover({ key: c.key, rect: e.currentTarget.getBoundingClientRect() })
-            }
-            style={
-              c.count
-                ? {
-                    background: `color-mix(in srgb, var(--accent) ${30 + Math.round((c.count / peak) * 70)}%, var(--surface2))`,
-                  }
-                : undefined
-            }
-          />
-        ))}
+    <section ref={ref} className="activity" aria-label="Activity">
+      <div className="activity-block" style={{ width }}>
+        <div className="activity-head">
+          <h3>
+            {plural(shown, "solve")} in the last {weeks >= 52 ? "year" : plural(weeks, "week")}
+          </h3>
+          <div className="activity-summary">
+            {summary.map((m) => (
+              <span key={m.label}>
+                <span className="mono">{m.value}</span> <small className="muted">{m.label}</small>
+              </span>
+            ))}
+          </div>
+        </div>
+        <div
+          className="heatmap"
+          role="img"
+          aria-label={`Solves per day over the last ${weeks} weeks`}
+          onMouseLeave={() => setHover(null)}
+          style={{
+            gridTemplateColumns: `${HEAT_LABEL}px repeat(${weeks}, ${cell}px)`,
+            gridTemplateRows: `auto repeat(7, ${cell}px)`,
+            gap: HEAT_GAP,
+          }}
+        >
+          {months.map((m) => (
+            <span key={m.week} className="heat-label" style={{ gridRow: 1, gridColumn: m.week + 2 }}>
+              {m.label}
+            </span>
+          ))}
+          {["Mon", "Wed", "Fri"].map((d, i) => (
+            <span key={d} className="heat-label" style={{ gridRow: 2 + i * 2, gridColumn: 1 }}>
+              {d}
+            </span>
+          ))}
+          {cells.map((c, i) => (
+            <span
+              key={c.key}
+              className={"heat " + (c.future ? "future" : "")}
+              onMouseEnter={(e) =>
+                c.future ? setHover(null) : setHover({ key: c.key, rect: e.currentTarget.getBoundingClientRect() })
+              }
+              style={{
+                gridRow: 2 + (i % 7),
+                gridColumn: 2 + Math.floor(i / 7),
+                background: c.count ? heatColor(c.count / peak) : undefined,
+              }}
+            />
+          ))}
+        </div>
+        <div className="activity-foot">
+          <small className="muted">{detail}</small>
+          <Row className="heat-legend">
+            <small className="muted">Less</small>
+            {[0, 0.25, 0.5, 0.75, 1].map((r) => (
+              <span
+                key={r}
+                className="heat"
+                style={{ width: cell, height: cell, background: r ? heatColor(r) : undefined }}
+              />
+            ))}
+            <small className="muted">More</small>
+          </Row>
+        </div>
       </div>
       {hover && hovered && stats &&
         createPortal(
@@ -1485,7 +1550,7 @@ function ActivityHeatmap({ solves }: { solves: ActivitySolve[] }) {
           </div>,
           ref.current?.closest(".app") ?? document.body,
         )}
-    </div>
+    </section>
   );
 }
 /** Overview card: one headline figure, two supporting metrics and a one-line detail. */
@@ -1626,6 +1691,15 @@ function Overview() {
           </Row>
         </div>
       )}
+      <Activity
+        solves={activity}
+        summary={[
+          { label: (p.activeDays ?? 0) === 1 ? "active day" : "active days", value: String(p.activeDays ?? 0) },
+          { label: "total solves", value: (p.totalSolves ?? 0).toLocaleString() },
+          { label: "per active day", value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—" },
+        ]}
+        detail={latest ? `Last practice: ${shortDate(latest)}` : "No practice recorded yet"}
+      />
       <div className="stat-grid">
         <StatCard
           icon="IconCube"
@@ -1674,22 +1748,6 @@ function Overview() {
           action="profileMode:achievements"
         >
           <MiniBars rows={goals} />
-        </StatCard>
-        <StatCard
-          icon="IconCalendar"
-          label="Activity"
-          value={String(p.activeDays ?? 0)}
-          suffix={` ${(p.activeDays ?? 0) === 1 ? "day" : "days"}`}
-          metrics={[
-            { label: "Total solves", value: String(p.totalSolves ?? 0) },
-            {
-              label: "Per active day",
-              value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—",
-            },
-          ]}
-          detail={latest ? `Last practice: ${shortDate(latest)}` : "No practice recorded yet"}
-        >
-          <ActivityHeatmap solves={activity} />
         </StatCard>
       </div>
     </div>
