@@ -1739,14 +1739,16 @@ progress {
   flex-shrink: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 20px;
+  grid-auto-rows: auto;
+  gap: 14px 24px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
 }
+/* Head, figures, chart and footer share rows across the three cards so they line up. */
 .stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 4;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -1756,9 +1758,16 @@ progress {
   font: inherit;
   overflow: hidden;
 }
+.stat-card + .stat-card {
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
 .stat-card.clickable:hover .stat-card-head,
 .stat-card.clickable:hover .stat-card-head > .icon:last-child {
   color: var(--accent);
+}
+.stat-card.clickable:hover .stat-card-head > .icon:last-child {
+  transform: translateX(2px);
 }
 .stat-card-head {
   display: flex;
@@ -1769,6 +1778,7 @@ progress {
 .stat-card-head > .icon:last-child {
   margin-left: auto;
   color: var(--muted);
+  transition: transform 0.15s ease, color 0.15s ease;
 }
 .stat-card-icon {
   display: flex;
@@ -1787,6 +1797,7 @@ progress {
   min-width: 0;
   font-size: clamp(26px, 2.6vw, 34px);
   font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.8px;
   color: var(--accent);
   white-space: nowrap;
@@ -1798,11 +1809,16 @@ progress {
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0;
-  margin-left: 4px;
+  margin-left: 6px;
 }
 .stat-card-metrics {
   display: flex;
-  gap: 14px;
+  gap: 18px;
+}
+.stat-card-chart {
+  display: flex;
+  align-items: stretch;
+  min-height: 64px;
 }
 .stat-card-metric {
   flex: 1;
@@ -1823,17 +1839,41 @@ progress {
 .stat-card-foot {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .stat-card-foot small {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.stat-card-foot .progress {
+  margin: 0;
+}
 .sparkline {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  margin: 6px 4px;
+}
+.sparkline svg {
+  display: block;
   width: 100%;
-  height: 48px;
-  opacity: 0.85;
+  height: 100%;
+  overflow: visible;
+}
+.sparkline-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.sparkline-dot.best {
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 .stat-strip {
   display: grid;
@@ -2166,6 +2206,12 @@ progress {
     grid-template-columns: 1fr;
     gap: 24px;
   }
+  .stat-card + .stat-card {
+    padding-left: 0;
+    padding-top: 24px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
   .guest-banner {
     flex-wrap: wrap;
   }
@@ -2200,33 +2246,33 @@ progress {
   .stat-grid {
     padding-top: 12px;
   }
-  .stat-card-foot {
+  .stat-card-foot,
+  .stat-card-chart {
     display: none;
   }
   .stat-card {
+    display: flex;
+    flex-direction: column;
     gap: 6px;
+    grid-row: auto;
   }
   .stat-card-value {
     font-size: 26px;
   }
-  .sparkline {
-    display: none;
-  }
 }
 .mini-bars {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: fit-content(50%) minmax(40px, 1fr) auto;
+  align-content: center;
+  align-items: center;
+  gap: 7px 10px;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 .mini-bar {
-  display: grid;
-  grid-template-columns: minmax(56px, 2fr) 5fr auto;
-  align-items: center;
-  gap: 10px;
+  display: contents;
   font-size: 12px;
 }
 .mini-bar .progress {
@@ -2239,6 +2285,7 @@ progress {
   text-overflow: ellipsis;
 }
 .mini-bar-value {
+  justify-self: end;
   color: var(--muted);
   font-size: 11px;
   white-space: nowrap;
@@ -2342,11 +2389,7 @@ progress {
   justify-content: space-between;
   gap: 14px;
 }
-@media (max-height: 640px) {
-  .mini-bars {
-    display: none;
-  }
-}
+
 
 /* Keep the daily assignment visible even where optional case metadata is hidden. */
 .daily-caption { flex-direction: column; gap: 0; }

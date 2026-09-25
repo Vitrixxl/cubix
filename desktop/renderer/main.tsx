@@ -5,6 +5,7 @@ import { PracticeTimer } from "../../src/client/lib/practiceTimer";
 import { shortId, maskForStage } from "../../src/client/lib/caseState";
 import React, {
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -1353,31 +1354,34 @@ function Progress({ ratio, done = true }: { ratio: number; done?: boolean }) {
   );
 }
 function Sparkline({ values }: { values: (number | null)[] }) {
-  const points = values.filter((v): v is number => v != null).slice(-40);
+  const id = useId(),
+    points = values.filter((v): v is number => v != null).slice(-40);
   if (points.length < 2) return null;
   const low = Math.min(...points),
-    high = Math.max(low + 1, Math.max(...points));
-  const d = points
-    .map(
-      (v, i) =>
-        `${i ? "L" : "M"}${(i / (points.length - 1)) * 100} ${2 + (1 - (v - low) / (high - low)) * 28}`,
-    )
-    .join(" ");
+    high = Math.max(low + 1, Math.max(...points)),
+    x = (i: number) => (i / (points.length - 1)) * 100,
+    y = (v: number) => 4 + (1 - (v - low) / (high - low)) * 26,
+    line = points.map((v, i) => `${i ? "L" : "M"}${x(i)} ${y(v)}`).join(" "),
+    best = points.indexOf(low),
+    last = points.length - 1;
+  const dot = (i: number, cls: string) => (
+    <i className={"sparkline-dot " + cls} style={{ left: x(i) + "%", top: (y(points[i]) / 32) * 100 + "%" }} />
+  );
   return (
-    <svg
-      className="sparkline"
-      viewBox="0 0 100 32"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path
-        d={d}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="1.6"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
+    <div className="sparkline" aria-hidden="true">
+      <svg viewBox="0 0 100 32" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.28" />
+            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`${line} L100 32 L0 32 Z`} fill={`url(#${id})`} />
+        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      {best !== last && dot(best, "best")}
+      {dot(last, "last")}
+    </div>
   );
 }
 /** Labelled bars inside an overview card, e.g. one per stage or per pending goal. */
@@ -1623,7 +1627,7 @@ function StatCard({
           ))}
         </div>
       </div>
-      {children}
+      <div className="stat-card-chart">{children}</div>
       <div className="stat-card-foot">
         <small className="muted">{detail}</small>
         {progress !== undefined && <Progress ratio={progress} />}
