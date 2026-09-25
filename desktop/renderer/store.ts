@@ -396,7 +396,10 @@ export class Store {
     };
   }
   navigate(page: string, caseId = "") {
-    this.direction = slideDirection(this.location(), { page, caseId });
+    this.direction =
+      page === "profile" && this.page === "profile" && this.profileMode !== "overview"
+        ? -1
+        : slideDirection(this.location(), { page, caseId });
     this.history.push(this.location());
     this.forward = [];
     this.page = page;
@@ -405,6 +408,7 @@ export class Store {
     this.timerEpoch++;
     this.showTimes = this.showCases = page === "training" && innerWidth >= 1024;
     if (page === "profile") {
+      this.profileMode = "overview";
       this.profilePuzzle = this.puzzle;
       this.profileSolveMode = this.solveMode;
       this.profileScramble = this.scrambleType;
@@ -614,7 +618,13 @@ export class Store {
           await this.refresh();
           break;
         case "profileMode":
+          // Profile sections are pages of their own: they slide in and join the back/forward history.
+          if (arg === this.profileMode) break;
+          this.direction = arg === "overview" ? -1 : 1;
+          this.history.push(this.location());
+          this.forward = [];
           this.profileMode = arg;
+          this.overlay = "";
           break;
         case "profileStage":
           this.profileStage = arg;

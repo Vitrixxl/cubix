@@ -173,11 +173,13 @@ try {
   await act("profileMode:playground");
   await page.waitForSelector(".chart");
   await shot("profile-timer");
+  await act("back");
   await act("profileMode:training");
   await shot("profile-training");
   await act("profileCase:PLL T");
   await page.waitForSelector(".modal");
   await act("close");
+  await act("back");
   await act("profileMode:achievements");
   await page.waitForSelector(".achievement-row");
   await shot("achievements");

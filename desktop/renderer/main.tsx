@@ -1960,90 +1960,71 @@ function Settings() {
     </div>
   );
 }
-const PROFILE_SECTIONS: [mode: string, label: string, icon: string][] = [
-  ["overview", "Overview", "IconChart"],
-  ["playground", "Timer", "IconCube"],
-  ["training", "Training", "IconTimer"],
-  ["achievements", "Achievements", "IconTrophy"],
-];
+const PROFILE_SECTIONS: Record<string, string> = {
+  playground: "Timer",
+  training: "Training",
+  achievements: "Achievements",
+};
+/** Account page: the overview, or one of its sections opened from it as a page of its own. */
 function Profile() {
   const p = s.profile;
   if (!p) return <Empty>Loading…</Empty>;
   const guest = s.user.isGuest,
-    sections = PROFILE_SECTIONS,
-    mode = sections.some(([m]) => m === s.profileMode) ? s.profileMode : "overview",
-    title = sections.find(([m]) => m === mode)?.[1] ?? "Overview";
+    mode = s.profileMode in PROFILE_SECTIONS ? s.profileMode : "overview",
+    title = PROFILE_SECTIONS[mode] ?? "Overview";
   return (
     <div className="page profile-page">
-      <div className="profile-layout">
-        <aside className="profile-side">
-          <Row className="profile-header">
-            <Avatar user={guest ? { username: "G" } : p.user} size={44} />
-            <div className="col">
-              <strong>{guest ? "Guest" : p.user.username}</strong>
-              <small className="muted">
-                {guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
-              </small>
-            </div>
-          </Row>
-          <nav className="profile-nav" aria-label="Account sections">
-            {sections.map(([m, label, icon]) => (
-              <Button
-                key={m}
-                action={"profileMode:" + m}
-                icon={icon}
-                className={"profile-nav-item " + (mode === m ? "selected" : "")}
-              >
-                {label}
-                {m === "achievements" && (
-                  <span className="mono muted count">{s.achievements?.unlocked ?? 0}</span>
-                )}
-              </Button>
-            ))}
-          </nav>
-          {guest && (
-            <Button action="account:login" className="primary profile-cta">
-              Sign in
-            </Button>
-          )}
-        </aside>
-        <section className="profile-main" aria-label={title}>
-          <header className="profile-toolbar">
-            <h2>{title}</h2>
-            {["overview", "training"].includes(mode) && <ProfileFilters />}
-            {mode === "playground" && <ProfileFilters scramble />}
-            {mode === "achievements" && s.achievements && (
-              <Row className="achievement-total">
-                <span className="mono muted">
-                  {s.achievements.unlocked} / {s.achievements.total}
-                </span>
-                <Progress
-                  ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0}
-                />
-              </Row>
-            )}
-          </header>
-          {mode === "playground" ? (
-            <TimerStats
-              data={p.playground}
-              empty={
-                <div className="col center">
-                  <span>No times in this selection yet.</span>
-                  <Button action="nav:playground" className="primary">
-                    Open the timer
-                  </Button>
-                </div>
-              }
-            />
-          ) : mode === "training" ? (
-            <TrainingProgress />
-          ) : mode === "achievements" ? (
-            <Achievements />
+      <section className="profile-main" aria-label={title}>
+        <header className="profile-toolbar">
+          {mode === "overview" ? (
+            <Row className="profile-header">
+              <Avatar user={guest ? { username: "G" } : p.user} size={40} />
+              <div className="col">
+                <h2>{guest ? "Guest" : p.user.username}</h2>
+                <small className="muted">
+                  {guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
+                </small>
+              </div>
+            </Row>
           ) : (
-            <Overview />
+            <Row className="profile-title">
+              <Button action="back" icon="IconBack" title="Back to the overview" />
+              <h2>{title}</h2>
+            </Row>
           )}
-        </section>
-      </div>
+          {["overview", "training"].includes(mode) && <ProfileFilters />}
+          {mode === "playground" && <ProfileFilters scramble />}
+          {mode === "achievements" && s.achievements && (
+            <Row className="achievement-total">
+              <span className="mono muted">
+                {s.achievements.unlocked} / {s.achievements.total}
+              </span>
+              <Progress
+                ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0}
+              />
+            </Row>
+          )}
+        </header>
+        {mode === "playground" ? (
+          <TimerStats
+            data={p.playground}
+            empty={
+              <div className="col center">
+                <span>No times in this selection yet.</span>
+                <Button action="nav:playground" className="primary">
+                  Open the timer
+                </Button>
+              </div>
+            }
+          />
+        ) : mode === "training" ? (
+          <TrainingProgress />
+        ) : mode === "achievements" ? (
+          <Achievements />
+        ) : (
+          <Overview />
+        )}
+      </section>
     </div>
   );
 }
@@ -2543,10 +2524,18 @@ function App() {
         );
       }
     };
+    // Mouse back/forward buttons; Windows reports them as app commands instead (see electron/main.ts).
+    const mouse = (e: MouseEvent) => {
+      if (e.button !== 3 && e.button !== 4) return;
+      e.preventDefault();
+      if (!navigator.userAgent.includes("Windows")) s.travel(e.button === 3);
+    };
     addEventListener("keydown", key);
+    addEventListener("mouseup", mouse);
     return () => {
       unsubscribe();
       removeEventListener("keydown", key);
+      removeEventListener("mouseup", mouse);
     };
   }, []);
   const guide = s.page.endsWith("Guide");
@@ -2562,7 +2551,13 @@ function App() {
           <Empty>{s.error || "Loading…"}</Empty>
         ) : (
           <AnimatePresence initial={false} custom={s.direction}>
-            <Frame key={guide ? s.page : s.page + (s.caseId ? ":case" : "")}>
+            <Frame
+              key={
+                guide
+                  ? s.page
+                  : s.page + (s.caseId ? ":case" : "") + (s.page === "profile" ? ":" + s.profileMode : "")
+              }
+            >
               {guide ? (
                 <Guides />
               ) : ["playground", "training"].includes(s.page) ? (

@@ -1533,69 +1533,28 @@ progress {
     min-height: 0;
   }
 }
-/* Account dashboard: a section rail on the left, the selected section filling the window height. */
+/* Account dashboard: the overview fills the window; its sections open as pages of their own. */
 .profile-page {
-  max-width: 1240px;
-}
-.profile-layout {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
-  gap: 24px;
   padding-bottom: 74px;
-}
-.profile-side {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 0;
-  min-width: 0;
 }
 .profile-header {
   gap: 12px;
-  padding: 4px 6px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 .profile-header > .col {
-  flex: 1;
   gap: 1px;
+  min-width: 0;
 }
-.profile-header strong {
-  font-size: 16px;
+.profile-header h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.profile-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.profile-nav-item {
-  justify-content: flex-start;
-  min-height: 38px;
-  padding: 0 12px;
-  gap: 10px;
-  font-size: 14px;
-}
-.profile-nav-item .count {
-  margin-left: auto;
-  font-size: 12px;
-}
-.profile-nav-item.selected,
-.profile-nav-item.selected:hover {
-  background: var(--soft);
-  color: var(--accent);
-}
-.profile-nav-item.selected .count {
-  color: var(--accent);
-  opacity: 0.8;
-}
-.profile-cta {
-  min-height: 38px;
+.profile-title {
+  gap: 6px;
 }
 .profile-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -2076,33 +2035,6 @@ progress {
   align-self: flex-start;
 }
 @media (max-width: 900px) {
-  .profile-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 12px;
-  }
-  .profile-side {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .profile-header {
-    padding: 0;
-    margin-right: auto;
-  }
-  .profile-header small {
-    display: none;
-  }
-  .profile-nav {
-    flex-direction: row;
-    overflow: auto;
-    scrollbar-width: none;
-  }
-  .profile-nav-item {
-    padding: 0 10px;
-    font-size: 13px;
-  }
   .stats-grid {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -2170,15 +2102,6 @@ progress {
   }
   .sparkline {
     display: none;
-  }
-}
-@media (max-height: 640px) and (max-width: 900px) {
-  .profile-side {
-    flex-wrap: nowrap;
-  }
-  .profile-nav {
-    flex: 1;
-    min-width: 0;
   }
 }
 .mini-bars {
