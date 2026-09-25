@@ -2256,6 +2256,9 @@ function options(): { action: string; values: any[]; current: string } {
       return { action: "", values: [], current: "" };
   }
 }
+const PUZZLE_COLUMNS = 4;
+/** Overlays drawn as a dialog; the others are select menus anchored to their button. */
+const isDialog = () => !!s.overlay && (s.overlay === "puzzles" || !options().values.length);
 function Overlay() {
   const menu = options(),
     ref = useRef<HTMLDivElement>(null),
@@ -2280,7 +2283,12 @@ function Overlay() {
         return;
       }
       if (!count) return;
-      if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+      // The puzzle dialog is a grid: arrows move by cell and row and stop at the edges.
+      const step = { ArrowDown: PUZZLE_COLUMNS, ArrowUp: -PUZZLE_COLUMNS, ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (s.overlay === "puzzles" && step) {
+        e.preventDefault();
+        setIndex((i) => Math.min(count - 1, Math.max(0, i + step)));
+      } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
         e.preventDefault();
         setIndex((i) =>
           e.key === "Home"
@@ -2309,6 +2317,29 @@ function Overlay() {
     s.overlay = "";
     s.emit();
   };
+  if (s.overlay === "puzzles") return (
+    <div className="modal-backdrop" onClick={close}>
+      <div className="modal puzzle-modal" role="dialog" aria-modal="true" aria-label="Puzzle" onClick={(e) => e.stopPropagation()}>
+        <Row className="between"><h2>Puzzle</h2><Button action="close" icon="IconClose" title="Close puzzle choice" /></Row>
+        <div className="puzzle-grid" ref={ref} role="listbox" style={{ gridTemplateColumns: `repeat(${PUZZLE_COLUMNS}, 1fr)` }}>
+          {menu.values.map((v, i) => (
+            <button
+              key={v.id}
+              role="option"
+              aria-selected={v.id === menu.current}
+              data-focused={index === i}
+              className={"button puzzle-option " + (index === i ? "active " : "") + (v.id === menu.current ? "current" : "")}
+              onMouseEnter={() => setIndex(i)}
+              onClick={() => void s.action(menu.action + ":" + v.id)}
+            >
+              <Icon name={"Puzzle" + v.id} size={30} />
+              <span>{v.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
   if (menu.values.length) {
     const anchor = s.anchor,
       left = Math.min(
@@ -2580,8 +2611,8 @@ function App() {
       style={theme(s.themeName, s.light) as React.CSSProperties}
     >
       <MotionConfig reducedMotion="user">
-        {/* Pages and nav recede behind an open select menu, easing back when it closes. */}
-        <div className={"scene" + (options().values.length ? " receded" : "")}>
+        {/* Pages and nav recede behind an open dialog, easing back when it closes. */}
+        <div className={"scene" + (isDialog() ? " receded" : "")}>
         {!s.ready ? (
           <Empty>{s.error || "Loading…"}</Empty>
         ) : (

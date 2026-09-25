@@ -952,8 +952,17 @@ progress {
     transform: translateY(4px);
   }
 }
-.select-menu {
+@keyframes dim-in {
+  from {
+    background: transparent;
+  }
+}
+.select-menu,
+.modal {
   animation: menu-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.modal-backdrop {
+  animation: dim-in 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .select-menu .menu-option {
   animation: menu-option-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 18ms) backwards;
@@ -963,7 +972,9 @@ progress {
     transition: none;
   }
   .select-menu,
-  .select-menu .menu-option {
+  .select-menu .menu-option,
+  .modal,
+  .modal-backdrop {
     animation: none;
   }
 }
@@ -1016,6 +1027,19 @@ progress {
 .modal textarea {
   min-height: 100px;
   resize: vertical;
+}
+.puzzle-grid {
+  display: grid;
+  gap: 4px;
+}
+.puzzle-option {
+  flex-direction: column;
+  height: 88px;
+  gap: 8px;
+  border-radius: 12px;
+}
+.puzzle-option.current {
+  color: var(--accent);
 }
 .search-modal {
   height: min(640px, 80%);
