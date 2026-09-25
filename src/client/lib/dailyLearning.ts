@@ -3,7 +3,8 @@ import { puzzleOf } from "../../shared/puzzles";
 
 export const LEARNING_TRACKS = ["F2L", "OLL", "PLL"] as const;
 export type LearningTrack = typeof LEARNING_TRACKS[number];
-export type LearningMode = "practice" | "review" | LearningTrack;
+/** `review:<track>` trains every learned case of one track; plain `review` mixes the whole puzzle. */
+export type LearningMode = "practice" | "review" | LearningTrack | `review:${LearningTrack}`;
 export interface DailyAssignment { caseId: string; assignedOn: string; completedOn?: string }
 export interface LearningPlan { mode: LearningMode; tracks: Partial<Record<LearningTrack, DailyAssignment>>; groupOrder?: Partial<Record<LearningTrack, string[]>> }
 export const EMPTY_LEARNING_PLAN: LearningPlan = { mode: "practice", tracks: {} };
@@ -33,12 +34,25 @@ export function learningStatus(cases: readonly CaseDto[], learned: ReadonlySet<s
   return `${status} · ${count}/${cases.length} learned`;
 }
 
-/** Revision always stays on the selected puzzle, across every stage and set. */
-export function reviewCases(cases: readonly CaseDto[], learned: ReadonlySet<string>, puzzle: string): CaseDto[] {
-  return cases.filter(c => puzzleOf(c) === puzzle && learned.has(c.id));
+export function reviewTrack(mode: unknown): LearningTrack | undefined {
+  const track = typeof mode === "string" && mode.startsWith("review:") ? mode.slice(7) : undefined;
+  return isLearningTrack(track) ? track : undefined;
+}
+export const isReviewMode = (mode: LearningMode) => mode === "review" || !!reviewTrack(mode);
+/** The track a mode learns or reviews, shown as the selected training mode. */
+export const learningTrackOf = (mode: LearningMode) => isLearningTrack(mode) ? mode : reviewTrack(mode);
+/** Revision always stays on the selected puzzle, across every stage and set, or on one learning track. */
+export function reviewCases(cases: readonly CaseDto[], learned: ReadonlySet<string>, puzzle: string, track?: LearningTrack): CaseDto[] {
+  return (track ? learningCases(cases, track) : cases.filter(c => puzzleOf(c) === puzzle)).filter(c => learned.has(c.id));
+}
+export function reviewStatus(mode: LearningMode, count: number): string {
+  const track = reviewTrack(mode);
+  return `Review learned${track ? " " + track : ""} · ${count} cases`;
 }
 export function learningModeForPuzzle(mode: unknown, puzzle: string): LearningMode {
-  return mode === "review" ? "review" : puzzle === "333" && isLearningTrack(mode) ? mode : "practice";
+  if (mode === "review") return "review";
+  const track = isLearningTrack(mode) ? mode : reviewTrack(mode);
+  return puzzle === "333" && track ? mode as LearningMode : "practice";
 }
 export function trainingModeOptions(puzzle: string): { value: LearningMode; label: string }[] {
   return [{ value: "practice", label: "Free practice" }, { value: "review", label: "Review learned" }, ...(puzzle === "333" ? LEARNING_TRACKS.map(value => ({ value, label: `Learn ${value}` })) : [])];

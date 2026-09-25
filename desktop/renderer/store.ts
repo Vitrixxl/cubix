@@ -1,5 +1,5 @@
 import {appearanceFromStorage} from "../appearance";
-import { orderedGroups, reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
+import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
@@ -158,13 +158,15 @@ export class Store {
     this.pref(learningKey(this.user.id ?? "guest"), { ...plan, groupOrder: { ...plan.groupOrder, [mode]: order }, tracks: { ...plan.tracks, [mode]: assignment } });
     await this.refreshLearning();
   }
+  /** Learned cases of the track being learned or reviewed, the pool of "Train learned". */
+  get trackLearnedCount() { const track = learningTrackOf(this.learningMode); return track ? learningCases(catalog.cases, track).filter(c => this.learned.has(c.id)).length : 0; }
   get daily() { const mode = this.learningMode; return isLearningTrack(mode) ? this.learningPlan.tracks[mode] : undefined; }
-  get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(this.learningMode === "review" ? this.reviewIds : this.daily ? [this.daily.caseId] : []); }
-  get dailyStatus() { if (this.learningMode === "review") return `Review learned · ${this.reviewIds.length} cases`; return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned) : ""; }
+  get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(isReviewMode(this.learningMode) ? this.reviewIds : this.daily ? [this.daily.caseId] : []); }
+  get dailyStatus() { if (isReviewMode(this.learningMode)) return reviewStatus(this.learningMode, this.reviewIds.length); return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned) : ""; }
   reconcileLearning() {
     const mode = this.learningMode;
     if (this.learningFrozen || this.pendingSolve) return;
-    this.reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle).map(c => c.id);
+    this.reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle, reviewTrack(mode)).map(c => c.id);
     if (!isLearningTrack(mode)) return;
     const plan = this.learningPlan;
     const assignment = dailyAssignment(plan.tracks[mode], learningCases(catalog.cases, mode, plan.groupOrder?.[mode]), this.learned, localDay());
@@ -444,7 +446,7 @@ export class Store {
           this.travel(false);
           break;
         case "learningMode": {
-          if (this.learningFrozen || !(arg === "practice" || arg === "review" || this.puzzle === "333" && isLearningTrack(arg)) || this.pendingSolve) break;
+          if (this.learningFrozen || learningModeForPuzzle(arg, this.puzzle) !== arg || this.pendingSolve) break;
           this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: arg });
           this.showCases = false;
           this.overlay = "";

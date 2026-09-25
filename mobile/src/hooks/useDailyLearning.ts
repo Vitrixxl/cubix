@@ -1,7 +1,7 @@
 import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
-import { orderedGroups, reviewCases, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
+import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
 import { casesAtom, cubeSwitchLockedAtom, learnedCaseIdsAtom, puzzleAtom, userAtom } from "../state";
 import { storage } from "../platform/storage";
 import { api, local, localChanged } from "../api";
@@ -35,11 +35,13 @@ export function useDailyLearning() {
     return () => { clearInterval(interval); listener.remove(); };
   }, [locked]);
   const mode = learningModeForPuzzle(plan.mode, puzzle);
-  const reviewPool = useMemo(() => reviewCases(cases, learned, puzzle).map(c => c.id), [cases, learned, puzzle]);
+  const reviewPool = useMemo(() => reviewCases(cases, learned, puzzle, reviewTrack(mode)).map(c => c.id), [cases, learned, puzzle, mode]);
   const [reviewIds, setReviewIds] = useState(reviewPool);
   useEffect(() => { if (!locked) setReviewIds(previous => previous.join("\n") === reviewPool.join("\n") ? previous : reviewPool); }, [locked, reviewPool]);
   const pool = useMemo(() => isLearningTrack(mode) ? learningCases(cases, mode, plan.groupOrder?.[mode]) : [], [cases, mode, plan.groupOrder]);
   const assignment = useMemo(() => isLearningTrack(mode) ? dailyAssignment(plan.tracks[mode], pool, learned, day) : undefined, [plan, mode, pool, learned, day]);
+  const track = learningTrackOf(mode);
+  const trackLearned = useMemo(() => track ? learningCases(cases, track).filter(c => learned.has(c.id)).length : 0, [cases, track, learned]);
   const save = ({ groupOrder: _order, ...next }: LearningPlan) => { storage.setItem(key, JSON.stringify(next)); setPlan(next); };
   useEffect(() => {
     if (isLearningTrack(mode) && assignment !== plan.tracks[mode]) save({ ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
@@ -48,5 +50,5 @@ export function useDailyLearning() {
     if (locked || !isLearningTrack(mode)) return;
     await api.setLearningGroupOrder(mode, groups).catch(() => { /* The sync indicator reports storage failures. */ });
   };
-  return { groups: orderedGroups(pool, isLearningTrack(mode) ? plan.groupOrder?.[mode] : []), reorderGroups, mode, assignment, reviewIds, status: mode === "review" ? `Review learned · ${reviewIds.length} cases` : learningStatus(pool, learned), setMode: (mode: LearningMode) => save({ ...plan, mode }) };
+  return { groups: orderedGroups(pool, isLearningTrack(mode) ? plan.groupOrder?.[mode] : []), reorderGroups, mode, assignment, reviewIds, track, trackLearned, status: isReviewMode(mode) ? reviewStatus(mode, reviewIds.length) : learningStatus(pool, learned), setMode: (mode: LearningMode) => save({ ...plan, mode }) };
 }

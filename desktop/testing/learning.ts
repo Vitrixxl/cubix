@@ -164,6 +164,26 @@ try {
   assert.notEqual(await page.locator(".case-title").getAttribute("data-action"), `case:${removed}`);
   await page.evaluate(async ids => { for (const id of ids) await window.cubix.call("setLearned", id, false); }, known);
   await page.waitForSelector("h2:text('No learned cases yet')");
+  // Train learned narrows the review to the learned cases of the current track and toggles back.
+  const learnedOll = ["OLL 1", "OLL 2"];
+  await page.evaluate(async ids => { for (const id of ids) await window.cubix.call("setLearned", id, true); }, [...learnedOll, "F2L 2"]);
+  await mode("Learn OLL");
+  await click("learningMode:review:OLL");
+  await page.waitForSelector(".daily-status:text('Review learned OLL · 2 cases')");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: "artifacts/electron/testing/train-learned-360x540.png" });
+  for (let i = 0; i < 4; i++) {
+    const before = (await page.locator(".case-title").getAttribute("data-action"))!.slice(5);
+    assert.ok(learnedOll.includes(before), "train learned only shows learned cases of the track");
+    await click("next");
+    await page.waitForFunction(id => document.querySelector(".case-title")?.getAttribute("data-action") !== `case:${id}`, before);
+  }
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.waitForFunction(() => innerWidth === 1400);
+  await page.screenshot({ path: "artifacts/electron/testing/train-learned-1400x900.png" });
+  await click("learningMode:OLL");
+  await page.waitForSelector(".daily-status:text('Algorithm to learn')");
+  await page.evaluate(async ids => { for (const id of ids) await window.cubix.call("setLearned", id, false); }, [...learnedOll, "F2L 2"]);
   await mode("Free practice");
   await page.waitForSelector('.case-title[data-action="case:F2L 2"]');
   await click("menu:puzzles");
@@ -172,7 +192,7 @@ try {
   assert.equal(await page.getByRole("option", { name: "Learn PLL", exact: true }).count(), 0);
   assert.equal(await page.getByRole("option", { name: "Review learned", exact: true }).count(), 1);
   assert.deepEqual(errors, []);
-  console.log("Daily learning, group ordering and global review: completion, undo, persistence, track isolation, 3×3 restriction and responsive layouts passed.");
+  console.log("Daily learning, group ordering, global and track review: completion, undo, persistence, track isolation, 3×3 restriction and responsive layouts passed.");
 } catch (error) { console.error(await pageError(app)); throw error; } finally { await app.close(); await rm(dir, { recursive: true, force: true }); }
 
 async function pageError(app: any) { return (await app.firstWindow()).locator(".error").textContent({ timeout: 200 }).catch(() => "No app error"); }

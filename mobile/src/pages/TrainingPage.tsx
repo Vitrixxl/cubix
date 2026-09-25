@@ -30,7 +30,7 @@ import { useDailyLearning } from "../hooks/useDailyLearning";
 import { Sheet } from "../components/Sheet";
 import { LearningGroups } from "../components/LearningGroups";
 import { Select } from "../components/Select";
-import { trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
+import { isReviewMode, trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { Caption, Kpi, MiniBtn, Muted, mono } from "../components/ui";
 import { styles as base } from "./PlaygroundPage";
 
@@ -55,7 +55,8 @@ function TrainingSession() {
   const daily = useDailyLearning();
   const [showGroups, setShowGroups] = useState(false);
   const learning = daily.mode !== "practice";
-  const reviewing = daily.mode === "review";
+  const reviewing = isReviewMode(daily.mode);
+  const track = daily.track;
   const selected = useMemo(() => reviewing ? daily.reviewIds : learning ? daily.assignment ? [daily.assignment.caseId] : [] : freeSelected, [reviewing, daily.reviewIds, learning, daily.assignment?.caseId, freeSelected]);
   const [learnedIds, toggleLearned] = useAtom(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
@@ -162,7 +163,7 @@ function TrainingSession() {
     </Pressable>
   </View>);
 
-  const learningSelect = <><Select<LearningMode> value={daily.mode} accessibilityLabel="Learning mode" options={trainingModeOptions(puzzle)} onChange={mode => { daily.setMode(mode); setShowSelector(false); timer.reset(); }} disabled={busy || !!timer.saveError} flat="toolbar" />{learning && !reviewing && <PanelButton title="Groups" icon={<IconGrid size={15} color={iconColor} />} disabled={busy || !!timer.saveError} onPress={() => setShowGroups(true)} phone={docked} />}</>;
+  const learningSelect = <><Select<LearningMode> value={track ?? daily.mode} accessibilityLabel="Learning mode" options={trainingModeOptions(puzzle)} onChange={mode => { daily.setMode(mode); setShowSelector(false); timer.reset(); }} disabled={busy || !!timer.saveError} flat="toolbar" />{learning && !reviewing && <PanelButton title="Groups" icon={<IconGrid size={15} color={iconColor} />} disabled={busy || !!timer.saveError} onPress={() => setShowGroups(true)} phone={docked} />}{track && <ToolbarAction icon={<IconCheck size={15} color={reviewing ? t.accent : iconColor} />} label={docked ? "Review" : "Train learned"} pressed={reviewing} disabled={busy || !!timer.saveError || !reviewing && !daily.trackLearned} onPress={() => { daily.setMode(reviewing ? track : `review:${track}`); timer.reset(); }} phone={docked} />}</>;
 
   return <View style={base.page}>
     <View style={[base.workspace, wide && base.workspaceWide]}>
@@ -201,6 +202,7 @@ function TrainingSession() {
             <IconGrid size={34} color={t.accent} />
             <Text style={{ color: t.text, fontSize: 22, fontWeight: "700", marginTop: 10 }}>{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</Text>
             <Muted style={{ marginTop: 6, textAlign: "center" }}>{learning ? daily.status : "Open Cases and select the algorithms to practise."}</Muted>
+            {track && !reviewing && daily.trackLearned > 0 && <View style={{ marginTop: 12 }}><ToolbarAction icon={<IconCheck size={15} color={t.accent} />} label="Train learned" pressed disabled={busy || !!timer.saveError} onPress={() => { daily.setMode(`review:${track}`); timer.reset(); }} /></View>}
           </TimerChrome>}
           <PracticeReadout landscape={layout.landscape}>
           <TimerSlot running={running} style={base.timerSlot}><TimerSurface reserveActions={!docked} timer={timer} disabled={!current || saving} fontSize={timerSize} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} /></TimerSlot>

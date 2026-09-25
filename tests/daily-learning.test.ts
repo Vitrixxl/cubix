@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { cases } from "../src/client/local/catalog";
-import { orderedGroups, moveLearningGroup, EMPTY_LEARNING_PLAN, reviewCases, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
+import { orderedGroups, moveLearningGroup, EMPTY_LEARNING_PLAN, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
 const pool = learningCases(cases, "PLL");
 const empty = new Set<string>();
 const today = "2026-09-23";
@@ -65,6 +65,19 @@ test("global review includes all learned stages and excludes other puzzles and u
   expect(learningModeForPuzzle("review", "222")).toBe("review");
   expect(learningModeForPuzzle("PLL", "222")).toBe("practice");
   expect(trainingModeOptions("222").map(o => o.value)).toEqual(["practice", "review"]);
+});
+
+test("track review keeps only learned cases of that track", () => {
+  const learned = new Set(["F2L 1", "OLL 1", "OLL 2", "PLL Aa"]);
+  expect(reviewCases(cases, learned, "333", "OLL").map(c => c.id).sort()).toEqual(["OLL 1", "OLL 2"]);
+  expect(reviewCases(cases, new Set(["F2L 1"]), "333", "OLL")).toEqual([]);
+  expect(learningModeForPuzzle("review:OLL", "333")).toBe("review:OLL");
+  expect(learningModeForPuzzle("review:OLL", "222")).toBe("practice");
+  expect(learningModeForPuzzle("review:ZBLL", "333")).toBe("practice");
+  expect(reviewTrack("review:PLL")).toBe("PLL");
+  expect(isReviewMode("review:F2L") && isReviewMode("review") && !isReviewMode("F2L")).toBe(true);
+  expect(learningTrackOf("review:OLL")).toBe("OLL");
+  expect(reviewStatus("review:OLL", 2)).toBe("Review learned OLL · 2 cases");
 });
 
 test("group priority normalizes saved groups and schedules unlearned cases without replacing today's case", () => {
