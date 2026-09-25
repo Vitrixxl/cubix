@@ -2609,6 +2609,8 @@ function App() {
         {!guide && <Nav />}
       </MotionConfig>
       <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
+      {/* Always mounted so the blur eases out as well as in when a select menu closes. */}
+      <div className={"menu-blur" + (options().values.length ? " open" : "")} />
       {s.overlay && <Overlay key={s.overlay} />}
       <ErrorNotification message={s.error} />
       <StartupNotification />
