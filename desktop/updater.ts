@@ -243,6 +243,29 @@ export async function downloadAssetToFile(
     clearTimeout(timer);
   }
 }
+/** Exclusive lock file holding the owner's PID; a lock left by a dead process is taken over. */
+export async function acquireLock(path: string) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = await open(path, "wx", 0o600);
+      await fd.writeFile(String(process.pid));
+      await fd.close();
+      return true;
+    } catch (error: any) {
+      if (error.code !== "EEXIST") throw error;
+      const pid = Number(await readFile(path, "utf8").catch(() => ""));
+      try {
+        if (!pid) return false; // Another launcher may still be writing its PID.
+        process.kill(pid, 0);
+        return false;
+      } catch (error: any) {
+        if (error.code !== "ESRCH") throw error;
+        await rm(path, { force: true });
+      }
+    }
+  }
+  return false;
+}
 async function json(path: string) {
   try {
     return JSON.parse(await readFile(path, "utf8"));
@@ -269,6 +292,7 @@ export async function installUpdate({
   onUpdate = async () => {},
   launcherBinary = false,
   onWarning = () => {},
+  onPercent = () => {},
 }: {
   base: string;
   origin: string;
@@ -281,6 +305,8 @@ export async function installUpdate({
   launcherBinary?: boolean;
   /** A launcher binary that could not be fetched does not fail the update: the release is current already. */
   onWarning?: (message: string) => void;
+  /** Download progress of the whole update, 0–100, alongside the `onProgress` text. */
+  onPercent?: (percent: number) => void;
 }) {
   const url = new URL(origin);
   if (
@@ -319,7 +345,11 @@ export async function installUpdate({
       try {
         await installLauncherBinary(base, manifest, origin, bytes => {
           const percent = Math.min(100, Math.floor((bytes / asset.size) * 100));
-          if (percent !== reported) { reported = percent; onProgress(`Téléchargement de la mise à jour… ${percent} %`); }
+          if (percent !== reported) {
+            reported = percent;
+            onProgress(`Téléchargement de la mise à jour… ${percent} %`);
+            onPercent(percent);
+          }
         });
       } catch (error) { onWarning(`Launcher binary: ${String(error)}`); }
     }
@@ -366,6 +396,7 @@ export async function installUpdate({
       if (percent === reported) return;
       reported = percent;
       onProgress(`Téléchargement de la mise à jour… ${percent} %`);
+      onPercent(percent);
     };
     if (pending.length || binaryAsset) {
       await onUpdate();

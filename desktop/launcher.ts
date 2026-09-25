@@ -2,10 +2,11 @@ delete process.env.ELECTRON_RUN_AS_NODE;
 /** Compiled with bun build --compile. No Bun installation or administrator rights required. */
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
-import { mkdir, readFile, rm, writeFile, open } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { electronLaunchOptions } from "./platform";
 import {
+  acquireLock,
   currentRelease,
   installUpdate,
   isOfflineError,
@@ -17,28 +18,6 @@ const base = dirname(process.execPath),
   config = JSON.parse(await readFile(join(base, "launcher.json"), "utf8"));
 await mkdir(base, { recursive: true });
 const lock = join(base, "launcher.lock");
-async function acquireLock(path: string) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const fd = await open(path, "wx", 0o600);
-      await fd.writeFile(String(process.pid));
-      await fd.close();
-      return true;
-    } catch (error: any) {
-      if (error.code !== "EEXIST") throw error;
-      const pid = Number(await readFile(path, "utf8").catch(() => ""));
-      try {
-        if (!pid) return false; // Another launcher may still be writing its PID.
-        process.kill(pid, 0);
-        return false;
-      } catch (error: any) {
-        if (error.code !== "ESRCH") throw error;
-        await rm(path, { force: true });
-      }
-    }
-  }
-  return false;
-}
 let acquired = await acquireLock(lock);
 if (!acquired) process.exit(0);
 try {

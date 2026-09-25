@@ -1,9 +1,9 @@
-import { installLauncherBinary, refreshLauncher } from "../updater";
+import { acquireLock, installLauncherBinary, installUpdate, isOfflineError, refreshLauncher } from "../updater";
 import { app, BrowserWindow, ipcMain, shell, Menu } from "electron";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { dirname, join } from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { existsSync, writeFileSync } from "node:fs";
 
 const root = app.getAppPath();
@@ -21,6 +21,7 @@ let updateTimer: ReturnType<typeof setInterval> | undefined;
 const launcher = process.env.CUBIX_LAUNCHER_PATH;
 const releaseId = process.env.CUBIX_RELEASE_ID;
 let announcedUpdate: string | null = null;
+let installing = false;
 async function availableUpdate(): Promise<string | null> {
   if (!launcher || !releaseId || !existsSync(launcher)) return null;
   try {
@@ -35,7 +36,44 @@ async function availableUpdate(): Promise<string | null> {
     return null;
   }
 }
+/** Checks the release server now and downloads a newer release, reporting its progress.
+ * Resolves with the release to restart into, or `null` when this version is the newest. */
+async function installNow(): Promise<{ status: "ready"; id: string } | { status: "none" | "unavailable" }> {
+  if (!launcher || !releaseId || !existsSync(launcher)) return { status: "unavailable" };
+  if (installing) throw Error("Une mise à jour est déjà en cours de téléchargement.");
+  const base = dirname(launcher),
+    lock = join(base, "update.lock");
+  if (!(await acquireLock(lock))) throw Error("Une mise à jour est déjà en cours de téléchargement.");
+  installing = true;
+  // Release files include .asar archives: copy them as plain files, not as Electron archives.
+  const noAsar = process.noAsar;
+  process.noAsar = true;
+  try {
+    const config = JSON.parse(await readFile(join(base, "launcher.json"), "utf8"));
+    const running = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
+    const next = await installUpdate({
+      base,
+      origin: process.env.CUBIX_API_ORIGIN ?? config.origin,
+      publicKey: config.publicKey,
+      target: config.target,
+      launcherBinary: true,
+      onPercent: (percent) => notify({ event: "update-progress", value: percent }),
+    });
+    if (!next || next.id === releaseId || next.manifest.build <= running.build) return { status: "none" };
+    announcedUpdate = next.id;
+    return { status: "ready", id: next.id };
+  } catch (error) {
+    if (isOfflineError(error)) throw Error("Impossible de joindre le serveur de mises à jour.");
+    throw error;
+  } finally {
+    process.noAsar = noAsar;
+    installing = false;
+    await rm(lock, { force: true });
+  }
+}
 async function checkUpdate() {
+  // A download started from the shortcut restarts on its own: no separate offer meanwhile.
+  if (installing) return announcedUpdate;
   const id = await availableUpdate();
   if (id !== announcedUpdate) {
     announcedUpdate = id;
@@ -169,6 +207,10 @@ else {
       ipcMain.handle("update:available", (event) => {
         if (!trusted(event)) throw Error("Invalid update request");
         return checkUpdate();
+      });
+      ipcMain.handle("update:install", (event) => {
+        if (!trusted(event)) throw Error("Invalid update request");
+        return installNow();
       });
       ipcMain.handle("update:restart", async (event, id) => {
         if (!trusted(event)) throw Error("Invalid update request");

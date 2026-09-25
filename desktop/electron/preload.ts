@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("cubix", {
   startup: () => ipcRenderer.invoke("app:startup"),
   availableUpdate: () => ipcRenderer.invoke("update:available"),
   restartUpdate: (id: string) => ipcRenderer.invoke("update:restart", id),
+  installUpdate: () => ipcRenderer.invoke("update:install"),
   call: (method: string, ...args: unknown[]) =>
     ipcRenderer.invoke("engine:call", method, args),
   open: (url: string) => ipcRenderer.invoke("external:open", url),

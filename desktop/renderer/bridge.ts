@@ -4,6 +4,8 @@ export interface Bridge {
   startup: () => Promise<{ notice: "offline" | "update-failed" | null }>;
   availableUpdate: () => Promise<string | null>;
   restartUpdate: (id: string) => Promise<void>;
+  /** Checks for a newer release now and downloads it (progress arrives as `update-progress` events). */
+  installUpdate: () => Promise<{ status: "ready"; id: string } | { status: "none" | "unavailable" }>;
   call: (method: string, ...args: any[]) => Promise<any>;
   open: (url: string) => Promise<void>;
   onEvent: (callback: (event: any) => void) => () => void;

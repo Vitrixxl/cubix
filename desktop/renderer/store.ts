@@ -4,6 +4,7 @@ import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call } from "./bridge";
+import { checkForUpdates } from "./UpdateNotification";
 import catalogData from "../assets/catalog.json";
 import { fmtTime } from "../../src/client/lib/format";
 import { isPuzzle, normalizeScrambleType, type PuzzleId } from "../../src/shared/puzzles";
@@ -448,6 +449,9 @@ export class Store {
           break;
         case "historyForward":
           this.travel(false);
+          break;
+        case "checkUpdate":
+          void checkForUpdates(() => !this.ready || this.running || this.saving || !!this.pendingSolve);
           break;
         case "learningMode": {
           if (this.learningFrozen || learningModeForPuzzle(arg, this.puzzle) !== arg || this.pendingSolve) break;

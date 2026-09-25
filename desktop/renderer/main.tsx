@@ -2485,6 +2485,11 @@ function App() {
         void s.action("search");
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === "KeyR") {
+        e.preventDefault();
+        void s.action("checkUpdate");
+        return;
+      }
       if (typing && !e.altKey) return;
       if (e.altKey) {
         const action = (
