@@ -929,20 +929,42 @@ progress {
   inset: 0;
   z-index: 30;
 }
-.menu-blur {
+.scene {
   position: absolute;
   inset: 0;
-  z-index: 29;
-  pointer-events: none;
-  backdrop-filter: blur(0);
-  transition: backdrop-filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.menu-blur.open {
-  backdrop-filter: blur(6px);
+.scene.receded {
+  transform: scale(0.95);
+  filter: blur(6px);
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+@keyframes menu-option-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.select-menu {
+  animation: menu-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.select-menu .menu-option {
+  animation: menu-option-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 18ms) backwards;
 }
 @media (prefers-reduced-motion: reduce) {
-  .menu-blur {
+  .scene {
     transition: none;
+  }
+  .select-menu,
+  .select-menu .menu-option {
+    animation: none;
   }
 }
 .select-menu {

@@ -2326,7 +2326,7 @@ function Overlay() {
           className="select-menu"
           ref={ref}
           role="listbox"
-          style={{ left, top, maxHeight: height }}
+          style={{ left, top, maxHeight: height, transformOrigin: anchor ? "bottom left" : "center" }}
           onClick={(e) => e.stopPropagation()}
         >
           {menu.values.map((v, i) => (
@@ -2335,6 +2335,7 @@ function Overlay() {
               role="option"
               aria-selected={v.id === menu.current}
               data-focused={index === i}
+              style={{ "--i": i } as React.CSSProperties}
               className={"button menu-option " + (index === i ? "active" : "")}
               onMouseEnter={() => setIndex(i)}
               onClick={() => void s.action(menu.action + ":" + v.id)}
@@ -2579,6 +2580,8 @@ function App() {
       style={theme(s.themeName, s.light) as React.CSSProperties}
     >
       <MotionConfig reducedMotion="user">
+        {/* Pages and nav recede behind an open select menu, easing back when it closes. */}
+        <div className={"scene" + (options().values.length ? " receded" : "")}>
         {!s.ready ? (
           <Empty>{s.error || "Loading…"}</Empty>
         ) : (
@@ -2607,10 +2610,9 @@ function App() {
           </AnimatePresence>
         )}
         {!guide && <Nav />}
+        </div>
       </MotionConfig>
       <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
-      {/* Always mounted so the blur eases out as well as in when a select menu closes. */}
-      <div className={"menu-blur" + (options().values.length ? " open" : "")} />
       {s.overlay && <Overlay key={s.overlay} />}
       <ErrorNotification message={s.error} />
       <StartupNotification />
