@@ -10,6 +10,7 @@ import React, {
   useState,
   useSyncExternalStore,
 } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { store as s, catalog, matches } from "./store";
@@ -27,6 +28,8 @@ import {
   fmtSolve,
   parseTypedTime,
   effective,
+  averageOf,
+  best,
 } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
 import { GUIDES, type Guide } from "../guides/pages";
@@ -1372,47 +1375,116 @@ function MiniBars({
 }
 const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-/** Solves per day over the last weeks, one column per week, Monday at the top. */
-function ActivityHeatmap({ dates, weeks = 16 }: { dates: string[]; weeks?: number }) {
-  const counts = new Map<string, number>();
-  for (const iso of dates) {
-    const key = dayKey(new Date(iso));
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+type ActivitySolve = { at: string; time: number | null; timer: boolean };
+type DayStats = { count: number; best: number | null; ao5: number | null; ao12: number | null };
+const HEAT_GAP = 3;
+/** Best rolling average of `size` over a day's timer solves, in order. */
+const bestAverage = (times: (number | null)[], size: number) =>
+  best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size))));
+/** Solves per day as square cells, one column per week, Monday at the top; as many weeks as fit. */
+function ActivityHeatmap({ solves }: { solves: ActivitySolve[] }) {
+  const ref = useRef<HTMLDivElement>(null),
+    [fit, setFit] = useState({ weeks: 16, cell: 10 }),
+    [hover, setHover] = useState<{ key: string; rect: DOMRect } | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const { width, height } = el.getBoundingClientRect(),
+        cell = Math.max(6, Math.min(14, Math.floor((height - 6 * HEAT_GAP) / 7))),
+        weeks = Math.max(1, Math.min(53, Math.floor((width + HEAT_GAP) / (cell + HEAT_GAP))));
+      setFit((f) => (f.weeks === weeks && f.cell === cell ? f : { weeks, cell }));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const days = new Map<string, { count: number; times: (number | null)[] }>();
+  for (const solve of solves) {
+    const key = dayKey(new Date(solve.at)),
+      day = days.get(key) ?? { count: 0, times: [] };
+    day.count++;
+    if (solve.timer) day.times.push(solve.time);
+    days.set(key, day);
   }
-  const today = new Date(),
+  const { weeks, cell } = fit,
+    today = new Date(),
     end = new Date(today.getFullYear(), today.getMonth(), today.getDate()),
     offset = (end.getDay() + 6) % 7,
     start = new Date(end);
   start.setDate(end.getDate() - offset - (weeks - 1) * 7);
-  const peak = Math.max(1, ...counts.values()),
-    cells: { key: string; count: number; future: boolean }[] = [];
+  const peak = Math.max(1, ...[...days.values()].map((d) => d.count)),
+    cells: { key: string; date: Date; count: number; future: boolean }[] = [];
   for (let i = 0; i < weeks * 7; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     const key = dayKey(d);
-    cells.push({ key, count: counts.get(key) ?? 0, future: d > end });
+    cells.push({ key, date: d, count: days.get(key)?.count ?? 0, future: d > end });
   }
+  const hovered = hover && cells.find((c) => c.key === hover.key),
+    times = (hover && days.get(hover.key)?.times) ?? [],
+    stats: DayStats | null = hovered
+      ? { count: hovered.count, best: best(times), ao5: bestAverage(times, 5), ao12: bestAverage(times, 12) }
+      : null;
   return (
-    <div
-      className="heatmap"
-      role="img"
-      aria-label={`Solves per day over the last ${weeks} weeks`}
-      style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))` }}
-    >
-      {cells.map((c) => (
-        <span
-          key={c.key}
-          title={`${c.key}: ${plural(c.count, "solve")}`}
-          className={"heat " + (c.future ? "future" : "")}
-          style={
-            c.count
-              ? {
-                  background: `color-mix(in srgb, var(--accent) ${30 + Math.round((c.count / peak) * 70)}%, var(--surface2))`,
-                }
-              : undefined
-          }
-        />
-      ))}
+    <div ref={ref} className="heatmap" onMouseLeave={() => setHover(null)}>
+      <div
+        className="heatmap-grid"
+        role="img"
+        aria-label={`Solves per day over the last ${weeks} weeks`}
+        style={{
+          gridTemplateColumns: `repeat(${weeks}, ${cell}px)`,
+          gridTemplateRows: `repeat(7, ${cell}px)`,
+          gap: HEAT_GAP,
+        }}
+      >
+        {cells.map((c) => (
+          <span
+            key={c.key}
+            className={"heat " + (c.future ? "future" : "")}
+            onMouseEnter={(e) =>
+              c.future ? setHover(null) : setHover({ key: c.key, rect: e.currentTarget.getBoundingClientRect() })
+            }
+            style={
+              c.count
+                ? {
+                    background: `color-mix(in srgb, var(--accent) ${30 + Math.round((c.count / peak) * 70)}%, var(--surface2))`,
+                  }
+                : undefined
+            }
+          />
+        ))}
+      </div>
+      {hover && hovered && stats &&
+        createPortal(
+          <div
+            className={
+              "heat-tip " +
+              (hover.rect.left < 120 ? "start" : hover.rect.right > window.innerWidth - 120 ? "end" : "")
+            }
+            style={{
+              left: hover.rect.left + hover.rect.width / 2,
+              top: hover.rect.top - 8,
+            }}
+          >
+            <small className="muted">
+              {hovered.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+            </small>
+            <strong>{plural(stats.count, "solve")}</strong>
+            {[
+              ["Best", stats.best],
+              ["Best Ao5", stats.ao5],
+              ["Best Ao12", stats.ao12],
+            ].map(([label, value]) => (
+              <span key={label as string} className="heat-tip-row">
+                <span className="muted">{label}</span>
+                <span className="mono">{fmtTime(value as number | null)}</span>
+              </span>
+            ))}
+          </div>,
+          ref.current?.closest(".app") ?? document.body,
+        )}
     </div>
   );
 }
@@ -1526,10 +1598,10 @@ function Overview() {
       .sort((a: any, b: any) => b.ratio - a.ratio)
       .slice(0, 3)
       .map((a: any) => ({ label: a.title, value: `${Math.round(a.ratio * 100)}%`, ratio: a.ratio })),
-    activity = [
-      ...(p.playground?.history ?? []).map((v: any) => v.at),
-      ...(p.cases ?? []).flatMap((c: any) => (c.history ?? []).map((v: any) => v.at)),
-    ].filter(Boolean);
+    activity: ActivitySolve[] = [
+      ...(p.playground?.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: true })),
+      ...(p.cases ?? []).flatMap((c: any) => (c.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: false }))),
+    ].filter((v) => v.at);
   const latest = [timer.lastAt, ...(p.cases ?? []).map((c: any) => c.summary?.lastAt)]
     .filter((at): at is string => !!at)
     .sort()
@@ -1617,7 +1689,7 @@ function Overview() {
           ]}
           detail={latest ? `Last practice: ${shortDate(latest)}` : "No practice recorded yet"}
         >
-          <ActivityHeatmap dates={activity} />
+          <ActivityHeatmap solves={activity} />
         </StatCard>
       </div>
     </div>
