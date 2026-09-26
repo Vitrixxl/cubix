@@ -739,7 +739,7 @@ export class Store {
         case "methods":
           this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
           this.guideMethod = "";
-          this.navigate("methodsGuide");
+          this.overlay = "methods";
           break;
         case "guidePuzzle":
           if (isPuzzle(arg)) this.guidePuzzle = arg;

@@ -32,6 +32,8 @@ import {
   best,
 } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
+import { METHODS } from "../../src/shared/methods";
+import { PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import "./styles.css";
 type Props = {
@@ -2677,6 +2679,36 @@ function Overlay() {
               {v.id === menu.current && <Icon name="IconCheck" />}
             </button>
           ))}
+        </div>
+      </div>
+    );
+  }
+  if (s.overlay === "methods") {
+    const methods = METHODS[s.guidePuzzle],
+      method = methods.find((m) => m.id === s.guideMethod) ?? methods[0]!;
+    return (
+      <div className="modal-backdrop" onClick={close}>
+        <div className="modal methods-modal" role="dialog" aria-modal="true" aria-label="Solving methods" onClick={(e) => e.stopPropagation()}>
+          <Row className="between"><h2>Solving methods</h2><Button action="close" icon="IconClose" title="Close solving methods" /></Row>
+          <div className="row wrap methods-tabs" role="group" aria-label="Puzzle">
+            {PUZZLES.map((p) => (
+              <Button key={p.id} action={"guidePuzzle:" + p.id} active={p.id === s.guidePuzzle} highlight="methods-puzzle">{p.label}</Button>
+            ))}
+          </div>
+          <div className="row wrap methods-tabs" role="group" aria-label="Method">
+            {methods.map((m) => (
+              <Button key={m.id} action={"guideMethod:" + m.id} active={m === method} highlight="methods-method">{m.name}</Button>
+            ))}
+          </div>
+          <div className="methods-body">
+            <h3>{method.name}</h3>
+            <p className="muted">{method.summary}</p>
+            <ol>
+              {method.steps.map((step, i) => (
+                <li key={step.title}><span className="mono">{i + 1}</span><div><strong>{step.title}</strong><p>{step.text}</p></div></li>
+              ))}
+            </ol>
+          </div>
         </div>
       </div>
     );

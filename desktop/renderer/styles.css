@@ -2618,3 +2618,15 @@ progress {
     padding-top: 12px;
   }
 }
+
+/* Solving methods dialog: tabs stay put while the chosen method scrolls under them. */
+.methods-modal { width: min(720px, 100%); overflow: hidden; }
+.methods-modal > .row { flex-shrink: 0; }
+.methods-tabs { gap: 4px; }
+.methods-body { min-height: 0; overflow: auto; scrollbar-width: thin; line-height: 1.6; }
+.methods-body h3 { margin: 0 0 6px; font-size: 18px; }
+.methods-body > p { margin: 0 0 14px; }
+.methods-body ol { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.methods-body li { display: flex; gap: 12px; }
+.methods-body li > .mono { min-width: 2ch; color: var(--muted); }
+.methods-body li p { margin: 2px 0 0; color: var(--muted); }
