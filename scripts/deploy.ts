@@ -1,6 +1,7 @@
 /**
  * Deploy the current `main` commit: push, rebuild the server on the Raspberry Pi through
- * pihost, then ship the phone build. Two things can reach phones:
+ * pihost (the image also builds the web app, which the desktop app loads: nothing else ships
+ * for desktop), then ship the phone build. Two things can reach phones:
  *
  *   - an over-the-air update: the JavaScript bundle exported by `expo export`, which
  *     installed applications fetch by themselves at their next launch. Published every time.
@@ -23,7 +24,6 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { publishDesktop } from "../desktop/publish";
 import { runtimeVersion } from "../mobile/app.config";
 import { validateProductionUpdate } from "../mobile/scripts/validate-update";
 
@@ -73,6 +73,9 @@ if (!apkOnly && !updateOnly) {
     await sleep(3000);
   }
   console.log(`Server runs ${head.slice(0, 7)}.`);
+  const page = await fetch(ORIGIN + "/", { signal: AbortSignal.timeout(10000) }).catch(() => null);
+  if (!page?.ok || !(await page.text()).includes('id="root"')) { console.error(`The web app is not served at ${ORIGIN}/ (${page?.status ?? "no answer"}).`); process.exit(1); }
+  console.log("Web app served.");
 }
 
 const deployed = await release();
@@ -108,11 +111,6 @@ if (!apkOnly) {
     const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, readFileSync(resolve(UPDATE_DIR, "update.json")));
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
   }
-}
-// Desktop releases share the API and are built locally with Bun, including the Electron runtime.
-if (!apkOnly && !updateOnly) {
-  run("bun", ["desktop/package.ts"]);
-  await publishDesktop(ORIGIN, adminPassword());
 }
 if (updateOnly || skipApk) process.exit(0);
 

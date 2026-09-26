@@ -1,4 +1,4 @@
-/** Headless checks for the shared error/update notification stack. */
+/** Headless checks for the error notification. */
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
@@ -10,19 +10,23 @@ const result = await Bun.build({
   define: { "process.env.NODE_ENV": '"production"' },
   plugins: [{ name: "harness", setup(build) {
     build.onResolve({ filter: /^toast-test-harness$/ }, () => ({ path: "harness", namespace: "test" }));
-    build.onLoad({ filter: /.*/, namespace: "test" }, () => ({ loader: "tsx", resolveDir: root, contents: `
+    // The engine is a stub: no worker, only failing calls until the test lets them succeed.
+    build.onResolve({ filter: /\/bridge$/ }, () => ({ path: "bridge", namespace: "test" }));
+    build.onLoad({ filter: /^bridge$/, namespace: "test" }, () => ({ loader: "ts", contents: `
+      export const call = (...args) => window.cubixTestCall(...args);
+      export const onEvent = () => () => {};
+      export const openExternal = async () => {};
+    ` }));
+    build.onLoad({ filter: /^harness$/, namespace: "test" }, () => ({ loader: "tsx", resolveDir: root, contents: `
       import React, { useSyncExternalStore } from 'react';
       import { createRoot } from 'react-dom/client';
       import { ErrorNotification } from './desktop/renderer/ErrorNotification';
-      import { UpdateNotification } from './desktop/renderer/UpdateNotification';
+      import { Toasts } from './desktop/renderer/Toasts';
       import { store } from './desktop/renderer/store';
       import { theme } from './desktop/renderer/theme';
       import './desktop/renderer/styles.css';
       let fail = true, retries = 0;
-      window.cubix = {
-        availableUpdate: async () => 'test-update', onEvent: () => () => {},
-        call: async () => { retries++; await new Promise(r => setTimeout(r, 20)); if (fail) throw Error('Case cube and practice context do not match.'); return {}; },
-      };
+      window.cubixTestCall = async () => { retries++; await new Promise(r => setTimeout(r, 20)); if (fail) throw Error('Case cube and practice context do not match.'); return {}; };
       store.ready = true;
       store.refresh = async () => {};
       window.testToast = {
@@ -34,7 +38,7 @@ const result = await Bun.build({
       function App() {
         useSyncExternalStore(store.subscribe, () => store.version);
         return <main className="app" style={theme('t3-chat', store.light)}>
-          <UpdateNotification busy={false} light={store.light} />
+          <Toasts light={store.light} />
           <ErrorNotification message={store.error} />
         </main>;
       }
@@ -57,7 +61,7 @@ try {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(server.url.href);
-  await page.locator('[data-sonner-toast]').waitFor();
+  await page.locator('.app').waitFor();
   const message = "Case cube and practice context do not match.";
   await page.evaluate(message => (window as any).testToast.error(message), message);
   const toast = page.locator('.error-toast');
@@ -85,9 +89,9 @@ try {
   await page.evaluate(() => (window as any).testToast.succeed());
   await toast.getByRole('button', { name: 'Try again' }).click();
   await toast.waitFor({ state: 'detached' });
-  assert.equal(await page.locator('[data-sonner-toast]').count(), 1, "Update notification remains after error recovery");
+  assert.equal(await page.locator('[data-sonner-toast]').count(), 0, "Recovery clears the notification");
   assert.deepEqual(errors, []);
-  console.log('Headless toast checks passed: top placement, repeated failure, recovery, update coexistence, dark/light themes, compact long messages.');
+  console.log('Headless toast checks passed: top placement, repeated failure, recovery, dark/light themes, compact long messages.');
 } finally {
   await browser.close();
   server.stop(true);

@@ -1,17 +1,13 @@
 /** Headless screenshots of the profile overview at common window sizes, with overflow checks. */
-import { _electron as electron } from "playwright";
+import { launchApp, startServer } from "./app";
 import { mkdtemp, mkdir, cp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-delete process.env.ELECTRON_RUN_AS_NODE;
 const dir = await mkdtemp(join(tmpdir(), "cubix-overview-"));
 const data = process.env.CUBIX_PREVIEW_DATA;
 if (data) await cp(join(data, "storage.json"), join(dir, "storage.json"));
-const app = await electron.launch({
-  executablePath: resolve("node_modules/electron/dist/electron"),
-  args: [`--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`, resolve("desktop/dist"), `--user-data-dir=${join(dir, "chromium")}`],
-  env: { ...process.env, CUBIX_BUN: process.execPath, CUBIX_DESKTOP_DATA: dir, CUBIX_API_ORIGIN: "http://127.0.0.1:47139" },
-});
+const { origin, server } = await startServer(join(dir, "server"));
+const app = await launchApp({ dir, origin });
 try {
   const page = await app.firstWindow();
   page.on("pageerror", (error) => console.error("pageerror", error.message));
@@ -44,4 +40,5 @@ try {
   }
 } finally {
   await app.close();
+  server.kill();
 }

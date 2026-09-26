@@ -1,4 +1,4 @@
-# Bun builds and installs Cubix Electron for the current user. Updates never require sudo.
+# Bun builds and installs the Cubix Electron window for the current user, without sudo.
 SHELL := /bin/sh
 BUN ?= $(shell command -v bun 2>/dev/null || printf '%s' "$$HOME/.bun/bin/bun")
 DATA ?= $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)
@@ -21,4 +21,4 @@ uninstall:
 deploy: node_modules/.bin
 	"$(BUN)" scripts/deploy.ts
 clean:
-	rm -rf artifacts/electron desktop/dist desktop/bin
+	rm -rf artifacts/electron desktop/dist desktop/bin dist/web

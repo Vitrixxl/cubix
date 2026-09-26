@@ -1,13 +1,5 @@
-/** Install the standalone Electron build and its launcher for the current user. */
-import {
-  cp,
-  mkdir,
-  mkdtemp,
-  rename,
-  rm,
-  symlink,
-  chmod,
-} from "node:fs/promises";
+/** Installs the Electron shell for the current user, replacing any previous installation (launcher included). */
+import { cp, mkdir, rename, rm, symlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -20,39 +12,22 @@ async function run(args: string[]) {
 if (!process.argv.includes("--skip-build"))
   await run(["bun", "desktop/package.ts"]);
 const source = resolve(`artifacts/electron/cubix-linux-${process.arch}`);
-for (const file of ["cubix", "launcher.json", "current.json", "splash.cjs", "launcher/preload.cjs", "launcher/renderer/index.html", "launcher/renderer/launcher.js", "launcher/renderer/launcher.css"]) {
-  if (!(await Bun.file(join(source, file)).exists()))
-    throw Error(`Missing build: ${file}`);
-}
+for (const file of ["cubix", "runtime/electron", "app/main.cjs", "app/preload.cjs"])
+  if (!(await Bun.file(join(source, file)).exists())) throw Error(`Missing build: ${file}`);
 const data = process.env.XDG_DATA_HOME || join(homedir(), ".local/share");
 const base = join(data, "cubix-electron");
 const applications = join(data, "applications");
 const icons = join(data, "icons/hicolor/512x512/apps");
-await mkdir(base, { recursive: true });
 await mkdir(applications, { recursive: true });
 await mkdir(icons, { recursive: true });
-// Install release files first, then commit the pointer. Existing private data stays in cubix-desktop.
-const current = await Bun.file(join(source, "current.json")).json();
-if (!/^[a-f0-9]{64}$/.test(current.id)) throw Error("Invalid release pointer");
-await mkdir(join(base, "releases"), { recursive: true });
-await cp(
-  join(source, "releases", current.id),
-  join(base, "releases", current.id),
-  { recursive: true },
-);
-// Install the startup renderer before switching its entrypoint.
-await cp(join(source, "launcher"), join(base, "launcher"), {recursive:true});
-for (const name of ["cubix", "splash.cjs", "launcher.json"]) {
-  await cp(join(source, name), join(base, name + ".new"));
-  if (name === "cubix") await chmod(join(base, name + ".new"), 0o755);
-  await rename(join(base, name + ".new"), join(base, name));
-}
-await cp(join(source, "current.json"), join(base, "current.new"));
-await rename(join(base, "current.new"), join(base, "current.json"));
-await cp(
-  "desktop/linux/fr.vitrixxl.cubix.png",
-  join(icons, "fr.vitrixxl.cubix.png"),
-);
+// Swap whole directories; private data stays in cubix-desktop.
+await rm(base + ".new", { recursive: true, force: true });
+await cp(source, base + ".new", { recursive: true });
+await rm(base + ".old", { recursive: true, force: true });
+await rename(base, base + ".old").catch((error) => { if (error.code !== "ENOENT") throw error; });
+await rename(base + ".new", base);
+await rm(base + ".old", { recursive: true, force: true });
+await cp("desktop/linux/fr.vitrixxl.cubix.png", join(icons, "fr.vitrixxl.cubix.png"));
 const escaped = join(base, "cubix")
   .replaceAll("\\", "\\\\")
   .replaceAll('"', '\\"')
@@ -68,8 +43,7 @@ for (const args of [
 }
 const bin = join(homedir(), ".local/bin");
 await mkdir(bin, { recursive: true });
-const launcher = join(bin, "cubix");
-await rm(launcher, { force: true });
-await symlink(join(base, "cubix"), launcher);
-console.log(`Installed Cubix Electron: ${base} (command: ${launcher})`);
-export {};
+const command = join(bin, "cubix");
+await rm(command, { force: true });
+await symlink(join(base, "cubix"), command);
+console.log(`Installed Cubix: ${base} (command: ${command})`);

@@ -11,3 +11,18 @@ rust-api/*
 !data/
 data/*
 !data/*.json
+# The web app build (desktop/web.ts) and its sources.
+!package.json
+!bun.lock
+!tsconfig.json
+!src/
+!src/**
+!desktop/
+desktop/*
+!desktop/web.ts
+!desktop/vendor.ts
+!desktop/appearance.ts
+!desktop/engine/
+!desktop/guides/
+!desktop/renderer/
+!desktop/assets/

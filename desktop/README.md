@@ -1,124 +1,81 @@
-# Cubix desktop — Electron + Bun
+# Cubix web et desktop
 
-Electron affiche l'interface React et canvas. Le moteur Bun autonome conserve le
-stockage local, la synchronisation HTTP/WebSocket, les mélanges et les statistiques.
-Les fichiers utilisateur restent dans `~/.local/share/cubix-desktop` : une migration
-depuis GPUI conserve les comptes, les temps, les préférences et les sélections.
-L'API reste en Rust/Axum et ne sert aucune page web.
+L'application est une application web (PWA) servie par l'API Rust. Le desktop
+Electron n'est qu'une fenêtre qui l'ouvre : il ne contient ni l'interface, ni le
+moteur de données, ni lanceur, ni système de mise à jour.
 
-## Construire et lancer
+## Architecture
 
-Prérequis de construction : Bun 1.4+ et les bibliothèques nécessaires à Electron.
-Aucun compilateur Rust n'est requis pour le desktop. Rust reste nécessaire à l'API.
+- `renderer/` : interface React. `bridge.ts` démarre le moteur dans un Web Worker
+  (`worker.ts`) et enregistre le service worker (`sw.ts`).
+- `engine/core.ts` : moteur de données (stockage local d'abord, synchronisation
+  HTTP/WebSocket, mélanges, statistiques). Le worker le fait tourner sur IndexedDB
+  (`renderer/idbStorage.ts`) ; `engine/main.ts` le garde en processus Bun pour la
+  référence GPUI archivée et le test `engine/smoke.ts`.
+- `web.ts` : construit `dist/web` avec `bun build` — `index.html`, bundles nommés par
+  leur contenu sous `/build/`, cubing.js en modules séparés sous
+  `/vendor/cubing-<version>/` (ses mélangeurs démarrent leurs propres workers), icônes
+  et schémas sous `/assets/`, copies brotli et gzip.
+- `electron/` : fenêtre (`main.ts`), pont minimal (`preload.ts`) et page d'attente du
+  premier lancement hors ligne (`offline.html`).
+
+Le service worker met en cache l'application, les icônes et les mélangeurs à
+l'installation, puis les schémas de cas à leur premier affichage. En ligne, chaque
+ouverture demande la page au serveur (4 s maximum) : la dernière version déployée
+s'ouvre sans étape de mise à jour. Hors ligne, la version en cache s'ouvre.
+
+Le moteur garde l'espace de travail en mémoire : un verrou Web Locks réserve les
+données à un seul onglet, les autres affichent « Cubix est déjà ouvert » et prennent
+le relais quand il se ferme.
+
+## Desktop
 
 ```sh
 bun install --frozen-lockfile
-bun run dev                 # construire avec bun build, puis ouvrir Electron
-bun run build:desktop       # paquet autonome, avec Chromium et Bun inclus
-./artifacts/electron/cubix-linux-x64/cubix
-make install                # installer le dernier paquet pour l'utilisateur courant
+bun run dev                 # construit le site, le sert sur 127.0.0.1:5180, ouvre Electron
+bun run build:desktop       # artifacts/electron/cubix-linux-x64 : runtime Electron + fenêtre
+make install                # installation utilisateur, menu et commande cubix
 ```
 
-`make` construit et installe. L'installation Linux place le lanceur dans
-`~/.local/share/cubix-electron`, crée l'entrée de menu Cubix et la commande
-`~/.local/bin/cubix`. Elle ne demande pas sudo. `make uninstall` conserve les données.
-Le lanceur compilé fonctionne sans Bun, Node, Cargo ni le dépôt sur la machine cible.
+`bun run dev` relaie `/api` vers `CUBIX_API_ORIGIN` (production par défaut) et
+utilise ses propres données (`~/.local/share/cubix-desktop-dev`), séparées de
+l'application installée. `bun run dev:web` sert le site sans ouvrir Electron.
 
-Toutes les entrées JavaScript sont compilées par `bun build` : renderer navigateur,
-main/preload Electron, moteur Bun et lanceur (`--compile`). Electron exécute son
-main dans son Node intégré et le renderer dans Chromium ; Bun exécute le moteur,
-le lanceur et les outils de construction. Pas de Vite, Webpack ni Electron Forge.
+`make` remplace l'installation précédente, ancien lanceur compris, dans
+`~/.local/share/cubix-electron`, crée l'entrée de menu et `~/.local/bin/cubix`, sans
+sudo. `make uninstall` conserve les données. Réinstaller n'est utile que lorsque la
+fenêtre Electron elle-même change.
 
-## Mises à jour
+La fenêtre ouvre `CUBIX_WEB_ORIGIN`, sinon `CUBIX_API_ORIGIN`, sinon
+`https://cubix.vitrixxl.fr`. Elle n'autorise la navigation que sur cette origine et
+ouvre les autres liens dans le navigateur. Si le tout premier lancement n'a pas de
+connexion, une page d'attente s'affiche et l'application s'ouvre dès que le serveur
+répond.
 
-Au lancement, le lanceur recherche la dernière version sans rien afficher ; sans
-mise à jour (ou hors ligne), l’application s’ouvre directement. Quand des fichiers
-doivent être téléchargés, une fenêtre de démarrage affiche un cube mélangé qui se
-résout mouvement par mouvement pendant le téléchargement, avant d’ouvrir
-l’application. C’est le même écran que sur téléphone : mêmes styles, composants
-React, icônes et polices Geist que l’application, avec le thème et le mode
-clair/sombre enregistrés. Si le téléchargement dure, le cube se remélange puis se
-résout de nouveau en boucle ; l’application ne s’ouvre qu’une fois le cube résolu,
-jamais au milieu d’un flash. La nouvelle version est utilisée
-immédiatement, sans redémarrage manuel. « Annuler » ferme la fenêtre sans ouvrir
-l’application.
-
-Sans connexion, le lanceur ouvre directement la version installée et l’application
-affiche une notification « Mode hors ligne » ; une mise à jour invalide ou un
-serveur en erreur ouvrent aussi la version installée, avec une notification
-« Mise à jour impossible ». Le lanceur interroge `GET /api/desktop/releases/linux-x64`.
-La fenêtre de démarrage et son rendu (`bootstrap/` dans la release) sont
-distribués dans les releases signées, afin de mettre aussi à niveau les
-installations antérieures. Le binaire du lanceur (~80 Mo, ~37 Mo en gzip) n’est
-pas listé dans les fichiers mais annoncé par le manifeste (`launcher`) : le lanceur
-le télécharge après les fichiers de la release, compressé et avec reprise (`.part`
-et requêtes `Range`), puis se remplace sur place avant d’ouvrir l’application, de
-sorte que rien ne reste en retard. Si ce téléchargement échoue, l’application déjà
-à jour s’ouvre quand même et le reprend en arrière-plan. Les téléchargements ont un
-délai d’inactivité, pas de durée totale, et la barre suit les octets reçus, binaire
-du lanceur compris. Le serveur renvoie un manifeste signé Ed25519 qui
-identifie chaque fichier par son SHA-256. Les fichiers inchangés sont réutilisés ;
-seuls les nouveaux fichiers sont téléchargés depuis `GET /api/desktop/assets/<sha256>`.
-
-Une release est préparée dans un répertoire distinct. Le pointeur `current.json`
-est remplacé uniquement après vérification de tous les fichiers. Si une nouvelle
-version ne confirme pas son démarrage, le lanceur restaure la précédente pendant le
-même démarrage et évite de retenter cette même release défectueuse.
-`update-error.log`, `launcher.log`, `application.log` et `last-launch.json` aident à
-diagnostiquer un problème ; `last-launch.json` contient aussi la durée du démarrage en
-millisecondes (`startupMs`). Les mises à jour ne touchent pas aux données.
-
-La première construction crée une clé privée dans
-`~/.config/cubix/desktop-signing.pem` (permissions 0600). Conserver et sauvegarder
-cette clé : les lanceurs installés n'acceptent que les releases signées par elle.
-`CUBIX_DESKTOP_SIGNING_KEY` permet de fournir une autre clé PEM Ed25519.
-La clé privée n'est jamais copiée dans le paquet ni envoyée au serveur.
-
-```sh
-bun run build:desktop
-CUBIX_DEPLOY_PASSWORD=… bun run publish:desktop
-# Ou le déploiement complet existant :
-bun run deploy
-```
-
-Le déploiement complet publie désormais aussi le desktop de la plateforme qui
-exécute le build. Les modes `--apk-only` et `--update-only` restent spécifiques au
-mobile. `--skip-apk` publie l'OTA mobile et le desktop. Les uploads desktop utilisent
-le même mot de passe administrateur que les releases mobiles. Le serveur stocke
-les releases dans `apk/desktop` à côté de la base (ou sous `CUBIX_APK_DIR`).
-Une première installation de cette version Electron est nécessaire pour activer
-le nouveau lanceur sur une ancienne installation GPUI.
-
-## Configuration et validation
+Le profil Chromium (IndexedDB, cache du service worker) est dans
+`~/.local/share/cubix-desktop/electron` (`CUBIX_DESKTOP_DATA` change le dossier).
+Au premier lancement, le `storage.json` de l'ancien moteur desktop est importé une
+seule fois, puis renommé `storage.imported.json`.
 
 - `CUBIX_DESKTOP_GPU=system` : conserver la sélection graphique du système. Par défaut,
-  sur les PC hybrides Intel/AMD + NVIDIA, le lanceur utilise le GPU intégré et évite
+  sur les PC hybrides Intel/AMD + NVIDIA, la fenêtre utilise le GPU intégré et évite
   le scan Vulkan qui réveille la carte dédiée. L’accélération OpenGL reste active.
-- `CUBIX_API_ORIGIN` : origine API, défaut `https://cubix.vitrixxl.fr`.
-- `CUBIX_DESKTOP_DATA` : dossier des données privées.
-- `CUBIX_DESKTOP_BUILD` : numéro de build monotone, défaut timestamp en millisecondes.
-- `CUBIX_ORIGIN` : origine du serveur de publication.
+
+## Validation
+
+Tous les tests graphiques tournent sous `xvfb-run -a`. Chaque script de
+`testing/` lance une API temporaire qui sert `dist/web`, puis Electron dessus.
 
 ```sh
 bun run typecheck
-bun run test:desktop             # moteur Bun et updater signé
-bun run test:desktop:ui          # vrais écrans Electron
+bun run test:desktop             # moteur Bun, mélanges, détection GPU
+bun run test:desktop:web         # import de storage.json, IndexedDB, relance hors ligne
 bun run test:desktop:responsive  # fenêtres étroites/courtes, aucun chevauchement
-bun desktop/testing/flows.ts     # interactions, API temporaire, thèmes, guides
-bun desktop/testing/launcher-appearance.ts # fenêtre de démarrage : 12 variantes de thème dans Xvfb isolé
-bun desktop/testing/launcher.ts  # mise à jour, rollback, quarantaine et démarrage hors ligne
-bun desktop/testing/update-notification.ts # notification et vrai redémarrage après build:desktop
-bun desktop/testing/compare.ts   # captures GPUI/Electron déterministes (build GPUI reference)
+bun run test:desktop:learning    # apprentissage quotidien
+bun desktop/testing/history-chart.ts
+bun desktop/testing/error-notification.ts
 ```
 
-Les tests d'interface utilisent Playwright piloté par Bun, un affichage X11 et des
-dossiers temporaires. Les tests de parcours requièrent le binaire API construit.
-Les captures sont dans `artifacts/electron/testing`. Sous CI, lancer ces tests dans
-Xvfb. Le code GPUI dans `desktop/src` et ses outils de référence sont conservés pour
-comparer le rendu, mais ne font pas partie du build Electron.
-Linux x64 est la plateforme validée dans cet environnement. macOS et Windows
-requièrent leurs propres builds et une validation de leurs installateurs.
-
-Sur la Raspberry Pi, Docker compile uniquement l’API Rust avec un job, sans LTO.
-Les transferts desktop utilisent des fichiers immuables lus par blocs de 64 Kio ;
-les uploads sont traités un par un et vérifiés avant publication.
+Les captures sont dans `artifacts/electron/testing`. Le code GPUI dans `desktop/src`
+et ses outils de référence (`testing/compare.ts`, `testing/native.ts`) sont conservés
+pour comparer le rendu, mais ne font partie d'aucun build.

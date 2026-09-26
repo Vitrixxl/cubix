@@ -1,5 +1,5 @@
 /** Real Electron input and a disposable Rust API: timer, persistence, accounts, training and responsive layout. */
-import { _electron as electron } from "playwright";
+import { launchApp } from "./app";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -17,6 +17,7 @@ const origin = `http://127.0.0.1:${port}`,
       CUBIX_HOST: "127.0.0.1",
       CUBIX_DB: join(dir, "server.db"),
       CUBIX_ADMIN_PASSWORD: "test-admin-password",
+      CUBIX_WEB_DIR: resolve("dist/web"),
     },
     stdout: "ignore",
     stderr: "inherit",
@@ -27,20 +28,7 @@ for (let i = 0; i < 100; i++) {
   } catch {}
   await Bun.sleep(50);
 }
-const app = await electron.launch({
-  executablePath: resolve("node_modules/electron/dist/electron"),
-  args: [
-    `--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`,
-    resolve("desktop/dist"),
-    `--user-data-dir=${join(dir, "chromium")}`,
-  ],
-  env: {
-    ...process.env,
-    CUBIX_BUN: process.execPath,
-    CUBIX_DESKTOP_DATA: join(dir, "data"),
-    CUBIX_API_ORIGIN: origin,
-  },
-});
+const app = await launchApp({ dir: join(dir, "data"), origin });
 const errors: string[] = [];
 app.on("console", (message) => {
   if (message.type() === "error") errors.push(message.text());

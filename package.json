@@ -21,13 +21,15 @@
     "deploy": "bun scripts/deploy.ts",
     "dev:api": "bun run build:api && bun run start",
     "build:desktop": "bun desktop/package.ts",
+    "build:web": "bun desktop/web.ts",
+    "dev:web": "bun desktop/dev.ts --web",
     "build:assets": "bun desktop/scripts/export-assets.tsx",
-    "test:desktop": "bun desktop/engine/build.ts && bun desktop/engine/smoke.ts && bun test desktop/tests",
+    "test:desktop": "bun desktop/engine/build.ts && bun desktop/engine/smoke.ts && bun test ./desktop/tests",
     "build:desktop:ui": "bun desktop/build.ts",
-    "publish:desktop": "bun desktop/publish.ts",
-    "test:desktop:learning": "bun desktop/build.ts && bun desktop/testing/learning.ts",
-    "test:desktop:ui": "bun desktop/testing/electron.ts",
-    "test:desktop:responsive": "bun desktop/build.ts && bun desktop/testing/responsive.ts"
+    "test:desktop:learning": "bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/learning.ts",
+    "test:desktop:ui": "bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/electron.ts",
+    "test:desktop:web": "bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/web-app.ts",
+    "test:desktop:responsive": "bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/responsive.ts"
   },
   "dependencies": {
     "@cubing/icons": "^3.0.5",

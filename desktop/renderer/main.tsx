@@ -15,13 +15,12 @@ import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig, motion, useIsPresent } from "motion/react";
 import { store as s, catalog, matches } from "./store";
-import { call } from "./bridge";
+import { call, onEvent, openExternal } from "./bridge";
 import { accents, theme } from "./theme";
 import { Icon, ActionButton } from "./ui";
 import { Cube } from "./Cube";
-import { UpdateNotification } from "./UpdateNotification";
+import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
-import { StartupNotification } from "./StartupNotification";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { LearningGroups } from "./LearningGroups";
 import {
@@ -2469,7 +2468,7 @@ function Guides() {
             const href = a.getAttribute("href") ?? "",
               entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
             if (entry) void s.action("nav:" + entry[0]);
-            else if (href.startsWith("http")) void window.cubix.open(href);
+            else if (href.startsWith("http")) void openExternal(href);
             else
               void s.action(
                 "nav:" +
@@ -2828,7 +2827,7 @@ function App() {
   useSyncExternalStore(s.subscribe, () => s.version);
   useEffect(() => {
     void s.init();
-    const unsubscribe = window.cubix.onEvent((event) => {
+    const unsubscribe = onEvent((event) => {
       if (event.event === "changed") void s.refresh();
       else if (event.event === "sync") {
         s.sync = event.value;
@@ -2842,11 +2841,6 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         void s.action("search");
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === "KeyR") {
-        e.preventDefault();
-        void s.action("checkUpdate");
         return;
       }
       if (typing && !e.altKey) return;
@@ -2943,10 +2937,9 @@ function App() {
         {!guide && <Nav />}
         </div>
       </MotionConfig>
-      <UpdateNotification busy={!s.ready || s.running || s.saving || !!s.pendingSolve} light={s.light} />
+      <Toasts light={s.light} />
       {s.overlay && <Overlay key={s.overlay} />}
       <ErrorNotification message={s.error} />
-      <StartupNotification />
     </main>
   );
 }

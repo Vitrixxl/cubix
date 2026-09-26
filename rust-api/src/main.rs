@@ -3,7 +3,6 @@ mod admin;
 mod api;
 mod catalog;
 mod db;
-mod desktop_release;
 mod error;
 mod live;
 mod practice;
@@ -11,6 +10,7 @@ mod release;
 mod stats;
 mod sync;
 mod traffic;
+mod web;
 
 use axum::{
     Router,
@@ -146,16 +146,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
     let api = Router::new()
         .route("/api/live", get(live::upgrade))
-        .route(
-            "/api/desktop/releases/{target}",
-            get(desktop_release::manifest).put(desktop_release::publish),
-        )
-        .route(
-            "/api/desktop/assets/{hash}",
-            get(desktop_release::asset)
-                .put(desktop_release::upload_asset)
-                .layer(DefaultBodyLimit::max(512 * 1024 * 1024)),
-        )
         // The APK upload carries a whole Android build, far above the JSON limit below.
         .route(
             "/api/mobile/apk",
@@ -180,8 +170,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HeaderValue::from_static("no-store"),
         ))
         .layer(CorsLayer::permissive());
-    let app = api
-        .merge(admin_api)
+    let mut app = api.merge(admin_api);
+    match web::directory() {
+        Some(dir) => {
+            println!("Cubix web: {}", dir.display());
+            app = app.fallback_service(web::router(dir));
+        }
+        None => println!("Cubix web: not built, serving the API only"),
+    }
+    let app = app
         .layer(axum::middleware::from_fn_with_state(
             traffic,
             traffic::monitor,

@@ -10,9 +10,9 @@ WCA event glyphs exported from @cubing/icons (MIT).
 https://github.com/cubing/icons
 
 cubing.js and random-uint-below are distributed with their upstream licenses.
-The packaged cubing.js worker files retain their module structure. The build
-rewrites bare random-uint-below imports to explicit relative paths for standalone
-Bun execution. Those modified JavaScript sources are included in vendor/cubing.
+The cubing.js worker files served with the web app retain their module structure.
+The build rewrites bare random-uint-below imports to explicit relative paths so
+browsers can load them. Those modified JavaScript sources are served under /vendor.
 
 Electron and Chromium are redistributed with their licenses in runtime/.
 React and React DOM are distributed under the MIT license.

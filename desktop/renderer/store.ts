@@ -3,8 +3,7 @@ import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, le
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
-import { call } from "./bridge";
-import { checkForUpdates } from "./UpdateNotification";
+import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { fmtTime } from "../../src/client/lib/format";
 import { isPuzzle, normalizeScrambleType, type PuzzleId } from "../../src/shared/puzzles";
@@ -209,7 +208,6 @@ export class Store {
         this.scramble ? Promise.resolve() : this.nextScramble(),
         this.nextCase(),
       ]);
-      await window.cubix.ready();
     } catch (e) {
       this.fail(e);
     }
@@ -463,9 +461,6 @@ export class Store {
           break;
         case "historyForward":
           this.travel(false);
-          break;
-        case "checkUpdate":
-          void checkForUpdates(() => !this.ready || this.running || this.saving || !!this.pendingSolve);
           break;
         case "learningMode": {
           if (this.learningFrozen || learningModeForPuzzle(arg, this.puzzle) !== arg || this.pendingSolve) break;
@@ -770,7 +765,7 @@ export class Store {
           this.sync = await call("sync");
           break;
         case "url":
-          await window.cubix.open(arg);
+          await openExternal(arg);
           break;
       }
       this.emit();

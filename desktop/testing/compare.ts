@@ -1,9 +1,8 @@
 /** Deterministic GPUI / Electron reference captures. Requires a GPUI reference build and X11. */
-import { _electron as electron } from "playwright";
+import { launchApp, startServer } from "./app";
 import { mkdtemp, mkdir, writeFile, rename, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-delete process.env.ELECTRON_RUN_AS_NODE;
 const x = process.env.CUBIX_XDOTOOL ?? "xdotool",
   magick = process.env.CUBIX_MAGICK ?? "magick",
   out = resolve("artifacts/electron/comparison");
@@ -23,6 +22,9 @@ const fixture = {
   "cubix.training.randomAuf": "false",
 };
 const results: any[] = [];
+// The Electron side needs the web app; the GPUI reference keeps using an unreachable API.
+const web = await startServer(await mkdtemp(join(tmpdir(), "cubix-compare-server-")));
+const origin = web.origin;
 for (const [w, h, label] of [
   [1280, 800, "desktop"],
   [390, 844, "compact"],
@@ -44,7 +46,7 @@ for (const [w, h, label] of [
   const electronDir = join(dir, "electron");
   await mkdir(electronDir);
   await writeFile(join(electronDir, "storage.json"), JSON.stringify(fixture));
-  let app: Awaited<ReturnType<typeof electron.launch>> | undefined;
+  let app: Awaited<ReturnType<typeof launchApp>> | undefined;
   try {
     for (
       let i = 0;
@@ -56,22 +58,7 @@ for (const [w, h, label] of [
       .split("\n")
       .at(-1)!;
     await run([x, "windowsize", win, String(w), String(h)]);
-    app = await electron.launch({
-      executablePath: resolve("node_modules/electron/dist/electron"),
-      args: [
-        `--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "x11"}`,
-        resolve("desktop/dist"),
-        `--user-data-dir=${join(dir, "chromium")}`,
-      ],
-      env: {
-        ...process.env,
-        CUBIX_BUN: process.execPath,
-        CUBIX_WIDTH: String(w),
-        CUBIX_HEIGHT: String(h),
-        CUBIX_DESKTOP_DATA: electronDir,
-        CUBIX_API_ORIGIN: "http://127.0.0.1:47139",
-      },
-    });
+    app = await launchApp({ dir: electronDir, origin, env: { CUBIX_WIDTH: String(w), CUBIX_HEIGHT: String(h) } });
     const page = await app.firstWindow();
     await page.waitForSelector(".timer");
     const actions = [
@@ -146,4 +133,5 @@ for (const [w, h, label] of [
     await rm(dir, { recursive: true, force: true });
   }
 }
+web.server.kill();
 await Bun.write(join(out, "report.json"), JSON.stringify(results, null, 2));

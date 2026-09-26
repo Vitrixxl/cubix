@@ -1,6 +1,6 @@
 # Serveur Rust
 
-Axum 0.8, Tokio, rusqlite et SQLite. Le binaire sert les API HTTP et WebSocket, sans interface web ni fichiers statiques.
+Axum 0.8, Tokio, rusqlite et SQLite. Le binaire sert les API HTTP et WebSocket et, quand elle est construite (`CUBIX_WEB_DIR`, sinon `dist/web`), l'application web.
 Voir le [README principal](../README.md) pour le démarrage avec `docker compose up`.
 
 ## Construction

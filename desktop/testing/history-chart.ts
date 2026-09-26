@@ -1,11 +1,10 @@
 /** Chart gestures against deterministic guest history in the real Electron app. */
-import { _electron as electron } from "playwright";
+import { launchApp, startServer } from "./app";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-delete process.env.ELECTRON_RUN_AS_NODE;
 const dir = await mkdtemp(join(tmpdir(), "cubix-chart-"));
 const solves = Array.from({ length: 608 }, (_, i) => ({
   id: -(i + 1), session_id: null, case_id: null,
@@ -23,11 +22,8 @@ await Bun.write(join(dir, "storage.json"), JSON.stringify({
   }),
   "cubix.playground.scrambleByContext": JSON.stringify({ "333:standard:normal": "R U R'" }),
 }));
-const app = await electron.launch({
-  executablePath: resolve("node_modules/electron/dist/electron"),
-  args: ["--ozone-platform=headless", resolve("desktop/dist"), `--user-data-dir=${join(dir, "chromium")}`],
-  env: { ...process.env, CUBIX_BUN: process.execPath, CUBIX_DESKTOP_DATA: dir, CUBIX_API_ORIGIN: "http://127.0.0.1:47139" },
-});
+const { origin, server } = await startServer(join(dir, "server"));
+const app = await launchApp({ dir, origin, ozone: "headless" });
 try {
   const page = await app.firstWindow();
   const errors: string[] = [];
@@ -198,5 +194,6 @@ try {
   console.log("Chart: 390–1920px layouts, single solve, all-DNF history, empty history and context reset passed");
 } finally {
   await app.close();
+  server.kill();
   await rm(dir, { recursive: true, force: true });
 }

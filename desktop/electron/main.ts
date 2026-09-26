@@ -1,103 +1,50 @@
-import { acquireLock, installLauncherBinary, installUpdate, isOfflineError, refreshLauncher } from "../updater";
-import { app, BrowserWindow, ipcMain, shell, Menu } from "electron";
-import { spawn } from "node:child_process";
-import { createInterface } from "node:readline";
-import { dirname, join } from "node:path";
-import { readFile, rm } from "node:fs/promises";
-import { existsSync, writeFileSync } from "node:fs";
+/** The desktop app is the web app served by the API, opened in its own window. Its service worker keeps
+ * it usable offline and every online launch opens the latest deployed version: there is no updater. */
+import { app, BrowserWindow, ipcMain, shell, Menu, net } from "electron";
+import { join } from "node:path";
+import { existsSync, readFileSync, renameSync } from "node:fs";
+import { desktopDataDirectory } from "../data-path";
+import { electronLaunchOptions } from "../platform";
 
 const root = app.getAppPath();
+const origin = new URL(process.env.CUBIX_WEB_ORIGIN ?? process.env.CUBIX_API_ORIGIN ?? "https://cubix.vitrixxl.fr").origin;
+const data = desktopDataDirectory();
+// Browser storage (the web app's IndexedDB and offline cache) lives with the rest of Cubix's data.
+app.setPath("userData", join(data, "electron"));
 app.setName("Cubix");
 if (process.platform === "linux") {
   app.setDesktopName("fr.vitrixxl.cubix.desktop");
   app.commandLine.appendSwitch("class", "Cubix");
 }
-let engine: ReturnType<typeof spawn>;
+const launch = electronLaunchOptions();
+for (const [name, value] of launch.switches) app.commandLine.appendSwitch(name, value);
+Object.assign(process.env, launch.env);
+
+/** Solves, preferences and the session of the former Bun engine, imported once by the web app. */
+const legacy = join(data, "storage.json");
 let window: BrowserWindow;
-let sequence = 0;
-let quitting = false;
-let restarting = false;
-let updateTimer: ReturnType<typeof setInterval> | undefined;
-const launcher = process.env.CUBIX_LAUNCHER_PATH;
-const releaseId = process.env.CUBIX_RELEASE_ID;
-let announcedUpdate: string | null = null;
-let installing = false;
-async function availableUpdate(): Promise<string | null> {
-  if (!launcher || !releaseId || !existsSync(launcher)) return null;
-  try {
-    const base = dirname(launcher);
-    const pointer = JSON.parse(await readFile(join(base, "current.json"), "utf8"));
-    if (!/^[a-f0-9]{64}$/.test(pointer.id) || pointer.id === releaseId) return null;
-    // current.json only changes after every file has been downloaded and verified.
-    const next = JSON.parse(await readFile(join(base, "releases", pointer.id, "release.json"), "utf8"));
-    const current = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
-    return next.build > current.build ? pointer.id : null;
-  } catch {
-    return null;
-  }
+let retry: ReturnType<typeof setInterval> | undefined;
+const sameOrigin = (url: string) => { try { return new URL(url).origin === origin; } catch { return false; } };
+const trusted = (event: Electron.IpcMainInvokeEvent) =>
+  event.sender === window.webContents &&
+  event.senderFrame === window.webContents.mainFrame &&
+  sameOrigin(event.senderFrame.url);
+const external = (url: string) => { if (/^https?:\/\//.test(url)) void shell.openExternal(url); };
+
+/** Only a first launch without connection has nothing cached to show: wait for the server there. */
+function offline() {
+  if (retry) return;
+  void window.loadFile(join(root, "offline.html"));
+  retry = setInterval(() => {
+    void net.fetch(origin, { method: "HEAD" }).then((response) => {
+      if (!response.ok || !retry) return;
+      clearInterval(retry);
+      retry = undefined;
+      void window.loadURL(origin);
+    }).catch(() => {});
+  }, 5000);
 }
-/** Checks the release server now and downloads a newer release, reporting its progress.
- * Resolves with the release to restart into, or `null` when this version is the newest. */
-async function installNow(): Promise<{ status: "ready"; id: string } | { status: "none" | "unavailable" }> {
-  if (!launcher || !releaseId || !existsSync(launcher)) return { status: "unavailable" };
-  if (installing) throw Error("Une mise à jour est déjà en cours de téléchargement.");
-  const base = dirname(launcher),
-    lock = join(base, "update.lock");
-  if (!(await acquireLock(lock))) throw Error("Une mise à jour est déjà en cours de téléchargement.");
-  installing = true;
-  // Release files include .asar archives: copy them as plain files, not as Electron archives.
-  const noAsar = process.noAsar;
-  process.noAsar = true;
-  try {
-    const config = JSON.parse(await readFile(join(base, "launcher.json"), "utf8"));
-    const running = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
-    const next = await installUpdate({
-      base,
-      origin: process.env.CUBIX_API_ORIGIN ?? config.origin,
-      publicKey: config.publicKey,
-      target: config.target,
-      launcherBinary: true,
-      onPercent: (percent) => notify({ event: "update-progress", value: percent }),
-    });
-    if (!next || next.id === releaseId || next.manifest.build <= running.build) return { status: "none" };
-    announcedUpdate = next.id;
-    return { status: "ready", id: next.id };
-  } catch (error) {
-    if (isOfflineError(error)) throw Error("Impossible de joindre le serveur de mises à jour.");
-    throw error;
-  } finally {
-    process.noAsar = noAsar;
-    installing = false;
-    await rm(lock, { force: true });
-  }
-}
-async function checkUpdate() {
-  // A download started from the shortcut restarts on its own: no separate offer meanwhile.
-  if (installing) return announcedUpdate;
-  const id = await availableUpdate();
-  if (id !== announcedUpdate) {
-    announcedUpdate = id;
-    notify({ event: "update", value: id });
-  }
-  return id;
-}
-const notify = (message: unknown) => {
-  if (
-    !quitting &&
-    window &&
-    !window.isDestroyed() &&
-    !window.webContents.isDestroyed()
-  )
-    window.webContents.send("engine:event", message);
-};
-const pending = new Map<
-  number,
-  {
-    resolve: (v: unknown) => void;
-    reject: (e: Error) => void;
-    timeout: ReturnType<typeof setTimeout>;
-  }
->();
+
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on("second-instance", () => {
@@ -108,124 +55,17 @@ else {
     .whenReady()
     .then(async () => {
       Menu.setApplicationMenu(null);
-      // Legacy launchers receive the new startup updater through signed releases too.
-      if (launcher && releaseId) {
-        try {
-          const manifest = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
-          await refreshLauncher(dirname(launcher), { id: releaseId, manifest });
-        } catch (error) { console.error("Launcher update:", error); }
-      }
-      engine = existsSync(
-        join(
-          root,
-          process.platform === "win32" ? "cubix-engine.exe" : "cubix-engine",
-        ),
-      )
-        ? spawn(
-            join(
-              root,
-              process.platform === "win32"
-                ? "cubix-engine.exe"
-                : "cubix-engine",
-            ),
-            [],
-            { env: process.env, stdio: ["pipe", "pipe", "inherit"] },
-          )
-        : spawn(
-            process.env.CUBIX_BUN ?? "bun",
-            [join(root, "engine/main.js")],
-            { env: process.env, stdio: ["pipe", "pipe", "inherit"] },
-          );
-      createInterface({ input: engine.stdout! }).on("line", (line) => {
-        try {
-          const message = JSON.parse(line);
-          if (message.event) {
-            notify(message);
-            return;
-          }
-          const request = pending.get(message.id);
-          if (!request) return;
-          clearTimeout(request.timeout);
-          pending.delete(message.id);
-          if (message.error) request.reject(new Error(message.error));
-          else request.resolve(message.value);
-        } catch {
-          /* Ignore non-protocol diagnostics. */
-        }
+      ipcMain.handle("legacy:read", (event) => {
+        if (!trusted(event)) throw Error("Invalid request");
+        return existsSync(legacy) ? readFileSync(legacy, "utf8") : null;
       });
-      engine.on("error", (error) =>
-        notify({
-          event: "error",
-          value: error.message,
-        }),
-      );
-      engine.on("exit", () => {
-        for (const request of pending.values()) {
-          clearTimeout(request.timeout);
-          request.reject(new Error("The data engine stopped. Restart Cubix."));
-        }
-        pending.clear();
-        notify({
-          event: "error",
-          value: "The data engine stopped. Restart Cubix.",
-        });
+      ipcMain.handle("legacy:imported", (event) => {
+        if (!trusted(event)) throw Error("Invalid request");
+        // Kept aside rather than deleted, in case the import ever needs to be checked.
+        if (existsSync(legacy)) renameSync(legacy, join(data, "storage.imported.json"));
       });
-      ipcMain.handle("engine:call", (event, method, args) => {
-        if (
-          event.sender !== window.webContents ||
-          event.senderFrame !== window.webContents.mainFrame ||
-          typeof method !== "string" ||
-          !Array.isArray(args)
-        )
-          throw Error("Invalid engine request");
-        return new Promise((resolve, reject) => {
-          const id = ++sequence;
-          const timeout = setTimeout(() => {
-            pending.delete(id);
-            reject(new Error("The data engine did not respond."));
-          }, 120000);
-          pending.set(id, { resolve, reject, timeout });
-          engine.stdin!.write(JSON.stringify({ id, method, args }) + "\n");
-        });
-      });
-      ipcMain.handle("app:ready", (event) => {
-        if (
-          event.sender === window.webContents &&
-          process.env.CUBIX_LAUNCH_READY
-        )
-          writeFileSync(process.env.CUBIX_LAUNCH_READY, "ready");
-      });
-      const trusted = (event: Electron.IpcMainInvokeEvent) =>
-        event.sender === window.webContents &&
-        event.senderFrame === window.webContents.mainFrame;
-      ipcMain.handle("app:startup", (event) => {
-        if (!trusted(event)) throw Error("Invalid startup request");
-        // Set by the launcher when it opened this version without updating.
-        const notice = process.env.CUBIX_STARTUP_NOTICE;
-        return { notice: notice === "offline" || notice === "update-failed" ? notice : null };
-      });
-      ipcMain.handle("update:available", (event) => {
-        if (!trusted(event)) throw Error("Invalid update request");
-        return checkUpdate();
-      });
-      ipcMain.handle("update:install", (event) => {
-        if (!trusted(event)) throw Error("Invalid update request");
-        return installNow();
-      });
-      ipcMain.handle("update:restart", async (event, id) => {
-        if (!trusted(event)) throw Error("Invalid update request");
-        if (restarting) return;
-        if (!launcher || !id || id !== await availableUpdate())
-          throw Error("Cette mise à jour n’est plus disponible.");
-        if (pending.size) throw Error("Une opération est en cours. Réessaie dans un instant.");
-        restarting = true;
-        // Relaunch through the updater so the new release keeps startup checks and rollback.
-        app.relaunch({ execPath: launcher, args: [] });
-        setImmediate(() => app.quit());
-      });
-      ipcMain.handle("external:open", (_event, url) => {
-        if (typeof url === "string" && /^https?:\/\//.test(url))
-          return shell.openExternal(url);
+      ipcMain.handle("external:open", (event, url) => {
+        if (trusted(event) && typeof url === "string") external(url);
       });
       window = new BrowserWindow({
         width: Number(process.env.CUBIX_WIDTH) || 1280,
@@ -233,7 +73,7 @@ else {
         useContentSize: true,
         title: "Cubix",
         backgroundColor: "#0b0b0e",
-        icon: join(root, "assets/icon.png"),
+        icon: join(root, "icon.png"),
         show: false,
         webPreferences: {
           preload: join(root, "preload.cjs"),
@@ -243,41 +83,33 @@ else {
           spellcheck: false,
         },
       });
-      window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-      window.webContents.on("will-navigate", (event) => event.preventDefault());
-      // Mouse back/forward: Windows only reports them as app commands; elsewhere the renderer sees the
+      window.webContents.setWindowOpenHandler(({ url }) => {
+        external(url);
+        return { action: "deny" };
+      });
+      window.webContents.on("will-navigate", (event, url) => {
+        if (sameOrigin(url)) return;
+        event.preventDefault();
+        external(url);
+      });
+      window.webContents.on("did-fail-load", (_event, code, _description, url, mainFrame) => {
+        // -3 is an aborted load, replaced by another navigation.
+        if (mainFrame && code !== -3 && sameOrigin(url)) offline();
+      });
+      // Mouse back/forward: Windows only reports them as app commands; elsewhere the web app sees the
       // mouseup itself, and Linux would otherwise get both and travel twice.
       if (process.platform === "win32")
         window.on("app-command", (_event, command) => {
           if (command === "browser-backward" || command === "browser-forward")
-            window.webContents.send("engine:event", { event: command });
+            window.webContents.send("desktop:event", { event: command });
         });
-      await window.loadFile(join(root, "renderer/index.html"));
-      window.show();
-      // The launcher binary itself is large: bring it in quietly after startup, never during it.
-      if (launcher && releaseId && existsSync(launcher))
-        setTimeout(() => void (async () => {
-          try {
-            const base = dirname(launcher);
-            const manifest = JSON.parse(await readFile(join(root, "../release.json"), "utf8"));
-            const config = JSON.parse(await readFile(join(base, "launcher.json"), "utf8"));
-            if (await installLauncherBinary(base, manifest, process.env.CUBIX_API_ORIGIN ?? config.origin))
-              console.log("Launcher binary updated.");
-          } catch (error) { console.error("Launcher binary update:", error); }
-        })(), 5000);
-      updateTimer = setInterval(() => { void checkUpdate(); }, 2000);
+      window.once("ready-to-show", () => window.show());
+      await window.loadURL(origin).catch(() => {});
     })
     .catch((error) => {
       console.error(error);
       app.exit(1);
     });
   app.on("window-all-closed", () => app.quit());
-  app.on("before-quit", () => {
-    quitting = true;
-    clearInterval(updateTimer);
-    engine?.stdin?.end();
-  });
+  app.on("before-quit", () => clearInterval(retry));
 }
-
-if (process.platform === "linux" && !process.env.WAYLAND_DISPLAY)
-  app.commandLine.appendSwitch("ozone-platform", "x11");

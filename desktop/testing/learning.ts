@@ -1,13 +1,13 @@
 /** Daily learning integration: real Electron, isolated offline workspace. */
-import { _electron as electron } from "playwright";
+import { launchApp, startServer } from "./app";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import assert from "node:assert/strict";
 import catalog from "../assets/catalog.json";
-delete process.env.ELECTRON_RUN_AS_NODE;
 const dir = await mkdtemp(join(tmpdir(), "cubix-learning-"));
-const launch = () => electron.launch({ executablePath: process.env.CUBIX_TEST_ELECTRON ?? resolve("node_modules/electron/dist/electron"), args: ["--ozone-platform=x11", resolve("desktop/dist"), `--user-data-dir=${join(dir, "chromium")}`], env: { ...process.env, CUBIX_BUN: process.execPath, CUBIX_DESKTOP_DATA: dir, CUBIX_API_ORIGIN: "http://127.0.0.1:47139" } });
+const { origin, server } = await startServer(join(dir, "server"));
+const launch = () => launchApp({ dir, origin });
 let app = await launch();
 try {
   let page = await app.firstWindow();
@@ -120,7 +120,8 @@ try {
   assert.notEqual(oll, first);
   await mode("Learn PLL");
   await page.waitForSelector(".daily-status:text('Algorithm to learn')");
-  assert.equal(await page.locator(".case-title").getAttribute("data-action"), next);
+  // The OLL case stays on screen until the engine answers with the PLL one.
+  await page.waitForSelector(`.case-title[data-action="${next}"]`, { timeout: 5000 });
   await mode("Free practice");
   await page.waitForSelector('.case-title[data-action="case:F2L 2"]');
   await mode("Learn PLL");
@@ -193,6 +194,6 @@ try {
   assert.equal(await page.getByRole("option", { name: "Review learned", exact: true }).count(), 1);
   assert.deepEqual(errors, []);
   console.log("Daily learning, group ordering, global and track review: completion, undo, persistence, track isolation, 3×3 restriction and responsive layouts passed.");
-} catch (error) { console.error(await pageError(app)); throw error; } finally { await app.close(); await rm(dir, { recursive: true, force: true }); }
+} catch (error) { console.error(await pageError(app)); throw error; } finally { await app.close(); server.kill(); await rm(dir, { recursive: true, force: true }); }
 
 async function pageError(app: any) { return (await app.firstWindow()).locator(".error").textContent({ timeout: 200 }).catch(() => "No app error"); }
