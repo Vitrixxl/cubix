@@ -76256,7 +76256,10 @@
      "last-layer",
      "oll",
      "pll",
-     "f2l"
+     "f2l",
+     "cross1-3",
+     "cross1-4",
+     "cross1-5"
     ]
    },
    {
@@ -76409,6 +76412,18 @@
    {
     "id": "outer-turns",
     "label": "Outer layers only"
+   },
+   {
+    "id": "cross1-3",
+    "label": "Cross+1 · 3 moves"
+   },
+   {
+    "id": "cross1-4",
+    "label": "Cross+1 · 4 moves"
+   },
+   {
+    "id": "cross1-5",
+    "label": "Cross+1 · 5 moves"
    }
   ],
   "solveModes": [

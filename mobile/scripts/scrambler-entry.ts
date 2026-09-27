@@ -46,9 +46,15 @@ async function orbitScramble(orbit: "EDGES" | "CORNERS"): Promise<string> {
   return invert(solution);
 }
 
+async function patternScramble(pattern: ConstructorParameters<typeof KPattern>[1]): Promise<string> {
+  const kpuzzle = await puzzles["3x3x3"].kpuzzle();
+  return invert(await inside.solve333ToString(new KPattern(kpuzzle, pattern).patternData));
+}
+
 const handlers: Record<string, (payload: any) => Promise<string>> = {
   event: ({ event }) => inside.randomScrambleStringForEvent(event),
   orbit: ({ orbit }) => orbitScramble(orbit),
+  pattern: ({ pattern }) => patternScramble(pattern),
 };
 window.addEventListener("message", event => void handle(event.data));
 document.addEventListener("message", event => void handle((event as MessageEvent).data));

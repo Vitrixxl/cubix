@@ -5,8 +5,9 @@ import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import { fmtTime } from "../../src/client/lib/format";
+import { averageOf, best, fmtTime } from "../../src/client/lib/format";
 import { isPuzzle, normalizeScrambleType, type PuzzleId } from "../../src/shared/puzzles";
+import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 export const catalog = catalogData as any;
 export const puzzleOf = (c: any) =>
   c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3);
@@ -80,6 +81,8 @@ export class Store {
   catalogStage = "";
   /** Puzzle and method shown by the solving methods guide, independent of the active puzzle. */
   guidePuzzle: PuzzleId = "333";
+  /** Guide shown in the guides dialog. */
+  guidePage = "overviewGuide";
   guideMethod = "";
   profileMode = "overview";
   profileStage = "all";
@@ -104,6 +107,15 @@ export class Store {
   revision = 0;
   request = 0;
   goal = new Set<string>();
+  /** Training opens on the choice of what to practise, then shows the timer for it. */
+  trainingStep: "setup" | "practice" = "setup";
+  /** Cases of the catalogue, or first-block scrambles (cross and one pair) on the 3×3. */
+  trainingKind: "cases" | "cross1" = "cases";
+  crossMoves = 4;
+  /** Optimal cross + 1 solutions of the shown scramble, computed by the engine when revealed. */
+  crossSolutions: { scramble: string; list: { moves: string; slot: string }[] | null } | null = null;
+  /** Mode highlighted on the training setup screen, before it starts. */
+  setupMode = "";
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     return () => {
@@ -114,13 +126,21 @@ export class Store {
     this.version++;
     this.listeners.forEach((fn) => fn());
   };
+  /** First-block training: timer solves on scrambles whose cross and one pair take `crossMoves` turns. */
+  get crossTraining() {
+    return this.page === "training" && this.trainingKind === "cross1" && this.puzzle === "333";
+  }
+  /** Where solves are recorded: cross+1 scrambles are timer solves of their own scramble type. */
+  practicePage = () => (this.crossTraining ? "playground" : this.page);
   context = () => ({
     puzzle: this.puzzle,
     solveMode: this.solveMode,
-    scrambleType: this.page === "training" ? "case" : this.scrambleType,
+    scrambleType: this.crossTraining
+      ? `cross1-${this.crossMoves}`
+      : this.page === "training" ? "case" : this.scrambleType,
   });
   contextKey = () =>
-    `${this.page}:${this.puzzle}:${this.solveMode}:${this.scrambleType}`;
+    `${this.page}:${this.puzzle}:${this.solveMode}:${this.context().scrambleType}`;
   cases = (p = this.puzzle) =>
     catalog.cases.filter((c: any) => puzzleOf(c) === p);
   allSets = (p = this.puzzle) =>
@@ -198,6 +218,8 @@ export class Store {
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
+      this.trainingKind = this.prefs["cubix.training.kind"] === "cross1" ? "cross1" : "cases";
+      this.crossMoves = CROSS_PLUS_ONE_MOVES.includes(this.prefs["cubix.training.crossMoves"]) ? this.prefs["cubix.training.crossMoves"] : 4;
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
@@ -247,8 +269,8 @@ export class Store {
       const v = await call("snapshot", {
         revision: request,
         context,
-        page: this.page,
         caseId: this.caseId,
+        page: this.practicePage(),
         profilePuzzle: this.profilePuzzle,
         profileFilter: {
           solveMode: this.profileSolveMode,
@@ -284,6 +306,7 @@ export class Store {
   async nextScramble() {
     const revision = ++this.revision,
       context = { ...this.context(), scrambleType: this.scrambleType };
+    if (this.crossTraining) context.scrambleType = this.context().scrambleType;
     this.generating = true;
     this.emit();
     try {
@@ -292,9 +315,10 @@ export class Store {
       this.scramble = value;
       this.pref("cubix.playground.scrambleByContext", {
         ...this.prefs["cubix.playground.scrambleByContext"],
-        [`${context.puzzle}:${context.solveMode}:${this.scrambleType}`]: value,
+        [`${context.puzzle}:${context.solveMode}:${context.scrambleType}`]: value,
       });
       this.generating = false;
+      this.revealed = false;
       this.replay++;
       this.emit();
     } catch (e) {
@@ -322,6 +346,21 @@ export class Store {
     this.replay++;
     this.emit();
   }
+  async loadCrossSolutions() {
+    const scramble = this.scramble;
+    if (!scramble || this.crossSolutions?.scramble === scramble) return;
+    this.crossSolutions = { scramble, list: null };
+    this.emit();
+    try {
+      const list = await call("crossSolutions", scramble);
+      if (this.crossSolutions?.scramble !== scramble) return;
+      this.crossSolutions = { scramble, list };
+      this.emit();
+    } catch (e) {
+      this.crossSolutions = null;
+      this.fail(e);
+    }
+  }
   announce(message: string) {
     this.notice = message;
     setTimeout(() => {
@@ -338,16 +377,16 @@ export class Store {
       await this.nextScramble();
       return;
     }
+    const page = this.practicePage();
     this.pendingSolve = {
       key: this.contextKey(),
-      page: this.page,
-      selected: [...this.practiceSelected],
+      page,
+      selected: page === "training" ? [...this.practiceSelected] : [],
       body: {
         ...this.context(),
         timeMs: Math.round(ms),
-        scramble:
-          this.page === "training" ? this.training?.setup : this.scramble,
-        caseId: this.page === "training" ? this.training?.id : null,
+        scramble: page === "training" ? this.training?.setup : this.scramble,
+        caseId: page === "training" ? this.training?.id : null,
       },
     };
     await this.savePending();
@@ -415,7 +454,22 @@ export class Store {
       this.profileSolveMode = this.solveMode;
       this.profileScramble = this.scrambleType;
     }
+    void this.syncScramble();
     void this.refresh();
+  }
+  /** The timer and the cross+1 training each keep their own scramble: show the one of the current context. */
+  async syncScramble() {
+    if (this.practicePage() !== "playground") return;
+    const { puzzle, solveMode, scrambleType } = this.context(),
+      stored = this.prefs["cubix.playground.scrambleByContext"]?.[`${puzzle}:${solveMode}:${scrambleType}`];
+    if (stored === this.scramble && stored) return;
+    this.revision++;
+    this.generating = false;
+    this.scramble = stored ?? "";
+    this.revealed = false;
+    this.replay++;
+    this.emit();
+    if (!this.scramble) await this.nextScramble();
   }
   travel(back = true) {
     const stack = back ? this.history : this.forward,
@@ -427,6 +481,7 @@ export class Store {
     Object.assign(this, next);
     this.overlay = "";
     this.timerEpoch++;
+    void this.syncScramble();
     void this.refresh();
     this.emit();
   }
@@ -462,6 +517,46 @@ export class Store {
         case "historyForward":
           this.travel(false);
           break;
+        case "setupMode":
+          this.setupMode = arg;
+          break;
+        case "trainingSetup":
+          this.setupMode = "";
+          this.direction = -1;
+          this.trainingStep = "setup";
+          this.timerEpoch++;
+          break;
+        case "trainingStart": {
+          if (this.learningFrozen || this.pendingSolve) break;
+          this.trainingKind = arg === "cross1" && this.puzzle === "333" ? "cross1" : "cases";
+          this.pref("cubix.training.kind", this.trainingKind);
+          if (this.trainingKind === "cases") {
+            const mode = arg.startsWith("cases:") ? arg.slice(6) : "practice";
+            if (learningModeForPuzzle(mode, this.puzzle) === mode)
+              this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode });
+          }
+          this.trainingStep = "practice";
+          this.direction = 1;
+          this.showCases = false;
+          this.timerEpoch++;
+          this.emit();
+          if (this.trainingKind === "cross1") await this.syncScramble();
+          else await this.nextCase();
+          await this.refresh();
+          break;
+        }
+        case "crossMoves": {
+          const moves = Number(arg);
+          if (!CROSS_PLUS_ONE_MOVES.includes(moves as 3) || moves === this.crossMoves) break;
+          this.crossMoves = moves;
+          this.pref("cubix.training.crossMoves", moves);
+          this.timerEpoch++;
+          if (this.crossTraining) {
+            await this.syncScramble();
+            await this.refresh();
+          }
+          break;
+        }
         case "learningMode": {
           if (this.learningFrozen || learningModeForPuzzle(arg, this.puzzle) !== arg || this.pendingSolve) break;
           this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: arg });
@@ -523,14 +618,20 @@ export class Store {
           this.goal = new Set(
             [...this.selected].filter((id) => !this.learned.has(id)),
           );
-          if (kind === "train") this.navigate("training");
+          if (kind === "train") {
+            // Training a group or a case from the catalogue skips the setup screen.
+            this.trainingKind = "cases";
+            this.pref("cubix.training.kind", "cases");
+            this.trainingStep = "practice";
+            this.navigate("training");
+          }
           if (kind === "train" || !this.selected.has(this.training?.id))
             await this.nextCase();
           break;
         }
         case "next":
           this.timerEpoch++;
-          if (this.page === "training") await this.nextCase();
+          if (this.practicePage() === "training") await this.nextCase();
           else await this.nextScramble();
           break;
         case "previous":
@@ -542,6 +643,7 @@ export class Store {
           break;
         case "solution":
           this.revealed = !this.revealed;
+          if (this.revealed && this.crossTraining) void this.loadCrossSolutions();
           break;
         case "auf":
           this.randomAuf = !this.randomAuf;
@@ -565,7 +667,8 @@ export class Store {
           this.caseId = "";
           this.timerEpoch++;
           await this.nextCase();
-          if (!this.scramble) await this.nextScramble();
+          if (this.crossTraining) await this.syncScramble();
+          else if (!this.scramble) await this.nextScramble();
           await this.refresh();
           break;
         case "mode":
@@ -749,13 +852,14 @@ export class Store {
           this.guideMethod = arg;
           break;
         case "help":
-          this.navigate(
-            this.page === "training"
-              ? "trainingGuide"
-              : this.page === "algorithms"
-                ? "algorithmsGuide"
-                : "overviewGuide",
-          );
+          this.guidePage =
+            this.page === "training" ? "trainingGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
+          this.overlay = "guides";
+          break;
+        case "guidePage":
+          this.guidePage = arg;
+          if (arg === "methodsGuide") this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
+          document.querySelector(".guides-body")?.scrollTo({ top: 0 });
           break;
         case "search":
           this.search = "";
@@ -773,15 +877,22 @@ export class Store {
       this.fail(e);
     }
   }
-  metrics() {
-    const summary = practiceSummary(this.solves);
+  /** Session figures under the timer: label, value and the tone it is drawn in. */
+  metrics(): [label: string, value: string, tone: "" | "good" | "bad" | "accent"][] {
+    const summary = practiceSummary(this.solves), times = summary.times,
+      bestOf = (size: number) => best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size)))),
+      worst = !times.length ? null : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
+    if (this.practicePage() === "training")
+      return [["Best", fmtTime(summary.best), "good"], ["Mean", fmtTime(summary.mean), ""], ["Solves", String(summary.count), ""]];
     return [
-      ["Solves", String(summary.count)],
-      ["Best", fmtTime(summary.best)],
-      ["Mean", fmtTime(summary.mean)],
-      ...(this.page === "training" ? [] : [
-        ["Ao5", fmtTime(summary.ao5)], ["Ao12", fmtTime(summary.ao12)],
-      ]),
+      ["Best", fmtTime(summary.best), "good"],
+      ["Worst", worst ?? fmtTime(null), "bad"],
+      ["Mean", fmtTime(summary.mean), ""],
+      ["Ao5", fmtTime(summary.ao5), "accent"],
+      ["Best Ao5", fmtTime(bestOf(5)), "good"],
+      ["Ao12", fmtTime(summary.ao12), "accent"],
+      ["Best Ao12", fmtTime(bestOf(12)), "good"],
+      ["Solves", String(summary.count), ""],
     ];
   }
 }

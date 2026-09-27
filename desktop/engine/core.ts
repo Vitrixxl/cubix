@@ -17,6 +17,7 @@ import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/share
 import { fmtDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
+import { crossPlusOneSolutions } from '../../src/shared/crossPlusOne';
 import type { CaseDto } from '../../src/shared/types';
 
 export interface EngineStorage {
@@ -127,6 +128,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2]);
     if (req.method === 'scramble') return await takeScramble(req.args[0]);
+    if (req.method === 'crossSolutions') return crossPlusOneSolutions(req.args[0]);
     if (req.method === 'training') return training(req.args[0], req.args[1], req.args[2], req.args[3], req.args[4]);
     if (req.method === 'trainingCase') {
       const [c, useAuf] = req.args, size = puzzleInfo(c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3)).cubeSize;

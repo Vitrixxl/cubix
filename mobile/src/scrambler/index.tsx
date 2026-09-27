@@ -28,6 +28,7 @@ function send(kind: string, payload: unknown, timeoutMs = 30000): Promise<string
 export const nativeEngine: ScrambleEngine = {
   randomScrambleForEvent: event => send("event", { event }),
   orbitScramble: orbit => send("orbit", { orbit }),
+  patternScramble: pattern => send("pattern", { pattern }),
 };
 
 function receive(raw: string) {

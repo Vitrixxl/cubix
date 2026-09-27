@@ -2,12 +2,15 @@ import { SCRAMBLE_LENGTHS } from "../../shared/scramble";
 import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../shared/cube";
 import { puzzleInfo, validContext, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
+import { crossPlusOneMoves, crossPlusOnePattern, type PatternData } from "../../shared/crossPlusOne";
 
 /** Random-state generation needs cubing.js; each platform supplies its own runtime for it. */
 export interface ScrambleEngine {
   randomScrambleForEvent(event: string): Promise<string>;
   /** Random-state scramble touching only one orbit of the 3×3 (the other orbit and centres stay solved). */
   orbitScramble(orbit: "EDGES" | "CORNERS"): Promise<string>;
+  /** A scramble reaching this 3×3 state (centres solved). */
+  patternScramble(pattern: PatternData): Promise<string>;
 }
 const sample = <T>(values: readonly T[]) => values[Math.floor(Math.random() * values.length)];
 function moves(faces: string[], suffixes = ["", "'", "2"], length = 25) {
@@ -51,6 +54,8 @@ export async function generatePracticeScramble(context: PracticeContext, engine:
   if (type === "half-turns") return moves(["R", "L", "U", "D", "F", "B"], ["2"], size === 2 ? 15 : 30);
   if (type === "outer-turns" && size) return moves(["R", "L", "U", "D", "F", "B"], undefined, SCRAMBLE_LENGTHS[size]);
   if (type === "edges-only" || type === "corners-only") return engine.orbitScramble(type === "edges-only" ? "EDGES" : "CORNERS");
+  const crossMoves = crossPlusOneMoves(type);
+  if (crossMoves) return engine.patternScramble(crossPlusOnePattern(crossMoves));
   if (type === "last-layer") return `${caseSetup("oll")} ${caseSetup("pll")} ${randomAuf()}`.trim();
   if (["oll", "pll", "f2l"].includes(type)) return `${caseSetup(type)} ${randomAuf()}`.trim();
   throw new Error("This scramble generator is unavailable.");

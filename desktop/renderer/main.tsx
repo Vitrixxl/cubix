@@ -1,4 +1,5 @@
-import { isReviewMode, learningTrackOf, trainingModeOptions } from "../../src/client/lib/dailyLearning";
+import { isLearningTrack, isReviewMode, learningCases, learningTrackOf, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
+import { CROSS_PLUS_ONE_MOVES, slotWithWhiteDown, withWhiteDown } from "../../src/shared/crossPlusOne";
 import { trainingSessionRows } from "../../src/client/lib/practiceSummary";
 import { catalogSections } from "../../src/client/lib/practiceCatalog";
 import { PracticeTimer } from "../../src/client/lib/practiceTimer";
@@ -168,90 +169,134 @@ const TABS: [page: string, label: string, icon: string, shortcut: string][] = [
   ["training", "Training", "IconTimer", "Alt+3"],
   ["profile", "Account", "IconUser", "Alt+4"],
 ];
-function Nav() {
-  const tabs = useRef<HTMLDivElement>(null);
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [box, setBox] = useState({ x: 0, width: 0 });
-  // The hover frame rests under the selected tab, so it always sets off from there.
-  const target = hovered ?? s.page;
-  useLayoutEffect(() => {
-    const el = tabs.current?.querySelector<HTMLElement>(`[data-action="nav:${target}"]`);
-    if (el && (el.offsetLeft !== box.x || el.offsetWidth !== box.width))
-      setBox({ x: el.offsetLeft, width: el.offsetWidth });
-  });
+const MOBILE = 700;
+function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?: number }) {
+  return page === "profile" && !s.user.isGuest ? <Avatar user={s.user} size={size + 1} /> : <Icon name={icon} size={size} />;
+}
+/** Desktop navigation: a slim column with the puzzle on top, the sections, then help and settings at the bottom. */
+function Sidebar() {
   return (
-    <nav className="nav">
-      <div className="nav-shell">
-        <Button
-          action="menu:puzzles"
-          className="puzzle-button"
-          icon={"Puzzle" + s.puzzle}
-          title="Choose a puzzle"
-        >
-          <span className="desktop-label">{s.label("puzzles", s.puzzle)}</span>
-          <Icon name="IconChevronDown" size={12} />
-        </Button>
-      </div>
-      <div
-        ref={tabs}
-        className="nav-shell nav-tabs"
-        role="tablist"
-        aria-label="Sections"
-        onPointerOver={(e) => {
-          const action = (e.target as HTMLElement).closest("[data-action]")?.getAttribute("data-action");
-          if (action?.startsWith("nav:")) setHovered(action.slice(4));
-        }}
-        onPointerLeave={() => setHovered(null)}
-      >
-        <motion.span
-          className="nav-hover"
-          initial={false}
-          animate={{ x: box.x, width: box.width, opacity: target === s.page ? 0 : 0.5 }}
-          transition={{ ...HIGHLIGHT, opacity: { duration: 0.15 } }}
-        />
+    <nav className="nav sidebar" aria-label="Sections">
+      <Button action="menu:puzzles" className="side-puzzle" title="Choose a puzzle">
+        <span className="side-puzzle-glyph">
+          <Icon name={"Puzzle" + s.puzzle} size={18} />
+        </span>
+        <span className="side-label side-puzzle-name">{s.label("puzzles", s.puzzle)}</span>
+        <Icon name="IconChevronDown" size={12} />
+      </Button>
+      <div className="side-group" role="tablist">
         {TABS.map(([page, label, icon, shortcut]) => (
           <Button
             key={page}
             action={"nav:" + page}
             title={`${label} (${shortcut})`}
-            className={"nav-tab " + (s.page === page ? "selected" : "unselected")}
-            active={s.page === page}
-            highlight="nav-tab"
-            icon={page === "profile" && !s.user.isGuest ? undefined : icon}
+            className={"side-item " + (s.page === page ? "selected" : "")}
           >
-            {page === "profile" && !s.user.isGuest && (
-              <Avatar user={s.user} size={18} />
-            )}
-            <span className="nav-label">{label}</span>
+            <TabIcon page={page} icon={icon} />
+            <span className="side-label">{label}</span>
           </Button>
         ))}
       </div>
-      <div className="nav-shell">
+      <div className="side-group side-foot">
+        <Button action="help" className="side-item" title="Guides">
+          <Icon name="IconBook" size={17} />
+          <span className="side-label">Guides</span>
+        </Button>
         <Button
           action="settings"
-          className={"nav-tab " + (s.overlay === "settings" ? "selected" : "unselected")}
-          active={s.overlay === "settings"}
-          highlight
-          icon="IconSettings"
+          className={"side-item " + (s.overlay === "settings" ? "selected" : "")}
           title="Settings (Alt+S)"
-        />
+        >
+          <Icon name="IconSettings" size={17} />
+          <span className="side-label">Settings</span>
+        </Button>
       </div>
     </nav>
   );
 }
+/** Phone navigation: a bottom tab bar with the timer in the centre. */
+const MOBILE_TABS: [action: string, label: string, icon: string][] = [
+  ["nav:algorithms", "Algorithms", "IconGrid"],
+  ["nav:training", "Training", "IconTimer"],
+  ["nav:playground", "Timer", "IconCube"],
+  ["nav:profile", "Account", "IconUser"],
+  ["settings", "Settings", "IconSettings"],
+];
+function TabBar() {
+  return (
+    <nav className="nav tabbar" aria-label="Sections">
+      {MOBILE_TABS.map(([action, label, icon]) => {
+        const selected = action === "settings" ? s.overlay === "settings" : s.page === action.slice(4);
+        return (
+          <Button key={action} action={action} title={label} className={"tab-item " + (selected ? "selected" : "")}>
+            <TabIcon page={action.slice(4)} icon={icon} size={20} />
+            <span>{label}</span>
+          </Button>
+        );
+      })}
+    </nav>
+  );
+}
+/** The app-wide puzzle, shown in page headers on phones where there is no sidebar. */
+function PuzzleControl() {
+  return (
+    <Button action="menu:puzzles" className="control head-puzzle" title="Choose a puzzle">
+      <Icon name={"Puzzle" + s.puzzle} size={16} />
+      {s.label("puzzles", s.puzzle)}
+      <Icon name="IconChevronDown" size={12} />
+    </Button>
+  );
+}
+/** Every page starts with the same row: title on the left, the page controls on the right. */
+function PageHead({
+  title,
+  sub,
+  lead,
+  puzzle = false,
+  children,
+}: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean } & Props) {
+  const mobile = useViewport().w <= MOBILE;
+  return (
+    <header className="page-head">
+      <div className="page-title">
+        {lead}
+        <div className="page-title-text">
+          <h1>{title}</h1>
+          {sub && <span className="page-sub">{sub}</span>}
+        </div>
+        {mobile && puzzle && <PuzzleControl />}
+      </div>
+      {React.Children.toArray(children).some(Boolean) && <div className="page-controls">{children}</div>}
+    </header>
+  );
+}
+/** A menu trigger of the page header: current value and a chevron. */
+function Menu({ action, children, icon }: { action: string; icon?: string } & Props) {
+  return (
+    <Button action={"menu:" + action} className="control" icon={icon}>
+      {children}
+      <Icon name="IconChevronDown" size={12} />
+    </Button>
+  );
+}
 /**
- * Full-window page frame: the pages sit side by side and slide together like a carousel.
- * Animating `transform` lets Motion hand the tween to the compositor (WAAPI), so the slide
- * keeps moving even while the incoming page does its first heavy render on the main thread.
+ * Page frame. Phones slide pages sideways like a carousel; the desktop slides them up and down, in the
+ * order of the sidebar. Animating `transform` keeps it on the compositor.
  */
 const SLIDE = {
   enter: (direction: number) => ({ transform: `translateX(${direction * 100}%)` }),
   center: { transform: "translateX(0%)" },
   exit: (direction: number) => ({ transform: `translateX(${direction * -100}%)` }),
 };
-function Frame({ children }: Props) {
+/** The desktop slides pages vertically, in the order of the sidebar. */
+const SLIDE_Y = {
+  enter: (direction: number) => ({ transform: `translateY(${direction * 100}%)` }),
+  center: { transform: "translateY(0%)" },
+  exit: (direction: number) => ({ transform: `translateY(${direction * -100}%)` }),
+};
+function Frame({ children, mobile }: { mobile: boolean } & Props) {
   const present = useIsPresent();
-  // Commit the empty frame first so the slide starts immediately; the page mounts one frame later.
+  // Commit the empty frame first so the transition starts immediately; the page mounts one frame later.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
@@ -263,7 +308,7 @@ function Frame({ children }: Props) {
       data-exiting={present ? undefined : ""}
       inert={!present}
       custom={s.direction}
-      variants={SLIDE}
+      variants={mobile ? SLIDE : SLIDE_Y}
       initial="enter"
       animate="center"
       exit="exit"
@@ -377,34 +422,21 @@ function Practice() {
   const reviewing = isReviewMode(s.learningMode);
   const track = learningTrackOf(s.learningMode);
   const { w, h } = useViewport(),
-    training = s.page === "training",
-    wide = w >= 1024 && h >= 600,
-    rail = Math.max(220, Math.min(280, Math.min(w - 96, 1200) / 4.28)),
-    centerWidth = w - (wide ? rail * 2 + 96 : 28),
-    font = Math.max(40, Math.min(w <= 700 ? 84 : 108, centerWidth * 0.15, h * 0.12)),
-    gap = h < 650 ? 6 : Math.max(10, Math.min(24, h * 0.022));
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const aboveRef = useRef<HTMLDivElement>(null);
-  const [toolbarHeight, setToolbarHeight] = useState(76);
-  const [aboveHeight, setAboveHeight] = useState(180);
-  useLayoutEffect(() => {
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target === toolbarRef.current) setToolbarHeight(entry.contentRect.height);
-        if (entry.target === aboveRef.current) setAboveHeight(entry.contentRect.height);
-      }
-    });
-    if (toolbarRef.current) observer.observe(toolbarRef.current);
-    if (aboveRef.current) observer.observe(aboveRef.current);
-    return () => observer.disconnect();
-  }, []);
+    mobile = w <= MOBILE,
+    // First-block training runs like the timer, on its own scrambles.
+    cross = s.crossTraining,
+    training = s.page === "training" && !cross,
+    // Wide windows keep the session in view; narrower ones open it on demand.
+    timesAlways = !mobile && (training ? w >= 1360 : w >= 1000),
+    timesColumn = !mobile && (timesAlways || s.showTimes),
+    compact = w <= 900 || h <= 700;
   const enabled =
       !s.saving &&
       !s.generating &&
       !s.error &&
       (!training || (!!s.practiceSelected.size && s.practiceSelected.has(s.training?.id))),
     timer = useTimer(enabled),
-    typing = !training && s.entry === "typing";
+    typing = s.page === "playground" && s.entry === "typing";
   const [typed, setTyped] = useState("");
   const typedRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -412,23 +444,14 @@ function Practice() {
     if (typing && !s.overlay) typedRef.current?.focus();
   }, [typing, s.overlay, s.timerEpoch]);
   const c = training ? s.find(s.training?.id) : null,
+    ready = training ? !!c && s.practiceSelected.has(c.id) : true,
     cubeSize = training ? 0 : s.info()?.cubeSize,
-    scrambleCubeSize = training ? c?.cube_size ?? 3 : cubeSize,
-    scrambleFont = !scrambleCubeSize || scrambleCubeSize > 3
-      ? Math.max(16, Math.min(20, w * 0.015))
-      : Math.max(22, Math.min(30, w * 0.022)),
-    hasCube = training ? c && !c.flat && !c.diagram : !!cubeSize,
-    small = h < 700,
-    setupFont = scrambleFont,
-    algoFont = small ? 15 : 17,
-    minText = setupFont * 1.6 + (s.revealed ? algoFont * 1.6 : 0),
-    fixed = s.revealed ? 170 : 138;
-  const previewBudget = aboveHeight - (training ? fixed + minText : 104),
-    previewSize = (training && h <= 550) || previewBudget < 32 ? 0 : Math.min(training ? 150 : h < 700 ? 96 : 156, previewBudget),
-    textBudget = Math.max(minText, aboveHeight - fixed - previewSize),
-    setupHeight = s.revealed
-      ? (textBudget * setupFont) / (setupFont + algoFont)
-      : textBudget;
+    hasCube = training ? !!c && !c.flat && !c.diagram : !!cubeSize,
+    text = (training ? s.training?.setup : s.scramble) ?? "",
+    promptFont = mobile
+      ? text.length > 90 ? 15 : 19
+      : text.length > 220 ? 16 : text.length > 120 ? (compact ? 17 : 20) : compact ? 22 : 27,
+    previewSize = mobile ? (h < 760 ? 0 : 76) : h < 700 ? 92 : w < 1200 ? 112 : 132;
   const hint = !enabled
     ? "Select cases to begin"
     : timer.phase === "Holding"
@@ -436,535 +459,625 @@ function Practice() {
       : timer.phase === "Ready"
         ? "Release to start"
         : timer.phase === "Running"
-          ? w <= 700
-            ? "Tap to stop"
-            : "Any key to stop"
-          : `${!training && s.entry === "casual" ? "Not saved · " : ""}${w <= 700 ? "Hold, then release to start" : "Hold Space, release to start"}`;
+          ? mobile ? "Tap to stop" : "Any key to stop"
+          : `${s.page === "playground" && s.entry === "casual" ? "Not saved · " : ""}${mobile ? "Hold, then release to start" : "Hold Space, release to start"}`;
   const last = s.solves.find((v) => v.id === s.lastSolve);
-  return (
-    <div
-      className={"practice " + (timer.phase === "Running" ? "running" : "")}
-      style={
-        {
-          "--toolbar-height": toolbarHeight + "px",
-          "--gap": gap + "px",
-          "--rail": rail + "px",
-        } as React.CSSProperties
-      }
-    >
-      <div
-        className="practice-center"
-        style={{ width: centerWidth, left: (w - centerWidth) / 2, paddingTop: s.notice ? 48 : 12 }}
-      >
-        {s.notice && (
-          <div className="notice">
-            <Icon name={training ? "IconCheck" : "IconTrophy"} />
-            {s.notice}
-          </div>
-        )}
-        <div ref={aboveRef} className={"practice-above" + (training ? " training-above" + (s.revealed ? " revealed" : "") : "")}>
-          {training ? (
-            c && s.practiceSelected.has(c.id) ? (
-              <>
-                <Row className={"case-caption" + (learning ? " daily-caption" : "")}>
-                  {!learning && <Button action="previous" icon="IconBack" />}
-                  <Button action={"case:" + c.id} className="case-title">
-                    {c.name}
-                  </Button>
-                  <span className={learning ? "muted daily-status" : "muted case-kind"}>
-                    {learning ? s.dailyStatus : c.setLabel + (c.group && c.group !== c.setLabel ? " · " + c.group : "")}
-                  </span>
-                  {!learning && <Button action="next" icon="IconChevronRight" />}
-                </Row>
-                <div className="practice-alg">
-                  <Heading>Setup</Heading>
-                  <div style={{ maxHeight: setupHeight }}>
-                    <Alg text={s.training.setup} size={setupFont} />
-                  </div>
-                </div>
-                {s.revealed && (
-                  <div className="practice-alg">
-                    <Heading>Algorithm</Heading>
-                    <div style={{ maxHeight: textBudget - setupHeight }}>
-                      <Alg text={s.training.algorithm} size={algoFont} />
-                    </div>
-                  </div>
-                )}
-                <Row className="practice-help">
-                  <Button action="solution">
-                    {s.revealed ? "Hide solution" : "Show solution"}
-                    <Icon name="IconEye" size={14} />
-                  </Button>
-                  {c.algorithms[0]?.youtube && (
-                    <Button
-                      action={"url:" + c.algorithms[0].youtube}
-                      title="Watch finger tricks video"
-                    >
-                      Watch video
-                    </Button>
-                  )}
-                </Row>
-                {previewSize > 0 && (hasCube ? (
-                  <Cube
-                    setup={s.training.setup}
-                    cubeSize={c.cube_size ?? 3}
-                    mask={maskForStage(c.stage)}
-                    size={previewSize}
-                    replay={s.replay}
-                  />
-                ) : s.training.svg ? (
-                  <div
-                    style={{ width: previewSize, height: previewSize }}
-                    className="svg-diagram"
-                    dangerouslySetInnerHTML={{ __html: s.training.svg }}
-                  />
-                ) : (
-                  <Diagram c={c} size={previewSize} />
-                ))}
-              </>
-            ) : (
-              <>
-                <Icon name="IconGrid" size={34} />
-                <h2>{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</h2>
-                <p className="muted">{learning ? s.dailyStatus : "Select the cases you want to practise."}</p>
-                {!learning && <Button action="cases" active>Choose cases</Button>}
-                {track && !reviewing && s.trackLearnedCount > 0 && <Button action={"learningMode:review:" + track} active>Train learned</Button>}
-              </>
-            )
-          ) : (
-            <>
-              {hasCube && previewSize > 0 && (
-                <Cube
-                  setup={s.scramble}
-                  cubeSize={cubeSize}
-                  size={previewSize}
-                  replay={s.replay}
-                />
-              )}
-              <Heading>
-                {s.label("puzzles", s.puzzle)} ·{" "}
-                {s.label("scrambles", s.scrambleType)}
-              </Heading>
-              <div
-                className="scramble"
-                style={{
-                  maxHeight: Math.max(
-                    40,
-                    aboveHeight - (hasCube ? previewSize : 0) - 40,
-                  ),
-                }}
-              >
-                {s.generating && !s.scramble ? (
-                  <span className="muted">Generating…</span>
-                ) : (
-                  <Alg
-                    text={s.scramble}
-                    size={scrambleFont}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </div>
+  const metrics = s.metrics();
+  const preview = previewSize > 0 && ready && (
+    <div className="prompt-visual">
+      {hasCube ? (
+        <Cube
+          setup={training ? s.training.setup : s.scramble}
+          cubeSize={training ? c.cube_size ?? 3 : cubeSize}
+          mask={training ? maskForStage(c.stage) : undefined}
+          size={previewSize}
+          replay={s.replay}
+        />
+      ) : training && s.training?.svg ? (
         <div
-          className={"timer " + timer.phase.toLowerCase()}
-          data-phase={timer.phase}
-          style={
-            {
-              "--timer-font": font + "px",
-            } as React.CSSProperties
-          }
-          onPointerDown={(e) => {
-            if (e.target instanceof HTMLInputElement) return;
-            if (w <= 700 || timer.phase === "Running") timer.press();
-          }}
-          onPointerUp={timer.release}
+          style={{ width: previewSize, height: previewSize }}
+          className="svg-diagram"
+          dangerouslySetInnerHTML={{ __html: s.training.svg }}
+        />
+      ) : training ? (
+        <Diagram c={c} size={previewSize} />
+      ) : null}
+    </div>
+  );
+  const timesToggle = !timesAlways && (
+    <Button action="times" active={s.showTimes} icon="IconTimer" className="control collapsible" title="Times (Alt+T)">
+      <span className="control-label">{training ? "Session" : "Times"}</span>
+    </Button>
+  );
+  const replay = hasCube && ready && (
+    <Button action="replayCube" className="control collapsible" title="Replay the scramble on the cube">
+      <Icon name="IconUndo" size={14} />
+      <span className="control-label">Replay</span>
+    </Button>
+  );
+  return (
+    <div className={"page practice " + (timer.phase === "Running" ? "running" : "")}>
+      {cross ? (
+        <PageHead
+          title="Training"
+          puzzle
+          lead={<ChangeTraining />}
+          sub={`Cross + 1 · ${s.crossMoves} moves`}
         >
-          {typing ? (
-            <input
-              ref={typedRef}
-              className="typed-time"
-              aria-label="Time"
-              placeholder="0.00"
-              value={typed}
-              onChange={(e) =>
-                setTyped(e.target.value.replace(/[^\d.,:]/g, ""))
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const ms = parseTypedTime(typed);
-                  if (ms && enabled) {
-                    setTyped("");
-                    void s.save(ms);
-                  }
-                }
-              }}
-            />
-          ) : (
-            <div className="timer-digits mono">
-              {(timer.phase === "Holding" || timer.phase === "Ready"
-                ? "0.000"
-                : fmtTime(timer.elapsed)
-              )
-                .split("")
-                .map((ch, i) => (
-                  <span key={i}>{ch}</span>
-                ))}
-            </div>
-          )}
-          <div className="timer-hint">
-            {typing
-              ? typed
-                ? parseTypedTime(typed)
-                  ? `${fmtTime(parseTypedTime(typed))} · Enter to save`
-                  : "Not a time"
-                : "Type your time, then Enter: 1234 is 12.34"
-              : hint}
-          </div>
-        </div>
-        <div className="practice-below">
-          <Row className="solve-actions">
-            {last && !s.saving && (
-              <>
-                <Button
-                  action={"delete:" + last.id}
-                  icon="IconClose"
-                  className="danger"
-                />
-                <Button
-                  action={"penalty:" + last.id + ":dnf"}
-                  active={last.penalty === "dnf"}
-                >
-                  DNF
-                </Button>
-                <Button
-                  action={"penalty:" + last.id + ":+2"}
-                  active={last.penalty === "+2"}
-                  icon="IconFlag"
-                >
-                  +2
-                </Button>
-                <Button
-                  action={"comment:" + last.id}
-                  icon="IconComment"
-                  className={last.comment ? "accent" : ""}
-                />
-              </>
-            )}
-          </Row>
-          <div
-            className="practice-metrics"
-            style={{
-              marginTop: gap,
-              gap: Math.max(16, Math.min(40, w * 0.035)),
-            }}
-          >
-            {s.metrics().map(([label, value]) => (
-              <Kpi key={label} label={label} value={value} />
+          <div className="segmented" role="group" aria-label="Moves">
+            {CROSS_PLUS_ONE_MOVES.map((n) => (
+              <Button key={n} action={"crossMoves:" + n} active={s.crossMoves === n} highlight="cross-moves" title={`Cross + 1 in ${n} moves`}>
+                {n} moves
+              </Button>
             ))}
           </div>
-        </div>
-      </div>
-      <div className="practice-toolbar" ref={toolbarRef}>
-        <Row>
-          {training ? (
-            <>
-              {<Button action="menu:learningModes">{track ? `Learn ${track}` : reviewing ? "Review learned" : w <= 700 || h <= 550 ? "Practice" : "Free practice"}<Icon name="IconChevronDown" size={12} /></Button>}
-              {learning && !reviewing && <Button action="menu:learningGroups" icon="IconGrid">Groups</Button>}
-              {track && (
-                <Button
-                  action={"learningMode:" + (reviewing ? track : "review:" + track)}
-                  active={reviewing}
-                  highlight
-                  className={reviewing ? "soft" : ""}
-                  disabled={!reviewing && !s.trackLearnedCount}
-                  title={`Train every learned ${track} case`}
-                >
-                  {w <= 700 || h <= 550 ? "Review" : "Train learned"}
-                </Button>
-              )}
-              {!learning && !wide && (
-                <Button action="cases" active={s.showCases} icon="IconGrid">
-                  Cases
-                </Button>
-              )}
-              {c && (
-                <Button
-                  action={"learn:" + c.id}
-                  className={s.learned.has(c.id) ? "good" : ""}
-                  icon={s.learned.has(c.id) ? "IconCheck" : undefined}
-                >
-                  {s.learned.has(c.id) ? "Learned" : "Mark learned"}
-                </Button>
-              )}
-              {reviewing && <Button action="next" icon="IconChevronRight">Next</Button>}
-              <Button
-                action="auf"
-                active={s.randomAuf}
-                highlight
-                className={s.randomAuf ? "soft" : ""}
-              >
-                {w <= 700 || h <= 550 ? "AUF" : "Random AUF"}
-                <Icon name="IconShuffle" size={15} />
-              </Button>
-            </>
-          ) : (
-            <>
-              {[
-                ["scrambles", s.label("scrambles", s.scrambleType)],
-                ["modes", s.label("solveModes", s.solveMode)],
-                [
-                  "entries",
-                  s.entry === "typing"
-                    ? "Typing"
-                    : s.entry === "casual"
-                      ? "Casual"
-                      : "Timer",
-                ],
-              ].map(([key, label]) => (
-                <Button key={key} action={"menu:" + key}>
-                  {label}
-                  <Icon name="IconChevronDown" size={12} />
-                </Button>
-              ))}
-            </>
-          )}
-        </Row>
-        <Row>
-          {hasCube && (
-            <Button action="replayCube">
-              Replay
-              <Icon name="IconUndo" size={15} />
-            </Button>
-          )}
-          {!training && (
-            <Button action="next" icon="IconShuffle">
-              New scramble
-            </Button>
-          )}
-          <Button
-            action="times"
-            active={s.showTimes}
-            highlight
-            icon="IconTimer"
-          >
-            Times
+          <span className="control-gap" />
+          {replay}
+          <Button action="next" icon="IconShuffle" className="control collapsible" title="New scramble (Alt+N)">
+            <span className="control-label">New scramble</span>
           </Button>
-        </Row>
-      </div>
-      {wide ? (
-        <>
-          {training && !learning && (
-            <aside className="rail left">
-              {s.showCases ? (
-                <Selector />
-              ) : (
-                <Button action="cases" icon="IconGrid">
-                  Cases
-                </Button>
-              )}
-            </aside>
+          {timesToggle}
+        </PageHead>
+      ) : training ? (
+        <PageHead
+          title="Training"
+          puzzle
+          lead={<ChangeTraining />}
+          sub={track ? `Learn ${track}` : reviewing ? "Review learned" : "Free practice · " + plural(s.practiceSelected.size, "case")}
+        >
+          {learning && !reviewing && (
+            <Button action="menu:learningGroups" icon="IconGrid" className="control">
+              Groups
+            </Button>
           )}
-          {s.showTimes && (
-            <aside className="rail right">
-              <Times />
-            </aside>
+          {track && (
+            <Button
+              action={"learningMode:" + (reviewing ? track : "review:" + track)}
+              active={reviewing}
+              className="control"
+              disabled={!reviewing && !s.trackLearnedCount}
+              title={`Train every learned ${track} case`}
+            >
+              {mobile ? "Review" : "Train learned"}
+            </Button>
           )}
-        </>
+          {reviewing && <Button action="next" icon="IconChevronRight" className="control">Next</Button>}
+          <Button action="auf" active={s.randomAuf} className="control collapsible" title="Random AUF (Alt+A)">
+            <Icon name="IconShuffle" size={14} />
+            <span className="control-label">Random AUF</span>
+          </Button>
+          {replay}
+          {timesToggle}
+        </PageHead>
       ) : (
-        ((s.showCases && training && !learning) || s.showTimes) && (
-          <div
-            className="sheet-backdrop"
-            onClick={() => {
-              s.showCases = s.showTimes = false;
-              s.emit();
+        <PageHead
+          title="Timer"
+          puzzle
+          sub={`${s.label("puzzles", s.puzzle)} · ${s.label("solveModes", s.solveMode)}`}
+        >
+          <Menu action="scrambles">{s.label("scrambles", s.scrambleType)}</Menu>
+          <Menu action="modes">{s.label("solveModes", s.solveMode)}</Menu>
+          <Menu action="entries">{s.entry === "typing" ? "Typing" : s.entry === "casual" ? "Casual" : "Timer"}</Menu>
+          <span className="control-gap" />
+          {replay}
+          <Button action="next" icon="IconShuffle" className="control collapsible" title="New scramble (Alt+N)">
+            <span className="control-label">New scramble</span>
+          </Button>
+          {timesToggle}
+        </PageHead>
+      )}
+      <div
+        className="practice-body"
+        style={{
+          gridTemplateColumns: ["minmax(0, 1fr)", timesColumn && "var(--times-width)"]
+            .filter(Boolean)
+            .join(" "),
+        }}
+      >
+        <div className="stage">
+          <section className={"prompt" + (training ? " training-prompt" : "")}>
+            {training ? (
+              ready ? (
+                <div className="prompt-main">
+                  <div className="case-caption">
+                    <Button action={"case:" + c.id} className="case-title" title="Open the case">
+                      {c.name}
+                    </Button>
+                    <span className="case-kind">
+                      {learning ? s.dailyStatus : c.setLabel + (c.group && c.group !== c.setLabel ? " · " + c.group : "")}
+                    </span>
+                    <span className="case-nav">
+                      <Button
+                        action={"learn:" + c.id}
+                        className={"control " + (s.learned.has(c.id) ? "is-learned" : "")}
+                        icon={s.learned.has(c.id) ? "IconCheck" : undefined}
+                      >
+                        {s.learned.has(c.id) ? "Learned" : "Mark learned"}
+                      </Button>
+                      {!learning && <Button action="previous" icon="IconBack" className="control icon-only" title="Previous case (Alt+P)" />}
+                      {!learning && <Button action="next" icon="IconChevronRight" className="control icon-only" title="Next case (Alt+N)" />}
+                    </span>
+                  </div>
+                  <div className="prompt-block">
+                    <span className="label">Setup</span>
+                    <div className="prompt-text">
+                      <Alg text={s.training.setup} size={promptFont} />
+                    </div>
+                  </div>
+                  {s.revealed && (
+                    <div className="prompt-block">
+                      <span className="label">Algorithm</span>
+                      <div className="prompt-text">
+                        <Alg text={s.training.algorithm} size={Math.max(15, promptFont - 5)} />
+                      </div>
+                    </div>
+                  )}
+                  <div className="prompt-actions">
+                    <Button action="solution" className="control" title="Show or hide the solution (Alt+H)">
+                      <Icon name="IconEye" size={14} />
+                      {s.revealed ? "Hide solution" : "Show solution"}
+                    </Button>
+                    {c.algorithms[0]?.youtube && (
+                      <Button action={"url:" + c.algorithms[0].youtube} className="control" title="Watch finger tricks video">
+                        Watch video
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="prompt-main prompt-empty">
+                  <strong>{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</strong>
+                  <span className="muted">{learning ? s.dailyStatus : "Select the cases you want to practise."}</span>
+                  <div className="prompt-actions">
+                    {!learning && <Button action="trainingSetup" className="primary">Choose cases</Button>}
+                    {track && !reviewing && s.trackLearnedCount > 0 && (
+                      <Button action={"learningMode:review:" + track} className="primary">Train learned</Button>
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="prompt-main">
+                <span className="label">
+                  Scramble · {cross ? `cross + 1 in ${s.crossMoves} moves` : s.label("scrambles", s.scrambleType)}
+                </span>
+                <div className="prompt-text scramble">
+                  {s.generating && !s.scramble ? (
+                    <span className="muted">Generating…</span>
+                  ) : (
+                    <Alg text={s.scramble} size={promptFont} />
+                  )}
+                </div>
+                {cross && <CrossSolution font={Math.max(15, promptFont - 5)} />}
+              </div>
+            )}
+            {preview}
+          </section>
+          <section
+            className={"timer " + timer.phase.toLowerCase()}
+            data-phase={timer.phase}
+            onPointerDown={(e) => {
+              if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest(".solve-actions")) return;
+              if (mobile || timer.phase === "Running") timer.press();
             }}
+            onPointerUp={timer.release}
           >
-            <aside className="sheet" onClick={(e) => e.stopPropagation()}>
-              {s.showTimes ? <Times /> : <Selector />}
-            </aside>
-          </div>
-        )
+            {s.notice && (
+              <div className="notice">
+                <Icon name={training ? "IconCheck" : "IconTrophy"} size={14} />
+                {s.notice}
+              </div>
+            )}
+            {typing ? (
+              <input
+                ref={typedRef}
+                className="typed-time"
+                aria-label="Time"
+                placeholder="0.00"
+                value={typed}
+                onChange={(e) => setTyped(e.target.value.replace(/[^\d.,:]/g, ""))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const ms = parseTypedTime(typed);
+                    if (ms && enabled) {
+                      setTyped("");
+                      void s.save(ms);
+                    }
+                  }
+                }}
+              />
+            ) : (
+              <div className="timer-digits mono">
+                {(timer.phase === "Holding" || timer.phase === "Ready" ? "0.000" : fmtTime(timer.elapsed))
+                  .split("")
+                  .map((ch, i) => (
+                    <span key={i}>{ch}</span>
+                  ))}
+              </div>
+            )}
+            <div className="timer-hint">
+              {typing
+                ? typed
+                  ? parseTypedTime(typed)
+                    ? `${fmtTime(parseTypedTime(typed))} · Enter to save`
+                    : "Not a time"
+                  : "Type your time, then Enter: 1234 is 12.34"
+                : hint}
+            </div>
+            <div className="solve-actions">
+              {last && !s.saving && (
+                <>
+                  <Button action={"penalty:" + last.id + ":+2"} active={last.penalty === "+2"} className="control">
+                    +2
+                  </Button>
+                  <Button action={"penalty:" + last.id + ":dnf"} active={last.penalty === "dnf"} className="control">
+                    DNF
+                  </Button>
+                  <Button
+                    action={"comment:" + last.id}
+                    icon="IconComment"
+                    className={"control icon-only " + (last.comment ? "has-comment" : "")}
+                    title="Comment"
+                  />
+                  <Button action={"delete:" + last.id} icon="IconTrash" className="control icon-only danger-hover" title="Delete this solve" />
+                </>
+              )}
+            </div>
+          </section>
+          <section className={"metrics" + (metrics.length > 4 ? " metrics-full" : "")}>
+            {metrics.map(([label, value, tone]) => (
+              <div key={label} className={"metric" + (tone ? " tone-" + tone : "")}>
+                <span className="label">{label}</span>
+                <span className="metric-value mono">{value}</span>
+              </div>
+            ))}
+          </section>
+        </div>
+        {timesColumn && (
+          <aside className="column column-right">
+            <Times closable={!timesAlways} />
+          </aside>
+        )}
+      </div>
+      {mobile && s.showTimes && (
+        <div
+          className="sheet-backdrop"
+          onClick={() => {
+            s.showCases = s.showTimes = false;
+            s.emit();
+          }}
+        >
+          <aside className="sheet" onClick={(e) => e.stopPropagation()}>
+            <Times closable />
+          </aside>
+        </div>
       )}
     </div>
   );
 }
-function Times() {
-  const training = s.page === "training";
+/** Optimal cross + 1 solutions under the scramble, held with white on the bottom as for a cross. */
+function CrossSolution({ font }: { font: number }) {
+  const solutions = s.revealed && s.crossSolutions?.scramble === s.scramble ? s.crossSolutions.list : undefined;
   return (
-    <div className="rail-content">
-      <Row className="between rail-title">
-        <strong>{training ? "Session" : "Times"}</strong>
-        <Button action="times" icon="IconClose" />
-      </Row>
-      <Row className="between muted times-count">
-        <span>{s.solves.length} solves</span>
-        {training && <Button action="undo">Undo</Button>}
-      </Row>
-      <div className="scroll times-list">
-        {training
-          ? trainingSessionRows<any, any>(
-              s.cases().filter((c: any) => s.practiceSelected.has(c.id) || s.solves.some(v => v.case_id === c.id)),
-              s.solves,
-            ).map(({ c, solves, best: fastest, mean: average, validCount }) => {
-                return (
-                  <Row key={c.id} className="session-case">
-                    <div className="session-picture">
-                      <Diagram c={c} size={44} />
-                      <span>{shortId(c)}</span>
-                    </div>
-                    <div className="session-values">
-                      {!solves.length ? (
-                        <span className="muted">—</span>
-                      ) : (
-                        <>
-                          {validCount > 1 && (
-                            <small className="mono muted">
-                              mean {fmtTime(average)}
-                            </small>
-                          )}
-                          <Row className="wrap">
-                            {[...solves].reverse().map((v) => (
-                              <Button
-                                key={v.id}
-                                action={"solve:" + v.id}
-                                className={
-                                  "time-badge mono " +
-                                  (v.penalty === "dnf"
-                                    ? "danger"
-                                    : effective(v.time_ms, v.penalty) ===
-                                        fastest
-                                      ? "soft"
-                                      : "")
-                                }
-                              >
-                                {fmtSolve(v.time_ms, v.penalty)}
-                                {v.comment && (
-                                  <Icon name="IconComment" size={11} />
-                                )}
-                              </Button>
-                            ))}
-                          </Row>
-                        </>
-                      )}
-                    </div>
-                  </Row>
-                );
-              })
-          : [...s.solves].reverse().map((v, i) => (
-              <Button key={v.id} action={"solve:" + v.id} className="time-row">
-                <span className="muted">{s.solves.length - i}</span>
-                <span
-                  className={"mono " + (v.penalty === "dnf" ? "danger" : "")}
-                >
-                  {fmtSolve(v.time_ms, v.penalty)}
-                </span>
-                {v.comment && <Icon name="IconComment" size={12} />}
-              </Button>
-            ))}
+    <>
+      {s.revealed && (
+        <div className="prompt-block">
+          <span className="label">Solution · x2, white on the bottom</span>
+          {solutions ? (
+            <div className="cross-solutions">
+              {solutions.map((v) => (
+                <div key={v.moves + v.slot} className="cross-solution">
+                  <Alg text={withWhiteDown(v.moves)} size={font} />
+                  <span className="mark">{slotWithWhiteDown(v.slot)} pair</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="cross-solutions" aria-hidden="true">
+              <span className="skeleton-line" style={{ height: font * 1.4, width: font * 9 }} />
+            </div>
+          )}
+        </div>
+      )}
+      <div className="prompt-actions">
+        <Button action="solution" className="control" title="Show or hide the solution (Alt+H)">
+          <Icon name="IconEye" size={14} />
+          {s.revealed ? "Hide solution" : "Show solution"}
+        </Button>
+      </div>
+    </>
+  );
+}
+/** Back to the training setup, from the header of a running training. */
+function ChangeTraining() {
+  return <Button action="trainingSetup" icon="IconBack" className="control icon-only" title="Change what to train" />;
+}
+type SetupMode = { id: string; label: string; detail: string; icon: string };
+function setupModes(): SetupMode[] {
+  const learned = (cases: any[]) => cases.filter((c) => s.learned.has(c.id)).length;
+  return [
+    ...(s.puzzle === "333" ? [{ id: "cross1", label: "Cross + 1", detail: `First block · ${s.crossMoves} moves`, icon: "IconCube" }] : []),
+    ...trainingModeOptions(s.puzzle).map(({ value, label }) => {
+      const pool = isLearningTrack(value) ? learningCases(catalog.cases, value) : [];
+      return {
+        id: value as string,
+        label,
+        icon: value === "practice" ? "IconGrid" : value === "review" ? "IconCheck" : "IconBook",
+        detail:
+          value === "practice"
+            ? plural(s.selected.size, "case") + " selected"
+            : value === "review"
+              ? plural(reviewCases(catalog.cases, s.learned, s.puzzle).length, "learned case")
+              : `${learned(pool)} / ${pool.length} learned`,
+      };
+    }),
+  ];
+}
+/** The mode the setup screen opens on: the one trained last. */
+function defaultSetupMode() {
+  if (s.trainingKind === "cross1" && s.puzzle === "333") return "cross1";
+  const mode = s.learningMode;
+  return isReviewMode(mode) ? "review" : learningTrackOf(mode) ?? "practice";
+}
+/** Training starts here: the modes on the left, the chosen one on the right with what it needs and its start button. */
+function TrainingSetup() {
+  const modes = setupModes(),
+    current = modes.find((m) => m.id === (s.setupMode || defaultSetupMode())) ?? modes[0]!;
+  return (
+    <div className="page training-setup">
+      <PageHead title="Training" puzzle sub="Choose what to practise" />
+      <div className="setup-body">
+        <nav className="setup-modes" aria-label="Training modes">
+          {modes.map((m) => (
+            <Button key={m.id} action={"setupMode:" + m.id} className={"setup-mode " + (m === current ? "selected" : "")} title={m.label}>
+              <Icon name={m.icon} size={16} />
+              <span className="setup-mode-text">
+                <strong>{m.label}</strong>
+                <span>{m.detail}</span>
+              </span>
+            </Button>
+          ))}
+        </nav>
+        <section className="setup-detail" key={current.id}>
+          {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup /> : <LearningSetup mode={current.id} />}
+        </section>
       </div>
     </div>
   );
 }
-function Selector() {
+function SetupStart({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
+  return (
+    <Button action={action} className="primary setup-start" icon="IconTimer" disabled={disabled}>
+      {children ?? "Start"}
+    </Button>
+  );
+}
+function CrossSetup() {
+  return (
+    <div className="setup-pane">
+      <header className="setup-pane-head">
+        <div className="setup-pane-title">
+          <span className="label">First block</span>
+          <h2>Cross + 1</h2>
+          <p className="muted">Scrambles whose white cross and one back F2L pair take exactly the chosen number of moves, held with white on the bottom (x2).</p>
+        </div>
+      </header>
+      <div className="setup-field">
+        <span className="label">Moves</span>
+        <div className="move-choice" role="radiogroup" aria-label="Moves">
+          {CROSS_PLUS_ONE_MOVES.map((n) => (
+            <Button key={n} action={"crossMoves:" + n} className={"move-option " + (s.crossMoves === n ? "selected" : "")} title={`${n} moves`}>
+              <span className="move-count mono">{n}</span>
+              <span>moves</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="setup-actions">
+        <SetupStart action="trainingStart:cross1" />
+      </div>
+    </div>
+  );
+}
+function CasesSetup() {
   const cases = s.cases();
   return (
-    <div className="rail-content">
-      <Row className="between rail-title">
-        <strong>Cases</strong>
-        <Button action="cases" icon="IconClose" />
-      </Row>
-      <Row className="between">
-        <span className="muted">{s.selected.size} selected</span>
-        <Button action="clear">Clear</Button>
-      </Row>
-      <input
-        placeholder="Search cases…"
-        aria-label="Search cases"
-        value={s.query}
-        onChange={(e) => {
-          s.query = e.target.value;
-          s.emit();
-        }}
-      />
-      <div className="scroll">
+    <div className="setup-pane setup-cases">
+      <header className="setup-pane-head">
+        <div className="setup-pane-title">
+          <span className="label">Free practice</span>
+          <h2>{plural(s.selected.size, "case")} selected</h2>
+        </div>
+        <div className="setup-pane-controls">
+          <input
+            className="setup-search"
+            placeholder="Search cases…"
+            aria-label="Search cases"
+            value={s.query}
+            onChange={(e) => {
+              s.query = e.target.value;
+              s.emit();
+            }}
+          />
+          <Button action="clear" className="control" disabled={!s.selected.size}>
+            Clear
+          </Button>
+          <SetupStart action="trainingStart:cases:practice" disabled={!s.selected.size} />
+        </div>
+      </header>
+      <div className="scroll setup-scroll">
         {s.allSets().map((set: any) => {
-          const all = cases.filter((c: any) => c.set === set.id),
-            chosen = all.filter((c: any) => matches(c, s.query)),
+          const chosen = cases.filter((c: any) => c.set === set.id && matches(c, s.query)),
             count = chosen.filter((c: any) => s.selected.has(c.id)).length,
             open = s.selectorOpen[set.id] ?? (count > 0 || !!s.query);
           if (!chosen.length) return null;
-          const groups = [
-            ...new Set(chosen.map((c: any) => c.group)),
-          ] as string[];
+          const groups = [...new Set(chosen.map((c: any) => c.group))] as string[];
           return (
-            <section key={set.id} className="selector-set">
-              <Heading>{set.stage}</Heading>
-              <Row>
-                <Button action={"selectSet:" + set.id} className="check-button">
+            <section key={set.id} className={"setup-set " + (open ? "open" : "")}>
+              <div className="setup-set-head">
+                <Button action={"selectSet:" + set.id} className="check-button" title={"Select " + set.label}>
                   <span className={"checkbox " + (count ? "checked" : "")}>
-                    {count ? (count === chosen.length ? "✓" : "−") : ""}
+                    {count ? <Icon name={count === chosen.length ? "IconCheck" : "IconMinus"} size={11} /> : null}
                   </span>
                 </Button>
-                <Button
-                  action={"selectorToggle:" + set.id}
-                  className="selector-title"
-                >
-                  {set.label}
+                <Button action={"selectorToggle:" + set.id} className="setup-set-title">
+                  <span className="setup-set-stage label">{set.stage}</span>
+                  <strong>{set.label}</strong>
                   <span className="mono muted">
-                    {count}/{chosen.length}
+                    {count} / {chosen.length}
                   </span>
-                  <Icon name={open ? "IconMinus" : "IconPlus"} size={14} />
+                  <Icon name={open ? "IconChevronDown" : "IconChevronRight"} size={12} />
                 </Button>
-              </Row>
+              </div>
               {open &&
-                groups.map((group) => (
-                  <React.Fragment key={group}>
-                    {groups.length > 1 && (
-                      <Button
-                        action={"selectGroup:" + set.id + ":" + group}
-                        className="selector-group"
-                      >
-                        {group}
-                        <span className="mono muted">
-                          {
-                            chosen.filter(
-                              (c: any) =>
-                                c.group === group && s.selected.has(c.id),
-                            ).length
-                          }
-                          /{chosen.filter((c: any) => c.group === group).length}
-                        </span>
-                      </Button>
-                    )}
-                    <div className="selector-grid">
-                      {chosen
-                        .filter((c: any) => c.group === group)
-                        .map((c: any) => (
+                groups.map((group) => {
+                  const members = chosen.filter((c: any) => c.group === group);
+                  return (
+                    <div key={group} className="setup-group">
+                      {groups.length > 1 && (
+                        <Button action={"selectGroup:" + set.id + ":" + group} className="setup-group-title">
+                          {group}
+                          <span className="mono muted">
+                            {members.filter((c: any) => s.selected.has(c.id)).length} / {members.length}
+                          </span>
+                        </Button>
+                      )}
+                      <div className="setup-grid">
+                        {members.map((c: any) => (
                           <Button
                             key={c.id}
                             action={"select:" + c.id}
-                            className={
-                              "selector-tile " +
-                              (s.selected.has(c.id) ? "soft" : "")
-                            }
+                            className={"setup-tile " + (s.selected.has(c.id) ? "chosen" : "")}
+                            title={c.name}
                           >
-                            <Diagram c={c} size={58} />
-                            <span>
-                              {shortId(c)}
-                            </span>
-                            {s.selected.has(c.id) && (
-                              <span className="selected-check">✓</span>
-                            )}
+                            <Diagram c={c} size={60} />
+                            <span>{shortId(c)}</span>
                           </Button>
                         ))}
+                      </div>
                     </div>
-                  </React.Fragment>
-                ))}
+                  );
+                })}
             </section>
           );
         })}
       </div>
+    </div>
+  );
+}
+function LearningSetup({ mode }: { mode: string }) {
+  const review = mode === "review",
+    track = isLearningTrack(mode) ? mode : undefined,
+    pool = track ? learningCases(catalog.cases, track) : reviewCases(catalog.cases, s.learned, s.puzzle),
+    learned = pool.filter((c) => s.learned.has(c.id)).length;
+  const figures: [string, number][] = review
+    ? [["Learned cases", pool.length]]
+    : [["Cases", pool.length], ["Learned", learned], ["Left", pool.length - learned]];
+  return (
+    <div className="setup-pane">
+      <header className="setup-pane-head">
+        <div className="setup-pane-title">
+          <span className="label">{review ? "Review" : "Daily learning"}</span>
+          <h2>{review ? "Review learned" : `Learn ${track}`}</h2>
+          <p className="muted">
+            {review ? "Every case you marked as learned, drawn at random." : `One new ${track} case a day, group by group, until the set is learned.`}
+          </p>
+        </div>
+      </header>
+      <div className="setup-figures">
+        {figures.map(([label, value]) => (
+          <div key={label} className="metric">
+            <span className="label">{label}</span>
+            <span className="metric-value mono">{value}</span>
+          </div>
+        ))}
+      </div>
+      <div className="setup-actions">
+        <SetupStart action={"trainingStart:cases:" + mode} disabled={review && !pool.length} />
+      </div>
+    </div>
+  );
+}
+function Times({ closable = true }: { closable?: boolean }) {
+  const training = s.practicePage() === "training";
+  return (
+    <div className="column-content">
+      <div className="column-head">
+        <strong>{training ? "Session" : "Times"}</strong>
+        <span className="mono muted">{s.solves.length}</span>
+        <span className="column-head-actions">
+          {training && !!s.solves.length && <Button action="undo" className="control">Undo</Button>}
+          {closable && <Button action="times" icon="IconClose" className="control icon-only" title="Close" />}
+        </span>
+      </div>
+      {training ? (
+        <div className="scroll times-list">
+          {trainingSessionRows<any, any>(
+            s.cases().filter((c: any) => s.practiceSelected.has(c.id) || s.solves.some((v) => v.case_id === c.id)),
+            s.solves,
+          ).map(({ c, solves, best: fastest, mean: average, validCount }) => (
+            <div key={c.id} className="session-case">
+              <div className="session-picture">
+                <Diagram c={c} size={40} />
+                <span>{shortId(c)}</span>
+              </div>
+              <div className="session-values">
+                {!solves.length ? (
+                  <span className="muted">—</span>
+                ) : (
+                  <>
+                    {validCount > 1 && <small className="mono muted">mean {fmtTime(average)}</small>}
+                    <div className="row wrap">
+                      {[...solves].reverse().map((v) => (
+                        <Button
+                          key={v.id}
+                          action={"solve:" + v.id}
+                          className={
+                            "time-badge mono " +
+                            (v.penalty === "dnf" ? "is-dnf" : effective(v.time_ms, v.penalty) === fastest ? "is-best" : "")
+                          }
+                        >
+                          {fmtSolve(v.time_ms, v.penalty)}
+                          {v.comment && <Icon name="IconComment" size={11} />}
+                        </Button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="times-head">
+            <span>#</span>
+            <span>Time</span>
+          </div>
+          <div className="scroll times-list">
+            {!s.solves.length && <div className="column-empty">No solves in this session yet.</div>}
+            {[...s.solves].reverse().map((v, i) => (
+              <div key={v.id} className="times-row">
+                <span className="mono muted">{s.solves.length - i}</span>
+                <span className={"mono times-value " + (v.penalty === "dnf" ? "danger" : "")}>
+                  {fmtSolve(v.time_ms, v.penalty)}
+                  {v.comment && <Icon name="IconComment" size={11} />}
+                </span>
+                <span className="times-actions">
+                  <Button action={"penalty:" + v.id + ":+2"} active={v.penalty === "+2"} className="times-action" title="+2">
+                    +2
+                  </Button>
+                  <Button action={"penalty:" + v.id + ":dnf"} active={v.penalty === "dnf"} className="times-action" title="DNF">
+                    DNF
+                  </Button>
+                  <Button action={"delete:" + v.id} icon="IconTrash" className="times-action icon-only danger-hover" title="Delete this solve" />
+                  <Button action={"solve:" + v.id} icon="IconInfo" className="times-action icon-only" title="Scramble and details" />
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -980,131 +1093,102 @@ function useScrollPosition(key: string) {
   }, [key]);
   return ref;
 }
-function Catalog() {
-  const scroll = useScrollPosition(`catalog:${s.puzzle}`);
-  const sections = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, s.learningFilter);
-  const stages = sections.map(section => section.stage);
+/** Algorithms: the case list on the left and the chosen case on the right; phones open the case as a page. */
+function Algorithms() {
+  const mobile = useViewport().w <= MOBILE;
+  const sections = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, "all");
   const learned = sections.reduce((sum, section) => sum + section.learnedCount, 0);
   const total = sections.reduce((sum, section) => sum + section.all.length, 0);
+  if (mobile && s.caseId) return <Detail />;
   return (
-    <div className="page catalog-page">
-      <Row className="wrap catalog-toolbar">
-        <Row>
-          {stages.map((stage) => (
-            <Button
-              key={stage}
-              action={"stage:" + stage}
-              active={(s.catalogStage || stages[0]) === stage}
-            >
-              {stage}
+    <div className="page algorithms-page">
+      <PageHead title="Algorithms" puzzle sub={`${learned} of ${total} learned`}>
+        <Button action="search" className="control" title="Search cases (Ctrl+K)">
+          <span className="control-label">Search</span>
+          <kbd>Ctrl K</kbd>
+        </Button>
+        <Button action="methods" icon="IconBook" className="control collapsible" title="Solving methods">
+          <span className="control-label">Methods</span>
+        </Button>
+      </PageHead>
+      <div className="master-detail">
+        <CaseList />
+        {!mobile && (
+          <div className="md-detail">{s.caseId && s.find(s.caseId) ? <CaseDetail key={s.caseId} /> : <SetSummary />}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+function currentSection() {
+  const sections = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, s.learningFilter),
+    stages: string[] = sections.map((section) => section.stage),
+    stage = stages.includes(s.catalogStage) ? s.catalogStage : stages[0];
+  return { sections, stages, stage, section: sections.find((section) => section.stage === stage) };
+}
+function CaseList() {
+  const scroll = useScrollPosition(`catalog:${s.puzzle}:${s.catalogStage}`);
+  const { sections, stages, stage, section } = currentSection();
+  const all = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, "all").find((x) => x.stage === stage);
+  const setLearned = all ? all.learnedCount : 0,
+    setTotal = all ? all.all.length : 0;
+  return (
+    <div className="md-list">
+      <div className="md-list-head">
+        <div className="tabs" role="tablist" aria-label="Stage">
+          {stages.map((st) => (
+            <Button key={st} action={"stage:" + st} className={"tab " + (st === stage ? "selected" : "")}>
+              {st}
             </Button>
           ))}
-        </Row>
-        <Row>
-          <Button action="methods" icon="IconBook" title="Solving methods">
-            Methods
-          </Button>
-          <Button
-            action="learningFilter:learned"
-            active={s.learningFilter === "learned"}
-          >
-            Learned <span className="mono">{learned}</span>
-          </Button>
-          <Button
-            action="learningFilter:not-learned"
-            active={s.learningFilter === "not-learned"}
-          >
-            Not learned <span className="mono">{total - learned}</span>
-          </Button>
-        </Row>
-      </Row>
-      <div ref={scroll} className="scroll catalog-scroll">
-        {sections.map(({ stage, active: set, variants, groups }) => {
+        </div>
+        {section && section.variants.length > 1 && (
+          <div className="segmented" role="group" aria-label="Set">
+            {section.variants.map((v: any) => (
+              <Button key={v.id} action={"set:" + v.id} active={v.id === section.active.id}>
+                {v.label.startsWith(stage + " ") ? v.label.slice(stage.length + 1) : v.label}
+                <span className="mono muted">{v.count}</span>
+              </Button>
+            ))}
+          </div>
+        )}
+        <div className="md-filter">
+          <div className="segmented" role="group" aria-label="Filter">
+            {[
+              ["all", "All", setTotal],
+              ["learned", "Learned", setLearned],
+              ["not-learned", "To learn", setTotal - setLearned],
+            ].map(([id, label, count]) => (
+              <Button key={id as string} action={"learningFilter:" + id} active={s.learningFilter === id}>
+                {label}
+                <span className="mono muted">{count}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div ref={scroll} className="scroll md-list-scroll">
+        {section && !section.groups.length && (
+          <Empty>
+            {s.learningFilter === "learned" ? "No learned cases in this set yet." : "Every case of this set is learned."}
+          </Empty>
+        )}
+        {section?.groups.map(([group, members]: [string, any[]]) => {
+          const key = section.active.id + ":" + group,
+            closed = s.collapsed.has(key);
           return (
-            <section
-              id={"stage-" + stage}
-              key={stage}
-              className="catalog-stage"
-            >
-              <Row className="between wrap stage-title">
-                <h2>{stage}</h2>
-                <Row>
-                  {variants.map((v: any) => (
-                      <Button
-                        key={v.id}
-                        action={"set:" + v.id}
-                        active={v.id === set.id}
-                      >
-                        {v.label.startsWith(stage + " ")
-                          ? v.label.slice(stage.length + 1)
-                          : v.label}
-                        <span className="mono muted">{v.count}</span>
-                      </Button>
-                    ))}
-                </Row>
-              </Row>
-              {!groups.length && (
-                <Empty>
-                  {s.learningFilter === "learned"
-                    ? "No learned cases in this set yet."
-                    : "No not learned cases in this set."}
-                </Empty>
-              )}
-              {groups.map(([group, members]) => {
-                const key = set.id + ":" + group;
-                return (
-                  <section key={group} className="catalog-group">
-                    <Row className="between group-title">
-                      <Button
-                        action={"collapse:" + key}
-                        icon={
-                          s.collapsed.has(key)
-                            ? "IconChevronRight"
-                            : "IconChevronDown"
-                        }
-                      >
-                        {group}
-                        <small>
-                          {members.length}
-                        </small>
-                      </Button>
-                      <Button action={"train:" + key} icon="IconTimer">
-                        Train all
-                      </Button>
-                    </Row>
-                    {!s.collapsed.has(key) && (
-                      <div className="catalog-grid">
-                        {members.map((c: any) => {
-                            const st = s.stats.find((v) => v.caseId === c.id);
-                            return (
-                              <div key={c.id} className="catalog-tile">
-                                {st && <span className="trained-dot" />}
-                                <Button
-                                  action={"case:" + c.id}
-                                  className="tile-open"
-                                >
-                                  <Diagram c={c} />
-                                  <strong>
-                                    {shortId(c)}
-                                  </strong>
-                                  {c.name !== c.id && (
-                                    <span className="tile-name">{c.name}</span>
-                                  )}
-                                  <span className="mono muted tile-stats">
-                                    {st
-                                      ? `${fmtTime(st.best)} · ${fmtTime(st.mean)}`
-                                      : "—"}
-                                  </span>
-                                </Button>
-                                <Learned id={c.id} />
-                              </div>
-                            );
-                          })}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
+            <section key={group} className="list-group">
+              <div className="list-group-head">
+                <Button action={"collapse:" + key} className="list-group-title">
+                  <Icon name={closed ? "IconChevronRight" : "IconChevronDown"} size={12} />
+                  <span>{group}</span>
+                  <span className="mono muted">{members.length}</span>
+                </Button>
+                <Button action={"train:" + key} icon="IconTimer" className="list-group-train" title={`Train ${group}`}>
+                  Train
+                </Button>
+              </div>
+              {!closed && members.map((c: any) => <CaseRow key={c.id} c={c} />)}
             </section>
           );
         })}
@@ -1112,111 +1196,185 @@ function Catalog() {
     </div>
   );
 }
-function Detail() {
-  const c = s.find(s.caseId);
-  if (!c) return <Empty>Case unavailable.</Empty>;
+function CaseRow({ c }: { c: any }) {
+  const st = s.stats.find((v) => v.caseId === c.id),
+    learned = s.learned.has(c.id);
+  return (
+    <div className={"case-row" + (s.caseId === c.id ? " selected" : "")}>
+      <Button action={"case:" + c.id} className="case-row-open" title={c.id}>
+        <span className="case-row-diagram">
+          <Diagram c={c} size={36} />
+        </span>
+        <span className="case-row-name">
+          <strong>{shortId(c)}</strong>
+          {c.name !== c.id && <span>{c.name}</span>}
+        </span>
+        <span className="mono case-row-time">{st ? fmtTime(st.best) : "—"}</span>
+      </Button>
+      <Button
+        action={"learn:" + c.id}
+        className={"case-check " + (learned ? "yes" : "")}
+        title={learned ? "Learned" : "Mark learned"}
+      >
+        <span className="checkbox">{learned && <Icon name="IconCheck" size={11} />}</span>
+      </Button>
+    </div>
+  );
+}
+/** Right pane before a case is chosen: where the chosen set stands. */
+function SetSummary() {
+  const { stage, section } = currentSection();
+  const all = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, "all").find((x) => x.stage === stage);
+  if (!all) return <Empty>No cases for this puzzle.</Empty>;
+  const trained = all.all.filter((c: any) => s.stats.some((v) => v.caseId === c.id)).length;
+  return (
+    <div className="set-summary">
+      <span className="label">{stage}</span>
+      <h2>{all.active.label}</h2>
+      {all.active.description && <p className="muted">{all.active.description}</p>}
+      <div className="summary-figures">
+        <div className="metric">
+          <span className="label">Cases</span>
+          <span className="metric-value mono">{all.all.length}</span>
+        </div>
+        <div className="metric">
+          <span className="label">Learned</span>
+          <span className="metric-value mono">{all.learnedCount}</span>
+        </div>
+        <div className="metric">
+          <span className="label">Trained</span>
+          <span className="metric-value mono">{trained}</span>
+        </div>
+      </div>
+      <Progress ratio={all.all.length ? all.learnedCount / all.all.length : 0} />
+      {section?.groups.length ? (
+        <div className="row">
+          <Button action={"train:" + all.active.id + ":" + section.groups[0][0]} icon="IconTimer" className="primary">
+            Train {section.groups[0][0]}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+const SOURCES: Record<string, string> = { speedcubedb: "SpeedCubeDB", jperm: "J Perm", f2ltrainer: "F2L Trainer" };
+/** One case in full: diagram, setup, algorithms and its statistics. */
+function CaseDetail() {
+  const c = s.find(s.caseId),
+    mobile = useViewport().w <= MOBILE;
   const ids = s
       .cases()
       .filter((v: any) => v.set === c.set)
       .map((v: any) => v.id),
-    index = ids.indexOf(c.id);
+    index = ids.indexOf(c.id),
+    st = s.stats.find((v) => v.caseId === c.id),
+    learned = s.learned.has(c.id);
   return (
-    <div className="page detail-page">
-      <Row>
-        <Button action="back" icon="IconBack">
-          {c.setLabel}
-        </Button>
-      </Row>
+    <div className="detail">
       <div className="scroll detail-scroll">
-        <Row className="detail-hero">
-          <div className="col center">
+        <div className="detail-hero">
+          <div className="detail-visual">
             {c.cube ? (
-              <>
-                <Cube
-                  setup={c.setup}
-                  cubeSize={c.cube_size ?? 3}
-                  mask={maskForStage(c.stage)}
-                  size={180}
-                  replay={s.replay}
-                />
-                <Button action="replayCube">
-                  Replay scramble
-                  <Icon name="IconUndo" size={14} />
-                </Button>
-              </>
+              <Cube setup={c.setup} cubeSize={c.cube_size ?? 3} mask={maskForStage(c.stage)} size={mobile ? 150 : 216} replay={s.replay} />
             ) : (
-              <Diagram c={c} size={150} />
+              <Diagram c={c} size={mobile ? 136 : 196} />
             )}
           </div>
-          <div className="col">
-            <h1>{c.id}</h1>
-            {c.name !== c.id && <p>{c.name}</p>}
-            <small className="muted">{c.group}</small>
-            <Button action={"learn:" + c.id} className="good">
-              {s.learned.has(c.id) ? "Learned" : "To learn"}
-            </Button>
+          <div className="detail-meta">
+            <span className="label">
+              {c.setLabel} · {c.group}
+            </span>
+            <h2 className="detail-title">{c.id}</h2>
+            {c.name !== c.id && <p className="detail-name">{c.name}</p>}
+            <div className="detail-figures">
+              <div className="metric">
+                <span className="label">Best</span>
+                <span className="metric-value mono">{st ? fmtTime(st.best) : "—"}</span>
+              </div>
+              <div className="metric">
+                <span className="label">Mean</span>
+                <span className="metric-value mono">{st ? fmtTime(st.mean) : "—"}</span>
+              </div>
+              <div className="metric">
+                <span className="label">Attempts</span>
+                <span className="metric-value mono">{st?.count ?? 0}</span>
+              </div>
+            </div>
+            <div className="row detail-buttons">
+              <Button action="train" icon="IconTimer" className="primary">
+                Train
+              </Button>
+              <Button action={"learn:" + c.id} className={"control " + (learned ? "is-learned" : "")} icon={learned ? "IconCheck" : undefined}>
+                {learned ? "Learned" : "Mark learned"}
+              </Button>
+              {c.cube && (
+                <Button action="replayCube" className="control" title="Replay the setup on the cube">
+                  <Icon name="IconUndo" size={14} />
+                  Replay
+                </Button>
+              )}
+            </div>
           </div>
-        </Row>
-        <section>
-          <Heading>Setup</Heading>
-          <Alg text={c.setup} />
+        </div>
+        <section className="detail-section detail-setup">
+          <h3 className="label">Setup</h3>
+          <Alg text={c.setup} size={17} />
           {c.notes && <p className="muted">{c.notes}</p>}
         </section>
-        <section>
-          <Heading>Algorithms</Heading>
-          {c.algorithms.map((a: any, i: number) => (
-            <Row key={i} className="algorithm-row wrap between">
-              <Alg text={a.alg} />
-              <Row>
-                {i === 0 && <span className="badge soft">Primary</span>}
-                {a.stm != null && <small className="muted">{a.stm} STM</small>}
-                <small className="muted">
-                  {(
-                    {
-                      speedcubedb: "SpeedCubeDB",
-                      jperm: "J Perm",
-                      f2ltrainer: "F2L Trainer",
-                    } as any
-                  )[a.source] ?? a.source}
-                </small>
-                {a.youtube && (
-                  <Button action={"url:" + a.youtube}>Video</Button>
-                )}
-              </Row>
-            </Row>
-          ))}
+        <section className="detail-section detail-algorithms">
+          <h3 className="label">Algorithms</h3>
+          <div className="algorithm-list">
+            {c.algorithms.map((a: any, i: number) => (
+              <div key={i} className="algorithm-row">
+                <span className="mono muted algorithm-index">{i + 1}</span>
+                <Alg text={a.alg} size={16} />
+                <span className="algorithm-meta">
+                  {i === 0 && <span className="mark">Primary</span>}
+                  {a.stm != null && <span className="muted">{a.stm} STM</span>}
+                  <span className="muted">{SOURCES[a.source] ?? a.source}</span>
+                  {a.youtube && (
+                    <Button action={"url:" + a.youtube} className="control">
+                      Video
+                    </Button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
         </section>
-        <Heading>Statistics</Heading>
-        <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
+        <section className="detail-section detail-stats">
+          <h3 className="label">Statistics</h3>
+          <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
+        </section>
       </div>
-      <Row className="detail-actions between">
-        <Row>
-          <Button
-            action="caseStep:previous"
-            icon="IconBack"
-            disabled={index === 0}
-          />
-          <span className="muted">
-            {index + 1} / {ids.length}
-          </span>
-          <Button
-            action="caseStep:next"
-            icon="IconChevronRight"
-            disabled={index === ids.length - 1}
-          />
-        </Row>
-        <Row>
-          <Button
-            action={"learn:" + c.id}
-            className={s.learned.has(c.id) ? "good" : ""}
-          >
-            {s.learned.has(c.id) ? "Learned" : "Mark learned"}
-          </Button>
-          <Button action="train" icon="IconTimer" className="primary">
-            Train
-          </Button>
-        </Row>
-      </Row>
+      <div className="detail-foot">
+        <Button action="caseStep:previous" icon="IconBack" className="control icon-only" disabled={index === 0} title="Previous case (←)" />
+        <span className="mono muted">
+          {index + 1} / {ids.length}
+        </span>
+        <Button
+          action="caseStep:next"
+          icon="IconChevronRight"
+          className="control icon-only"
+          disabled={index === ids.length - 1}
+          title="Next case (→)"
+        />
+      </div>
+    </div>
+  );
+}
+/** Phones: the case opened as a page of its own. */
+function Detail() {
+  const c = s.find(s.caseId);
+  if (!c) return <Empty>Case unavailable.</Empty>;
+  return (
+    <div className="page detail-page">
+      <PageHead
+        lead={<Button action="back" icon="IconBack" className="control icon-only" title="Back (Alt+B)" />}
+        title={c.id}
+        sub={c.setLabel}
+      />
+      <CaseDetail />
     </div>
   );
 }
@@ -1355,8 +1513,7 @@ function Progress({ ratio, done = true }: { ratio: number; done?: boolean }) {
   );
 }
 function Sparkline({ values }: { values: (number | null)[] }) {
-  const id = useId(),
-    points = values.filter((v): v is number => v != null).slice(-40);
+  const points = values.filter((v): v is number => v != null).slice(-40);
   if (points.length < 2) return null;
   const low = Math.min(...points),
     high = Math.max(low + 1, Math.max(...points)),
@@ -1371,14 +1528,8 @@ function Sparkline({ values }: { values: (number | null)[] }) {
   return (
     <div className="sparkline" aria-hidden="true">
       <svg viewBox="0 0 100 32" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.28" />
-            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={`${line} L100 32 L0 32 Z`} fill={`url(#${id})`} />
-        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        <path d={`${line} L100 32 L0 32 Z`} fill="var(--accent)" fillOpacity="0.07" />
+        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       </svg>
       {best !== last && dot(best, "best")}
       {dot(last, "last")}
@@ -1587,17 +1738,17 @@ function Activity({
 function ProfileFilters({ scramble = false }: { scramble?: boolean }) {
   return (
     <Row className="profile-filters">
-      <Button action="menu:profilePuzzles" active icon={"Puzzle" + s.profilePuzzle}>
+      <Button action="menu:profilePuzzles" className="control" icon={"Puzzle" + s.profilePuzzle}>
         {s.label("puzzles", s.profilePuzzle)}
         <Icon name="IconChevronDown" size={12} />
       </Button>
       {scramble && (
-        <Button action="menu:profileScrambles" active>
+        <Button action="menu:profileScrambles" className="control">
           {s.label("scrambles", s.profileScramble)}
           <Icon name="IconChevronDown" size={12} />
         </Button>
       )}
-      <Button action="menu:profileModes" active>
+      <Button action="menu:profileModes" className="control">
         {s.label("solveModes", s.profileSolveMode)}
         <Icon name="IconChevronDown" size={12} />
       </Button>
@@ -1665,7 +1816,7 @@ function overviewData() {
     goals = (s.achievements?.achievements ?? [])
       .filter((a: any) => !a.unlocked)
       .sort((a: any, b: any) => b.ratio - a.ratio)
-      .slice(0, 4)
+      .slice(0, 8)
       .map((a: any) => ({ label: a.title, value: `${Math.round(a.ratio * 100)}%`, ratio: a.ratio })),
     activity: ActivitySolve[] = [
       ...(p.playground?.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: true })),
@@ -1773,85 +1924,64 @@ const gaugeSections = (d: OverviewData): GaugeSection[] => [
 /** Ring, figure and detail on one line, bars underneath. */
 function GaugeCard({ g }: { g: GaugeSection }) {
   return (
-    <Go action={g.action} className="ov-ring-card" label={`${g.label}: ${g.value} ${g.suffix}. ${g.detail}`}>
+    <Go action={g.action} className="ov-card ov-ring-card" label={`${g.label}: ${g.value} ${g.suffix}. ${g.detail}`}>
+      <span className="ov-card-head">
+        <span className="ov-card-title">{g.label}</span>
+        <Icon name="IconChevronRight" size={14} />
+      </span>
       <span className="ov-ring-head">
         <Ring ratio={g.ratio}>{Math.round(g.ratio * 100)}%</Ring>
         <span className="ov-ring-text">
-          <span className="stat-card-label">{g.label}</span>
           <span className="ov-ring-value mono">
             {g.value}
             <span className="stat-card-suffix">{g.suffix}</span>
           </span>
           <small className="muted">{g.detail}</small>
         </span>
-        <Icon name="IconChevronRight" size={14} />
       </span>
       <MiniBars rows={g.rows} />
     </Go>
   );
 }
-/** Under the heatmap: a full-width timer band with the chart on its right, then training and achievements side by side. */
-function OverviewBands({ d }: { d: OverviewData }) {
-  return (
-    <div className="ov-bands">
-      <Go action="profileMode:playground" className="ov-band-timer" label={`Timer: ${d.timerDetail}`}>
-        <span className="stat-card-head">
-          <span className="stat-card-icon">
-            <Icon name="IconCube" size={15} />
-          </span>
-          <span className="stat-card-label">Timer</span>
-          <small className="muted">{d.timerDetail}</small>
-          <Icon name="IconChevronRight" size={14} />
-        </span>
-        <span className="ov-band-figures">
-          <TimerBests d={d} />
-          <RecentSolves d={d} />
-        </span>
-        <span className="ov-band-chart">
-          <Sparkline values={d.timerTimes} />
-        </span>
-      </Go>
-      <div className="ov-band-pair">
-        {gaugeSections(d).map((g) => (
-          <GaugeCard key={g.label} g={g} />
-        ))}
-      </div>
-    </div>
-  );
-}
+/** Overview in two columns: activity over the timer on the left, training over achievements on the right. */
 function Overview() {
   const p = s.profile,
-    d = overviewData();
+    d = overviewData(),
+    [training, achievements] = gaugeSections(d);
   return (
     <div className="overview">
-      {s.user.isGuest && (
-        <div className="guest-banner">
-          <Icon name="IconUser" size={18} />
-          <div className="col">
-            <strong>You are practising as a guest</strong>
-            <small className="muted">
-              Times stay on this device. An account syncs them between devices
-              and keeps your achievements.
-            </small>
-          </div>
-          <Row>
-            <Button action="account:login">Sign in</Button>
-            <Button action="account:register" className="primary">
-              Create account
-            </Button>
-          </Row>
-        </div>
-      )}
-      <Activity
-        solves={d.activity}
-        summary={[
-          { label: (p.activeDays ?? 0) === 1 ? "active day" : "active days", value: String(p.activeDays ?? 0) },
-          { label: "total solves", value: (p.totalSolves ?? 0).toLocaleString() },
-          { label: "per active day", value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—" },
-        ]}
-        detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
-      />
-      <OverviewBands d={d} />
+      <div className="ov-col ov-col-main">
+        <section className="ov-card ov-activity">
+          <Activity
+            solves={d.activity}
+            summary={[
+              { label: (p.activeDays ?? 0) === 1 ? "active day" : "active days", value: String(p.activeDays ?? 0) },
+              { label: "total solves", value: (p.totalSolves ?? 0).toLocaleString() },
+              { label: "per active day", value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—" },
+            ]}
+            detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
+          />
+        </section>
+        <Go action="profileMode:playground" className="ov-card ov-timer" label={`Timer: ${d.timerDetail}`}>
+          <span className="ov-card-head">
+            <span className="ov-card-title">Timer</span>
+            <small className="muted">{d.timerDetail}</small>
+            <Icon name="IconChevronRight" size={14} />
+          </span>
+          <TimerBests d={d} />
+          <span className="ov-timer-chart">
+            {d.timerTimes.filter((v: number | null) => v != null).length >= 2 ? (
+              <Sparkline values={d.timerTimes} />
+            ) : (
+              <span className="ov-chart-empty muted">Your progress curve appears after two timed solves.</span>
+            )}
+          </span>
+        </Go>
+      </div>
+      <div className="ov-col ov-col-side">
+        <GaugeCard g={training} />
+        <GaugeCard g={achievements} />
+      </div>
     </div>
   );
 }
@@ -2301,37 +2431,44 @@ function Profile() {
     title = PROFILE_SECTIONS[mode] ?? "Overview";
   return (
     <div className="page profile-page">
-      <section className="profile-main" aria-label={title}>
-        <header className="profile-toolbar">
-          {mode === "overview" ? (
-            <Row className="profile-header">
-              <Avatar user={guest ? { username: "G" } : p.user} size={40} />
-              <div className="col">
-                <h2>{guest ? "Guest" : p.user.username}</h2>
-                <small className="muted">
-                  {guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
-                </small>
-              </div>
-            </Row>
-          ) : (
-            <Row className="profile-title">
-              <Button action="back" icon="IconBack" title="Back to the overview" />
-              <h2>{title}</h2>
-            </Row>
+      {mode === "overview" ? (
+        <PageHead
+          lead={<Avatar user={guest ? { username: "G" } : p.user} size={36} />}
+          title={guest ? "Guest" : p.user.username}
+          sub={guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
+        >
+          {guest && (
+            <>
+              <Button action="account:login" className="control">
+                Sign in
+              </Button>
+              <Button action="account:register" className="primary">
+                Create account
+              </Button>
+              <span className="control-gap" />
+            </>
           )}
-          {["overview", "training"].includes(mode) && <ProfileFilters />}
+          <ProfileFilters />
+        </PageHead>
+      ) : (
+        <PageHead
+          lead={<Button action="back" icon="IconBack" className="control icon-only" title="Back to the overview" />}
+          title={title}
+          sub={s.label("puzzles", s.profilePuzzle)}
+        >
+          {mode === "training" && <ProfileFilters />}
           {mode === "playground" && <ProfileFilters scramble />}
           {mode === "achievements" && s.achievements && (
-            <Row className="achievement-total">
+            <div className="achievement-total">
               <span className="mono muted">
                 {s.achievements.unlocked} / {s.achievements.total}
               </span>
-              <Progress
-                ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0}
-              />
-            </Row>
+              <Progress ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0} />
+            </div>
           )}
-        </header>
+        </PageHead>
+      )}
+      <section className="profile-main" aria-label={title}>
         {mode === "playground" ? (
           <TimerStats
             data={p.playground}
@@ -2362,7 +2499,7 @@ function Achievements() {
   return (
     <>
       <Row className="wrap profile-toolbar-row">
-        <Button action="menu:achievementGroups" active>
+        <Button action="menu:achievementGroups" className="control">
           {s.achievementGroup === "all" ? "All puzzles" : s.achievementGroup}
           <Icon name="IconChevronDown" size={12} />
         </Button>
@@ -2449,45 +2586,52 @@ function Achievements() {
     </>
   );
 }
-function Guides() {
+/** The guides open over the app: their list on the left, the chosen guide on the right. */
+function GuidesDialog({ close }: { close: () => void }) {
+  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide;
   return (
-    <div className="guides">
-      <div className="scroll">
-        <header className="guide-header">
-          <Button action="nav:playground">CUBIX</Button>
-          <Button action="nav:playground" className="primary">
-            Open cube timer
-          </Button>
-        </header>
-        <article
-          className="guide-content"
-          onClick={(e) => {
-            const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
-            if (button) return void s.action(button.dataset.action!);
-            const a = (e.target as HTMLElement).closest("a");
-            if (!a) return;
-            e.preventDefault();
-            const href = a.getAttribute("href") ?? "",
-              entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
-            if (entry) void s.action("nav:" + entry[0]);
-            else if (href.startsWith("http")) void openExternal(href);
-            else
-              void s.action(
-                "nav:" +
-                  (href === "/training/"
-                    ? "training"
-                    : href === "/algorithms/"
-                      ? "algorithms"
-                      : "playground"),
-              );
-          }}
-        >
-          <GuideContent page={s.page as Guide} puzzle={s.guidePuzzle} method={s.guideMethod} />
-        </article>
+    <div className="modal-backdrop" onClick={close}>
+      <div className="modal guides-modal" role="dialog" aria-modal="true" aria-label="Guides" onClick={(e) => e.stopPropagation()}>
+        <nav className="guides-nav" aria-label="Guides">
+          <span className="label guides-nav-title">Guides</span>
+          {(Object.keys(GUIDES) as Guide[]).map((id) => (
+            <Button key={id} action={"guidePage:" + id} className={"guides-nav-item " + (id === page ? "selected" : "")}>
+              {GUIDE_NAMES[id]}
+            </Button>
+          ))}
+        </nav>
+        <div className="guides-main">
+          <Button action="close" icon="IconClose" className="control icon-only guides-close" title="Close the guides" />
+          <article
+            className="scroll guides-body guide-content"
+            onClick={(e) => {
+              const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
+              if (button) return void s.action(button.dataset.action!);
+              const a = (e.target as HTMLElement).closest("a");
+              if (!a) return;
+              e.preventDefault();
+              const href = a.getAttribute("href") ?? "",
+                entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
+              if (entry) void s.action("guidePage:" + entry[0]);
+              else if (href.startsWith("http")) void openExternal(href);
+              else void s.action("nav:" + (href === "/training/" ? "training" : href === "/algorithms/" ? "algorithms" : "playground"));
+            }}
+          >
+            <GuideContent page={page} puzzle={s.guidePuzzle} method={s.guideMethod} />
+          </article>
+        </div>
       </div>
     </div>
   );
 }
+const GUIDE_NAMES: Record<Guide, string> = {
+  overviewGuide: "About Cubix",
+  timerGuide: "Timer",
+  algorithmsGuide: "Algorithms",
+  trainingGuide: "Training",
+  methodsGuide: "Solving methods",
+  averagesGuide: "Ao5 and Ao12",
+};
 function options(): { action: string; values: any[]; current: string } {
   const info = s.info(),
     profile = s.info(s.profilePuzzle);
@@ -2522,12 +2666,12 @@ function options(): { action: string; values: any[]; current: string } {
       return {
         action: s.overlay === "scrambles" ? "scrambleType" : "profileScramble",
         values: catalog.puzzles.scrambles.filter((v: any) =>
-          (s.overlay === "scrambles" ? info : profile).scrambles.includes(v.id),
+          (s.overlay === "scrambles" ? info : profile).scrambles.includes(v.id) &&
+          // Cross + 1 scrambles belong to the training page; their times still show in the profile.
+          (s.overlay !== "scrambles" || !v.id.startsWith("cross1-")),
         ),
         current: s.overlay === "scrambles" ? s.scrambleType : s.profileScramble,
       };
-    case "learningModes":
-      return { action: "learningMode", values: trainingModeOptions(s.puzzle).map(({ value, label }) => ({ id: value, label })), current: learningTrackOf(s.learningMode) ?? s.learningMode };
     case "entries":
       return {
         action: "entry",
@@ -2649,8 +2793,11 @@ function Overlay() {
       ),
       // Rows, padding and border: the menu only scrolls when the window is too short.
       height = Math.min(menu.values.length * 42 + 18, innerHeight - 32),
+      below = !!anchor && anchor.bottom + 6 + height <= innerHeight - 12,
       top = anchor
-        ? Math.max(12, anchor.y - height - 8)
+        ? below
+          ? anchor.bottom + 6
+          : Math.max(12, anchor.y - height - 6)
         : Math.max(12, (innerHeight - height) / 2);
     return (
       <div className="menu-backdrop" onClick={close}>
@@ -2658,7 +2805,7 @@ function Overlay() {
           className="select-menu"
           ref={ref}
           role="listbox"
-          style={{ left, top, maxHeight: height, transformOrigin: anchor ? "bottom left" : "center" }}
+          style={{ left, top, maxHeight: height, transformOrigin: anchor ? (below ? "top left" : "bottom left") : "center" }}
           onClick={(e) => e.stopPropagation()}
         >
           {menu.values.map((v, i) => (
@@ -2683,6 +2830,7 @@ function Overlay() {
       </div>
     );
   }
+  if (s.overlay === "guides") return <GuidesDialog close={close} />;
   if (s.overlay === "methods") {
     const methods = METHODS[s.guidePuzzle],
       method = methods.find((m) => m.id === s.guideMethod) ?? methods[0]!;
@@ -2821,10 +2969,12 @@ function Overlay() {
               <div className="solve-large mono">
                 {fmtSolve(solve.time_ms, solve.penalty)}
               </div>
-              <p className="muted">{solve.displayDate}</p>
-              <Alg text={solve.scramble} size={15} />
-              {solve.comment && <p>{solve.comment}</p>}
-              <Row className="wrap">
+              <p className="muted solve-date">{solve.displayDate}</p>
+              <div className="solve-scramble">
+                <Alg text={solve.scramble} size={16} />
+              </div>
+              {solve.comment && <p className="solve-comment-text">{solve.comment}</p>}
+              <Row className="wrap solve-actions-row">
                 <Button
                   action={"penalty:" + solve.id + ":+2"}
                   active={solve.penalty === "+2"}
@@ -2886,7 +3036,7 @@ function App() {
             KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
-            KeyC: "cases",
+            KeyC: "trainingSetup",
             KeyT: "times",
             KeyA: "auf",
             KeyH: "solution",
@@ -2928,45 +3078,44 @@ function App() {
       removeEventListener("mouseup", mouse);
     };
   }, []);
-  const guide = s.page.endsWith("Guide");
+  const { w } = useViewport(),
+    mobile = w <= MOBILE,
+    // On the desktop a case opens beside the list, so the algorithms page stays in place.
+    frameKey =
+      s.page +
+        (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
+        (s.page === "profile" ? ":" + s.profileMode : "") +
+        (s.page === "training" ? ":" + s.trainingStep : "");
   return (
     <main
       className={
-        "app " + (s.light ? "light " : "") + (s.running ? "is-running" : "")
+        "app " + (s.light ? "light " : "") + (s.running ? "is-running " : "") + (mobile ? "is-mobile" : "")
       }
       style={theme(s.themeName, s.light) as React.CSSProperties}
     >
       <MotionConfig reducedMotion="user">
-        {/* Pages and nav recede behind an open dialog, easing back when it closes. */}
-        <div className={"scene" + (isDialog() ? " receded" : "")}>
-        {!s.ready ? (
-          <Empty>{s.error || "Loading…"}</Empty>
-        ) : (
-          <AnimatePresence initial={false} custom={s.direction}>
-            <Frame
-              key={
-                guide
-                  ? s.page
-                  : s.page + (s.caseId ? ":case" : "") + (s.page === "profile" ? ":" + s.profileMode : "")
-              }
-            >
-              {guide ? (
-                <Guides />
-              ) : ["playground", "training"].includes(s.page) ? (
-                <Practice />
-              ) : s.page === "algorithms" ? (
-                s.caseId ? (
-                  <Detail />
-                ) : (
-                  <Catalog />
-                )
-              ) : (
-                <Profile />
-              )}
-            </Frame>
-          </AnimatePresence>
-        )}
-        {!guide && <Nav />}
+        <div className={"shell" + (w < 1100 ? " side-compact" : "")}>
+          {!mobile && <Sidebar />}
+          <div className="content">
+            {!s.ready ? (
+              <Empty>{s.error || "Loading…"}</Empty>
+            ) : (
+              <AnimatePresence initial={false} custom={s.direction}>
+                <Frame key={frameKey} mobile={mobile}>
+                  {s.page === "training" && s.trainingStep === "setup" ? (
+                    <TrainingSetup />
+                  ) : ["playground", "training"].includes(s.page) ? (
+                    <Practice />
+                  ) : s.page === "algorithms" ? (
+                    <Algorithms />
+                  ) : (
+                    <Profile />
+                  )}
+                </Frame>
+              </AnimatePresence>
+            )}
+          </div>
+          {mobile && <TabBar />}
         </div>
       </MotionConfig>
       <Toasts light={s.light} />

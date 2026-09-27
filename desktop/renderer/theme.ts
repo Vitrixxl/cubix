@@ -12,6 +12,8 @@ export function theme(name: string, light: boolean) {
     muted: t.readableMuted, good: t.good, danger: t.danger,
     soft: t.accent + (light ? "1e" : id === "iris" ? "33" : id === "t3-code" ? "28" : "2d"),
     hover: light ? t.accent + "11" : "#ffffff0d", line: t.text + "16",
+    // Cards, menus and dialogs: white on the light theme, the first surface on the dark one.
+    raised: light ? "#ffffff" : t.surface,
   };
   return Object.fromEntries(Object.entries(tokens).map(([key, value]) => ["--" + key, value]));
 }

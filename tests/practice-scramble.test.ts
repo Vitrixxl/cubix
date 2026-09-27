@@ -49,7 +49,7 @@ test("legacy records have stable labels", () => {
 test("Normal uses the WCA event generator for every puzzle and solve mode", async () => {
   const { PUZZLES } = await import("../src/shared/puzzles");
   const events: string[] = [];
-  const engine = { randomScrambleForEvent: async (event: string) => { events.push(event); return "R U"; }, orbitScramble: async () => { throw Error("Unexpected orbit generator"); } };
+  const engine = { randomScrambleForEvent: async (event: string) => { events.push(event); return "R U"; }, orbitScramble: async () => { throw Error("Unexpected orbit generator"); }, patternScramble: async () => { throw Error("Unexpected pattern generator"); } };
   for (const puzzle of PUZZLES) {
     expect(puzzle.scrambles.filter(type => type === "normal")).toHaveLength(1);
     expect(puzzle.scrambles).not.toContain("competition");

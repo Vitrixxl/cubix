@@ -9,7 +9,7 @@ import registry from "../../data/puzzles.json";
 export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx" | "clock";
 export type PuzzleInput = CubeSize | PuzzleId;
 export type SolveMode = "standard" | "one-handed" | "blindfolded";
-export type ScrambleType = "normal" | "2gen-ru" | "2gen-lu" | "2gen-rf" | "2gen-mu" | "3gen-rul" | "3gen-ruf" | "half-turns" | "edges-only" | "corners-only" | "last-layer" | "oll" | "pll" | "f2l" | "outer-turns" | "case";
+export type ScrambleType = "normal" | "2gen-ru" | "2gen-lu" | "2gen-rf" | "2gen-mu" | "3gen-rul" | "3gen-ruf" | "half-turns" | "edges-only" | "corners-only" | "last-layer" | "oll" | "pll" | "f2l" | "outer-turns" | "cross1-3" | "cross1-4" | "cross1-5" | "case";
 export interface PracticeFilter { solveMode?: SolveMode; scrambleType?: ScrambleType }
 export interface PracticeContext { puzzle: PuzzleId; solveMode: SolveMode; scrambleType: ScrambleType }
 export type LegacyScrambleType = "competition" | "random-moves";
