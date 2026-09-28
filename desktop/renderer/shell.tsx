@@ -58,7 +58,6 @@ function RailCell({
       type="button"
       className={"rail-cell " + (selected ? "selected " : "") + className}
       data-action={action}
-      data-grid="16"
       aria-label={label}
       aria-current={selected ? "page" : undefined}
       onClick={(e) => {
@@ -113,7 +112,8 @@ const SLIDE = {
 /** The desktop slides pages vertically, in the order of the rail. */
 const SLIDE_Y = {
   enter: (direction: number) => ({ transform: `translateY(${direction * 100}%)` }),
-  center: { transform: "translateY(0%)" },
+  // A settled page drops its transform so viewport-fixed backgrounds (the list headings' dots) line up.
+  center: { transform: "translateY(0%)", transitionEnd: { transform: "none" } },
   exit: (direction: number) => ({ transform: `translateY(${direction * -100}%)` }),
 };
 

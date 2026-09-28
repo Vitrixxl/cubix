@@ -1,4 +1,4 @@
-import React, { useEffect, useSyncExternalStore } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import { store as s } from "./store";
@@ -8,7 +8,7 @@ import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
 import { Empty, MOBILE, useViewport } from "./ui";
 import { Frame, Rail, TabBar } from "./shell";
-import { GridBackdrop } from "./grid";
+import { GridBackground } from "./grid";
 import { Practice } from "./practice";
 import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
@@ -85,6 +85,7 @@ function App() {
       removeEventListener("mouseup", mouse);
     };
   }, []);
+  const [grid, setGrid] = useState(false);
   const { w } = useViewport(),
     mobile = w <= MOBILE,
     // On the desktop a case opens beside the list, so the algorithms page stays in place.
@@ -96,12 +97,16 @@ function App() {
   return (
     <main
       className={
-        "app " + (s.light ? "light " : "") + (s.running ? "is-running " : "") + (mobile ? "is-mobile" : "")
+        "app " +
+        (s.light ? "light " : "") +
+        (s.running ? "is-running " : "") +
+        (mobile ? "is-mobile " : "") +
+        (grid && !mobile ? "has-grid" : "")
       }
       style={theme(s.themeName, s.light) as React.CSSProperties}
     >
+      {!mobile && <GridBackground onReady={setGrid} />}
       <MotionConfig reducedMotion="user">
-        {!mobile && <GridBackdrop paused={s.running} theme={s.themeName + (s.light ? ":light" : ":dark")} />}
         <div className="shell">
           {!mobile && <Rail />}
           <div className="content">
