@@ -29,9 +29,8 @@ const BOXES = [
 const MAX = 48;
 const RADIUS = 260;
 const FADE_MS = 260;
-/** Speed of the entry wave in px/ms, and the bounds of its duration, whatever the pane size. */
-const WAVE_SPEED = 1.5;
-const WAVE_MS = [220, 700] as const;
+/** Duration of the entry wave: it crosses any pane, small or large, in the same time. */
+const WAVE_MS = 300;
 /** Width of the wave front over which the outline catches the light. */
 const FRONT = 40;
 
@@ -324,8 +323,7 @@ function start(canvas: HTMLCanvasElement, app: HTMLElement, lost: () => void) {
       const b = boxes.find((v) => v.el === hot)!;
       const [l, t, r, bt] = b.rect as [number, number, number, number];
       const reach = Math.max(Math.hypot(mouse.x - l, mouse.y - t), Math.hypot(mouse.x - r, mouse.y - t), Math.hypot(mouse.x - l, mouse.y - bt), Math.hypot(mouse.x - r, mouse.y - bt)) + FRONT;
-      const duration = Math.min(WAVE_MS[1], Math.max(WAVE_MS[0], reach / WAVE_SPEED));
-      waves.set(hot, { x: mouse.x, y: mouse.y, start: now, duration, reach, radius: reduced.matches ? reach : 0, progress: reduced.matches ? 1 : 0 });
+      waves.set(hot, { x: mouse.x, y: mouse.y, start: now, duration: WAVE_MS, reach, radius: reduced.matches ? reach : 0, progress: reduced.matches ? 1 : 0 });
     }
     const step = reduced.matches || !last ? 1 : Math.min(1, (now - last) / FADE_MS);
     last = now;
