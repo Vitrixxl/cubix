@@ -1,27 +1,27 @@
-import { memo } from "react";
-import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
-import Svg, { Rect } from "react-native-svg";
+import { useAtomValue } from "jotai";
+import { memo, useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { Page } from "../state";
-import { useExit } from "../hooks/useExit";
+import { userAtom, type Page } from "../state";
 import { useTheme } from "../theme";
-import { IconBook, IconSettings, IconTimer, IconTraining, IconUser, type Icon } from "./icons";
+import { IconCube, IconGrid, IconSettings, IconTimer, IconUser, type Icon } from "./icons";
+import { Avatar } from "./ui";
 
-/** The timer sits in the middle of the five tabs (settings included), as the app's home. */
+/** The web app's phone tabs (`MOBILE_TABS`): the timer in the centre, settings last. */
 export const NAV: { page: Page; label: string; icon: Icon }[] = [
-  { page: "algorithms", label: "Algorithms", icon: IconBook },
-  { page: "training", label: "Training", icon: IconTraining },
-  { page: "playground", label: "Timer", icon: IconTimer },
+  { page: "algorithms", label: "Algorithms", icon: IconGrid },
+  { page: "training", label: "Training", icon: IconTimer },
+  { page: "playground", label: "Timer", icon: IconCube },
   { page: "profile", label: "Account", icon: IconUser },
 ];
 
-/** Side gap of the phone bar, so its rounded top corners show against the page. */
-export const NAV_SIDE_GAP = 6;
+/** Kept for callers that offset content by the bar's side margin; the bar now spans the full width. */
+export const NAV_SIDE_GAP = 0;
 
 /**
- * Stable icon-only tabs, with settings separate from navigation history.
- * Phones get a full-width bar in the layout flow, under the page content; larger screens keep
- * the floating island above the content.
+ * `.tabbar`: five tabs (icon over a 10.5 px label, muted, accent when selected) on the `bar` background
+ * (surface 35% over bg) with a 1px top line. Phones get it in the layout flow under the page; larger
+ * screens a floating raised island. A running solve fades it out like `.is-running .tabbar`.
  */
 export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsOpen, hidden, collapsed, phone }: {
   active: Page; onNavigate: (page: Page) => void; onSettings: () => void; settingsOpen: boolean;
@@ -30,35 +30,40 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const user = useAtomValue(userAtom);
   const fullWidth = phone || height <= 500;
-  const { ref, transform } = useExit(hidden, "down");
+  const opacity = useRef(new Animated.Value(hidden ? 0 : 1)).current;
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: hidden ? 0 : 1, duration: 180, useNativeDriver: true }).start();
+  }, [hidden, opacity]);
   if (collapsed) return null;
   const items = [...NAV, { page: "settings" as const, label: "Settings", icon: IconSettings }];
-  return <Animated.View ref={ref} pointerEvents={hidden ? "none" : "auto"} style={[styles.nav, fullWidth
-    ? [styles.bar, { paddingBottom: insets.bottom + 4, marginLeft: insets.left + NAV_SIDE_GAP, marginRight: insets.right + NAV_SIDE_GAP, borderColor: t.line }]
-    : [styles.island, { bottom: insets.bottom + 10, borderColor: t.line }],
-    { transform, backgroundColor: t.surface }]}>
+  return <Animated.View pointerEvents={hidden ? "none" : "auto"} style={[fullWidth
+    ? [styles.bar, { paddingBottom: 4 + insets.bottom, paddingLeft: 6 + insets.left, paddingRight: 6 + insets.right, backgroundColor: t.bar, borderColor: t.line }]
+    : [styles.island, { bottom: insets.bottom + 10, backgroundColor: t.raised, borderColor: t.line }, t.menuShadow],
+    { opacity }]}>
     {items.map(({ page, label, icon: Icon }) => {
       const current = page === "settings" ? settingsOpen : !settingsOpen && active === page;
+      const color = current ? t.accent : t.muted;
+      // Like the web, a signed-in account shows its avatar instead of the person icon.
+      const avatar = page === "profile" && user && !user.isGuest;
       return <Pressable key={page} accessibilityRole={page === "settings" ? "button" : "tab"}
         accessibilityState={page === "settings" ? { expanded: settingsOpen } : { selected: current }}
         accessibilityLabel={label} onPress={() => page === "settings" ? onSettings() : onNavigate(page)}
-        style={styles.item}>
-        {({ pressed }) => <View style={styles.icon}>
-          {(current || pressed) && <Svg width={48} height={44} style={StyleSheet.absoluteFill} pointerEvents="none"><Rect width={48} height={44} rx={15} ry={15} fill={current ? t.accentSoft : t.hover} /></Svg>}
-          <Icon size={25} strokeWidth={1.8} color={current ? t.accent : t.readableMuted} />
-        </View>}
+        style={({ pressed }) => [styles.item, { opacity: pressed && !current ? 0.7 : 1 }]}>
+        <View style={styles.icon}>{avatar ? <Avatar username={user.username} size={21} active={current} /> : <Icon size={20} strokeWidth={1.8} color={color} />}</View>
+        <Text numberOfLines={1} style={[styles.label, { color }]}>{label}</Text>
       </Pressable>;
     })}
   </Animated.View>;
 });
 
 const styles = StyleSheet.create({
-  nav: { flexDirection: "row", alignItems: "center", paddingTop: 6, zIndex: 40 },
-  /** Phone: sits in the layout flow under the content, rounded on top, a sliver of page on each side. */
-  bar: { borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, borderBottomWidth: 0, paddingHorizontal: 4 },
+  /** Phone: full width in the layout flow, under the content. */
+  bar: { flexDirection: "row", paddingTop: 4, borderTopWidth: 1, zIndex: 40 },
   /** Larger screens: floating island above the content. */
-  island: { position: "absolute", alignSelf: "center", width: 360, borderRadius: 22, padding: 6, borderWidth: 1 },
-  item: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center" },
-  icon: { width: 48, height: 44, borderRadius: 15, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  island: { position: "absolute", alignSelf: "center", flexDirection: "row", width: 380, padding: 4, borderRadius: 12, borderWidth: 1, zIndex: 40 },
+  item: { flex: 1, minWidth: 0, height: 52, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10 },
+  icon: { height: 21, alignItems: "center", justifyContent: "center" },
+  label: { fontSize: 10.5, fontWeight: "500" },
 });

@@ -21,11 +21,8 @@ test("deeper profile pages slide forward and back, whatever the history step", (
   expect(slideDirection(training, phoneCase, "push", false)).toBe(0);
 });
 
-test("switching tabs never slides; guides slide over the page that opened them", () => {
+test("switching tabs never slides", () => {
   expect(slideDirection(training, { page: "algorithms" }, "push", true)).toBe(0);
   expect(slideDirection({ page: "algorithms" }, training, "pop", true)).toBe(0);
-  expect(slideDirection({ page: "algorithms" }, { page: "guides", guide: "methods" }, "push", true)).toBe(1);
-  expect(slideDirection({ page: "guides", guide: "methods" }, { page: "algorithms" }, "pop", true)).toBe(-1);
-  expect(slideDirection({ page: "guides" }, { page: "playground" }, "push", true)).toBe(0);
-  expect(slideDirection({ page: "guides" }, { page: "guides", guide: "timer" }, "push", true)).toBe(0);
+  expect(slideDirection({ page: "algorithms" }, { page: "playground" }, "push", true)).toBe(0);
 });

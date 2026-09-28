@@ -1,10 +1,9 @@
-import { Linking, Text, View, type StyleProp, type TextStyle } from "react-native";
-import type { AlgEntry } from "../../../src/shared/types";
+import { Text, type StyleProp, type TextStyle } from "react-native";
 import { FONT, useTheme } from "../theme";
-import { Chip } from "./ui";
 
 const SOURCE_LABEL: Record<string, string> = { speedcubedb: "SpeedCubeDB", jperm: "J Perm", f2ltrainer: "F2L Trainer" };
-function sourceLabel(source: string) {
+/** The display name of an algorithm source (`speedcubedb` → SpeedCubeDB, a URL → its site). */
+export function sourceLabel(source: string) {
   if (SOURCE_LABEL[source]) return SOURCE_LABEL[source];
   if (source.startsWith("Cubix")) return "Cubix drill";
   const sites: Record<string, string> = { "jperm.net": "J Perm", "speedcubedb.com": "SpeedCubeDB", "jaapsch.net": "Jaap's Puzzle Page", "cubezone.be": "CubeZone", "cubeskills.com": "CubeSkills", "speedcube.com.au": "Speedcube", "sarah.cubing.net": "Sarah Strong", "youtube.com": "Cubing World" };
@@ -19,14 +18,4 @@ export function AlgText({ alg, size = 14, lineHeight, color, style, selectable, 
   const t = useTheme();
   const text = wordSpacing ? alg.replace(/ /g, " ".repeat(1 + wordSpacing)) : alg;
   return <Text selectable={selectable} style={[{ fontFamily: FONT.mono, fontWeight: "500", fontSize: size, lineHeight: lineHeight ?? size * 1.6, color: color ?? t.text }, style]}>{notationText(text)}</Text>;
-}
-
-export function AlgorithmBadges({ algorithm: a, primary = false }: { algorithm: AlgEntry; primary?: boolean }) {
-  return <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-    {primary && <Chip label="Primary" accent />}
-    {a.recommended_by?.includes("jperm") && <Chip label="J Perm pick" />}
-    {a.stm !== undefined && <Chip label={`${a.stm} STM`} />}
-    <Chip label={sourceLabel(a.source)} />
-    {a.youtube && <Chip label="Video" onPress={() => void Linking.openURL(a.youtube!)} />}
-  </View>;
 }

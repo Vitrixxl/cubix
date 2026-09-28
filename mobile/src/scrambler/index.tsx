@@ -30,6 +30,11 @@ export const nativeEngine: ScrambleEngine = {
   orbitScramble: orbit => send("orbit", { orbit }),
   patternScramble: pattern => send("pattern", { pattern }),
 };
+export type CrossSolution = { moves: string; slot: string };
+/** Optimal cross + 1 solutions of a scramble (`crossPlusOneSolutions`), searched in the WebView off the JS thread. */
+export async function crossSolutions(scramble: string): Promise<CrossSolution[]> {
+  return JSON.parse(await send("crossSolutions", { scramble }, 60000)) as CrossSolution[];
+}
 
 function receive(raw: string) {
   let data: { ready?: boolean; id?: number; value?: string; error?: string };

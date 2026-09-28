@@ -8,7 +8,7 @@ export interface ToastMessage { title: string; description?: string; duration?: 
 /** Setting it shows a notification; null hides it. */
 export const toastAtom = atom<ToastMessage | null>(null);
 
-/** Top notification, like the desktop's Sonner stack: flat surface, hairline border, tap to dismiss. */
+/** Top notification, like the web's Sonner toast: raised surface, 1px line, radius 12, tap to dismiss. */
 export function Toast() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -28,10 +28,10 @@ export function Toast() {
   }, [message, shown, progress]);
   if (!shown) return null;
   return <View pointerEvents="box-none" style={[styles.layer, { top: insets.top + 10, left: insets.left + 14, right: insets.right + 14 }]}>
-    <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, { backgroundColor: t.surface, borderColor: t.line, opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }] }, t.shadow]}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Fermer la notification" onPress={() => setMessage(null)} style={styles.body}>
-        <Text style={{ color: t.text, fontSize: 14, fontWeight: "600" }}>{shown.title}</Text>
-        {shown.description ? <Text style={{ color: t.text2, fontSize: 13, lineHeight: 18 }}>{shown.description}</Text> : null}
+    <Animated.View accessibilityLiveRegion="polite" style={[styles.toast, { backgroundColor: t.raised, borderColor: t.line, opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }, t.menuShadow]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Dismiss notification" onPress={() => setMessage(null)} style={styles.body}>
+        <Text style={{ color: t.text, fontSize: 13, fontWeight: "500" }}>{shown.title}</Text>
+        {shown.description ? <Text style={{ color: t.secondary, fontSize: 13, lineHeight: 18 }}>{shown.description}</Text> : null}
       </Pressable>
     </Animated.View>
   </View>;
@@ -39,6 +39,6 @@ export function Toast() {
 
 const styles = StyleSheet.create({
   layer: { position: "absolute", zIndex: 60, flexDirection: "row", justifyContent: "center" },
-  toast: { flexShrink: 1, maxWidth: 420, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth },
-  body: { paddingHorizontal: 16, paddingVertical: 12, gap: 4 },
+  toast: { flexShrink: 1, width: "100%", maxWidth: 420, borderRadius: 12, borderWidth: 1 },
+  body: { paddingHorizontal: 16, paddingVertical: 14, gap: 2 },
 });

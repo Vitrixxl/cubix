@@ -72,6 +72,6 @@ test("without an update the app opens directly; offline, it announces offline mo
   expect(launcher).toBeUndefined();
   expect(mounts).toBeGreaterThan(0);
   expect(splashHidden).toBeGreaterThan(1);
-  expect(getDefaultStore().get(toastAtom)?.title).toBe("Mode hors ligne");
+  expect(getDefaultStore().get(toastAtom)?.title).toBe("Offline");
   await act(() => renderer.unmount());
 });

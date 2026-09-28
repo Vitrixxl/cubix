@@ -13,7 +13,6 @@ import { storage } from "./platform/storage";
 // ---------------------------------------------------------------------------
 export type GuideId = "about" | "timer" | "algorithms" | "training" | "methods" | "averages";
 export type Route =
-  | { page: "guides"; guide?: GuideId }
   | { page: "algorithms"; caseId?: string; caseIds?: string[] }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
@@ -22,9 +21,11 @@ export type Route =
 export type ProfileMode = "playground" | "training" | "achievements";
 export type Page = Route["page"];
 /** Which navigation entry a route belongs to. */
-export function navPage(route: Route): Exclude<Page, "guides"> {
-  return route.page === "guides" ? "profile" : route.page;
+export function navPage(route: Route): Page {
+  return route.page;
 }
+/** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
+export const guidesAtom = atom<GuideId | null>(null);
 
 const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
@@ -136,6 +137,18 @@ export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true
 /** Selected cases still to learn, as the training page last saw them for a puzzle. Kept outside the
  * page so marking the last one learned from its details and coming back still celebrates. */
 export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
+/** Cases of the catalogue, or first-block scrambles (cross and one pair) on the 3×3; shared with the web prefs. */
+export type TrainingKind = "cases" | "cross1";
+const storedTrainingKindAtom = persisted<TrainingKind>("cubix.training.kind", "cases");
+export const trainingKindAtom = atom(get => get(storedTrainingKindAtom) === "cross1" ? "cross1" as const : "cases" as const,
+  (_get, set, kind: TrainingKind) => set(storedTrainingKindAtom, kind));
+const storedCrossMovesAtom = persisted<number>("cubix.training.crossMoves", 4);
+export const crossMovesAtom = atom(get => { const moves = get(storedCrossMovesAtom); return [3, 4, 5].includes(moves) ? moves : 4; },
+  (_get, set, moves: number) => { if ([3, 4, 5].includes(moves)) set(storedCrossMovesAtom, moves); });
+/** Training opens on the choice of what to practise, then shows the timer for it (kept while switching tabs). */
+export const trainingStepAtom = atom<"setup" | "practice">("setup");
+/** Mode highlighted on the setup screen before it starts; empty = the one trained last. */
+export const trainingSetupModeAtom = atom("");
 
 export type { ThemeId } from "../../src/client/lib/theme";
 export const themeAtom = persisted<ThemeId>("cubix.ui.theme", "t3-code");
@@ -165,6 +178,16 @@ export const playgroundScrambleAtom = atom(get => {
 }, (get, set, value: string) => {
   const c = get(practiceContextAtom);
   set(scramblesAtom, { ...get(scramblesAtom), [`${c.puzzle}:${c.solveMode}:${c.scrambleType}`]: value });
+});
+/** Cross + 1 training: timer solves of its own scramble type (`cross1-N`) on the 3×3. */
+export const crossContextAtom = atom(get => ({ puzzle: "333" as PuzzleId, solveMode: get(solveModeAtom), scrambleType: `cross1-${get(crossMovesAtom)}` as ScrambleType }));
+/** Its scramble, kept per context beside the timer's own ones, like the web. */
+export const crossScrambleAtom = atom(get => {
+  const c = get(crossContextAtom);
+  return get(scramblesAtom)[`${c.puzzle}:${c.solveMode}:${c.scrambleType}`] ?? "";
+}, (get, set, { context: c, scramble }: { context: { puzzle: PuzzleId; solveMode: SolveMode; scrambleType: ScrambleType }; scramble: string }) => {
+  // The context travels with the scramble: a generation that ends after a change of moves keeps its own.
+  set(scramblesAtom, { ...get(scramblesAtom), [`${c.puzzle}:${c.solveMode}:${c.scrambleType}`]: scramble });
 });
 
 /** Read synchronously from the local workspace, so the shell never waits for an account. */

@@ -106,8 +106,8 @@ export function LearningGroups({ groups, disabled = false, onReorder }: {
           zIndex: active ? 1 : 0, elevation: active ? 4 : 0,
           transform: [{ translateY: active ? translateY : shift * ROW_HEIGHT }],
         }]}>
-          <View style={[styles.card, { backgroundColor: active ? t.hover : t.surface, borderColor: active ? t.accent : t.line }]}>
-            <Text style={[styles.number, { color: t.readableMuted }]}>{position + 1}.</Text>
+          <View style={[styles.card, { backgroundColor: active ? t.surface3 : t.surface2, borderColor: active ? t.accent : t.line }]}>
+            <Text style={[styles.number, { color: t.muted }]}>{position + 1}.</Text>
             <Text numberOfLines={2} style={[styles.name, { color: t.text }]}>{group}</Text>
             <GroupHandle group={group} position={position} count={groups.length} disabled={disabled}
               start={y => start(index, y)} move={move} finish={finish} adjust={direction => accessibleMove(index, direction)} />
@@ -139,18 +139,19 @@ function GroupHandle(props: {
     onAccessibilityAction={event => { if (event.nativeEvent.actionName === "decrement") props.adjust(-1); else if (event.nativeEvent.actionName === "increment") props.adjust(1); }}
     style={[styles.handle, { opacity: props.disabled ? 0.35 : 1 }]}>
     <View style={styles.dots} pointerEvents="none">
-      {Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.dot, { backgroundColor: t.readableMuted }]} />)}
+      {Array.from({ length: 6 }, (_, index) => <View key={index} style={[styles.dot, { backgroundColor: t.muted }]} />)}
     </View>
   </View>;
 }
 
 const styles = StyleSheet.create({
   viewport: { flex: 1, minHeight: 0 },
-  row: { height: ROW_HEIGHT, paddingVertical: 3 },
-  card: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 12, paddingLeft: 12 },
+  row: { height: ROW_HEIGHT, paddingVertical: 4 },
+  /** `.learning-group`: surface2 row, 1px line, radius 10. */
+  card: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 10, paddingLeft: 14, paddingRight: 6 },
   number: { width: 26, fontSize: 13, fontVariant: ["tabular-nums"] },
   name: { flex: 1, fontSize: 14 },
-  handle: { width: 48, height: 52, alignItems: "center", justifyContent: "center" },
+  handle: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   dots: { width: 12, flexDirection: "row", flexWrap: "wrap", gap: 4 },
   dot: { width: 4, height: 4, borderRadius: 2 },
 });

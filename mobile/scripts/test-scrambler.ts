@@ -11,7 +11,9 @@ const executable = process.env.CHROMIUM_PATH ?? Bun.which("chromium") ?? Bun.whi
 if (!executable) throw new Error("Install Chromium or set CHROMIUM_PATH to run the embedded scrambler test.");
 const profile = mkdtempSync(join(tmpdir(), "cubix-scrambler-"));
 const requests = ["222", "333", "444", "555", "666", "777", "sq1", "pyram", "skewb", "minx", "clock"].map(event => ({ kind: "event", payload: { event } }))
-  .concat(["EDGES", "CORNERS"].map(orbit => ({ kind: "orbit", payload: { orbit } })) as any);
+  .concat(["EDGES", "CORNERS"].map(orbit => ({ kind: "orbit", payload: { orbit } })) as any)
+  // A cross + 1 in 4 moves (screen of the web reference): its optimal solutions are searched in the page.
+  .concat([{ kind: "crossSolutions", payload: { scramble: "F D2 F' D2 B2 L2 R2 U2 F' R2 D2 R2 D' F' U' F2 R2 F L" } }] as any);
 const harness = `<script>
 const requests=${JSON.stringify(requests)};
 let index=0,started=0; const results=[];
@@ -41,6 +43,12 @@ try {
   const cube = await puzzles["3x3x3"].kpuzzle();
   for (const row of rows) {
     if (!row.value || row.error || row.ms >= 30000) throw new Error(JSON.stringify(row));
+    if (row.kind === "crossSolutions") {
+      const solutions = JSON.parse(row.value) as { moves: string; slot: string }[];
+      if (!solutions.length || solutions.some(s => s.moves.split(" ").length !== 4)) throw new Error(`Unexpected cross + 1 solutions ${row.value}`);
+      console.log(`PASS crossSolutions: ${solutions.map(s => `${s.moves} (${s.slot})`).join(", ")} in ${row.ms} ms`);
+      continue;
+    }
     new Alg(row.value); // Validate notation for every supported puzzle.
     if (row.kind === "orbit") {
       const pattern = cube.defaultPattern().applyAlg(row.value).patternData;

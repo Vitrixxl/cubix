@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export interface Anchor { x: number; y: number; width: number; height: number }
 
 /**
- * A floating surface anchored to a control (`.popover` / `.select-content`): opens below the anchor,
- * flips above when there is no room, clamps to the window, and closes on outside taps.
+ * `.select-menu`: a raised surface (radius 10, 1px line, 5 px padding, soft shadow) anchored to a control.
+ * Opens below the anchor with the web's `menu-in` (fade + 4 px drop), flips above when there is no room,
+ * clamps to the window, and closes on outside taps. Fill it with `MenuOption`s (Select.tsx).
  */
-export function Popover({ anchor, onClose, children, width, alignRight, gap = 4, maxHeight }: { anchor: Anchor | null; onClose: () => void; children: ReactNode; width?: number; alignRight?: boolean; gap?: number; maxHeight?: number }) {
+export function Popover({ anchor, onClose, children, width, alignRight, gap = 6, maxHeight }: { anchor: Anchor | null; onClose: () => void; children: ReactNode; width?: number; alignRight?: boolean; gap?: number; maxHeight?: number }) {
   const t = useTheme();
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -39,16 +40,17 @@ export function Popover({ anchor, onClose, children, width, alignRight, gap = 4,
   };
   return <Modal transparent visible statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={onClose}>
     <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-    <Animated.View onLayout={onLayout} style={[styles.popover, { top, left, width, maxHeight: maxHeight ? Math.min(maxHeight, limit) : limit, backgroundColor: t.surface, borderColor: t.line, opacity: size ? progress : 0, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) }] }, t.shadow]}>
+    <Animated.View onLayout={onLayout} style={[styles.popover, { top, left, width, maxHeight: maxHeight ? Math.min(maxHeight, limit) : limit, backgroundColor: t.raised, borderColor: t.line, opacity: size ? progress : 0, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [above ? 4 : -4, 0] }) }] }, t.menuShadow]}>
       {children}
     </Animated.View>
   </Modal>;
 }
 
 const styles = StyleSheet.create({
-  popover: { position: "absolute", borderRadius: 14, borderWidth: 1, padding: 6, overflow: "hidden" },
+  popover: { position: "absolute", borderRadius: 10, borderWidth: 1, padding: 5, overflow: "hidden" },
 });
 
+/** Measures a trigger (`ref`) in the window and opens a `Popover` on it: `open()`, `close()`, `anchor`, `isOpen`. */
 export function useAnchor() {
   const ref = useRef<View>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);

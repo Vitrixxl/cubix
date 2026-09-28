@@ -13,7 +13,7 @@ mock.module("react-native", () => ({
   },
   Easing: { bezier: () => (t: number) => t },
   AppState: { addEventListener: () => ({ remove() {} }) },
-  View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView",
+  View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Linking: { openURL() {} },
   FlatList: ({ renderItem, data, horizontal, ...props }: any) => createElement("FlatList", { ...props, data, horizontal },
     horizontal ? null : data.map((item: any, index: number) => createElement("Row", { key: item.key }, renderItem({ item, index })))),
   StyleSheet: { create: (styles: unknown) => styles, absoluteFill: { position: "absolute", inset: 0 } },
@@ -37,13 +37,14 @@ mock.module("../src/api", () => ({ api: {}, local: {
 } }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ navSpace: 80, phone: true, width: 390, pagePadding: 14 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
-mock.module("../src/components/LearnedToggle", () => ({ LearnedToggle: () => null }));
-mock.module("../src/components/Select", () => ({ Select: "Select" }));
 mock.module("../src/components/TimesChart", () => ({ TimesChart: () => null }));
-mock.module("../src/components/AlgText", () => ({ AlgorithmBadges: () => null, AlgText: () => null }));
-mock.module("../src/components/icons", () => ({ IconBack: () => null, IconBook: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
+mock.module("../src/components/AlgText", () => ({ AlgText: () => null, sourceLabel: (source: string) => source }));
+mock.module("../src/components/GuidesDialog", () => ({ MethodsDialog: () => null }));
+mock.module("../src/components/PuzzlePicker", () => ({ PuzzlePicker: () => null }));
+mock.module("../src/components/Sheet", () => ({ Sheet: () => null }));
+mock.module("../src/components/icons", () => ({ IconBack: () => null, IconBook: () => null, IconCheck: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
 mock.module("../src/components/ui", () => Object.fromEntries([
-  ...["Btn", "Caption", "Chip", "Empty", "H1", "Kpi", "MiniBtn", "Muted", "Segmented"].map(name => [name, name]),
+  ...["Btn", "Checkbox", "Control", "Empty", "Input", "Label", "ListRow", "Mark", "Metric", "Metrics", "PageHead", "Segmented"].map(name => [name, name]),
   ["mono", () => ({})],
 ]));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
@@ -66,6 +67,8 @@ async function mount() {
   return store;
 }
 const browser = () => renderer.root.findAllByType("FlatList" as any).find(node => !node.props.horizontal)!;
+/** The segmented control offering this option id (stage tabs, set variants, learning filter). */
+const segmented = (id: string) => renderer.root.findAllByType("Segmented" as any).find(node => node.props.options.some((option: any) => option.id === id))!;
 const pager = () => renderer.root.findAllByType("FlatList" as any).find(node => node.props.horizontal)!;
 async function open(id: string) {
   const card = renderer.root.findAllByType("Pressable" as any).find(node =>
@@ -78,21 +81,31 @@ async function swipe(index: number) {
   await act(() => pager().props.onMomentumScrollEnd({ nativeEvent: { contentOffset: { x: 362 * index } } }));
 }
 
-test("the phone selector displays only its stage, including when the learning filter has no matches", async () => {
+test("the stage tabs display only their stage, including when the learning filter has no matches", async () => {
   await mount();
-  const stageSelect = () => renderer.root.findAllByType("Select" as any).find(node => node.props.accessibilityLabel.startsWith("Algorithm stage:"))!;
-  const visibleIds = () => browser().props.data.flatMap((row: any) => row.kind === "cards" ? row.cases.map((c: any) => c.id) : []);
+  const visibleIds = () => browser().props.data.flatMap((row: any) => row.kind === "case" ? [row.c.id] : []);
   expect(visibleIds()).toEqual(["OLL 1", "OLL 3", "OLL 2", "OLL 4"]);
-  await act(() => stageSelect().props.onChange("PLL"));
+  await act(() => segmented("PLL").props.onChange("PLL"));
   expect(visibleIds()).toEqual(["PLL Aa"]);
-  const filter = () => renderer.root.findAllByType("Select" as any).find(node => node.props.accessibilityLabel === "Learning status")!;
-  expect(filter().props.options.find((option: any) => option.value === "learned").label).toBe("Learned · 0");
-  await act(() => filter().props.onChange("learned"));
-  expect(stageSelect().props.value).toBe("PLL");
+  expect(segmented("learned").props.options.find((option: any) => option.id === "learned").count).toBe(0);
+  await act(() => segmented("learned").props.onChange("learned"));
+  expect(segmented("PLL").props.value).toBe("PLL");
   expect(visibleIds()).toEqual([]);
   expect(browser().props.data.some((row: any) => row.kind === "empty")).toBe(true);
-  await act(() => stageSelect().props.onChange("OLL"));
+  await act(() => segmented("OLL").props.onChange("OLL"));
   expect(visibleIds()).toEqual(["OLL 4"]);
+  // The counts describe the whole set whatever the filter.
+  expect(segmented("learned").props.options.map((option: any) => option.count)).toEqual([4, 1, 3]);
+});
+
+test("the header counts learned cases of every stage and a group folds under its title", async () => {
+  const store = await mount();
+  const head = renderer.root.findAllByType("PageHead" as any)[0]!;
+  expect(head.props.sub).toBe("1 of 5 learned");
+  const dots = renderer.root.findAllByType("Pressable" as any).find(node => node.findAllByType("Text" as any).some(text => text.props.children === "Dots"))!;
+  await act(() => dots.props.onPress());
+  expect(store.get(collapsedAlgorithmGroupsAtom)).toEqual({ "oll:Dots": true });
+  expect(browser().props.data.flatMap((row: any) => row.kind === "case" ? [row.c.id] : [])).toEqual(["OLL 2", "OLL 4"]);
 });
 
 test("opening and swiping keep the scrolled list mounted; hardware back returns directly to it", async () => {
@@ -131,7 +144,9 @@ test("the on-screen return pops the details, including after the next-case butto
   await open("OLL 1");
   await act(() => renderer.root.findAllByType("Btn" as any).find(node => node.props.accessibilityLabel === "Next case")!.props.onPress());
   expect(store.get(routeAtom)).toMatchObject({ caseId: "OLL 3" });
-  await act(() => renderer.root.findAllByType("Btn" as any).find(node => node.props.label === "OLL")!.props.onPress());
+  const head = renderer.root.findAllByType("PageHead" as any).find(node => node.props.onBack)!;
+  expect(head.props.title).toBe("OLL 3");
+  await act(() => head.props.onBack());
   expect(store.get(routeAtom)).toEqual({ page: "algorithms" });
   await act(() => { store.set(goBackAtom); });
   expect(store.get(routeAtom)).toEqual({ page: "playground" });

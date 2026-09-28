@@ -41,8 +41,8 @@ function online() {
 }
 
 export const OFFLINE_TOAST = {
-  title: "Mode hors ligne",
-  description: "Impossible de joindre le serveur. Tes temps restent enregistrés sur cet appareil et se synchroniseront au retour de la connexion.",
+  title: "Offline",
+  description: "Can't reach the server. Your times stay on this device and sync when the connection is back.",
   duration: 8000,
 };
 

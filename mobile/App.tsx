@@ -8,6 +8,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import { local, localChanged } from "./src/api";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { SettingsDialog } from "./src/components/Settings";
+import { GuidesDialog } from "./src/components/GuidesDialog";
 import { Nav } from "./src/components/Nav";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
@@ -20,26 +21,29 @@ import { useLayout } from "./src/hooks/useLayout";
 import { PUZZLES } from "../src/shared/puzzles";
 import { ProfilePage } from "./src/pages/AccountPage";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
-import { GuidesPage } from "./src/pages/GuidesPage";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
 import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, navPage, profileFiltersAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
 import { buildTheme, ThemeContext } from "./src/theme";
+import { FONT_FILES, installGeist } from "./src/fonts";
+
+// Every Text and TextInput renders in Geist from the very first frame (see src/fonts.ts).
+installGeist();
 
 function renderPage(route: Route) {
   switch (route.page) {
     case "algorithms": return <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} />;
     case "training": return <TrainingPage />;
     case "playground": return <PlaygroundPage />;
-    case "guides": return <GuidesPage guide={route.guide} />;
     case "profile": return <ProfilePage mode={route.mode} caseId={route.caseId} group={route.group} />;
   }
 }
 
 export function App() {
-  const [fontsLoaded, fontError] = useFonts({ "cubing-icons": require("./assets/fonts/cubing-icons.ttf") });
+  // Geist, Geist Mono and the WCA glyphs; the startup gate keeps the native splash up until they are ready.
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
   return <SafeAreaProvider><Provider><Themed><StartupGate fontsReady={!!(fontsLoaded || fontError)}><Shell /></StartupGate></Themed></Provider></SafeAreaProvider>;
 }
 
@@ -122,6 +126,7 @@ function Shell() {
     </KeyboardAvoidingView>
     <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} hidden={running || keyboardVisible} collapsed={navInFlow && keyboardVisible} phone={phone} />
     <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <GuidesDialog />
     <SyncIndicator hidden={running} offset={navInFlow ? 74 + safe.bottom : 84 + safe.bottom} />
     <Toast />
   </SolveMenuProvider>;

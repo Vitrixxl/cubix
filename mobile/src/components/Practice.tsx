@@ -12,6 +12,18 @@ export function TimerChrome({ hidden, exit = "up", children, style, pointerEvent
   return <Animated.View ref={ref} pointerEvents={hidden ? "none" : pointerEvents} style={[style, { transform }]}>{children}</Animated.View>;
 }
 
+/**
+ * `.practice.running …`: the page head, scramble, figures and hints fade out (180 ms) while the timer
+ * runs, leaving only the time, and fade back afterwards. The layout never moves.
+ */
+export function RunningFade({ hidden, children, style }: { hidden: boolean; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const opacity = useRef(new Animated.Value(hidden ? 0 : 1)).current;
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: hidden ? 0 : 1, duration: hidden ? 180 : 250, useNativeDriver: true }).start();
+  }, [hidden, opacity]);
+  return <Animated.View pointerEvents={hidden ? "none" : "box-none"} style={[style, { opacity }]}>{children}</Animated.View>;
+}
+
 /** Mobile controls keep their own space above navigation, including while the timer runs. */
 export function PracticeDock({ hidden, children }: { hidden: boolean; children: ReactNode }) {
   const t = useTheme();
@@ -57,7 +69,7 @@ export function PracticeContent({ children, revealEnd = false }: { children: Rea
   </ScrollView>;
 }
 
-/** A brief line of praise at the top of the practice area, shown at each new `at`; fades out on its own. */
+/** `.notice`: a brief green line of praise (trophy, 13 px semibold) at the top of the timer, shown at each new `at`; fades out on its own. */
 export function Notice({ at, hidden, top, icon, message }: { at: number; hidden: boolean; top: number; icon: ReactNode; message: string }) {
   const t = useTheme();
   const opacity = useRef(new Animated.Value(0)).current;
@@ -71,9 +83,9 @@ export function Notice({ at, hidden, top, icon, message }: { at: number; hidden:
   }, [at, opacity]);
   if (!shown || hidden) return null;
   return <Animated.View pointerEvents="none" style={[styles.notice, { top, opacity }]}>
-    <View style={[styles.noticeBody, { backgroundColor: t.surface2 }]}>
+    <View style={styles.noticeBody}>
       {icon}
-      <Text style={{ color: t.good, fontSize: 13, fontWeight: "600" }}>{message}</Text>
+      <Text numberOfLines={1} style={{ color: t.good, fontSize: 13, fontWeight: "600", flexShrink: 1 }}>{message}</Text>
     </View>
   </Animated.View>;
 }
@@ -81,5 +93,5 @@ export function Notice({ at, hidden, top, icon, message }: { at: number; hidden:
 const styles = StyleSheet.create({
   area: { flex: 1, minHeight: 0 },
   notice: { position: "absolute", left: 0, right: 0, zIndex: 3, alignItems: "center" },
-  noticeBody: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 },
+  noticeBody: { flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "92%", paddingVertical: 4 },
 });

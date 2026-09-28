@@ -5,9 +5,8 @@ import { useLayout } from "../hooks/useLayout";
 import { SLIDE } from "../hooks/useSlide";
 import { lastNavigationAtom, navPage, type NavigationKind, type Route } from "../state";
 
-/** How far a route sits below its tab's first page. Guides stack over whatever opened them. */
+/** How far a route sits below its tab's first page. */
 function routeDepth(route: Route, phone: boolean) {
-  if (route.page === "guides") return 3;
   if (route.page !== "profile" || !route.mode) return 0;
   // On a tablet a profile case opens in a sheet over the gallery, not as a page of its own.
   return (route.mode === "achievements" && route.group) || (phone && route.caseId) ? 2 : 1;

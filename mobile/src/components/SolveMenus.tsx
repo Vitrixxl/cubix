@@ -1,17 +1,22 @@
 import { useSetAtom } from "jotai";
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { fmtSolve } from "../../../src/client/lib/format";
-import { contextLabel } from "../../../src/shared/puzzles";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
 import { deletedSolveIdAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { useTheme } from "../theme";
 import { AlgText } from "./AlgText";
-import { IconClose, IconComment, IconFlag, IconInfo } from "./icons";
-import { Popover, useAnchor, type Anchor } from "./Popover";
+import { IconComment, IconFlag, IconInfo, type IconProps } from "./icons";
+import { Popover, type Anchor } from "./Popover";
 import { Sheet } from "./Sheet";
 import { Btn, FormError, Input, MiniBtn, mono } from "./ui";
+
+/** Tabler's trash can, as the web solve actions draw it. */
+export const IconTrash = ({ size = 15, color, strokeWidth = 1.8 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+  <Path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+</Svg>;
 
 /** Notes are capped like the server does; the field simply stops accepting text there. */
 export const COMMENT_MAX = 500;
@@ -24,10 +29,12 @@ const MenuContext = createContext<{
   deleteTime: (id: number) => Promise<void>;
   togglePenalty: (solve: SolveSummary, penalty: Penalty) => Promise<void>;
   editComment: (solve: SolveSummary) => void;
+  /** The "Solve" dialog of a time: large time, date, scramble and its actions, all centred. */
+  openSolve: (solve: SolveSummary | SolveDto) => void;
   busy: boolean;
   /** Mutations in flight, as the rows should already look: `null` for a deletion. Lists apply it on top of their data. */
   optimistic: ReadonlyMap<number, SolveSummary | null>;
-}>({ open: () => {}, deleteTime: async () => {}, togglePenalty: async () => {}, editComment: () => {}, busy: false, optimistic: new Map() });
+}>({ open: () => {}, deleteTime: async () => {}, togglePenalty: async () => {}, editComment: () => {}, openSolve: () => {}, busy: false, optimistic: new Map() });
 
 /** Shared solve actions: the buttons under a fresh time, the list rows and the long-press menu. */
 export function SolveMenuProvider({ children }: { children: ReactNode }) {
@@ -41,6 +48,8 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<SolveSummary | null>(null);
   const [draft, setDraft] = useState("");
+  const [detail, setDetail] = useState<SolveSummary | SolveDto | null>(null);
+  const openSolve = useCallback((solve: SolveSummary | SolveDto) => { setError(""); setDetail(solve); }, []);
   const open = useCallback((solve: SolveSummary, anchor: Anchor) => { setError(""); setMenu({ solve, anchor }); }, []);
   // One mutation at a time: a double tap must not delete two solves or race two penalties.
   const run = useCallback(async (action: () => Promise<void>) => {
@@ -57,7 +66,7 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
   const settle = (id: number) => setOptimistic(current => { const next = new Map(current); next.delete(id); return next; });
   const deleteTime = useCallback((id: number) => run(async () => {
     expect(id, null);
-    try { await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); setMenu(null); }
+    try { await api.deleteSolve(id); notifyDeleted(id); bumpStats(v => v + 1); setMenu(null); setDetail(current => current?.id === id ? null : current); }
     finally { settle(id); }
   }), [run, notifyDeleted, bumpStats]);
   const togglePenalty = useCallback((solve: SolveSummary, penalty: Penalty) => run(async () => {
@@ -67,16 +76,18 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
       const updated = await api.setPenalty(solve.id, next);
       notifyUpdated(updated); bumpStats(v => v + 1);
       setMenu(current => current && current.solve.id === solve.id ? { ...current, solve: updated } : current);
+      setDetail(current => current?.id === solve.id ? { ...current, ...updated } : current);
     } finally { settle(solve.id); }
   }), [run, notifyUpdated, bumpStats]);
-  const editComment = useCallback((solve: SolveSummary) => { setMenu(null); setError(""); setDraft(solve.comment ?? ""); setEditing(solve); }, []);
+  const editComment = useCallback((solve: SolveSummary) => { setMenu(null); setDetail(null); setError(""); setDraft(solve.comment ?? ""); setEditing(solve); }, []);
   const saveComment = (text: string | null) => run(async () => {
     if (!editing) return;
     const updated = await api.setComment(editing.id, text);
     notifyUpdated(updated); bumpStats(v => v + 1); setEditing(null);
   });
+  const shown = detail && { ...detail, ...optimistic.get(detail.id) };
   const menuSolve = menu?.solve;
-  return <MenuContext.Provider value={{ open, deleteTime, togglePenalty, editComment, busy, optimistic }}>
+  return <MenuContext.Provider value={{ open, deleteTime, togglePenalty, editComment, openSolve, busy, optimistic }}>
     {children}
     <Popover anchor={menu?.anchor ?? null} onClose={() => setMenu(null)} width={230}>
       {menuSolve && <View style={styles.menuHead}>
@@ -88,10 +99,25 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
         <MenuItem icon={<IconFlag size={15} color={menuSolve.penalty === "+2" ? t.warning : t.readableMuted} />} label={menuSolve.penalty === "+2" ? "Remove +2" : "+2"} disabled={busy} onPress={() => void togglePenalty(menuSolve, "+2")} />
         <MenuItem icon={<Text style={[styles.dnf, { color: menuSolve.penalty === "dnf" ? t.warning : t.readableMuted }]}>DNF</Text>} label={menuSolve.penalty === "dnf" ? "Remove DNF" : "DNF"} disabled={busy} onPress={() => void togglePenalty(menuSolve, "dnf")} />
         <MenuItem icon={<IconComment size={15} color={t.readableMuted} />} label={menuSolve.comment ? "Edit comment" : "Add comment"} disabled={busy} onPress={() => editComment(menuSolve)} />
-        <MenuItem icon={<IconClose size={15} color={t.danger} />} label={busy ? "Deleting…" : "Delete"} danger disabled={busy} onPress={() => void deleteTime(menuSolve.id)} />
+        <MenuItem icon={<IconTrash size={15} color={t.danger} />} label={busy ? "Deleting…" : "Delete"} danger disabled={busy} onPress={() => void deleteTime(menuSolve.id)} />
       </>}
       {error ? <View style={{ padding: 8 }}><FormError>{error}</FormError></View> : null}
     </Popover>
+    <Sheet open={detail !== null} title="Solve" onClose={() => setDetail(null)}>
+      {shown && <View style={styles.detail}>
+        <Text style={[mono(t, 44, "500"), styles.detailTime, shown.penalty === "dnf" && { color: t.danger }]}>{fmtSolve(shown.time_ms, shown.penalty)}</Text>
+        <Text style={[styles.centred, { color: t.muted, fontSize: 13 }]}>{fmtDate(shown.created_at)}</Text>
+        {"scramble" in shown && shown.scramble ? <AlgText alg={shown.scramble} size={16} lineHeight={16 * 1.55} selectable style={styles.centred} /> : null}
+        {shown.comment ? <Text selectable style={[styles.centred, { color: t.text, fontSize: 14, lineHeight: 20 }]}>{shown.comment}</Text> : null}
+        <View style={styles.detailActions}>
+          <Btn variant="ghost" label="+2" active={shown.penalty === "+2"} accessibilityLabel="+2 penalty" disabled={busy} onPress={() => void togglePenalty(shown, "+2")} />
+          <Btn variant="ghost" label="DNF" active={shown.penalty === "dnf"} accessibilityLabel="Did not finish" disabled={busy} onPress={() => void togglePenalty(shown, "dnf")} />
+          <Btn variant="ghost" icon={IconComment} label="Comment" disabled={busy} onPress={() => editComment(shown)} />
+          <Btn variant="ghost" tone="danger" icon={IconTrash} label={busy ? "Deleting…" : "Delete"} disabled={busy} onPress={() => void deleteTime(shown.id)} />
+        </View>
+        {error ? <FormError style={{ justifyContent: "center" }}>{error}</FormError> : null}
+      </View>}
+    </Sheet>
     <Sheet open={editing !== null} title="Comment" onClose={() => setEditing(null)}>
       {editing && <View style={{ gap: 12 }}>
         <Text style={{ color: t.readableMuted, fontSize: 13 }}>{fmtSolve(editing.time_ms, editing.penalty)} · {fmtDate(editing.created_at)}</Text>
@@ -138,58 +164,50 @@ export function SolveActionButtons({ solve }: { solve: SolveSummary }) {
   return <>
     <MiniBtn accessibilityRole="button" accessibilityLabel="+2 penalty" accessibilityState={{ selected: solve.penalty === "+2" }} label="+2" on={solve.penalty === "+2"} disabled={busy} onPress={() => void togglePenalty(solve, "+2")} />
     <MiniBtn accessibilityRole="button" accessibilityLabel="Did not finish" accessibilityState={{ selected: solve.penalty === "dnf" }} label="DNF" on={solve.penalty === "dnf"} disabled={busy} onPress={() => void togglePenalty(solve, "dnf")} />
-    <MiniBtn accessibilityRole="button" accessibilityLabel={solve.comment ? "Edit comment" : "Add comment"} icon={<IconComment size={15} color={solve.comment ? t.accent : t.readableMuted} />} disabled={busy} onPress={() => editComment(solve)} />
-    <MiniBtn accessibilityRole="button" accessibilityLabel="Delete solve" danger icon={<IconClose size={15} color={t.danger} />} disabled={busy} onPress={() => void deleteTime(solve.id)} />
+    <MiniBtn accessibilityRole="button" accessibilityLabel={solve.comment ? "Edit comment" : "Add comment"} icon={<IconComment size={13} color={solve.comment ? t.text : t.muted} />} disabled={busy} onPress={() => editComment(solve)} />
+    <MiniBtn accessibilityRole="button" accessibilityLabel="Delete solve" danger icon={IconTrash} disabled={busy} onPress={() => void deleteTime(solve.id)} />
   </>;
 }
 
-/**
- * The four buttons under a time that was just recorded: delete, DNF, +2 (the flag) and comment.
- * Each is a flat square so the row stays readable at a glance on a phone.
- */
-export function LastSolveActions({ solve, compact }: { solve: SolveSummary; compact?: boolean }) {
-  const t = useTheme();
-  const { deleteTime, togglePenalty, editComment, busy } = useContext(MenuContext);
-  const size = compact ? 32 : 38;
-  return <View style={styles.lastRow} accessibilityRole="toolbar">
-    <ActionButton size={size} label="Delete solve" danger disabled={busy} onPress={() => void deleteTime(solve.id)}><IconClose size={16} color={t.danger} /></ActionButton>
-    <ActionButton size={size} label="Did not finish" on={solve.penalty === "dnf"} disabled={busy} onPress={() => void togglePenalty(solve, "dnf")}><Text style={[styles.dnf, { color: solve.penalty === "dnf" ? t.warning : t.text2 }]}>DNF</Text></ActionButton>
-    <ActionButton size={size} label="+2 penalty" on={solve.penalty === "+2"} disabled={busy} onPress={() => void togglePenalty(solve, "+2")}><IconFlag size={16} color={solve.penalty === "+2" ? t.warning : t.text2} /><Text style={[styles.plusTwo, { color: solve.penalty === "+2" ? t.warning : t.text2 }]}>+2</Text></ActionButton>
-    <ActionButton size={size} label={solve.comment ? "Edit comment" : "Add comment"} on={!!solve.comment} disabled={busy} onPress={() => editComment(solve)}><IconComment size={16} color={solve.comment ? t.accent : t.text2} /></ActionButton>
+/** `.times-actions` of a times row: +2, DNF, delete, then "i" opening the solve dialog (comment lives there). */
+export function TimesRowActions({ solve }: { solve: SolveSummary | SolveDto }) {
+  const { deleteTime, togglePenalty, openSolve, busy } = useContext(MenuContext);
+  return <View style={styles.timesActions}>
+    <MiniBtn accessibilityRole="button" accessibilityLabel="+2 penalty" accessibilityState={{ selected: solve.penalty === "+2" }} label="+2" on={solve.penalty === "+2"} disabled={busy} onPress={() => void togglePenalty(solve, "+2")} />
+    <MiniBtn accessibilityRole="button" accessibilityLabel="Did not finish" accessibilityState={{ selected: solve.penalty === "dnf" }} label="DNF" on={solve.penalty === "dnf"} disabled={busy} onPress={() => void togglePenalty(solve, "dnf")} />
+    <MiniBtn accessibilityRole="button" accessibilityLabel="Delete solve" danger icon={IconTrash} disabled={busy} onPress={() => void deleteTime(solve.id)} />
+    <MiniBtn accessibilityRole="button" accessibilityLabel="Scramble and details" icon={IconInfo} onPress={() => openSolve(solve)} />
   </View>;
 }
 
-function ActionButton({ size, label, on, danger, disabled, onPress, children }: { size: number; label: string; on?: boolean; danger?: boolean; disabled?: boolean; onPress: () => void; children: ReactNode }) {
+/**
+ * `.solve-actions` under a time that was just recorded: +2 and DNF (mono), then comment and delete as
+ * square icon controls, 30 px high and centred. `compact` is accepted for older callers.
+ */
+export function LastSolveActions({ solve, compact }: { solve: SolveSummary; compact?: boolean }) {
   const t = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!on, disabled: !!disabled }} disabled={disabled} hitSlop={4} onPress={onPress}
-    style={({ pressed }) => [styles.action, { minWidth: size, height: size, backgroundColor: pressed ? (danger ? t.dangerSoft : t.hover) : on ? t.accentSoft : "transparent", opacity: disabled ? 0.45 : 1 }]}>
-    {children}
-  </Pressable>;
+  void compact;
+  const { deleteTime, togglePenalty, editComment, busy } = useContext(MenuContext);
+  return <View style={styles.lastRow} accessibilityRole="toolbar">
+    <Btn size={30} mono label="+2" active={solve.penalty === "+2"} accessibilityLabel="+2 penalty" disabled={busy} onPress={() => void togglePenalty(solve, "+2")} />
+    <Btn size={30} mono label="DNF" active={solve.penalty === "dnf"} accessibilityLabel="Did not finish" disabled={busy} onPress={() => void togglePenalty(solve, "dnf")} />
+    <Btn size={30} iconOnly icon={<IconComment size={15} color={solve.comment ? t.text : t.muted} />} accessibilityLabel={solve.comment ? "Edit comment" : "Add comment"} disabled={busy} onPress={() => editComment(solve)} />
+    <DeleteControl disabled={busy} onPress={() => void deleteTime(solve.id)} />
+  </View>;
 }
 
-/** The small "i" button on a time, opening its date and comment, plus the scramble when the row has one. */
-export function SolveInfoButton({ solve, index }: { solve: SolveDto | SolveSummary; index?: number }) {
+/** `.control.icon-only.danger-hover`: the trash turns red while pressed. */
+function DeleteControl({ disabled, onPress }: { disabled?: boolean; onPress: () => void }) {
   const t = useTheme();
-  const { ref, anchor, open, close } = useAnchor();
-  const date = useMemo(() => fmtDate(solve.created_at), [solve.created_at]);
-  const full = "scramble" in solve ? solve : null;
-  return <>
-    <View ref={ref} collapsable={false}><MiniBtn accessibilityLabel="Show solve details" icon={<IconInfo size={15} color={t.readableMuted} />} onPress={open} /></View>
-    <Popover anchor={anchor} onClose={close} width={280} alignRight gap={8}>
-      <View style={{ paddingHorizontal: 8, paddingVertical: 6, gap: 2 }}>
-        <Text style={[styles.label, { color: t.readableMuted }]}>{full ? contextLabel(full) : index !== undefined ? `Solve #${index}` : "Date"}</Text>
-        <Text style={{ color: t.text, fontSize: 13, fontWeight: "500" }}>{date}</Text>
-        {full && <>
-          <Text style={[styles.label, { color: t.readableMuted, marginTop: 8 }]}>Scramble</Text>
-          {full.scramble ? <AlgText alg={full.scramble} size={13} selectable /> : <Text style={{ color: t.text, fontSize: 13 }}>No scramble recorded.</Text>}
-        </>}
-        {solve.comment ? <>
-          <Text style={[styles.label, { color: t.readableMuted, marginTop: 8 }]}>Comment</Text>
-          <Text style={{ color: t.text, fontSize: 13 }} selectable>{solve.comment}</Text>
-        </> : null}
-      </View>
-    </Popover>
-  </>;
+  const [down, setDown] = useState(false);
+  return <Btn size={30} iconOnly icon={<IconTrash size={15} color={down ? t.danger : t.muted} />} accessibilityLabel="Delete solve" disabled={disabled} onPressIn={() => setDown(true)} onPressOut={() => setDown(false)} onPress={onPress} />;
+}
+
+/** The small "i" button on a time, opening the solve dialog (date, scramble, penalties, comment, delete). */
+export function SolveInfoButton({ solve, index }: { solve: SolveDto | SolveSummary; index?: number }) {
+  const { openSolve } = useContext(MenuContext);
+  void index;
+  return <MiniBtn accessibilityLabel="Show solve details" icon={IconInfo} onPress={() => openSolve(solve)} />;
 }
 
 const styles = StyleSheet.create({
@@ -197,11 +215,13 @@ const styles = StyleSheet.create({
   item: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   itemIcon: { width: 30, alignItems: "flex-start" },
   itemText: { fontSize: 14, fontWeight: "600" },
-  label: { fontSize: 11, fontWeight: "700", letterSpacing: 0.9, textTransform: "uppercase" },
   dnf: { fontSize: 11, fontWeight: "800", letterSpacing: 0.4 },
-  plusTwo: { fontSize: 12, fontWeight: "700", marginLeft: 3 },
-  lastRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
-  action: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 10, borderRadius: 12 },
+  lastRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  timesActions: { flexDirection: "row", alignItems: "center", gap: 1 },
+  detail: { alignItems: "center", gap: 14, paddingTop: 4 },
+  detailTime: { textAlign: "center", letterSpacing: -0.9, lineHeight: 52 },
+  centred: { textAlign: "center", alignSelf: "stretch" },
+  detailActions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6 },
   commentInput: { minHeight: 96, textAlignVertical: "top", paddingTop: 10 },
   commentActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
 });
