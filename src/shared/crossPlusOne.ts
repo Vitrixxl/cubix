@@ -1,6 +1,7 @@
 /**
- * First-block practice on the 3×3: a random state whose best white cross plus one back F2L pair (the cube
- * held with white on the bottom after x2) takes exactly `moves` face turns. The rest of the cube is random; a 3×3 solver turns the state into a scramble.
+ * First-block practice on the 3×3 ("cross + 1"): a random state whose best back block takes exactly `moves` face turns.
+ * The block is a 2×2×2: a back F2L pair with its two cross edges, the cube held with white on the bottom and green in
+ * front (z2). The other cross edges and the rest of the cube are random; a 3×3 solver turns the state into a scramble.
  *
  * States use cubing.js's 3×3 pattern layout: position i holds piece `pieces[i]` with `orientation[i]`.
  * Edges: UF UR UB UL DF DR DB DL FR FL BR BL. Corners: UFR URB UBL ULF DRF DFL DLB DBR. White is on U.
@@ -24,13 +25,14 @@ const FACES: [number[], number[], number[], number[]][] = [
   [[9, 1, 2, 3, 8, 5, 6, 7, 0, 4, 10, 11], [1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0], [3, 1, 2, 5, 0, 4, 6, 7], [1, 0, 0, 2, 2, 1, 0, 0]],
   [[0, 1, 10, 3, 4, 5, 11, 7, 8, 9, 6, 2], [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1], [0, 7, 1, 3, 4, 5, 2, 6], [0, 2, 1, 0, 0, 0, 2, 1]],
 ];
-/** Corner and edge of each F2L slot under the white cross: FR, BR, BL, FL. */
-const ALL_SLOTS = [[0, 8], [1, 10], [2, 11], [3, 9]] as const;
 /**
- * The pair to solve is a back one once the cube is turned over (x2, white on the bottom):
- * the FR and FL slots of the scramble orientation.
+ * The back blocks, in the scramble orientation (white on U, green in front), with the name of their slot once the
+ * cube is turned over with z2: corner, slot edge and the two cross edges beside them. BL here is BR in hand, BR is BL.
  */
-const SLOTS = [ALL_SLOTS[0], ALL_SLOTS[3]] as const;
+const BLOCKS = [
+  { corner: 2, edges: [11, 2, 3], slot: "BR" },
+  { corner: 1, edges: [10, 2, 1], slot: "BL" },
+] as const;
 
 const applyOrbit = (orbit: Orbit, [permutation, delta]: [number[], number[]], n: number): Orbit => ({
   pieces: permutation.map(p => orbit.pieces[p]!),
@@ -52,20 +54,21 @@ const apply = (state: PatternData, move: Move): PatternData =>
   ({ ...state, EDGES: applyOrbit(state.EDGES, move.edges, 2), CORNERS: applyOrbit(state.CORNERS, move.corners, 3) });
 
 const solvedPiece = (orbit: Orbit, i: number) => orbit.pieces[i] === i && orbit.orientation[i] === 0;
-/** The white cross and at least one of its back F2L pairs (with white on the bottom) are solved. */
+const blockSolved = (state: PatternData, block: (typeof BLOCKS)[number]) =>
+  solvedPiece(state.CORNERS, block.corner) && block.edges.every(edge => solvedPiece(state.EDGES, edge));
+/** At least one back block (a back pair and its two cross edges) is solved. */
 export function crossPlusOneSolved(state: PatternData): boolean {
-  return [0, 1, 2, 3].every(i => solvedPiece(state.EDGES, i))
-    && SLOTS.some(([corner, edge]) => solvedPiece(state.CORNERS, corner) && solvedPiece(state.EDGES, edge));
+  return BLOCKS.some(block => blockSolved(state, block));
 }
 /** Skip a turn of the previous face, and of its opposite face in one fixed order, as they never shorten a solution. */
 const redundant = (face: number, previous: number) => face === previous || (face >> 1 === previous >> 1 && face < previous);
-/** Whether the cross and a pair can be solved within `depth` face turns. */
+/** Whether a back block can be solved within `depth` face turns. */
 function solvableWithin(state: PatternData, depth: number, previous = -1): boolean {
   if (crossPlusOneSolved(state)) return true;
   if (!depth) return false;
   return MOVES.some(move => !redundant(move.face, previous) && solvableWithin(apply(state, move), depth - 1, move.face));
 }
-/** Fewest face turns solving the white cross and one pair, searched up to `limit`. */
+/** Fewest face turns solving a back block, searched up to `limit`. */
 export function crossPlusOneDistance(state: PatternData, limit = 6): number | null {
   for (let depth = 0; depth <= limit; depth++) if (solvableWithin(state, depth)) return depth;
   return null;
@@ -79,10 +82,10 @@ function shuffle<T>(values: T[], random: () => number): T[] {
   return values;
 }
 const odd = (pieces: number[]) => pieces.reduce((sum, a, i) => sum + pieces.slice(i + 1).filter(b => b < a).length, 0) % 2 === 1;
-/** A random cube whose white cross and one pair are solved. */
+/** A random cube whose back block is solved. */
 function blockSolvedState(random: () => number): PatternData {
-  const [corner, edge] = SLOTS[Math.floor(random() * SLOTS.length)]!;
-  const fixedEdges = [0, 1, 2, 3, edge], freeEdges = [...Array(12).keys()].filter(i => !fixedEdges.includes(i));
+  const { corner, edges: fixedEdges } = BLOCKS[Math.floor(random() * BLOCKS.length)]!;
+  const freeEdges = [...Array(12).keys()].filter(i => !(fixedEdges as readonly number[]).includes(i));
   const freeCorners = [...Array(8).keys()].filter(i => i !== corner);
   const edges = [...Array(12).keys()], corners = [...Array(8).keys()];
   shuffle([...freeEdges], random).forEach((piece, i) => { edges[freeEdges[i]!] = piece; });
@@ -101,7 +104,7 @@ function blockSolvedState(random: () => number): PatternData {
     CENTERS: { pieces: [0, 1, 2, 3, 4, 5], orientation: [0, 0, 0, 0, 0, 0] },
   };
 }
-/** A random state whose white cross plus one pair is exactly `moves` face turns away. */
+/** A random state whose best back block is exactly `moves` face turns away. */
 export function crossPlusOnePattern(moves: number, random = Math.random): PatternData {
   for (;;) {
     let state = blockSolvedState(random), previous = -1;
@@ -132,13 +135,11 @@ export function patternAfter(scramble: string): PatternData {
   }
   return state;
 }
-/** The F2L slot a solution solves, named with white on U: FR or FL, the back pairs once turned over. */
-const SLOT_NAMES = ["FR", "FL"];
-const solvedSlots = (state: PatternData) =>
-  SLOTS.flatMap(([corner, edge], i) => (solvedPiece(state.CORNERS, corner) && solvedPiece(state.EDGES, edge) ? [SLOT_NAMES[i]!] : []));
+/** The blocks a state has solved, named as in hand (z2): BR or BL. */
+const solvedSlots = (state: PatternData) => BLOCKS.filter(block => blockSolved(state, block)).map(block => block.slot);
 /**
- * Optimal cross + 1 solutions of a scramble, at most `limit` of them and one per solved slot first,
- * written with white on U as the scramble is.
+ * Optimal back-block solutions of a scramble, at most `limit` of them and one per block first, written in the
+ * scramble orientation (white on U); `heldMoves` rewrites them for the cube held with white on the bottom.
  */
 export function crossPlusOneSolutions(scramble: string, limit = 4, maxDepth = 6): { moves: string; slot: string }[] {
   const start = patternAfter(scramble), found: { moves: string; slot: string }[] = [], path: number[] = [];
@@ -161,8 +162,5 @@ export function crossPlusOneSolutions(scramble: string, limit = 4, maxDepth = 6)
   const bySlot = [...found.filter((f, i) => found.findIndex(g => g.slot === f.slot) === i), ...found.filter((f, i) => found.findIndex(g => g.slot === f.slot) !== i)];
   return bySlot.slice(0, limit);
 }
-/** A face turn seen with the cube turned over (x2): white goes to D, and F and B swap. */
-export const withWhiteDown = (moves: string) =>
-  moves.replace(/[UDFB]/g, face => ({ U: "D", D: "U", F: "B", B: "F" })[face]!);
-/** Slot names once the cube is turned over with x2. */
-export const slotWithWhiteDown = (slot: string) => ({ FR: "BR", BR: "FR", BL: "FL", FL: "BL" })[slot] ?? slot;
+/** Face turns seen with the cube turned over with z2 (white on the bottom, green still in front): U and D swap, R and L swap. */
+export const heldMoves = (moves: string) => moves.replace(/[UDRL]/g, face => ({ U: "D", D: "U", R: "L", L: "R" })[face]!);

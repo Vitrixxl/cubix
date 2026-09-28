@@ -82,8 +82,8 @@ export function TabBar() {
 }
 
 /**
- * Page frame. Phones slide pages sideways like a carousel; the desktop slides them up and down, in the
- * order of the sidebar. Animating `transform` keeps it on the compositor.
+ * Page frame. Phones slide pages sideways like a carousel; the desktop slides the pages of its sidebar up and
+ * down, in their order, and slides sideways when going deeper into a page. Animating `transform` keeps it on the compositor.
  */
 const SLIDE = {
   enter: (direction: number) => ({ transform: `translateX(${direction * 100}%)` }),
@@ -112,7 +112,7 @@ export function Frame({ children, mobile }: { mobile: boolean } & Props) {
       data-exiting={present ? undefined : ""}
       inert={!present}
       custom={s.direction}
-      variants={mobile ? SLIDE : SLIDE_Y}
+      variants={mobile || s.axis === "x" ? SLIDE : SLIDE_Y}
       initial="enter"
       animate="center"
       exit="exit"

@@ -97,8 +97,13 @@ export class Store {
   running = false;
   learningFrozen = false;
   history: any[] = [];
-  /** Slide direction of the next page transition: 1 pushes in from the right, -1 from the left. */
+  /** Slide direction of the next page transition: 1 pushes in from the right (or below), -1 from the left (or above). */
   direction = 1;
+  /**
+   * Axis of the next transition on the desktop: pages of the sidebar slide vertically, going deeper into a page
+   * (a profile section, training started from its setup, a case) slides sideways.
+   */
+  axis: "x" | "y" = "y";
   forward: any[] = [];
   revision = 0;
   request = 0;
@@ -433,6 +438,7 @@ export class Store {
     };
   }
   navigate(page: string, caseId = "") {
+    this.axis = page === this.page ? "x" : "y";
     this.direction =
       page === "profile" && this.page === "profile" && this.profileMode !== "overview"
         ? -1
@@ -473,6 +479,7 @@ export class Store {
     const next = stack.pop();
     if (!next) return;
     this.direction = back ? -1 : 1;
+    this.axis = next.page === this.page ? "x" : "y";
     other.push(this.location());
     Object.assign(this, next);
     this.overlay = "";
@@ -519,6 +526,7 @@ export class Store {
         case "trainingSetup":
           this.setupMode = "";
           this.direction = -1;
+          this.axis = "x";
           this.trainingStep = "setup";
           this.timerEpoch++;
           break;
@@ -533,6 +541,7 @@ export class Store {
           }
           this.trainingStep = "practice";
           this.direction = 1;
+          this.axis = "x";
           this.timerEpoch++;
           this.emit();
           if (this.trainingKind === "cross1") await this.syncScramble();
@@ -728,6 +737,7 @@ export class Store {
           // Profile sections are pages of their own: they slide in and join the back/forward history.
           if (arg === this.profileMode) break;
           this.direction = arg === "overview" ? -1 : 1;
+          this.axis = "x";
           this.history.push(this.location());
           this.forward = [];
           this.profileMode = arg;

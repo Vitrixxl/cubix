@@ -1369,15 +1369,17 @@ kbd {
   flex: 1;
   min-width: 0;
 }
+/* A pane of the grid like the others: flush against the header and the times column, only its own lines. */
 .cube-box {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 22px 32px 0 24px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  /* Never shorter than the scramble beside it, so their bottom lines meet. */
+  align-self: stretch;
+  padding: 28px 36px;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   transition: opacity 0.18s;
 }
 .prompt-visual {
@@ -1482,7 +1484,9 @@ kbd {
   line-height: 1;
   font-weight: 500;
   color: var(--accent);
-  transition: color 0.1s;
+  transition:
+    color 0.1s,
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .timer-digits span {
   flex: none;

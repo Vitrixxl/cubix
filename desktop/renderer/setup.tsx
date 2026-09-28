@@ -76,7 +76,7 @@ function CrossSetup() {
         <div className="setup-pane-title">
           <span className="label">First block</span>
           <h2>Cross + 1</h2>
-          <p className="muted">Scrambles whose white cross and one back F2L pair take exactly the chosen number of moves, held with white on the bottom (x2).</p>
+          <p className="muted">Scrambles whose back block (a back F2L pair with its two cross edges) takes exactly the chosen number of moves, held with white on the bottom and green in front (z2).</p>
         </div>
       </header>
       <div className="setup-field">

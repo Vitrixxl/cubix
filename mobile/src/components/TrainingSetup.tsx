@@ -144,7 +144,7 @@ function CentredPane({ label, title, text, children }: { label: string; title: s
 function CrossSetup({ onStart }: { onStart: () => void }) {
   const t = useTheme();
   const [moves, setMoves] = useAtom(crossMovesAtom);
-  return <CentredPane label="First block" title="Cross + 1" text="Scrambles whose white cross and one back F2L pair take exactly the chosen number of moves, held with white on the bottom (x2).">
+  return <CentredPane label="First block" title="Cross + 1" text="Scrambles whose back block (a back F2L pair with its two cross edges) takes exactly the chosen number of moves, held with white on the bottom and green in front (z2).">
     <View style={styles.field}>
       <Label>Moves</Label>
       <View style={styles.moveChoice} accessibilityRole="radiogroup" accessibilityLabel="Moves">

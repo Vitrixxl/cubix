@@ -1,10 +1,10 @@
 /** The timer page and a running training: prompt, timer, session figures and the times list. */
 import { isReviewMode, learningTrackOf } from "../../src/client/lib/dailyLearning";
-import { CROSS_PLUS_ONE_MOVES, slotWithWhiteDown, withWhiteDown } from "../../src/shared/crossPlusOne";
+import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../src/shared/crossPlusOne";
 import { trainingSessionRows } from "../../src/client/lib/practiceSummary";
 import { PracticeTimer } from "../../src/client/lib/practiceTimer";
 import { shortId, maskForStage } from "../../src/client/lib/caseState";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { store as s } from "./store";
 import { Cube } from "./Cube";
 import { fmtTime, fmtSolve, parseTypedTime, effective } from "../../src/client/lib/format";
@@ -112,6 +112,16 @@ export function Practice() {
     typing = s.page === "playground" && s.entry === "typing";
   const [typed, setTyped] = useState("");
   const typedRef = useRef<HTMLInputElement>(null);
+  // While a solve runs everything else fades out and the digits glide to the middle of the screen, then back.
+  const digitsRef = useRef<HTMLDivElement>(null),
+    running = timer.phase === "Running";
+  useLayoutEffect(() => {
+    const digits = digitsRef.current;
+    if (!digits) return;
+    if (!running) return void (digits.style.transform = "");
+    const r = digits.getBoundingClientRect();
+    digits.style.transform = `translate(${innerWidth / 2 - (r.left + r.width / 2)}px, ${innerHeight / 2 - (r.top + r.height / 2)}px)`;
+  }, [running]);
   useEffect(() => {
     setTyped("");
     if (typing && !s.overlay) typedRef.current?.focus();
@@ -221,7 +231,7 @@ export function Practice() {
       ) : (
         <div className="prompt-main">
           <span className="label">
-            Scramble · {cross ? `cross + 1 in ${s.crossMoves} moves` : s.label("scrambles", s.scrambleType)}
+            Scramble · {cross ? `back block in ${s.crossMoves} moves` : s.label("scrambles", s.scrambleType)}
           </span>
           <div className="prompt-text scramble">
             {s.generating && !s.scramble ? (
@@ -369,7 +379,7 @@ export function Practice() {
                 }}
               />
             ) : (
-              <div className="timer-digits mono">
+              <div className="timer-digits mono" ref={digitsRef}>
                 {(timer.phase === "Holding" || timer.phase === "Ready" ? "0.000" : fmtTime(timer.elapsed))
                   .split("")
                   .map((ch, i) => (
@@ -438,20 +448,20 @@ export function Practice() {
   );
 }
 
-/** Optimal cross + 1 solutions under the scramble, held with white on the bottom as for a cross. */
+/** Optimal back-block solutions under the scramble, held with white on the bottom and green in front (z2). */
 function CrossSolution({ font }: { font: number }) {
   const solutions = s.revealed && s.crossSolutions?.scramble === s.scramble ? s.crossSolutions.list : undefined;
   return (
     <>
       {s.revealed && (
         <div className="prompt-block">
-          <span className="label">Solution · x2, white on the bottom</span>
+          <span className="label">Solution · z2, white on the bottom</span>
           {solutions ? (
             <div className="cross-solutions">
               {solutions.map((v) => (
                 <div key={v.moves + v.slot} className="cross-solution">
-                  <Alg text={withWhiteDown(v.moves)} size={font} />
-                  <span className="mark">{slotWithWhiteDown(v.slot)} pair</span>
+                  <Alg text={heldMoves(v.moves)} size={font} />
+                  <span className="mark">{v.slot} block</span>
                 </div>
               ))}
             </div>

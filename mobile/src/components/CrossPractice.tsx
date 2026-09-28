@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { fmtSolve } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { CROSS_PLUS_ONE_MOVES, slotWithWhiteDown, withWhiteDown } from "../../../src/shared/crossPlusOne";
+import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../../src/shared/crossPlusOne";
 import { contextKey, type PracticeContext } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
@@ -100,16 +100,16 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
     </>} />;
 
   const prompt = <>
-    <PromptBlock label={`Scramble · cross + 1 in ${moves} moves`}>
+    <PromptBlock label={`Scramble · back block in ${moves} moves`}>
       {generationError ? <View style={styles.error}><Text style={{ color: t.danger, fontSize: 13 }}>{generationError}</Text><Btn small label="Retry" onPress={() => void generateNext()} /></View>
         : generating && (slow || !scramble) ? <View style={{ gap: promptFont * 0.5, paddingVertical: promptFont * 0.2 }}><SkeletonLine width="94%" height={promptFont * 1.05} /><SkeletonLine width="72%" height={promptFont * 1.05} /></View>
         : <Moves alg={scramble} size={promptFont} />}
     </PromptBlock>
-    {revealed && <PromptBlock label="Solution · x2, white on the bottom">
+    {revealed && <PromptBlock label="Solution · z2, white on the bottom">
       {shown ? <View style={styles.solutions}>
         {shown.map(v => <View key={v.moves + v.slot} style={styles.solution}>
-          <Moves alg={withWhiteDown(v.moves)} size={solutionFont} />
-          <Mark textStyle={{ fontSize: 12, lineHeight: 20 }}>{slotWithWhiteDown(v.slot)} pair</Mark>
+          <Moves alg={heldMoves(v.moves)} size={solutionFont} />
+          <Mark textStyle={{ fontSize: 12, lineHeight: 20 }}>{v.slot} block</Mark>
         </View>)}
         {!shown.length && <Text style={{ color: t.muted, fontSize: 13 }}>No solution within 6 moves.</Text>}
       </View> : solutionError ? <View style={styles.error}><Text style={{ color: t.danger, fontSize: 13 }}>{solutionError}</Text><Btn small label="Retry" onPress={() => { setRevealed(false); setTimeout(() => setRevealed(true)); }} /></View>
