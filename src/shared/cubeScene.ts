@@ -1,4 +1,4 @@
-import { applyMove, parseAlg, solved, type Move } from './cube';
+import { applyMove, parseAlg, slotsFor, solved, type Move } from './cube';
 import { stickerColors, type CubeMask } from './cubeAppearance';
 
 /**
@@ -35,7 +35,7 @@ export const cubeSceneDuration = (scene: CubeScene) => Math.max(scene.size, 3);
 /** Half-width of the view, in cube units: a canvas of `size` pixels draws `size / 2 / cubeViewRadius` pixels per unit. */
 export const cubeViewRadius = (scene: CubeScene) => scene.size * 0.975;
 
-type V = number[];
+type V = readonly number[];
 const add = (a: V, b: V) => a.map((v, i) => v + b[i]),
   scale = (a: V, f: number) => a.map((v) => v * f);
 function rotate(v: V, axis: number, angle: number) {
@@ -47,17 +47,6 @@ function rotate(v: V, axis: number, angle: number) {
   w[a] = c * v[a] - s * v[b];
   w[b] = s * v[a] + c * v[b];
   return w;
-}
-function geometry(n: number, f: number, r: number, c: number) {
-  const h = (n - 1) / 2;
-  return [
-    [[c - h, h, r - h], [0, 1, 0]],
-    [[c - h, -h, h - r], [0, -1, 0]],
-    [[c - h, h - r, h], [0, 0, 1]],
-    [[h - c, h - r, -h], [0, 0, -1]],
-    [[h, h - r, h - c], [1, 0, 0]],
-    [[-h, h - r, c - h], [-1, 0, 0]],
-  ][f];
 }
 function tipCurve(v: V, k: number) {
   const sign = v.map(Math.sign),
@@ -126,9 +115,9 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
       .map((v) => pose(v, turn).slice(0, 2));
     paint(hull(corners), CUBE_BODY);
     const edges: V[][] = [];
+    const slots = slotsFor(scene.size);
     state.forEach((origin, slot) => {
-      const area = scene.size ** 2,
-        [p, n] = geometry(scene.size, Math.floor(slot / area), Math.floor((slot % area) / scene.size), slot % scene.size),
+      const { p, n } = slots[slot],
         layer = Math.round(p[axis] + h);
       if (layer < start || layer > end || pose(n, turn)[2] <= 0.0001) return;
       const normal = n.findIndex((v) => v !== 0),

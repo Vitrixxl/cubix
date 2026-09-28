@@ -145,9 +145,8 @@ Bun **1.4+**, Node.js **24+** pour les outils de catalogue/stress et Rust **1.98
 ```sh
 bun install --frozen-lockfile
 bun run typecheck
-bun run test            # clients partagés, API HTTP/WS, catalogue et Rust
-bun run test:desktop    # moteur de données, workers de mélange et GPU Linux
-bun run test:desktop:web # PWA dans Electron : import, IndexedDB, hors ligne
+bun run test            # clients partagés, API HTTP/WS, catalogue, desktop et Rust
+bun run test:ui         # parcours réels du site dans Electron/Chromium headless
 bun run build:api       # serveur seul
 bun run build:web       # application web
 bun run build:desktop   # fenêtre Electron autonome
@@ -155,13 +154,15 @@ bun run stress          # API isolée, base et résultats temporaires sous artif
 ```
 
 ```text
-desktop/        application web (renderer/, engine/), fenêtre Electron et builds
+desktop/        application web (renderer/, engine/, guides/), fenêtre Electron et builds
 mobile/         application Android React Native
 src/client/     client HTTP/WS, stockage/sync, statistiques et schémas partagés
 src/shared/     contrats TypeScript et modèle du cube
 rust-api/       API, authentification, WebSockets et migrations SQLite
 data/           catalogues embarqués (catalog.json généré par `bun run build:catalog`)
 assets/cases/   schémas sources des puzzles
+scripts/        catalogue, déploiement, tests de charge et `rust.sh` (cargo)
+docs/           sources du catalogue et modes de pratique
 Makefile        dépendances, compilation et installation du desktop
 tests/          tests des clients et de l'API réelle
 ```
@@ -182,6 +183,6 @@ Les composants, la navigation et les mises à jour restent propres à chaque pla
 `bun run typecheck` vérifie le code partagé et les deux applications.
 `bun test tests/practice-shared.test.ts` vérifie les règles communes ;
 `bun run --cwd mobile test` vérifie aussi leur intégration au chrono mobile.
-Les parcours réels Electron sont dans `desktop/testing/` (après `bun run build:desktop:ui`
-et `bun run build:web`, sous `xvfb-run -a`) : chaque script lance une API temporaire qui
-sert `dist/web` et ouvre Electron dessus.
+Les parcours réels de l'interface sont dans `desktop/testing/` (`bun run test:ui` les
+construit et les enchaîne) : chaque script lance une API temporaire qui sert `dist/web`
+et ouvre Electron dessus sans fenêtre. Voir [le guide desktop](desktop/README.md#validation).

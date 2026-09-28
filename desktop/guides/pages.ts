@@ -1,9 +1,10 @@
+/** The guides of the help dialog: name in its list, former public path (links between guides) and heading. */
 export const GUIDES = {
-  overviewGuide: { path: '/guides/about-cubix/', title: 'Cubix: Free Cube Timer and Speedcubing Practice | Cubix', heading: 'About Cubix', description: 'Discover Cubix: keyboard and touch timing, supported puzzles, session statistics, offline practice and frequently asked questions.' },
-  algorithmsGuide: { path: '/guides/cube-algorithms/', title: 'How to Practise F2L, OLL and PLL Algorithms | Cubix', heading: 'Using the algorithm library', description: 'Learn how to browse cube algorithms, read case diagrams and turn reference moves into repeated practice with Cubix.' },
-  trainingGuide: { path: '/guides/algorithm-training/', title: 'How to Use the Algorithm Trainer | Cubix', heading: 'Using the algorithm trainer', description: 'Set up a focused algorithm training session in Cubix: select cases, apply setups, reveal solutions and review your attempts.' },
-  timerGuide: { path: '/guides/how-to-use-a-cube-timer/', title: 'How to Use a Rubik’s Cube Timer on Desktop & Mobile | Cubix', heading: 'Using the cube timer', description: 'Learn how to start and stop the Cubix timer with the spacebar or touchscreen, use scrambles, record penalties and review your speedcubing practice.' },
-  methodsGuide: { path: '/guides/solving-methods/', title: 'Solving Methods for Every Puzzle | Cubix', heading: 'Solving methods', description: 'Short explanations of the main methods for each puzzle, from beginner layer by layer to CFOP, Roux, Ortega, Yau and more.' },
-  averagesGuide: { path: '/guides/ao5-ao12/', title: 'Ao5 & Ao12 Explained: Cube Timer Averages and DNF | Cubix', heading: 'Ao5 and Ao12: how cube timer averages work', description: 'Understand average of 5, average of 12, +2 penalties and DNF in Cubix. Follow worked examples and learn how averages differ from your best solve and mean.' },
+  overviewGuide: { name: 'About Cubix', path: '/guides/about-cubix/', heading: 'About Cubix' },
+  algorithmsGuide: { name: 'Algorithms', path: '/guides/cube-algorithms/', heading: 'Using the algorithm library' },
+  trainingGuide: { name: 'Training', path: '/guides/algorithm-training/', heading: 'Using the algorithm trainer' },
+  timerGuide: { name: 'Timer', path: '/guides/how-to-use-a-cube-timer/', heading: 'Using the cube timer' },
+  methodsGuide: { name: 'Solving methods', path: '/guides/solving-methods/', heading: 'Solving methods' },
+  averagesGuide: { name: 'Ao5 and Ao12', path: '/guides/ao5-ao12/', heading: 'Ao5 and Ao12: how cube timer averages work' },
 } as const;
 export type Guide = keyof typeof GUIDES;

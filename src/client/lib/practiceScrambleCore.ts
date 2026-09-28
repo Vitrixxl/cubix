@@ -1,6 +1,5 @@
-import { SCRAMBLE_LENGTHS } from "../../shared/scramble";
 import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../shared/cube";
-import { puzzleInfo, validContext, type PracticeContext } from "../../shared/puzzles";
+import { puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
 import { crossPlusOneMoves, crossPlusOnePattern, type PatternData } from "../../shared/crossPlusOne";
 
@@ -12,6 +11,8 @@ export interface ScrambleEngine {
   /** A scramble reaching this 3×3 state (centres solved). */
   patternScramble(pattern: PatternData): Promise<string>;
 }
+/** Outer-turn scramble length per cube size. */
+const SCRAMBLE_LENGTHS: Record<CubeSize, number> = { 2: 11, 3: 22, 4: 40, 5: 60, 6: 80, 7: 100 };
 const sample = <T>(values: readonly T[]) => values[Math.floor(Math.random() * values.length)];
 function moves(faces: string[], suffixes = ["", "'", "2"], length = 25) {
   let previous = "";

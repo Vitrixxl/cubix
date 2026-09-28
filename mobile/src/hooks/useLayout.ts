@@ -17,8 +17,6 @@ export function useLayout() {
     phone,
     /** `@media (max-height: 700px)` */
     short: height <= 700,
-    /** Practice panels become side rails instead of sheets. */
-    wide: width >= 1024 && height >= 600,
     /** `@media (max-height: 500px) and (min-width: 560px)`: the practice stack becomes two columns. */
     landscape: height <= 500 && width >= 560,
     /** `--nav-space`: content padding under the floating navigation; a plain bottom margin when the bar is in the flow. */

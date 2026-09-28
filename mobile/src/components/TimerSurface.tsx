@@ -28,10 +28,10 @@ function digitStyle(fontSize: number, color: string) {
 /**
  * `.timer`: the big time, its hint and `.solve-actions` under it, centred. Touch handling uses the raw
  * responder system so a hold stays active while the finger moves. Any touch on the page background
- * arms the timer too (see `TouchArea`); while running, a full-screen layer catches the stopping tap.
+ * arms the timer too (see `TouchArea` in Practice.tsx); while running, a full-screen layer catches the stopping tap.
  * While running only the digits stay visible (the hint and actions keep their space).
  */
-export function TimerSurface({ timer, disabled = false, fontSize, short, actions, reserveActions = true, unsaved = false }: { timer: TimerApi; disabled?: boolean; fontSize: number; short?: boolean; actions?: ReactNode; reserveActions?: boolean; /** Casual timing: the hint says the time will not be recorded. */ unsaved?: boolean }) {
+export function TimerSurface({ timer, disabled = false, fontSize, short, actions, unsaved = false }: { timer: TimerApi; disabled?: boolean; fontSize: number; short?: boolean; actions?: ReactNode; /** Casual timing: the hint says the time will not be recorded. */ unsaved?: boolean }) {
   useKeepAwake("cubix-practice", { suppressDeactivateWarnings: true });
   const t = useTheme();
   const { phase, elapsed } = timer;
@@ -53,7 +53,7 @@ export function TimerSurface({ timer, disabled = false, fontSize, short, actions
     {running ? <LiveTime startedAt={timer.startedAt} style={valueStyle} /> : <Text style={valueStyle}>{text}</Text>}
     <Text numberOfLines={1} style={[styles.hint, { color: t.muted, marginTop: short ? 8 : 14, opacity: running ? 0 : 1 }]}>{hint}</Text>
     {/* The row keeps its height whether or not a fresh time offers its buttons, so the timer never jumps. */}
-    {reserveActions && <View style={[styles.actions, { marginTop: short ? 8 : 12, opacity: running ? 0 : 1 }]} pointerEvents={running ? "none" : "box-none"}>{running ? null : actions}</View>}
+    <View style={[styles.actions, { marginTop: short ? 8 : 12, opacity: running ? 0 : 1 }]} pointerEvents={running ? "none" : "box-none"}>{running ? null : actions}</View>
     {timer.saveError ? <View style={[styles.saveError, { borderColor: t.line }]}><FormError style={{ flexShrink: 1 }}>{timer.saveError}</FormError><Btn small label="Retry" onPress={timer.retrySave} /></View> : null}
   </View>;
 }
@@ -62,7 +62,7 @@ export function TimerSurface({ timer, disabled = false, fontSize, short, actions
  * Typing entry (`.typed-time`): the readout becomes a field for a time measured on an external timer.
  * It takes the place and metrics of `TimerSurface`, so switching entry never moves the page.
  */
-export function TimeEntryField({ fontSize, short, disabled = false, actions, reserveActions = true, error, onRetry, onSubmit }: { fontSize: number; short?: boolean; disabled?: boolean; actions?: ReactNode; reserveActions?: boolean; error?: string; onRetry?: () => void; onSubmit: (ms: number) => void }) {
+export function TimeEntryField({ fontSize, short, disabled = false, actions, error, onRetry, onSubmit }: { fontSize: number; short?: boolean; disabled?: boolean; actions?: ReactNode; error?: string; onRetry?: () => void; onSubmit: (ms: number) => void }) {
   const t = useTheme();
   const [text, setText] = useState("");
   const ms = parseTypedTime(text);
@@ -76,7 +76,7 @@ export function TimeEntryField({ fontSize, short, disabled = false, actions, res
       keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.00" placeholderTextColor={alpha(t.accent, 35)} selectionColor={t.soft} cursorColor={t.accent} accessibilityLabel="Time"
       style={[styles.entry, digits, { height: lineHeight, lineHeight }]} />
     <Text numberOfLines={1} style={[styles.hint, { color: t.muted, marginTop: short ? 8 : 14 }]}>{hint}</Text>
-    {reserveActions && <View style={[styles.actions, { marginTop: short ? 8 : 12 }]}>{actions}</View>}
+    <View style={[styles.actions, { marginTop: short ? 8 : 12 }]}>{actions}</View>
     {error ? <View style={[styles.saveError, { borderColor: t.line }]}><FormError style={{ flexShrink: 1 }}>{error}</FormError><Btn small label="Retry" onPress={onRetry} /></View> : null}
   </View>;
 }

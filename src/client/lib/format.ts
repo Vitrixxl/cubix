@@ -71,3 +71,11 @@ export function best(times: (number | null)[]): number | null {
   const v = times.filter((t): t is number => t !== null);
   return v.length ? Math.min(...v) : null;
 }
+
+/** Average of `size` ending at each time, oldest first; null until `size` times exist. */
+export function rollingAverages(times: readonly (number | null)[], size: number): (number | null)[] {
+  return times.map((_, i) => i + 1 < size ? null : averageOf(times.slice(i + 1 - size, i + 1)));
+}
+
+/** Best rolling average of `size`, e.g. the best Ao5 of a series. */
+export const bestAverage = (times: readonly (number | null)[], size: number) => best(rollingAverages(times, size));

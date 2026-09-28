@@ -1,14 +1,13 @@
 import { matchesPractice, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { CaseHistoryDto, SolveDto, ProfileDto, UserDto } from "../../shared/types";
-import { effective, averageOf, best, mean } from "../lib/format";
+import { effective, best, mean, rollingAverages } from "../lib/format";
 import { cases } from "./catalog";
 
 export const chronological = (a: SolveDto, b: SolveDto) => a.created_at.localeCompare(b.created_at) || ((a as SolveDto & {serverId?:number}).serverId ?? a.id) - ((b as SolveDto & {serverId?:number}).serverId ?? b.id);
 export function history(caseId: string, rows: SolveDto[]): CaseHistoryDto {
   const solves = [...rows].sort(chronological);
   const times = solves.map(s => effective(s.time_ms, s.penalty));
-  const rolling = (size: number) => times.map((_, i) => i + 1 < size ? null : averageOf(times.slice(i + 1 - size, i + 1)));
-  const ao5 = rolling(5), ao12 = rolling(12);
+  const ao5 = rollingAverages(times, 5), ao12 = rollingAverages(times, 12);
   const valid = times.filter((n): n is number => n !== null);
   let minimum: number | null = null;
   return { summary: { caseId, count: solves.length, best: best(times), worst: valid.reduce<number | null>((max,n) => max === null ? n : Math.max(max,n), null),

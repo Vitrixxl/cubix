@@ -87,7 +87,7 @@ function SignedIn() {
 }
 
 /** Device preferences: they apply to guests as well as signed-in cubers. */
-export function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } = {}) {
+function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } = {}) {
   const t = useTheme();
   const openGuides = useSetAtom(guidesAtom);
   const [mode, setMode] = useAtom(colorModeAtom);

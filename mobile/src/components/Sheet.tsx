@@ -10,7 +10,7 @@ export function SheetScrollView(props: ScrollViewProps) {
   return <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" {...props} />;
 }
 
-export interface SheetProps {
+interface SheetProps {
   open: boolean; onClose: () => void; children: ReactNode;
   /** Header title (`.modal h2`, 17 px), also the accessibility name of the close button. */
   title: string;
@@ -27,8 +27,6 @@ export interface SheetProps {
   /** No body padding (`.sheet`: the body runs edge to edge, with its own rows and lines). */
   flush?: boolean;
   style?: StyleProp<ViewStyle>;
-  /** Accepted for older callers; the centred dialog has no drag gesture. */
-  dismissOnBodyDrag?: boolean;
 }
 
 /**
@@ -79,9 +77,6 @@ export function Sheet({ open, onClose, children, title, sub, actions, header = t
     <BackClose onClose={onClose} />
   </Modal>;
 }
-/** The same centred dialog under its web name (`.modal`). */
-export const Dialog = Sheet;
-
 function BackClose({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => { onClose(); return true; });

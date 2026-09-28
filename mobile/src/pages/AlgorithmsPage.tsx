@@ -147,7 +147,7 @@ const CaseRow = memo(function CaseRow({ c, best, learned, onOpen, onToggle }: { 
   return <View style={styles.caseRow}>
     <Pressable onPress={() => onOpen(c.id)} accessibilityRole="button" accessibilityLabel={c.name !== c.id ? `${c.id}, ${c.name}` : c.id}
       style={({ pressed }) => [styles.caseOpen, { backgroundColor: pressed ? t.hover : "transparent" }]}>
-      <View style={styles.caseDiagram}><CaseDiagram c={c} size={36} /></View>
+      <View style={styles.caseDiagram}><CaseDiagram c={c} size={56} /></View>
       <View style={styles.caseName}>
         <Text numberOfLines={1} style={[styles.caseId, { color: t.text }]}>{shortId(c)}</Text>
         {c.name !== c.id && <Text numberOfLines={1} style={[styles.caseSub, { color: t.muted }]}>{c.name}</Text>}
@@ -313,7 +313,7 @@ const CasePage = memo(function CasePage({ c, stats, width }: { c: CaseDto; stats
           { label: "Ao12", value: fmtTime(summary.ao12), tone: "accent" },
           { label: "Best Ao5", value: fmtTime(summary.bestAo5), tone: "good" },
         ]} />
-        <TimesChart history={history.history} ao5={history.ao5} ao12={history.ao12} />
+        <TimesChart history={history.history} ao5={history.ao5} />
       </> : <Empty>No attempts on this case yet.</Empty>}
     </View>
   </ScrollView>;
@@ -332,8 +332,8 @@ const styles = StyleSheet.create({
   groupTrain: { height: 26, minHeight: 26, paddingHorizontal: 8, gap: 6 },
   // `.case-row`
   caseRow: { flexDirection: "row", alignItems: "center", borderRadius: 8 },
-  caseOpen: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12, height: 50, paddingLeft: 8, paddingRight: 4, borderRadius: 8 },
-  caseDiagram: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  caseOpen: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 14, height: 68, paddingLeft: 8, paddingRight: 4, borderRadius: 8 },
+  caseDiagram: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
   caseName: { flex: 1, minWidth: 0 },
   caseId: { fontSize: 13.5, fontWeight: "600", lineHeight: 17.5 },
   caseSub: { fontSize: 12, lineHeight: 15.5 },

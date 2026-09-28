@@ -10,15 +10,15 @@ import { combineAuf, compensateAuf, randomAuf } from "../../../src/shared/cube";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
 import type { CaseDto, SolveDto } from "../../../src/shared/types";
-import { api, localChanged } from "../api";
-import { casesAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, solveModeAtom, statsVersionAtom, trainingKindAtom, trainingSetupModeAtom, trainingStepAtom, updatedSolveAtom, userAtom } from "../state";
+import { api } from "../api";
+import { casesAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, solveModeAtom, statsVersionAtom, trainingKindAtom, trainingSetupModeAtom, trainingStepAtom, userAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { useDailyLearning } from "../hooks/useDailyLearning";
 import { executableAlg, maskForStage, shortId } from "../lib/caseState";
-import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
+import { ensureLaunchSession } from "../lib/launchSession";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CrossPractice } from "../components/CrossPractice";
 import { IconBack, IconCheck, IconComment, IconEye, IconGrid, IconNext, IconShuffle, IconTimer, IconUndo } from "../components/icons";
@@ -27,7 +27,7 @@ import { PuzzlePicker } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { LastSolveActions, SolveRow } from "../components/SolveMenus";
 import { TimerSurface } from "../components/TimerSurface";
-import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, useBackTo, useTimerFont } from "../components/TrainingLayout";
+import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, framePreviewSize, useBackTo, usePracticeLock, useSessionSolves, useTimerFont } from "../components/Practice";
 import { plural, TrainingSetup, type DailyLearning } from "../components/TrainingSetup";
 import { Btn, H1, Muted, PageHead, mono } from "../components/ui";
 
@@ -76,7 +76,6 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const cube = puzzleInfo(puzzle).cubeSize;
   const supportsAuf = !!cube;
   const solveMode = useAtomValue(solveModeAtom);
-  const lockCube = useSetAtom(cubeSwitchLockedAtom);
   const cases = useAtomValue(casesAtom);
   const [freeSelected, setSelected] = useAtom(selectedCaseIdsAtom);
   const [showGroups, setShowGroups] = useState(false);
@@ -97,11 +96,6 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const [saving, setSaving] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [replay, setReplay] = useState(0);
-  const [solves, setSolves] = useState<SolveDto[]>([]);
-  const deletedSolveId = useAtomValue(deletedSolveIdAtom);
-  useEffect(() => { if (deletedSolveId !== null) setSolves(list => list.filter(solve => solve.id !== deletedSolveId)); }, [deletedSolveId]);
-  const updatedSolve = useAtomValue(updatedSolveAtom);
-  useEffect(() => { if (updatedSolve) setSolves(list => list.map(solve => solve.id === updatedSolve.id ? updatedSolve : solve)); }, [updatedSolve]);
   // The time just recorded keeps its buttons under the timer until the next attempt or its deletion.
   const [lastSolveId, setLastSolveId] = useState<number | null>(null);
   // Wide windows keep the session in view; narrower ones open it on demand.
@@ -109,18 +103,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const [showTimes, setShowTimes] = useState(false);
   // The session belongs to this launch; the panel only lists its solves (see lib/launchSession).
   const context: PracticeContext = { puzzle, solveMode, scrambleType: "case" };
-  useEffect(() => {
-    let active = true;
-    const refresh = async () => {
-      const session = launchSessionId("training", context);
-      if (session === null) { if (active) setSolves([]); return; }
-      const rows = await api.solves("training", 1000, puzzle, { solveMode, scrambleType: "case" });
-      if (active) setSolves(rows.filter(s => s.session_id === session).reverse());
-    };
-    void refresh();
-    const unsubscribe = localChanged.on(() => void refresh());
-    return () => { active = false; unsubscribe(); };
-  }, []);
+  const [solves, setSolves] = useSessionSolves("training", context);
 
   const pick = useCallback((pool: CaseDto[]) => {
     navigateCase({ type: "next", pool, sample: Math.random(), auf: useAuf && supportsAuf ? randomAuf() : "" });
@@ -150,9 +133,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
     } finally { setSaving(false); }
   }, [current, selectedCases, pick]);
   const timer = useTimer({ onStop, canStart: !saving && !!current });
-  const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
-  const running = timer.phase === "running";
-  useEffect(() => { lockCube(busy || !!timer.saveError); return () => lockCube(false); }, [busy, timer.saveError, lockCube]);
+  const { busy, running, locked } = usePracticeLock(timer, saving);
   useBackTo(onBack, !busy);
 
   const remove = async (id: number) => { await api.deleteSolve(id); setSolves(s => s.filter(x => x.id !== id)); bumpStats(v => v + 1); };
@@ -175,9 +156,8 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const hasCube = !!cube && !!current && !current.c.diagram;
   const compact = layout.width <= 900 || layout.height <= 700;
   const promptFont = layout.phone ? (shownSetup.length > 90 ? 15 : 19) : shownSetup.length > 220 ? 16 : shownSetup.length > 120 ? (compact ? 17 : 20) : compact ? 22 : 27;
-  const previewSize = layout.phone ? (layout.height < 760 ? 0 : 76) : layout.height < 700 ? 92 : layout.width < 1200 ? 112 : 132;
+  const previewSize = framePreviewSize(layout);
   const timerFont = useTimerFont();
-  const locked = busy || !!timer.saveError;
 
   const head = <PageHead title="Training" padding={layout.pagePadding} onBack={onBack}
     sub={track ? `Learn ${track}` : reviewing ? "Review learned" : `Free practice · ${plural(selected.length, "case")}`}
@@ -226,7 +206,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   return <>
     <PracticeFrame head={head} prompt={prompt} visual={visual} timer={timer} disabled={!current || saving || !!timer.saveError}
       notice={<Toast at={celebratedAt} hidden={running} icon={<IconCheck size={14} color={t.good} />} message="Well done! Every selected case is learned." />}
-      readout={<TimerSurface timer={timer} disabled={!current || saving} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} />}
+      readout={<TimerSurface timer={timer} disabled={!current || saving} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} /> : null} />}
       metrics={[{ label: "Best", value: fmtTime(summary.best), tone: "good" }, { label: "Mean", value: fmtTime(summary.mean) }, { label: "Solves", value: String(summary.count) }]}
       side={!layout.phone && (timesAlways || showTimes) ? <TimesColumn title="Session" count={solves.length} onClose={timesAlways ? undefined : () => setShowTimes(false)} actions={solves.length ? <Btn small label="Undo" onPress={undoLast} /> : null}>{times}</TimesColumn> : null} />
     {layout.phone && <Sheet open={showTimes} onClose={() => setShowTimes(false)} title="Session" sub={String(solves.length)} tall flush

@@ -8,15 +8,12 @@ import { IconCube, IconGrid, IconSettings, IconTimer, IconUser, type Icon } from
 import { Avatar } from "./ui";
 
 /** The web app's phone tabs (`MOBILE_TABS`): the timer in the centre, settings last. */
-export const NAV: { page: Page; label: string; icon: Icon }[] = [
+const NAV: { page: Page; label: string; icon: Icon }[] = [
   { page: "algorithms", label: "Algorithms", icon: IconGrid },
   { page: "training", label: "Training", icon: IconTimer },
   { page: "playground", label: "Timer", icon: IconCube },
   { page: "profile", label: "Account", icon: IconUser },
 ];
-
-/** Kept for callers that offset content by the bar's side margin; the bar now spans the full width. */
-export const NAV_SIDE_GAP = 0;
 
 /**
  * `.tabbar`: five tabs (icon over a 10.5 px label, muted, accent when selected) on the `bar` background

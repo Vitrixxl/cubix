@@ -1,7 +1,12 @@
 import { expect, test } from "bun:test";
-import { generatePracticeScramble } from "../desktop/engine/practiceScramble";
+import { cubingScrambleEngine } from "../src/client/lib/cubingScrambleEngine";
+import { generatePracticeScramble as generate, type ScrambleEngine } from "../src/client/lib/practiceScrambleCore";
 import { applyAlg, colorOf, slotsFor, solved } from "../src/shared/cube";
-import { type ScrambleType, contextOf, validContext } from "../src/shared/puzzles";
+import { type PracticeContext, type ScrambleType, contextOf, validContext } from "../src/shared/puzzles";
+
+/** cubing.js straight from node_modules, as the web worker loads its vendored copy. */
+const cubing = cubingScrambleEngine(name => import(`cubing/${name}`));
+const generatePracticeScramble = (context: PracticeContext, engine: ScrambleEngine = cubing) => generate(context, engine);
 
 test("restricted generators use only their advertised moves", async () => {
   for (const [type,allowed] of Object.entries({"2gen-ru":"RU", "2gen-lu":"LU", "2gen-rf":"RF", "2gen-mu":"MU", "3gen-rul":"RUL", "3gen-ruf":"RUF"})) {

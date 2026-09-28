@@ -1,24 +1,20 @@
 import { expect, test } from "bun:test";
 import { applyAlg, colorOf, combineAuf, compensateAuf, invertAlg, parseAlg, parseMove, reorientAlgY2, slotsFor, solved } from "../src/shared/cube";
 import { CUBE_SIZES, puzzleOf, puzzleId } from "../src/shared/puzzles";
-import { randomCubeScramble, SCRAMBLE_LENGTHS } from "../src/shared/scramble";
 import { cases, sets } from "../src/client/local/catalog";
 import extra from "../data/multi-cube.json";
 
-test("every cube has a distinct catalogue and playable random-move scrambles", () => {
+test("every cube has a distinct catalogue and invertible wide-turn algorithms", () => {
   expect(new Set(cases.map(c => c.id)).size).toBe(cases.length);
   for (const size of CUBE_SIZES) {
     const catalog = cases.filter(c => puzzleOf(c) === puzzleId(size));
     expect(catalog.length).toBeGreaterThan(0);
     for (const set of sets.filter(s => puzzleOf(s) === puzzleId(size))) expect(catalog.filter(c => c.set === set.id)).toHaveLength(set.count);
-    for (let attempt = 0; attempt < 12; attempt++) {
-      const alg = randomCubeScramble(size), moves = parseAlg(alg, size);
-      expect(moves).toHaveLength(SCRAMBLE_LENGTHS[size]);
-      expect(moves.every((m, i) => !i || m.axis !== moves[i - 1].axis)).toBe(true);
-      const state = applyAlg(solved(size), alg);
-      expect(new Set(state).size).toBe(6 * size * size);
-      expect(applyAlg(state, invertAlg(alg))).toEqual(solved(size));
-    }
+    const alg = size > 3 ? `R ${Math.floor(size / 2)}Uw' F2 Lw D' Bw2 U` : "R U' F2 L D' B2 U";
+    expect(parseAlg(alg, size)).toHaveLength(7);
+    const state = applyAlg(solved(size), alg);
+    expect(new Set(state).size).toBe(6 * size * size);
+    expect(applyAlg(state, invertAlg(alg))).toEqual(solved(size));
   }
 });
 

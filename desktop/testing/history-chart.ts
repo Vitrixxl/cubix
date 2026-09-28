@@ -1,9 +1,9 @@
 /** Chart gestures against deterministic guest history in the real Electron app. */
-import { launchApp, startServer } from "./app";
+import { SHOTS, act as click, launchApp, startServer } from "./app";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 
 const dir = await mkdtemp(join(tmpdir(), "cubix-chart-"));
 const solves = Array.from({ length: 608 }, (_, i) => ({
@@ -23,16 +23,9 @@ await Bun.write(join(dir, "storage.json"), JSON.stringify({
   "cubix.playground.scrambleByContext": JSON.stringify({ "333:standard:normal": "R U R'" }),
 }));
 const { origin, server } = await startServer(join(dir, "server"));
-const app = await launchApp({ dir, origin, ozone: "headless" });
+const { app, page, errors } = await launchApp({ dir, origin });
 try {
-  const page = await app.firstWindow();
-  const errors: string[] = [];
-  page.on("pageerror", e => errors.push(e.message));
-  await page.setViewportSize({ width: 1280, height: 800 });
-  const act = async (action: string) => {
-    await page.locator(`[data-action="${action}"]`).first().click();
-    await page.waitForSelector("[data-exiting]", { state: "detached" });
-  };
+  const act = (action: string) => click(page, action);
   await act("nav:profile");
   await act("profileMode:playground");
   const rows = page.locator(".history-row"), plot = page.locator(".chart-plot");
@@ -148,7 +141,7 @@ try {
   assert.notEqual(await page.locator(".history-row").first().innerText(), newest);
   console.log("Table: sort menu (mouse and keyboard), paging, +2, comment, commented filter and delete passed");
 
-  await mkdir("artifacts/electron/testing", { recursive: true });
+  await mkdir(SHOTS, { recursive: true });
   for (const [width, height] of [[1920, 1080], [1280, 800], [800, 600], [640, 480], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(100);
@@ -157,18 +150,18 @@ try {
       await page.waitForTimeout(100);
       const layout = await page.evaluate(() => {
         const panel = document.querySelector(".stats-grid > .panel")!.getBoundingClientRect();
-        const nav = document.querySelector(".nav")!.getBoundingClientRect();
+        const tabbar = document.querySelector(".nav.tabbar")?.getBoundingClientRect();
         const plot = document.querySelector(".chart-plot")?.getBoundingClientRect();
         const bar = document.querySelector(".stats-grid > .panel > .row")!;
         const profile = document.querySelector(".profile-main")!;
         return {
-          visible: panel.bottom <= nav.top && panel.right <= innerWidth && (!plot || plot.height >= 40),
+          visible: panel.bottom <= (tabbar?.top ?? innerHeight) && panel.right <= innerWidth && (!plot || plot.height >= 40),
           barFits: bar.scrollWidth <= bar.clientWidth + 1,
           fits: document.documentElement.scrollHeight === innerHeight && document.documentElement.scrollWidth === innerWidth,
           internalFits: profile.scrollHeight <= profile.clientHeight + 1,
         };
       });
-      await page.screenshot({ path: `artifacts/electron/testing/history-${name.toLowerCase()}-${width}.png` });
+      await page.screenshot({ path: `${SHOTS}/history-${name.toLowerCase()}-${width}.png` });
       assert.deepEqual(layout, { visible: true, barFits: true, fits: true, internalFits: true }, `${name} ${width}×${height}`);
     }
   }

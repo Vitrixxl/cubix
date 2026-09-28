@@ -1,4 +1,4 @@
-/* ---- fonts (unchanged) ---- */
+/* ---- fonts ---- */
 @font-face {
   font-family: Geist;
   src: url("../assets/fonts/Geist-Regular.ttf");
@@ -40,7 +40,7 @@
   font-weight: 700;
 }
 
-/* ---- toasts (unchanged) ---- */
+/* ---- toasts ---- */
 [data-sonner-toast].error-toast {
   border-color: color-mix(in srgb, var(--danger) 35%, var(--surface)) !important;
 }
@@ -130,11 +130,6 @@
   margin: 28px 0 8px;
   color: var(--text);
 }
-.guide-content h3 {
-  font-size: 16px;
-  margin: 22px 0 8px;
-  color: var(--text);
-}
 .guide-content p {
   margin: 10px 0;
   max-width: 680px;
@@ -183,9 +178,6 @@
   font-size: 12.5px;
   color: var(--muted);
 }
-.guide-content ol {
-  padding-left: 0;
-}
 .guide-content li {
   margin: 8px 0;
 }
@@ -200,6 +192,7 @@
 .guide-content ol {
   list-style: none;
   margin: 0;
+  padding-left: 0;
 }
 .is-mobile .modal.guides-modal {
   grid-template-columns: minmax(0, 1fr);
@@ -240,7 +233,7 @@
   background: var(--surface3);
   color: var(--text);
 }
-/* ---- learning groups (unchanged) ---- */
+/* ---- learning groups ---- */
 .learning-groups-modal { overflow: hidden; }
 .learning-groups-modal > .row { flex-shrink: 0; }
 .learning-groups { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 3px; }
@@ -250,7 +243,7 @@
 .learning-group-handle { min-width: 44px; min-height: 44px; cursor: inherit; }
 .learning-group:active { cursor: grabbing; }
 .learning-order-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* ---- methods modal (unchanged) ---- */
+/* ---- methods modal ---- */
 /* Solving methods dialog: tabs stay put while the chosen method scrolls under them. */
 .methods-modal { width: min(720px, 100%); overflow: hidden; }
 .methods-modal > .row { flex-shrink: 0; }
@@ -262,7 +255,7 @@
 .methods-body li { display: flex; gap: 12px; }
 .methods-body li > .mono { min-width: 2ch; color: var(--muted); }
 .methods-body li p { margin: 2px 0 0; color: var(--muted); }
-/* ---- sparkline (unchanged) ---- */
+/* ---- sparkline ---- */
 .sparkline {
   position: relative;
   flex: 1;
@@ -289,7 +282,7 @@
   background: var(--bg);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
-/* ---- charts (unchanged) ---- */
+/* ---- charts ---- */
 .chart-legend {
   gap: 12px;
   font-size: 12px;
@@ -405,7 +398,7 @@
 .chart-tip strong {
   font-size: 15px;
 }
-/* ---- solves table (unchanged) ---- */
+/* ---- solves table ---- */
 .history-panel {
   padding-bottom: 0;
 }
@@ -448,17 +441,6 @@
 .history-row > span:last-child {
   font-size: 12px;
   margin-left: auto;
-  white-space: nowrap;
-}
-.stats-view-toggle {
-  gap: 2px;
-}
-.stats-view-toggle .button {
-  min-height: 32px;
-  padding: 0 12px;
-}
-.solves-count {
-  font-size: 12px;
   white-space: nowrap;
 }
 /* Column titles line up with the rows: number, time, date on the right, then the actions. */
@@ -533,7 +515,7 @@
 .progress.unlocked > div {
   background: var(--accent);
 }
-/* ---- mini bars (unchanged) ---- */
+/* ---- mini bars ---- */
 .mini-bars {
   display: grid;
   grid-template-columns: fit-content(50%) minmax(40px, 1fr) auto;
@@ -564,7 +546,7 @@
   font-size: 11px;
   white-space: nowrap;
 }
-/* ---- activity (unchanged) ---- */
+/* ---- activity ---- */
 .activity {
   flex-shrink: 0;
   display: flex;
@@ -664,7 +646,7 @@
   justify-content: space-between;
   gap: 14px;
 }
-/* ---- ring (unchanged) ---- */
+/* ---- ring ---- */
 .ring {
   position: relative;
   display: inline-flex;
@@ -681,9 +663,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: var(--text) !important;
 }
 
 /* ---- base ---- */
@@ -826,9 +808,6 @@ kbd {
 }
 .accent {
   color: var(--accent) !important;
-}
-.good {
-  color: var(--good) !important;
 }
 .danger {
   color: var(--danger) !important;
@@ -1331,12 +1310,6 @@ kbd {
 .times-row > span:first-child {
   font-size: 12px;
 }
-.times-marks {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-}
 .stage {
   min-width: 0;
   min-height: 0;
@@ -1361,6 +1334,15 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.prompt-main::-webkit-scrollbar {
+  display: none;
+}
+/* A case's setup and algorithm keep their lines: a short window scrolls the whole prompt instead. */
+.training-prompt .prompt-block {
+  flex-shrink: 0;
 }
 .prompt-block {
   display: flex;
@@ -1375,6 +1357,28 @@ kbd {
 }
 .prompt-text::-webkit-scrollbar {
   display: none;
+}
+/* Desktop: the cube in a box of its own beside the scramble, taller than it and reaching into the timer area. */
+.stage-top {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 0;
+}
+.stage-top > .prompt {
+  flex: 1;
+  min-width: 0;
+}
+.cube-box {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 22px 32px 0 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  transition: opacity 0.18s;
 }
 .prompt-visual {
   flex-shrink: 0;
@@ -1426,15 +1430,13 @@ kbd {
   letter-spacing: -0.02em;
   color: var(--text);
   background: none;
+  flex-shrink: 0;
 }
 .button.case-title:hover {
   background: none;
   text-decoration: underline;
   text-decoration-color: var(--line);
   text-underline-offset: 5px;
-}
-.button.case-title {
-  flex-shrink: 0;
 }
 .case-kind {
   flex: 1;
@@ -1469,9 +1471,10 @@ kbd {
   user-select: none;
   touch-action: none;
 }
+/* The digits leave room for the hint and the solve actions under them (80px) in a short window. */
 .timer-digits,
 .typed-time {
-  --timer-font: clamp(56px, min(15cqw, 36cqh), 172px);
+  --timer-font: max(24px, min(clamp(56px, min(15cqw, 36cqh), 172px), 100cqh - 80px));
 }
 .timer-digits {
   display: flex;
@@ -1581,6 +1584,7 @@ kbd {
 /* A running solve leaves only the time on screen. */
 .practice.running .page-head,
 .practice.running .prompt,
+.practice.running .cube-box,
 .practice.running .metrics,
 .practice.running .column,
 .practice.running .timer-hint,
@@ -1655,7 +1659,7 @@ kbd {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
 }
 .is-mobile .master-detail {
   grid-template-columns: minmax(0, 1fr);
@@ -1742,8 +1746,9 @@ kbd {
   display: flex;
   align-items: center;
   border-radius: 8px;
+  /* Keep in sync with the row height below. */
   content-visibility: auto;
-  contain-intrinsic-size: auto 50px;
+  contain-intrinsic-size: auto 80px;
 }
 .case-row:hover {
   background: var(--hover);
@@ -1755,16 +1760,16 @@ kbd {
 .button.case-row-open {
   flex: 1;
   min-width: 0;
-  height: 50px;
+  height: 80px;
   padding: 0 4px 0 8px;
-  gap: 12px;
+  gap: 14px;
   justify-content: flex-start;
   background: none;
   color: var(--text);
 }
 .case-row-diagram {
-  width: 36px;
-  height: 36px;
+  width: 68px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1809,6 +1814,7 @@ kbd {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  container: case-detail / inline-size;
 }
 .set-summary {
   display: flex;
@@ -1860,8 +1866,8 @@ kbd {
   gap: 36px;
 }
 .detail-visual {
-  width: 184px;
-  height: 184px;
+  width: 228px;
+  height: 228px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2233,11 +2239,6 @@ kbd {
 .ov-ring-card .mini-bars {
   align-content: start;
   gap: 9px 12px;
-}
-.ring-label {
-  color: var(--text) !important;
-  font-weight: 500 !important;
-  font-size: 11.5px !important;
 }
 .achievement-total {
   display: flex;
@@ -2616,18 +2617,13 @@ kbd {
   .detail-hero {
     gap: 24px;
   }
-  .detail-visual {
-    width: 150px;
-    height: 150px;
-  }
   .detail-visual canvas {
     width: 150px !important;
     height: 150px !important;
   }
 }
 @media (max-width: 960px) {
-  .collapsible .control-label,
-  .collapsible kbd {
+  .collapsible .control-label {
     display: none;
   }
   .control.collapsible {
@@ -2755,7 +2751,7 @@ kbd {
 }
 .is-mobile .timer-digits,
 .is-mobile .typed-time {
-  --timer-font: clamp(52px, 19cqw, 110px);
+  --timer-font: max(24px, min(clamp(52px, 19cqw, 110px), 100cqh - 80px));
 }
 .is-mobile .solve-actions {
   margin-top: 12px;
@@ -2777,6 +2773,16 @@ kbd {
 .is-mobile .md-list {
   border-right: 0;
 }
+.is-mobile .case-row {
+  contain-intrinsic-size: auto 66px;
+}
+.is-mobile .button.case-row-open {
+  height: 66px;
+}
+.is-mobile .case-row-diagram {
+  width: 56px;
+  height: 56px;
+}
 .is-mobile .md-list-head {
   padding: 10px 14px;
 }
@@ -2789,8 +2795,8 @@ kbd {
   align-items: flex-start;
 }
 .is-mobile .detail-visual {
-  width: 128px;
-  height: 128px;
+  width: 160px;
+  height: 160px;
 }
 .is-mobile .detail-visual canvas,
 .is-mobile .detail-visual img {
@@ -2976,7 +2982,7 @@ kbd {
   max-width: 420px;
 }
 .button.move-option {
-  height: 92px;
+  height: 76px;
   flex-direction: column;
   gap: 4px;
   border: 1px solid var(--line);
@@ -3003,9 +3009,9 @@ kbd {
   gap: 8px;
 }
 .button.setup-start {
-  height: 38px;
-  min-height: 38px;
-  padding: 0 18px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 14px;
 }
 .setup-start .icon {
   color: inherit;
@@ -3341,22 +3347,7 @@ kbd {
   align-items: center;
   padding: 0 28px;
 }
-.button.setup-start {
-  height: 32px;
-  min-height: 32px;
-  padding: 0 14px;
-}
-.button.move-option {
-  height: 76px;
-}
 /* ---- case detail: wide panes put the statistics beside the algorithms ---- */
-.md-detail {
-  container: case-detail / inline-size;
-}
-.detail-visual {
-  width: 228px;
-  height: 228px;
-}
 @container case-detail (min-width: 1000px) {
   .detail-scroll {
     display: grid;
@@ -3391,8 +3382,4 @@ kbd {
   .detail-title {
     font-size: 44px;
   }
-}
-.is-mobile .detail-visual {
-  width: 160px;
-  height: 160px;
 }

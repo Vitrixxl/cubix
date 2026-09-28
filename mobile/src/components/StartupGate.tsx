@@ -40,7 +40,7 @@ function online() {
   return connectivity ??= fetchRelease(AbortSignal.timeout(6000)).then(() => true, () => false);
 }
 
-export const OFFLINE_TOAST = {
+const OFFLINE_TOAST = {
   title: "Offline",
   description: "Can't reach the server. Your times stay on this device and sync when the connection is back.",
   duration: 8000,

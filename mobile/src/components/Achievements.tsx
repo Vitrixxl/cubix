@@ -16,12 +16,6 @@ import { Empty, ProgressBar, Segmented, mono } from "./ui";
  * and one raised row per achievement: lock or trophy, title, progress or unlock date, what it takes, a bar.
  */
 
-/** Unlocked and total counts of one achievement group (a puzzle or "General"). */
-export function groupProgress(summary: AchievementSummaryDto, group: string) {
-  const all = summary.achievements.filter(a => a.group === group);
-  return { unlocked: all.filter(a => a.unlocked).length, total: all.length };
-}
-
 /** `.achievement-total`: "17 / 210" and a bar, in the page header. */
 export function AchievementTotal({ summary }: { summary: AchievementSummaryDto }) {
   const t = useTheme();

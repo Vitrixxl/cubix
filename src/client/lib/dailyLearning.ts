@@ -63,10 +63,3 @@ export function orderedGroups(cases: readonly CaseDto[], saved: readonly string[
   const groups = [...new Set(cases.map(c => c.group))];
   return [...new Set([...saved.filter(group => groups.includes(group)), ...groups])];
 }
-export function moveLearningGroup(plan: LearningPlan, track: LearningTrack, cases: readonly CaseDto[], index: number, direction: number): LearningPlan {
-  const groups = orderedGroups(learningCases(cases, track), plan.groupOrder?.[track]);
-  const target = index + direction;
-  if (!Number.isInteger(index) || ![-1, 1].includes(direction) || index < 0 || index >= groups.length || target < 0 || target >= groups.length) return plan;
-  [groups[index], groups[target]] = [groups[target]!, groups[index]!];
-  return { ...plan, groupOrder: { ...plan.groupOrder, [track]: groups } };
-}

@@ -10,7 +10,7 @@ export interface Anchor { x: number; y: number; width: number; height: number }
  * Opens below the anchor with the web's `menu-in` (fade + 4 px drop), flips above when there is no room,
  * clamps to the window, and closes on outside taps. Fill it with `MenuOption`s (Select.tsx).
  */
-export function Popover({ anchor, onClose, children, width, alignRight, gap = 6, maxHeight }: { anchor: Anchor | null; onClose: () => void; children: ReactNode; width?: number; alignRight?: boolean; gap?: number; maxHeight?: number }) {
+export function Popover({ anchor, onClose, children, width }: { anchor: Anchor | null; onClose: () => void; children: ReactNode; width?: number }) {
   const t = useTheme();
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -23,7 +23,7 @@ export function Popover({ anchor, onClose, children, width, alignRight, gap = 6,
     if (size) Animated.timing(progress, { toValue: 1, duration: 140, useNativeDriver: true }).start();
   }, [size, progress]);
   if (!anchor) return null;
-  const margin = 8;
+  const margin = 8, gap = 6;
   const spaceBelow = window.height - insets.bottom - (anchor.y + anchor.height) - margin;
   const spaceAbove = anchor.y - insets.top - margin;
   const contentHeight = size?.height ?? 0;
@@ -32,15 +32,14 @@ export function Popover({ anchor, onClose, children, width, alignRight, gap = 6,
   // Measuring against the space below first hides overflow from the flip check.
   const limit = Math.max(0, (size ? (above ? spaceAbove : spaceBelow) : Math.max(spaceAbove, spaceBelow)) - gap);
   const top = above ? Math.max(insets.top + margin, anchor.y - gap - Math.min(contentHeight, limit)) : anchor.y + anchor.height + gap;
-  const preferredLeft = alignRight ? anchor.x + anchor.width - (size?.width ?? width ?? 0) : anchor.x;
-  const left = Math.max(margin, Math.min(preferredLeft, window.width - (size?.width ?? width ?? 0) - margin));
+  const left = Math.max(margin, Math.min(anchor.x, window.width - (size?.width ?? width ?? 0) - margin));
   const onLayout = (event: LayoutChangeEvent) => {
     const { width: w, height: h } = event.nativeEvent.layout;
     if (!size || Math.abs(size.width - w) > 1 || Math.abs(size.height - h) > 1) setSize({ width: w, height: h });
   };
   return <Modal transparent visible statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={onClose}>
     <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-    <Animated.View onLayout={onLayout} style={[styles.popover, { top, left, width, maxHeight: maxHeight ? Math.min(maxHeight, limit) : limit, backgroundColor: t.raised, borderColor: t.line, opacity: size ? progress : 0, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [above ? 4 : -4, 0] }) }] }, t.menuShadow]}>
+    <Animated.View onLayout={onLayout} style={[styles.popover, { top, left, width, maxHeight: limit, backgroundColor: t.raised, borderColor: t.line, opacity: size ? progress : 0, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [above ? 4 : -4, 0] }) }] }, t.menuShadow]}>
       {children}
     </Animated.View>
   </Modal>;

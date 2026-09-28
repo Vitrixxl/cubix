@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { cases } from "../src/client/local/catalog";
-import { orderedGroups, moveLearningGroup, EMPTY_LEARNING_PLAN, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
+import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, trainingModeOptions, learningModeForPuzzle, dailyAssignment, learningCases, learningKey, learningStatus, localDay } from "../src/client/lib/dailyLearning";
 const pool = learningCases(cases, "PLL");
 const empty = new Set<string>();
 const today = "2026-09-23";
@@ -94,8 +94,4 @@ test("group priority normalizes saved groups and schedules unlearned cases witho
   expect(dailyAssignment(done, sorted, new Set([pinned.caseId]), "2026-09-24")?.caseId).toBe(sorted[0]!.id);
   const learned = new Set(sorted.filter(c => c.group === "Edges Only").map(c => c.id));
   expect(dailyAssignment(undefined, sorted, learned, today)?.caseId).toBe(pool[0]!.id);
-  const plan = moveLearningGroup(EMPTY_LEARNING_PLAN, "PLL", cases, 2, -1);
-  expect(plan.groupOrder?.PLL).toEqual(["Adjacent Corner Swap", "Edges Only", "Diagonal Corner Swap"]);
-  expect(plan.groupOrder?.OLL).toBeUndefined();
-  expect(moveLearningGroup(plan, "PLL", cases, 0, -1)).toBe(plan);
 });

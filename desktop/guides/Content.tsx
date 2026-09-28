@@ -3,7 +3,7 @@ import { MethodsGuide } from './Methods';
 import { GUIDES, type Guide } from './pages';
 
 export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guide; puzzle?: PuzzleId; method?: string }) {
-  return <section className="public-content" id="about-cubix" aria-label="About Cubix" data-timer-ignore>
+  return <section className="public-content" aria-label="About Cubix">
     <header><p className="public-eyebrow">CUBIX · GUIDES</p><h1>{GUIDES[page].heading}</h1></header>
     {page === 'overviewGuide' && <>
       <p className="public-lead">Cubix is a free cube timer and algorithm trainer for desktop and mobile. No account is needed to start.</p>

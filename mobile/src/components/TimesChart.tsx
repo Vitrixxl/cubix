@@ -6,7 +6,7 @@ import { effective, fmtDate, fmtSolve, fmtTime } from "../../../src/client/lib/f
 import type { CaseHistoryDto, HistoryPoint } from "../../../src/shared/types";
 import { storage } from "../platform/storage";
 import { FONT, useTheme } from "../theme";
-import { IconComment, type IconProps } from "./icons";
+import { IconComment, IconGrid, IconTrash, type IconProps } from "./icons";
 import { Select } from "./Select";
 import { Sheet } from "./Sheet";
 import { useSolveMenu, type SolveSummary } from "./SolveMenus";
@@ -32,11 +32,9 @@ const PAGE = 100;
 type Range = [number, number];
 
 const IconChart = ({ size = 16, color = "currentColor", strokeWidth = 2 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><Path d="M4 4v16h16" /><Path d="m7 14 4-4 3 3 5-6" /></Svg>;
-const IconTiles = ({ size = 16, color = "currentColor", strokeWidth = 2 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><Rect x="3" y="3" width="7" height="7" rx="1.5" /><Rect x="14" y="3" width="7" height="7" rx="1.5" /><Rect x="3" y="14" width="7" height="7" rx="1.5" /><Rect x="14" y="14" width="7" height="7" rx="1.5" /></Svg>;
-export const IconTrash = ({ size = 16, color = "currentColor", strokeWidth = 2 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><Path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></Svg>;
 
 /** `.stat-strip`: the seven figures, as raised tiles scrolling sideways, or flat in four columns (`compact`). */
-export function StatStrip({ summary, compact, bleed = 0 }: { summary: CaseHistoryDto["summary"]; compact?: boolean; bleed?: number }) {
+function StatStrip({ summary, compact, bleed = 0 }: { summary: CaseHistoryDto["summary"]; compact?: boolean; bleed?: number }) {
   const t = useTheme();
   const items: [string, string, boolean][] = [
     ["Best", fmtTime(summary.best), true], ["Ao5", fmtTime(summary.ao5), false], ["Ao12", fmtTime(summary.ao12), false],
@@ -80,7 +78,7 @@ export function TimerStats({ data, empty, compact, fill, bleed }: { data: CaseHi
 }
 
 /** The chart/table panel alone, for screens that show their own figures (case detail). */
-export function TimesChart({ history, ao5, height = 200 }: { history: HistoryPoint[]; ao5: (number | null)[]; ao12?: (number | null)[]; height?: number }) {
+export function TimesChart({ history, ao5, height = 200 }: { history: HistoryPoint[]; ao5: (number | null)[]; height?: number }) {
   const [sort, setSort] = useState<Sort>("newest");
   const [commented, setCommented] = useState(false);
   if (history.length === 0) return <Empty>No attempts on this case yet.</Empty>;
@@ -113,7 +111,7 @@ function StatsPanel({ history, ao5, compact, fill, chartHeight = 200, table }: {
 function ViewToggle({ value, onChange }: { value: StatsView; onChange: (view: StatsView) => void }) {
   const t = useTheme();
   return <View style={[styles.toggle, { borderColor: t.line }]} accessibilityRole="tablist">
-    {([["chart", "Chart", IconChart], ["table", "Table", IconTiles]] as const).map(([id, label, Icon]) => {
+    {([["chart", "Chart", IconChart], ["table", "Table", IconGrid]] as const).map(([id, label, Icon]) => {
       const active = value === id;
       return <Pressable key={id} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} onPress={() => onChange(id)}
         style={({ pressed }) => [styles.toggleItem, { backgroundColor: active ? t.surface3 : pressed ? t.hover : "transparent" }]}>
@@ -317,7 +315,7 @@ function SolveActions({ solve, labels }: { solve: SolveSummary; labels?: boolean
     <Btn variant="ghost" size={size} active={solve.penalty === "+2"} label="+2" textStyle={{ fontSize: text }} style={styles.action} disabled={busy} accessibilityLabel="+2 penalty" onPress={() => void togglePenalty(solve, "+2")} />
     <Btn variant="ghost" size={size} active={solve.penalty === "dnf"} label="DNF" textStyle={{ fontSize: text }} style={styles.action} disabled={busy} accessibilityLabel="Did not finish" onPress={() => void togglePenalty(solve, "dnf")} />
     <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel={solve.comment ? "Edit comment" : "Add comment"} icon={<IconComment size={15} color={solve.comment ? t.accent : t.secondary} />} label={labels ? "Comment" : undefined} textStyle={{ fontSize: text }} onPress={() => editComment(solve)} />
-    <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel="Delete solve" icon={<IconTrash size={15} color={t.danger} />} label={labels ? "Delete" : undefined} textStyle={{ fontSize: text, color: t.danger }} onPress={() => void deleteTime(solve.id)} />
+    <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel="Delete solve" icon={<IconTrash size={15} strokeWidth={2} color={t.danger} />} label={labels ? "Delete" : undefined} textStyle={{ fontSize: text, color: t.danger }} onPress={() => void deleteTime(solve.id)} />
   </View>;
 }
 

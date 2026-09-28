@@ -321,8 +321,7 @@ pub(crate) fn route(
             let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
             for row in rows {
                 let id = row["case_id"].as_str().unwrap().to_owned();
-                if let Some((key, rows)) = groups.last_mut().filter(|(key, _)| *key == id) {
-                    let _ = key;
+                if let Some((_, rows)) = groups.last_mut().filter(|(key, _)| *key == id) {
                     rows.push(row);
                 } else {
                     groups.push((id, vec![row]));

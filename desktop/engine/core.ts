@@ -1,8 +1,7 @@
-/** Cubix data engine, independent of its host: the web app runs it in a Web Worker,
- * the archived GPUI reference in a Bun process (engine/main.ts).
+/** Cubix data engine, independent of its host: the web app runs it in a Web Worker on IndexedDB.
  * Reusing the shared client preserves its local-first synchronization and HTTP/WS protocol.
  */
-import { cubePreview } from './cubePreview';
+import { cubeScene as cubePreview } from '../../src/shared/cubeScene';
 import { createLocalClient } from '../../src/client/local/client';
 import { createApiClient } from '../../src/client/api-client';
 import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from '../../src/shared/cube';

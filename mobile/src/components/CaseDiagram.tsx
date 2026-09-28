@@ -10,10 +10,10 @@ import { CASE_DIAGRAMS } from "./caseDiagrams";
  * Every catalogue surface uses the same puzzle-specific case diagram: a bundled bitmap for the
  * non-cube puzzles (one native image node), the shared cube geometry drawn with a few SVG paths otherwise.
  */
-export const CaseDiagram = memo(function CaseDiagram({ c, size = 102, grey }: { c: CaseDto; size?: number; grey?: boolean }) {
+export const CaseDiagram = memo(function CaseDiagram({ c, size = 102 }: { c: CaseDto; size?: number }) {
   if (c.diagram) {
     const source = CASE_DIAGRAMS[c.diagram];
-    return <View style={{ width: size, height: size, opacity: grey ? 0.5 : 1 }}>
+    return <View style={{ width: size, height: size }}>
       {source && <Image source={source} resizeMode="contain" style={{ width: size, height: size }} accessibilityIgnoresInvertColors />}
     </View>;
   }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { SyncStatus } from "../../../src/client/local/client";
 import { local, syncStatusChanged } from "../api";
-import { AccountForm } from "../pages/AccountPage";
+import { AccountForm } from "./Settings";
 import { useTheme } from "../theme";
 import { Sheet } from "./Sheet";
 

@@ -5,12 +5,10 @@ import { toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import { averageOf, best, fmtTime } from "../../src/client/lib/format";
-import { isPuzzle, normalizeScrambleType, type PuzzleId } from "../../src/shared/puzzles";
+import { bestAverage, fmtTime } from "../../src/client/lib/format";
+import { isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 export const catalog = catalogData as any;
-export const puzzleOf = (c: any) =>
-  c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3);
 export const matches = (c: any, q: string) =>
   q
     .toLowerCase()
@@ -23,7 +21,7 @@ export const matches = (c: any, q: string) =>
     );
 const PAGE_ORDER = ["playground", "algorithms", "training", "profile"];
 /** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
-export function slideDirection(
+function slideDirection(
   from: { page: string; caseId: string },
   to: { page: string; caseId: string },
 ): 1 | -1 {
@@ -61,14 +59,12 @@ export class Store {
   achievements: any = null;
   caseHistory: any = null;
   stats: any[] = [];
-  sync: any = null;
   error = "";
   saving = false;
   pendingSolve: any = null;
   scrollPositions = new Map<string, number>();
   generating = false;
   showTimes = false;
-  showCases = innerWidth >= 1024;
   revealed = false;
   randomAuf = true;
   login = false;
@@ -422,7 +418,7 @@ export class Store {
     if (!this.ready) return this.init();
     if (this.pendingSolve) await this.savePending();
     try {
-      this.sync = await call("sync");
+      await call("sync");
       await this.refresh();
     } catch (e) {
       this.fail(e);
@@ -447,7 +443,7 @@ export class Store {
     this.caseId = caseId;
     this.overlay = "";
     this.timerEpoch++;
-    this.showTimes = this.showCases = page === "training" && innerWidth >= 1024;
+    this.showTimes = page === "training" && innerWidth >= 1024;
     if (page === "profile") {
       this.profileMode = "overview";
       this.profilePuzzle = this.puzzle;
@@ -537,7 +533,6 @@ export class Store {
           }
           this.trainingStep = "practice";
           this.direction = 1;
-          this.showCases = false;
           this.timerEpoch++;
           this.emit();
           if (this.trainingKind === "cross1") await this.syncScramble();
@@ -560,7 +555,6 @@ export class Store {
         case "learningMode": {
           if (this.learningFrozen || learningModeForPuzzle(arg, this.puzzle) !== arg || this.pendingSolve) break;
           this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: arg });
-          this.showCases = false;
           this.overlay = "";
           this.timerEpoch++;
           await this.nextCase();
@@ -651,9 +645,6 @@ export class Store {
           break;
         case "times":
           this.showTimes = !this.showTimes;
-          break;
-        case "cases":
-          this.showCases = !this.showCases;
           break;
         case "menu":
           this.overlay = this.overlay === arg ? "" : arg;
@@ -782,9 +773,6 @@ export class Store {
         case "stage":
           this.catalogStage = arg;
           this.per("cubix.algs.stageByCube", arg);
-          document
-            .getElementById("stage-" + arg)
-            ?.scrollIntoView({ block: "start" });
           break;
         case "profileCase":
           this.caseId = arg;
@@ -865,9 +853,6 @@ export class Store {
           this.search = "";
           this.overlay = "search";
           break;
-        case "sync":
-          this.sync = await call("sync");
-          break;
         case "url":
           await openExternal(arg);
           break;
@@ -880,7 +865,7 @@ export class Store {
   /** Session figures under the timer: label, value and the tone it is drawn in. */
   metrics(): [label: string, value: string, tone: "" | "good" | "bad" | "accent"][] {
     const summary = practiceSummary(this.solves), times = summary.times,
-      bestOf = (size: number) => best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size)))),
+      bestOf = (size: number) => bestAverage(times, size),
       worst = !times.length ? null : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
     if (this.practicePage() === "training")
       return [["Best", fmtTime(summary.best), "good"], ["Mean", fmtTime(summary.mean), ""], ["Solves", String(summary.count), ""]];

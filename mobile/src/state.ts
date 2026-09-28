@@ -20,10 +20,6 @@ export type Route =
 /** A profile detail view; no mode shows the overview tiles. */
 export type ProfileMode = "playground" | "training" | "achievements";
 export type Page = Route["page"];
-/** Which navigation entry a route belongs to. */
-export function navPage(route: Route): Page {
-  return route.page;
-}
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
 export const guidesAtom = atom<GuideId | null>(null);
 
@@ -62,7 +58,6 @@ export const goBackAtom = atom(null, (get, set) => {
   try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: history.at(-2)!.page })); } catch { /* Best effort. */ }
   return true;
 });
-export const canGoBackAtom = atom(get => get(historyAtom).length > 1);
 /** The route a back step would return to, so detail views can pop instead of pushing their parent. */
 export const previousRouteAtom = atom(get => get(historyAtom).at(-2) ?? null);
 /**
@@ -138,7 +133,7 @@ export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true
  * page so marking the last one learned from its details and coming back still celebrates. */
 export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
 /** Cases of the catalogue, or first-block scrambles (cross and one pair) on the 3×3; shared with the web prefs. */
-export type TrainingKind = "cases" | "cross1";
+type TrainingKind = "cases" | "cross1";
 const storedTrainingKindAtom = persisted<TrainingKind>("cubix.training.kind", "cases");
 export const trainingKindAtom = atom(get => get(storedTrainingKindAtom) === "cross1" ? "cross1" as const : "cases" as const,
   (_get, set, kind: TrainingKind) => set(storedTrainingKindAtom, kind));

@@ -3,7 +3,7 @@ import { createLocalClient } from "../src/client/local/client";
 import { createApiClient } from "../src/client/api-client";
 import { createRustApi, openDb } from "./backend";
 import { history } from "../src/client/local/stats";
-import type { SessionDto, SolveDto } from "../src/shared/types";
+import type { SolveDto } from "../src/shared/types";
 import { learningCases, learningKey, orderedGroups, type LearningTrack } from "../src/client/lib/dailyLearning";
 import { cases } from "../src/client/local/catalog";
 

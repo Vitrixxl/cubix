@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import { useLayout } from "../hooks/useLayout";
 import { SLIDE } from "../hooks/useSlide";
-import { lastNavigationAtom, navPage, type NavigationKind, type Route } from "../state";
+import { lastNavigationAtom, type NavigationKind, type Route } from "../state";
 
 /** How far a route sits below its tab's first page. */
 function routeDepth(route: Route, phone: boolean) {
@@ -19,7 +19,7 @@ function routeDepth(route: Route, phone: boolean) {
  */
 export function slideDirection(from: Route, to: Route, kind: NavigationKind, phone: boolean) {
   const change = Math.sign(routeDepth(to, phone) - routeDepth(from, phone));
-  if (!change || navPage(from) === navPage(to)) return change;
+  if (!change || from.page === to.page) return change;
   return (kind === "push" && change > 0) || (kind === "pop" && change < 0) ? change : 0;
 }
 

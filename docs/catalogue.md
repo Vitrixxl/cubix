@@ -18,9 +18,8 @@ l’armement, le chronométrage et l’enregistrement d’un temps.
   et d’arêtes couvrent des séquences utiles ; la construction intuitive n’est pas un catalogue exhaustif.
   Les cubes pairs ont aussi les parités OLL et PLL après réduction.
 
-Le type **Random moves** utilise 11, 22, 40, 60, 80 et 100 mouvements selon la taille,
-avec des mouvements larges jusqu’à la moitié du cube et sans deux axes consécutifs identiques.
-Ce sont des mélanges par mouvements aléatoires, pas des mélanges officiels WCA à état aléatoire.
+Le type **Outer turns** des grands cubes utilise 40, 60, 80 et 100 mouvements extérieurs selon la taille
+(4×4 à 7×7) ; ce sont des mélanges par mouvements aléatoires, pas des mélanges WCA à état aléatoire.
 Aucun rendu 3D : chaque cas est illustré par un schéma SVG statique (cubes) ou par une image
 générée par cubing.js (Square-1, Pyraminx, Skewb, Megaminx, Clock). Le chronomètre affiche le mélange
 en notation et rien d’autre.
@@ -65,7 +64,7 @@ ne montrent que cette session ; les temps sont tout de même synchronisés et co
 profil, où l’historique reste global.
 Le paramètre historique `cubeSize` reste accepté. Les identifiants et compatibilités sont définis
 dans `../data/puzzles.json`, partagé avec Rust.
-Le build distribue cubing.js et ses workers dans le dossier `vendor/cubing/` du paquet, sans dépendre d’un CDN.
+L’application web sert cubing.js et ses workers sous `/vendor/cubing-<version>/`, sans dépendre d’un CDN.
 
 ## Un seul catalogue : `data/catalog.json`
 

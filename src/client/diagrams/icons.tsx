@@ -34,9 +34,6 @@ export const IconCube = (p: SVGProps<SVGSVGElement>) => (
 export const IconUndo = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>
 );
-export const IconSkip = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}><path d="M5 4l10 8-10 8zM19 5v14" /></svg>
-);
 export const IconEye = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
 );

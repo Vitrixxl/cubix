@@ -1,33 +1,29 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { averageOf, best, fmtSolve, fmtTime, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
+import { fmtSolve, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { applyAlg, parseAlg, solved, type Move } from "../../../src/shared/cube";
 import { contextKey, modeLabel, puzzleInfo, scrambleLabel, SOLVE_MODES, type PracticeContext, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
-import { api, localChanged } from "../api";
-import { cubeSwitchLockedAtom, deletedSolveIdAtom, playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom, updatedSolveAtom } from "../state";
+import { api } from "../api";
+import { playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
-import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
-import { generatePracticeScramble } from "../lib/practiceScramble";
+import { ensureLaunchSession } from "../lib/launchSession";
 import { AlgText } from "../components/AlgText";
 import { IconComment, IconShuffle, IconTimer, IconTrophy, IconUndo } from "../components/icons";
-import { Notice, RunningFade, TouchArea } from "../components/Practice";
+import { Notice, RunningFade, TouchArea, sessionMetrics, usePracticeLock, useScrambleGeneration, useSessionSolves } from "../components/Practice";
 import { PuzzlePicker } from "../components/PuzzlePicker";
 import { Select } from "../components/Select";
 import { Sheet } from "../components/Sheet";
 import { LastSolveActions, SolveRow, TimesRowActions, useSolveMenu } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { StopSurface, TimeEntryField, TimerSurface } from "../components/TimerSurface";
-import { Btn, Label, Metrics, MiniBtn, PageHead, SkeletonLine, mono, type MetricItem } from "../components/ui";
+import { Btn, Label, Metrics, MiniBtn, PageHead, SkeletonLine, mono } from "../components/ui";
 
-/** Generation shorter than this stays invisible: the previous scramble simply becomes the next one. */
-const SLOW_GENERATION_MS = 120;
 /** Replay pace of the scramble on the preview cube. */
 const REPLAY_START_MS = 350, REPLAY_MOVE_MS = 120;
 /** Wide screens keep the session list in a right column (`--times-width`). */
@@ -35,26 +31,6 @@ const TIMES_WIDTH = 300;
 
 /** Cross + 1 scrambles belong to training; the timer's scramble menu leaves them out. */
 const timerScrambles = (types: readonly ScrambleType[]) => types.filter(type => !type.startsWith("cross1-"));
-
-/**
- * The session figures under the timer (`store.metrics()` on the web): Best and Best Ao5/Ao12 in green,
- * Worst in red (DNF as soon as one attempt is a DNF), the current averages in the accent.
- */
-export function sessionMetrics(solves: readonly Pick<SolveDto, "time_ms" | "penalty">[]): MetricItem[] {
-  const summary = practiceSummary(solves), times = summary.times;
-  const bestOf = (size: number) => best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size))));
-  const worst = !times.length ? fmtTime(null) : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
-  return [
-    { label: "Best", value: fmtTime(summary.best), tone: "good" },
-    { label: "Worst", value: worst, tone: "bad" },
-    { label: "Mean", value: fmtTime(summary.mean) },
-    { label: "Ao5", value: fmtTime(summary.ao5), tone: "accent" },
-    { label: "Best Ao5", value: fmtTime(bestOf(5)), tone: "good" },
-    { label: "Ao12", value: fmtTime(summary.ao12), tone: "accent" },
-    { label: "Best Ao12", value: fmtTime(bestOf(12)), tone: "good" },
-    { label: "Solves", value: String(summary.count) },
-  ];
-}
 
 function scrambleMoves(scramble: string, size: number | null): Move[] {
   if (!size || !scramble) return [];
@@ -76,54 +52,15 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const setSolveMode = useSetAtom(solveModeAtom);
   const setScrambleType = useSetAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
-  const [generating, setGenerating] = useState(false);
-  // Only a generation that takes a while (cubing.js in the native engine) shows its skeleton; instant
-  // ones would otherwise flash an empty frame between the previous scramble and the next.
-  const [slow, setSlow] = useState(false);
-  const slowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [generationError, setGenerationError] = useState("");
-  const request = useRef(0);
-  const lockCube = useSetAtom(cubeSwitchLockedAtom);
   const [saving, setSaving] = useState(false);
   const [scramble, setScramble] = useAtom(playgroundScrambleAtom);
-  const [solves, setSolves] = useState<SolveDto[]>([]);
-  const deletedSolveId = useAtomValue(deletedSolveIdAtom);
-  useEffect(() => { if (deletedSolveId !== null) setSolves(list => list.filter(solve => solve.id !== deletedSolveId)); }, [deletedSolveId]);
-  const updatedSolve = useAtomValue(updatedSolveAtom);
-  useEffect(() => { if (updatedSolve) setSolves(list => list.map(solve => solve.id === updatedSolve.id ? updatedSolve : solve)); }, [updatedSolve]);
+  const [solves, setSolves] = useSessionSolves("playground", context);
   // The time just recorded keeps its buttons under the timer until the next attempt or its deletion.
   const [lastSolveId, setLastSolveId] = useState<number | null>(null);
   // A solve that beats the all-time single, Ao5 or Ao12 of this context is praised for a moment.
   const [record, setRecord] = useState({ at: 0, message: "" });
-
-  const generateNext = useCallback(async () => {
-    const id = ++request.current;
-    setGenerating(true); setGenerationError("");
-    clearTimeout(slowTimer.current);
-    slowTimer.current = setTimeout(() => { if (request.current === id) setSlow(true); }, SLOW_GENERATION_MS);
-    try {
-      const next = await generatePracticeScramble(context);
-      if (request.current === id) setScramble(next);
-    } catch (error) {
-      if (request.current === id) setGenerationError((error as Error).message);
-    } finally {
-      if (request.current === id) { clearTimeout(slowTimer.current); setGenerating(false); setSlow(false); }
-    }
-  }, [context, setScramble]);
-  useEffect(() => () => clearTimeout(slowTimer.current), []);
-  useEffect(() => {
-    let active = true;
-    // Only this launch's session is listed (see lib/launchSession); every solve still syncs to the profile.
-    const refresh = () => {
-      const session = launchSessionId("playground", context);
-      if (session === null) { setSolves([]); return; }
-      void api.solves("playground", 1000, context.puzzle, context).then(list => { if (active) setSolves(list.filter(s => s.session_id === session).reverse()); });
-    };
-    refresh();
-    const unsubscribe = localChanged.on(refresh);
-    if (!scramble) void generateNext();
-    return () => { active = false; request.current++; unsubscribe(); };
-  }, []);
+  const { generating, slow, error: generationError, generate: generateNext } = useScrambleGeneration(context, setScramble);
+  useEffect(() => { if (!scramble) void generateNext(); }, []);
 
   const onStop = useCallback(async (ms: number) => {
     // Casual timing records nothing: the time stays on screen and the next scramble comes up.
@@ -155,10 +92,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   }) : solves, [solves, optimistic]);
   const metrics = useMemo(() => sessionMetrics(shownSolves), [shownSolves]);
   const lastSolve = lastSolveId === null ? null : shownSolves.find(solve => solve.id === lastSolveId) ?? null;
-  const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
-  const running = timer.phase === "running";
-  const locked = busy || !!timer.saveError;
-  useEffect(() => { lockCube(locked); return () => lockCube(false); }, [locked, lockCube]);
+  const { busy, running, locked } = usePracticeLock(timer, saving);
   const nextScramble = () => { if (!busy && !generating) void generateNext(); };
 
   // Scramble preview (`.prompt-visual`) and its replay, move by move.
@@ -278,7 +212,7 @@ function TimesList({ solves, scrollKey }: { solves: SolveDto[]; scrollKey: strin
   </View>;
 }
 
-export const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   page: { flex: 1, minHeight: 0 },
   body: { flex: 1, minHeight: 0, flexDirection: "row" },
   /** `.stage`: prompt, timer and figures stacked; only the timer area flexes. */
@@ -300,23 +234,4 @@ export const styles = StyleSheet.create({
   timesRow: { flexDirection: "row", alignItems: "center", height: 32, paddingHorizontal: 10, borderRadius: 6 },
   timesIndex: { width: 34 },
   timesValue: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6 },
-
-  // Older practice layout, still shared by TrainingPage and the boot skeletons.
-  workspace: { flex: 1, minHeight: 0 },
-  workspaceWide: { flexDirection: "row", gap: 24, paddingHorizontal: 24, paddingVertical: 12 },
-  center: { flex: 1, minWidth: 0, minHeight: 0 },
-  toolbar: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 2, flexDirection: "row", alignItems: "flex-start", gap: 8, minHeight: 34 },
-  toolbarGroup: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
-  dockRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", gap: 4 },
-  dockSelect: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: "space-between" },
-  dockLastSolve: { height: 36, alignItems: "center", justifyContent: "center" },
-  bottomActions: { position: "absolute", left: 0, right: 0, zIndex: 2 },
-  bottomActionRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 6 },
-  stack: { flex: 1, minHeight: 0, alignItems: "center", justifyContent: "center", width: "100%", maxWidth: 720, alignSelf: "center", paddingVertical: 44 },
-  stackLandscape: { flexDirection: "row", maxWidth: 850, paddingTop: 44, paddingBottom: 72, columnGap: 20 },
-  scramble: { width: "100%", maxWidth: 680, flex: 1, justifyContent: "flex-end", alignItems: "center" },
-  grouped: { flex: 0, flexShrink: 1, minHeight: 0 },
-  timerSlot: { width: "100%", alignItems: "center" },
-  stats: { flexDirection: "row", justifyContent: "center", width: "100%", maxWidth: 560, flex: 1, alignItems: "flex-start" },
-  landscapeLeft: { width: "48%", flex: undefined, height: "100%", justifyContent: "center" },
 });

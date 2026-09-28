@@ -1,99 +1,130 @@
-/** Real Electron layout checks at narrow and short desktop window sizes. */
-import { launchApp, startServer } from "./app";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+/** Every screen at phone and desktop window sizes: the page never scrolls, nothing leaves the window,
+ * the practice prompt, timer and metrics never overlap. Screenshots go to artifacts/electron/testing. */
+import { SHOTS, act, launchApp, resize, scrambled, startServer } from "./app";
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const SIZES = [[1600, 900], [1280, 800], [1024, 600], [800, 600], [640, 480], [390, 844], [360, 640]] as const;
 const dir = await mkdtemp(join(tmpdir(), "cubix-responsive-"));
 const { origin, server } = await startServer(join(dir, "server"));
-const app = await launchApp({ dir, origin });
-try {
-  const page = await app.firstWindow();
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  const click = async (action: string) => {
-    await page.locator(`[data-action="${action}"]`).first().click();
+const { app, page, errors } = await launchApp({ dir, origin });
+await mkdir(SHOTS, { recursive: true });
+
+/** Layout problems of the current screen, as readable strings. */
+const problems = () => page.evaluate(() => {
+  const issues: string[] = [];
+  const box = (element: Element) => element.getBoundingClientRect();
+  const visible = (element: Element) => { const r = box(element); return r.width > 0 && r.height > 0; };
+  const root = document.documentElement;
+  if (root.scrollHeight > innerHeight || root.scrollWidth > innerWidth) issues.push("the page scrolls");
+  const nav = document.querySelector(".nav");
+  const inWindow = (selector: string) => {
+    for (const element of document.querySelectorAll(selector)) {
+      if (!visible(element)) continue;
+      const r = box(element);
+      if (r.left < -1 || r.right > innerWidth + 1 || r.top < -1 || r.bottom > innerHeight + 1) issues.push(`${selector} outside the window`);
+      else if (nav?.classList.contains("tabbar") && !element.closest(".nav") && r.bottom > box(nav).top + 1) issues.push(`${selector} under the tab bar`);
+    }
+  };
+  inWindow(".nav .button");
+  // The header controls scroll sideways on phones when they do not fit; the title row must fit.
+  inWindow(".page-title .button");
+  for (const element of document.querySelectorAll(".page-head, .page-title"))
+    if (element.scrollWidth > element.clientWidth + 1) issues.push(`.${element.className.split(" ")[0]} clipped`);
+  const practice = document.querySelector(".page.practice");
+  if (practice) {
+    inWindow(".prompt .button");
+    inWindow(".timer-digits");
+    inWindow(".solve-actions .button");
+    inWindow(".metrics .metric");
+    const [prompt, timer, metrics] = [".prompt", ".timer", ".metrics"].map((selector) => box(document.querySelector(selector)!));
+    if (prompt.bottom > timer.top + 1) issues.push("the prompt overlaps the timer");
+    if (timer.bottom > metrics.top + 1) issues.push("the timer overlaps the metrics");
+    for (const element of document.querySelectorAll(".prompt-text")) {
+      const alg = element.querySelector(".alg");
+      if (alg && element.clientHeight + 1 < Math.min(element.scrollHeight, parseFloat(getComputedStyle(alg).lineHeight))) issues.push("an algorithm has less than one readable line");
+    }
+  }
+  const overview = document.querySelector(".overview");
+  if (overview) {
+    const r = box(overview);
+    for (const element of overview.querySelectorAll(".ov-card, .ov-hero-figure, .ov-bests")) {
+      const b = box(element);
+      if (b.width && (b.left < r.left - 1 || b.right > r.right + 1)) issues.push(`.${element.className.split(" ").at(-1)} outside the overview`);
+      if (element.scrollWidth > element.clientWidth + 1) issues.push(`.${element.className.split(" ").at(-1)} clipped`);
+    }
+  }
+  return [...new Set(issues)];
+});
+
+/** Checks the current screen at every size, then goes back to the desktop size. */
+const failures: string[] = [];
+async function check(name: string) {
+  for (const [width, height] of SIZES) {
+    await resize(page, width, height);
     await page.waitForSelector("[data-exiting]", { state: "detached" });
-  };
-  await page.waitForSelector(".scramble .alg");
-  await mkdir("artifacts/electron/testing", { recursive: true });
-  const resize = async (width: number, height: number) => {
-    await page.setViewportSize({ width, height });
-    await page.waitForFunction(([w, h]) => innerWidth === w && innerHeight === h, [width, height]);
-    await page.waitForTimeout(150);
-  };
-  const check = async (name: string) => {
-    assert.equal(await page.locator(".sheet-backdrop").count(), 0, "practice is unobstructed");
-    const problems = await page.evaluate(() => {
-      const issues: string[] = [];
-      const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
-      const above = rect(".practice-above"), timer = rect(".timer"), below = rect(".practice-below"), toolbar = rect(".practice-toolbar"), nav = rect(".nav");
-      if (above.top < 0 || above.bottom > timer.top + 1) issues.push("setup overlaps timer or window edge");
-      if (timer.bottom > below.top + 1) issues.push("timer overlaps actions");
-      if (below.bottom > toolbar.top + 1) issues.push("metrics overlap toolbar");
-      if (toolbar.bottom > nav.top + 1) issues.push("toolbar overlaps navigation");
-      for (const selector of [".practice-toolbar .button", ".solve-actions .button", ".practice-metrics .kpi", ".timer-digits", ".case-caption", ".practice-alg", ".practice-above canvas", ".notice"]) {
-        for (const element of document.querySelectorAll(selector)) {
-          const r = element.getBoundingClientRect();
-          if (r.left < -1 || r.right > innerWidth + 1 || r.top < -1 || r.bottom > innerHeight + 1) issues.push(`${selector} outside viewport`);
-          if (element.closest(".practice-above") && (r.top < above.top - 1 || r.bottom > above.bottom + 1)) issues.push(`${selector} outside setup area`);
-        }
-      }
-      for (const element of document.querySelectorAll(".practice-alg > div:last-child, .scramble")) {
-        const alg = element.querySelector(".alg");
-        if (alg && element.clientHeight + 1 < Math.min(element.scrollHeight, parseFloat(getComputedStyle(alg).lineHeight))) issues.push("algorithm has less than one readable line");
-      }
-      if (document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth) issues.push("page overflows viewport");
-      return issues;
-    });
-    assert.deepEqual(problems, [], name);
-    await page.screenshot({ path: `artifacts/electron/testing/${name}.png` });
-    console.log(name);
-  };
-  await resize(480, 540);
-  await click("menu:entries");
+    await page.waitForTimeout(250);
+    // Phones show the session times in a sheet over the practice: close it to check the practice itself.
+    const sheet = page.locator(".sheet-backdrop");
+    if (await sheet.count()) {
+      await sheet.click({ position: { x: 4, y: 4 } });
+      await sheet.waitFor({ state: "detached" });
+    }
+    await page.screenshot({ path: `${SHOTS}/${name}-${width}x${height}.png` });
+    for (const problem of await problems()) {
+      failures.push(`${name} ${width}×${height}: ${problem}`);
+      console.error(failures.at(-1));
+    }
+  }
+  await resize(page, 1280, 800);
+  await page.waitForTimeout(250);
+  console.log(name);
+}
+
+try {
+  await page.waitForSelector(".timer");
+  await scrambled(page);
+  await check("timer");
+  // A typed time shows the actions of the last solve under the timer.
+  await act(page, "menu:entries");
   await page.getByRole("option", { name: "Typing", exact: true }).click();
   await page.getByRole("textbox", { name: "Time", exact: true }).fill("1234");
   await page.keyboard.press("Enter");
   await page.waitForSelector('[data-action^="penalty:"]');
-  await click("menu:entries");
+  await act(page, "menu:entries");
   await page.getByRole("option", { name: "Timer", exact: true }).click();
-  await check("responsive-480x540-solved");
-  for (const [w, h] of [[360, 540], [390, 844], [640, 480], [800, 600], [1024, 600], [1280, 800]]) {
-    await resize(w, h);
-    await check(`responsive-${w}x${h}`);
-  }
-  await click("nav:algorithms");
-  await click("case:F2L 1");
-  await click("train");
-  await page.waitForSelector(".practice-alg .alg");
-  await click("cases"); // collapse the desktop case rail before narrowing the window
-  if (await page.locator(".rail.right").count()) await page.locator('.rail.right [data-action="times"]').click();
-  await click("solution");
-  for (const [w, h] of [[480, 540], [360, 540], [640, 480], [1280, 800]]) {
-    await resize(w, h);
-    await check(`responsive-training-${w}x${h}`);
-  }
-  await resize(640, 480);
-  await page.keyboard.down("Space");
-  await page.waitForSelector('.timer[data-phase="Ready"]');
-  await page.keyboard.up("Space");
-  await page.waitForSelector('.timer[data-phase="Running"]');
-  await page.keyboard.press("a");
-  await page.waitForSelector('[data-action^="penalty:"]');
-  await page.waitForTimeout(400);
-  await check("responsive-training-solved-640x480");
-  await resize(360, 540);
-  for (const action of ["nav:algorithms", "case:F2L 1", "nav:profile"]) {
-    await click(action);
-    await page.waitForTimeout(150);
-    const overflow = await page.evaluate(() => [...document.querySelectorAll(".page, .page > .scroll, .catalog-toolbar, .detail-actions")]
-      .filter((element) => element.scrollWidth > element.clientWidth + 1).map((element) => element.className));
-    await page.screenshot({ path: `artifacts/electron/testing/responsive-${action.replaceAll(":", "-")}.png` });
-    assert.deepEqual(overflow, [], action);
-  }
+  await check("timer-solved");
+
+  await act(page, "nav:algorithms");
+  await page.waitForSelector(".algorithms-page");
+  await check("algorithms");
+  await act(page, "case:F2L 1");
+  await check("case"); // opened beside the list on desktop, as a page of its own on phones
+
+  await act(page, "nav:training");
+  await page.waitForSelector(".training-setup");
+  await check("training-setup");
+  await act(page, "setupMode:practice");
+  await act(page, "selectSet:f2l");
+  await act(page, "trainingStart:cases:practice");
+  await page.waitForSelector(".case-title");
+  await act(page, "solution");
+  await check("training");
+  await act(page, "trainingSetup");
+  await act(page, "setupMode:cross1");
+  await act(page, "trainingStart:cross1");
+  await scrambled(page);
+  await check("cross-plus-one");
+
+  await act(page, "nav:profile");
+  await page.waitForSelector(".overview");
+  await check("profile");
+
+  assert.deepEqual(failures, []);
   assert.deepEqual(errors, []);
-  console.log("Responsive Electron: timer, saved solve, actions, navigation and revealed training at 360–1280 px; no overlaps or page scrolling");
+  console.log(`Timer, algorithms, case, training and profile fit every size from ${SIZES.at(-1)!.join("×")} to ${SIZES[0].join("×")}`);
 } finally {
   await app.close();
   server.kill();

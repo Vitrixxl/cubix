@@ -59,6 +59,8 @@ function tipCurve(vertex: Vector, along: Vector, inward: Vector): Vector[] {
     return sum(sum(sum([0, 0, 0], start, (1 - t) ** 2), control, 2 * t * (1 - t)), tip, t * t);
   });
 }
+/** Unit step from `from` towards `to` along each axis. */
+const toward = (from: Vector, to: Vector): Vector => [Math.sign(to[0] - from[0]), Math.sign(to[1] - from[1]), Math.sign(to[2] - from[2])];
 /** In along one seam of a cube vertex, out along the other. */
 const tipCorner = (vertex: Vector, first: Vector, last: Vector, inward: Vector) => [...tipCurve(vertex, first, inward), ...tipCurve(vertex, last, inward).reverse().slice(1)];
 
@@ -101,7 +103,6 @@ export function isoHull(state: CubeState): string {
   if (!hull) {
     const n = dimension;
     const vertices: Vector[] = [[0, 0, 0], [n, 0, 0], [n, n, 0], [n, n, n], [0, n, n], [0, 0, n]];
-    const toward = (from: Vector, to: Vector): Vector => [Math.sign(to[0] - from[0]), Math.sign(to[1] - from[1]), Math.sign(to[2] - from[2])];
     hulls.set(dimension, hull = format(vertices.flatMap((vertex, index) => {
       const previous = vertices[(index + 5) % 6], next = vertices[(index + 1) % 6];
       return tipCorner(vertex, toward(vertex, previous), toward(vertex, next), toward(vertex, [n / 2, n / 2, n / 2])).map(point => project(point, dimension));
@@ -117,7 +118,6 @@ export function isoEdges(state: CubeState): string[] {
   let lines = edges.get(dimension);
   if (!lines) {
     const n = dimension, near: Vector = [n, 0, n], middle: Vector = [n / 2, n / 2, n / 2];
-    const toward = (from: Vector, to: Vector): Vector => [Math.sign(to[0] - from[0]), Math.sign(to[1] - from[1]), Math.sign(to[2] - from[2])];
     const far: Vector[] = [[0, 0, n], [n, 0, 0], [n, n, n]];
     edges.set(dimension, lines = far.map(vertex => format([
       ...tipCurve(near, toward(near, vertex), toward(near, middle)).reverse(),

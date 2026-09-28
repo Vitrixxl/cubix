@@ -5,8 +5,7 @@
  * - A state is a Uint16Array (also accepts legacy Uint8Array) where state[slot] = origin slot of the sticker now sitting there.
  *   The solved state is the identity; the colour of a sticker is the face of its origin slot.
  * - Every slot has a 3D geometry (cubie position centered on the origin, with half-integers for even sizes and outward normal n),
- *   which is used both to apply moves (rotate p and n, look up the target slot) and to
- *   render the cube with Three.js.
+ *   which is used to apply moves (rotate p and n, look up the target slot) and to draw the cube.
  *
  * Math coordinates: x → right, y → up, z → towards the viewer (right-handed).
  */
@@ -71,14 +70,6 @@ export const cubeSize = (state: CubeState): number => Math.sqrt(state.length / 6
 export const solved = (size = 3): CubeState => Uint16Array.from({ length: 6 * size * size }, (_, i) => i);
 export const faceOfSlot = (slot: number, size = 3): Face => FACES[Math.floor(slot / (size * size))];
 export const colorOf = (state: CubeState, slot: number): Face => faceOfSlot(state[slot], cubeSize(state));
-
-// Facelet permutations alone discard centre-cap rotation. Keep a tangent for
-// each sticker so an imported physical piece (including its artwork) has a pose.
-// Weak keys release the extra data with algorithm-player states.
-const stickerTangents = new WeakMap<CubeState, readonly Vec3[]>();
-export function stickerTangent(state: CubeState, slot: number): Vec3 {
-  return stickerTangents.get(state)?.[slot] ?? (Math.abs(slotsFor(cubeSize(state))[slot].n[1]) === 1 ? [0, 0, 1] : [0, 1, 0]);
-}
 
 // ---------------------------------------------------------------------------
 // Rotations
@@ -265,12 +256,6 @@ export function applyMove(state: CubeState, mv: Move): CubeState {
   const perm = movePermutation(mv, size);
   const next = new Uint16Array(state.length);
   for (let s = 0; s < 6 * size * size; s++) next[perm[s]] = state[s];
-  const tangents: Vec3[] = new Array(state.length);
-  for (let s = 0; s < state.length; s++) {
-    const tangent = stickerTangent(state, s);
-    tangents[perm[s]] = mv.layers.includes(slotsFor(size)[s].p[mv.axis]) ? rotate(tangent, mv.axis, mv.q) : tangent;
-  }
-  stickerTangents.set(next, tangents);
   return next;
 }
 
@@ -280,16 +265,6 @@ export function applyAlg(state: CubeState, alg: string | Move[]): CubeState {
   for (const mv of moves) cur = applyMove(cur, mv);
   return cur;
 }
-
-/** Slots that move for a given move (used to animate a layer). */
-export function movingSlots(mv: Move, size = 3): number[] {
-  const out: number[] = [];
-  for (let s = 0; s < 6 * size * size; s++) if (mv.layers.includes(slotsFor(size)[s].p[mv.axis])) out.push(s);
-  return out;
-}
-
-/** Signed angle in degrees, right-handed about the positive axis, for a full move. */
-export const moveAngleDeg = (mv: Move): number => (mv.q === 3 ? -90 : mv.q === 1 ? 90 : 180);
 
 // ---------------------------------------------------------------------------
 // Helpers for training
@@ -346,29 +321,7 @@ export function compensateAuf(alg: string, auf: string): string {
   return [leadingU, rest].filter(Boolean).join(" ");
 }
 
-const SCRAMBLE_FACES = ["U", "D", "F", "B", "R", "L"];
-const SCRAMBLE_AXIS: Record<string, number> = { U: 1, D: 1, F: 2, B: 2, R: 0, L: 0 };
-const SUFFIX = ["", "'", "2"];
-
-/** Random-move scramble (no two consecutive moves on the same axis). */
-export function randomScramble(length = 22): string {
-  const out: string[] = [];
-  let lastAxis = -1;
-  while (out.length < length) {
-    const f = SCRAMBLE_FACES[Math.floor(Math.random() * 6)];
-    if (SCRAMBLE_AXIS[f] === lastAxis) continue;
-    lastAxis = SCRAMBLE_AXIS[f];
-    out.push(f + SUFFIX[Math.floor(Math.random() * 3)]);
-  }
-  return out.join(" ");
-}
-
 /** Pretty print an algorithm: normalised spacing, parentheses preserved. */
 export function formatAlg(alg: string): string {
   return alg.replace(/\s+/g, " ").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")").trim();
 }
-
-/** Is the sticker currently in `slot` part of a last-layer (U) piece by origin? */
-export const originInULayer = (state: CubeState, slot: number): boolean => slotsFor(cubeSize(state))[state[slot]].p[1] === (cubeSize(state) - 1) / 2;
-/** Is `slot` physically in the U layer? */
-export const slotInULayer = (slot: number, size = 3): boolean => slotsFor(size)[slot].p[1] === (size - 1) / 2;

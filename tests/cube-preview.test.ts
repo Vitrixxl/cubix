@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { cubePreview } from '../desktop/engine/cubePreview';
+import { cubeScene as cubePreview } from '../src/shared/cubeScene';
 import { cases } from '../src/client/local/catalog';
 import { applyAlg, applyMove, solved, slotsFor } from '../src/shared/cube';
 import { FACE_HEX, stickerColors } from '../src/shared/cubeAppearance';

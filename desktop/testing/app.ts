@@ -1,8 +1,11 @@
-/** A disposable Rust API serving the web build (dist/web) and the Electron shell pointed at it. */
-import { _electron as electron } from "playwright";
+/** Test harness: a disposable Rust API serving the web build (dist/web) and the Electron shell pointed at it,
+ * without any window (Chromium's headless Ozone backend). Build first: `bun desktop/build.ts && bun desktop/web.ts`. */
+import { _electron as electron, type Page } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 delete process.env.ELECTRON_RUN_AS_NODE;
+
+export const SHOTS = "artifacts/electron/testing";
 
 export async function startServer(dir: string, env: Record<string, string> = {}) {
   await mkdir(dir, { recursive: true });
@@ -23,11 +26,52 @@ export async function startServer(dir: string, env: Record<string, string> = {})
   throw Error("The test API did not start");
 }
 
-export function launchApp({ dir, origin, ozone = process.env.CUBIX_OZONE_PLATFORM ?? "x11", env = {} }: { dir: string; origin: string; ozone?: string; env?: Record<string, string> }) {
-  return electron.launch({
+/** Opens the app on `origin` with its data in `dir`; page errors are collected in `errors`. */
+export async function launchApp({ dir, origin, width = 1280, height = 800 }: { dir: string; origin: string; width?: number; height?: number }) {
+  const app = await electron.launch({
     executablePath: process.env.CUBIX_TEST_ELECTRON ?? resolve("node_modules/electron/dist/electron"),
-    args: [`--ozone-platform=${ozone}`, resolve("desktop/dist")],
-    env: { ...process.env, CUBIX_DESKTOP_DATA: dir, CUBIX_WEB_ORIGIN: origin, ...env },
+    args: [`--ozone-platform=${process.env.CUBIX_OZONE_PLATFORM ?? "headless"}`, resolve("desktop/dist")],
+    env: { ...process.env, CUBIX_DESKTOP_DATA: dir, CUBIX_WEB_ORIGIN: origin },
     timeout: 30000,
   });
+  const page = await app.firstWindow();
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  // A headless window has no size of its own: emulate the viewport.
+  await resize(page, width, height);
+  return { app, page, errors };
+}
+
+export async function resize(page: Page, width: number, height: number) {
+  await page.setViewportSize({ width, height });
+  await page.waitForFunction(([w, h]) => innerWidth === w && innerHeight === h, [width, height]);
+}
+
+/** Clicks the first button with this data-action and waits for the page transition to end. */
+export async function act(page: Page, action: string) {
+  await page.locator(`[data-action="${action}"]`).first().click();
+  await page.waitForSelector("[data-exiting]", { state: "detached" });
+}
+
+/** Waits for a scramble on the practice page. */
+export const scrambled = (page: Page) =>
+  page.waitForFunction(() => {
+    const text = document.querySelector(".scramble")?.textContent;
+    return !!text && !text.includes("Generating");
+  }, undefined, { timeout: 60000 });
+
+/** The "Solves" metric of the practice page: this launch's session only. */
+export const solveCount = (page: Page, n: number) =>
+  page.waitForFunction((n) => [...document.querySelectorAll(".metrics .metric")]
+    .some((metric) => metric.querySelector(".label")?.textContent === "Solves" && metric.querySelector(".metric-value")?.textContent === String(n)), n);
+
+/** Starts and stops the timer with the keyboard. */
+export async function timeSolve(page: Page) {
+  await page.keyboard.down("Space");
+  await page.waitForSelector('.timer[data-phase="Ready"]');
+  await page.keyboard.up("Space");
+  await page.waitForSelector('.timer[data-phase="Running"]');
+  await page.waitForTimeout(160);
+  await page.keyboard.press("a");
+  await page.waitForSelector('.timer[data-phase="Idle"]');
 }

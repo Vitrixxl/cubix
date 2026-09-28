@@ -2,7 +2,7 @@ import {expect,test} from 'bun:test';
 import {Alg} from 'cubing/alg';
 import {puzzles} from 'cubing/puzzles';
 import {cases,sets} from '../src/client/local/catalog';
-import {PUZZLES,puzzleOf,puzzleInfo} from '../src/shared/puzzles';
+import {PUZZLES,puzzleOf} from '../src/shared/puzzles';
 import {renderPatternSvg,assertLegalSquare1} from '../scripts/niche-model';
 import {readFile} from 'node:fs/promises';
 

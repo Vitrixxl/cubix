@@ -1,11 +1,12 @@
 /** The desktop app as a PWA: imports the former engine's storage.json once, records solves in IndexedDB,
  * then opens again from the service worker cache, scrambles included, with the server stopped. */
-import { launchApp, startServer } from "./app";
+import { launchApp, scrambled, solveCount, startServer, timeSolve } from "./app";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Page } from "playwright";
 
 const dir = await mkdtemp(join(tmpdir(), "cubix-web-app-"));
 const solves = Array.from({ length: 3 }, (_, i) => ({
@@ -19,20 +20,14 @@ await Bun.write(join(dir, "storage.json"), JSON.stringify({
     solves: Object.fromEntries(solves.map((s) => [s.id, s])), learned: {}, outbox: [], cursor: 0,
   }),
 }));
-let { origin, server } = await startServer(join(dir, "server"));
+const { origin, server } = await startServer(join(dir, "server"));
 const open = async () => {
-  const app = await launchApp({ dir, origin });
-  const page = await app.firstWindow();
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.waitForSelector(".timer");
-  await page.waitForFunction(() => {
-    const text = document.querySelector(".scramble")?.textContent;
-    return !!text && !text.includes("Generating");
-  }, undefined, { timeout: 60000 });
-  return { app, page, errors };
+  const opened = await launchApp({ dir, origin });
+  await opened.page.waitForSelector(".timer");
+  await scrambled(opened.page);
+  return opened;
 };
-const stored = (page: Awaited<ReturnType<typeof open>>["page"]) => page.evaluate(() => new Promise<number>((resolve, reject) => {
+const stored = (page: Page) => page.evaluate(() => new Promise<number>((resolve, reject) => {
   const request = indexedDB.open("cubix");
   request.onerror = () => reject(request.error);
   request.onsuccess = () => {
@@ -40,27 +35,20 @@ const stored = (page: Awaited<ReturnType<typeof open>>["page"]) => page.evaluate
     get.onsuccess = () => resolve(Object.values(JSON.parse(get.result).solves).filter((s: any) => !s.deleted).length);
   };
 }));
-const count = (page: Awaited<ReturnType<typeof open>>["page"], n: number) =>
-  page.waitForFunction((n) => document.querySelector(".practice-metrics .value")?.textContent === String(n), n);
+const scramble = (page: Page, puzzle: string) =>
+  page.evaluate((puzzle) => window.cubix.call("scramble", { puzzle, solveMode: "standard", scrambleType: "normal" }), puzzle);
 try {
   let { app, page, errors } = await open();
   assert.equal(await stored(page), 3);
   assert.ok(!existsSync(join(dir, "storage.json")) && existsSync(join(dir, "storage.imported.json")), "storage.json is set aside once imported");
   console.log("Former desktop data imported into IndexedDB");
   for (const puzzle of ["222", "333", "444", "555", "666", "777", "pyram", "skewb", "sq1", "minx", "clock"]) {
-    const scramble = await page.evaluate((puzzle) => window.cubix.call("scramble", { puzzle, solveMode: "standard", scrambleType: "normal" }), puzzle);
-    assert.ok(typeof scramble === "string" && scramble.length > 0, `${puzzle} scramble`);
+    const text = await scramble(page, puzzle);
+    assert.ok(typeof text === "string" && text.length > 0, `${puzzle} scramble`);
   }
   console.log("Every puzzle scrambles in the browser engine");
-  await page.keyboard.down("Space");
-  await page.waitForSelector('[data-phase="Ready"]');
-  await page.keyboard.up("Space");
-  await page.waitForSelector('[data-phase="Running"]');
-  await page.waitForTimeout(160);
-  await page.keyboard.press("a");
-  // The metrics count this launch's session only.
-  await count(page, 1);
-  await page.waitForFunction(() => document.querySelector('[data-phase="Idle"]'));
+  await timeSolve(page);
+  await solveCount(page, 1); // The metrics count this launch's session only.
   assert.equal(await stored(page), 4);
   await page.evaluate(() => navigator.serviceWorker.ready);
   console.log("Solve recorded; service worker active");
@@ -71,8 +59,7 @@ try {
   await server.exited;
   ({ app, page, errors } = await open());
   assert.equal(await stored(page), 4);
-  for (const puzzle of ["444", "sq1", "clock"])
-    assert.ok(await page.evaluate((puzzle) => window.cubix.call("scramble", { puzzle, solveMode: "standard", scrambleType: "normal" }), puzzle));
+  for (const puzzle of ["444", "sq1", "clock"]) assert.ok(await scramble(page, puzzle));
   console.log("Opened offline from the service worker cache, with a scramble and the 4 solves");
   assert.deepEqual(errors, []);
   await app.close();

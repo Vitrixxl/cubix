@@ -3,9 +3,7 @@ import { StyleSheet, View } from "react-native";
 import type { Page } from "../state";
 import { useLayout } from "../hooks/useLayout";
 import { useTheme } from "../theme";
-import { styles as practice } from "../pages/PlaygroundPage";
 import { Bone } from "./Bone";
-import { PracticeDock } from "./Practice";
 import { TrainingSetupSkeleton } from "./TrainingSetup";
 
 /**
@@ -13,29 +11,14 @@ import { TrainingSetupSkeleton } from "./TrainingSetup";
  * pulsing blocks where text, controls and diagrams will render. Shown only while the app boots.
  */
 
-function Kpis({ count, phone }: { count: number; phone: boolean }) {
-  return <>{Array.from({ length: count }, (_, i) => <View key={i} style={{ alignItems: "center", flex: 1 }}>
-    <Bone width={38} text={12} />
-    <Bone width={phone ? 46 : 58} text={phone ? 18 : 22} />
-  </View>)}</>;
-}
-
-function DockSkeleton() {
-  return <PracticeDock hidden={false}>
-    <View style={practice.dockLastSolve} />
-    <View style={practice.dockRow}>{[0, 1, 2].map(i => <Bone key={i} width="30%" height={44} radius={10} />)}</View>
-    <View style={practice.dockRow}><Bone width={104} height={44} radius={10} /><Bone width={86} height={44} radius={10} /></View>
-  </PracticeDock>;
-}
-
 /** The timer page: page head with its controls, scramble block, the time, then the 4×2 figures. */
-export function PlaygroundSkeleton() {
+function PlaygroundSkeleton() {
   const t = useTheme();
   const { phone, pagePadding, height, landscape } = useLayout();
   const line = { borderColor: t.line };
   const scrambleSize = phone ? 19 : 27;
   const preview = phone ? (height < 700 || landscape ? 0 : 76) : 112;
-  return <View style={practice.page}>
+  return <View style={skeleton.timer}>
     <View style={[{ gap: 8, paddingVertical: 10, paddingHorizontal: pagePadding, borderBottomWidth: 1 }, line]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 32 }}>
         <Bone width={64} text={20} strong /><Bone width={96} text={13} /><View style={{ flex: 1 }} /><Bone width={82} height={32} radius={8} />
@@ -59,7 +42,7 @@ export function PlaygroundSkeleton() {
 }
 
 /** The algorithm browser: stage tabs, learning filters and the case grid. */
-export function AlgorithmsSkeleton() {
+function AlgorithmsSkeleton() {
   const t = useTheme();
   const { navSpace } = useLayout();
   const line = { borderColor: t.line };
@@ -80,8 +63,8 @@ export function AlgorithmsSkeleton() {
     <View style={{ paddingHorizontal: 8, paddingBottom: navSpace }}>
       {[4, 3].map((count, group) => <View key={group}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 38, paddingTop: 4, paddingHorizontal: 6 }}><Bone width={120} text={12.5} /><Bone width={52} height={20} radius={6} /></View>
-        {Array.from({ length: count }, (_, i) => <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 12, height: 50, paddingLeft: 8, paddingRight: 11 }}>
-          <Bone width={36} height={36} radius={6} strong /><View style={{ flex: 1 }}><Bone width={28} text={13.5} /></View><Bone width={12} text={12.5} /><Bone width={16} height={16} radius={4} style={{ marginLeft: 11 }} />
+        {Array.from({ length: count }, (_, i) => <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 14, height: 68, paddingLeft: 8, paddingRight: 11 }}>
+          <Bone width={56} height={56} radius={8} strong /><View style={{ flex: 1 }}><Bone width={28} text={13.5} /></View><Bone width={12} text={12.5} /><Bone width={16} height={16} radius={4} style={{ marginLeft: 11 }} />
         </View>)}
       </View>)}
     </View>
@@ -92,7 +75,7 @@ export function AlgorithmsSkeleton() {
  * The account overview (pages/AccountPage.tsx): the page head with avatar, name and filter controls, then
  * the activity, timer and training cards with the same paddings, radii and figure sizes.
  */
-export function ProfileSkeleton() {
+function ProfileSkeleton() {
   const t = useTheme();
   const { pagePadding, short, navSpace, height } = useLayout();
   const card = { backgroundColor: t.raised, borderColor: t.line, borderWidth: 1, borderRadius: 12, paddingVertical: short ? 14 : 18, paddingHorizontal: short ? 16 : 20, gap: short ? 12 : 16 };
@@ -142,5 +125,5 @@ export function PageSkeleton({ page }: { page: Page }): ReactNode {
 
 const skeleton = StyleSheet.create({
   page: { flex: 1, width: "100%", maxWidth: 1100, alignSelf: "center", minHeight: 0 },
-  toolbar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", columnGap: 12, rowGap: 10 },
+  timer: { flex: 1, minHeight: 0 },
 });

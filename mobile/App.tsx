@@ -25,7 +25,7 @@ import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
-import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, navPage, profileFiltersAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
+import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, profileFiltersAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
 import { buildTheme, ThemeContext } from "./src/theme";
 import { FONT_FILES, installGeist } from "./src/fonts";
 
@@ -37,7 +37,7 @@ function renderPage(route: Route) {
     case "algorithms": return <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} />;
     case "training": return <TrainingPage />;
     case "playground": return <PlaygroundPage />;
-    case "profile": return <ProfilePage mode={route.mode} caseId={route.caseId} group={route.group} />;
+    case "profile": return <ProfilePage mode={route.mode} group={route.group} />;
   }
 }
 
@@ -109,7 +109,7 @@ function Shell() {
     return () => subscription.remove();
   }, [goBack, running]);
   const navigate = useCallback((page: Page) => setRoute({ page } as Route), [setRoute]);
-  const active = navPage(route);
+  const active = route.page;
   // The profile's filters last while its pages are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);
   useEffect(() => { if (active !== "profile") resetProfileFilters(f => Object.keys(f).length ? {} : f); }, [active, resetProfileFilters]);

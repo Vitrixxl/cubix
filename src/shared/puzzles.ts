@@ -1,9 +1,5 @@
 export const CUBE_SIZES = [2, 3, 4, 5, 6, 7] as const;
 export type CubeSize = typeof CUBE_SIZES[number];
-export const isCubeSize = (value: unknown): value is CubeSize => CUBE_SIZES.includes(value as CubeSize);
-export const cubeLabel = (size: number) => `${size}×${size}`;
-/** Data saved before multi-cube support belongs to 3×3. */
-export const cubeOf = (value: { cube_size?: CubeSize | null }): CubeSize => value.cube_size ?? 3;
 
 import registry from "../../data/puzzles.json";
 export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx" | "clock";
@@ -29,7 +25,6 @@ export const contextOf = (value: StoredContext): PracticeContext => ({ puzzle: p
 export const contextKey = (context: PracticeContext) => `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
 export const modeLabel = (mode: SolveMode) => SOLVE_MODES.find(m => m.id === mode)?.label ?? mode;
 export const scrambleLabel = (type: ScrambleType) => SCRAMBLE_TYPES.find(s => s.id === type)?.label ?? type;
-export const contextLabel = (value: StoredContext) => `${puzzleInfo(puzzleOf(value)).label} · ${scrambleLabel(scrambleTypeOf(value))} · ${modeLabel(solveModeOf(value))}`;
 export function validContext(context: PracticeContext, training = false): boolean {
   return isPuzzle(context.puzzle) && SOLVE_MODES.some(m => m.id === context.solveMode)
     && (training ? context.scrambleType === "case" : puzzleInfo(context.puzzle).scrambles.includes(context.scrambleType));

@@ -1,48 +1,26 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
-import { averageOf, best, fmtSolve, fmtTime } from "../../../src/client/lib/format";
+import { fmtSolve } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { CROSS_PLUS_ONE_MOVES, slotWithWhiteDown, withWhiteDown } from "../../../src/shared/crossPlusOne";
 import { contextKey, type PracticeContext } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
-import { api, localChanged } from "../api";
-import { crossContextAtom, crossMovesAtom, crossScrambleAtom, cubeSwitchLockedAtom, deletedSolveIdAtom, statsVersionAtom, updatedSolveAtom } from "../state";
+import { api } from "../api";
+import { crossContextAtom, crossMovesAtom, crossScrambleAtom, statsVersionAtom } from "../state";
 import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
 import { usePreservedList } from "../hooks/usePreservedList";
-import { ensureLaunchSession, launchSessionId } from "../lib/launchSession";
-import { generatePracticeScramble } from "../lib/practiceScramble";
+import { ensureLaunchSession } from "../lib/launchSession";
 import { crossSolutions, type CrossSolution } from "../scrambler";
 import { IconComment, IconEye, IconShuffle, IconTimer, IconTrophy, IconUndo } from "./icons";
+import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, framePreviewSize, sessionMetrics, useBackTo, usePracticeLock, useScrambleGeneration, useSessionSolves, useTimerFont } from "./Practice";
 import { PuzzlePicker } from "./PuzzlePicker";
 import { Sheet } from "./Sheet";
 import { LastSolveActions, SolveActionButtons, SolveInfoButton, SolveRow } from "./SolveMenus";
 import { TimerSurface } from "./TimerSurface";
-import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, useBackTo, useTimerFont } from "./TrainingLayout";
-import { Btn, Empty, Mark, PageHead, Segmented, SkeletonLine, mono, type MetricItem } from "./ui";
-
-/** Generation shorter than this stays invisible: the previous scramble simply becomes the next one. */
-const SLOW_GENERATION_MS = 120;
-
-/** Session figures of the timer (web `metrics()`): best in green, worst in red, running averages in the accent. */
-function timerMetrics(solves: SolveDto[]): MetricItem[] {
-  const summary = practiceSummary(solves), times = summary.times;
-  const bestOf = (size: number) => best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size))));
-  const worst = !times.length ? null : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
-  return [
-    { label: "Best", value: fmtTime(summary.best), tone: "good" },
-    { label: "Worst", value: worst ?? fmtTime(null), tone: "bad" },
-    { label: "Mean", value: fmtTime(summary.mean) },
-    { label: "Ao5", value: fmtTime(summary.ao5), tone: "accent" },
-    { label: "Best Ao5", value: fmtTime(bestOf(5)), tone: "good" },
-    { label: "Ao12", value: fmtTime(summary.ao12), tone: "accent" },
-    { label: "Best Ao12", value: fmtTime(bestOf(12)), tone: "good" },
-    { label: "Solves", value: String(summary.count) },
-  ];
-}
+import { Btn, Empty, Mark, PageHead, Segmented, SkeletonLine, mono } from "./ui";
 
 /**
  * First-block training on the 3×3 (web `crossTraining`): timer solves on scrambles whose white cross and one
@@ -61,54 +39,22 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
   const [moves, setMoves] = useAtom(crossMovesAtom);
   const scramble = useAtomValue(crossScrambleAtom);
   const storeScramble = useSetAtom(crossScrambleAtom);
-  const lockCube = useSetAtom(cubeSwitchLockedAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
-  const [generating, setGenerating] = useState(false);
-  const [slow, setSlow] = useState(false);
-  const [generationError, setGenerationError] = useState("");
-  const request = useRef(0);
-  const slowTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-  const [solves, setSolves] = useState<SolveDto[]>([]);
+  const [solves, setSolves] = useSessionSolves("playground", context);
   const [lastSolveId, setLastSolveId] = useState<number | null>(null);
   const [record, setRecord] = useState({ at: 0, message: "" });
   const [revealed, setRevealed] = useState(false);
   const [solutions, setSolutions] = useState<{ scramble: string; list: CrossSolution[] | null } | null>(null);
   const [solutionError, setSolutionError] = useState("");
   const [replay, setReplay] = useState(0);
-  const deletedSolveId = useAtomValue(deletedSolveIdAtom);
-  useEffect(() => { if (deletedSolveId !== null) setSolves(list => list.filter(solve => solve.id !== deletedSolveId)); }, [deletedSolveId]);
-  const updatedSolve = useAtomValue(updatedSolveAtom);
-  useEffect(() => { if (updatedSolve) setSolves(list => list.map(solve => solve.id === updatedSolve.id ? updatedSolve : solve)); }, [updatedSolve]);
   const timesAlways = !layout.phone && layout.width >= 1000;
 
-  const generateNext = useCallback(async () => {
-    const id = ++request.current;
-    setGenerating(true); setGenerationError(""); setRevealed(false);
-    clearTimeout(slowTimer.current);
-    slowTimer.current = setTimeout(() => { if (request.current === id) setSlow(true); }, SLOW_GENERATION_MS);
-    try {
-      const next = await generatePracticeScramble(context);
-      if (request.current === id) storeScramble({ context, scramble: next });
-    } catch (error) {
-      if (request.current === id) setGenerationError((error as Error).message);
-    } finally {
-      if (request.current === id) { clearTimeout(slowTimer.current); setGenerating(false); setSlow(false); }
-    }
-  }, [context, storeScramble]);
-  useEffect(() => {
-    let active = true;
-    // Only this launch's session is listed (see lib/launchSession); every solve still counts in the profile.
-    const refresh = () => {
-      const session = launchSessionId("playground", context);
-      if (session === null) { setSolves([]); return; }
-      void api.solves("playground", 1000, context.puzzle, context).then(list => { if (active) setSolves(list.filter(s => s.session_id === session).reverse()); });
-    };
-    refresh();
-    const unsubscribe = localChanged.on(refresh);
-    if (!scramble) void generateNext();
-    return () => { active = false; request.current++; clearTimeout(slowTimer.current); unsubscribe(); };
-  }, []);
+  // The context travels with the scramble: a generation that ends after a change of moves keeps its own.
+  const generation = useScrambleGeneration(context, next => storeScramble({ context, scramble: next }));
+  const { generating, slow, error: generationError } = generation;
+  const generateNext = useCallback(() => { setRevealed(false); return generation.generate(); }, [generation.generate]);
+  useEffect(() => { if (!scramble) void generateNext(); }, []);
 
   // The optimal solutions are searched in the scrambler page once revealed, then kept for this scramble.
   useEffect(() => {
@@ -135,16 +81,13 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
     } finally { setSaving(false); }
   }, [scramble, context, generateNext]);
   const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError });
-  const busy = saving || timer.phase === "running" || timer.phase === "holding" || timer.phase === "ready";
-  const running = timer.phase === "running";
-  useEffect(() => { lockCube(busy || !!timer.saveError); return () => lockCube(false); }, [busy, timer.saveError, lockCube]);
+  const { busy, running, locked } = usePracticeLock(timer, saving);
   useBackTo(onBack, !busy);
   const nextScramble = () => { if (!busy && !generating) { timer.reset(); void generateNext(); } };
   const lastSolve = lastSolveId === null ? null : solves.find(solve => solve.id === lastSolveId) ?? null;
   const promptFont = layout.phone ? (scramble.length > 90 ? 15 : 19) : scramble.length > 120 ? 20 : 27;
-  const previewSize = layout.phone ? (layout.height < 760 ? 0 : 76) : layout.height < 700 ? 92 : layout.width < 1200 ? 112 : 132;
+  const previewSize = framePreviewSize(layout);
   const timerFont = useTimerFont();
-  const locked = busy || !!timer.saveError;
   const solutionFont = Math.max(15, promptFont - 5);
   const shown = revealed && solutions?.scramble === scramble ? solutions.list : undefined;
 
@@ -182,8 +125,8 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
     <PracticeFrame head={head} prompt={prompt} timer={timer} disabled={!!timer.saveError}
       visual={previewSize > 0 && scramble && !(generating && slow) ? <CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} /> : previewSize > 0 ? <View style={{ width: previewSize, height: previewSize }} /> : null}
       notice={<Toast at={record.at} hidden={running} icon={<IconTrophy size={14} color={t.good} />} message={record.message} />}
-      readout={<TimerSurface timer={timer} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} compact={layout.short} /> : null} />}
-      metrics={timerMetrics(solves)} columns={4} dense
+      readout={<TimerSurface timer={timer} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} /> : null} />}
+      metrics={sessionMetrics(solves)} columns={4} dense
       side={!layout.phone && (timesAlways || showTimes) ? <TimesColumn title="Times" count={solves.length} onClose={timesAlways ? undefined : () => setShowTimes(false)}>{times}</TimesColumn> : null} />
     {layout.phone && <Sheet open={showTimes} onClose={() => setShowTimes(false)} title="Times" sub={String(solves.length)} tall flush>{times}</Sheet>}
   </>;

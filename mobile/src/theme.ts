@@ -18,10 +18,8 @@ export { mix, alpha } from "../../src/client/lib/theme";
 export interface Theme extends SharedTheme {
   /** `--secondary`: plain buttons, secondary text. Same value as `text2`. */
   secondary: string;
-  /** `--soft`: accent-tinted background (tags, selection). `accentSoft` is set to the same value. */
+  /** `--soft`: accent-tinted background (tags, selection). Same value as `accentSoft`. */
   soft: string;
-  /** `--raised`: menus, dialogs and cards; white on the light theme, `surface` on the dark one. */
-  raised: string;
   /** Tab bar and sidebar background: `color-mix(in srgb, var(--surface) 35%, var(--bg))`. */
   bar: string;
   /** `.button.primary:hover`: `color-mix(in srgb, var(--accent) 88%, #000)`, used while pressed. */
@@ -47,16 +45,11 @@ export function buildTheme(id: ThemeId, mode: "light" | "dark"): Theme {
   if (cached) return cached;
   const t = buildSharedTheme(id, mode);
   const light = mode === "light";
-  // Same 8-bit alpha rounding as desktop/renderer/theme.ts.
-  const soft = t.accent + (light ? "1e" : id === "iris" ? "33" : id === "t3-code" ? "28" : "2d");
   const theme: Theme = {
     ...t,
     muted: t.readableMuted,
     secondary: t.text2,
-    soft, accentSoft: soft,
-    hover: light ? t.accent + "11" : "#ffffff0d",
-    line: t.text + "16",
-    raised: light ? "#ffffff" : t.surface,
+    soft: t.accentSoft,
     bar: mix(t.surface, 35, t.bg),
     accentPressed: mix(t.accent, 88, "#000000"),
     lineStrong: t.text + "4d",
@@ -90,8 +83,4 @@ function weightSuffix(weight: Weight): string {
 /** The concrete family of a Geist weight, e.g. `fontFamilyFor("600", true)` → "GeistMono-SemiBold". */
 export function fontFamilyFor(weight: Weight, mono = false): string {
   return (mono ? FONT.mono : FONT.sans) + weightSuffix(weight);
-}
-/** Style fragment for Geist (or Geist Mono) at a weight; the Text patch in src/fonts.ts picks the file. */
-export function font(weight: Weight = "400", mono = false): TextStyle {
-  return { fontFamily: mono ? FONT.mono : FONT.sans, fontWeight: weight };
 }

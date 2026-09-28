@@ -2,7 +2,6 @@
 
 import type { CubeSize, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
 export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
-export const STAGES: readonly Stage[] = ["F2L", "OLL", "PLL"];
 
 export type LearningGroupOrder = Partial<Record<"F2L" | "OLL" | "PLL", string[]>>;
 export interface LearningGroupOrderDto {

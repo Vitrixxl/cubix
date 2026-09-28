@@ -8,7 +8,7 @@ import {
   cubeViewRadius,
   type CubeScene as Scene,
 } from "../../src/shared/cubeScene";
-export function paintCube(
+function paintCube(
   ctx: CanvasRenderingContext2D,
   scene: Scene,
   seconds: number,

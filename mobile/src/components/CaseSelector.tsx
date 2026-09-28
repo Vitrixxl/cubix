@@ -13,7 +13,7 @@ import { Checkbox, Label, Muted } from "./ui";
 const selectorExpansion = new Map<string, Record<string, boolean>>();
 
 /** Every word of the search appears in the case's id, name, set, stage or group (web `matches`). */
-export function matchesCase(c: CaseDto, query: string) {
+function matchesCase(c: CaseDto, query: string) {
   const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase();
   return query.toLowerCase().split(/\s+/).every(word => text.includes(word));
 }

@@ -2,7 +2,7 @@ import { useSetAtom } from "jotai";
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import { averageOf, best, fmtTime } from "../../../src/client/lib/format";
+import { best, bestAverage, fmtTime } from "../../../src/client/lib/format";
 import { puzzleOf } from "../../../src/shared/puzzles";
 import type { CaseDto, CaseHistoryDto, ProfileDto, SetDto } from "../../../src/shared/types";
 import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
@@ -26,11 +26,11 @@ export const plural = (count: number, noun: string) => `${count.toLocaleString()
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
 /** `.ov-card` (`Go` when pressable): a raised card with a title row and a chevron when it opens a page. */
-export function OverviewCard({ title, detail, onPress, accessibilityLabel, children, gap }: { title?: string; detail?: string; onPress?: () => void; accessibilityLabel?: string; children: ReactNode; gap?: number }) {
+export function OverviewCard({ title, detail, onPress, accessibilityLabel, children }: { title?: string; detail?: string; onPress?: () => void; accessibilityLabel?: string; children: ReactNode }) {
   const t = useTheme();
   const { short } = useLayout();
   return <Pressable disabled={!onPress} onPress={onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={accessibilityLabel}
-    style={({ pressed }) => [styles.card, short && styles.cardShort, gap !== undefined && { gap }, { backgroundColor: t.raised, borderColor: pressed ? t.lineStrong : t.line }]}>
+    style={({ pressed }) => [styles.card, short && styles.cardShort, { backgroundColor: t.raised, borderColor: pressed ? t.lineStrong : t.line }]}>
     {title !== undefined && <View style={styles.cardHead}>
       <Text style={[styles.cardTitle, { color: t.text }]}>{title}</Text>
       {detail ? <Text numberOfLines={1} style={[styles.cardDetail, { color: t.muted }]}>{detail}</Text> : null}
@@ -92,8 +92,6 @@ export function Sparkline({ values, height = 96 }: { values: (number | null)[]; 
 const HEAT_GAP = 3, HEAT_LABEL = 28, MONTH_ROW = 14;
 const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 export type ActivitySolve = { at: string; time: number | null; timer: boolean };
-/** Best rolling average of `size` over a day's timer solves, in order. */
-const bestAverage = (times: (number | null)[], size: number) => best(times.slice(size - 1).map((_, i) => averageOf(times.slice(i, i + size))));
 
 /**
  * `Activity`: GitHub-style solves per day, one column per week (Monday on top), as many weeks as fit.

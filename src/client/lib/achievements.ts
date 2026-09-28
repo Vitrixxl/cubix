@@ -1,6 +1,6 @@
 import { PUZZLES, puzzleOf, scrambleTypeOf, solveModeOf, type PuzzleId } from "../../shared/puzzles";
 import type { AchievementDto, AchievementSummaryDto, SolveDto } from "../../shared/types";
-import { averageOf, effective, fmtTime } from "./format";
+import { effective, fmtTime, rollingAverages } from "./format";
 import { cases, sets } from "../local/catalog";
 
 /** Single-time goals in seconds, per puzzle, from casual to expert. */
@@ -31,7 +31,6 @@ const TOTAL_GOALS = [100, 1000, 10000];
 const chronological = (a: SolveDto, b: SolveDto) => a.created_at.localeCompare(b.created_at) || a.id - b.id;
 /** Full-scramble solves only: partial-scramble drills (2-gen, last layer…) are not solves. */
 const fullScramble = (s: SolveDto) => !s.case_id && scrambleTypeOf(s) === "normal";
-const label = (id: PuzzleId) => PUZZLES.find(p => p.id === id)?.label ?? id;
 const seconds = (n: number) => n >= 60 && n % 60 === 0 ? `${n / 60}:00` : String(n);
 
 function counter(id: string, title: string, description: string, category: AchievementDto["category"], group: string, unit: string, goal: number, dates: string[], puzzle?: PuzzleId): AchievementDto {
@@ -67,7 +66,7 @@ export function achievements(rows: SolveDto[], learned: readonly string[]): Achi
     const standard = series("standard");
     for (const goal of SINGLE_GOALS[puzzle])
       out.push(timeGoal(`${puzzle}:single:${goal}`, `Sub-${seconds(goal)}`, `Solve ${group} in under ${seconds(goal)} seconds on a full scramble.`, "speed", group, goal, standard, puzzle));
-    const averages: { at: string; value: number | null }[] = standard.map((point, i) => ({ at: point.at, value: i < 4 ? null : averageOf(standard.slice(i - 4, i + 1).map(p => p.value)) }));
+    const ao5 = rollingAverages(standard.map(p => p.value), 5), averages = standard.map((point, i) => ({ at: point.at, value: ao5[i] }));
     for (const goal of AVERAGE_GOALS[puzzle])
       out.push(timeGoal(`${puzzle}:ao5:${goal}`, `Sub-${seconds(goal)} average`, `Average of 5 under ${seconds(goal)} seconds on ${group}.`, "average", group, goal, averages, puzzle));
     if (puzzle === "333") {

@@ -10,14 +10,15 @@ moteur de données, ni lanceur, ni système de mise à jour.
   (`worker.ts`) et enregistre le service worker (`sw.ts`).
 - `engine/core.ts` : moteur de données (stockage local d'abord, synchronisation
   HTTP/WebSocket, mélanges, statistiques). Le worker le fait tourner sur IndexedDB
-  (`renderer/idbStorage.ts`) ; `engine/main.ts` le garde en processus Bun pour la
-  référence GPUI archivée et le test `engine/smoke.ts`.
+  (`renderer/idbStorage.ts`).
 - `web.ts` : construit `dist/web` avec `bun build` — `index.html`, bundles nommés par
   leur contenu sous `/build/`, cubing.js en modules séparés sous
   `/vendor/cubing-<version>/` (ses mélangeurs démarrent leurs propres workers), icônes
   et schémas sous `/assets/`, copies brotli et gzip.
 - `electron/` : fenêtre (`main.ts`), pont minimal (`preload.ts`) et page d'attente du
-  premier lancement hors ligne (`offline.html`).
+  premier lancement hors ligne (`offline.html`), construits dans `dist/` par `build.ts`.
+- `scripts/export-assets.tsx` (`bun run build:assets`) : régénère `assets/catalog.json`,
+  les schémas de `assets/cases/` et les icônes de `assets/icons/`.
 
 Le service worker met en cache l'application, les icônes et les mélangeurs à
 l'installation, puis les schémas de cas à leur premier affichage. En ligne, chaque
@@ -63,19 +64,19 @@ seule fois, puis renommé `storage.imported.json`.
 
 ## Validation
 
-Tous les tests graphiques tournent sous `xvfb-run -a`. Chaque script de
-`testing/` lance une API temporaire qui sert `dist/web`, puis Electron dessus.
+Les tests d'interface lancent Electron sans fenêtre sur le bureau (backend Ozone
+`headless` ; `CUBIX_OZONE_PLATFORM=x11` sous `xvfb-run -a` au besoin) ou Chromium headless (`/usr/bin/chromium`, `CUBIX_CHROMIUM`).
+Chaque script de `testing/` démarre une API temporaire (binaire release) qui sert
+`dist/web`, avec des données isolées.
 
 ```sh
 bun run typecheck
-bun run test:desktop             # moteur Bun, mélanges, détection GPU
-bun run test:desktop:web         # import de storage.json, IndexedDB, relance hors ligne
-bun run test:desktop:responsive  # fenêtres étroites/courtes, aucun chevauchement
-bun run test:desktop:learning    # apprentissage quotidien
-bun desktop/testing/history-chart.ts
-bun desktop/testing/error-notification.ts
+bun test ./desktop/tests                  # détection GPU Linux, apparence au démarrage
+bun run test:ui                           # construit l'API, la fenêtre et le site, puis :
+bun desktop/testing/web-app.ts            #   import de storage.json, IndexedDB, relance hors ligne
+bun desktop/testing/responsive.ts         #   chaque écran de 360×640 à 1600×900, sans défilement ni chevauchement
+bun desktop/testing/history-chart.ts      #   gestes du graphique et tableau des temps
+bun desktop/testing/error-notification.ts #   notification d'erreur (Chromium)
 ```
 
-Les captures sont dans `artifacts/electron/testing`. Le code GPUI dans `desktop/src`
-et ses outils de référence (`testing/compare.ts`, `testing/native.ts`) sont conservés
-pour comparer le rendu, mais ne font partie d'aucun build.
+Les captures sont dans `artifacts/electron/testing`.

@@ -21,4 +21,4 @@ uninstall:
 deploy: node_modules/.bin
 	"$(BUN)" scripts/deploy.ts
 clean:
-	rm -rf artifacts/electron desktop/dist desktop/bin dist/web
+	rm -rf artifacts/electron desktop/dist dist/web

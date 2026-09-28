@@ -1,5 +1,5 @@
 import type { SolveDto } from "../../shared/types";
-import { averageOf, best, effective } from "./format";
+import { best, effective, rollingAverages } from "./format";
 
 /**
  * A solve beats a personal best when its single, or the average of 5 or 12 it closes, is strictly
@@ -9,15 +9,14 @@ export type RecordKind = "single" | "ao5" | "ao12";
 
 /** `times` are the effective times of one practice context in chronological order, the judged solve last. */
 export function beatenRecords(times: readonly (number | null)[]): RecordKind[] {
-  const rolling = (size: number) => times.map((_, i) => i + 1 < size ? null : averageOf(times.slice(i + 1 - size, i + 1)));
   const beats = (values: (number | null)[]) => {
     const current = values.at(-1) ?? null, previous = best(values.slice(0, -1));
     return current !== null && previous !== null && current < previous;
   };
   const out: RecordKind[] = [];
   if (beats([...times])) out.push("single");
-  if (beats(rolling(5))) out.push("ao5");
-  if (beats(rolling(12))) out.push("ao12");
+  if (beats(rollingAverages(times, 5))) out.push("ao5");
+  if (beats(rollingAverages(times, 12))) out.push("ao12");
   return out;
 }
 

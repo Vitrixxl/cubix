@@ -1,25 +1,19 @@
 import { useSetAtom } from "jotai";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import { fmtSolve } from "../../../src/client/lib/format";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
 import { deletedSolveIdAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { useTheme } from "../theme";
 import { AlgText } from "./AlgText";
-import { IconComment, IconFlag, IconInfo, type IconProps } from "./icons";
+import { IconComment, IconFlag, IconInfo, IconTrash } from "./icons";
 import { Popover, type Anchor } from "./Popover";
 import { Sheet } from "./Sheet";
 import { Btn, FormError, Input, MiniBtn, mono } from "./ui";
 
-/** Tabler's trash can, as the web solve actions draw it. */
-export const IconTrash = ({ size = 15, color, strokeWidth = 1.8 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-  <Path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
-</Svg>;
-
 /** Notes are capped like the server does; the field simply stops accepting text there. */
-export const COMMENT_MAX = 500;
+const COMMENT_MAX = 500;
 /** What the actions need from a solve; history rows on the profile provide the same fields. */
 export type SolveSummary = Pick<SolveDto, "id" | "time_ms" | "penalty" | "created_at" | "comment">;
 
@@ -148,11 +142,11 @@ function MenuItem({ icon, label, danger, disabled, onPress }: { icon: ReactNode;
 export const useSolveMenu = () => useContext(MenuContext);
 
 /** Wrap a time row: a long press opens the time menu at the touch point. */
-export function SolveRow({ solve, children, style, disabled }: { solve: SolveSummary; children: ReactNode; style?: object; disabled?: boolean }) {
+export function SolveRow({ solve, children, style }: { solve: SolveSummary; children: ReactNode; style?: object }) {
   const { open } = useContext(MenuContext);
   const t = useTheme();
   const [pressed, setPressed] = useState(false);
-  return <Pressable disabled={disabled} delayLongPress={500} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
+  return <Pressable delayLongPress={500} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
     onLongPress={event => open(solve, { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY, width: 0, height: 0 })}
     style={[style, pressed && { backgroundColor: t.hover }]}>{children}</Pressable>;
 }
@@ -182,11 +176,10 @@ export function TimesRowActions({ solve }: { solve: SolveSummary | SolveDto }) {
 
 /**
  * `.solve-actions` under a time that was just recorded: +2 and DNF (mono), then comment and delete as
- * square icon controls, 30 px high and centred. `compact` is accepted for older callers.
+ * square icon controls, 30 px high and centred.
  */
-export function LastSolveActions({ solve, compact }: { solve: SolveSummary; compact?: boolean }) {
+export function LastSolveActions({ solve }: { solve: SolveSummary }) {
   const t = useTheme();
-  void compact;
   const { deleteTime, togglePenalty, editComment, busy } = useContext(MenuContext);
   return <View style={styles.lastRow} accessibilityRole="toolbar">
     <Btn size={30} mono label="+2" active={solve.penalty === "+2"} accessibilityLabel="+2 penalty" disabled={busy} onPress={() => void togglePenalty(solve, "+2")} />
@@ -204,9 +197,8 @@ function DeleteControl({ disabled, onPress }: { disabled?: boolean; onPress: () 
 }
 
 /** The small "i" button on a time, opening the solve dialog (date, scramble, penalties, comment, delete). */
-export function SolveInfoButton({ solve, index }: { solve: SolveDto | SolveSummary; index?: number }) {
+export function SolveInfoButton({ solve }: { solve: SolveDto | SolveSummary }) {
   const { openSolve } = useContext(MenuContext);
-  void index;
   return <MiniBtn accessibilityLabel="Show solve details" icon={IconInfo} onPress={() => openSolve(solve)} />;
 }
 

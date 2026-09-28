@@ -1,21 +1,18 @@
 {
   "extends": "../tsconfig.json",
   "include": [
+    "*.ts",
     "engine/*.ts",
+    "electron/*.ts",
     "scripts/*.tsx",
-    "guides/*.tsx",
-    "guides/*.ts",
     "testing/*.ts",
-    "package.ts",
-    "install-linux.ts",
+    "tests/*.ts",
+    "guides/*.ts",
+    "guides/*.tsx",
     "renderer/**/*.ts",
-    "renderer/**/*.tsx",
-    "electron/**/*.ts",
-    "*.ts"
+    "renderer/**/*.tsx"
   ],
   "exclude": [
-    "bin",
-    "target",
     "assets",
     "dist"
   ]

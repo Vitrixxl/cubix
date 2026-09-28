@@ -17,9 +17,6 @@ import { SettingsDialog, type AuthMode } from "../components/Settings";
 import { TimerStats } from "../components/TimesChart";
 import { Avatar, Btn, Empty, Label, PageHead, mono } from "../components/ui";
 
-/** Kept here for older imports (the sync indicator's sign-in sheet); the form lives with the settings. */
-export { AccountForm } from "../components/Settings";
-
 /**
  * The web app's account page (`Profile` in desktop/renderer/main.tsx) at phone size: the overview (activity,
  * timer bests, training progress, achievements), each card opening its own page — Timer statistics,
@@ -101,7 +98,7 @@ function GaugeCard({ label, g, onPress }: { label: string; g: { ratio: number; v
   </OverviewCard>;
 }
 
-export function ProfilePage({ mode, group }: { mode?: ProfileMode; caseId?: string; group?: string }) {
+export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: string }) {
   const t = useTheme();
   const { navSpace, pagePadding, short } = useLayout();
   // The profile browses any puzzle without touching the puzzle used by the rest of the app.

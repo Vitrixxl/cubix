@@ -1,4 +1,4 @@
-import { cubePreview } from '../engine/cubePreview';
+import { cubeScene as cubePreview } from '../../src/shared/cubeScene';
 import { maskForStage } from '../../src/client/lib/caseState';
 import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
@@ -27,16 +27,4 @@ for (const [name,path] of Object.entries({IconBook:'M12 5C9 3 5 3 2 4v15c3-1 7-1
  await Bun.write(`desktop/assets/icons/${name}.svg`, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`);
 }
 await Bun.write('desktop/assets/catalog.json',JSON.stringify({cases:catalog,sets,puzzles}));
-console.log(`Exported ${catalog.length} diagrams and ${Object.keys(icons).length} icons for the native application`);
-// Export semantic guide content, not rendered pages. GPUI performs all layout.
-const {GuideContent}=await import('../guides/Content');
-const {GUIDES}=await import('../guides/pages');
-function nodes(node:any):any[]{
- if(node==null||typeof node==='boolean')return [];
- if(Array.isArray(node))return node.flatMap(nodes);
- if(typeof node==='string'||typeof node==='number')return [String(node)];
- if(typeof node.type==='function')return nodes(node.type(node.props));
- if(typeof node.type==='symbol')return nodes(node.props.children);
- return [{tag:node.type,class:node.props.className??'',href:node.props.href??'',children:nodes(node.props.children)}];
-}
-await Bun.write('desktop/assets/guides.json',JSON.stringify(Object.fromEntries(Object.entries(GUIDES).map(([p,info])=>[p,{...info,content:nodes(GuideContent({page:p as any}))[0]}]))));
+console.log(`Exported ${catalog.length} diagrams and ${Object.keys(icons).length} icons for the web app`);
