@@ -30,7 +30,7 @@ const MAX = 48;
 const RADIUS = 260;
 const FADE_MS = 260;
 /** Duration of the entry wave: it crosses any pane, small or large, in the same time. */
-const WAVE_MS = 300;
+const WAVE_MS = 500;
 /** Width of the wave front over which the outline catches the light. */
 const FRONT = 40;
 
