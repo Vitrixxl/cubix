@@ -1045,8 +1045,8 @@ kbd {
   pointer-events: none;
 }
 /*
- * Grid background (grid.tsx): a canvas under the whole app paints the page colour and each pane's dots. Once it
- * draws, the panes are transparent and their fill, if any, comes from --grid-fill painted by the canvas.
+ * Grid background (grid.tsx): a canvas under the whole app paints the page colour and lights each pane's outline.
+ * Once it draws, the panes are transparent and their fill, if any, comes from --grid-fill painted by the canvas.
  */
 .grid-canvas {
   position: absolute;
@@ -1055,14 +1055,6 @@ kbd {
   height: 100%;
   display: block;
   pointer-events: none;
-}
-/* Rows of text keep only their outline: no dots behind a label or a control. */
-.rail-cell,
-.page-head,
-.metrics .metric,
-.md-list-head,
-.setup-cases .setup-pane-head {
-  --grid-dots: 0;
 }
 .has-grid .page-frame,
 .has-grid .ov-card,
@@ -1751,25 +1743,6 @@ kbd {
   height: 38px;
   padding-top: 4px;
   background: var(--bg);
-}
-/*
- * With the grid background the rows scrolling under a heading must stay hidden, so the heading repeats the list's
- * dots (grid.tsx sets --grid-x/y/lit on .md-list): same 28px lattice, lined up with the canvas through a fixed
- * background, at the level the canvas gives the list outside the cursor's glow.
- */
-.has-grid .list-group-head {
-  --grid-dot: color-mix(
-    in srgb,
-    color-mix(in srgb, var(--accent) 15%, var(--text)) calc((10% + 15% * var(--grid-lit, 0)) * var(--grid-dot-k, 0.85)),
-    var(--bg)
-  );
-  background:
-    radial-gradient(circle, var(--grid-dot) 0.5px, transparent 1.2px) calc(var(--grid-x, 0px) - 14px)
-      calc(var(--grid-y, 0px) - 14px) / 28px 28px fixed,
-    var(--bg);
-}
-.has-grid.light {
-  --grid-dot-k: 0.6;
 }
 .list-group-title {
   height: 28px;

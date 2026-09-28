@@ -112,8 +112,7 @@ const SLIDE = {
 /** The desktop slides pages vertically, in the order of the rail. */
 const SLIDE_Y = {
   enter: (direction: number) => ({ transform: `translateY(${direction * 100}%)` }),
-  // A settled page drops its transform so viewport-fixed backgrounds (the list headings' dots) line up.
-  center: { transform: "translateY(0%)", transitionEnd: { transform: "none" } },
+  center: { transform: "translateY(0%)" },
   exit: (direction: number) => ({ transform: `translateY(${direction * -100}%)` }),
 };
 
