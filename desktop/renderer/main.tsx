@@ -7,7 +7,8 @@ import { theme } from "./theme";
 import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
 import { Empty, MOBILE, useViewport } from "./ui";
-import { Frame, Sidebar, TabBar } from "./shell";
+import { Frame, Rail, TabBar } from "./shell";
+import { GridBackdrop } from "./grid";
 import { Practice } from "./practice";
 import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
@@ -100,8 +101,9 @@ function App() {
       style={theme(s.themeName, s.light) as React.CSSProperties}
     >
       <MotionConfig reducedMotion="user">
-        <div className={"shell" + (w < 1100 ? " side-compact" : "")}>
-          {!mobile && <Sidebar />}
+        {!mobile && <GridBackdrop paused={s.running} theme={s.themeName + (s.light ? ":light" : ":dark")} />}
+        <div className="shell">
+          {!mobile && <Rail />}
           <div className="content">
             {!s.ready ? (
               <Empty>{s.error || "Loading…"}</Empty>

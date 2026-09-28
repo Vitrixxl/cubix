@@ -129,7 +129,7 @@ export function Alg({ text, size = 18 }: { text: string; size?: number }) {
 
 export const MOBILE = 700;
 
-/** The app-wide puzzle, shown in page headers on phones where there is no sidebar. */
+/** The app-wide puzzle, shown in page headers on phones where there is no rail. */
 function PuzzleControl() {
   return (
     <Button action="menu:puzzles" className="control head-puzzle" title="Choose a puzzle">

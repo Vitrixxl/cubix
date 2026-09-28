@@ -1017,16 +1017,14 @@ kbd {
   background: var(--accent);
 }
 
-/* ---- shell: sidebar + content, or content + tab bar on phones ---- */
+/* ---- shell: the rail + content, or content + tab bar on phones ---- */
 .shell {
-  --side-width: 212px;
+  /* The rail is as wide as the page header is tall: its cells are squares of the page grid. */
+  --rail: 64px;
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: var(--side-width) minmax(0, 1fr);
-}
-.shell.side-compact {
-  --side-width: 60px;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
 }
 .is-mobile .shell {
   grid-template-columns: minmax(0, 1fr);
@@ -1038,102 +1036,122 @@ kbd {
   min-height: 0;
   overflow: hidden;
 }
+/* Transparent, like the panes inside it: the grid backdrop behind the app shows through. */
 .page-frame {
   position: absolute;
   inset: 0;
-  background: var(--bg);
 }
 .page-frame[data-exiting] {
   pointer-events: none;
 }
-.sidebar {
+.grid-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* Cards are grid boxes too: their fill lets the backdrop through. */
+.app:not(.is-mobile) :is(.ov-card, .profile-main .panel) {
+  background: color-mix(in srgb, var(--raised) 65%, transparent);
+}
+.rail {
+  position: relative;
+  z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-height: 0;
-  padding: 12px 10px 14px;
-  background: color-mix(in srgb, var(--surface) 35%, var(--bg));
   border-right: 1px solid var(--line);
   transition: opacity 0.18s;
 }
-.side-puzzle {
-  height: 44px;
-  min-height: 44px;
-  margin-bottom: 14px;
-  padding: 0 8px;
-  gap: 10px;
-  justify-content: flex-start;
-  color: var(--text);
+.rail-group {
+  display: flex;
+  flex-direction: column;
 }
-.side-puzzle-glyph {
-  width: 28px;
-  height: 28px;
+.rail-fill {
+  flex: 1;
+  min-height: 0;
+}
+.rail-foot {
+  border-top: 1px solid var(--line);
+}
+.rail-cell {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: 7px;
-  background: var(--surface2);
-}
-.side-puzzle-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.side-puzzle > .icon:last-child {
+  width: 100%;
+  height: var(--rail);
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
   color: var(--muted);
+  transition: color 0.12s, background 0.12s;
 }
-.side-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.rail-foot .rail-cell:last-child {
+  height: calc(var(--rail) - 1px);
+  border-bottom: 0;
 }
-.side-foot {
-  margin-top: auto;
-}
-.side-item {
-  height: 34px;
-  min-height: 34px;
-  padding: 0 10px;
-  gap: 11px;
-  justify-content: flex-start;
-  font-size: 13.5px;
-  color: var(--secondary);
-}
-.side-item > .icon {
-  color: var(--muted);
-}
-.side-item:hover > .icon {
+.rail-cell:hover,
+.rail-cell:focus-visible {
   color: var(--text);
 }
-.side-item.selected,
-.side-item.selected:hover {
-  background: var(--surface2);
-  color: var(--text);
+.rail-cell:focus-visible {
+  outline-offset: -2px;
 }
-.side-item.selected > .icon {
+.rail-cell.selected {
+  background: color-mix(in srgb, var(--surface2) 75%, transparent);
   color: var(--accent);
 }
-.side-compact .sidebar {
-  padding: 12px 8px 14px;
+/* The accent bar sits on the rail's own line, on the side of the page. */
+.rail-cell.selected::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -1px;
+  width: 2px;
+  background: var(--accent);
+}
+.rail-puzzle {
+  color: var(--text);
+}
+/* The name of a cell: one more cell, flush against the rail, between the same two lines. */
+.rail-tip {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: calc(100% + 1px);
+  display: flex;
   align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s, visibility 0.12s;
 }
-.side-compact .side-label,
-.side-compact .side-puzzle > .icon:last-child {
-  display: none;
+.rail-foot .rail-cell:last-child .rail-tip {
+  bottom: 0;
 }
-.side-compact .side-puzzle,
-.side-compact .side-item {
-  width: 42px;
-  padding: 0;
-  justify-content: center;
+.rail-tip-hint {
+  font-family: "Geist Mono", monospace;
+  font-size: 11px;
+  color: var(--muted);
 }
-.side-compact .side-item {
-  height: 40px;
+.rail-cell:hover .rail-tip,
+.rail-cell:focus-visible .rail-tip {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.08s;
 }
 .tabbar {
   display: grid;
@@ -1159,7 +1177,7 @@ kbd {
 .tab-item.selected {
   color: var(--accent);
 }
-.is-running .sidebar,
+.is-running .rail,
 .is-running .tabbar {
   opacity: 0;
   pointer-events: none;

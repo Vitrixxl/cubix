@@ -1,4 +1,4 @@
-/** The frame around the pages: sidebar or phone tab bar, and the page transition. */
+/** The frame around the pages: the rail or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
 import { store as s } from "./store";
@@ -14,45 +14,64 @@ function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?:
   return page === "profile" && !s.user.isGuest ? <Avatar user={s.user} size={size + 1} /> : <Icon name={icon} size={size} />;
 }
 
-/** Desktop navigation: a slim column with the puzzle on top, the sections, then help and settings at the bottom. */
-export function Sidebar() {
+/**
+ * Desktop navigation: a rail of square cells, one column of the page grid. The puzzle sits in a cell as tall
+ * as the page header so their lines meet, then one cell per section, then guides and settings at the bottom.
+ * A cell names itself in a flush label cell on hover.
+ */
+export function Rail() {
   return (
-    <nav className="nav sidebar" aria-label="Sections">
-      <Button action="menu:puzzles" className="side-puzzle" title="Choose a puzzle">
-        <span className="side-puzzle-glyph">
-          <Icon name={"Puzzle" + s.puzzle} size={18} />
-        </span>
-        <span className="side-label side-puzzle-name">{s.label("puzzles", s.puzzle)}</span>
-        <Icon name="IconChevronDown" size={12} />
-      </Button>
-      <div className="side-group" role="tablist">
+    <nav className="nav rail" aria-label="Sections">
+      <RailCell action="menu:puzzles" label={s.label("puzzles", s.puzzle)} hint="Choose a puzzle" className="rail-puzzle">
+        <Icon name={"Puzzle" + s.puzzle} size={22} />
+      </RailCell>
+      <div className="rail-group" role="tablist">
         {TABS.map(([page, label, icon, shortcut]) => (
-          <Button
-            key={page}
-            action={"nav:" + page}
-            title={`${label} (${shortcut})`}
-            className={"side-item " + (s.page === page ? "selected" : "")}
-          >
-            <TabIcon page={page} icon={icon} />
-            <span className="side-label">{label}</span>
-          </Button>
+          <RailCell key={page} action={"nav:" + page} label={label} hint={shortcut} selected={s.page === page}>
+            <TabIcon page={page} icon={icon} size={18} />
+          </RailCell>
         ))}
       </div>
-      <div className="side-group side-foot">
-        <Button action="help" className="side-item" title="Guides">
-          <Icon name="IconBook" size={17} />
-          <span className="side-label">Guides</span>
-        </Button>
-        <Button
-          action="settings"
-          className={"side-item " + (s.overlay === "settings" ? "selected" : "")}
-          title="Settings (Alt+S)"
-        >
-          <Icon name="IconSettings" size={17} />
-          <span className="side-label">Settings</span>
-        </Button>
+      <div className="rail-fill" />
+      <div className="rail-group rail-foot">
+        <RailCell action="help" label="Guides">
+          <Icon name="IconBook" size={18} />
+        </RailCell>
+        <RailCell action="settings" label="Settings" hint="Alt+S" selected={s.overlay === "settings"}>
+          <Icon name="IconSettings" size={18} />
+        </RailCell>
       </div>
     </nav>
+  );
+}
+
+function RailCell({
+  action,
+  label,
+  hint,
+  selected = false,
+  className = "",
+  children,
+}: { action: string; label: string; hint?: string; selected?: boolean } & Props) {
+  return (
+    <button
+      type="button"
+      className={"rail-cell " + (selected ? "selected " : "") + className}
+      data-action={action}
+      data-grid="16"
+      aria-label={label}
+      aria-current={selected ? "page" : undefined}
+      onClick={(e) => {
+        e.currentTarget.blur();
+        void s.action(action, e.currentTarget);
+      }}
+    >
+      {children}
+      <span className="rail-tip" aria-hidden="true">
+        {label}
+        {hint && <span className="rail-tip-hint">{hint}</span>}
+      </span>
+    </button>
   );
 }
 
@@ -82,7 +101,7 @@ export function TabBar() {
 }
 
 /**
- * Page frame. Phones slide pages sideways like a carousel; the desktop slides the pages of its sidebar up and
+ * Page frame. Phones slide pages sideways like a carousel; the desktop slides the pages of its rail up and
  * down, in their order, and slides sideways when going deeper into a page. Animating `transform` keeps it on the compositor.
  */
 const SLIDE = {
@@ -91,7 +110,7 @@ const SLIDE = {
   exit: (direction: number) => ({ transform: `translateX(${direction * -100}%)` }),
 };
 
-/** The desktop slides pages vertically, in the order of the sidebar. */
+/** The desktop slides pages vertically, in the order of the rail. */
 const SLIDE_Y = {
   enter: (direction: number) => ({ transform: `translateY(${direction * 100}%)` }),
   center: { transform: "translateY(0%)" },
