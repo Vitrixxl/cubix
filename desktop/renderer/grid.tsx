@@ -17,6 +17,7 @@ const BOXES = [
   ".stage",
   ".prompt",
   ".cube-box",
+  ".pane-toggle",
   ".metrics .metric",
   ".column-right",
   ".md-list",
@@ -28,6 +29,11 @@ const BOXES = [
   ".ov-card",
   ".profile-main .panel",
 ].join(",");
+/** Panes attached to the pane they sit in (the cube in the timer, a close button…): they light up with it, and it
+ * with them. */
+const ATTACHED = ".cube-box, .pane-toggle";
+/** Attached cells shown only while the pointer is over their own pane: they are panes only then. */
+const CELLS = ".pane-toggle";
 const MAX = 48;
 const RADIUS = 260;
 const FADE_MS = 260;
@@ -64,6 +70,12 @@ float box(vec2 p, vec4 r, float radius) {
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
 }
 
+// Coverage of p by a pane's ring: the 1px band just inside its line rectangle, antialiased on rounded panes.
+float ringOf(vec4 r, float radius, vec2 p) {
+  float d = box(p, r, radius);
+  return radius > 0.0 ? clamp(1.0 - abs(d + 0.5) * 2.0 / (1.0 + 1.0 / uDpr), 0.0, 1.0) : step(-1.0, d) * step(d, 0.0);
+}
+
 // The smallest pane containing p, -1 outside every pane.
 int owner(vec2 p) {
   int found = -1;
@@ -82,12 +94,13 @@ float reached(vec4 wave, vec2 p) {
   return 1.0 - smoothstep(wave.z - ${FRONT}.0, wave.z, distance(p, wave.xy));
 }
 
-// A pane's light at p: its fade, limited to where its wave has already been.
+// A pane's light at p: its fade, limited to its own ring (not the collinear lines of its neighbours) and to where
+// its wave has already been.
 float lightOf(int index, vec2 p) {
   float f = 0.0;
   for (int i = 0; i < MAX; i++) {
     if (i >= uCount) break;
-    if (i == index) f = uInfo[i].x * reached(uWave[i], p);
+    if (i == index) f = uInfo[i].x * reached(uWave[i], p) * step(0.001, ringOf(uRect[i], uInfo[i].y, p));
   }
   return f;
 }
@@ -100,7 +113,7 @@ float frontOf(int index, vec2 p) {
     if (i == index) {
       vec4 w = uWave[i];
       float d = (distance(p, w.xy) - w.z + ${FRONT}.0 * 0.5) / (${FRONT}.0 * 0.35);
-      f = uInfo[i].x * (1.0 - w.w) * exp(-d * d);
+      f = uInfo[i].x * (1.0 - w.w) * exp(-d * d) * step(0.001, ringOf(uRect[i], uInfo[i].y, p));
     }
   }
   return f;
@@ -118,10 +131,7 @@ void main() {
   float ring = 0.0;
   for (int i = 0; i < MAX; i++) {
     if (i >= uCount) break;
-    float d = box(p, uRect[i], uInfo[i].y);
-    float r = uInfo[i].y > 0.0 ? clamp(1.0 - abs(d + 0.5) * 2.0 / (1.0 + 1.0 / uDpr), 0.0, 1.0)
-                               : step(-1.0, d) * step(d, 0.0);
-    ring = max(ring, r);
+    ring = max(ring, ringOf(uRect[i], uInfo[i].y, p));
   }
   float front = 0.0;
   if (ring > 0.0) {
@@ -207,11 +217,13 @@ function start(canvas: HTMLCanvasElement, app: HTMLElement, lost: () => void) {
   }
   const color = colorParser();
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  let measured: Box[] = [];
+  /** The measured panes on screen: attached cells only while their pane is hovered, as the CSS shows them. */
   let boxes: Box[] = [];
   const fades = new Map<Element, number>();
   /** The entry wave of each lit pane: where the pointer came in, when, and how far it has to go. */
   const waves = new Map<Element, { x: number; y: number; start: number; duration: number; reach: number; radius: number; progress: number }>();
-  let hot: Element | null = null;
+  let lit = new Set<Element>();
   let mouse = { x: -1e4, y: -1e4 };
   let running = app.classList.contains("is-running");
   // Everything the canvas adds to the page colour, faded out during a solve.
@@ -253,7 +265,16 @@ function start(canvas: HTMLCanvasElement, app: HTMLElement, lost: () => void) {
         fill: color(style.getPropertyValue("--grid-fill")),
       });
     }
-    boxes = next;
+    measured = next;
+  };
+  const pick = () => {
+    boxes = measured.filter((b) => !b.el.matches(CELLS) || b.el.parentElement?.matches(":hover") || b.el.matches(":focus-visible"));
+  };
+
+  /** The pane a pane is attached to, through its attached ancestors; itself when it is not attached. */
+  const root = (el: Element): Element => {
+    const parent = el.matches(ATTACHED) ? el.parentElement?.closest(BOXES) : null;
+    return parent ? root(parent) : el;
   };
 
   /** The pane under the pointer: the smallest one containing it, as in the shader. */
@@ -318,20 +339,25 @@ function start(canvas: HTMLCanvasElement, app: HTMLElement, lost: () => void) {
       layoutFrames--;
       measure();
     }
-    const previous = hot;
-    hot = hit();
+    pick();
+    const previous = lit;
+    const hot = hit();
+    // The pane under the pointer, with every pane attached to the same one.
+    const pane = hot && root(hot);
+    lit = new Set(pane ? boxes.filter((b) => root(b.el) === pane).map((b) => b.el) : []);
     // Entering a pane starts its wave from the pointer, unless the pane is still lit from a moment ago.
-    if (hot && hot !== previous && (fades.get(hot) ?? 0) < 0.05) {
-      const b = boxes.find((v) => v.el === hot)!;
+    for (const el of lit) {
+      if (previous.has(el) || (fades.get(el) ?? 0) >= 0.05) continue;
+      const b = boxes.find((v) => v.el === el)!;
       const [l, t, r, bt] = b.rect as [number, number, number, number];
       const reach = Math.max(Math.hypot(mouse.x - l, mouse.y - t), Math.hypot(mouse.x - r, mouse.y - t), Math.hypot(mouse.x - l, mouse.y - bt), Math.hypot(mouse.x - r, mouse.y - bt)) + FRONT;
-      waves.set(hot, { x: mouse.x, y: mouse.y, start: now, duration: WAVE_MS, reach, radius: reduced.matches ? reach : 0, progress: reduced.matches ? 1 : 0 });
+      waves.set(el, { x: mouse.x, y: mouse.y, start: now, duration: WAVE_MS, reach, radius: reduced.matches ? reach : 0, progress: reduced.matches ? 1 : 0 });
     }
     const step = reduced.matches || !last ? 1 : Math.min(1, (now - last) / FADE_MS);
     last = now;
     let moving = false;
     for (const [el, w] of waves) {
-      if (!fades.has(el) && el !== hot) {
+      if (!fades.has(el) && !lit.has(el)) {
         waves.delete(el);
         continue;
       }
@@ -342,7 +368,7 @@ function start(canvas: HTMLCanvasElement, app: HTMLElement, lost: () => void) {
       if (t < 1) moving = true;
     }
     for (const b of boxes) {
-      const target = b.el === hot ? 1 : 0,
+      const target = lit.has(b.el) ? 1 : 0,
         current = fades.get(b.el) ?? 0,
         value = target > current ? Math.min(target, current + step) : Math.max(target, current - step);
       if (value) fades.set(b.el, value);
@@ -405,6 +431,7 @@ function start(canvas: HTMLCanvasElement, app: HTMLElement, lost: () => void) {
   addEventListener("blur", leave);
   readTheme();
   measure();
+  pick();
   draw();
   const stop = () => {
     cancelAnimationFrame(frame);
