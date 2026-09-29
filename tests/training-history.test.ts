@@ -28,3 +28,13 @@ test("training history is bounded and navigation respects the available pool", (
   expect(trainingHistoryReducer(state, { type: "next", pool: [], sample: 0, auf: "" })).toBe(EMPTY_TRAINING_HISTORY);
   expect(trainingHistoryReducer(EMPTY_TRAINING_HISTORY, { type: "previous" })).toBe(EMPTY_TRAINING_HISTORY);
 });
+
+test("previous skips the cases outside the current pool", () => {
+  const [a, b, c] = pool as [typeof pool[0], typeof pool[0], typeof pool[0]];
+  let state = trainingHistoryReducer(EMPTY_TRAINING_HISTORY, { type: "next", pool: [a], sample: 0, auf: "" });
+  state = trainingHistoryReducer(state, { type: "next", pool: [b], sample: 0, auf: "" });
+  state = trainingHistoryReducer(state, { type: "next", pool: [c], sample: 0, auf: "" });
+  const back = trainingHistoryReducer(state, { type: "previous", pool: [a, c] });
+  expect(back.entries[back.index]!.c.id).toBe(a.id);
+  expect(trainingHistoryReducer(back, { type: "previous", pool: [a, c] })).toBe(back);
+});

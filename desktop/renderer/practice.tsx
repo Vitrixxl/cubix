@@ -212,7 +212,7 @@ export function Practice() {
                 >
                   {s.learned.has(c.id) ? "Learned" : "Mark learned"}
                 </Button>
-                {!learning && <Button action="previous" icon="IconBack" className="control icon-only" title="Previous case (Alt+P)" />}
+                <Button action="previous" icon="IconBack" className="control icon-only" disabled={!s.training.canPrevious} title="Previous case (Alt+P)" />
                 {!learning && <Button action="next" icon="IconChevronRight" className="control icon-only" title="Next case (Alt+N)" />}
               </span>
             </div>

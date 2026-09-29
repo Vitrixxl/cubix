@@ -4803,3 +4803,31 @@ kbd {
   z-index: 1;
   border-color: var(--accent);
 }
+
+/* ---- a case's own actions in training (learned, previous, next): cells nested in the prompt's top right corner,
+ * flush against its top and right lines, like its bottom left actions. Phones keep them on their own line. ---- */
+.app:not(.is-mobile) .case-caption {
+  align-items: flex-start;
+}
+.app:not(.is-mobile) .case-caption > :is(.case-title, .case-kind) {
+  align-self: center;
+}
+.app:not(.is-mobile) .case-caption > .case-nav {
+  margin: calc(-1 * var(--prompt-y)) calc(-1 * var(--prompt-x)) 0 auto;
+  padding: 0;
+  gap: 0;
+}
+.app:not(.is-mobile) .case-nav > .button {
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  gap: 8px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.app:not(.is-mobile) .case-nav > .button.icon-only {
+  width: 40px;
+  padding: 0;
+}

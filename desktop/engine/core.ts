@@ -10,7 +10,7 @@ import { StaticCubeSvg } from '../../src/client/diagrams/StaticCubeSvg';
 import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
 import { cases } from '../../src/client/local/catalog';
-import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
+import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
 import { fmtDate } from '../../src/client/lib/format';
@@ -85,12 +85,12 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     const pool = cases.filter(c => ids.includes(c.id));
     const before = trainingHistories.get(key) ?? EMPTY_TRAINING_HISTORY;
     const size = puzzleInfo(puzzle).cubeSize;
-    const history = trainingHistoryReducer(before, action === 'previous' ? { type: 'previous' } : { type: 'next', pool, sample: Math.random(), auf: useAuf && size ? randomAuf() : '' });
+    const history = trainingHistoryReducer(before, action === 'previous' ? { type: 'previous', pool } : { type: 'next', pool, sample: Math.random(), auf: useAuf && size ? randomAuf() : '' });
     trainingHistories.set(key, history);
     const entry = history.entries[history.index];
     if (!entry) return null;
     const { c, auf } = entry, setup = size ? combineAuf(c.setup, auf) : c.setup;
-    return { id: c.id, canPrevious: history.index > 0, setup, algorithm: size ? compensateAuf(executableAlg(c.algorithms[0]), auf) : executableAlg(c.algorithms[0]), svg: size ? caseSvg(size, setup, c.stage) : null };
+    return { id: c.id, canPrevious: previousIndex(history, pool) !== -1, setup, algorithm: size ? compensateAuf(executableAlg(c.algorithms[0]), auf) : executableAlg(c.algorithms[0]), svg: size ? caseSvg(size, setup, c.stage) : null };
   }
   function display(v: any): any {
     if (Array.isArray(v)) return v.map(display);

@@ -374,7 +374,6 @@ export class Store {
     const puzzle = this.puzzle,
       mode = this.learningMode,
       selected = [...this.practiceSelected];
-    if (mode !== "practice") direction = "next";
     const value = await call(
       "training",
       direction,
