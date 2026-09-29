@@ -39,7 +39,7 @@ function Appearance() {
             action={"theme:" + name}
             title={name}
             className={"settings-swatch " + (s.themeName === name ? "chosen" : "")}
-            style={{ background: color }}
+            style={{ "--swatch": color } as React.CSSProperties}
           />
         ))}
       </SettingRow>
