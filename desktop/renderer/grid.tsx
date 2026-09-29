@@ -16,6 +16,7 @@ const BOXES = [
   ".page-controls .button",
   ".stage",
   ".prompt",
+  ".timer",
   ".cube-box",
   ".pane-toggle",
   ".metrics .metric",

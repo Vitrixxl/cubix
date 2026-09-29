@@ -73,9 +73,12 @@ export function Cube({
       cancelled = true;
     };
   }, [scene, setup, cubeSize, mask]);
+  // A new scene or a replay restarts the animation; a new size only redraws it where it stands.
   useEffect(() => {
     start.current = performance.now();
     rotation.current = [CUBE_YAW, CUBE_PITCH];
+  }, [loaded, replay]);
+  useEffect(() => {
     let frame = 0;
     const draw = () => {
       if (!canvas.current || !loaded) return;

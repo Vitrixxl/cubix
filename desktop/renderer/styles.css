@@ -1444,29 +1444,58 @@ kbd {
 .prompt-text::-webkit-scrollbar {
   display: none;
 }
-/* Desktop: the cube in a box of its own beside the scramble, taller than it and reaching into the timer area. */
-.stage-top {
-  display: flex;
-  align-items: flex-start;
-  min-width: 0;
-  min-height: 0;
+/*
+ * Desktop: the cube in a box of its own nested in the timer's top right corner, flush against its lines, sized by
+ * the timer (its container). The digits shrink so they stay clear of it, centred in the timer all the same.
+ */
+.timer.with-cube {
+  --cube-side: min(30cqw, 50cqh);
 }
-.stage-top > .prompt {
-  flex: 1;
-  min-width: 0;
-}
-/* A pane of the grid like the others: flush against the header and the times column, only its own lines. */
 .cube-box {
-  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: var(--cube-side);
+  height: var(--cube-side);
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Never shorter than the scramble beside it, so their bottom lines meet. */
-  align-self: stretch;
-  padding: 28px 36px;
+  padding: calc(var(--cube-side) * 0.12);
   border-left: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   transition: opacity 0.18s;
+}
+/* A cell in the top right corner of its pane: hides the cube from its box, or brings it back from the timer's,
+   shown while the pointer is over that pane. */
+.pane-toggle.control {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
+  gap: 8px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.pane-toggle.control.icon-only {
+  width: 40px;
+  padding: 0;
+}
+.has-grid .pane-toggle.control:hover {
+  background: transparent;
+}
+.cube-box:hover > .pane-toggle,
+.timer:hover > .pane-toggle,
+.pane-toggle:focus-visible {
+  opacity: 1;
 }
 .prompt-visual {
   flex-shrink: 0;
@@ -1561,6 +1590,13 @@ kbd {
 .timer-digits,
 .typed-time {
   --timer-font: max(24px, min(clamp(56px, min(15cqw, 36cqh), 172px), 100cqh - 80px));
+}
+/* Room for the cube on both sides, for up to --chars characters (a running solve leaves the cube hidden). */
+.practice:not(.running) .timer.with-cube :is(.timer-digits, .typed-time) {
+  --timer-font: max(
+    24px,
+    min(clamp(56px, min(15cqw, 36cqh), 172px), 100cqh - 80px, (100cqw - 2 * var(--cube-side) - 24px) / (var(--chars, 6) * 0.5601))
+  );
 }
 .timer-digits {
   display: flex;
@@ -1673,6 +1709,7 @@ kbd {
 .practice.running .page-head,
 .practice.running .prompt,
 .practice.running .cube-box,
+.practice.running .pane-toggle,
 .practice.running .metrics,
 .practice.running .column,
 .practice.running .timer-hint,

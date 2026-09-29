@@ -67,6 +67,7 @@ export class Store {
   showTimes = false;
   revealed = false;
   randomAuf = true;
+  showCube = true;
   login = false;
   overlay = "";
   overlaySolve: any = null;
@@ -221,6 +222,7 @@ export class Store {
       this.light = appearance.light;
       this.puzzle = this.prefs["cubix.puzzle"] ?? "333";
       this.randomAuf = this.prefs["cubix.training.randomAuf"] ?? true;
+      this.showCube = this.prefs["cubix.practice.showCube"] ?? true;
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
@@ -659,6 +661,10 @@ export class Store {
           break;
         case "times":
           this.showTimes = !this.showTimes;
+          break;
+        case "cube":
+          this.showCube = !this.showCube;
+          this.pref("cubix.practice.showCube", this.showCube);
           break;
         case "menu":
           this.overlay = this.overlay === arg ? "" : arg;

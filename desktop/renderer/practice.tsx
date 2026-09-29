@@ -83,6 +83,25 @@ function useTimer(enabled: boolean) {
   return { phase, elapsed, press, release };
 }
 
+/** The side of the largest square inside an element's padding box, kept up to date as it resizes. */
+function useSquare(element: HTMLElement | null) {
+  const [side, setSide] = useState(0);
+  useLayoutEffect(() => {
+    if (!element) return void setSide(0);
+    const measure = () => {
+      const style = getComputedStyle(element),
+        width = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+        height = element.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      setSide(Math.max(0, Math.floor(Math.min(width, height))));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [element]);
+  return side;
+}
+
 export function Practice() {
   useEffect(() => {
     const tick = () => { void s.refreshLearning().catch(s.fail); };
@@ -111,6 +130,8 @@ export function Practice() {
     timer = useTimer(enabled),
     typing = s.page === "playground" && s.entry === "typing";
   const [typed, setTyped] = useState("");
+  const [cubeBox, setCubeBox] = useState<HTMLDivElement | null>(null),
+    cubeSide = useSquare(cubeBox);
   const typedRef = useRef<HTMLInputElement>(null);
   // While a solve runs everything else fades out and the digits glide to the middle of the screen, then back.
   const digitsRef = useRef<HTMLDivElement>(null),
@@ -134,8 +155,10 @@ export function Practice() {
     promptFont = mobile
       ? text.length > 90 ? 15 : 19
       : text.length > 220 ? 16 : text.length > 120 ? (compact ? 17 : 20) : compact ? 22 : 27,
-    // On the desktop the cube has a box of its own beside the scramble, sized by the window height.
-    previewSize = mobile ? (h < 760 ? 0 : 76) : h < 660 ? 130 : h < 760 ? 160 : Math.round(Math.min(260, Math.max(200, h * 0.24)));
+    // On the desktop the cube has a box of its own nested in the timer's top right corner, sized by the timer (CSS).
+    cubePane = !mobile && ready && (hasCube || training),
+    cubeShown = cubePane && s.showCube,
+    previewSize = mobile ? (h < 760 ? 0 : 76) : cubeSide;
   const hint = !enabled
     ? "Select cases to begin"
     : timer.phase === "Holding"
@@ -145,6 +168,7 @@ export function Practice() {
         : timer.phase === "Running"
           ? mobile ? "Tap to stop" : "Any key to stop"
           : `${s.page === "playground" && s.entry === "casual" ? "Not saved · " : ""}${mobile ? "Hold, then release to start" : "Hold Space, release to start"}`;
+  const digits = timer.phase === "Holding" || timer.phase === "Ready" ? "0.000" : fmtTime(timer.elapsed);
   const last = s.solves.find((v) => v.id === s.lastSolve);
   const metrics = s.metrics();
   const visual = previewSize > 0 && ready && (
@@ -336,23 +360,29 @@ export function Practice() {
         }}
       >
         <div className="stage">
-          {!mobile && visual ? (
-            <div className="stage-top">
-              {prompt}
-              <div className="cube-box">{visual}</div>
-            </div>
-          ) : (
-            prompt
-          )}
+          {prompt}
           <section
-            className={"timer " + timer.phase.toLowerCase()}
+            className={"timer " + timer.phase.toLowerCase() + (cubeShown ? " with-cube" : "")}
             data-phase={timer.phase}
             onPointerDown={(e) => {
-              if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest(".solve-actions")) return;
+              if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest(".solve-actions, .cube-box, .pane-toggle")) return;
               if (mobile || timer.phase === "Running") timer.press();
             }}
             onPointerUp={timer.release}
           >
+            {cubeShown ? (
+              <div className="cube-box" ref={setCubeBox}>
+                {visual}
+                <Button action="cube" icon="IconClose" className="control icon-only pane-toggle" title="Hide the cube" />
+              </div>
+            ) : (
+              cubePane && (
+                <Button action="cube" className="control pane-toggle" title="Show the cube">
+                  <Icon name="IconCube" size={14} />
+                  Show cube
+                </Button>
+              )
+            )}
             {s.notice && (
               <div className="notice">
                 <Icon name={training ? "IconCheck" : "IconTrophy"} size={14} />
@@ -378,8 +408,8 @@ export function Practice() {
                 }}
               />
             ) : (
-              <div className="timer-digits mono" ref={digitsRef}>
-                {(timer.phase === "Holding" || timer.phase === "Ready" ? "0.000" : fmtTime(timer.elapsed))
+              <div className="timer-digits mono" ref={digitsRef} style={{ "--chars": Math.max(6, digits.length) } as React.CSSProperties}>
+                {digits
                   .split("")
                   .map((ch, i) => (
                     <span key={i}>{ch}</span>

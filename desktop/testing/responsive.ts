@@ -42,6 +42,11 @@ const problems = () => page.evaluate(() => {
     const [prompt, timer, metrics] = [".prompt", ".timer", ".metrics"].map((selector) => box(document.querySelector(selector)!));
     if (prompt.bottom > timer.top + 1) issues.push("the prompt overlaps the timer");
     if (timer.bottom > metrics.top + 1) issues.push("the timer overlaps the metrics");
+    const cube = document.querySelector(".cube-box"), digits = document.querySelector(".timer-digits");
+    if (cube && digits) {
+      const [c, d] = [box(cube), box(digits)];
+      if (c.left < d.right - 1 && c.bottom > d.top + 1) issues.push("the cube overlaps the timer");
+    }
     for (const element of document.querySelectorAll(".prompt-text")) {
       const alg = element.querySelector(".alg");
       if (alg && element.clientHeight + 1 < Math.min(element.scrollHeight, parseFloat(getComputedStyle(alg).lineHeight))) issues.push("an algorithm has less than one readable line");
