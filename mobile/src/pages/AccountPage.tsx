@@ -168,7 +168,6 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
         {guest && <>
           <Btn label="Sign in" onPress={() => setAccount("login")} />
           <Btn variant="primary" label="Create account" onPress={() => setAccount("register")} />
-          <View style={{ width: 4 }} />
         </>}
         <ProfileFilters {...filterProps} />
       </>} />

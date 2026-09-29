@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ReactNode } from "react";
+import { createContext, memo, useContext, useEffect, useState, type ReactNode } from "react";
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import { FONT, useTheme, type Theme } from "../theme";
 import { IconBack, IconCheck, IconMinus, type Icon } from "./icons";
@@ -47,13 +47,29 @@ export type ButtonProps = Omit<PressableProps, "style" | "children"> & {
   mono?: boolean;
   style?: StyleProp<ViewStyle>; textStyle?: StyleProp<TextStyle>;
 };
+/**
+ * `.page-head .control`: inside a page header, controls are cells of its grid, as tall as their row, square,
+ * split by 1px lines; `grow` makes the cells of the controls row share its width.
+ */
+export interface HeadCell { height: number; grow: boolean }
+const HeadCellContext = createContext<HeadCell | null>(null);
+/** The header row a control sits in, null outside a page header. */
+export const useHeadCell = () => useContext(HeadCellContext);
+/** The frame of a header cell: its row's height, no radius, a line on its left. */
+export const headCellStyle = (t: Theme, cell: HeadCell): ViewStyle => ({
+  height: cell.height, minHeight: cell.height, flexGrow: cell.grow ? 1 : 0, justifyContent: "center", paddingHorizontal: 12, gap: 6,
+  borderRadius: 0, borderWidth: 0, borderLeftWidth: 1, borderColor: t.line,
+});
+
 /** `.button` / `.control` / `.button.primary`: the app's only button. */
 export function Btn({ children, icon, label, variant: kind = "control", active: selected = false, small, size, iconOnly, tone, mono: monoLabel, style, textStyle, disabled, ...rest }: ButtonProps) {
   const t = useTheme();
+  const cell = useHeadCell();
   const [down, setDown] = useState(false);
-  const height = size ?? (small ? 28 : 32);
+  const height = cell?.height ?? size ?? (small ? 28 : 32);
   let background = "transparent", border = "transparent", color = t.text, iconColor = t.muted;
   if (kind === "primary") { background = down ? t.accentPressed : t.accent; color = "#fff"; iconColor = "#fff"; }
+  else if (selected && cell) { background = t.surface2; color = t.accent; iconColor = t.accent; }
   else if (selected) { background = t.surface3; iconColor = t.text; }
   else if (kind === "soft") { background = down ? t.surface3Hover : t.surface3; iconColor = t.text; }
   else if (kind === "ghost") { background = down ? t.hover : "transparent"; color = down ? t.text : t.secondary; iconColor = down ? t.text : t.muted; }
@@ -61,7 +77,7 @@ export function Btn({ children, icon, label, variant: kind = "control", active: 
   if (tone && kind !== "primary") { color = toneColor(t, tone); iconColor = color; }
   return <Pressable {...rest} disabled={disabled} accessibilityRole={rest.accessibilityRole ?? "button"} accessibilityState={rest.accessibilityState ?? (selected ? { selected: true } : undefined)}
     onPressIn={e => { setDown(true); rest.onPressIn?.(e); }} onPressOut={e => { setDown(false); rest.onPressOut?.(e); }}
-    style={[styles.btn, kind === "control" && styles.control, { height, minHeight: height, backgroundColor: background, borderColor: border, opacity: disabled ? 0.35 : 1 }, iconOnly && { width: height, paddingHorizontal: 0 }, style]}>
+    style={[styles.btn, kind === "control" && styles.control, { height, minHeight: height, backgroundColor: background, borderColor: border, opacity: disabled ? 0.35 : 1 }, cell && headCellStyle(t, cell), iconOnly && { width: height, paddingHorizontal: 0 }, style]}>
     {icon !== undefined && renderIcon(icon, small ? 14 : 15, iconColor)}
     {label !== undefined && <Text numberOfLines={1} style={[styles.btnText, kind === "primary" && { fontWeight: "600" }, monoLabel && { fontFamily: FONT.mono, fontSize: 12.5 }, small && { fontSize: 12 }, { color }, textStyle]}>{label}</Text>}
     {children}
@@ -91,17 +107,19 @@ export function Segmented<T extends string>({ options, value, onChange, disabled
   plain?: boolean; scroll?: boolean; style?: StyleProp<ViewStyle>; itemStyle?: StyleProp<ViewStyle>; textStyle?: StyleProp<TextStyle>;
 }) {
   const t = useTheme();
+  const cell = useHeadCell();
   const items = options.map(option => {
     const active = option.id === value;
-    const color = active ? t.text : t.secondary;
+    const color = active ? cell ? t.accent : t.text : t.secondary;
+    const fill = active ? cell ? t.surface2 : t.surface3 : "transparent";
     return <Pressable key={option.id} disabled={disabled} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onChange(option.id)}
-      style={({ pressed }) => [plain ? styles.tab : styles.segment, { backgroundColor: active ? t.surface3 : pressed ? t.hover : "transparent", opacity: disabled ? 0.35 : 1 }, itemStyle]}>
+      style={({ pressed }) => [plain ? styles.tab : styles.segment, cell && headCellStyle(t, cell), { backgroundColor: pressed && !active ? t.hover : fill, opacity: disabled ? 0.35 : 1 }, itemStyle]}>
       {option.icon !== undefined && renderIcon(option.icon, 14, active ? t.text : t.muted)}
       <Text numberOfLines={1} style={[plain ? styles.tabText : styles.segmentText, { color }, textStyle]}>{option.label}</Text>
       {option.count !== undefined && <Text style={[styles.count, { color: t.muted }]}>{option.count}</Text>}
     </Pressable>;
   });
-  const track = [plain ? styles.tabs : [styles.segmented, { borderColor: t.line }]];
+  const track = cell ? { flexDirection: "row" as const, flexGrow: cell.grow ? 1 : 0 } : [plain ? styles.tabs : [styles.segmented, { borderColor: t.line }]];
   if (scroll) return <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flexGrow: 0 }, style]} contentContainerStyle={track}>{items}</ScrollView>;
   return <View style={[track, style]}>{items}</View>;
 }
@@ -162,17 +180,24 @@ export function PageHead({ title, sub, onBack, lead, right, controls, padding = 
   title: string; sub?: string; onBack?: () => void; lead?: ReactNode; right?: ReactNode; controls?: ReactNode; padding?: number;
 }) {
   const t = useTheme();
-  return <View style={[styles.pageHead, { paddingHorizontal: padding, borderColor: t.line }]}>
-    <View style={styles.pageTitle}>
-      {onBack && <Btn iconOnly icon={IconBack} onPress={onBack} accessibilityLabel="Back" />}
+  // As on the web: a 52 px title row whose back arrow and `right` control are its first and last cells, then a
+  // 44 px row of control cells; the row is shifted 1px left so its first cell's line falls off the screen.
+  const titleCell = { height: 52, grow: false };
+  return <View style={[styles.pageHead, { borderColor: t.line }]}>
+    <View style={[styles.pageTitle, { paddingLeft: padding, paddingRight: right ? 0 : padding }]}>
+      <HeadCellContext.Provider value={titleCell}>
+        {onBack && <Btn iconOnly icon={IconBack} onPress={onBack} accessibilityLabel="Back" style={{ marginLeft: -padding, borderLeftWidth: 0, borderRightWidth: 1 }} />}
+      </HeadCellContext.Provider>
       {lead}
       <View style={styles.pageTitleText}>
         <Text numberOfLines={1} style={[styles.pageH1, { color: t.text }]}>{title}</Text>
         {sub ? <Text numberOfLines={1} style={[styles.pageSub, { color: t.muted }]}>{sub}</Text> : null}
       </View>
-      {right}
+      <HeadCellContext.Provider value={titleCell}>{right}</HeadCellContext.Provider>
     </View>
-    {controls && <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ marginHorizontal: -padding, flexGrow: 0 }} contentContainerStyle={[styles.controls, { paddingHorizontal: padding }]}>{controls}</ScrollView>}
+    {controls && <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={[styles.controlsRow, { borderColor: t.line }]} contentContainerStyle={styles.controls}>
+      <HeadCellContext.Provider value={{ height: 44, grow: true }}>{controls}</HeadCellContext.Provider>
+    </ScrollView>}
   </View>;
 }
 
@@ -267,7 +292,8 @@ export const styles = StyleSheet.create({
   btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexShrink: 0, gap: 7, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: "transparent" },
   control: { gap: 6, paddingHorizontal: 11 },
   btnText: { fontSize: 13, fontWeight: "500" },
-  controls: { flexDirection: "row", alignItems: "center", gap: 6 },
+  controls: { flexGrow: 1, flexDirection: "row" },
+  controlsRow: { flexGrow: 0, marginLeft: -1, borderTopWidth: 1 },
   miniBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, height: 24, minHeight: 24, paddingHorizontal: 6, borderRadius: 6 },
   miniIcon: { width: 24, paddingHorizontal: 0 },
   miniText: { fontSize: 11, fontWeight: "600" },
@@ -288,8 +314,8 @@ export const styles = StyleSheet.create({
   metricDense: { paddingTop: 8, paddingHorizontal: 10, paddingBottom: 10 },
   metricLoose: { paddingTop: 10, paddingHorizontal: 10, paddingBottom: 12 },
   metricValue: { fontFamily: FONT.mono, fontWeight: "500", letterSpacing: -0.15, fontVariant: ["tabular-nums"] },
-  pageHead: { gap: 8, paddingVertical: 10, borderBottomWidth: 1, flexShrink: 0 },
-  pageTitle: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 32 },
+  pageHead: { borderBottomWidth: 1, flexShrink: 0 },
+  pageTitle: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 52 },
   pageTitleText: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 12 },
   pageH1: { fontSize: 20, fontWeight: "600", letterSpacing: -0.4, flexShrink: 0 },
   pageSub: { fontSize: 13, flexShrink: 1 },

@@ -1,5 +1,5 @@
 /**
- * WebGL background of the desktop layout: when the pointer enters a pane of the grid (a rail cell, a page header, a
+ * WebGL background of the desktop layout: when the pointer enters a pane of the grid (a rail cell, a header cell, a
  * pane, a metric…), its outline lights up from the entry point, spreading both ways around the pane behind a bright
  * accent front, and stays brightest near the cursor. Leaving fades the outline out.
  *
@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 const BOXES = [
   ".rail-cell",
   ".page-head",
+  ".page-head .control",
+  ".page-controls .button",
   ".stage",
   ".prompt",
   ".cube-box",

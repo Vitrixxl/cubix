@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type Vie
 import { useTheme } from "../theme";
 import { IconCheck, IconChevronDown } from "./icons";
 import { Popover, useAnchor } from "./Popover";
+import { headCellStyle, useHeadCell } from "./ui";
 
 export interface SelectOption<T extends string> { value: T; label: string; icon?: ReactNode; iconChecked?: ReactNode }
 
@@ -17,6 +18,7 @@ export function Select<T extends string>({ value, options, onChange, disabled, s
   minWidth?: number; menuWidth?: number;
 }) {
   const t = useTheme();
+  const cell = useHeadCell();
   const { ref, anchor, open, close } = useAnchor();
   const [pressed, setPressed] = useState(false);
   const current = options.find(option => option.value === value) ?? options[0];
@@ -24,7 +26,7 @@ export function Select<T extends string>({ value, options, onChange, disabled, s
   return <>
     <Pressable ref={ref} disabled={disabled} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? current?.label} accessibilityState={{ expanded: isOpen, disabled }}
       onPress={open} onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
-      style={[styles.trigger, { borderColor: t.line, backgroundColor: pressed || isOpen ? t.hover : "transparent", opacity: disabled ? 0.35 : 1 }, style]}>
+      style={[styles.trigger, { borderColor: t.line, backgroundColor: pressed || isOpen ? t.hover : "transparent", opacity: disabled ? 0.35 : 1 }, cell && headCellStyle(t, cell), style]}>
       {current?.icon}
       <Text numberOfLines={1} style={[styles.triggerText, { color: t.text }]}>{current?.label}</Text>
       <IconChevronDown size={12} color={t.muted} />

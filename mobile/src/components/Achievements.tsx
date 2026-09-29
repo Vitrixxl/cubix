@@ -8,7 +8,7 @@ import { usePreservedList } from "../hooks/usePreservedList";
 import { IconLock, IconTrophy } from "./icons";
 import { PuzzleIcon } from "./PuzzlePicker";
 import { Select } from "./Select";
-import { Empty, ProgressBar, Segmented, mono } from "./ui";
+import { Empty, ProgressBar, Segmented, headCellStyle, mono, useHeadCell } from "./ui";
 
 /**
  * The web app's achievements page (`Achievements` in desktop/renderer/main.tsx): a puzzle filter and
@@ -19,7 +19,8 @@ import { Empty, ProgressBar, Segmented, mono } from "./ui";
 /** `.achievement-total`: "17 / 210" and a bar, in the page header. */
 export function AchievementTotal({ summary }: { summary: AchievementSummaryDto }) {
   const t = useTheme();
-  return <View style={styles.total} accessibilityLabel={`${summary.unlocked} of ${summary.total} achievements unlocked`}>
+  const cell = useHeadCell();
+  return <View style={[styles.total, cell && { ...headCellStyle(t, cell), borderLeftWidth: 0, paddingHorizontal: 14 }]} accessibilityLabel={`${summary.unlocked} of ${summary.total} achievements unlocked`}>
     <Text style={[mono(t, 13), { color: t.muted }]}>{summary.unlocked} / {summary.total}</Text>
     <ProgressBar value={summary.total ? summary.unlocked / summary.total : 0} unlocked style={{ width: 62 }} />
   </View>;

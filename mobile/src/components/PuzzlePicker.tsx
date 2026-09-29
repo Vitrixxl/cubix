@@ -7,6 +7,7 @@ import { useTheme } from "../theme";
 import { IconChevronDown } from "./icons";
 import { Select } from "./Select";
 import { Sheet } from "./Sheet";
+import { headCellStyle, useHeadCell } from "./ui";
 
 /** Official WCA event glyphs from the @cubing/icons font (MIT). */
 const CODEPOINT: Record<EventId, number> = {
@@ -58,12 +59,13 @@ function PuzzleDialog({ open, value, onClose, onChange }: { open: boolean; value
  */
 export function PuzzlePicker() {
   const t = useTheme();
+  const cell = useHeadCell();
   const [event, setEvent] = useAtom(eventAtom), locked = useAtomValue(cubeSwitchLockedAtom);
   const [open, setOpen] = useState(false);
   const label = eventInfo(event)?.label ?? event;
   return <>
     <Pressable disabled={locked} onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Puzzle: ${label}`} accessibilityHint="Choose a puzzle"
-      style={({ pressed }) => [styles.trigger, { borderColor: t.line, backgroundColor: pressed || open ? t.hover : "transparent", opacity: locked ? 0.35 : 1 }]}>
+      style={({ pressed }) => [styles.trigger, { borderColor: t.line, backgroundColor: pressed || open ? t.hover : "transparent", opacity: locked ? 0.35 : 1 }, cell && headCellStyle(t, cell)]}>
       <PuzzleIcon puzzle={event} size={16} color={t.text} />
       <Text numberOfLines={1} style={[styles.triggerText, { color: t.text }]}>{label}</Text>
       <IconChevronDown size={12} color={t.muted} />
