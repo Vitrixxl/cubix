@@ -7,7 +7,7 @@ import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
 import { CaseDiagram } from "./CaseDiagram";
 import { IconChevronDown, IconNext } from "./icons";
-import { Checkbox, Label, Muted } from "./ui";
+import { CheckCell, Label, Muted } from "./ui";
 
 /** Open sets survive leaving the setup screen, per catalogue. */
 const selectorExpansion = new Map<string, Record<string, boolean>>();
@@ -73,9 +73,9 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
       ListEmptyComponent={<Muted style={{ padding: 16, textAlign: "center" }}>No cases match.</Muted>}
       renderItem={({ item: row }) => {
         const divider = row.last && { borderBottomWidth: 1, borderColor: t.line };
-        if (row.kind === "set") return <View style={[styles.setHead, divider]}>
-          <Checkbox checked={row.count > 0 && row.count === row.ids.length} mixed={row.count > 0 && row.count < row.ids.length}
-            onPress={() => toggle(row.all)} accessibilityLabel={`Select ${row.set.label}`} style={styles.checkButton} />
+        if (row.kind === "set") return <View style={[styles.setHead, { borderColor: t.line }]}>
+          <CheckCell checked={row.count > 0 && row.count === row.ids.length} mixed={row.count > 0 && row.count < row.ids.length}
+            onPress={() => toggle(row.all)} accessibilityLabel={`Select ${row.set.label}`} style={{ borderRightWidth: 1 }} />
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} accessibilityLabel={`${row.set.label}, ${row.count} of ${row.ids.length} selected`}
             onPress={() => setOpen({ ...open, [row.set.id]: !row.open })}
             style={({ pressed }) => [styles.setTitle, { backgroundColor: pressed ? t.hover : "transparent" }]}>
@@ -111,8 +111,8 @@ const Tile = memo(function Tile({ c, width, on, onPress, onLongPress }: { c: Cas
 
 const styles = StyleSheet.create({
   list: { flex: 1, minHeight: 0 },
-  setHead: { flexDirection: "row", alignItems: "center", gap: 2, height: 52 },
-  checkButton: { width: 30, height: 32 },
+  // A set is one cell tall, flush with the list's edges, its selection a square cell on the left.
+  setHead: { flexDirection: "row", alignItems: "center", height: 64, marginHorizontal: -10, borderBottomWidth: 1 },
   setTitle: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12, height: 40, paddingHorizontal: 10, borderRadius: 0 },
   stage: { width: 42, flexShrink: 0 },
   setLabel: { fontSize: 14, fontWeight: "600", flexShrink: 1 },

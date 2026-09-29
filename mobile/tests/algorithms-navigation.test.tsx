@@ -44,7 +44,7 @@ mock.module("../src/components/PuzzlePicker", () => ({ PuzzlePicker: () => null 
 mock.module("../src/components/Sheet", () => ({ Sheet: () => null }));
 mock.module("../src/components/icons", () => ({ IconBack: () => null, IconBook: () => null, IconCheck: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
 mock.module("../src/components/ui", () => Object.fromEntries([
-  ...["Btn", "CellGroup", "Checkbox", "Control", "Empty", "Input", "Label", "ListRow", "Mark", "Metric", "Metrics", "PageHead", "Segmented"].map(name => [name, name]),
+  ...["Btn", "CellGroup", "CheckCell", "Checkbox", "Control", "Empty", "Input", "Label", "ListRow", "Mark", "Metric", "Metrics", "PageHead", "Segmented"].map(name => [name, name]),
   ["mono", () => ({})],
 ]));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");

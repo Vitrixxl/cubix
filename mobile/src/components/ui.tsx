@@ -242,6 +242,23 @@ export function Checkbox({ checked, mixed, onPress, tone, accessibilityLabel, st
     style={[styles.checkHit, style]}>{box}</Pressable>;
 }
 
+/**
+ * A choice as a whole cell of its row (the web's set selection and "Learn" cells): an icon, and the word under it
+ * when given; tinted in `tone` once checked, a dash for a partial choice. Never a checkbox.
+ */
+export function CheckCell({ checked, mixed, tone = "accent", label, onPress, accessibilityLabel, width = 64, style }: {
+  checked: boolean; mixed?: boolean; tone?: "accent" | "good"; label?: string; onPress: () => void; accessibilityLabel?: string; width?: number; style?: StyleProp<ViewStyle>;
+}) {
+  const t = useTheme();
+  const on = checked || mixed;
+  const color = on ? toneColor(t, tone) : t.muted;
+  return <Pressable onPress={onPress} accessibilityRole="checkbox" accessibilityLabel={accessibilityLabel} accessibilityState={{ checked: mixed && !checked ? "mixed" : checked }}
+    style={({ pressed }) => [styles.checkCell, { width, borderColor: t.line, backgroundColor: checked ? toneColor(t, tone) + "24" : pressed ? t.hover : "transparent" }, style]}>
+    {mixed && !checked ? <IconMinus size={18} color={color} /> : <IconCheck size={18} color={color} />}
+    {label ? <Text style={{ color, fontSize: 11.5, fontFamily: FONT.mono }}>{label}</Text> : null}
+  </Pressable>;
+}
+
 /** A flat list row (`.case-row`): `left` (diagram), then `title` over a muted `sub`. Pressed = hover fill. */
 export function ListRow({ title, sub, left, height, onPress }: { title: string; sub: string; left: ReactNode; height: number; onPress: () => void }) {
   const t = useTheme();
@@ -349,6 +366,7 @@ export const styles = StyleSheet.create({
   pageSub: { fontSize: 13, flexShrink: 1 },
   checkbox: { borderWidth: 1.5, borderRadius: 0, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   checkHit: { alignItems: "center", justifyContent: "center" },
+  checkCell: { alignSelf: "stretch", alignItems: "center", justifyContent: "center", gap: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 8, paddingRight: 8, borderRadius: 0 },
   rowText: { flex: 1, minWidth: 0, gap: 1 },
   rowTitle: { fontSize: 13.5, fontWeight: "600" },

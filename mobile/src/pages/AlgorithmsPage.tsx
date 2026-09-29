@@ -21,7 +21,7 @@ import { IconBack, IconBook, IconCheck, IconChevronDown, IconNext, IconTimer } f
 import { PuzzlePicker } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { TimesChart } from "../components/TimesChart";
-import { Btn, Checkbox, Control, Empty, Input, Label, ListRow, Mark, Metric, Metrics, PageHead, Segmented, mono, CellGroup } from "../components/ui";
+import { Btn, CheckCell, Control, Empty, Input, Label, ListRow, Mark, Metric, Metrics, PageHead, Segmented, mono, CellGroup } from "../components/ui";
 
 /**
  * Algorithms, as the web app on a phone: the case list of one stage (stage tabs, set variants, learning filter,
@@ -154,7 +154,7 @@ const CaseRow = memo(function CaseRow({ c, best, learned, onOpen, onToggle }: { 
       </View>
       <Text style={[mono(t, 12.5, "400"), { color: t.secondary }]}>{best != null ? fmtTime(best) : "—"}</Text>
     </Pressable>
-    <Checkbox checked={learned} tone="good" onPress={() => onToggle(c.id)} accessibilityLabel={learned ? `${c.id} learned` : `Mark ${c.id} learned`} style={styles.caseCheck} />
+    <CheckCell checked={learned} tone="good" label={learned ? "Learned" : "Learn"} width={80} onPress={() => onToggle(c.id)} accessibilityLabel={learned ? `${c.id} learned` : `Mark ${c.id} learned`} style={{ borderLeftWidth: 1 }} />
   </View>;
 });
 
@@ -331,13 +331,12 @@ const styles = StyleSheet.create({
   groupName: { fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
   groupTrain: { height: 26, minHeight: 26, paddingHorizontal: 8, gap: 6 },
   // `.case-row`
-  caseRow: { flexDirection: "row", alignItems: "center", borderRadius: 0 },
-  caseOpen: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 14, height: 68, paddingLeft: 8, paddingRight: 4, borderRadius: 0 },
+  caseRow: { flexDirection: "row", alignItems: "center", borderRadius: 0, height: 64 },
+  caseOpen: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 14, height: 64, paddingLeft: 8, paddingRight: 4, borderRadius: 0 },
   caseDiagram: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
   caseName: { flex: 1, minWidth: 0 },
   caseId: { fontSize: 13.5, fontWeight: "600", lineHeight: 17.5 },
   caseSub: { fontSize: 12, lineHeight: 15.5 },
-  caseCheck: { width: 38, height: 38 },
   // `.detail`
   detailScroll: { gap: 24, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 20 },
   hero: { flexDirection: "row", alignItems: "flex-start", gap: 16 },

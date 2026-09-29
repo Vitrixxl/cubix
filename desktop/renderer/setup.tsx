@@ -133,10 +133,12 @@ function CasesSetup() {
           return (
             <section key={set.id} className={"setup-set " + (open ? "open" : "")}>
               <div className="setup-set-head">
-                <Button action={"selectSet:" + set.id} className="check-button" title={"Select " + set.label}>
-                  <span className={"checkbox " + (count ? "checked" : "")}>
-                    {count ? <Icon name={count === chosen.length ? "IconCheck" : "IconMinus"} size={11} /> : null}
-                  </span>
+                <Button
+                  action={"selectSet:" + set.id}
+                  className={"check-button " + (count === chosen.length ? "all" : count ? "some" : "")}
+                  title={(count === chosen.length ? "Unselect " : "Select ") + set.label}
+                >
+                  <Icon name={count && count < chosen.length ? "IconMinus" : "IconCheck"} size={18} />
                 </Button>
                 <Button action={"selectorToggle:" + set.id} className="setup-set-title">
                   <span className="setup-set-stage label">{set.stage}</span>

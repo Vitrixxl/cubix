@@ -5500,19 +5500,23 @@ kbd {
 
 /* ---- the grid: every line of a page continues a line of the rail ----
  * A cell is as tall as a rail cell and the page header (64px); lists run in whole or half cells (32px), counted from
- * the top like the rail. The window is rarely a whole number of cells: the bottom row of the rail and of each page
- * takes what is left (--rest), so the lines anchored at the bottom meet the rail's too. A box whose own top line is the
- * row's line counts that line in its height. ---- */
+ * the top like the rail. The window is rarely a whole number of cells: the grid stops at the last whole cell and
+ * the rest (--rest) is an empty band under it, so the lines anchored at the bottom meet the rail's too. A box whose
+ * own top line is the row's line counts that line in its height. ---- */
 .app {
   --cell: 64px;
   --half: 32px;
-  --rest: mod(100vh + 1px, 64px);
+  --rest: mod(100vh, 64px);
 }
 .app.is-mobile {
   --rest: 0px;
 }
-.rail-foot .rail-cell:last-child {
-  height: calc(var(--rail) - 1px + var(--rest));
+/* The grid stops a whole number of cells down the window; what is left under it stays an empty band, under the
+   grid's last line. */
+.app:not(.is-mobile) .shell {
+  bottom: auto;
+  height: calc(100% - var(--rest));
+  border-bottom: 1px solid var(--line);
 }
 /* Timer and training: the prompt in whole cells, the cube box too, the actions and figures one cell each, the figures
    in the timer's columns (two per action). */
@@ -5543,7 +5547,7 @@ kbd {
   --solve-actions: var(--cell);
 }
 .app:not(.is-mobile) .metrics {
-  height: calc(var(--cell) + var(--rest));
+  height: var(--cell);
 }
 .metrics .metric,
 .metrics-full .metric {
@@ -5560,7 +5564,7 @@ kbd {
 }
 @media (max-width: 1240px) {
   .app:not(.is-mobile) .metrics.metrics-full {
-    height: calc(2 * var(--cell) + var(--rest));
+    height: calc(2 * var(--cell));
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-rows: 63px minmax(0, 1fr);
   }
@@ -5671,8 +5675,7 @@ kbd {
 .setup-cases .setup-set-head {
   height: 63px;
 }
-/* Setup panes (Cross + 1, learning, duel): the heading in three cells, its field label in a half cell, the Start
-   two cells tall along the bottom. */
+/* Setup panes (Cross + 1, learning, duel): the heading in three cells, the Start one cell along the bottom. */
 .app:not(.is-mobile) .setup-pane:not(.setup-cases) .setup-pane-head {
   height: calc(3 * var(--cell));
   flex-shrink: 0;
@@ -5684,7 +5687,7 @@ kbd {
   height: var(--half);
 }
 .app:not(.is-mobile) .setup-pane:not(.setup-cases) .setup-actions > .button.setup-start {
-  height: calc(2 * var(--cell) - 1px + var(--rest));
+  height: 63px;
   min-height: 0;
 }
 /* Duel: the scramble in whole cells, each side under a one-cell head, the board's two rows along the bottom, the chat's
@@ -5705,7 +5708,7 @@ kbd {
   height: 63px;
 }
 .app:not(.is-mobile) .duel-board-row:last-child {
-  height: calc(var(--cell) + var(--rest));
+  height: var(--cell);
 }
 .duel-board-cell {
   position: relative;
@@ -5720,7 +5723,7 @@ kbd {
   color: var(--accent);
 }
 .app:not(.is-mobile) .duel-chat-form {
-  height: calc(var(--cell) + var(--rest));
+  height: var(--cell);
 }
 .button.duel-chat-send {
   width: var(--cell);
@@ -5805,7 +5808,7 @@ kbd {
   justify-content: center;
 }
 .app:not(.is-mobile) .detail-foot {
-  height: calc(var(--cell) + var(--rest));
+  height: var(--cell);
 }
 .app:not(.is-mobile) .detail-foot > .button {
   width: var(--cell);
@@ -6047,4 +6050,28 @@ kbd {
 }
 .is-mobile .duel-board-tail.duel-actions {
   grid-column: 1 / -1;
+}
+
+/* A set's selection: a square cell with an icon, tinted in the accent once chosen (a dash when only part of it is). */
+.setup-cases .button.check-button {
+  width: var(--cell);
+  color: var(--muted);
+}
+.setup-cases .button.check-button:hover {
+  color: var(--text);
+}
+.setup-cases .button.check-button.some {
+  color: var(--accent);
+}
+.setup-cases .button.check-button.all,
+.setup-cases .button.check-button.all:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.is-mobile .setup-pane:not(.setup-cases) .setup-actions > .button.setup-start {
+  height: 63px;
+  min-height: 63px;
+}
+.app:not(.is-mobile) .setup-cases .setup-group {
+  padding-left: calc(var(--cell) + 16px);
 }

@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   lobbyTitle: { fontSize: 28, fontWeight: "600", letterSpacing: -0.6, fontFamily: FONT.mono },
   figures: { flex: 1, minHeight: 0, flexDirection: "row", borderBottomWidth: 0 },
   figure: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 10 },
-  start: { height: 72, alignItems: "center", justifyContent: "center", borderTopWidth: 1 },
+  start: { height: 64, alignItems: "center", justifyContent: "center", borderTopWidth: 1 },
   startText: { fontFamily: FONT.mono, fontSize: 20, fontWeight: "500", letterSpacing: 0.6 },
   scramble: { gap: 6, paddingVertical: 12, borderBottomWidth: 1 },
   side: { flex: 1, minHeight: 0 },
