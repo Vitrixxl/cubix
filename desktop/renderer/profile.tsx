@@ -16,28 +16,94 @@ function nextAchievement() {
     .sort((a: any, b: any) => b.ratio - a.ratio)[0];
 }
 
-function Sparkline({ values }: { values: (number | null)[] }) {
-  const points = values.filter((v): v is number => v != null).slice(-40);
-  if (points.length < 2) return null;
-  const low = Math.min(...points),
-    high = Math.max(low + 1, Math.max(...points)),
-    x = (i: number) => (i / (points.length - 1)) * 100,
-    y = (v: number) => 4 + (1 - (v - low) / (high - low)) * 26,
-    line = points.map((v, i) => `${i ? "L" : "M"}${x(i)} ${y(v)}`).join(" "),
-    best = points.indexOf(low),
-    last = points.length - 1;
+/** How many rows of `row` px, `gap` px apart, fit in the element's height. */
+function useFit(row: number, gap = 0) {
+  const ref = useRef<HTMLElement>(null),
+    [fit, setFit] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setFit(Math.max(0, Math.floor((el.clientHeight + gap) / (row + gap))));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [row, gap]);
+  return [ref, fit] as const;
+}
+
+const CHART_SOLVES = 100;
+
+/** The last solves and their Ao5 over a time axis, the best of them ringed and the latest dotted. */
+function TimerChart({ times, averages }: { times: (number | null)[]; averages: (number | null)[] }) {
+  const from = Math.max(0, times.length - CHART_SOLVES),
+    singles = times.slice(from),
+    ao5 = averages.slice(from),
+    finite = (v: number | null | undefined): v is number => v != null && Number.isFinite(v),
+    values = [...singles, ...ao5].filter(finite);
+  const low = Math.min(...values),
+    high = Math.max(low + 1, Math.max(...values)),
+    x = (i: number) => (singles.length === 1 ? 50 : (i / (singles.length - 1)) * 100),
+    y = (v: number) => 6 + (1 - (v - low) / (high - low)) * 88,
+    // A DNF or a missing average breaks the line rather than joining its neighbours.
+    line = (points: (number | null)[]) =>
+      points.map((v, i) => (finite(v) ? `${finite(points[i - 1]) ? "L" : "M"}${x(i)} ${y(v)}` : "")).join(" "),
+    kept = singles.filter(finite),
+    best = singles.indexOf(Math.min(...kept)),
+    last = singles.findLastIndex(finite);
   const dot = (i: number, cls: string) => (
-    <i className={"sparkline-dot " + cls} style={{ left: x(i) + "%", top: (y(points[i]) / 32) * 100 + "%" }} />
+    <i className={"sparkline-dot " + cls} style={{ left: x(i) + "%", top: y(singles[i]!) + "%" }} />
   );
   return (
-    <div className="sparkline" aria-hidden="true">
-      <svg viewBox="0 0 100 32" preserveAspectRatio="none">
-        <path d={`${line} L100 32 L0 32 Z`} fill="var(--accent)" fillOpacity="0.07" />
-        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      </svg>
-      {best !== last && dot(best, "best")}
-      {dot(last, "last")}
-    </div>
+    <span className="ov-chart" aria-hidden="true">
+      <span className="ov-chart-axis">
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className="mono" style={{ top: 6 + (i / 3) * 88 + "%" }}>
+            {fmtTime(high - ((high - low) * i) / 3)}
+          </span>
+        ))}
+      </span>
+      <span className="ov-chart-plot">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          {[0, 1, 2, 3].map((i) => (
+            <path key={i} d={`M0 ${6 + (i / 3) * 88} H100`} stroke="var(--line)" vectorEffect="non-scaling-stroke" />
+          ))}
+          <path d={line(ao5)} fill="none" stroke="var(--series)" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          <path d={line(singles)} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        </svg>
+        {best !== last && dot(best, "best")}
+        {dot(last, "last")}
+      </span>
+    </span>
+  );
+}
+
+const RECENT_ROW = 32;
+
+/** The hour for today's solves, the day for older ones. */
+const solvedAt = (iso: string) => {
+  const d = new Date(iso);
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+    : shortDate(iso);
+};
+
+/** The latest timer solves, newest first, as many as the column holds. */
+function RecentSolves({ history }: { history: any[] }) {
+  // The first row is the column's title.
+  const [ref, fit] = useFit(RECENT_ROW),
+    shown = history.slice(Math.max(0, history.length - Math.max(0, fit - 1))).reverse();
+  return (
+    <span ref={ref} className="ov-recent">
+      <small className="ov-recent-row ov-recent-title muted">Last solves</small>
+      {shown.map((v, i) => (
+        <span key={v.id ?? i} className="ov-recent-row">
+          <small className="mono muted">{history.length - i}</small>
+          <span className={"mono " + (v.time == null ? "danger" : "")}>{v.time == null ? "DNF" : fmtTime(v.time)}</span>
+          <small className="muted">{solvedAt(v.at)}</small>
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -319,8 +385,12 @@ function overviewData() {
     goals = (s.achievements?.achievements ?? [])
       .filter((a: any) => !a.unlocked)
       .sort((a: any, b: any) => b.ratio - a.ratio)
-      .slice(0, 8)
+      .slice(0, 40)
       .map((a: any) => ({ label: a.title, value: `${Math.round(a.ratio * 100)}%`, ratio: a.ratio })),
+    recent = (s.achievements?.achievements ?? [])
+      .filter((a: any) => a.unlocked && a.unlockedAt)
+      .sort((a: any, b: any) => (a.unlockedAt < b.unlockedAt ? 1 : -1))
+      .slice(0, 3),
     activity: ActivitySolve[] = [
       ...(p.playground?.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: true })),
       ...(p.cases ?? []).flatMap((c: any) => (c.history ?? []).map((v: any) => ({ at: v.at, time: v.time, timer: false }))),
@@ -335,6 +405,7 @@ function overviewData() {
     timer,
     history: (p.playground?.history ?? []) as any[],
     timerTimes: (p.playground?.history ?? []).map((v: any) => v.time as number | null),
+    timerAverages: (p.playground?.ao5 ?? []) as (number | null)[],
     timerDetail: timer.count
       ? `Best of ${plural(timer.count, "solve")} · ${s.label("scrambles", s.profileScramble)}`
       : "No solves in this selection yet",
@@ -351,6 +422,7 @@ function overviewData() {
     achievementDetail: next ? `Next: ${next.title} · ${next.detail}` : "Everything unlocked",
     stages,
     goals,
+    recent,
     activity,
     latest,
   };
@@ -358,27 +430,29 @@ function overviewData() {
 
 type OverviewData = ReturnType<typeof overviewData>;
 
-/** Best single in front, best Ao5 and Ao12 side by side beneath it. */
-function TimerBests({ d }: { d: OverviewData }) {
-  const t = d.timer,
-    figure = (label: string, value: number | null, className = "") => (
-      <span key={label} className={"ov-hero-figure " + className}>
-        <span className="ov-hero-value mono">{t.count ? fmtTime(value) : "—"}</span>
-        <small className="muted">{label}</small>
-      </span>
-    );
+/** The timer's figures as a row of cells, the best single leading. */
+function TimerFigures({ d }: { d: OverviewData }) {
+  const t = d.timer;
   return (
-    <span className="ov-bests">
-      {figure("Best single", t.best, "lead")}
-      <span className="ov-bests-row">
-        {figure("Best Ao5", t.bestAo5)}
-        {figure("Best Ao12", t.bestAo12)}
-      </span>
+    <span className="ov-figures">
+      {[
+        ["Best single", t.best, "lead"],
+        ["Best Ao5", t.bestAo5, ""],
+        ["Best Ao12", t.bestAo12, ""],
+        ["Ao5", t.ao5, ""],
+        ["Ao12", t.ao12, ""],
+        ["Mean", t.mean, ""],
+      ].map(([label, value, className]) => (
+        <span key={label} className={"ov-figure " + className}>
+          <small className="muted">{label}</small>
+          <span className="ov-figure-value mono">{t.count ? fmtTime(value as number | null) : "—"}</span>
+        </span>
+      ))}
     </span>
   );
 }
 
-type GaugeSection = { action: string; label: string; ratio: number; value: string; suffix: string; detail: string; rows: OverviewData["stages"] };
+type GaugeSection = { action: string; label: string; ratio: number; value: string; suffix: string; detail: string };
 
 const gaugeSections = (d: OverviewData): GaugeSection[] => [
   {
@@ -388,7 +462,6 @@ const gaugeSections = (d: OverviewData): GaugeSection[] => [
     value: String(d.trained),
     suffix: `/ ${d.cases.length} cases`,
     detail: `${d.learned} learned · ${plural(d.trainingSolves, "solve")}`,
-    rows: d.stages,
   },
   {
     action: "profileMode:achievements",
@@ -397,14 +470,13 @@ const gaugeSections = (d: OverviewData): GaugeSection[] => [
     value: String(d.unlocked),
     suffix: `/ ${d.total} unlocked`,
     detail: d.achievementDetail,
-    rows: d.goals,
   },
 ];
 
-/** Ring, figure and detail on one line, bars underneath. */
-function GaugeCard({ g }: { g: GaugeSection }) {
+/** Ring, figure and detail on one line, the section's own content underneath. */
+function GaugeCard({ g, className = "", children }: { g: GaugeSection; className?: string } & Props) {
   return (
-    <Go action={g.action} className="ov-card ov-ring-card" label={`${g.label}: ${g.value} ${g.suffix}. ${g.detail}`}>
+    <Go action={g.action} className={"ov-card ov-ring-card " + className} label={`${g.label}: ${g.value} ${g.suffix}. ${g.detail}`}>
       <span className="ov-card-head">
         <span className="ov-card-title">{g.label}</span>
         <Icon name="IconChevronRight" size={14} />
@@ -419,50 +491,90 @@ function GaugeCard({ g }: { g: GaugeSection }) {
           <small className="muted">{g.detail}</small>
         </span>
       </span>
-      <MiniBars rows={g.rows} />
+      {children}
     </Go>
   );
 }
 
-/** Overview in two columns: activity over the timer on the left, training over achievements on the right. */
+const GOAL_ROW = 18,
+  GOAL_GAP = 9;
+
+/** The closest achievements, as many as the pane holds, over the latest ones unlocked. */
+function AchievementGoals({ d }: { d: OverviewData }) {
+  const [ref, fit] = useFit(GOAL_ROW, GOAL_GAP);
+  return (
+    <>
+      <span ref={ref} className="ov-goals">
+        <MiniBars rows={d.goals.slice(0, fit)} />
+      </span>
+      {d.recent.length > 0 && (
+        <span className="ov-unlocked">
+          <small className="muted">Recently unlocked</small>
+          {d.recent.map((a: any) => (
+            <span key={a.id} className="ov-unlocked-row">
+              <Icon name="IconTrophy" size={14} />
+              <span className="ov-unlocked-title">{a.title}</span>
+              <small className="muted">{a.unlockedDate}</small>
+            </span>
+          ))}
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * Overview as a grid of panes whose lines meet: activity and training on top, the timer (figures, curve and latest
+ * solves) and achievements filling the rest.
+ */
 function Overview() {
   const p = s.profile,
     d = overviewData(),
-    [training, achievements] = gaugeSections(d);
+    [training, achievements] = gaugeSections(d),
+    charted = d.timerTimes.filter((v: number | null) => v != null).length >= 2;
   return (
     <div className="overview">
-      <div className="ov-col ov-col-main">
-        <section className="ov-card ov-activity">
-          <Activity
-            solves={d.activity}
-            summary={[
-              { label: (p.activeDays ?? 0) === 1 ? "active day" : "active days", value: String(p.activeDays ?? 0) },
-              { label: "total solves", value: (p.totalSolves ?? 0).toLocaleString() },
-              { label: "per active day", value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—" },
-            ]}
-            detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
-          />
-        </section>
-        <Go action="profileMode:playground" className="ov-card ov-timer" label={`Timer: ${d.timerDetail}`}>
-          <span className="ov-card-head">
-            <span className="ov-card-title">Timer</span>
-            <small className="muted">{d.timerDetail}</small>
-            <Icon name="IconChevronRight" size={14} />
-          </span>
-          <TimerBests d={d} />
+      <section className="ov-card ov-activity">
+        <Activity
+          solves={d.activity}
+          summary={[
+            { label: (p.activeDays ?? 0) === 1 ? "active day" : "active days", value: String(p.activeDays ?? 0) },
+            { label: "total solves", value: (p.totalSolves ?? 0).toLocaleString() },
+            { label: "per active day", value: p.activeDays ? (p.totalSolves / p.activeDays).toFixed(1) : "—" },
+          ]}
+          detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
+        />
+      </section>
+      <GaugeCard g={training} className="ov-training">
+        <MiniBars rows={d.stages} />
+      </GaugeCard>
+      <Go action="profileMode:playground" className="ov-card ov-timer" label={`Timer: ${d.timerDetail}`}>
+        <span className="ov-card-head">
+          <span className="ov-card-title">Timer</span>
+          <small className="muted">{d.timerDetail}</small>
+          {charted && (
+            <span className="chart-legend">
+              <span className="accent">━ Single</span>
+              <span style={{ color: "var(--series)" }}>━ Ao5</span>
+            </span>
+          )}
+          <Icon name="IconChevronRight" size={14} />
+        </span>
+        <TimerFigures d={d} />
+        <span className="ov-timer-body">
           <span className="ov-timer-chart">
-            {d.timerTimes.filter((v: number | null) => v != null).length >= 2 ? (
-              <Sparkline values={d.timerTimes} />
+            {charted ? (
+              <TimerChart times={d.timerTimes} averages={d.timerAverages} />
             ) : (
               <span className="ov-chart-empty muted">Your progress curve appears after two timed solves.</span>
             )}
           </span>
-        </Go>
-      </div>
-      <div className="ov-col ov-col-side">
-        <GaugeCard g={training} />
-        <GaugeCard g={achievements} />
-      </div>
+          {d.history.length > 0 && <RecentSolves history={d.history} />}
+        </span>
+      </Go>
+      <GaugeCard g={achievements} className="ov-achievements">
+        <AchievementGoals d={d} />
+      </GaugeCard>
     </div>
   );
 }

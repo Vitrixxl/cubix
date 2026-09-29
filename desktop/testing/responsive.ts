@@ -55,7 +55,7 @@ const problems = () => page.evaluate(() => {
   const overview = document.querySelector(".overview");
   if (overview) {
     const r = box(overview);
-    for (const element of overview.querySelectorAll(".ov-card, .ov-hero-figure, .ov-bests")) {
+    for (const element of overview.querySelectorAll(".ov-card, .ov-figure")) {
       const b = box(element);
       if (b.width && (b.left < r.left - 1 || b.right > r.right + 1)) issues.push(`.${element.className.split(" ").at(-1)} outside the overview`);
       if (element.scrollWidth > element.clientWidth + 1) issues.push(`.${element.className.split(" ").at(-1)} clipped`);

@@ -84,7 +84,7 @@ function TimerStatsView({ data, compact, table }: { data: any; compact: boolean;
           <SolvesTable history={history} range={range} total={total} {...table} />
         ) : (
           <div className="panel chart-panel">
-            <Row className="between">
+            <Row className="between stats-bar">
               <Row>
                 <StatsViewToggle />
                 {total}
@@ -150,7 +150,7 @@ function SolvesTable({
   const commentCount = history.filter((v) => v.comment).length;
   return (
     <div className="panel history-panel">
-      <Row className="between solves-bar">
+      <Row className="between solves-bar stats-bar">
         <Row>
           <StatsViewToggle />
           {total}

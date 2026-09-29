@@ -2210,18 +2210,6 @@ kbd {
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 16px;
-}
-.ov-col {
-  display: grid;
-  gap: 16px;
-  min-height: 0;
-  min-width: 0;
-}
-.ov-col-main {
-  grid-template-rows: auto minmax(0, 1fr);
-}
-.ov-col-side {
   grid-template-rows: auto minmax(0, 1fr);
 }
 .ov-card {
@@ -2280,47 +2268,192 @@ kbd {
 .ov-activity .activity-head h3 {
   font-size: 13px;
 }
-.ov-bests {
+/* The timer pane: its head, a row of figure cells, then the curve beside the latest solves, all edge to edge. */
+.ov-card.ov-timer {
+  padding: 0;
+  gap: 0;
+  container-type: inline-size;
+}
+.ov-timer > .ov-card-head {
+  padding: 18px 20px 14px;
+}
+.ov-timer .chart-legend {
   display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 14px 36px;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 11px;
+}
+.ov-timer .chart-legend + .icon {
+  margin-left: 0 !important;
+}
+.ov-figures {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) repeat(5, minmax(0, 1fr));
+  flex-shrink: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+}
+.ov-figure {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  margin-right: -1px;
+  padding: 12px 20px 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.ov-figure small {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ov-figure-value {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-figure.lead .ov-figure-value {
+  font-size: 34px;
+  letter-spacing: -0.03em;
+}
+@container (max-width: 720px) {
+  .ov-figures {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ov-figure.lead .ov-figure-value {
+    font-size: 26px;
+  }
+}
+.ov-timer-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.ov-timer-chart {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  padding: 16px 20px 18px 16px;
+}
+.ov-chart {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+}
+.ov-chart-axis {
+  position: relative;
+  width: 44px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ov-chart-axis span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+}
+.ov-chart-plot {
+  position: relative;
   min-width: 0;
 }
-.ov-bests-row {
-  display: contents;
+.ov-chart-plot svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
-.ov-hero-figure {
+.ov-recent {
   display: flex;
-  flex-direction: column-reverse;
-  gap: 6px;
-  min-width: 0;
+  flex-direction: column;
+  flex: 0 0 clamp(200px, 26%, 260px);
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
 }
-.ov-hero-figure small {
+.ov-recent-row {
+  display: grid;
+  grid-template-columns: 3.5ch 7ch minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  height: 32px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.ov-recent-row small {
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-recent-row small:last-child {
+  text-align: right;
+}
+.ov-recent-title {
+  display: flex;
+  font-size: 11px !important;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* Achievements: the closest goals fill the pane, the latest unlocked ones sit at its foot. */
+.ov-goals {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.ov-goals .mini-bars {
+  align-content: start;
+  grid-auto-rows: 18px;
+}
+.ov-unlocked {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  margin: 0 -20px -18px;
+  border-top: 1px solid var(--line);
+}
+.ov-unlocked > small {
+  padding: 12px 20px 6px;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.ov-hero-value {
-  font-size: 26px;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-}
-.ov-bests .lead .ov-hero-value {
-  font-size: 44px;
-  letter-spacing: -0.03em;
-}
-.ov-timer-chart {
-  flex: 1;
-  min-height: 56px;
+.ov-unlocked-row {
   display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 20px;
+  font-size: 12.5px;
 }
-.ov-timer-chart .sparkline {
-  margin: 4px 4px 2px;
-  min-height: 0;
+.ov-unlocked-row + .ov-unlocked-row {
+  border-top: 1px solid var(--line);
+}
+.ov-unlocked-row .icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.ov-unlocked-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ov-chart-empty {
   align-self: center;
@@ -2813,16 +2946,21 @@ kbd {
     padding-top: 14px;
     padding-bottom: 16px;
   }
-  .overview,
-  .ov-col {
-    gap: 12px;
-  }
   .ov-card {
     padding: 14px 16px;
     gap: 12px;
   }
-  .ov-bests .lead .ov-hero-value {
-    font-size: 34px;
+  .ov-timer > .ov-card-head {
+    padding: 14px 16px 12px;
+  }
+  .ov-figure {
+    padding: 10px 16px 12px;
+  }
+  .ov-figure.lead .ov-figure-value {
+    font-size: 28px;
+  }
+  .ov-unlocked {
+    margin: 0 -16px -14px;
   }
   .ov-ring-card .mini-bars {
     gap: 7px 12px;
@@ -3004,17 +3142,19 @@ kbd {
   overflow: auto;
   scrollbar-width: none;
 }
-.is-mobile .ov-col {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
 .is-mobile .ov-card {
   flex-shrink: 0;
   overflow: visible;
 }
 .is-mobile .ov-timer-chart {
-  min-height: 90px;
+  min-height: 160px;
+}
+.is-mobile .ov-recent {
+  display: none;
+}
+.is-mobile .ov-goals {
+  flex: none;
+  height: 160px;
 }
 .is-mobile .stat-strip {
   grid-template-columns: repeat(7, minmax(104px, 1fr));
@@ -3047,7 +3187,8 @@ kbd {
   box-shadow: 0 0 0 2px var(--raised);
 }
 .ov-card .sparkline-dot.best {
-  background: var(--raised);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 2px var(--bg);
 }
 
 /* ---- training setup: what to practise, before the timer ---- */
@@ -3947,9 +4088,7 @@ kbd {
   padding: 0;
 }
 .overview,
-.ov-col,
-.is-mobile .overview,
-.is-mobile .ov-col {
+.is-mobile .overview {
   gap: 0 !important;
 }
 .ov-card {
@@ -3957,15 +4096,169 @@ kbd {
   border: 0;
   background: transparent;
 }
-.ov-card + .ov-card {
-  border-top: 1px solid var(--line);
-}
-.ov-col-main {
+.ov-activity,
+.ov-timer {
   border-right: 1px solid var(--line);
 }
-.is-mobile .ov-col-main {
+.ov-timer,
+.ov-achievements {
+  border-top: 1px solid var(--line);
+}
+.is-mobile .ov-card {
   border-right: 0;
+}
+.is-mobile .ov-card + .ov-card {
+  border-top: 1px solid var(--line);
+}
+/* Profile timer page: the figures, then the chart or table, as panes of the grid flush with the header. */
+.profile-main:has(> .stats),
+.is-mobile .profile-main:has(> .stats) {
+  padding: 0;
+  gap: 0;
+}
+.profile-main > .stats {
+  gap: 0;
+}
+.profile-main > .stats .stat-strip {
+  gap: 0;
+  overflow: hidden;
   border-bottom: 1px solid var(--line);
+}
+.profile-main > .stats .stat-tile {
+  margin: 0 -1px -1px 0;
+  padding: 14px 20px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+.profile-main > .stats .panel {
+  --grid-fill: transparent;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.profile-main > .stats .chart-area {
+  padding: 16px 20px 14px 12px;
+}
+/* The chart and table toolbars: a row of cells, the view toggle on the left, sort and filter on the right. */
+.stats-bar {
+  flex-shrink: 0;
+  align-items: stretch;
+  gap: 0;
+}
+.stats-bar > .row {
+  align-items: stretch;
+  gap: 0;
+}
+.stats-bar .stats-view-toggle {
+  padding: 0;
+  border: 0;
+}
+.stats-bar .stats-view-toggle > .button,
+.stats-bar > .row:last-child > .button {
+  height: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-right: 1px solid var(--line);
+}
+.stats-bar > .row:last-child:not(:first-child) > .button {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+.stats-bar .solves-count {
+  align-self: center;
+  padding: 0 14px;
+}
+.stats-bar > .chart-legend {
+  align-self: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+.profile-main > .stats .stats-bar {
+  border-bottom: 1px solid var(--line);
+}
+.profile-main > .stats .solves-head {
+  margin: 0;
+  padding: 10px 0 10px 20px;
+}
+.profile-main > .stats .history-solves {
+  margin: 0;
+  padding: 0;
+}
+.profile-main > .stats .history-row {
+  padding-left: 20px;
+}
+.stats.compact .stats-bar {
+  border: 1px solid var(--line);
+}
+/* A solve's actions: cells as tall as its row, split by lines and flush with the table's right edge. */
+.solve-row-actions {
+  align-self: stretch;
+  align-items: stretch;
+  padding: 0 !important;
+}
+.solve-row-actions > .button {
+  width: 44px;
+  height: auto;
+  min-height: 36px;
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+.solves-head > span:last-child,
+.solve-row-actions {
+  width: 176px;
+}
+/* The times column: a head row, then flush rows split by lines, each ending on its action cells. */
+.column-content {
+  padding-top: 0;
+}
+.column-head {
+  height: 44px;
+  padding: 0 0 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.column-head-actions {
+  align-self: stretch;
+  padding: 0 !important;
+}
+.column-head-actions > .button.control {
+  height: auto;
+  min-height: 0;
+  margin: 0 !important;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+.column-head-actions > .button.control.icon-only {
+  width: 44px;
+}
+.times-list {
+  padding: 0;
+}
+.times-row {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 0 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.times-actions {
+  align-self: stretch;
+  align-items: stretch;
+  padding: 0 !important;
+}
+.times-actions > .button.times-action {
+  width: 36px;
+  height: auto;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
 }
 /* The accent swatches keep their spacing: they are colours, not cells of a group. */
 .setting > .row:has(> .swatch) {
