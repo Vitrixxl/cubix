@@ -4452,3 +4452,157 @@ kbd {
 .setting > .row > .swatch {
   margin: 0;
 }
+
+/* ---- case detail as a grid: the diagram in its own cell, the heading beside it over flush strips of figures and
+ * actions, then sections under a header line, the statistics in a column of their own on wide panes. ---- */
+.detail .detail-scroll {
+  gap: 0;
+  padding: 0;
+}
+.detail .detail-hero {
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+.detail .detail-visual {
+  width: 280px;
+  height: auto;
+  min-height: 260px;
+  border-right: 1px solid var(--line);
+}
+.detail .detail-meta {
+  flex: 1;
+  align-items: stretch;
+  gap: 0;
+}
+.detail-heading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 32px;
+}
+.detail .detail-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.detail .detail-figures .metric {
+  padding: 16px 24px 18px;
+}
+.detail .detail-figures .metric:first-child {
+  padding-left: 32px;
+}
+.detail .detail-buttons {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.detail .detail-buttons > .button {
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 24px;
+  border: 0;
+  border-right: 1px solid var(--line);
+}
+.detail .detail-buttons > .button.primary {
+  padding-left: 32px;
+}
+.detail .detail-section {
+  gap: 0;
+  max-width: none;
+}
+.detail .detail-section > h3.label {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--line);
+}
+.detail-setup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--line);
+}
+.detail .algorithm-list {
+  border-top: 0;
+}
+.detail .algorithm-row {
+  padding: 12px 32px;
+}
+.detail-stats-body {
+  padding: 16px 24px 20px;
+}
+.detail .detail-stats {
+  border-top: 1px solid var(--line);
+}
+@container case-detail (min-width: 1000px) {
+  .detail .detail-scroll {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+    grid-template-rows: auto auto 1fr;
+    gap: 0;
+    padding: 0;
+  }
+  .detail .detail-stats {
+    position: static;
+    align-self: stretch;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+}
+.is-mobile .detail .detail-hero {
+  flex-direction: column;
+}
+.is-mobile .detail .detail-visual {
+  width: auto;
+  min-height: 180px;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+.is-mobile .detail-heading,
+.is-mobile .detail .detail-section > h3.label,
+.is-mobile .detail-setup-body,
+.is-mobile .detail .algorithm-row {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.is-mobile .detail .detail-figures .metric:first-child,
+.is-mobile .detail .detail-buttons > .button.primary {
+  padding-left: 16px;
+}
+.is-mobile .detail .detail-buttons > .button {
+  flex: 1;
+  padding: 0 12px;
+}
+/* An algorithm's video: a cell closing its row, as tall as the row. */
+.detail .algorithm-meta {
+  align-self: stretch;
+}
+.detail .algorithm-meta .control {
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
+  margin: -12px -32px -12px 6px;
+  padding: 0 24px;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+/* On phones the meta wraps under the algorithm: the video stays a plain cell there. */
+.is-mobile .detail .algorithm-meta {
+  align-self: auto;
+}
+.is-mobile .detail .algorithm-meta .control {
+  align-self: center;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+}

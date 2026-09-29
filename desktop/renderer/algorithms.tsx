@@ -242,11 +242,13 @@ function CaseDetail() {
             )}
           </div>
           <div className="detail-meta">
-            <span className="label">
-              {c.setLabel} · {c.group}
-            </span>
-            <h2 className="detail-title">{c.id}</h2>
-            {c.name !== c.id && <p className="detail-name">{c.name}</p>}
+            <div className="detail-heading">
+              <span className="label">
+                {c.setLabel} · {c.group}
+              </span>
+              <h2 className="detail-title">{c.id}</h2>
+              {c.name !== c.id && <p className="detail-name">{c.name}</p>}
+            </div>
             <div className="detail-figures">
               <div className="metric">
                 <span className="label">Best</span>
@@ -279,8 +281,10 @@ function CaseDetail() {
         </div>
         <section className="detail-section detail-setup">
           <h3 className="label">Setup</h3>
-          <Alg text={c.setup} size={17} />
-          {c.notes && <p className="muted">{c.notes}</p>}
+          <div className="detail-setup-body">
+            <Alg text={c.setup} size={17} />
+            {c.notes && <p className="muted">{c.notes}</p>}
+          </div>
         </section>
         <section className="detail-section detail-algorithms">
           <h3 className="label">Algorithms</h3>
@@ -305,7 +309,9 @@ function CaseDetail() {
         </section>
         <section className="detail-section detail-stats">
           <h3 className="label">Statistics</h3>
-          <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
+          <div className="detail-stats-body">
+            <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
+          </div>
         </section>
       </div>
       <div className="detail-foot">
