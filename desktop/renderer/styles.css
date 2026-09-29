@@ -2661,21 +2661,30 @@ kbd {
 .stats-modal {
   width: min(720px, 100%);
 }
-/* Settings: plain sections separated by lines. */
+/* Settings: plain sections split by lines running edge to edge, the header's line above the first one. */
 .settings-modal {
   width: min(500px, 100%);
+}
+.modal.settings-modal {
+  gap: 0;
+  padding: 0;
+}
+.modal.settings-modal > .row:first-child {
+  margin: 0;
 }
 .settings {
   gap: 0;
 }
 .settings .panel {
   flex: none;
-  padding: 16px 0;
+  padding: 16px 22px;
   border: 0;
-  border-top: 1px solid var(--line);
   border-radius: 0;
   background: none;
   gap: 10px;
+}
+.settings .panel + .panel {
+  border-top: 1px solid var(--line);
 }
 .settings .panel h3 {
   font-size: 11px;
