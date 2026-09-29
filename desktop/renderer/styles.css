@@ -4709,8 +4709,9 @@ kbd {
   border-bottom-color: transparent;
 }
 /* An accent: a neutral cell holding a small square of its colour; the chosen one looks like any chosen cell. */
+/* Square: as wide as it is tall (the row's 51px under its top line, plus the two lines the cell overlaps). */
 .settings-cells > .button.settings-swatch {
-  width: 48px;
+  width: 53px;
   padding: 0;
   justify-content: center;
 }
