@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { Animated, BackHandler, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { bestAverage, fmtTime } from "../../../src/client/lib/format";
 import { practiceSummary } from "../../../src/client/lib/practiceSummary";
-import { applyAlg, parseAlg, solved } from "../../../src/shared/cube";
+import { applyAlg, parseAlg, parseScramble, solved } from "../../../src/shared/cube";
 import type { CubeMask, DiagramView } from "../../../src/shared/cubeDiagram";
 import type { PracticeContext } from "../../../src/shared/puzzles";
 import type { SessionMode, SolveDto } from "../../../src/shared/types";
@@ -169,10 +169,11 @@ export function PromptBlock({ label, children }: { label: string; children: Reac
 
 /**
  * The cube after `alg`, drawn like the case diagrams. Each change of `replay` plays the moves again from
- * the solved cube, one turn at a time, as the web cube's replay button does.
+ * the solved cube, one turn at a time, as the web cube's replay button does. A `held` scramble is applied white
+ * on top and shown yellow on top (see `parseScramble`); a case setup is applied yellow on top.
  */
-export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask, view, replay = 0 }: { alg: string; cube?: number; size: number; mask?: CubeMask; view?: DiagramView; replay?: number }) {
-  const moves = useMemo(() => { try { return parseAlg(alg, cube); } catch { return []; } }, [alg, cube]);
+export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask, view, replay = 0, held = false }: { alg: string; cube?: number; size: number; mask?: CubeMask; view?: DiagramView; replay?: number; held?: boolean }) {
+  const moves = useMemo(() => { try { return held ? parseScramble(alg, cube) : parseAlg(alg, cube); } catch { return []; } }, [alg, cube, held]);
   const [step, setStep] = useState<number | null>(null);
   const first = useRef(true);
   useEffect(() => {
@@ -188,7 +189,7 @@ export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask
   }, [replay]);
   useEffect(() => setStep(null), [alg]);
   const state = useMemo(() => applyAlg(solved(cube), step === null ? moves : moves.slice(0, step)), [cube, moves, step]);
-  return <StaticCubeSvg state={state} size={size} mask={mask} view={view} />;
+  return <StaticCubeSvg state={state} size={size} mask={mask} view={view} held={held} />;
 });
 
 /** Size of the prompt's picture in the training frames: none on short phones. */

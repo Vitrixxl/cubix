@@ -1,4 +1,4 @@
-import { applyMove, parseAlg, slotsFor, solved, type Move } from './cube';
+import { applyMove, parseAlg, parseScramble, slotsFor, solved, type Move } from './cube';
 import { stickerColors, type CubeMask } from './cubeAppearance';
 
 /**
@@ -18,17 +18,20 @@ export interface CubeShape { points: number[][]; color: number; line: boolean }
 export const CUBE_BODY = 0x121216;
 export const CUBE_YAW = Math.PI / 4, CUBE_PITCH = 0.55;
 
-/** Desktop renderers consume the exact shared permutations, without a second move parser. */
-export function cubeScene(setup: string, size: number, mask: CubeMask, animated = true): CubeScene {
+/**
+ * Desktop renderers consume the exact shared permutations, without a second move parser. A case setup is applied
+ * yellow on top; a `held` scramble white on top and green in front, then shown turned over (see `parseScramble`).
+ */
+export function cubeScene(setup: string, size: number, mask: CubeMask, animated = true, held = false): CubeScene {
   if (!Number.isInteger(size) || size < 2 || size > 7) throw new Error('Unsupported cube size');
-  const moves = parseAlg(setup, size);
+  const moves = held ? parseScramble(setup, size) : parseAlg(setup, size);
   let state = solved(size);
   const states = [Array.from(state)];
   for (const move of moves) {
     state = applyMove(state, move);
     if (animated) states.push(Array.from(state));
   }
-  return { size, colors: stickerColors(state, mask), states: animated ? states : [Array.from(state)], moves: animated ? moves : [] };
+  return { size, colors: stickerColors(state, mask, held), states: animated ? states : [Array.from(state)], moves: animated ? moves : [] };
 }
 /** Seconds a scene takes to play all its moves. */
 export const cubeSceneDuration = (scene: CubeScene) => Math.max(scene.size, 3);

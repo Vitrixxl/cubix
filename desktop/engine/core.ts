@@ -125,7 +125,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       return { revision: q.revision, learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), ...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise]))) };
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
-    if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2]);
+    if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);
     if (req.method === 'scramble') return await takeScramble(req.args[0]);
     if (req.method === 'crossSolutions') return crossPlusOneSolutions(req.args[0]);
     if (req.method === 'training') return training(req.args[0], req.args[1], req.args[2], req.args[3], req.args[4]);

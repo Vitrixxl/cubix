@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { cubeScene as cubePreview } from '../src/shared/cubeScene';
 import { cases } from '../src/client/local/catalog';
-import { applyAlg, applyMove, solved, slotsFor } from '../src/shared/cube';
-import { FACE_HEX, stickerColors } from '../src/shared/cubeAppearance';
+import { applyAlg, applyMove, colorOf, solved, slotsFor } from '../src/shared/cube';
+import { FACE_HEX, HELD_HEX, stickerColors } from '../src/shared/cubeAppearance';
 import { maskForStage } from '../src/client/lib/caseState';
 
 describe('native cube preview', () => {
@@ -60,5 +60,22 @@ describe('native cube preview', () => {
   test('invalid notation is reported rather than displaying an unrelated cube', () => {
     expect(() => cubePreview('not a move', 3, 'full')).toThrow();
     expect(() => cubePreview('', 8, 'full')).toThrow();
+  });
+  test('scrambles are applied white on top, green in front, and shown turned over: yellow on top, green in front', () => {
+    const shown = (scene: ReturnType<typeof cubePreview>) => scene.states.at(-1)!.map(origin => scene.colors[origin]);
+    const solvedCube = shown(cubePreview('', 3, 'full', false, true)), area = 9;
+    expect(solvedCube.slice(0, area).every(c => c === FACE_HEX.U)).toBe(true);
+    expect(solvedCube.slice(2 * area, 3 * area).every(c => c === HELD_HEX.F && c === FACE_HEX.B)).toBe(true);
+    expect(solvedCube.slice(4 * area, 5 * area).every(c => c === FACE_HEX.L)).toBe(true);
+    for (const [size, scramble] of [[3, "R U' F2 D B' L2 U R2 F' D2"], [3, 'M E S x y z'], [2, "R U2 F' R2 U"], [4, "Rw U2 Fw' R2 Uw 3Rw2 D"], [5, 'Rw 3Uw2 L Bw D']] as const) {
+      // Reference: the solved model (yellow on top, blue in front) rotated to white on top and green in front,
+      // scrambled, then turned over with z2, coloured by where each sticker came from.
+      const reference = applyAlg(solved(size), `x2 ${scramble} z2`);
+      const scene = cubePreview(scramble, size, 'full', true, true);
+      expect(shown(scene), scramble).toEqual(Array.from(reference, (_, slot) => FACE_HEX[colorOf(reference, slot)]));
+      for (let i = 0; i < scene.moves.length; i++) {
+        expect(Array.from(applyMove(Uint16Array.from(scene.states[i]), scene.moves[i]))).toEqual(scene.states[i + 1]);
+      }
+    }
   });
 });

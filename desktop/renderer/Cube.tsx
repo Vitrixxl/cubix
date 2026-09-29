@@ -45,6 +45,7 @@ export function Cube({
   size = 156,
   replay = 0,
   animated = true,
+  held = false,
 }: {
   scene?: Scene;
   setup?: string;
@@ -53,6 +54,8 @@ export function Cube({
   size?: number;
   replay?: number;
   animated?: boolean;
+  /** A scramble, applied white on top and shown yellow on top, rather than a case setup. */
+  held?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     [loaded, setLoaded] = useState<Scene | undefined>(scene),
@@ -64,7 +67,7 @@ export function Cube({
     let cancelled = false;
     if (scene) setLoaded(scene);
     else
-      call("cubePreview", setup, cubeSize, mask)
+      call("cubePreview", setup, cubeSize, mask, held)
         .then((v) => {
           if (!cancelled) setLoaded(v);
         })
@@ -72,7 +75,7 @@ export function Cube({
     return () => {
       cancelled = true;
     };
-  }, [scene, setup, cubeSize, mask]);
+  }, [scene, setup, cubeSize, mask, held]);
   // A new scene or a replay restarts the animation; a new size only redraws it where it stands.
   useEffect(() => {
     start.current = performance.now();

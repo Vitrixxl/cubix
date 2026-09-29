@@ -5,18 +5,23 @@ export type CubeMask = 'full' | 'OLL' | 'PLL' | 'F2L';
 export const FACE_HEX: Record<Face, number> = {
   U: 0xffe62a, D: 0xece8e2, F: 0x3d7ce0, B: 0x1abe57, R: 0xeb4242, L: 0xff801f,
 };
+/** A scramble is applied white on top, green in front, then the cube is turned over (z2): yellow on top, green in front, orange right. */
+export const HELD_HEX: Record<Face, number> = {
+  U: FACE_HEX.U, D: FACE_HEX.D, F: FACE_HEX.B, B: FACE_HEX.F, R: FACE_HEX.L, L: FACE_HEX.R,
+};
 export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, `#${FACE_HEX[f].toString(16).padStart(6, '0')}`])) as Record<Face, string>;
 // Neutral stickers remain readable against both light and dark app backgrounds.
 const GREY = 0x6e6e78;
 const DIM = 0x4c4c56;
 
 /** Assign colours to physical stickers once, using the final centre orientation.
- * The same colours follow those stickers throughout the animation.
+ * The same colours follow those stickers throughout the animation. A `held` scramble (see `parseScramble`)
+ * keeps the colours where the scramble put them, in the held palette.
  */
-export function stickerColors(final: CubeState, mask: CubeMask): number[] {
-  const size = cubeSize(final), area = size * size, slots = slotsFor(size);
+export function stickerColors(final: CubeState, mask: CubeMask, held = false): number[] {
+  const size = cubeSize(final), area = size * size, slots = slotsFor(size), palette = held ? HELD_HEX : FACE_HEX;
   const faces = Object.fromEntries(FACES.map(f => [f, f])) as Record<Face, Face>;
-  if (size >= 3) {
+  if (size >= 3 && !held) {
     const middle = Math.floor(size / 2) * size + Math.floor(size / 2);
     const centers = FACES.map((_, i) => colorOf(final, i * area + middle));
     // Even cubes have centre blocks rather than a single fixed centre. A
@@ -37,9 +42,9 @@ export function stickerColors(final: CubeState, mask: CubeMask): number[] {
   for (let slot = 0; slot < final.length; slot++) {
     const origin = final[slot], face = faces[colorOf(final, slot)];
     const top = slots[slot].p[1] === (size - 1) / 2;
-    colors[origin] = mask === 'OLL' ? (face === 'U' ? FACE_HEX.U : top ? GREY : DIM)
-      : mask === 'PLL' ? (top ? FACE_HEX[face] : DIM)
-      : mask === 'F2L' && originOnTop(origin) ? GREY : FACE_HEX[face];
+    colors[origin] = mask === 'OLL' ? (face === 'U' ? palette.U : top ? GREY : DIM)
+      : mask === 'PLL' ? (top ? palette[face] : DIM)
+      : mask === 'F2L' && originOnTop(origin) ? GREY : palette[face];
   }
   return colors;
 }

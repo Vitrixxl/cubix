@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { fmtSolve, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { applyAlg, parseAlg, solved, type Move } from "../../../src/shared/cube";
-import { contextKey, eventLabel, puzzleInfo, scrambleLabel, type PracticeContext, type ScrambleType } from "../../../src/shared/puzzles";
+import { applyAlg, parseAlg, parseScramble, solved, type Move } from "../../../src/shared/cube";
+import { contextKey, eventLabel, heldScramble, puzzleInfo, scrambleLabel, type PracticeContext, type ScrambleType } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
 import { playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, timeEntryAtom } from "../state";
@@ -32,9 +32,9 @@ const TIMES_WIDTH = 300;
 /** Cross + 1 scrambles belong to training; the timer's scramble menu leaves them out. */
 const timerScrambles = (types: readonly ScrambleType[]) => types.filter(type => !type.startsWith("cross1-"));
 
-function scrambleMoves(scramble: string, size: number | null): Move[] {
+function scrambleMoves(scramble: string, size: number | null, held: boolean): Move[] {
   if (!size || !scramble) return [];
-  try { return parseAlg(scramble, size); } catch { return []; }
+  try { return held ? parseScramble(scramble, size) : parseAlg(scramble, size); } catch { return []; }
 }
 
 export function PlaygroundPage() {
@@ -96,7 +96,8 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
 
   // Scramble preview (`.prompt-visual`) and its replay, move by move.
   const cube = info.cubeSize;
-  const moves = useMemo(() => scrambleMoves(scramble, cube), [scramble, cube]);
+  const held = heldScramble(context.scrambleType);
+  const moves = useMemo(() => scrambleMoves(scramble, cube, held), [scramble, cube, held]);
   const [replayAt, setReplayAt] = useState<number | null>(null);
   useEffect(() => setReplayAt(null), [scramble]);
   useEffect(() => {
@@ -154,7 +155,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
               </ScrollView>
             </View>
             {previewSize > 0 && previewState && <Pressable accessibilityRole="button" accessibilityLabel="Replay the scramble on the cube" disabled={!canReplay || busy} onPress={replay}>
-              <StaticCubeSvg state={previewState} size={previewSize} />
+              <StaticCubeSvg state={previewState} size={previewSize} held={held} />
             </Pressable>}
           </View>
         </RunningFade>

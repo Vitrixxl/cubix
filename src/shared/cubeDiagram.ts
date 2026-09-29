@@ -6,13 +6,14 @@ import { cubeSize, type CubeState, type Face } from "./cube";
 import { stickerColors, type CubeMask } from "./cubeAppearance";
 export type { CubeMask } from "./cubeAppearance";
 
-const palettes = new WeakMap<CubeState, Map<CubeMask, number[]>>();
-/** Hex colour of one sticker slot, memoised per state and mask. */
-export function stickerHex(state: CubeState, slot: number, mask: CubeMask): string {
+const palettes = new WeakMap<CubeState, Map<string, number[]>>();
+/** Hex colour of one sticker slot, memoised per state, mask and palette (a `held` scramble, see `stickerColors`). */
+export function stickerHex(state: CubeState, slot: number, mask: CubeMask, held = false): string {
   let masks = palettes.get(state);
   if (!masks) palettes.set(state, masks = new Map());
-  let palette = masks.get(mask);
-  if (!palette) masks.set(mask, palette = stickerColors(state, mask));
+  const key = held ? `${mask}:held` : mask;
+  let palette = masks.get(key);
+  if (!palette) masks.set(key, palette = stickerColors(state, mask, held));
   return `#${palette[state[slot]].toString(16).padStart(6, "0")}`;
 }
 
@@ -129,11 +130,11 @@ export function isoEdges(state: CubeState): string[] {
 
 export interface IsoCell { key: string; points: string; fill: string; stroke: string }
 /** Isometric view: U, F and R faces of any cube size, 3·n² polygons. */
-export function isoCells(state: CubeState, mask: CubeMask): IsoCell[] {
+export function isoCells(state: CubeState, mask: CubeMask, held = false): IsoCell[] {
   const dimension = cubeSize(state);
   return FACES.flatMap(face => Array.from({ length: dimension * dimension }, (_, index) => {
     const row = Math.floor(index / dimension), column = index % dimension;
-    const fill = stickerHex(state, face.index * dimension * dimension + index, mask);
+    const fill = stickerHex(state, face.index * dimension * dimension + index, mask, held);
     return { key: `${face.face}-${index}`, points: cell(face, column, row, dimension), fill, stroke: fill };
   }));
 }
@@ -157,9 +158,9 @@ function roundedRect(x: number, y: number, width: number, height: number, radii:
   }));
 }
 /** View from above for any cube size: the U face, and around it `depth` rows of every side face (one row for the top layer). */
-export function topLayerCells(state: CubeState, mask: CubeMask, view: DiagramView = "top"): TopCell[] {
+export function topLayerCells(state: CubeState, mask: CubeMask, view: DiagramView = "top", held = false): TopCell[] {
   const n = cubeSize(state), area = n * n, last = n - 1, depth = view === "unfolded" ? n : 1;
-  const fill = (slot: number) => stickerHex(state, slot, mask);
+  const fill = (slot: number) => stickerHex(state, slot, mask, held);
   // The drawing spans 13..107: U tiles one pitch apart, side rows half a pitch thick, 5 units between U and the sides.
   const gap = Math.max(1.5, 6 / n), pitch = (84 + (3 - depth) * gap) / (n + depth), tile = pitch - gap, thickness = (pitch - gap) / 2, rowPitch = thickness + gap;
   const start = 13 + depth * rowPitch - gap + 5, end = start + n * pitch - gap;
@@ -212,17 +213,17 @@ const pathCache = new WeakMap<CubeState, Map<string, DiagramPaths>>();
 /**
  * The whole diagram as a handful of paths instead of one polygon per sticker: renderers that create a
  * native node per element (react-native-svg) mount a 3×3 in about eight nodes rather than thirty.
- * Memoised per state, mask and view, so a list re-rendering the same cases does no geometry twice.
+ * Memoised per state, mask, view and palette, so a list re-rendering the same cases does no geometry twice.
  */
-export function diagramPaths(state: CubeState, mask: CubeMask, view: DiagramView = viewForMask(mask)): DiagramPaths {
+export function diagramPaths(state: CubeState, mask: CubeMask, view: DiagramView = viewForMask(mask), held = false): DiagramPaths {
   let views = pathCache.get(state);
   if (!views) pathCache.set(state, views = new Map());
-  const key = `${mask}:${view}`;
+  const key = `${mask}:${view}${held ? ":held" : ""}`;
   let paths = views.get(key);
   if (!paths) {
     paths = view === "iso"
-      ? { hull: subpath(isoHull(state)), tiles: mergeCells(isoCells(state, mask)), edges: isoEdges(state).map(points => `M${points.replaceAll(" ", "L")}`).join("") }
-      : { tiles: mergeCells(topLayerCells(state, mask, view)) };
+      ? { hull: subpath(isoHull(state)), tiles: mergeCells(isoCells(state, mask, held)), edges: isoEdges(state).map(points => `M${points.replaceAll(" ", "L")}`).join("") }
+      : { tiles: mergeCells(topLayerCells(state, mask, view, held)) };
     views.set(key, paths);
   }
   return paths;

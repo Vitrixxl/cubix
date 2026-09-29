@@ -123,7 +123,7 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
   const times = <CrossTimes solves={solves} context={context} />;
   return <>
     <PracticeFrame head={head} prompt={prompt} timer={timer} disabled={!!timer.saveError}
-      visual={previewSize > 0 && scramble && !(generating && slow) ? <CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} /> : previewSize > 0 ? <View style={{ width: previewSize, height: previewSize }} /> : null}
+      visual={previewSize > 0 && scramble && !(generating && slow) ? <CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /> : previewSize > 0 ? <View style={{ width: previewSize, height: previewSize }} /> : null}
       notice={<Toast at={record.at} hidden={running} icon={<IconTrophy size={14} color={t.good} />} message={record.message} />}
       readout={<TimerSurface timer={timer} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} /> : null} />}
       metrics={sessionMetrics(solves)} columns={4} dense

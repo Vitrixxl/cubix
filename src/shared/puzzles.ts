@@ -26,6 +26,11 @@ export const isPuzzle = (value: unknown): value is PuzzleId => PUZZLES.some(p =>
 export const solveModeOf = (value: StoredContext): SolveMode => value.solve_mode ?? "standard";
 export const scrambleTypeOf = (value: StoredContext): ScrambleType => normalizeScrambleType(value.scramble_type ?? (value.case_id || value.mode === "training" ? "case" : "normal"));
 export const contextOf = (value: StoredContext): PracticeContext => ({ puzzle: puzzleOf(value), solveMode: solveModeOf(value), scrambleType: scrambleTypeOf(value) });
+/**
+ * Scrambles are applied white on top and green in front, then the cube is held yellow on top (see `parseScramble`).
+ * Last-layer and F2L practice scrambles are case setups, applied yellow on top like the cases themselves.
+ */
+export const heldScramble = (type: string) => !["last-layer", "oll", "pll", "f2l", "case"].includes(type);
 export const contextKey = (context: PracticeContext) => `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
 export const modeLabel = (mode: SolveMode) => SOLVE_MODES.find(m => m.id === mode)?.label ?? mode;
 export const eventOf = (puzzle: PuzzleId, solveMode: SolveMode) => EVENTS.find(e => e.puzzle === puzzle && e.solveMode === solveMode);

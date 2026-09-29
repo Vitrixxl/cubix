@@ -1,6 +1,7 @@
 /** The timer page and a running training: prompt, timer, session figures and the times list. */
 import { isReviewMode, learningTrackOf } from "../../src/client/lib/dailyLearning";
 import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../src/shared/crossPlusOne";
+import { heldScramble } from "../../src/shared/puzzles";
 import { trainingSessionRows } from "../../src/client/lib/practiceSummary";
 import { PracticeTimer } from "../../src/client/lib/practiceTimer";
 import { shortId, maskForStage } from "../../src/client/lib/caseState";
@@ -179,6 +180,7 @@ export function Practice() {
         mask={training ? maskForStage(c.stage) : undefined}
         size={previewSize}
         replay={s.replay}
+        held={!training && heldScramble(s.context().scrambleType)}
       />
     ) : training && s.training?.svg ? (
       <div
