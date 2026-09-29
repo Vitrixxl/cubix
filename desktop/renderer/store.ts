@@ -20,6 +20,7 @@ export const matches = (c: any, q: string) =>
         .includes(word),
     );
 const PAGE_ORDER = ["playground", "algorithms", "training", "profile"];
+const LOCATION_KEY = "cubix.location";
 /** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
 function slideDirection(
   from: { page: string; caseId: string },
@@ -126,8 +127,42 @@ export class Store {
   };
   emit = () => {
     this.version++;
+    this.saveLocation();
     this.listeners.forEach((fn) => fn());
   };
+  /** Where the app stood, kept on this device so a relaunch opens there again. */
+  savedLocation = "";
+  saveLocation() {
+    if (!this.ready) return;
+    const value = JSON.stringify({
+      page: this.page,
+      caseId: this.caseId,
+      profileMode: this.profileMode,
+      trainingStep: this.trainingStep,
+      setupMode: this.setupMode,
+    });
+    if (value === this.savedLocation) return;
+    this.savedLocation = value;
+    try {
+      localStorage.setItem(LOCATION_KEY, value);
+    } catch {}
+  }
+  restoreLocation() {
+    let saved: any;
+    try {
+      saved = JSON.parse(localStorage.getItem(LOCATION_KEY) ?? "null");
+    } catch {}
+    if (!saved || !PAGE_ORDER.includes(saved.page)) return;
+    this.page = saved.page;
+    this.caseId = typeof saved.caseId === "string" && this.find(saved.caseId) ? saved.caseId : "";
+    if (typeof saved.profileMode === "string") this.profileMode = saved.profileMode;
+    if (saved.trainingStep === "setup" || saved.trainingStep === "practice") this.trainingStep = saved.trainingStep;
+    if (typeof saved.setupMode === "string") this.setupMode = saved.setupMode;
+    this.showTimes = this.page === "training" && innerWidth >= 1024;
+    this.profilePuzzle = this.puzzle;
+    this.profileSolveMode = this.solveMode;
+    this.profileScramble = this.scrambleType;
+  }
   /** First-block training: timer solves on scrambles whose cross and one pair take `crossMoves` turns. */
   get crossTraining() {
     return this.page === "training" && this.trainingKind === "cross1" && this.puzzle === "333";
@@ -231,6 +266,7 @@ export class Store {
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
+      this.restoreLocation();
       this.ready = true;
       this.emit();
       await this.refresh();
