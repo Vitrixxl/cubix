@@ -3,9 +3,11 @@ import { shortId } from "../../src/client/lib/caseState";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { store as s, matches } from "./store";
-import { fmtTime, best, bestAverage } from "../../src/client/lib/format";
+import { fmtSolve, fmtTime, best, bestAverage } from "../../src/client/lib/format";
 import { Avatar, Button, Diagram, Empty, Icon, Menu, PageHead, Progress, type Props, Row, plural } from "./ui";
 import { TimerStats } from "./stats";
+import { DUELS_KEY, ROUNDS, type DuelRecord } from "./duelClient";
+import { eventInfo, eventLabel } from "../../src/shared/puzzles";
 const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
@@ -523,6 +525,95 @@ function AchievementGoals({ d }: { d: OverviewData }) {
   );
 }
 
+/** Battles raced on this device, newest first. */
+const battles = (): DuelRecord[] => s.prefs[DUELS_KEY] ?? [];
+const RESULT_MARK = { win: "W", loss: "L", draw: "D" } as const;
+const ao5Text = (v: number | null) => (v === null ? "DNF" : fmtTime(v));
+const battleEvent = (b: DuelRecord) => {
+  const e = eventInfo(b.event);
+  return e ? eventLabel(e.puzzle, e.solveMode) : b.event;
+};
+function record(list: DuelRecord[]) {
+  const count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length;
+  return `${count("win")} won · ${count("loss")} lost` + (count("draw") ? ` · ${count("draw")} drawn` : "");
+}
+
+/** The latest battles, as many as the pane holds: result, opponent and both averages. */
+function RecentBattles() {
+  const list = battles(),
+    [ref, fit] = useFit(RECENT_ROW);
+  return (
+    <Go action="profileMode:duels" className="ov-card ov-battles" label={`Battles: ${list.length ? record(list) : "none yet"}`}>
+      <span className="ov-card-head">
+        <span className="ov-card-title">Battles</span>
+        <small className="muted">{list.length ? record(list) : "No battles yet"}</small>
+        <Icon name="IconChevronRight" size={14} />
+      </span>
+      <span ref={ref} className="ov-battle-list">
+        {!list.length && <small className="muted">Race another cuber from Duel: your results land here.</small>}
+        {list.slice(0, fit).map((b) => (
+          <span key={b.id} className="ov-battle">
+            <span className={"battle-mark mono " + b.result}>{RESULT_MARK[b.result]}</span>
+            <span className="ov-battle-name">{b.opponent}</span>
+            <span className="mono">
+              {ao5Text(b.ao5[0])} <span className="muted">vs</span> {ao5Text(b.ao5[1])}
+            </span>
+            <small className="muted">{solvedAt(b.at)}</small>
+          </span>
+        ))}
+      </span>
+    </Go>
+  );
+}
+
+/** Every battle kept on this device: result, opponent, event, both averages and the five rounds. */
+function Battles() {
+  const list = battles();
+  if (!list.length)
+    return (
+      <div className="empty col center">
+        <span>No battles yet.</span>
+        <Button action="nav:duel" className="primary">
+          Find an opponent
+        </Button>
+      </div>
+    );
+  return (
+    <div className="battles">
+      <div className="battle-row battle-head label">
+        <span />
+        <span>Opponent</span>
+        <span>You</span>
+        <span>Them</span>
+        <span className="battle-rounds">Rounds</span>
+        <span>Date</span>
+      </div>
+      <div className="scroll">
+        {list.map((b) => (
+          <div key={b.id} className="battle-row">
+            <span className={"battle-mark mono " + b.result}>{RESULT_MARK[b.result]}</span>
+            <span className="battle-who">
+              <strong>{b.opponent}</strong>
+              <small className="muted">{battleEvent(b)}</small>
+            </span>
+            <span className={"mono " + (b.result === "win" ? "good" : "")}>{ao5Text(b.ao5[0])}</span>
+            <span className={"mono " + (b.result === "loss" ? "good" : "")}>{ao5Text(b.ao5[1])}</span>
+            <span className="battle-rounds mono">
+              {[...Array(ROUNDS).keys()].map((r) => (
+                <span key={r} className="battle-round">
+                  <span>{b.mine[r] ? fmtSolve(b.mine[r]!.ms, b.mine[r]!.penalty) : "—"}</span>
+                  <span className="muted">{b.theirs[r] ? fmtSolve(b.theirs[r]!.ms, b.theirs[r]!.penalty) : "—"}</span>
+                </span>
+              ))}
+            </span>
+            <small className="muted">{shortDate(b.at)}</small>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Overview as a grid of panes whose lines meet: activity and training on top, the timer (figures, curve and latest
  * solves) and achievements filling the rest.
@@ -575,6 +666,7 @@ function Overview() {
       <GaugeCard g={achievements} className="ov-achievements">
         <AchievementGoals d={d} />
       </GaugeCard>
+      <RecentBattles />
     </div>
   );
 }
@@ -669,6 +761,7 @@ const PROFILE_SECTIONS: Record<string, string> = {
   playground: "Timer",
   training: "Training",
   achievements: "Achievements",
+  duels: "Battles",
 };
 
 /** Account page: the overview, or one of its sections opened from it as a page of its own. */
@@ -703,7 +796,7 @@ export function Profile() {
         <PageHead
           lead={<Button action="back" icon="IconBack" className="control icon-only" title="Back to the overview" />}
           title={title}
-          sub={s.event(s.profilePuzzle, s.profileSolveMode).label}
+          sub={mode === "duels" ? record(battles()) : s.event(s.profilePuzzle, s.profileSolveMode).label}
         >
           {mode === "training" && <ProfileFilters />}
           {mode === "playground" && <ProfileFilters scramble />}
@@ -734,6 +827,8 @@ export function Profile() {
           <TrainingProgress />
         ) : mode === "achievements" ? (
           <Achievements />
+        ) : mode === "duels" ? (
+          <Battles />
         ) : (
           <Overview />
         )}

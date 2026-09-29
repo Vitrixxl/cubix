@@ -8,6 +8,7 @@ import catalogData from "../assets/catalog.json";
 import { bestAverage, fmtTime } from "../../src/client/lib/format";
 import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
+import { duel } from "./duelClient";
 export const catalog = catalogData as any;
 export const matches = (c: any, q: string) =>
   q
@@ -19,7 +20,7 @@ export const matches = (c: any, q: string) =>
         .toLowerCase()
         .includes(word),
     );
-const PAGE_ORDER = ["playground", "algorithms", "training", "profile"];
+const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "profile"];
 const LOCATION_KEY = "cubix.location";
 /** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
 function slideDirection(
@@ -330,6 +331,7 @@ export class Store {
         .filter((s: any) => s.session_id === this.sessions.get(key))
         .reverse();
       this.stats = v.stats;
+      this.prefs["cubix.duels"] = v.duels;
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       await this.refreshLearning();
@@ -725,9 +727,14 @@ export class Store {
           await this.nextCase();
           if (this.crossTraining) await this.syncScramble();
           else if (!this.scramble) await this.nextScramble();
+          // A search follows the puzzle: it starts again on the new event.
+          if (duel.status === "searching") void duel.search();
           await this.refresh();
           break;
         }
+        case "duel":
+          await duel.action(arg);
+          break;
         case "scrambleType":
           this.timerEpoch++;
           this.scrambleType = arg;
@@ -901,7 +908,7 @@ export class Store {
           break;
         case "help":
           this.guidePage =
-            this.page === "training" ? "trainingGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
+            this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
           this.overlay = "guides";
           break;
         case "guidePage":

@@ -4,6 +4,7 @@ export const GUIDES = {
   algorithmsGuide: { name: 'Algorithms', path: '/guides/cube-algorithms/', heading: 'Using the algorithm library' },
   trainingGuide: { name: 'Training', path: '/guides/algorithm-training/', heading: 'Using the algorithm trainer' },
   timerGuide: { name: 'Timer', path: '/guides/how-to-use-a-cube-timer/', heading: 'Using the cube timer' },
+  duelGuide: { name: 'Duel', path: '/guides/cube-duel/', heading: 'Racing another cuber' },
   methodsGuide: { name: 'Solving methods', path: '/guides/solving-methods/', heading: 'Solving methods' },
   averagesGuide: { name: 'Ao5 and Ao12', path: '/guides/ao5-ao12/', heading: 'Ao5 and Ao12: how cube timer averages work' },
 } as const;

@@ -3,6 +3,7 @@ mod admin;
 mod api;
 mod catalog;
 mod db;
+mod duel;
 mod error;
 mod live;
 mod practice;
@@ -31,6 +32,7 @@ pub struct AppState {
     db: db::Db,
     catalog: Arc<catalog::Catalog>,
     hub: Arc<live::Hub>,
+    duel: Arc<duel::Arena>,
     attempts: Arc<Mutex<HashMap<String, (u32, i64)>>>,
     passwords: Arc<Semaphore>,
     admin: Arc<Option<admin::Admin>>,
@@ -126,12 +128,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let traffic = Arc::new(traffic::Traffic::new());
     let admin = Arc::new(admin::Admin::new()?);
+    let duel = Arc::new(duel::Arena::default());
+    tokio::spawn(duel::run(duel.clone()));
     let state = AppState {
         admin,
         traffic: traffic.clone(),
         db,
         catalog: Arc::new(catalog::Catalog::load()),
         hub: Arc::new(live::Hub::default()),
+        duel: duel.clone(),
         attempts: Arc::new(Mutex::new(HashMap::new())),
         passwords: Arc::new(Semaphore::new(4)),
     };
@@ -146,6 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
     let api = Router::new()
         .route("/api/live", get(live::upgrade))
+        .route("/api/duel", get(duel::upgrade))
         // The APK upload carries a whole Android build, far above the JSON limit below.
         .route(
             "/api/mobile/apk",

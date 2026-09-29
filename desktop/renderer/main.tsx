@@ -12,6 +12,7 @@ import { Practice } from "./practice";
 import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
+import { DuelPage } from "./duel";
 import { Overlay } from "./overlays";
 import "./styles.css";
 function App() {
@@ -39,6 +40,7 @@ function App() {
             Digit2: "nav:algorithms",
             Digit3: "nav:training",
             Digit4: "nav:profile",
+            Digit5: "nav:duel",
             KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
@@ -117,6 +119,8 @@ function App() {
                     <Practice />
                   ) : s.page === "algorithms" ? (
                     <Algorithms />
+                  ) : s.page === "duel" ? (
+                    <DuelPage />
                   ) : (
                     <Profile />
                   )}

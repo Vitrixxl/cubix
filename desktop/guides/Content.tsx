@@ -8,7 +8,7 @@ export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guid
     {page === 'overviewGuide' && <>
       <p className="public-lead">Cubix is a free cube timer and algorithm trainer for desktop and mobile. No account is needed to start.</p>
       <div className="public-grid">
-        <section><h2>Timer</h2><p>Apply the scramble, hold Space (or touch the screen), release to start, press any key to stop. Times, Ao5 and Ao12 are kept per puzzle.</p><p><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a></p></section>
+        <section><h2>Timer</h2><p>Apply the scramble, hold Space (or touch the screen), release to start, press any key to stop. Times, Ao5 and Ao12 are kept per puzzle.</p><p><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/cube-duel/">Duel guide</a></p></section>
         <section><h2>Algorithms</h2><p>F2L, OLL and PLL cases with diagrams, setups and algorithms from trusted sources. 2×2 to 7×7, Square-1, Pyraminx, Skewb, Megaminx and Clock are included.</p><p><a href="/guides/cube-algorithms/">Algorithm guide</a></p></section>
         <section><h2>Training</h2><p>Pick the cases you want to drill. Cubix shows a setup, times your execution and tracks your progress per case.</p><p><a href="/guides/algorithm-training/">Training guide</a></p></section>
         <section><h2>Averages</h2><p>Best, mean, Ao5 and Ao12 with +2 and DNF handled the WCA way.</p><p><a href="/guides/ao5-ao12/">Ao5 and Ao12 explained</a></p></section>
@@ -51,6 +51,14 @@ export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guid
       <h2>Modes</h2><p>Standard, one-handed and blindfolded keep separate histories. Blindfolded time includes memorisation. Guest times stay on your device; sign in to sync them.</p>
       <p>For official competitions, follow the <a href="https://www.worldcubeassociation.org/regulations/">WCA Regulations</a>.</p>
     </>}
+    {page === 'duelGuide' && <>
+      <p className="public-lead">Duel races you against another cuber, live, on the same scrambles. Open it from the crossed swords in the sidebar (Alt+5).</p>
+      <h2>1. Find an opponent</h2><p>Choose the puzzle in the sidebar, then Find an opponent. There is no rating: your level is the mean of your last twelve timer solves on that puzzle, without the best and the worst, once five of them count. You meet the player searching the same puzzle whose level is closest to yours. The range accepted widens the longer you wait, from 15% at once to anyone after 30 seconds, so a quiet moment still gives you a race. Without a level you first meet other new players, then anyone after 10 seconds. Signed-in players race under their username, guests under a short guest name.</p>
+      <h2>2. Race five rounds</h2><p>Both of you get the same five scrambles, one round at a time. Your timer is on the left, your opponent's on the right, with the scrambled cube between them: drag it to turn it, or hide it with its × or the Cube cell of the header. Start and stop like on the timer page. You see your opponent hold, start and stop as it happens, and the next round opens once you have both finished.</p>
+      <h2>3. +2, DNF and Cancel</h2><p>The cells at the end of your row put a +2 or a DNF on your latest solve, or take it off again. Cancel takes your solve back so you can redo it on the same scramble, as long as your opponent has not finished that round.</p>
+      <h2>4. The result</h2><p>After five rounds the best Ao5 wins: best and worst dropped, one DNF counts as the worst, two make the average DNF. The result dialog offers a rematch, which starts once you both accept it on five new scrambles, or a new opponent. Your recent battles appear in Account.</p>
+      <h2>Chat</h2><p>The chat runs beside the race on wide screens and behind the Chat cell otherwise. Messages last as long as the race.</p>
+    </>}
     {page === 'methodsGuide' && <MethodsGuide puzzle={puzzle} method={method} />}
     {page === 'averagesGuide' && <>
       <p className="public-lead">A single best shows what happened once. An average shows how you usually solve. Here is how the <a href="/">Cubix timer</a> calculates them.</p>
@@ -61,7 +69,7 @@ export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guid
       <h2>Personal bests</h2><p>A timer solve that beats your all-time best single, Ao5 or Ao12 for the puzzle, scramble type and solve mode shows a brief green message. The first result sets the record without beating one.</p>
       <p>Official rules: <a href="https://www.worldcubeassociation.org/regulations/#9b">WCA formats</a> and <a href="https://www.worldcubeassociation.org/regulations/#9f">results</a>.</p>
     </>}
-    <nav className="public-links" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/solving-methods/">Solving methods</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>
+    <nav className="public-links" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/cube-duel/">Duel guide</a><a href="/guides/solving-methods/">Solving methods</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>
     <footer><p>Cubix is an independent speedcubing app. Rubik’s is a trademark of its respective owner. <a href="https://github.com/Vitrixxl/cubix">Source code</a></p></footer>
   </section>;
 }

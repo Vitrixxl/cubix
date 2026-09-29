@@ -7,6 +7,7 @@ const TABS: [page: string, label: string, icon: string, shortcut: string][] = [
   ["playground", "Timer", "IconTimer", "Alt+1"],
   ["algorithms", "Algorithms", "IconCases", "Alt+2"],
   ["training", "Training", "IconTarget", "Alt+3"],
+  ["duel", "Duel", "IconSwords", "Alt+5"],
 ];
 
 function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?: number }) {
@@ -82,6 +83,7 @@ const MOBILE_TABS: [action: string, label: string, icon: string][] = [
   ["nav:algorithms", "Algorithms", "IconCases"],
   ["nav:training", "Training", "IconTarget"],
   ["nav:playground", "Timer", "IconTimer"],
+  ["nav:duel", "Duel", "IconSwords"],
   ["nav:profile", "Account", "IconUser"],
   ["settings", "Settings", "IconSettings"],
 ];

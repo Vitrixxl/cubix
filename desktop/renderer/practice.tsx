@@ -85,7 +85,7 @@ function useTimer(enabled: boolean) {
 }
 
 /** The side of the largest square inside an element's padding box, kept up to date as it resizes. */
-function useSquare(element: HTMLElement | null) {
+export function useSquare(element: HTMLElement | null) {
   const [side, setSide] = useState(0);
   useLayoutEffect(() => {
     if (!element) return void setSide(0);
