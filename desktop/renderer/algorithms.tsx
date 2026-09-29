@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef } from "react";
 import { store as s } from "./store";
 import { Cube } from "./Cube";
 import { fmtTime } from "../../src/client/lib/format";
-import { Alg, Button, Diagram, Empty, Icon, MOBILE, PageHead, Progress, useViewport } from "./ui";
+import { Alg, Button, Diagram, Empty, Icon, MOBILE, PageHead, useViewport } from "./ui";
 import { TimerStats } from "./stats";
 function useScrollPosition(key: string) {
   const ref = useRef<HTMLDivElement>(null);
@@ -185,7 +185,6 @@ function SetSummary() {
           </div>
         ))}
       </div>
-      <Progress ratio={all.all.length ? all.learnedCount / all.all.length : 0} />
       <div className="set-summary-groups-head">
         <span className="label">Groups</span>
         <Button action={"train:" + all.active.id} icon="IconTimer" className="set-summary-train" title={`Train ${all.active.label}`}>
@@ -204,7 +203,6 @@ function SetSummary() {
                     {learned} / {members.length}
                   </span>
                 </span>
-                <Progress ratio={learned / members.length} />
               </Button>
               <Button action={"train:" + all.active.id + ":" + group} icon="IconTimer" className="set-summary-train" title={`Train ${group}`}>
                 Train

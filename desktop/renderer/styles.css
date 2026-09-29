@@ -1932,10 +1932,11 @@ kbd {
   font-size: 14px;
   line-height: 1.6;
 }
-/* Figures: flush cells across the pane, the learned share as a bar along their bottom line. */
+/* Figures: flush cells across the pane. */
 .set-summary-figures {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
 }
 .set-summary-figures .metric {
   padding: 20px 24px 22px 40px;
@@ -1946,10 +1947,6 @@ kbd {
 }
 .set-summary-figures .metric-value {
   font-size: 28px;
-}
-.set-summary > .progress {
-  flex-shrink: 0;
-  height: 3px;
 }
 /* Groups: flush rows, each opening its first case, with a Train cell as wide as the list's. */
 .set-summary-groups-head {
@@ -2001,10 +1998,6 @@ kbd {
 .set-summary-group-open .mono {
   margin-left: 10px;
   font-size: 12px;
-}
-.set-summary-group-open .progress {
-  width: 140px;
-  margin-left: auto;
 }
 .button.set-summary-train {
   width: 120px;
