@@ -152,7 +152,8 @@ function CaseRow({ c, size }: { c: any; size: number }) {
         className={"case-check " + (learned ? "yes" : "")}
         title={learned ? "Learned" : "Mark learned"}
       >
-        <span className="checkbox">{learned && <Icon name="IconCheck" size={11} />}</span>
+        <Icon name="IconCheck" size={16} />
+        <span>{learned ? "Learned" : "Learn"}</span>
       </Button>
     </div>
   );

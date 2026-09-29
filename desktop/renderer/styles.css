@@ -1929,10 +1929,6 @@ kbd {
   padding: 0;
   background: none;
 }
-.case-check.yes .checkbox {
-  background: var(--good);
-  border-color: var(--good);
-}
 .md-detail {
   position: relative;
   min-width: 0;
@@ -3891,8 +3887,21 @@ kbd {
   min-height: 0;
   border-left: 1px solid var(--line);
 }
+/* The whole cell marks the case learned: a dim check to learn it, the cell tinted green once learned. */
+.button.case-check {
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
 .button.case-check:hover {
   background: var(--hover);
+  color: var(--text);
+}
+.button.case-check.yes,
+.button.case-check.yes:hover {
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  color: var(--good);
 }
 .detail-foot {
   justify-content: space-between;
