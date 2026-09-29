@@ -81,7 +81,23 @@ function hull(points: V[]) {
 }
 
 /** Shapes of the scene `seconds` into its replay, seen from `yaw` and `pitch`. */
-export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH): CubeShape[] {
+/** Where the cube's x, y and z axes point on screen: the columns of the view's rotation. */
+export type CubeOrientation = readonly V[];
+export const cubeOrientation = (yaw = CUBE_YAW, pitch = CUBE_PITCH): CubeOrientation =>
+  [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map((e) => rotate(rotate(e, 1, -yaw), 0, pitch));
+/**
+ * Turns the cube like a trackball: `across` about the screen's vertical axis, `down` about its horizontal one, so a
+ * drag spins it endlessly either way and always the way the pointer goes, upside down included. The axes are kept
+ * orthonormal so endless turning never skews the cube.
+ */
+export function turnCube(m: CubeOrientation, across: number, down: number): CubeOrientation {
+  const [x, y] = m.map((c) => rotate(rotate(c, 1, across), 0, down)),
+    norm = (v: V) => scale(v, 1 / Math.hypot(...v)),
+    ux = norm(x),
+    uy = norm(add(y, scale(ux, -(ux[0] * y[0] + ux[1] * y[1] + ux[2] * y[2]))));
+  return [ux, uy, [ux[1] * uy[2] - ux[2] * uy[1], ux[2] * uy[0] - ux[0] * uy[2], ux[0] * uy[1] - ux[1] * uy[0]]];
+}
+export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,
     index = Math.min(Math.floor(progress), scene.moves.length),
     f = progress % 1,
@@ -92,7 +108,9 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
     axis = move?.axis ?? 0,
     moving = (l: number) => move?.layers.includes(l - h) ?? false,
     angle = move ? ((fraction * Math.PI) / 2) * (move.q === 3 ? -1 : move.q) : 0;
-  const camera = (v: V) => rotate(rotate(v, 1, -yaw), 0, pitch),
+  const camera = orientation
+      ? (v: V) => add(add(scale(orientation[0]!, v[0]!), scale(orientation[1]!, v[1]!)), scale(orientation[2]!, v[2]!))
+      : (v: V) => rotate(rotate(v, 1, -yaw), 0, pitch),
     pose = (v: V, turn: boolean) => camera(turn ? rotate(v, axis, angle) : v);
   const slabs: { start: number; end: number; turn: boolean }[] = [];
   for (let l = 0; l < scene.size; l++) {

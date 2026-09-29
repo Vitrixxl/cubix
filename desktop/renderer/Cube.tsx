@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { call } from "./bridge";
 import {
-  CUBE_PITCH,
-  CUBE_YAW,
+  cubeOrientation,
   cubeSceneDuration,
   cubeShapes,
   cubeViewRadius,
+  turnCube,
+  type CubeOrientation,
   type CubeScene as Scene,
 } from "../../src/shared/cubeScene";
 function paintCube(
@@ -13,12 +14,11 @@ function paintCube(
   scene: Scene,
   seconds: number,
   size: number,
-  yaw = CUBE_YAW,
-  pitch = CUBE_PITCH,
+  orientation: CubeOrientation,
 ) {
   ctx.clearRect(0, 0, size, size);
   const unit = size / 2 / cubeViewRadius(scene);
-  for (const { points, color, line } of cubeShapes(scene, seconds, yaw, pitch)) {
+  for (const { points, color, line } of cubeShapes(scene, seconds, undefined, undefined, orientation)) {
     ctx.beginPath();
     points.forEach((v, i) => {
       const x = size / 2 + v[0] * unit,
@@ -59,7 +59,7 @@ export function Cube({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     [loaded, setLoaded] = useState<Scene | undefined>(scene),
-    rotation = useRef([CUBE_YAW, CUBE_PITCH]),
+    rotation = useRef(cubeOrientation()),
     drag = useRef<number[] | null>(null),
     start = useRef(0),
     redraw = useRef<() => void>(() => {});
@@ -79,7 +79,7 @@ export function Cube({
   // A new scene or a replay restarts the animation; a new size only redraws it where it stands.
   useEffect(() => {
     start.current = performance.now();
-    rotation.current = [CUBE_YAW, CUBE_PITCH];
+    rotation.current = cubeOrientation();
   }, [loaded, replay]);
   useEffect(() => {
     let frame = 0;
@@ -95,7 +95,7 @@ export function Cube({
         loaded,
         animated ? (performance.now() - start.current) / 1000 : 99,
         size,
-        ...(rotation.current as [number, number]),
+        rotation.current,
       );
       if (
         animated &&
@@ -126,16 +126,12 @@ export function Cube({
       }}
       onPointerMove={(e) => {
         if (!drag.current) return;
-        rotation.current = [
-          rotation.current[0] - (e.clientX - drag.current[0]) * 0.012,
-          Math.max(
-            -1.4,
-            Math.min(
-              1.4,
-              rotation.current[1] + (e.clientY - drag.current[1]) * 0.012,
-            ),
-          ),
-        ];
+        // Endless on both axes, like a trackball.
+        rotation.current = turnCube(
+          rotation.current,
+          (e.clientX - drag.current[0]!) * 0.012,
+          (e.clientY - drag.current[1]!) * 0.012,
+        );
         drag.current = [e.clientX, e.clientY];
         redraw.current();
       }}
