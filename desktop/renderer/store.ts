@@ -616,7 +616,7 @@ export class Store {
                 ? [this.caseId]
                 : this.cases()
                     .filter((c: any) =>
-                      kind === "selectSet"
+                      kind === "selectSet" || (kind === "train" && !arg.includes(":"))
                         ? c.set === arg
                         : `${c.set}:${c.group}` === arg,
                     )

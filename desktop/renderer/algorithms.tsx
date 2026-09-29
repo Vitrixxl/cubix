@@ -159,38 +159,60 @@ function CaseRow({ c, size }: { c: any; size: number }) {
   );
 }
 
-/** Right pane before a case is chosen: where the chosen set stands. */
+/** Right pane before a case is chosen: where the chosen set stands, group by group, each ready to train. */
 function SetSummary() {
-  const { stage, section, all } = currentSection();
+  const { stage, all } = currentSection();
   if (!all) return <Empty>No cases for this puzzle.</Empty>;
   const trained = all.all.filter((c: any) => s.stats.some((v) => v.caseId === c.id)).length;
+  const figures: [string, number][] = [
+    ["Cases", all.all.length],
+    ["Learned", all.learnedCount],
+    ["To learn", all.all.length - all.learnedCount],
+    ["Trained", trained],
+  ];
   return (
     <div className="set-summary">
-      <span className="label">{stage}</span>
-      <h2>{all.active.label}</h2>
-      {all.active.description && <p className="muted">{all.active.description}</p>}
-      <div className="summary-figures">
-        <div className="metric">
-          <span className="label">Cases</span>
-          <span className="metric-value mono">{all.all.length}</span>
-        </div>
-        <div className="metric">
-          <span className="label">Learned</span>
-          <span className="metric-value mono">{all.learnedCount}</span>
-        </div>
-        <div className="metric">
-          <span className="label">Trained</span>
-          <span className="metric-value mono">{trained}</span>
-        </div>
+      <header className="set-summary-head">
+        <span className="label">{stage}</span>
+        <h2>{all.active.label}</h2>
+        {all.active.description && <p className="muted">{all.active.description}</p>}
+      </header>
+      <div className="set-summary-figures">
+        {figures.map(([label, value]) => (
+          <div key={label} className="metric">
+            <span className="label">{label}</span>
+            <span className="metric-value mono">{value}</span>
+          </div>
+        ))}
       </div>
       <Progress ratio={all.all.length ? all.learnedCount / all.all.length : 0} />
-      {section?.groups.length ? (
-        <div className="row">
-          <Button action={"train:" + all.active.id + ":" + section.groups[0][0]} icon="IconTimer" className="primary">
-            Train {section.groups[0][0]}
-          </Button>
-        </div>
-      ) : null}
+      <div className="set-summary-groups-head">
+        <span className="label">Groups</span>
+        <Button action={"train:" + all.active.id} icon="IconTimer" className="set-summary-train" title={`Train ${all.active.label}`}>
+          Train all
+        </Button>
+      </div>
+      <div className="scroll set-summary-groups">
+        {all.groups.map(([group, members]: [string, any[]]) => {
+          const learned = members.filter((c: any) => s.learned.has(c.id)).length;
+          return (
+            <div key={group} className="set-summary-group">
+              <Button action={"case:" + members[0].id} className="set-summary-group-open" title={`Open ${group}`}>
+                <span className="set-summary-group-name">
+                  <strong>{group}</strong>
+                  <span className="mono muted">
+                    {learned} / {members.length}
+                  </span>
+                </span>
+                <Progress ratio={learned / members.length} />
+              </Button>
+              <Button action={"train:" + all.active.id + ":" + group} icon="IconTimer" className="set-summary-train" title={`Train ${group}`}>
+                Train
+              </Button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
