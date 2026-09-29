@@ -3660,7 +3660,7 @@ kbd {
   background-clip: padding-box !important;
 }
 .md-list-scroll {
-  padding: 0 0 16px;
+  padding: 0;
 }
 .case-row {
   border-bottom: 1px solid var(--line);
