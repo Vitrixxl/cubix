@@ -3,7 +3,7 @@ import { Animated, BackHandler, Easing, Keyboard, KeyboardAvoidingView, Modal, P
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FONT, useTheme } from "../theme";
 import { IconClose } from "./icons";
-import { Btn } from "./ui";
+import { Btn, HeadCells } from "./ui";
 
 /** The scroll view of a dialog body: no scrollbar, taps reach inputs while the keyboard is up. */
 export function SheetScrollView(props: ScrollViewProps) {
@@ -62,16 +62,18 @@ export function Sheet({ open, onClose, children, title, sub, actions, header = t
     </Animated.View>
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} pointerEvents="box-none"
       style={[styles.host, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16, paddingLeft: insets.left + 16, paddingRight: insets.right + 16 }]}>
-      <Animated.View accessibilityViewIsModal style={[styles.card, size, { backgroundColor: t.raised, borderColor: t.line, opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [-4, 0] }) }] }, t.dialogShadow, style]}>
-        {header && <View style={[styles.heading, { paddingHorizontal: pad, paddingTop: pad - 2 }, flush && { paddingBottom: 12 }]}>
+      <Animated.View accessibilityViewIsModal style={[styles.card, size, { backgroundColor: t.bg, borderColor: t.line, opacity: progress }, style]}>
+        {header && <View style={[styles.heading, { paddingLeft: pad, borderColor: t.line }]}>
           <View style={styles.titleText}>
             <Text numberOfLines={1} style={[styles.title, { color: t.text }]} accessibilityRole="header">{title}</Text>
             {sub ? <Text style={[styles.sub, { color: t.muted }]}>{sub}</Text> : null}
           </View>
-          {actions}
-          <Btn variant="ghost" iconOnly size={30} icon={<IconClose size={16} color={t.muted} />} accessibilityLabel={`Close ${title.toLowerCase()}`} onPress={onClose} />
+          <HeadCells height={52}>
+            {actions}
+            <Btn iconOnly icon={<IconClose size={16} color={t.muted} />} accessibilityLabel={`Close ${title.toLowerCase()}`} onPress={onClose} />
+          </HeadCells>
         </View>}
-        <View style={[styles.body, tall && { flex: 1 }, !flush && { paddingHorizontal: pad, paddingBottom: pad, paddingTop: header ? 16 : pad }]}>{children}</View>
+        <View style={[styles.body, tall && { flex: 1 }, !flush && { paddingHorizontal: pad, paddingBottom: pad, paddingTop: pad }]}>{children}</View>
       </Animated.View>
     </KeyboardAvoidingView>
     <BackClose onClose={onClose} />
@@ -87,8 +89,9 @@ function BackClose({ onClose }: { onClose: () => void }) {
 
 const styles = StyleSheet.create({
   host: { flex: 1, alignItems: "center", justifyContent: "center" },
-  card: { borderRadius: 12, borderWidth: 1, overflow: "hidden", flexShrink: 1 },
-  heading: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 30 },
+  card: { borderRadius: 0, borderWidth: 1, overflow: "hidden", flexShrink: 1 },
+  // The title row of the web's dialogs: 52 px, a line under it, the close button as its last cell.
+  heading: { flexDirection: "row", alignItems: "center", gap: 0, height: 52, borderBottomWidth: 1 },
   titleText: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 10 },
   title: { fontSize: 17, fontWeight: "600", letterSpacing: -0.25, flexShrink: 1 },
   sub: { fontFamily: FONT.mono, fontSize: 13 },

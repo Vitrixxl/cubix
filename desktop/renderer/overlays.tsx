@@ -9,7 +9,7 @@ import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { EVENTS, PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { Alg, Avatar, Button, Diagram, Icon, Row } from "./ui";
+import { Alg, Avatar, Button, Diagram, Icon, MOBILE, Row } from "./ui";
 import { TimerStats } from "./stats";
 function Appearance() {
   return (
@@ -253,6 +253,29 @@ function options(): { action: string; values: any[]; current: string } {
 
 const PUZZLE_COLUMNS = 4;
 
+/**
+ * Where a menu opens: flush against the cell that opened it, its lines on the cell's. A rail cell opens it beside
+ * itself, top lines aligned; any other cell under itself (above when there is no room), left lines aligned, or right
+ * lines when it would leave the window. On phones it spans the width under the cell's row. The anchor is the
+ * cell's line rectangle (store.ts), so sharing a line means overlapping it by 1px.
+ */
+function placeMenu(anchor: DOMRect | null, width: number, natural: number, mobile: boolean) {
+  const room = innerHeight - (mobile ? 64 : 0);
+  if (!anchor) {
+    const height = Math.min(natural, room - 32);
+    return { left: Math.max(0, (innerWidth - width) / 2), top: Math.max(16, (room - height) / 2), height, up: false };
+  }
+  if (!mobile && anchor.left < 2) {
+    const height = Math.min(natural, room);
+    return { left: anchor.right - 1, top: Math.max(0, Math.min(anchor.top, room - height)), height, up: false };
+  }
+  const left = mobile ? 0 : anchor.left + width > innerWidth ? Math.max(0, anchor.right - width) : anchor.left,
+    below = room - anchor.bottom + 1,
+    up = natural > below && anchor.top > below,
+    height = Math.min(natural, up ? anchor.top + 1 : below);
+  return { left, top: up ? anchor.top + 1 - height : anchor.bottom - 1, height, up };
+}
+
 export function Overlay() {
   const menu = options(),
     ref = useRef<HTMLDivElement>(null),
@@ -311,70 +334,65 @@ export function Overlay() {
     s.overlay = "";
     s.emit();
   };
-  if (s.overlay === "puzzles") return (
-    <div className="modal-backdrop" onClick={close}>
-      <div className="modal puzzle-modal" role="dialog" aria-modal="true" aria-label="Puzzle" onClick={(e) => e.stopPropagation()}>
-        <Row className="between"><h2>Puzzle</h2><Button action="close" icon="IconClose" title="Close puzzle choice" /></Row>
-        <div className="puzzle-grid" ref={ref} role="listbox" style={{ gridTemplateColumns: `repeat(${PUZZLE_COLUMNS}, 1fr)` }}>
-          {menu.values.map((v, i) => (
-            <button
-              key={v.id}
-              role="option"
-              aria-selected={v.id === menu.current}
-              data-focused={index === i}
-              className={"button puzzle-option " + (index === i ? "active " : "") + (v.id === menu.current ? "current" : "")}
-              onMouseEnter={() => setIndex(i)}
-              onClick={() => void s.action(menu.action + ":" + v.id)}
-            >
-              <Icon name={"Puzzle" + v.id} size={30} />
-              <span>{v.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-  if (menu.values.length) {
-    const anchor = s.anchor,
-      left = Math.min(
-        innerWidth - 292,
-        Math.max(12, anchor?.x ?? (innerWidth - 280) / 2),
-      ),
-      // Rows, padding and border: the menu only scrolls when the window is too short.
-      height = Math.min(menu.values.length * 42 + 18, innerHeight - 32),
-      below = !!anchor && anchor.bottom + 6 + height <= innerHeight - 12,
-      top = anchor
-        ? below
-          ? anchor.bottom + 6
-          : Math.max(12, anchor.y - height - 6)
-        : Math.max(12, (innerHeight - height) / 2);
+  if (s.overlay === "puzzles" || menu.values.length) {
+    const puzzles = s.overlay === "puzzles",
+      count = menu.values.length,
+      lastRow = count % PUZZLE_COLUMNS || PUZZLE_COLUMNS,
+      mobile = innerWidth <= MOBILE,
+      width = mobile ? innerWidth : puzzles ? PUZZLE_COLUMNS * 104 + 2 : Math.max(240, s.anchor?.width ?? 0),
+      // Rows (41px with their line) or puzzle cells, and the border: the menu only scrolls when the window is short.
+      natural = puzzles ? Math.ceil(count / PUZZLE_COLUMNS) * (mobile ? 85 : 93) + 1 : count * 41 + 1,
+      place = placeMenu(s.anchor, width, natural, mobile);
     return (
       <div className="menu-backdrop" onClick={close}>
         <div
-          className="select-menu"
+          className={"select-menu " + (puzzles ? "puzzle-menu " : "") + (place.up ? "up" : "")}
           ref={ref}
           role="listbox"
-          style={{ left, top, maxHeight: height, transformOrigin: anchor ? (below ? "top left" : "bottom left") : "center" }}
+          aria-label={puzzles ? "Puzzle" : undefined}
+          style={{ left: place.left, top: place.top, width, maxHeight: place.height }}
           onClick={(e) => e.stopPropagation()}
         >
-          {menu.values.map((v, i) => (
-            <button
-              key={v.id}
-              role="option"
-              aria-selected={v.id === menu.current}
-              data-focused={index === i}
-              style={{ "--i": i } as React.CSSProperties}
-              className={"button menu-option " + (index === i ? "active" : "")}
-              onMouseEnter={() => setIndex(i)}
-              onClick={() => void s.action(menu.action + ":" + v.id)}
-            >
-              {menu.action.toLowerCase().includes("puzzle") && (
-                <Icon name={"Puzzle" + v.id} size={22} />
-              )}
-              <span>{v.label}</span>
-              {v.id === menu.current && <Icon name="IconCheck" />}
-            </button>
-          ))}
+          {puzzles ? (
+            <div className="puzzle-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${PUZZLE_COLUMNS}, 1fr)` }}>
+              {menu.values.map((v, i) => (
+                <button
+                  key={v.id}
+                  role="option"
+                  aria-selected={v.id === menu.current}
+                  data-focused={index === i}
+                  className={
+                    "button puzzle-option " +
+                    (index === i ? "active " : "") +
+                    (v.id === menu.current ? "current " : "") +
+                    (i % PUZZLE_COLUMNS === PUZZLE_COLUMNS - 1 ? "edge-right " : "") +
+                    (i >= count - lastRow ? "edge-bottom" : "")
+                  }
+                  onMouseEnter={() => setIndex(i)}
+                  onClick={() => void s.action(menu.action + ":" + v.id)}
+                >
+                  <Icon name={"Puzzle" + v.id} size={28} />
+                  <span>{v.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            menu.values.map((v, i) => (
+              <button
+                key={v.id}
+                role="option"
+                aria-selected={v.id === menu.current}
+                data-focused={index === i}
+                className={"button menu-option " + (index === i ? "active " : "") + (v.id === menu.current ? "current" : "")}
+                onMouseEnter={() => setIndex(i)}
+                onClick={() => void s.action(menu.action + ":" + v.id)}
+              >
+                {menu.action.toLowerCase().includes("puzzle") && <Icon name={"Puzzle" + v.id} size={20} />}
+                <span>{v.label}</span>
+                {v.id === menu.current && <Icon name="IconCheck" />}
+              </button>
+            ))
+          )}
         </div>
       </div>
     );

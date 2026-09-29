@@ -6,11 +6,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export interface Anchor { x: number; y: number; width: number; height: number }
 
 /**
- * `.select-menu`: a raised surface (radius 10, 1px line, 5 px padding, soft shadow) anchored to a control.
- * Opens below the anchor with the web's `menu-in` (fade + 4 px drop), flips above when there is no room,
- * clamps to the window, and closes on outside taps. Fill it with `MenuOption`s (Select.tsx).
+ * `.select-menu`: a column of rows on the page colour, hanging flush from the cell that opened it: its top line on
+ * the cell's bottom line (`overlap` 1 when the cell draws that line itself, 0 when it belongs to the row under it),
+ * its left line on the cell's. Above the cell when there is no room below; the whole width on phones. Closes on
+ * outside taps. Fill it with `MenuOption`s (Select.tsx).
  */
-export function Popover({ anchor, onClose, children, width }: { anchor: Anchor | null; onClose: () => void; children: ReactNode; width?: number }) {
+export function Popover({ anchor, onClose, children, width, overlap = 1 }: { anchor: Anchor | null; onClose: () => void; children: ReactNode; width?: number; overlap?: number }) {
   const t = useTheme();
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -20,33 +21,34 @@ export function Popover({ anchor, onClose, children, width }: { anchor: Anchor |
     if (!anchor) { progress.setValue(0); setSize(null); return; }
   }, [anchor, progress]);
   useEffect(() => {
-    if (size) Animated.timing(progress, { toValue: 1, duration: 140, useNativeDriver: true }).start();
+    if (size) Animated.timing(progress, { toValue: 1, duration: 120, useNativeDriver: true }).start();
   }, [size, progress]);
   if (!anchor) return null;
-  const margin = 8, gap = 6;
-  const spaceBelow = window.height - insets.bottom - (anchor.y + anchor.height) - margin;
-  const spaceAbove = anchor.y - insets.top - margin;
+  const phone = window.width <= 700;
+  const menuWidth = phone ? window.width : width;
+  const bottom = anchor.y + anchor.height - overlap;
+  const spaceBelow = window.height - insets.bottom - bottom;
+  const spaceAbove = anchor.y + overlap - insets.top;
   const contentHeight = size?.height ?? 0;
   const above = contentHeight > spaceBelow && spaceAbove > spaceBelow;
   // Measure in the larger available space before deciding which side fits.
-  // Measuring against the space below first hides overflow from the flip check.
-  const limit = Math.max(0, (size ? (above ? spaceAbove : spaceBelow) : Math.max(spaceAbove, spaceBelow)) - gap);
-  const top = above ? Math.max(insets.top + margin, anchor.y - gap - Math.min(contentHeight, limit)) : anchor.y + anchor.height + gap;
-  const left = Math.max(margin, Math.min(anchor.x, window.width - (size?.width ?? width ?? 0) - margin));
+  const limit = Math.max(0, size ? (above ? spaceAbove : spaceBelow) : Math.max(spaceAbove, spaceBelow));
+  const top = above ? anchor.y + overlap - Math.min(contentHeight, limit) : bottom;
+  const left = phone ? 0 : Math.max(0, anchor.x + (menuWidth ?? 0) > window.width ? anchor.x + anchor.width - (menuWidth ?? 0) : anchor.x);
   const onLayout = (event: LayoutChangeEvent) => {
     const { width: w, height: h } = event.nativeEvent.layout;
     if (!size || Math.abs(size.width - w) > 1 || Math.abs(size.height - h) > 1) setSize({ width: w, height: h });
   };
   return <Modal transparent visible statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={onClose}>
     <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-    <Animated.View onLayout={onLayout} style={[styles.popover, { top, left, width, maxHeight: limit, backgroundColor: t.raised, borderColor: t.line, opacity: size ? progress : 0, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [above ? 4 : -4, 0] }) }] }, t.menuShadow]}>
+    <Animated.View onLayout={onLayout} style={[styles.popover, { top, left, width: menuWidth, maxHeight: limit, backgroundColor: t.bg, borderColor: t.line, opacity: size ? progress : 0 }]}>
       {children}
     </Animated.View>
   </Modal>;
 }
 
 const styles = StyleSheet.create({
-  popover: { position: "absolute", borderRadius: 10, borderWidth: 1, padding: 5, overflow: "hidden" },
+  popover: { position: "absolute", borderRadius: 0, borderWidth: 1, overflow: "hidden" },
 });
 
 /** Measures a trigger (`ref`) in the window and opens a `Popover` on it: `open()`, `close()`, `anchor`, `isOpen`. */

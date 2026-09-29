@@ -25,6 +25,6 @@ export function SyncIndicator({ hidden, offset }: { hidden: boolean; offset: num
 }
 
 const styles = StyleSheet.create({
-  indicator: { position: "absolute", alignSelf: "center", zIndex: 50, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-  badge: { width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff3", alignItems: "center", justifyContent: "center" },
+  indicator: { position: "absolute", alignSelf: "center", zIndex: 50, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 0 },
+  badge: { width: 18, height: 18, borderRadius: 0, backgroundColor: "#fff3", alignItems: "center", justifyContent: "center" },
 });

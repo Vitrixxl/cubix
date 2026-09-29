@@ -31,7 +31,7 @@ export function Launcher({ message, progress, finish, onHidden }: { message: str
       <Text accessibilityRole="progressbar" accessibilityLiveRegion="polite" style={{ color: t.readableMuted, fontSize: 13, lineHeight: 20, textAlign: "center", minHeight: 20 }}>{message}</Text>
     </View>
     <View style={[styles.bar, { backgroundColor: t.surface3, opacity: progress === undefined ? 0 : 1 }]}>
-      <View style={{ width: `${Math.max(0, Math.min(100, progress ?? 0))}%`, height: "100%", backgroundColor: t.accent, borderRadius: 3 }} />
+      <View style={{ width: `${Math.max(0, Math.min(100, progress ?? 0))}%`, height: "100%", backgroundColor: t.accent, borderRadius: 0 }} />
     </View>
   </Animated.View>;
 }
@@ -39,5 +39,5 @@ export function Launcher({ message, progress, finish, onHidden }: { message: str
 const styles = StyleSheet.create({
   screen: { zIndex: 100, elevation: 100, alignItems: "center", justifyContent: "center", padding: 24, gap: 18 },
   title: { alignItems: "center", gap: 6, width: "100%" },
-  bar: { width: 220, height: 3, borderRadius: 3, overflow: "hidden" },
+  bar: { width: 220, height: 3, borderRadius: 0, overflow: "hidden" },
 });

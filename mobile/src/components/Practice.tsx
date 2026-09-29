@@ -302,5 +302,5 @@ const styles = StyleSheet.create({
   columnHead: { flexDirection: "row", alignItems: "center", gap: 8, height: 48, paddingHorizontal: 14, borderBottomWidth: 1 },
   columnActions: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 6 },
   toast: { position: "absolute", top: 18, left: 12, right: 12, alignItems: "center", zIndex: 2 },
-  toastBody: { flexDirection: "row", alignItems: "center", gap: 8, height: 34, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, maxWidth: "100%" },
+  toastBody: { flexDirection: "row", alignItems: "center", gap: 8, height: 34, paddingHorizontal: 14, borderRadius: 0, borderWidth: 1, maxWidth: "100%" },
 });

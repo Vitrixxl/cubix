@@ -16,9 +16,9 @@ const NAV: { page: Page; label: string; icon: Icon }[] = [
 ];
 
 /**
- * `.tabbar`: five tabs (icon over a 10.5 px label, muted, accent when selected) on the `bar` background
- * (surface 35% over bg) with a 1px top line. Phones get it in the layout flow under the page; larger
- * screens a floating raised island. A running solve fades it out like `.is-running .tabbar`.
+ * `.tabbar`: a row of five cells split by lines (icon over a 10.5 px label, muted; the current one accent on
+ * surface2) on the page colour with a 1px top line. Phones get it in the layout flow under the page; larger
+ * screens a floating island. A running solve fades it out like `.is-running .tabbar`.
  */
 export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsOpen, hidden, collapsed, phone }: {
   active: Page; onNavigate: (page: Page) => void; onSettings: () => void; settingsOpen: boolean;
@@ -36,10 +36,10 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
   if (collapsed) return null;
   const items = [...NAV, { page: "settings" as const, label: "Settings", icon: IconSettings }];
   return <Animated.View pointerEvents={hidden ? "none" : "auto"} style={[fullWidth
-    ? [styles.bar, { paddingBottom: 4 + insets.bottom, paddingLeft: 6 + insets.left, paddingRight: 6 + insets.right, backgroundColor: t.bar, borderColor: t.line }]
-    : [styles.island, { bottom: insets.bottom + 10, backgroundColor: t.raised, borderColor: t.line }, t.menuShadow],
+    ? [styles.bar, { paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right, backgroundColor: t.bg, borderColor: t.line }]
+    : [styles.island, { bottom: insets.bottom + 10, backgroundColor: t.bg, borderColor: t.line }],
     { opacity }]}>
-    {items.map(({ page, label, icon: Icon }) => {
+    {items.map(({ page, label, icon: Icon }, index) => {
       const current = page === "settings" ? settingsOpen : !settingsOpen && active === page;
       const color = current ? t.accent : t.muted;
       // Like the web, a signed-in account shows its avatar instead of the person icon.
@@ -47,7 +47,7 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
       return <Pressable key={page} accessibilityRole={page === "settings" ? "button" : "tab"}
         accessibilityState={page === "settings" ? { expanded: settingsOpen } : { selected: current }}
         accessibilityLabel={label} onPress={() => page === "settings" ? onSettings() : onNavigate(page)}
-        style={({ pressed }) => [styles.item, { opacity: pressed && !current ? 0.7 : 1 }]}>
+        style={({ pressed }) => [styles.item, { borderColor: t.line, borderLeftWidth: index ? 1 : 0, backgroundColor: current ? t.surface2 : pressed ? t.hover : "transparent" }]}>
         <View style={styles.icon}>{avatar ? <Avatar username={user.username} size={21} active={current} /> : <Icon size={20} strokeWidth={1.8} color={color} />}</View>
         <Text numberOfLines={1} style={[styles.label, { color }]}>{label}</Text>
       </Pressable>;
@@ -57,10 +57,10 @@ export const Nav = memo(function Nav({ active, onNavigate, onSettings, settingsO
 
 const styles = StyleSheet.create({
   /** Phone: full width in the layout flow, under the content. */
-  bar: { flexDirection: "row", paddingTop: 4, borderTopWidth: 1, zIndex: 40 },
+  bar: { flexDirection: "row", borderTopWidth: 1, zIndex: 40 },
   /** Larger screens: floating island above the content. */
-  island: { position: "absolute", alignSelf: "center", flexDirection: "row", width: 380, padding: 4, borderRadius: 12, borderWidth: 1, zIndex: 40 },
-  item: { flex: 1, minWidth: 0, height: 52, alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10 },
+  island: { position: "absolute", alignSelf: "center", flexDirection: "row", width: 380, borderRadius: 0, borderWidth: 1, zIndex: 40 },
+  item: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center", gap: 3 },
   icon: { height: 21, alignItems: "center", justifyContent: "center" },
   label: { fontSize: 10.5, fontWeight: "500" },
 });

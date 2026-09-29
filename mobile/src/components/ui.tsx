@@ -55,29 +55,46 @@ export interface HeadCell { height: number; grow: boolean }
 const HeadCellContext = createContext<HeadCell | null>(null);
 /** The header row a control sits in, null outside a page header. */
 export const useHeadCell = () => useContext(HeadCellContext);
+/** Makes the controls inside it cells of a header row `height` tall (page headers, dialog headers). */
+export function HeadCells({ height, grow = false, children }: { height: number; grow?: boolean; children: ReactNode }) {
+  return <HeadCellContext.Provider value={{ height, grow }}>{children}</HeadCellContext.Provider>;
+}
 /** The frame of a header cell: its row's height, no radius, a line on its left. */
 export const headCellStyle = (t: Theme, cell: HeadCell): ViewStyle => ({
   height: cell.height, minHeight: cell.height, flexGrow: cell.grow ? 1 : 0, justifyContent: "center", paddingHorizontal: 12, gap: 6,
   borderRadius: 0, borderWidth: 0, borderLeftWidth: 1, borderColor: t.line,
 });
 
-/** `.button` / `.control` / `.button.primary`: the app's only button. */
+/**
+ * `.segmented`, `.solve-actions`…: a group of cells sharing their lines, wrapping or not. Buttons inside it overlap
+ * their right and bottom neighbours by 1px, so two cells never draw a double line.
+ */
+const CellGroupContext = createContext(false);
+export function CellGroup({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <CellGroupContext.Provider value><View style={[styles.cellGroup, style, { gap: 0 }]}>{children}</View></CellGroupContext.Provider>;
+}
+const inGroup: ViewStyle = { marginRight: -1, marginBottom: -1 };
+
+/**
+ * `.button` / `.control` / `.button.primary`: the app's only button, a cell of the grid: square corners and a 1px
+ * line all around (accent on primary); the active one on surface2 in the accent colour.
+ */
 export function Btn({ children, icon, label, variant: kind = "control", active: selected = false, small, size, iconOnly, tone, mono: monoLabel, style, textStyle, disabled, ...rest }: ButtonProps) {
   const t = useTheme();
   const cell = useHeadCell();
+  const grouped = useContext(CellGroupContext);
   const [down, setDown] = useState(false);
   const height = cell?.height ?? size ?? (small ? 28 : 32);
-  let background = "transparent", border = "transparent", color = t.text, iconColor = t.muted;
-  if (kind === "primary") { background = down ? t.accentPressed : t.accent; color = "#fff"; iconColor = "#fff"; }
-  else if (selected && cell) { background = t.surface2; color = t.accent; iconColor = t.accent; }
-  else if (selected) { background = t.surface3; iconColor = t.text; }
+  let background = "transparent", border = t.line, color = t.text, iconColor = t.muted;
+  if (kind === "primary") { background = down ? t.accentPressed : t.accent; border = t.accent; color = "#fff"; iconColor = "#fff"; }
+  else if (selected) { background = t.surface2; color = t.accent; iconColor = t.accent; }
   else if (kind === "soft") { background = down ? t.surface3Hover : t.surface3; iconColor = t.text; }
   else if (kind === "ghost") { background = down ? t.hover : "transparent"; color = down ? t.text : t.secondary; iconColor = down ? t.text : t.muted; }
-  else { border = t.line; background = down ? t.hover : "transparent"; if (down) iconColor = t.text; }
+  else { background = down ? t.hover : "transparent"; if (down) iconColor = t.text; }
   if (tone && kind !== "primary") { color = toneColor(t, tone); iconColor = color; }
   return <Pressable {...rest} disabled={disabled} accessibilityRole={rest.accessibilityRole ?? "button"} accessibilityState={rest.accessibilityState ?? (selected ? { selected: true } : undefined)}
     onPressIn={e => { setDown(true); rest.onPressIn?.(e); }} onPressOut={e => { setDown(false); rest.onPressOut?.(e); }}
-    style={[styles.btn, kind === "control" && styles.control, { height, minHeight: height, backgroundColor: background, borderColor: border, opacity: disabled ? 0.35 : 1 }, cell && headCellStyle(t, cell), iconOnly && { width: height, paddingHorizontal: 0 }, style]}>
+    style={[styles.btn, kind === "control" && styles.control, { height, minHeight: height, backgroundColor: background, borderColor: border, opacity: disabled ? 0.35 : 1 }, cell && headCellStyle(t, cell), grouped && !cell && inGroup, iconOnly && { width: height, paddingHorizontal: 0 }, style]}>
     {icon !== undefined && renderIcon(icon, small ? 14 : 15, iconColor)}
     {label !== undefined && <Text numberOfLines={1} style={[styles.btnText, kind === "primary" && { fontWeight: "600" }, monoLabel && { fontFamily: FONT.mono, fontSize: 12.5 }, small && { fontSize: 12 }, { color }, textStyle]}>{label}</Text>}
     {children}
@@ -89,9 +106,10 @@ export const Control = (props: Omit<ButtonProps, "variant">) => <Btn {...props} 
 export function MiniBtn({ icon, label, on, danger, disabled, ...rest }: Omit<PressableProps, "style" | "children"> & { icon?: Icon | ReactNode; label?: string; on?: boolean; danger?: boolean }) {
   const t = useTheme();
   const [down, setDown] = useState(false);
-  const color = on ? t.text : danger && down ? t.danger : down ? t.text : t.muted;
+  const grouped = useContext(CellGroupContext);
+  const color = on ? t.accent : danger && down ? t.danger : down ? t.text : t.muted;
   return <Pressable {...rest} disabled={disabled} hitSlop={6} onPressIn={e => { setDown(true); rest.onPressIn?.(e); }} onPressOut={e => { setDown(false); rest.onPressOut?.(e); }}
-    style={[styles.miniBtn, !label && styles.miniIcon, { backgroundColor: on ? t.surface3 : down ? t.hover : "transparent", opacity: disabled ? 0.35 : 1 }]}>
+    style={[styles.miniBtn, !label && styles.miniIcon, { borderColor: t.line, backgroundColor: on ? t.surface2 : down ? t.hover : "transparent", opacity: disabled ? 0.35 : 1 }, grouped && inGroup]}>
     {icon !== undefined && renderIcon(icon, 13, color)}
     {label !== undefined && <Text style={[styles.miniText, { color }]}>{label}</Text>}
   </Pressable>;
@@ -110,16 +128,16 @@ export function Segmented<T extends string>({ options, value, onChange, disabled
   const cell = useHeadCell();
   const items = options.map(option => {
     const active = option.id === value;
-    const color = active ? cell ? t.accent : t.text : t.secondary;
-    const fill = active ? cell ? t.surface2 : t.surface3 : "transparent";
+    const color = active ? t.accent : t.secondary;
+    const fill = active ? t.surface2 : "transparent";
     return <Pressable key={option.id} disabled={disabled} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onChange(option.id)}
-      style={({ pressed }) => [plain ? styles.tab : styles.segment, cell && headCellStyle(t, cell), { backgroundColor: pressed && !active ? t.hover : fill, opacity: disabled ? 0.35 : 1 }, itemStyle]}>
+      style={({ pressed }) => [plain ? styles.tab : styles.segment, { borderColor: t.line }, cell ? headCellStyle(t, cell) : inGroup, { backgroundColor: pressed && !active ? t.hover : fill, opacity: disabled ? 0.35 : 1 }, itemStyle]}>
       {option.icon !== undefined && renderIcon(option.icon, 14, active ? t.text : t.muted)}
       <Text numberOfLines={1} style={[plain ? styles.tabText : styles.segmentText, { color }, textStyle]}>{option.label}</Text>
       {option.count !== undefined && <Text style={[styles.count, { color: t.muted }]}>{option.count}</Text>}
     </Pressable>;
   });
-  const track = cell ? { flexDirection: "row" as const, flexGrow: cell.grow ? 1 : 0 } : [plain ? styles.tabs : [styles.segmented, { borderColor: t.line }]];
+  const track = cell ? { flexDirection: "row" as const, flexGrow: cell.grow ? 1 : 0 } : plain ? styles.tabs : styles.segmented;
   if (scroll) return <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ flexGrow: 0 }, style]} contentContainerStyle={track}>{items}</ScrollView>;
   return <View style={[track, style]}>{items}</View>;
 }
@@ -254,7 +272,7 @@ export function SkeletonLine({ width = "100%", height = 12, radius = 6, style }:
 export function ProgressBar({ value, unlocked, style }: { value: number; unlocked?: boolean; style?: StyleProp<ViewStyle> }) {
   const t = useTheme();
   return <View style={[styles.progress, { backgroundColor: t.surface2 }, style]}>
-    <View style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, height: "100%", borderRadius: 2, backgroundColor: unlocked ? t.accent : t.muted }} />
+    <View style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, height: "100%", borderRadius: 0, backgroundColor: unlocked ? t.accent : t.muted }} />
   </View>;
 }
 
@@ -289,24 +307,25 @@ export function Avatar({ username, active, size }: { username: string; active?: 
 export const mono = (t: Theme, size: number, weight: TextStyle["fontWeight"] = "500"): TextStyle => ({ fontFamily: FONT.mono, fontSize: size, fontWeight: weight, color: t.text, fontVariant: ["tabular-nums"] });
 
 export const styles = StyleSheet.create({
-  btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexShrink: 0, gap: 7, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: "transparent" },
+  btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", flexShrink: 0, gap: 7, paddingHorizontal: 12, borderRadius: 0, borderWidth: 1, borderColor: "transparent" },
   control: { gap: 6, paddingHorizontal: 11 },
   btnText: { fontSize: 13, fontWeight: "500" },
   controls: { flexGrow: 1, flexDirection: "row" },
   controlsRow: { flexGrow: 0, marginLeft: -1, borderTopWidth: 1 },
-  miniBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, height: 24, minHeight: 24, paddingHorizontal: 6, borderRadius: 6 },
+  miniBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, height: 24, minHeight: 24, paddingHorizontal: 6, borderRadius: 0, borderWidth: 1 },
   miniIcon: { width: 24, paddingHorizontal: 0 },
   miniText: { fontSize: 11, fontWeight: "600" },
-  segmented: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 2, padding: 2, borderWidth: 1, borderRadius: 9 },
-  segment: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 26, paddingHorizontal: 9, borderRadius: 6 },
+  segmented: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingRight: 1, paddingBottom: 1 },
+  segment: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 0, borderWidth: 1 },
+  cellGroup: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", paddingRight: 1, paddingBottom: 1 },
   segmentText: { fontSize: 12.5, fontWeight: "500" },
-  tabs: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 2 },
-  tab: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 32, paddingHorizontal: 12, borderRadius: 8 },
+  tabs: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", paddingRight: 1, paddingBottom: 1 },
+  tab: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 32, paddingHorizontal: 14, borderRadius: 0, borderWidth: 1 },
   tabText: { fontSize: 13, fontWeight: "500" },
   count: { fontSize: 11, fontFamily: FONT.mono },
-  mark: { paddingHorizontal: 5, borderRadius: 4, alignSelf: "flex-start" },
+  mark: { paddingHorizontal: 5, borderRadius: 0, alignSelf: "flex-start" },
   markText: { fontFamily: FONT.mono, fontSize: 10.5, fontWeight: "600", lineHeight: 16 },
-  input: { minHeight: 36, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 8, borderWidth: 1, fontSize: 14, backgroundColor: "transparent" },
+  input: { minHeight: 36, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 0, borderWidth: 1, fontSize: 14, backgroundColor: "transparent" },
   label: { fontWeight: "500", textTransform: "uppercase" },
   metric: { minWidth: 0, gap: 3 },
   metricsRow: { flexDirection: "row" },
@@ -319,12 +338,12 @@ export const styles = StyleSheet.create({
   pageTitleText: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 12 },
   pageH1: { fontSize: 20, fontWeight: "600", letterSpacing: -0.4, flexShrink: 0 },
   pageSub: { fontSize: 13, flexShrink: 1 },
-  checkbox: { borderWidth: 1.5, borderRadius: 4, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  checkbox: { borderWidth: 1.5, borderRadius: 0, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   checkHit: { alignItems: "center", justifyContent: "center" },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 8, paddingRight: 8, borderRadius: 8 },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 8, paddingRight: 8, borderRadius: 0 },
   rowText: { flex: 1, minWidth: 0, gap: 1 },
   rowTitle: { fontSize: 13.5, fontWeight: "600" },
   rowSub: { fontSize: 12 },
-  progress: { height: 4, borderRadius: 2, overflow: "hidden" },
+  progress: { height: 4, borderRadius: 0, overflow: "hidden" },
   empty: { alignItems: "center", justifyContent: "center", gap: 10, padding: 28 },
 });

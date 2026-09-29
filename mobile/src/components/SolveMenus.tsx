@@ -10,7 +10,7 @@ import { AlgText } from "./AlgText";
 import { IconComment, IconFlag, IconInfo, IconTrash } from "./icons";
 import { Popover, type Anchor } from "./Popover";
 import { Sheet } from "./Sheet";
-import { Btn, FormError, Input, MiniBtn, mono } from "./ui";
+import { Btn, FormError, Input, MiniBtn, mono, CellGroup } from "./ui";
 
 /** Notes are capped like the server does; the field simply stops accepting text there. */
 const COMMENT_MAX = 500;
@@ -103,12 +103,12 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
         <Text style={[styles.centred, { color: t.muted, fontSize: 13 }]}>{fmtDate(shown.created_at)}</Text>
         {"scramble" in shown && shown.scramble ? <AlgText alg={shown.scramble} size={16} lineHeight={16 * 1.55} selectable style={styles.centred} /> : null}
         {shown.comment ? <Text selectable style={[styles.centred, { color: t.text, fontSize: 14, lineHeight: 20 }]}>{shown.comment}</Text> : null}
-        <View style={styles.detailActions}>
+        <CellGroup style={styles.detailActions}>
           <Btn variant="ghost" label="+2" active={shown.penalty === "+2"} accessibilityLabel="+2 penalty" disabled={busy} onPress={() => void togglePenalty(shown, "+2")} />
           <Btn variant="ghost" label="DNF" active={shown.penalty === "dnf"} accessibilityLabel="Did not finish" disabled={busy} onPress={() => void togglePenalty(shown, "dnf")} />
           <Btn variant="ghost" icon={IconComment} label="Comment" disabled={busy} onPress={() => editComment(shown)} />
           <Btn variant="ghost" tone="danger" icon={IconTrash} label={busy ? "Deleting…" : "Delete"} disabled={busy} onPress={() => void deleteTime(shown.id)} />
-        </View>
+        </CellGroup>
         {error ? <FormError style={{ justifyContent: "center" }}>{error}</FormError> : null}
       </View>}
     </Sheet>
@@ -133,7 +133,7 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleString(undefined, { dateS
 
 function MenuItem({ icon, label, danger, disabled, onPress }: { icon: ReactNode; label: string; danger?: boolean; disabled?: boolean; onPress: () => void }) {
   const t = useTheme();
-  return <Pressable accessibilityRole="menuitem" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.item, { backgroundColor: pressed ? t.accentSoft : "transparent", opacity: disabled ? 0.45 : 1 }]}>
+  return <Pressable accessibilityRole="menuitem" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.item, { borderColor: t.line, backgroundColor: pressed ? t.hover : "transparent", opacity: disabled ? 0.45 : 1 }]}>
     <View style={styles.itemIcon}>{icon}</View><Text style={[styles.itemText, { color: danger ? t.danger : t.text }]}>{label}</Text>
   </Pressable>;
 }
@@ -203,8 +203,9 @@ export function SolveInfoButton({ solve }: { solve: SolveDto | SolveSummary }) {
 }
 
 const styles = StyleSheet.create({
-  menuHead: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, gap: 1 },
-  item: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  menuHead: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, gap: 1 },
+  // Rows of the menu, split by lines like the web's `.menu-option`s.
+  item: { flexDirection: "row", alignItems: "center", gap: 12, height: 44, paddingHorizontal: 16, borderTopWidth: 1 },
   itemIcon: { width: 30, alignItems: "flex-start" },
   itemText: { fontSize: 14, fontWeight: "600" },
   dnf: { fontSize: 11, fontWeight: "800", letterSpacing: 0.4 },

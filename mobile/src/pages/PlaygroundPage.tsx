@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   timesScroll: { flex: 1, minHeight: 0 },
   timesContent: { paddingTop: 4, paddingHorizontal: 8, paddingBottom: 16 },
   timesEmpty: { paddingVertical: 14, paddingHorizontal: 10, fontSize: 12.5 },
-  timesRow: { flexDirection: "row", alignItems: "center", height: 32, paddingHorizontal: 10, borderRadius: 6 },
+  timesRow: { flexDirection: "row", alignItems: "center", height: 32, paddingHorizontal: 10, borderRadius: 0 },
   timesIndex: { width: 34 },
   timesValue: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6 },
 });

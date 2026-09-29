@@ -148,10 +148,10 @@ const styles = StyleSheet.create({
   viewport: { flex: 1, minHeight: 0 },
   row: { height: ROW_HEIGHT, paddingVertical: 4 },
   /** `.learning-group`: surface2 row, 1px line, radius 10. */
-  card: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 10, paddingLeft: 14, paddingRight: 6 },
+  card: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 0, paddingLeft: 14, paddingRight: 6 },
   number: { width: 26, fontSize: 13, fontVariant: ["tabular-nums"] },
   name: { flex: 1, fontSize: 14 },
   handle: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   dots: { width: 12, flexDirection: "row", flexWrap: "wrap", gap: 4 },
-  dot: { width: 4, height: 4, borderRadius: 2 },
+  dot: { width: 4, height: 4, borderRadius: 0 },
 });

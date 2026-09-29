@@ -237,7 +237,7 @@
 .learning-groups-modal { overflow: hidden; }
 .learning-groups-modal > .row { flex-shrink: 0; }
 .learning-groups { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 3px; }
-.learning-group { position: relative; display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding: 4px 6px 4px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; cursor: grab; touch-action: none; user-select: none; }
+.learning-group { position: relative; display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding: 4px 6px 4px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 0; cursor: grab; touch-action: none; user-select: none; }
 .learning-group-number { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2ch; }
 .learning-group-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .learning-group-handle { min-width: 44px; min-height: 44px; cursor: inherit; }
@@ -317,7 +317,7 @@
 .chart-plot:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: 0;
 }
 .chart-plot.panning {
   cursor: grabbing;
@@ -353,7 +353,7 @@
   transform: translateX(-50%);
   max-width: 100%;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--surface2);
   color: var(--text);
   font-size: 11px;
@@ -384,7 +384,7 @@
   flex-direction: column;
   gap: 1px;
   padding: 6px 10px;
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--surface2);
   border: 1px solid var(--line);
   box-shadow: 0 6px 18px #0004;
@@ -414,7 +414,7 @@
   gap: 10px;
   justify-content: flex-start;
   min-height: 36px;
-  border-radius: 8px;
+  border-radius: 0;
   font-weight: 400;
   padding: 0 6px;
   font-size: 13px;
@@ -504,7 +504,7 @@
   font-size: 10px;
   font-weight: 700;
   padding: 1px 5px;
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--soft);
   color: var(--accent);
 }
@@ -604,7 +604,7 @@
 }
 .heat {
   display: block;
-  border-radius: 3px;
+  border-radius: 0;
   background: var(--surface2);
 }
 .heat:not(.future):hover {
@@ -623,7 +623,7 @@
   gap: 2px;
   min-width: 130px;
   padding: 7px 10px;
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--surface2);
   border: 1px solid var(--line);
   box-shadow: 0 6px 18px #0004;
@@ -713,7 +713,7 @@ textarea {
   color: var(--text);
   caret-color: var(--accent);
   padding: 8px 11px;
-  border-radius: 8px;
+  border-radius: 0;
   min-width: 0;
 }
 input:focus,
@@ -763,7 +763,7 @@ kbd {
   color: var(--muted);
   padding: 3px 5px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 0;
 }
 .app {
   height: 100%;
@@ -858,7 +858,7 @@ kbd {
   min-height: 32px;
   padding: 0 12px;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 13px;
   font-weight: 500;
   background: transparent;
@@ -950,7 +950,7 @@ kbd {
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 0;
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
@@ -961,7 +961,7 @@ kbd {
   padding: 0 9px;
   gap: 6px;
   font-size: 12.5px;
-  border-radius: 6px;
+  border-radius: 0;
 }
 .segmented .button .mono {
   font-size: 11px;
@@ -971,7 +971,7 @@ kbd {
   height: 16px;
   flex-shrink: 0;
   border: 1.5px solid color-mix(in srgb, var(--text) 22%, transparent);
-  border-radius: 4px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -987,7 +987,7 @@ kbd {
   font-weight: 600;
   line-height: 1.5;
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: 0;
   background: var(--surface2);
   color: var(--secondary);
 }
@@ -1003,13 +1003,13 @@ kbd {
 }
 .progress {
   height: 4px;
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--surface2);
   overflow: hidden;
 }
 .progress > div {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--muted);
 }
 .unlocked .progress > div,
@@ -1177,7 +1177,7 @@ kbd {
   font-size: 10.5px;
   font-weight: 500;
   color: var(--muted);
-  border-radius: 10px;
+  border-radius: 0;
 }
 .tab-item:hover {
   background: transparent;
@@ -1389,7 +1389,7 @@ kbd {
   height: 32px;
   min-height: 32px;
   padding: 0 10px;
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 14px;
   color: var(--text);
 }
@@ -1522,9 +1522,7 @@ kbd {
 }
 .button.case-title:hover {
   background: none;
-  text-decoration: underline;
-  text-decoration-color: var(--line);
-  text-underline-offset: 5px;
+  color: var(--accent);
 }
 .case-kind {
   flex: 1;
@@ -1732,7 +1730,7 @@ kbd {
   min-height: 24px;
   padding: 0 7px;
   gap: 4px;
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 12px;
   background: var(--surface2);
   color: var(--text);
@@ -1835,7 +1833,7 @@ kbd {
 .case-row {
   display: flex;
   align-items: center;
-  border-radius: 8px;
+  border-radius: 0;
   /* Keep in sync with the row height below. */
   content-visibility: auto;
   contain-intrinsic-size: auto 80px;
@@ -2057,7 +2055,7 @@ kbd {
   gap: 4px;
   min-width: 0;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--raised);
   border: 1px solid var(--line);
 }
@@ -2081,7 +2079,7 @@ kbd {
   min-height: 0;
   min-width: 0;
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: 0;
   border: 1px solid var(--line);
   --grid-fill: var(--raised);
   background: var(--raised);
@@ -2141,14 +2139,14 @@ kbd {
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 0;
 }
 .stats-view-toggle .button {
   min-height: 26px;
   height: 26px;
   padding: 0 10px;
   font-size: 12.5px;
-  border-radius: 6px;
+  border-radius: 0;
 }
 .solves-count {
   font-size: 12px;
@@ -2197,7 +2195,7 @@ kbd {
   min-height: 0;
   padding: 18px 20px;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 0;
   border: 1px solid var(--line);
   --grid-fill: var(--raised);
   background: var(--raised);
@@ -2381,7 +2379,7 @@ kbd {
   flex-direction: column;
   gap: 2px;
   padding: 10px 4px 8px;
-  border-radius: 12px;
+  border-radius: 0;
   border: 1px solid var(--line);
   background: var(--raised);
   color: var(--text);
@@ -2425,7 +2423,7 @@ kbd {
 .achievement-row {
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 0;
   border: 1px solid var(--line);
   background: var(--raised);
   opacity: 0.7;
@@ -2441,7 +2439,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9px;
+  border-radius: 0;
   background: var(--surface2);
   color: var(--muted);
 }
@@ -2514,7 +2512,7 @@ kbd {
   padding: 5px;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: 0 10px 28px -12px rgb(0 0 0 / 0.5);
   overflow: auto;
   scrollbar-width: thin;
@@ -2525,7 +2523,7 @@ kbd {
   padding: 0 10px;
   gap: 10px;
   justify-content: flex-start;
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--text);
 }
 .menu-option.active {
@@ -2544,7 +2542,7 @@ kbd {
   width: min(540px, 100%);
   max-height: calc(100% - 48px);
   padding: 20px 22px 22px;
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--raised);
   border: 1px solid var(--line);
   box-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.55);
@@ -2584,7 +2582,7 @@ kbd {
   flex-direction: column;
   height: 84px;
   gap: 8px;
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--secondary);
   border: 1px solid transparent;
 }
@@ -2620,7 +2618,7 @@ kbd {
   height: min(720px, calc(100% - 72px));
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
 }
 .stats-modal {
@@ -2674,7 +2672,7 @@ kbd {
   height: 22px;
   min-height: 22px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 0;
 }
 .swatch.chosen {
   box-shadow: 0 0 0 2px var(--raised), 0 0 0 3.5px var(--text);
@@ -3113,7 +3111,7 @@ kbd {
   flex-direction: column;
   gap: 4px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -3239,7 +3237,7 @@ kbd {
   flex-direction: column;
   gap: 4px;
   padding: 8px 0 6px;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 12px;
   color: var(--muted);
 }
@@ -3390,7 +3388,7 @@ kbd {
   height: 24px;
   min-height: 24px;
   padding: 0 6px;
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
@@ -3438,7 +3436,7 @@ kbd {
 .skeleton-line {
   display: block;
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--surface2);
   animation: skeleton 1.4s ease-in-out infinite;
 }
@@ -3509,4 +3507,359 @@ kbd {
   .detail-title {
     font-size: 44px;
   }
+}
+
+/* ---- cell system ----
+ * Every button is a cell of the page grid: square corners and a 1px line all around, shared with its neighbours
+ * when they form a group. Lists are stacks of flush rows split by lines, the selected row carrying the accent bar on
+ * its side like the rail. Menus and pickers open flush against the cell that opened them.
+ */
+.button {
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.button.active,
+.button.active:hover,
+.button.tab.selected,
+.button.move-option.selected,
+.button.setup-tile.chosen {
+  background: var(--surface2);
+  border-color: var(--line);
+  color: var(--accent);
+}
+.button.active > .icon,
+.control.active > .icon {
+  color: var(--accent);
+}
+.button-highlight {
+  background: var(--surface2);
+}
+.button.primary,
+.button.primary:hover {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+/* Rows of lists and tiles of pickers: the lines between them come from their container. */
+.button:is(.case-row-open, .case-check, .menu-option, .search-result, .setup-mode, .guides-nav-item, .tab-item,
+  .list-group-title, .case-title, .setup-set-title, .setup-group-title, .puzzle-option, .swatch, .history-row,
+  .learning-group-handle, .rail-cell) {
+  border: 0;
+}
+/* Groups: the cells share their lines, wrapping or not. */
+:is(.segmented, .tabs, .detail-buttons, .setup-actions, .prompt-actions, .solve-actions, .solve-actions-row,
+  .stats-view-toggle, .column-head-actions, .times-actions, .solve-row-actions, .case-nav, .methods-tabs,
+  .setting > .row, .profile-toolbar-row > .row, .profile-filters, .account-form > .row, .move-choice) {
+  gap: 0;
+  padding: 0 1px 1px 0;
+}
+:is(.segmented, .tabs, .detail-buttons, .setup-actions, .prompt-actions, .solve-actions, .solve-actions-row,
+  .stats-view-toggle, .column-head-actions, .times-actions, .solve-row-actions, .case-nav, .methods-tabs,
+  .setting > .row, .profile-toolbar-row > .row, .profile-filters, .account-form > .row, .move-choice) > .button {
+  margin: 0 -1px -1px 0;
+}
+:is(.segmented, .tabs, .move-choice, .methods-tabs, .setting > .row) > .button:is(.active, .selected, :focus-visible) {
+  position: relative;
+  z-index: 1;
+}
+.segmented {
+  padding: 0 1px 1px 0;
+  border: 0;
+  overflow: visible;
+}
+.segmented .button {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+}
+.tab {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 14px;
+}
+.tabs {
+  overflow: visible;
+}
+/* In the page header the cells already sit between the header's lines. */
+.page-head :is(.segmented, .profile-filters, .row) {
+  padding: 0;
+}
+.page-head :is(.segmented, .profile-filters, .row) > .button {
+  margin: 0;
+}
+.page-controls .segmented .button {
+  height: auto;
+}
+
+/* Lists: flush rows split by lines, the selected one on surface2 with the accent bar on its side. */
+.case-row.selected,
+.case-row.selected:hover,
+.button.setup-mode.selected,
+.button.guides-nav-item.selected,
+.search-result.active,
+.menu-option.current,
+.menu-option.current.active {
+  background: var(--surface2) !important;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+/* The line is translucent: a row's fill stops above its own line, which then matches the one above it (important,
+   since the hover and selected rules reset the clip through the background shorthand). */
+.case-row,
+.solve-row,
+.algorithm-row,
+.button.setup-mode,
+.button.guides-nav-item,
+.search-result,
+.menu-option,
+.button.puzzle-option {
+  background-clip: padding-box !important;
+}
+.md-list-scroll {
+  padding: 0 0 16px;
+}
+.case-row {
+  border-bottom: 1px solid var(--line);
+  contain-intrinsic-size: auto 81px;
+}
+.button.case-row-open {
+  padding: 0 4px 0 14px;
+}
+.list-group-head {
+  height: 44px;
+  padding: 0 14px 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+.setup-modes {
+  gap: 0;
+  padding: 0;
+}
+/* A mode is as tall as a rail cell, so their lines continue each other. */
+.button.setup-mode {
+  height: 64px;
+  min-height: 64px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.guides-nav {
+  gap: 0;
+  padding: 0;
+}
+.guides-nav-title {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.button.guides-nav-item {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.search-modal .scroll {
+  margin: 0 -22px -22px;
+  border-top: 1px solid var(--line);
+}
+.search-result {
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.move-choice {
+  gap: 0;
+}
+.button.move-option {
+  color: var(--muted);
+}
+.setup-pane.setup-cases {
+  gap: 0;
+  padding: 0 1px 14px 0;
+}
+.button.setup-tile {
+  border: 1px solid var(--line);
+  margin: 0 -1px -1px 0;
+}
+
+/* Menus: a column of rows opening flush under (or beside) the cell that opened them, on the page colour. */
+@keyframes cell-open {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+@keyframes cell-open-up {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+.select-menu {
+  padding: 0;
+  background: var(--bg);
+  box-shadow: none;
+  animation: cell-open 0.16s ease-out;
+}
+.select-menu.up {
+  animation-name: cell-open-up;
+}
+.menu-option {
+  min-height: 0;
+  height: 41px;
+  flex-shrink: 0;
+  padding: 0 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--secondary);
+}
+.menu-option:last-child {
+  height: 40px;
+  border-bottom: 0;
+}
+.menu-option.active {
+  background: var(--hover) !important;
+  color: var(--text);
+}
+.menu-option.current {
+  color: var(--accent);
+}
+.menu-option > .icon:last-child {
+  color: var(--accent);
+}
+/* The puzzle picker: one cell per puzzle, sharing lines, in a menu of its own. */
+.select-menu.puzzle-menu {
+  width: auto;
+  overflow: auto;
+}
+.puzzle-menu .puzzle-grid {
+  gap: 0;
+}
+.button.puzzle-option {
+  width: 104px;
+  height: 92px;
+  padding: 0 6px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  font-size: 12.5px;
+}
+.button.puzzle-option.edge-right {
+  border-right: 0;
+}
+.button.puzzle-option.edge-bottom {
+  border-bottom: 0;
+}
+.button.puzzle-option.active {
+  background: var(--hover);
+  box-shadow: none;
+  color: var(--text);
+}
+.button.puzzle-option.current,
+.button.puzzle-option.current.active {
+  background: var(--surface2);
+  border-color: var(--line);
+  color: var(--accent);
+}
+.is-mobile .button.puzzle-option {
+  width: auto;
+  height: 84px;
+}
+
+/* Dialogs: a pane of the grid, its title in a header row with the close button as the last cell. */
+.modal,
+.sheet {
+  background: var(--bg);
+  box-shadow: none;
+}
+.modal {
+  padding: 0 22px 22px;
+}
+.modal > .row:first-child {
+  flex-shrink: 0;
+  height: 52px;
+  margin: 0 -22px;
+  padding-left: 22px;
+  border-bottom: 1px solid var(--line);
+  align-items: stretch;
+}
+.modal > .row:first-child h2 {
+  align-self: center;
+}
+.modal > .row:first-child .button {
+  width: 52px;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+.button.guides-close {
+  top: 0;
+  right: 0;
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.guides-modal {
+  padding: 0;
+}
+
+/* Phones: the tab bar is a row of cells, the current one on surface2. */
+.tabbar {
+  padding: 0 0 env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+.tab-item {
+  height: 56px;
+  border-left: 1px solid var(--line) !important;
+}
+.tab-item:first-child {
+  border-left: 0 !important;
+}
+.tab-item.selected {
+  background: var(--surface2);
+}
+/* The cell whose menu is open stays lit while the menu hangs from it. */
+.button.open,
+.button.open:hover,
+.rail-cell.open {
+  background: var(--surface2) !important;
+  color: var(--text);
+}
+.rail-cell.open .rail-tip {
+  display: none;
+}
+
+/* Profile overview: its cards are panes of the grid, flush against each other and the header. */
+.profile-main:has(> .overview),
+.is-mobile .profile-main:has(> .overview) {
+  padding: 0;
+}
+.overview,
+.ov-col,
+.is-mobile .overview,
+.is-mobile .ov-col {
+  gap: 0 !important;
+}
+.ov-card {
+  --grid-fill: transparent;
+  border: 0;
+  background: transparent;
+}
+.ov-card + .ov-card {
+  border-top: 1px solid var(--line);
+}
+.ov-col-main {
+  border-right: 1px solid var(--line);
+}
+.is-mobile .ov-col-main {
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+/* The accent swatches keep their spacing: they are colours, not cells of a group. */
+.setting > .row:has(> .swatch) {
+  gap: 6px;
+  padding: 0;
+}
+.setting > .row > .swatch {
+  margin: 0;
 }

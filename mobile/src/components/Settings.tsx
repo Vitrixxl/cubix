@@ -8,7 +8,7 @@ import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, late
 import { guidesAtom, colorModeAtom, routeAtom, statsVersionAtom, themeAtom, userAtom } from "../state";
 import { useTheme } from "../theme";
 import { Sheet, SheetScrollView } from "./Sheet";
-import { Avatar, Btn, FormError, Input, Label, Muted, Segmented } from "./ui";
+import { Avatar, Btn, FormError, Input, Label, Muted, Segmented, CellGroup } from "./ui";
 
 /**
  * The web app's Settings dialog (`Settings` in desktop/renderer/main.tsx): plain sections separated by
@@ -94,10 +94,10 @@ function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } = {}) {
   const [theme, setTheme] = useAtom(themeAtom);
   return <View accessibilityLabel="Appearance">
     <Row label="Theme">
-      <View style={styles.choices}>
+      <CellGroup style={styles.choices}>
         <Btn size={30} active={mode === "dark"} label="Dark" onPress={() => setMode("dark")} />
         <Btn size={30} active={mode === "light"} label="Light" onPress={() => setMode("light")} />
-      </View>
+      </CellGroup>
     </Row>
     <Row label="Accent">
       <View style={styles.choices} accessibilityLabel="Accent colour">
@@ -174,6 +174,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 13.5, fontWeight: "500" },
   choices: { flexDirection: "row", alignItems: "center", gap: 4 },
   version: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", gap: 12, flexShrink: 1 },
-  swatchRing: { padding: 1.5, borderRadius: 8, borderWidth: 1.5 },
-  swatch: { width: 22, height: 22, borderRadius: 6 },
+  swatchRing: { padding: 1.5, borderRadius: 0, borderWidth: 1.5 },
+  swatch: { width: 22, height: 22, borderRadius: 0 },
 });

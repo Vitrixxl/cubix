@@ -22,7 +22,7 @@ function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?:
 export function Rail() {
   return (
     <nav className="nav rail" aria-label="Sections">
-      <RailCell action="menu:puzzles" label={s.event().label} hint="Choose a puzzle" className="rail-puzzle">
+      <RailCell action="menu:puzzles" label={s.event().label} hint="Choose a puzzle" className={"rail-puzzle " + (s.overlay === "puzzles" ? "open" : "")}>
         <Icon name={"Puzzle" + s.event().id} size={22} />
       </RailCell>
       <div className="rail-group" role="tablist">

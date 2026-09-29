@@ -21,7 +21,7 @@ import { IconBack, IconBook, IconCheck, IconChevronDown, IconNext, IconTimer } f
 import { PuzzlePicker } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { TimesChart } from "../components/TimesChart";
-import { Btn, Checkbox, Control, Empty, Input, Label, ListRow, Mark, Metric, Metrics, PageHead, Segmented, mono } from "../components/ui";
+import { Btn, Checkbox, Control, Empty, Input, Label, ListRow, Mark, Metric, Metrics, PageHead, Segmented, mono, CellGroup } from "../components/ui";
 
 /**
  * Algorithms, as the web app on a phone: the case list of one stage (stage tabs, set variants, learning filter,
@@ -270,11 +270,11 @@ const CasePage = memo(function CasePage({ c, stats, width }: { c: CaseDto; stats
           <Metric label="Mean" value={count ? fmtTime(summary!.mean) : "—"} valueSize={16} labelSize={10.5} style={[styles.figure, styles.figureNext, { borderLeftColor: t.line }]} />
           <Metric label="Attempts" value={String(count)} valueSize={16} labelSize={10.5} style={[styles.figure, styles.figureNext, { borderLeftColor: t.line }]} />
         </View>
-        <View style={styles.buttons}>
+        <CellGroup style={styles.buttons}>
           <Btn variant="primary" icon={IconTimer} label="Train" onPress={train} />
           <Btn tone={learned ? "good" : undefined} icon={learned ? IconCheck : undefined} label={learned ? "Learned" : "Mark learned"}
             accessibilityRole="checkbox" accessibilityState={{ checked: learned }} accessibilityLabel={`${c.id} learned`} onPress={() => toggleLearned(c.id)} />
-        </View>
+        </CellGroup>
       </View>
     </View>
     <View style={styles.section}>
@@ -327,12 +327,12 @@ const styles = StyleSheet.create({
   stageText: { fontSize: 14, fontWeight: "600" },
   // `.list-group-head`
   groupHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 38, paddingTop: 4 },
-  groupTitle: { flexDirection: "row", alignItems: "center", gap: 8, height: 28, paddingHorizontal: 6, borderRadius: 8, flexShrink: 1, minWidth: 0 },
+  groupTitle: { flexDirection: "row", alignItems: "center", gap: 8, height: 28, paddingHorizontal: 6, borderRadius: 0, flexShrink: 1, minWidth: 0 },
   groupName: { fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
   groupTrain: { height: 26, minHeight: 26, paddingHorizontal: 8, gap: 6 },
   // `.case-row`
-  caseRow: { flexDirection: "row", alignItems: "center", borderRadius: 8 },
-  caseOpen: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 14, height: 68, paddingLeft: 8, paddingRight: 4, borderRadius: 8 },
+  caseRow: { flexDirection: "row", alignItems: "center", borderRadius: 0 },
+  caseOpen: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 14, height: 68, paddingLeft: 8, paddingRight: 4, borderRadius: 0 },
   caseDiagram: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },
   caseName: { flex: 1, minWidth: 0 },
   caseId: { fontSize: 13.5, fontWeight: "600", lineHeight: 17.5 },

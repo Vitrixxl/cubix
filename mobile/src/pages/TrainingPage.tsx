@@ -29,7 +29,7 @@ import { LastSolveActions, SolveRow } from "../components/SolveMenus";
 import { TimerSurface } from "../components/TimerSurface";
 import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, framePreviewSize, useBackTo, usePracticeLock, useSessionSolves, useTimerFont } from "../components/Practice";
 import { plural, TrainingSetup, type DailyLearning } from "../components/TrainingSetup";
-import { Btn, H1, Muted, PageHead, mono } from "../components/ui";
+import { Btn, H1, Muted, PageHead, mono, CellGroup } from "../components/ui";
 
 export function TrainingPage() {
   const user = useAtomValue(userAtom);
@@ -177,11 +177,11 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
         <Text style={[styles.caseTitle, { color: t.text, fontSize: layout.phone ? 19 : 24 }]}>{current.c.name}</Text>
       </Pressable>
       <Text numberOfLines={1} style={[styles.caseKind, { color: t.muted }]}>{learning ? daily.status : current.c.setLabel + (current.c.group && current.c.group !== current.c.setLabel ? " · " + current.c.group : "")}</Text>
-      <View style={[styles.caseNav, layout.phone && { width: "100%" }]}>
+      <CellGroup style={[styles.caseNav, layout.phone && { width: "100%" }]}>
         <Btn label={currentLearned ? "Learned" : "Mark learned"} icon={currentLearned ? IconCheck : undefined} tone={currentLearned ? "good" : undefined} disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityState={{ selected: currentLearned }} />
         {!learning && <Btn iconOnly icon={IconBack} disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityLabel="Previous case" />}
         {!learning && <Btn iconOnly icon={IconNext} disabled={busy} onPress={nextCase} accessibilityLabel="Next case" />}
-      </View>
+      </CellGroup>
     </View>
     <PromptBlock label="Setup"><Moves alg={shownSetup} size={promptFont} /></PromptBlock>
     {revealed && primary && <PromptBlock label="Algorithm"><Moves alg={shownAlgorithm} size={Math.max(15, promptFont - 5)} /></PromptBlock>}
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   sessionCase: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1 },
   sessionPicture: { width: 48, alignItems: "center", gap: 4 },
   sessionBody: { flex: 1, minWidth: 0, minHeight: 40, justifyContent: "center", gap: 6 },
-  sessionDash: { width: 14, height: 2, borderRadius: 1 },
+  sessionDash: { width: 14, height: 2, borderRadius: 0 },
   sessionTimes: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  sessionTime: { flexDirection: "row", alignItems: "center", gap: 4, height: 24, paddingHorizontal: 7, borderRadius: 6 },
+  sessionTime: { flexDirection: "row", alignItems: "center", gap: 4, height: 24, paddingHorizontal: 7, borderRadius: 0 },
 });

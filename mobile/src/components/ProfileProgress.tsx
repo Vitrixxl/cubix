@@ -165,7 +165,7 @@ export const Activity = memo(function Activity({ solves, summary, detail }: { so
         {["Mon", "Wed", "Fri"].map((d, i) => <Text key={d} style={[styles.heatLabel, { color: t.muted, left: 0, top: MONTH_ROW + HEAT_GAP + i * 2 * step + (cell - 12) / 2 }]}>{d}</Text>)}
         <View style={[styles.weeks, { left: HEAT_LABEL + HEAT_GAP, top: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }]} pointerEvents="none">
           {Array.from({ length: weeks }, (_, w) => <View key={w} style={{ gap: HEAT_GAP }}>
-            {cells.slice(w * 7, w * 7 + 7).map((c, d) => <View key={c.key} style={{ width: cell, height: cell, borderRadius: 3, backgroundColor: c.count ? heat(c.count / peak) : t.surface2, opacity: c.future ? 0.25 : 1, borderWidth: picked === w * 7 + d ? 1 : 0, borderColor: t.text }} />)}
+            {cells.slice(w * 7, w * 7 + 7).map((c, d) => <View key={c.key} style={{ width: cell, height: cell, borderRadius: 0, backgroundColor: c.count ? heat(c.count / peak) : t.surface2, opacity: c.future ? 0.25 : 1, borderWidth: picked === w * 7 + d ? 1 : 0, borderColor: t.text }} />)}
           </View>)}
         </View>
         {hovered && <View pointerEvents="none" style={[styles.heatTip, { left: tipLeft, bottom: tipBottom, backgroundColor: t.surface2, borderColor: t.line }, t.menuShadow]}>
@@ -180,7 +180,7 @@ export const Activity = memo(function Activity({ solves, summary, detail }: { so
         <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12, flexShrink: 1 }}>{detail}</Text>
         <View style={styles.legend}>
           <Text style={[styles.legendText, { color: t.muted }]}>Less</Text>
-          {[0, 0.25, 0.5, 0.75, 1].map(r => <View key={r} style={{ width: cell, height: cell, borderRadius: 3, backgroundColor: r ? heat(r) : t.surface2 }} />)}
+          {[0, 0.25, 0.5, 0.75, 1].map(r => <View key={r} style={{ width: cell, height: cell, borderRadius: 0, backgroundColor: r ? heat(r) : t.surface2 }} />)}
           <Text style={[styles.legendText, { color: t.muted }]}>More</Text>
         </View>
       </View>
@@ -291,7 +291,7 @@ export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 16, paddingVertical: 18, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1 },
+  card: { gap: 16, paddingVertical: 18, paddingHorizontal: 20, borderRadius: 0, borderWidth: 1 },
   cardShort: { gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
   cardHead: { flexDirection: "row", alignItems: "baseline", gap: 10, minWidth: 0 },
   cardTitle: { fontSize: 13, fontWeight: "600", flexShrink: 0 },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   activitySummary: { flexDirection: "row", flexWrap: "wrap", columnGap: 16, rowGap: 4 },
   heatLabel: { position: "absolute", fontSize: 11, lineHeight: 12 },
   weeks: { position: "absolute", flexDirection: "row" },
-  heatTip: { position: "absolute", width: 150, gap: 2, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
+  heatTip: { position: "absolute", width: 150, gap: 2, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 0, borderWidth: 1 },
   tipRow: { flexDirection: "row", justifyContent: "space-between", gap: 14 },
   activityFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   legend: { flexDirection: "row", alignItems: "center", gap: 3 },
@@ -314,8 +314,8 @@ const styles = StyleSheet.create({
   toolbar: { gap: 10, paddingTop: 12, paddingBottom: 6 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   search: { flex: 1, minWidth: 160, maxWidth: 300, minHeight: 32, height: 32, paddingVertical: 0 },
-  setTitle: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 4, borderRadius: 8, marginTop: 4, marginBottom: 4 },
+  setTitle: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 4, borderRadius: 0, marginTop: 4, marginBottom: 4 },
   grid: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  tile: { alignItems: "center", gap: 2, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1 },
+  tile: { alignItems: "center", gap: 2, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 4, borderRadius: 0, borderWidth: 1 },
   caseHead: { flexDirection: "row", alignItems: "center", gap: 12 },
 });

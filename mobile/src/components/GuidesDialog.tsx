@@ -7,7 +7,7 @@ import { guidesAtom, puzzleAtom, type GuideId } from "../state";
 import { FONT, useTheme } from "../theme";
 import { IconClose } from "./icons";
 import { Sheet, SheetScrollView } from "./Sheet";
-import { Btn, Label } from "./ui";
+import { Btn, Label, CellGroup } from "./ui";
 
 // Bundled with the app: help remains available offline, independently of the website.
 const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string; sections: [string, string][] }> = {
@@ -116,12 +116,12 @@ function Section({ title, body }: { title: string; body: string }) {
 /** Puzzle and method tabs of the solving methods; they open on the active puzzle without changing it. */
 function MethodTabs({ puzzle, method, onPuzzle, onMethod }: { puzzle: PuzzleId; method: string; onPuzzle: (puzzle: PuzzleId) => void; onMethod: (id: string) => void }) {
   return <View style={{ gap: 8 }}>
-    <View style={styles.tabs} accessibilityLabel="Puzzle">
+    <CellGroup style={styles.tabs}>
       {PUZZLES.map(p => <Btn key={p.id} small variant="ghost" active={p.id === puzzle} label={p.label} onPress={() => onPuzzle(p.id)} />)}
-    </View>
-    <View style={styles.tabs} accessibilityLabel="Method">
+    </CellGroup>
+    <CellGroup style={styles.tabs}>
       {METHODS[puzzle].map(m => <Btn key={m.id} small variant="ghost" active={m.id === method} label={m.name} onPress={() => onMethod(m.id)} />)}
-    </View>
+    </CellGroup>
   </View>;
 }
 
@@ -176,7 +176,7 @@ function MethodsContent() {
 const styles = StyleSheet.create({
   nav: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1 },
   navItems: { flexDirection: "row", alignItems: "center", gap: 2, padding: 10 },
-  navItem: { height: 34, paddingHorizontal: 10, borderRadius: 8, justifyContent: "center" },
+  navItem: { height: 34, paddingHorizontal: 10, borderRadius: 0, justifyContent: "center" },
   navText: { fontSize: 13.5, fontWeight: "500" },
   body: { paddingTop: 22, paddingHorizontal: 18, paddingBottom: 28, gap: 12 },
   h1: { fontSize: 30, fontWeight: "600", lineHeight: 34.5, letterSpacing: -0.6, marginTop: 4, marginBottom: 4 },

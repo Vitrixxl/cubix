@@ -39,6 +39,6 @@ export function Toast() {
 
 const styles = StyleSheet.create({
   layer: { position: "absolute", zIndex: 60, flexDirection: "row", justifyContent: "center" },
-  toast: { flexShrink: 1, width: "100%", maxWidth: 420, borderRadius: 12, borderWidth: 1 },
+  toast: { flexShrink: 1, width: "100%", maxWidth: 420, borderRadius: 0, borderWidth: 1 },
   body: { paddingHorizontal: 16, paddingVertical: 14, gap: 2 },
 });

@@ -132,7 +132,7 @@ export const MOBILE = 700;
 /** The app-wide puzzle, shown in page headers on phones where there is no rail. */
 function PuzzleControl() {
   return (
-    <Button action="menu:puzzles" className="control head-puzzle" title="Choose a puzzle">
+    <Button action="menu:puzzles" className={"control head-puzzle " + (s.overlay === "puzzles" ? "open" : "")} title="Choose a puzzle">
       <Icon name={"Puzzle" + s.event().id} size={16} />
       {s.event().label}
       <Icon name="IconChevronDown" size={12} />
@@ -167,7 +167,7 @@ export function PageHead({
 /** A menu trigger of the page header: current value and a chevron. */
 export function Menu({ action, children, icon }: { action: string; icon?: string } & Props) {
   return (
-    <Button action={"menu:" + action} className="control" icon={icon}>
+    <Button action={"menu:" + action} className={"control " + (s.overlay === action ? "open" : "")} icon={icon}>
       {children}
       <Icon name="IconChevronDown" size={12} />
     </Button>

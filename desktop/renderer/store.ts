@@ -662,7 +662,7 @@ export class Store {
           break;
         case "menu":
           this.overlay = this.overlay === arg ? "" : arg;
-          this.anchor = element?.getBoundingClientRect() ?? null;
+          this.anchor = element ? lineRect(element) : null;
           break;
         case "puzzle": {
           const event = eventInfo(arg);
@@ -894,3 +894,19 @@ export class Store {
   }
 }
 export const store = new Store();
+
+/**
+ * The rectangle of an element's lines: its box, widened by 1px on the sides where the line it sits against belongs to
+ * a neighbour (a header cell has no bottom border, the header's line is under it), as the grid background does.
+ */
+function lineRect(element: Element) {
+  const r = element.getBoundingClientRect(),
+    style = getComputedStyle(element),
+    own = (side: string) => parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0;
+  return new DOMRect(
+    r.left - (own("left") ? 0 : 1),
+    r.top - (own("top") ? 0 : 1),
+    r.width + (own("left") ? 0 : 1) + (own("right") ? 0 : 1),
+    r.height + (own("top") ? 0 : 1) + (own("bottom") ? 0 : 1),
+  );
+}

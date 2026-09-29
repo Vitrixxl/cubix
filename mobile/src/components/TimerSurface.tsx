@@ -103,6 +103,6 @@ const styles = StyleSheet.create({
   hint: { fontSize: 12.5, lineHeight: 18, height: 18, textAlign: "center", paddingHorizontal: 12 },
   entry: { width: "100%", padding: 0, textAlignVertical: "center" },
   actions: { width: "100%", height: 30, alignItems: "center", justifyContent: "center" },
-  saveError: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  saveError: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 0, borderWidth: 1 },
   stop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 900 },
 });

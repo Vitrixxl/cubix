@@ -10,7 +10,7 @@ import { IconComment, IconGrid, IconTrash, type IconProps } from "./icons";
 import { Select } from "./Select";
 import { Sheet } from "./Sheet";
 import { useSolveMenu, type SolveSummary } from "./SolveMenus";
-import { Btn, Empty, Label, mono } from "./ui";
+import { Btn, Empty, Label, mono, CellGroup } from "./ui";
 
 /**
  * The web app's solve statistics (`TimerStats` in desktop/renderer/main.tsx): a strip of figures, then a
@@ -311,12 +311,12 @@ function SolveActions({ solve, labels }: { solve: SolveSummary; labels?: boolean
   const { deleteTime, togglePenalty, editComment, busy } = useSolveMenu();
   const size = labels ? 32 : 28;
   const text = labels ? 13 : 12;
-  return <View style={[styles.actions, labels && { width: undefined, justifyContent: "center", gap: 6 }]}>
+  return <CellGroup style={[styles.actions, labels && { width: undefined, justifyContent: "center" }]}>
     <Btn variant="ghost" size={size} active={solve.penalty === "+2"} label="+2" textStyle={{ fontSize: text }} style={styles.action} disabled={busy} accessibilityLabel="+2 penalty" onPress={() => void togglePenalty(solve, "+2")} />
     <Btn variant="ghost" size={size} active={solve.penalty === "dnf"} label="DNF" textStyle={{ fontSize: text }} style={styles.action} disabled={busy} accessibilityLabel="Did not finish" onPress={() => void togglePenalty(solve, "dnf")} />
     <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel={solve.comment ? "Edit comment" : "Add comment"} icon={<IconComment size={15} color={solve.comment ? t.accent : t.secondary} />} label={labels ? "Comment" : undefined} textStyle={{ fontSize: text }} onPress={() => editComment(solve)} />
     <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel="Delete solve" icon={<IconTrash size={15} strokeWidth={2} color={t.danger} />} label={labels ? "Delete" : undefined} textStyle={{ fontSize: text, color: t.danger }} onPress={() => void deleteTime(solve.id)} />
-  </View>;
+  </CellGroup>;
 }
 
 /** The "Solve" dialog of a table row: the time, its date and comment, and the same actions centred. */
@@ -342,18 +342,18 @@ function SolveDetails({ details, onClose }: { details: { solve: SolveSummary; in
 
 const styles = StyleSheet.create({
   strip: { flexDirection: "row", gap: 10 },
-  statTile: { minWidth: 104, gap: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1 },
+  statTile: { minWidth: 104, gap: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 0, borderWidth: 1 },
   compactRow: { flexDirection: "row" },
   compactCell: { flex: 1, minWidth: 0, gap: 4 },
-  panel: { gap: 12, minHeight: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
+  panel: { gap: 12, minHeight: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 0, borderWidth: 1 },
   panelFlat: { paddingHorizontal: 0, paddingBottom: 0, paddingTop: 12, borderWidth: 0, borderTopWidth: 1, borderRadius: 0 },
   between: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   legend: { flexDirection: "row", alignItems: "center", gap: 12 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendText: { fontSize: 12, fontWeight: "600" },
-  swatch: { width: 10, height: 3, borderRadius: 2 },
-  toggle: { flexDirection: "row", gap: 2, padding: 2, borderWidth: 1, borderRadius: 9 },
-  toggleItem: { height: 26, paddingHorizontal: 10, borderRadius: 6, alignItems: "center", justifyContent: "center" },
+  swatch: { width: 10, height: 3, borderRadius: 0 },
+  toggle: { flexDirection: "row", gap: 2, padding: 2, borderWidth: 1, borderRadius: 0 },
+  toggleItem: { height: 26, paddingHorizontal: 10, borderRadius: 0, alignItems: "center", justifyContent: "center" },
   chartArea: { gap: 4 },
   chartRow: { flexDirection: "row", gap: 10 },
   axis: { width: 52, position: "relative" },
@@ -361,18 +361,18 @@ const styles = StyleSheet.create({
   dates: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginLeft: 62 },
   dateText: { fontSize: 11, flexShrink: 1 },
   reset: { position: "absolute", right: 4, top: 4, height: 26, minHeight: 26, paddingHorizontal: 8 },
-  selectionLabel: { position: "absolute", bottom: 4, alignSelf: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  tip: { position: "absolute", top: 8, gap: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
+  selectionLabel: { position: "absolute", bottom: 4, alignSelf: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 0 },
+  tip: { position: "absolute", top: 8, gap: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 0, borderWidth: 1 },
   tableTools: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
   solvesHead: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 6, borderBottomWidth: 1, marginHorizontal: -6, paddingLeft: 6 },
   headText: { fontSize: 12, fontWeight: "600" },
   solveRow: { borderBottomWidth: 1 },
   solveLine: { flexDirection: "row", alignItems: "center" },
-  historyRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 36, paddingHorizontal: 6, borderRadius: 8 },
+  historyRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 36, paddingHorizontal: 6, borderRadius: 0 },
   index: { width: 34, fontSize: 12 },
   time: { width: 72 },
   tags: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 },
-  tag: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5 },
+  tag: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 0 },
   tagText: { fontSize: 10, fontWeight: "700" },
   actions: { width: 150, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2 },
   action: { paddingHorizontal: 8 },

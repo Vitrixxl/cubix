@@ -78,7 +78,7 @@ function AlgorithmsSkeleton() {
 function ProfileSkeleton() {
   const t = useTheme();
   const { pagePadding, short, navSpace, height } = useLayout();
-  const card = { backgroundColor: t.raised, borderColor: t.line, borderWidth: 1, borderRadius: 12, paddingVertical: short ? 14 : 18, paddingHorizontal: short ? 16 : 20, gap: short ? 12 : 16 };
+  const card = { backgroundColor: t.raised, borderColor: t.line, borderWidth: 1, borderRadius: 0, paddingVertical: short ? 14 : 18, paddingHorizontal: short ? 16 : 20, gap: short ? 12 : 16 };
   const cell = height <= 640 ? 10 : height < 800 ? 12 : 17;
   return <View style={skeleton.page}>
     <View style={{ gap: 8, paddingVertical: 10, paddingHorizontal: pagePadding, borderBottomWidth: 1, borderColor: t.line }}>

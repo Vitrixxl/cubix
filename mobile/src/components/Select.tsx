@@ -31,11 +31,11 @@ export function Select<T extends string>({ value, options, onChange, disabled, s
       <Text numberOfLines={1} style={[styles.triggerText, { color: t.text }]}>{current?.label}</Text>
       <IconChevronDown size={12} color={t.muted} />
     </Pressable>
-    <Popover anchor={anchor} onClose={close} width={menuWidth ?? Math.max(minWidth, anchor?.width ?? 0)}>
+    <Popover anchor={anchor} onClose={close} overlap={cell ? 0 : 1} width={menuWidth ?? Math.max(minWidth, anchor?.width ?? 0)}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {options.map(option => {
+        {options.map((option, index) => {
           const checked = option.value === value;
-          return <MenuOption key={option.value} checked={checked} label={option.label} icon={checked ? option.iconChecked ?? option.icon : option.icon} onPress={() => { close(); if (!checked) onChange(option.value); }} />;
+          return <MenuOption key={option.value} last={index === options.length - 1} checked={checked} label={option.label} icon={checked ? option.iconChecked ?? option.icon : option.icon} onPress={() => { close(); if (!checked) onChange(option.value); }} />;
         })}
       </ScrollView>
     </Popover>
@@ -43,23 +43,25 @@ export function Select<T extends string>({ value, options, onChange, disabled, s
 }
 
 /**
- * `.menu-option`: a 34 px row of the select menu (radius 6, 10 px padding): optional icon, label and, on the
- * current value, a surface2 fill with a muted check.
+ * `.menu-option`: a 44 px row of the select menu, split from the next by a line: optional icon, label and, on the
+ * current value, surface2 with the accent bar on its side, an accent label and check.
  */
-function MenuOption({ label, icon, checked, onPress }: { label: string; icon?: ReactNode; checked: boolean; onPress: () => void }) {
+function MenuOption({ label, icon, checked, last, onPress }: { label: string; icon?: ReactNode; checked: boolean; last: boolean; onPress: () => void }) {
   const t = useTheme();
   return <Pressable onPress={onPress} accessibilityRole="menuitem" accessibilityLabel={label} accessibilityState={{ selected: checked }}
-    style={({ pressed }) => [styles.item, { backgroundColor: checked ? t.surface2 : pressed ? t.hover : "transparent" }]}>
+    style={({ pressed }) => [styles.item, { borderColor: t.line, borderBottomWidth: last ? 0 : 1, backgroundColor: checked ? t.surface2 : pressed ? t.hover : "transparent" }]}>
+    {checked && <View style={[styles.bar, { backgroundColor: t.accent }]} />}
     {icon}
-    <Text numberOfLines={1} style={[styles.itemText, { color: t.text }]}>{label}</Text>
-    {checked && <View style={styles.check}><IconCheck size={14} strokeWidth={2.2} color={t.muted} /></View>}
+    <Text numberOfLines={1} style={[styles.itemText, { color: checked ? t.accent : t.secondary }]}>{label}</Text>
+    {checked && <View style={styles.check}><IconCheck size={14} strokeWidth={2.2} color={t.accent} /></View>}
   </Pressable>;
 }
 
 const styles = StyleSheet.create({
-  trigger: { flexDirection: "row", alignItems: "center", gap: 6, height: 32, paddingHorizontal: 11, borderRadius: 8, borderWidth: 1, maxWidth: "100%", flexShrink: 0 },
+  trigger: { flexDirection: "row", alignItems: "center", gap: 6, height: 32, paddingHorizontal: 11, borderRadius: 0, borderWidth: 1, maxWidth: "100%", flexShrink: 0 },
   triggerText: { fontSize: 13, fontWeight: "500", flexShrink: 1 },
-  item: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 34, paddingHorizontal: 10, borderRadius: 6 },
+  item: { flexDirection: "row", alignItems: "center", gap: 12, height: 44, paddingHorizontal: 16 },
+  bar: { position: "absolute", left: 0, top: 0, bottom: 0, width: 2 },
   itemText: { flex: 1, fontSize: 13, fontWeight: "500" },
   check: { marginLeft: 4 },
 });
