@@ -35,7 +35,7 @@ export async function buildWeb(out = WEB_DIR) {
     else vendorFiles.push("/" + relative(out, path).replaceAll("\\", "/"));
   }
   const [worker] = await bundle("desktop/renderer/worker.ts", { CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) });
-  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker) });
+  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker), CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) });
   const scripts = app.filter((path) => path.endsWith(".js") && basename(path).startsWith("main-"));
   const styles = app.filter((path) => path.endsWith(".css"));
   const html = (await readFile("desktop/renderer/index.html", "utf8"))
