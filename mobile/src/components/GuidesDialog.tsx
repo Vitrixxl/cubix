@@ -31,6 +31,16 @@ const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string;
       ["Modes", "Standard, one-handed and blindfolded modes keep separate histories. Blindfolded time includes memorisation. Guest times stay on this device; sign in to sync them."],
     ],
   },
+  duel: {
+    title: "Racing another cuber", lead: "Duel races you against another cuber, live, on the same scrambles.",
+    sections: [
+      ["1. Find an opponent", "Choose the puzzle, open Duel and tap Find an opponent. There is no rating: your level is the mean of your last twelve timer solves on that puzzle, without the best and the worst, once five of them count. You meet the player searching the same puzzle whose level is closest to yours. The range accepted widens the longer you wait, from 15% at once to anyone after 30 seconds. Without a level you first meet other new players, then anyone after 10 seconds. Signed-in players race under their username, guests under a short guest name."],
+      ["2. Race five rounds", "Both of you get the same five scrambles, one round at a time. Your opponent's timer is at the top and yours at the bottom: you see them hold, start and stop as it happens. Start and stop like on the timer page; the next round opens once you have both finished."],
+      ["3. +2, DNF and Cancel", "The cells under your times put a +2 or a DNF on your latest solve, or take it off again. Cancel takes your solve back so you can redo it on the same scramble, as long as your opponent has not finished that round."],
+      ["4. The result", "After five rounds the best Ao5 wins: best and worst dropped, one DNF counts as the worst, two make the average DNF. The result offers a rematch, which starts once you both accept it on five new scrambles, or a new opponent. Your recent battles appear in Account."],
+      ["Chat", "The Chat cell opens the conversation with your opponent. Messages last as long as the race."],
+    ],
+  },
   algorithms: {
     title: "Using the algorithm library", lead: "Open a case to compare its algorithms, view its setup and review your statistics.",
     sections: [
@@ -65,7 +75,7 @@ const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string;
 
 /** The dialog's list of guides, in the web order (`GUIDE_NAMES`). */
 const GUIDE_NAMES: [GuideId, string][] = [
-  ["about", "About Cubix"], ["timer", "Timer"], ["algorithms", "Algorithms"], ["training", "Training"], ["methods", "Solving methods"], ["averages", "Ao5 and Ao12"],
+  ["about", "About Cubix"], ["timer", "Timer"], ["algorithms", "Algorithms"], ["training", "Training"], ["duel", "Duel"], ["methods", "Solving methods"], ["averages", "Ao5 and Ao12"],
 ];
 
 /**

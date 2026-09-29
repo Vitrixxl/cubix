@@ -37,6 +37,7 @@ mock.module("../src/api", () => ({ api: {}, authToken: {}, local: {
     achievements: () => achievements,
   },
 } }));
+mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5 }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ navSpace: 16, phone: true, short: false, width: 390, height: 844, pagePadding: 14 }) }));
 mock.module("../src/hooks/usePreservedScroll", () => ({ usePreservedScroll: () => ({ ref: { current: null }, onScroll() {}, onContentSizeChange() {} }) }));
 mock.module("../src/components/ProfileProgress", () => ({

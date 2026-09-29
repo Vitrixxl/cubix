@@ -53,7 +53,7 @@ export function TimerSurface({ timer, disabled = false, fontSize, short, actions
     {running ? <LiveTime startedAt={timer.startedAt} style={valueStyle} /> : <Text style={valueStyle}>{text}</Text>}
     <Text numberOfLines={1} style={[styles.hint, { color: t.muted, marginTop: short ? 8 : 14, opacity: running ? 0 : 1 }]}>{hint}</Text>
     {/* The row keeps its height whether or not a fresh time offers its buttons, so the timer never jumps. */}
-    <View style={[styles.actions, { marginTop: short ? 8 : 12, opacity: running ? 0 : 1 }]} pointerEvents={running ? "none" : "box-none"}>{running ? null : actions}</View>
+    {actions !== undefined && <View style={[styles.actions, { marginTop: short ? 8 : 12, opacity: running ? 0 : 1 }]} pointerEvents={running ? "none" : "box-none"}>{running ? null : actions}</View>}
     {timer.saveError ? <View style={[styles.saveError, { borderColor: t.line }]}><FormError style={{ flexShrink: 1 }}>{timer.saveError}</FormError><Btn small label="Retry" onPress={timer.retrySave} /></View> : null}
   </View>;
 }
@@ -76,7 +76,7 @@ export function TimeEntryField({ fontSize, short, disabled = false, actions, err
       keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.00" placeholderTextColor={alpha(t.accent, 35)} selectionColor={t.soft} cursorColor={t.accent} accessibilityLabel="Time"
       style={[styles.entry, digits, { height: lineHeight, lineHeight }]} />
     <Text numberOfLines={1} style={[styles.hint, { color: t.muted, marginTop: short ? 8 : 14 }]}>{hint}</Text>
-    <View style={[styles.actions, { marginTop: short ? 8 : 12 }]}>{actions}</View>
+    {actions !== undefined && <View style={[styles.actions, { marginTop: short ? 8 : 12 }]}>{actions}</View>}
     {error ? <View style={[styles.saveError, { borderColor: t.line }]}><FormError style={{ flexShrink: 1 }}>{error}</FormError><Btn small label="Retry" onPress={onRetry} /></View> : null}
   </View>;
 }

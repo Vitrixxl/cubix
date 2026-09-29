@@ -11,14 +11,15 @@ import { storage } from "./platform/storage";
 // ---------------------------------------------------------------------------
 // Routing: one atom plus a bounded history so the Android back button behaves like the browser.
 // ---------------------------------------------------------------------------
-export type GuideId = "about" | "timer" | "algorithms" | "training" | "methods" | "averages";
+export type GuideId = "about" | "timer" | "algorithms" | "training" | "duel" | "methods" | "averages";
 export type Route =
   | { page: "algorithms"; caseId?: string; caseIds?: string[] }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
+  | { page: "duel" }
   | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string };
 /** A profile detail view; no mode shows the overview tiles. */
-export type ProfileMode = "playground" | "training" | "achievements";
+export type ProfileMode = "playground" | "training" | "achievements" | "duels";
 export type Page = Route["page"];
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
 export const guidesAtom = atom<GuideId | null>(null);
@@ -27,7 +28,7 @@ const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
   try {
     const saved = JSON.parse(storage.getItem(LAST_TAB_KEY) ?? "null");
-    if (saved && ["playground", "algorithms", "training", "profile"].includes(saved.page)) return { page: saved.page };
+    if (saved && ["playground", "algorithms", "training", "duel", "profile"].includes(saved.page)) return { page: saved.page };
   } catch { /* Open the default tab. */ }
   return { page: "playground" };
 }

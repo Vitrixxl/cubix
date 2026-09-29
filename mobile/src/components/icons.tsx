@@ -26,4 +26,7 @@ export const IconComment = (p: IconProps) => <Svg {...base(p)}><Path d="M4 5.5A2
 /** Tabler's trash can, as the web solve actions draw it. */
 export const IconTrash = (p: IconProps) => <Svg {...base({ size: 15, strokeWidth: 1.8, ...p })}><Path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></Svg>;
 export const IconInfo = (p: IconProps) => <Svg width={p.size ?? 15} height={p.size ?? 15} viewBox="0 0 20 20" fill="none" stroke={p.color} strokeWidth={1.5}><Circle cx="10" cy="10" r="8" /><Path d="M10 9v5" /><Circle cx="10" cy="6" r=".7" fill={p.color} stroke="none" /></Svg>;
+/** Crossed swords, the duel's tab. */
+export const IconSwords = (p: IconProps) => <Svg {...base(p)}><Path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2" /></Svg>;
+export const IconSend = (p: IconProps) => <Svg {...base(p)}><Path d="M3.7 3.05a.5.5 0 0 0-.68.63l2.84 7.62a2 2 0 0 1 0 1.4l-2.84 7.62a.5.5 0 0 0 .68.63l18-8.5a.5.5 0 0 0 0-.9zM6 12h16" /></Svg>;
 export type Icon = (p: IconProps) => React.JSX.Element;

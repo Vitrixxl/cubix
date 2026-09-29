@@ -19,7 +19,7 @@ import { Notice, RunningFade, TouchArea, sessionMetrics, usePracticeLock, useScr
 import { PuzzlePicker } from "../components/PuzzlePicker";
 import { Select } from "../components/Select";
 import { Sheet } from "../components/Sheet";
-import { LastSolveActions, SolveRow, TimesRowActions, useSolveMenu } from "../components/SolveMenus";
+import { SolveRow, SolveStrip, TimesRowActions, useSolveMenu } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { StopSurface, TimeEntryField, TimerSurface } from "../components/TimerSurface";
 import { Btn, Label, Metrics, MiniBtn, PageHead, SkeletonLine, mono } from "../components/ui";
@@ -114,7 +114,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   // The time fills its area like the web's `clamp(52px, 19cqw, 110px)`, and shrinks when the area is short.
   const [area, setArea] = useState({ width: layout.width, height: 0 });
   const widthFont = phone ? Math.max(52, Math.min(area.width * 0.19, 110)) : Math.max(56, Math.min(area.width * 0.15, area.height * 0.36 || Infinity, 172));
-  const actionsSpace = 18 + 14 + 30 + 12 + 24;
+  const actionsSpace = 18 + 14 + 24;
   const timerSize = Math.round(Math.max(34, Math.min(widthFont, area.height ? (area.height - actionsSpace) / 1.12 : widthFont)));
   const shortTimer = area.height > 0 && area.height < 190;
 
@@ -134,7 +134,6 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
     {!timesColumn && <Btn icon={IconTimer} iconOnly={collapse} label={collapse ? undefined : "Times"} accessibilityLabel="Times" active={showTimes} disabled={busy} onPress={() => setShowTimes(true)} />}
   </>;
 
-  const actions = lastSolve && !saving ? <LastSolveActions solve={lastSolve} /> : null;
   const scrollKey = `playground-times:${contextKey(context)}`;
 
   return <View style={styles.page}>
@@ -163,10 +162,11 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
           <View style={styles.timer} onLayout={event => { const { width, height } = event.nativeEvent.layout; setArea(current => current.width === width && current.height === height ? current : { width, height }); }}>
             <Notice at={record.at} hidden={running} top={shortTimer ? 6 : 18} icon={<IconTrophy size={14} color={t.good} />} message={record.message} />
             {typing
-              ? <TimeEntryField fontSize={timerSize} short={shortTimer} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message} onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} actions={actions} />
-              : <TimerSurface timer={timer} fontSize={timerSize} short={shortTimer} unsaved={entry === "casual"} actions={actions} />}
+              ? <TimeEntryField fontSize={timerSize} short={shortTimer} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message} onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} />
+              : <TimerSurface timer={timer} fontSize={timerSize} short={shortTimer} unsaved={entry === "casual"} />}
           </View>
           <RunningFade hidden={running}>
+            <SolveStrip solve={saving ? null : lastSolve} />
             <Metrics items={metrics} columns={phone || layout.width <= 1240 ? 4 : 8} dense valueSize={phone ? 15 : 18} />
           </RunningFade>
         </TouchArea>

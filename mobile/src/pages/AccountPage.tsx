@@ -16,6 +16,62 @@ import { Select } from "../components/Select";
 import { SettingsDialog, type AuthMode } from "../components/Settings";
 import { TimerStats } from "../components/TimesChart";
 import { Avatar, Btn, Empty, Label, PageHead, mono } from "../components/ui";
+import { battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
+import { fmtSolve } from "../../../src/client/lib/format";
+
+const RESULT_MARK = { win: "W", loss: "L", draw: "D" } as const;
+const ao5Text = (v: number | null) => (v === null ? "DNF" : fmtTime(v));
+
+/** A battle's result as its letter, green for a win and red for a loss. */
+function BattleMark({ b }: { b: DuelRecord }) {
+  const t = useTheme();
+  return <Text style={[mono(t, 13, "600"), { color: b.result === "win" ? t.good : b.result === "loss" ? t.danger : t.muted }]}>{RESULT_MARK[b.result]}</Text>;
+}
+
+/** Every battle kept on this device, a row each: result, opponent and event, both averages, then the five rounds. */
+function BattleList() {
+  const t = useTheme();
+  useDuel();
+  const list = battles();
+  const setRoute = useSetAtom(routeAtom);
+  if (!list.length) return <Empty style={{ flex: 1 }}>
+    <Text style={{ color: t.text, fontSize: 14 }}>No battles yet.</Text>
+    <Btn variant="primary" label="Find an opponent" onPress={() => setRoute({ page: "duel" })} />
+  </Empty>;
+  return <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+    {list.map(b => <View key={b.id} style={[styles.battle, { borderColor: t.line }]}>
+      <View style={styles.battleTop}>
+        <View style={[styles.battleMark, { borderColor: t.line }]}><BattleMark b={b} /></View>
+        <View style={{ flex: 1, minWidth: 0, paddingHorizontal: 14 }}>
+          <Text numberOfLines={1} style={{ color: t.text, fontSize: 13.5, fontWeight: "600" }}>{b.opponent}</Text>
+          <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12 }}>{`${eventInfo(b.event)?.label ?? b.event} · ${shortDate(b.at)}`}</Text>
+        </View>
+        <Text style={[mono(t, 14), { paddingRight: 14, color: t.text }]}>{ao5Text(b.ao5[0])}<Text style={{ color: t.muted }}> vs </Text>{ao5Text(b.ao5[1])}</Text>
+      </View>
+      <View style={[styles.battleRounds, { borderColor: t.line }]}>
+        {[...Array(ROUNDS).keys()].map(r => <View key={r} style={[styles.battleRound, { borderColor: t.line, borderLeftWidth: r ? 1 : 0 }]}>
+          <Text style={mono(t, 11.5)}>{b.mine[r] ? fmtSolve(b.mine[r]!.ms, b.mine[r]!.penalty) : "—"}</Text>
+          <Text style={[mono(t, 11.5, "400"), { color: t.muted }]}>{b.theirs[r] ? fmtSolve(b.theirs[r]!.ms, b.theirs[r]!.penalty) : "—"}</Text>
+        </View>)}
+      </View>
+    </View>)}
+  </ScrollView>;
+}
+
+/** The overview's latest battles: the record, then the last few races. */
+function BattlesCard({ onPress }: { onPress: () => void }) {
+  const t = useTheme();
+  useDuel();
+  const list = battles();
+  return <OverviewCard title="Battles" detail={list.length ? battleRecord(list) : "No battles yet"} onPress={onPress} accessibilityLabel="Battles">
+    {!list.length ? <Text style={{ color: t.muted, fontSize: 12.5 }}>Race another cuber from Duel: your results land here.</Text>
+      : list.slice(0, 5).map(b => <View key={b.id} style={styles.battleLine}>
+        <View style={{ width: 18 }}><BattleMark b={b} /></View>
+        <Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 13 }}>{b.opponent}</Text>
+        <Text style={mono(t, 13)}>{ao5Text(b.ao5[0])}<Text style={{ color: t.muted }}> vs </Text>{ao5Text(b.ao5[1])}</Text>
+      </View>)}
+  </OverviewCard>;
+}
 
 /**
  * The web app's account page (`Profile` in desktop/renderer/main.tsx) at phone size: the overview (activity,
@@ -24,7 +80,7 @@ import { Avatar, Btn, Empty, Label, PageHead, mono } from "../components/ui";
  * profile's own and leave the rest of the app untouched.
  */
 
-const SECTIONS: Record<ProfileMode, string> = { playground: "Timer", training: "Training", achievements: "Achievements" };
+const SECTIONS: Record<ProfileMode, string> = { playground: "Timer", training: "Training", achievements: "Achievements", duels: "Battles" };
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
 /** `ProfileFilters`: the WCA event, and optionally the scramble type. */
@@ -143,6 +199,10 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
         <ProfileCaseDialog c={selected} data={profile.cases.find(c => c.summary.caseId === caseId)} onClose={() => setCaseId(null)} />
       </View>;
     }
+    if (mode === "duels") return <View style={styles.page}>
+      <PageHead onBack={back} title="Battles" sub={battleRecord(battles())} padding={pagePadding} />
+      <BattleList />
+    </View>;
     if (mode === "achievements") return <View style={styles.page}>
       {head}
       <AchievementList summary={summary} initialGroup={group} scrollKey="profile-achievements" />
@@ -188,6 +248,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       </OverviewCard>
       <GaugeCard label="Training" g={d.training} onPress={() => setRoute({ page: "profile", mode: "training" })} />
       <GaugeCard label="Achievements" g={d.achievements} onPress={() => setRoute({ page: "profile", mode: "achievements" })} />
+      <BattlesCard onPress={() => setRoute({ page: "profile", mode: "duels" })} />
     </ScrollView>
     <SettingsDialog open={account !== null} authMode={account ?? "register"} onClose={() => setAccount(null)} />
   </View>;
@@ -202,4 +263,10 @@ const styles = StyleSheet.create({
   chartEmpty: { fontSize: 12.5, textAlign: "center", borderTopWidth: 1, paddingTop: 14, paddingBottom: 8 },
   ringHead: { flexDirection: "row", alignItems: "center", gap: 16 },
   ringText: { flex: 1, minWidth: 0, gap: 3 },
+  battle: { borderBottomWidth: 1 },
+  battleTop: { flexDirection: "row", alignItems: "center", height: 64 },
+  battleMark: { width: 64, alignSelf: "stretch", alignItems: "center", justifyContent: "center", borderRightWidth: 1 },
+  battleRounds: { flexDirection: "row", height: 48, borderTopWidth: 1 },
+  battleRound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2 },
+  battleLine: { flexDirection: "row", alignItems: "center", gap: 10, height: 32 },
 });

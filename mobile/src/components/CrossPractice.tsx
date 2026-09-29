@@ -18,7 +18,7 @@ import { IconComment, IconEye, IconShuffle, IconTimer, IconTrophy, IconUndo } fr
 import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, framePreviewSize, sessionMetrics, useBackTo, usePracticeLock, useScrambleGeneration, useSessionSolves, useTimerFont } from "./Practice";
 import { PuzzlePicker } from "./PuzzlePicker";
 import { Sheet } from "./Sheet";
-import { LastSolveActions, SolveActionButtons, SolveInfoButton, SolveRow } from "./SolveMenus";
+import { SolveStrip, SolveActionButtons, SolveInfoButton, SolveRow } from "./SolveMenus";
 import { TimerSurface } from "./TimerSurface";
 import { Btn, Empty, Mark, PageHead, Segmented, SkeletonLine, mono } from "./ui";
 
@@ -125,7 +125,8 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
     <PracticeFrame head={head} prompt={prompt} timer={timer} disabled={!!timer.saveError}
       visual={previewSize > 0 && scramble && !(generating && slow) ? <CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /> : previewSize > 0 ? <View style={{ width: previewSize, height: previewSize }} /> : null}
       notice={<Toast at={record.at} hidden={running} icon={<IconTrophy size={14} color={t.good} />} message={record.message} />}
-      readout={<TimerSurface timer={timer} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} /> : null} />}
+      readout={<TimerSurface timer={timer} fontSize={timerFont} short={layout.short} />}
+      strip={<SolveStrip solve={saving ? null : lastSolve} />}
       metrics={sessionMetrics(solves)} columns={4} dense
       side={!layout.phone && (timesAlways || showTimes) ? <TimesColumn title="Times" count={solves.length} onClose={timesAlways ? undefined : () => setShowTimes(false)}>{times}</TimesColumn> : null} />
     {layout.phone && <Sheet open={showTimes} onClose={() => setShowTimes(false)} title="Times" sub={String(solves.length)} tall flush>{times}</Sheet>}

@@ -5,7 +5,7 @@ import { fmtSolve } from "../../../src/client/lib/format";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
 import { deletedSolveIdAtom, statsVersionAtom, updatedSolveAtom } from "../state";
-import { useTheme } from "../theme";
+import { FONT, useTheme } from "../theme";
 import { AlgText } from "./AlgText";
 import { IconComment, IconFlag, IconInfo, IconTrash } from "./icons";
 import { Popover, type Anchor } from "./Popover";
@@ -189,6 +189,28 @@ export function LastSolveActions({ solve }: { solve: SolveSummary }) {
   </View>;
 }
 
+/**
+ * The last solve's actions as on the web: four equal cells along the bottom of the timer, flush on the figures,
+ * words only, a cell tinted by what it does while pressed or applied (a penalty amber, a DNF or a deletion red, a
+ * comment in the accent). Present before the first solve too, disabled, so the timer never moves.
+ */
+export function SolveStrip({ solve, height = 64 }: { solve: SolveSummary | null; height?: number }) {
+  const t = useTheme();
+  const { deleteTime, togglePenalty, editComment, busy } = useContext(MenuContext);
+  const disabled = !solve || busy;
+  const cell = (label: string, tone: string, on: boolean, onPress: () => void, first = false) =>
+    <Pressable key={label} accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
+      style={({ pressed }) => [styles.stripCell, { borderColor: t.line, borderLeftWidth: first ? 0 : 1, opacity: disabled ? 0.45 : 1, backgroundColor: on || pressed ? tone + "24" : "transparent" }]}>
+      <Text style={{ fontFamily: FONT.mono, fontSize: 14, fontWeight: "500", color: on ? tone : t.secondary }}>{label}</Text>
+    </Pressable>;
+  return <View style={[styles.strip, { height, borderColor: t.line }]} accessibilityRole="toolbar">
+    {cell("+2", t.warning, solve?.penalty === "+2", () => solve && void togglePenalty(solve, "+2"), true)}
+    {cell("DNF", t.danger, solve?.penalty === "dnf", () => solve && void togglePenalty(solve, "dnf"))}
+    {cell("Comment", t.accent, !!solve?.comment, () => solve && editComment(solve))}
+    {cell("Delete", t.danger, false, () => solve && void deleteTime(solve.id))}
+  </View>;
+}
+
 /** `.control.icon-only.danger-hover`: the trash turns red while pressed. */
 function DeleteControl({ disabled, onPress }: { disabled?: boolean; onPress: () => void }) {
   const t = useTheme();
@@ -203,6 +225,8 @@ export function SolveInfoButton({ solve }: { solve: SolveDto | SolveSummary }) {
 }
 
 const styles = StyleSheet.create({
+  strip: { flexDirection: "row", borderTopWidth: 1 },
+  stripCell: { flex: 1, alignItems: "center", justifyContent: "center" },
   menuHead: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, gap: 1 },
   // Rows of the menu, split by lines like the web's `.menu-option`s.
   item: { flexDirection: "row", alignItems: "center", gap: 12, height: 44, paddingHorizontal: 16, borderTopWidth: 1 },

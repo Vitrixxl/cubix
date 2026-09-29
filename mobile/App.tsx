@@ -22,6 +22,7 @@ import { PUZZLES } from "../src/shared/puzzles";
 import { ProfilePage } from "./src/pages/AccountPage";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
+import { DuelPage } from "./src/pages/DuelPage";
 import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
@@ -37,6 +38,7 @@ function renderPage(route: Route) {
     case "algorithms": return <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} />;
     case "training": return <TrainingPage />;
     case "playground": return <PlaygroundPage />;
+    case "duel": return <DuelPage />;
     case "profile": return <ProfilePage mode={route.mode} group={route.group} />;
   }
 }

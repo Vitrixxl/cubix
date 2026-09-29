@@ -218,8 +218,10 @@ export function useTimerFont() {
 }
 
 /** The practice screen of a running training (case practice, cross + 1). */
-export function PracticeFrame({ head, prompt, visual, timer, readout, metrics, columns, dense, side, notice, disabled }: {
+export function PracticeFrame({ head, prompt, visual, timer, readout, strip, metrics, columns, dense, side, notice, disabled }: {
   head: ReactNode; prompt: ReactNode; visual?: ReactNode; timer: TimerApi; readout: ReactNode;
+  /** The last solve's actions, along the bottom of the timer (`SolveStrip`). */
+  strip?: ReactNode;
   metrics: MetricItem[]; columns?: number; dense?: boolean;
   /** The times column of wide screens (`.column-right`). */
   side?: ReactNode;
@@ -242,7 +244,7 @@ export function PracticeFrame({ head, prompt, visual, timer, readout, metrics, c
           {notice}
           {readout}
         </View>
-        <RunningFade hidden={running} showMs={180}><Metrics items={metrics} columns={columns} dense={dense} /></RunningFade>
+        <RunningFade hidden={running} showMs={180}>{strip}<Metrics items={metrics} columns={columns} dense={dense} /></RunningFade>
       </View>
       {side}
     </View>

@@ -4,19 +4,20 @@ import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { userAtom, type Page } from "../state";
 import { useTheme } from "../theme";
-import { IconCube, IconGrid, IconSettings, IconTimer, IconUser, type Icon } from "./icons";
+import { IconCube, IconGrid, IconSettings, IconSwords, IconTimer, IconUser, type Icon } from "./icons";
 import { Avatar } from "./ui";
 
-/** The web app's phone tabs (`MOBILE_TABS`): the timer in the centre, settings last. */
+/** The web app's phone tabs (`MOBILE_TABS`): algorithms, training, the timer, the duel, the account, settings last. */
 const NAV: { page: Page; label: string; icon: Icon }[] = [
   { page: "algorithms", label: "Algorithms", icon: IconGrid },
   { page: "training", label: "Training", icon: IconTimer },
   { page: "playground", label: "Timer", icon: IconCube },
+  { page: "duel", label: "Duel", icon: IconSwords },
   { page: "profile", label: "Account", icon: IconUser },
 ];
 
 /**
- * `.tabbar`: a row of five cells split by lines (icon over a 10.5 px label, muted; the current one accent on
+ * `.tabbar`: a row of six cells split by lines (icon over a 10.5 px label, muted; the current one accent on
  * surface2) on the page colour with a 1px top line. Phones get it in the layout flow under the page; larger
  * screens a floating island. A running solve fades it out like `.is-running .tabbar`.
  */
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
   /** Phone: full width in the layout flow, under the content. */
   bar: { flexDirection: "row", borderTopWidth: 1, zIndex: 40 },
   /** Larger screens: floating island above the content. */
-  island: { position: "absolute", alignSelf: "center", flexDirection: "row", width: 380, borderRadius: 0, borderWidth: 1, zIndex: 40 },
+  island: { position: "absolute", alignSelf: "center", flexDirection: "row", width: 456, borderRadius: 0, borderWidth: 1, zIndex: 40 },
   item: { flex: 1, minWidth: 0, height: 56, alignItems: "center", justifyContent: "center", gap: 3 },
   icon: { height: 21, alignItems: "center", justifyContent: "center" },
   label: { fontSize: 10.5, fontWeight: "500" },

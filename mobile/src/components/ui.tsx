@@ -1,5 +1,6 @@
-import { createContext, memo, useContext, useEffect, useState, type ReactNode } from "react";
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
+import { Children, Fragment, createContext, isValidElement, memo, useContext, useEffect, useState, type ReactNode } from "react";
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type PressableProps, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FONT, useTheme, type Theme } from "../theme";
 import { IconBack, IconCheck, IconMinus, type Icon } from "./icons";
 
@@ -51,7 +52,7 @@ export type ButtonProps = Omit<PressableProps, "style" | "children"> & {
  * `.page-head .control`: inside a page header, controls are cells of its grid, as tall as their row, square,
  * split by 1px lines; `grow` makes the cells of the controls row share its width.
  */
-export interface HeadCell { height: number; grow: boolean }
+export interface HeadCell { height: number; grow: boolean; /** An equal share of the row, so the lines of both rows meet. */ width?: number }
 const HeadCellContext = createContext<HeadCell | null>(null);
 /** The header row a control sits in, null outside a page header. */
 export const useHeadCell = () => useContext(HeadCellContext);
@@ -61,8 +62,8 @@ export function HeadCells({ height, grow = false, children }: { height: number; 
 }
 /** The frame of a header cell: its row's height, no radius, a line on its left. */
 export const headCellStyle = (t: Theme, cell: HeadCell): ViewStyle => ({
-  height: cell.height, minHeight: cell.height, flexGrow: cell.grow ? 1 : 0, justifyContent: "center", paddingHorizontal: 12, gap: 6,
-  borderRadius: 0, borderWidth: 0, borderLeftWidth: 1, borderColor: t.line,
+  height: cell.height, minHeight: cell.height, flexGrow: cell.grow && cell.width === undefined ? 1 : 0, justifyContent: "center", paddingHorizontal: cell.width === undefined ? 12 : 6, gap: 6,
+  borderRadius: 0, borderWidth: 0, borderLeftWidth: 1, borderColor: t.line, ...(cell.width !== undefined && { width: cell.width }),
 });
 
 /**
@@ -94,7 +95,7 @@ export function Btn({ children, icon, label, variant: kind = "control", active: 
   if (tone && kind !== "primary") { color = toneColor(t, tone); iconColor = color; }
   return <Pressable {...rest} disabled={disabled} accessibilityRole={rest.accessibilityRole ?? "button"} accessibilityState={rest.accessibilityState ?? (selected ? { selected: true } : undefined)}
     onPressIn={e => { setDown(true); rest.onPressIn?.(e); }} onPressOut={e => { setDown(false); rest.onPressOut?.(e); }}
-    style={[styles.btn, kind === "control" && styles.control, { height, minHeight: height, backgroundColor: background, borderColor: border, opacity: disabled ? 0.35 : 1 }, cell && headCellStyle(t, cell), grouped && !cell && inGroup, iconOnly && { width: height, paddingHorizontal: 0 }, style]}>
+    style={[styles.btn, kind === "control" && styles.control, { height, minHeight: height, backgroundColor: background, borderColor: border, opacity: disabled ? 0.35 : 1 }, cell && headCellStyle(t, cell), grouped && !cell && inGroup, iconOnly && { width: height, paddingHorizontal: 0 }, cell?.width !== undefined && { width: cell.width }, style]}>
     {icon !== undefined && renderIcon(icon, small ? 14 : 15, iconColor)}
     {label !== undefined && <Text numberOfLines={1} style={[styles.btnText, kind === "primary" && { fontWeight: "600" }, monoLabel && { fontFamily: FONT.mono, fontSize: 12.5 }, small && { fontSize: 12 }, { color }, textStyle]}>{label}</Text>}
     {children}
@@ -115,6 +116,8 @@ export function MiniBtn({ icon, label, on, danger, disabled, ...rest }: Omit<Pre
   </Pressable>;
 }
 
+/** In a page header's row of equal shares, a group of cells takes two. */
+const SEGMENTED_SHARES = 2;
 export interface SegmentOption<T extends string> { id: T; label: string; count?: number; icon?: Icon | ReactNode }
 /**
  * `.segmented`: bordered track (radius 9, 2 px inset) of 26 px items; the active one is surface3.
@@ -131,7 +134,7 @@ export function Segmented<T extends string>({ options, value, onChange, disabled
     const color = active ? t.accent : t.secondary;
     const fill = active ? t.surface2 : "transparent";
     return <Pressable key={option.id} disabled={disabled} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onChange(option.id)}
-      style={({ pressed }) => [plain ? styles.tab : styles.segment, { borderColor: t.line }, cell ? headCellStyle(t, cell) : inGroup, { backgroundColor: pressed && !active ? t.hover : fill, opacity: disabled ? 0.35 : 1 }, itemStyle]}>
+      style={({ pressed }) => [plain ? styles.tab : styles.segment, { borderColor: t.line }, cell ? headCellStyle(t, { ...cell, width: cell.width === undefined ? undefined : cell.width * SEGMENTED_SHARES / options.length }) : inGroup, { backgroundColor: pressed && !active ? t.hover : fill, opacity: disabled ? 0.35 : 1 }, itemStyle]}>
       {option.icon !== undefined && renderIcon(option.icon, 14, active ? t.text : t.muted)}
       <Text numberOfLines={1} style={[plain ? styles.tabText : styles.segmentText, { color }, textStyle]}>{option.label}</Text>
       {option.count !== undefined && <Text style={[styles.count, { color: t.muted }]}>{option.count}</Text>}
@@ -198,8 +201,14 @@ export function PageHead({ title, sub, onBack, lead, right, controls, padding = 
   title: string; sub?: string; onBack?: () => void; lead?: ReactNode; right?: ReactNode; controls?: ReactNode; padding?: number;
 }) {
   const t = useTheme();
+  const window = useWindowDimensions(), insets = useSafeAreaInsets();
   // As on the web: a 52 px title row whose back arrow and `right` control are its first and last cells, then a
-  // 44 px row of control cells; the row is shifted 1px left so its first cell's line falls off the screen.
+  // 44 px row of control cells sharing it equally, the `right` cell as wide as one share so the lines of both rows
+  // meet. The row is shifted 1px left so its first cell's line falls off the screen.
+  const flat = (nodes: ReactNode): ReactNode[] => Children.toArray(nodes).flatMap(n => isValidElement(n) && n.type === Fragment ? flat((n.props as { children?: ReactNode }).children) : [n]);
+  const shares = flat(controls).reduce<number>((sum, n) => sum + (isValidElement(n) && n.type === Segmented ? SEGMENTED_SHARES : 1), 0);
+  // Phones only, like the web; larger screens keep cells as wide as their words.
+  const share = shares && window.width <= 700 ? (window.width - insets.left - insets.right + 1) / shares : undefined;
   const titleCell = { height: 52, grow: false };
   return <View style={[styles.pageHead, { borderColor: t.line }]}>
     <View style={[styles.pageTitle, { paddingLeft: padding, paddingRight: right ? 0 : padding }]}>
@@ -211,10 +220,10 @@ export function PageHead({ title, sub, onBack, lead, right, controls, padding = 
         <Text numberOfLines={1} style={[styles.pageH1, { color: t.text }]}>{title}</Text>
         {sub ? <Text numberOfLines={1} style={[styles.pageSub, { color: t.muted }]}>{sub}</Text> : null}
       </View>
-      <HeadCellContext.Provider value={titleCell}>{right}</HeadCellContext.Provider>
+      <HeadCellContext.Provider value={{ ...titleCell, width: share }}>{right}</HeadCellContext.Provider>
     </View>
     {controls && <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={[styles.controlsRow, { borderColor: t.line }]} contentContainerStyle={styles.controls}>
-      <HeadCellContext.Provider value={{ height: 44, grow: true }}>{controls}</HeadCellContext.Provider>
+      <HeadCellContext.Provider value={{ height: 44, grow: true, width: share }}>{controls}</HeadCellContext.Provider>
     </ScrollView>}
   </View>;
 }

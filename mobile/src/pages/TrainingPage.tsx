@@ -25,7 +25,7 @@ import { IconBack, IconCheck, IconComment, IconEye, IconGrid, IconNext, IconShuf
 import { LearningGroups } from "../components/LearningGroups";
 import { PuzzlePicker } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
-import { LastSolveActions, SolveRow } from "../components/SolveMenus";
+import { SolveRow, SolveStrip } from "../components/SolveMenus";
 import { TimerSurface } from "../components/TimerSurface";
 import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, framePreviewSize, useBackTo, usePracticeLock, useSessionSolves, useTimerFont } from "../components/Practice";
 import { plural, TrainingSetup, type DailyLearning } from "../components/TrainingSetup";
@@ -206,7 +206,8 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   return <>
     <PracticeFrame head={head} prompt={prompt} visual={visual} timer={timer} disabled={!current || saving || !!timer.saveError}
       notice={<Toast at={celebratedAt} hidden={running} icon={<IconCheck size={14} color={t.good} />} message="Well done! Every selected case is learned." />}
-      readout={<TimerSurface timer={timer} disabled={!current || saving} fontSize={timerFont} short={layout.short} actions={lastSolve && !saving ? <LastSolveActions solve={lastSolve} /> : null} />}
+      readout={<TimerSurface timer={timer} disabled={!current || saving} fontSize={timerFont} short={layout.short} />}
+      strip={<SolveStrip solve={saving ? null : lastSolve} />}
       metrics={[{ label: "Best", value: fmtTime(summary.best), tone: "good" }, { label: "Mean", value: fmtTime(summary.mean) }, { label: "Solves", value: String(summary.count) }]}
       side={!layout.phone && (timesAlways || showTimes) ? <TimesColumn title="Session" count={solves.length} onClose={timesAlways ? undefined : () => setShowTimes(false)} actions={solves.length ? <Btn small label="Undo" onPress={undoLast} /> : null}>{times}</TimesColumn> : null} />
     {layout.phone && <Sheet open={showTimes} onClose={() => setShowTimes(false)} title="Session" sub={String(solves.length)} tall flush
