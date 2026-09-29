@@ -3925,7 +3925,37 @@ kbd {
 }
 .setup-pane.setup-cases {
   gap: 0;
-  padding: 0 1px 14px 0;
+  padding: 0 1px 0 0;
+}
+/* The catalogue: sets as flush rows, edge to edge; the set's checkbox in a square cell as tall as its row. */
+.setup-cases .setup-scroll {
+  padding: 0;
+}
+.setup-cases .setup-set-head {
+  gap: 0;
+  align-items: stretch;
+}
+.setup-cases .button.check-button {
+  width: 52px;
+  height: auto;
+  border: 0;
+  border-right: 1px solid var(--line);
+}
+.setup-cases .button.check-button:hover {
+  background: var(--hover);
+}
+.setup-cases .button.setup-set-title {
+  height: auto;
+  padding: 0 24px 0 16px;
+}
+.setup-cases .setup-set.open > .setup-set-head {
+  border-bottom: 1px solid var(--line);
+}
+.setup-cases .setup-group {
+  padding: 8px 24px 0 68px;
+}
+.is-mobile .setup-cases .setup-group {
+  padding: 8px 14px 0;
 }
 .button.setup-tile {
   border: 1px solid var(--line);
