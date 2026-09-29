@@ -4696,3 +4696,53 @@ kbd {
   min-height: 72px;
   font-size: 20px;
 }
+
+/* ---- the prompt's actions (show solution, video…): cells nested in its bottom left corner, flush against its left
+ * and bottom lines, like the cube box in the timer's corner. The padding moves into the parts so they can reach
+ * the edges. ---- */
+.prompt {
+  --prompt-x: 32px;
+  --prompt-y: 22px;
+  align-items: stretch;
+  padding: 0;
+}
+@media (max-width: 960px) {
+  .prompt {
+    --prompt-x: 22px;
+    --prompt-y: 18px;
+  }
+}
+@media (max-height: 700px) {
+  .prompt {
+    --prompt-y: 14px;
+  }
+}
+.is-mobile .prompt {
+  --prompt-x: 16px;
+  --prompt-y: 14px;
+  padding: 0;
+}
+.prompt-main {
+  padding: var(--prompt-y) var(--prompt-x);
+}
+.prompt-visual {
+  padding: var(--prompt-y) var(--prompt-x) var(--prompt-y) 0;
+}
+.prompt-main > .prompt-actions {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-self: flex-start;
+  gap: 0;
+  margin: auto 0 calc(-1 * var(--prompt-y)) calc(-1 * var(--prompt-x));
+  padding: 0;
+}
+.prompt-main > .prompt-actions > .button {
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  gap: 8px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
