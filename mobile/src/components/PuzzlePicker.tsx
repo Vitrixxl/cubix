@@ -1,29 +1,30 @@
 import { useAtom, useAtomValue } from "jotai";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
-import { cubeSwitchLockedAtom, puzzleAtom } from "../state";
+import { EVENTS, eventInfo, type EventId } from "../../../src/shared/puzzles";
+import { cubeSwitchLockedAtom, eventAtom } from "../state";
 import { useTheme } from "../theme";
 import { IconChevronDown } from "./icons";
 import { Select } from "./Select";
 import { Sheet } from "./Sheet";
 
 /** Official WCA event glyphs from the @cubing/icons font (MIT). */
-const CODEPOINT: Record<PuzzleId, number> = {
+const CODEPOINT: Record<EventId, number> = {
   "222": 0xf10a, "333": 0xf106, "444": 0xf101, "555": 0xf10c, "666": 0xf113, "777": 0xf111,
+  "333oh": 0xf115, "333bf": 0xf107, "444bf": 0xf104, "555bf": 0xf114,
   sq1: 0xf102, pyram: 0xf112, skewb: 0xf105, minx: 0xf103, clock: 0xf108,
 };
-/** The WCA glyph of a puzzle, `size` px, in `color` (default text). */
-export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: PuzzleId; size?: number; color?: string }) {
+/** The WCA glyph of a puzzle or event, `size` px, in `color` (default text). */
+export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: EventId; size?: number; color?: string }) {
   const t = useTheme();
   return <Text style={{ fontFamily: "cubing-icons", fontSize: size, lineHeight: size * 1.1, color: color ?? t.text, includeFontPadding: false }}>{String.fromCodePoint(CODEPOINT[puzzle])}</Text>;
 }
 
-/** A select listing every puzzle with its WCA glyph (filters). */
-export function PuzzleSelect({ value, onChange }: { value: PuzzleId; onChange: (puzzle: PuzzleId) => void }) {
+/** A select listing every WCA event with its glyph (filters). */
+export function PuzzleSelect({ value, onChange }: { value: EventId; onChange: (event: EventId) => void }) {
   const t = useTheme();
-  return <Select value={value} accessibilityLabel={`Puzzle: ${puzzleInfo(value).label}`} minWidth={180}
-    options={PUZZLES.map(p => ({ value: p.id, label: p.label, icon: <PuzzleIcon puzzle={p.id} size={16} color={t.muted} />, iconChecked: <PuzzleIcon puzzle={p.id} size={16} color={t.text} /> }))}
+  return <Select value={value} accessibilityLabel={`Puzzle: ${eventInfo(value)?.label ?? value}`} minWidth={180}
+    options={EVENTS.map(e => ({ value: e.id, label: e.label, icon: <PuzzleIcon puzzle={e.id} size={16} color={t.muted} />, iconChecked: <PuzzleIcon puzzle={e.id} size={16} color={t.text} /> }))}
     onChange={onChange} />;
 }
 
@@ -31,14 +32,14 @@ export function PuzzleSelect({ value, onChange }: { value: PuzzleId; onChange: (
  * `.puzzle-modal`: the "Puzzle" dialog, a 4-column grid of glyph-over-name options (76 px on phones);
  * the current puzzle is outlined on surface2.
  */
-function PuzzleDialog({ open, value, onClose, onChange }: { open: boolean; value: PuzzleId; onClose: () => void; onChange: (puzzle: PuzzleId) => void }) {
+function PuzzleDialog({ open, value, onClose, onChange }: { open: boolean; value: EventId; onClose: () => void; onChange: (event: EventId) => void }) {
   const t = useTheme();
   const phone = useWindowDimensions().width <= 700;
   const [gridWidth, setGridWidth] = useState(0);
   const cell = gridWidth ? (gridWidth - 3 * 4) / 4 : "23%";
   return <Sheet open={open} onClose={onClose} title="Puzzle">
     <View style={styles.grid} onLayout={event => setGridWidth(Math.floor(event.nativeEvent.layout.width))}>
-      {PUZZLES.map(p => {
+      {EVENTS.map(p => {
         const current = p.id === value;
         return <Pressable key={p.id} accessibilityRole="button" accessibilityState={{ selected: current }} accessibilityLabel={p.label}
           onPress={() => { onClose(); if (!current) onChange(p.id); }}
@@ -57,17 +58,17 @@ function PuzzleDialog({ open, value, onClose, onChange }: { open: boolean; value
  */
 export function PuzzlePicker() {
   const t = useTheme();
-  const [puzzle, setPuzzle] = useAtom(puzzleAtom), locked = useAtomValue(cubeSwitchLockedAtom);
+  const [event, setEvent] = useAtom(eventAtom), locked = useAtomValue(cubeSwitchLockedAtom);
   const [open, setOpen] = useState(false);
-  const label = puzzleInfo(puzzle).label;
+  const label = eventInfo(event)?.label ?? event;
   return <>
     <Pressable disabled={locked} onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Puzzle: ${label}`} accessibilityHint="Choose a puzzle"
       style={({ pressed }) => [styles.trigger, { borderColor: t.line, backgroundColor: pressed || open ? t.hover : "transparent", opacity: locked ? 0.35 : 1 }]}>
-      <PuzzleIcon puzzle={puzzle} size={16} color={t.text} />
+      <PuzzleIcon puzzle={event} size={16} color={t.text} />
       <Text numberOfLines={1} style={[styles.triggerText, { color: t.text }]}>{label}</Text>
       <IconChevronDown size={12} color={t.muted} />
     </Pressable>
-    <PuzzleDialog open={open} value={puzzle} onClose={() => setOpen(false)} onChange={setPuzzle} />
+    <PuzzleDialog open={open} value={event} onClose={() => setOpen(false)} onChange={setEvent} />
   </>;
 }
 

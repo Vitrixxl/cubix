@@ -6,7 +6,7 @@ import { practiceSummary } from "../../src/client/lib/practiceSummary";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { bestAverage, fmtTime } from "../../src/client/lib/format";
-import { isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId } from "../../src/shared/puzzles";
+import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 export const catalog = catalogData as any;
 export const matches = (c: any, q: string) =>
@@ -151,6 +151,11 @@ export class Store {
     catalog.puzzles.puzzles.find((v: any) => v.id === p);
   label = (kind: string, id: string) =>
     catalog.puzzles[kind]?.find((v: any) => v.id === id)?.label ?? id;
+  /** The WCA event of a puzzle and solve mode: what the puzzle pickers list, with its glyph. */
+  event = (p = this.puzzle, mode = this.solveMode) => ({
+    id: eventOf(p as PuzzleId, mode as SolveMode)?.id ?? p,
+    label: eventLabel(p as PuzzleId, mode as SolveMode),
+  });
   pref(key: string, value: any) {
     this.prefs[key] = value;
     void call("preference", key, value).catch(this.fail);
@@ -241,8 +246,8 @@ export class Store {
     this.collapsed = new Set(
       Object.keys(this.prefs["cubix.algs.collapsedGroups"] ?? {}),
     );
-    this.solveMode =
-      this.prefs["cubix.practice.modeByPuzzle"]?.[p] ?? "standard";
+    const mode = this.prefs["cubix.practice.modeByPuzzle"]?.[p] ?? "standard";
+    this.solveMode = eventOf(p as PuzzleId, mode) ? mode : "standard";
     this.scrambleType = normalizeScrambleType(
       this.prefs["cubix.practice.typeByPuzzle"]?.[p] ??
       "normal");
@@ -659,9 +664,12 @@ export class Store {
           this.overlay = this.overlay === arg ? "" : arg;
           this.anchor = element?.getBoundingClientRect() ?? null;
           break;
-        case "puzzle":
-          this.puzzle = arg;
-          this.pref("cubix.puzzle", arg);
+        case "puzzle": {
+          const event = eventInfo(arg);
+          if (!event) break;
+          this.puzzle = event.puzzle;
+          this.pref("cubix.puzzle", event.puzzle);
+          this.per("cubix.practice.modeByPuzzle", event.solveMode);
           this.loadContext();
           this.overlay = "";
           this.caseId = "";
@@ -671,16 +679,11 @@ export class Store {
           else if (!this.scramble) await this.nextScramble();
           await this.refresh();
           break;
-        case "mode":
+        }
         case "scrambleType":
           this.timerEpoch++;
-          if (kind === "mode") {
-            this.solveMode = arg;
-            this.per("cubix.practice.modeByPuzzle", arg);
-          } else {
-            this.scrambleType = arg;
-            this.per("cubix.practice.typeByPuzzle", arg);
-          }
+          this.scrambleType = arg;
+          this.per("cubix.practice.typeByPuzzle", arg);
           this.overlay = "";
           await this.nextScramble();
           await this.refresh();
@@ -716,18 +719,17 @@ export class Store {
           this.profileMode = "overview";
           await this.refresh();
           break;
-        case "profilePuzzle":
-          this.profilePuzzle = arg;
-          if (!this.info(arg).scrambles.includes(this.profileScramble))
-            this.profileScramble = this.info(arg).scrambles[0];
+        case "profilePuzzle": {
+          const event = eventInfo(arg);
+          if (!event) break;
+          this.profilePuzzle = event.puzzle;
+          this.profileSolveMode = event.solveMode;
+          if (!this.info(event.puzzle).scrambles.includes(this.profileScramble))
+            this.profileScramble = this.info(event.puzzle).scrambles[0];
           this.overlay = "";
           await this.refresh();
           break;
-        case "profileSolveMode":
-          this.profileSolveMode = arg;
-          this.overlay = "";
-          await this.refresh();
-          break;
+        }
         case "profileScramble":
           this.profileScramble = arg;
           this.overlay = "";

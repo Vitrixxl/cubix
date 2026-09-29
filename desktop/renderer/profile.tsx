@@ -247,11 +247,10 @@ function Activity({
 function ProfileFilters({ scramble = false }: { scramble?: boolean }) {
   return (
     <Row className="profile-filters">
-      <Menu action="profilePuzzles" icon={"Puzzle" + s.profilePuzzle}>
-        {s.label("puzzles", s.profilePuzzle)}
+      <Menu action="profilePuzzles" icon={"Puzzle" + s.event(s.profilePuzzle, s.profileSolveMode).id}>
+        {s.event(s.profilePuzzle, s.profileSolveMode).label}
       </Menu>
       {scramble && <Menu action="profileScrambles">{s.label("scrambles", s.profileScramble)}</Menu>}
-      <Menu action="profileModes">{s.label("solveModes", s.profileSolveMode)}</Menu>
     </Row>
   );
 }
@@ -592,7 +591,7 @@ export function Profile() {
         <PageHead
           lead={<Button action="back" icon="IconBack" className="control icon-only" title="Back to the overview" />}
           title={title}
-          sub={s.label("puzzles", s.profilePuzzle)}
+          sub={s.event(s.profilePuzzle, s.profileSolveMode).label}
         >
           {mode === "training" && <ProfileFilters />}
           {mode === "playground" && <ProfileFilters scramble />}

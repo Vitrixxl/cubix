@@ -22,8 +22,8 @@ function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?:
 export function Rail() {
   return (
     <nav className="nav rail" aria-label="Sections">
-      <RailCell action="menu:puzzles" label={s.label("puzzles", s.puzzle)} hint="Choose a puzzle" className="rail-puzzle">
-        <Icon name={"Puzzle" + s.puzzle} size={22} />
+      <RailCell action="menu:puzzles" label={s.event().label} hint="Choose a puzzle" className="rail-puzzle">
+        <Icon name={"Puzzle" + s.event().id} size={22} />
       </RailCell>
       <div className="rail-group" role="tablist">
         {TABS.map(([page, label, icon, shortcut]) => (

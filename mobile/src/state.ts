@@ -1,7 +1,7 @@
 import type { ThemeId } from "../../src/client/lib/theme";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
-import { isPuzzle, puzzleInfo, puzzleOf, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
+import { eventInfo, eventOf, isPuzzle, puzzleInfo, puzzleOf, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
 import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
 import { sets as catalogSets } from "../../src/client/local/catalog";
@@ -153,8 +153,14 @@ export const colorModeAtom = persisted<"light" | "dark">("cubix.ui.colorMode", "
 // Playground
 // ---------------------------------------------------------------------------
 const preferredSolveModeAtom = perPuzzleAtom<SolveMode>("cubix.practice.modeByPuzzle", "standard");
-export const solveModeAtom = atom(get => { const mode = get(preferredSolveModeAtom); return SOLVE_MODES.some(m => m.id === mode) ? mode : "standard"; }, (get, set, mode: SolveMode) => {
-  if (!get(cubeSwitchLockedAtom) && SOLVE_MODES.some(m => m.id === mode)) set(preferredSolveModeAtom, mode);
+/** One-handed and blindfolded are WCA events of their own: only the puzzles that have them keep such a mode. */
+export const solveModeAtom = atom(get => { const mode = get(preferredSolveModeAtom); return eventOf(get(puzzleAtom), mode) ? mode : "standard"; });
+/** The WCA event practised, chosen in the puzzle picker: its puzzle and its solve mode. */
+export const eventAtom = atom<EventId, [EventId], void>(get => eventOf(get(puzzleAtom), get(solveModeAtom))?.id ?? get(puzzleAtom), (get, set, id) => {
+  const event = eventInfo(id);
+  if (!event || get(cubeSwitchLockedAtom)) return;
+  set(puzzleAtom, event.puzzle);
+  set(preferredSolveModeAtom, event.solveMode);
 });
 const preferredScrambleTypeAtom = perPuzzleAtom<ScrambleType>("cubix.practice.typeByPuzzle", "normal");
 export const scrambleTypeAtom = atom(get => {

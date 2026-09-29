@@ -4,10 +4,10 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-n
 import { fmtSolve, TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { applyAlg, parseAlg, solved, type Move } from "../../../src/shared/cube";
-import { contextKey, modeLabel, puzzleInfo, scrambleLabel, SOLVE_MODES, type PracticeContext, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
+import { contextKey, eventLabel, puzzleInfo, scrambleLabel, type PracticeContext, type ScrambleType } from "../../../src/shared/puzzles";
 import type { SolveDto } from "../../../src/shared/types";
 import { api } from "../api";
-import { playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, solveModeAtom, timeEntryAtom } from "../state";
+import { playgroundScrambleAtom, practiceContextAtom, scrambleTypeAtom, timeEntryAtom } from "../state";
 import { useTheme } from "../theme";
 import { useTimer } from "../hooks/useTimer";
 import { useLayout } from "../hooks/useLayout";
@@ -49,7 +49,6 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
   const layout = useLayout();
   const { phone } = layout;
   const info = puzzleInfo(context.puzzle);
-  const setSolveMode = useSetAtom(solveModeAtom);
   const setScrambleType = useSetAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
   const [saving, setSaving] = useState(false);
@@ -128,7 +127,6 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
 
   const controls = <>
     <Select value={context.scrambleType} disabled={locked} accessibilityLabel="Scramble type" menuWidth={260} options={scrambleOptions} onChange={value => setScrambleType(value as ScrambleType)} />
-    <Select value={context.solveMode} disabled={locked} accessibilityLabel="Solve mode" options={SOLVE_MODES.map(mode => ({ value: mode.id, label: mode.label }))} onChange={value => setSolveMode(value as SolveMode)} />
     <Select value={entry} disabled={locked || !!typedError} accessibilityLabel="Time entry" minWidth={150} options={TIME_ENTRIES.map(item => ({ value: item.id, label: item.label }))} onChange={value => setEntry(value as TimeEntry)} />
     {!!cube && <Btn icon={IconUndo} iconOnly={collapse} label={collapse ? undefined : "Replay"} accessibilityLabel="Replay the scramble on the cube" disabled={!canReplay || busy} onPress={replay} />}
     <Btn icon={IconShuffle} iconOnly={collapse} label={collapse ? undefined : "New scramble"} accessibilityLabel="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
@@ -140,7 +138,7 @@ function PlaygroundSession({ context, showTimes, setShowTimes }: { context: Prac
 
   return <View style={styles.page}>
     <RunningFade hidden={running}>
-      <PageHead title="Timer" sub={`${info.label} · ${modeLabel(context.solveMode)}`} padding={padding} right={<PuzzlePicker />} controls={controls} />
+      <PageHead title="Timer" sub={eventLabel(context.puzzle, context.solveMode)} padding={padding} right={<PuzzlePicker />} controls={controls} />
     </RunningFade>
     <View style={styles.body}>
       <View style={styles.stage}>

@@ -7,7 +7,7 @@ import { LearningGroups } from "./LearningGroups";
 import { fmtSolve } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
-import { PUZZLES } from "../../src/shared/puzzles";
+import { EVENTS, PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import { Alg, Avatar, Button, Diagram, Icon, Row } from "./ui";
 import { TimerStats } from "./stats";
@@ -201,27 +201,14 @@ function options(): { action: string; values: any[]; current: string } {
     case "puzzles":
       return {
         action: "puzzle",
-        values: catalog.puzzles.puzzles,
-        current: s.puzzle,
+        values: EVENTS,
+        current: s.event().id,
       };
     case "profilePuzzles":
       return {
         action: "profilePuzzle",
-        values: catalog.puzzles.puzzles,
-        current: s.profilePuzzle,
-      };
-    case "modes":
-    case "profileModes":
-      return {
-        action: s.overlay === "modes" ? "mode" : "profileSolveMode",
-        values: catalog.puzzles.solveModes.filter(
-          (v: any) =>
-            !v.puzzles ||
-            v.puzzles.includes(
-              s.overlay === "modes" ? s.puzzle : s.profilePuzzle,
-            ),
-        ),
-        current: s.overlay === "modes" ? s.solveMode : s.profileSolveMode,
+        values: EVENTS,
+        current: s.event(s.profilePuzzle, s.profileSolveMode).id,
       };
     case "scrambles":
     case "profileScrambles":

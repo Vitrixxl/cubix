@@ -133,8 +133,8 @@ export const MOBILE = 700;
 function PuzzleControl() {
   return (
     <Button action="menu:puzzles" className="control head-puzzle" title="Choose a puzzle">
-      <Icon name={"Puzzle" + s.puzzle} size={16} />
-      {s.label("puzzles", s.puzzle)}
+      <Icon name={"Puzzle" + s.event().id} size={16} />
+      {s.event().label}
       <Icon name="IconChevronDown" size={12} />
     </Button>
   );

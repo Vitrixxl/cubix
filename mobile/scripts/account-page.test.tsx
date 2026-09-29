@@ -85,9 +85,9 @@ test("the guest overview shows activity, timer, training and achievements, with 
   expect(all("Sparkline")).toHaveLength(1);
   expect(card("Training")).toBeDefined();
   expect(card("Achievements")).toBeDefined();
-  // Puzzle and solve mode, no scramble type on the overview.
+  // The event only, no scramble type on the overview.
   expect(all("PuzzleSelect")).toHaveLength(1);
-  expect(all("Select").map(node => node.props.accessibilityLabel)).toEqual(["Solve mode"]);
+  expect(all("Select").map(node => node.props.accessibilityLabel)).toEqual([]);
   const dialog = () => all("SettingsDialog")[0];
   expect(dialog().props.open).toBe(false);
   await act(() => button("Sign in").props.onPress());
@@ -112,7 +112,7 @@ test("each card opens its page, whose back button returns to the overview", asyn
   expect(head().props.title).toBe("Timer");
   expect(head().props.sub).toBe("3×3");
   // The timer page adds the scramble type filter and shows the solve statistics.
-  expect(all("Select").map(node => node.props.accessibilityLabel)).toEqual(["Scramble type", "Solve mode"]);
+  expect(all("Select").map(node => node.props.accessibilityLabel)).toEqual(["Scramble type"]);
   expect(all("TimerStats")[0].props.fill).toBe(true);
   await act(() => head().props.onBack());
   expect(store.get(routeAtom)).toEqual({ page: "profile" });
@@ -136,8 +136,9 @@ test("the profile filters change the profile's own selection", async () => {
   await act(() => all("PuzzleSelect")[0].props.onChange("222"));
   expect(store.get(profileFiltersAtom).cube).toBe("222");
   expect(profileCalls.at(-1)).toMatchObject({ cube: "222" });
-  await act(() => all("Select")[0].props.onChange("one-handed"));
-  expect(store.get(profileFiltersAtom).solveMode).toBe("one-handed");
+  await act(() => all("PuzzleSelect")[0].props.onChange("333oh"));
+  expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
+  expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });
 });
 
 test("an empty timer selection offers to open the timer", async () => {

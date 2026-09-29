@@ -1,5 +1,5 @@
 import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../shared/cube";
-import { puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
+import { eventOf, puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
 import { crossPlusOneMoves, crossPlusOnePattern, type PatternData } from "../../shared/crossPlusOne";
 
@@ -44,8 +44,7 @@ export function evenPermutation(pieces: number[]) {
   pieces.forEach((a, i) => pieces.slice(i + 1).forEach(b => { if (a > b) inversions++; }));
   if (inversions % 2) [pieces[0], pieces[1]] = [pieces[1], pieces[0]];
 }
-export const competitionEvent = ({ puzzle, solveMode }: PracticeContext) =>
-  solveMode === "blindfolded" && ["333", "444", "555"].includes(puzzle) ? `${puzzle}bf` : solveMode === "one-handed" && puzzle === "333" ? "333oh" : puzzle;
+export const competitionEvent = ({ puzzle, solveMode }: PracticeContext) => eventOf(puzzle, solveMode)?.id ?? puzzle;
 export async function generatePracticeScramble(context: PracticeContext, engine: ScrambleEngine): Promise<string> {
   if (!validContext(context)) throw new Error("Unsupported puzzle or scramble type.");
   const { puzzle, scrambleType: type } = context;

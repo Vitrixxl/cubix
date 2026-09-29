@@ -2,7 +2,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
-import { puzzleInfo, scrambleLabel, SOLVE_MODES, type PuzzleId, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
+import { eventInfo, eventLabel, eventOf, puzzleInfo, scrambleLabel, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../../src/shared/puzzles";
 import type { AchievementSummaryDto, CaseDto, ProfileDto } from "../../../src/shared/types";
 import { local } from "../api";
 import { deletedSolveIdAtom, goBackAtom, learnedCaseIdsAtom, previousRouteAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode } from "../state";
@@ -27,15 +27,14 @@ import { Avatar, Btn, Empty, Label, PageHead, mono } from "../components/ui";
 const SECTIONS: Record<ProfileMode, string> = { playground: "Timer", training: "Training", achievements: "Achievements" };
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
-/** `ProfileFilters`: puzzle, optionally scramble type, and solve mode. */
-function ProfileFilters({ cube, setCube, solveMode, setSolveMode, scrambleType, setScrambleType }: {
-  cube: PuzzleId; setCube: (cube: PuzzleId) => void; solveMode: SolveMode; setSolveMode: (mode: SolveMode) => void;
+/** `ProfileFilters`: the WCA event, and optionally the scramble type. */
+function ProfileFilters({ cube, solveMode, setEvent, scrambleType, setScrambleType }: {
+  cube: PuzzleId; solveMode: SolveMode; setEvent: (event: EventId) => void;
   scrambleType?: ScrambleType; setScrambleType?: (type: ScrambleType) => void;
 }) {
   return <>
-    <PuzzleSelect value={cube} onChange={setCube} />
+    <PuzzleSelect value={eventOf(cube, solveMode)?.id ?? cube} onChange={setEvent} />
     {scrambleType && setScrambleType && <Select value={scrambleType} accessibilityLabel="Scramble type" minWidth={180} options={puzzleInfo(cube).scrambles.map(type => ({ value: type, label: scrambleLabel(type) }))} onChange={setScrambleType} />}
-    <Select value={solveMode} accessibilityLabel="Solve mode" minWidth={180} options={SOLVE_MODES.map(m => ({ value: m.id, label: m.label }))} onChange={setSolveMode} />
   </>;
 }
 
@@ -106,8 +105,10 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const appPuzzle = useAtomValue(puzzleAtom), appSolveMode = useAtomValue(solveModeAtom), appScrambleType = useAtomValue(scrambleTypeAtom);
   const cube = filters.cube ?? appPuzzle, solveMode = filters.solveMode ?? appSolveMode;
   const preferredScrambleType = filters.scrambleType ?? appScrambleType;
-  const setCube = useCallback((value: PuzzleId) => setFilters(f => ({ ...f, cube: value })), [setFilters]);
-  const setSolveMode = useCallback((value: SolveMode) => setFilters(f => ({ ...f, solveMode: value })), [setFilters]);
+  const setEvent = useCallback((id: EventId) => {
+    const event = eventInfo(id);
+    if (event) setFilters(f => ({ ...f, cube: event.puzzle, solveMode: event.solveMode }));
+  }, [setFilters]);
   const setScrambleType = useCallback((value: ScrambleType) => setFilters(f => ({ ...f, scrambleType: value })), [setFilters]);
   const scrambleType = puzzleInfo(cube).scrambles.includes(preferredScrambleType) ? preferredScrambleType : puzzleInfo(cube).scrambles[0];
   const deletedSolveId = useAtomValue(deletedSolveIdAtom);
@@ -128,10 +129,10 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   if (!user) return null;
   const guest = user.isGuest;
   const back = () => { if (previousRoute?.page === "profile" && !previousRoute.mode) goBack(); else replaceRoute({ page: "profile" }); };
-  const filterProps = { cube, setCube, solveMode, setSolveMode };
+  const filterProps = { cube, solveMode, setEvent };
 
   if (mode && mode in SECTIONS) {
-    const head = <PageHead onBack={back} title={SECTIONS[mode]} sub={puzzleInfo(cube).label} padding={pagePadding}
+    const head = <PageHead onBack={back} title={SECTIONS[mode]} sub={eventLabel(cube, solveMode)} padding={pagePadding}
       controls={mode === "achievements" ? <AchievementTotal summary={summary} />
         : <ProfileFilters {...filterProps} {...(mode === "playground" ? { scrambleType, setScrambleType } : {})} />} />;
     if (mode === "training") {

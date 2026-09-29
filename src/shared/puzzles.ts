@@ -14,6 +14,10 @@ export const normalizeScrambleType = (type: string): ScrambleType => (type === "
 export interface StoredContext { puzzle_id?: PuzzleId; cube_size?: CubeSize | null; solve_mode?: SolveMode; scramble_type?: ScrambleType | LegacyScrambleType; case_id?: string | null; mode?: string }
 export const PUZZLES = registry.puzzles as { id: PuzzleId; label: string; cubeSize: CubeSize | null; twisty: string; scrambles: ScrambleType[] }[];
 export const SOLVE_MODES = registry.solveModes as { id: SolveMode; label: string }[];
+/** WCA event ids: the puzzle ids, plus the one-handed and blindfolded events. */
+export type EventId = PuzzleId | "333oh" | "333bf" | "444bf" | "555bf";
+/** What the app offers to practise: one entry per WCA event, one-handed and blindfolded being events of their own. */
+export const EVENTS = registry.events as { id: EventId; label: string; puzzle: PuzzleId; solveMode: SolveMode }[];
 export const SCRAMBLE_TYPES = [...registry.scrambles, { id: "case", label: "Algorithm case" }] as { id: ScrambleType; label: string }[];
 export const puzzleId = (value: PuzzleInput): PuzzleId => (typeof value === "number" ? String(value).repeat(3) : value) as PuzzleId;
 export const puzzleOf = (value: StoredContext): PuzzleId => value.puzzle_id ?? puzzleId(value.cube_size ?? 3);
@@ -24,6 +28,11 @@ export const scrambleTypeOf = (value: StoredContext): ScrambleType => normalizeS
 export const contextOf = (value: StoredContext): PracticeContext => ({ puzzle: puzzleOf(value), solveMode: solveModeOf(value), scrambleType: scrambleTypeOf(value) });
 export const contextKey = (context: PracticeContext) => `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
 export const modeLabel = (mode: SolveMode) => SOLVE_MODES.find(m => m.id === mode)?.label ?? mode;
+export const eventOf = (puzzle: PuzzleId, solveMode: SolveMode) => EVENTS.find(e => e.puzzle === puzzle && e.solveMode === solveMode);
+export const eventInfo = (id: string) => EVENTS.find(e => e.id === id);
+/** Solves recorded before events kept any mode on any puzzle: they still get a name. */
+export const eventLabel = (puzzle: PuzzleId, solveMode: SolveMode) =>
+  eventOf(puzzle, solveMode)?.label ?? `${puzzleInfo(puzzle).label} · ${modeLabel(solveMode)}`;
 export const scrambleLabel = (type: ScrambleType) => SCRAMBLE_TYPES.find(s => s.id === type)?.label ?? type;
 export function validContext(context: PracticeContext, training = false): boolean {
   return isPuzzle(context.puzzle) && SOLVE_MODES.some(m => m.id === context.solveMode)

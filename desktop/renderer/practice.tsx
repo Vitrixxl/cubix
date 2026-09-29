@@ -315,10 +315,9 @@ export function Practice() {
         <PageHead
           title="Timer"
           puzzle
-          sub={`${s.label("puzzles", s.puzzle)} · ${s.label("solveModes", s.solveMode)}`}
+          sub={s.event().label}
         >
           <Menu action="scrambles">{s.label("scrambles", s.scrambleType)}</Menu>
-          <Menu action="modes">{s.label("solveModes", s.solveMode)}</Menu>
           <Menu action="entries">{s.entry === "typing" ? "Typing" : s.entry === "casual" ? "Casual" : "Timer"}</Menu>
           <span className="control-gap" />
           {replay}
