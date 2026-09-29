@@ -5588,17 +5588,31 @@ kbd {
 /* Algorithms: the list's pickers in half cells, its groups in half cells, a case per cell; the detail beside it on the
    same rows. */
 .md-list-head :is(.tabs, .segmented) > .button {
-  height: 31px;
-  min-height: 31px;
+  height: 63px;
+  min-height: 63px;
 }
 .md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
-  height: 33px;
+  height: 65px;
 }
 .md-list-head .segmented > .button {
-  line-height: 29px;
+  line-height: 61px;
 }
 .list-group-head {
-  height: var(--half);
+  height: var(--cell);
+}
+/* Phones have no rail to follow: the pickers keep the height of the header's controls. */
+.is-mobile .md-list-head :is(.tabs, .segmented) > .button {
+  height: 43px;
+  min-height: 43px;
+}
+.is-mobile .md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
+  height: 45px;
+}
+.is-mobile .md-list-head .segmented > .button {
+  line-height: 41px;
+}
+.is-mobile .list-group-head {
+  height: 44px;
 }
 .case-row {
   contain-intrinsic-size: auto 64px;
@@ -5914,10 +5928,19 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* A chosen cell against the pane's edge takes that edge's line rather than drawing a second one beside it; against
-   the rail, whose line it cannot cover, it leaves the rail's. */
-.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected):first-child {
-  border-left-color: transparent;
+/* A chosen cell against the pane's edge takes that edge's line rather than drawing a second one beside it, the rail's
+   included: the pages may paint one pixel over the rail's line. Nothing in the list's head clips its chosen cells. */
+.app:not(.is-mobile) .content {
+  overflow: clip;
+  overflow-clip-margin: 1px;
+}
+.app:not(.is-mobile) .md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected):first-child {
+  margin-left: -1px;
+}
+.md-list-head,
+.md-list-head > *,
+.md-list-head > * > .segmented {
+  overflow: visible;
 }
 .md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected):last-child {
   margin-right: -1px;
@@ -6074,4 +6097,25 @@ kbd {
 }
 .app:not(.is-mobile) .setup-cases .setup-group {
   padding-left: calc(var(--cell) + 16px);
+}
+/* The line between the rail and the pages belongs to the pages, so a chosen cell against it can take it (the rail sits
+   above the pages for its labels and would hide it); it fades with the rail during a solve. */
+.app:not(.is-mobile) .shell {
+  grid-template-columns: calc(var(--rail) - 1px) minmax(0, 1fr);
+}
+.app:not(.is-mobile) .rail {
+  border-right: 0;
+}
+.app:not(.is-mobile) .content {
+  border-left: 1px solid var(--line);
+  transition: border-color 0.18s;
+}
+.app.is-running:not(.is-mobile) .content {
+  border-left-color: transparent;
+}
+/* Chosen cells stay in the flow: painted in the order of the page, they lie over the lines around them exactly, where a
+   positioned layer lands a fraction of a pixel off at fractional zooms. */
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
+  position: static;
+  z-index: auto;
 }
