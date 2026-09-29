@@ -3647,7 +3647,7 @@ kbd {
   width: 100%;
   max-width: none;
   padding: 0;
-  overflow-x: auto;
+  overflow: visible;
 }
 .md-list-head > :not(:last-child) {
   border-bottom: 1px solid var(--line);
@@ -3658,7 +3658,8 @@ kbd {
   padding: 0;
 }
 .md-list-head :is(.tabs, .segmented) > .button {
-  flex: 1 0 0;
+  flex: 1 1 0;
+  min-width: 0;
   justify-content: center;
   height: 40px;
   min-height: 40px;
@@ -3668,6 +3669,22 @@ kbd {
 }
 .md-list-head :is(.tabs, .segmented) > .button:not(:last-child) {
   border-right: 1px solid var(--line);
+}
+/* The chosen cell is outlined on the four lines around it, over its neighbours' share of them. */
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
+  position: relative;
+  z-index: 1;
+}
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected)::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid color-mix(in srgb, var(--text) 35%, var(--bg));
+  pointer-events: none;
+}
+/* The page clips the rail's line on the left: the first cell draws that side just inside itself. */
+.md-list-head :is(.tabs, .segmented) > .button:first-child::after {
+  left: 0;
 }
 
 /* Lists: flush rows split by lines, the selected one on surface2 with the accent bar on its side. */
