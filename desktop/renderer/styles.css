@@ -3804,6 +3804,16 @@ kbd {
   border: 0;
   background-clip: padding-box;
 }
+/* Laid out as a line of text, so a label and its count share their baseline. */
+.md-list-head .segmented > .button {
+  display: block;
+  line-height: 40px;
+  text-align: center;
+  white-space: nowrap;
+}
+.md-list-head .segmented > .button .mono {
+  margin-left: 6px;
+}
 .md-list-head :is(.tabs, .segmented) > .button:not(:last-child) {
   border-right: 1px solid var(--line);
 }
@@ -3816,7 +3826,7 @@ kbd {
   content: "";
   position: absolute;
   inset: -1px;
-  border: 1px solid color-mix(in srgb, var(--text) 35%, var(--bg));
+  border: 1px solid var(--accent);
   pointer-events: none;
 }
 /* The page clips the rail's line on the left: the first cell draws that side just inside itself. */
