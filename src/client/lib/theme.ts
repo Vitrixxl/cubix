@@ -59,7 +59,7 @@ export function buildTheme(id: ThemeId, mode: "light" | "dark"): Theme {
     const d = DARK[id];
     theme = {
       id, mode, ...d, hover: "#ffffff0d", accentSoft: d.accent + softAlpha(id, mode), raised: d.surface,
-      readableMuted: mix(d.text, 65, d.bg), line: d.text + "16",
+      readableMuted: mix(d.text, 65, d.bg), line: d.text + "26",
       good: "#4ccf4c", danger: "#e66767", warning: "#fab219",
       surface3Hover: mix(d.surface3, 70, mix(d.text, 8, d.surface3)),
       shadow: { shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
@@ -70,7 +70,7 @@ export function buildTheme(id: ThemeId, mode: "light" | "dark"): Theme {
     theme = {
       id, mode, bg, surface, raised: "#ffffff", surface2: mix(accent, 11, "#ffffff"), surface3: mix(accent, 16, "#ffffff"),
       hover: accent + "11", text, text2: "#48566b", muted: "#617087",
-      readableMuted: mix(text, 65, bg), line: text + "16",
+      readableMuted: mix(text, 65, bg), line: text + "2e",
       accent, accentSoft: accent + softAlpha(id, mode), series2,
       good: "#237444", danger: "#bb3545", warning: "#93600b",
       surface3Hover: mix(mix(accent, 16, "#ffffff"), 70, mix(text, 8, mix(accent, 16, "#ffffff"))),
