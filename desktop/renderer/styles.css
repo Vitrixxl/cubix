@@ -1044,24 +1044,6 @@ kbd {
 .page-frame[data-exiting] {
   pointer-events: none;
 }
-/*
- * Grid background (grid.tsx): a canvas under the whole app paints the page colour and lights each pane's outline.
- * Once it draws, the panes are transparent and their fill, if any, comes from --grid-fill painted by the canvas.
- */
-.grid-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
-}
-.has-grid .page-frame,
-.has-grid .ov-card,
-.has-grid .profile-main .panel,
-.has-grid .rail-cell.selected {
-  background: transparent;
-}
 .rail {
   position: relative;
   z-index: 3;
@@ -1108,7 +1090,6 @@ kbd {
   outline-offset: -2px;
 }
 .rail-cell.selected {
-  --grid-fill: var(--surface2);
   background: var(--surface2);
   color: var(--accent);
 }
@@ -1278,7 +1259,6 @@ kbd {
 }
 .page-head .control.active,
 .page-controls .button.active {
-  --grid-fill: var(--surface2);
   background: var(--surface2);
   border-color: var(--line);
   color: var(--accent);
@@ -1298,11 +1278,6 @@ kbd {
   margin-left: -24px;
   border-left: 0;
   border-right: 1px solid var(--line);
-}
-.has-grid .page-head .control:hover,
-.has-grid .page-head .control.active,
-.has-grid .page-controls .button.active {
-  background: transparent;
 }
 
 /* ---- practice: timer and training ---- */
@@ -1488,9 +1463,6 @@ kbd {
 .pane-toggle.control.icon-only {
   width: 40px;
   padding: 0;
-}
-.has-grid .pane-toggle.control:hover {
-  background: transparent;
 }
 .cube-box:hover > .pane-toggle,
 .timer:hover > .pane-toggle,
@@ -2201,7 +2173,6 @@ kbd {
   padding: 14px 16px;
   border-radius: 0;
   border: 1px solid var(--line);
-  --grid-fill: var(--raised);
   background: var(--raised);
 }
 .stats.compact {
@@ -2305,7 +2276,6 @@ kbd {
   overflow: hidden;
   border-radius: 0;
   border: 1px solid var(--line);
-  --grid-fill: var(--raised);
   background: var(--raised);
   color: var(--text);
   text-align: left;
@@ -4276,7 +4246,6 @@ kbd {
   gap: 0 !important;
 }
 .ov-card {
-  --grid-fill: transparent;
   border: 0;
   background: transparent;
 }
@@ -4317,7 +4286,6 @@ kbd {
   background: transparent;
 }
 .profile-main > .stats .panel {
-  --grid-fill: transparent;
   gap: 0;
   padding: 0;
   border: 0;
