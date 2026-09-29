@@ -212,8 +212,6 @@ export function Practice() {
                 >
                   {s.learned.has(c.id) ? "Learned" : "Mark learned"}
                 </Button>
-                <Button action="previous" icon="IconBack" className="control icon-only" disabled={!s.training.canPrevious} title="Previous case (Alt+P)" />
-                {!learning && <Button action="next" icon="IconChevronRight" className="control icon-only" title="Next case (Alt+N)" />}
               </span>
             </div>
             <div className="prompt-block">
@@ -329,7 +327,14 @@ export function Practice() {
               {mobile ? "Review" : "Train learned"}
             </Button>
           )}
-          {reviewing && <Button action="next" icon="IconChevronRight" className="control">Next</Button>}
+          <Button action="previous" icon="IconBack" className="control" disabled={!s.training?.canPrevious} title="Previous case (Alt+P)">
+            Previous
+          </Button>
+          {(!learning || reviewing) && (
+            <Button action="next" icon="IconChevronRight" className="control" title="Next case (Alt+N)">
+              Next
+            </Button>
+          )}
           <Button action="auf" active={s.randomAuf} className="control collapsible" title="Random AUF (Alt+A)">
             <Icon name="IconShuffle" size={14} />
             <span className="control-label">Random AUF</span>
