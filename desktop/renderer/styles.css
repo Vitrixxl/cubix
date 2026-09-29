@@ -3771,15 +3771,25 @@ kbd {
   display: flex;
   padding: 0;
 }
+/* Each cell has its own border, laid over its neighbours' and the rows' lines by -1px margins; the chosen one only
+   colours that border and sits on top. The page clips the rail's line, so the first cell keeps its left side clear. */
 .md-list-head :is(.tabs, .segmented) > .button {
   flex: 1 1 0;
   min-width: 0;
   justify-content: center;
-  height: 40px;
-  min-height: 40px;
-  margin: 0;
-  border: 0;
+  height: 42px;
+  min-height: 42px;
+  margin: -1px -1px -1px 0;
+  border: 1px solid var(--line);
   background-clip: padding-box;
+}
+.md-list-head :is(.tabs, .segmented) > .button:first-child {
+  border-left-color: transparent;
+}
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
+  position: relative;
+  z-index: 1;
+  border-color: var(--accent);
 }
 /* Laid out as a line of text, so a label and its count share their baseline. */
 .md-list-head .segmented > .button {
@@ -3791,26 +3801,6 @@ kbd {
 .md-list-head .segmented > .button .mono {
   margin-left: 6px;
 }
-.md-list-head :is(.tabs, .segmented) > .button:not(:last-child) {
-  border-right: 1px solid var(--line);
-}
-/* The chosen cell is outlined on the four lines around it, over its neighbours' share of them. */
-.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
-  position: relative;
-  z-index: 1;
-}
-.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected)::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border: 1px solid var(--accent);
-  pointer-events: none;
-}
-/* The page clips the rail's line on the left: the first cell draws that side just inside itself. */
-.md-list-head :is(.tabs, .segmented) > .button:first-child::after {
-  left: 0;
-}
-
 /* Lists: flush rows split by lines, the selected one on surface2 with the accent bar on its side. */
 .case-row.selected,
 .case-row.selected:hover,
@@ -4674,7 +4664,6 @@ kbd {
   align-items: center;
   height: 40px;
   padding: 0 22px;
-  border-bottom: 1px solid var(--line);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -4703,13 +4692,21 @@ kbd {
   display: flex;
   align-items: stretch;
 }
+/* Each control cell has its own border, laid over the row lines and its neighbours by -1px margins; the chosen one
+   only colours that border and sits on top. Against the dialog's edge a cell keeps that side clear. */
 .settings-cells > .button {
   height: auto;
   min-height: 0;
-  margin: 0;
+  margin: -1px 0 -1px -1px;
   padding: 0 20px;
-  border: 0;
-  border-left: 1px solid var(--line);
+  border: 1px solid var(--line);
+}
+.settings-cells > .button:last-child {
+  border-right-color: transparent;
+}
+.settings-section:last-child .settings-row:last-child .settings-cells > .button {
+  margin-bottom: 0;
+  border-bottom-color: transparent;
 }
 /* An accent: a neutral cell holding a small square of its colour; the chosen one looks like any chosen cell. */
 .settings-cells > .button.settings-swatch {
@@ -4717,11 +4714,9 @@ kbd {
   padding: 0;
   justify-content: center;
 }
-.settings-swatch::before {
-  content: "";
+.settings-swatch-colour {
   width: 14px;
   height: 14px;
-  background: var(--swatch);
 }
 .settings-cells > .button.settings-swatch.chosen {
   background: var(--surface2);
@@ -4733,16 +4728,24 @@ kbd {
 .auth-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid var(--line);
+}
+/* Every horizontal line of the dialog is the top border of what follows it (see the chosen cells below). */
+.settings-head + *,
+.auth-tabs + * {
+  border-top: 1px solid var(--line);
 }
 .auth-tabs > .button {
-  height: 44px;
-  min-height: 44px;
-  margin: 0;
-  border: 0;
+  height: 46px;
+  min-height: 46px;
+  margin: -1px 0 -1px -1px;
+  border: 1px solid var(--line);
 }
-.auth-tabs > .button + .button {
-  border-left: 1px solid var(--line);
+.auth-tabs > .button:first-child {
+  margin-left: 0;
+  border-left-color: transparent;
+}
+.auth-tabs > .button:last-child {
+  border-right-color: transparent;
 }
 .settings-text {
   margin: 0;
@@ -4793,25 +4796,9 @@ kbd {
   padding-bottom: 10px;
   font-size: 12px;
 }
-/* A chosen cell (theme, accent, form tab) is outlined in the accent on the four lines around it, over its
-   neighbours' share of them, never beside them; at the dialog's edge the outline stays inside the cell. */
 .settings-cells > .button:is(.active, .chosen),
 .auth-tabs > .button.active {
   position: relative;
   z-index: 1;
-}
-.settings-cells > .button:is(.active, .chosen)::after,
-.auth-tabs > .button.active::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border: 1px solid var(--accent);
-  pointer-events: none;
-}
-.settings-cells > .button:last-child::after,
-.auth-tabs > .button:last-child::after {
-  right: 0;
-}
-.auth-tabs > .button:first-child::after {
-  left: 0;
+  border-color: var(--accent);
 }
