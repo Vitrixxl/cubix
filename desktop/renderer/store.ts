@@ -728,7 +728,7 @@ export class Store {
           if (this.crossTraining) await this.syncScramble();
           else if (!this.scramble) await this.nextScramble();
           // A search follows the puzzle: it starts again on the new event.
-          if (duel.status === "searching") void duel.search();
+          if (duel.status === "searching") void duel.search(this.event().id);
           await this.refresh();
           break;
         }

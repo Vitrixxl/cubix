@@ -6,7 +6,7 @@ import { store as s, matches } from "./store";
 import { fmtSolve, fmtTime, best, bestAverage } from "../../src/client/lib/format";
 import { Avatar, Button, Diagram, Empty, Icon, Menu, PageHead, Progress, type Props, Row, plural } from "./ui";
 import { TimerStats } from "./stats";
-import { DUELS_KEY, ROUNDS, type DuelRecord } from "./duelClient";
+import { DUELS_KEY, ROUNDS, battleRecord, type DuelRecord } from "./duelClient";
 import { eventInfo, eventLabel } from "../../src/shared/puzzles";
 const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -533,10 +533,7 @@ const battleEvent = (b: DuelRecord) => {
   const e = eventInfo(b.event);
   return e ? eventLabel(e.puzzle, e.solveMode) : b.event;
 };
-function record(list: DuelRecord[]) {
-  const count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length;
-  return `${count("win")} won · ${count("loss")} lost` + (count("draw") ? ` · ${count("draw")} drawn` : "");
-}
+const record = battleRecord;
 
 /** The latest battles, as many as the pane holds: result, opponent and both averages. */
 function RecentBattles() {

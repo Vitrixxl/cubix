@@ -100,7 +100,7 @@ function useDuelTimer() {
 
 export function DuelPage() {
   useEffect(() => {
-    void duel.loadLevel();
+    void duel.loadLevel(s.event().id);
   }, [s.puzzle, s.solveMode]);
   return duel.status === "racing" ? <Race /> : <Lobby />;
 }

@@ -6028,3 +6028,23 @@ kbd {
   width: calc(100vw / 6 + 1px);
   margin-left: -1px;
 }
+/* Phones: the board in the tab bar's sixths — the five rounds and the Ao5, names in the heads of the sides — and the
+   player's +2, DNF and Cancel two sixths each on a row of their own. */
+.is-mobile .duel-board-row,
+.is-mobile .duel-board.with-actions .duel-board-row {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  height: 48px;
+}
+.is-mobile .duel-board-name {
+  display: none;
+}
+.is-mobile .duel-board-name + * {
+  border-left: 0;
+}
+.is-mobile .duel-board-row.mine {
+  grid-template-rows: 48px 48px;
+  height: auto;
+}
+.is-mobile .duel-board-tail.duel-actions {
+  grid-column: 1 / -1;
+}

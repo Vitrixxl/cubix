@@ -13,10 +13,11 @@ import { cases } from '../../src/client/local/catalog';
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
-import { effective, fmtDate } from '../../src/client/lib/format';
+import { fmtDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
 import { crossPlusOneSolutions } from '../../src/shared/crossPlusOne';
+import { DUELS_KEY, keepRecord, levelOf } from '../../src/client/lib/duel';
 import type { CaseDto } from '../../src/shared/types';
 
 export interface EngineStorage {
@@ -122,7 +123,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
         jobs[trainingMode ? 'training' : 'scramble'] = lastAdvance.promise.then(v => v[trainingMode ? 'training' : 'scramble']);
       }
       if (!trainingMode) prefetchScramble(context);
-      return { revision: q.revision, duels: JSON.parse(storage.getItem('cubix.duels') ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), ...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise]))) };
+      return { revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), ...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise]))) };
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);
@@ -145,16 +146,12 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'duelToken') return local.current().isGuest ? null : storage.getItem(tokenKey);
     if (req.method === 'duelLevel') {
       const [puzzle, solveMode] = req.args;
-      const times = (await local.api.solves('playground', 12, puzzle, { solveMode, scrambleType: 'normal' }))
-        .map(v => effective(v.time_ms, v.penalty)).filter((t): t is number => t !== null).sort((a, b) => a - b);
-      // The mean of the last twelve without their best and worst, once five of them count.
-      return times.length < 5 ? null : times.slice(1, -1).reduce((a, b) => a + b, 0) / (times.length - 2);
+      return levelOf(await local.api.solves('playground', 12, puzzle, { solveMode, scrambleType: 'normal' }));
     }
     // Battles of this device, newest first: a race is kept once, updated if a penalty changes afterwards.
     if (req.method === 'duelRecord') {
-      const record = req.args[0], list: any[] = JSON.parse(storage.getItem('cubix.duels') ?? '[]'), existing = list.find(v => v.id === record.id);
-      const next = [{ ...record, at: existing?.at ?? record.at }, ...list.filter(v => v.id !== record.id)].slice(0, 200);
-      storage.setItem('cubix.duels', JSON.stringify(next));
+      const next = keepRecord(JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), req.args[0]);
+      storage.setItem(DUELS_KEY, JSON.stringify(next));
       return next;
     }
     if (req.method === 'sync') { await local.retry(); return local.status(); }
