@@ -4606,3 +4606,128 @@ kbd {
   padding: 0 10px;
   border: 1px solid var(--line);
 }
+
+/* ---- training setup panes (Cross + 1, daily learning, review): the pane fills its space, its heading over a
+ * header line, the choice or the figures as big flush cells taking the room left, and a full-width Start along the
+ * bottom. ---- */
+.setup-detail > .setup-pane:not(.setup-cases) {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  text-align: left;
+}
+.setup-pane:not(.setup-cases) .setup-pane-head {
+  justify-content: flex-start;
+  padding: 36px 40px 32px;
+  border-bottom: 1px solid var(--line);
+}
+.setup-pane:not(.setup-cases) .setup-pane-title {
+  align-items: flex-start;
+}
+.setup-pane:not(.setup-cases) .setup-pane-title h2 {
+  font-size: 32px;
+  letter-spacing: -0.025em;
+}
+.setup-pane:not(.setup-cases) .setup-pane-title p {
+  max-width: 560px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.setup-pane:not(.setup-cases) .setup-field {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+  gap: 0;
+}
+.setup-pane:not(.setup-cases) .setup-field > .label {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 40px;
+  border-bottom: 1px solid var(--line);
+}
+.setup-pane:not(.setup-cases) .move-choice {
+  flex: 1;
+  width: auto;
+  max-width: none;
+  padding: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.setup-pane:not(.setup-cases) .move-choice > .button.move-option {
+  height: auto;
+  margin: 0;
+  gap: 14px;
+  border: 0;
+  font-size: 15px;
+}
+.setup-pane:not(.setup-cases) .move-choice > .button.move-option:not(:last-child) {
+  border-right: 1px solid var(--line);
+}
+.setup-pane:not(.setup-cases) .move-choice > .button.move-option.selected {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.setup-pane:not(.setup-cases) .move-count {
+  font-size: 120px;
+  font-weight: 500;
+}
+.setup-pane:not(.setup-cases) .setup-figures {
+  flex: 1;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+.setup-pane:not(.setup-cases) .setup-figures .metric {
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+}
+.setup-pane:not(.setup-cases) .setup-figures .metric + .metric {
+  border-left: 1px solid var(--line);
+}
+.setup-pane:not(.setup-cases) .setup-figures .metric-value {
+  font-size: 96px;
+  overflow: visible;
+}
+.setup-pane:not(.setup-cases) .setup-actions {
+  flex-shrink: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.setup-pane:not(.setup-cases) .setup-actions > .button.setup-start {
+  flex: 1;
+  height: 96px;
+  min-height: 96px;
+  margin: 0;
+  gap: 14px;
+  justify-content: center;
+  border: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+.setup-pane:not(.setup-cases) .setup-start .icon {
+  width: 24px !important;
+  height: 24px !important;
+}
+.is-mobile .setup-pane:not(.setup-cases) .setup-pane-head {
+  padding: 20px 16px;
+}
+.is-mobile .setup-pane:not(.setup-cases) .setup-field > .label {
+  padding: 0 16px;
+}
+.is-mobile .setup-pane:not(.setup-cases) .move-count {
+  font-size: 64px;
+}
+.is-mobile .setup-pane:not(.setup-cases) .setup-figures .metric-value {
+  font-size: 48px;
+}
+.is-mobile .setup-pane:not(.setup-cases) .setup-actions > .button.setup-start {
+  height: 72px;
+  min-height: 72px;
+  font-size: 20px;
+}
