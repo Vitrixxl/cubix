@@ -4725,7 +4725,6 @@ kbd {
 }
 .settings-cells > .button.settings-swatch.chosen {
   background: var(--surface2);
-  box-shadow: inset 0 0 0 1px var(--accent);
 }
 .account-form {
   display: flex;
@@ -4794,8 +4793,25 @@ kbd {
   padding-bottom: 10px;
   font-size: 12px;
 }
-/* The chosen theme and form tab carry the same accent outline as the chosen accent. */
-.settings-cells > .button.active,
+/* A chosen cell (theme, accent, form tab) is outlined in the accent on the four lines around it, over its
+   neighbours' share of them, never beside them; at the dialog's edge the outline stays inside the cell. */
+.settings-cells > .button:is(.active, .chosen),
 .auth-tabs > .button.active {
-  box-shadow: inset 0 0 0 1px var(--accent);
+  position: relative;
+  z-index: 1;
+}
+.settings-cells > .button:is(.active, .chosen)::after,
+.auth-tabs > .button.active::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--accent);
+  pointer-events: none;
+}
+.settings-cells > .button:last-child::after,
+.auth-tabs > .button:last-child::after {
+  right: 0;
+}
+.auth-tabs > .button:first-child::after {
+  left: 0;
 }
