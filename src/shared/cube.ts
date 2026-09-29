@@ -231,6 +231,14 @@ export function reorientAlgY2(alg: string): string {
 // ---------------------------------------------------------------------------
 // Applying moves
 // ---------------------------------------------------------------------------
+/**
+ * A scramble move as seen once the cube is turned over (z2). Scrambles are applied white on top and green in front,
+ * then the cube is held yellow on top, green still in front: the x and y layers swap sides and turn the other way.
+ */
+export const heldMove = (mv: Move): Move => mv.axis === 2 ? mv : { ...mv, layers: mv.layers.map(l => -l), q: (4 - mv.q) % 4 };
+/** Parse a scramble into the moves of the cube held yellow on top (see `heldMove`). */
+export const parseScramble = (alg: string, size = 3): Move[] => parseAlg(alg, size).map(heldMove);
+
 const PERM_CACHE = new Map<string, Uint16Array>();
 
 /** Permutation for a move: perm[slot] = target slot after the move. */

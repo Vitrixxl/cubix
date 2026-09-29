@@ -3866,6 +3866,54 @@ kbd {
   padding: 0 14px 0 0;
   border-bottom: 1px solid var(--line);
 }
+/* The group's Train, the learned checkbox of a case and the case pager: cells as tall as their row, split from it by
+   one line, instead of boxes floating inside it. */
+.list-group-head {
+  align-items: stretch;
+  padding-right: 0;
+}
+.button.list-group-train {
+  width: 80px;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  justify-content: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+.case-row {
+  align-items: stretch;
+}
+/* As wide as the group's Train, so their lines continue each other. */
+.button.case-check {
+  width: 80px;
+  height: auto;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+}
+.button.case-check:hover {
+  background: var(--hover);
+}
+.detail-foot {
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 0;
+}
+.detail-foot > .button {
+  width: 52px;
+  height: auto;
+  min-height: 0;
+  border: 0;
+}
+.detail-foot > .button:first-child {
+  border-right: 1px solid var(--line);
+}
+.detail-foot > .button:last-child {
+  border-left: 1px solid var(--line);
+}
+.detail-foot > span {
+  align-self: center;
+}
 /* The whole head folds its group; only the Train button keeps its own click. */
 .button.list-group-title {
   flex: 1;
