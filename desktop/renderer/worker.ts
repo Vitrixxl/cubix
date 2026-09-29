@@ -25,14 +25,19 @@ let starting: Promise<{ imported: boolean }> | undefined;
 let active: Port | undefined;
 const drawing = new Map<number, { port: Port; resolve: (value: string) => void; reject: (error: Error) => void }>();
 let drawn = 0;
-function draw(method: keyof ScrambleEngine, args: unknown[]) {
+function draw(method: keyof ScrambleEngine, args: unknown[], tried = new Set<Port>()): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const port = active ?? [...ports].at(-1);
+    const port = [active, ...[...ports].reverse()].find((p): p is Port => !!p && ports.has(p) && !tried.has(p));
     if (!port) return reject(new Error("No open tab can draw scrambles."));
     const id = ++drawn;
     drawing.set(id, { port, resolve, reject });
     port.postMessage({ scramble: id, method, args });
-    setTimeout(() => { if (drawing.delete(id)) reject(new Error("The scramble took too long. Try again.")); }, 60000);
+    // A tab that crashed never answers: another one draws it.
+    setTimeout(() => {
+      if (!drawing.delete(id)) return;
+      tried.add(port);
+      draw(method, args, tried).then(resolve, reject);
+    }, 20000);
   });
 }
 /** cubing.js is served as separate modules: its scramblers start their own workers from them. A shared worker
