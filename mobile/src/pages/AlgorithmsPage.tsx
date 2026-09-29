@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   stageText: { fontSize: 14, fontWeight: "600" },
   // `.list-group-head`
   groupHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 38, paddingTop: 4 },
-  groupTitle: { flexDirection: "row", alignItems: "center", gap: 8, height: 28, paddingHorizontal: 6, borderRadius: 0, flexShrink: 1, minWidth: 0 },
+  groupTitle: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "stretch", paddingHorizontal: 6, borderRadius: 0, flex: 1, minWidth: 0 },
   groupName: { fontSize: 12.5, fontWeight: "600", flexShrink: 1 },
   groupTrain: { height: 26, minHeight: 26, paddingHorizontal: 8, gap: 6 },
   // `.case-row`

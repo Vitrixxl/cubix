@@ -3671,8 +3671,22 @@ kbd {
 }
 .list-group-head {
   height: 44px;
-  padding: 0 14px 0 8px;
+  padding: 0 14px 0 0;
   border-bottom: 1px solid var(--line);
+}
+/* The whole head folds its group; only the Train button keeps its own click. */
+.button.list-group-title {
+  flex: 1;
+  align-self: stretch;
+  height: auto;
+  padding: 0 8px 0 14px;
+  background: transparent;
+}
+.list-group-head:has(> .list-group-title:hover) {
+  background: linear-gradient(var(--hover), var(--hover)), var(--bg);
+}
+.list-group-head:has(> .list-group-title:hover) > .list-group-title {
+  color: var(--text);
 }
 .setup-modes {
   gap: 0;
