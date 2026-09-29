@@ -3636,6 +3636,40 @@ kbd {
   height: auto;
 }
 
+/* The case list's pickers: full-width rows of cells, flush against each other and the pane's lines. */
+.md-list .md-list-head {
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+.md-list-head > :is(.tabs, .segmented, .md-filter) {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  overflow-x: auto;
+}
+.md-list-head > :not(:last-child) {
+  border-bottom: 1px solid var(--line);
+}
+.md-filter > .segmented {
+  flex: 1;
+  display: flex;
+  padding: 0;
+}
+.md-list-head :is(.tabs, .segmented) > .button {
+  flex: 1 0 0;
+  justify-content: center;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  border: 0;
+  background-clip: padding-box;
+}
+.md-list-head :is(.tabs, .segmented) > .button:not(:last-child) {
+  border-right: 1px solid var(--line);
+}
+
 /* Lists: flush rows split by lines, the selected one on surface2 with the accent bar on its side. */
 .case-row.selected,
 .case-row.selected:hover,
@@ -3680,6 +3714,7 @@ kbd {
   align-self: stretch;
   height: auto;
   padding: 0 8px 0 14px;
+  justify-content: flex-start;
   background: transparent;
 }
 .list-group-head:has(> .list-group-title:hover) {
