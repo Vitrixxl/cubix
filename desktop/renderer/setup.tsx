@@ -81,7 +81,6 @@ function CrossSetup() {
         </div>
       </header>
       <div className="setup-field">
-        <span className="label">Moves</span>
         <div className="move-choice" role="radiogroup" aria-label="Moves">
           {CROSS_PLUS_ONE_MOVES.map((n) => (
             <Button key={n} action={"crossMoves:" + n} className={"move-option " + (s.crossMoves === n ? "selected" : "")} title={`${n} moves`}>

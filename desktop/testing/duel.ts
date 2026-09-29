@@ -69,7 +69,7 @@ try {
 
   // Cancel takes A's solve back while B has not finished; A redoes it.
   await a.locator('[data-action="duel:cancel"]').click();
-  await b.waitForFunction(() => !document.querySelector(".duel-board-row:not(.mine):not(.duel-board-head) .duel-board-cell.mono")?.textContent);
+  await b.waitForFunction(() => document.querySelector(".duel-board-row:not(.mine) .duel-board-cell.mono")?.textContent === "1");
   await solve(a);
 
   // Chat.

@@ -254,7 +254,7 @@ function Race() {
       </PageHead>
       <div className="duel-body" style={{ gridTemplateColumns: chatDocked ? "minmax(0, 1fr) var(--chat-width)" : "minmax(0, 1fr)" }}>
         <div className="duel-stage">
-          <section className="duel-scramble">
+          <section className="duel-scramble" style={{ "--prompt-cells": scramble.length > 220 ? 4 : scramble.length > 120 ? 3 : 2 } as React.CSSProperties}>
             <span className="label">
               {duel.over ? "Race over" : `Round ${round + 1} of ${ROUNDS}`} · {duel.over ? "Ao5" : "Scramble"}
             </span>
@@ -330,16 +330,6 @@ function Board({ actions = false }: { actions?: boolean }) {
   const round = duel.round;
   return (
     <div className={"duel-board " + (actions ? "with-actions" : "")} role="table" aria-label="Rounds">
-      <div className="duel-board-row duel-board-head" role="row">
-        <span className="duel-board-name label">Player</span>
-        {ROUND_LIST.map((r) => (
-          <span key={r} className={"duel-board-cell label " + (r === round ? "current" : "")}>
-            {r + 1}
-          </span>
-        ))}
-        <span className="duel-board-cell label">Ao5</span>
-        {actions && <span className="duel-board-tail" />}
-      </div>
       {[duel.seat, 1 - duel.seat].map((seat) => {
         const solves = duel.results[seat] ?? [],
           other = duel.results[1 - seat] ?? [],
@@ -360,11 +350,13 @@ function Board({ actions = false }: { actions?: boolean }) {
                   key={r}
                   className={"duel-board-cell mono " + (r === round ? "current " : "") + (v?.penalty === "dnf" ? "danger " : "") + (won ? "win" : "")}
                 >
+                  <span className="duel-board-round label">{r + 1}</span>
                   {v ? fmtSolve(v.ms, v.penalty) : ""}
                 </span>
               );
             })}
             <span className={"duel-board-cell duel-board-ao5 mono " + (own !== undefined && rival !== undefined && compare(own, rival) === "win" ? "win" : "")}>
+              <span className="duel-board-round label">Ao5</span>
               {average(own)}
             </span>
             {actions &&

@@ -156,6 +156,10 @@ export function Practice() {
     promptFont = mobile
       ? text.length > 90 ? 15 : 19
       : text.length > 220 ? 16 : text.length > 120 ? (compact ? 17 : 20) : compact ? 22 : 27,
+    // Whole cells of the page grid: longer scrambles, a case and a revealed solution take more.
+    promptCells = training
+      ? s.revealed ? 4 : 3
+      : (text.length > 220 ? 4 : text.length > 120 ? 3 : 2) + (cross && s.revealed ? 1 : 0),
     // On the desktop the cube has a box of its own nested in the timer's top right corner, sized by the timer (CSS).
     cubePane = !mobile && ready && (hasCube || training),
     cubeShown = cubePane && s.showCube,
@@ -193,7 +197,7 @@ export function Practice() {
     ) : null
   );
   const prompt = (
-    <section className={"prompt" + (training ? " training-prompt" : "")}>
+    <section className={"prompt" + (training ? " training-prompt" : "")} style={{ "--prompt-cells": promptCells } as React.CSSProperties}>
       {training ? (
         ready ? (
           <div className="prompt-main">

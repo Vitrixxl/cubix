@@ -45,7 +45,7 @@ function Appearance() {
         ))}
       </SettingRow>
       <SettingRow label="Help">
-        <Button action="help">Open the guides</Button>
+        <Button action="help" className="settings-wide">Open the guides</Button>
       </SettingRow>
     </>
   );

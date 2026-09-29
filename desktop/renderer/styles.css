@@ -5497,3 +5497,534 @@ kbd {
 .is-mobile .battle-row > :is(.battle-rounds, small, span:last-child:not(.mono)) {
   display: none;
 }
+
+/* ---- the grid: every line of a page continues a line of the rail ----
+ * A cell is as tall as a rail cell and the page header (64px); lists run in whole or half cells (32px), counted from
+ * the top like the rail. The window is rarely a whole number of cells: the bottom row of the rail and of each page
+ * takes what is left (--rest), so the lines anchored at the bottom meet the rail's too. A box whose own top line is the
+ * row's line counts that line in its height. ---- */
+.app {
+  --cell: 64px;
+  --half: 32px;
+  --rest: mod(100vh + 1px, 64px);
+}
+.app.is-mobile {
+  --rest: 0px;
+}
+.rail-foot .rail-cell:last-child {
+  height: calc(var(--rail) - 1px + var(--rest));
+}
+/* Timer and training: the prompt in whole cells, the cube box too, the actions and figures one cell each, the figures
+   in the timer's columns (two per action). */
+.practice-body {
+  --times-width: 300px;
+}
+.app:not(.is-mobile) .practice .prompt {
+  height: calc(var(--cell) * var(--prompt-cells, 2));
+  max-height: none;
+}
+.prompt-main > .prompt-actions > .button,
+.app:not(.is-mobile) .case-nav > .button {
+  height: var(--half);
+  min-height: var(--half);
+}
+.timer.with-cube {
+  --cube-side: max(var(--cell), round(down, min(30cqw, 50cqh), var(--cell)));
+}
+.pane-toggle.control {
+  height: var(--half);
+  min-height: var(--half);
+}
+.pane-toggle.control.icon-only {
+  width: var(--half);
+}
+.timer,
+.is-mobile .timer {
+  --solve-actions: var(--cell);
+}
+.app:not(.is-mobile) .metrics {
+  height: calc(var(--cell) + var(--rest));
+}
+.metrics .metric,
+.metrics-full .metric {
+  justify-content: center;
+  gap: 4px;
+  padding: 0 20px;
+}
+.metrics.metrics-full {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.metrics-full .metric-value,
+.metrics-full .metric:first-child .metric-value {
+  font-size: clamp(16px, 1.45vw, 22px);
+}
+@media (max-width: 1240px) {
+  .app:not(.is-mobile) .metrics.metrics-full {
+    height: calc(2 * var(--cell) + var(--rest));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: 63px minmax(0, 1fr);
+  }
+  .metrics-full .metric:first-child .metric-value {
+    font-size: clamp(16px, 1.45vw, 22px);
+  }
+}
+.column-head {
+  height: var(--cell);
+}
+.times-head {
+  display: grid;
+  align-items: center;
+  height: var(--half);
+  padding: 0 18px;
+}
+.times-row {
+  height: var(--half);
+  min-height: var(--half);
+}
+/* Algorithms: the list's pickers in half cells, its groups in half cells, a case per cell; the detail beside it on the
+   same rows. */
+.md-list-head :is(.tabs, .segmented) > .button {
+  height: 31px;
+  min-height: 31px;
+}
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
+  height: 33px;
+}
+.md-list-head .segmented > .button {
+  line-height: 29px;
+}
+.list-group-head {
+  height: var(--half);
+}
+.case-row {
+  contain-intrinsic-size: auto 64px;
+}
+.button.case-row-open {
+  height: 63px;
+  gap: 12px;
+}
+.case-row-diagram {
+  width: 52px;
+  height: 52px;
+}
+.set-summary-head {
+  height: calc(3 * var(--cell));
+  justify-content: center;
+  padding: 0 40px;
+}
+.set-summary-figures {
+  height: calc(2 * var(--cell));
+}
+.set-summary-figures .metric {
+  justify-content: center;
+}
+.set-summary-figures .metric-value {
+  font-size: 40px;
+}
+.set-summary-groups-head {
+  height: var(--half);
+}
+.set-summary-group {
+  height: var(--cell);
+}
+.detail .detail-hero {
+  height: calc(4 * var(--cell));
+}
+.detail .detail-visual {
+  min-height: 0;
+}
+.detail .detail-figures {
+  height: var(--cell);
+}
+.detail .detail-figures .metric {
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.detail .detail-buttons > .button {
+  height: 63px;
+  min-height: 63px;
+}
+.detail .detail-section > h3.label {
+  height: var(--half);
+}
+.detail-setup-body {
+  justify-content: center;
+  min-height: var(--cell);
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.detail .algorithm-row {
+  min-height: var(--cell);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.detail .algorithm-meta .control {
+  margin: 0 -32px 0 6px;
+}
+/* Training setup: the catalogue's head in two cells, a set per cell. */
+.setup-cases .setup-pane-head {
+  height: calc(2 * var(--cell));
+  align-items: center;
+  padding: 0 24px;
+}
+.setup-cases .setup-set-head {
+  height: 63px;
+}
+/* Setup panes (Cross + 1, learning, duel): the heading in three cells, its field label in a half cell, the Start
+   two cells tall along the bottom. */
+.app:not(.is-mobile) .setup-pane:not(.setup-cases) .setup-pane-head {
+  height: calc(3 * var(--cell));
+  flex-shrink: 0;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.setup-pane:not(.setup-cases) .setup-field > .label {
+  height: var(--half);
+}
+.app:not(.is-mobile) .setup-pane:not(.setup-cases) .setup-actions > .button.setup-start {
+  height: calc(2 * var(--cell) - 1px + var(--rest));
+  min-height: 0;
+}
+/* Duel: the scramble in whole cells, each side under a one-cell head, the board's two rows along the bottom, the chat's
+   field on the board's last line. */
+.app:not(.is-mobile) .duel-scramble {
+  height: calc(var(--cell) * var(--prompt-cells, 2));
+  max-height: none;
+  overflow-y: auto;
+}
+.duel-side-head {
+  height: var(--cell);
+}
+.duel-side {
+  padding-top: var(--cell);
+}
+.duel-board-row,
+.duel-board.with-actions .duel-board-row {
+  height: 63px;
+}
+.app:not(.is-mobile) .duel-board-row:last-child {
+  height: calc(var(--cell) + var(--rest));
+}
+.duel-board-cell {
+  position: relative;
+}
+.duel-board-round {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 10px;
+}
+.duel-board-cell.current .duel-board-round {
+  color: var(--accent);
+}
+.app:not(.is-mobile) .duel-chat-form {
+  height: calc(var(--cell) + var(--rest));
+}
+.button.duel-chat-send {
+  width: var(--cell);
+}
+/* Profile: the overview's rows in whole cells, the last one taking the rest; each pane's head one cell. */
+.app:not(.is-mobile) .overview {
+  grid-template-rows: 255px calc(round(down, (100% - 255px) / 2, var(--cell))) minmax(0, 1fr);
+}
+.ov-card {
+  gap: 0;
+}
+.app:not(.is-mobile) .ov-card:not(.ov-activity) {
+  padding: 0;
+}
+.app:not(.is-mobile) .ov-card:not(.ov-activity) > .ov-card-head {
+  align-items: center;
+  height: 63px;
+  flex-shrink: 0;
+  padding: 0 20px;
+}
+.ov-figure {
+  justify-content: center;
+  height: var(--cell);
+  padding: 0 20px;
+}
+.ov-figure.lead .ov-figure-value {
+  font-size: 26px;
+}
+.app:not(.is-mobile) :is(.ov-training, .ov-achievements) .ov-ring-head {
+  padding: 0 20px 16px;
+}
+.app:not(.is-mobile) :is(.ov-training, .ov-achievements) .mini-bars,
+.app:not(.is-mobile) .ov-goals,
+.app:not(.is-mobile) .ov-battle-list {
+  padding: 0 20px;
+}
+.app:not(.is-mobile) .ov-unlocked {
+  margin: 0;
+}
+.ov-unlocked > small {
+  display: flex;
+  align-items: center;
+  height: 31px;
+  padding: 0 20px;
+}
+/* Battles: a head row in half a cell, a battle per cell, the result as wide as the header's back cell. */
+.battle-row {
+  grid-template-columns: var(--cell) minmax(140px, 1.2fr) 110px 110px minmax(0, 3fr) 90px;
+  height: var(--cell);
+  min-height: 0;
+}
+.battle-head {
+  height: var(--half);
+  min-height: 0;
+}
+.is-mobile .battle-row {
+  grid-template-columns: var(--cell) minmax(0, 1fr) 84px 84px;
+}
+/* Settings: every control a whole number of swatches wide, so the cells of one row continue those of the others. */
+.settings-cells > .button:not(.settings-swatch) {
+  justify-content: center;
+  min-width: 104px;
+  padding: 0 16px;
+}
+.settings-cells > .button.settings-swatch {
+  width: 52px;
+}
+.settings-cells > .button.settings-wide {
+  width: 156px;
+}
+.settings-cells > .button:not(.settings-swatch, .settings-wide) {
+  width: 104px;
+}
+.detail .detail-hero {
+  flex-shrink: 0;
+}
+.detail .detail-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.detail .detail-buttons > .button {
+  justify-content: center;
+}
+.app:not(.is-mobile) .detail-foot {
+  height: calc(var(--cell) + var(--rest));
+}
+.app:not(.is-mobile) .detail-foot > .button {
+  width: var(--cell);
+}
+/* The duel's board runs in twelfths of the stage (nine in the result), so the thirds of the split — you, the cube,
+   the opponent — fall on its lines. */
+.duel-split.with-cube {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.duel-board-row {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+}
+.duel-board.with-actions .duel-board-row {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.duel-board-name,
+.duel-board-tail {
+  grid-column: span 3;
+}
+/* The ring and its figure: one cell under the pane's head; the latest unlocked achievements, at the pane's foot, as
+   many as whole rows fit. */
+.app:not(.is-mobile) :is(.ov-training, .ov-achievements) .ov-ring-head {
+  height: var(--cell);
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0 20px;
+}
+.app:not(.is-mobile) .ov-achievements {
+  container: achievements / size;
+}
+@container achievements (max-height: 250px) {
+  .ov-unlocked-row:nth-of-type(n + 2) {
+    display: none;
+  }
+}
+@container achievements (max-height: 190px) {
+  .ov-unlocked {
+    display: none;
+  }
+}
+/* The timer statistics: a strip of figure cells, then the toolbar, each one cell tall. Past the first, the figures and
+   the toolbar's cells are as wide as the header's cells, so their lines continue each other. */
+.profile-main > .stats .stat-strip {
+  height: var(--cell);
+}
+.profile-main > .stats .stat-tile {
+  height: var(--cell);
+  justify-content: center;
+  padding: 0 20px;
+}
+.profile-main > .stats .stats-bar {
+  height: var(--cell);
+}
+.stats-bar .stats-view-toggle > .button,
+.stats-bar > .row:last-child > .button {
+  min-height: 63px;
+}
+@media (min-width: 1101px) {
+  .app:not(.is-mobile) .profile-main > .stats .stat-strip {
+    grid-template-columns: minmax(0, 1fr) repeat(6, 150px);
+  }
+  .app:not(.is-mobile) .page-controls .profile-filters > .button {
+    width: 150px;
+    justify-content: center;
+  }
+  .app:not(.is-mobile) .stats-bar .stats-view-toggle > .button {
+    width: 120px;
+    justify-content: center;
+  }
+  .app:not(.is-mobile) .stats-bar > .row:last-child:not(:first-child) > .button {
+    width: 150px;
+    justify-content: center;
+  }
+}
+.detail .detail-buttons > .button {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+.detail .detail-buttons > .button:first-child {
+  border-left: 0;
+}
+.detail .detail-stats {
+  border-top: 0;
+}
+/* The solves table: its head and each solve in half a cell, a comment in half a cell more. */
+.profile-main > .stats .solves-head {
+  height: var(--half);
+  padding: 0 0 0 20px;
+}
+.solve-row-actions > .button {
+  min-height: 31px;
+}
+.solve-row {
+  grid-template-rows: 31px;
+  grid-auto-rows: var(--half);
+}
+.solve-comment {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A chosen cell against the pane's edge takes that edge's line rather than drawing a second one beside it; against
+   the rail, whose line it cannot cover, it leaves the rail's. */
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected):first-child {
+  border-left-color: transparent;
+}
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected):last-child {
+  margin-right: -1px;
+}
+/* The settings fit their dialog: the chosen cell against its right edge takes the dialog's line. */
+.modal.settings-modal {
+  overflow: visible;
+}
+.settings-cells > .button:is(.active, .chosen):last-child,
+.auth-tabs > .button.active:last-child {
+  margin-right: -1px;
+}
+/* Profile training: each set's title a half-cell row over its line, the cases as cells sharing their lines. */
+.button.profile-set-title {
+  width: 100%;
+  height: var(--half);
+  min-height: var(--half);
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+.profile-grid {
+  gap: 0;
+}
+.button.profile-tile {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+/* ---- phones: the header's controls share their row equally and the puzzle cell is as wide as one of them; the
+ * pager, the statistics and the settings run in the tab bar's sixths (or in eighths for the accents). ---- */
+.app.is-mobile .page-controls {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.app.is-mobile .page-controls > * {
+  min-width: 0;
+}
+.app.is-mobile .page-controls > :is(.row, .segmented, .profile-filters) > .button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.is-mobile .page-controls .control.collapsible {
+  min-width: 0;
+}
+.is-mobile .page-head:has(> .page-controls) .page-title > .head-puzzle {
+  width: calc(100vw / var(--controls, 1));
+  flex: none;
+  justify-content: center;
+  padding: 0 8px;
+}
+.is-mobile .detail-foot > .button {
+  width: calc(100% / 6);
+}
+/* Its line is on its right: one pixel more puts it on the tab bar's. */
+.is-mobile .detail-foot > .button:first-child {
+  width: calc(100% / 6 + 1px);
+}
+.is-mobile .profile-main > .stats .stat-tile {
+  margin-right: 0;
+}
+.is-mobile .detail .algorithm-meta .control {
+  border: 0;
+  padding: 0 6px;
+  color: var(--accent);
+}
+.is-mobile .profile-main > .stats .stat-strip {
+  grid-template-columns: repeat(7, calc(100vw / 3));
+}
+.is-mobile .stats-bar .stats-view-toggle > .button,
+.is-mobile .stats-bar > .row:last-child:not(:first-child) > .button {
+  width: calc(100vw / 6);
+  min-width: 0;
+  padding: 0;
+  justify-content: center;
+}
+.is-mobile .settings-row {
+  flex-wrap: wrap;
+}
+.is-mobile .settings-row > strong {
+  height: 40px;
+}
+.is-mobile .settings-cells {
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  height: 52px;
+  border-top: 1px solid var(--line);
+}
+.is-mobile .settings-cells > .button,
+.is-mobile .settings-cells > .button:not(.settings-swatch, .settings-wide),
+.is-mobile .settings-cells > .button.settings-wide,
+.is-mobile .settings-cells > .button.settings-swatch {
+  width: auto;
+  min-width: 0;
+}
+.is-mobile .settings-cells > .button:first-child {
+  border-left: 0;
+}
+.app.is-mobile .page-controls > .segmented {
+  grid-column: span 2;
+}
+/* Above a group of three cells, the lead cell is as wide as one of them. */
+.is-mobile .page-head:has(> .page-controls > .segmented) .page-title > .control {
+  width: calc(100vw / var(--controls) * 2 / 3);
+}
+.is-mobile .stats-bar > .row:last-child:not(:first-child) > .button:first-child {
+  width: calc(100vw / 6 + 1px);
+  margin-left: -1px;
+}

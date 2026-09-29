@@ -149,8 +149,15 @@ export function PageHead({
   children,
 }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean } & Props) {
   const mobile = useViewport().w <= MOBILE;
+  // Phones share the controls' row equally; the puzzle cell above is as wide as one of them, so their lines meet.
+  const flat = (nodes: React.ReactNode): React.ReactNode[] =>
+      React.Children.toArray(nodes).flatMap((n) => (React.isValidElement(n) && n.type === React.Fragment ? flat((n.props as Props).children) : [n])),
+    // A group of cells (the cross + 1 moves) takes two shares.
+    controls = flat(children)
+      .filter((n) => React.isValidElement(n) && (n.props as Props).className !== "control-gap")
+      .reduce((sum: number, n) => sum + (((n as React.ReactElement).props as Props).className === "segmented" ? 2 : 1), 0);
   return (
-    <header className="page-head">
+    <header className="page-head" style={{ "--controls": Math.max(1, controls) } as React.CSSProperties}>
       <div className="page-title">
         {lead}
         <div className="page-title-text">
