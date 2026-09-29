@@ -3771,16 +3771,20 @@ kbd {
   display: flex;
   padding: 0;
 }
-/* Each cell has its own border, laid over its neighbours' and the rows' lines by -1px margins; the chosen one only
-   colours that border and sits on top. The page clips the rail's line, so the first cell keeps its left side clear. */
+/*
+ * One vertical line per cell, its left border, so two neighbours never draw two lines side by side (at a fractional
+ * zoom overlapping borders land a device pixel apart). The chosen cell colours its left border and its right one
+ * (the next cell's left border), and lays accent top and bottom borders over the rows' lines.
+ */
 .md-list-head :is(.tabs, .segmented) > .button {
   flex: 1 1 0;
   min-width: 0;
   justify-content: center;
-  height: 42px;
-  min-height: 42px;
-  margin: -1px -1px -1px 0;
-  border: 1px solid var(--line);
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
   background-clip: padding-box;
 }
 .md-list-head :is(.tabs, .segmented) > .button:first-child {
@@ -3789,12 +3793,22 @@ kbd {
 .md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
   position: relative;
   z-index: 1;
-  border-color: var(--accent);
+  height: 42px;
+  margin: -1px 0;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  border-left-color: var(--accent);
+}
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) + .button {
+  border-left-color: var(--accent);
+}
+.md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected):last-child {
+  border-right: 1px solid var(--accent);
 }
 /* Laid out as a line of text, so a label and its count share their baseline. */
 .md-list-head .segmented > .button {
   display: block;
-  line-height: 40px;
+  line-height: 38px;
   text-align: center;
   white-space: nowrap;
 }
@@ -4697,21 +4711,15 @@ kbd {
 .settings-cells > .button {
   height: auto;
   min-height: 0;
-  margin: -1px 0 -1px -1px;
+  margin: 0;
   padding: 0 20px;
-  border: 1px solid var(--line);
-}
-.settings-cells > .button:last-child {
-  border-right-color: transparent;
-}
-.settings-section:last-child .settings-row:last-child .settings-cells > .button {
-  margin-bottom: 0;
-  border-bottom-color: transparent;
+  border: 0;
+  border-left: 1px solid var(--line);
 }
 /* An accent: a neutral cell holding a small square of its colour; the chosen one looks like any chosen cell. */
-/* Square: as wide as it is tall (the row's 51px under its top line, plus the two lines the cell overlaps). */
+/* Square: as wide as the row is tall under its top line (51px). */
 .settings-cells > .button.settings-swatch {
-  width: 53px;
+  width: 51px;
   padding: 0;
   justify-content: center;
 }
@@ -4736,17 +4744,13 @@ kbd {
   border-top: 1px solid var(--line);
 }
 .auth-tabs > .button {
-  height: 46px;
-  min-height: 46px;
-  margin: -1px 0 -1px -1px;
-  border: 1px solid var(--line);
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  border: 0;
 }
-.auth-tabs > .button:first-child {
-  margin-left: 0;
-  border-left-color: transparent;
-}
-.auth-tabs > .button:last-child {
-  border-right-color: transparent;
+.auth-tabs > .button + .button {
+  border-left: 1px solid var(--line);
 }
 .settings-text {
   margin: 0;
@@ -4797,11 +4801,30 @@ kbd {
   padding-bottom: 10px;
   font-size: 12px;
 }
+/* The chosen cell: accent on its left border and on the next cell's (its right side), accent top and bottom
+   borders over the rows' lines; against the dialog's edge that side is drawn inside it. */
 .settings-cells > .button:is(.active, .chosen),
 .auth-tabs > .button.active {
   position: relative;
   z-index: 1;
-  border-color: var(--accent);
+  margin: -1px 0;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  border-left-color: var(--accent);
+}
+.auth-tabs > .button.active {
+  height: 46px;
+}
+.auth-tabs > .button.active:first-child {
+  border-left: 1px solid var(--accent);
+}
+.settings-cells > .button:is(.active, .chosen) + .button,
+.auth-tabs > .button.active + .button {
+  border-left-color: var(--accent);
+}
+.settings-cells > .button:is(.active, .chosen):last-child,
+.auth-tabs > .button.active:last-child {
+  border-right: 1px solid var(--accent);
 }
 
 /* ---- a case's own actions in training (learned, previous, next): cells nested in the prompt's top right corner,
