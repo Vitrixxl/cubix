@@ -4907,3 +4907,38 @@ kbd {
 .timer > .solve-actions > .solve-action-comment.has-comment {
   color: var(--accent);
 }
+
+/* ---- comment dialog: the text fills the dialog under its header line, Save runs along the bottom ---- */
+.modal:has(> .comment-form) {
+  gap: 0;
+  padding: 0;
+}
+.modal:has(> .comment-form) > .row:first-child {
+  margin: 0;
+}
+.comment-form {
+  display: flex;
+  flex-direction: column;
+}
+.modal .comment-form > textarea {
+  min-height: 180px;
+  padding: 18px 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  resize: none;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.modal .comment-form > textarea:focus {
+  outline: none;
+  border: 0;
+}
+.button.comment-save {
+  height: 52px;
+  min-height: 52px;
+  margin: 0;
+  justify-content: center;
+  border: 0;
+  font-size: 14px;
+}

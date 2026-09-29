@@ -511,7 +511,7 @@ export function Overlay() {
           <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
         ) : s.overlay === "comment" ? (
           <form
-            className="col"
+            className="comment-form"
             onSubmit={async (e) => {
               e.preventDefault();
               try {
@@ -529,7 +529,7 @@ export function Overlay() {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
             />
-            <button className="button primary" type="submit">
+            <button className="button primary comment-save" type="submit">
               Save
             </button>
           </form>
