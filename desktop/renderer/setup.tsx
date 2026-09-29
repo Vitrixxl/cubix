@@ -61,9 +61,10 @@ export function TrainingSetup() {
   );
 }
 
-function SetupStart({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
+/** Start of a setup; `big` is the full-width one along the bottom of a pane, a plain word in mono without icon. */
+function SetupStart({ action, disabled = false, big = false, children }: { action: string; disabled?: boolean; big?: boolean } & Props) {
   return (
-    <Button action={action} className="primary setup-start" icon="IconTimer" disabled={disabled}>
+    <Button action={action} className={"primary setup-start " + (big ? "mono" : "")} icon={big ? undefined : "IconTimer"} disabled={disabled}>
       {children ?? "Start"}
     </Button>
   );
@@ -91,7 +92,7 @@ function CrossSetup() {
         </div>
       </div>
       <div className="setup-actions">
-        <SetupStart action="trainingStart:cross1" />
+        <SetupStart action="trainingStart:cross1" big />
       </div>
     </div>
   );
@@ -212,7 +213,7 @@ function LearningSetup({ mode }: { mode: string }) {
         ))}
       </div>
       <div className="setup-actions">
-        <SetupStart action={"trainingStart:cases:" + mode} disabled={review && !pool.length} />
+        <SetupStart action={"trainingStart:cases:" + mode} disabled={review && !pool.length} big />
       </div>
     </div>
   );

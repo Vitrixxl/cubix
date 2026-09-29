@@ -4676,11 +4676,8 @@ kbd {
   justify-content: center;
   border: 0;
   font-size: 24px;
-  font-weight: 600;
-}
-.setup-pane:not(.setup-cases) .setup-start .icon {
-  width: 24px !important;
-  height: 24px !important;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 .is-mobile .setup-pane:not(.setup-cases) .setup-pane-head {
   padding: 20px 16px;
