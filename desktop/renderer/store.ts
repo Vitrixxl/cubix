@@ -274,6 +274,7 @@ export class Store {
         this.scramble ? Promise.resolve() : this.nextScramble(),
         this.nextCase(),
       ]);
+      this.prefetchCrossSolutions();
     } catch (e) {
       this.fail(e);
     }
@@ -365,9 +366,14 @@ export class Store {
       this.revealed = false;
       this.replay++;
       this.emit();
+      this.prefetchCrossSolutions();
     } catch (e) {
       if (revision === this.revision) this.fail(e);
     }
+  }
+  /** Cross + 1 solutions are worked out as soon as a scramble is shown, so revealing them is instant. */
+  prefetchCrossSolutions() {
+    if (this.crossTraining && this.scramble) void this.loadCrossSolutions();
   }
   async nextCase(direction = "next") {
     this.reconcileLearning();
@@ -506,7 +512,7 @@ export class Store {
     if (this.practicePage() !== "playground") return;
     const { puzzle, solveMode, scrambleType } = this.context(),
       stored = this.prefs["cubix.playground.scrambleByContext"]?.[`${puzzle}:${solveMode}:${scrambleType}`];
-    if (stored === this.scramble && stored) return;
+    if (stored === this.scramble && stored) return this.prefetchCrossSolutions();
     this.revision++;
     this.generating = false;
     this.scramble = stored ?? "";
@@ -514,6 +520,7 @@ export class Store {
     this.replay++;
     this.emit();
     if (!this.scramble) await this.nextScramble();
+    else this.prefetchCrossSolutions();
   }
   travel(back = true) {
     const stack = back ? this.history : this.forward,
