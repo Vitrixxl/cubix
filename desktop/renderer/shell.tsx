@@ -4,10 +4,9 @@ import { motion, useIsPresent } from "motion/react";
 import { store as s } from "./store";
 import { Avatar, Button, Icon, type Props } from "./ui";
 const TABS: [page: string, label: string, icon: string, shortcut: string][] = [
-  ["playground", "Timer", "IconCube", "Alt+1"],
-  ["algorithms", "Algorithms", "IconGrid", "Alt+2"],
-  ["training", "Training", "IconTimer", "Alt+3"],
-  ["profile", "Account", "IconUser", "Alt+4"],
+  ["playground", "Timer", "IconTimer", "Alt+1"],
+  ["algorithms", "Algorithms", "IconCases", "Alt+2"],
+  ["training", "Training", "IconTarget", "Alt+3"],
 ];
 
 function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?: number }) {
@@ -16,7 +15,8 @@ function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?:
 
 /**
  * Desktop navigation: a rail of square cells, one column of the page grid. The puzzle sits in a cell as tall
- * as the page header so their lines meet, then one cell per section, then guides and settings at the bottom.
+ * as the page header so their lines meet, then one cell per section, then guides, settings and the account at the
+ * bottom.
  * A cell names itself in a flush label cell on hover.
  */
 export function Rail() {
@@ -39,6 +39,9 @@ export function Rail() {
         </RailCell>
         <RailCell action="settings" label="Settings" hint="Alt+S" selected={s.overlay === "settings"}>
           <Icon name="IconSettings" size={18} />
+        </RailCell>
+        <RailCell action="nav:profile" label="Account" hint="Alt+4" selected={s.page === "profile"}>
+          <TabIcon page="profile" icon="IconUser" size={18} />
         </RailCell>
       </div>
     </nav>
@@ -76,9 +79,9 @@ function RailCell({
 
 /** Phone navigation: a bottom tab bar with the timer in the centre. */
 const MOBILE_TABS: [action: string, label: string, icon: string][] = [
-  ["nav:algorithms", "Algorithms", "IconGrid"],
-  ["nav:training", "Training", "IconTimer"],
-  ["nav:playground", "Timer", "IconCube"],
+  ["nav:algorithms", "Algorithms", "IconCases"],
+  ["nav:training", "Training", "IconTarget"],
+  ["nav:playground", "Timer", "IconTimer"],
   ["nav:profile", "Account", "IconUser"],
   ["settings", "Settings", "IconSettings"],
 ];
