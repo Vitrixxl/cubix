@@ -2851,79 +2851,6 @@ kbd {
 .modal.settings-modal > .row:first-child {
   margin: 0;
 }
-.settings {
-  gap: 0;
-}
-.settings .panel {
-  flex: none;
-  padding: 16px 22px;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  gap: 10px;
-}
-.settings .panel + .panel {
-  border-top: 1px solid var(--line);
-}
-.settings .panel h3 {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.setting {
-  min-height: 44px;
-  gap: 12px;
-}
-.setting strong {
-  font-size: 13.5px;
-  font-weight: 500;
-}
-.setting > .row {
-  gap: 4px;
-}
-.setting .button:not(.swatch) {
-  height: 30px;
-  min-height: 30px;
-  border: 1px solid var(--line);
-  color: var(--text);
-}
-.setting .button.active {
-  border-color: transparent;
-}
-.swatch {
-  width: 22px;
-  height: 22px;
-  min-height: 22px;
-  padding: 0;
-  border-radius: 0;
-}
-.swatch.chosen {
-  box-shadow: 0 0 0 2px var(--raised), 0 0 0 3.5px var(--text);
-}
-.account-form {
-  gap: 12px;
-}
-.account-form > .row {
-  gap: 4px;
-}
-.account-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--secondary);
-}
-.account-form input {
-  height: 38px;
-}
-.account-form .primary {
-  min-height: 36px;
-  align-self: flex-start;
-}
-
 /* ---- window sizes ---- */
 @media (max-width: 1180px) {
   .detail-scroll {
@@ -3774,23 +3701,23 @@ kbd {
 }
 /* Rows of lists and tiles of pickers: the lines between them come from their container. */
 .button:is(.case-row-open, .case-check, .menu-option, .search-result, .setup-mode, .guides-nav-item, .tab-item,
-  .list-group-title, .case-title, .setup-set-title, .setup-group-title, .puzzle-option, .swatch, .history-row,
+  .list-group-title, .case-title, .setup-set-title, .setup-group-title, .puzzle-option, .history-row,
   .learning-group-handle, .rail-cell) {
   border: 0;
 }
 /* Groups: the cells share their lines, wrapping or not. */
 :is(.segmented, .tabs, .detail-buttons, .setup-actions, .prompt-actions, .solve-actions, .solve-actions-row,
   .stats-view-toggle, .column-head-actions, .times-actions, .solve-row-actions, .case-nav, .methods-tabs,
-  .setting > .row, .profile-toolbar-row > .row, .profile-filters, .account-form > .row, .move-choice) {
+  .profile-toolbar-row > .row, .profile-filters, .move-choice) {
   gap: 0;
   padding: 0 1px 1px 0;
 }
 :is(.segmented, .tabs, .detail-buttons, .setup-actions, .prompt-actions, .solve-actions, .solve-actions-row,
   .stats-view-toggle, .column-head-actions, .times-actions, .solve-row-actions, .case-nav, .methods-tabs,
-  .setting > .row, .profile-toolbar-row > .row, .profile-filters, .account-form > .row, .move-choice) > .button {
+  .profile-toolbar-row > .row, .profile-filters, .move-choice) > .button {
   margin: 0 -1px -1px 0;
 }
-:is(.segmented, .tabs, .move-choice, .methods-tabs, .setting > .row) > .button:is(.active, .selected, :focus-visible) {
+:is(.segmented, .tabs, .move-choice, .methods-tabs) > .button:is(.active, .selected, :focus-visible) {
   position: relative;
   z-index: 1;
 }
@@ -4405,14 +4332,6 @@ kbd {
   border: 0;
   border-left: 1px solid var(--line);
 }
-/* The accent swatches keep their spacing: they are colours, not cells of a group. */
-.setting > .row:has(> .swatch) {
-  gap: 6px;
-  padding: 0;
-}
-.setting > .row > .swatch {
-  margin: 0;
-}
 
 /* ---- case detail as a grid: the diagram in its own cell, the heading beside it over flush strips of figures and
  * actions, then sections under a header line, the statistics in a column of their own on wide panes. ---- */
@@ -4738,4 +4657,131 @@ kbd {
   border: 0;
   border-top: 1px solid var(--line);
   border-right: 1px solid var(--line);
+}
+
+
+/* ---- settings dialog: sections under a header line, rows split by lines, controls as cells flush against the
+ * right edge at full row height, the account form's fields as label | input rows and its submit along the bottom. ---- */
+.settings {
+  display: flex;
+  flex-direction: column;
+}
+.settings-section + .settings-section {
+  border-top: 1px solid var(--line);
+}
+.settings-head {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 52px;
+}
+.settings-row + .settings-row {
+  border-top: 1px solid var(--line);
+}
+.settings-row > strong,
+.settings-user-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 22px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.settings-cells {
+  display: flex;
+  align-items: stretch;
+}
+.settings-cells > .button {
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 20px;
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+.settings-cells > .button.settings-swatch {
+  width: 44px;
+  padding: 0;
+}
+.settings-cells > .button.settings-swatch.chosen {
+  box-shadow: inset 0 0 0 3px var(--bg), inset 0 0 0 4.5px var(--text);
+}
+.account-form {
+  display: flex;
+  flex-direction: column;
+}
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--line);
+}
+.auth-tabs > .button {
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  border: 0;
+}
+.auth-tabs > .button + .button {
+  border-left: 1px solid var(--line);
+}
+.settings-text {
+  margin: 0;
+  padding: 14px 22px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.auth-field {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  height: 48px;
+  border-top: 1px solid var(--line);
+}
+.auth-field:last-of-type,
+.account-form > .auth-field + small {
+  border-bottom: 1px solid var(--line);
+}
+.auth-field > span {
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  border-right: 1px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--secondary);
+}
+.auth-field > input {
+  height: 100%;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.auth-field > input:focus {
+  outline: none;
+  background: var(--hover);
+}
+.button.auth-submit {
+  height: 52px;
+  min-height: 52px;
+  margin: 0;
+  justify-content: center;
+  border: 0;
+  font-size: 14px;
+}
+.account-form > small.settings-text {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 12px;
 }

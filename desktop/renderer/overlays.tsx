@@ -11,41 +11,42 @@ import { EVENTS, PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import { Alg, Avatar, Button, Diagram, Icon, MOBILE, Row } from "./ui";
 import { TimerStats } from "./stats";
+/** A settings row: its name on the left, its controls as cells flush against the right edge, full row height. */
+function SettingRow({ label, children }: { label: string } & { children?: React.ReactNode }) {
+  return (
+    <div className="settings-row">
+      <strong>{label}</strong>
+      <div className="settings-cells">{children}</div>
+    </div>
+  );
+}
+
 function Appearance() {
   return (
-    <div className="appearance">
-      <Row className="setting between">
-        <strong>Theme</strong>
-        <Row>
-          <Button action="light:dark" active={!s.light}>
-            Dark
-          </Button>
-          <Button action="light:light" active={s.light}>
-            Light
-          </Button>
-        </Row>
-      </Row>
-      <Row className="setting between">
-        <strong>Accent</strong>
-        <Row>
-          {Object.entries(accents).map(([name, color]) => (
-            <Button
-              key={name}
-              action={"theme:" + name}
-              title={name}
-              className={"swatch " + (s.themeName === name ? "chosen" : "")}
-              style={{ background: color }}
-            />
-          ))}
-        </Row>
-      </Row>
-      <Row className="setting between">
-        <strong>Help</strong>
-        <Button action="help" active>
-          Open the guides
+    <>
+      <SettingRow label="Theme">
+        <Button action="light:dark" active={!s.light}>
+          Dark
         </Button>
-      </Row>
-    </div>
+        <Button action="light:light" active={s.light}>
+          Light
+        </Button>
+      </SettingRow>
+      <SettingRow label="Accent">
+        {Object.entries(accents).map(([name, color]) => (
+          <Button
+            key={name}
+            action={"theme:" + name}
+            title={name}
+            className={"settings-swatch " + (s.themeName === name ? "chosen" : "")}
+            style={{ background: color }}
+          />
+        ))}
+      </SettingRow>
+      <SettingRow label="Help">
+        <Button action="help">Open the guides</Button>
+      </SettingRow>
+    </>
   );
 }
 
@@ -54,7 +55,7 @@ function AccountForm() {
     [password, setPassword] = useState("");
   return (
     <form
-      className="col account-form"
+      className="account-form"
       onSubmit={async (e) => {
         e.preventDefault();
         if (s.saving) return;
@@ -79,21 +80,21 @@ function AccountForm() {
         }
       }}
     >
-      <Row>
+      <div className="auth-tabs">
         <Button action="authMode:login" active={s.login}>
           Sign in
         </Button>
         <Button action="authMode:register" active={!s.login}>
           Create account
         </Button>
-      </Row>
-      <p className="muted">
+      </div>
+      <p className="muted settings-text">
         {s.login
           ? "Your local times are merged into your account."
           : "An account keeps your times, statistics and achievements in sync between devices."}
       </p>
-      <label>
-        Username
+      <label className="auth-field">
+        <span>Username</span>
         <input
           value={username}
           onChange={(e) => setUser(e.target.value)}
@@ -101,8 +102,8 @@ function AccountForm() {
           required
         />
       </label>
-      <label>
-        Password
+      <label className="auth-field">
+        <span>Password</span>
         <input
           type="password"
           value={password}
@@ -112,45 +113,46 @@ function AccountForm() {
         />
       </label>
       {!s.login && (
-        <small className="muted">
+        <small className="muted settings-text">
           3–24 letters, digits or underscores. Password: 10 characters or
           more.
         </small>
       )}
-      <button type="submit" className="button primary" disabled={s.saving}>
+      <button type="submit" className="button primary auth-submit" disabled={s.saving}>
         {s.saving ? "One moment…" : s.login ? "Sign in" : "Create account"}
       </button>
     </form>
   );
 }
 
+/** Settings: sections under a header line, rows split by lines, every control a cell flush with them. */
 function Settings() {
   const guest = s.user.isGuest;
   return (
-    <div className="col settings">
-      <div className="panel col">
+    <div className="settings">
+      <section className="settings-section">
+        <h3 className="settings-head">Account</h3>
         {guest ? (
-          <>
-            <h3>Account</h3>
-            <AccountForm />
-          </>
+          <AccountForm />
         ) : (
-          <Row className="between wrap">
-            <Row>
-              <Avatar user={s.user} size={44} />
-              <div className="col">
+          <div className="settings-row settings-user">
+            <span className="settings-user-name">
+              <Avatar user={s.user} size={36} />
+              <span className="col">
                 <strong>{s.user.username}</strong>
                 <small className="muted">Joined {s.profile?.user?.joined}</small>
-              </div>
-            </Row>
-            <Button action="logout">Sign out</Button>
-          </Row>
+              </span>
+            </span>
+            <div className="settings-cells">
+              <Button action="logout">Sign out</Button>
+            </div>
+          </div>
         )}
-      </div>
-      <div className="panel col">
-        <h3>Appearance</h3>
+      </section>
+      <section className="settings-section">
+        <h3 className="settings-head">Appearance</h3>
         <Appearance />
-      </div>
+      </section>
     </div>
   );
 }
