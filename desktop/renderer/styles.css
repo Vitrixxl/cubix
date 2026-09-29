@@ -4942,3 +4942,16 @@ kbd {
   border: 0;
   font-size: 14px;
 }
+
+/* ---- words in mono: titles, buttons, labels and the other one-word text of the interface; sentences (subtitles,
+ * descriptions, notes) stay in the sans ---- */
+:is(h1, h2, h3, h4, button, .button, .label, .rail-tip, .settings-row > strong, .settings-user-name strong,
+  .auth-field > span, .list-group-title, .case-row-name strong, .set-summary-group-name strong, .column-head > strong,
+  .ov-card-title, th) {
+  font-family: "Geist Mono", monospace;
+  letter-spacing: 0;
+}
+/* The user row of the settings: name and join date read as one block. */
+.settings-user-name .col {
+  gap: 2px;
+}
