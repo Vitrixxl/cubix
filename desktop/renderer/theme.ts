@@ -9,7 +9,7 @@ export function theme(name: string, light: boolean) {
   const tokens = {
     bg: t.bg, surface: t.surface, surface2: t.surface2, surface3: t.surface3,
     text: t.text, secondary: t.text2, accent: t.accent, series: t.series2,
-    muted: t.readableMuted, good: t.good, danger: t.danger,
+    muted: t.readableMuted, good: t.good, danger: t.danger, warning: t.warning,
     soft: t.accentSoft, hover: t.hover, line: t.line, raised: t.raised,
   };
   return Object.fromEntries(Object.entries(tokens).map(([key, value]) => ["--" + key, value]));

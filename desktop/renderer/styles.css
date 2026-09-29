@@ -4867,12 +4867,33 @@ kbd {
 .timer > .solve-actions > .control + .control {
   border-left: 1px solid var(--line);
 }
-.timer > .solve-actions > .control .icon {
-  width: 22px !important;
-  height: 22px !important;
+/* Words only; hovering tints a cell with what it does: a penalty in amber, a DNF or a deletion in red, a comment
+   in the accent. An applied penalty keeps its colour. */
+.timer > .solve-actions > .control {
+  --tone: var(--accent);
+  font-family: "Geist Mono", monospace;
+  font-size: 18px;
+  color: var(--secondary);
+  transition: background 0.12s, color 0.12s;
+}
+.timer > .solve-actions > .solve-action-plus2 {
+  --tone: var(--warning);
+}
+.timer > .solve-actions > :is(.solve-action-dnf, .solve-action-delete) {
+  --tone: var(--danger);
+}
+.timer > .solve-actions > .control:not(:disabled):hover,
+.timer > .solve-actions > .control.active,
+.timer > .solve-actions > .control.active:hover {
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  color: var(--tone);
+}
+.timer > .solve-actions > .control:disabled {
+  color: var(--muted);
+  opacity: 0.5;
 }
 .is-mobile .timer > .solve-actions > .control {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 /* ---- header cells: all the same width on the desktop, their label centred ---- */
@@ -4882,4 +4903,7 @@ kbd {
     padding: 0 12px;
     justify-content: center;
   }
+}
+.timer > .solve-actions > .solve-action-comment.has-comment {
+  color: var(--accent);
 }

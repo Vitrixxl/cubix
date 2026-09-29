@@ -435,20 +435,23 @@ export function Practice() {
             {/* The last solve's actions: a strip of four cells along the bottom of the timer, there before the
                 first solve too (disabled) so the timer never moves. */}
             <div className="solve-actions">
-              <Button action={"penalty:" + last?.id + ":+2"} active={last?.penalty === "+2"} disabled={!last || s.saving} className="control">
+              <Button action={"penalty:" + last?.id + ":+2"} active={last?.penalty === "+2"} disabled={!last || s.saving} className="control solve-action-plus2">
                 +2
               </Button>
-              <Button action={"penalty:" + last?.id + ":dnf"} active={last?.penalty === "dnf"} disabled={!last || s.saving} className="control">
+              <Button action={"penalty:" + last?.id + ":dnf"} active={last?.penalty === "dnf"} disabled={!last || s.saving} className="control solve-action-dnf">
                 DNF
               </Button>
               <Button
                 action={"comment:" + last?.id}
-                icon="IconComment"
                 disabled={!last || s.saving}
-                className={"control icon-only " + (last?.comment ? "has-comment" : "")}
+                className={"control solve-action-comment " + (last?.comment ? "has-comment" : "")}
                 title="Comment"
-              />
-              <Button action={"delete:" + last?.id} icon="IconTrash" disabled={!last || s.saving} className="control icon-only danger-hover" title="Delete this solve" />
+              >
+                Comment
+              </Button>
+              <Button action={"delete:" + last?.id} disabled={!last || s.saving} className="control solve-action-delete" title="Delete this solve">
+                Delete
+              </Button>
             </div>
           </section>
           <section className={"metrics" + (metrics.length > 4 ? " metrics-full" : "")}>
