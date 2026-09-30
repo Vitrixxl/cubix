@@ -1,6 +1,7 @@
 use crate::practice;
 use crate::{
     AppState, accounts,
+    activity::{self, Actor},
     db::{all, one, required},
     error::{ApiError, Result},
     stats,
@@ -14,6 +15,7 @@ use axum::{
     body::Bytes,
     extract::{OriginalUri, State},
     http::{HeaderMap, Method},
+    response::{IntoResponse, Response},
 };
 use rand::rngs::OsRng;
 use rusqlite::{Connection, params};
@@ -183,7 +185,48 @@ pub async fn dispatch(
     method: Method,
     headers: HeaderMap,
     bytes: Bytes,
-) -> Result<Json<Value>> {
+) -> Response {
+    // Handlers name the account a request concerns; the request log and activity use it.
+    let (actor, result) = handle(state, uri, method, headers, bytes).await;
+    let mut response = match result {
+        Ok(value) => Json(value).into_response(),
+        Err(error) => error.into_response(),
+    };
+    if let Some(actor) = actor {
+        response.extensions_mut().insert(actor);
+    }
+    response
+}
+async fn handle(
+    state: AppState,
+    uri: axum::http::Uri,
+    method: Method,
+    headers: HeaderMap,
+    bytes: Bytes,
+) -> (Option<Actor>, Result<Value>) {
+    let mut actor = None;
+    let result = respond(&state, uri, method, headers, bytes, &mut actor).await;
+    if let Ok(value) = &result
+        && let Some(user) = value["user"]["id"].as_str()
+        && actor.is_none()
+    {
+        // Sign-in, registration and guest accounts return the account they opened.
+        actor = Some(Actor {
+            user: user.to_owned(),
+            token: None,
+            seen: true,
+        });
+    }
+    (actor, result)
+}
+async fn respond(
+    state: &AppState,
+    uri: axum::http::Uri,
+    method: Method,
+    headers: HeaderMap,
+    bytes: Bytes,
+    actor: &mut Option<Actor>,
+) -> Result<Value> {
     let path = percent_encoding::percent_decode_str(uri.path().trim_start_matches("/api/"))
         .decode_utf8()
         .map_err(|_| ApiError::validation())?
@@ -201,24 +244,24 @@ pub async fn dispatch(
         .unwrap_or("")
         .to_owned();
     if method == Method::POST && ["auth/register", "auth/login"].contains(&path.as_str()) {
-        return auth_request(&state, &path, body, token).await.map(Json);
+        return auth_request(state, &path, body, token).await;
     }
     if method == Method::GET {
         match path.as_str() {
-            "health" => return Ok(Json(json!({"ok":true}))),
-            "mobile/release" => return Ok(Json(crate::release::info())),
-            "moves" => return Ok(Json(state.catalog.moves.clone())),
+            "health" => return Ok(json!({"ok":true})),
+            "mobile/release" => return Ok(crate::release::info()),
+            "moves" => return Ok(state.catalog.moves.clone()),
             "sets" => {
-                return Ok(Json(practice::catalog(
+                return Ok(practice::catalog(
                     &state.catalog.sets,
                     &practice::query(&query)?,
-                )));
+                ));
             }
             "cases" => {
-                return Ok(Json(practice::catalog(
+                return Ok(practice::catalog(
                     &state.catalog.cases,
                     &practice::query(&query)?,
-                )));
+                ));
             }
             _ => {}
         }
@@ -228,27 +271,48 @@ pub async fn dispatch(
                 .by_id
                 .get(id)
                 .cloned()
-                .map(Json)
                 .ok_or_else(|| ApiError::new(404, "Unknown case"));
         }
     }
     let copy = state.clone();
-    state
+    let hash = activity::token_hash(&token);
+    let (owner, value) = state
         .db
         .call(move |db| {
-            let value = route(db, &copy, method.as_str(), &path, &query, &body, &token)?;
+            // Looked up before the route runs, so a sign-out still names its account.
+            let owner = match &hash {
+                Some(hash) => one(
+                    db,
+                    "SELECT user_id FROM auth_tokens WHERE token_hash=? AND expires_at>?",
+                    params![hash, accounts::now()],
+                )?
+                .and_then(|r| r["user_id"].as_str().map(str::to_owned)),
+                None => None,
+            };
+            let value = route(db, &copy, method.as_str(), &path, &query, &body, &token);
             // Other devices of the same account learn about committed practice changes immediately.
-            if method != Method::GET
+            if value.is_ok()
+                && method != Method::GET
                 && !path.starts_with("auth/")
-                && let Some(user) = accounts::auth(db, &token)?
+                && let Some(uid) = &owner
             {
-                let uid = user["id"].as_str().unwrap();
                 copy.hub.notify_sync(uid, crate::sync::cursor(db, uid)?);
             }
-            Ok(value)
+            Ok((owner, value))
         })
-        .await
-        .map(Json)
+        .await?;
+    *actor = owner.map(|user| Actor {
+        user,
+        token: hash_for_actor(&headers),
+        seen: true,
+    });
+    value
+}
+fn hash_for_actor(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(activity::token_hash)
 }
 
 fn session(db: &Connection, id: f64, user: &str) -> Result<Value> {

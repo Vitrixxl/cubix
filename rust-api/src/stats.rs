@@ -6,7 +6,7 @@ pub fn effective(s: &Value) -> Option<f64> {
         Some(s["time_ms"].as_f64().unwrap_or(0.) + if s["penalty"] == "+2" { 2000. } else { 0. })
     }
 }
-fn average(times: &[Option<f64>]) -> Option<f64> {
+pub fn average(times: &[Option<f64>]) -> Option<f64> {
     if times.len() < 3 || times.iter().filter(|v| v.is_none()).count() > 1 {
         return None;
     }

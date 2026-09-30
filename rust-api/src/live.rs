@@ -133,6 +133,8 @@ async fn live(state: AppState, mut socket: WebSocket, ip: std::net::IpAddr) {
                 }
                 let Ok(user)=authenticated(&state,token.clone()).await else {close(&mut socket).await;break};
                 let uid=user["id"].as_str().unwrap().to_owned();
+                // An open app is an active account even between HTTP requests.
+                state.traffic.log.seen(uid.clone());
                 if user_id.is_none() {state.hub.add(uid.clone(),id,slot.clone());user_id=Some(uid.clone());}
                 deadline.as_mut().reset(tokio::time::Instant::now()+Duration::from_secs(60));
                 let response=if kind=="auth" {

@@ -41,8 +41,8 @@ validation : [guide mobile](mobile/README.md).
 
 `bun run deploy` (ou `make deploy`) pousse `main`, met à jour le serveur avec
 `pihost update cubix` (l'image construit aussi l'application web, donc le desktop),
-puis livre le mobile de deux façons (mot de passe admin du serveur
-lu par SSH ou `CUBIX_DEPLOY_PASSWORD`) :
+puis livre le mobile de deux façons (`CUBIX_ADMIN_PASSWORD` du serveur, lu par SSH, ou
+`CUBIX_DEPLOY_PASSWORD` ; ce mot de passe ne sert qu'aux envois mobiles) :
 
 - **Mise à jour à la volée (expo-updates)**, à chaque déploiement : `expo export` produit
   le bundle JavaScript et ses assets, envoyés à l'API (`PUT /api/mobile/updates/assets/<sha256>`
@@ -110,16 +110,49 @@ L'import est transactionnel et peut être répété sans duplication.
 
 ## Administration et réseau
 
-Les endpoints `/api/admin/*` et `/api/admin/live` sont conservés, sans interface web.
-Copier `.env.example` vers `.env` puis définir `CUBIX_ADMIN_PASSWORD` (12 caractères
-minimum) pour les activer. Le cookie admin reste indépendant des comptes utilisateurs.
+L'administration (`/admin`, API `/api/admin/*` et socket `/api/admin/live`) montre comment
+tous les comptes utilisent l'application : vue d'ensemble, comptes et leur activité, journal
+des requêtes, IP. Elle s'ouvre avec un **jeton unique généré dans le conteneur** ; seul son
+SHA-256 est stocké en base (table `admin_access`). Sans jeton, les routes admin répondent 503.
+
+Générer (ou remplacer) le jeton sur le Pi, serveur en marche :
+
+```sh
+ssh vitrix@82.67.236.74
+cd /srv/pihost/apps/cubix/repo
+docker compose -p pihost-cubix exec api cubix-api admin-token
+```
+
+pihost n'a pas de commande `exec` ; en une ligne, sans passer par le dossier :
+
+```sh
+ssh vitrix@82.67.236.74 'docker exec $(docker ps -qf label=com.docker.compose.project=pihost-cubix -f label=com.docker.compose.service=api) cubix-api admin-token'
+```
+
+La commande affiche `cbx_admin_…` (256 bits aléatoires) une seule fois, puis s'arrête. Ouvrir
+<https://cubix.vitrixxl.fr/admin> et coller le jeton : `POST /api/admin/login` avec
+`{"token": "…"}` pose un cookie HttpOnly valable un jour, indépendant des comptes utilisateurs.
+Relancer `admin-token` remplace le jeton : l'ancien ne marche plus et toutes les sessions admin
+ouvertes avec lui sont fermées, sockets live compris (en deux secondes au plus).
+`cubix-api admin-token --revoke` désactive entièrement l'administration. En local :
+`CUBIX_DB=… ./rust-api/target/release/cubix-api admin-token` (ou `--admin-token`).
+
+`CUBIX_ADMIN_PASSWORD` n'ouvre plus l'administration : il sert **uniquement** aux envois de
+l'APK et des mises à jour mobiles par `bun run deploy` (`Authorization: Bearer <mot de passe>`).
+
+Le serveur garde un journal persistant des requêtes (méthode, chemin sans paramètres, statut,
+durée, IP, user agent tronqué, compte ; jamais de jeton, de paramètre ni de corps) :
+30 jours, 200 000 lignes ordinaires et 50 000 importantes au plus. Les agrégats quotidiens par
+IP sont gardés 90 jours, l'activité quotidienne des comptes 400 jours. Sont « importants » :
+les erreurs serveur, les erreurs client (sauf 404 hors API), l'authentification (échecs
+compris), les actions admin, les 429, les suppressions de compte, le matchmaking duel et les
+envois mobiles. Voir [la documentation du serveur](rust-api/README.md#administration).
 
 Les limites sont de 600 requêtes/minute/IP par défaut (`CUBIX_RATE_LIMIT`),
 20 tentatives/minute/IP pour l'authentification utilisateur et 5 tentatives/15 minutes/IP
 pour l'administration. Les réponses 429 incluent `Retry-After`.
 `CUBIX_TRUSTED_PROXIES` accepte les IP exactes des reverse proxies autorisés ;
 sinon `X-Forwarded-For` est ignoré. Les sondes de santé sont exclues du journal admin.
-Voir [la documentation du serveur](rust-api/README.md).
 
 ## Données locales
 
