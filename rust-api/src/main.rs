@@ -37,7 +37,7 @@ pub struct AppState {
     duel: Arc<duel::Arena>,
     attempts: Arc<Mutex<HashMap<String, (u32, i64)>>>,
     passwords: Arc<Semaphore>,
-    admin: Arc<Option<admin::Admin>>,
+    admin: Arc<admin::Admin>,
     traffic: Arc<traffic::Traffic>,
 }
 /// Resolves once the process that started this server has exited, when `CUBIX_EXIT_WITH_PARENT`
@@ -100,6 +100,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if args.iter().any(|arg| arg == "--init-db") {
         return Ok(());
     }
+    // `cubix-api admin-token` (or `--admin-token`), run inside the container: the only way to
+    // obtain the administration token. It shares the database, so the server may keep running.
+    if args.get(1).is_some_and(|arg| arg == "admin-token")
+        || args.iter().any(|arg| arg == "--admin-token")
+    {
+        if args.iter().any(|arg| arg == "--revoke") {
+            let existed = db
+                .call(|db| admin::disable(db))
+                .await
+                .map_err(|e| e.message)?;
+            println!(
+                "{}",
+                if existed {
+                    "Administration disabled: the admin token and every admin session are revoked."
+                } else {
+                    "Administration was already disabled."
+                }
+            );
+        } else {
+            let token = db.call(|db| admin::rotate(db)).await.map_err(|e| e.message)?;
+            println!("{token}");
+            println!(
+                "Paste this token on /admin; it is shown only once. Running admin-token again replaces it and signs every admin session out."
+            );
+        }
+        return Ok(());
+    }
     if let Some(index) = args.iter().position(|arg| arg == "--import-history") {
         let name = args
             .get(index + 1)
@@ -143,6 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         attempts: Arc::new(Mutex::new(HashMap::new())),
         passwords: Arc::new(Semaphore::new(4)),
     };
+    let state_for_watch = state.clone();
     let admin_api = Router::new()
         .route("/api/admin/live", get(admin::upgrade))
         .route("/api/admin/{*path}", any(admin::dispatch))
@@ -179,6 +207,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HeaderValue::from_static("no-store"),
         ))
         .layer(CorsLayer::permissive());
+    tokio::spawn(admin::watch_access(state_for_watch));
     let mut app = api.merge(admin_api);
     match web::directory() {
         Some(dir) => {

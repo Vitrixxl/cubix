@@ -25,58 +25,135 @@ use tokio::{
     sync::{Semaphore, watch},
     time::{Instant, timeout},
 };
+/// The web administration is opened with a token generated inside the container
+/// (`cubix-api admin-token`), whose SHA-256 alone is stored in `admin_access`. Sessions opened
+/// with it name its `version`, so replacing or revoking the token ends them at once.
+///
+/// `CUBIX_ADMIN_PASSWORD` no longer opens the administration: it only authorizes the mobile
+/// APK and over-the-air uploads that `scripts/deploy.ts` sends (see `release::authorize`).
 pub struct Admin {
-    hash: String,
-    fingerprint: String,
+    /// Argon2 hash of `CUBIX_ADMIN_PASSWORD`, for mobile uploads only.
+    upload: Option<String>,
     permits: Arc<Semaphore>,
     sockets: Arc<Semaphore>,
     revoked: watch::Sender<()>,
 }
-fn random_token() -> String {
+fn random_hex() -> String {
     let mut bytes = [0u8; 32];
     rand::rngs::OsRng.fill_bytes(&mut bytes);
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
-impl Admin {
-    pub fn new() -> std::result::Result<Option<Self>, Box<dyn std::error::Error>> {
-        let password = std::env::var("CUBIX_ADMIN_PASSWORD").unwrap_or_default();
-        if password.is_empty() {
-            return Ok(None);
+pub const TOKEN_PREFIX: &str = "cbx_admin_";
+const DISABLED: &str = "Run `cubix-api admin-token` in the container to enable administration";
+
+/// Replaces the admin token: returns the new one, stores only its digest and signs every admin
+/// session out. Used by `cubix-api admin-token`, possibly while the server runs.
+pub fn rotate(db: &mut rusqlite::Connection) -> Result<String> {
+    // 256 random bits, hexadecimal so the token is URL-safe.
+    let token = format!("{TOKEN_PREFIX}{}", random_hex());
+    let tx = db.transaction()?;
+    tx.execute("DELETE FROM admin_access", [])?;
+    tx.execute("DELETE FROM admin_tokens", [])?;
+    tx.execute(
+        "INSERT INTO admin_access(id,digest,version,created_at) VALUES(1,?,?,?)",
+        params![accounts::digest(&token), random_hex(), accounts::now()],
+    )?;
+    tx.commit()?;
+    Ok(token)
+}
+/// Disables the administration: no token, no admin session. Returns whether a token existed.
+pub fn disable(db: &mut rusqlite::Connection) -> Result<bool> {
+    let tx = db.transaction()?;
+    let existed = tx.execute("DELETE FROM admin_access", [])? > 0;
+    tx.execute("DELETE FROM admin_tokens", [])?;
+    tx.commit()?;
+    Ok(existed)
+}
+struct Access {
+    digest: String,
+    version: String,
+}
+fn access(db: &rusqlite::Connection) -> Result<Option<Access>> {
+    Ok(
+        one(db, "SELECT digest,version FROM admin_access WHERE id=1", [])?.map(|row| Access {
+            digest: row["digest"].as_str().unwrap_or("").to_owned(),
+            version: row["version"].as_str().unwrap_or("").to_owned(),
+        }),
+    )
+}
+/// Equal-length comparison whose time does not depend on where the inputs differ.
+fn same(a: &str, b: &str) -> bool {
+    a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+/// The token is replaced or revoked by another process (the CLI): open admin sockets learn it
+/// within two seconds and close; HTTP requests check the database every time anyway.
+pub async fn watch_access(state: AppState) {
+    let db = state.db.clone();
+    let read = move || {
+        let db = db.clone();
+        async move { db.call(|db| Ok(access(db)?.map(|a| a.version))).await }
+    };
+    let mut last = read().await.ok().flatten();
+    let mut tick = tokio::time::interval(Duration::from_secs(2));
+    loop {
+        tick.tick().await;
+        let Ok(current) = read().await else {
+            continue;
+        };
+        if current != last {
+            last = current;
+            state.admin.revoked.send_replace(());
         }
-        if password.len() < 12 {
+    }
+}
+impl Admin {
+    pub fn new() -> std::result::Result<Self, Box<dyn std::error::Error>> {
+        let password = std::env::var("CUBIX_ADMIN_PASSWORD").unwrap_or_default();
+        if !password.is_empty() && password.len() < 12 {
             return Err("CUBIX_ADMIN_PASSWORD must contain at least 12 characters".into());
         }
-        let hash = Argon2::default()
-            .hash_password(
-                password.as_bytes(),
-                &SaltString::generate(&mut rand::rngs::OsRng),
+        let upload = if password.is_empty() {
+            None
+        } else {
+            Some(
+                Argon2::default()
+                    .hash_password(
+                        password.as_bytes(),
+                        &SaltString::generate(&mut rand::rngs::OsRng),
+                    )
+                    .map_err(|e| e.to_string())?
+                    .to_string(),
             )
-            .map_err(|e| e.to_string())?
-            .to_string();
-        Ok(Some(Self {
-            hash,
-            fingerprint: accounts::digest(&format!("cubix-admin:{password}")),
+        };
+        Ok(Self {
+            upload,
             permits: Arc::new(Semaphore::new(2)),
             sockets: Arc::new(Semaphore::new(32)),
             revoked: watch::channel(()).0,
-        }))
+        })
     }
-    /// Argon2 check on a blocking thread, at most two at a time so a burst of guesses cannot
-    /// exhaust memory. Shared by the admin login and the APK upload.
-    pub async fn verify(&self, password: String) -> Result<bool> {
+    pub fn upload_configured(&self) -> bool {
+        self.upload.is_some()
+    }
+    /// Checks `CUBIX_ADMIN_PASSWORD` for the mobile uploads of `scripts/deploy.ts`, never for the
+    /// web administration. Argon2 runs on a blocking thread, at most two at a time so a burst of
+    /// guesses cannot exhaust memory. `None` when no password is configured.
+    pub async fn verify_upload(&self, password: String) -> Result<Option<bool>> {
+        let Some(hash) = self.upload.clone() else {
+            return Ok(None);
+        };
         let permit = self
             .permits
             .clone()
             .try_acquire_owned()
             .map_err(|_| ApiError::new(429, "Try again shortly"))?;
-        let hash = self.hash.clone();
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
-            PasswordHash::new(&hash).is_ok_and(|hash| {
+            Some(PasswordHash::new(&hash).is_ok_and(|hash| {
                 Argon2::default()
                     .verify_password(password.as_bytes(), &hash)
                     .is_ok()
-            })
+            }))
         })
         .await
         .map_err(ApiError::internal)
@@ -119,27 +196,28 @@ pub async fn dispatch(
     headers: HeaderMap,
     bytes: Bytes,
 ) -> Result<Response> {
-    let admin = state.admin.as_ref().as_ref().ok_or_else(|| {
-        ApiError::new(
-            503,
-            "Set CUBIX_ADMIN_PASSWORD in .env to enable administration",
-        )
-    })?;
+    let admin = &state.admin;
     let path = uri.path();
     if method != Method::GET && method != Method::HEAD {
         same_origin(&headers)?;
     }
+    let access = state
+        .db
+        .call(|db| access(db))
+        .await?
+        .ok_or_else(|| ApiError::new(503, DISABLED))?;
     if path == "/api/admin/login" && method == Method::POST {
+        // Attempts share the admin rate limit (traffic.rs); failures are logged as important.
         let body: Value = serde_json::from_slice(&bytes).map_err(|_| ApiError::validation())?;
-        let password = crate::api::string(&body, "password", 1, 256)?.to_owned();
-        if !admin.verify(password).await? {
-            return Err(ApiError::new(401, "Incorrect password"));
+        let supplied = crate::api::string(&body, "token", 1, 256)?.trim();
+        if !same(&accounts::digest(supplied), &access.digest) {
+            return Err(ApiError::new(401, "Incorrect admin token"));
         }
-        let token = random_token();
+        let token = random_hex();
         let digest = accounts::digest(&token);
-        let fingerprint = admin.fingerprint.clone();
+        let version = access.version;
         let expires = accounts::now() + 86400000;
-        state.db.call(move |db| {db.execute("DELETE FROM admin_tokens WHERE expires_at<=? OR password_version!=?",params![accounts::now(),fingerprint])?;db.execute("INSERT INTO admin_tokens(token_hash,expires_at,password_version) VALUES(?,?,?)",params![digest,expires,fingerprint])?;Ok(())}).await?;
+        state.db.call(move |db| {db.execute("DELETE FROM admin_tokens WHERE expires_at<=? OR password_version!=?",params![accounts::now(),version])?;db.execute("INSERT INTO admin_tokens(token_hash,expires_at,password_version) VALUES(?,?,?)",params![digest,expires,version])?;Ok(())}).await?;
         let mut response = Json(json!({"expiresAt":expires})).into_response();
         response.headers_mut().insert(
             header::SET_COOKIE,
@@ -206,14 +284,9 @@ pub async fn dispatch(
 }
 
 async fn session(state: &AppState, token: &str) -> Result<i64> {
-    let admin = state
-        .admin
-        .as_ref()
-        .as_ref()
-        .ok_or_else(|| ApiError::new(503, "Administration disabled"))?;
     let digest = accounts::digest(token);
-    let fingerprint = admin.fingerprint.clone();
-    let row = state.db.call(move |db| one(db, "SELECT expires_at FROM admin_tokens WHERE token_hash=? AND expires_at>? AND password_version=?", params![digest, accounts::now(), fingerprint])).await?
+    // Only sessions opened with the current admin token are valid.
+    let row = state.db.call(move |db| one(db, "SELECT t.expires_at FROM admin_tokens t JOIN admin_access a ON a.version=t.password_version WHERE t.token_hash=? AND t.expires_at>?", params![digest, accounts::now()])).await?
         .ok_or_else(|| ApiError::new(401, "Admin session expired"))?;
     row["expires_at"].as_i64().ok_or_else(ApiError::validation)
 }
@@ -262,8 +335,8 @@ pub async fn upgrade(
     same_origin(&headers)?;
     let token = cookie(&headers).ok_or_else(|| ApiError::new(401, "Admin sign-in required"))?;
     let expires = session(&state, &token).await?;
-    let admin = state.admin.as_ref().as_ref().unwrap();
-    let permit = admin
+    let permit = state
+        .admin
         .sockets
         .clone()
         .try_acquire_owned()
@@ -303,7 +376,7 @@ async fn live(
 ) {
     let mut updates = state.traffic.subscribe();
     let mut important = state.traffic.log.subscribe();
-    let mut revoked = state.admin.as_ref().as_ref().unwrap().revoked.subscribe();
+    let mut revoked = state.admin.revoked.subscribe();
     let deadline =
         Instant::now() + Duration::from_millis((expires - accounts::now()).max(0) as u64);
     let mut heartbeat = tokio::time::interval_at(

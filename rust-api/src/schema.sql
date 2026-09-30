@@ -52,3 +52,8 @@ CREATE TABLE IF NOT EXISTS admin_tokens (
  token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL, password_version TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_admin_expiry ON admin_tokens(expires_at);
+-- The single admin token (`cubix-api admin-token`): its SHA-256 only, and the version admin
+-- sessions are bound to.
+CREATE TABLE IF NOT EXISTS admin_access (
+ id INTEGER PRIMARY KEY CHECK(id=1), digest TEXT NOT NULL, version TEXT NOT NULL, created_at INTEGER NOT NULL
+);

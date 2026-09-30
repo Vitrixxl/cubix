@@ -101,7 +101,8 @@ l’identifiant avec un contenu différent échoue. Les contrôles d’appartena
 apkSize, apkUploadedAt}` : la version Cargo, le build et le commit du serveur, le chemin de
 téléchargement et la description de l’APK stocké (`null` tant qu’aucun n’a été envoyé).
 `GET /api/mobile/apk` sert l’APK (404 sans APK). `PUT /api/mobile/apk` avec
-`Authorization: Bearer <CUBIX_ADMIN_PASSWORD>`, `X-Cubix-Build` et `X-Cubix-Commit` remplace
+`Authorization: Bearer <CUBIX_ADMIN_PASSWORD>` (ce mot de passe ne sert qu’aux envois mobiles),
+`X-Cubix-Build` et `X-Cubix-Commit` remplace
 l’APK de façon atomique (256 Mio maximum, le corps doit être une archive ZIP). Le fichier et
 ses métadonnées vivent dans `CUBIX_APK_DIR`, par défaut le dossier `apk` à côté de la base,
 donc dans le volume Docker. `scripts/deploy.ts` compile l’APK sur la machine de développement
@@ -111,3 +112,37 @@ Le numéro de build est la date du commit en minutes, lue dans `CUBIX_BUILD_NUMB
 `CUBIX_COMMIT` porte le SHA. Le `Dockerfile` les calcule depuis `.git` (un clone
 superficiel suffit) et les écrit dans `/app/.env`, chargé au démarrage. Sans ces variables,
 `build` et `commit` valent `null` et l’application mobile ne propose jamais de mise à jour.
+
+## Administration
+
+Accès : `cubix-api admin-token` (ou `--admin-token`) génère un jeton `cbx_admin_` + 64 caractères
+hexadécimaux, n’en stocke que le SHA-256 dans `admin_access` et l’affiche une fois ; le relancer
+le remplace et ferme toutes les sessions admin, `--revoke` désactive l’administration. La
+commande partage la base SQLite (WAL) et fonctionne serveur en marche. `POST /api/admin/login`
+prend `{"token"}` (comparaison en temps constant, 5 essais / 15 min / IP, échecs journalisés
+comme importants) et pose le cookie `cubix_admin` (HttpOnly, SameSite=Strict, un jour). Sans
+jeton, les routes admin répondent 503.
+
+Toutes les routes exigent ce cookie, répondent `cache-control: no-store`, et les écritures
+vérifient l’origine. Dates en millisecondes depuis l’epoch, jours UTC `YYYY-MM-DD`,
+pagination `page` (depuis 0) et `limit` (1–200, 50 par défaut) :
+
+- `GET /api/admin/overview` : comptes (total, inscrits, invités, nouveaux et actifs aujourd’hui /
+  7 j / 30 j), solves, requêtes et erreurs du jour, IP distinctes, duels, séries sur 30 jours,
+  informations serveur (uptime, version, taille de la base, rétention du journal).
+- `GET /api/admin/requests` : journal persistant, filtres `important`, `kind`, `status` (`5xx`,
+  `4xx`, `error` ou code), `method`, `ip`, `path`, `user`, `from`, `to`, curseur `before`.
+- `GET /api/admin/ips` : IP sur `days` jours (1–90) avec requêtes, erreurs, 429, premières et
+  dernières visites et comptes vus ; tri `sort`/`order`, filtres `q` et `user`.
+- `GET /api/admin/users` : `q`, `filter` (`all`, `registered`, `guests`), `sort` (`created`,
+  `lastSeen`, `solves`, `username`) ; `GET /api/admin/users/{id}` : détail (solves par puzzle,
+  activité sur 90 jours, derniers solves et requêtes, sessions sans jeton, duels, IP).
+- `POST /api/admin/users/{id}/revoke` déconnecte le compte partout ;
+  `DELETE /api/admin/users/{id}` supprime le compte et ses données en une transaction.
+- `/api/admin/live` pousse l’instantané du tableau de bord et chaque nouvelle requête importante
+  (`{"type":"important","data":…}`).
+
+Le journal est écrit par lots en arrière-plan (jamais sur le chemin de la requête) et vidé à
+l’arrêt (SIGTERM). Rétention : 30 jours, 200 000 lignes ordinaires et 50 000 importantes ;
+agrégats quotidiens par IP 90 jours, activité quotidienne des comptes 400 jours ;
+`last_seen_at` au plus une écriture par minute et par compte.
