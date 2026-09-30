@@ -67,7 +67,7 @@ function Figures({ d }: { d: Data }) {
   const change = (key: keyof typeof today) => (today[key] as number) - (yesterday[key] as number);
   return (
     <section aria-label="Key figures" className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl bg-muted/45 px-5 py-4 sm:grid-cols-4 xl:grid-cols-8">
-      <Kpi label="Accounts" value={num(d.users.total)} sub={`${num(d.users.registered)} registered · ${num(d.users.guests)} guests`} />
+      <Kpi label="Accounts" value={num(d.users.total)} sub={`${num(d.users.registered)} + ${num(d.users.guests)} guests`} />
       <Kpi label="Active today" value={num(d.users.active.today)} delta={change("active")} sub={`7 d ${num(d.users.active.d7)} · 30 d ${num(d.users.active.d30)}`} />
       <Kpi label="New today" value={num(d.users.new.today)} delta={change("signups")} sub={`7 d ${num(d.users.new.d7)} · 30 d ${num(d.users.new.d30)}`} />
       <Kpi label="Solves today" value={num(d.solves.today)} delta={change("solves")} sub={`7 d ${num(d.solves.d7)}`} />

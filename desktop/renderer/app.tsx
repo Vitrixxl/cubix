@@ -109,7 +109,8 @@ function App() {
         (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
         (s.page === "profile" ? ":" + s.profileMode : "") +
         (s.page === "training" ? ":" + s.trainingStep : "");
-  const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) !== "0";
+  // Until the engine answers, the last launch decides; a first visit opens on the login page.
+  const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) === "1";
   if (!signedIn)
     return (
       <TooltipProvider delay={200}>
