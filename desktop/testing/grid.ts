@@ -103,7 +103,7 @@ async function solve(page: Page) {
   await page.waitForSelector('.timer[data-phase="Idle"]');
 }
 
-const sizes = process.argv.includes("--phone") ? [[390, 844]] : process.argv.includes("--desktop") ? [[1440, 900], [1280, 800]] : [[1440, 900], [1280, 800], [390, 844]];
+const sizes = process.argv.includes("--phone") ? [[390, 844]] : process.argv.includes("--desktop") ? [[2048, 1280], [1440, 900], [1280, 800]] : [[2048, 1280], [1440, 900], [1280, 800], [390, 844]];
 try {
   for (const [width, height] of sizes) {
     const context = await browser.newContext({ viewport: { width: width!, height: height! } });

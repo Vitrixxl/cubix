@@ -3640,7 +3640,7 @@ kbd {
   padding: 0 28px;
 }
 /* ---- case detail: wide panes put the statistics beside the algorithms ---- */
-@container case-detail (min-width: 1000px) {
+@container case-detail (min-width: 1240px) {
   .detail-scroll {
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
@@ -4434,7 +4434,7 @@ kbd {
 .detail .detail-stats {
   border-top: 1px solid var(--line);
 }
-@container case-detail (min-width: 1000px) {
+@container case-detail (min-width: 1240px) {
   .detail .detail-scroll {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
     grid-template-rows: auto auto 1fr;
@@ -5500,23 +5500,28 @@ kbd {
 
 /* ---- the grid: every line of a page continues a line of the rail ----
  * A cell is as tall as a rail cell and the page header (64px); lists run in whole or half cells (32px), counted from
- * the top like the rail. The window is rarely a whole number of cells: the grid stops at the last whole cell and
- * the rest (--rest) is an empty band under it, so the lines anchored at the bottom meet the rail's too. A box whose
- * own top line is the row's line counts that line in its height. ---- */
+ * the top like the rail. The window is rarely a whole number of cells: the page header and the rail's puzzle cell
+ * take the rest (--rest), so the rows under them reach the bottom exactly and the lines anchored at the bottom meet
+ * the rail's too. A box whose own top line is the row's line counts that line in its height. ---- */
 .app {
   --cell: 64px;
   --half: 32px;
-  --rest: mod(100vh, 64px);
+  --rest: mod(100vh + 1px, 64px);
 }
 .app.is-mobile {
   --rest: 0px;
 }
-/* The grid stops a whole number of cells down the window; what is left under it stays an empty band, under the
-   grid's last line. */
-.app:not(.is-mobile) .shell {
-  bottom: auto;
-  height: calc(100% - var(--rest));
-  border-bottom: 1px solid var(--line);
+/* The page header, and the rail's puzzle cell beside it, take what is left of the window over a whole number of cells:
+   under them the grid reaches the bottom of the window exactly, every row a whole cell, top and bottom lines alike. */
+.app:not(.is-mobile) .page-head {
+  --head: calc(var(--cell) + var(--rest));
+}
+.app:not(.is-mobile) .rail-puzzle {
+  height: calc(var(--rail) + var(--rest));
+}
+/* Square cells of the header stay one cell wide. */
+.app:not(.is-mobile) .page-head .control.icon-only {
+  width: var(--cell);
 }
 /* Timer and training: the prompt in whole cells, the cube box too, the actions and figures one cell each, the figures
    in the timer's columns (two per action). */
@@ -6118,4 +6123,22 @@ kbd {
 .md-list-head :is(.tabs, .segmented) > .button:is(.active, .selected) {
   position: static;
   z-index: auto;
+}
+
+/* Lists come to rest on whole rows, so their lines meet those of the panes beside them (a wheel or a restored
+   position would otherwise leave them a fraction of a row off). */
+.app:not(.is-mobile) :is(.md-list-scroll, .detail-scroll, .times-list, .battles > .scroll, .setup-scroll) {
+  scroll-snap-type: y mandatory;
+}
+.app:not(.is-mobile) :is(.md-list-scroll :is(.list-group-head, .case-row), .detail-scroll > *, .detail-section > *,
+  .algorithm-row, .times-row, .battle-row, .setup-set-head) {
+  scroll-snap-align: start;
+}
+
+/* Wide case detail: the statistics column is the last third of the heading's figures and actions, so its line
+   continues theirs. */
+@container case-detail (min-width: 1240px) {
+  .detail .detail-scroll {
+    grid-template-columns: minmax(0, 1fr) calc((100% - 280px) / 3);
+  }
 }
