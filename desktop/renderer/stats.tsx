@@ -4,7 +4,9 @@ import { ArrowDownUp, ChartLine, ChevronDown, List, MessageSquare, Trash2 } from
 import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Button, Choice, Empty, Figure, MOBILE, MONO, SolveMenu, Strip, Surface, plural, useViewport } from "./ui";
+import { ActionToggle, Button, Choice, Empty, Figure, MONO, SolveMenu, plural } from "./ui";
+import { Stat, Stats } from "./profile/card";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -16,28 +18,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-/** The summary figures: a quiet muted band on a page, plain figures inside a surface or a dialog (`compact`). */
+/** The summary figures: a card of their own on a page, plain figures inside a dialog (`compact`). */
 function StatStrip({ summary, compact }: { summary: any; compact: boolean }) {
-  const phone = useViewport().w <= MOBILE;
-  const figures = [
-    ["Best", fmtTime(summary.best), "good"],
-    ["Ao5", fmtTime(summary.ao5), "accent"],
-    ["Ao12", fmtTime(summary.ao12), "accent"],
-    ["Mean", fmtTime(summary.mean), ""],
+  const figures: [string, string, "" | "good" | "accent"][] = [
+    ["Best single", fmtTime(summary.best), "good"],
     ["Best Ao5", fmtTime(summary.bestAo5), ""],
     ["Best Ao12", fmtTime(summary.bestAo12), ""],
-    ["Solves", String(summary.count), ""],
-  ].map(([label, value, tone]) => <Figure key={label} label={label} value={value} tone={tone as any} size={compact || phone ? "base" : "lg"} />);
+    ["Current Ao5", fmtTime(summary.ao5), "accent"],
+    ["Current Ao12", fmtTime(summary.ao12), "accent"],
+    ["Mean", fmtTime(summary.mean), ""],
+    ["Solves", summary.count.toLocaleString(), ""],
+  ];
   return compact ? (
-    <div className="grid shrink-0 grid-cols-4 gap-x-6 gap-y-4 lg:grid-cols-7">{figures}</div>
+    <div className="grid shrink-0 grid-cols-4 gap-x-6 gap-y-4 lg:grid-cols-7">
+      {figures.map(([label, value, tone]) => (
+        <Figure key={label} label={label} value={value} tone={tone} size="base" />
+      ))}
+    </div>
   ) : (
-    <Strip label="Summary" className="grid-cols-4 px-4 py-3 md:px-5 md:py-4 lg:grid-cols-7">
-      {figures}
-    </Strip>
+    <Card className="shrink-0 gap-0 px-5 py-4" aria-label="Summary">
+      <Stats columns={7}>
+        {figures.map(([label, value, tone]) => (
+          <Stat key={label} label={label} value={value} tone={tone || undefined} />
+        ))}
+      </Stats>
+    </Card>
   );
 }
 
-/** The chart or the table: a surface of its own on a page, bare inside another one. */
+/** The chart or the table: a card of its own on a page, its toolbar on top; bare inside a dialog. */
 function Panel({ compact, toolbar, children }: { compact: boolean; toolbar: React.ReactNode; children: React.ReactNode }) {
   return compact ? (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -45,13 +54,15 @@ function Panel({ compact, toolbar, children }: { compact: boolean; toolbar: Reac
       {children}
     </div>
   ) : (
-    // The main content of its page: on the page itself, the toolbar over a hairline.
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b pb-2.5">{toolbar}</div>
-      <div className="flex min-h-0 flex-1 flex-col pt-4">{children}</div>
-    </div>
+    <Card className="min-h-0 flex-1 gap-0 py-0">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pt-4 pb-3">{toolbar}</div>
+      <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">{children}</div>
+    </Card>
   );
 }
+
+/** #, time, Ao5, Ao12, comment, date and the actions; phones keep #, time and date. */
+const COLUMNS = "grid-cols-[3.5rem_7rem_5.5rem_5.5rem_minmax(0,1fr)_8rem_auto] max-md:grid-cols-[2.5rem_minmax(0,1fr)_auto]";
 
 type SolveSort = "newest" | "oldest" | "fastest" | "slowest";
 
@@ -70,7 +81,14 @@ export function TimerStats({ data, empty, compact = false }: { data: any; empty:
   // The table order and filter survive the remount that follows a deleted solve.
   const [sort, setSort] = useState<SolveSort>("newest"),
     [commented, setCommented] = useState(false);
-  if (!data?.summary?.count) return <Empty className={compact ? "flex-none items-start p-0 py-1 text-left" : undefined}>{empty}</Empty>;
+  if (!data?.summary?.count)
+    return compact ? (
+      <Empty className="flex-none items-start p-0 py-1 text-left">{empty}</Empty>
+    ) : (
+      <Card className="min-h-0 flex-1 gap-0 py-0">
+        <Empty>{empty}</Empty>
+      </Card>
+    );
   const history = data.history ?? [];
   return (
     <TimerStatsView
@@ -101,7 +119,7 @@ function TimerStatsView({ data, compact, table }: { data: any; compact: boolean;
     <div className={cn("flex min-h-0 flex-1 flex-col", compact ? "gap-5" : "gap-4")}>
       <StatStrip summary={data.summary} compact={compact} />
       {s.statsView === "table" ? (
-        <SolvesTable history={history} range={range} total={total} compact={compact} {...table} />
+        <SolvesTable history={history} ao5={data.ao5 ?? []} ao12={data.ao12 ?? []} range={range} total={total} compact={compact} {...table} />
       ) : (
         <Panel
           compact={compact}
@@ -147,6 +165,8 @@ function StatsViewToggle() {
 /** Every solve of the visible period, sorted as asked; right-click a row for its menu. */
 function SolvesTable({
   history,
+  ao5,
+  ao12,
   range,
   total,
   compact,
@@ -154,7 +174,7 @@ function SolvesTable({
   setSort,
   commented,
   setCommented,
-}: { history: any[]; range: ChartRange; total: React.ReactNode; compact: boolean } & SolveTableState) {
+}: { history: any[]; ao5: (number | null)[]; ao12: (number | null)[]; range: ChartRange; total: React.ReactNode; compact: boolean } & SolveTableState) {
   const [shown, setShown] = useState(SOLVE_PAGE);
   const byTime = (a: any, b: any, direction: 1 | -1) =>
     a.time == null ? (b.time == null ? 0 : 1) : b.time == null ? -1 : (a.time - b.time) * direction;
@@ -207,18 +227,21 @@ function SolvesTable({
         </>
       }
     >
-      <div className="grid shrink-0 grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 border-b px-2 pb-2 text-xs font-medium text-muted-foreground max-md:grid-cols-[2.5rem_1fr_5rem_auto]">
+      <div className={cn("solves-head grid shrink-0 items-center gap-4 border-b px-2 pb-2 text-xs font-medium text-muted-foreground", COLUMNS)}>
         <span className="text-right">#</span>
         <span>Time</span>
+        <span className="max-md:hidden">Ao5</span>
+        <span className="max-md:hidden">Ao12</span>
+        <span className="max-md:hidden">Comment</span>
         <span>Date</span>
-        <span className="w-28" />
+        <span className="w-28 max-md:hidden" />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pt-1" key={`${range.join(":")}:${sort}:${commented}`}>
         {!rows.length && <Empty>{commented ? "No commented solve yet. Add one with the bubble on a time." : "No solves match."}</Empty>}
         {rows.slice(0, shown).map(({ v, index, pb }) => (
           <SolveMenu key={v.id} solve={{ ...v, time_ms: v.timeMs }}>
-            <div className="group/row rounded-md hover:bg-muted/50">
-              <div className="grid grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 px-2 max-md:grid-cols-[2.5rem_1fr_5rem_auto]">
+            <div className="history-row group/row rounded-md hover:bg-muted/60">
+              <div className={cn("grid items-center gap-4 px-2", COLUMNS)}>
                 <button
                   type="button"
                   data-action={"solve:" + v.id}
@@ -226,7 +249,7 @@ function SolvesTable({
                     e.currentTarget.blur();
                     void s.action("solve:" + v.id);
                   }}
-                  className="col-span-3 grid h-9 grid-cols-subgrid items-center text-left outline-none"
+                  className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3"
                 >
                   <span className={cn(MONO, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
                   <span className="flex items-center gap-2">
@@ -235,11 +258,14 @@ function SolvesTable({
                     </span>
                     {pb && <span className="rounded-md bg-success/15 px-1.5 py-px text-[11px] font-medium text-success">PB</span>}
                     {v.penalty === "+2" && <span className="rounded-md bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">+2</span>}
-                    {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
+                    {v.comment && <MessageSquare className="size-3 text-muted-foreground md:hidden" />}
                   </span>
+                  <span className={cn(MONO, "text-xs text-muted-foreground max-md:hidden")}>{fmtTime(ao5[index])}</span>
+                  <span className={cn(MONO, "text-xs text-muted-foreground max-md:hidden")}>{fmtTime(ao12[index])}</span>
+                  <span className="truncate text-xs text-muted-foreground max-md:hidden">{v.comment}</span>
                   <span className="truncate text-xs text-muted-foreground">{v.displayDate}</span>
                 </button>
-                <span className="flex w-28 items-center justify-end opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+                <span className="flex w-28 items-center justify-end opacity-0 max-md:hidden transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
                   <ActionToggle action={`penalty:${v.id}:+2`} pressed={v.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
                     +2
                   </ActionToggle>
@@ -250,7 +276,7 @@ function SolvesTable({
                   <Button action={"delete:" + v.id} icon={Trash2} size="icon-xs" label="Delete solve" className="text-muted-foreground hover:text-destructive" />
                 </span>
               </div>
-              {v.comment && <p className="-mt-1 pb-2 pl-[5.5rem] text-xs text-muted-foreground">{v.comment}</p>}
+              {v.comment && <p className="-mt-1 pb-2 pl-[4.5rem] text-xs text-muted-foreground md:hidden">{v.comment}</p>}
             </div>
           </SolveMenu>
         ))}
