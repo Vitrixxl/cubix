@@ -260,12 +260,13 @@ export function Practice() {
         <div className="prompt-main">
           <span className="label">
             Scramble · {cross ? `back block in ${s.crossMoves} moves` : s.label("scrambles", s.scrambleType)}
+            {!!s.scramble && !s.generating && <span className="prompt-count">{plural(s.scramble.split(/\s+/).length, "move")}</span>}
           </span>
           <div className="prompt-text scramble">
             {s.generating && !s.scramble ? (
               <span className="muted">Generating…</span>
             ) : (
-              <Alg text={s.scramble} size={promptFont} />
+              <Alg text={s.scramble} size={promptFont} faces={!!cubeSize} />
             )}
           </div>
           {cross && <CrossSolution font={Math.max(15, promptFont - 5)} />}
@@ -423,10 +424,11 @@ export function Practice() {
                 {digits
                   .split("")
                   .map((ch, i) => (
-                    <span key={i}>{ch}</span>
+                    <span key={i} className={digits.includes(".") && i > digits.indexOf(".") ? "frac" : undefined}>{ch}</span>
                   ))}
               </div>
             )}
+            {!typing && s.page === "playground" && <AverageWindow />}
             <div className="timer-hint">
               {typing
                 ? typed
@@ -530,7 +532,8 @@ function ChangeTraining() {
 }
 
 function Times({ closable = true }: { closable?: boolean }) {
-  const training = s.practicePage() === "training";
+  const training = s.practicePage() === "training",
+    extremes = sessionExtremes();
   return (
     <div className="column-content">
       <div className="column-head">
@@ -588,7 +591,7 @@ function Times({ closable = true }: { closable?: boolean }) {
           <div className="scroll times-list">
             {!s.solves.length && <div className="column-empty">No solves in this session yet.</div>}
             {[...s.solves].reverse().map((v, i) => (
-              <div key={v.id} className="times-row">
+              <div key={v.id} className={"times-row" + (v.id === extremes.best ? " is-best" : v.id === extremes.worst ? " is-worst" : "")}>
                 <span className="mono muted">{s.solves.length - i}</span>
                 <span className={"mono times-value " + (v.penalty === "dnf" ? "danger" : "")}>
                   {fmtSolve(v.time_ms, v.penalty)}
@@ -609,6 +612,40 @@ function Times({ closable = true }: { closable?: boolean }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** The session's fastest and slowest solves (a DNF is the slowest), once there are two. */
+function sessionExtremes() {
+  if (s.solves.length < 2) return {};
+  const ranked = [...s.solves].sort((a, b) => (effective(a.time_ms, a.penalty) ?? Infinity) - (effective(b.time_ms, b.penalty) ?? Infinity));
+  return { best: ranked[0].id, worst: ranked[ranked.length - 1].id };
+}
+
+/**
+ * The current average of five as it is counted: the last five solves, the fastest and the slowest of them dropped
+ * (in brackets), the newest last. Empty slots until there are five.
+ */
+function AverageWindow() {
+  const last = s.solves.slice(-5),
+    times = last.map((v) => effective(v.time_ms, v.penalty) ?? Infinity),
+    full = last.length === 5,
+    fastest = full ? times.indexOf(Math.min(...times)) : -1,
+    slowest = full ? times.lastIndexOf(Math.max(...times)) : -1;
+  return (
+    <div className="average-window mono" aria-label="Current average of 5">
+      {Array.from({ length: 5 }, (_, i) => {
+        const v = last[i - (5 - last.length)];
+        if (!v) return <span key={i} className="slot empty">–</span>;
+        const index = i - (5 - last.length),
+          dropped = index === fastest || index === slowest;
+        return (
+          <span key={v.id} className={"slot" + (dropped ? " dropped" : "") + (index === last.length - 1 ? " newest" : "")}>
+            {dropped ? `(${fmtSolve(v.time_ms, v.penalty)})` : fmtSolve(v.time_ms, v.penalty)}
+          </span>
+        );
+      })}
     </div>
   );
 }

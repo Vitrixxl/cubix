@@ -115,11 +115,15 @@ export function Diagram({ c, size = 96 }: { c: any; size?: number }) {
   );
 }
 
-export function Alg({ text, size = 18 }: { text: string; size?: number }) {
+/** The face a cube move turns (R, Rw, 3Rw2, r…), for its sticker colour: null for any other notation. */
+const faceOf = (move: string) => /^\d*([URFDLB])w?[2']*$/.exec(move)?.[1] ?? /^([urfdlb])[2']*$/.exec(move)?.[1].toUpperCase() ?? null;
+
+/** Moves in notation. With `faces`, each cube move is marked with the colour of the face it turns. */
+export function Alg({ text, size = 18, faces = false }: { text: string; size?: number; faces?: boolean }) {
   return (
-    <div className="alg mono" style={{ fontSize: size }}>
+    <div className={"alg mono" + (faces ? " faces" : "")} style={{ fontSize: size }}>
       {text?.split(/\s+/).map((word, i) => (
-        <span key={i} className={/[()\[\]]/.test(word) ? "muted" : ""}>
+        <span key={i} className={/[()\[\]]/.test(word) ? "muted" : ""} data-face={faces ? faceOf(word) ?? undefined : undefined}>
           {word}
         </span>
       ))}
