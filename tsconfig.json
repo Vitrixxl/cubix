@@ -18,7 +18,13 @@
     "types": [
       "node",
       "bun"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "desktop/renderer/*"
+      ]
+    }
   },
   "include": [
     "src/**/*",

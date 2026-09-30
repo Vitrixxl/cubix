@@ -14,6 +14,7 @@ import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
 import { DuelPage } from "./duel";
 import { Overlay } from "./overlays";
+import "./globals.css";
 import "./styles.css";
 function App() {
   useSyncExternalStore(s.subscribe, () => s.version);

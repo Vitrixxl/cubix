@@ -9,6 +9,7 @@ import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join, relative, resolve } from "node:path";
 import { brotliCompressSync, gzipSync, constants } from "node:zlib";
 import { copyCubing } from "./vendor";
+import tailwind from "bun-plugin-tailwind";
 
 const root = resolve(import.meta.dir, "..");
 process.chdir(root);
@@ -20,7 +21,7 @@ export async function buildWeb(out = WEB_DIR) {
   const production = { "process.env.NODE_ENV": '"production"' };
   const naming = { entry: "[name]-[hash].[ext]", chunk: "[name]-[hash].[ext]", asset: "[name]-[hash].[ext]" };
   const bundle = async (entrypoint: string, define: Record<string, string> = {}) => {
-    const result = await Bun.build({ entrypoints: [entrypoint], outdir: join(out, "build"), target: "browser", minify: true, naming, define: { ...production, ...define } });
+    const result = await Bun.build({ entrypoints: [entrypoint], outdir: join(out, "build"), target: "browser", minify: true, naming, plugins: [tailwind], define: { ...production, ...define } });
     if (!result.success) throw new AggregateError(result.logs, `Build failed: ${entrypoint}`);
     return result.outputs.map((output) => "/" + relative(out, output.path).replaceAll("\\", "/"));
   };

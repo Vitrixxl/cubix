@@ -15,5 +15,13 @@
   "exclude": [
     "assets",
     "dist"
-  ]
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "renderer/*"
+      ]
+    }
+  }
 }
