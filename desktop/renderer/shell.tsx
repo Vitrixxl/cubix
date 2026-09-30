@@ -1,7 +1,7 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, LogIn, LogOut, Settings, Swords, Timer, User, UserPlus, type LucideIcon } from "lucide-react";
+import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, LogOut, Settings, Swords, Timer, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { Avatar, FADE, Icon, Logo, PuzzlePicker, type Props } from "./ui";
 import { cn } from "@/lib/utils";
@@ -40,28 +40,21 @@ const go = (action: string) => (e: React.MouseEvent<HTMLElement>) => {
   void s.action(action, e.currentTarget);
 };
 
-/** The player's face: the initials once signed in, a person for the guest. */
+/** The player's face: the account's initials. */
 function Me({ size = 32 }: { size?: number }) {
-  return s.user.isGuest ? (
-    <span className="flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground" style={{ width: size, height: size }}>
-      <User className="size-[55%]" />
-    </span>
-  ) : (
-    <Avatar user={s.user} size={size} />
-  );
+  return <Avatar user={s.user} size={size} />;
 }
 
 /**
  * Desktop navigation: a labelled column on the page background. The wordmark and the puzzle every page works on, the
- * sections by name, then the guides, the settings and, last, the account: the way to the profile, its menu signing in
- * or out. Narrow windows keep the icons.
+ * sections by name, then the guides, the settings and, last, the account: the way to the profile, its menu holding
+ * the settings and signing out. Narrow windows keep the icons.
  */
 export function Rail() {
-  const guest = s.user.isGuest,
-    e = s.event(),
+  const e = s.event(),
     profile = s.page === "profile";
   return (
-    <Sidebar collapsible="icon" className={cn("rail group-data-[side=left]:border-r-0", FADE)}>
+    <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
       <SidebarHeader className="gap-3 pt-4">
         <div className="flex h-8 items-center gap-2.5 px-2 group-data-[collapsible=icon]:px-2">
           <Logo size={16} />
@@ -131,14 +124,14 @@ export function Rail() {
               data-action="nav:profile"
               isActive={profile}
               aria-current={profile ? "page" : undefined}
-              tooltip={(guest ? "Guest" : s.user.username) + " · Profile · Alt+4"}
+              tooltip={s.user.username + " · Profile · Alt+4"}
               onClick={go("nav:profile")}
               className="gap-2.5 pr-9"
             >
               <Me />
               <span className="flex min-w-0 flex-col">
-                <span className="truncate font-medium">{guest ? "Guest" : s.user.username}</span>
-                <span className="truncate text-xs text-muted-foreground">{guest ? "Sign in to sync" : "Profile"}</span>
+                <span className="truncate font-medium">{s.user.username}</span>
+                <span className="truncate text-xs text-muted-foreground">Profile</span>
               </span>
             </SidebarMenuButton>
             <DropdownMenu>
@@ -149,26 +142,17 @@ export function Rail() {
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right" align="end" className="w-auto min-w-52">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>{guest ? "Times stay on this device" : s.user.username}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{s.user.username}</DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                {guest ? (
-                  <>
-                    <DropdownMenuItem data-action="account:login" onClick={() => void s.action("account:login")}>
-                      <LogIn />
-                      Sign in
-                    </DropdownMenuItem>
-                    <DropdownMenuItem data-action="account:register" onClick={() => void s.action("account:register")}>
-                      <UserPlus />
-                      Create account
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <DropdownMenuItem data-action="logout" onClick={() => void s.action("logout")}>
-                    <LogOut />
-                    Sign out
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem data-action="menu:settings" onClick={() => void s.action("settings")}>
+                  <Settings />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem data-action="logout" onClick={() => void s.action("logout")}>
+                  <LogOut />
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

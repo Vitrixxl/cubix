@@ -20,10 +20,13 @@ export async function buildWeb(out = WEB_DIR) {
   await mkdir(join(out, "build"), { recursive: true });
   const production = { "process.env.NODE_ENV": '"production"' };
   const naming = { entry: "[name]-[hash].[ext]", chunk: "[name]-[hash].[ext]", asset: "[name]-[hash].[ext]" };
-  const bundle = async (entrypoint: string, define: Record<string, string> = {}) => {
-    const result = await Bun.build({ entrypoints: [entrypoint], outdir: join(out, "build"), target: "browser", minify: true, naming, plugins: [tailwind], define: { ...production, ...define } });
+  const entries: string[] = [];
+  const bundle = async (entrypoint: string, define: Record<string, string> = {}, splitting = false) => {
+    const result = await Bun.build({ entrypoints: [entrypoint], outdir: join(out, "build"), target: "browser", minify: true, splitting, naming, plugins: [tailwind], define: { ...production, ...define } });
     if (!result.success) throw new AggregateError(result.logs, `Build failed: ${entrypoint}`);
-    return result.outputs.map((output) => "/" + relative(out, output.path).replaceAll("\\", "/"));
+    const url = (output: { path: string }) => "/" + relative(out, output.path).replaceAll("\\", "/");
+    entries.push(...result.outputs.filter((output) => output.kind === "entry-point").map(url));
+    return result.outputs.map(url);
   };
   const { version: cubingVersion } = JSON.parse(await readFile("node_modules/cubing/package.json", "utf8"));
   const vendor = `/vendor/cubing-${cubingVersion}`;
@@ -36,8 +39,10 @@ export async function buildWeb(out = WEB_DIR) {
     else vendorFiles.push("/" + relative(out, path).replaceAll("\\", "/"));
   }
   const [worker] = await bundle("desktop/renderer/worker.ts", { CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) });
-  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker), CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) });
-  const scripts = app.filter((path) => path.endsWith(".js") && basename(path).startsWith("main-"));
+  // Split: the app and the administration (/admin) are chunks of their own, each page loads only its own code.
+  const app = await bundle("desktop/renderer/main.tsx", { CUBIX_WORKER: JSON.stringify(worker), CUBIX_VENDOR: JSON.stringify(`${vendor}/cubing`) }, true);
+  // Only the entry: it imports its chunks itself.
+  const scripts = app.filter((path) => path.endsWith(".js") && entries.includes(path) && basename(path).startsWith("main-"));
   const styles = app.filter((path) => path.endsWith(".css"));
   const html = (await readFile("desktop/renderer/index.html", "utf8"))
     .replace("<!-- styles -->", styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    "))
@@ -48,7 +53,8 @@ export async function buildWeb(out = WEB_DIR) {
   // Everything the app needs to open offline, scramblers included: the engine worker starts before the
   // service worker controls a first visit. Case diagrams are kept once shown.
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
-  const precache = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", worker, ...app, ...icons, ...vendorFiles];
+  // The administration is never used offline.
+  const precache = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", worker, ...app.filter((path) => !basename(path).startsWith("admin-")), ...icons, ...vendorFiles];
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
   for (const url of precache) hasher.update(url).update(await readFile(join(out, url === "/" ? "index.html" : url)));

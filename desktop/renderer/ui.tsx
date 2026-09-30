@@ -73,12 +73,20 @@ const run = (action: string) => (e: React.MouseEvent<HTMLElement>) => {
 type Variant = "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
 type Size = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
 
+/** Inside a page header every control is bordered (outline); elsewhere buttons stay quiet (ghost). */
+export const InHead = React.createContext(false);
+/** The variant a control takes where it stands, unless it names one. */
+export const useQuiet = (variant?: Variant): Variant => {
+  const head = React.useContext(InHead);
+  return variant ?? (head ? "outline" : "ghost");
+};
+
 /** A shadcn button dispatching a store action, with a tooltip when it has one (icon buttons always do). */
 export function Button({
   action,
   icon: I,
   tip,
-  variant = "ghost",
+  variant: chosen,
   size,
   className,
   disabled = false,
@@ -95,6 +103,7 @@ export function Button({
   label?: string;
 } & Props) {
   const iconOnly = !!I && (children == null || children === false);
+  const variant = useQuiet(chosen);
   const button = (
     <UiButton
       data-action={action}
@@ -133,8 +142,10 @@ export function ActionToggle({
   disabled,
   size = "default",
 }: { action: string; pressed: boolean; icon?: LucideIcon; tip?: React.ReactNode; disabled?: boolean; size?: "default" | "sm" | "lg" } & Props) {
+  const head = React.useContext(InHead);
   const toggle = (
     <Toggle
+      variant={head ? "outline" : "default"}
       data-action={action}
       pressed={pressed}
       size={size}
@@ -166,9 +177,11 @@ export function Choice({
   size?: "default" | "sm";
   className?: string;
 }) {
+  const head = React.useContext(InHead);
   return (
     <ToggleGroup
       aria-label={label}
+      variant={head ? "outline" : "default"}
       size={size}
       spacing={1}
       value={[value]}
@@ -193,7 +206,7 @@ export function Choice({
   );
 }
 
-/** A header menu: the current value on a ghost button, the choices as radio items. */
+/** A header menu: the current value on a button (bordered in a header), the choices as radio items. */
 export function SelectMenu({
   action,
   value,
@@ -201,7 +214,7 @@ export function SelectMenu({
   caption,
   icon,
   align = "end",
-  variant = "ghost",
+  variant: chosen,
   className,
 }: {
   action: string;
@@ -215,6 +228,7 @@ export function SelectMenu({
   className?: string;
 }) {
   const current = options.find((o) => o.id === value);
+  const variant = useQuiet(chosen);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -300,12 +314,13 @@ export function PuzzlePicker({ profile = false, trigger, align = "start", side =
 /** The puzzle as a header button, on phones where there is no sidebar and in the profile's filters. */
 export function PuzzleButton({ profile = false }: { profile?: boolean }) {
   const e = profile ? s.event(s.profilePuzzle, s.profileSolveMode) : s.event();
+  const variant = useQuiet();
   return (
     <PuzzlePicker
       profile={profile}
       align="end"
       trigger={
-        <UiButton variant="ghost" className="gap-2">
+        <UiButton variant={variant} className="gap-2">
           <Icon name={"Puzzle" + e.id} size={16} />
           {e.label}
           <ChevronDown className="text-muted-foreground" />
@@ -421,6 +436,7 @@ export function PageHead({
 }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean | "scramble"; more?: React.ReactNode } & Props) {
   const mobile = useViewport().w <= MOBILE;
   return (
+    <InHead.Provider value={true}>
     <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-6 gap-y-3", mobile ? "gap-x-2" : "flex-wrap", FADE)}>
       <div className="flex min-w-0 items-center gap-2 md:gap-3">
         {lead}
@@ -435,14 +451,16 @@ export function PageHead({
         {more && <MoreMenu>{more}</MoreMenu>}
       </div>
     </header>
+    </InHead.Provider>
   );
 }
 
 /** The "…" of a phone header: the page's other controls as menu items. */
 export function MoreMenu({ children }: Props) {
+  const variant = useQuiet();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<UiButton variant="ghost" size="icon" aria-label="More" data-action="menu:more" />}>
+      <DropdownMenuTrigger render={<UiButton variant={variant} size="icon" aria-label="More" data-action="menu:more" />}>
         <Ellipsis />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-52">
@@ -548,26 +566,7 @@ export function PageSkeleton({ side = true }: { side?: boolean }) {
   );
 }
 
-/** The app's mark: four stickers, one of them turned to the accent. */
-export function Logo({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
-      {[0, 1].flatMap((row) =>
-        [0, 1].map((col) => (
-          <rect
-            key={row * 2 + col}
-            x={col * 9.75}
-            y={row * 9.75}
-            width={8.25}
-            height={8.25}
-            rx={2.2}
-            className={row === 0 && col === 1 ? "fill-primary" : "fill-foreground/85"}
-          />
-        )),
-      )}
-    </svg>
-  );
-}
+export { Logo } from "./logo";
 
 export function Avatar({ user, size = 32, className }: { user: any; size?: number; className?: string }) {
   return (

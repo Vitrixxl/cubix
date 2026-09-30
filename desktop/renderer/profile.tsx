@@ -2,7 +2,7 @@
 import { shortId } from "../../src/client/lib/caseState";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Lock, LogIn, LogOut, Search, Settings, Swords, Trophy, UserPlus } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Lock, LogOut, Search, Settings, Swords, Trophy } from "lucide-react";
 import { store as s, matches } from "./store";
 import { fmtSolve, fmtTime, best, bestAverage } from "../../src/client/lib/format";
 import {
@@ -551,6 +551,7 @@ function Overview() {
       </span>
     </span>
   );
+  const Main = mobile ? Surface : "div";
   return (
     <div className={cn("overview flex min-h-0 flex-1 gap-8 xl:gap-10", mobile && "-mx-4 flex-col gap-6 overflow-y-auto px-4 pb-4")}>
       <div className="flex min-w-0 flex-1 flex-col gap-5">
@@ -563,8 +564,9 @@ function Overview() {
           ]}
           detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
         />
-        <Surface className={cn("flex-1", mobile && "min-h-[28rem] shrink-0")}>
-          <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2 md:px-5">
+        {/* Phones keep the timer as a card; the desktop sets it on the page, the side column is the box. */}
+        <Main className={cn("flex-1", mobile ? "min-h-[28rem] shrink-0" : "flex min-h-0 flex-col")}>
+          <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2 md:px-0.5">
             <Button action="profileMode:playground" size="sm" className="-ml-2.5 gap-1 text-sm font-medium">
               Timer
               <ChevronRight className="text-muted-foreground" />
@@ -572,7 +574,7 @@ function Overview() {
             <span className="truncate text-xs text-muted-foreground">{d.timerDetail}</span>
             {!mobile && <span className="ml-auto">{legend}</span>}
           </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-5 p-4 md:p-5">
+          <div className="flex min-h-0 flex-1 flex-col gap-5 p-4 md:px-0 md:pt-5 md:pb-0">
             <TimerFigures d={d} />
             <div className="flex min-h-0 flex-1 gap-5">
               {charted ? (
@@ -583,9 +585,9 @@ function Overview() {
               {d.history.length > 0 && !mobile && <RecentSolves history={d.history} />}
             </div>
           </div>
-        </Surface>
+        </Main>
       </div>
-      <div className={cn("flex min-h-0 shrink-0 flex-col gap-5", mobile ? "w-full" : "w-72 xl:w-80")}>
+      <div className={cn("flex min-h-0 shrink-0 flex-col gap-5", mobile ? "w-full" : "w-72 overflow-hidden rounded-xl border bg-card px-4 pt-3 pb-4 xl:w-80")}>
         <Section action="profileMode:training" title="Training" meta={`${d.learned} learned · ${plural(d.trainingSolves, "solve")}`}>
           <div className="flex items-baseline gap-2">
             <span className={cn(MONO, "text-3xl font-medium tracking-tight")}>{d.trained}</span>
@@ -704,26 +706,17 @@ export function Profile() {
   const p = s.profile,
     mobile = useViewport().w <= MOBILE;
   if (!p) return <PageSkeleton side={false} />;
-  const guest = s.user.isGuest,
-    mode = s.profileMode in PROFILE_SECTIONS ? s.profileMode : "overview",
+  const mode = s.profileMode in PROFILE_SECTIONS ? s.profileMode : "overview",
     title = PROFILE_SECTIONS[mode] ?? "Overview";
   if (mobile) return <PhoneProfile mode={mode} />;
   return (
     <div className={PAGE}>
       {mode === "overview" ? (
         <PageHead
-          lead={mobile && <Avatar user={guest ? { username: "G" } : p.user} size={36} />}
-          title={mobile ? (guest ? "Guest" : p.user.username) : "Profile"}
-          sub={guest ? "Guest · times stay on this device" : `${p.user.username} · joined ${p.user.joined}`}
+          lead={mobile && <Avatar user={p.user} size={36} />}
+          title={mobile ? p.user.username : "Profile"}
+          sub={`${p.user.username} · joined ${p.user.joined}`}
         >
-          {guest && (
-            <>
-              <Button action="account:login">Sign in</Button>
-              <Button action="account:register" variant="default">
-                Create account
-              </Button>
-            </>
-          )}
           <ProfileFilters />
         </PageHead>
       ) : (
@@ -754,26 +747,18 @@ export function Profile() {
  * beside it, and the sections as a segmented control instead of pages to open.
  */
 function PhoneProfile({ mode }: { mode: string }) {
-  const p = s.profile,
-    guest = s.user.isGuest;
+  const p = s.profile;
   return (
     <div className={PAGE}>
       <PageHead
-        lead={<Avatar user={guest ? { username: "G" } : p.user} size={36} />}
-        title={guest ? "Guest" : p.user.username}
+        lead={<Avatar user={p.user} size={36} />}
+        title={p.user.username}
         more={
           <>
             <MenuAction action="help" icon={BookOpen}>Guides</MenuAction>
             <MenuAction action="settings" icon={Settings}>Settings</MenuAction>
             <DropdownMenuSeparator />
-            {guest ? (
-              <>
-                <MenuAction action="account:login" icon={LogIn}>Sign in</MenuAction>
-                <MenuAction action="account:register" icon={UserPlus}>Create account</MenuAction>
-              </>
-            ) : (
-              <MenuAction action="logout" icon={LogOut}>Sign out</MenuAction>
-            )}
+            <MenuAction action="logout" icon={LogOut}>Sign out</MenuAction>
           </>
         }
       >

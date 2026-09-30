@@ -70,7 +70,10 @@ export class Store {
   revealed = false;
   randomAuf = true;
   showCube = true;
-  login = false;
+  /** The account's session ended on the server (401): the login page asks to sign in again. */
+  expired = false;
+  /** Times or learned cases of this device outside any account: signing in or creating an account keeps them. */
+  localData = false;
   overlay = "";
   overlaySolve: any = null;
   anchor: DOMRect | null = null;
@@ -248,6 +251,8 @@ export class Store {
       const v = await call("init");
       if (v.protocol !== 2) throw Error("Incompatible data engine");
       this.user = v.user;
+      this.localData = !!v.localData;
+      this.syncStatus(v.status);
       for (const [k, raw] of Object.entries(v.storage)) {
         try {
           this.prefs[k] = JSON.parse(raw as string);
@@ -279,6 +284,29 @@ export class Store {
     } catch (e) {
       this.fail(e);
     }
+  }
+  /** Only an account uses the app; a guest (or an expired session) gets the login page. */
+  get signedIn() {
+    return !this.user.isGuest && !this.expired;
+  }
+  /** The engine's sync state: "signin" once the server has refused the account's token. */
+  syncStatus(status: { state?: string } | undefined) {
+    const expired = status?.state === "signin" && !this.user.isGuest;
+    if (expired === this.expired) return;
+    this.expired = expired;
+    this.emit();
+  }
+  /** Signs in or creates the account; this device's times join it. Throws the API's message. */
+  async authenticate(mode: "login" | "register", username: string, password: string) {
+    const v = await call(mode, username, password);
+    this.user = v.user;
+    this.expired = false;
+    this.localData = false;
+    this.sessions.clear();
+    this.overlay = "";
+    this.profileMode = "overview";
+    this.emit();
+    await this.refresh();
   }
   loadContext() {
     const p = this.puzzle;
@@ -757,19 +785,14 @@ export class Store {
           this.light = arg === "light";
           this.pref("cubix.ui.colorMode", arg);
           break;
-        case "authMode":
-          this.login = arg === "login";
-          break;
-        case "account":
-          this.login = arg === "login";
-          this.overlay = "settings";
-          break;
         case "settings":
           this.overlay = this.overlay === "settings" ? "" : "settings";
           break;
         case "logout":
           await call("logout");
           this.user = { isGuest: true, username: "Guest" };
+          this.expired = false;
+          this.overlay = "";
           this.sessions.clear();
           this.profileMode = "overview";
           await this.refresh();

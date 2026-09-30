@@ -75,3 +75,22 @@ export async function timeSolve(page: Page) {
   await page.keyboard.press("a");
   await page.waitForSelector('.timer[data-phase="Idle"]');
 }
+
+/** The app is used signed in: on its login page, creates the account `username` (or signs in when it exists). */
+export async function signIn(page: Page, username: string, password = "a-long-test-password") {
+  await page.waitForSelector(".login, .rail, .tabbar", { timeout: 60000 });
+  if (!(await page.locator(".login").count())) return;
+  await page.locator('[data-action="login:mode:register"]').click();
+  await page.fill("#login-username", username);
+  await page.fill("#login-password", password);
+  await page.locator('[data-action="login:submit"]').click();
+  const error = page.locator("[data-slot=field-error]");
+  await Promise.race([page.waitForSelector(".rail, .tabbar", { timeout: 30000 }), error.waitFor({ timeout: 30000 })]);
+  if (await page.locator(".login").count()) {
+    // Taken: the account exists already, sign in to it.
+    await page.locator('[data-action="login:mode:login"]').click();
+    await page.fill("#login-password", password);
+    await page.locator('[data-action="login:submit"]').click();
+    await page.waitForSelector(".rail, .tabbar", { timeout: 30000 });
+  }
+}

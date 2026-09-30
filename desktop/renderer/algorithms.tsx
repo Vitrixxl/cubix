@@ -55,9 +55,10 @@ export function Algorithms() {
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
         <CaseList wide={mobile} />
         {!mobile && (
-          <Surface className="flex-1">
+          // The list is the box; the set or the case beside it sits on the page.
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {s.caseId && s.find(s.caseId) ? <CaseDetail key={s.caseId} /> : <SetSummary />}
-          </Surface>
+          </div>
         )}
       </div>
     </div>
@@ -86,7 +87,7 @@ function CaseList({ wide }: { wide: boolean }) {
   const [query, setQuery] = useState(""),
     found = wide && query.trim() ? s.cases().filter((c: any) => matches(c, query)).slice(0, 80) : null;
   return (
-    <div className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)]")}>
+    <div className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] overflow-hidden rounded-xl border bg-card px-3 pt-3")}>
       {wide && (
         <InputGroup className="h-10 shrink-0">
           <InputGroupInput placeholder="Search cases: oll 21, pll t…" aria-label="Search cases" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -229,7 +230,7 @@ function SetSummary() {
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 items-start justify-between gap-6 px-6 pt-6 pb-5">
+      <header className="flex shrink-0 items-start justify-between gap-6 px-1 pt-1 pb-5">
         <div className="flex max-w-xl flex-col gap-1.5">
           <span className={LABEL}>{stage}</span>
           <h2 className="text-2xl font-semibold tracking-tight">{all.active.label}</h2>
@@ -239,12 +240,12 @@ function SetSummary() {
           Train all
         </Button>
       </header>
-      <div className="grid shrink-0 grid-cols-4 gap-6 border-y bg-muted/30 px-6 py-4">
+      <div className="grid shrink-0 grid-cols-4 gap-6 rounded-xl bg-muted/45 px-5 py-4">
         {figures.map(([label, value]) => (
           <Figure key={label} label={label} value={value} size="lg" />
         ))}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-1 px-6 pt-4 pb-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-1 px-1 pt-5">
         <SectionHead title="Groups" meta={all.groups.length} />
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
           {all.groups.map(([group, members]: [string, any[]]) => {
@@ -311,10 +312,10 @@ function CaseDetail() {
   const { index, count } = caseSteps(c),
     st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id);
-  const block = "flex flex-col gap-2 border-t px-4 py-4 md:px-6 md:py-5";
+  const block = "flex flex-col gap-2 border-t px-4 py-4 md:px-1 md:py-5";
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:gap-8 md:px-6 md:pt-6 md:pb-5">
+      <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:gap-8 md:px-1 md:pt-1 md:pb-5">
         <div className="shrink-0">
           {c.cube ? (
             <Cube setup={c.setup} cubeSize={c.cube_size ?? 3} mask={maskForStage(c.stage)} size={mobile ? 112 : 168} replay={s.replay} />

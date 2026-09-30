@@ -106,7 +106,7 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
   const e = s.event();
   return (
     <UiButton
-      variant="ghost"
+      variant="outline"
       data-action="menu:session"
       className="h-9 max-w-44 gap-1.5 px-2"
       onClick={(event) => {

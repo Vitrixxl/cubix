@@ -105,9 +105,19 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     }
     return v;
   }
+  /** Whether this device holds times or learned cases outside any account (or a former server guest's token, whose
+   * data is being brought here): signing in or creating an account imports them. */
+  function localData() {
+    if (!local.current().isGuest) return false;
+    if (storage.getItem(tokenKey)) return true;
+    try {
+      const guest = JSON.parse(storage.getItem('cubix.local.v1:workspace:guest') ?? 'null');
+      return Object.values(guest?.solves ?? {}).some((solve: any) => !solve.deleted) || Object.values(guest?.learned ?? {}).some(Boolean);
+    } catch { return false; }
+  }
   const methods = new Set(Object.keys(local.api).filter(k => !['connectLive'].includes(k)));
   async function run(req: EngineRequest): Promise<unknown> {
-    if (req.method === 'init') return { protocol: 2, user: local.current(), storage: storage.all(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder() };
+    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: storage.all(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
       const trainingMode = q.page === 'training';

@@ -5,7 +5,7 @@ import { chromium, type Page } from "playwright";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startServer } from "./app";
+import { signIn, startServer } from "./app";
 
 const SHOTS = "artifacts/menus";
 await mkdir(SHOTS, { recursive: true });
@@ -36,6 +36,7 @@ try {
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("page error:", e.message));
   await page.goto(origin);
+  await signIn(page, "menus_user");
   await page.waitForSelector(".timer");
   await page.waitForFunction(() => !!document.querySelector(".scramble .alg"), undefined, { timeout: 60000 });
   for (let i = 0; i < 7; i++) await solve(page);

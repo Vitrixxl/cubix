@@ -50,7 +50,7 @@ export function TrainingSetup() {
       <div className="flex min-h-0 flex-1 gap-6 max-md:flex-col max-md:gap-3 xl:gap-8">
         <nav
           aria-label="Training modes"
-          className="flex shrink-0 flex-col gap-0.5 md:-mx-2 md:w-60 max-md:-mx-4 max-md:flex-row max-md:gap-1 max-md:overflow-x-auto max-md:px-4 max-md:[scrollbar-width:none]"
+          className="flex shrink-0 flex-col gap-0.5 overflow-y-auto rounded-xl border bg-card p-2 md:w-64"
         >
           {modes.map((m) => (
             <button
@@ -78,9 +78,10 @@ export function TrainingSetup() {
             </button>
           ))}
         </nav>
-        <Surface className="flex-1" key={current.id}>
+        {/* The modes are the box; the chosen one sits on the page. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col" key={current.id}>
           {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup mobile={mobile} /> : <LearningSetup mode={current.id} />}
-        </Surface>
+        </div>
       </div>
     </div>
   );
@@ -141,7 +142,7 @@ function PhoneSetup({ modes }: { modes: SetupMode[] }) {
 /** The foot of the setup surface: what the start will train, and the start. */
 function SetupFoot({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
   return (
-    <footer className="flex shrink-0 items-center justify-between gap-4 border-t bg-muted/30 px-4 py-3 md:px-6">
+    <footer className="flex shrink-0 items-center justify-between gap-4 border-t bg-muted/30 px-4 py-3 md:bg-transparent md:px-1 md:pb-0">
       <span className="min-w-0 truncate text-sm text-muted-foreground">{children}</span>
       <Button action={action} variant="default" size="lg" icon={Play} disabled={disabled} className="px-4 max-md:h-11 max-md:px-6">
         Start
@@ -153,7 +154,7 @@ function SetupFoot({ action, disabled = false, children }: { action: string; dis
 /** The chosen mode's title and description. */
 function SetupTitle({ title, meta, children, aside }: { title: string; meta?: React.ReactNode; aside?: React.ReactNode } & Props) {
   return (
-    <header className="flex shrink-0 flex-wrap items-end justify-between gap-4 px-4 pt-4 md:px-6 md:pt-6">
+    <header className="flex shrink-0 flex-wrap items-end justify-between gap-4 px-4 pt-4 md:px-1 md:pt-1">
       <div className="flex max-w-xl min-w-0 flex-col gap-1.5">
         <h2 className="text-xl font-semibold tracking-tight max-md:hidden md:text-2xl">
           {title}
@@ -171,7 +172,7 @@ function CrossSetup() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-6">
         <SetupTitle title="Cross + 1">Scrambles whose back block takes exactly the chosen number of moves.</SetupTitle>
-        <div className="flex gap-2 px-4 md:px-6" role="radiogroup" aria-label="Moves">
+        <div className="flex gap-2 px-4 md:px-1" role="radiogroup" aria-label="Moves">
           {CROSS_PLUS_ONE_MOVES.map((n) => (
             <button
               key={n}
@@ -230,7 +231,7 @@ function CasesSetup({ mobile }: { mobile: boolean }) {
           </div>
         }
       />
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t px-2 pt-2 md:px-4">
+      <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t px-2 pt-2 md:px-0">
         {s.allSets().map((set: any) => {
           const chosen = cases.filter((c: any) => c.set === set.id && matches(c, s.query)),
             count = chosen.filter((c: any) => s.selected.has(c.id)).length,
@@ -339,7 +340,7 @@ function LearningSetup({ mode }: { mode: string }) {
         <SetupTitle title={review ? "Review learned" : `Learn ${track}`}>
           {review ? "Every case you marked as learned, drawn at random." : `One new ${track} case a day, group by group, until the set is learned.`}
         </SetupTitle>
-        <div className="flex gap-10 px-4 md:gap-12 md:px-6">
+        <div className="flex gap-10 px-4 md:gap-12 md:px-1">
           {figures.map(([label, value]) => (
             <Figure key={label} label={label} value={value} size="lg" />
           ))}

@@ -205,6 +205,7 @@ function Race() {
     { w } = useViewport(),
     mobile = w <= MOBILE,
     chatDocked = !mobile && w >= 1100,
+    RaceStage = mobile ? Surface : "div",
     running = timer.phase === "running",
     opponent = duel.opponent,
     me = duel.players[duel.seat],
@@ -311,8 +312,9 @@ function Race() {
         )}
       </PageHead>
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
-        <Surface className="flex-1">
-          <section className={cn("duel-scramble flex shrink-0 flex-col gap-2 px-4 pt-4 md:px-7 md:pt-6", FADE)}>
+        {/* Phones keep the race as a card; the desktop sets it on the page, the chat beside it is the box. */}
+        <RaceStage className={cn("flex-1", !mobile && "flex min-h-0 flex-col")}>
+          <section className={cn("duel-scramble flex shrink-0 flex-col gap-2 px-4 pt-4 md:px-0 md:pt-1", FADE)}>
             <div className="scramble max-h-[24vh] overflow-y-auto">
               {duel.over ? (
                 <span className="text-sm text-muted-foreground">Five rounds raced.</span>
@@ -329,7 +331,7 @@ function Race() {
               {mySide}
             </div>
           ) : (
-            <div className={cn("grid min-h-0 flex-1 gap-6 px-6 py-4", cubeShown ? "grid-cols-[1fr_minmax(0,0.7fr)_1fr]" : "grid-cols-2")}>
+            <div className={cn("grid min-h-0 flex-1 gap-6 py-4", cubeShown ? "grid-cols-[1fr_minmax(0,0.7fr)_1fr]" : "grid-cols-2")}>
               {mySide}
               {cubeShown && (
                 <div className={cn("duel-cube group/cube relative flex min-h-0 items-center justify-center", FADE)} ref={setCubeBox}>
@@ -342,7 +344,7 @@ function Race() {
               {theirSide}
             </div>
           )}
-          <div className={cn("shrink-0 border-t bg-muted/30 px-2 py-2 md:px-4 md:py-3", FADE)}>
+          <div className={cn("shrink-0 border-t bg-muted/30 px-2 py-2 md:rounded-xl md:border-t-0 md:bg-muted/45 md:px-4 md:py-3", FADE)}>
             <Board actions={!mobile} compact={mobile} />
             {mobile && (
               <TouchBar className="pt-1">
@@ -352,9 +354,9 @@ function Race() {
               </TouchBar>
             )}
           </div>
-        </Surface>
+        </RaceStage>
         {chatDocked && (
-          <aside className={cn("flex w-72 shrink-0 flex-col", FADE)}>
+          <aside className={cn("flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border bg-card px-3 pt-2 pb-3", FADE)}>
             <Chat />
           </aside>
         )}

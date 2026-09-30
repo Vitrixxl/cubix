@@ -6,7 +6,7 @@ import { chromium, type Page } from "playwright";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startServer } from "./app";
+import { signIn, startServer } from "./app";
 
 const SHOTS = "artifacts/grid";
 const shots = process.argv.includes("--shots");
@@ -116,6 +116,17 @@ try {
     const page = await context.newPage();
     page.on("pageerror", (e) => console.log("page error:", e.message));
     await page.goto(origin);
+    // Nothing without an account: the login page first, then a fresh account per size.
+    await page.waitForSelector(".login");
+    await settle(page);
+    await check(page, "login");
+    await page.locator('[data-action="login:mode:register"]').click();
+    await page.fill("#login-username", "grid_" + width);
+    await page.fill("#login-password", "short");
+    await page.locator('[data-action="login:submit"]').click();
+    await page.waitForSelector("[data-slot=field-error]");
+    await check(page, "login-error");
+    await signIn(page, "grid_" + width);
     await page.waitForSelector(".timer");
     await page.waitForFunction(() => !!document.querySelector(".scramble .alg"), undefined, { timeout: 60000 });
     for (let i = 0; i < 6; i++) await solve(page);
@@ -134,6 +145,8 @@ try {
     // A race: a second tab of the same browser is the opponent.
     const other = await context.newPage();
     await other.goto(origin);
+    // Another account in the same browser would replace this one: the opponent tab signs in as the same player, the
+    // server pairs the two tabs as different connections.
     await other.waitForSelector(".rail, .tabbar");
     await other.locator('[data-action="nav:duel"]').first().click();
     await other.waitForSelector(".duel-lobby");

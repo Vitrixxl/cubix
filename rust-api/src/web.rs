@@ -1,5 +1,6 @@
 //! The web application built by `desktop/web.ts`, which the desktop app loads too.
-//! Only files that exist are served: there is no client-side routing to fall back to.
+//! Only files that exist are served, and the administration's pages (`/admin`, `/admin/…`), which
+//! the same single-page app draws from `index.html`.
 use axum::{
     Router,
     extract::Request,
@@ -8,7 +9,7 @@ use axum::{
     response::Response,
 };
 use std::path::PathBuf;
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 
 /// `CUBIX_WEB_DIR`, else `dist/web` next to the working directory when it has been built.
 pub fn directory() -> Option<PathBuf> {
@@ -19,7 +20,12 @@ pub fn directory() -> Option<PathBuf> {
 }
 
 pub fn router(dir: PathBuf) -> Router {
+    let index = ServeFile::new(dir.join("index.html"))
+        .precompressed_br()
+        .precompressed_gzip();
     Router::new()
+        .route_service("/admin", index.clone())
+        .route_service("/admin/{*page}", index)
         .fallback_service(
             ServeDir::new(dir)
                 .precompressed_br()

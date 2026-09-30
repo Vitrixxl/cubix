@@ -17,8 +17,6 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList, Command } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 
@@ -69,90 +67,22 @@ function SettingRow({ label, children }: { label: string; children?: React.React
   );
 }
 
-function AccountForm() {
-  const [username, setUser] = useState(""),
-    [password, setPassword] = useState("");
-  return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (s.saving) return;
-        s.saving = true;
-        s.emit();
-        try {
-          const v = await call(s.login ? "login" : "register", username, password);
-          s.user = v.user;
-          s.sessions.clear();
-          s.overlay = "";
-          setPassword("");
-          await s.refresh();
-        } catch (e) {
-          s.fail(e);
-        } finally {
-          s.saving = false;
-          s.emit();
-        }
-      }}
-    >
-      <Choice
-        prefix="authMode:"
-        label="Account"
-        value={s.login ? "login" : "register"}
-        options={[
-          { id: "login", label: "Sign in" },
-          { id: "register", label: "Create account" },
-        ]}
-      />
-      <p className="text-sm text-muted-foreground">
-        {s.login
-          ? "Your local times are merged into your account."
-          : "An account keeps your times, statistics and achievements in sync between devices."}
-      </p>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="account-username">Username</Label>
-        <Input id="account-username" value={username} onChange={(e) => setUser(e.target.value)} autoComplete="username" required />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="account-password">Password</Label>
-        <Input
-          id="account-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete={s.login ? "current-password" : "new-password"}
-          required
-        />
-        {!s.login && <p className="text-xs text-muted-foreground">3–24 letters, digits or underscores. Password: 10 characters or more.</p>}
-      </div>
-      <UiButton type="submit" size="lg" disabled={s.saving}>
-        {s.saving ? "One moment…" : s.login ? "Sign in" : "Create account"}
-      </UiButton>
-    </form>
-  );
-}
-
 /** Settings: the account, then the appearance. */
 function Settings() {
-  const guest = s.user.isGuest;
   return (
     <div className="settings flex flex-col gap-6">
       <section className="flex flex-col gap-3">
         <h3 className={LABEL}>Account</h3>
-        {guest ? (
-          <AccountForm />
-        ) : (
-          <div className="flex items-center gap-3">
-            <Avatar user={s.user} size={40} />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-medium">{s.user.username}</span>
-              <span className="text-xs text-muted-foreground">Joined {s.profile?.user?.joined}</span>
-            </div>
-            <Button action="logout" variant="outline">
-              Sign out
-            </Button>
+        <div className="flex items-center gap-3">
+          <Avatar user={s.user} size={40} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate font-medium">{s.user.username}</span>
+            <span className="text-xs text-muted-foreground">Joined {s.profile?.user?.joined}</span>
           </div>
-        )}
+          <Button action="logout" variant="outline">
+            Sign out
+          </Button>
+        </div>
       </section>
       <Separator />
       <section className="flex flex-col gap-2">

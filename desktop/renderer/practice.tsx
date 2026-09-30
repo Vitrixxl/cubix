@@ -196,6 +196,7 @@ export function Practice() {
     timesAlways = !mobile && (training ? w >= 1200 : w >= 980),
     timesColumn = !mobile && (timesAlways || s.showTimes),
     compact = w <= 900 || h <= 760;
+  const Stage = mobile ? Surface : "div";
   const enabled =
       !s.saving &&
       !s.generating &&
@@ -373,23 +374,14 @@ export function Practice() {
       : !(label === "Ao5" && s.practicePage() === "playground") && !(label === "Solves" && timesColumn),
   );
   const statistics = (
-    <Strip
-      label="Statistics"
-      className={cn(
-        mobile ? "grid-cols-4 px-3" : metrics.length > 4 ? "grid-cols-3 lg:grid-cols-6 2xl:grid-cols-7" : "grid-cols-3",
-      )}
-    >
+    <Strip label="Statistics" className={cn(mobile ? "grid-cols-4 px-3" : "flex")}>
+      {/* On the desktop every figure takes an equal share of the band. */}
       {metrics.slice(0, mobile ? 4 : undefined).map(([label, value, tone]) => (
-        <Figure key={label} label={label} value={value} tone={tone} size={mobile ? "sm" : "base"} />
+        <Figure key={label} label={label} value={value} tone={tone} size={mobile ? "sm" : "base"} className={cn(!mobile && "flex-1")} />
       ))}
     </Strip>
   );
   const phase = timer.phase.toLowerCase();
-  const newScramble = !mobile && (
-    <Button action="next" icon={Shuffle} tip="New scramble · Alt+N">
-      {!compact && "New scramble"}
-    </Button>
-  );
   const scrambleOptions = s.info().scrambles
       .filter((id: string) => !id.startsWith("cross1-"))
       .map((id: string) => ({ id, label: s.label("scrambles", id) })),
@@ -421,7 +413,6 @@ export function Practice() {
             />
           )}
           {replay}
-          {newScramble}
           {timesToggle}
         </PageHead>
       ) : training ? (
@@ -479,14 +470,15 @@ export function Practice() {
             </>
           )}
           {replay}
-          {newScramble}
           {timesToggle}
         </PageHead>
       )}
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
         <div className="flex min-w-0 flex-1 flex-col gap-3 md:gap-4">
-          <Surface
-            className={cn("stage flex-1", mobile ? "touch-manipulation select-none" : "px-7 pt-6 pb-5")}
+          {/* Phones keep the stage as a card (the whole card is the tap target); the desktop sets the scramble, the cube
+              and the digits straight on the page. */}
+          <Stage
+            className={cn("stage flex-1", mobile ? "touch-manipulation select-none" : "flex min-h-0 flex-col pt-1 pb-1")}
             onPointerDown={(e) => {
               if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest("button, a, [data-no-timer]")) return;
               if (mobile || timer.phase === "Running") timer.press();
@@ -574,11 +566,11 @@ export function Practice() {
                 )}
               </TouchBar>
             )}
-          </Surface>
+          </Stage>
           {mobile ? <SessionPeek training={training} /> : statistics}
         </div>
         {timesColumn && (
-          <aside className={cn("flex w-60 shrink-0 flex-col xl:w-68", FADE)}>
+          <aside className={cn("flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border bg-card px-3 pt-2 pb-1 xl:w-68", FADE)}>
             <Times closable={!timesAlways} />
           </aside>
         )}
