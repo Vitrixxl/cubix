@@ -61,6 +61,7 @@ struct Metrics {
     logs: VecDeque<Value>,
 }
 pub struct Traffic {
+    pub log: crate::activity::Log,
     updates: watch::Sender<()>,
     data: Mutex<Metrics>,
     pub started: i64,
@@ -68,8 +69,9 @@ pub struct Traffic {
     pub trusted: Vec<IpAddr>,
 }
 impl Traffic {
-    pub fn new() -> Self {
+    pub fn new(log: crate::activity::Log) -> Self {
         Self {
+            log,
             updates: watch::channel(()).0,
             data: Mutex::new(Metrics {
                 total: 0,
@@ -91,6 +93,16 @@ impl Traffic {
                 .filter_map(|v| v.trim().parse().ok())
                 .collect(),
         }
+    }
+    /// Clients currently tracked in memory with at least one recorded request.
+    pub fn live_ips(&self) -> usize {
+        self.data
+            .lock()
+            .unwrap()
+            .ips
+            .values()
+            .filter(|c| c.total > 0)
+            .count()
     }
     pub fn subscribe(&self) -> watch::Receiver<()> {
         self.updates.subscribe()
@@ -224,6 +236,18 @@ pub async fn monitor(
     let ip = traffic.ip(peer, request.headers());
     let path = request.uri().path().to_owned();
     let method = request.method().to_string();
+    // A short, printable user agent only; never other headers.
+    let agent = request
+        .headers()
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| {
+            v.chars()
+                .filter(|c| !c.is_control())
+                .take(160)
+                .collect::<String>()
+        })
+        .filter(|v| !v.is_empty());
     let start = Instant::now();
     let mut response = if traffic.allow(ip, &path, false) {
         next.run(request).await
@@ -248,12 +272,22 @@ pub async fn monitor(
     response
         .headers_mut()
         .insert("x-content-type-options", "nosniff".parse().unwrap());
-    traffic.record(
-        ip,
-        &method,
-        &path,
-        response.status().as_u16(),
-        start.elapsed().as_secs_f64() * 1000.,
-    );
+    let ms = start.elapsed().as_secs_f64() * 1000.;
+    let status = response.status().as_u16();
+    traffic.record(ip, &method, &path, status, ms);
+    if path != "/api/health" {
+        traffic.log.request(crate::activity::Entry {
+            at: now(),
+            ip,
+            path: path.chars().take(300).collect(),
+            method: method.chars().take(16).collect(),
+            status,
+            ms,
+            agent,
+            actor: response
+                .extensions_mut()
+                .remove::<crate::activity::Actor>(),
+        });
+    }
     response
 }

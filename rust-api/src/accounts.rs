@@ -45,8 +45,8 @@ pub fn issue(db: &Connection, user: &Value) -> Result<Value> {
     let token: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     db.execute("DELETE FROM auth_tokens WHERE expires_at<=?", [now()])?;
     db.execute(
-        "INSERT INTO auth_tokens VALUES(?,?,?)",
-        params![digest(&token), user["id"].as_str(), now() + 30 * 86400000],
+        "INSERT INTO auth_tokens(token_hash,user_id,expires_at,created_at) VALUES(?,?,?,?)",
+        params![digest(&token), user["id"].as_str(), now() + 30 * 86400000, now()],
     )?;
     Ok(json!({"token":token,"user":public(user)}))
 }

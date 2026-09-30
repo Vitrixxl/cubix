@@ -2,7 +2,7 @@
 //! searching, then race an Ao5 on the same five scrambles. There is no rating: the level each player sends is the
 //! average of their recent solves on that event, and the range accepted around it widens the longer they wait.
 //! The server pairs, relays timers and chat, and keeps the score; the scrambles come from the first player.
-use crate::{AppState, accounts, api::string};
+use crate::{AppState, accounts, activity, api::string, stats};
 use axum::{
     extract::{
         State, WebSocketUpgrade,
@@ -35,6 +35,8 @@ type Outbox = mpsc::UnboundedSender<Value>;
 struct Waiting {
     id: Uuid,
     name: String,
+    /// The account behind the socket, when it sent a valid token.
+    user: Option<String>,
     event: String,
     level: Option<f64>,
     since: Instant,
@@ -50,6 +52,7 @@ struct Solve {
 struct Seat {
     id: Uuid,
     name: String,
+    user: Option<String>,
     level: Option<f64>,
     /// None once the player has left.
     tx: Option<Outbox>,
@@ -58,10 +61,13 @@ struct Seat {
 }
 
 struct Race {
+    id: Uuid,
     event: String,
     seats: [Seat; 2],
     scrambles: Vec<String>,
     game: u32,
+    /// Whether the current game, once over, went to the administration's statistics.
+    recorded: bool,
 }
 impl Race {
     /// The round being raced: the first one someone has not finished.
@@ -82,6 +88,47 @@ impl Race {
         for seat in 0..2 {
             self.send(seat, value.clone());
         }
+    }
+    /// The finished game for the statistics, once: when a rematch starts or someone leaves.
+    fn record(&mut self) -> Option<activity::Game> {
+        if !self.over() || self.recorded {
+            return None;
+        }
+        self.recorded = true;
+        let player = |s: &Seat| {
+            let times: Vec<_> = s
+                .results
+                .iter()
+                .map(|r| {
+                    r.as_ref().and_then(|r| {
+                        (r.penalty != "dnf")
+                            .then(|| r.ms + if r.penalty == "+2" { 2000. } else { 0. })
+                    })
+                })
+                .collect();
+            activity::Player {
+                user: s.user.clone(),
+                name: s.name.clone(),
+                results: json!(s.results.iter().map(|r| r.as_ref().map(|r| json!({"ms": r.ms, "penalty": r.penalty}))).collect::<Vec<_>>()),
+                ao5: stats::average(&times),
+            }
+        };
+        let players = [player(&self.seats[0]), player(&self.seats[1])];
+        // Lower wins, a DNF average loses to any time, two DNFs draw.
+        let winner = match (players[0].ao5, players[1].ao5) {
+            (Some(a), Some(b)) if a < b => Some(0),
+            (Some(a), Some(b)) if b < a => Some(1),
+            (Some(_), None) => Some(0),
+            (None, Some(_)) => Some(1),
+            _ => None,
+        };
+        Some(activity::Game {
+            race: self.id.to_string(),
+            game: self.game,
+            event: self.event.clone(),
+            players,
+            winner,
+        })
     }
     fn state(&self) -> Value {
         json!({
@@ -104,7 +151,10 @@ struct Inner {
 }
 
 #[derive(Default)]
-pub struct Arena(Mutex<Inner>);
+pub struct Arena {
+    inner: Mutex<Inner>,
+    log: Option<activity::Log>,
+}
 
 /// How far apart two levels are, if they may meet now: a ratio, 0 for equal levels.
 fn gap(a: &Waiting, b: &Waiting, now: Instant) -> Option<f64> {
@@ -122,6 +172,17 @@ fn gap(a: &Waiting, b: &Waiting, now: Instant) -> Option<f64> {
 }
 
 impl Arena {
+    pub fn new(log: activity::Log) -> Self {
+        Self {
+            inner: Mutex::default(),
+            log: Some(log),
+        }
+    }
+    fn keep(&self, game: Option<activity::Game>) {
+        if let (Some(log), Some(game)) = (&self.log, game) {
+            log.duel(game);
+        }
+    }
     fn race_of<'a>(inner: &'a mut Inner, id: &Uuid) -> Option<(&'a mut Race, usize)> {
         let (race, seat) = *inner.seats.get(id)?;
         inner.races.get_mut(&race).map(|r| (r, seat))
@@ -147,12 +208,15 @@ impl Arena {
             let seat = |w: Waiting| Seat {
                 id: w.id,
                 name: w.name,
+                user: w.user,
                 level: w.level,
                 tx: Some(w.tx),
                 results: vec![None; ROUNDS],
                 rematch: false,
             };
             let race = Race {
+                id,
+                recorded: false,
                 event: first.event.clone(),
                 seats: [seat(first), seat(second)],
                 scrambles: Vec::new(),
@@ -182,13 +246,13 @@ impl Arena {
         }
     }
     pub fn tick(&self) {
-        let mut inner = self.0.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap();
         Self::pair(&mut inner);
         Self::status(&inner);
     }
     fn queue(&self, waiting: Waiting) {
         self.leave(&waiting.id);
-        let mut inner = self.0.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap();
         let _ = waiting.tx.send(json!({"type": "queued"}));
         inner.queue.push(waiting);
         Self::pair(&mut inner);
@@ -196,7 +260,7 @@ impl Arena {
     }
     /// Out of the queue, or out of a race: the opponent is told and the race ends once both are gone.
     pub fn leave(&self, id: &Uuid) {
-        let mut inner = self.0.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap();
         inner.queue.retain(|w| w.id != *id);
         let Some((race_id, seat)) = inner.seats.remove(id) else {
             return;
@@ -204,6 +268,7 @@ impl Arena {
         let Some(race) = inner.races.get_mut(&race_id) else {
             return;
         };
+        let game = race.record();
         race.seats[seat].tx = None;
         race.seats[seat].rematch = false;
         race.send(1 - seat, json!({"type": "left"}));
@@ -211,10 +276,12 @@ impl Arena {
         if race.seats.iter().all(|s| s.tx.is_none()) {
             inner.races.remove(&race_id);
         }
+        drop(inner);
+        self.keep(game);
     }
     /// A message of a player in a race; wrong or late messages are ignored.
     fn play(&self, id: &Uuid, body: &Value) {
-        let mut inner = self.0.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap();
         let Some((race, seat)) = Self::race_of(&mut inner, id) else {
             return;
         };
@@ -299,12 +366,18 @@ impl Arena {
                 }
                 race.seats[seat].rematch = true;
                 if race.seats.iter().all(|s| s.rematch) {
+                    let game = race.record();
                     race.game += 1;
+                    race.recorded = false;
                     race.scrambles.clear();
                     for s in &mut race.seats {
                         s.rematch = false;
                         s.results = vec![None; ROUNDS];
                     }
+                    race.broadcast(race.state());
+                    drop(inner);
+                    self.keep(game);
+                    return;
                 }
                 race.broadcast(race.state());
             }
@@ -332,7 +405,8 @@ pub async fn upgrade(State(state): State<AppState>, ws: WebSocketUpgrade) -> Res
 }
 
 /// Signed-in players race under their username, guests under a short name of their socket.
-async fn name(state: &AppState, id: &Uuid, token: Option<String>) -> String {
+/// The account id, guest accounts included, goes to the statistics only.
+async fn name(state: &AppState, id: &Uuid, token: Option<String>) -> (String, Option<String>) {
     let user = match token {
         Some(token) => state
             .db
@@ -342,15 +416,18 @@ async fn name(state: &AppState, id: &Uuid, token: Option<String>) -> String {
             .flatten(),
         None => None,
     };
-    user.filter(|u| !u["password_hash"].is_null())
+    let account = user.as_ref().and_then(|u| u["id"].as_str().map(str::to_owned));
+    let name = user
+        .filter(|u| !u["password_hash"].is_null())
         .and_then(|u| u["username"].as_str().map(str::to_owned))
-        .unwrap_or_else(|| format!("guest-{}", &id.simple().to_string()[..4]))
+        .unwrap_or_else(|| format!("guest-{}", &id.simple().to_string()[..4]));
+    (name, account)
 }
 
 async fn player(state: AppState, mut socket: WebSocket) {
     let id = Uuid::new_v4();
     let (tx, mut rx) = mpsc::unbounded_channel::<Value>();
-    let mut player_name: Option<String> = None;
+    let mut player_name: Option<(String, Option<String>)> = None;
     // A burst of 30 messages, then 3 a second: a solve takes a handful, chat a few more.
     let (mut tokens, mut at) = (30., Instant::now());
     // Clients ping every 20 seconds; a silent socket is gone.
@@ -388,7 +465,7 @@ async fn player(state: AppState, mut socket: WebSocket) {
                             player_name = Some(name(&state, &id, token).await);
                         }
                         state.duel.queue(Waiting {
-                            id, name: player_name.clone().unwrap(), event: event.to_owned(), level, since: Instant::now(), tx: tx.clone(),
+                            id, name: player_name.clone().unwrap().0, user: player_name.clone().unwrap().1, event: event.to_owned(), level, since: Instant::now(), tx: tx.clone(),
                         });
                     }
                     "leave" => state.duel.leave(&id),
@@ -407,6 +484,7 @@ mod tests {
         Waiting {
             id: Uuid::new_v4(),
             name: String::new(),
+            user: None,
             event: "333".into(),
             level,
             since: Instant::now() - Duration::from_secs(waited),

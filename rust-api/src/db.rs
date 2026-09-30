@@ -58,6 +58,7 @@ impl Db {
         }
         crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
+        crate::activity::migrate(&db)?;
         let (tx, mut rx) = mpsc::channel::<Job>(1024);
         std::thread::Builder::new()
             .name("cubix-sqlite".into())

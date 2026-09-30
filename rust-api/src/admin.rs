@@ -1,5 +1,5 @@
 use crate::{
-    AppState, accounts,
+    AppState, accounts, activity, admin_data,
     db::{all, one},
     error::{ApiError, Result},
 };
@@ -126,7 +126,7 @@ pub async fn dispatch(
         )
     })?;
     let path = uri.path();
-    if method == Method::POST {
+    if method != Method::GET && method != Method::HEAD {
         same_origin(&headers)?;
     }
     if path == "/api/admin/login" && method == Method::POST {
@@ -171,12 +171,38 @@ pub async fn dispatch(
         );
         return Ok(response);
     }
-    if path != "/api/admin/dashboard" || method != Method::GET {
-        return Err(ApiError::new(404, "Unknown admin route"));
-    }
     let query: HashMap<String, String> = serde_urlencoded::from_str(uri.query().unwrap_or(""))
         .map_err(|_| ApiError::validation())?;
-    Ok(Json(dashboard(&state, expires, &query).await?).into_response())
+    let segments: Vec<&str> = path
+        .trim_start_matches("/api/admin/")
+        .split('/')
+        .collect();
+    let value = match (method.as_str(), segments.as_slice()) {
+        ("GET", ["dashboard"]) => dashboard(&state, expires, &query).await?,
+        ("GET", ["overview"]) => admin_data::overview(&state).await?,
+        ("GET", ["requests"]) => admin_data::requests(&state, &admin_data::Query::new(&query)?).await?,
+        ("GET", ["ips"]) => admin_data::ips(&state, &admin_data::Query::new(&query)?).await?,
+        ("GET", ["users"]) => admin_data::users(&state, &admin_data::Query::new(&query)?).await?,
+        ("GET", ["users", id]) => admin_data::user(&state, admin_data::user_id(id)?).await?,
+        ("POST", ["users", id, "revoke"]) | ("DELETE", ["users", id]) => {
+            let id = admin_data::user_id(id)?;
+            let value = if method == Method::POST {
+                admin_data::revoke(&state, id.clone()).await?
+            } else {
+                admin_data::delete(&state, id.clone()).await?
+            };
+            // The log names the account acted on, without counting it as the account's activity.
+            let mut response = Json(value).into_response();
+            response.extensions_mut().insert(activity::Actor {
+                user: id,
+                token: None,
+                seen: false,
+            });
+            return Ok(response);
+        }
+        _ => return Err(ApiError::new(404, "Unknown admin route")),
+    };
+    Ok(Json(value).into_response())
 }
 
 async fn session(state: &AppState, token: &str) -> Result<i64> {
@@ -276,6 +302,7 @@ async fn live(
     ip: std::net::IpAddr,
 ) {
     let mut updates = state.traffic.subscribe();
+    let mut important = state.traffic.log.subscribe();
     let mut revoked = state.admin.as_ref().as_ref().unwrap().revoked.subscribe();
     let deadline =
         Instant::now() + Duration::from_millis((expires - accounts::now()).max(0) as u64);
@@ -305,6 +332,14 @@ async fn live(
                 if result.is_err() { break; }
                 if streaming { pending = true; }
             }
+            event = important.recv() => match event {
+                // Each newly stored important request, as `/api/admin/requests` lists it.
+                Ok(row) => {
+                    if streaming && !send(&mut socket, Message::Text(json!({"type":"important","data":row}).to_string().into())).await { break; }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                Err(_) => break,
+            },
             _ = tokio::time::sleep_until(next_send), if pending => {
                 pending = false;
                 // Consume changes before the snapshot so requests arriving while SQL runs

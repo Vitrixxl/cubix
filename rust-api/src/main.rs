@@ -1,5 +1,7 @@
 mod accounts;
+mod activity;
 mod admin;
+mod admin_data;
 mod api;
 mod catalog;
 mod db;
@@ -126,9 +128,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         return Ok(());
     }
-    let traffic = Arc::new(traffic::Traffic::new());
+    let log = activity::Log::new(db.clone());
+    let traffic = Arc::new(traffic::Traffic::new(log.clone()));
     let admin = Arc::new(admin::Admin::new()?);
-    let duel = Arc::new(duel::Arena::default());
+    let duel = Arc::new(duel::Arena::new(log.clone()));
     tokio::spawn(duel::run(duel.clone()));
     let state = AppState {
         admin,
@@ -215,11 +218,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .await
         });
     }
-    tokio::select! {
-        _=tokio::signal::ctrl_c()=>{},
-        _=orphaned()=>{eprintln!("Parent process gone; stopping.");},
-        result=servers.join_next()=>{if let Some(result)=result {result??;}},
-    }
+    let mut terminate =
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    let outcome: Result<(), Box<dyn std::error::Error>> = tokio::select! {
+        _=tokio::signal::ctrl_c()=>Ok(()),
+        _=terminate.recv()=>Ok(()),
+        _=orphaned()=>{eprintln!("Parent process gone; stopping."); Ok(())},
+        result=servers.join_next()=>match result { Some(Ok(Err(e)))=>Err(e.into()), Some(Err(e))=>Err(e.into()), _=>Ok(()) },
+    };
     servers.abort_all();
-    Ok(())
+    // Requests already answered reach the persistent log before the process exits.
+    log.flush().await;
+    outcome
 }
