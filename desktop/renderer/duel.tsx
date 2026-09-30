@@ -129,19 +129,17 @@ function Lobby() {
   ];
   return (
     <div className="page duel-lobby">
-      <PageHead title="Duel" puzzle sub={s.event().label} />
-      <section className="setup-detail">
-        <div className="setup-pane">
-          <header className="setup-pane-head">
-            <div className="setup-pane-title">
-              <span className="label">One against one · {s.event().label}</span>
-              <h2>{searching ? "Looking for an opponent" : "Race an Ao5"}</h2>
-              <p className={duel.notice ? "danger" : "muted"}>
-                {duel.notice || "The same five scrambles for both of you, against a player near your level."}
-              </p>
-            </div>
-          </header>
-          <div className="setup-figures">
+      <PageHead title="Duel" puzzle sub={`One against one · ${s.event().label}`} />
+      <div className="duel-lobby-body">
+        <section className="panel duel-lobby-card">
+          <span className={"duel-lobby-icon " + (searching ? "searching" : "")}>
+            <Icon name="IconSwords" size={22} />
+          </span>
+          <h2>{searching ? "Looking for an opponent" : "Race an Ao5"}</h2>
+          <p className={duel.notice ? "danger" : "muted"}>
+            {duel.notice || "The same five scrambles for both of you, against a player near your level."}
+          </p>
+          <div className="duel-lobby-figures">
             {figures.map(([label, value]) => (
               <div key={label} className="metric">
                 <span className="label">{label}</span>
@@ -149,13 +147,11 @@ function Lobby() {
               </div>
             ))}
           </div>
-          <div className="setup-actions">
-            <Button action={searching ? "duel:leave" : "duel:search"} className={"setup-start mono " + (searching ? "" : "primary")}>
-              {searching ? "Cancel" : "Find an opponent"}
-            </Button>
-          </div>
-        </div>
-      </section>
+          <Button action={searching ? "duel:leave" : "duel:search"} className={"setup-start big " + (searching ? "" : "primary")} icon={searching ? "IconClose" : "IconSwords"}>
+            {searching ? "Cancel" : "Find an opponent"}
+          </Button>
+        </section>
+      </div>
     </div>
   );
 }
@@ -166,7 +162,7 @@ function Digits({ text }: { text: string }) {
   return (
     <div className="timer-digits mono" style={{ "--chars": Math.max(6, text.length) } as React.CSSProperties}>
       {text.split("").map((ch, i) => (
-        <span key={i}>{ch}</span>
+        <span key={i} className={text.includes(".") && i > text.indexOf(".") ? "frac" : undefined}>{ch}</span>
       ))}
     </div>
   );
@@ -254,7 +250,7 @@ function Race() {
       </PageHead>
       <div className="duel-body" style={{ gridTemplateColumns: chatDocked ? "minmax(0, 1fr) var(--chat-width)" : "minmax(0, 1fr)" }}>
         <div className="duel-stage">
-          <section className="duel-scramble" style={{ "--prompt-cells": scramble.length > 220 ? 4 : scramble.length > 120 ? 3 : 2 } as React.CSSProperties}>
+          <section className="panel duel-scramble" style={{ "--prompt-cells": scramble.length > 220 ? 4 : scramble.length > 120 ? 3 : 2 } as React.CSSProperties}>
             <span className="label">
               {duel.over ? "Race over" : `Round ${round + 1} of ${ROUNDS}`} · {duel.over ? "Ao5" : "Scramble"}
             </span>
@@ -262,7 +258,7 @@ function Race() {
               {duel.over ? (
                 <span className="muted">Five rounds raced.</span>
               ) : scramble ? (
-                <Alg text={scramble} size={promptFont} />
+                <Alg text={scramble} size={promptFont} faces={!!cubeSize} />
               ) : (
                 <span className="skeleton-line" style={{ height: promptFont * 1.4, width: "min(100%, 36em)" }} />
               )}
@@ -270,7 +266,7 @@ function Race() {
           </section>
           <div className={"duel-split " + (cubeShown ? "with-cube" : "")}>
             <section
-              className={"duel-side mine " + timer.phase}
+              className={"panel duel-side mine " + timer.phase}
               onPointerDown={(e) => {
                 if ((e.target as HTMLElement).closest("button")) return;
                 if (mobile && !running) timer.press();
@@ -286,14 +282,14 @@ function Race() {
               <div className="timer-hint">{myHint}</div>
             </section>
             {cubeShown && (
-              <div className="duel-cube" ref={setCubeBox}>
+              <div className="panel duel-cube" ref={setCubeBox}>
                 {cubeSide > 0 && scramble && !duel.over && (
                   <Cube setup={scramble} cubeSize={cubeSize} size={Math.round(cubeSide * 0.8)} held={heldScramble("normal")} />
                 )}
                 <Button action="duel:cube" icon="IconClose" className="control icon-only pane-toggle" title="Hide the cube" />
               </div>
             )}
-            <section className={"duel-side theirs " + duel.opponentPhase + (duel.opponentHere ? "" : " gone")}>
+            <section className={"panel duel-side theirs " + duel.opponentPhase + (duel.opponentHere ? "" : " gone")}>
               <header className="duel-side-head">
                 <strong>{opponent.name}</strong>
                 <span className="mono muted">{opponent.level ? fmtTime(opponent.level) : ""}</span>
@@ -329,7 +325,7 @@ const average = (v: number | null | undefined) => (v === undefined ? "" : v === 
 function Board({ actions = false }: { actions?: boolean }) {
   const round = duel.round;
   return (
-    <div className={"duel-board " + (actions ? "with-actions" : "")} role="table" aria-label="Rounds">
+    <div className={"duel-board " + (actions ? "panel with-actions" : "")} role="table" aria-label="Rounds">
       {[duel.seat, 1 - duel.seat].map((seat) => {
         const solves = duel.results[seat] ?? [],
           other = duel.results[1 - seat] ?? [],
@@ -400,13 +396,13 @@ function Chat({ closable = false }: { closable?: boolean }) {
     list.current?.scrollTo({ top: list.current.scrollHeight });
   }, [duel.chat.length]);
   return (
-    <div className="column-content duel-chat">
-      <div className="column-head">
+    <div className="panel column-content duel-chat">
+      <div className="column-head panel-head">
         <strong>Chat</strong>
         <span className="mono muted">{duel.chat.length}</span>
         {closable && (
           <span className="column-head-actions">
-            <Button action="duel:chat" icon="IconClose" className="control icon-only" title="Close" />
+            <Button action="duel:chat" icon="IconClose" className="control small icon-only" title="Close" />
           </span>
         )}
       </div>

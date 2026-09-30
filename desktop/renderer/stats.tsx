@@ -17,7 +17,7 @@ function StatStrip({ summary }: { summary: any }) {
         ["Best Ao12", fmtTime(summary.bestAo12), ""],
         ["Solves", String(summary.count), ""],
       ].map(([label, value, cls]) => (
-        <div key={label} className="stat-tile">
+        <div key={label} className={"stat-tile" + (/^[-–—]$/.test(value.trim()) ? " is-empty" : "")}>
           <small className="muted">{label}</small>
           <span className={"mono " + cls}>{value}</span>
         </div>
@@ -281,7 +281,7 @@ function LocalSelect<T extends string>({
       <button
         ref={trigger}
         type="button"
-        className="button active"
+        className="button control"
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={!!anchor}

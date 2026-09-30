@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { store as s, matches } from "./store";
 import { fmtSolve, fmtTime, best, bestAverage } from "../../src/client/lib/format";
-import { Avatar, Button, Diagram, Empty, Icon, Menu, PageHead, Progress, type Props, Row, plural } from "./ui";
+import { Avatar, Button, Diagram, Empty, Icon, MOBILE, Menu, PageHead, PageSkeleton, Progress, type Props, Row, plural, useViewport } from "./ui";
 import { TimerStats } from "./stats";
 import { DUELS_KEY, ROUNDS, battleRecord, type DuelRecord } from "./duelClient";
 import { eventInfo, eventLabel } from "../../src/shared/puzzles";
@@ -763,8 +763,9 @@ const PROFILE_SECTIONS: Record<string, string> = {
 
 /** Account page: the overview, or one of its sections opened from it as a page of its own. */
 export function Profile() {
-  const p = s.profile;
-  if (!p) return <Empty>Loading…</Empty>;
+  const p = s.profile,
+    mobile = useViewport().w <= MOBILE;
+  if (!p) return <PageSkeleton side={false} />;
   const guest = s.user.isGuest,
     mode = s.profileMode in PROFILE_SECTIONS ? s.profileMode : "overview",
     title = PROFILE_SECTIONS[mode] ?? "Overview";
@@ -772,7 +773,7 @@ export function Profile() {
     <div className="page profile-page">
       {mode === "overview" ? (
         <PageHead
-          lead={<Avatar user={guest ? { username: "G" } : p.user} size={36} />}
+          lead={<Avatar user={guest ? { username: "G" } : p.user} size={44} />}
           title={guest ? "Guest" : p.user.username}
           sub={guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
         >
@@ -784,10 +785,10 @@ export function Profile() {
               <Button action="account:register" className="primary">
                 Create account
               </Button>
-              <span className="control-gap" />
             </>
           )}
           <ProfileFilters />
+          {mobile && <Button action="settings" icon="IconSettings" className="control icon-only" title="Settings" />}
         </PageHead>
       ) : (
         <PageHead

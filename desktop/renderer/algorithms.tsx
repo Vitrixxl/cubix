@@ -30,8 +30,9 @@ export function Algorithms() {
   return (
     <div className="page algorithms-page">
       <PageHead title="Algorithms" puzzle sub={`${learned} of ${total} learned`}>
-        <Button action="search" className="control" title="Search cases (Ctrl+K)">
-          <span className="control-label">Search</span>
+        <Button action="search" className="control search-trigger" title="Search cases (Ctrl+K)">
+          <Icon name="IconSearch" size={14} />
+          <span className="control-label">Search cases</span>
           <kbd>Ctrl K</kbd>
         </Button>
         <Button action="methods" icon="IconBook" className="control collapsible" title="Solving methods">
@@ -41,7 +42,7 @@ export function Algorithms() {
       <div className="master-detail">
         <CaseList />
         {!mobile && (
-          <div className="md-detail">{s.caseId && s.find(s.caseId) ? <CaseDetail key={s.caseId} /> : <SetSummary />}</div>
+          <div className="panel md-detail">{s.caseId && s.find(s.caseId) ? <CaseDetail key={s.caseId} /> : <SetSummary />}</div>
         )}
       </div>
     </div>
@@ -62,13 +63,13 @@ function currentSection() {
 }
 
 function CaseList() {
-  const diagram = useViewport().w <= MOBILE ? 56 : 68;
+  const diagram = useViewport().w <= MOBILE ? 48 : 52;
   const scroll = useScrollPosition(`catalog:${s.puzzle}:${s.catalogStage}`);
   const { stages, stage, section, all } = currentSection();
   const setLearned = all ? all.learnedCount : 0,
     setTotal = all ? all.all.length : 0;
   return (
-    <div className="md-list">
+    <div className="panel md-list">
       <div className="md-list-head">
         <div className="tabs" role="tablist" aria-label="Stage">
           {stages.map((st) => (
@@ -152,8 +153,7 @@ function CaseRow({ c, size }: { c: any; size: number }) {
         className={"case-check " + (learned ? "yes" : "")}
         title={learned ? "Learned" : "Mark learned"}
       >
-        <Icon name="IconCheck" size={16} />
-        <span>{learned ? "Learned" : "Learn"}</span>
+        <Icon name="IconCheck" size={14} />
       </Button>
     </div>
   );
@@ -234,9 +234,9 @@ function CaseDetail() {
         <div className="detail-hero">
           <div className="detail-visual">
             {c.cube ? (
-              <Cube setup={c.setup} cubeSize={c.cube_size ?? 3} mask={maskForStage(c.stage)} size={mobile ? 150 : 216} replay={s.replay} />
+              <Cube setup={c.setup} cubeSize={c.cube_size ?? 3} mask={maskForStage(c.stage)} size={mobile ? 140 : 184} replay={s.replay} />
             ) : (
-              <Diagram c={c} size={mobile ? 136 : 196} />
+              <Diagram c={c} size={mobile ? 128 : 168} />
             )}
           </div>
           <div className="detail-meta">
@@ -292,11 +292,11 @@ function CaseDetail() {
                 <span className="mono muted algorithm-index">{i + 1}</span>
                 <Alg text={a.alg} size={16} />
                 <span className="algorithm-meta">
-                  {i === 0 && <span className="mark">Primary</span>}
+                  {i === 0 && <span className="tag">Primary</span>}
                   {a.stm != null && <span className="muted">{a.stm} STM</span>}
                   <span className="muted">{SOURCES[a.source] ?? a.source}</span>
                   {a.youtube && (
-                    <Button action={"url:" + a.youtube} className="control">
+                    <Button action={"url:" + a.youtube} className="control small">
                       Video
                     </Button>
                   )}

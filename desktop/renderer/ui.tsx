@@ -13,7 +13,8 @@ export function Icon({ name, size = 16 }: { name: string; size?: number }) {
 function ActionButton({icon, children, className = "", ...props}:
   React.ButtonHTMLAttributes<HTMLButtonElement> & {icon?: string}) {
   return <button type="button" {...props} className={`button ${className}`}>
-    {icon && <Icon name={icon} />} {children}
+    {icon && <Icon name={icon} size={15} />}
+    {children}
   </button>;
 }
 export type Props = {
@@ -50,7 +51,7 @@ export function Button({
       data-action={action}
       title={title ?? (typeof children === "string" ? children : action)}
       aria-label={title ?? (typeof children === "string" ? children : action)}
-      className={`${active ? "active" : ""} ${highlight ? "highlighted" : ""} ${className}`}
+      className={`${active ? "active" : ""} ${highlight ? "highlighted" : ""} ${icon && (children == null || children === false) ? "icon-only" : ""} ${className}`}
       style={style}
       disabled={disabled}
       onClick={(e) => {
@@ -144,7 +145,10 @@ function PuzzleControl() {
   );
 }
 
-/** Every page starts with the same row: title on the left, the page controls on the right. */
+/**
+ * Every page starts with the same header, drawn on the canvas rather than in a bar: the title and one short line
+ * under it on the left, the page's controls on the right. Phones put the puzzle beside the title.
+ */
 export function PageHead({
   title,
   sub,
@@ -153,15 +157,8 @@ export function PageHead({
   children,
 }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean } & Props) {
   const mobile = useViewport().w <= MOBILE;
-  // Phones share the controls' row equally; the puzzle cell above is as wide as one of them, so their lines meet.
-  const flat = (nodes: React.ReactNode): React.ReactNode[] =>
-      React.Children.toArray(nodes).flatMap((n) => (React.isValidElement(n) && n.type === React.Fragment ? flat((n.props as Props).children) : [n])),
-    // A group of cells (the cross + 1 moves) takes two shares.
-    controls = flat(children)
-      .filter((n) => React.isValidElement(n) && (n.props as Props).className !== "control-gap")
-      .reduce((sum: number, n) => sum + (((n as React.ReactElement).props as Props).className === "segmented" ? 2 : 1), 0);
   return (
-    <header className="page-head" style={{ "--controls": Math.max(1, controls) } as React.CSSProperties}>
+    <header className="page-head">
       <div className="page-title">
         {lead}
         <div className="page-title-text">
@@ -175,11 +172,75 @@ export function PageHead({
   );
 }
 
+/** A pulsing block standing in for content that is on its way. */
+export function Skeleton({ w = "100%", h = 14, className = "", style }: { w?: number | string; h?: number | string } & Props) {
+  return <span className={"skeleton-line " + className} aria-hidden="true" style={{ width: w, height: h, ...style }} />;
+}
+
+/** A whole page on its way: its header and two panels, shaped like the pages they stand for. */
+export function PageSkeleton({ side = true }: { side?: boolean }) {
+  return (
+    <div className="page page-skeleton" aria-busy="true" aria-label="Loading">
+      <header className="page-head">
+        <div className="page-title">
+          <div className="page-title-text">
+            <Skeleton w={160} h={26} />
+            <Skeleton w={220} h={12} />
+          </div>
+        </div>
+        <div className="page-controls">
+          <Skeleton w={120} h={34} />
+          <Skeleton w={96} h={34} />
+        </div>
+      </header>
+      <div className="skeleton-body" style={{ gridTemplateColumns: side ? "minmax(0, 1fr) var(--side-width)" : "minmax(0, 1fr)" }}>
+        <div className="panel skeleton-panel">
+          <Skeleton w="30%" h={12} />
+          <Skeleton w="85%" h={22} />
+          <Skeleton w="60%" h={22} />
+          <span className="skeleton-fill" />
+          <Skeleton w="40%" h={72} style={{ alignSelf: "center" }} />
+          <span className="skeleton-fill" />
+        </div>
+        {side && (
+          <div className="panel skeleton-panel">
+            <Skeleton w="40%" h={12} />
+            {Array.from({ length: 8 }, (_, i) => (
+              <Skeleton key={i} w="100%" h={18} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The app's mark: four stickers, one of them turned to the accent. */
+export function Logo({ size = 18 }: { size?: number }) {
+  return (
+    <svg className="logo" width={size} height={size} viewBox="0 0 18 18" aria-hidden="true">
+      {[0, 1].flatMap((row) =>
+        [0, 1].map((col) => (
+          <rect
+            key={row * 2 + col}
+            x={col * 9.75}
+            y={row * 9.75}
+            width={8.25}
+            height={8.25}
+            rx={2.2}
+            className={row === 0 && col === 1 ? "logo-accent" : undefined}
+          />
+        )),
+      )}
+    </svg>
+  );
+}
+
 /** A menu trigger of the page header: current value and a chevron. */
 export function Menu({ action, children, icon }: { action: string; icon?: string } & Props) {
   return (
-    <Button action={"menu:" + action} className={"control " + (s.overlay === action ? "open" : "")} icon={icon}>
-      {children}
+    <Button action={"menu:" + action} className={"control menu-trigger " + (s.overlay === action ? "open" : "")} icon={icon}>
+      <span className="menu-trigger-label">{children}</span>
       <Icon name="IconChevronDown" size={12} />
     </Button>
   );

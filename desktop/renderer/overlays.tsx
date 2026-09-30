@@ -165,7 +165,7 @@ function GuidesDialog({ close }: { close: () => void }) {
     <div className="modal-backdrop" onClick={close}>
       <div className="modal guides-modal" role="dialog" aria-modal="true" aria-label="Guides" onClick={(e) => e.stopPropagation()}>
         <nav className="guides-nav" aria-label="Guides">
-          <span className="label guides-nav-title">Guides</span>
+          <span className="guides-nav-title">Guides</span>
           {(Object.keys(GUIDES) as Guide[]).map((id) => (
             <Button key={id} action={"guidePage:" + id} className={"guides-nav-item " + (id === page ? "selected" : "")}>
               {GUIDES[id].name}
@@ -257,26 +257,20 @@ function options(): { action: string; values: any[]; current: string } {
 const PUZZLE_COLUMNS = 4;
 
 /**
- * Where a menu opens: flush against the cell that opened it, its lines on the cell's. A rail cell opens it beside
- * itself, top lines aligned; any other cell under itself (above when there is no room), left lines aligned, or right
- * lines when it would leave the window. On phones it spans the width under the cell's row. The anchor is the
- * cell's line rectangle (store.ts), so sharing a line means overlapping it by 1px.
+ * Where a menu opens: 6px under the button that opened it (above when there is no room), its left edge on the
+ * button's, or its right edge when it would leave the window. Phones span the width, 8px from the edges.
  */
 function placeMenu(anchor: DOMRect | null, width: number, natural: number, mobile: boolean) {
-  const room = innerHeight - (mobile ? 64 : 0);
+  const room = innerHeight - (mobile ? 72 : 0) - 8;
   if (!anchor) {
     const height = Math.min(natural, room - 32);
-    return { left: Math.max(0, (innerWidth - width) / 2), top: Math.max(16, (room - height) / 2), height, up: false };
+    return { left: Math.max(8, (innerWidth - width) / 2), top: Math.max(16, (room - height) / 2), height, up: false };
   }
-  if (!mobile && anchor.left < 2) {
-    const height = Math.min(natural, room);
-    return { left: anchor.right - 1, top: Math.max(0, Math.min(anchor.top, room - height)), height, up: false };
-  }
-  const left = mobile ? 0 : anchor.left + width > innerWidth ? Math.max(0, anchor.right - width) : anchor.left,
-    below = room - anchor.bottom + 1,
+  const left = mobile ? 8 : Math.max(8, anchor.left + width > innerWidth - 8 ? anchor.right - width : anchor.left),
+    below = room - anchor.bottom - 6,
     up = natural > below && anchor.top > below,
-    height = Math.min(natural, up ? anchor.top + 1 : below);
-  return { left, top: up ? anchor.top + 1 - height : anchor.bottom - 1, height, up };
+    height = Math.min(natural, up ? anchor.top - 14 : below);
+  return { left, top: up ? anchor.top - 6 - height : anchor.bottom + 6, height, up };
 }
 
 export function Overlay() {
@@ -342,9 +336,9 @@ export function Overlay() {
       count = menu.values.length,
       lastRow = count % PUZZLE_COLUMNS || PUZZLE_COLUMNS,
       mobile = innerWidth <= MOBILE,
-      width = mobile ? innerWidth : puzzles ? PUZZLE_COLUMNS * 104 + 2 : Math.max(240, s.anchor?.width ?? 0),
-      // Rows (41px with their line) or puzzle cells, and the border: the menu only scrolls when the window is short.
-      natural = puzzles ? Math.ceil(count / PUZZLE_COLUMNS) * (mobile ? 85 : 93) + 1 : count * 41 + 1,
+      width = mobile ? innerWidth - 16 : puzzles ? PUZZLE_COLUMNS * 96 + 12 : Math.max(220, s.anchor?.width ?? 0),
+      // Rows or puzzle tiles and the padding: the menu only scrolls when the window is short.
+      natural = puzzles ? Math.ceil(count / PUZZLE_COLUMNS) * (mobile ? 76 : 84) + 12 : count * 36 + 10,
       place = placeMenu(s.anchor, width, natural, mobile);
     return (
       <div className="menu-backdrop" onClick={close}>
@@ -407,7 +401,7 @@ export function Overlay() {
     return (
       <div className="modal-backdrop" onClick={close}>
         <div className="modal methods-modal" role="dialog" aria-modal="true" aria-label="Solving methods" onClick={(e) => e.stopPropagation()}>
-          <Row className="between"><h2>Solving methods</h2><Button action="close" icon="IconClose" title="Close solving methods" /></Row>
+          <Row className="between modal-head"><h2>Solving methods</h2><Button action="close" icon="IconClose" className="control icon-only" title="Close solving methods" /></Row>
           <div className="row wrap methods-tabs" role="group" aria-label="Puzzle">
             {PUZZLES.map((p) => (
               <Button key={p.id} action={"guidePuzzle:" + p.id} active={p.id === s.guidePuzzle} highlight="methods-puzzle">{p.label}</Button>
@@ -434,7 +428,7 @@ export function Overlay() {
   if (s.overlay === "learningGroups") return (
     <div className="modal-backdrop" onClick={close}>
       <div className="modal learning-groups-modal" role="dialog" aria-modal="true" aria-label="Group order" onClick={e => e.stopPropagation()}>
-        <Row className="between"><h2>Group order · {s.learningMode}</h2><Button action="close" icon="IconClose" title="Close group order" /></Row>
+        <Row className="between modal-head"><h2>Group order · {s.learningMode}</h2><Button action="close" icon="IconClose" className="control icon-only" title="Close group order" /></Row>
         <LearningGroups key={s.learningMode} />
       </div>
     </div>
@@ -456,7 +450,7 @@ export function Overlay() {
         }
         onClick={(e) => e.stopPropagation()}
       >
-        <Row className="between">
+        <Row className="between modal-head">
           <h2>
             {s.overlay === "search"
               ? "Search cases"
@@ -468,12 +462,13 @@ export function Overlay() {
                     ? "Settings"
                     : "Solve"}
           </h2>
-          <Button action="close" icon="IconClose" />
+          <Button action="close" icon="IconClose" className="control icon-only" title="Close" />
         </Row>
         {s.overlay === "search" ? (
           <>
             <input
               autoFocus
+              className="search-input"
               placeholder="Search a case: oll fish, pll t, f2l 6…"
               value={s.search}
               onChange={(e) => {
@@ -482,7 +477,7 @@ export function Overlay() {
                 s.emit();
               }}
             />
-            <div className="scroll">
+            <div className="scroll search-results">
               {results.map((c: any, i: number) => (
                 <button
                   key={c.id}

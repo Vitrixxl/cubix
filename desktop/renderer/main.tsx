@@ -6,7 +6,7 @@ import { onEvent } from "./bridge";
 import { theme } from "./theme";
 import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
-import { Empty, MOBILE, useViewport } from "./ui";
+import { MOBILE, PageSkeleton, useViewport } from "./ui";
 import { Frame, Rail, TabBar } from "./shell";
 import { Practice } from "./practice";
 import { TrainingSetup } from "./setup";
@@ -109,7 +109,7 @@ function App() {
           {!mobile && <Rail />}
           <div className="content">
             {!s.ready ? (
-              <Empty>{s.error || "Loading…"}</Empty>
+              <PageSkeleton side={!mobile} />
             ) : (
               <AnimatePresence initial={false} custom={s.direction}>
                 <Frame key={frameKey} mobile={mobile}>

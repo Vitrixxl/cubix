@@ -9,7 +9,7 @@ type SetupMode = { id: string; label: string; detail: string; icon: string };
 function setupModes(): SetupMode[] {
   const learned = (cases: any[]) => cases.filter((c) => s.learned.has(c.id)).length;
   return [
-    ...(s.puzzle === "333" ? [{ id: "cross1", label: "Cross + 1", detail: `First block · ${s.crossMoves} moves`, icon: "IconCube" }] : []),
+    ...(s.puzzle === "333" ? [{ id: "cross1", label: "Cross + 1", detail: `${s.crossMoves}-move first block`, icon: "IconCube" }] : []),
     ...trainingModeOptions(s.puzzle).map(({ value, label }) => {
       const pool = isLearningTrack(value) ? learningCases(catalog.cases, value) : [];
       return {
@@ -34,37 +34,37 @@ function defaultSetupMode() {
   return isReviewMode(mode) ? "review" : learningTrackOf(mode) ?? "practice";
 }
 
-/** Training starts here: the modes on the left, the chosen one on the right with what it needs and its start button. */
+/** Training starts here: a card per mode across the top, the chosen one underneath with what it needs and its start. */
 export function TrainingSetup() {
   const modes = setupModes(),
     current = modes.find((m) => m.id === (s.setupMode || defaultSetupMode())) ?? modes[0]!;
   return (
     <div className="page training-setup">
-      <PageHead title="Training" puzzle sub="Choose what to practise" />
-      <div className="setup-body">
-        <nav className="setup-modes" aria-label="Training modes">
-          {modes.map((m) => (
-            <Button key={m.id} action={"setupMode:" + m.id} className={"setup-mode " + (m === current ? "selected" : "")} title={m.label}>
+      <PageHead title="Training" puzzle sub="Pick a way to practise, then start" />
+      <nav className="setup-modes" aria-label="Training modes" style={{ "--modes": modes.length } as React.CSSProperties}>
+        {modes.map((m) => (
+          <Button key={m.id} action={"setupMode:" + m.id} className={"setup-mode " + (m === current ? "selected" : "")} title={m.label}>
+            <span className="setup-mode-icon">
               <Icon name={m.icon} size={16} />
-              <span className="setup-mode-text">
-                <strong>{m.label}</strong>
-                <span>{m.detail}</span>
-              </span>
-            </Button>
-          ))}
-        </nav>
-        <section className="setup-detail" key={current.id}>
-          {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup /> : <LearningSetup mode={current.id} />}
-        </section>
-      </div>
+            </span>
+            <span className="setup-mode-text">
+              <strong>{m.label}</strong>
+              <span>{m.detail}</span>
+            </span>
+          </Button>
+        ))}
+      </nav>
+      <section className="panel setup-detail" key={current.id}>
+        {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup /> : <LearningSetup mode={current.id} />}
+      </section>
     </div>
   );
 }
 
-/** Start of a setup; `big` is the full-width one along the bottom of a pane, a plain word in mono without icon. */
+/** Start of a setup; `big` is the large one closing a centred pane. */
 function SetupStart({ action, disabled = false, big = false, children }: { action: string; disabled?: boolean; big?: boolean } & Props) {
   return (
-    <Button action={action} className={"primary setup-start " + (big ? "mono" : "")} icon={big ? undefined : "IconTimer"} disabled={disabled}>
+    <Button action={action} className={"primary setup-start " + (big ? "big" : "")} icon="IconTimer" disabled={disabled}>
       {children ?? "Start"}
     </Button>
   );
@@ -77,7 +77,7 @@ function CrossSetup() {
         <div className="setup-pane-title">
           <span className="label">First block</span>
           <h2>Cross + 1</h2>
-          <p className="muted">Scrambles whose back block (a back F2L pair with its two cross edges) takes exactly the chosen number of moves, held with white on the bottom and green in front (z2).</p>
+          <p className="muted">Scrambles whose back block takes exactly the chosen number of moves.</p>
         </div>
       </header>
       <div className="setup-field">
@@ -85,7 +85,7 @@ function CrossSetup() {
           {CROSS_PLUS_ONE_MOVES.map((n) => (
             <Button key={n} action={"crossMoves:" + n} className={"move-option " + (s.crossMoves === n ? "selected" : "")} title={`${n} moves`}>
               <span className="move-count mono">{n}</span>
-              <span>moves</span>
+              <span className="muted">moves</span>
             </Button>
           ))}
         </div>
@@ -138,7 +138,7 @@ function CasesSetup() {
                   className={"check-button " + (count === chosen.length ? "all" : count ? "some" : "")}
                   title={(count === chosen.length ? "Unselect " : "Select ") + set.label}
                 >
-                  <Icon name={count && count < chosen.length ? "IconMinus" : "IconCheck"} size={18} />
+                  <Icon name={count && count < chosen.length ? "IconMinus" : "IconCheck"} size={14} />
                 </Button>
                 <Button action={"selectorToggle:" + set.id} className="setup-set-title">
                   <span className="setup-set-stage label">{set.stage}</span>
@@ -170,7 +170,7 @@ function CasesSetup() {
                             className={"setup-tile " + (s.selected.has(c.id) ? "chosen" : "")}
                             title={c.name}
                           >
-                            <Diagram c={c} size={60} />
+                            <Diagram c={c} size={56} />
                             <span>{shortId(c)}</span>
                           </Button>
                         ))}

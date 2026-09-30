@@ -1,124 +1,140 @@
-/** The frame around the pages: the rail or the phone tab bar, and the page transition. */
+/** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
 import { store as s } from "./store";
-import { Avatar, Button, Icon, type Props } from "./ui";
-const TABS: [page: string, label: string, icon: string, shortcut: string][] = [
-  ["playground", "Timer", "IconTimer", "Alt+1"],
-  ["algorithms", "Algorithms", "IconCases", "Alt+2"],
-  ["training", "Training", "IconTarget", "Alt+3"],
-  ["duel", "Duel", "IconSwords", "Alt+5"],
+import { Avatar, Button, Icon, Logo, type Props } from "./ui";
+
+const SECTIONS: [page: string, label: string, icon: string, shortcut: string][] = [
+  ["playground", "Timer", "IconTimer", "Alt 1"],
+  ["algorithms", "Algorithms", "IconCases", "Alt 2"],
+  ["training", "Training", "IconTarget", "Alt 3"],
+  ["duel", "Duel", "IconSwords", "Alt 5"],
+  ["profile", "Profile", "IconUser", "Alt 4"],
 ];
 
-function TabIcon({ page, icon, size = 17 }: { page: string; icon: string; size?: number }) {
-  return page === "profile" && !s.user.isGuest ? <Avatar user={s.user} size={size + 1} /> : <Icon name={icon} size={size} />;
-}
-
 /**
- * Desktop navigation: a rail of square cells, one column of the page grid. The puzzle sits in a cell as tall
- * as the page header so their lines meet, then one cell per section, then guides, settings and the account at the
- * bottom.
- * A cell names itself in a flush label cell on hover.
+ * Desktop navigation: a labelled sidebar. The wordmark, the puzzle every page works on, the sections by name, then
+ * the guides, the settings and the account at the bottom. Narrow windows keep the icons with a small word under them.
  */
 export function Rail() {
+  const guest = s.user.isGuest;
   return (
     <nav className="nav rail" aria-label="Sections">
-      <RailCell action="menu:puzzles" label={s.event().label} hint="Choose a puzzle" className={"rail-puzzle " + (s.overlay === "puzzles" ? "open" : "")}>
-        <Icon name={"Puzzle" + s.event().id} size={22} />
-      </RailCell>
-      <div className="rail-group" role="tablist">
-        {TABS.map(([page, label, icon, shortcut]) => (
-          <RailCell key={page} action={"nav:" + page} label={label} hint={shortcut} selected={s.page === page}>
-            <TabIcon page={page} icon={icon} size={18} />
-          </RailCell>
+      <div className="rail-brand">
+        <Logo size={18} />
+        <span className="rail-wordmark">cubix</span>
+      </div>
+      <SideItem
+        action="menu:puzzles"
+        label={s.event().label}
+        title="Choose a puzzle"
+        className={"rail-puzzle " + (s.overlay === "puzzles" ? "open" : "")}
+        icon={<Icon name={"Puzzle" + s.event().id} size={20} />}
+        tail={<Icon name="IconChevronDown" size={12} />}
+      />
+      <div className="rail-group" role="list">
+        {SECTIONS.map(([page, label, icon, shortcut]) => (
+          <SideItem
+            key={page}
+            action={"nav:" + page}
+            label={label}
+            title={`${label} (${shortcut.replace(" ", "+")})`}
+            selected={s.page === page}
+            icon={<Icon name={icon} size={17} />}
+            tail={<kbd className="rail-key">{shortcut}</kbd>}
+          />
         ))}
       </div>
       <div className="rail-fill" />
       <div className="rail-group rail-foot">
-        <RailCell action="help" label="Guides">
-          <Icon name="IconBook" size={18} />
-        </RailCell>
-        <RailCell action="settings" label="Settings" hint="Alt+S" selected={s.overlay === "settings"}>
-          <Icon name="IconSettings" size={18} />
-        </RailCell>
-        <RailCell action="nav:profile" label="Account" hint="Alt+4" selected={s.page === "profile"}>
-          <TabIcon page="profile" icon="IconUser" size={18} />
-        </RailCell>
+        <SideItem action="help" label="Guides" icon={<Icon name="IconBook" size={17} />} selected={s.overlay === "guides"} />
+        <SideItem
+          action="settings"
+          label="Settings"
+          title="Settings (Alt+S)"
+          selected={s.overlay === "settings"}
+          icon={<Icon name="IconSettings" size={17} />}
+          tail={<kbd className="rail-key">Alt S</kbd>}
+        />
+        <SideItem
+          action={guest ? "account:login" : "settings"}
+          label={guest ? "Guest" : s.user.username}
+          title={guest ? "Sign in to keep your times in sync" : "Your account"}
+          className="rail-account"
+          icon={guest ? <span className="rail-avatar guest"><Icon name="IconUser" size={14} /></span> : <Avatar user={s.user} size={26} />}
+          sub={guest ? "Sign in to sync" : "Signed in"}
+        />
       </div>
     </nav>
   );
 }
 
-function RailCell({
+function SideItem({
   action,
   label,
-  hint,
+  title,
+  icon,
+  tail,
+  sub,
   selected = false,
   className = "",
-  children,
-}: { action: string; label: string; hint?: string; selected?: boolean } & Props) {
+}: { action: string; label: string; title?: string; icon: React.ReactNode; tail?: React.ReactNode; sub?: string; selected?: boolean } & Props) {
   return (
     <button
       type="button"
       className={"rail-cell " + (selected ? "selected " : "") + className}
       data-action={action}
-      aria-label={label}
+      title={title ?? label}
       aria-current={selected ? "page" : undefined}
       onClick={(e) => {
         e.currentTarget.blur();
         void s.action(action, e.currentTarget);
       }}
     >
-      {children}
-      <span className="rail-tip" aria-hidden="true">
-        {label}
-        {hint && <span className="rail-tip-hint">{hint}</span>}
+      <span className="rail-icon">{icon}</span>
+      <span className="rail-text">
+        <span className="rail-label">{label}</span>
+        {sub && <span className="rail-sub">{sub}</span>}
       </span>
+      {tail && <span className="rail-tail">{tail}</span>}
     </button>
   );
 }
 
-/** Phone navigation: a bottom tab bar with the timer in the centre. */
-const MOBILE_TABS: [action: string, label: string, icon: string][] = [
-  ["nav:algorithms", "Algorithms", "IconCases"],
-  ["nav:training", "Training", "IconTarget"],
-  ["nav:playground", "Timer", "IconTimer"],
-  ["nav:duel", "Duel", "IconSwords"],
-  ["nav:profile", "Account", "IconUser"],
-  ["settings", "Settings", "IconSettings"],
+/** Phone navigation: a bottom tab bar, icon over word, the timer in the centre. */
+const MOBILE_TABS: [page: string, label: string, icon: string][] = [
+  ["algorithms", "Algorithms", "IconCases"],
+  ["training", "Training", "IconTarget"],
+  ["playground", "Timer", "IconTimer"],
+  ["duel", "Duel", "IconSwords"],
+  ["profile", "Profile", "IconUser"],
 ];
 
 export function TabBar() {
   return (
     <nav className="nav tabbar" aria-label="Sections">
-      {MOBILE_TABS.map(([action, label, icon]) => {
-        const selected = action === "settings" ? s.overlay === "settings" : s.page === action.slice(4);
-        return (
-          <Button key={action} action={action} title={label} className={"tab-item " + (selected ? "selected" : "")}>
-            <TabIcon page={action.slice(4)} icon={icon} size={20} />
-            <span>{label}</span>
-          </Button>
-        );
-      })}
+      {MOBILE_TABS.map(([page, label, icon]) => (
+        <Button key={page} action={"nav:" + page} title={label} className={"tab-item " + (s.page === page ? "selected" : "")}>
+          <Icon name={icon} size={20} />
+          <span>{label}</span>
+        </Button>
+      ))}
     </nav>
   );
 }
 
 /**
- * Page frame. Phones slide pages sideways like a carousel; the desktop slides the pages of its rail up and
- * down, in their order, and slides sideways when going deeper into a page. Animating `transform` keeps it on the compositor.
+ * Page frame: the new page fades in over a short slide (12px), the old one fades out where it stands. Rail pages
+ * move vertically in the order of the sidebar; going deeper into a page moves sideways.
  */
-const SLIDE = {
-  enter: (direction: number) => ({ transform: `translateX(${direction * 100}%)` }),
-  center: { transform: "translateX(0%)" },
-  exit: (direction: number) => ({ transform: `translateX(${direction * -100}%)` }),
-};
-
-/** The desktop slides pages vertically, in the order of the rail. */
-const SLIDE_Y = {
-  enter: (direction: number) => ({ transform: `translateY(${direction * 100}%)` }),
-  center: { transform: "translateY(0%)" },
-  exit: (direction: number) => ({ transform: `translateY(${direction * -100}%)` }),
+const SHIFT = 12;
+const variants = {
+  enter: ({ direction, axis }: { direction: number; axis: string }) => ({
+    opacity: 0,
+    transform: axis === "x" ? `translateX(${direction * SHIFT}px)` : `translateY(${direction * SHIFT}px)`,
+  }),
+  center: { opacity: 1, transform: "translate(0px, 0px)" },
+  exit: { opacity: 0, transition: { duration: 0.12 } },
 };
 
 export function Frame({ children, mobile }: { mobile: boolean } & Props) {
@@ -134,12 +150,12 @@ export function Frame({ children, mobile }: { mobile: boolean } & Props) {
       className="page-frame"
       data-exiting={present ? undefined : ""}
       inert={!present}
-      custom={s.direction}
-      variants={mobile || s.axis === "x" ? SLIDE : SLIDE_Y}
+      custom={{ direction: s.direction, axis: mobile ? "x" : s.axis }}
+      variants={variants}
       initial="enter"
       animate="center"
       exit="exit"
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
     >
       {mounted && children}
     </motion.div>

@@ -9,7 +9,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { store as s } from "./store";
 import { Cube } from "./Cube";
 import { fmtTime, fmtSolve, parseTypedTime, effective } from "../../src/client/lib/format";
-import { Alg, Button, Diagram, Icon, MOBILE, Menu, PageHead, plural, useViewport } from "./ui";
+import { Alg, Button, Diagram, Icon, MOBILE, Menu, PageHead, Skeleton, plural, useViewport } from "./ui";
 function useTimer(enabled: boolean) {
   const [phase, setPhase] = useState("Idle");
   const [elapsed, setElapsed] = useState(0);
@@ -119,10 +119,10 @@ export function Practice() {
     // First-block training runs like the timer, on its own scrambles.
     cross = s.crossTraining,
     training = s.page === "training" && !cross,
-    // Wide windows keep the session in view; narrower ones open it on demand.
-    timesAlways = !mobile && (training ? w >= 1360 : w >= 1000),
+    // Wide windows keep the statistics and the times beside the stage; narrower ones open them on demand.
+    timesAlways = !mobile && (training ? w >= 1200 : w >= 980),
     timesColumn = !mobile && (timesAlways || s.showTimes),
-    compact = w <= 900 || h <= 700;
+    compact = w <= 900 || h <= 760;
   const enabled =
       !s.saving &&
       !s.generating &&
@@ -154,18 +154,14 @@ export function Practice() {
     hasCube = training ? !!c && !c.flat && !c.diagram : !!cubeSize,
     text = (training ? s.training?.setup : s.scramble) ?? "",
     promptFont = mobile
-      ? text.length > 90 ? 15 : 19
-      : text.length > 220 ? 16 : text.length > 120 ? (compact ? 17 : 20) : compact ? 22 : 27,
-    // Whole cells of the page grid: longer scrambles, a case and a revealed solution take more.
-    promptCells = training
-      ? s.revealed ? 4 : 3
-      : (text.length > 220 ? 4 : text.length > 120 ? 3 : 2) + (cross && s.revealed ? 1 : 0),
-    // On the desktop the cube has a box of its own nested in the timer's top right corner, sized by the timer (CSS).
+      ? text.length > 90 ? 15 : 18
+      : text.length > 220 ? 15 : text.length > 120 ? (compact ? 16 : 18) : compact ? 20 : 24,
+    // On the desktop the cube has a square box of its own at the right of the scramble.
     cubePane = !mobile && ready && (hasCube || training),
     cubeShown = cubePane && s.showCube,
     previewSize = mobile ? (h < 760 ? 0 : 76) : cubeSide;
   const hint = !enabled
-    ? "Select cases to begin"
+    ? training ? "Select cases to begin" : "One moment…"
     : timer.phase === "Holding"
       ? "Keep holding…"
       : timer.phase === "Ready"
@@ -196,8 +192,14 @@ export function Practice() {
       <Diagram c={c} size={previewSize} />
     ) : null
   );
+  const showCube = cubePane && !cubeShown && (
+    <Button action="cube" className="control small pane-toggle" title="Show the cube">
+      <Icon name="IconCube" size={14} />
+      Show cube
+    </Button>
+  );
   const prompt = (
-    <section className={"prompt" + (training ? " training-prompt" : "")} style={{ "--prompt-cells": promptCells } as React.CSSProperties}>
+    <section className={"prompt" + (training ? " training-prompt" : "")}>
       {training ? (
         ready ? (
           <div className="prompt-main">
@@ -209,9 +211,10 @@ export function Practice() {
                 {learning ? s.dailyStatus : c.setLabel + (c.group && c.group !== c.setLabel ? " · " + c.group : "")}
               </span>
               <span className="case-nav">
+                {showCube}
                 <Button
                   action={"learn:" + c.id}
-                  className={"control " + (s.learned.has(c.id) ? "is-learned" : "")}
+                  className={"control small " + (s.learned.has(c.id) ? "is-learned" : "")}
                   icon={s.learned.has(c.id) ? "IconCheck" : undefined}
                 >
                   {s.learned.has(c.id) ? "Learned" : "Mark learned"}
@@ -228,17 +231,17 @@ export function Practice() {
               <div className="prompt-block">
                 <span className="label">Algorithm</span>
                 <div className="prompt-text">
-                  <Alg text={s.training.algorithm} size={Math.max(15, promptFont - 5)} />
+                  <Alg text={s.training.algorithm} size={Math.max(15, promptFont - 4)} />
                 </div>
               </div>
             )}
             <div className="prompt-actions">
-              <Button action="solution" className="control" title="Show or hide the solution (Alt+H)">
+              <Button action="solution" className="control small" title="Show or hide the solution (Alt+H)">
                 <Icon name="IconEye" size={14} />
                 {s.revealed ? "Hide solution" : "Show solution"}
               </Button>
               {c.algorithms[0]?.youtube && (
-                <Button action={"url:" + c.algorithms[0].youtube} className="control" title="Watch finger tricks video">
+                <Button action={"url:" + c.algorithms[0].youtube} className="control small" title="Watch finger tricks video">
                   Watch video
                 </Button>
               )}
@@ -258,18 +261,28 @@ export function Practice() {
         )
       ) : (
         <div className="prompt-main">
-          <span className="label">
-            Scramble · {cross ? `back block in ${s.crossMoves} moves` : s.label("scrambles", s.scrambleType)}
+          <span className="label prompt-label">
+            <span>{cross ? `Scramble · back block in ${s.crossMoves} moves` : `Scramble · ${s.label("scrambles", s.scrambleType)}`}</span>
             {!!s.scramble && !s.generating && <span className="prompt-count">{plural(s.scramble.split(/\s+/).length, "move")}</span>}
+            {showCube}
           </span>
           <div className="prompt-text scramble">
             {s.generating && !s.scramble ? (
-              <span className="muted">Generating…</span>
+              <span className="scramble-skeleton" aria-label="Generating a scramble">
+                <Skeleton w="92%" h={promptFont * 1.1} />
+                <Skeleton w="58%" h={promptFont * 1.1} />
+              </span>
             ) : (
               <Alg text={s.scramble} size={promptFont} faces={!!cubeSize} />
             )}
           </div>
-          {cross && <CrossSolution font={Math.max(15, promptFont - 5)} />}
+          {cross && <CrossSolution font={Math.max(15, promptFont - 4)} />}
+        </div>
+      )}
+      {cubeShown && (
+        <div className="cube-box" ref={setCubeBox}>
+          {visual}
+          <Button action="cube" icon="IconClose" className="control icon-only pane-toggle cube-hide" title="Hide the cube" />
         </div>
       )}
       {mobile && previewSize > 0 && ready && <div className="prompt-visual">{visual}</div>}
@@ -286,15 +299,26 @@ export function Practice() {
       <span className="control-label">Replay</span>
     </Button>
   );
+  const statistics = (
+    <section className={"panel metrics" + (metrics.length > 4 ? " metrics-full" : "")} aria-label="Statistics">
+      <header className="panel-head">
+        <strong>Statistics</strong>
+        <span className="muted">{training ? "This session" : s.event().label}</span>
+      </header>
+      <div className="metrics-grid">
+        {metrics.map(([label, value, tone]) => (
+          <div key={label} className={"metric" + (tone ? " tone-" + tone : "") + (/^[-–—]$/.test(value.trim()) ? " is-empty" : "")}>
+            <span className="label">{label}</span>
+            <span className="metric-value mono">{value}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
   return (
-    <div className={"page practice " + (timer.phase === "Running" ? "running" : "")}>
+    <div className={"page practice " + (timer.phase === "Running" ? "running " : "") + (training ? "is-training" : "")}>
       {cross ? (
-        <PageHead
-          title="Training"
-          puzzle
-          lead={<ChangeTraining />}
-          sub={`Cross + 1 · ${s.crossMoves} moves`}
-        >
+        <PageHead title="Cross + 1" puzzle lead={<ChangeTraining />} sub={`Training · first block in ${s.crossMoves} moves`}>
           <div className="segmented" role="group" aria-label="Moves">
             {CROSS_PLUS_ONE_MOVES.map((n) => (
               <Button key={n} action={"crossMoves:" + n} active={s.crossMoves === n} highlight="cross-moves" title={`Cross + 1 in ${n} moves`}>
@@ -302,7 +326,6 @@ export function Practice() {
               </Button>
             ))}
           </div>
-          <span className="control-gap" />
           {replay}
           <Button action="next" icon="IconShuffle" className="control collapsible" title="New scramble (Alt+N)">
             <span className="control-label">New scramble</span>
@@ -311,10 +334,10 @@ export function Practice() {
         </PageHead>
       ) : training ? (
         <PageHead
-          title="Training"
+          title={track ? `Learn ${track}` : reviewing ? "Review" : "Free practice"}
           puzzle
           lead={<ChangeTraining />}
-          sub={track ? `Learn ${track}` : reviewing ? "Review learned" : "Free practice · " + plural(s.practiceSelected.size, "case")}
+          sub={track ? "Training · one new case a day" : reviewing ? "Training · every learned case" : "Training · " + plural(s.practiceSelected.size, "case")}
         >
           {learning && !reviewing && (
             <Button action="menu:learningGroups" icon="IconGrid" className="control">
@@ -332,30 +355,31 @@ export function Practice() {
               {mobile ? "Review" : "Train learned"}
             </Button>
           )}
-          <Button action="previous" icon="IconBack" className="control" disabled={!s.training?.canPrevious} title="Previous case (Alt+P)">
-            Previous
-          </Button>
-          {(!learning || reviewing) && (
-            <Button action="next" icon="IconChevronRight" className="control" title="Next case (Alt+N)">
-              Next
-            </Button>
-          )}
           <Button action="auf" active={s.randomAuf} className="control collapsible" title="Random AUF (Alt+A)">
             <Icon name="IconShuffle" size={14} />
             <span className="control-label">Random AUF</span>
           </Button>
           {replay}
+          <Button action="previous" icon="IconBack" className="control" disabled={!s.training?.canPrevious} title="Previous case (Alt+P)">
+            {!mobile && "Previous"}
+          </Button>
+          {(!learning || reviewing) && (
+            <Button action="next" icon="IconChevronRight" className="control" title="Next case (Alt+N)">
+              {!mobile && "Next"}
+            </Button>
+          )}
           {timesToggle}
         </PageHead>
       ) : (
-        <PageHead
-          title="Timer"
-          puzzle
-          sub={s.event().label}
-        >
-          <Menu action="scrambles">{s.label("scrambles", s.scrambleType)}</Menu>
-          <Menu action="entries">{s.entry === "typing" ? "Typing" : s.entry === "casual" ? "Casual" : "Timer"}</Menu>
-          <span className="control-gap" />
+        <PageHead title="Timer" puzzle sub={`${s.event().label} · ${plural(s.solves.length, "solve")} this session`}>
+          <Menu action="scrambles">
+            <span className="menu-trigger-key">Scramble</span>
+            {s.label("scrambles", s.scrambleType)}
+          </Menu>
+          <Menu action="entries">
+            <span className="menu-trigger-key">Entry</span>
+            {s.entry === "typing" ? "Typing" : s.entry === "casual" ? "Casual" : "Timer"}
+          </Menu>
           {replay}
           <Button action="next" icon="IconShuffle" className="control collapsible" title="New scramble (Alt+N)">
             <span className="control-label">New scramble</span>
@@ -363,114 +387,90 @@ export function Practice() {
           {timesToggle}
         </PageHead>
       )}
-      <div
-        className="practice-body"
-        style={{
-          gridTemplateColumns: ["minmax(0, 1fr)", timesColumn && "var(--times-width)"]
-            .filter(Boolean)
-            .join(" "),
-        }}
-      >
-        <div className="stage">
-          {prompt}
-          <section
-            className={"timer " + timer.phase.toLowerCase() + (cubeShown ? " with-cube" : "")}
-            data-phase={timer.phase}
-            onPointerDown={(e) => {
-              if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest(".solve-actions, .cube-box, .pane-toggle")) return;
-              if (mobile || timer.phase === "Running") timer.press();
-            }}
-            onPointerUp={timer.release}
-          >
-            {cubeShown ? (
-              <div className="cube-box" ref={setCubeBox}>
-                {visual}
-                <Button action="cube" icon="IconClose" className="control icon-only pane-toggle" title="Hide the cube" />
+      <div className={"practice-body" + (timesColumn ? " with-column" : "")}>
+        <div className="practice-main">
+          <div className="panel stage">
+            {prompt}
+            <section
+              className={"timer " + timer.phase.toLowerCase()}
+              data-phase={timer.phase}
+              onPointerDown={(e) => {
+                if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest(".solve-actions, .cube-box, .pane-toggle")) return;
+                if (mobile || timer.phase === "Running") timer.press();
+              }}
+              onPointerUp={timer.release}
+            >
+              {s.notice && (
+                <div className="notice">
+                  <Icon name={training ? "IconCheck" : "IconTrophy"} size={14} />
+                  {s.notice}
+                </div>
+              )}
+              <div className="timer-center">
+                {typing ? (
+                  <input
+                    ref={typedRef}
+                    className="typed-time mono"
+                    aria-label="Time"
+                    placeholder="0.000"
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value.replace(/[^\d.,:]/g, ""))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const ms = parseTypedTime(typed);
+                        if (ms && enabled) {
+                          setTyped("");
+                          void s.save(ms);
+                        }
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="timer-digits mono" ref={digitsRef} style={{ "--chars": Math.max(6, digits.length) } as React.CSSProperties}>
+                    {digits.split("").map((ch, i) => (
+                      <span key={i} className={digits.includes(".") && i > digits.indexOf(".") ? "frac" : undefined}>{ch}</span>
+                    ))}
+                  </div>
+                )}
+                {!typing && s.practicePage() === "playground" && <AverageWindow />}
+                <div className="timer-hint">
+                  {typing
+                    ? typed
+                      ? parseTypedTime(typed)
+                        ? `${fmtTime(parseTypedTime(typed))} · Enter to save`
+                        : "Not a time"
+                      : "Type your time, then Enter: 1234 is 12.34"
+                    : hint}
+                </div>
               </div>
-            ) : (
-              cubePane && (
-                <Button action="cube" className="control pane-toggle" title="Show the cube">
-                  <Icon name="IconCube" size={14} />
-                  Show cube
+              {/* The last solve's actions, there before the first solve too (disabled) so the timer never moves. */}
+              <div className="solve-actions" aria-label="Last solve">
+                <Button action={"penalty:" + last?.id + ":+2"} active={last?.penalty === "+2"} disabled={!last || s.saving} className="control solve-action-plus2">
+                  +2
                 </Button>
-              )
-            )}
-            {s.notice && (
-              <div className="notice">
-                <Icon name={training ? "IconCheck" : "IconTrophy"} size={14} />
-                {s.notice}
+                <Button action={"penalty:" + last?.id + ":dnf"} active={last?.penalty === "dnf"} disabled={!last || s.saving} className="control solve-action-dnf">
+                  DNF
+                </Button>
+                <Button
+                  action={"comment:" + last?.id}
+                  icon="IconComment"
+                  disabled={!last || s.saving}
+                  className={"control solve-action-comment " + (last?.comment ? "has-comment" : "")}
+                  title="Comment"
+                >
+                  Comment
+                </Button>
+                <Button action={"delete:" + last?.id} icon="IconTrash" disabled={!last || s.saving} className="control solve-action-delete" title="Delete this solve">
+                  Delete
+                </Button>
               </div>
-            )}
-            {typing ? (
-              <input
-                ref={typedRef}
-                className="typed-time"
-                aria-label="Time"
-                placeholder="0.00"
-                value={typed}
-                onChange={(e) => setTyped(e.target.value.replace(/[^\d.,:]/g, ""))}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const ms = parseTypedTime(typed);
-                    if (ms && enabled) {
-                      setTyped("");
-                      void s.save(ms);
-                    }
-                  }
-                }}
-              />
-            ) : (
-              <div className="timer-digits mono" ref={digitsRef} style={{ "--chars": Math.max(6, digits.length) } as React.CSSProperties}>
-                {digits
-                  .split("")
-                  .map((ch, i) => (
-                    <span key={i} className={digits.includes(".") && i > digits.indexOf(".") ? "frac" : undefined}>{ch}</span>
-                  ))}
-              </div>
-            )}
-            {!typing && s.page === "playground" && <AverageWindow />}
-            <div className="timer-hint">
-              {typing
-                ? typed
-                  ? parseTypedTime(typed)
-                    ? `${fmtTime(parseTypedTime(typed))} · Enter to save`
-                    : "Not a time"
-                  : "Type your time, then Enter: 1234 is 12.34"
-                : hint}
-            </div>
-            {/* The last solve's actions: a strip of four cells along the bottom of the timer, there before the
-                first solve too (disabled) so the timer never moves. */}
-            <div className="solve-actions">
-              <Button action={"penalty:" + last?.id + ":+2"} active={last?.penalty === "+2"} disabled={!last || s.saving} className="control solve-action-plus2">
-                +2
-              </Button>
-              <Button action={"penalty:" + last?.id + ":dnf"} active={last?.penalty === "dnf"} disabled={!last || s.saving} className="control solve-action-dnf">
-                DNF
-              </Button>
-              <Button
-                action={"comment:" + last?.id}
-                disabled={!last || s.saving}
-                className={"control solve-action-comment " + (last?.comment ? "has-comment" : "")}
-                title="Comment"
-              >
-                Comment
-              </Button>
-              <Button action={"delete:" + last?.id} disabled={!last || s.saving} className="control solve-action-delete" title="Delete this solve">
-                Delete
-              </Button>
-            </div>
-          </section>
-          <section className={"metrics" + (metrics.length > 4 ? " metrics-full" : "")}>
-            {metrics.map(([label, value, tone]) => (
-              <div key={label} className={"metric" + (tone ? " tone-" + tone : "")}>
-                <span className="label">{label}</span>
-                <span className="metric-value mono">{value}</span>
-              </div>
-            ))}
-          </section>
+            </section>
+          </div>
+          {!timesColumn && statistics}
         </div>
         {timesColumn && (
           <aside className="column column-right">
+            {statistics}
             <Times closable={!timesAlways} />
           </aside>
         )}
@@ -517,7 +517,7 @@ function CrossSolution({ font }: { font: number }) {
         </div>
       )}
       <div className="prompt-actions">
-        <Button action="solution" className="control" title="Show or hide the solution (Alt+H)">
+        <Button action="solution" className="control small" title="Show or hide the solution (Alt+H)">
           <Icon name="IconEye" size={14} />
           {s.revealed ? "Hide solution" : "Show solution"}
         </Button>
@@ -535,13 +535,13 @@ function Times({ closable = true }: { closable?: boolean }) {
   const training = s.practicePage() === "training",
     extremes = sessionExtremes();
   return (
-    <div className="column-content">
-      <div className="column-head">
+    <div className="panel column-content times-panel">
+      <div className="column-head panel-head">
         <strong>{training ? "Session" : "Times"}</strong>
         <span className="mono muted">{s.solves.length}</span>
         <span className="column-head-actions">
-          {training && !!s.solves.length && <Button action="undo" className="control">Undo</Button>}
-          {closable && <Button action="times" icon="IconClose" className="control icon-only" title="Close" />}
+          {training && !!s.solves.length && <Button action="undo" className="control small">Undo</Button>}
+          {closable && <Button action="times" icon="IconClose" className="control small icon-only" title="Close" />}
         </span>
       </div>
       {training ? (
@@ -584,10 +584,6 @@ function Times({ closable = true }: { closable?: boolean }) {
         </div>
       ) : (
         <>
-          <div className="times-head">
-            <span>#</span>
-            <span>Time</span>
-          </div>
           <div className="scroll times-list">
             {!s.solves.length && <div className="column-empty">No solves in this session yet.</div>}
             {[...s.solves].reverse().map((v, i) => (
@@ -635,6 +631,7 @@ function AverageWindow() {
     slowest = full ? times.lastIndexOf(Math.max(...times)) : -1;
   return (
     <div className="average-window mono" aria-label="Current average of 5">
+      <span className="average-label">Ao5</span>
       {Array.from({ length: 5 }, (_, i) => {
         const v = last[i - (5 - last.length)];
         if (!v) return <span key={i} className="slot empty">–</span>;
