@@ -1,7 +1,7 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookOpen, ChevronsUpDown, Layers, Settings, Swords, Target, Timer, User, type LucideIcon } from "lucide-react";
+import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, LogIn, LogOut, Settings, Swords, Timer, User, UserPlus, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { Avatar, FADE, Icon, Logo, PuzzlePicker, type Props } from "./ui";
 import { cn } from "@/lib/utils";
@@ -13,16 +13,26 @@ import {
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
+/** The sections: a cube library for the algorithms, a dumbbell for the drills of training. */
 const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string][] = [
   ["playground", "Timer", Timer, "Alt 1"],
-  ["algorithms", "Algorithms", Layers, "Alt 2"],
-  ["training", "Training", Target, "Alt 3"],
+  ["algorithms", "Algorithms", Boxes, "Alt 2"],
+  ["training", "Training", Dumbbell, "Alt 3"],
   ["duel", "Duel", Swords, "Alt 5"],
-  ["profile", "Profile", User, "Alt 4"],
 ];
 
 const go = (action: string) => (e: React.MouseEvent<HTMLElement>) => {
@@ -30,13 +40,26 @@ const go = (action: string) => (e: React.MouseEvent<HTMLElement>) => {
   void s.action(action, e.currentTarget);
 };
 
+/** The player's face: the initials once signed in, a person for the guest. */
+function Me({ size = 32 }: { size?: number }) {
+  return s.user.isGuest ? (
+    <span className="flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground" style={{ width: size, height: size }}>
+      <User className="size-[55%]" />
+    </span>
+  ) : (
+    <Avatar user={s.user} size={size} />
+  );
+}
+
 /**
  * Desktop navigation: a labelled column on the page background. The wordmark and the puzzle every page works on, the
- * sections by name, then the guides, the settings and the account at the bottom. Narrow windows keep the icons.
+ * sections by name, then the guides, the settings and, last, the account: the way to the profile, its menu signing in
+ * or out. Narrow windows keep the icons.
  */
 export function Rail() {
   const guest = s.user.isGuest,
-    e = s.event();
+    e = s.event(),
+    profile = s.page === "profile";
   return (
     <Sidebar collapsible="icon" className={cn("rail group-data-[side=left]:border-r-0", FADE)}>
       <SidebarHeader className="gap-3 pt-4">
@@ -102,26 +125,52 @@ export function Rail() {
               Alt S
             </Kbd>
           </SidebarMenuItem>
-          <SidebarMenuItem className="mt-2">
+          <SidebarMenuItem className="account mt-2 border-t pt-2">
             <SidebarMenuButton
               size="lg"
-              data-action={guest ? "account:login" : "settings"}
-              tooltip={guest ? "Sign in" : s.user.username}
-              onClick={go(guest ? "account:login" : "settings")}
-              className="gap-2.5"
+              data-action="nav:profile"
+              isActive={profile}
+              aria-current={profile ? "page" : undefined}
+              tooltip={(guest ? "Guest" : s.user.username) + " · Profile · Alt+4"}
+              onClick={go("nav:profile")}
+              className="gap-2.5 pr-9"
             >
-              {guest ? (
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                  <User className="size-4" />
-                </span>
-              ) : (
-                <Avatar user={s.user} size={32} />
-              )}
+              <Me />
               <span className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">{guest ? "Guest" : s.user.username}</span>
-                <span className="truncate text-xs text-muted-foreground">{guest ? "Sign in to sync" : "Signed in"}</span>
+                <span className="truncate text-xs text-muted-foreground">{guest ? "Sign in to sync" : "Profile"}</span>
               </span>
             </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<SidebarMenuAction data-action="menu:account" aria-label="Account" className="top-4.5! right-2 text-muted-foreground" />}
+              >
+                <ChevronsUpDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="end" className="w-auto min-w-52">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{guest ? "Times stay on this device" : s.user.username}</DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                {guest ? (
+                  <>
+                    <DropdownMenuItem data-action="account:login" onClick={() => void s.action("account:login")}>
+                      <LogIn />
+                      Sign in
+                    </DropdownMenuItem>
+                    <DropdownMenuItem data-action="account:register" onClick={() => void s.action("account:register")}>
+                      <UserPlus />
+                      Create account
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem data-action="logout" onClick={() => void s.action("logout")}>
+                    <LogOut />
+                    Sign out
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
@@ -129,36 +178,42 @@ export function Rail() {
   );
 }
 
-/** Phone navigation: a bottom tab bar, icon over word, the timer in the centre. */
-const MOBILE_TABS: [page: string, label: string, icon: LucideIcon][] = [
-  ["algorithms", "Algorithms", Layers],
-  ["training", "Training", Target],
+/** Phone navigation: a bottom tab bar, icon over word, the timer in the centre and the account last. */
+const MOBILE_TABS: [page: string, label: string, icon: LucideIcon | null][] = [
+  ["algorithms", "Algorithms", Boxes],
+  ["training", "Training", Dumbbell],
   ["playground", "Timer", Timer],
   ["duel", "Duel", Swords],
-  ["profile", "Profile", User],
+  ["profile", "Account", null],
 ];
 
 export function TabBar() {
   return (
-    <nav className={cn("tabbar grid shrink-0 grid-cols-5 px-2 pt-1 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)} aria-label="Sections">
-      {MOBILE_TABS.map(([page, label, I]) => (
-        <button
-          key={page}
-          type="button"
-          data-action={"nav:" + page}
-          aria-current={s.page === page ? "page" : undefined}
-          onClick={go("nav:" + page)}
-          className={cn(
-            "flex flex-col items-center gap-1 rounded-lg py-1.5 text-[11px] font-medium text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
-            s.page === page && "text-foreground",
-          )}
-        >
-          <span className={cn("flex h-7 w-12 items-center justify-center rounded-lg transition-colors", s.page === page && "bg-muted text-primary")}>
-            <I className="size-[18px]" />
-          </span>
-          {label}
-        </button>
-      ))}
+    <nav
+      className={cn("tabbar grid shrink-0 grid-cols-5 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
+      aria-label="Sections"
+    >
+      {MOBILE_TABS.map(([page, label, I]) => {
+        const here = s.page === page;
+        return (
+          <button
+            key={page}
+            type="button"
+            data-action={"nav:" + page}
+            aria-current={here ? "page" : undefined}
+            onClick={go("nav:" + page)}
+            className={cn(
+              "flex flex-col items-center gap-1 rounded-lg py-1 text-[11px] font-medium text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
+              here && "text-foreground",
+            )}
+          >
+            <span className={cn("flex h-8 w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
+              {I ? <I className="size-5" /> : <Me size={22} />}
+            </span>
+            {label}
+          </button>
+        );
+      })}
     </nav>
   );
 }

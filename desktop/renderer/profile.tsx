@@ -2,7 +2,7 @@
 import { shortId } from "../../src/client/lib/caseState";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, Lock, Search, Settings, Swords, Trophy } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, Lock, LogIn, LogOut, Search, Settings, Swords, Trophy, UserPlus } from "lucide-react";
 import { store as s, matches } from "./store";
 import { fmtSolve, fmtTime, best, bestAverage } from "../../src/client/lib/format";
 import {
@@ -17,12 +17,15 @@ import {
   LABEL,
   MOBILE,
   MONO,
+  MenuAction,
+  MenuChoice,
   PAGE,
   PageHead,
   PageSkeleton,
   PuzzleButton,
   SelectMenu,
   SolveMenu,
+  Surface,
   type Props,
   plural,
   useViewport,
@@ -32,6 +35,8 @@ import { DUELS_KEY, ROUNDS, battleRecord, type DuelRecord } from "./duelClient";
 import { eventInfo, eventLabel } from "../../src/shared/puzzles";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
@@ -115,7 +120,7 @@ function RecentSolves({ history }: { history: any[] }) {
   const [ref, fit] = useFit(RECENT_ROW),
     shown = history.slice(Math.max(0, history.length - fit)).reverse();
   return (
-    <div className="flex min-h-0 w-56 shrink-0 flex-col gap-1">
+    <div className="flex min-h-0 w-56 shrink-0 flex-col gap-1 border-l pl-5">
       <span className={LABEL}>Last solves</span>
       <div ref={ref} className="-mx-2 min-h-0 flex-1 overflow-hidden">
         {shown.map((v, i) => (
@@ -325,10 +330,10 @@ function ProfileFilters({ scramble = false }: { scramble?: boolean }) {
   );
 }
 
-/** A section of the overview: its title opens the section's own page. */
-function Section({ action, title, meta, children, className, aside }: { action: string; title: string; meta?: React.ReactNode; aside?: React.ReactNode } & Props) {
+/** A section of the overview (level 2): its title opens the section's own page; `rule` sets it under a hairline. */
+function Section({ action, title, meta, children, className, aside, rule = false }: { action: string; title: string; meta?: React.ReactNode; aside?: React.ReactNode; rule?: boolean } & Props) {
   return (
-    <section className={cn("flex min-h-0 flex-col gap-4", className)}>
+    <section className={cn("flex min-h-0 flex-col gap-3", rule && "border-t pt-5", className)}>
       <div className="flex min-h-8 items-center gap-3">
         <Button action={action} size="sm" className="-ml-2.5 gap-1 text-sm font-medium">
           {title}
@@ -459,7 +464,7 @@ function RecentBattles() {
   const list = battles(),
     [ref, fit] = useFit(RECENT_ROW);
   return (
-    <Section action="profileMode:duels" title="Battles" meta={list.length ? battleRecord(list) : undefined} className="ov-battles flex-1">
+    <Section action="profileMode:duels" title="Battles" meta={list.length ? battleRecord(list) : undefined} className="ov-battles flex-1" rule>
       <div ref={ref} className="-mx-2 min-h-0 flex-1 overflow-hidden">
         {!list.length && <p className="px-2 text-sm text-muted-foreground">Race another cuber from Duel: your results land here.</p>}
         {list.slice(0, fit).map((b) => (
@@ -488,18 +493,18 @@ function Battles() {
         </Button>
       </Empty>
     );
-  const columns = "grid grid-cols-[1.5rem_minmax(8rem,1fr)_5rem_5rem_minmax(0,2fr)_5rem] items-center gap-4";
+  const columns = "grid grid-cols-[1.5rem_minmax(8rem,1fr)_5rem_5rem_minmax(0,2fr)_5rem] items-center gap-4 max-md:grid-cols-[1.5rem_minmax(0,1fr)_4rem_4rem] max-md:gap-3";
   return (
-    <div className="battles flex min-h-0 flex-1 flex-col">
-      <div className={cn(columns, "border-b px-2 pb-2 text-xs font-medium text-muted-foreground")}>
+    <Surface className="battles flex-1">
+      <div className={cn(columns, "border-b px-4 py-2.5 text-xs font-medium text-muted-foreground")}>
         <span />
         <span>Opponent</span>
         <span>You</span>
         <span>Them</span>
-        <span>Rounds</span>
-        <span className="text-right">Date</span>
+        <span className="max-md:hidden">Rounds</span>
+        <span className="text-right max-md:hidden">Date</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pt-1">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {list.map((b) => (
           <div key={b.id} className={cn(columns, "rounded-md px-2 py-2 hover:bg-muted/50")}>
             <ResultMark result={b.result} />
@@ -509,7 +514,7 @@ function Battles() {
             </span>
             <span className={cn(MONO, "text-sm", b.result === "win" && "text-success")}>{ao5Text(b.ao5[0])}</span>
             <span className={cn(MONO, "text-sm", b.result === "loss" && "text-success")}>{ao5Text(b.ao5[1])}</span>
-            <span className={cn(MONO, "grid grid-cols-5 gap-2 text-xs")}>
+            <span className={cn(MONO, "grid grid-cols-5 gap-2 text-xs max-md:hidden")}>
               {[...Array(ROUNDS).keys()].map((r) => (
                 <span key={r} className="flex flex-col">
                   <span>{b.mine[r] ? fmtSolve(b.mine[r]!.ms, b.mine[r]!.penalty) : "–"}</span>
@@ -517,23 +522,38 @@ function Battles() {
                 </span>
               ))}
             </span>
-            <small className="text-right text-xs text-muted-foreground">{shortDate(b.at)}</small>
+            <small className="text-right text-xs text-muted-foreground max-md:hidden">{shortDate(b.at)}</small>
           </div>
         ))}
       </div>
-    </div>
+    </Surface>
   );
 }
 
-/** Overview: activity and the timer on the left, training, achievements and battles on the right. */
+/**
+ * Overview: the activity over the year, then the timer as the page's surface (figures, curve, last solves) on the
+ * left; training, achievements and battles as quieter sections under hairlines on the right.
+ */
 function Overview() {
   const p = s.profile,
     d = overviewData(),
     mobile = useViewport().w <= MOBILE,
     charted = d.timerTimes.filter((v: number | null) => v != null).length >= 2;
+  const legend = charted && (
+    <span className="flex items-center gap-4 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1.5">
+        <span className="h-0.5 w-3 rounded-full bg-chart-1" />
+        Single
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-0.5 w-3 rounded-full bg-chart-2" />
+        Ao5
+      </span>
+    </span>
+  );
   return (
-    <div className={cn("overview flex min-h-0 flex-1 gap-14", mobile && "-mx-4 flex-col gap-10 overflow-y-auto px-4 pb-4")}>
-      <div className="flex min-w-0 flex-1 flex-col gap-10">
+    <div className={cn("overview flex min-h-0 flex-1 gap-8 xl:gap-10", mobile && "-mx-4 flex-col gap-6 overflow-y-auto px-4 pb-4")}>
+      <div className="flex min-w-0 flex-1 flex-col gap-5">
         <Activity
           solves={d.activity}
           summary={[
@@ -543,38 +563,29 @@ function Overview() {
           ]}
           detail={d.latest ? `Last practice: ${shortDate(d.latest)}` : "No practice recorded yet"}
         />
-        <Section
-          action="profileMode:playground"
-          title="Timer"
-          meta={d.timerDetail}
-          className={cn("flex-1", mobile && "min-h-96")}
-          aside={
-            charted && (
-              <span className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-3 rounded-full bg-chart-1" />
-                  Single
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-3 rounded-full bg-chart-2" />
-                  Ao5
-                </span>
-              </span>
-            )
-          }
-        >
-          <TimerFigures d={d} />
-          <div className="flex min-h-0 flex-1 gap-10 pt-2">
-            {charted ? (
-              <TimerChart times={d.timerTimes} averages={d.timerAverages} />
-            ) : (
-              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Your progress curve appears after two timed solves.</div>
-            )}
-            {d.history.length > 0 && !mobile && <RecentSolves history={d.history} />}
+        <Surface className={cn("flex-1", mobile && "min-h-[28rem] shrink-0")}>
+          <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2 md:px-5">
+            <Button action="profileMode:playground" size="sm" className="-ml-2.5 gap-1 text-sm font-medium">
+              Timer
+              <ChevronRight className="text-muted-foreground" />
+            </Button>
+            <span className="truncate text-xs text-muted-foreground">{d.timerDetail}</span>
+            {!mobile && <span className="ml-auto">{legend}</span>}
           </div>
-        </Section>
+          <div className="flex min-h-0 flex-1 flex-col gap-5 p-4 md:p-5">
+            <TimerFigures d={d} />
+            <div className="flex min-h-0 flex-1 gap-5">
+              {charted ? (
+                <TimerChart times={d.timerTimes} averages={d.timerAverages} />
+              ) : (
+                <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Your progress curve appears after two timed solves.</div>
+              )}
+              {d.history.length > 0 && !mobile && <RecentSolves history={d.history} />}
+            </div>
+          </div>
+        </Surface>
       </div>
-      <div className={cn("flex min-h-0 shrink-0 flex-col gap-10", mobile ? "w-full" : "w-72 xl:w-80")}>
+      <div className={cn("flex min-h-0 shrink-0 flex-col gap-5", mobile ? "w-full" : "w-72 xl:w-80")}>
         <Section action="profileMode:training" title="Training" meta={`${d.learned} learned · ${plural(d.trainingSolves, "solve")}`}>
           <div className="flex items-baseline gap-2">
             <span className={cn(MONO, "text-3xl font-medium tracking-tight")}>{d.trained}</span>
@@ -582,7 +593,7 @@ function Overview() {
           </div>
           <MiniBars rows={d.stages} />
         </Section>
-        <Section action="profileMode:achievements" title="Achievements" meta={d.next ? `Next: ${d.next.title}` : "Everything unlocked"} className="flex-1">
+        <Section action="profileMode:achievements" title="Achievements" meta={d.next ? `Next: ${d.next.title}` : "Everything unlocked"} className={mobile ? undefined : "flex-1"} rule>
           <div className="flex items-baseline gap-2">
             <span className={cn(MONO, "text-3xl font-medium tracking-tight")}>{d.unlocked}</span>
             <span className="text-sm text-muted-foreground">/ {d.total} unlocked</span>
@@ -600,15 +611,15 @@ function TrainingProgress() {
     cases = s.cases(s.profilePuzzle),
     learned = cases.filter((c: any) => s.learned.has(c.id)).length;
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-3">
+    <Surface className="flex-1">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2.5">
         <Choice
           prefix="profileStage:"
           label="Stage"
           value={s.profileStage}
           options={["all", ...new Set<string>(cases.map((c: any) => c.stage))].map((stage) => ({ id: stage, label: stage === "all" ? "All" : stage }))}
         />
-        <InputGroup className="w-56">
+        <InputGroup className="w-56 max-md:w-full">
           <InputGroupInput
             placeholder="Search cases…"
             aria-label="Search cases"
@@ -622,11 +633,11 @@ function TrainingProgress() {
             <Search />
           </InputGroupAddon>
         </InputGroup>
-        <span className="ml-auto text-sm text-muted-foreground">
+        <span className="ml-auto text-sm text-muted-foreground max-md:hidden">
           <span className={MONO}>{p.cases?.length ?? 0}</span> / {cases.length} trained · <span className={MONO}>{learned}</span> learned
         </span>
       </div>
-      <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2">
         {s.allSets(s.profilePuzzle).map((set: any) => {
           const chosen = cases.filter((c: any) => c.set === set.id && (s.profileStage === "all" || s.profileStage === c.stage) && matches(c, s.query));
           if (!chosen.length) return null;
@@ -677,7 +688,7 @@ function TrainingProgress() {
           );
         })}
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -696,13 +707,14 @@ export function Profile() {
   const guest = s.user.isGuest,
     mode = s.profileMode in PROFILE_SECTIONS ? s.profileMode : "overview",
     title = PROFILE_SECTIONS[mode] ?? "Overview";
+  if (mobile) return <PhoneProfile mode={mode} />;
   return (
     <div className={PAGE}>
       {mode === "overview" ? (
         <PageHead
-          lead={<Avatar user={guest ? { username: "G" } : p.user} size={44} />}
-          title={guest ? "Guest" : p.user.username}
-          sub={guest ? "Times stay on this device" : `Joined ${p.user.joined}`}
+          lead={mobile && <Avatar user={guest ? { username: "G" } : p.user} size={36} />}
+          title={mobile ? (guest ? "Guest" : p.user.username) : "Profile"}
+          sub={guest ? "Guest · times stay on this device" : `${p.user.username} · joined ${p.user.joined}`}
         >
           {guest && (
             <>
@@ -713,13 +725,12 @@ export function Profile() {
             </>
           )}
           <ProfileFilters />
-          {mobile && <Button action="settings" icon={Settings} tip="Settings" />}
         </PageHead>
       ) : (
         <PageHead
           lead={<Button action="back" icon={ChevronLeft} tip="Back to the overview" className="-ml-2" />}
           title={title}
-          sub={mode === "duels" ? battleRecord(battles()) : s.event(s.profilePuzzle, s.profileSolveMode).label}
+          sub={mode === "duels" ? battleRecord(battles()) : undefined}
         >
           {mode === "training" && <ProfileFilters />}
           {mode === "playground" && <ProfileFilters scramble />}
@@ -728,11 +739,73 @@ export function Profile() {
               <span className={cn(MONO, "text-sm text-muted-foreground")}>
                 {s.achievements.unlocked} / {s.achievements.total}
               </span>
-              <Bar ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0} className="w-32" />
+              <Bar ratio={s.achievements.total ? s.achievements.unlocked / s.achievements.total : 0} className="w-32 max-md:w-16" />
             </div>
           )}
         </PageHead>
       )}
+      <ProfileBody mode={mode} title={title} />
+    </div>
+  );
+}
+
+/**
+ * Phones: the account in the header (its menu holds the guides, the settings and signing in or out), the puzzle
+ * beside it, and the sections as a segmented control instead of pages to open.
+ */
+function PhoneProfile({ mode }: { mode: string }) {
+  const p = s.profile,
+    guest = s.user.isGuest;
+  return (
+    <div className={PAGE}>
+      <PageHead
+        lead={<Avatar user={guest ? { username: "G" } : p.user} size={36} />}
+        title={guest ? "Guest" : p.user.username}
+        more={
+          <>
+            <MenuAction action="help" icon={BookOpen}>Guides</MenuAction>
+            <MenuAction action="settings" icon={Settings}>Settings</MenuAction>
+            <DropdownMenuSeparator />
+            {guest ? (
+              <>
+                <MenuAction action="account:login" icon={LogIn}>Sign in</MenuAction>
+                <MenuAction action="account:register" icon={UserPlus}>Create account</MenuAction>
+              </>
+            ) : (
+              <MenuAction action="logout" icon={LogOut}>Sign out</MenuAction>
+            )}
+          </>
+        }
+      >
+        <ProfileFilters />
+      </PageHead>
+      <Tabs value={mode} onValueChange={(v: string) => void s.action("profileMode:" + v)} className="shrink-0">
+        <TabsList className="h-10! w-full">
+          {Object.entries({ overview: "Overview", ...PROFILE_SECTIONS, achievements: "Awards" }).map(([id, label]) => (
+            <TabsTrigger key={id} value={id} data-action={"profileMode:" + id} className="px-1 text-[13px]">
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      {mode === "playground" && (
+        <SelectMenu
+          action="profileScramble"
+          caption="Scramble"
+          align="start"
+          value={s.profileScramble}
+          options={s.info(s.profilePuzzle).scrambles.map((id: string) => ({ id, label: s.label("scrambles", id) }))}
+          className="-my-1 -ml-2.5 self-start"
+        />
+      )}
+      <ProfileBody mode={mode} title={PROFILE_SECTIONS[mode] ?? "Overview"} />
+    </div>
+  );
+}
+
+function ProfileBody({ mode, title }: { mode: string; title: string }) {
+  const p = s.profile;
+  return (
       <section className="profile-main flex min-h-0 flex-1 flex-col" aria-label={title}>
         {mode === "playground" ? (
           <TimerStats
@@ -756,7 +829,6 @@ export function Profile() {
           <Overview />
         )}
       </section>
-    </div>
   );
 }
 
@@ -765,13 +837,12 @@ function Achievements() {
     groups = [...new Set(items.map((a: any) => a.group))] as string[];
   let shown = 0;
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-3">
+    <Surface className="flex-1">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2.5">
         <SelectMenu
           action="achievementGroup"
           value={s.achievementGroup}
           align="start"
-          variant="outline"
           options={[{ id: "all", label: "All puzzles" }, ...groups.map((id) => ({ id, label: id }))]}
         />
         <Choice
@@ -781,7 +852,7 @@ function Achievements() {
           options={["all", "unlocked", "locked"].map((f) => ({ id: f, label: f[0].toUpperCase() + f.slice(1) }))}
         />
       </div>
-      <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">
         {groups
           .filter((group) => s.achievementGroup === "all" || s.achievementGroup === group)
           .map((group) => {
@@ -805,7 +876,7 @@ function Achievements() {
                         {a.unlocked ? <Trophy className="size-4" /> : <Lock className="size-4" />}
                       </span>
                       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                        <div className="flex items-baseline justify-between gap-3">
+                        <div className="flex items-baseline justify-between gap-3 max-md:flex-col max-md:gap-0.5">
                           <strong className={cn("truncate text-sm font-medium", !a.unlocked && "text-foreground/80")}>{a.title}</strong>
                           <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>{a.unlockedDate ?? a.detail}</span>
                         </div>
@@ -820,6 +891,6 @@ function Achievements() {
           })}
         {!shown && <Empty>{s.achievementFilter === "unlocked" ? "Nothing unlocked here yet. Keep practising!" : "Everything here is unlocked."}</Empty>}
       </div>
-    </div>
+    </Surface>
   );
 }

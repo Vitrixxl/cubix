@@ -7,8 +7,9 @@ import { useSquare } from "./practice";
 import { PracticeTimer } from "../../src/client/lib/practiceTimer";
 import { fmtSolve, fmtTime } from "../../src/client/lib/format";
 import { eventInfo, eventLabel, heldScramble } from "../../src/shared/puzzles";
-import { Send, Swords, Trophy, X, MessageSquare, Box, Undo2 } from "lucide-react";
-import { ActionToggle, Alg, Button, Figure, FADE, LABEL, MOBILE, MONO, PAGE, PageHead, useViewport } from "./ui";
+import { Ban, Plus, Send, Swords, Trophy, X, MessageSquare, Box, Undo2 } from "lucide-react";
+import { PhoneSheet, TouchAction, TouchBar } from "./phone";
+import { ActionToggle, Alg, Button, Figure, FADE, LABEL, MOBILE, MONO, MenuAction, PAGE, PageHead, SectionHead, Surface, useViewport } from "./ui";
 import { Digits } from "./practice";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -129,29 +130,33 @@ function Lobby() {
   }, [searching]);
   return (
     <div className={cn(PAGE, "duel-lobby")}>
-      <PageHead title="Duel" puzzle sub={`One against one · ${s.event().label}`} />
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 pb-[8vh] text-center">
-        <div className="flex max-w-md flex-col items-center gap-3">
-          <span className={cn("flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground", searching && "animate-pulse bg-primary/15 text-primary")}>
-            <Swords className="size-6" />
-          </span>
-          <h2 className="text-2xl font-semibold tracking-tight">{searching ? "Looking for an opponent" : "Race an Ao5"}</h2>
-          <p className={cn("text-sm", duel.notice ? "text-destructive" : "text-muted-foreground")}>
-            {duel.notice || "The same five scrambles for both of you, against a player near your level."}
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-12 text-left">
-          <Figure
-            label="Your level"
-            size="lg"
-            value={duel.level === undefined ? <Skeleton className="h-6 w-20" /> : duel.level === null ? "New" : fmtTime(duel.level)}
-          />
-          <Figure label="Searching" size="lg" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
-          <Figure label="Also searching" size="lg" value={searching ? String(duel.searching) : "–"} />
-        </div>
-        <Button action={searching ? "duel:leave" : "duel:search"} variant={searching ? "outline" : "default"} size="lg" icon={searching ? X : Swords} className="h-10 px-5">
-          {searching ? "Cancel" : "Find an opponent"}
-        </Button>
+      <PageHead title="Duel" puzzle />
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-[6vh] max-md:justify-end max-md:pb-0">
+        <Surface className="w-full max-w-lg">
+          <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-7 text-center">
+            <span className={cn("flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground", searching && "animate-pulse bg-primary/15 text-primary")}>
+              <Swords className="size-6" />
+            </span>
+            <h2 className="text-2xl font-semibold tracking-tight">{searching ? "Looking for an opponent" : "Race an Ao5"}</h2>
+            <p className={cn("max-w-sm text-sm", duel.notice ? "text-destructive" : "text-muted-foreground")}>
+              {duel.notice || `The same five ${s.event().label} scrambles for both of you, against a player near your level.`}
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-4 border-y bg-muted/30 px-6 py-4">
+            <Figure
+              label="Your level"
+              size="lg"
+              value={duel.level === undefined ? <Skeleton className="h-6 w-20" /> : duel.level === null ? "New" : fmtTime(duel.level)}
+            />
+            <Figure label="Searching" size="lg" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
+            <Figure label="Also searching" size="lg" value={searching ? String(duel.searching) : "–"} />
+          </div>
+          <div className="p-5">
+            <Button action={searching ? "duel:leave" : "duel:search"} variant={searching ? "outline" : "default"} size="lg" icon={searching ? X : Swords} className="h-10 w-full">
+              {searching ? "Cancel" : "Find an opponent"}
+            </Button>
+          </div>
+        </Surface>
       </div>
     </div>
   );
@@ -182,7 +187,7 @@ function Side({ name, level, tag, digits, phase, hint, mine, className, ...handl
   className?: string;
 } & React.HTMLAttributes<HTMLElement>) {
   return (
-    <section className={cn("duel-side flex min-w-0 touch-manipulation flex-col items-center justify-center gap-5 select-none [container-type:size]", mine ? "mine" : "theirs", phase, className)} {...handlers}>
+    <section className={cn("duel-side flex min-h-0 min-w-0 touch-manipulation flex-col items-center justify-center gap-3 select-none [container-type:size] md:gap-5", mine ? "mine" : "theirs", phase, className)} {...handlers}>
       <header className={cn("flex items-center gap-2 text-sm", FADE)}>
         <strong className="font-medium">{name}</strong>
         {level ? <span className={cn(MONO, "text-muted-foreground")}>{fmtTime(level)}</span> : null}
@@ -211,6 +216,7 @@ function Race() {
     [cubeBox, setCubeBox] = useState<HTMLDivElement | null>(null),
     cubeSide = useSquare(cubeBox);
   useFrame(duel.opponentPhase === "running");
+  const myLast = duel.me[duel.latest(duel.me)];
   const mine = duel.me,
     theirs = duel.them,
     myDigits = running ? fmtTime(timer.elapsed) : timer.phase !== "idle" ? "0.000" : shown(mine[duel.latest(mine)]),
@@ -235,16 +241,55 @@ function Race() {
               : running
                 ? mobile ? "Tap to stop" : "Any key to stop"
                 : mobile ? "Hold, then release to start" : "Hold Space, release to start";
-  const promptFont = mobile ? (scramble.length > 90 ? 15 : 19) : scramble.length > 220 ? 16 : scramble.length > 120 ? 19 : 24;
+  const promptFont = mobile ? (scramble.length > 90 ? 15 : 18) : scramble.length > 220 ? 16 : scramble.length > 120 ? 19 : 24;
+  const mySide = (
+    <Side
+      name={me?.name}
+      level={me?.level}
+      tag="You"
+      digits={myDigits}
+      phase={timer.phase}
+      hint={myHint}
+      mine
+      onPointerDown={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        if (mobile && !running) timer.press();
+      }}
+      onPointerUp={timer.release}
+    />
+  );
+  const theirSide = (
+    <Side
+      name={opponent.name}
+      level={opponent.level}
+      tag={opponentStatus()}
+      digits={theirDigits}
+      phase={duel.opponentPhase}
+      mine={false}
+      className={duel.opponentHere ? undefined : "opacity-50"}
+    />
+  );
   return (
     <div className={cn(PAGE, "duel-race")}>
-      <PageHead title="Duel" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}>
-        {duel.over && duel.dismissed === duel.game && (
+      <PageHead
+        title="Duel"
+        sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}
+        more={
+          mobile && (
+            <>
+              {duel.over && duel.dismissed === duel.game && <MenuAction action="duel:result" icon={Trophy}>Result</MenuAction>}
+              {!duel.opponentHere && <MenuAction action="duel:next" icon={Swords}>New opponent</MenuAction>}
+              <MenuAction action="duel:leave" icon={X}>Leave the race</MenuAction>
+            </>
+          )
+        }
+      >
+        {!mobile && duel.over && duel.dismissed === duel.game && (
           <Button action="duel:result" icon={Trophy}>
             Result
           </Button>
         )}
-        {!duel.opponentHere && (
+        {!mobile && !duel.opponentHere && (
           <Button action="duel:next" icon={Swords}>
             New opponent
           </Button>
@@ -256,73 +301,72 @@ function Race() {
         )}
         {!chatDocked && (
           <ActionToggle action="duel:chat" pressed={duel.chatOpen} icon={MessageSquare} tip="Chat">
-            {duel.unread ? `Chat · ${duel.unread}` : "Chat"}
+            {mobile ? (duel.unread ? String(duel.unread) : null) : duel.unread ? `Chat · ${duel.unread}` : "Chat"}
           </ActionToggle>
         )}
-        <Button action="duel:leave" icon={X}>
-          Leave
-        </Button>
+        {!mobile && (
+          <Button action="duel:leave" icon={X}>
+            Leave
+          </Button>
+        )}
       </PageHead>
-      <div className="flex min-h-0 flex-1 gap-12">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <section className={cn("duel-scramble flex shrink-0 flex-col gap-2", FADE)}>
-            <span className={LABEL}>
-              {duel.over ? "Race over" : `Round ${round + 1} of ${ROUNDS}`} · {duel.over ? "Ao5" : "Scramble"}
-            </span>
+      <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
+        <Surface className="flex-1">
+          <section className={cn("duel-scramble flex shrink-0 flex-col gap-2 px-4 pt-4 md:px-7 md:pt-6", FADE)}>
             <div className="scramble max-h-[24vh] overflow-y-auto">
               {duel.over ? (
-                <span className="text-muted-foreground">Five rounds raced.</span>
+                <span className="text-sm text-muted-foreground">Five rounds raced.</span>
               ) : scramble ? (
-                <Alg text={scramble} size={promptFont} faces={!!cubeSize} />
+                <Alg text={scramble} size={promptFont} />
               ) : (
                 <Skeleton style={{ height: promptFont * 1.4, width: "min(100%, 36em)" }} />
               )}
             </div>
           </section>
-          <div className={cn("grid min-h-0 flex-1 gap-6", cubeShown ? "grid-cols-[1fr_minmax(0,0.7fr)_1fr]" : "grid-cols-2")}>
-            <Side
-              name={me?.name}
-              level={me?.level}
-              tag="You"
-              digits={myDigits}
-              phase={timer.phase}
-              hint={myHint}
-              mine
-              onPointerDown={(e) => {
-                if ((e.target as HTMLElement).closest("button")) return;
-                if (mobile && !running) timer.press();
-              }}
-              onPointerUp={timer.release}
-            />
-            {cubeShown && (
-              <div className={cn("duel-cube group/cube relative flex min-h-0 items-center justify-center", FADE)} ref={setCubeBox}>
-                {cubeSide > 0 && scramble && !duel.over && (
-                  <Cube setup={scramble} cubeSize={cubeSize} size={Math.round(Math.min(cubeSide * 0.85, 220))} held={heldScramble("normal")} />
-                )}
-                <Button action="duel:cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute top-0 right-0 text-muted-foreground opacity-0 group-hover/cube:opacity-100" />
-              </div>
+          {mobile ? (
+            <div className="grid min-h-0 flex-1 grid-rows-2 py-2">
+              {theirSide}
+              {mySide}
+            </div>
+          ) : (
+            <div className={cn("grid min-h-0 flex-1 gap-6 px-6 py-4", cubeShown ? "grid-cols-[1fr_minmax(0,0.7fr)_1fr]" : "grid-cols-2")}>
+              {mySide}
+              {cubeShown && (
+                <div className={cn("duel-cube group/cube relative flex min-h-0 items-center justify-center", FADE)} ref={setCubeBox}>
+                  {cubeSide > 0 && scramble && !duel.over && (
+                    <Cube setup={scramble} cubeSize={cubeSize} size={Math.round(Math.min(cubeSide * 0.85, 220))} held={heldScramble("normal")} />
+                  )}
+                  <Button action="duel:cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute top-0 right-0 text-muted-foreground opacity-0 group-hover/cube:opacity-100" />
+                </div>
+              )}
+              {theirSide}
+            </div>
+          )}
+          <div className={cn("shrink-0 border-t bg-muted/30 px-2 py-2 md:px-4 md:py-3", FADE)}>
+            <Board actions={!mobile} compact={mobile} />
+            {mobile && (
+              <TouchBar className="pt-1">
+                <TouchAction action="duel:+2" icon={Plus} label="+2" pressed={myLast?.penalty === "+2"} disabled={!myLast} tone="text-warning!" />
+                <TouchAction action="duel:dnf" icon={Ban} label="DNF" pressed={myLast?.penalty === "dnf"} disabled={!myLast} tone="text-destructive!" />
+                <TouchAction action="duel:cancel" icon={Undo2} label="Redo" disabled={!duel.canCancel} />
+              </TouchBar>
             )}
-            <Side
-              name={opponent.name}
-              level={opponent.level}
-              tag={opponentStatus()}
-              digits={theirDigits}
-              phase={duel.opponentPhase}
-              mine={false}
-              className={duel.opponentHere ? undefined : "opacity-50"}
-            />
           </div>
-          <Board actions />
-        </div>
+        </Surface>
         {chatDocked && (
           <aside className={cn("flex w-72 shrink-0 flex-col", FADE)}>
             <Chat />
           </aside>
         )}
       </div>
-      {!chatDocked && (
+      {mobile && (
+        <PhoneSheet open={duel.chatOpen} onOpenChange={(open) => open !== duel.chatOpen && void s.action("duel:chat")} title="Chat" tall>
+          <Chat bare />
+        </PhoneSheet>
+      )}
+      {!chatDocked && !mobile && (
         <Sheet open={duel.chatOpen} onOpenChange={(open: boolean) => open !== duel.chatOpen && void s.action("duel:chat")}>
-          <SheetContent side={mobile ? "bottom" : "right"} className={cn("gap-2 p-4", mobile && "h-[70svh] rounded-t-xl")}>
+          <SheetContent side="right" className="gap-2 p-4">
             <SheetHeader className="p-0">
               <SheetTitle>Chat</SheetTitle>
             </SheetHeader>
@@ -338,11 +382,15 @@ function Race() {
 const average = (v: number | null | undefined) => (v === undefined ? "" : v === null ? "DNF" : fmtTime(v));
 
 /** The rounds: one row per player, the round being raced marked, each won round and the better Ao5 in green. */
-function Board({ actions = false }: { actions?: boolean }) {
+function Board({ actions = false, compact = false }: { actions?: boolean; compact?: boolean }) {
   const round = duel.round,
-    columns = actions ? "grid-cols-[minmax(5rem,9rem)_repeat(5,minmax(0,1fr))_minmax(0,1fr)_minmax(0,11rem)]" : "grid-cols-[minmax(5rem,8rem)_repeat(5,minmax(0,1fr))_minmax(0,1fr)]";
+    columns = actions
+      ? "grid-cols-[minmax(5rem,9rem)_repeat(5,minmax(0,1fr))_minmax(0,1fr)_minmax(0,11rem)]"
+      : compact
+        ? "grid-cols-[minmax(3rem,4.5rem)_repeat(5,minmax(0,1fr))_minmax(0,1.1fr)] gap-1!"
+        : "grid-cols-[minmax(5rem,8rem)_repeat(5,minmax(0,1fr))_minmax(0,1fr)]";
   return (
-    <div className={cn("duel-board flex shrink-0 flex-col gap-1", actions && FADE)} role="table" aria-label="Rounds">
+    <div className={cn("duel-board flex shrink-0 flex-col gap-1", compact && "gap-0.5 [&_.duel-board-row]:min-h-8 [&_[role=row]>span]:text-xs", actions && FADE)} role="table" aria-label="Rounds">
       <div className={cn("grid items-center gap-2 px-2 text-xs text-muted-foreground", columns)} role="row">
         <span />
         {ROUND_LIST.map((r) => (
@@ -393,7 +441,7 @@ function Board({ actions = false }: { actions?: boolean }) {
                   <SolveActions />
                 </span>
               ) : (
-                <span className="w-full text-right text-xs text-muted-foreground">{opponentStatus()}</span>
+                <span />
               ))}
           </div>
         );
@@ -430,10 +478,7 @@ function Chat({ bare = false }: { bare?: boolean }) {
   return (
     <div className="duel-chat flex min-h-0 flex-1 flex-col gap-2">
       {!bare && (
-        <div className="flex h-8 items-center gap-2">
-          <h2 className="text-sm font-medium">Chat</h2>
-          <span className={cn(MONO, "text-sm text-muted-foreground")}>{duel.chat.length}</span>
-        </div>
+        <SectionHead title="Chat" meta={duel.chat.length} rule />
       )}
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto" ref={list}>
         {!duel.chat.length && <div className="py-2 text-sm text-muted-foreground">No messages yet.</div>}

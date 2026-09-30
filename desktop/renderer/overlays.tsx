@@ -10,7 +10,8 @@ import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MONO } from "./ui";
+import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MOBILE, MONO, useViewport } from "./ui";
+import { PhoneSheet, SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
@@ -26,17 +27,27 @@ const close = () => {
   s.emit();
 };
 
-/** A dialog shown while the app overlay is `id`. */
-function Modal({ id, children, className, title, description, hideHeader = false }: {
+/** A dialog shown while the app overlay is `id`; phones get a sheet from the bottom, full height when `tall`. */
+function Modal({ id, children, className, title, description, hideHeader = false, tall = false }: {
   id: string;
   title: React.ReactNode;
   description?: React.ReactNode;
   hideHeader?: boolean;
+  tall?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
+  const mobile = useViewport().w <= MOBILE,
+    open = s.overlay === id,
+    onOpenChange = (next: boolean) => !next && s.overlay === id && close();
+  if (mobile)
+    return (
+      <PhoneSheet open={open} onOpenChange={onOpenChange} title={title} description={description} tall={tall} hideTitle={hideHeader}>
+        {children}
+      </PhoneSheet>
+    );
   return (
-    <Dialog open={s.overlay === id} onOpenChange={(open: boolean) => !open && s.overlay === id && close()}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("gap-5 p-6", className)}>
         <DialogHeader className={hideHeader ? "sr-only" : undefined}>
           <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
@@ -180,55 +191,64 @@ function Settings() {
             </button>
           ))}
         </SettingRow>
-        <SettingRow label="Help">
-          <Button action="help" variant="outline">
-            Open the guides
-          </Button>
-        </SettingRow>
       </section>
     </div>
   );
 }
 
-/** The guides: their list on the left, the chosen guide on the right. */
+/** The guides: their list on the left, the chosen guide on the right; phones get a full-height sheet, the list on top. */
 function GuidesDialog() {
-  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide;
+  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide,
+    mobile = useViewport().w <= MOBILE,
+    open = s.overlay === "guides",
+    onOpenChange = (next: boolean) => !next && s.overlay === "guides" && close();
+  const body = (
+    <>
+      <nav aria-label="Guides" className="flex shrink-0 flex-col gap-0.5 p-3 md:w-52 md:border-r md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:border-b max-md:pr-12 max-md:[scrollbar-width:none]">
+        <span className={cn(LABEL, "px-2.5 pb-2 max-md:hidden")}>Guides</span>
+        {(Object.keys(GUIDES) as Guide[]).map((id) => (
+          <Button
+            key={id}
+            action={"guidePage:" + id}
+            className={cn("justify-start font-normal text-muted-foreground", id === page && "bg-muted font-medium text-foreground")}
+          >
+            {GUIDES[id].name}
+          </Button>
+        ))}
+      </nav>
+      <article
+        className="guides-body min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-10 md:px-10 md:pt-10"
+        onClick={(e) => {
+          const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
+          if (button) return void s.action(button.dataset.action!);
+          const a = (e.target as HTMLElement).closest("a");
+          if (!a) return;
+          e.preventDefault();
+          const href = a.getAttribute("href") ?? "",
+            entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
+          if (entry) void s.action("guidePage:" + entry[0]);
+          else if (href.startsWith("http")) void openExternal(href);
+          else void s.action("nav:" + (href === "/training/" ? "training" : href === "/algorithms/" ? "algorithms" : "playground"));
+        }}
+      >
+        <GuideContent page={page} puzzle={s.guidePuzzle} method={s.guideMethod} />
+      </article>
+    </>
+  );
+  if (mobile)
+    return (
+      <PhoneSheet open={open} onOpenChange={onOpenChange} title="Guides" tall hideTitle className="gap-0 p-0">
+        {body}
+      </PhoneSheet>
+    );
   return (
-    <Dialog open={s.overlay === "guides"} onOpenChange={(open: boolean) => !open && s.overlay === "guides" && close()}>
-      <DialogContent className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl max-md:flex-col">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl">
         <DialogHeader className="sr-only">
           <DialogTitle>Guides</DialogTitle>
           <DialogDescription>How Cubix works</DialogDescription>
         </DialogHeader>
-        <nav aria-label="Guides" className="flex shrink-0 flex-col gap-0.5 p-3 md:w-52 md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:pr-12">
-          <span className={cn(LABEL, "px-2.5 pb-2 max-md:hidden")}>Guides</span>
-          {(Object.keys(GUIDES) as Guide[]).map((id) => (
-            <Button
-              key={id}
-              action={"guidePage:" + id}
-              className={cn("justify-start font-normal text-muted-foreground", id === page && "bg-muted font-medium text-foreground")}
-            >
-              {GUIDES[id].name}
-            </Button>
-          ))}
-        </nav>
-        <article
-          className="guides-body min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-10 md:px-10 md:pt-10"
-          onClick={(e) => {
-            const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
-            if (button) return void s.action(button.dataset.action!);
-            const a = (e.target as HTMLElement).closest("a");
-            if (!a) return;
-            e.preventDefault();
-            const href = a.getAttribute("href") ?? "",
-              entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
-            if (entry) void s.action("guidePage:" + entry[0]);
-            else if (href.startsWith("http")) void openExternal(href);
-            else void s.action("nav:" + (href === "/training/" ? "training" : href === "/algorithms/" ? "algorithms" : "playground"));
-          }}
-        >
-          <GuideContent page={page} puzzle={s.guidePuzzle} method={s.guideMethod} />
-        </article>
+        {body}
       </DialogContent>
     </Dialog>
   );
@@ -238,7 +258,7 @@ function MethodsDialog() {
   const methods = METHODS[s.guidePuzzle],
     method = methods.find((m) => m.id === s.guideMethod) ?? methods[0]!;
   return (
-    <Modal id="methods" title="Solving methods" className="sm:max-w-2xl">
+    <Modal id="methods" title="Solving methods" className="sm:max-w-2xl" tall>
       <div className="flex flex-col gap-2">
         <Choice prefix="guidePuzzle:" label="Puzzle" value={s.guidePuzzle} options={PUZZLES.map((p) => ({ id: p.id, label: p.label }))} className="flex-wrap" />
         <Choice prefix="guideMethod:" label="Method" value={method.id} options={methods.map((m) => ({ id: m.id, label: m.name }))} className="flex-wrap" />
@@ -373,10 +393,11 @@ function SolveDetails() {
 export function Overlays() {
   return (
     <>
-      <Modal id="settings" title="Settings" className="sm:max-w-md">
+      <Modal id="settings" title="Settings" className="sm:max-w-md" tall>
         <Settings />
       </Modal>
       <GuidesDialog />
+      <SessionSheet />
       <MethodsDialog />
       <SearchDialog />
       <Modal id="learningGroups" title={`Group order · ${s.learningMode}`} description="Drag the groups, or use the arrow keys on a handle." className="sm:max-w-md">
@@ -388,7 +409,7 @@ export function Overlays() {
       <Modal id="solve" title="Solve" hideHeader className="sm:max-w-lg">
         <SolveDetails />
       </Modal>
-      <Modal id="profileCase" title={s.caseId} className="flex h-[min(88vh,760px)] flex-col sm:max-w-4xl">
+      <Modal id="profileCase" title={s.caseId} className="flex h-[min(88vh,760px)] flex-col sm:max-w-4xl" tall>
         <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
       </Modal>
     </>

@@ -80,8 +80,14 @@ function nearMisses(): string[] {
 }
 
 const settle = (page: Page) => page.waitForSelector("[data-exiting]", { state: "detached" }).then(() => page.waitForTimeout(250));
+/** Clicks the first visible control of an action; on phones a header's "…" menu is opened for it when needed. */
 const act = async (page: Page, action: string) => {
-  await page.locator(`[data-action="${action}"]`).first().click();
+  const target = page.locator(`[data-action="${action}"]:visible`);
+  if (!(await target.count()) && (await page.locator('[data-action="menu:more"]:visible').count())) {
+    await page.locator('[data-action="menu:more"]:visible').first().click();
+    await page.waitForTimeout(250);
+  }
+  await target.first().click();
   await settle(page);
 };
 const results: [string, string[]][] = [];
@@ -136,6 +142,7 @@ try {
     await page.waitForSelector(".duel-scramble .alg");
     await check(page, "duel-race");
     await other.close();
+    // The profile is the account row at the foot of the sidebar, the Account tab on phones.
     await act(page, "nav:profile");
     await check(page, "profile");
     for (const mode of ["playground", "training", "achievements", "duels"]) {
@@ -146,11 +153,15 @@ try {
         await check(page, "profile-table");
         await act(page, "statsView:chart");
       }
-      await act(page, "back");
+      // Phones switch the sections with a segmented control rather than opening them as pages.
+      await act(page, width! <= 700 ? "profileMode:overview" : "back");
     }
     await act(page, "settings");
     await check(page, "settings");
-    await page.locator('.settings [data-action="help"]').click();
+    // The guides are in the sidebar's foot, on phones in the account page's header.
+    await page.keyboard.press("Escape");
+    await settle(page);
+    await act(page, "help");
     await check(page, "guides");
     await context.close();
   }

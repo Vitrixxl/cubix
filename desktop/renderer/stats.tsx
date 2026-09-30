@@ -4,7 +4,7 @@ import { ArrowDownUp, ChartLine, ChevronDown, List, MessageSquare, Trash2 } from
 import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Button, Choice, Empty, Figure, MONO, SolveMenu, plural } from "./ui";
+import { ActionToggle, Button, Choice, Empty, Figure, MOBILE, MONO, SolveMenu, Strip, Surface, plural, useViewport } from "./ui";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -16,21 +16,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/** The summary figures: a quiet muted band on a page, plain figures inside a surface or a dialog (`compact`). */
 function StatStrip({ summary, compact }: { summary: any; compact: boolean }) {
-  return (
-    <div className={cn("grid shrink-0 gap-x-6 gap-y-4", compact ? "grid-cols-4 lg:grid-cols-7" : "grid-cols-4 lg:grid-cols-7")}>
-      {[
-        ["Best", fmtTime(summary.best), "good"],
-        ["Ao5", fmtTime(summary.ao5), "accent"],
-        ["Ao12", fmtTime(summary.ao12), "accent"],
-        ["Mean", fmtTime(summary.mean), ""],
-        ["Best Ao5", fmtTime(summary.bestAo5), ""],
-        ["Best Ao12", fmtTime(summary.bestAo12), ""],
-        ["Solves", String(summary.count), ""],
-      ].map(([label, value, tone]) => (
-        <Figure key={label} label={label} value={value} tone={tone as any} size={compact ? "base" : "lg"} />
-      ))}
+  const phone = useViewport().w <= MOBILE;
+  const figures = [
+    ["Best", fmtTime(summary.best), "good"],
+    ["Ao5", fmtTime(summary.ao5), "accent"],
+    ["Ao12", fmtTime(summary.ao12), "accent"],
+    ["Mean", fmtTime(summary.mean), ""],
+    ["Best Ao5", fmtTime(summary.bestAo5), ""],
+    ["Best Ao12", fmtTime(summary.bestAo12), ""],
+    ["Solves", String(summary.count), ""],
+  ].map(([label, value, tone]) => <Figure key={label} label={label} value={value} tone={tone as any} size={compact || phone ? "base" : "lg"} />);
+  return compact ? (
+    <div className="grid shrink-0 grid-cols-4 gap-x-6 gap-y-4 lg:grid-cols-7">{figures}</div>
+  ) : (
+    <Strip label="Summary" className="grid-cols-4 px-4 py-3 md:px-5 md:py-4 lg:grid-cols-7">
+      {figures}
+    </Strip>
+  );
+}
+
+/** The chart or the table: a surface of its own on a page, bare inside another one. */
+function Panel({ compact, toolbar, children }: { compact: boolean; toolbar: React.ReactNode; children: React.ReactNode }) {
+  return compact ? (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">{toolbar}</div>
+      {children}
     </div>
+  ) : (
+    <Surface className="flex-1">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2.5">{toolbar}</div>
+      <div className="flex min-h-0 flex-1 flex-col p-4 pl-2">{children}</div>
+    </Surface>
   );
 }
 
@@ -79,28 +97,32 @@ function TimerStatsView({ data, compact, table }: { data: any; compact: boolean;
       <span className="text-sm text-muted-foreground">{zoomed ? `${count} of ${history.length} solves` : plural(count, "solve")}</span>
     );
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", compact ? "gap-5" : "gap-8")}>
+    <div className={cn("flex min-h-0 flex-1 flex-col", compact ? "gap-5" : "gap-4")}>
       <StatStrip summary={data.summary} compact={compact} />
       {s.statsView === "table" ? (
-        <SolvesTable history={history} range={range} total={total} {...table} />
+        <SolvesTable history={history} range={range} total={total} compact={compact} {...table} />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <StatsViewToggle />
-            {total}
-            <span className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-3 rounded-full bg-chart-1" />
-                Single
+        <Panel
+          compact={compact}
+          toolbar={
+            <>
+              <StatsViewToggle />
+              {total}
+              <span className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-3 rounded-full bg-chart-1" />
+                  Single
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-0.5 w-3 rounded-full bg-chart-2" />
+                  Ao5
+                </span>
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-3 rounded-full bg-chart-2" />
-                Ao5
-              </span>
-            </span>
-          </div>
+            </>
+          }
+        >
           <HistoryChart history={history} averages={data.ao5 ?? []} range={range} onRange={setRange} />
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -126,11 +148,12 @@ function SolvesTable({
   history,
   range,
   total,
+  compact,
   sort,
   setSort,
   commented,
   setCommented,
-}: { history: any[]; range: ChartRange; total: React.ReactNode } & SolveTableState) {
+}: { history: any[]; range: ChartRange; total: React.ReactNode; compact: boolean } & SolveTableState) {
   const [shown, setShown] = useState(SOLVE_PAGE);
   const byTime = (a: any, b: any, direction: 1 | -1) =>
     a.time == null ? (b.time == null ? 0 : 1) : b.time == null ? -1 : (a.time - b.time) * direction;
@@ -151,46 +174,50 @@ function SolvesTable({
   else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
   const commentCount = history.filter((v) => v.comment).length;
   return (
-    <div className="flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <StatsViewToggle />
-        {total}
-        <span className="ml-auto flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<UiButton variant="ghost" className="gap-1.5" aria-label="Sort solves" />}>
-              <ArrowDownUp className="text-muted-foreground" />
-              {SOLVE_SORTS.find((o) => o.id === sort)?.label}
-              <ChevronDown className="text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-auto min-w-40">
-              <DropdownMenuRadioGroup value={sort} onValueChange={(v: SolveSort) => setSort(v)}>
-                {SOLVE_SORTS.map((o) => (
-                  <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
-                    {o.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Toggle pressed={commented} onPressedChange={setCommented} aria-label="Show only commented solves" className="aria-pressed:text-foreground">
-            <MessageSquare />
-            Commented
-            <span className={cn(MONO, "text-xs text-muted-foreground")}>{commentCount}</span>
-          </Toggle>
-        </span>
-      </div>
-      <div className={cn("grid grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 border-b px-2 pb-2 text-xs font-medium text-muted-foreground")}>
+    <Panel
+      compact={compact}
+      toolbar={
+        <>
+          <StatsViewToggle />
+          {total}
+          <span className="ml-auto flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<UiButton variant="ghost" className="gap-1.5" aria-label="Sort solves" />}>
+                <ArrowDownUp className="text-muted-foreground" />
+                {SOLVE_SORTS.find((o) => o.id === sort)?.label}
+                <ChevronDown className="text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-auto min-w-40">
+                <DropdownMenuRadioGroup value={sort} onValueChange={(v: SolveSort) => setSort(v)}>
+                  {SOLVE_SORTS.map((o) => (
+                    <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
+                      {o.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Toggle pressed={commented} onPressedChange={setCommented} aria-label="Show only commented solves" className="aria-pressed:text-foreground">
+              <MessageSquare />
+              <span className="max-md:hidden">Commented</span>
+              <span className={cn(MONO, "text-xs text-muted-foreground")}>{commentCount}</span>
+            </Toggle>
+          </span>
+        </>
+      }
+    >
+      <div className="grid shrink-0 grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 border-b px-2 pb-2 text-xs font-medium text-muted-foreground max-md:grid-cols-[2.5rem_1fr_5rem_auto]">
         <span className="text-right">#</span>
         <span>Time</span>
         <span>Date</span>
         <span className="w-28" />
       </div>
-      <div className="-mt-2 min-h-0 flex-1 overflow-y-auto" key={`${range.join(":")}:${sort}:${commented}`}>
+      <div className="min-h-0 flex-1 overflow-y-auto pt-1" key={`${range.join(":")}:${sort}:${commented}`}>
         {!rows.length && <Empty>{commented ? "No commented solve yet. Add one with the bubble on a time." : "No solves match."}</Empty>}
         {rows.slice(0, shown).map(({ v, index, pb }) => (
           <SolveMenu key={v.id} solve={{ ...v, time_ms: v.timeMs }}>
             <div className="group/row rounded-md hover:bg-muted/50">
-              <div className="grid grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 px-2">
+              <div className="grid grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 px-2 max-md:grid-cols-[2.5rem_1fr_5rem_auto]">
                 <button
                   type="button"
                   data-action={"solve:" + v.id}
@@ -232,6 +259,6 @@ function SolvesTable({
           </UiButton>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }

@@ -1,8 +1,9 @@
 /** Visual primitives and page building blocks shared by every screen, composed from the shadcn components. */
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
+import { ChevronDown, Ellipsis, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { Cube } from "./Cube";
+import { SessionButton } from "./phone";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -10,9 +11,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -315,14 +320,24 @@ export function PuzzleButton({ profile = false }: { profile?: boolean }) {
  * element clicked; a plain click keeps its own behaviour.
  */
 export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: number; timeMs?: number; time?: number | null; penalty?: string } | undefined; children: React.ReactElement }) {
+  // A long press opens the menu on touch screens: the release that ends it is not a tap.
+  const pressedAt = useRef(0);
   if (!solve) return children;
   const id = solve.id,
     penalty = solve.penalty === "+2" || solve.penalty === "dnf" ? solve.penalty : "none",
     ms = solve.time_ms ?? solve.timeMs;
   return (
     <ContextMenu>
-      <ContextMenuTrigger render={children} />
-      <ContextMenuContent className="min-w-48">
+      <ContextMenuTrigger
+        render={children}
+        onPointerDown={(e: React.PointerEvent) => (pressedAt.current = e.pointerType === "touch" ? Date.now() : 0)}
+        onClickCapture={(e: React.MouseEvent) => {
+          if (!pressedAt.current || Date.now() - pressedAt.current < 450) return;
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      />
+      <ContextMenuContent className="min-w-48 max-md:min-w-56 max-md:[&_[role^=menuitem]]:min-h-10">
         {ms != null && (
           <ContextMenuGroup>
             <ContextMenuLabel className={MONO}>{fmtSolve(ms, penalty as any)}</ContextMenuLabel>
@@ -375,117 +390,153 @@ export function Diagram({ c, size = 96, className }: { c: any; size?: number; cl
   );
 }
 
-/** The face a cube move turns (R, Rw, 3Rw2, r…), for its sticker colour: null for any other notation. */
-const faceOf = (move: string) =>
-  /^\d*([URFDLB])w?[2']*$/.exec(move)?.[1] ?? /^([urfdlb])[2']*$/.exec(move)?.[1].toUpperCase() ?? null;
-
-const FACE: Record<string, string> = {
-  U: "after:bg-neutral-300 dark:after:bg-neutral-200",
-  R: "after:bg-red-500",
-  F: "after:bg-green-500",
-  D: "after:bg-yellow-400",
-  L: "after:bg-orange-500",
-  B: "after:bg-blue-500",
-};
-
-/** Moves in notation. With `faces`, each cube move is underlined with the colour of the face it turns. */
-export function Alg({ text, size = 18, faces = false, className }: { text: string; size?: number; faces?: boolean; className?: string }) {
+/** Moves in notation; brackets and parentheses muted. */
+export function Alg({ text, size = 18, className }: { text: string; size?: number; className?: string }) {
   return (
     <div
       className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-mono leading-snug font-medium tracking-tight", className)}
       style={{ fontSize: size }}
     >
-      {text?.split(/\s+/).map((word, i) => {
-        const face = faces ? faceOf(word) : null;
-        return (
-          <span
-            key={i}
-            className={cn(
-              /[()\[\]]/.test(word) && "text-muted-foreground",
-              face &&
-                "relative pb-[0.28em] after:absolute after:inset-x-[0.06em] after:bottom-0 after:h-[2px] after:rounded-full after:opacity-80",
-              face && FACE[face],
-            )}
-          >
-            {word}
-          </span>
-        );
-      })}
+      {text?.split(/\s+/).map((word, i) => (
+        <span key={i} className={cn(/[()\[\]]/.test(word) && "text-muted-foreground")}>
+          {word}
+        </span>
+      ))}
     </div>
   );
 }
 
 /**
- * Every page starts with the same header on the page itself: the title and one short line under it on the left, the
- * page's controls on the right. Phones put the puzzle beside the title.
+ * Every page starts with the same header on the page background: the title and one short line under it on the left,
+ * the page's controls on the right. Phones keep one row: the puzzle, the few controls a thumb needs, and the rest in
+ * the "…" menu (`more`).
  */
 export function PageHead({
   title,
   sub,
   lead,
   puzzle = false,
+  more,
   children,
-}: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean } & Props) {
+}: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean | "scramble"; more?: React.ReactNode } & Props) {
   const mobile = useViewport().w <= MOBILE;
   return (
-    <header className={cn("flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3", FADE)}>
-      <div className="flex min-w-0 items-center gap-3">
+    <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-6 gap-y-3", mobile ? "gap-x-2" : "flex-wrap", FADE)}>
+      <div className="flex min-w-0 items-center gap-2 md:gap-3">
         {lead}
         <div className="flex min-w-0 flex-col gap-0.5">
           <h1 className="truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
-          {sub && <p className="truncate text-sm text-muted-foreground">{sub}</p>}
+          {sub && <p className="truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
         </div>
       </div>
-      {(React.Children.toArray(children).some(Boolean) || (mobile && puzzle)) && (
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
-          {mobile && puzzle && <PuzzleButton />}
-          {children}
-        </div>
-      )}
+      <div className={cn("flex min-w-0 items-center justify-end gap-1", mobile ? "shrink-0" : "flex-wrap")}>
+        {mobile && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
+        {children}
+        {more && <MoreMenu>{more}</MoreMenu>}
+      </div>
     </header>
   );
 }
 
-/** The padding every page has, and its column. */
-export const PAGE = "flex h-full min-h-0 flex-col gap-6 px-4 pt-4 pb-3 md:px-8 md:pt-6 md:pb-6";
+/** The "…" of a phone header: the page's other controls as menu items. */
+export function MoreMenu({ children }: Props) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<UiButton variant="ghost" size="icon" aria-label="More" data-action="menu:more" />}>
+        <Ellipsis />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-auto min-w-52">
+        {children}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
-/** A whole page on its way: its header, the main area and the side list, shaped like the timer. */
+/** A menu item dispatching a store action. */
+export function MenuAction({ action, icon: I, children, disabled }: { action: string; icon?: LucideIcon; disabled?: boolean } & Props) {
+  return (
+    <DropdownMenuItem data-action={action} disabled={disabled} onClick={() => void s.action(action)}>
+      {I && <I />}
+      {children}
+    </DropdownMenuItem>
+  );
+}
+
+/** One choice among a few inside a menu: a label over the radio items, each dispatching `action:id`. */
+export function MenuChoice({ label, action, value, options }: { label: string; action: string; value: string; options: { id: string; label: string }[] }) {
+  return (
+    <DropdownMenuGroup>
+      <DropdownMenuLabel>{label}</DropdownMenuLabel>
+      <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => void s.action(action + ":" + v)}>
+        {options.map((o) => (
+          <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
+            {o.label}
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenuGroup>
+  );
+}
+
+/** The padding every page has, and its column. */
+export const PAGE = "flex h-full min-h-0 flex-col gap-3 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 md:gap-5 md:px-6 md:pt-5 md:pb-5 xl:px-8";
+
+/**
+ * The main work surface of a page (level 1): one calm card, the page's heart. Everything else stays on the page
+ * background, grouped by headings and hairlines or in a quieter muted strip.
+ */
+export function Surface({ children, className, ...rest }: Props & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <Card
+      className={cn(
+        "min-h-0 gap-0 py-0 transition-[background-color,box-shadow] duration-200 group-data-running/app:bg-transparent group-data-running/app:ring-transparent",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </Card>
+  );
+}
+
+/** A secondary group of figures (level 2): a quiet muted band, no outline. */
+export function Strip({ children, className, label }: Props & { label?: string }) {
+  return (
+    <section aria-label={label} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl bg-muted/45 px-4 py-3", FADE, className)}>
+      {children}
+    </section>
+  );
+}
+
+/** A whole page on its way: its header, the main surface and the side list, shaped like the timer. */
 export function PageSkeleton({ side = true }: { side?: boolean }) {
   return (
     <div className={PAGE} aria-busy="true" aria-label="Loading">
-      <header className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-56" />
-        </div>
+      <header className="flex min-h-10 items-center justify-between">
+        <Skeleton className="h-7 w-40" />
         <div className="flex gap-2">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-8 w-24" />
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 gap-10">
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <Skeleton className="h-6 w-4/5" />
-          <Skeleton className="h-6 w-3/5" />
-          <div className="flex flex-1 flex-col items-center justify-center gap-5">
-            <Skeleton className="h-24 w-80" />
-            <div className="flex gap-2">
-              {Array.from({ length: 5 }, (_, i) => (
-                <Skeleton key={i} className="h-7 w-18" />
-              ))}
+      <div className="flex min-h-0 flex-1 gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl p-6 ring-1 ring-foreground/10">
+            <Skeleton className="h-6 w-4/5" />
+            <Skeleton className="h-6 w-3/5" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-5">
+              <Skeleton className="h-24 w-72 max-w-full" />
+              <div className="flex gap-2">
+                {Array.from({ length: 5 }, (_, i) => (
+                  <Skeleton key={i} className="h-7 w-12 md:w-18" />
+                ))}
+              </div>
             </div>
           </div>
-          <div className="flex gap-10">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <Skeleton className="h-3 w-12" />
-                <Skeleton className="h-5 w-16" />
-              </div>
-            ))}
-          </div>
+          <Skeleton className="h-16 w-full rounded-xl" />
         </div>
         {side && (
-          <div className="flex w-64 flex-col gap-3">
+          <div className="flex w-64 flex-col gap-3 max-lg:hidden">
             <Skeleton className="h-4 w-20" />
             {Array.from({ length: 10 }, (_, i) => (
               <Skeleton key={i} className="h-5 w-full" />
@@ -598,10 +649,11 @@ export function Bar({ ratio, done = true, className }: { ratio: number; done?: b
   );
 }
 
-/** A section title on the page: a small heading, an optional count and the section's own controls. */
-export function SectionHead({ title, meta, children, className }: { title: React.ReactNode; meta?: React.ReactNode } & Props) {
+/** A section title (level 2): a small heading, an optional muted count and the section's own controls; `rule` draws
+ * the hairline under it. */
+export function SectionHead({ title, meta, children, className, rule = false }: { title: React.ReactNode; meta?: React.ReactNode; rule?: boolean } & Props) {
   return (
-    <div className={cn("flex min-h-8 shrink-0 items-center gap-2", className)}>
+    <div className={cn("flex min-h-8 shrink-0 items-center gap-2", rule && "border-b pb-2", className)}>
       <h2 className="text-sm font-medium">{title}</h2>
       {meta != null && <span className={cn(MONO, "text-sm text-muted-foreground")}>{meta}</span>}
       {children && <div className="ml-auto flex items-center gap-1">{children}</div>}
