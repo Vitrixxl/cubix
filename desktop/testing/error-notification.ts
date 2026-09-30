@@ -3,12 +3,13 @@ import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import tailwind from "bun-plugin-tailwind";
 
 const root = resolve(import.meta.dir, "../..");
 const result = await Bun.build({
   entrypoints: ["toast-test-harness"], target: "browser",
   define: { "process.env.NODE_ENV": '"production"' },
-  plugins: [{ name: "harness", setup(build) {
+  plugins: [tailwind, { name: "harness", setup(build) {
     build.onResolve({ filter: /^toast-test-harness$/ }, () => ({ path: "harness", namespace: "test" }));
     // The engine is a stub: no worker, only failing calls until the test lets them succeed.
     build.onResolve({ filter: /\/bridge$/ }, () => ({ path: "bridge", namespace: "test" }));
@@ -23,8 +24,8 @@ const result = await Bun.build({
       import { ErrorNotification } from './desktop/renderer/ErrorNotification';
       import { Toasts } from './desktop/renderer/Toasts';
       import { store } from './desktop/renderer/store';
-      import { theme } from './desktop/renderer/theme';
-      import './desktop/renderer/styles.css';
+      import { applyTheme } from './desktop/renderer/theme';
+      import './desktop/renderer/globals.css';
       let fail = true, retries = 0;
       window.cubixTestCall = async () => { retries++; await new Promise(r => setTimeout(r, 20)); if (fail) throw Error('Case cube and practice context do not match.'); return {}; };
       store.ready = true;
@@ -37,7 +38,8 @@ const result = await Bun.build({
       };
       function App() {
         useSyncExternalStore(store.subscribe, () => store.version);
-        return <main className="app" style={theme('t3-chat', store.light)}>
+        applyTheme('t3-chat', store.light);
+        return <main className="app">
           <Toasts light={store.light} />
           <ErrorNotification message={store.error} />
         </main>;

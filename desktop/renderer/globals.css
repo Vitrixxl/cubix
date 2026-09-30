@@ -1,5 +1,6 @@
 @import "tailwindcss" source(none);
 @source "./";
+@source "../guides";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -14,7 +15,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Phones below 701px get the tab bar; the shadcn sidebar's `md` breakpoint follows. */
+@theme {
+    --breakpoint-md: 43.8125rem;
+}
+
 @theme inline {
+    --color-success: var(--success);
+    --color-warning: var(--warning);
     --font-heading: var(--font-sans);
     --font-sans: Geist, sans-serif;
     --font-mono: "Geist Mono", monospace;
@@ -91,6 +99,9 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* Times: the best in green, +2 in amber (the worst and DNF use --destructive). */
+    --success: oklch(0.52 0.13 150);
+    --warning: oklch(0.58 0.13 70);
 }
 
 .dark {
@@ -125,6 +136,8 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --success: oklch(0.77 0.17 150);
+    --warning: oklch(0.82 0.15 80);
 }
 
 @layer base {
@@ -135,6 +148,17 @@
     @apply bg-background text-foreground;
     }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
     }
+  html, body, #root {
+    @apply h-full overflow-hidden;
+  }
+  /* Base UI popups portal into <body>: the app stays below them. */
+  #root {
+    isolation: isolate;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
 }

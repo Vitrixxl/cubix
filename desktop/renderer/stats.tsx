@@ -1,26 +1,34 @@
-/** Solve statistics: summary tiles, the progress chart and the solves table. */
-import React, { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+/** Solve statistics: the summary figures, the progress chart and the solves table. */
+import React, { useState } from "react";
+import { ArrowDownUp, ChartLine, ChevronDown, List, MessageSquare, Trash2 } from "lucide-react";
 import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime } from "../../src/client/lib/format";
-import { Button, Empty, Icon, Row, plural } from "./ui";
-function StatStrip({ summary }: { summary: any }) {
+import { ActionToggle, Button, Choice, Empty, Figure, MONO, SolveMenu, plural } from "./ui";
+import { cn } from "@/lib/utils";
+import { Button as UiButton } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function StatStrip({ summary, compact }: { summary: any; compact: boolean }) {
   return (
-    <div className="stat-strip">
+    <div className={cn("grid shrink-0 gap-x-6 gap-y-4", compact ? "grid-cols-4 lg:grid-cols-7" : "grid-cols-4 lg:grid-cols-7")}>
       {[
-        ["Best", fmtTime(summary.best), "accent"],
-        ["Ao5", fmtTime(summary.ao5), ""],
-        ["Ao12", fmtTime(summary.ao12), ""],
+        ["Best", fmtTime(summary.best), "good"],
+        ["Ao5", fmtTime(summary.ao5), "accent"],
+        ["Ao12", fmtTime(summary.ao12), "accent"],
         ["Mean", fmtTime(summary.mean), ""],
         ["Best Ao5", fmtTime(summary.bestAo5), ""],
         ["Best Ao12", fmtTime(summary.bestAo12), ""],
         ["Solves", String(summary.count), ""],
-      ].map(([label, value, cls]) => (
-        <div key={label} className={"stat-tile" + (/^[-–—]$/.test(value.trim()) ? " is-empty" : "")}>
-          <small className="muted">{label}</small>
-          <span className={"mono " + cls}>{value}</span>
-        </div>
+      ].map(([label, value, tone]) => (
+        <Figure key={label} label={label} value={value} tone={tone as any} size={compact ? "base" : "lg"} />
       ))}
     </div>
   );
@@ -39,19 +47,11 @@ const SOLVE_SORTS: { id: SolveSort; label: string }[] = [
 const SOLVE_PAGE = 100;
 
 /** Solve statistics with a shared visible period for the chart and history. */
-export function TimerStats({
-  data,
-  empty,
-  compact = false,
-}: {
-  data: any;
-  empty: React.ReactNode;
-  compact?: boolean;
-}) {
+export function TimerStats({ data, empty, compact = false }: { data: any; empty: React.ReactNode; compact?: boolean }) {
   // The table order and filter survive the remount that follows a deleted solve.
   const [sort, setSort] = useState<SolveSort>("newest"),
     [commented, setCommented] = useState(false);
-  if (!data?.summary?.count) return <Empty>{empty}</Empty>;
+  if (!data?.summary?.count) return <Empty className={compact ? "flex-none items-start p-0 py-1 text-left" : undefined}>{empty}</Empty>;
   const history = data.history ?? [];
   return (
     <TimerStatsView
@@ -75,51 +75,53 @@ function TimerStatsView({ data, compact, table }: { data: any; compact: boolean;
   const [range, setRange] = useState<ChartRange>([0, history.length - 1]);
   const zoomed = range[0] > 0 || range[1] < history.length - 1,
     count = range[1] - range[0] + 1,
-    total = <span className="muted solves-count">{zoomed ? `${count} of ${history.length} solves` : plural(count, "solve")}</span>;
+    total = (
+      <span className="text-sm text-muted-foreground">{zoomed ? `${count} of ${history.length} solves` : plural(count, "solve")}</span>
+    );
   return (
-    <div className={"stats " + (compact ? "compact" : "")}>
-      <StatStrip summary={data.summary} />
-      <div className="stats-grid">
-        {s.statsView === "table" ? (
-          <SolvesTable history={history} range={range} total={total} {...table} />
-        ) : (
-          <div className="panel chart-panel">
-            <Row className="between stats-bar">
-              <Row>
-                <StatsViewToggle />
-                {total}
-              </Row>
-              <Row className="chart-legend">
-                <span className="accent">━ Single</span>
-                <span style={{ color: "var(--series)" }}>━ Ao5</span>
-              </Row>
-            </Row>
-            <HistoryChart history={history} averages={data.ao5 ?? []} range={range} onRange={setRange} />
+    <div className={cn("flex min-h-0 flex-1 flex-col", compact ? "gap-5" : "gap-8")}>
+      <StatStrip summary={data.summary} compact={compact} />
+      {s.statsView === "table" ? (
+        <SolvesTable history={history} range={range} total={total} {...table} />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <StatsViewToggle />
+            {total}
+            <span className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-3 rounded-full bg-chart-1" />
+                Single
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-3 rounded-full bg-chart-2" />
+                Ao5
+              </span>
+            </span>
           </div>
-        )}
-      </div>
+          <HistoryChart history={history} averages={data.ao5 ?? []} range={range} onRange={setRange} />
+        </div>
+      )}
     </div>
   );
 }
 
 /** Chart or table: the solves of the period drawn over time, or listed with their actions. */
 function StatsViewToggle() {
-  const id = useId();
   return (
-    <Row className="stats-view-toggle">
-      {[
-        ["chart", "Chart", "IconChart"],
-        ["table", "Table", "IconGrid"],
-      ].map(([view, label, icon]) => (
-        <Button key={view} action={"statsView:" + view} active={s.statsView === view} highlight={"stats-view" + id} icon={icon} title={label}>
-          <span className="stats-view-label">{label}</span>
-        </Button>
-      ))}
-    </Row>
+    <Choice
+      prefix="statsView:"
+      label="View"
+      value={s.statsView}
+      options={[
+        { id: "chart", label: <><ChartLine />Chart</> },
+        { id: "table", label: <><List />Table</> },
+      ]}
+    />
   );
 }
 
-/** Every solve of the visible period, sorted as asked, each with its penalty, comment and delete buttons. */
+/** Every solve of the visible period, sorted as asked; right-click a row for its menu. */
 function SolvesTable({
   history,
   range,
@@ -149,185 +151,87 @@ function SolvesTable({
   else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
   const commentCount = history.filter((v) => v.comment).length;
   return (
-    <div className="panel history-panel">
-      <Row className="between solves-bar stats-bar">
-        <Row>
-          <StatsViewToggle />
-          {total}
-        </Row>
-        <Row>
-          <LocalSelect label="Sort solves" value={sort} options={SOLVE_SORTS} onChange={setSort} />
-          <button
-            type="button"
-            className={"button " + (commented ? "soft" : "")}
-            aria-pressed={commented}
-            aria-label="Show only commented solves"
-            title="Show only commented solves"
-            onClick={(e) => {
-              e.currentTarget.blur();
-              setCommented(!commented);
-            }}
-          >
-            <Icon name="IconComment" size={14} />
-            <span className="solves-label">Commented</span>
-            <span className="mono muted">{commentCount}</span>
-          </button>
-        </Row>
-      </Row>
-      <div className="solves-head muted">
-        <span>#</span>
+    <div className="flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <StatsViewToggle />
+        {total}
+        <span className="ml-auto flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<UiButton variant="ghost" className="gap-1.5" aria-label="Sort solves" />}>
+              <ArrowDownUp className="text-muted-foreground" />
+              {SOLVE_SORTS.find((o) => o.id === sort)?.label}
+              <ChevronDown className="text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto min-w-40">
+              <DropdownMenuRadioGroup value={sort} onValueChange={(v: SolveSort) => setSort(v)}>
+                {SOLVE_SORTS.map((o) => (
+                  <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
+                    {o.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Toggle pressed={commented} onPressedChange={setCommented} aria-label="Show only commented solves" className="aria-pressed:text-foreground">
+            <MessageSquare />
+            Commented
+            <span className={cn(MONO, "text-xs text-muted-foreground")}>{commentCount}</span>
+          </Toggle>
+        </span>
+      </div>
+      <div className={cn("grid grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 border-b px-2 pb-2 text-xs font-medium text-muted-foreground")}>
+        <span className="text-right">#</span>
         <span>Time</span>
         <span>Date</span>
-        <span>Actions</span>
+        <span className="w-28" />
       </div>
-      <div className="scroll history-solves" key={`${range.join(":")}:${sort}:${commented}`}>
-        {!rows.length && (
-          <Empty>{commented ? "No commented solve yet. Add one with the bubble on a time." : "No solves match."}</Empty>
-        )}
+      <div className="-mt-2 min-h-0 flex-1 overflow-y-auto" key={`${range.join(":")}:${sort}:${commented}`}>
+        {!rows.length && <Empty>{commented ? "No commented solve yet. Add one with the bubble on a time." : "No solves match."}</Empty>}
         {rows.slice(0, shown).map(({ v, index, pb }) => (
-          <div key={v.id} className="solve-row">
-            <button
-              type="button"
-              className="button history-row"
-              title="Show the scramble and details"
-              onClick={() => void s.action("solve:" + v.id)}
-            >
-              <span className="muted">{index + 1}</span>
-              <span className={"mono " + (v.time == null ? "danger" : pb ? "accent" : "")}>
-                {v.time == null ? "DNF" : fmtTime(v.time)}
-              </span>
-              <span className="history-tags">
-                {pb && <span className="tag">PB</span>}
-                {v.penalty === "+2" && <span className="tag muted">+2</span>}
-              </span>
-              <span className="muted">{v.displayDate}</span>
-            </button>
-            <span className="solve-row-actions">
-              <Button action={`penalty:${v.id}:+2`} className={v.penalty === "+2" ? "soft" : ""} title="+2 penalty">
-                +2
-              </Button>
-              <Button action={`penalty:${v.id}:dnf`} className={v.penalty === "dnf" ? "soft" : ""} title="Did not finish">
-                DNF
-              </Button>
-              <Button
-                action={"comment:" + v.id}
-                icon="IconComment"
-                className={v.comment ? "accent" : ""}
-                title={v.comment ? "Edit comment" : "Add comment"}
-              />
-              <Button action={"delete:" + v.id} icon="IconTrash" className="danger" title="Delete solve" />
-            </span>
-            {v.comment && <p className="solve-comment">{v.comment}</p>}
-          </div>
+          <SolveMenu key={v.id} solve={{ ...v, time_ms: v.timeMs }}>
+            <div className="group/row rounded-md hover:bg-muted/50">
+              <div className="grid grid-cols-[3.5rem_1fr_8rem_auto] items-center gap-4 px-2">
+                <button
+                  type="button"
+                  data-action={"solve:" + v.id}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    void s.action("solve:" + v.id);
+                  }}
+                  className="col-span-3 grid h-9 grid-cols-subgrid items-center text-left outline-none"
+                >
+                  <span className={cn(MONO, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
+                  <span className="flex items-center gap-2">
+                    <span className={cn(MONO, "text-sm", v.time == null ? "text-destructive" : pb ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>
+                      {v.time == null ? "DNF" : fmtTime(v.time)}
+                    </span>
+                    {pb && <span className="rounded-md bg-success/15 px-1.5 py-px text-[11px] font-medium text-success">PB</span>}
+                    {v.penalty === "+2" && <span className="rounded-md bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">+2</span>}
+                    {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">{v.displayDate}</span>
+                </button>
+                <span className="flex w-28 items-center justify-end opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
+                  <ActionToggle action={`penalty:${v.id}:+2`} pressed={v.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
+                    +2
+                  </ActionToggle>
+                  <ActionToggle action={`penalty:${v.id}:dnf`} pressed={v.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
+                    DNF
+                  </ActionToggle>
+                  <Button action={"comment:" + v.id} icon={MessageSquare} size="icon-xs" label={v.comment ? "Edit comment" : "Add comment"} className={cn("text-muted-foreground", v.comment && "text-primary")} />
+                  <Button action={"delete:" + v.id} icon={Trash2} size="icon-xs" label="Delete solve" className="text-muted-foreground hover:text-destructive" />
+                </span>
+              </div>
+              {v.comment && <p className="-mt-1 pb-2 pl-[5.5rem] text-xs text-muted-foreground">{v.comment}</p>}
+            </div>
+          </SolveMenu>
         ))}
         {rows.length > shown && (
-          <button type="button" className="button solves-more" onClick={() => setShown(shown + SOLVE_PAGE)}>
+          <UiButton variant="ghost" className="my-2 w-full text-muted-foreground" onClick={() => setShown(shown + SOLVE_PAGE)}>
             Show more ({rows.length - shown} left)
-          </button>
+          </UiButton>
         )}
       </div>
     </div>
-  );
-}
-
-/**
- * A select menu held by its component rather than the app overlay, so it can open inside a dialog
- * without replacing it. It looks and moves like the app's select menus.
- */
-function LocalSelect<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: { id: T; label: string }[];
-  onChange: (value: T) => void;
-}) {
-  const trigger = useRef<HTMLButtonElement>(null),
-    [anchor, setAnchor] = useState<DOMRect | null>(null),
-    [index, setIndex] = useState(0);
-  const pick = (id: T) => {
-    setAnchor(null);
-    onChange(id);
-  };
-  useEffect(() => {
-    if (!anchor) return;
-    // Captured before the app overlay's listener, so Escape does not also close a surrounding dialog.
-    const key = (e: KeyboardEvent) => {
-      if (!["Escape", "ArrowDown", "ArrowUp", "Home", "End", "Enter"].includes(e.key)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.key === "Escape") setAnchor(null);
-      else if (e.key === "Enter") pick(options[index].id);
-      else
-        setIndex((i) =>
-          e.key === "Home"
-            ? 0
-            : e.key === "End"
-              ? options.length - 1
-              : (i + (e.key === "ArrowDown" ? 1 : -1) + options.length) % options.length,
-        );
-    };
-    addEventListener("keydown", key, true);
-    return () => removeEventListener("keydown", key, true);
-  }, [anchor, index]);
-  const host = trigger.current?.closest(".app"),
-    height = options.length * 42 + 18,
-    below = anchor && anchor.bottom + 6 + height <= innerHeight - 12;
-  return (
-    <>
-      <button
-        ref={trigger}
-        type="button"
-        className="button control"
-        aria-label={label}
-        aria-haspopup="listbox"
-        aria-expanded={!!anchor}
-        onClick={(e) => {
-          e.currentTarget.blur();
-          setIndex(Math.max(0, options.findIndex((o) => o.id === value)));
-          setAnchor(anchor ? null : e.currentTarget.getBoundingClientRect());
-        }}
-      >
-        {options.find((o) => o.id === value)?.label}
-        <Icon name="IconChevronDown" size={12} />
-      </button>
-      {anchor &&
-        host &&
-        createPortal(
-          <div className="menu-backdrop local-menu" onClick={() => setAnchor(null)}>
-            <div
-              className="select-menu"
-              role="listbox"
-              aria-label={label}
-              style={{
-                left: Math.min(innerWidth - 292, Math.max(12, anchor.right - 280)),
-                top: below ? anchor.bottom + 6 : Math.max(12, anchor.y - height - 6),
-                transformOrigin: below ? "top right" : "bottom right",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {options.map((o, i) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  role="option"
-                  aria-selected={o.id === value}
-                  style={{ "--i": i } as React.CSSProperties}
-                  className={"button menu-option " + (index === i ? "active" : "")}
-                  onMouseEnter={() => setIndex(i)}
-                  onClick={() => pick(o.id)}
-                >
-                  <span>{o.label}</span>
-                  {o.id === value && <Icon name="IconCheck" />}
-                </button>
-              ))}
-            </div>
-          </div>,
-          host,
-        )}
-    </>
   );
 }

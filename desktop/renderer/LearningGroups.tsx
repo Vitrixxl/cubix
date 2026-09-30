@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Reorder } from "motion/react";
+import { GripVertical } from "lucide-react";
 import { store as s } from "./store";
 
 export function LearningGroups() {
@@ -33,10 +34,10 @@ export function LearningGroups() {
     save(group);
   };
   return <>
-    <Reorder.Group as="ol" axis="y" layoutScroll className="scroll learning-groups" aria-label="Learning group order" values={groups} onReorder={reorder}>
+    <Reorder.Group as="ol" axis="y" layoutScroll className="-mx-2 flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto px-2" aria-label="Learning group order" values={groups} onReorder={reorder}>
       {groups.map((group, index) => <GroupItem key={group} group={group} index={index} count={groups.length} start={() => { dragging.current = true; }} save={save} move={move} />)}
     </Reorder.Group>
-    <span className="learning-order-announcement" role="status">{announcement}</span>
+    <span className="sr-only" role="status">{announcement}</span>
   </>;
 }
 
@@ -46,10 +47,10 @@ function GroupItem({ group, index, count, start, save, move }: {
   start: () => void;
   move: (group: string, key: string) => void;
 }) {
-  return <Reorder.Item value={group} className="learning-group" onDragStart={start} onDragEnd={() => save(group)} whileDrag={{ boxShadow: "0 6px 20px #0004", borderColor: "var(--accent)" }}>
-    <span className="learning-group-number" aria-hidden="true">{index + 1}.</span>
-    <span className="learning-group-name">{group}</span>
-    <button type="button" className="button learning-group-handle" aria-label={`Move ${group}`} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Drag to reorder · ↑ / ↓" onKeyDown={event => {
+  return <Reorder.Item value={group} className="flex h-10 items-center gap-3 rounded-lg bg-popover pr-1 pl-3 hover:bg-muted/50" onDragStart={start} onDragEnd={() => save(group)} whileDrag={{ boxShadow: "0 8px 24px rgb(0 0 0 / 0.25)" }}>
+    <span className="w-6 font-mono text-xs text-muted-foreground tabular-nums" aria-hidden="true">{index + 1}.</span>
+    <span className="flex-1 truncate text-sm">{group}</span>
+    <button type="button" className="flex size-8 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing" aria-label={`Move ${group}`} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Drag to reorder · ↑ / ↓" onKeyDown={event => {
       if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
       event.preventDefault();
       event.stopPropagation();
@@ -57,9 +58,7 @@ function GroupItem({ group, index, count, start, save, move }: {
       move(group, event.key);
       requestAnimationFrame(() => handle.scrollIntoView({ block: "nearest" }));
     }}>
-      <svg aria-hidden="true" width="18" height="24" viewBox="0 0 18 24" fill="currentColor">
-        {[6, 12, 18].flatMap(y => [6, 12].map(x => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.5" />))}
-      </svg>
+      <GripVertical className="size-4" aria-hidden="true" />
     </button>
   </Reorder.Item>;
 }

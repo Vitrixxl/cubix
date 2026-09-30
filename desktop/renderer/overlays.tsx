@@ -1,53 +1,60 @@
-/** Dialogs and select menus drawn over the app: settings, guides, methods, search, solves and menus. */
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { store as s, catalog, matches } from "./store";
+/** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
+import React, { useState } from "react";
+import { Check, MessageSquare, Trash2 } from "lucide-react";
+import { store as s, matches } from "./store";
 import { call, openExternal } from "./bridge";
 import { accents } from "./theme";
 import { LearningGroups } from "./LearningGroups";
 import { fmtSolve } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
-import { EVENTS, PUZZLES } from "../../src/shared/puzzles";
+import { PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { Alg, Avatar, Button, Diagram, Icon, MOBILE, Row } from "./ui";
+import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MONO } from "./ui";
 import { TimerStats } from "./stats";
-/** A settings row: its name on the left, its controls as cells flush against the right edge, full row height. */
-function SettingRow({ label, children }: { label: string } & { children?: React.ReactNode }) {
+import { cn } from "@/lib/utils";
+import { Button as UiButton } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList, Command } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+
+const close = () => {
+  s.overlay = "";
+  s.emit();
+};
+
+/** A dialog shown while the app overlay is `id`. */
+function Modal({ id, children, className, title, description, hideHeader = false }: {
+  id: string;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  hideHeader?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="settings-row">
-      <strong>{label}</strong>
-      <div className="settings-cells">{children}</div>
-    </div>
+    <Dialog open={s.overlay === id} onOpenChange={(open: boolean) => !open && s.overlay === id && close()}>
+      <DialogContent className={cn("gap-5 p-6", className)}>
+        <DialogHeader className={hideHeader ? "sr-only" : undefined}>
+          <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function Appearance() {
+/** A settings row: its name on the left, its controls on the right. */
+function SettingRow({ label, children }: { label: string; children?: React.ReactNode }) {
   return (
-    <>
-      <SettingRow label="Theme">
-        <Button action="light:dark" active={!s.light}>
-          Dark
-        </Button>
-        <Button action="light:light" active={s.light}>
-          Light
-        </Button>
-      </SettingRow>
-      <SettingRow label="Accent">
-        {Object.entries(accents).map(([name, color]) => (
-          <Button
-            key={name}
-            action={"theme:" + name}
-            title={name}
-            className={"settings-swatch " + (s.themeName === name ? "chosen" : "")}
-          >
-            <span className="settings-swatch-colour" style={{ background: color }} />
-          </Button>
-        ))}
-      </SettingRow>
-      <SettingRow label="Help">
-        <Button action="help" className="settings-wide">Open the guides</Button>
-      </SettingRow>
-    </>
+    <div className="flex min-h-9 items-center justify-between gap-4">
+      <span className="text-sm">{label}</span>
+      <div className="flex items-center gap-1.5">{children}</div>
+    </div>
   );
 }
 
@@ -56,18 +63,14 @@ function AccountForm() {
     [password, setPassword] = useState("");
   return (
     <form
-      className="account-form"
+      className="flex flex-col gap-4"
       onSubmit={async (e) => {
         e.preventDefault();
         if (s.saving) return;
         s.saving = true;
         s.emit();
         try {
-          const v = await call(
-            s.login ? "login" : "register",
-            username,
-            password,
-          );
+          const v = await call(s.login ? "login" : "register", username, password);
           s.user = v.user;
           s.sessions.clear();
           s.overlay = "";
@@ -81,492 +84,313 @@ function AccountForm() {
         }
       }}
     >
-      <div className="auth-tabs">
-        <Button action="authMode:login" active={s.login}>
-          Sign in
-        </Button>
-        <Button action="authMode:register" active={!s.login}>
-          Create account
-        </Button>
-      </div>
-      <p className="muted settings-text">
+      <Choice
+        prefix="authMode:"
+        label="Account"
+        value={s.login ? "login" : "register"}
+        options={[
+          { id: "login", label: "Sign in" },
+          { id: "register", label: "Create account" },
+        ]}
+      />
+      <p className="text-sm text-muted-foreground">
         {s.login
           ? "Your local times are merged into your account."
           : "An account keeps your times, statistics and achievements in sync between devices."}
       </p>
-      <label className="auth-field">
-        <span>Username</span>
-        <input
-          value={username}
-          onChange={(e) => setUser(e.target.value)}
-          autoComplete="username"
-          required
-        />
-      </label>
-      <label className="auth-field">
-        <span>Password</span>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="account-username">Username</Label>
+        <Input id="account-username" value={username} onChange={(e) => setUser(e.target.value)} autoComplete="username" required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="account-password">Password</Label>
+        <Input
+          id="account-password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete={s.login ? "current-password" : "new-password"}
           required
         />
-      </label>
-      {!s.login && (
-        <small className="muted settings-text">
-          3–24 letters, digits or underscores. Password: 10 characters or
-          more.
-        </small>
-      )}
-      <button type="submit" className="button primary auth-submit" disabled={s.saving}>
+        {!s.login && <p className="text-xs text-muted-foreground">3–24 letters, digits or underscores. Password: 10 characters or more.</p>}
+      </div>
+      <UiButton type="submit" size="lg" disabled={s.saving}>
         {s.saving ? "One moment…" : s.login ? "Sign in" : "Create account"}
-      </button>
+      </UiButton>
     </form>
   );
 }
 
-/** Settings: sections under a header line, rows split by lines, every control a cell flush with them. */
+/** Settings: the account, then the appearance. */
 function Settings() {
   const guest = s.user.isGuest;
   return (
-    <div className="settings">
-      <section className="settings-section">
-        <h3 className="settings-head">Account</h3>
+    <div className="settings flex flex-col gap-6">
+      <section className="flex flex-col gap-3">
+        <h3 className={LABEL}>Account</h3>
         {guest ? (
           <AccountForm />
         ) : (
-          <div className="settings-row settings-user">
-            <span className="settings-user-name">
-              <Avatar user={s.user} size={36} />
-              <span className="col">
-                <strong>{s.user.username}</strong>
-                <small className="muted">Joined {s.profile?.user?.joined}</small>
-              </span>
-            </span>
-            <div className="settings-cells">
-              <Button action="logout">Sign out</Button>
+          <div className="flex items-center gap-3">
+            <Avatar user={s.user} size={40} />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-medium">{s.user.username}</span>
+              <span className="text-xs text-muted-foreground">Joined {s.profile?.user?.joined}</span>
             </div>
+            <Button action="logout" variant="outline">
+              Sign out
+            </Button>
           </div>
         )}
       </section>
-      <section className="settings-section">
-        <h3 className="settings-head">Appearance</h3>
-        <Appearance />
+      <Separator />
+      <section className="flex flex-col gap-2">
+        <h3 className={LABEL}>Appearance</h3>
+        <SettingRow label="Theme">
+          <Choice
+            prefix="light:"
+            label="Theme"
+            value={s.light ? "light" : "dark"}
+            options={[
+              { id: "dark", label: "Dark" },
+              { id: "light", label: "Light" },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow label="Accent">
+          {accents.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              data-action={"theme:" + a.id}
+              title={a.name}
+              aria-label={a.name}
+              aria-pressed={s.themeName === a.id}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                void s.action("theme:" + a.id);
+              }}
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md outline-none transition-shadow focus-visible:ring-3 focus-visible:ring-ring/50",
+                s.themeName === a.id && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-popover",
+              )}
+              style={{ background: a.color }}
+            >
+              {s.themeName === a.id && <Check className="size-3.5 text-white" />}
+            </button>
+          ))}
+        </SettingRow>
+        <SettingRow label="Help">
+          <Button action="help" variant="outline">
+            Open the guides
+          </Button>
+        </SettingRow>
       </section>
     </div>
   );
 }
 
-/** The guides open over the app: their list on the left, the chosen guide on the right. */
-function GuidesDialog({ close }: { close: () => void }) {
+/** The guides: their list on the left, the chosen guide on the right. */
+function GuidesDialog() {
   const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide;
   return (
-    <div className="modal-backdrop" onClick={close}>
-      <div className="modal guides-modal" role="dialog" aria-modal="true" aria-label="Guides" onClick={(e) => e.stopPropagation()}>
-        <nav className="guides-nav" aria-label="Guides">
-          <span className="guides-nav-title">Guides</span>
+    <Dialog open={s.overlay === "guides"} onOpenChange={(open: boolean) => !open && s.overlay === "guides" && close()}>
+      <DialogContent className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl max-md:flex-col">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Guides</DialogTitle>
+          <DialogDescription>How Cubix works</DialogDescription>
+        </DialogHeader>
+        <nav aria-label="Guides" className="flex shrink-0 flex-col gap-0.5 p-3 md:w-52 md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:pr-12">
+          <span className={cn(LABEL, "px-2.5 pb-2 max-md:hidden")}>Guides</span>
           {(Object.keys(GUIDES) as Guide[]).map((id) => (
-            <Button key={id} action={"guidePage:" + id} className={"guides-nav-item " + (id === page ? "selected" : "")}>
+            <Button
+              key={id}
+              action={"guidePage:" + id}
+              className={cn("justify-start font-normal text-muted-foreground", id === page && "bg-muted font-medium text-foreground")}
+            >
               {GUIDES[id].name}
             </Button>
           ))}
         </nav>
-        <div className="guides-main">
-          <Button action="close" icon="IconClose" className="control icon-only guides-close" title="Close the guides" />
-          <article
-            className="scroll guides-body guide-content"
-            onClick={(e) => {
-              const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
-              if (button) return void s.action(button.dataset.action!);
-              const a = (e.target as HTMLElement).closest("a");
-              if (!a) return;
-              e.preventDefault();
-              const href = a.getAttribute("href") ?? "",
-                entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
-              if (entry) void s.action("guidePage:" + entry[0]);
-              else if (href.startsWith("http")) void openExternal(href);
-              else void s.action("nav:" + (href === "/training/" ? "training" : href === "/algorithms/" ? "algorithms" : "playground"));
-            }}
-          >
-            <GuideContent page={page} puzzle={s.guidePuzzle} method={s.guideMethod} />
-          </article>
-        </div>
-      </div>
-    </div>
+        <article
+          className="guides-body min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-10 md:px-10 md:pt-10"
+          onClick={(e) => {
+            const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
+            if (button) return void s.action(button.dataset.action!);
+            const a = (e.target as HTMLElement).closest("a");
+            if (!a) return;
+            e.preventDefault();
+            const href = a.getAttribute("href") ?? "",
+              entry = Object.entries(GUIDES).find(([, v]) => v.path === href);
+            if (entry) void s.action("guidePage:" + entry[0]);
+            else if (href.startsWith("http")) void openExternal(href);
+            else void s.action("nav:" + (href === "/training/" ? "training" : href === "/algorithms/" ? "algorithms" : "playground"));
+          }}
+        >
+          <GuideContent page={page} puzzle={s.guidePuzzle} method={s.guideMethod} />
+        </article>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function options(): { action: string; values: any[]; current: string } {
-  const info = s.info(),
-    profile = s.info(s.profilePuzzle);
-  switch (s.overlay) {
-    case "puzzles":
-      return {
-        action: "puzzle",
-        values: EVENTS,
-        current: s.event().id,
-      };
-    case "profilePuzzles":
-      return {
-        action: "profilePuzzle",
-        values: EVENTS,
-        current: s.event(s.profilePuzzle, s.profileSolveMode).id,
-      };
-    case "scrambles":
-    case "profileScrambles":
-      return {
-        action: s.overlay === "scrambles" ? "scrambleType" : "profileScramble",
-        values: catalog.puzzles.scrambles.filter((v: any) =>
-          (s.overlay === "scrambles" ? info : profile).scrambles.includes(v.id) &&
-          // Cross + 1 scrambles belong to the training page; their times still show in the profile.
-          (s.overlay !== "scrambles" || !v.id.startsWith("cross1-")),
-        ),
-        current: s.overlay === "scrambles" ? s.scrambleType : s.profileScramble,
-      };
-    case "entries":
-      return {
-        action: "entry",
-        values: [
-          { id: "timer", label: "Timer" },
-          { id: "typing", label: "Typing" },
-          { id: "casual", label: "Casual" },
-        ],
-        current: s.entry,
-      };
-    case "achievementGroups":
-      return {
-        action: "achievementGroup",
-        values: [
-          { id: "all", label: "All puzzles" },
-          ...[
-            ...new Set(
-              (s.achievements?.achievements ?? []).map(
-                (v: any) => v.group,
-              ),
-            ),
-          ].map((id) => ({ id, label: id })),
-        ],
-        current: s.achievementGroup,
-      };
-    default:
-      return { action: "", values: [], current: "" };
-  }
+function MethodsDialog() {
+  const methods = METHODS[s.guidePuzzle],
+    method = methods.find((m) => m.id === s.guideMethod) ?? methods[0]!;
+  return (
+    <Modal id="methods" title="Solving methods" className="sm:max-w-2xl">
+      <div className="flex flex-col gap-2">
+        <Choice prefix="guidePuzzle:" label="Puzzle" value={s.guidePuzzle} options={PUZZLES.map((p) => ({ id: p.id, label: p.label }))} className="flex-wrap" />
+        <Choice prefix="guideMethod:" label="Method" value={method.id} options={methods.map((m) => ({ id: m.id, label: m.name }))} className="flex-wrap" />
+      </div>
+      <Separator />
+      <div className="flex max-h-[55vh] flex-col gap-4 overflow-y-auto pr-1">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-base font-semibold">{method.name}</h3>
+          <p className="text-sm text-muted-foreground">{method.summary}</p>
+        </div>
+        <ol className="flex flex-col gap-4">
+          {method.steps.map((step, i) => (
+            <li key={step.title} className="flex gap-4">
+              <span className={cn(MONO, "w-5 shrink-0 pt-px text-sm text-muted-foreground")}>{i + 1}</span>
+              <div className="flex flex-col gap-1">
+                <strong className="text-sm font-medium">{step.title}</strong>
+                <p className="text-sm text-muted-foreground">{step.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Modal>
+  );
 }
 
-const PUZZLE_COLUMNS = 4;
-
-/**
- * Where a menu opens: 6px under the button that opened it (above when there is no room), its left edge on the
- * button's, or its right edge when it would leave the window. Phones span the width, 8px from the edges.
- */
-function placeMenu(anchor: DOMRect | null, width: number, natural: number, mobile: boolean) {
-  const room = innerHeight - (mobile ? 72 : 0) - 8;
-  if (!anchor) {
-    const height = Math.min(natural, room - 32);
-    return { left: Math.max(8, (innerWidth - width) / 2), top: Math.max(16, (room - height) / 2), height, up: false };
-  }
-  const left = mobile ? 8 : Math.max(8, anchor.left + width > innerWidth - 8 ? anchor.right - width : anchor.left),
-    below = room - anchor.bottom - 6,
-    up = natural > below && anchor.top > below,
-    height = Math.min(natural, up ? anchor.top - 14 : below);
-  return { left, top: up ? anchor.top - 6 - height : anchor.bottom + 6, height, up };
-}
-
-export function Overlay() {
-  const menu = options(),
-    ref = useRef<HTMLDivElement>(null),
-    [comment, setComment] = useState(s.overlaySolve?.comment ?? ""),
-    [index, setIndex] = useState(
-      Math.max(
-        0,
-        menu.values.findIndex((v) => v.id === menu.current),
-      ),
-    );
+function SearchDialog() {
   const results = s
     .cases()
     .filter((c: any) => matches(c, s.search))
     .slice(0, 50);
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      const count =
-        menu.values.length || (s.overlay === "search" ? results.length : 0);
-      if (e.key === "Escape") {
-        s.overlay = "";
-        s.emit();
-        return;
-      }
-      if (!count) return;
-      // The puzzle dialog is a grid: arrows move by cell and row and stop at the edges.
-      const step = { ArrowDown: PUZZLE_COLUMNS, ArrowUp: -PUZZLE_COLUMNS, ArrowRight: 1, ArrowLeft: -1 }[e.key];
-      if (s.overlay === "puzzles" && step) {
-        e.preventDefault();
-        setIndex((i) => Math.min(count - 1, Math.max(0, i + step)));
-      } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
-        e.preventDefault();
-        setIndex((i) =>
-          e.key === "Home"
-            ? 0
-            : e.key === "End"
-              ? count - 1
-              : (i + (e.key === "ArrowDown" ? 1 : -1) + count) % count,
-        );
-      }
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (menu.values.length)
-          void s.action(menu.action + ":" + menu.values[index].id);
-        else if (results[index]) void s.action("case:" + results[index].id);
-      }
-    };
-    addEventListener("keydown", key);
-    return () => removeEventListener("keydown", key);
-  }, [index, menu, results]);
-  useLayoutEffect(() => {
-    ref.current
-      ?.querySelector('[data-focused="true"]')
-      ?.scrollIntoView({ block: "nearest" });
-  }, [index]);
-  const close = () => {
-    s.overlay = "";
-    s.emit();
-  };
-  if (s.overlay === "puzzles" || menu.values.length) {
-    const puzzles = s.overlay === "puzzles",
-      count = menu.values.length,
-      lastRow = count % PUZZLE_COLUMNS || PUZZLE_COLUMNS,
-      mobile = innerWidth <= MOBILE,
-      width = mobile ? innerWidth - 16 : puzzles ? PUZZLE_COLUMNS * 96 + 12 : Math.max(220, s.anchor?.width ?? 0),
-      // Rows or puzzle tiles and the padding: the menu only scrolls when the window is short.
-      natural = puzzles ? Math.ceil(count / PUZZLE_COLUMNS) * (mobile ? 76 : 84) + 12 : count * 36 + 10,
-      place = placeMenu(s.anchor, width, natural, mobile);
-    return (
-      <div className="menu-backdrop" onClick={close}>
-        <div
-          className={"select-menu " + (puzzles ? "puzzle-menu " : "") + (place.up ? "up" : "")}
-          ref={ref}
-          role="listbox"
-          aria-label={puzzles ? "Puzzle" : undefined}
-          style={{ left: place.left, top: place.top, width, maxHeight: place.height }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {puzzles ? (
-            <div className="puzzle-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${PUZZLE_COLUMNS}, 1fr)` }}>
-              {menu.values.map((v, i) => (
-                <button
-                  key={v.id}
-                  role="option"
-                  aria-selected={v.id === menu.current}
-                  data-focused={index === i}
-                  className={
-                    "button puzzle-option " +
-                    (index === i ? "active " : "") +
-                    (v.id === menu.current ? "current " : "") +
-                    (i % PUZZLE_COLUMNS === PUZZLE_COLUMNS - 1 ? "edge-right " : "") +
-                    (i >= count - lastRow ? "edge-bottom" : "")
-                  }
-                  onMouseEnter={() => setIndex(i)}
-                  onClick={() => void s.action(menu.action + ":" + v.id)}
-                >
-                  <Icon name={"Puzzle" + v.id} size={28} />
-                  <span>{v.label}</span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            menu.values.map((v, i) => (
-              <button
-                key={v.id}
-                role="option"
-                aria-selected={v.id === menu.current}
-                data-focused={index === i}
-                className={"button menu-option " + (index === i ? "active " : "") + (v.id === menu.current ? "current" : "")}
-                onMouseEnter={() => setIndex(i)}
-                onClick={() => void s.action(menu.action + ":" + v.id)}
-              >
-                {menu.action.toLowerCase().includes("puzzle") && <Icon name={"Puzzle" + v.id} size={20} />}
-                <span>{v.label}</span>
-                {v.id === menu.current && <Icon name="IconCheck" />}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-    );
-  }
-  if (s.overlay === "guides") return <GuidesDialog close={close} />;
-  if (s.overlay === "methods") {
-    const methods = METHODS[s.guidePuzzle],
-      method = methods.find((m) => m.id === s.guideMethod) ?? methods[0]!;
-    return (
-      <div className="modal-backdrop" onClick={close}>
-        <div className="modal methods-modal" role="dialog" aria-modal="true" aria-label="Solving methods" onClick={(e) => e.stopPropagation()}>
-          <Row className="between modal-head"><h2>Solving methods</h2><Button action="close" icon="IconClose" className="control icon-only" title="Close solving methods" /></Row>
-          <div className="row wrap methods-tabs" role="group" aria-label="Puzzle">
-            {PUZZLES.map((p) => (
-              <Button key={p.id} action={"guidePuzzle:" + p.id} active={p.id === s.guidePuzzle} highlight="methods-puzzle">{p.label}</Button>
-            ))}
-          </div>
-          <div className="row wrap methods-tabs" role="group" aria-label="Method">
-            {methods.map((m) => (
-              <Button key={m.id} action={"guideMethod:" + m.id} active={m === method} highlight="methods-method">{m.name}</Button>
-            ))}
-          </div>
-          <div className="methods-body">
-            <h3>{method.name}</h3>
-            <p className="muted">{method.summary}</p>
-            <ol>
-              {method.steps.map((step, i) => (
-                <li key={step.title}><span className="mono">{i + 1}</span><div><strong>{step.title}</strong><p>{step.text}</p></div></li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (s.overlay === "learningGroups") return (
-    <div className="modal-backdrop" onClick={close}>
-      <div className="modal learning-groups-modal" role="dialog" aria-modal="true" aria-label="Group order" onClick={e => e.stopPropagation()}>
-        <Row className="between modal-head"><h2>Group order · {s.learningMode}</h2><Button action="close" icon="IconClose" className="control icon-only" title="Close group order" /></Row>
-        <LearningGroups key={s.learningMode} />
-      </div>
-    </div>
-  );
-  const solve = s.overlaySolve;
   return (
-    <div className="modal-backdrop" onClick={close}>
-      <div
-        ref={ref}
-        className={
-          "modal " +
-          (s.overlay === "search"
-            ? "search-modal"
-            : s.overlay === "profileCase"
-              ? "stats-modal"
-              : s.overlay === "settings"
-                ? "settings-modal"
-                : "")
+    <CommandDialog
+      open={s.overlay === "search"}
+      onOpenChange={(open: boolean) => !open && s.overlay === "search" && close()}
+      title="Search cases"
+      description="Find a case by its name, set or group"
+      className="sm:max-w-xl"
+    >
+      <Command shouldFilter={false}>
+        <CommandInput
+          autoFocus
+          placeholder="Search a case: oll fish, pll t, f2l 6…"
+          value={s.search}
+          onValueChange={(v) => {
+            s.search = v;
+            s.emit();
+          }}
+        />
+        <CommandList className="max-h-[min(60vh,28rem)] p-1">
+          <CommandEmpty>No case matches.</CommandEmpty>
+          {results.map((c: any) => (
+            <CommandItem key={c.id} value={c.id} onSelect={() => void s.action("case:" + c.id)} className="gap-3 py-1.5">
+              <Diagram c={c} size={40} />
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate font-medium">
+                  {c.id}
+                  {c.name !== c.id && <span className="font-normal text-muted-foreground"> · {c.name}</span>}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {c.setLabel} · {c.group}
+                </span>
+              </div>
+            </CommandItem>
+          ))}
+        </CommandList>
+      </Command>
+    </CommandDialog>
+  );
+}
+
+function CommentForm() {
+  const solve = s.overlaySolve,
+    [comment, setComment] = useState(solve?.comment ?? "");
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        try {
+          await call("setComment", solve.id, comment);
+          close();
+          await s.refresh();
+        } catch (e) {
+          s.fail(e);
         }
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Row className="between modal-head">
-          <h2>
-            {s.overlay === "search"
-              ? "Search cases"
-              : s.overlay === "comment"
-                ? "Comment"
-                : s.overlay === "profileCase"
-                  ? s.caseId
-                  : s.overlay === "settings"
-                    ? "Settings"
-                    : "Solve"}
-          </h2>
-          <Button action="close" icon="IconClose" className="control icon-only" title="Close" />
-        </Row>
-        {s.overlay === "search" ? (
-          <>
-            <input
-              autoFocus
-              className="search-input"
-              placeholder="Search a case: oll fish, pll t, f2l 6…"
-              value={s.search}
-              onChange={(e) => {
-                s.search = e.target.value;
-                setIndex(0);
-                s.emit();
-              }}
-            />
-            <div className="scroll search-results">
-              {results.map((c: any, i: number) => (
-                <button
-                  key={c.id}
-                  data-focused={i === index}
-                  className={
-                    "button search-result " + (i === index ? "active" : "")
-                  }
-                  onClick={() => void s.action("case:" + c.id)}
-                >
-                  <Diagram c={c} size={44} />
-                  <div className="col">
-                    <strong>
-                      {c.id} · {c.name}
-                    </strong>
-                    <small className="muted">
-                      {c.setLabel} · {c.group}
-                    </small>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : s.overlay === "settings" ? (
-          <Settings />
-        ) : s.overlay === "profileCase" ? (
-          <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
-        ) : s.overlay === "comment" ? (
-          <form
-            className="comment-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              try {
-                await call("setComment", solve.id, comment);
-                close();
-                await s.refresh();
-              } catch (e) {
-                s.fail(e);
-              }
-            }}
-          >
-            <textarea
-              autoFocus
-              placeholder="What happened on this solve?"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-            <button className="button primary comment-save" type="submit">
-              Save
-            </button>
-          </form>
-        ) : (
-          solve && (
-            <>
-              <div className="solve-large mono">
-                {fmtSolve(solve.time_ms, solve.penalty)}
-              </div>
-              <p className="muted solve-date">{solve.displayDate}</p>
-              <div className="solve-scramble">
-                <Alg text={solve.scramble} size={16} />
-              </div>
-              {solve.comment && <p className="solve-comment-text">{solve.comment}</p>}
-              <Row className="wrap solve-actions-row">
-                <Button
-                  action={"penalty:" + solve.id + ":+2"}
-                  active={solve.penalty === "+2"}
-                >
-                  +2
-                </Button>
-                <Button
-                  action={"penalty:" + solve.id + ":dnf"}
-                  active={solve.penalty === "dnf"}
-                >
-                  DNF
-                </Button>
-                <Button action={"comment:" + solve.id} icon="IconComment">
-                  Comment
-                </Button>
-                <Button
-                  action={"delete:" + solve.id}
-                  className="danger"
-                  icon="IconTrash"
-                >
-                  Delete
-                </Button>
-              </Row>
-            </>
-          )
-        )}
+      }}
+    >
+      <Textarea autoFocus className="min-h-28" placeholder="What happened on this solve?" value={comment} onChange={(e) => setComment(e.target.value)} />
+      <div className="flex justify-end gap-2">
+        <UiButton type="button" variant="ghost" onClick={close}>
+          Cancel
+        </UiButton>
+        <UiButton type="submit">Save</UiButton>
       </div>
-    </div>
+    </form>
+  );
+}
+
+function SolveDetails() {
+  const solve = s.overlaySolve;
+  if (!solve) return null;
+  return (
+    <>
+      <div className="flex flex-col gap-1">
+        <span className={cn(MONO, "text-5xl font-medium tracking-tight", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
+          {fmtSolve(solve.time_ms, solve.penalty)}
+        </span>
+        <span className="text-sm text-muted-foreground">{solve.displayDate}</span>
+      </div>
+      {solve.scramble && <Alg text={solve.scramble} size={15} className="text-foreground/90" />}
+      {solve.comment && <p className="text-sm text-muted-foreground">{solve.comment}</p>}
+      <div className="flex flex-wrap items-center gap-1">
+        <ActionToggle action={"penalty:" + solve.id + ":+2"} pressed={solve.penalty === "+2"}>
+          +2
+        </ActionToggle>
+        <ActionToggle action={"penalty:" + solve.id + ":dnf"} pressed={solve.penalty === "dnf"}>
+          DNF
+        </ActionToggle>
+        <Button action={"comment:" + solve.id} icon={MessageSquare}>
+          Comment
+        </Button>
+        <Button action={"delete:" + solve.id} icon={Trash2} variant="destructive" className="ml-auto">
+          Delete
+        </Button>
+      </div>
+    </>
+  );
+}
+
+/** Every dialog of the app, each open while the app overlay names it. */
+export function Overlays() {
+  return (
+    <>
+      <Modal id="settings" title="Settings" className="sm:max-w-md">
+        <Settings />
+      </Modal>
+      <GuidesDialog />
+      <MethodsDialog />
+      <SearchDialog />
+      <Modal id="learningGroups" title={`Group order · ${s.learningMode}`} description="Drag the groups, or use the arrow keys on a handle." className="sm:max-w-md">
+        <LearningGroups key={s.learningMode} />
+      </Modal>
+      <Modal id="comment" title="Comment" className="sm:max-w-md">
+        <CommentForm key={s.overlaySolve?.id} />
+      </Modal>
+      <Modal id="solve" title="Solve" hideHeader className="sm:max-w-lg">
+        <SolveDetails />
+      </Modal>
+      <Modal id="profileCase" title={s.caseId} className="flex h-[min(88vh,760px)] flex-col sm:max-w-4xl">
+        <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
+      </Modal>
+    </>
   );
 }

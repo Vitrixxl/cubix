@@ -1,9 +1,9 @@
-import React, { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import { store as s } from "./store";
 import { onEvent } from "./bridge";
-import { theme } from "./theme";
+import { applyTheme } from "./theme";
 import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
 import { MOBILE, PageSkeleton, useViewport } from "./ui";
@@ -13,9 +13,10 @@ import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
 import { DuelPage } from "./duel";
-import { Overlay } from "./overlays";
+import { Overlays } from "./overlays";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
-import "./styles.css";
 function App() {
   useSyncExternalStore(s.subscribe, () => s.version);
   useEffect(() => {
@@ -59,9 +60,11 @@ function App() {
           void s.action(action);
         }
       } else if (e.key === "Escape") {
-        s.overlay = "";
-        if (innerWidth < 1024) s.showTimes = false;
-        s.emit();
+        // Dialogs and menus close themselves; with none open, Escape folds the times away.
+        if (!s.overlay && innerWidth < 1024 && s.showTimes) {
+          s.showTimes = false;
+          s.emit();
+        }
       } else if (
         !s.overlay &&
         s.page === "algorithms" &&
@@ -87,6 +90,7 @@ function App() {
       removeEventListener("mouseup", mouse);
     };
   }, []);
+  useLayoutEffect(() => applyTheme(s.themeName, s.light), [s.themeName, s.light]);
   const { w } = useViewport(),
     mobile = w <= MOBILE,
     // On the desktop a case opens beside the list, so the algorithms page stays in place.
@@ -96,19 +100,17 @@ function App() {
         (s.page === "profile" ? ":" + s.profileMode : "") +
         (s.page === "training" ? ":" + s.trainingStep : "");
   return (
-    <main
-      className={
-        "app " +
-        (s.light ? "light " : "") +
-        (s.running ? "is-running " : "") +
-        (mobile ? "is-mobile" : "")
-      }
-      style={theme(s.themeName, s.light) as React.CSSProperties}
-    >
+    <TooltipProvider delay={400}>
       <MotionConfig reducedMotion="user">
-        <div className="shell">
+        <SidebarProvider
+          open={w > 1100}
+          onOpenChange={() => {}}
+          data-running={s.running ? "" : undefined}
+          className="group/app h-svh min-h-0 overflow-hidden bg-background max-md:flex-col"
+          style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "3.5rem", "--sidebar": "var(--background)" } as React.CSSProperties}
+        >
           {!mobile && <Rail />}
-          <div className="content">
+          <SidebarInset className="relative min-h-0 min-w-0 overflow-hidden">
             {!s.ready ? (
               <PageSkeleton side={!mobile} />
             ) : (
@@ -128,14 +130,14 @@ function App() {
                 </Frame>
               </AnimatePresence>
             )}
-          </div>
+          </SidebarInset>
           {mobile && <TabBar />}
-        </div>
+        </SidebarProvider>
+        <Toasts light={s.light} />
+        <Overlays />
+        <ErrorNotification message={s.error} />
       </MotionConfig>
-      <Toasts light={s.light} />
-      {s.overlay && <Overlay key={s.overlay} />}
-      <ErrorNotification message={s.error} />
-    </main>
+    </TooltipProvider>
   );
 }
 
