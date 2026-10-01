@@ -5,6 +5,7 @@ import { eventInfo, eventOf, isPuzzle, puzzleInfo, puzzleOf, type EventId, type 
 import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
 import { sets as catalogSets } from "../../src/client/local/catalog";
+import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
 import { api, authToken, local } from "./api";
 import { storage } from "./platform/storage";
 
@@ -13,6 +14,7 @@ import { storage } from "./platform/storage";
 // ---------------------------------------------------------------------------
 export type GuideId = "about" | "timer" | "algorithms" | "training" | "duel" | "methods" | "averages";
 export type Route =
+  | { page: "learn"; method?: string }
   | { page: "algorithms"; caseId?: string; caseIds?: string[] }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
@@ -33,7 +35,7 @@ const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
   try {
     const saved = JSON.parse(storage.getItem(LAST_TAB_KEY) ?? "null");
-    if (saved && ["playground", "algorithms", "training", "duel", "profile"].includes(saved.page)) return { page: saved.page };
+    if (saved && ["playground", "learn", "algorithms", "training", "duel", "profile"].includes(saved.page)) return { page: saved.page };
   } catch { /* Open the default tab. */ }
   return { page: "playground" };
 }
@@ -85,6 +87,9 @@ export const puzzleAtom = atom(get => { const value = get(storedPuzzleAtom); ret
   set(storedPuzzleAtom, puzzle);
   const route = get(routeAtom);
   if (route.page === "algorithms" && route.caseId) set(routeAtom, { page: "algorithms" });
+  // A course belongs to its puzzle: another puzzle opens on its own methods.
+  if (route.page === "learn" && route.method) set(replaceRouteAtom, { page: "learn" });
+  set(learnMethodAtom, undefined);
   if (route.page === "profile" && route.caseId) set(routeAtom, { ...route, caseId: undefined });
 });
 /** Each puzzle remembers its own stage, set, training selection and scramble. */
@@ -195,6 +200,22 @@ export const crossScrambleAtom = atom(get => {
 }, (get, set, { context: c, scramble }: { context: { puzzle: PuzzleId; solveMode: SolveMode; scrambleType: ScrambleType }; scramble: string }) => {
   // The context travels with the scramble: a generation that ends after a change of moves keeps its own.
   set(scramblesAtom, { ...get(scramblesAtom), [`${c.puzzle}:${c.solveMode}:${c.scrambleType}`]: scramble });
+});
+
+// ---------------------------------------------------------------------------
+// Learn
+// ---------------------------------------------------------------------------
+/** The course the Learn tab shows while the app runs, so leaving the tab and coming back finds it again. */
+export const learnMethodAtom = atom<string | undefined>(undefined);
+const courseVersionAtom = atom(0);
+/** The account's progress in the Learn section, a device preference beside its learning plan (as on the web). */
+export const courseProgressAtom = atom(get => {
+  get(courseVersionAtom);
+  try { return readCourseProgress(JSON.parse(storage.getItem(courseStorageKey(get(userAtom)?.id ?? "guest")) ?? "null")); }
+  catch { return EMPTY_COURSE_PROGRESS; }
+}, (get, set, next: CourseProgress) => {
+  storage.setItem(courseStorageKey(get(userAtom)?.id ?? "guest"), JSON.stringify(next));
+  set(courseVersionAtom, v => v + 1);
 });
 
 /** Read synchronously from the local workspace, so the shell never waits for an account. */

@@ -13,6 +13,7 @@ import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
 import { DuelPage } from "./duel";
+import { Learn } from "./learn";
 import { Overlays } from "./overlays";
 import { LoginPage } from "./login";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -47,6 +48,7 @@ function App() {
             Digit3: "nav:training",
             Digit4: "nav:profile",
             Digit5: "nav:duel",
+            Digit6: "nav:learn",
             KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
@@ -69,6 +71,8 @@ function App() {
           s.showTimes = false;
           s.emit();
         }
+      } else if (!s.overlay && s.page === "learn" && s.learnMethod && ["ArrowLeft", "ArrowRight"].includes(e.key)) {
+        void s.action(e.key === "ArrowLeft" ? "previous" : "next");
       } else if (
         !s.overlay &&
         s.page === "algorithms" &&
@@ -107,7 +111,8 @@ function App() {
       s.page +
         (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
         (s.page === "profile" ? ":" + s.profileMode : "") +
-        (s.page === "training" ? ":" + s.trainingStep : "");
+        (s.page === "training" ? ":" + s.trainingStep : "") +
+        (s.page === "learn" ? ":" + (s.learnMethod || "methods") : "");
   // Until the engine answers, the last launch decides; a first visit opens on the login page.
   const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) === "1";
   if (!signedIn)
@@ -138,6 +143,8 @@ function App() {
                     <Practice />
                   ) : s.page === "algorithms" ? (
                     <Algorithms />
+                  ) : s.page === "learn" ? (
+                    <Learn />
                   ) : s.page === "duel" ? (
                     <DuelPage />
                   ) : (

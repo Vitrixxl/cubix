@@ -8,6 +8,7 @@ import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
+import { courseEntry, courseStorageKey, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 export const catalog = catalogData as any;
 export const matches = (c: any, q: string) =>
@@ -20,7 +21,7 @@ export const matches = (c: any, q: string) =>
         .toLowerCase()
         .includes(word),
     );
-const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "profile"];
+const PAGE_ORDER = ["playground", "learn", "algorithms", "training", "duel", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
@@ -127,6 +128,12 @@ export class Store {
   crossSolutions: { scramble: string; list: { moves: string; slot: string }[] | null } | null = null;
   /** Mode highlighted on the training setup screen, before it starts. */
   setupMode = "";
+  /** The method whose course the Learn page shows; empty, the list of methods. */
+  learnMethod = "";
+  /** Method highlighted in the list of methods, before it is opened. */
+  learnPick = "";
+  /** The set shown by each step that teaches several, by `puzzle:method:step`. */
+  learnSets: Record<string, string> = {};
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     return () => {
@@ -148,6 +155,7 @@ export class Store {
       profileMode: this.profileMode,
       trainingStep: this.trainingStep,
       setupMode: this.setupMode,
+      learnMethod: this.learnMethod,
     });
     if (value === this.savedLocation) return;
     this.savedLocation = value;
@@ -166,6 +174,7 @@ export class Store {
     if (typeof saved.profileMode === "string") this.profileMode = saved.profileMode;
     if (saved.trainingStep === "setup" || saved.trainingStep === "practice") this.trainingStep = saved.trainingStep;
     if (typeof saved.setupMode === "string") this.setupMode = saved.setupMode;
+    if (methodOf(this.puzzle as PuzzleId, saved.learnMethod)) this.learnMethod = saved.learnMethod;
     this.showTimes = timesOpenAtStart(this.page);
     this.profilePuzzle = this.puzzle;
     this.profileSolveMode = this.solveMode;
@@ -206,6 +215,25 @@ export class Store {
   }
   per(key: string, value: any) {
     this.pref(key, { ...this.prefs[key], [this.puzzle]: value });
+  }
+  /** The account's progress in the Learn section, a preference like its learning plan. */
+  get course(): CourseProgress {
+    return readCourseProgress(this.prefs[courseStorageKey(this.user.id ?? "guest")]);
+  }
+  saveCourse(progress: CourseProgress) {
+    this.pref(courseStorageKey(this.user.id ?? "guest"), progress);
+  }
+  /** The course shown, its method and where it stands. */
+  get learning() {
+    const puzzle = this.puzzle as PuzzleId, method = methodOf(puzzle, this.learnMethod);
+    return method ? { puzzle, method, entry: courseEntry(this.course, puzzle, method.id) } : undefined;
+  }
+  /** Shows a step of the course, the page back at its top. */
+  learnStep(index: number) {
+    const course = this.learning;
+    if (!course) return;
+    this.saveCourse(goToStep(this.course, course.puzzle, course.method.id, index));
+    this.direction = index < course.entry.step ? -1 : 1;
   }
   /** Closes the dialog or sheet open over the app. */
   closeOverlay = () => {
@@ -522,6 +550,7 @@ export class Store {
       page: this.page,
       caseId: this.caseId,
       profileMode: this.profileMode,
+      learnMethod: this.learnMethod,
     };
   }
   navigate(page: string, caseId = "") {
@@ -721,11 +750,19 @@ export class Store {
           break;
         }
         case "next":
+          if (this.page === "learn") {
+            if (this.learning) this.learnStep(this.learning.entry.step + 1);
+            break;
+          }
           this.timerEpoch++;
           if (this.practicePage() === "training") await this.nextCase();
           else await this.nextScramble();
           break;
         case "previous":
+          if (this.page === "learn") {
+            if (this.learning) this.learnStep(this.learning.entry.step - 1);
+            break;
+          }
           this.timerEpoch++;
           await this.nextCase("previous");
           break;
@@ -759,6 +796,8 @@ export class Store {
           this.loadContext();
           this.overlay = "";
           this.caseId = "";
+          this.learnMethod = "";
+          this.learnPick = "";
           this.timerEpoch++;
           await this.nextCase();
           if (this.crossTraining) await this.syncScramble();
@@ -925,6 +964,64 @@ export class Store {
         case "close":
           this.overlay = "";
           break;
+        case "learnPick":
+          this.learnPick = arg;
+          break;
+        case "learnMethod": {
+          // A course is a page of its own: it slides in and joins the back/forward history.
+          if (!methodOf(this.puzzle as PuzzleId, arg)) break;
+          this.saveCourse(openCourse(this.course, this.puzzle as PuzzleId, arg));
+          if (this.page !== "learn") {
+            this.learnMethod = arg;
+            this.navigate("learn");
+            break;
+          }
+          this.direction = 1;
+          this.axis = "x";
+          this.history.push(this.location());
+          this.forward = [];
+          this.learnMethod = arg;
+          this.learnPick = arg;
+          break;
+        }
+        case "learnMethods":
+          if (!this.learnMethod) break;
+          this.direction = -1;
+          this.axis = "x";
+          this.history.push(this.location());
+          this.forward = [];
+          this.learnPick = this.learnMethod;
+          this.learnMethod = "";
+          break;
+        case "learnFrom": {
+          // From the solving methods guide: its puzzle becomes the app's, then the method's course opens.
+          const [puzzle, method] = arg.split(":");
+          if (!isPuzzle(puzzle) || !methodOf(puzzle, method)) break;
+          if (puzzle !== this.puzzle) await this.action("puzzle:" + (eventOf(puzzle, "standard")?.id ?? puzzle));
+          this.saveCourse(openCourse(this.course, puzzle, method!));
+          this.learnMethod = method!;
+          this.learnPick = method!;
+          this.navigate("learn");
+          break;
+        }
+        case "learnStep":
+          this.learnStep(Number(arg));
+          break;
+        case "learnDone": {
+          const course = this.learning;
+          if (course) this.saveCourse(toggleStepDone(this.course, course.puzzle, course.method.id, course.entry.step));
+          break;
+        }
+        case "learnAlg": {
+          const course = this.learning;
+          if (course) this.saveCourse(toggleAlgLearned(this.course, course.puzzle, course.method.id, arg));
+          break;
+        }
+        case "learnSet": {
+          const course = this.learning;
+          if (course) this.learnSets = { ...this.learnSets, [`${course.puzzle}:${course.method.id}:${course.entry.step}`]: arg };
+          break;
+        }
         case "methods":
           this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
           this.guideMethod = "";
@@ -938,8 +1035,10 @@ export class Store {
           this.guideMethod = arg;
           break;
         case "help":
+          if (this.page === "learn") this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
+          if (this.page === "learn") this.guideMethod = this.learnMethod || this.learnPick || (recommendedMethod(this.guidePuzzle) ?? "");
           this.guidePage =
-            this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
+            this.page === "learn" ? "methodsGuide" : this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
           this.overlay = "guides";
           break;
         case "guidePage":

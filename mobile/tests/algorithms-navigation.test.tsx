@@ -41,7 +41,7 @@ mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null })
 mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
 mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) => source }));
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
-mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null }));
+mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
 mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
@@ -49,7 +49,7 @@ mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Choice", "Empty", "Figure", "Label", "MenuItem", "Mono", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "Label", "MenuItem", "Mono", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
 const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedAlgorithmGroupsAtom, stageAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

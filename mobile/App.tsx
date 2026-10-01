@@ -25,17 +25,19 @@ import { ProfilePage } from "./src/pages/AccountPage";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
 import { AuthScreen } from "./src/pages/AuthScreen";
 import { DuelPage } from "./src/pages/DuelPage";
+import { LearnPage } from "./src/pages/LearnPage";
 import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
 import {
-  casesAtom, goBackAtom, hasTokenAtom, keyboardVisibleAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
+  casesAtom, goBackAtom, hasTokenAtom, keyboardVisibleAtom, learnMethodAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
   timerRunningAtom, userAtom, type Page, type Route,
 } from "./src/state";
 
 function renderPage(route: Route) {
   switch (route.page) {
+    case "learn": return <LearnPage method={route.method} />;
     case "algorithms": return <AlgorithmsPage caseId={route.caseId} caseIds={route.caseIds} />;
     case "training": return <TrainingPage />;
     case "playground": return <PlaygroundPage />;
@@ -118,7 +120,8 @@ function Shell() {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => running || goBack());
     return () => subscription.remove();
   }, [goBack, running]);
-  const navigate = useCallback((page: Page) => setRoute({ page } as Route), [setRoute]);
+  // The Learn tab comes back to the course it showed.
+  const navigate = useCallback((page: Page) => setRoute(page === "learn" ? { page, method: store.get(learnMethodAtom) } : { page } as Route), [setRoute, store]);
   const active = route.page;
   // The profile's filters last while its sections are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);

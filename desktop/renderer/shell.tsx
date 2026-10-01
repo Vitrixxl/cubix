@@ -1,7 +1,7 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, LogOut, Settings, Swords, Timer, type LucideIcon } from "lucide-react";
+import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, GraduationCap, LogOut, Settings, Swords, Timer, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { Avatar, FADE, Icon, Logo, PuzzlePicker, type Props } from "./ui";
 import { cn } from "@/lib/utils";
@@ -27,9 +27,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-/** The sections: a cube library for the algorithms, a dumbbell for the drills of training. */
+/** The sections: a mortarboard for the method courses, a cube library for the algorithms, a dumbbell for the drills. */
 const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string][] = [
   ["playground", "Timer", Timer, "Alt 1"],
+  ["learn", "Learn", GraduationCap, "Alt 6"],
   ["algorithms", "Algorithms", Boxes, "Alt 2"],
   ["training", "Training", Dumbbell, "Alt 3"],
   ["duel", "Duel", Swords, "Alt 5"],
@@ -157,8 +158,13 @@ export function Rail() {
   );
 }
 
-/** Phone navigation: a bottom tab bar, icon over word, the timer in the centre and the account last. */
+/**
+ * Phone navigation: a bottom tab bar, icon over word. Six tabs have no middle one: the study tabs come first in the
+ * order they are used (learn a method, look up its algorithms, drill them), then the timer, the nearest to the centre
+ * on the thumb's side, the duel and the account last.
+ */
 const MOBILE_TABS: [page: string, label: string, icon: LucideIcon | null][] = [
+  ["learn", "Learn", GraduationCap],
   ["algorithms", "Algorithms", Boxes],
   ["training", "Training", Dumbbell],
   ["playground", "Timer", Timer],
@@ -169,7 +175,7 @@ const MOBILE_TABS: [page: string, label: string, icon: LucideIcon | null][] = [
 export function TabBar() {
   return (
     <nav
-      className={cn("tabbar grid shrink-0 grid-cols-5 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
+      className={cn("tabbar grid shrink-0 grid-cols-6 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
       aria-label="Sections"
     >
       {MOBILE_TABS.map(([page, label, I]) => {
@@ -182,14 +188,14 @@ export function TabBar() {
             aria-current={here ? "page" : undefined}
             onClick={run("nav:" + page)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-lg py-1 text-[11px] font-medium text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
+              "flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 text-[10px] font-medium tracking-tight text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
               here && "text-foreground",
             )}
           >
-            <span className={cn("flex h-8 w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
+            <span className={cn("flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
               {I ? <I className="size-5" /> : <Me size={22} />}
             </span>
-            {label}
+            <span className="max-w-full truncate">{label}</span>
           </button>
         );
       })}

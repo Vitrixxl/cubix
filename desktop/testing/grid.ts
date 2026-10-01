@@ -90,6 +90,16 @@ const act = async (page: Page, action: string) => {
   await target.first().click();
   await settle(page);
 };
+/** Opens a method's course: on phones its row, on wider windows its entry in the list, then Start. */
+async function openMethod(page: Page, id: string) {
+  if (await page.locator(`[data-action="learnPick:${id}"]:visible`).count()) await act(page, "learnPick:" + id);
+  await act(page, "learnMethod:" + id);
+}
+/** Shows a step of the open course: from the list of steps, in its sheet on phones. */
+async function learnStep(page: Page, index: number) {
+  if (!(await page.locator(`[data-action="learnStep:${index}"]:visible`).count())) await act(page, "learnSteps");
+  await act(page, "learnStep:" + index);
+}
 const results: [string, string[]][] = [];
 async function check(page: Page, screen: string) {
   await settle(page);
@@ -135,6 +145,23 @@ try {
     await check(page, "algorithms");
     await page.locator("[data-action^='case:']").first().click();
     await check(page, "case");
+    // Learn: the methods of the puzzle, a step teaching its own algorithms, a step teaching catalogue sets.
+    await act(page, "nav:learn");
+    await check(page, "learn-methods");
+    await openMethod(page, "beginner");
+    await act(page, "learnDone");
+    await learnStep(page, 5);
+    await check(page, "learn-inline");
+    if (width <= 700) {
+      await act(page, "learnSteps");
+      await check(page, "learn-steps");
+      await page.keyboard.press("Escape");
+      await settle(page);
+    }
+    await act(page, "learnMethods");
+    await openMethod(page, "cfop");
+    await learnStep(page, 2);
+    await check(page, "learn-catalog");
     await act(page, "nav:training");
     await check(page, "training-setup");
     await act(page, "setupMode:cross1");

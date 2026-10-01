@@ -364,18 +364,18 @@ export function SolveActions({ solve, comment = false, className }: { solve: { i
  * learned, a quiet dashed circle otherwise, clearer while the row (`group/row`) is hovered or focused. A click toggles
  * it without opening the row.
  */
-export function LearnedMark({ id, learned, touch = false }: { id: string; learned: boolean; touch?: boolean }) {
+export function LearnedMark({ id, learned, touch = false, action = "learn:" + id }: { id: string; learned: boolean; touch?: boolean; action?: string }) {
   const label = learned ? "Learned" : "Mark learned";
   return (
     <Tip content={label}>
       <button
         type="button"
-        data-action={"learn:" + id}
+        data-action={action}
         aria-pressed={learned}
         aria-label={label}
         onClick={(e) => {
           e.stopPropagation();
-          run("learn:" + id)(e);
+          run(action)(e);
         }}
         className={cn(
           "flex shrink-0 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50",
