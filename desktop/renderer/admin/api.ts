@@ -68,7 +68,8 @@ export type UserDetail = {
   duels: { played: number; won: number; lost: number; drawn: number; recent: { id: number; endedAt: number; event: string; opponent: string; opponentId: string | null; ao5: number | null; opponentAo5: number | null; result: "win" | "loss" | "draw" }[] };
   ips: { ip: string; days: number; lastDay: string }[];
 };
-export type Requests = { rows: LogRow[]; total: number; page: number; limit: number; kinds: string[] };
+/** `total` stops at 10 000 matching rows; `totalCapped` says there are more. */
+export type Requests = { rows: LogRow[]; total: number; totalCapped: boolean; page: number; limit: number; kinds: string[] };
 export type IpRow = {
   ip: string;
   requests: number;
@@ -176,6 +177,11 @@ export function useAdmin<T>(path: string | null, { tick = 0, keep = false }: { t
   return { ...state, reload };
 }
 
+/** The accounts with the most solves in the last 7 days (only those with some), the busiest first. */
+export function useMostActive(tick = 0, limit = 8) {
+  return useAdmin<Users>(`/users?sort=solves7d&limit=${limit}`, { tick });
+}
+
 /** The address as the router: /admin, /admin/users, /admin/users/<id>, /admin/requests, /admin/ips, /admin/server. */
 const routeListeners = new Set<() => void>();
 addEventListener("popstate", () => routeListeners.forEach((fn) => fn()));
@@ -207,7 +213,8 @@ export function withParams(params: URLSearchParams, changes: Record<string, stri
 
 /**
  * The live socket: connected or not, a `tick` that moves at most every `every` ms while traffic arrives (views refetch
- * on it), and each new important request as it is stored.
+ * on it), and each new important request as it is stored. The server only says `changed` (at most every 500 ms, never
+ * for the administration's own requests) and sends no data but the important rows.
  */
 export function useLive(enabled: boolean, every = 5000) {
   const [connected, setConnected] = useState(false);
@@ -245,7 +252,7 @@ export function useLive(enabled: boolean, every = 5000) {
         } catch {
           return;
         }
-        if (message.type === "snapshot") bump();
+        if (message.type === "changed") bump();
         else if (message.type === "important") {
           setImportant((rows) => (rows.some((r) => r.id === message.data.id) ? rows : [message.data, ...rows].slice(0, 100)));
           bump();

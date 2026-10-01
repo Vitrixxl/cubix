@@ -1,6 +1,6 @@
 use crate::{
     AppState, accounts, activity, admin_data,
-    db::{all, one},
+    db::one,
     error::{ApiError, Result},
 };
 use argon2::{
@@ -17,7 +17,6 @@ use axum::{
     http::{HeaderMap, Method, header},
     response::{IntoResponse, Response},
 };
-use rand::RngCore;
 use rusqlite::params;
 use serde_json::{Value, json};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
@@ -38,11 +37,6 @@ pub struct Admin {
     sockets: Arc<Semaphore>,
     revoked: watch::Sender<()>,
 }
-fn random_hex() -> String {
-    let mut bytes = [0u8; 32];
-    rand::rngs::OsRng.fill_bytes(&mut bytes);
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
-}
 pub const TOKEN_PREFIX: &str = "cbx_admin_";
 const DISABLED: &str = "Run `cubix-api admin-token` in the container to enable administration";
 
@@ -50,13 +44,13 @@ const DISABLED: &str = "Run `cubix-api admin-token` in the container to enable a
 /// session out. Used by `cubix-api admin-token`, possibly while the server runs.
 pub fn rotate(db: &mut rusqlite::Connection) -> Result<String> {
     // 256 random bits, hexadecimal so the token is URL-safe.
-    let token = format!("{TOKEN_PREFIX}{}", random_hex());
+    let token = format!("{TOKEN_PREFIX}{}", accounts::random_token());
     let tx = db.transaction()?;
     tx.execute("DELETE FROM admin_access", [])?;
     tx.execute("DELETE FROM admin_tokens", [])?;
     tx.execute(
         "INSERT INTO admin_access(id,digest,version,created_at) VALUES(1,?,?,?)",
-        params![accounts::digest(&token), random_hex(), accounts::now()],
+        params![accounts::digest(&token), accounts::random_token(), accounts::now()],
     )?;
     tx.commit()?;
     Ok(token)
@@ -85,25 +79,12 @@ fn access(db: &rusqlite::Connection) -> Result<Option<Access>> {
 fn same(a: &str, b: &str) -> bool {
     a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
-/// The token is replaced or revoked by another process (the CLI): open admin sockets learn it
-/// within two seconds and close; HTTP requests check the database every time anyway.
-pub async fn watch_access(state: AppState) {
-    let db = state.db.clone();
-    let read = move || {
-        let db = db.clone();
-        async move { db.call(|db| Ok(access(db)?.map(|a| a.version))).await }
-    };
-    let mut last = read().await.ok().flatten();
-    let mut tick = tokio::time::interval(Duration::from_secs(2));
-    loop {
-        tick.tick().await;
-        let Ok(current) = read().await else {
-            continue;
-        };
-        if current != last {
-            last = current;
-            state.admin.revoked.send_replace(());
-        }
+/// A refused admin request answers 503 instead while the administration is disabled. Only
+/// refusals look `admin_access` up: a valid session implies the token it was opened with.
+async fn refused(state: &AppState, error: ApiError) -> ApiError {
+    match state.db.call(|db| access(db)).await {
+        Ok(None) => ApiError::new(503, DISABLED),
+        _ => error,
     }
 }
 impl Admin {
@@ -201,22 +182,22 @@ pub async fn dispatch(
     if method != Method::GET && method != Method::HEAD {
         same_origin(&headers)?;
     }
-    let access = state
-        .db
-        .call(|db| access(db))
-        .await?
-        .ok_or_else(|| ApiError::new(503, DISABLED))?;
     if path == "/api/admin/login" && method == Method::POST {
+        let access = state
+            .db
+            .call(|db| access(db))
+            .await?
+            .ok_or_else(|| ApiError::new(503, DISABLED))?;
         // Attempts share the admin rate limit (traffic.rs); failures are logged as important.
         let body: Value = serde_json::from_slice(&bytes).map_err(|_| ApiError::validation())?;
         let supplied = crate::api::string(&body, "token", 1, 256)?.trim();
         if !same(&accounts::digest(supplied), &access.digest) {
             return Err(ApiError::new(401, "Incorrect admin token"));
         }
-        let token = random_hex();
+        let token = accounts::random_token();
         let digest = accounts::digest(&token);
         let version = access.version;
-        let expires = accounts::now() + 86400000;
+        let expires = accounts::now() + accounts::DAY_MS;
         state.db.call(move |db| {db.execute("DELETE FROM admin_tokens WHERE expires_at<=? OR password_version!=?",params![accounts::now(),version])?;db.execute("INSERT INTO admin_tokens(token_hash,expires_at,password_version) VALUES(?,?,?)",params![digest,expires,version])?;Ok(())}).await?;
         let mut response = Json(json!({"expiresAt":expires})).into_response();
         response.headers_mut().insert(
@@ -225,8 +206,13 @@ pub async fn dispatch(
         );
         return Ok(response);
     }
-    let token = cookie(&headers).ok_or_else(|| ApiError::new(401, "Admin sign-in required"))?;
-    let expires = session(&state, &token).await?;
+    let Some(token) = cookie(&headers) else {
+        return Err(refused(&state, ApiError::new(401, "Admin sign-in required")).await);
+    };
+    let expires = match session(&state, &token).await {
+        Ok(expires) => expires,
+        Err(error) => return Err(refused(&state, error).await),
+    };
     if path == "/api/admin/session" && method == Method::GET {
         return Ok(Json(json!({"expiresAt":expires})).into_response());
     }
@@ -256,7 +242,6 @@ pub async fn dispatch(
         .split('/')
         .collect();
     let value = match (method.as_str(), segments.as_slice()) {
-        ("GET", ["dashboard"]) => dashboard(&state, expires, &query).await?,
         ("GET", ["overview"]) => admin_data::overview(&state).await?,
         ("GET", ["requests"]) => admin_data::requests(&state, &admin_data::Query::new(&query)?).await?,
         ("GET", ["ips"]) => admin_data::ips(&state, &admin_data::Query::new(&query)?).await?,
@@ -289,41 +274,6 @@ async fn session(state: &AppState, token: &str) -> Result<i64> {
     let row = state.db.call(move |db| one(db, "SELECT t.expires_at FROM admin_tokens t JOIN admin_access a ON a.version=t.password_version WHERE t.token_hash=? AND t.expires_at>?", params![digest, accounts::now()])).await?
         .ok_or_else(|| ApiError::new(401, "Admin session expired"))?;
     row["expires_at"].as_i64().ok_or_else(ApiError::validation)
-}
-
-async fn dashboard(
-    state: &AppState,
-    expires: i64,
-    query: &HashMap<String, String>,
-) -> Result<Value> {
-    if query.len() > 8 || query.iter().any(|(k, v)| k.len() > 20 || v.len() > 100) {
-        return Err(ApiError::validation());
-    }
-    let page = query
-        .get("page")
-        .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(0)
-        .min(100000);
-    let ip_page = query
-        .get("ipPage")
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(0)
-        .min(100000);
-    let traffic = state.traffic.snapshot(
-        query.get("ip").map(String::as_str).unwrap_or(""),
-        query.get("path").map(String::as_str).unwrap_or(""),
-        query.get("status").map(String::as_str).unwrap_or(""),
-        ip_page,
-    );
-    let q = query.get("q").cloned().unwrap_or_default().to_lowercase();
-    let guests = query.get("guests").is_some_and(|v| v == "1");
-    let users=state.db.call(move |db| {
-        let counts=one(db,"SELECT count(*) total,coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests FROM users",[])?.unwrap();
-        let matching=one(db,"SELECT count(*) count FROM users WHERE (? OR password_hash IS NOT NULL) AND instr(lower(username),?)>0",params![guests,q])?.unwrap();
-        let rows=all(db,"SELECT u.id,u.username,u.created_at AS createdAt,(u.password_hash IS NULL) AS isGuest,(SELECT count(*) FROM solves s WHERE s.user_id=u.id) AS solves,(SELECT count(*) FROM sessions s WHERE s.user_id=u.id) AS sessions FROM users u WHERE (? OR u.password_hash IS NOT NULL) AND instr(lower(u.username),?)>0 ORDER BY u.created_at DESC,u.id LIMIT 50 OFFSET ?",params![guests,q,page*50])?;
-        Ok(json!({"counts":counts,"matching":matching["count"],"rows":rows,"page":page}))
-    }).await?;
-    Ok(json!({"expiresAt":expires,"traffic":traffic,"users":users}))
 }
 
 pub async fn upgrade(
@@ -367,6 +317,9 @@ async fn close(socket: &mut WebSocket, code: u16, reason: &'static str) {
     )
     .await;
 }
+/// The live socket tells the administration when to refetch, without data: `changed` at most
+/// every 500 ms while requests other than its own arrive, and each newly stored important request
+/// as `/api/admin/requests` lists it. Nothing is sent while the subscription is paused.
 async fn live(
     mut socket: WebSocket,
     state: AppState,
@@ -384,16 +337,28 @@ async fn live(
         Duration::from_secs(30),
     );
     heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    // Sign-outs in this process arrive on `revoked`; a token replaced or revoked by the CLI, or
+    // a session ended in the database, is noticed by checking the session again while open.
+    let mut recheck = tokio::time::interval_at(
+        Instant::now() + Duration::from_secs(5),
+        Duration::from_secs(5),
+    );
+    recheck.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut last_pong = Instant::now();
-    let mut query = HashMap::new();
     let mut streaming = false;
     let mut pending = false;
     let mut next_send = Instant::now();
+    let changed = json!({"type":"changed"}).to_string();
     loop {
         tokio::select! {
             _ = tokio::time::sleep_until(deadline) => { close(&mut socket, 4001, "Admin session expired").await; break; }
             result = revoked.changed() => {
                 if result.is_err() || session(&state, &token).await.is_err() {
+                    close(&mut socket, 4001, "Admin session revoked").await; break;
+                }
+            }
+            _ = recheck.tick() => {
+                if session(&state, &token).await.is_err() {
                     close(&mut socket, 4001, "Admin session revoked").await; break;
                 }
             }
@@ -406,7 +371,6 @@ async fn live(
                 if streaming { pending = true; }
             }
             event = important.recv() => match event {
-                // Each newly stored important request, as `/api/admin/requests` lists it.
                 Ok(row) => {
                     if streaming && !send(&mut socket, Message::Text(json!({"type":"important","data":row}).to_string().into())).await { break; }
                 }
@@ -415,14 +379,7 @@ async fn live(
             },
             _ = tokio::time::sleep_until(next_send), if pending => {
                 pending = false;
-                // Consume changes before the snapshot so requests arriving while SQL runs
-                // remain pending for the next bounded update. No per-request queue grows.
-                updates.borrow_and_update();
-                if session(&state, &token).await.is_err() { close(&mut socket, 4001, "Admin session expired").await; break; }
-                match dashboard(&state, expires, &query).await {
-                    Ok(data) => { if !send(&mut socket, Message::Text(json!({"type":"snapshot","data":data}).to_string().into())).await { break; } }
-                    Err(_) => { close(&mut socket, 1011, "Dashboard unavailable").await; break; }
-                }
+                if !send(&mut socket, Message::Text(changed.clone().into())).await { break; }
                 next_send = Instant::now() + Duration::from_millis(500);
             }
             message = socket.recv() => {
@@ -436,14 +393,15 @@ async fn live(
                     _ => { close(&mut socket, 1008, "Invalid message").await; break; }
                 };
                 let body: Value = match serde_json::from_str(&text) { Ok(body) => body, Err(_) => { close(&mut socket, 1008, "Invalid message").await; break; } };
+                // `filters` remain part of the protocol, bounded, but views fetch their own data.
                 let filters = serde_json::from_value::<HashMap<String,String>>(body["filters"].clone());
                 let Ok(filters) = filters else { close(&mut socket, 1008, "Invalid filters").await; break; };
                 if body["type"] != "subscribe" || !body["live"].is_boolean() || filters.len() > 8 || filters.iter().any(|(k,v)| k.len() > 20 || v.len() > 100) {
                     close(&mut socket, 1008, "Invalid subscription").await; break;
                 }
-                query = filters;
                 streaming = body["live"].as_bool().unwrap();
-                pending = true;
+                // Subscribing or resuming asks for one refetch, so nothing missed while paused.
+                pending = streaming;
             }
         }
     }

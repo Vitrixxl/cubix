@@ -14,30 +14,32 @@ async function login(origin:string,token=currentToken,headers:Record<string,stri
 
 test("admin access requires the container-generated token; HttpOnly session lasts one day, survives restart, and can be revoked",async()=>{
  const {origin,db,app}=setup();
- expect((await fetch(origin+"/api/admin/dashboard")).status).toBe(401);
+ expect((await fetch(origin+"/api/admin/overview")).status).toBe(401);
  const user=await createApiClient(origin,{getToken:()=>null}).register("ordinary_user","a-long-test-password");
- expect((await fetch(origin+"/api/admin/dashboard",{headers:{authorization:"Bearer "+user.token}})).status).toBe(401);
+ expect((await fetch(origin+"/api/admin/overview",{headers:{authorization:"Bearer "+user.token}})).status).toBe(401);
  expect((await login(origin,"cbx_admin_"+"0".repeat(64))).response.status).toBe(401);expect((await login(origin,"")).response.status).toBe(422);
  const admin=await login(origin);expect(admin.response.status).toBe(200);
  const header=admin.response.headers.get("set-cookie")!;expect(header).toContain("HttpOnly");expect(header).toContain("SameSite=Strict");expect(header).toContain("Max-Age=86400");
  expect(admin.value.expiresAt-Date.now()).toBeGreaterThan(86390000);expect(admin.value.expiresAt-Date.now()).toBeLessThanOrEqual(86400000);
  const stored=db.db.query<{token_hash:string}>("SELECT token_hash FROM admin_tokens").get()!;expect(admin.cookie).not.toContain(stored.token_hash);
  app.server.stop();const restarted=createRustApi(db.path);const again=`http://127.0.0.1:${restarted.server.port}`;
- expect((await fetch(again+"/api/admin/dashboard",{headers:{cookie:admin.cookie}})).status).toBe(200);
+ expect((await fetch(again+"/api/admin/overview",{headers:{cookie:admin.cookie}})).status).toBe(200);
  expect((await fetch(again+"/api/admin/logout",{method:"POST",headers:{cookie:admin.cookie}})).status).toBe(200);
- expect((await fetch(again+"/api/admin/dashboard",{headers:{cookie:admin.cookie}})).status).toBe(401);
- const expired=await login(again);db.db.exec("UPDATE admin_tokens SET expires_at=0");expect((await fetch(again+"/api/admin/dashboard",{headers:{cookie:expired.cookie}})).status).toBe(401);
+ expect((await fetch(again+"/api/admin/overview",{headers:{cookie:admin.cookie}})).status).toBe(401);
+ const expired=await login(again);db.db.exec("UPDATE admin_tokens SET expires_at=0");expect((await fetch(again+"/api/admin/overview",{headers:{cookie:expired.cookie}})).status).toBe(401);
 });
 
-test("admin dashboard lists accounts and HTTP traffic without secrets or spoofed IPs",async()=>{
+test("admin lists accounts and HTTP traffic without secrets or spoofed IPs",async()=>{
  const {origin}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.register("visible_user","a-long-test-password");await remote.guest();
  await fetch(origin+"/missing-path?token=do-not-log-this",{headers:{"x-forwarded-for":"203.0.113.200",authorization:"Bearer do-not-log-this"}});
  const admin=await login(origin);
- const response=await fetch(origin+"/api/admin/dashboard",{headers:{cookie:admin.cookie}});expect(response.headers.get("cache-control")).toBe("no-store");
- const body=await response.json();expect(body.users.counts).toEqual({total:2,registered:1,guests:1});expect(body.users.rows).toHaveLength(1);expect(body.users.rows[0].username).toBe("visible_user");
- const row=body.traffic.requests.find((r:any)=>r.path==="/missing-path");expect(row.status).toBe(404);expect(row.ip).toBe("127.0.0.1");expect(body.traffic.ips[0].requests).toBeGreaterThan(3);
- expect(JSON.stringify(body)).not.toContain("do-not-log-this");expect(JSON.stringify(body)).not.toContain("password_hash");expect(JSON.stringify(body)).not.toContain("token_hash");
- expect((await (await fetch(origin+"/api/admin/dashboard?guests=1",{headers:{cookie:admin.cookie}})).json()).users.rows).toHaveLength(2);
+ const users=await adminGet(origin,admin.cookie,"/api/admin/users?filter=registered");
+ expect(users.counts).toEqual({all:2,registered:1,guests:1});expect(users.rows.map((r:any)=>r.username)).toEqual(["visible_user"]);
+ expect((await adminGet(origin,admin.cookie,"/api/admin/users")).rows).toHaveLength(2);
+ const requests=await adminGet(origin,admin.cookie,"/api/admin/requests?limit=200");
+ const row=requests.rows.find((r:any)=>r.path==="/missing-path");expect(row.status).toBe(404);expect(row.ip).toBe("127.0.0.1");
+ const ips=await adminGet(origin,admin.cookie,"/api/admin/ips");expect(ips.rows.map((r:any)=>r.ip)).toEqual(["127.0.0.1"]);expect(ips.rows[0].requests).toBeGreaterThan(3);
+ const everything=JSON.stringify([users,requests,ips]);for(const secret of ["do-not-log-this","password_hash","token_hash"])expect(everything).not.toContain(secret);
  expect((await fetch(origin+"/aaaaadmin")).status).toBe(404);
 });
 
@@ -54,15 +56,13 @@ test("health probes are excluded from admin logs, counters and IP listings even 
   expect(response.status).toBe(i<5?200:429);
   expect(response.headers.get("x-content-type-options")).toBe("nosniff");
  }
+ // The admin's own IP shares the limit of 5: the start-up health probe, the login and three reads.
  const admin=await login(origin);
- const {traffic}=await (await fetch(origin+"/api/admin/dashboard",{headers:{cookie:admin.cookie}})).json();
- expect(traffic.total).toBe(1);expect(traffic.retained).toBe(1);
- expect(traffic.errors).toBe(0);expect(traffic.limited).toBe(0);
- expect(traffic.ipCount).toBe(1);expect(traffic.matchingIps).toBe(1);
- expect(traffic.ips).toHaveLength(1);expect(traffic.ips[0].requests).toBe(1);
- expect(traffic.requests.map((r:any)=>r.path)).toEqual(["/api/admin/login"]);
- const filtered=await (await fetch(origin+"/api/admin/dashboard?ip=203.0.113.8",{headers:{cookie:admin.cookie}})).json();
- expect(filtered.traffic.matchingIps).toBe(0);expect(filtered.traffic.ips).toHaveLength(0);expect(filtered.traffic.requests).toHaveLength(0);
+ const requests=await adminGet(origin,admin.cookie,"/api/admin/requests?limit=200");
+ expect(requests.total).toBe(1);expect(requests.rows.map((r:any)=>r.path)).toEqual(["/api/admin/login"]);
+ const overview=await adminGet(origin,admin.cookie,"/api/admin/overview");
+ expect(overview.requests).toMatchObject({errorsToday:0,rateLimitedToday:0});expect(overview.ips).toEqual({today:1,d7:1,d30:1,live:1});
+ const filtered=await adminGet(origin,admin.cookie,"/api/admin/ips?q=203.0.113.8");expect(filtered.total).toBe(0);expect(filtered.rows).toHaveLength(0);
 });
 
 test("admin login has a separate brute-force limit and rejects cross-origin submissions",async()=>{
@@ -74,8 +74,9 @@ test("admin login has a separate brute-force limit and rejects cross-origin subm
 test("only configured proxies may supply client IPs; the rightmost untrusted hop wins",async()=>{
  const {origin}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1"});
  await fetch(origin+"/api/moves",{headers:{"x-forwarded-for":"192.0.2.5, 203.0.113.7"}});
- const admin=await login(origin);const body=await (await fetch(origin+"/api/admin/dashboard?ip=203.0.113.7",{headers:{cookie:admin.cookie}})).json();
- expect(body.traffic.ips[0].ip).toBe("203.0.113.7");expect(body.traffic.ips[0].requests).toBe(1);
+ const admin=await login(origin);const body=await adminGet(origin,admin.cookie,"/api/admin/ips?q=203.0.113.7");
+ expect(body.rows).toMatchObject([{ip:"203.0.113.7",requests:1}]);
+ expect((await adminGet(origin,admin.cookie,"/api/admin/ips?q=192.0.2.5")).total).toBe(0);
 });
 
 test("without a generated token administration is disabled, whatever CUBIX_ADMIN_PASSWORD says",async()=>{
@@ -111,7 +112,7 @@ test("regenerating the token invalidates the old token and every admin session; 
  const third=adminToken(db.path);const admin3=await login(origin,third);
  const log=await adminGet(origin,admin3.cookie,"/api/admin/requests?path=/api/admin/login&limit=200");
  expect(log.rows.filter((r:any)=>r.status===401)).toHaveLength(1);expect(log.rows.find((r:any)=>r.status===401).important).toBe(true);
- const everything=JSON.stringify(log)+JSON.stringify(await adminGet(origin,admin3.cookie,"/api/admin/requests?limit=200"))+JSON.stringify(await adminGet(origin,admin3.cookie,"/api/admin/dashboard"))+JSON.stringify(db.db.query("SELECT * FROM request_log").all())+JSON.stringify(db.db.query("SELECT * FROM admin_access").all());
+ const everything=JSON.stringify(log)+JSON.stringify(await adminGet(origin,admin3.cookie,"/api/admin/requests?limit=200"))+JSON.stringify(await adminGet(origin,admin3.cookie,"/api/admin/overview"))+JSON.stringify(db.db.query("SELECT * FROM request_log").all())+JSON.stringify(db.db.query("SELECT * FROM admin_access").all());
  for(const secret of [first,second,third,first.slice(10),third.slice(10)])expect(everything).not.toContain(secret);
 });
 
@@ -119,37 +120,34 @@ async function adminSocket(origin:string,cookie:string,filters:Record<string,str
  const {default:WebSocket}=await import("ws");
  const ws=new WebSocket(origin.replace('http:','ws:')+'/api/admin/live',{headers:{cookie,origin}});
  cleanup.unshift(()=>ws.terminate());
- const snapshots:any[]=[];const important:any[]=[];
+ const live={ws,changed:0,messages:[] as string[],important:[] as any[],
+  /** Resolves on a `changed` notice beyond the first `count`. */
+  async next(count:number){for(let i=0;i<300;i++){if(live.changed>count)return;await Bun.sleep(10)}throw Error('Missing admin change notice')},
+  subscribe:(filters:Record<string,string>,on=true)=>ws.send(JSON.stringify({type:'subscribe',filters,live:on}))};
  ws.on('error',()=>{});
- ws.on('message',raw=>{const message=JSON.parse(String(raw));if(message.type==='snapshot')snapshots.push(message.data);if(message.type==='important')important.push(message.data)});
- const wait=async(predicate:(value:any)=>boolean)=>{
-  for(let i=0;i<300;i++){const found=snapshots.find(predicate);if(found)return found;await Bun.sleep(10)}
-  throw Error('Missing admin snapshot');
- };
- const subscribe=(filters:Record<string,string>,live=true)=>ws.send(JSON.stringify({type:'subscribe',filters,live}));
+ ws.on('message',raw=>{const text=String(raw);live.messages.push(text);const message=JSON.parse(text);if(message.type==='changed')live.changed++;if(message.type==='important')live.important.push(message.data)});
  await new Promise<void>((resolve,reject)=>{ws.once('open',resolve);ws.once('error',reject)});
- subscribe(filters);
- await wait(()=>true);
- return {ws,snapshots,important,wait,subscribe};
+ // Subscribing asks for one refetch.
+ live.subscribe(filters);
+ await live.next(0);
+ return live;
 }
 
-test('admin WebSocket pushes traffic and users, applies filters, pauses, resumes and stays idle without polling',async()=>{
+test('admin WebSocket says when data changed without sending it, ignores health probes and admin requests, throttles, pauses and resumes',async()=>{
  const {origin}=setup();const admin=await login(origin);const live=await adminSocket(origin,admin.cookie);
- await Bun.sleep(600);const before=live.snapshots.length;
+ await Bun.sleep(600);const before=live.changed;
  await fetch(origin+'/api/health');await fetch(origin+'/api/health?probe=1');
- await Bun.sleep(700);expect(live.snapshots.length).toBe(before);
- await fetch(origin+'/websocket-proof');
- const pushed=await live.wait(data=>data.traffic.requests.some((r:any)=>r.path==='/websocket-proof'));
- expect(pushed.traffic.requests.some((r:any)=>r.path==='/api/admin/live'&&r.status===101)).toBe(true);
- await createApiClient(origin,{getToken:()=>null}).register('websocket_user','a-long-test-password');
- await live.wait(data=>data.users.rows.some((r:any)=>r.username==='websocket_user'));
- live.subscribe({path:'/websocket-proof'});
- await live.wait(data=>data.traffic.requests.length===1&&data.traffic.requests[0].path==='/websocket-proof');
- live.subscribe({},false);await Bun.sleep(600);const paused=live.snapshots.length;
- await fetch(origin+'/during-pause');await Bun.sleep(650);expect(live.snapshots.length).toBe(paused);
- live.subscribe({});await live.wait(data=>data.traffic.requests.some((r:any)=>r.path==='/during-pause'));
- const allRequests=live.snapshots.at(-1).traffic.requests;
- expect(allRequests.filter((r:any)=>r.path==='/api/admin/dashboard')).toHaveLength(0);
+ // The administration's own reads would otherwise make it refetch itself.
+ await adminGet(origin,admin.cookie,'/api/admin/overview');await adminGet(origin,admin.cookie,'/api/admin/requests');
+ await Bun.sleep(700);expect(live.changed).toBe(before);
+ await fetch(origin+'/websocket-proof');await live.next(before);
+ const burst=live.changed;for(let i=0;i<20;i++)await fetch(origin+'/burst');
+ await Bun.sleep(700);expect(live.changed-burst).toBeGreaterThanOrEqual(1);expect(live.changed-burst).toBeLessThanOrEqual(3);
+ live.subscribe({},false);await Bun.sleep(600);const paused=live.changed;
+ await fetch(origin+'/during-pause');await Bun.sleep(650);expect(live.changed).toBe(paused);
+ live.subscribe({});await live.next(paused);
+ // Notices carry no data; only important rows (here the admin login) do.
+ expect(new Set(live.messages.filter(m=>JSON.parse(m).type!=="important"))).toEqual(new Set(['{"type":"changed"}']));
 });
 
 test('admin WebSocket rejects missing cookies and foreign origins; logout closes an open session',async()=>{
@@ -244,7 +242,7 @@ test("persistent request log classifies, filters and paginates requests without 
  expect((await call(origin,"GET","/api/nope?secret=do-not-log-this",{token:user.token})).status).toBe(404);
  const admin=await login(origin);const get=(query:string)=>adminGet(origin,admin.cookie,"/api/admin/requests"+query);
  const everything=await get("?limit=200");
- expect(everything.total).toBe(6);expect(everything.rows.map((r:any)=>r.id)).toEqual([...everything.rows.map((r:any)=>r.id)].sort((a:number,b:number)=>b-a));
+ expect(everything.total).toBe(6);expect(everything.totalCapped).toBe(false);expect(everything.rows.map((r:any)=>r.id)).toEqual([...everything.rows.map((r:any)=>r.id)].sort((a:number,b:number)=>b-a));
  expect(everything.kinds).toContain("auth");
  const register_=everything.rows.find((r:any)=>r.path==="/api/auth/register");
  expect(register_).toMatchObject({method:"POST",status:200,ip:"203.0.113.10",kind:"auth",important:true,userId:user.user.id,username:"log_user",userAgent:"cubix-test-agent/1.0"});
@@ -321,6 +319,8 @@ test("admin account listing and detail report solves, activity, sessions, learne
  expect((await get("?q=LIC")).rows.map((r:any)=>r.username)).toEqual(["alice"]);
  expect((await get("?q="+bob.user.id)).rows.map((r:any)=>r.username)).toEqual(["bob"]);
  expect((await get("?sort=solves")).rows[0].username).toBe("alice");
+ // Most active this week: only accounts with solves in the last 7 days, the busiest first.
+ const week=await get("?sort=solves7d&limit=8");expect(week.total).toBe(1);expect(week.rows).toMatchObject([{username:"alice",solves7d:4}]);
  expect((await get("?sort=username")).rows.map((r:any)=>r.username)).toEqual(["alice","bob",guest.user.username]);
  expect((await get("?sort=username&order=desc&limit=1&page=1")).rows.map((r:any)=>r.username)).toEqual(["bob"]);
  expect((await get("?sort=lastSeen")).rows).toHaveLength(3);

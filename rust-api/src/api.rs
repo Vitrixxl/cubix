@@ -1,7 +1,7 @@
 use crate::practice;
 use crate::{
     AppState, accounts,
-    activity::{self, Actor},
+    activity::Actor,
     db::{all, one, required},
     error::{ApiError, Result},
     stats,
@@ -275,44 +275,56 @@ async fn respond(
         }
     }
     let copy = state.clone();
-    let hash = activity::token_hash(&token);
-    let (owner, value) = state
+    let (caller, value) = state
         .db
         .call(move |db| {
             // Looked up before the route runs, so a sign-out still names its account.
-            let owner = match &hash {
-                Some(hash) => one(
-                    db,
-                    "SELECT user_id FROM auth_tokens WHERE token_hash=? AND expires_at>?",
-                    params![hash, accounts::now()],
-                )?
-                .and_then(|r| r["user_id"].as_str().map(str::to_owned)),
-                None => None,
-            };
-            let value = route(db, &copy, method.as_str(), &path, &query, &body, &token);
+            let caller = Caller::new(db, &token)?;
+            let value = route(db, &copy, method.as_str(), &path, &query, &body, &caller);
             // Other devices of the same account learn about committed practice changes immediately.
             if value.is_ok()
                 && method != Method::GET
                 && !path.starts_with("auth/")
-                && let Some(uid) = &owner
+                && let Some(uid) = caller.id()
             {
                 copy.hub.notify_sync(uid, crate::sync::cursor(db, uid)?);
             }
-            Ok((owner, value))
+            Ok((caller, value))
         })
         .await?;
-    *actor = owner.map(|user| Actor {
-        user,
-        token: hash_for_actor(&headers),
-        seen: true,
-    });
+    if let Some(user) = caller.id() {
+        *actor = Some(Actor {
+            user: user.to_owned(),
+            token: caller.token_hash.clone(),
+            seen: true,
+        });
+    }
     value
 }
-fn hash_for_actor(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(activity::token_hash)
+
+/// Who sends a request: the digest of its bearer token and the account that token opens,
+/// resolved once per request.
+pub(crate) struct Caller {
+    pub token_hash: Option<String>,
+    pub user: Option<Value>,
+}
+impl Caller {
+    fn new(db: &Connection, authorization: &str) -> Result<Self> {
+        let token_hash = accounts::bearer_hash(authorization);
+        let user = match &token_hash {
+            Some(hash) => accounts::by_token_hash(db, hash)?,
+            None => None,
+        };
+        Ok(Self { token_hash, user })
+    }
+    pub fn id(&self) -> Option<&str> {
+        self.user.as_ref().and_then(|u| u["id"].as_str())
+    }
+    fn signed_in(&self) -> Result<&Value> {
+        self.user
+            .as_ref()
+            .ok_or_else(|| ApiError::new(401, "Please sign in again."))
+    }
 }
 
 fn session(db: &Connection, id: f64, user: &str) -> Result<Value> {
@@ -335,22 +347,19 @@ pub(crate) fn route(
     path: &str,
     query: &HashMap<String, String>,
     body: &Value,
-    token: &str,
+    caller: &Caller,
 ) -> Result<Value> {
     match (method, path) {
         ("POST", "auth/guest") => return accounts::guest(db),
         ("POST", "auth/logout") => {
-            if let Some(t) = token.strip_prefix("Bearer ") {
-                db.execute(
-                    "DELETE FROM auth_tokens WHERE token_hash=?",
-                    [accounts::digest(t)],
-                )?;
+            if let Some(hash) = &caller.token_hash {
+                db.execute("DELETE FROM auth_tokens WHERE token_hash=?", [hash])?;
             }
             return Ok(json!({"ok":true}));
         }
         _ => {}
     }
-    let user = accounts::signed_in(db, token)?;
+    let user = caller.signed_in()?;
     let uid = user["id"].as_str().unwrap();
     if path == "sync" {
         if method == "GET" {
@@ -369,12 +378,12 @@ pub(crate) fn route(
             if user["password_hash"].is_null() {
                 return Err(ApiError::new(403, "Sign in to synchronize."));
             }
-            return crate::sync::push(db, state, uid, token, body);
+            return crate::sync::push(db, state, uid, caller, body);
         }
     }
     let parts: Vec<_> = path.split('/').collect();
     match (method, parts.as_slice()) {
-        ("GET", ["auth", "me"]) => Ok(accounts::public(&user)),
+        ("GET", ["auth", "me"]) => Ok(accounts::public(user)),
         ("GET", ["stats"]) => {
             let filter = practice::query(query)?;
             let rows = all(

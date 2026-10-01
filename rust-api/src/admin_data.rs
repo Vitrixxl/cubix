@@ -3,16 +3,19 @@
 //! the Unix epoch; every `day` is a UTC `YYYY-MM-DD`.
 use crate::{
     AppState,
-    accounts::{digest, now},
+    accounts::{DAY_MS, digest, now},
     activity::{self, KINDS, ROW_COLUMNS},
-    db::{all, one},
+    db::{all, one, required},
     error::{ApiError, Result},
+    stats::EFFECTIVE_MS_SQL,
 };
 use rusqlite::{Connection, params, params_from_iter, types::Value as Sql};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
-const DAY_MS: i64 = 86_400_000;
+const UNKNOWN: &str = "Unknown account";
+/// `/requests` counts its matching rows up to this many; beyond, `totalCapped` is set.
+const COUNT_CAP: i64 = 10_000;
 
 /// ISO-8601 text columns as milliseconds since the epoch.
 fn ms(expr: &str) -> String {
@@ -41,25 +44,18 @@ impl<'a> Query<'a> {
     fn text(&self, key: &str) -> Option<&'a str> {
         self.0.get(key).map(|v| v.trim()).filter(|v| !v.is_empty())
     }
-    fn int(&self, key: &str, default: i64, min: i64, max: i64) -> Result<i64> {
-        match self.text(key) {
-            None => Ok(default),
-            Some(v) => v
-                .parse::<i64>()
-                .ok()
-                .filter(|v| (min..=max).contains(v))
-                .ok_or_else(ApiError::validation),
-        }
-    }
-    fn optional_int(&self, key: &str, max: i64) -> Result<Option<i64>> {
+    fn optional_int(&self, key: &str, min: i64, max: i64) -> Result<Option<i64>> {
         self.text(key)
             .map(|v| {
                 v.parse::<i64>()
                     .ok()
-                    .filter(|v| (0..=max).contains(v))
+                    .filter(|v| (min..=max).contains(v))
                     .ok_or_else(ApiError::validation)
             })
             .transpose()
+    }
+    fn int(&self, key: &str, default: i64, min: i64, max: i64) -> Result<i64> {
+        Ok(self.optional_int(key, min, max)?.unwrap_or(default))
     }
     fn choice(
         &self,
@@ -85,16 +81,11 @@ impl<'a> Query<'a> {
     }
     /// `desc` unless `order=asc`, or the given default.
     fn descending(&self, default: bool) -> Result<bool> {
-        Ok(
-            match self.choice(
-                "order",
-                &["asc", "desc"],
-                if default { "desc" } else { "asc" },
-            )? {
-                "asc" => false,
-                _ => true,
-            },
-        )
+        Ok(self.choice(
+            "order",
+            &["asc", "desc"],
+            if default { "desc" } else { "asc" },
+        )? == "desc")
     }
 }
 
@@ -107,12 +98,12 @@ pub fn user_id(value: &str) -> Result<String> {
     {
         Ok(value.to_owned())
     } else {
-        Err(ApiError::new(404, "Unknown account"))
+        Err(ApiError::new(404, UNKNOWN))
     }
 }
 
 pub async fn overview(state: &AppState) -> Result<Value> {
-    state.traffic.log.flush().await;
+    state.traffic.log.settle().await;
     let live_ips = state.traffic.live_ips();
     let started = state.traffic.started;
     let dropped = state.traffic.log.dropped();
@@ -124,17 +115,19 @@ pub async fn overview(state: &AppState) -> Result<Value> {
             let week = days[23].clone();
             let month = days[0].clone();
             let day_start = now().div_euclid(DAY_MS) * DAY_MS;
-            let users = one(db, "SELECT count(*) total,coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests,
-                coalesce(sum(created_at>=?1),0) today,coalesce(sum(created_at>=?2),0) d7,coalesce(sum(created_at>=?3),0) d30 FROM users", params![today, week, month])?.unwrap_or_default();
-            let active = |since: &str| -> Result<i64> {
-                Ok(n(&one(db, "SELECT count(DISTINCT user_id) n FROM user_activity WHERE day>=?", [since])?.unwrap_or_default(), "n"))
+            // Counts since a moment are range counts, each served by an index.
+            let count = |sql: &str, args: &[&dyn rusqlite::ToSql]| -> Result<i64> {
+                Ok(n(&one(db, sql, args)?.unwrap_or_default(), "n"))
             };
-            let solves = one(db, "SELECT count(*) total,coalesce(sum(created_at>=?1),0) today,coalesce(sum(created_at>=?2),0) d7 FROM solves", params![today, week])?.unwrap_or_default();
+            let users = one(db, "SELECT count(*) total,coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests FROM users", [])?.unwrap_or_default();
+            let new_users = |since: &str| count("SELECT count(*) n FROM users WHERE created_at>=?", &[&since]);
+            let active = |since: &str| count("SELECT count(DISTINCT user_id) n FROM user_activity WHERE day>=?", &[&since]);
+            let solves_since = |since: &str| count("SELECT count(*) n FROM solves WHERE created_at>=?", &[&since]);
+            let solves = json!({"total": count("SELECT count(*) n FROM solves", &[])?, "today": solves_since(&today)?, "d7": solves_since(&week)?});
             let traffic = one(db, "SELECT coalesce(sum(requests),0) requests,coalesce(sum(errors),0) errors,coalesce(sum(server_errors),0) serverErrors,coalesce(sum(limited),0) limited,count(*) ips FROM traffic_daily WHERE day=?", [&today])?.unwrap_or_default();
-            let ips = |since: &str| -> Result<i64> {
-                Ok(n(&one(db, "SELECT count(DISTINCT ip) n FROM traffic_daily WHERE day>=?", [since])?.unwrap_or_default(), "n"))
-            };
-            let duels = one(db, "SELECT count(*) total,coalesce(sum(ended_at>=?1),0) today,coalesce(sum(ended_at>=?2),0) d7 FROM duel_games", params![day_start, day_start - 6 * DAY_MS])?.unwrap_or_default();
+            let ips = |since: &str| count("SELECT count(DISTINCT ip) n FROM traffic_daily WHERE day>=?", &[&since]);
+            let duels_since = |since: i64| count("SELECT count(*) n FROM duel_games WHERE ended_at>=?", &[&since]);
+            let duels = json!({"total": count("SELECT count(*) n FROM duel_games", &[])?, "today": duels_since(day_start)?, "d7": duels_since(day_start - 6 * DAY_MS)?});
             let mut series: Vec<Value> = days
                 .iter()
                 .map(|day| json!({"day":day,"requests":0,"ips":0,"errors":0,"serverErrors":0,"limited":0,"signups":0,"registrations":0,"active":0,"solves":0,"duels":0}))
@@ -157,11 +150,11 @@ pub async fn overview(state: &AppState) -> Result<Value> {
             merge(all(db, "SELECT substr(created_at,1,10) day,count(*) solves FROM solves WHERE created_at>=? GROUP BY 1", [&month])?);
             merge(all(db, "SELECT date(ended_at/1000,'unixepoch') day,count(*) duels FROM duel_games WHERE ended_at>=? GROUP BY 1", [day_start - 29 * DAY_MS])?);
             let size = one(db, "SELECT (SELECT page_count FROM pragma_page_count())*(SELECT page_size FROM pragma_page_size()) bytes,(SELECT freelist_count FROM pragma_freelist_count())*(SELECT page_size FROM pragma_page_size()) free", [])?.unwrap_or_default();
-            let log = one(db, "SELECT count(*) rows,coalesce(sum(important),0) important,min(at) oldestAt FROM request_log", [])?.unwrap_or_default();
+            let log = one(db, "SELECT (SELECT count(*) FROM request_log) rows,(SELECT count(*) FROM request_log WHERE important=1) important,(SELECT min(at) FROM request_log) oldestAt", [])?.unwrap_or_default();
             Ok(json!({
                 "users": {
                     "total": users["total"], "registered": users["registered"], "guests": users["guests"],
-                    "new": {"today": users["today"], "d7": users["d7"], "d30": users["d30"]},
+                    "new": {"today": new_users(&today)?, "d7": new_users(&week)?, "d30": new_users(&month)?},
                     "active": {"today": active(&today)?, "d7": active(&week)?, "d30": active(&month)?},
                 },
                 "solves": solves,
@@ -254,7 +247,7 @@ pub async fn requests(state: &AppState, query: &Query<'_>) -> Result<Value> {
         args.extend([Sql::Text(user.into()), Sql::Text(user.into())]);
     }
     for (key, clause) in [("from", "l.at>=?"), ("to", "l.at<?"), ("before", "l.id<?")] {
-        if let Some(value) = query.optional_int(key, i64::MAX / 2)? {
+        if let Some(value) = query.optional_int(key, 0, i64::MAX / 2)? {
             clauses.push(clause.into());
             args.push(Sql::Integer(value));
         }
@@ -264,11 +257,14 @@ pub async fn requests(state: &AppState, query: &Query<'_>) -> Result<Value> {
     } else {
         format!("WHERE {}", clauses.join(" AND "))
     };
-    state.traffic.log.flush().await;
+    state.traffic.log.settle().await;
     state
         .db
         .call(move |db| {
-            let total = one(db, &format!("SELECT count(*) n FROM request_log l {filter}"), params_from_iter(args.iter()))?.unwrap_or_default();
+            // Counting stops past the cap: a broad filter over the whole log stays cheap.
+            let mut count_args = args.clone();
+            count_args.push(Sql::Integer(COUNT_CAP + 1));
+            let total = n(&one(db, &format!("SELECT count(*) n FROM (SELECT 1 FROM request_log l {filter} LIMIT ?)"), params_from_iter(count_args.iter()))?.unwrap_or_default(), "n");
             let mut rows_args = args;
             rows_args.extend([Sql::Integer(limit), Sql::Integer(page * limit)]);
             let rows: Vec<_> = all(
@@ -279,7 +275,7 @@ pub async fn requests(state: &AppState, query: &Query<'_>) -> Result<Value> {
             .into_iter()
             .map(activity::row)
             .collect();
-            Ok(json!({"rows":rows,"total":total["n"],"page":page,"limit":limit,"kinds":KINDS}))
+            Ok(json!({"rows":rows,"total":total.min(COUNT_CAP),"totalCapped":total>COUNT_CAP,"page":page,"limit":limit,"kinds":KINDS}))
         })
         .await
 }
@@ -311,33 +307,51 @@ pub async fn ips(state: &AppState, query: &Query<'_>) -> Result<Value> {
     let order = format!("{column} {},ip", if descending { "DESC" } else { "ASC" });
     let q = query.text("q").unwrap_or("").to_owned();
     let user = query.text("user").map(str::to_owned);
-    state.traffic.log.flush().await;
+    state.traffic.log.settle().await;
     state
         .db
         .call(move |db| {
             let since = activity::day(now() - (days - 1) * DAY_MS);
             let scope = "day>=?1 AND instr(ip,?2)>0 AND (?3 IS NULL OR ip IN (SELECT ip FROM traffic_daily_users WHERE day>=?1 AND user_id IN (SELECT id FROM users WHERE id=?3 OR username=?3 COLLATE NOCASE)))";
             let totals = one(db, &format!("SELECT count(DISTINCT ip) ips,coalesce(sum(requests),0) requests,coalesce(sum(errors),0) errors,coalesce(sum(limited),0) limited FROM traffic_daily WHERE {scope}"), params![since, q, user])?.unwrap_or_default();
-            let mut rows = all(db, &format!("SELECT ip,sum(requests) requests,sum(errors) errors,sum(server_errors) serverErrors,sum(limited) limited,min(first_at) firstSeenAt,max(last_at) lastSeenAt,count(*) activeDays,
-                (SELECT count(DISTINCT user_id) FROM traffic_daily_users u WHERE u.ip=t.ip AND u.day>=?1) userCount
-                FROM traffic_daily t WHERE {scope} GROUP BY ip ORDER BY {order} LIMIT ?4 OFFSET ?5"), params![since, q, user, limit, page * limit])?;
+            let mut rows = all(db, &format!("SELECT t.*,coalesce(c.userCount,0) userCount FROM
+                (SELECT ip,sum(requests) requests,sum(errors) errors,sum(server_errors) serverErrors,sum(limited) limited,min(first_at) firstSeenAt,max(last_at) lastSeenAt,count(*) activeDays
+                 FROM traffic_daily WHERE {scope} GROUP BY ip) t
+                LEFT JOIN (SELECT ip,count(DISTINCT user_id) userCount FROM traffic_daily_users WHERE day>=?1 GROUP BY ip) c USING(ip)
+                ORDER BY {order} LIMIT ?4 OFFSET ?5"), params![since, q, user, limit, page * limit])?;
+            // The accounts seen from the page's IPs, at most 20 each, in one query.
+            let mut users: HashMap<String, Vec<Value>> = HashMap::new();
+            if !rows.is_empty() {
+                let mut args = vec![Sql::Text(since.clone())];
+                args.extend(rows.iter().map(|r| Sql::Text(r["ip"].as_str().unwrap_or("").to_owned())));
+                let marks = vec!["?"; rows.len()].join(",");
+                let mut seen = all(db, &format!("SELECT ip,id,username,isGuest FROM (SELECT t.ip,u.id,u.username,(u.password_hash IS NULL) isGuest,
+                    row_number() OVER (PARTITION BY t.ip ORDER BY u.password_hash IS NULL,u.username) n
+                    FROM (SELECT DISTINCT ip,user_id FROM traffic_daily_users WHERE day>=?1 AND ip IN ({marks})) t JOIN users u ON u.id=t.user_id)
+                    WHERE n<=20 ORDER BY ip,n"), params_from_iter(args.iter()))?;
+                flags(&mut seen, &["isGuest"]);
+                for mut user in seen {
+                    let ip = user.as_object_mut().unwrap().remove("ip");
+                    users.entry(ip.and_then(|ip| ip.as_str().map(str::to_owned)).unwrap_or_default()).or_default().push(user);
+                }
+            }
             for row in &mut rows {
-                let mut users = all(db, "SELECT u.id,u.username,(u.password_hash IS NULL) isGuest FROM users u WHERE u.id IN (SELECT user_id FROM traffic_daily_users WHERE ip=? AND day>=?) ORDER BY u.password_hash IS NULL,u.username LIMIT 20", params![row["ip"].as_str(), since])?;
-                flags(&mut users, &["isGuest"]);
-                row["users"] = json!(users);
+                row["users"] = json!(users.remove(row["ip"].as_str().unwrap_or("")).unwrap_or_default());
             }
             Ok(json!({"days":days,"since":since,"rows":rows,"total":totals["ips"],"totals":totals,"page":page,"limit":limit}))
         })
         .await
 }
 
-/// One account row, as listed and in its detail.
+/// The `solves.created_at` of seven days ago.
+const WEEK_AGO: &str = "strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')";
+
+/// One account row, as listed and in its detail. `filter` follows `FROM users u`.
 fn user_rows(db: &Connection, filter: &str, order: &str, args: &[Sql]) -> Result<Vec<Value>> {
-    let week = format!("strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')");
     let sql = format!(
         "SELECT u.id,u.username,(u.password_hash IS NULL) isGuest,{created} createdAt,u.last_seen_at lastSeenAt,
           (SELECT count(*) FROM solves s WHERE s.user_id=u.id) solves,
-          (SELECT count(*) FROM solves s WHERE s.user_id=u.id AND s.created_at>={week}) solves7d,
+          (SELECT count(*) FROM solves s WHERE s.user_id=u.id AND s.created_at>={WEEK_AGO}) solves7d,
           (SELECT count(*) FROM learned_cases l WHERE l.user_id=u.id AND l.learned=1) learnedCases,
           (SELECT count(*) FROM duel_games d WHERE d.player1_id=u.id)+(SELECT count(*) FROM duel_games d WHERE d.player2_id=u.id) duels,
           (SELECT count(*) FROM auth_tokens t WHERE t.user_id=u.id AND t.expires_at>{now}) activeSessions,
@@ -357,7 +371,7 @@ pub async fn users(state: &AppState, query: &Query<'_>) -> Result<Value> {
     let filter = query.choice("filter", &["all", "registered", "guests"], "all")?;
     let sort = query.choice(
         "sort",
-        &["created", "lastSeen", "solves", "username"],
+        &["created", "lastSeen", "solves", "solves7d", "username"],
         "created",
     )?;
     let descending = query.descending(sort != "username")?;
@@ -366,6 +380,7 @@ pub async fn users(state: &AppState, query: &Query<'_>) -> Result<Value> {
     let order = match sort {
         "lastSeen" => format!("u.last_seen_at IS NULL,u.last_seen_at {direction},u.id"),
         "solves" => format!("solves {direction},u.created_at DESC,u.id"),
+        "solves7d" => format!("solves7d {direction},lastSolveAt DESC,u.id"),
         "username" => format!("u.username COLLATE NOCASE {direction},u.id"),
         _ => format!("u.created_at {direction},u.id"),
     };
@@ -374,32 +389,41 @@ pub async fn users(state: &AppState, query: &Query<'_>) -> Result<Value> {
         "guests" => "u.password_hash IS NULL",
         _ => "1",
     };
-    state.traffic.log.flush().await;
+    state.traffic.log.settle().await;
     state
         .db
         .call(move |db| {
             let counts = one(db, "SELECT count(*) \"all\",coalesce(sum(password_hash IS NOT NULL),0) registered,coalesce(sum(password_hash IS NULL),0) guests FROM users", [])?.unwrap_or_default();
             let scope = format!("WHERE {kind} AND (?='' OR instr(lower(u.username),?)>0 OR u.id=?)");
             let search = [Sql::Text(q.clone()), Sql::Text(q.clone()), Sql::Text(q.clone())];
-            let total = one(db, &format!("SELECT count(*) n FROM users u {scope}"), params_from_iter(search.iter()))?.unwrap_or_default();
             let mut args = search.to_vec();
             args.extend([Sql::Integer(limit), Sql::Integer(page * limit)]);
-            let rows = user_rows(db, &scope, &format!("{order} LIMIT ? OFFSET ?"), &args)?;
+            let (total, rows) = if sort == "solves7d" {
+                // Only the accounts that solved this week, ranked through the solves index: the
+                // per-account counts are computed for the page alone.
+                let recent = format!("SELECT s.user_id FROM solves s JOIN users u ON u.id=s.user_id {scope} AND s.created_at>={WEEK_AGO} GROUP BY s.user_id");
+                let total = one(db, &format!("SELECT count(*) n FROM ({recent})"), params_from_iter(search.iter()))?.unwrap_or_default();
+                let page = format!("JOIN ({recent} ORDER BY count(*) {direction},max(s.created_at) DESC LIMIT ? OFFSET ?) r ON r.user_id=u.id");
+                (total, user_rows(db, &page, &order, &args)?)
+            } else {
+                let total = one(db, &format!("SELECT count(*) n FROM users u {scope}"), params_from_iter(search.iter()))?.unwrap_or_default();
+                (total, user_rows(db, &scope, &format!("{order} LIMIT ? OFFSET ?"), &args)?)
+            };
             Ok(json!({"counts":counts,"total":total["n"],"rows":rows,"page":page,"limit":limit}))
         })
         .await
 }
 
 pub async fn user(state: &AppState, id: String) -> Result<Value> {
-    state.traffic.log.flush().await;
+    state.traffic.log.settle().await;
     state
         .db
         .call(move |db| {
             let mut user = user_rows(db, "WHERE u.id=?", "u.id", &[Sql::Text(id.clone())])?
                 .into_iter()
                 .next()
-                .ok_or_else(|| ApiError::new(404, "Unknown account"))?;
-            let effective = "CASE WHEN penalty='dnf' THEN NULL ELSE time_ms+CASE WHEN penalty='+2' THEN 2000 ELSE 0 END END";
+                .ok_or_else(|| ApiError::new(404, UNKNOWN))?;
+            let effective = EFFECTIVE_MS_SQL;
             let puzzles = all(db, &format!("SELECT puzzle_id puzzleId,solve_mode solveMode,count(*) solves,sum(penalty='dnf') dnf,sum(case_id IS NOT NULL) trainingSolves,
                 min({effective}) bestMs,avg({effective}) meanMs,{last} lastAt FROM solves WHERE user_id=? GROUP BY puzzle_id,solve_mode ORDER BY solves DESC,puzzle_id",
                 last = ms("max(created_at)")), [&id])?;
@@ -465,8 +489,7 @@ pub async fn revoke(state: &AppState, id: String) -> Result<Value> {
     let revoked = state
         .db
         .call(move |db| {
-            one(db, "SELECT id FROM users WHERE id=?", [&user])?
-                .ok_or_else(|| ApiError::new(404, "Unknown account"))?;
+            required(db, "SELECT id FROM users WHERE id=?", [&user], UNKNOWN)?;
             Ok(db.execute("DELETE FROM auth_tokens WHERE user_id=?", [&user])?)
         })
         .await?;
@@ -485,8 +508,7 @@ pub async fn delete(state: &AppState, id: String) -> Result<Value> {
         .db
         .call(move |db| {
             let tx = db.transaction()?;
-            let account = one(&tx, "SELECT username,(password_hash IS NULL) isGuest FROM users WHERE id=?", [&user])?
-                .ok_or_else(|| ApiError::new(404, "Unknown account"))?;
+            let account = required(&tx, "SELECT username,(password_hash IS NULL) isGuest FROM users WHERE id=?", [&user], UNKNOWN)?;
             let solves = tx.execute("DELETE FROM solves WHERE user_id=?", [&user])?;
             let sessions = tx.execute("DELETE FROM sessions WHERE user_id=?", [&user])?;
             for sql in [

@@ -100,10 +100,8 @@ impl Race {
                 .results
                 .iter()
                 .map(|r| {
-                    r.as_ref().and_then(|r| {
-                        (r.penalty != "dnf")
-                            .then(|| r.ms + if r.penalty == "+2" { 2000. } else { 0. })
-                    })
+                    r.as_ref()
+                        .and_then(|r| stats::effective_ms(r.ms, r.penalty))
                 })
                 .collect();
             activity::Player {

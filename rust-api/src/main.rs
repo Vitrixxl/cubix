@@ -170,7 +170,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         attempts: Arc::new(Mutex::new(HashMap::new())),
         passwords: Arc::new(Semaphore::new(4)),
     };
-    let state_for_watch = state.clone();
     let admin_api = Router::new()
         .route("/api/admin/live", get(admin::upgrade))
         .route("/api/admin/{*path}", any(admin::dispatch))
@@ -207,7 +206,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             HeaderValue::from_static("no-store"),
         ))
         .layer(CorsLayer::permissive());
-    tokio::spawn(admin::watch_access(state_for_watch));
     let mut app = api.merge(admin_api);
     match web::directory() {
         Some(dir) => {

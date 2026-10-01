@@ -20,42 +20,29 @@ impl Db {
         db.set_prepared_statement_cache_capacity(64);
         db.execute_batch(include_str!("schema.sql"))?;
         // Profile and social features were retired: accounts only sync practice data now.
-        let columns = all(&db, "PRAGMA table_info(users)", [])?;
         for name in ["is_private", "display_name", "bio"] {
-            if columns.iter().any(|c| c["name"] == name) {
+            if has_column(&db, "users", name)? {
                 db.execute_batch(&format!("ALTER TABLE users DROP COLUMN {name}"))?;
             }
         }
         db.execute_batch("DROP TABLE IF EXISTS chat_messages; DROP TABLE IF EXISTS friendships;")?;
         for table in ["sessions", "solves"] {
-            if !all(&db, &format!("PRAGMA table_info({table})"), [])?
-                .iter()
-                .any(|c| c["name"] == "user_id")
-            {
-                db.execute_batch(&format!(
-                    "ALTER TABLE {table} ADD COLUMN user_id TEXT REFERENCES users(id)"
-                ))?;
-            }
+            add_column_if_missing(&db, table, "user_id", "TEXT REFERENCES users(id)")?;
             db.execute_batch(&format!(
                 "CREATE INDEX IF NOT EXISTS idx_{table}_owner ON {table}(user_id)"
             ))?;
         }
         for table in ["sessions", "solves"] {
-            if !all(&db, &format!("PRAGMA table_info({table})"), [])?
-                .iter()
-                .any(|c| c["name"] == "cube_size")
-            {
-                db.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN cube_size INTEGER NOT NULL DEFAULT 3 CHECK(cube_size BETWEEN 2 AND 7)"))?;
-            }
+            add_column_if_missing(
+                &db,
+                table,
+                "cube_size",
+                "INTEGER NOT NULL DEFAULT 3 CHECK(cube_size BETWEEN 2 AND 7)",
+            )?;
             db.execute_batch(&format!("CREATE INDEX IF NOT EXISTS idx_{table}_cube ON {table}(user_id,cube_size,created_at)"))?;
         }
         // Free-text notes on a solve arrived after the first accounts.
-        if !all(&db, "PRAGMA table_info(solves)", [])?
-            .iter()
-            .any(|c| c["name"] == "comment")
-        {
-            db.execute_batch("ALTER TABLE solves ADD COLUMN comment TEXT")?;
-        }
+        add_column_if_missing(&db, "solves", "comment", "TEXT")?;
         crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
         crate::activity::migrate(&db)?;
@@ -109,6 +96,23 @@ pub fn all(db: &Connection, sql: &str, params: impl Params) -> Result<Vec<Value>
 }
 pub fn one(db: &Connection, sql: &str, params: impl Params) -> Result<Option<Value>> {
     Ok(all(db, sql, params)?.into_iter().next())
+}
+pub fn has_column(db: &Connection, table: &str, column: &str) -> Result<bool> {
+    Ok(all(db, &format!("PRAGMA table_info({table})"), [])?
+        .iter()
+        .any(|c| c["name"] == column))
+}
+/// Adds a column that older databases lack; `definition` is its type and constraints.
+pub fn add_column_if_missing(
+    db: &Connection,
+    table: &str,
+    column: &str,
+    definition: &str,
+) -> Result<()> {
+    if !has_column(db, table, column)? {
+        db.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {definition}"))?;
+    }
+    Ok(())
 }
 pub fn required(db: &Connection, sql: &str, params: impl Params, message: &str) -> Result<Value> {
     one(db, sql, params)?.ok_or_else(|| ApiError::new(404, message))

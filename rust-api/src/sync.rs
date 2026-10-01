@@ -104,7 +104,7 @@ pub fn push(
     db: &mut Connection,
     state: &AppState,
     uid: &str,
-    token: &str,
+    caller: &api::Caller,
     body: &Value,
 ) -> Result<Value> {
     let operations = body["operations"]
@@ -153,7 +153,7 @@ pub fn push(
                 return Err(ApiError::validation());
             }
             let mut value =
-                match api::route(db, state, method, path, &HashMap::new(), &op["body"], token) {
+                match api::route(db, state, method, path, &HashMap::new(), &op["body"], caller) {
                     // Deletion wins over a late offline edit from another device.
                     Err(error) if error.status == 404 && solve => Value::Null,
                     result => result?,

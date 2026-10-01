@@ -1,10 +1,20 @@
 use serde_json::{Value, json};
-pub fn effective(s: &Value) -> Option<f64> {
-    if s["penalty"] == "dnf" {
-        None
-    } else {
-        Some(s["time_ms"].as_f64().unwrap_or(0.) + if s["penalty"] == "+2" { 2000. } else { 0. })
+/// The time a solve counts for: none for a DNF, two more seconds for +2.
+pub fn effective_ms(ms: f64, penalty: &str) -> Option<f64> {
+    match penalty {
+        "dnf" => None,
+        "+2" => Some(ms + 2000.),
+        _ => Some(ms),
     }
+}
+/// `effective_ms` over the `time_ms` and `penalty` columns of a solve, in SQL.
+pub const EFFECTIVE_MS_SQL: &str =
+    "CASE WHEN penalty='dnf' THEN NULL ELSE time_ms+CASE WHEN penalty='+2' THEN 2000 ELSE 0 END END";
+pub fn effective(s: &Value) -> Option<f64> {
+    effective_ms(
+        s["time_ms"].as_f64().unwrap_or(0.),
+        s["penalty"].as_str().unwrap_or(""),
+    )
 }
 pub fn average(times: &[Option<f64>]) -> Option<f64> {
     if times.len() < 3 || times.iter().filter(|v| v.is_none()).count() > 1 {

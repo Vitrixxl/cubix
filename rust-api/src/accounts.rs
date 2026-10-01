@@ -7,6 +7,7 @@ use rusqlite::{Connection, params};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
+pub const DAY_MS: i64 = 86_400_000;
 pub fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -19,15 +20,29 @@ pub fn digest(token: &str) -> String {
 pub fn public(user: &Value) -> Value {
     json!({"id":user["id"],"username":user["username"],"isGuest":user["password_hash"].is_null(),"createdAt":user["created_at"]})
 }
-pub fn auth(db: &Connection, token: &str) -> Result<Option<Value>> {
-    let Some(token) = token.strip_prefix("Bearer ") else {
-        return Ok(None);
-    };
+/// 256 random bits in hexadecimal: session and admin tokens.
+pub fn random_token() -> String {
+    let mut bytes = [0u8; 32];
+    rand::rngs::OsRng.fill_bytes(&mut bytes);
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+/// The digest under which the token of an `Authorization: Bearer …` header is stored.
+pub fn bearer_hash(authorization: &str) -> Option<String> {
+    authorization.strip_prefix("Bearer ").map(digest)
+}
+/// The account whose unexpired token has this digest.
+pub fn by_token_hash(db: &Connection, hash: &str) -> Result<Option<Value>> {
     one(
         db,
         "SELECT u.* FROM users u JOIN auth_tokens t ON t.user_id=u.id WHERE t.token_hash=? AND t.expires_at>?",
-        params![digest(token), now()],
+        params![hash, now()],
     )
+}
+pub fn auth(db: &Connection, authorization: &str) -> Result<Option<Value>> {
+    match bearer_hash(authorization) {
+        Some(hash) => by_token_hash(db, &hash),
+        None => Ok(None),
+    }
 }
 pub fn signed_in(db: &Connection, token: &str) -> Result<Value> {
     auth(db, token)?.ok_or_else(|| ApiError::new(401, "Please sign in again."))
@@ -40,13 +55,11 @@ pub fn by_username(db: &Connection, name: &str) -> Result<Option<Value>> {
     )
 }
 pub fn issue(db: &Connection, user: &Value) -> Result<Value> {
-    let mut bytes = [0u8; 32];
-    rand::rngs::OsRng.fill_bytes(&mut bytes);
-    let token: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+    let token = random_token();
     db.execute("DELETE FROM auth_tokens WHERE expires_at<=?", [now()])?;
     db.execute(
         "INSERT INTO auth_tokens(token_hash,user_id,expires_at,created_at) VALUES(?,?,?,?)",
-        params![digest(&token), user["id"].as_str(), now() + 30 * 86400000, now()],
+        params![digest(&token), user["id"].as_str(), now() + 30 * DAY_MS, now()],
     )?;
     Ok(json!({"token":token,"user":public(user)}))
 }

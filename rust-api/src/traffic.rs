@@ -6,16 +6,15 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use serde_json::{Value, json};
+use serde_json::json;
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     net::{IpAddr, SocketAddr},
     sync::{Arc, Mutex},
     time::Instant,
 };
 use tokio::sync::watch;
 const MAX_IPS: usize = 20000;
-const MAX_LOGS: usize = 10000;
 #[derive(Clone)]
 struct Bucket {
     tokens: f64,
@@ -41,29 +40,19 @@ impl Bucket {
         }
     }
 }
+/// A client's rate limits; `recorded` once one of its requests was answered (not a health probe).
 struct Client {
-    total: u64,
-    limited: u64,
-    errors: u64,
+    recorded: bool,
     last: i64,
-    last_recorded: i64,
     http: Bucket,
     auth: Bucket,
     admin: Bucket,
     ws: Bucket,
 }
-struct Metrics {
-    total: u64,
-    limited: u64,
-    errors: u64,
-    overflow: u64,
-    ips: HashMap<IpAddr, Client>,
-    logs: VecDeque<Value>,
-}
 pub struct Traffic {
     pub log: crate::activity::Log,
     updates: watch::Sender<()>,
-    data: Mutex<Metrics>,
+    ips: Mutex<HashMap<IpAddr, Client>>,
     pub started: i64,
     pub limit: u32,
     pub trusted: Vec<IpAddr>,
@@ -73,14 +62,7 @@ impl Traffic {
         Self {
             log,
             updates: watch::channel(()).0,
-            data: Mutex::new(Metrics {
-                total: 0,
-                limited: 0,
-                errors: 0,
-                overflow: 0,
-                ips: HashMap::new(),
-                logs: VecDeque::new(),
-            }),
+            ips: Mutex::new(HashMap::new()),
             started: now(),
             limit: std::env::var("CUBIX_RATE_LIMIT")
                 .ok()
@@ -96,14 +78,10 @@ impl Traffic {
     }
     /// Clients currently tracked in memory with at least one recorded request.
     pub fn live_ips(&self) -> usize {
-        self.data
-            .lock()
-            .unwrap()
-            .ips
-            .values()
-            .filter(|c| c.total > 0)
-            .count()
+        self.ips.lock().unwrap().values().filter(|c| c.recorded).count()
     }
+    /// Changes whenever a request other than a health probe or an administration request is
+    /// answered: the administration's live socket tells its views to refetch.
     pub fn subscribe(&self) -> watch::Receiver<()> {
         self.updates.subscribe()
     }
@@ -127,24 +105,18 @@ impl Traffic {
         current
     }
     pub fn allow(&self, ip: IpAddr, path: &str, websocket: bool) -> bool {
-        let mut d = self.data.lock().unwrap();
-        if !d.ips.contains_key(&ip) && d.ips.len() >= MAX_IPS {
+        let mut ips = self.ips.lock().unwrap();
+        if !ips.contains_key(&ip) && ips.len() >= MAX_IPS {
             // Evict only inactive buckets. A flood cannot reset an active IP's allowance.
             let cutoff = now() - 900000;
-            d.ips.retain(|_, c| c.last > cutoff);
-            if d.ips.len() >= MAX_IPS {
-                if path != "/api/health" {
-                    d.overflow += 1;
-                }
+            ips.retain(|_, c| c.last > cutoff);
+            if ips.len() >= MAX_IPS {
                 return false;
             }
         }
-        let c = d.ips.entry(ip).or_insert_with(|| Client {
-            total: 0,
-            limited: 0,
-            errors: 0,
+        let c = ips.entry(ip).or_insert_with(|| Client {
+            recorded: false,
             last: now(),
-            last_recorded: 0,
             http: Bucket::new(self.limit as f64),
             auth: Bucket::new(20.),
             admin: Bucket::new(5.),
@@ -164,63 +136,19 @@ impl Traffic {
         };
         general && special
     }
-    pub fn record(&self, ip: IpAddr, method: &str, path: &str, status: u16, ms: f64) {
+    fn record(&self, ip: IpAddr, path: &str) {
         // Health probes still obey rate limits, but never feed admin telemetry.
         if path == "/api/health" {
             return;
         }
-        let mut d = self.data.lock().unwrap();
-        d.total += 1;
-        if status == 429 {
-            d.limited += 1;
-        }
-        if status >= 400 {
-            d.errors += 1;
-        }
-        if let Some(c) = d.ips.get_mut(&ip) {
-            c.total += 1;
+        if let Some(c) = self.ips.lock().unwrap().get_mut(&ip) {
+            c.recorded = true;
             c.last = now();
-            c.last_recorded = c.last;
-            if status == 429 {
-                c.limited += 1;
-            }
-            if status >= 400 {
-                c.errors += 1;
-            }
         }
-        let id = d.total;
-        if d.logs.len() == MAX_LOGS {
-            d.logs.pop_front();
+        // The administration's own requests would otherwise make its views refetch themselves.
+        if !path.starts_with("/api/admin/") {
+            self.updates.send_replace(());
         }
-        d.logs.push_back(json!({"id":id,"at":now(),"ip":ip.to_string(),"method":method,"path":path.chars().take(300).collect::<String>(),"status":status,"durationMs":(ms*100.).round()/100.}));
-        drop(d);
-        self.updates.send_replace(());
-    }
-    pub fn snapshot(&self, ip: &str, path: &str, status: &str, ip_page: usize) -> Value {
-        let d = self.data.lock().unwrap();
-        let logs: Vec<_> = d
-            .logs
-            .iter()
-            .rev()
-            .filter(|r| {
-                (ip.is_empty() || r["ip"].as_str().unwrap_or("").contains(ip))
-                    && r["path"].as_str().unwrap_or("").contains(path)
-                    && (status.is_empty() || r["status"].to_string().starts_with(status))
-            })
-            .take(200)
-            .cloned()
-            .collect();
-        let mut ips: Vec<_> = d
-            .ips
-            .iter()
-            .filter(|(_, client)| client.total > 0)
-            .collect();
-        let tracked_ip_count = ips.len();
-        ips.retain(|(addr, _)| ip.is_empty() || addr.to_string().contains(ip));
-        ips.sort_by(|a, b| b.1.total.cmp(&a.1.total).then_with(|| a.0.cmp(b.0)));
-        let ip_count = ips.len();
-        let rows:Vec<_>=ips.into_iter().skip(ip_page*50).take(50).map(|(ip,c)|json!({"ip":ip.to_string(),"requests":c.total,"limited":c.limited,"errors":c.errors,"lastAt":c.last_recorded})).collect();
-        json!({"startedAt":self.started,"total":d.total,"errors":d.errors,"limited":d.limited,"ipCount":tracked_ip_count,"matchingIps":ip_count,"untrackedRequests":d.overflow,"ips":rows,"requests":logs,"retained":d.logs.len(),"capacity":MAX_LOGS,"rateLimit":self.limit})
     }
 }
 pub async fn monitor(
@@ -274,7 +202,7 @@ pub async fn monitor(
         .insert("x-content-type-options", "nosniff".parse().unwrap());
     let ms = start.elapsed().as_secs_f64() * 1000.;
     let status = response.status().as_u16();
-    traffic.record(ip, &method, &path, status, ms);
+    traffic.record(ip, &path);
     if path != "/api/health" {
         traffic.log.request(crate::activity::Entry {
             at: now(),

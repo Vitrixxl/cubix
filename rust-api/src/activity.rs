@@ -7,11 +7,11 @@
 //! status, the duration, the client IP, a truncated user agent and the account id are kept:
 //! never headers, tokens, query strings or bodies.
 use crate::{
-    accounts::{digest, now},
-    db::{Db, all, one},
+    accounts::{DAY_MS, now},
+    db::{Db, add_column_if_missing, one},
     error::Result,
 };
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Value, json};
 use std::{
     collections::{HashMap, HashSet},
@@ -24,7 +24,6 @@ use std::{
 };
 use tokio::sync::{broadcast, mpsc, oneshot};
 
-const DAY_MS: i64 = 86_400_000;
 /// Rows of the request log older than this are deleted.
 pub const RETENTION_DAYS: i64 = 30;
 /// The log keeps at most this many ordinary rows and this many important rows.
@@ -77,6 +76,7 @@ pub fn migrate(db: &Connection) -> Result<()> {
           day TEXT NOT NULL, ip TEXT NOT NULL, user_id TEXT NOT NULL,
           PRIMARY KEY(day,ip,user_id)) WITHOUT ROWID;
         CREATE INDEX IF NOT EXISTS idx_traffic_daily_users_user ON traffic_daily_users(user_id);
+        CREATE INDEX IF NOT EXISTS idx_traffic_daily_users_ip ON traffic_daily_users(ip,day);
         CREATE TABLE IF NOT EXISTS user_activity (
           user_id TEXT NOT NULL, day TEXT NOT NULL, requests INTEGER NOT NULL DEFAULT 0,
           PRIMARY KEY(user_id,day)) WITHOUT ROWID;
@@ -90,24 +90,12 @@ pub fn migrate(db: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_duel_games_ended ON duel_games(ended_at);
         CREATE INDEX IF NOT EXISTS idx_duel_games_player1 ON duel_games(player1_id);
         CREATE INDEX IF NOT EXISTS idx_duel_games_player2 ON duel_games(player2_id);
-        CREATE INDEX IF NOT EXISTS idx_solves_created ON solves(created_at);",
+        CREATE INDEX IF NOT EXISTS idx_solves_created ON solves(created_at);
+        CREATE INDEX IF NOT EXISTS idx_users_created ON users(created_at);",
     )?;
-    let columns = |table: &str| -> Result<Vec<String>> {
-        Ok(all(db, &format!("PRAGMA table_info({table})"), [])?
-            .iter()
-            .filter_map(|c| c["name"].as_str().map(str::to_owned))
-            .collect())
-    };
-    if !columns("users")?.iter().any(|c| c == "last_seen_at") {
-        db.execute_batch("ALTER TABLE users ADD COLUMN last_seen_at INTEGER")?;
-    }
-    let tokens = columns("auth_tokens")?;
+    add_column_if_missing(db, "users", "last_seen_at", "INTEGER")?;
     for column in ["created_at", "last_used_at"] {
-        if !tokens.iter().any(|c| c == column) {
-            db.execute_batch(&format!(
-                "ALTER TABLE auth_tokens ADD COLUMN {column} INTEGER"
-            ))?;
-        }
+        add_column_if_missing(db, "auth_tokens", column, "INTEGER")?;
     }
     Ok(())
 }
@@ -153,7 +141,12 @@ enum Event {
     Request(Entry),
     Seen(String),
     Duel(Game),
-    Flush(oneshot::Sender<()>),
+    /// Stores the pending events; with `everything: false`, not if they are only the
+    /// administration's own reads.
+    Flush {
+        done: oneshot::Sender<()>,
+        everything: bool,
+    },
 }
 
 #[derive(Clone)]
@@ -230,6 +223,19 @@ pub fn day(ms: i64) -> String {
     let y = yoe + era * 400 + i64::from(m <= 2);
     format!("{y:04}-{m:02}-{d:02}")
 }
+/// `2026-09-17T10:04:05.006Z`: a UTC millisecond timestamp as SQLite's
+/// `strftime('%Y-%m-%dT%H:%M:%fZ')` writes it.
+pub fn iso_time(ms: i64) -> String {
+    let rem = ms.rem_euclid(DAY_MS);
+    format!(
+        "{}T{:02}:{:02}:{:02}.{:03}Z",
+        day(ms),
+        rem / 3_600_000,
+        rem / 60_000 % 60,
+        rem / 1000 % 60,
+        rem % 1000
+    )
+}
 /// The UTC days from `days - 1` days ago to today, oldest first.
 pub fn last_days(days: i64) -> Vec<String> {
     let today = now();
@@ -270,12 +276,21 @@ impl Log {
     pub fn subscribe(&self) -> broadcast::Receiver<Value> {
         self.important.subscribe()
     }
-    /// Waits until everything recorded so far is in the database.
-    pub async fn flush(&self) {
-        let (tx, rx) = oneshot::channel();
-        if self.tx.send(Event::Flush(tx)).await.is_ok() {
+    async fn wait(&self, everything: bool) {
+        let (done, rx) = oneshot::channel();
+        if self.tx.send(Event::Flush { done, everything }).await.is_ok() {
             let _ = tokio::time::timeout(Duration::from_secs(5), rx).await;
         }
+    }
+    /// Waits until everything recorded so far is in the database.
+    pub async fn flush(&self) {
+        self.wait(true).await;
+    }
+    /// Waits until what an administration read expects is in the database: everything recorded
+    /// so far, except when only the administration's own reads are pending (they wait for the
+    /// next batch rather than forcing a write per admin request).
+    pub async fn settle(&self) {
+        self.wait(false).await;
     }
 }
 
@@ -303,6 +318,8 @@ struct Batch {
     used: Vec<(String, i64)>,
     games: Vec<Game>,
     events: usize,
+    /// Holds something other than the administration's own reads.
+    urgent: bool,
 }
 impl Batch {
     fn is_empty(&self) -> bool {
@@ -335,6 +352,7 @@ fn add(batch: &mut Batch, event: Event, seen: &mut Throttle, used: &mut Throttle
     match event {
         Event::Request(entry) => {
             let (kind, important, store) = classify(&entry.method, &entry.path, entry.status);
+            batch.urgent |= kind != "admin" || important;
             let today = day(entry.at);
             let ip = entry.ip.to_string();
             let t = batch
@@ -376,14 +394,18 @@ fn add(batch: &mut Batch, event: Event, seen: &mut Throttle, used: &mut Throttle
             }
         }
         Event::Seen(user) => {
+            batch.urgent = true;
             let at = now();
             if seen.due(&user, at) {
                 batch.activity.entry((user.clone(), day(at))).or_default();
                 batch.seen.push((user, at));
             }
         }
-        Event::Duel(game) => batch.games.push(game),
-        Event::Flush(_) => unreachable!(),
+        Event::Duel(game) => {
+            batch.urgent = true;
+            batch.games.push(game);
+        }
+        Event::Flush { .. } => unreachable!(),
     }
 }
 
@@ -398,6 +420,10 @@ fn write(db: &mut Connection, batch: Batch) -> Result<Vec<Value>> {
     let tx = db.transaction()?;
     let mut important = Vec::new();
     {
+        // Each important row as `ROW_COLUMNS` lists it, built from the entry: usernames are
+        // looked up once per account and batch.
+        let mut username = tx.prepare_cached("SELECT username FROM users WHERE id=?")?;
+        let mut names: HashMap<&str, Option<String>> = HashMap::new();
         let mut insert = tx.prepare_cached("INSERT INTO request_log(at,ip,method,path,status,duration_ms,user_id,user_agent,kind,important) VALUES(?,?,?,?,?,?,?,?,?,?)")?;
         for Row {
             entry,
@@ -418,7 +444,26 @@ fn write(db: &mut Connection, batch: Batch) -> Result<Vec<Value>> {
                 flag
             ])?;
             if *flag {
-                important.push(tx.last_insert_rowid());
+                let user = entry.actor.as_ref().map(|a| a.user.as_str());
+                let name = match user {
+                    Some(id) => match names.get(id) {
+                        Some(name) => name.clone(),
+                        None => {
+                            let name = username
+                                .query_row([id], |r| r.get::<_, String>(0))
+                                .optional()?;
+                            names.insert(id, name.clone());
+                            name
+                        }
+                    },
+                    None => None,
+                };
+                important.push(json!({
+                    "id": tx.last_insert_rowid(), "at": entry.at, "ip": entry.ip.to_string(),
+                    "method": entry.method, "path": entry.path, "status": entry.status,
+                    "durationMs": (entry.ms * 100.).round() / 100., "userId": user,
+                    "username": name, "userAgent": entry.agent, "kind": kind, "important": true,
+                }));
             }
         }
         let mut traffic = tx.prepare_cached("INSERT INTO traffic_daily(day,ip,requests,errors,server_errors,limited,first_at,last_at) VALUES(?,?,?,?,?,?,?,?)
@@ -487,19 +532,8 @@ fn write(db: &mut Connection, batch: Batch) -> Result<Vec<Value>> {
             ])?;
         }
     }
-    let rows = important
-        .into_iter()
-        .map(|id| {
-            one(
-                &tx,
-                &format!("SELECT {ROW_COLUMNS} FROM request_log l LEFT JOIN users u ON u.id=l.user_id WHERE l.id=?"),
-                [id],
-            )
-            .map(|r| r.map(row))
-        })
-        .collect::<Result<Vec<_>>>()?;
     tx.commit()?;
-    Ok(rows.into_iter().flatten().collect())
+    Ok(important)
 }
 
 fn prune(db: &Connection) -> Result<()> {
@@ -550,8 +584,8 @@ async fn writer(db: Db, mut rx: mpsc::Receiver<Event>, important: broadcast::Sen
         tokio::select! {
             event = rx.recv() => match event {
                 None => { store(&db, &mut batch, &important).await; break; }
-                Some(Event::Flush(done)) => {
-                    store(&db, &mut batch, &important).await;
+                Some(Event::Flush { done, everything }) => {
+                    if everything || batch.urgent { store(&db, &mut batch, &important).await; }
                     let _ = done.send(());
                 }
                 Some(event) => {
@@ -567,11 +601,6 @@ async fn writer(db: Db, mut rx: mpsc::Receiver<Event>, important: broadcast::Sen
     }
 }
 
-/// The digest under which a bearer token is stored, for `Actor::token`.
-pub fn token_hash(authorization: &str) -> Option<String> {
-    authorization.strip_prefix("Bearer ").map(digest)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -580,6 +609,9 @@ mod tests {
         assert_eq!(day(0), "1970-01-01");
         assert_eq!(day(1_790_000_000_000), "2026-09-21");
         assert_eq!(day(951_782_400_000), "2000-02-29");
+        assert_eq!(iso_time(0), "1970-01-01T00:00:00.000Z");
+        assert_eq!(iso_time(1_789_984_245_006), "2026-09-21T09:50:45.006Z");
+        assert_eq!(iso_time(951_782_400_000), "2000-02-29T00:00:00.000Z");
     }
     #[test]
     fn classification() {
