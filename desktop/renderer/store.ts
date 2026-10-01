@@ -12,7 +12,7 @@ import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { completeStep, courseEntry, courseStorageKey, finishCourse, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
-import { LOCKED_PAGES, PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey, type PersonalGoal, type GoalProgress } from "../../src/client/lib/journey";
+import { LOCKED_PAGES, PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey } from "../../src/client/lib/journey";
 import { go, goPage, readRoute, type AppRoute } from "./navigation";
 export const catalog = catalogData as any;
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
@@ -61,8 +61,6 @@ export class Store {
   user: any = { isGuest: true, username: "Guest" };
   learned = new Set<string>();
   journey: Journey = {};
-  personalGoals: { key: string; goal: PersonalGoal; progress: GoalProgress }[] = [];
-  editGoalKey = "";
   /** Where the player was before picking a puzzle they cannot solve yet, for "Not now". */
   lockedFrom: { event: string; page: string } | undefined;
   /** The section a locked button leads to once the tutorial is skipped. */
@@ -363,7 +361,6 @@ export class Store {
     const v = await call(mode, username, password);
     this.user = v.user;
     this.journey = {};
-    this.personalGoals = [];
     this.introducedAccount = "";
     this.introductionReady = false;
     this.expired = false;
@@ -429,7 +426,6 @@ export class Store {
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.journey = v.journey ?? {};
-      if (v.goals) this.personalGoals = v.goals;
       this.checkIntroduction();
       await this.refreshLearning();
       if (v.profile) this.profile = v.profile;

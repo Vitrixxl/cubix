@@ -6,19 +6,18 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { GraduationCap, Layers, Timer, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { PROFILE_KEY, TOUR_STEPS, goalKey, journeyProfile, parseGoalTarget, validDueDate, type Journey, type PersonalGoal } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, TOUR_STEPS, journeyProfile, type Journey } from "../../../src/client/lib/journey";
 import { METHODS } from "../../../src/shared/methods";
-import { EVENTS, PUZZLES, puzzleInfo, type PuzzleId, type SolveMode } from "../../../src/shared/puzzles";
+import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { api, local } from "../api";
 import { useReducedMotion } from "../hooks/useReducedMotion";
-import { editingGoalAtom, introductionAtom, journeyAtom } from "../journey";
+import { introductionAtom, journeyAtom } from "../journey";
 import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, userAtom } from "../state";
 import { alpha, useColors } from "../theme";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
@@ -35,23 +34,6 @@ function StepTransition({ children, identity, direction = 1 }: { children: React
     return () => animation.stop();
   }, [identity, progress, reduced]);
   return <Animated.View style={{ opacity: progress, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [direction * 24, 0] }) }] }}>{children}</Animated.View>;
-}
-
-/** Small toggles of the goal form, the chosen ones outlined in the accent. */
-function Choices<T extends string>({ label, options, value, onChange, multiple = false }: { label: string; options: readonly { id: T; label: string }[]; value: readonly T[]; onChange: (id: T) => void; multiple?: boolean }) {
-  const colors = useColors();
-  return <View style={{ gap: 8 }} accessibilityLabel={label}>
-    <Text className="text-sm font-medium text-muted-foreground">{label}</Text>
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      {options.map(o => {
-        const on = value.includes(o.id);
-        return <Pressable key={o.id} accessibilityRole={multiple ? "checkbox" : "radio"} accessibilityState={{ checked: on }} onPress={() => onChange(o.id)}
-          style={{ borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? alpha(colors.primary, 10) : colors.card, borderRadius: 10, paddingHorizontal: 12, minHeight: 40, justifyContent: "center" }}>
-          <Text className="text-sm font-medium">{o.label}</Text>
-        </Pressable>;
-      })}
-    </View>
-  </View>;
 }
 
 /** The puzzles as a grid of tiles; under it, each chosen puzzle with its methods to pick, so nothing hides a level down. */
@@ -84,36 +66,6 @@ function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel }: {
   </View>;
 }
 
-function GoalForm({ puzzle: first, initial, onSave, busy, submitLabel }: { puzzle: PuzzleId; initial?: PersonalGoal; onSave: (goal: PersonalGoal) => void; busy: boolean; submitLabel?: string }) {
-  const [kind, setKind] = useState(initial?.kind ?? "time"), [puzzle, setPuzzle] = useState(initial?.puzzle ?? first);
-  const [metric, setMetric] = useState<"single" | "ao5">(initial?.kind === "time" ? initial.metric : "single");
-  const [mode, setMode] = useState<SolveMode>(initial?.kind === "time" ? initial.solveMode : "standard");
-  const [target, setTarget] = useState(initial?.kind === "time" ? String(initial.targetMs / 1000) : "20");
-  const [setId, setSetId] = useState(initial?.kind === "learning" ? initial.setId ?? "" : "");
-  const [due, setDue] = useState(initial?.dueDate ?? ""), [error, setError] = useState("");
-  const catalog = local.read.catalog(puzzle);
-  const submit = () => {
-    const targetMs = parseGoalTarget(target);
-    if (kind === "time" && targetMs === null) { setError("Enter a time in seconds or m:ss."); return; }
-    if (due && !validDueDate(due)) { setError("Use a valid YYYY-MM-DD date."); return; }
-    setError("");
-    const base = { puzzle, createdAt: initial?.createdAt ?? new Date().toISOString(), ...(due ? { dueDate: due } : {}) };
-    onSave(kind === "time" ? { ...base, kind, metric, solveMode: mode, targetMs: targetMs! } : { ...base, kind, setId: setId || null });
-  };
-  return <View style={{ gap: 16 }} pointerEvents={busy ? "none" : "auto"}>
-    <Choices label="Goal type" value={[kind]} options={[{ id: "time", label: "Time" }, { id: "learning", label: "Learning" }]} onChange={setKind} />
-    <Choices label="Puzzle" value={[puzzle]} options={PUZZLES} onChange={p => { setPuzzle(p); setSetId(""); setMode("standard"); }} />
-    {kind === "time" ? <>
-      <Choices label="Result" value={[metric]} options={[{ id: "single", label: "Single" }, { id: "ao5", label: "Average of 5" }]} onChange={setMetric} />
-      <Choices label="Event" value={[mode]} options={EVENTS.filter(e => e.puzzle === puzzle).map(e => ({ id: e.solveMode, label: e.label }))} onChange={setMode} />
-      <View style={{ gap: 8 }}><Text className="text-sm font-medium text-muted-foreground">Target (seconds)</Text><Input accessibilityLabel="Target (seconds)" keyboardType="decimal-pad" value={target} onChangeText={setTarget} /></View>
-    </> : <Choices label="Learn" value={[setId]} options={[{ id: "", label: "Solve this puzzle" }, ...catalog.sets.filter(s => catalog.cases.some(c => c.set === s.id)).map(s => ({ id: s.id, label: s.label }))]} onChange={setSetId} />}
-    <View style={{ gap: 8 }}><Text className="text-sm font-medium text-muted-foreground">Deadline (optional)</Text><Input accessibilityLabel="Deadline (YYYY-MM-DD)" placeholder="YYYY-MM-DD" value={due} onChangeText={setDue} /></View>
-    {!!error && <Text accessibilityRole="alert" className="text-destructive">{error}</Text>}
-    <Button disabled={busy} onPress={submit}><Text>{busy ? "Saving…" : submitLabel ?? (initial ? "Save goal" : "Add goal")}</Text></Button>
-  </View>;
-}
-
 const STEPS = ["welcome", "known"] as const;
 const STEP_TITLES: Record<typeof STEPS[number], [string, string]> = {
   welcome: ["Welcome to Cubix", "A few seconds to set up"],
@@ -122,10 +74,9 @@ const STEP_TITLES: Record<typeof STEPS[number], [string, string]> = {
 const toggle = <T,>(list: T[], item: T) => list.includes(item) ? list.filter(i => i !== item) : [...list, item];
 const withoutKey = <T,>(record: Partial<Record<PuzzleId, T>>, key: PuzzleId) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== key)) as Partial<Record<PuzzleId, T>>;
 
-function Editor({ goalOnly }: { goalOnly: boolean }) {
+function Editor() {
   const colors = useColors(), insets = useSafeAreaInsets();
   const journey = useAtomValue(journeyAtom), existing = journeyProfile(journey), owner = useAtomValue(userAtom)?.id;
-  const key = useAtomValue(editingGoalAtom), initial = journey[key];
   const setIntro = useSetAtom(introductionAtom), setEvent = useSetAtom(eventAtom), setScramble = useSetAtom(scrambleTypeAtom), replace = useSetAtom(replaceRouteAtom);
   const current = useAtomValue(puzzleAtom);
   // Editing a saved setup skips the welcome.
@@ -143,32 +94,15 @@ function Editor({ goalOnly }: { goalOnly: boolean }) {
       if (local.current().id !== owner) return;
       Keyboard.dismiss();
       // A puzzle the player can solve opens on the timer; with none, the current one opens on its course.
-      if (!goalOnly) {
-        const puzzle = known.includes(current) ? current : known[0] ?? current;
-        if (puzzle !== current) { setEvent(puzzle); setScramble("normal"); }
-        replace(known.includes(puzzle) ? { page: "playground" } : { page: "learn" });
-      }
+      const puzzle = known.includes(current) ? current : known[0] ?? current;
+      if (puzzle !== current) { setEvent(puzzle); setScramble("normal"); }
+      replace(known.includes(puzzle) ? { page: "playground" } : { page: "learn" });
       setIntro(tour ? "tour" : null);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const finish = (tour: boolean) => void save({
     [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, completedAt: existing?.completedAt ?? new Date().toISOString() },
   }, tour);
-
-  if (goalOnly) return <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={close}>
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, justifyContent: "center", padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16, backgroundColor: "rgba(0,0,0,.65)" }}>
-      <View accessibilityViewIsModal style={{ maxHeight: "100%", flexShrink: 1, width: "100%", maxWidth: 640, alignSelf: "center", backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 16, overflow: "hidden" }}>
-        <View style={{ paddingLeft: 20, paddingRight: 8, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, borderColor: colors.border }}>
-          <Text accessibilityRole="header" className="flex-1 text-lg font-semibold">{key ? "Edit goal" : "Add goal"}</Text>
-          <Button variant="ghost" size="icon" disabled={busy} onPress={close} accessibilityLabel="Close"><Icon as={X} size={18} /></Button>
-        </View>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 16 }}>
-          <GoalForm puzzle={existing?.priority ?? current} initial={initial?.kind !== "profile" ? initial ?? undefined : undefined} busy={busy} onSave={goal => void save({ [key || goalKey()]: goal })} />
-          {!!error && <Text accessibilityRole="alert" className="text-destructive">{error}</Text>}
-        </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
-  </Modal>;
 
   const [title, sub] = STEP_TITLES[name];
   const last = step === STEPS.length - 1;
@@ -332,8 +266,7 @@ function Tour() {
 export function Introduction() {
   const [intro, setIntro] = useAtom(introductionAtom), journey = useAtomValue(journeyAtom), user = useAtomValue(userAtom);
   const introduced = useRef<string | null>(null);
-  const setKey = useSetAtom(editingGoalAtom);
-  useEffect(() => () => { setIntro(null); setKey(""); }, [user?.id, setIntro, setKey]);
+  useEffect(() => () => setIntro(null), [user?.id, setIntro]);
   useEffect(() => {
     if (!user || user.isGuest) return;
     if (introduced.current === user.id) return;
@@ -342,5 +275,5 @@ export function Introduction() {
       if (local.current().id === user.id && !journeyProfile(local.read.journey())) setIntro(value => value ?? "setup");
     });
   }, [user, journey, setIntro]);
-  return intro === "tour" ? <Tour /> : intro ? <Editor key={`${user?.id}:${intro}`} goalOnly={intro === "goal"} /> : null;
+  return intro === "tour" ? <Tour /> : intro ? <Editor key={`${user?.id}:${intro}`} /> : null;
 }

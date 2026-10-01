@@ -38,14 +38,11 @@ try {
     const now = new Date().toISOString();
     await window.cubix.call("updateJourney", {
       profile: { kind: "profile", level: "intermediate", knownPuzzles: ["333", "222"], knownMethods: { "333": ["cfop"] }, priority: "444", learningPuzzles: ["444"], learningMethods: { "444": ["yau"] }, priorityMethod: "yau", completedAt: now },
-      ["goal:" + crypto.randomUUID()]: { kind: "time", puzzle: "333", metric: "single", solveMode: "standard", targetMs: 15000, createdAt: now, dueDate: "2026-12-31" },
-      ["goal:" + crypto.randomUUID()]: { kind: "time", puzzle: "333", metric: "ao5", solveMode: "standard", targetMs: 20000, createdAt: now },
-      ["goal:" + crypto.randomUUID()]: { kind: "learning", puzzle: "444", setId: null, createdAt: now },
     });
     for (let i = 0; i < 24; i++) await window.cubix.call("addSolve", { puzzle: "333", solveMode: "standard", scrambleType: "normal", timeMs: 14000 + Math.round(Math.sin(i) * 3000 + i * 90), penalty: i === 7 ? "+2" : "none" });
   });
   await page.goto(origin + "/profile?puzzle=333");
-  await page.locator('[aria-label="Personal goals"] article').first().waitFor();
+  await page.locator('[data-tour="profile-overview"]').waitFor();
   for (const [width, height] of [[1280, 800], [1440, 900], [1600, 900], [2048, 1280], [1024, 700], [390, 844], [360, 640]] as const) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(250);
@@ -53,9 +50,8 @@ try {
     await page.screenshot({ path: `${OUT}/overview-${width}x${height}.png` });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
-  const tour = page.locator('[aria-label="Personal setup"] [data-action="tour"]');
-  assert.equal(await tour.count(), 1, "the profile can replay the tour");
-  assert.equal(await page.locator('[data-tour="profile-goals"]').count(), 1, "the tour can show the goals");
+  assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
+  assert.equal(await page.locator('[data-tour="profile-overview"]').count(), 1, "the tour can show the profile");
   assert.equal(await page.locator('.rail [data-action="logout"]').count(), 1, "the sidebar has its own logout row");
   const profileRow = await page.locator('.rail [data-action="nav:profile"]').boundingBox(), logout = await page.locator('.rail [data-action="logout"]').boundingBox();
   assert.ok(profileRow && logout && logout.x >= profileRow.x + profileRow.width && Math.abs(logout.y + logout.height / 2 - (profileRow.y + profileRow.height / 2)) <= 2, "logout is its own icon button, right of the profile");
@@ -86,14 +82,14 @@ try {
   await page.waitForFunction(() => document.querySelector('.rail [data-brand] [aria-label^="Puzzle"]')?.getAttribute("aria-label") === "Puzzle: Pyraminx");
   assert.notEqual(await favicon(), before, "the tab's icon follows the puzzle");
   assert.equal(await page.locator('.rail a[href="https://buymeacoffee.com/vitrixxl"]').count(), 1, "the sidebar links to Buy Me a Coffee");
-  await page.goto(origin + "/profile?puzzle=333"); await page.locator('[aria-label="Personal goals"]').waitFor();
+  await page.goto(origin + "/profile?puzzle=333"); await page.locator('[data-tour="profile-overview"]').waitFor();
   // A fresh account: compact empty states, still inside the window.
   const fresh = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();
   fresh.on("pageerror", e => errors.push(e.message));
   await fresh.goto(origin);
   await signIn(fresh, "profile_empty");
   await fresh.goto(origin + "/profile?puzzle=333");
-  await fresh.locator('[aria-label="Personal goals"]').waitFor();
+  await fresh.locator('[data-tour="profile-overview"]').waitFor();
   for (const [width, height] of [[1280, 800], [390, 844]] as const) {
     await fresh.setViewportSize({ width, height });
     await fresh.waitForTimeout(250);
@@ -101,7 +97,7 @@ try {
     await fresh.screenshot({ path: `${OUT}/empty-${width}x${height}.png` });
   }
   assert.deepEqual(errors, []);
-  console.log("Profile fits the window at every size, no sideways scroll, tour replay, goals target and separate logout passed.");
+  console.log("Profile fits the window at every size, no sideways scroll, tour target, no journey or goals, and separate logout passed.");
 } catch (error) {
   await page.screenshot({ path: `${OUT}/failure.png` });
   throw error;

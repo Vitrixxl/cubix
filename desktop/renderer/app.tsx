@@ -45,7 +45,7 @@ function App() {
     });
     const key = (e: KeyboardEvent) => {
       if (!s.signedIn) return;
-      if (window.location.pathname === "/onboarding" || s.overlay === "tour" || s.overlay === "personalGoal") return;
+      if (window.location.pathname === "/onboarding" || s.overlay === "tour") return;
       const typing = (e.target as HTMLElement).closest("input,textarea");
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
@@ -180,7 +180,7 @@ function App() {
         <Toasts light={s.light} />
         <Overlays />
         <ErrorNotification message={s.error} />
-        {["tour", "personalGoal"].includes(s.overlay) && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}
+        {s.overlay === "tour" && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}
       </MotionConfig>
     </TooltipProvider>
   );

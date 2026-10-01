@@ -4,10 +4,8 @@ import { puzzleInfo, type EventId, type PuzzleId } from "../../src/shared/puzzle
 import { api, local } from "./api";
 import { eventAtom, puzzleAtom, replaceRouteAtom, routeAtom, statsVersionAtom, userAtom, type Page } from "./state";
 
-export const introductionAtom = atom<"setup" | "tour" | "goal" | null>(null);
-export const editingGoalAtom = atom("");
+export const introductionAtom = atom<"setup" | "tour" | null>(null);
 export const journeyAtom = atom(get => { get(statsVersionAtom); get(userAtom); return local.read.journey(); });
-export const goalsAtom = atom(get => { get(statsVersionAtom); get(userAtom); return local.read.goals(); });
 
 /** The current puzzle cannot be solved yet: only Learn and the account are open on it (as on the web). */
 export const puzzleLockedAtom = atom(get => puzzleLocked(journeyProfile(get(journeyAtom)), get(puzzleAtom)));

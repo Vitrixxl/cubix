@@ -129,7 +129,7 @@ impl Traffic {
         let general = c.http.allow(self.limit as f64, 60.);
         let special = if path == "/api/admin/login" {
             c.admin.allow(5., 900.)
-        } else if ["/api/auth/login", "/api/auth/register", "/api/auth/guest"].contains(&path) {
+        } else if ["/api/auth/login", "/api/auth/register"].contains(&path) {
             c.auth.allow(20., 60.)
         } else {
             true

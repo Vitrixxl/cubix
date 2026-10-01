@@ -77,40 +77,22 @@ rustTest(
     expect(
       db.query<any, []>("SELECT * FROM solves WHERE id=1").get(),
     ).toMatchObject({ time_ms: 9000, user_id: null, puzzle_id: "333", cube_size: 3, solve_mode: "standard", scramble_type: "normal" });
-    const guest = (await call("/auth/guest", "POST")).body;
-    expect((await call("/solves", "GET", undefined, guest.token)).body).toEqual(
+    const member = (await call("/auth/register", "POST", { username: "newcomer", password: "a-long-test-password" })).body;
+    expect((await call("/solves", "GET", undefined, member.token)).body).toEqual(
       [],
     );
     expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
   },
 );
 
-rustTest(
-  "concurrent Rust registrations cannot upgrade the same guest twice",
-  async () => {
-    const call = client(createRustApi(fixture()));
-    const guest = (await call("/auth/guest", "POST")).body;
-    const attempts = await Promise.all(
-      ["first_member", "second_member"].map((username) =>
-        call(
-          "/auth/register",
-          "POST",
-          { username, password: "concurrent-password" },
-          guest.token,
-        ),
-      ),
-    );
-    expect(attempts.map((r) => r.status).sort()).toEqual([200, 409]);
-    expect((await call("/auth/me", "GET", undefined, guest.token)).status).toBe(
-      401,
-    );
-    const winner = attempts.find((r) => r.status === 200)!.body;
-    expect(winner.user.id).toBe(guest.user.id);
-    expect(
-      (await call("/auth/me", "GET", undefined, winner.token)).body.id,
-    ).toBe(guest.user.id);
-  },
-);
+rustTest("signed-in Rust clients cannot open a second account, and guests cannot be created", async () => {
+  const call = client(createRustApi(fixture()));
+  // The guest route is gone: like any unknown route, it needs an account.
+  expect((await call("/auth/guest", "POST")).status).toBe(401);
+  const member = (await call("/auth/register", "POST", { username: "first_member", password: "concurrent-password" })).body;
+  expect((await call("/auth/register", "POST", { username: "second_member", password: "concurrent-password" }, member.token)).status).toBe(400);
+  expect((await call("/auth/me", "GET", undefined, member.token)).body.username).toBe("first_member");
+});
 
 
 rustTest("practice migration preserves existing cube histories and remains safe on restart", async () => {

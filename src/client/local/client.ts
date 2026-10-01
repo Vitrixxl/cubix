@@ -6,7 +6,7 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
-import { goalProgress, personalGoals, journeyProfile, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
+import { PROFILE_KEY, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
@@ -77,6 +77,12 @@ export function createLocalClient(options: {
     const workspace: Workspace & { cache?: unknown } = stored ?? empty();
     workspace.learned ??= {};
     if (!workspace.journey) { workspace.journey = {}; workspace.cursor = 0; save(id, workspace); }
+    // Personal goals are gone: drop the ones kept here and their changes still waiting to be sent.
+    if (Object.keys(workspace.journey).some(key => key !== PROFILE_KEY) || workspace.outbox.some(op => op.kind === "journey" && op.body.key !== PROFILE_KEY)) {
+      workspace.journey = workspace.journey.profile ? { profile: workspace.journey.profile } : {};
+      workspace.outbox = workspace.outbox.filter(op => op.kind !== "journey" || op.body.key === PROFILE_KEY);
+      save(id, workspace);
+    }
     if (!stored?.groupOrder) {
       workspace.groupOrder = {};
       // Old clients advanced past order events they could not consume; replay once on upgrade.
@@ -178,7 +184,7 @@ export function createLocalClient(options: {
       for (const change of [...changes].sort((a,b) => Number(a.kind === "solves") - Number(b.kind === "solves"))) {
         if (change.kind === "personal_entries") {
           const row = change.value as JourneyEntryDto | null;
-          if (!row || !validJourneyEntry(row.key, row.value, cases) || workspace.outbox.some(op => op.kind === "journey" && op.body.key === row.key)) continue;
+          if (!row || !validJourneyEntry(row.key, row.value) || workspace.outbox.some(op => op.kind === "journey" && op.body.key === row.key)) continue;
           workspace.journey[row.key] = row.value;
         } else if (change.kind === "learning_group_orders") {
           const row = change.value as LearningGroupOrderDto | null;
@@ -307,10 +313,6 @@ export function createLocalClient(options: {
   /** Synchronous reads of local data, for screens that must render without any loading state. */
   const reads = {
     journey: () => data().journey,
-    goals: () => {
-      const workspace = data(), solves = liveSolves(workspace), learned = new Set(learnedIds(workspace));
-      return personalGoals(workspace.journey).map(([key, goal]) => ({ key, goal, progress: goalProgress(goal, solves, learned, cases, journeyProfile(workspace.journey)) }));
-    },
     catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
     stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
@@ -321,11 +323,10 @@ export function createLocalClient(options: {
   const api = {
     ...options.remote(options.getToken()),
     me: async () => current(),
-    /** Save the entire setup in one local transaction; independent goal operations preserve other devices' additions. */
+    /** Save the setup in one local transaction. */
     updateJourney: async (changes: Journey) => localMutation((workspace, id) => {
-      if (Object.entries(changes).some(([key, value]) => !validJourneyEntry(key, value, cases))) throw new Error("Invalid goal or profile.");
+      if (Object.entries(changes).some(([key, value]) => !validJourneyEntry(key, value))) throw new Error("Invalid profile.");
       const next = { ...workspace.journey, ...changes };
-      if (personalGoals(next).length > 100) throw new Error("Keep at most 100 personal goals.");
       workspace.journey = next;
       for (const [key, value] of Object.entries(changes)) operation(workspace, id, "journey", 0, { key, value });
       return next;
@@ -412,15 +413,11 @@ export function createLocalClient(options: {
     const token = options.getToken();
     if (!token) { report(current().isGuest ? "local" : "signin"); return; }
     if (!current().isGuest) { await sync(); return; }
-    // One-time migration of an existing server-side guest; no new guest is ever created.
+    // A token whose account this device does not know yet (server-side guests are gone: theirs fail).
     try {
-      const remote = options.remote(token), user = await remote.me();
+      const user = await options.remote(token).me();
       if (options.getToken() !== token) return;
-      if (user.isGuest) {
-        let more = true;
-        while (more) { const page = await remote.syncPull(data("guest").cursor); await merge("guest",page.changes,page.cursor); more = page.more; }
-        options.clearToken();
-      } else { await authenticate({user,token}); await sync(); }
+      await authenticate({user,token}); await sync();
       notify();
     } catch (error) { if (error instanceof ApiError && error.status === 401) options.clearToken(); }
   }

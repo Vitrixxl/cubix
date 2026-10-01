@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Compass } from "lucide-react-native";
+import { Compass, SlidersHorizontal } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import { METHODS } from "../../../src/shared/methods";
@@ -19,7 +19,7 @@ const guides: Record<Exclude<GuideId, "methods" | "notation">, { title: string; 
   about: {
     title: "About Cubix", lead: "Cubix is a free cube timer and algorithm trainer. Sign in or create a free account to start.",
     sections: [
-      ["Setup and personal goals", "Edit setup on Account changes the puzzles you can solve and the methods you use. Picking a puzzle opens its timer; one you cannot solve yet opens on its course in Learn and asks whether to learn it or unlock everything, and Timer, Algorithms, Training and Duel stay greyed until you finish the course or tap one of them and skip the tutorial. Replay tour, on Account or at the top of these guides, shows each tab again. Add goal creates a time or learning target with an optional deadline; it is saved offline and synchronised with your account. Time goals use your best full-scramble single or rolling average of five for the selected puzzle and event, including earlier solves, with +2 and DNF. Drills and partial scrambles are excluded. Enter targets in seconds: 20 means twenty seconds. Learning sets follow learned case marks; for a whole puzzle, press I can solve it when you can solve it yourself."],
+      ["Your setup", "Edit setup, at the top of these guides, changes the puzzles you can solve and the methods you use. Picking a puzzle opens its timer; one you cannot solve yet opens on its course in Learn and asks whether to learn it or unlock everything, and Timer, Algorithms, Training and Duel stay greyed until you finish the course or tap one of them and skip the tutorial. Replay tour, beside it, shows each tab again."],
       ["Timer", "Apply the scramble, hold a free area of the screen until the time turns green, release to start, then tap to stop. Times, Ao5 and Ao12 are kept per puzzle, scramble type and solve mode."],
       ["Algorithms and training", "Browse case diagrams, setups and algorithms, then select the cases you want to practise. Cubix includes 2×2 to 7×7, Square-1, Pyraminx, Skewb, Megaminx and Clock."],
       ["Accounts and offline practice", "Your account keeps your times, statistics, learned cases and achievements in sync between devices. Signing in needs a connection; after that the timer, scrambles, catalogue and guides work offline, and your times are saved on the phone and sent once the connection is back. Times kept on the phone before accounts were required join your account when you sign in."],
@@ -110,12 +110,16 @@ export function GuidesSheet() {
   const content = shown === "methods" || shown === "notation" ? undefined : guides[shown];
   const setIntro = useSetAtom(introductionAtom);
   const replayTour = () => { setGuide(null); setIntro("tour"); };
+  const editSetup = () => { setGuide(null); setIntro("setup"); };
   return <Sheet open={guide !== null} onClose={() => setGuide(null)} title="Guides" hideTitle tall contentClassName="gap-0 px-0 pt-0">
     <Chips label="Guides" items={GUIDE_NAMES} value={shown} onChange={setGuide} />
     <SheetScrollView key={shown} style={{ flex: 1 }} contentContainerClassName="gap-3 px-5 pt-6 pb-10">
       <View className="flex-row items-center justify-between gap-3">
         <Label>Cubix · Guides</Label>
-        <Button variant="outline" size="sm" className="h-9 gap-1.5" onPress={replayTour}><Icon as={Compass} size={15} /><Text>Replay tour</Text></Button>
+        <View className="flex-row gap-2">
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onPress={editSetup}><Icon as={SlidersHorizontal} size={15} /><Text>Edit setup</Text></Button>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onPress={replayTour}><Icon as={Compass} size={15} /><Text>Replay tour</Text></Button>
+        </View>
       </View>
       {content ? <>
         <Text accessibilityRole="header" className="text-3xl font-semibold tracking-tight">{content.title}</Text>

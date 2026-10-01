@@ -24,23 +24,28 @@ function setup(path = ":memory:") {
 }
 
 describe("Accounts", () => {
-  test("guest registration preserves history, rotates token, and survives reopening the database", async () => {
+  test("accounts survive reopening the database; guests are gone, leftover ones and personal goals purged on reopening", async () => {
     const dir = mkdtempSync(join(tmpdir(), "cubix-account-"));
     cleanups.unshift(() => rmSync(dir, { recursive: true, force: true }));
     const { db, call, register } = setup(join(dir, "test.db"));
-    const guest = (await call("/auth/guest", "POST")).body;
-    const session = (await call("/sessions", "POST", { mode: "playground" }, guest.token)).body;
-    await call("/solves", "POST", { sessionId: session.id, timeMs: 12340 }, guest.token);
-    const alice = await register("alice", guest.token);
-    expect(alice.user.id).toBe(guest.user.id);
-    expect(alice.user.username).toBe("alice");
+    // The guest route is gone: like any unknown route, it needs an account.
+    expect((await call("/auth/guest", "POST")).status).toBe(401);
+    const alice = await register("alice");
+    const session = (await call("/sessions", "POST", { mode: "playground" }, alice.token)).body;
+    await call("/solves", "POST", { sessionId: session.id, timeMs: 12340 }, alice.token);
     expect(alice.user).not.toHaveProperty("displayName");
     expect(alice.user).not.toHaveProperty("isPrivate");
     expect(alice.user).not.toHaveProperty("bio");
-    expect((await call("/solves", "GET", undefined, guest.token)).status).toBe(401);
-    expect((await call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
+    // A guest account and personal goals from before they were retired.
+    db.db.exec(`INSERT INTO users(id,username) VALUES('old-guest','guest-old');
+      INSERT INTO auth_tokens(token_hash,user_id,expires_at) VALUES('old-guest-token','old-guest',${Date.now() + 86_400_000});
+      INSERT INTO personal_entries(user_id,key,value) VALUES('old-guest','profile','{}'),('${alice.user.id}','profile','{"kind":"profile"}'),('${alice.user.id}','goal:00000000-0000-4000-8000-000000000000','{}');`);
     const second = setup(db.path);
     expect((await second.call("/auth/me", "GET", undefined, alice.token)).body.username).toBe("alice");
+    expect((await second.call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
+    expect(db.db.query<any, []>("SELECT id FROM users WHERE id='old-guest'").get()).toBeNull();
+    expect(db.db.query<any, []>("SELECT user_id,key FROM personal_entries").all()).toEqual([{ user_id: alice.user.id, key: "profile" }]);
+    expect(db.db.query("PRAGMA foreign_key_check").all()).toEqual([]);
     const persisted = db.db.query<any, []>("SELECT * FROM users WHERE username = 'alice'").get();
     expect(persisted.password_hash.startsWith("$argon2id$")).toBe(true);
     expect(JSON.stringify(alice)).not.toContain("password_hash");

@@ -2,7 +2,7 @@ import { expect, mock, test } from "bun:test";
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { atom, createStore, Provider } from "jotai";
 import type { ReactNode } from "react";
-import { TOUR_STEPS, journeyProfile, personalGoals, type Journey } from "../../src/client/lib/journey";
+import { TOUR_STEPS, journeyProfile, type Journey } from "../../src/client/lib/journey";
 import { mockLucide } from "../tests/lucide-mock";
 
 const account = { id: "native-user", isGuest: false };
@@ -15,7 +15,6 @@ mock.module("../src/api", () => ({ api: {
   updateJourney: async (changes: Journey) => { saved = { ...saved, ...changes }; store.set(statsVersionAtom, n => n + 1); return saved; },
 }, local: { current: () => account, restore: async () => {}, read: {
   journey: () => saved,
-  goals: () => personalGoals(saved).map(([key, goal]) => ({ key, goal, progress: { complete: false, ratio: 0, detail: "No solve yet" } })),
   catalog: () => ({ cases: [], sets: [] }),
 } } }));
 mock.module("react-native", () => ({ View: "View", ScrollView: "ScrollView", Pressable: "Pressable", Modal: "Modal", KeyboardAvoidingView: "KeyboardAvoidingView", Platform: { OS: "android" },
@@ -36,8 +35,7 @@ mock.module("../src/components/ProfileCard", () => ({
 }));
 mockLucide();
 const { Introduction, dockSide, roundedRect } = await import("../src/components/Introduction");
-const { PersonalGoals } = await import("../src/components/PersonalGoals");
-const { introductionAtom, editingGoalAtom } = await import("../src/journey");
+const { introductionAtom } = await import("../src/journey");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;
 const nodes = (type: string) => renderer.root.findAllByType(type as any);
@@ -70,7 +68,6 @@ test("native onboarding: welcome, then the puzzles and methods the player can so
     expect(choice("Ortega").props.accessibilityState.checked).toBe(true);
     await act(async () => button("Start the tour").props.onPress());
     expect(journeyProfile(saved)).toEqual({ kind: "profile", knownPuzzles: ["222"], knownMethods: { "222": ["ortega"] }, priority: null, completedAt: expect.any(String) });
-    expect(personalGoals(saved)).toHaveLength(0);
     // The 3×3 cannot be solved yet: the app switches to the 2×2, which can.
     expect(store.get(eventAtom)).toBe("222");
     expect(store.get(introductionAtom)).toBe("tour");
@@ -85,28 +82,10 @@ test("native onboarding: welcome, then the puzzles and methods the player can so
     await act(() => renderer.unmount());
 
     // A saved account skips automatic setup on the next mount.
-    await act(async () => { renderer = create(<Provider store={store}><PersonalGoals /><Introduction /></Provider>); });
+    await act(async () => { renderer = create(<Provider store={store}><Introduction /></Provider>); });
     expect(store.get(introductionAtom)).toBeNull();
-    await act(() => button("Add goal").props.onPress());
-    expect(store.get(introductionAtom)).toBe("goal");
-    const input = nodes("Input").find(n => n.props.accessibilityLabel === "Target (seconds)")!;
-    await act(() => input.props.onChangeText("0"));
-    const submit = () => nodes("Button").filter(n => label(n).includes("Add goal")).at(-1)!;
-    await act(() => submit().props.onPress());
-    expect(personalGoals(saved)).toHaveLength(0);
-    await act(() => input.props.onChangeText("15"));
-    await act(async () => submit().props.onPress());
-    expect(personalGoals(saved)).toHaveLength(1);
-    const edit = nodes("Button").find(n => String(n.props.accessibilityLabel).startsWith("Edit "))!;
-    await act(() => edit.props.onPress());
-    expect(store.get(editingGoalAtom)).toBe(personalGoals(saved)[0]![0]);
-    await act(() => nodes("Input")[0]!.props.onChangeText("12"));
-    await act(async () => button("Save goal").props.onPress());
-    expect(personalGoals(saved)[0]![1]).toMatchObject({ targetMs: 12000 });
-    await act(async () => nodes("Button").find(n => String(n.props.accessibilityLabel).startsWith("Delete "))!.props.onPress());
-    expect(personalGoals(saved)).toHaveLength(0);
 
-    // Opened again from the account, the setup opens on the puzzles, can be closed, and saves without the tour.
+    // Opened again from the guides, the setup opens on the puzzles, can be closed, and saves without the tour.
     await act(() => store.set(introductionAtom, "setup"));
     expect(button("Close")).toBeDefined();
     expect(header()).toBe("What can you solve?");

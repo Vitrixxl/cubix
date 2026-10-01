@@ -124,7 +124,7 @@ function Shell() {
   const goBack = useSetAtom(goBackAtom);
   // The hardware back button walks the in-app history, like the browser's back button.
   useEffect(() => {
-    // The first setup has to be finished; a setup opened again from the account, a goal or the tour close.
+    // The first setup has to be finished; a setup opened again from the guides, or the tour, close.
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (introduction === "setup" && !journeyProfile(store.get(journeyAtom))) return true;
       if (introduction) { closeIntroduction(null); return true; }

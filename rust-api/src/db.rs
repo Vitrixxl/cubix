@@ -46,6 +46,9 @@ impl Db {
         crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
         crate::activity::migrate(&db)?;
+        // Personal goals and guest accounts were retired: what is left of them goes.
+        db.execute("DELETE FROM personal_entries WHERE key!='profile'", [])?;
+        crate::admin_data::purge_guests(&mut db)?;
         let (tx, mut rx) = mpsc::channel::<Job>(1024);
         std::thread::Builder::new()
             .name("cubix-sqlite".into())

@@ -56,7 +56,6 @@ export function createApiClient(origin: string, options: { getToken: () => strin
       };
     },
     me: () => request<UserDto>("/auth/me", "GET", undefined, undefined, true),
-    guest: () => request<AuthDto>("/auth/guest", "POST", undefined, undefined, true),
     register: (username: string, password: string) => request<AuthDto>("/auth/register", "POST", { username, password }, undefined, true),
     login: (username: string, password: string) => request<AuthDto>("/auth/login", "POST", { username, password }, undefined, true),
     logout: () => request<{ ok: boolean }>("/auth/logout", "POST", undefined, undefined, true),

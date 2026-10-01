@@ -16,7 +16,6 @@ import { Heatmap } from "./profile/heatmap";
 import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
 import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
 import { useProfileData, type ProfileData } from "./profile/data";
-import { PersonalGoals, PersonalInfo } from "./profile/goals";
 
 const SECTIONS: Record<string, string> = {
   playground: "Timer",
@@ -93,7 +92,7 @@ const PANEL = "flex flex-col overflow-hidden rounded-xl border bg-card text-sm t
 
 /**
  * The overview fills the window without scrolling it: the user, then one panel: their figures; the year of practice
- * over the timer's curve beside the journey and the goals; training, achievements and battles along the bottom.
+ * over the timer's curve; training, achievements and battles along the bottom.
  */
 function Overview() {
   const d = useProfileData();
@@ -102,17 +101,11 @@ function Overview() {
       <ProfileHeader phone={false} />
       <Joined.Provider value={true}>
         {/* A short window scrolls the overview inside the page rather than squeezing the curve. */}
-        <div className={cn(PANEL, "min-h-[38rem] flex-1")}>
+        <div data-tour="profile-overview" className={cn(PANEL, "min-h-[38rem] flex-1")}>
           <Facts d={d} className="border-b" />
-          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_19rem] border-b xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="flex min-h-0 min-w-0 flex-col">
-              <Heatmap solves={d.activity} latest={d.latest} phone={false} className="border-b" />
-              <TimerSection d={d} phone={false} fill />
-            </div>
-            <div className="flex min-h-0 min-w-0 flex-col border-l">
-              <PersonalInfo className="shrink-0 border-b" />
-              <PersonalGoals className="min-h-40 flex-1" />
-            </div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col border-b">
+            <Heatmap solves={d.activity} latest={d.latest} phone={false} className="border-b" />
+            <TimerSection d={d} phone={false} fill />
           </div>
           <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem] [&>*+*]:border-l">
             <TrainingSection d={d} compact />
@@ -132,10 +125,8 @@ function PhoneOverview() {
     <div className="flex flex-col gap-4">
       <ProfileHeader phone />
       <Joined.Provider value={true}>
-        <div className={cn(PANEL, "[&>*+*]:border-t")}>
+        <div data-tour="profile-overview" className={cn(PANEL, "[&>*+*]:border-t")}>
           <Facts d={d} />
-          <PersonalInfo />
-          <PersonalGoals />
           <Heatmap solves={d.activity} latest={d.latest} phone />
           <TimerSection d={d} phone />
           <TrainingSection d={d} />

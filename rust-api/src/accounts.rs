@@ -63,51 +63,20 @@ pub fn issue(db: &Connection, user: &Value) -> Result<Value> {
     )?;
     Ok(json!({"token":token,"user":public(user)}))
 }
-pub fn guest(db: &Connection) -> Result<Value> {
-    let id = uuid::Uuid::new_v4().to_string();
-    db.execute(
-        "INSERT INTO users(id,username) VALUES(?,?)",
-        params![id, format!("guest-{id}")],
-    )?;
-    let user = required(
-        db,
-        "SELECT * FROM users WHERE id=?",
-        [id],
-        "Unknown account",
-    )?;
-    issue(db, &user)
-}
 pub fn register(
     db: &mut Connection,
     username: &str,
     hash: &str,
-    guest_id: Option<String>,
 ) -> Result<Value> {
     let tx = db.transaction()?;
     if by_username(&tx, username)?.is_some() {
         return Err(ApiError::new(409, "This username is already taken."));
     }
-    let id = guest_id
-        .clone()
-        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-    if guest_id.is_some() {
-        if tx.execute(
-            "UPDATE users SET username=?,password_hash=? WHERE id=? AND password_hash IS NULL",
-            params![username, hash, id],
-        )? != 1
-        {
-            return Err(ApiError::new(
-                409,
-                "This guest already has an account. Sign in.",
-            ));
-        }
-        tx.execute("DELETE FROM auth_tokens WHERE user_id=?", [&id])?;
-    } else {
-        tx.execute(
-            "INSERT INTO users(id,username,password_hash) VALUES(?,?,?)",
-            params![id, username, hash],
-        )?;
-    }
+    let id = uuid::Uuid::new_v4().to_string();
+    tx.execute(
+        "INSERT INTO users(id,username,password_hash) VALUES(?,?,?)",
+        params![id, username, hash],
+    )?;
     let user = required(
         &tx,
         "SELECT * FROM users WHERE id=?",

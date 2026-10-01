@@ -30,7 +30,9 @@ test("admin access requires the container-generated token; HttpOnly session last
 });
 
 test("admin lists accounts and HTTP traffic without secrets or spoofed IPs",async()=>{
- const {origin}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.register("visible_user","a-long-test-password");await remote.guest();
+ const {origin,db}=setup();const remote=createApiClient(origin,{getToken:()=>null});await remote.register("visible_user","a-long-test-password");
+ // Guests can no longer be created; one left from before still shows as such.
+ db.db.exec("INSERT INTO users(id,username) VALUES('old-guest','guest-old')");
  await fetch(origin+"/missing-path?token=do-not-log-this",{headers:{"x-forwarded-for":"203.0.113.200",authorization:"Bearer do-not-log-this"}});
  const admin=await login(origin);
  const users=await adminGet(origin,admin.cookie,"/api/admin/users?filter=registered");
@@ -38,7 +40,7 @@ test("admin lists accounts and HTTP traffic without secrets or spoofed IPs",asyn
  expect((await adminGet(origin,admin.cookie,"/api/admin/users")).rows).toHaveLength(2);
  const requests=await adminGet(origin,admin.cookie,"/api/admin/requests?limit=200");
  const row=requests.rows.find((r:any)=>r.path==="/missing-path");expect(row.status).toBe(404);expect(row.ip).toBe("127.0.0.1");
- const ips=await adminGet(origin,admin.cookie,"/api/admin/ips");expect(ips.rows.map((r:any)=>r.ip)).toEqual(["127.0.0.1"]);expect(ips.rows[0].requests).toBeGreaterThan(3);
+ const ips=await adminGet(origin,admin.cookie,"/api/admin/ips");expect(ips.rows.map((r:any)=>r.ip)).toEqual(["127.0.0.1"]);expect(ips.rows[0].requests).toBeGreaterThan(2);
  const everything=JSON.stringify([users,requests,ips]);for(const secret of ["do-not-log-this","password_hash","token_hash"])expect(everything).not.toContain(secret);
  expect((await fetch(origin+"/aaaaadmin")).status).toBe(404);
 });
@@ -207,7 +209,7 @@ test("admin data endpoints require the admin session, never cache and validate t
 
 test("admin overview counts accounts, activity, solves, traffic, IPs and duels with 30-day series",async()=>{
  const {origin,db}=setup();
- const reg=await register(origin,"overview_user");await call(origin,"POST","/api/auth/guest");
+ const reg=await register(origin,"overview_user");await register(origin,"overview_two");
  for(const timeMs of [9000,10000])expect((await call(origin,"POST","/api/solves",{token:reg.token,body:{timeMs}})).status).toBe(200);
  expect((await fetch(origin+"/missing-page")).status).toBe(404);
  db.db.exec(`INSERT INTO users(id,username,password_hash,created_at) VALUES('old-reg','old_reg','x','${isoAgo(40)}'),('mid-guest','guest-mid',NULL,'${isoAgo(10)}');
@@ -217,14 +219,14 @@ test("admin overview counts accounts, activity, solves, traffic, IPs and duels w
   INSERT INTO duel_games(race,game,event,ended_at,player1_name,player2_name,results) VALUES('r1',1,'333',${Date.now()},'a','b','[]'),('r2',1,'333',${Date.now()-10*864e5},'a','b','[]');`);
  const admin=await login(origin);
  const body=await adminGet(origin,admin.cookie,"/api/admin/overview");
- expect(body.users).toEqual({total:4,registered:2,guests:2,new:{today:2,d7:2,d30:3},active:{today:2,d7:3,d30:4}});
+ expect(body.users).toEqual({total:4,registered:3,guests:1,new:{today:2,d7:2,d30:3},active:{today:2,d7:3,d30:4}});
  expect(body.solves).toEqual({total:4,today:2,d7:3});
- // register, guest, two solves, the missing page and the admin login.
+ // two registrations, two solves, the missing page and the admin login.
  expect(body.requests).toEqual({today:6,errorsToday:1,serverErrorsToday:0,rateLimitedToday:0});
  expect(body.ips).toEqual({today:1,d7:2,d30:3,live:1});
  expect(body.duels).toEqual({total:2,today:1,d7:1});
  expect(body.series).toHaveLength(30);expect(body.series.at(-1).day).toBe(dayAgo(0));expect(body.series[0].day).toBe(dayAgo(29));
- expect(body.series.at(-1)).toEqual({day:dayAgo(0),requests:6,ips:1,errors:1,serverErrors:0,limited:0,signups:2,registrations:1,active:2,solves:2,duels:1});
+ expect(body.series.at(-1)).toEqual({day:dayAgo(0),requests:6,ips:1,errors:1,serverErrors:0,limited:0,signups:2,registrations:2,active:2,solves:2,duels:1});
  expect(body.series.at(-4)).toEqual({day:dayAgo(3),requests:10,ips:1,errors:2,serverErrors:1,limited:1,signups:0,registrations:0,active:1,solves:1,duels:0});
  expect(body.series.at(-21)).toMatchObject({requests:5,active:1,solves:1});
  expect(body.series.at(-11)).toMatchObject({signups:1,registrations:0,duels:1});
@@ -303,7 +305,8 @@ test("admin IP listing aggregates requests, errors, rate limits and accounts per
 
 test("admin account listing and detail report solves, activity, sessions, learned cases and duels",async()=>{
  const {origin,db}=setup();const {CASES}=await import("./backend");
- const alice=await register(origin,"alice");const bob=await register(origin,"bob");const guest=(await call(origin,"POST","/api/auth/guest")).body;
+ const alice=await register(origin,"alice");const bob=await register(origin,"bob");
+ db.db.exec("INSERT INTO users(id,username) VALUES('old-guest','guest-old')");const guest={user:{id:"old-guest",username:"guest-old"}};
  for(const body of [{timeMs:10000},{timeMs:11000,penalty:"+2"},{timeMs:9000,penalty:"dnf"},{timeMs:3000,puzzle:"222"}])expect((await call(origin,"POST","/api/solves",{token:alice.token,body})).status).toBe(200);
  expect((await call(origin,"PUT","/api/learned",{token:alice.token,body:{caseId:CASES[0]!.id,learned:true}})).status).toBe(200);
  db.db.exec(`INSERT INTO duel_games(race,game,event,ended_at,player1_id,player1_name,player1_ao5,player2_id,player2_name,player2_ao5,winner,results) VALUES('race',1,'333',${Date.now()},'${bob.user.id}','bob',12000,'${alice.user.id}','alice',10000,1,'[]')`);
@@ -351,7 +354,7 @@ test("admin can sign an account out everywhere and delete it with all its data; 
  const again=(await call(origin,"POST","/api/auth/login",{body:{username:"victim",password:PASSWORD}})).body;
  expect((await fetch(origin+`/api/admin/users/${victim.user.id}`,{method:"DELETE",headers:{cookie:admin.cookie,origin:"https://foreign.example"}})).status).toBe(403);
  const deleted=await fetch(origin+`/api/admin/users/${victim.user.id}`,{method:"DELETE",headers});
- expect(deleted.status).toBe(200);expect(await deleted.json()).toEqual({ok:true,username:"victim",isGuest:false,solves:1,sessions:0});
+ expect(deleted.status).toBe(200);expect(await deleted.json()).toEqual({ok:true,username:"victim",solves:1,sessions:0});
  expect((await call(origin,"GET","/api/auth/me",{token:again.token})).status).toBe(401);
  expect((await fetch(origin+`/api/admin/users/${victim.user.id}`,{headers:{cookie:admin.cookie}})).status).toBe(404);
  expect((await fetch(origin+`/api/admin/users/${victim.user.id}`,{method:"DELETE",headers})).status).toBe(404);

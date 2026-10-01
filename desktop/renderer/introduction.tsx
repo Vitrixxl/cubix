@@ -1,30 +1,20 @@
 /**
- * The onboarding page (a short step flow saved as the journey profile), the goal editor and the app tour. The tour
+ * The onboarding page (a short step flow saved as the journey profile) and the app tour. The tour
  * dims the app and cuts out the tab and a part of its page, measured once the page transition has settled.
  */
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, ArrowRight, Ban, CalendarDays, Check, ChevronLeft, ChevronRight, CornerDownLeft, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react";
-import { store as s, catalog } from "./store";
+import { ArrowLeft, ArrowRight, Ban, Check, CornerDownLeft, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react";
+import { store as s } from "./store";
 import { Icon, Logo, Wordmark, usePhone } from "./ui";
-import { PhoneSheet } from "./phone";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
 import { Kbd } from "@/components/ui/kbd";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PUZZLES, EVENTS, puzzleInfo, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
-import { PROFILE_KEY, TOUR_STEPS, goalKey, journeyProfile, parseGoalTarget, validDueDate, type PersonalGoal } from "../../src/client/lib/journey";
-import type { SetDto } from "../../src/shared/types";
+import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
+import { PROFILE_KEY, TOUR_STEPS, journeyProfile } from "../../src/client/lib/journey";
 import { METHODS } from "../../src/shared/methods";
 import { go, goPage, pageUrl } from "./navigation";
-
-const close = () => s.closeOverlay();
 
 /* ------------------------------------------------------------------ Onboarding */
 
@@ -268,224 +258,6 @@ export function Onboarding() {
   );
 }
 
-/* ------------------------------------------------------------------ Goals */
-
-/** A label over its control, both compact. `children` receives the id the label points at. */
-function Field({ label, children, className }: { label: string; children: (id: string) => ReactNode; className?: string }) {
-  const id = useId();
-  return (
-    <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
-      <Label htmlFor={id} className="text-xs font-normal text-muted-foreground">{label}</Label>
-      {children(id)}
-    </div>
-  );
-}
-
-/** A select of `options`, named `label` for assistive technology. */
-function Pick<T extends string>({ id, label, value, options, onChange }: { id: string; label: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
-  return (
-    <Select items={options} value={value} onValueChange={(next) => next !== null && onChange(next as T)}>
-      <SelectTrigger id={id} aria-label={label} className="w-full">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="bg-popover before:hidden">
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-const DAY = 86_400_000;
-const isoDay = (d: Date) => d.toISOString().slice(0, 10);
-const dayLabel = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-
-/** A deadline: a button showing the date, a month grid in a popover, and a clear button. Dates are UTC days. */
-function DatePicker({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (value: string) => void }) {
-  const today = isoDay(new Date());
-  const [open, setOpen] = useState(false);
-  const [month, setMonth] = useState(() => (value || today).slice(0, 7));
-  const first = new Date(month + "-01T00:00:00Z"), offset = (first.getUTCDay() + 6) % 7;
-  const days = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
-  const shift = (by: number) => setMonth(isoDay(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + by, 1))).slice(0, 7));
-  return (
-    <div className="flex min-w-0 gap-1">
-      <Popover open={open} onOpenChange={(next) => { setOpen(next); if (next) setMonth((value || today).slice(0, 7)); }}>
-        <PopoverTrigger
-          render={
-            <Button id={id} variant="outline" aria-label={label} className={cn("min-w-0 flex-1 justify-start font-normal", !value && "text-muted-foreground")}>
-              <CalendarDays className="text-muted-foreground" />
-              <span className="truncate">{value ? dayLabel(value) : "No deadline"}</span>
-            </Button>
-          }
-        />
-        <PopoverContent align="start" className="w-auto gap-2 bg-popover p-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button variant="ghost" size="icon-sm" aria-label="Previous month" onClick={() => shift(-1)}>
-              <ChevronLeft />
-            </Button>
-            <span className="text-sm font-medium">{first.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}</span>
-            <Button variant="ghost" size="icon-sm" aria-label="Next month" onClick={() => shift(1)}>
-              <ChevronRight />
-            </Button>
-          </div>
-          <div role="grid" aria-label="Days" className="grid grid-cols-7 gap-0.5 text-center">
-            {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
-              <span key={d} className="pb-1 text-xs text-muted-foreground">{d}</span>
-            ))}
-            {Array.from({ length: offset }, (_, i) => <span key={"pad" + i} />)}
-            {Array.from({ length: days }, (_, i) => {
-              const day = isoDay(new Date(first.getTime() + i * DAY));
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  aria-label={dayLabel(day)}
-                  aria-pressed={day === value}
-                  disabled={day < today}
-                  onClick={() => { onChange(day); setOpen(false); }}
-                  className={cn(
-                    "flex size-8 items-center justify-center rounded-md text-sm tabular-nums outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:text-muted-foreground/40",
-                    day === today && "font-semibold text-primary",
-                    day === value && "bg-primary text-primary-foreground hover:bg-primary",
-                  )}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
-          </div>
-        </PopoverContent>
-      </Popover>
-      {value && (
-        <Button variant="ghost" size="icon" aria-label="Clear the deadline" className="text-muted-foreground" onClick={() => onChange("")}>
-          <X />
-        </Button>
-      )}
-    </div>
-  );
-}
-
-export function GoalForm({ puzzle: initialPuzzle, initial, onSave, onCancel, action = "Add goal" }: { puzzle: PuzzleId; initial?: PersonalGoal; onSave: (goal: PersonalGoal) => void; onCancel?: () => void; action?: string }) {
-  const [kind, setKind] = useState<PersonalGoal["kind"]>(initial?.kind ?? "time"), [puzzle, setPuzzle] = useState(initial?.puzzle ?? initialPuzzle);
-  const [metric, setMetric] = useState<"single" | "ao5">(initial?.kind === "time" ? initial.metric : "single");
-  const [mode, setMode] = useState<SolveMode>(initial?.kind === "time" ? initial.solveMode : "standard");
-  const [time, setTime] = useState(initial?.kind === "time" ? String(initial.targetMs / 1000) : "20");
-  const [setId, setSetId] = useState(initial?.kind === "learning" ? initial.setId ?? "" : "");
-  const [due, setDue] = useState(initial?.dueDate ?? ""), [error, setError] = useState("");
-  const sets = (catalog.sets as SetDto[]).filter((set) => puzzleOf(set) === puzzle && catalog.cases.some((c: any) => c.set === set.id && puzzleOf(c) === puzzle));
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const targetMs = parseGoalTarget(time);
-    if (kind === "time" && targetMs === null) { setError("Enter a time greater than zero, in seconds or m:ss."); return; }
-    if (due && !validDueDate(due)) { setError("Choose a valid date."); return; }
-    setError("");
-    const base = { puzzle, createdAt: initial?.createdAt ?? new Date().toISOString(), ...(due ? { dueDate: due } : {}) };
-    onSave(kind === "time" ? { ...base, kind, metric, solveMode: mode, targetMs: targetMs! } : { ...base, kind, setId: setId || null });
-  };
-  return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
-      <ToggleGroup aria-label="Goal type" variant="outline" spacing={0} value={[kind]} onValueChange={(next: string[]) => next[0] && setKind(next[0] as PersonalGoal["kind"])} className="w-full">
-        <ToggleGroupItem value="time" className="flex-1 aria-pressed:bg-muted aria-pressed:text-foreground">
-          <Timer />
-          Time
-        </ToggleGroupItem>
-        <ToggleGroupItem value="learning" className="flex-1 aria-pressed:bg-muted aria-pressed:text-foreground">
-          <GraduationCap />
-          Learning
-        </ToggleGroupItem>
-      </ToggleGroup>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-3.5">
-        <Field label="Puzzle">
-          {(id) => <Pick id={id} label="Puzzle" value={puzzle} options={PUZZLES.map((p) => ({ value: p.id, label: p.label }))} onChange={(p) => { setPuzzle(p); setMode("standard"); setSetId(""); }} />}
-        </Field>
-        {kind === "time" ? (
-          <>
-            <Field label="Event">
-              {(id) => <Pick id={id} label="Event" value={mode} options={EVENTS.filter((e) => e.puzzle === puzzle).map((e) => ({ value: e.solveMode, label: e.label }))} onChange={setMode} />}
-            </Field>
-            <Field label="Result">
-              {(id) => <Pick id={id} label="Result" value={metric} options={[{ value: "single", label: "Single" }, { value: "ao5", label: "Average of 5" }]} onChange={setMetric} />}
-            </Field>
-            <Field label="Target">
-              {(id) => (
-                <InputGroup>
-                  <InputGroupInput id={id} aria-label="Target (seconds)" inputMode="decimal" autoComplete="off" value={time} onChange={(e) => { setTime(e.target.value); setError(""); }} required aria-invalid={!!error && kind === "time" && parseGoalTarget(time) === null} className="tabular-nums" />
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupText>s</InputGroupText>
-                  </InputGroupAddon>
-                </InputGroup>
-              )}
-            </Field>
-          </>
-        ) : (
-          <Field label="Learn">
-            {(id) => <Pick id={id} label="Learn" value={setId} options={[{ value: "", label: "Solve this puzzle" }, ...sets.map((set) => ({ value: set.id, label: set.label }))]} onChange={setSetId} />}
-          </Field>
-        )}
-        <Field label="Deadline" className="col-span-2">
-          {(id) => <DatePicker id={id} label="Deadline (optional)" value={due} onChange={setDue} />}
-        </Field>
-      </div>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <div className="flex items-center justify-end gap-2">
-        {onCancel && (
-          <Button variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
-        <Button type="submit">{action}</Button>
-      </div>
-    </form>
-  );
-}
-
-function GoalEditor() {
-  const key = s.editGoalKey, initial = s.journey[key];
-  const owner = s.user.id, phone = usePhone();
-  const [error, setError] = useState(""), [saving, setSaving] = useState(false);
-  const dismiss = () => { if (!saving && s.overlay === "personalGoal") close(); };
-  const title = key ? "Edit goal" : "Add goal";
-  const body = (
-    <>
-      <div className={saving ? "pointer-events-none opacity-60" : ""} inert={saving}>
-        <GoalForm
-          puzzle={journeyProfile(s.journey)?.priority ?? (s.puzzle as PuzzleId)}
-          initial={initial?.kind !== "profile" ? initial ?? undefined : undefined}
-          action={saving ? "Saving…" : key ? "Save goal" : "Add goal"}
-          onCancel={dismiss}
-          onSave={(goal) => {
-            if (saving) return;
-            setSaving(true); setError("");
-            void s.updateJourney({ [key || goalKey()]: goal }).then(() => { if (owner === s.user.id && s.overlay === "personalGoal") close(); }).catch((e) => { setError(e.message); setSaving(false); });
-          }}
-        />
-      </div>
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    </>
-  );
-  if (phone)
-    return (
-      <PhoneSheet open onOpenChange={(open) => !open && dismiss()} title={title} className="gap-4">
-        {body}
-      </PhoneSheet>
-    );
-  return (
-    <Dialog open onOpenChange={(open) => !open && dismiss()}>
-      <DialogContent className="gap-4 sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{key ? "Change the goal, then save it." : "Tracked on your profile until you reach it."}</DialogDescription>
-        </DialogHeader>
-        {body}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 /* ------------------------------------------------------------------ Tour */
 
 /** Focus stays in the tour, the app stays inert, and all listeners leave with it. */
@@ -723,5 +495,5 @@ function Tour() {
 }
 
 export function Introduction() {
-  return s.overlay === "personalGoal" ? <GoalEditor /> : s.overlay === "tour" ? <Tour /> : null;
+  return s.overlay === "tour" ? <Tour /> : null;
 }

@@ -1,4 +1,4 @@
-/** Onboarding, goals and the app tour on the real web UI: headless Chromium, disposable account/storage/API. */
+/** Onboarding and the app tour on the real web UI: headless Chromium, disposable account/storage/API. */
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -114,35 +114,10 @@ try {
   assert.equal(new URL(page.url()).searchParams.get("puzzle") ?? "333", "333");
   assert.equal(await page.locator("[data-locked]").count(), 0, "a puzzle that can be solved opens every section");
 
-  const goals = page.locator('[aria-label="Personal goals"]');
+  // The profile keeps the figures and the practice: no journey or goal panel any more.
   await page.locator('[data-action="nav:profile"]').first().click();
-  await goals.waitFor();
-  assert.equal(await goals.locator("article").count(), 0, "the setup adds no goal");
-  await goals.getByRole("button", { name: "Add goal", exact: true }).click();
-  await page.getByRole("dialog", { name: "Add goal", exact: true }).getByLabel("Target (seconds)").fill("20");
-  await page.getByRole("dialog", { name: "Add goal", exact: true }).getByRole("button", { name: "Add goal", exact: true }).click();
-  await goals.locator("article").first().waitFor();
-  await page.evaluate(() => window.cubix.call("addSolve", { puzzle: "333", solveMode: "standard", scrambleType: "normal", timeMs: 19000 }));
-  await goals.locator('article[data-complete="true"]').first().waitFor();
-
-  // The goal editor: shadcn dialog, validation, cancel.
-  await goals.getByRole("button", { name: "Add goal", exact: true }).click();
-  await heading("Add goal");
-  const dialog = page.getByRole("dialog", { name: "Add goal", exact: true });
-  await dialog.getByLabel("Target (seconds)").fill("0"); await dialog.getByRole("button", { name: "Add goal", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "Enter a time" }).waitFor();
-  await dialog.getByLabel("Target (seconds)").fill("12.5");
-  await dialog.getByRole("button", { name: "Deadline (optional)", exact: true }).click();
-  await page.getByRole("button", { name: "Next month", exact: true }).click();
-  await page.locator('[aria-label="Days"] button:not(:disabled)').nth(14).click();
-  assert.ok(!(await dialog.getByRole("button", { name: "Deadline (optional)", exact: true }).textContent())?.includes("No deadline"));
-  await shot("goal-dialog-desktop");
-  await dialog.getByRole("button", { name: "Add goal", exact: true }).click();
-  await dialog.waitFor({ state: "detached" });
-  await page.waitForFunction(() => document.querySelectorAll('[aria-label="Personal goals"] article').length === 2);
-  await goals.getByRole("button", { name: "Add goal", exact: true }).click();
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-  await dialog.waitFor({ state: "detached" });
+  await page.locator('[data-tour="profile-overview"]').waitFor();
+  assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
 
   // Replay the tour from the guides; Tab stays in the tour, Escape ends it.
   await page.locator('[data-action="help"]').first().click();
@@ -154,10 +129,12 @@ try {
   await page.keyboard.press("Escape"); await page.locator(".journey-tour").waitFor({ state: "detached" });
   assert.equal(await page.locator("[data-app-shell]").evaluate((n: HTMLElement) => n.inert), false);
 
-  // Phones: the card docks at the top or bottom, the whole tour from the profile's replay button.
+  // Phones: the card docks at the top or bottom, the whole tour from the guides, in the profile's menu.
   await page.setViewportSize({ width: 360, height: 640 });
   await page.locator('[data-action="nav:profile"]:visible').first().click();
-  await page.locator('[aria-label="Personal setup"] [data-action="tour"]').click();
+  await page.locator('[data-action="menu:more"]:visible').first().click();
+  await page.getByRole("menuitem", { name: "Guides" }).click();
+  await page.getByRole("button", { name: "Replay tour", exact: true }).click();
   await tour("phone", { desktop: false });
   await page.setViewportSize({ width: 1280, height: 800 });
 
@@ -220,9 +197,9 @@ try {
   await page.locator('[data-finished] [data-action="nav:playground"]').click();
   await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "555");
 
-  // Edit the setup: the saved answers come back, with the puzzles unlocked since.
-  await page.locator('[data-action="nav:profile"]').first().click();
-  await page.locator('[aria-label="Personal setup"] [data-action="onboarding"]').click(); await heading("What can you solve?");
+  // Edit the setup from the guides: the saved answers come back, with the puzzles unlocked since.
+  await page.locator('[data-action="help"]').first().click();
+  await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
   for (const name of ["3×3", "3×3 CFOP", "3×3 Roux", "4×4", "2×2", "5×5", "5×5 Reduction"]) assert.equal(await checked(name), true, `${name} is known`);
   await checkbox("2×2").click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -269,7 +246,7 @@ try {
   await page.locator(".rail").waitFor({ state: "detached" });
   await page.getByRole("button", { name: "Sign in", exact: true }).waitFor();
   assert.deepEqual(errors, []);
-  console.log("Onboarding (welcome, puzzles with inline methods) at five sizes without page scroll, Enter, the goal dialog, puzzle locking (learn dialog, greyed sections, skip, finish), the tour's tab and in-page cut-outs on desktop and phone, replay and redo from the guides, edit/cancel, routing and logout passed.");
+  console.log("Onboarding (welcome, puzzles with inline methods) at five sizes without page scroll, Enter, no goals on the profile, puzzle locking (learn dialog, greyed sections, skip, finish), the tour's tab and in-page cut-outs on desktop and phone, replay and redo from the guides, edit/cancel, routing and logout passed.");
 } catch (error) {
   await mkdir(SHOTS, { recursive: true });
   await page.screenshot({ path: `${SHOTS}/failure.png` });

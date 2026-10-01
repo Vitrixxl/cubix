@@ -497,9 +497,47 @@ pub async fn revoke(state: &AppState, id: String) -> Result<Value> {
     Ok(json!({"ok":true,"revoked":revoked}))
 }
 
-/// Deletes the account and everything it owns in one transaction. Finished duels stay for the
-/// opponent under the name `deleted`; request log rows lose the account id, except the audit rows
-/// of administrator actions on it.
+/// Removes an account and everything it owns, inside the caller's transaction: its solves and sessions (counted),
+/// then the rest. Finished duels stay for the opponent under the name `deleted`; request log rows lose the account
+/// id, except the audit rows of administrator actions on it.
+pub fn purge(tx: &Connection, user: &str) -> Result<(usize, usize)> {
+    let solves = tx.execute("DELETE FROM solves WHERE user_id=?", [user])?;
+    let sessions = tx.execute("DELETE FROM sessions WHERE user_id=?", [user])?;
+    for sql in [
+        "DELETE FROM learned_cases WHERE user_id=?",
+        "DELETE FROM learning_group_orders WHERE user_id=?",
+        "DELETE FROM personal_entries WHERE user_id=?",
+        "DELETE FROM sync_receipts WHERE user_id=?",
+        // Last: the deletions above journal their changes here.
+        "DELETE FROM sync_changes WHERE user_id=?",
+        "DELETE FROM auth_tokens WHERE user_id=?",
+        "DELETE FROM user_activity WHERE user_id=?",
+        "DELETE FROM traffic_daily_users WHERE user_id=?",
+        "UPDATE duel_games SET player1_id=NULL,player1_name='deleted' WHERE player1_id=?",
+        "UPDATE duel_games SET player2_id=NULL,player2_name='deleted' WHERE player2_id=?",
+        "UPDATE request_log SET user_id=NULL WHERE user_id=? AND kind NOT IN ('admin','account')",
+        "DELETE FROM users WHERE id=?",
+    ] {
+        tx.execute(sql, [user])?;
+    }
+    Ok((solves, sessions))
+}
+
+/// Guest accounts were retired: those left (no password) go with everything they own, at startup.
+pub fn purge_guests(db: &mut Connection) -> Result<usize> {
+    let tx = db.transaction()?;
+    let guests: Vec<String> = all(&tx, "SELECT id FROM users WHERE password_hash IS NULL", [])?
+        .into_iter()
+        .filter_map(|row| row["id"].as_str().map(str::to_owned))
+        .collect();
+    for id in &guests {
+        purge(&tx, id)?;
+    }
+    tx.commit()?;
+    Ok(guests.len())
+}
+
+/// Deletes the account and everything it owns in one transaction (see `purge`).
 pub async fn delete(state: &AppState, id: String) -> Result<Value> {
     // Requests already answered are stored first, so none re-adds the account's id afterwards.
     state.traffic.log.flush().await;
@@ -508,27 +546,10 @@ pub async fn delete(state: &AppState, id: String) -> Result<Value> {
         .db
         .call(move |db| {
             let tx = db.transaction()?;
-            let account = required(&tx, "SELECT username,(password_hash IS NULL) isGuest FROM users WHERE id=?", [&user], UNKNOWN)?;
-            let solves = tx.execute("DELETE FROM solves WHERE user_id=?", [&user])?;
-            let sessions = tx.execute("DELETE FROM sessions WHERE user_id=?", [&user])?;
-            for sql in [
-                "DELETE FROM learned_cases WHERE user_id=?",
-                "DELETE FROM learning_group_orders WHERE user_id=?",
-                "DELETE FROM sync_receipts WHERE user_id=?",
-                // Last: the deletions above journal their changes here.
-                "DELETE FROM sync_changes WHERE user_id=?",
-                "DELETE FROM auth_tokens WHERE user_id=?",
-                "DELETE FROM user_activity WHERE user_id=?",
-                "DELETE FROM traffic_daily_users WHERE user_id=?",
-                "UPDATE duel_games SET player1_id=NULL,player1_name='deleted' WHERE player1_id=?",
-                "UPDATE duel_games SET player2_id=NULL,player2_name='deleted' WHERE player2_id=?",
-                "UPDATE request_log SET user_id=NULL WHERE user_id=? AND kind NOT IN ('admin','account')",
-                "DELETE FROM users WHERE id=?",
-            ] {
-                tx.execute(sql, [&user])?;
-            }
+            let account = required(&tx, "SELECT username FROM users WHERE id=?", [&user], UNKNOWN)?;
+            let (solves, sessions) = purge(&tx, &user)?;
             tx.commit()?;
-            Ok(json!({"ok":true,"username":account["username"],"isGuest":account["isGuest"]==1,"solves":solves,"sessions":sessions}))
+            Ok(json!({"ok":true,"username":account["username"],"solves":solves,"sessions":sessions}))
         })
         .await?;
     state.hub.notify_sync(&id, 0);

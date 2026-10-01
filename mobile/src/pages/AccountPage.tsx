@@ -21,7 +21,7 @@ import {
 import { ChoiceButton, EventPicker } from "../components/PuzzlePicker";
 import { TimerStats } from "../components/TimesChart";
 import { UserAvatar } from "../components/UserAvatar";
-import { JourneyCard, PersonalGoals } from "../components/PersonalGoals";
+import { useTourTarget } from "../tour";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
@@ -210,6 +210,11 @@ function BattlesSection({ onMore, onDuel }: { onMore: () => void; onDuel: () => 
  * the sections as tabs (Overview · Timer · Training · Awards · Battles), settings and guides in its "…" menu, and
  * signing out at the end of the overview. The puzzle, scramble and solve-mode filters are the profile's own and leave the rest of the app untouched.
  */
+/** Where the guided tour shows the account page: its figures. */
+function TourTarget({ name, children }: { name: string; children: React.ReactNode }) {
+  return <View {...useTourTarget(name)}>{children}</View>;
+}
+
 export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: string }) {
   const [filters, setFilters] = useAtom(profileFiltersAtom);
   const appPuzzle = useAtomValue(puzzleAtom), appSolveMode = useAtomValue(solveModeAtom), appScrambleType = useAtomValue(scrambleTypeAtom);
@@ -269,9 +274,9 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
         </View>
         <View className="shrink-0 flex-row items-center gap-1">{controls}</View>
       </View>
-      <KpiStrip solves={profile.totalSolves} days={profile.activeDays} streak={d.streak} learned={d.learned} best={d.timer.count ? fmtTime(d.timer.best) : "–"} />
-      <JourneyCard />
-      <PersonalGoals />
+      <TourTarget name="profile-overview">
+        <KpiStrip solves={profile.totalSolves} days={profile.activeDays} streak={d.streak} learned={d.learned} best={d.timer.count ? fmtTime(d.timer.best) : "–"} />
+      </TourTarget>
       <Heatmap solves={d.activity} latest={d.latest} />
       <TimerSection d={d} label={eventLabel} onMore={() => show("playground")} onTimer={() => setRoute({ page: "playground" })} />
       <TrainingSection d={d} total={catalog.cases.length} trainingSolves={profile.trainingSolves} onMore={() => show("training")} />

@@ -20,10 +20,10 @@ function setup() {
 
 test("Native client preserves authentication, dates and parameterized solve/history routes", async () => {
   const { api, setToken } = setup();
-  const guest = await api.guest();
-  setToken(guest.token);
-  expect((await api.me()).id).toBe(guest.user.id);
-  expect(typeof guest.user.createdAt).toBe("string");
+  const account = await api.register("native_user", "a-long-test-password");
+  setToken(account.token);
+  expect((await api.me()).id).toBe(account.user.id);
+  expect(typeof account.user.createdAt).toBe("string");
   expect((await api.sets()).length).toBeGreaterThan(0);
   const c = (await api.cases()).find(c => c.id === "PLL Aa")!;
   const session = await api.createSession("training", [c.id]);
@@ -36,9 +36,6 @@ test("Native client preserves authentication, dates and parameterized solve/hist
   expect(noted.penalty).toBe("+2");
   expect((await api.setPenalty(solve.id, "none")).comment).toBe("lockup on the last F2L pair");
   expect((await api.setComment(solve.id, "")).comment).toBeNull();
-  const account = await api.register("native_user", "a-long-test-password");
-  setToken(account.token);
-  expect(account.user.id).toBe(guest.user.id);
   expect(account.user).not.toHaveProperty("bio");
   expect((await api.stats())[0].caseId).toBe(c.id);
   await api.deleteSolve(solve.id);
@@ -49,8 +46,8 @@ test("Native client preserves API errors, session expiry and request cancellatio
   const { api, setToken, expired } = setup();
   await expect(api.login("missing", "incorrect")).rejects.toMatchObject({ status: 401, message: "Incorrect username or password." });
   expect(expired()).toBe(0);
-  const guest = await api.guest();
-  setToken(guest.token);
+  const account = await api.register("expiry_user", "a-long-test-password");
+  setToken(account.token);
   await expect(api.deleteSolve(-1)).rejects.toBeInstanceOf(ApiError);
   const controller = new AbortController();
   controller.abort();

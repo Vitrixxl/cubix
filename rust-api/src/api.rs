@@ -137,29 +137,25 @@ async fn auth_request(state: &AppState, path: &str, body: Value, token: String) 
     limited(state, key.clone())?;
     let name = username.clone();
     if registering {
-        let guest = state
+        state
             .db
             .call(move |db| {
                 if accounts::by_username(db, &name)?.is_some() {
                     return Err(ApiError::new(409, "This username is already taken."));
                 }
-                let current = accounts::auth(db, &token)?;
-                if current
-                    .as_ref()
-                    .is_some_and(|u| !u["password_hash"].is_null())
-                {
+                if accounts::auth(db, &token)?.is_some() {
                     return Err(ApiError::new(
                         400,
                         "Sign out before creating another account.",
                     ));
                 }
-                Ok(current.and_then(|u| u["id"].as_str().map(str::to_owned)))
+                Ok(())
             })
             .await?;
         let hash = password(state, secret, None).await?;
         state
             .db
-            .call(move |db| accounts::register(db, &username, &hash, guest))
+            .call(move |db| accounts::register(db, &username, &hash))
             .await
     } else {
         let user = state
@@ -210,7 +206,7 @@ async fn handle(
         && let Some(user) = value["user"]["id"].as_str()
         && actor.is_none()
     {
-        // Sign-in, registration and guest accounts return the account they opened.
+        // Sign-in and registration return the account they opened.
         actor = Some(Actor {
             user: user.to_owned(),
             token: None,
@@ -350,7 +346,6 @@ pub(crate) fn route(
     caller: &Caller,
 ) -> Result<Value> {
     match (method, path) {
-        ("POST", "auth/guest") => return accounts::guest(db),
         ("POST", "auth/logout") => {
             if let Some(hash) = &caller.token_hash {
                 db.execute("DELETE FROM auth_tokens WHERE token_hash=?", [hash])?;
@@ -571,7 +566,7 @@ pub(crate) fn route(
             params![id, uid],
             "Unknown solve",
         ),
-        ("PUT", ["journey"]) => crate::journey::put(db, state, uid, body),
+        ("PUT", ["journey"]) => crate::journey::put(db, uid, body),
         ("PUT", ["learning-group-order"]) => {
             let track = enum_string(body, "track", &["F2L", "OLL", "PLL"])?;
             let groups = body["groups"].as_array().filter(|g| !g.is_empty() && g.len() <= 100)
