@@ -11,6 +11,7 @@ import { PUZZLES } from "../src/shared/puzzles";
 import { authToken, local, localChanged, syncStatusChanged } from "./src/api";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
 import { GuidesSheet } from "./src/components/GuidesDialog";
+import { NotationSheet } from "./src/components/Notation";
 import { Fade } from "./src/components/layout";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { PageStack } from "./src/components/PageStack";
@@ -142,6 +143,7 @@ function Shell() {
     {!keyboardVisible && <Fade hidden={running}><TabBar active={active} onNavigate={navigate} /></Fade>}
     <SettingsSheet />
     <GuidesSheet />
+    <NotationSheet />
     <SyncIndicator hidden={running} />
     <Toast />
   </BottomSheetModalProvider></SolveMenuProvider>;

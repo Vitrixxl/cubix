@@ -303,15 +303,15 @@ export function FiguresSkeleton({ count = 6, className }: { count?: number; clas
 /** The page's title row: the title, one line under it, the view's controls on the right. */
 export function ViewHead({ title, sub, lead, children }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <header className="flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3">
+    <header className="flex min-h-10 shrink-0 items-center justify-between gap-x-6">
       <div className="flex min-w-0 items-center gap-3">
         {lead}
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h1 className="truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
-          {sub && <p className="truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
+        <div className="flex min-w-0 items-baseline gap-2 md:gap-3">
+          <h1 className="max-w-full min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
+          {sub && <p className="min-w-0 truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
         </div>
       </div>
-      {children && <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>}
+      {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
     </header>
   );
 }

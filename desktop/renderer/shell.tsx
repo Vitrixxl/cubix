@@ -1,7 +1,7 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, GraduationCap, LogOut, Settings, Swords, Timer, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, Boxes, ChevronsUpDown, Dumbbell, GraduationCap, LogOut, Settings, Swords, Timer, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { Avatar, FADE, Icon, Logo, PuzzlePicker, type Props } from "./ui";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,12 @@ export function Rail() {
       </SidebarContent>
       <SidebarFooter className="pb-4">
         <SidebarMenu className="gap-0.5">
+          <SidebarMenuItem>
+            <SidebarMenuButton data-action="notation" tooltip="Notation" onClick={run("notation")} className="h-9 text-muted-foreground">
+              <BookA />
+              <span>Notation</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton data-action="help" tooltip="Guides" onClick={run("help")} className="h-9 text-muted-foreground">
               <BookOpen />

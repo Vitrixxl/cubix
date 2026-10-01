@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 import { guidesAtom, puzzleAtom, type GuideId } from "../state";
 import { Label } from "./layout";
 import { Sheet, SheetScrollView } from "./Sheet";
+import { NotationContent, useNotation } from "./Notation";
 
 // Bundled with the app: help remains available offline, independently of the website.
-const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string; sections: [string, string][] }> = {
+const guides: Record<Exclude<GuideId, "methods" | "notation">, { title: string; lead: string; sections: [string, string][] }> = {
   about: {
     title: "About Cubix", lead: "Cubix is a free cube timer and algorithm trainer. Sign in or create a free account to start.",
     sections: [
@@ -47,7 +48,8 @@ const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string;
       ["Browse by stage", "F2L pairs a corner and an edge to finish the first two layers. OLL orients the last layer. PLL permutes it. ZBLL finishes the last layer in one algorithm when its edges are already oriented, sorted by corner pattern (T, U, L, Pi, H, S, AS). The stage tabs at the top of Algorithms show one stage at a time, and the set switch below them chooses 2-look or full variants. Other puzzles have their own stages and sets; change the puzzle with the puzzle button in the header."],
       ["Search and solving methods", "Search finds a case by number, name, set or group, such as oll fish or pll t. The book button next to it opens a short explanation of each way to solve a puzzle, such as CFOP, Roux or ZZ on the 3×3. It is also listed with the guides."],
       ["From reference to practice", "Press Train on a case or on a group to open the trainer with that selection. Each row shows the case's best time. All, Learned and To learn filter the list by the learning status you mark with the checkbox at the end of each row; their counts cover the whole set. Groups fold and unfold with their title."],
-      ["Case pages", "A case opens as a page with its diagram, best and mean times, setup, algorithms and statistics. Swipe sideways or use the arrows at the bottom to move to the previous or next case of the list, and press Mark learned to change its learning status. Sources, recommendations, move counts and available video links appear under each algorithm."],
+      ["Case pages", "A case opens as a page with its cube, best and mean times, setup, algorithms and statistics. Swipe sideways or use the arrows at the top to move to the previous or next case of the list, and press Mark learned to change its learning status. Sources, recommendations, move counts and available video links appear under each algorithm."],
+      ["3D player", "Tap the cube or an algorithm to play it in 3D: the case first, then each move, the one being played lit in the algorithm. Play, pause, step one move back or forward, restart, change the speed or drag the bar to any point; tap a move to turn it. Drag the cube to turn it and double-tap it to come back. Notation, in the account menu and in Learn, explains every move letter on the cube."],
     ],
   },
   training: {
@@ -75,7 +77,7 @@ const guides: Record<Exclude<GuideId, "methods">, { title: string; lead: string;
 
 /** The list of guides, in the web order (`GUIDE_NAMES`). */
 const GUIDE_NAMES: [GuideId, string][] = [
-  ["about", "About Cubix"], ["timer", "Timer"], ["algorithms", "Algorithms"], ["training", "Training"], ["duel", "Duel"], ["methods", "Solving methods"], ["averages", "Ao5 and Ao12"],
+  ["about", "About Cubix"], ["timer", "Timer"], ["algorithms", "Algorithms"], ["training", "Training"], ["duel", "Duel"], ["methods", "Solving methods"], ["notation", "Notation"], ["averages", "Ao5 and Ao12"],
 ];
 
 /** A row of choices that scrolls sideways, the chosen one filled. */
@@ -100,7 +102,7 @@ export function GuidesSheet() {
   // The last guide stays rendered while the sheet goes away.
   const [shown, setShown] = useState<GuideId>(guide ?? "about");
   if (guide && guide !== shown) setShown(guide);
-  const content = shown === "methods" ? undefined : guides[shown];
+  const content = shown === "methods" || shown === "notation" ? undefined : guides[shown];
   return <Sheet open={guide !== null} onClose={() => setGuide(null)} title="Guides" hideTitle tall contentClassName="gap-0 px-0 pt-0">
     <Chips label="Guides" items={GUIDE_NAMES} value={shown} onChange={setGuide} />
     <SheetScrollView key={shown} style={{ flex: 1 }} contentContainerClassName="gap-3 px-5 pt-6 pb-10">
@@ -112,7 +114,7 @@ export function GuidesSheet() {
           <Text accessibilityRole="header" className="text-lg font-semibold">{title}</Text>
           <Text className="text-[15px] leading-[24px] text-muted-foreground">{text}</Text>
         </View>)}
-      </> : <MethodsGuide />}
+      </> : shown === "notation" ? <NotationGuide /> : <MethodsGuide />}
       <Text onPress={() => void Linking.openURL("https://github.com/Vitrixxl/cubix")} accessibilityRole="link" className="mt-6 text-[15px] text-primary underline">Cubix source code</Text>
     </SheetScrollView>
   </Sheet>;
@@ -152,6 +154,16 @@ function MethodsGuide() {
       <Chips label="Method" items={METHODS[state.puzzle].map(m => [m.id, m.name] as [string, string])} value={state.method.id} onChange={state.onMethod} />
     </View>
     <MethodBody method={state.method} />
+  </>;
+}
+
+/** The notation as a guide: the cube's moves on the cube, the other puzzles' in a few lines. */
+function NotationGuide() {
+  const state = useNotation();
+  return <>
+    <Text accessibilityRole="header" className="text-3xl font-semibold tracking-tight">Reading move notation</Text>
+    <Text className="text-[17px] leading-[28px]">Algorithms are written as a list of moves, one letter per face. Tap a move to watch it turn on the cube.</Text>
+    <View className="gap-6 pt-2"><NotationContent state={state} /></View>
   </>;
 }
 

@@ -34,6 +34,7 @@ mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null })
 mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
 mock.module("../src/components/Sheet", () => ({ Sheet: ({ open, children }: any) => open ? createElement("Sheet", {}, children) : null }));
+mock.module("../src/components/AlgPlayer", () => ({ AlgPlayerSheet: "AlgPlayerSheet" }));
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
@@ -62,7 +63,13 @@ const press = async (label: string) => {
   if (!node) throw new Error("No control " + label);
   await act(() => node.props.onPress());
 };
-const touch = (label: string) => renderer.root.findAllByType("TouchAction" as any).find(node => node.props.label === label);
+/** The control whose accessible name starts with `label`, if shown. */
+const control = (label: string) => renderer.root.findAll((n: any) => typeof n.props.accessibilityLabel === "string" && n.props.accessibilityLabel.startsWith(label) && typeof n.props.onPress === "function")[0];
+const tap = async (label: string) => {
+  const node = control(label);
+  if (!node) throw new Error("No control " + label);
+  await act(() => node.props.onPress());
+};
 const rows = () => renderer.root.findAllByType("FlatList" as any)[0]!.props.data;
 
 test("the methods of the puzzle open as courses, remembered per account", async () => {
@@ -74,40 +81,69 @@ test("the methods of the puzzle open as courses, remembered per account", async 
   expect(store.get(learnMethodAtom)).toBe("cfop");
   expect(store.get(courseProgressAtom).methods).toEqual({ "333": "cfop" });
   // The cross is intuitive: nothing to train, its tips shown instead.
-  expect(touch("Train")).toBeUndefined();
+  expect(control("Train")).toBeUndefined();
   expect(rows()).toEqual([]);
 });
 
-test("a step lists its sets' cases, trains the shown set and is marked done", async () => {
+test("a step lists its sets' cases, trains the shown set, and Next step marks it done", async () => {
   const store = await mount();
   await press("Start CFOP");
-  await act(() => touch("Next")!.props.onPress());
-  await act(() => touch("Next")!.props.onPress());
+  // Next step: the step is done and the next one shown.
+  await tap("Next step: F2L");
+  expect(store.get(courseProgressAtom).courses["333:cfop"]).toMatchObject({ step: 1, done: ["cross"] });
+  await tap("Next step: OLL");
   expect(store.get(courseProgressAtom).courses["333:cfop"]!.step).toBe(2);
   // 2-Look OLL first, since some of its cases are still to learn.
   expect(rows().filter((row: any) => row.kind === "alg").map((row: any) => row.key)).toEqual(["2L-OLL I-Shape", "2L-OLL Sune"]);
   expect(rows().find((row: any) => row.key === "2L-OLL I-Shape").item.learned).toBe(true);
   await act(() => renderer.root.findAllByType("Choice" as any)[0]!.props.onChange("oll"));
   expect(rows().filter((row: any) => row.kind === "alg").map((row: any) => row.key)).toEqual(["OLL 1"]);
-  await act(() => touch("Mark done")!.props.onPress());
-  expect(touch("Done")!.props.pressed).toBe(true);
-  expect(store.get(courseProgressAtom).courses["333:cfop"]!.done).toEqual(["oll"]);
-  await act(() => touch("Train")!.props.onPress());
+  await tap("Previous step");
+  expect(store.get(courseProgressAtom).courses["333:cfop"]!.step).toBe(1);
+  await tap("Next step: OLL");
+  await tap("Train OLL");
   expect(store.get(selectedCaseIdsAtom)).toEqual(["OLL 1"]);
   expect(store.get(routeAtom)).toEqual({ page: "training", autostart: true });
 });
 
-test("a beginner step teaches its own algorithms and keeps their learned marks", async () => {
+test("a beginner step teaches its own algorithms, plays them in 3D and keeps their learned marks", async () => {
   const store = await mount();
   await press("Start Beginner");
-  await act(() => touch("Next")!.props.onPress());
+  await tap("Next step");
   const own = rows().filter((row: any) => row.kind === "alg");
   expect(own.map((row: any) => row.item.alg)).toEqual(["R U R' U'"]);
   await press("Mark Corner insertion learned");
   expect(store.get(courseProgressAtom).courses["333:beginner"]!.learned).toEqual(["first-layer-corners:corner-insertion"]);
   expect(rows()[0].item.learned).toBe(true);
+  expect(control("Corner insertion learned")).toBeDefined();
+  // The case diagram opens the 3D player on the algorithm, shown on its stage's cube.
+  const sheet = () => renderer.root.findAllByType("AlgPlayerSheet" as any)[0]!;
+  expect(sheet().props.index).toBeNull();
+  await tap("Play Corner insertion in 3D");
+  expect(sheet().props.index).toBe(0);
+  expect(sheet().props.items[0]).toMatchObject({ name: "Corner insertion", algs: ["R U R' U'"], size: 3, mask: "F2L" });
+  await act(() => sheet().props.onClose());
+  expect(sheet().props.index).toBeNull();
   // Back to the methods: the beginner course now continues.
   await act(() => renderer.root.findAllByType("PageHead" as any)[0]!.props.lead.props.onPress());
   expect(store.get(routeAtom)).toEqual({ page: "learn" });
   expect(renderer.root.findAll((n: any) => n.props.accessibilityLabel === "Continue Beginner").length).toBeGreaterThan(0);
+});
+
+test("the yellow cross and yellow face cases play from their own setups; Finish completes the method", async () => {
+  const store = await mount();
+  await press("Start Beginner");
+  for (let i = 0; i < 3; i++) await tap("Next step");
+  const sheet = () => renderer.root.findAllByType("AlgPlayerSheet" as any)[0]!;
+  expect(sheet().props.items.map((item: any) => item.name)).toEqual(["Dot", "L", "Line"]);
+  expect(sheet().props.items[0]).toMatchObject({ mask: "EO", setup: "f U R U' R' f' F U R U' R' F'" });
+  await tap("Next step: Yellow face");
+  expect(sheet().props.items.map((item: any) => item.detail)).toEqual(["Sunes needed: 1", "Sunes needed: 2", "Sunes needed: 2", "Sunes needed: 2", "Sunes needed: 3", "Sunes needed: 3", "Sunes needed: 3"]);
+  await tap("Next step: Last layer permutation");
+  // The last step finishes the course: every step done, the page says so and offers what next.
+  expect(control("Next step")).toBeUndefined();
+  await tap("Finish");
+  expect(store.get(courseProgressAtom).courses["333:beginner"]!.done).toHaveLength(6);
+  expect(renderer.root.findAll((n: any) => n.type === "Text" && n.props.children?.join?.("") === "Beginner done").length).toBeGreaterThan(0);
+  await tap("Beginner done");
 });

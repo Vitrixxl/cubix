@@ -12,6 +12,13 @@ export interface MethodAlgorithm {
   alternatives?: string[];
   /** How to hold the puzzle for it, or when to use it. */
   note?: string;
+  /** A short fact beside its name (how many times to repeat it…). */
+  detail?: string;
+  /**
+   * The case it is shown on, as moves from a solved puzzle, when the algorithm does not solve it outright (a step
+   * done in several passes). By default the algorithm undone.
+   */
+  setup?: string;
 }
 
 export interface MethodStep {
@@ -49,6 +56,25 @@ const SUNE_REPEATED: MethodAlgorithm = {
   alg: "R U R' U R U2 R'",
   note: "One yellow corner on top: hold it at front left. None: hold the front-left corner with yellow on its left side. Two: hold it with yellow facing front. Repeat until the face is done.",
 };
+
+/**
+ * The seven ways the top corners can need turning, each solved with the Sune alone as the beginner step says: the
+ * case set up already held for its first Sune, then every Sune with the turn of the top that holds the cube for the
+ * next. Checked by tests/methods.test.ts.
+ */
+const SUNE = "R U R' U R U2 R'";
+const HOLD_NONE = "No yellow corner up: turn the top until the front-left corner shows its yellow on the left.",
+  HOLD_ONE = "One yellow corner up: hold it at the front left.",
+  HOLD_TWO = "Two yellow corners up: turn the top until the front-left corner shows its yellow to the front.";
+const SUNE_CASES: MethodAlgorithm[] = [
+  { name: "Sune", detail: "Sunes needed: 1", alg: `(${SUNE})`, setup: "R U2 R' U' R U' R'", note: `${HOLD_ONE} One Sune solves it.` },
+  { name: "Antisune", detail: "Sunes needed: 2", alg: `(${SUNE}) U2 (${SUNE})`, setup: "R U R' U R U2 R' U2", note: `${HOLD_ONE} The Sune makes the Sune case: hold its yellow corner at the front left again.` },
+  { name: "H", detail: "Sunes needed: 2", alg: `(${SUNE})2`, setup: "R U2 R' U' R U R' U' R U' R'", note: `${HOLD_NONE} After one Sune a single corner is up, already at the front left.` },
+  { name: "Pi", detail: "Sunes needed: 2", alg: `(${SUNE}) U' (${SUNE})`, setup: "R' U2 R2 U R2 U R2 U2 R'", note: `${HOLD_NONE} One Sune leaves one corner up: put it at the front left.` },
+  { name: "Headlights", detail: "Sunes needed: 3", alg: `(${SUNE}) U' (${SUNE}) U2 (${SUNE})`, setup: "R U2 R D R' U2 R D' R2", note: `${HOLD_TWO} Each Sune leaves a new case: count again and hold it as it says.` },
+  { name: "T", detail: "Sunes needed: 3", alg: `(${SUNE}) U (${SUNE}) U2 (${SUNE})`, setup: "F R' F' r U R U' r'", note: `${HOLD_TWO} Each Sune leaves a new case: count again and hold it as it says.` },
+  { name: "Bowtie", detail: "Sunes needed: 3", alg: `(${SUNE})2 U2 (${SUNE})`, setup: "r U R' U' r' F R F'", note: `${HOLD_TWO} Each Sune leaves a new case: count again and hold it as it says.` },
+];
 
 function bigCube(size: 4 | 5 | 6 | 7): SolvingMethod[] {
   const even = size % 2 === 0;
@@ -138,13 +164,33 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           tips: ["Look for a top edge without yellow.", "An edge stuck in the wrong slot comes out when any top edge is inserted there."],
         },
         {
-          title: "Yellow cross", text: "Flip the yellow edges with F R U R' U' F' until the yellow cross appears.",
-          mask: "OLL",
-          algs: [{ name: "Edge flip", alg: "F R U R' U' F'", alternatives: ["F U R U' R' F'"], note: "Line: hold it left to right. L: hold it at the back left, you get the line. Dot: do it once to get an L." }],
+          title: "Yellow cross", text: "Look at the yellow edges on top, ignoring the corners: none (a dot), two side by side (an L) or two across (a line). Hold the cube as the case says, then flip them with its algorithm.",
+          mask: "EO",
+          algs: [
+            {
+              name: "Dot", alg: "F R U R' U' F'", setup: "f U R U' R' f' F U R U' R' F'",
+              note: "No yellow edge on top: do the line's algorithm from any side, you get an L. Turn the top until the L is at the back left, then do the L.",
+            },
+            {
+              name: "L", alg: "F U R U' R' F'", alternatives: ["(F R U R' U' F')2"],
+              note: "Turn the top until the L sits at the back left (yellow edges at the back and on the left), then do it once. The line's algorithm done twice works too: the first makes the line.",
+            },
+            {
+              name: "Line", alg: "F R U R' U' F'",
+              note: "Hold the line horizontal, from left to right, then do it once: the cross is made.",
+            },
+          ],
+          tips: ["Only the four edges count here: the corners are done in the next step.", "Keep the white face on the bottom: only the top layer changes."],
         },
         {
-          title: "Yellow face", text: "Orient the yellow corners, for example by repeating the Sune (R U R' U R U2 R').",
-          mask: "OLL", algs: [SUNE_REPEATED],
+          title: "Yellow face", text: "Turn the yellow corners up with the Sune alone, R U R' U R U2 R'. Count the yellow corners already up, hold the cube as that count says, do the Sune, then look again: three Sunes at most.",
+          mask: "OLL",
+          algs: SUNE_CASES,
+          tips: [
+            "No yellow corner up: turn the top until the front-left corner shows its yellow on the left.",
+            "One yellow corner up (the fish): turn the top until it sits at the front left.",
+            "Two yellow corners up: turn the top until the front-left corner shows its yellow to the front.",
+          ],
         },
         {
           title: "Last layer permutation", text: "Swap the corners into place, then cycle the edges to finish the cube.",

@@ -105,7 +105,18 @@ async function check(page: Page, screen: string) {
   await settle(page);
   const size = page.viewportSize()!;
   const name = `${screen} ${size.width}×${size.height}`;
-  results.push([name, await page.evaluate(nearMisses)]);
+  const layout = await page.evaluate(() => {
+    const errors: string[] = [];
+    if (document.documentElement.scrollHeight > innerHeight + 1 || document.documentElement.scrollWidth > innerWidth + 1) errors.push("Page overflows the viewport");
+    for (const head of document.querySelectorAll("header")) {
+      const title = head.querySelector("h1"), sub = title?.parentElement?.querySelector("p");
+      if (!title || !sub || !title.getBoundingClientRect().width) continue;
+      const a = title.getBoundingClientRect(), b = sub.getBoundingClientRect();
+      if (b.width && (b.top >= a.bottom || b.left < a.right - 1)) errors.push("Header subtitle wraps: " + title.textContent);
+    }
+    return errors;
+  });
+  results.push([name, [...await page.evaluate(nearMisses), ...layout]]);
   if (shots) await page.screenshot({ path: `${SHOTS}/${screen}-${size.width}.png` });
 }
 async function solve(page: Page) {
@@ -149,7 +160,7 @@ try {
     await act(page, "nav:learn");
     await check(page, "learn-methods");
     await openMethod(page, "beginner");
-    await act(page, "learnDone");
+    await act(page, "learnNext");
     await learnStep(page, 5);
     await check(page, "learn-inline");
     if (width <= 700) {

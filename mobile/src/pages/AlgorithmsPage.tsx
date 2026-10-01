@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, RotateCcw, Timer } from "lucide-react-native";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, CirclePlay, Play, RotateCcw, Timer } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, FlatList, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { catalogSections, groupCases } from "../../../src/client/lib/practiceCatalog";
@@ -19,6 +19,7 @@ import { CaseDiagram } from "../components/CaseDiagram";
 import { MethodsSheet } from "../components/GuidesDialog";
 import { Alg, BackButton, Choice, Empty, Figure, Label, MenuItem, Mono, MoreMenu, Page, PageHead, SearchField, Surface, TouchAction, TouchBar } from "../components/layout";
 import { CubePreview } from "../components/Practice";
+import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
 import { SessionButton } from "../components/PuzzlePicker";
 import { TimerStats } from "../components/TimesChart";
 import { useLayout } from "../hooks/useLayout";
@@ -199,6 +200,8 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
   const learned = learnedIds.includes(c.id);
   const setRoute = useSetAtom(routeAtom), setSelection = useSetAtom(selectedCaseIdsAtom);
   const [replay, setReplay] = useState(0);
+  // The 3D player, open on one of the case's algorithms.
+  const [playing, setPlaying] = useState<number | null>(null);
   // Pages come from the same set so a swipe never jumps from PLL into OLL.
   const siblings = useMemo(() => {
     const members = cases.filter(other => other.set === c.set);
@@ -232,7 +235,8 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
     step(siblings[target]);
   };
   const cube = !c.diagram && !!puzzleInfo(puzzleOf(c)).cubeSize;
-  const renderPage = useCallback(({ item }: { item: CaseDto }) => <CasePage c={item} stats={stats.get(item.id)} width={width} replay={item.id === c.id ? replay : 0} />, [stats, width, replay, c.id]);
+  const renderPage = useCallback(({ item }: { item: CaseDto }) => <CasePage c={item} stats={stats.get(item.id)} width={width} replay={item.id === c.id ? replay : 0} onPlay={cube ? setPlaying : undefined} />, [stats, width, replay, c.id, cube]);
+  const playItem: PlayItem | null = cube ? { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: `${c.setLabel} · ${c.group}`, algs: c.algorithms.map(displayAlg), note: c.notes, size: c.cube_size ?? puzzleInfo(puzzleOf(c)).cubeSize ?? 3, mask: maskForStage(c.stage) } : null;
   const train = () => { setSelection([c.id]); setRoute({ page: "training", autostart: true }); };
   return <Page>
     <PageHead lead={<BackButton onPress={onBack} />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
@@ -258,11 +262,12 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
         {cube && <TouchAction icon={RotateCcw} label="Replay" onPress={() => setReplay(n => n + 1)} accessibilityLabel="Replay the setup on the cube" />}
       </TouchBar>
     </Surface>
+    {playItem && <AlgPlayerSheet items={[playItem]} index={playing === null ? null : 0} choice={playing ?? 0} onIndex={() => {}} onClose={() => setPlaying(null)} />}
   </Page>;
 }
 
 /** One page of the case pager: picture and figures, setup, algorithms and the case's own statistics. */
-const CasePage = memo(function CasePage({ c, stats, width, replay }: { c: CaseDto; stats?: CaseStatsDto; width: number; replay: number }) {
+const CasePage = memo(function CasePage({ c, stats, width, replay, onPlay }: { c: CaseDto; stats?: CaseStatsDto; width: number; replay: number; onPlay?: (choice: number) => void }) {
   const solveMode = useAtomValue(solveModeAtom);
   const statsVersion = useAtomValue(statsVersionAtom);
   // Computed from the local workspace, so the page never waits for its history.
@@ -275,7 +280,12 @@ const CasePage = memo(function CasePage({ c, stats, width, replay }: { c: CaseDt
   return <ScrollView style={{ width }} contentContainerClassName="pb-4" showsVerticalScrollIndicator={false}>
     <View className="flex-row items-center gap-6 px-4 pt-4 pb-4">
       {isCube && !c.diagram
-        ? <CubePreview alg={c.setup} cube={c.cube_size ?? info.cubeSize ?? 3} size={112} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} replay={replay} />
+        ? <Pressable accessibilityRole="button" accessibilityLabel="Play the algorithm in 3D" disabled={!onPlay} onPress={() => onPlay?.(0)} className="rounded-md active:opacity-70">
+          <CubePreview alg={c.setup} cube={c.cube_size ?? info.cubeSize ?? 3} size={112} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} replay={replay} />
+          {onPlay ? <View className="absolute right-0 bottom-0 size-6 items-center justify-center rounded-full border border-border bg-background">
+            <Icon as={Play} size={11} className="text-muted-foreground" fill="currentColor" />
+          </View> : null}
+        </Pressable>
         : <CaseDiagram c={c} size={104} />}
       <View className="min-w-0 flex-1 gap-3">
         {c.name !== c.id ? <Text numberOfLines={2} className="text-sm text-muted-foreground">{c.name}</Text> : null}
@@ -295,7 +305,8 @@ const CasePage = memo(function CasePage({ c, stats, width, replay }: { c: CaseDt
     </View>
     <View className={cn(block, "gap-1")}>
       <Label className="pb-1">Algorithms</Label>
-      {c.algorithms.map((a, i) => <View key={i} className="flex-row gap-4 py-2">
+      {c.algorithms.map((a, i) => <View key={i}
+        className="-mx-2 flex-row gap-4 rounded-lg px-2 py-2 active:bg-muted/50">
         <Mono className="w-4 pt-0.5 text-xs text-muted-foreground">{i + 1}</Mono>
         <View className="min-w-0 flex-1 gap-1.5">
           <Alg text={displayAlg(a)} size={16} selectable />

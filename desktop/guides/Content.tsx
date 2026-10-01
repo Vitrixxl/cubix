@@ -1,5 +1,6 @@
 import type { PuzzleId } from '../../src/shared/puzzles';
 import { MethodsGuide } from './Methods';
+import { NotationContent } from '../renderer/notation';
 import { GUIDES, type Guide } from './pages';
 
 export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guide; puzzle?: PuzzleId; method?: string }) {
@@ -24,9 +25,9 @@ export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guid
     </>}
     {page === 'algorithmsGuide' && <>
       <p className="text-base text-foreground/80!">The library lists every case with its diagram, setup and algorithms. Open a case to compare its algorithms and see your statistics.</p>
-      <h2>3D case previews</h2><p>Drag the cube to inspect it from another angle. Replay scramble shows the setup in three seconds for 2×2 and 3×3 cubes, then adds one second per size: four seconds for 4×4, up to seven seconds for 7×7. Blue is the front reference and red is the right reference. OLL highlights orientation, PLL highlights the last layer, and F2L hides last-layer pieces.</p>
+      <h2>3D case player</h2><p>The cube of a case shows the case, then plays its algorithm move by move: play or pause, step one move back or forward, restart, change the speed, or drag the bar under it to any point. The move being played is lit in the algorithm; click a move to turn it, click another algorithm to play that one, and press Replay to watch again from the case. Space plays or pauses and the arrow keys step while the player has the focus. Drag the cube to see it from another angle and double-click it to come back. Blue is the front reference and red is the right reference. OLL highlights orientation, PLL highlights the last layer, and F2L hides last-layer pieces. Notation, in the toolbar, explains every move letter on the cube.</p>
       <h2>Browse by stage</h2><p>F2L pairs a corner and an edge to finish the first two layers. OLL orients the last layer. PLL permutes it. ZBLL finishes the last layer in one algorithm when its edges are already oriented, sorted by corner pattern (T, U, L, Pi, H, S, AS). Use the stage tabs to jump between them and the set switches to choose 2-look or full variants.</p>
-      <h2>Solving methods</h2><p>Methods in the toolbar opens a short explanation of each way to solve the selected puzzle, such as CFOP, Roux or ZZ on the 3×3. See <a href="/guides/solving-methods/">Solving methods</a>.</p>
+      <h2>Solving methods</h2><p>Methods in the toolbar opens a short explanation of each way to solve the selected puzzle, such as CFOP, Roux or ZZ on the 3×3. See <a href="/guides/solving-methods/">Solving methods</a><a href="/guides/cube-notation/">Notation</a>.</p>
       <h2>From reference to practice</h2><p>Press Train on a case or Train all on a group to open the <a href="/training/">trainer</a> with that selection. Trained cases show their best and mean time on their card.</p>
       <p>Sources are shown next to each algorithm. The <a href="https://github.com/Vitrixxl/cubix">Cubix source repository</a> documents the catalogue.</p>
     </>}
@@ -60,6 +61,10 @@ export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guid
       <h2>Chat</h2><p>The chat runs beside the race on wide screens and behind the Chat cell otherwise. Messages last as long as the race.</p>
     </>}
     {page === 'methodsGuide' && <MethodsGuide puzzle={puzzle} method={method} />}
+    {page === 'notationGuide' && <>
+      <p className="text-base text-foreground/80!">Algorithms are written as a list of moves, one letter per face. Choose a move to watch it turn on the cube.</p>
+      <NotationContent guide />
+    </>}
     {page === 'averagesGuide' && <>
       <p className="text-base text-foreground/80!">A single best shows what happened once. An average shows how you usually solve. Here is how the <a href="/">Cubix timer</a> calculates them.</p>
       <h2>Average of 5 (Ao5)</h2><p>Take five consecutive results, drop the fastest and the slowest, average the remaining three. For 10.00, 12.00, 13.00, 14.00 and 20.00: (12 + 13 + 14) ÷ 3 = <strong>13.00</strong>.</p>
@@ -69,7 +74,7 @@ export function GuideContent({ page, puzzle = '333', method = '' }: { page: Guid
       <h2>Personal bests</h2><p>A timer solve that beats your all-time best single, Ao5 or Ao12 for the puzzle, scramble type and solve mode shows a brief green message. The first result sets the record without beating one.</p>
       <p>Official rules: <a href="https://www.worldcubeassociation.org/regulations/#9b">WCA formats</a> and <a href="https://www.worldcubeassociation.org/regulations/#9f">results</a>.</p>
     </>}
-    <nav className="mt-10 flex flex-wrap gap-x-4 gap-y-1 border-t pt-4 text-xs [&_a]:font-normal [&_a]:text-muted-foreground" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/cube-duel/">Duel guide</a><a href="/guides/solving-methods/">Solving methods</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>
+    <nav className="mt-10 flex flex-wrap gap-x-4 gap-y-1 border-t pt-4 text-xs [&_a]:font-normal [&_a]:text-muted-foreground" aria-label="Guides"><a href="/">Timer</a><a href="/algorithms/">Algorithms</a><a href="/training/">Trainer</a><a href="/guides/about-cubix/">About</a><a href="/guides/cube-algorithms/">Algorithm guide</a><a href="/guides/algorithm-training/">Training guide</a><a href="/guides/how-to-use-a-cube-timer/">Timer guide</a><a href="/guides/cube-duel/">Duel guide</a><a href="/guides/solving-methods/">Solving methods</a><a href="/guides/cube-notation/">Notation</a><a href="/guides/ao5-ao12/">Ao5 &amp; Ao12</a></nav>
     <footer className="mt-3 text-xs [&_p]:text-xs"><p>Cubix is an independent speedcubing app. Rubik’s is a trademark of its respective owner. <a href="https://github.com/Vitrixxl/cubix">Source code</a></p></footer>
   </section>;
 }

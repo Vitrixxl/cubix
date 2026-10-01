@@ -3,7 +3,7 @@
  * training, achievements and battles as cards built the same way. Each card opens its own page.
  */
 import type { ReactNode } from "react";
-import { BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Trophy, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Trophy, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { fmtTime } from "../../src/client/lib/format";
 import { Avatar, Button, InHead, MenuAction, MoreMenu, PuzzleButton, SelectMenu, plural, usePhone } from "./ui";
@@ -68,6 +68,9 @@ function ProfileHeader({ d, phone }: { d: ProfileData; phone: boolean }) {
         <PuzzleButton profile />
         {phone ? (
           <MoreMenu>
+            <MenuAction action="notation" icon={BookA}>
+              Notation
+            </MenuAction>
             <MenuAction action="help" icon={BookOpen}>
               Guides
             </MenuAction>
@@ -90,8 +93,8 @@ function ProfileHeader({ d, phone }: { d: ProfileData; phone: boolean }) {
     <header className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <Avatar name={user?.username} size={56} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h1 className="truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <h1 className="max-w-full shrink-0 truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
           <p className="truncate text-sm text-muted-foreground">{joined ?? event.label}</p>
         </div>
         {actions}
@@ -102,9 +105,9 @@ function ProfileHeader({ d, phone }: { d: ProfileData; phone: boolean }) {
     <header className="flex items-center gap-6">
       <Avatar name={user?.username} size={88} />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">{user?.username}</h1>
-          <p className="text-sm text-muted-foreground">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <h1 className="max-w-full shrink-0 truncate text-2xl font-semibold tracking-tight">{user?.username}</h1>
+          <p className="min-w-0 truncate text-sm text-muted-foreground">
             {joined && <>{joined} · </>}
             {event.label}
           </p>

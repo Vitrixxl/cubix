@@ -79,17 +79,17 @@ export function Stats({ children, className, columns }: { columns?: number } & P
 export function SubPageHead({ title, meta, children, back = true }: { title: React.ReactNode; meta?: React.ReactNode; back?: boolean } & Props) {
   return (
     <InHead.Provider value={true}>
-      <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+      <header className="flex min-h-10 shrink-0 items-center gap-x-4">
         <div className="flex min-w-0 items-center gap-2">
           {back && (
-            <Button variant="ghost" size="icon" aria-label="Back to the profile" data-action="profileMode:overview" onClick={run("profileMode:overview")} className="-ml-2">
+            <Button variant="ghost" size="icon" aria-label="Back to the profile" data-action="profileMode:overview" onClick={run("profileMode:overview")} className="size-8 max-md:size-10">
               <ChevronLeft />
             </Button>
           )}
           <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
           {meta != null && <span className="truncate pl-1 text-sm text-muted-foreground">{meta}</span>}
         </div>
-        {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+        {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
       </header>
     </InHead.Provider>
   );

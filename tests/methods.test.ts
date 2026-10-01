@@ -4,9 +4,9 @@ import { puzzles } from "cubing/puzzles";
 import { cases, sets } from "../src/client/local/catalog";
 import { METHODS } from "../src/shared/methods";
 import { PUZZLES, puzzleOf, type PuzzleId } from "../src/shared/puzzles";
-import { applyAlg, colorOf, faceOfSlot, slotsFor, solved } from "../src/shared/cube";
+import { applyAlg, colorOf, faceOfSlot, invertAlg, slotsFor, solved } from "../src/shared/cube";
 import {
-  EMPTY_COURSE_PROGRESS, algId, courseEntry, goToStep, methodFacts, methodProgress, openCourse, readCourseProgress, recommendedMethod,
+  EMPTY_COURSE_PROGRESS, algId, algSetup, completeStep, courseDone, finishCourse, courseEntry, goToStep, methodFacts, methodProgress, openCourse, readCourseProgress, recommendedMethod,
   stepAlgorithmCount, stepId, stepLearned, stepSets, toggleAlgLearned, toggleStepDone,
 } from "../src/client/lib/course";
 
@@ -75,7 +75,7 @@ test("inline cube algorithms keep what their stage has already solved", () => {
         const where = `${method.name} · ${a.name}`;
         for (const text of [a.alg, ...(a.alternatives ?? [])]) {
           // Last-layer algorithms keep both lower layers; permutations also keep the top face's colour on top.
-          if (step.mask === "OLL" || step.mask === "PLL") expect(untouched(size, text, p => p[1] < 1), where).toBe(true);
+          if (step.mask === "OLL" || step.mask === "EO" || step.mask === "PLL") expect(untouched(size, text, p => p[1] < 1), where).toBe(true);
           if (step.mask === "PLL") {
             const state = applyAlg(solved(size), text);
             expect(slotsFor(size).every((g, s) => g.n[1] !== 1 || colorOf(state, s) === "U"), where).toBe(true);
@@ -89,7 +89,7 @@ test("inline cube algorithms keep what their stage has already solved", () => {
 
 test("repeating the Sune as the beginner step says orients every last layer whose edges are done", () => {
   const slots = slotsFor(3), at = (p: number[], n: number[]) => slots.findIndex(g => g.p.every((v, i) => v === p[i]) && g.n.every((v, i) => v === n[i]));
-  const sune = METHODS["333"].find(m => m.id === "beginner")!.steps.find(s => s.title === "Yellow face")!.algs![0]!.alg;
+  const sune = "R U R' U R U2 R'";
   const top = at([-1, 1, 1], [0, 1, 0]), left = at([-1, 1, 1], [-1, 0, 0]), front = at([-1, 1, 1], [0, 0, 1]);
   const corners = [[1, 1, 1], [1, 1, -1], [-1, 1, -1], [-1, 1, 1]].map(p => at(p, [0, 1, 0]));
   const yellow = (state: ReturnType<typeof solved>) => corners.filter(s => colorOf(state, s) === "U").length;
@@ -106,7 +106,114 @@ test("repeating the Sune as the beginner step says orients every last layer whos
       repeats++;
     }
     expect(yellow(state)).toBe(4);
+    expect(repeats).toBeLessThanOrEqual(3);
   }
+});
+
+/** Top-layer stickers of the 3×3 by where they sit: the four edges and the four corners, seen from above. */
+const slotAt = (p: number[], n: number[]) => slotsFor(3).findIndex(g => g.p.every((v, i) => v === p[i]) && g.n.every((v, i) => v === n[i]));
+const UP = [0, 1, 0];
+const EDGES = { back: slotAt([0, 1, -1], UP), right: slotAt([1, 1, 0], UP), front: slotAt([0, 1, 1], UP), left: slotAt([-1, 1, 0], UP) };
+const yellowEdges = (state: ReturnType<typeof solved>) => Object.entries(EDGES).filter(([, s]) => colorOf(state, s) === "U").map(([k]) => k).sort().join(" ");
+const beginnerStep = (title: string) => METHODS["333"].find(m => m.id === "beginner")!.steps.find(s => s.title === title)!;
+/** The first two layers and the yellow centre in place. */
+const lowerLayersSolved = (state: ReturnType<typeof solved>) => slotsFor(3).every((g, s) => g.p[1] === 1 || colorOf(state, s) === faceOfSlot(s, 3));
+
+test("the yellow cross: each case shows its pattern, held as its note says, and its algorithm advances toward the cross", () => {
+  const step = beginnerStep("Yellow cross"), byName = Object.fromEntries(step.algs!.map(a => [a.name, a]));
+  expect(Object.keys(byName)).toEqual(["Dot", "L", "Line"]);
+  expect(step.mask).toBe("EO");
+  // The pattern each case is shown with: no yellow edge, the L at the back left, the line from left to right.
+  const shown = { Dot: "", L: "back left", Line: "left right" } as Record<string, string>;
+  for (const a of step.algs!) {
+    const start = applyAlg(solved(3), algSetup(a));
+    expect(yellowEdges(start), a.name).toBe(shown[a.name]!);
+    expect(lowerLayersSolved(start), a.name).toBe(true);
+    for (const text of [a.alg, ...(a.alternatives ?? [])]) {
+      const end = applyAlg(start, text);
+      if (a.name === "Dot") expect(yellowEdges(end).split(" ")).toHaveLength(2);
+      else expect(yellowEdges(end), `${a.name}: ${text}`).toBe("back front left right");
+      expect(lowerLayersSolved(end), `${a.name}: ${text}`).toBe(true);
+    }
+  }
+  // The dot: the line's algorithm from any side gives an L, which the turn of the top brings to the back left.
+  const line = byName.Line!.alg, lShape = byName.L!.alg, dot = applyAlg(solved(3), algSetup(byName.Dot!));
+  for (const u of ["", "U", "U2", "U'"]) {
+    const after = applyAlg(applyAlg(dot, u), line);
+    expect(yellowEdges(after).split(" ")).toHaveLength(2);
+    const held = ["", "U", "U2", "U'"].map(t => applyAlg(after, t)).find(t => yellowEdges(t) === "back left")!;
+    expect(yellowEdges(applyAlg(held, lShape))).toBe("back front left right");
+  }
+  // Whatever the L or line, held as said, one algorithm finishes the cross.
+  for (const [pattern, alg] of [["back left", lShape], ["left right", line]] as const) {
+    const start = applyAlg(solved(3), invertAlg(alg));
+    expect(yellowEdges(start)).toBe(pattern);
+  }
+});
+
+test("the yellow face with Sunes only: each of the seven cases is held as its note says and takes the Sunes it shows", () => {
+  const step = beginnerStep("Yellow face"), sune = "R U R' U R U2 R'";
+  const top = slotAt([-1, 1, 1], UP), left = slotAt([-1, 1, 1], [-1, 0, 0]), front = slotAt([-1, 1, 1], [0, 0, 1]);
+  const corners = [[1, 1, 1], [1, 1, -1], [-1, 1, -1], [-1, 1, 1]].map(p => slotAt(p, UP));
+  const yellow = (state: ReturnType<typeof solved>) => corners.filter(s => colorOf(state, s) === "U").length;
+  /** The sticker of the front-left corner the hold looks at: yellow on top for one, on the left for none, in front for two. */
+  const holdSlot = (state: ReturnType<typeof solved>) => { const n = yellow(state); return n === 1 ? top : n === 0 ? left : front; };
+  expect(step.algs!.map(a => a.name)).toEqual(["Sune", "Antisune", "H", "Pi", "Headlights", "T", "Bowtie"]);
+  const patterns = new Set<string>();
+  for (const a of step.algs!) {
+    let state = applyAlg(solved(3), algSetup(a));
+    expect(lowerLayersSolved(state), a.name).toBe(true);
+    // The four edges are already up (the cross), the case already held for its first Sune.
+    expect(yellowEdges(state), a.name).toBe("back front left right");
+    expect(colorOf(state, holdSlot(state)), a.name).toBe("U");
+    expect(a.note, a.name).toContain(yellow(state) === 0 ? "No yellow corner up" : yellow(state) === 1 ? "One yellow corner up" : "Two yellow corners up");
+    patterns.add(corners.map(s => colorOf(state, s)).join() + yellow(state));
+    // Doing as the step says: Sune, look again, hold, Sune… reaches the yellow face in the number of Sunes shown.
+    let sunes = 0, held = state;
+    const steps: string[] = [];
+    while (yellow(held) < 4) {
+      const turn = ["", "U", "U2", "U'"].find(u => colorOf(applyAlg(held, u), holdSlot(applyAlg(held, u))) === "U")!;
+      if (turn) steps.push(turn);
+      held = applyAlg(applyAlg(held, turn), sune);
+      steps.push(`(${sune})`);
+      sunes++;
+    }
+    expect(sunes, a.name).toBeLessThanOrEqual(3);
+    expect(a.detail, a.name).toBe(`Sunes needed: ${sunes}`);
+    // The algorithm shown is exactly that: the Sunes and the turns of the top between them.
+    expect(applyAlg(state, a.alg).join(), a.name).toBe(held.join());
+    expect(a.alg.replace(`(${sune})2`, `(${sune}) (${sune})`), a.name).toBe(steps.join(" "));
+  }
+  // Seven different cases.
+  expect(patterns.size).toBe(7);
+});
+
+test("cubing.js agrees: the cross cases end with every edge oriented, the Sune cases with every piece oriented", async () => {
+  const kp = await puzzles["3x3x3"]!.kpuzzle(), start = kp.defaultPattern();
+  const oriented = (alg: string, orbit: "EDGES" | "CORNERS") => start.applyAlg(new Alg(alg)).patternData[orbit]!.orientation.every(o => o === 0);
+  for (const a of beginnerStep("Yellow cross").algs!)
+    for (const text of [a.alg, ...(a.alternatives ?? [])]) {
+      expect(oriented(algSetup(a), "EDGES"), a.name).toBe(false);
+      expect(oriented(`${algSetup(a)} ${text}`, "EDGES"), `${a.name}: ${text}`).toBe(a.name !== "Dot");
+    }
+  for (const a of beginnerStep("Yellow face").algs!) {
+    expect(oriented(algSetup(a), "EDGES") && !oriented(algSetup(a), "CORNERS"), a.name).toBe(true);
+    expect(oriented(`${algSetup(a)} ${a.alg}`, "EDGES") && oriented(`${algSetup(a)} ${a.alg}`, "CORNERS"), a.name).toBe(true);
+  }
+});
+
+test("Next step marks the step done and moves on; Finish completes the method", () => {
+  const puzzle: PuzzleId = "333", beginner = METHODS[puzzle][0]!;
+  let progress = completeStep(openCourse(EMPTY_COURSE_PROGRESS, puzzle, "beginner"), puzzle, "beginner", 0);
+  expect(courseEntry(progress, puzzle, "beginner")).toMatchObject({ step: 1, done: ["white-cross"] });
+  progress = completeStep(progress, puzzle, "beginner", 0);
+  expect(courseEntry(progress, puzzle, "beginner").done).toEqual(["white-cross"]);
+  expect(courseDone(progress, puzzle, beginner)).toBe(false);
+  progress = finishCourse(goToStep(progress, puzzle, "beginner", 5), puzzle, "beginner");
+  expect(courseDone(progress, puzzle, beginner)).toBe(true);
+  expect(courseEntry(progress, puzzle, "beginner").step).toBe(5);
+  // The last step stays shown.
+  expect(courseEntry(completeStep(progress, puzzle, "beginner", 5), puzzle, "beginner").step).toBe(5);
 });
 
 test("a course remembers its method, its step, the steps done and its own learned algorithms", () => {

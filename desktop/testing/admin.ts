@@ -54,7 +54,26 @@ const settle = (page: Page, ms = 400) => page.waitForLoadState("networkidle").ca
 /** Waits until no skeleton is left in the view. */
 const loaded = (page: Page) => page.waitForFunction(() => !document.querySelector("[data-admin-scroll] [aria-busy=true]"), undefined, { timeout: 15000 });
 async function shot(page: Page, name: string, scrolled = false) {
-  await page.screenshot({ path: `${SHOTS}/${name}.png` });
+  const original = page.viewportSize()!;
+  const sizes = original.width === 1440 ? [[1440, 900], [1280, 800], [2048, 1280]] : [[original.width, original.height]];
+  for (const [width, height] of sizes) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.waitForTimeout(100);
+    const errors = await page.evaluate(() => {
+      const errors: string[] = [];
+      if (document.documentElement.scrollWidth > innerWidth + 1 || document.documentElement.scrollHeight > innerHeight + 1) errors.push("page overflow");
+      for (const h of document.querySelectorAll("header h1")) {
+        const sub = h.parentElement?.querySelector("p");
+        if (!sub) continue;
+        const a = h.getBoundingClientRect(), b = sub.getBoundingClientRect();
+        if (a.width && b.width && (b.top >= a.bottom || b.left < a.right - 1)) errors.push("subtitle wraps: " + h.textContent);
+      }
+      return errors;
+    });
+    check(!errors.length, `${name} ${width}: header and viewport${errors.length ? " · " + errors.join(", ") : ""}`);
+    await page.screenshot({ path: `${SHOTS}/${name}${width === original.width ? "" : "-" + width}.png` });
+  }
+  await page.setViewportSize(original);
   if (scrolled) {
     await page.evaluate(() => document.querySelector("[data-admin-scroll]")?.scrollTo({ top: 1e6 }));
     await page.waitForTimeout(200);

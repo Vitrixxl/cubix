@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Swords, Timer as TimerIcon, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookA, BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Swords, Timer as TimerIcon, Trophy, type LucideIcon } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { fmtSolve, fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
@@ -24,7 +24,7 @@ import { UserAvatar } from "../components/UserAvatar";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
-  PROFILE_SECTIONS, deletedSolveIdAtom, guidesAtom, learnedCaseIdsAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom,
+  PROFILE_SECTIONS, deletedSolveIdAtom, guidesAtom, notationAtom, learnedCaseIdsAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom,
   settingsOpenAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode,
 } from "../state";
 
@@ -206,7 +206,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const user = useAtomValue(userAtom);
   const setRoute = useSetAtom(routeAtom), replaceRoute = useSetAtom(replaceRouteAtom);
-  const openSettings = useSetAtom(settingsOpenAtom), openGuides = useSetAtom(guidesAtom);
+  const openSettings = useSetAtom(settingsOpenAtom), openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
   const catalog = useMemo(() => local.read.catalog(cube), [cube]);
   const profile = useMemo(() => local.read.profile(cube, { solveMode, scrambleType }), [cube, solveMode, scrambleType, user?.id, deletedSolveId, statsVersion]);
@@ -223,6 +223,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const controls = <>
     <EventPicker value={event?.id ?? cube} onChange={setEvent} />
     <MoreMenu label="Account">
+      <MenuItem icon={BookA} onPress={() => openNotation(true)}>Notation</MenuItem>
       <MenuItem icon={BookOpen} onPress={() => openGuides("about")}>Guides</MenuItem>
       <MenuItem icon={Settings} onPress={() => openSettings(true)}>Settings</MenuItem>
       <MenuItem icon={LogOut} destructive onPress={() => void api.logout()}>Sign out</MenuItem>
@@ -242,9 +243,9 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       <View className="gap-4">
         <View className="flex-row items-center gap-3">
           <UserAvatar user={user} size={56} />
-          <View className="min-w-0 flex-1 gap-0.5">
-            <Text numberOfLines={1} accessibilityRole="header" className="text-xl font-semibold tracking-tight">{user.username}</Text>
-            <Text numberOfLines={1} className="text-sm text-muted-foreground">Joined {joinedDate(user.createdAt)}</Text>
+          <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
+            <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-mono text-xl font-semibold tracking-tight">{user.username}</Text>
+            <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)}</Text>
           </View>
           <View className="shrink-0 flex-row items-center gap-2">{controls}</View>
         </View>

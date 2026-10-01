@@ -405,9 +405,9 @@ export function Diagram({ c, size = 96, className }: { c: any; size?: number; cl
 }
 
 /**
- * Every page starts with the same header on the page background: the title and one short line under it on the left,
- * the page's controls on the right. Phones keep one row: the puzzle, the few controls a thumb needs, and the rest in
- * the "…" menu (`more`).
+ * Every page starts with the same header on the page background: the way back if any, the title and one short line
+ * beside it on the same line on the left, the page's controls on the right. Phones keep one row: the puzzle, the
+ * few controls a thumb needs, and the rest in the "…" menu (`more`).
  */
 export function PageHead({
   title,
@@ -420,15 +420,16 @@ export function PageHead({
   const phone = usePhone();
   return (
     <InHead.Provider value={true}>
-    <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-2 gap-y-3 md:flex-wrap md:justify-start md:gap-x-6", FADE)}>
+    <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-2 md:justify-start md:gap-x-6", FADE)}>
       <div className="flex min-w-0 items-center gap-2 md:gap-3">
         {lead}
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h1 className="truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
-          {sub && <p className="truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
+        {/* One line: the title, then its subtitle on the same baseline, cut short where the row runs out. */}
+        <div className="flex min-w-0 items-baseline gap-2 md:gap-3">
+          <h1 className="max-w-full min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
+          {sub && <p className="min-w-0 truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
         </div>
       </div>
-      <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:shrink md:flex-wrap md:justify-start">
+      <div className="flex shrink-0 items-center justify-end gap-1 md:justify-start">
         {phone && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
         {children}
         {more && <MoreMenu>{more}</MoreMenu>}

@@ -13,6 +13,8 @@ import { GUIDES, type Guide } from "../guides/pages";
 import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MONO, run, usePhone } from "./ui";
 import { PhoneSheet, SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
+import { AlgView } from "./algView";
+import { NotationContent } from "./notation";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -321,6 +323,12 @@ export function Overlays() {
       <SessionSheet />
       <MethodsDialog />
       <SearchDialog />
+      <Modal id="algPlayer" title={s.algView?.items[s.algView.index]?.name ?? "Algorithm"} description="The algorithm played on the cube" hideHeader tall className="flex h-[min(86vh,560px)] gap-0 overflow-hidden p-0 sm:max-w-4xl" sheetClassName="pb-6">
+        <AlgView />
+      </Modal>
+      <Modal id="notation" title="Notation" description="How moves are written" tall className="flex h-[min(88vh,760px)] flex-col sm:max-w-5xl">
+        <NotationContent />
+      </Modal>
       <Modal id="learningGroups" title={`Group order · ${s.learningMode}`} description="Drag the groups, or use the arrow keys on a handle." className="sm:max-w-md">
         <LearningGroups key={s.learningMode} />
       </Modal>

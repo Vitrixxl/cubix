@@ -1,10 +1,10 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Info, Timer } from "lucide-react-native";
+import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Flag, GraduationCap, Info, Play, Timer } from "lucide-react-native";
 import { memo, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, goToStep, methodFacts, methodOf, methodProgress, openCourse, recommendedMethod, setGroups,
-  stepId, stepLearned, stepSets, toggleAlgLearned, toggleStepDone, type CourseEntry,
+  LEVEL_LABEL, algId, algSetup, completeStep, courseEntry, finishCourse, firstOpenSet, goToStep, methodFacts, methodOf, methodProgress, openCourse,
+  recommendedMethod, setGroups, stepId, stepLearned, stepSets, toggleAlgLearned, type CourseEntry,
 } from "../../../src/client/lib/course";
 import { plural } from "../../../src/client/lib/format";
 import { applyAlg, solved } from "../../../src/shared/cube";
@@ -16,13 +16,14 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { Alg, BackButton, Bar, Choice, Label, Mono, Page, PageHead, Surface, TouchAction, TouchBar } from "../components/layout";
+import { Alg, BackButton, Bar, Choice, Label, Mono, Page, PageHead, Surface } from "../components/layout";
 import { PuzzleIcon, SessionButton } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
-import { displayAlg, shortId } from "../lib/caseState";
+import { displayAlg, maskForStage, shortId } from "../lib/caseState";
+import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
 import {
-  casesAtom, courseProgressAtom, goBackAtom, learnMethodAtom, learnedCaseIdsAtom, previousRouteAtom, puzzleAtom, replaceRouteAtom, routeAtom,
+  casesAtom, courseProgressAtom, goBackAtom, learnMethodAtom, learnedCaseIdsAtom, notationAtom, previousRouteAtom, puzzleAtom, replaceRouteAtom, routeAtom,
   selectedCaseIdsAtom, setsAtom,
 } from "../state";
 
@@ -48,11 +49,13 @@ function LevelBars({ level, on }: { level: MethodLevel; on: boolean }) {
   </View>;
 }
 
-/** A step's state as a round mark: a green disc with a check once done, a quiet dashed circle before. */
-function StatusMark({ done }: { done: boolean }) {
-  return <View className="size-5 items-center justify-center">
+/** Where a step stands, as a passive mark: a green disc with a check once done, a ring around a dot for the step shown, a dashed circle before. */
+function StatusMark({ done, current = false }: { done: boolean; current?: boolean }) {
+  return <View className="size-5 items-center justify-center" accessibilityLabel={done ? "Done" : current ? "Current step" : "To do"}>
     {done ? <View className="size-4 items-center justify-center rounded-full bg-success">
       <Icon as={Check} size={12} strokeWidth={3} className="text-background" />
+    </View> : current ? <View className="size-4 items-center justify-center rounded-full border-[1.5px] border-primary">
+      <View className="size-1.5 rounded-full bg-primary" />
     </View> : <View className="size-4 rounded-full border-[1.5px] border-dashed border-muted-foreground/50" />}
   </View>;
 }
@@ -98,13 +101,17 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
 }
 
 /** One algorithm of a step, from the catalogue or the step's own. */
-type Item = { key: string; name: string; detail?: string; alg: string; alternatives: string[]; note?: string; learned: boolean; c?: CaseDto; own?: { step: MethodStep; alg: MethodAlgorithm } };
+type Item = { key: string; name: string; detail?: string; alg: string; alternatives: string[]; note?: string; learned: boolean; c?: CaseDto; own?: { step: MethodStep; alg: MethodAlgorithm }; play?: PlayItem };
 type Row = { kind: "group"; key: string; label: string } | { kind: "alg"; key: string; item: Item };
 
-function catalogItem(c: CaseDto, learned: boolean): Item {
+function catalogItem(c: CaseDto, learned: boolean, puzzle: PuzzleId, context: string): Item {
   // The 3×3 cases go by their number (OLL 21 → 21, its name beside); the other puzzles' by their name.
-  const name = c.puzzle_id || c.cube_size ? c.name : shortId(c);
-  return { key: c.id, name, detail: c.name !== c.id && c.name !== name ? c.name : undefined, alg: displayAlg(c.algorithms[0]!), alternatives: c.algorithms.slice(1).map(displayAlg), note: c.notes, learned, c };
+  const name = c.puzzle_id || c.cube_size ? c.name : shortId(c), algs = c.algorithms.map(displayAlg);
+  const detail = c.name !== c.id && c.name !== name ? c.name : undefined, size = c.diagram ? null : (c.cube_size ?? puzzleInfo(puzzle).cubeSize);
+  return {
+    key: c.id, name, detail, alg: algs[0]!, alternatives: algs.slice(1), note: c.notes, learned, c,
+    play: size ? { key: c.id, name, detail, context, algs, note: c.notes, size, mask: maskForStage(c.stage) } : undefined,
+  };
 }
 
 /** The case an inline algorithm solves, drawn like the catalogue's diagrams; puzzles without one keep their glyph. */
@@ -115,11 +122,27 @@ function InlineDiagram({ puzzle, step, alg, size }: { puzzle: PuzzleId; step: Me
   return <StaticCubeSvg state={state} size={size} mask={mask} view={viewForMask(mask)} />;
 }
 
-const AlgRow = memo(function AlgRow({ item, puzzle, onToggle }: { item: Item; puzzle: PuzzleId; onToggle: (item: Item) => void }) {
+/** Whether an algorithm is learned, as a labelled toggle: "Mark learned", then "Learned" in green. */
+function LearnToggle({ item, onToggle }: { item: Item; onToggle: (item: Item) => void }) {
+  return <Pressable onPress={() => onToggle(item)} accessibilityRole="switch" accessibilityState={{ checked: item.learned }} accessibilityLabel={item.learned ? `${item.name} learned` : `Mark ${item.name} learned`}
+    className={cn("h-11 flex-row items-center gap-1.5 self-start rounded-lg border px-3", item.learned ? "border-success/40 bg-success/15 active:bg-success/25" : "border-border active:bg-muted/60")}>
+    <Icon as={Check} size={15} className={item.learned ? "text-success" : "text-muted-foreground"} />
+    <Text className={cn("font-mono text-sm font-medium", item.learned ? "text-success" : "text-muted-foreground")}>{item.learned ? "Learned" : "Mark learned"}</Text>
+  </Pressable>;
+}
+
+/** One algorithm: its case (a tap plays it in 3D), its name, the algorithm, how to hold the cube, its alternatives, then its learned toggle. */
+const AlgRow = memo(function AlgRow({ item, puzzle, onToggle, onPlay }: { item: Item; puzzle: PuzzleId; onToggle: (item: Item) => void; onPlay: (item: Item) => void }) {
   const [open, setOpen] = useState(false);
-  return <View className="flex-row items-start gap-3 py-2.5">
-    {item.c ? <CaseDiagram c={item.c} size={56} /> : <InlineDiagram puzzle={puzzle} step={item.own!.step} alg={item.own!.alg} size={56} />}
-    <View className="min-w-0 flex-1 gap-1.5 pt-0.5">
+  const diagram = item.c ? <CaseDiagram c={item.c} size={56} /> : <InlineDiagram puzzle={puzzle} step={item.own!.step} alg={item.own!.alg} size={56} />;
+  return <View className="flex-row items-center gap-5 py-2.5">
+    {item.play ? <Pressable onPress={() => onPlay(item)} accessibilityRole="button" accessibilityLabel={`Play ${item.name} in 3D`} className="rounded-md active:opacity-70">
+      {diagram}
+      <View className="absolute -right-1 -bottom-1 size-5 items-center justify-center rounded-full border border-border bg-background">
+        <Icon as={Play} size={10} className="text-muted-foreground" fill="currentColor" />
+      </View>
+    </Pressable> : diagram}
+    <View className="min-w-0 flex-1 gap-1.5">
       <View className="flex-row items-baseline gap-2">
         <Text numberOfLines={1} className="shrink text-sm font-medium">{item.name}</Text>
         {item.detail ? <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{item.detail}</Text> : null}
@@ -133,13 +156,8 @@ const AlgRow = memo(function AlgRow({ item, puzzle, onToggle }: { item: Item; pu
         </Pressable>
         {open && item.alternatives.map((alt, i) => <Alg key={i} text={alt} size={14} className="opacity-70" selectable />)}
       </View>}
+      <View className="items-end pt-1"><LearnToggle item={item} onToggle={onToggle} /></View>
     </View>
-    <Pressable onPress={() => onToggle(item)} accessibilityRole="checkbox" accessibilityState={{ checked: item.learned }} accessibilityLabel={item.learned ? `${item.name} learned` : `Mark ${item.name} learned`}
-      className="-mr-2 size-11 items-center justify-center rounded-full active:bg-muted/50">
-      {item.learned ? <View className="size-4 items-center justify-center rounded-full bg-success">
-        <Icon as={Check} size={12} strokeWidth={3} className="text-background" />
-      </View> : <View className="size-4 rounded-full border-[1.5px] border-dashed border-muted-foreground/40" />}
-    </Pressable>
   </View>;
 });
 
@@ -150,8 +168,12 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const previousRoute = useAtomValue(previousRouteAtom);
   const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom), setRoute = useSetAtom(routeAtom), setSelection = useSetAtom(selectedCaseIdsAtom);
+  const openNotation = useSetAtom(notationAtom);
   const [chosenSets, setChosenSets] = useState<Record<number, string>>({});
   const [stepsOpen, setStepsOpen] = useState(false);
+  // The course just finished: the page says so until a step is opened again.
+  const [finished, setFinished] = useState(false);
+  const [playing, setPlaying] = useState<number | null>(null);
   const entry: CourseEntry = courseEntry(progress, puzzle, method.id);
   const step = method.steps[entry.step]!;
   const done = entry.done.includes(stepId(step));
@@ -159,29 +181,38 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   const own = stepSets(step, sets, puzzle);
   const chosen = own.find(s => s.id === chosenSets[entry.step]) ?? firstOpenSet(own, cases, learned);
   const count = stepLearned(step, cases, learned, entry);
+  const last = entry.step === method.steps.length - 1, next = method.steps[entry.step + 1];
   const rows = useMemo(() => {
+    const size = puzzleInfo(puzzle).cubeSize;
     const result: Row[] = (step.algs ?? []).map(alg => {
-      const id = algId(step, alg);
-      return { kind: "alg", key: id, item: { key: id, name: alg.name, alg: alg.alg, alternatives: alg.alternatives ?? [], note: alg.note, learned: entry.learned.includes(id), own: { step, alg } } };
+      const id = algId(step, alg), algs = [alg.alg, ...(alg.alternatives ?? [])];
+      return { kind: "alg", key: id, item: {
+        key: id, name: alg.name, detail: alg.detail, alg: alg.alg, alternatives: alg.alternatives ?? [], note: alg.note, learned: entry.learned.includes(id), own: { step, alg },
+        play: size ? { key: id, name: alg.name, detail: alg.detail, context: step.title, algs, note: alg.note, size, mask: step.mask ?? "full", setup: alg.setup } : undefined,
+      } };
     });
     if (chosen) {
       const groups = setGroups(cases, chosen.id);
       for (const [group, members] of groups) {
         if (groups.length > 1 || own.length === 1) result.push({ kind: "group", key: `group:${group}`, label: groups.length > 1 ? group : chosen.label });
-        for (const c of members) result.push({ kind: "alg", key: c.id, item: catalogItem(c, learned.has(c.id)) });
+        const context = [chosen.label, groups.length > 1 && group].filter(Boolean).join(" · ");
+        for (const c of members) result.push({ kind: "alg", key: c.id, item: catalogItem(c, learned.has(c.id), puzzle, context) });
       }
     }
     return result;
-  }, [step, chosen, cases, learned, entry.learned, own.length]);
+  }, [puzzle, step, chosen, cases, learned, entry.learned, own.length]);
+  // The algorithms the 3D player steps through: the step's, in the list's order.
+  const playable = useMemo(() => rows.flatMap(row => row.kind === "alg" && row.item.play ? [row.item] : []), [rows]);
   const back = () => {
     if (previousRoute?.page === "learn" && !previousRoute.method) goBack();
     else replaceRoute({ page: "learn" });
   };
-  const go = (index: number) => setProgress(goToStep(progress, puzzle, method.id, index));
+  const go = (index: number) => { setFinished(false); setProgress(goToStep(progress, puzzle, method.id, index)); };
   const toggle = (item: Item) => {
     if (item.c) toggleLearned(item.c.id);
     else setProgress(toggleAlgLearned(progress, puzzle, method.id, item.key));
   };
+  const play = (item: Item) => setPlaying(playable.indexOf(item));
   const train = () => {
     if (!chosen) return;
     setSelection(cases.filter(c => c.set === chosen.id).map(c => c.id));
@@ -201,7 +232,13 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
       <Text className="min-w-0 flex-1 text-sm leading-[20px] text-muted-foreground">{step.missing}</Text>
     </View> : null}
     {count.total > 0 && <View className="gap-2 pt-1">
-      <Label>Algorithms <Mono className="text-xs text-muted-foreground">{count.learned} / {count.total} learned</Mono></Label>
+      <View className="flex-row items-center justify-between gap-3">
+        <Label>Algorithms <Mono className="text-xs text-muted-foreground">{count.learned} / {count.total} learned</Mono></Label>
+        <Pressable accessibilityRole="button" accessibilityLabel="Notation" onPress={() => openNotation(true)} className="-mr-2 h-9 flex-row items-center gap-1 rounded-md px-2 active:bg-muted/50">
+          <Icon as={BookA} size={14} className="text-muted-foreground" />
+          <Text className="text-xs text-muted-foreground">Notation</Text>
+        </Pressable>
+      </View>
       {own.length > 1 && chosen && <Choice label="Set" value={chosen.id} onChange={id => setChosenSets(previous => ({ ...previous, [entry.step]: id }))}
         options={own.map(s => ({ id: s.id, label: s.label, count: s.count }))} />}
     </View>}
@@ -209,34 +246,52 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   return <Page>
     <PageHead lead={<BackButton label="Every method" onPress={back} />} title={method.name} sub={`${puzzleInfo(puzzle).label} · ${state.done} of ${state.total} steps done`} />
     <Surface className="flex-1">
-      <Pressable accessibilityRole="button" accessibilityLabel={`Step ${entry.step + 1} of ${method.steps.length}: ${step.title}. Every step`} onPress={() => setStepsOpen(true)}
+      <Pressable accessibilityRole="button" accessibilityLabel={finished ? `${method.name} done. Every step` : `Step ${entry.step + 1} of ${method.steps.length}: ${step.title}. Every step`} onPress={() => setStepsOpen(true)}
         className="min-h-14 flex-row items-center gap-3 border-b border-border px-4 active:bg-muted/50">
-        <StatusMark done={done} />
-        <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="text-[15px] font-medium">{step.title}</Text>
-          <Text numberOfLines={1} className="text-xs text-muted-foreground">Step {entry.step + 1} of {method.steps.length}</Text>
+        <StatusMark done={finished || done} current={!finished && !done} />
+        <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
+          <Text numberOfLines={1} className="min-w-0 flex-1 font-mono text-[15px] font-medium">{finished ? `${method.name} done` : step.title}</Text>
+          <Text className="font-mono text-xs text-muted-foreground">{finished ? method.steps.length : entry.step + 1} / {method.steps.length}</Text>
         </View>
         <Icon as={ChevronsUpDown} size={16} className="text-muted-foreground" />
       </Pressable>
-      <FlatList key={`${entry.step}:${chosen?.id ?? ""}`} data={rows} keyExtractor={row => row.key} ListHeaderComponent={header}
-        renderItem={({ item: row }) => row.kind === "group"
-          ? <Label className="pt-3 pb-1">{row.label}</Label>
-          : <AlgRow item={row.item} puzzle={puzzle} onToggle={toggle} />}
-        initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7}
-        className="flex-1" contentContainerClassName="px-4 pt-4 pb-6" />
-      <TouchBar className="border-t border-border bg-muted/30 px-2 py-2">
-        <TouchAction icon={ChevronLeft} label="Previous" disabled={entry.step === 0} onPress={() => go(entry.step - 1)} accessibilityLabel="Previous step" />
-        {chosen && <TouchAction icon={Timer} label="Train" primary onPress={train} accessibilityLabel={`Train ${chosen.label}`} />}
-        <TouchAction icon={Check} label={done ? "Done" : "Mark done"} pressed={done} tone="good" onPress={() => setProgress(toggleStepDone(progress, puzzle, method.id, entry.step))} accessibilityLabel={done ? "Step done" : "Mark the step done"} />
-        <TouchAction icon={ChevronRight} label="Next" disabled={entry.step === method.steps.length - 1} onPress={() => go(entry.step + 1)} accessibilityLabel="Next step" />
-      </TouchBar>
+      {finished ? <Finished puzzle={puzzle} method={method} onTimer={() => setRoute({ page: "playground" })} onMethods={back} /> : <>
+        <FlatList key={`${entry.step}:${chosen?.id ?? ""}`} data={rows} keyExtractor={row => row.key} ListHeaderComponent={header}
+          renderItem={({ item: row }) => row.kind === "group"
+            ? <Label className="pt-3 pb-1">{row.label}</Label>
+            : <AlgRow item={row.item} puzzle={puzzle} onToggle={toggle} onPlay={play} />}
+          initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7}
+          className="flex-1" contentContainerClassName="px-4 pt-4 pb-6" />
+        <View className="flex-row items-center gap-1 border-t border-border bg-muted/30 px-2 py-2">
+          <Pressable accessibilityRole="button" accessibilityLabel="Previous step" disabled={entry.step === 0} onPress={() => go(entry.step - 1)}
+            className={cn("h-12 flex-row items-center gap-1 rounded-lg px-3 active:bg-muted/60", entry.step === 0 && "opacity-40")}>
+            <Icon as={ChevronLeft} size={18} className="text-muted-foreground" />
+            <Text className="text-sm font-medium text-muted-foreground">Previous</Text>
+          </Pressable>
+          {chosen && <Pressable accessibilityRole="button" accessibilityLabel={`Train ${chosen.label}`} onPress={train} className="h-12 flex-row items-center gap-1.5 rounded-lg px-3 active:bg-muted/60">
+            <Icon as={Timer} size={17} className="text-muted-foreground" />
+            <Text className="text-sm font-medium text-muted-foreground">Train</Text>
+          </Pressable>}
+          {last
+            ? <Pressable accessibilityRole="button" accessibilityLabel="Finish" onPress={() => { setProgress(finishCourse(progress, puzzle, method.id)); setFinished(true); }}
+              className="h-12 min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg bg-primary px-3 active:bg-primary/85">
+              <Icon as={Flag} size={17} className="text-primary-foreground" />
+              <Text className="text-[15px] font-semibold text-primary-foreground">Finish</Text>
+            </Pressable>
+            : <Pressable accessibilityRole="button" accessibilityLabel={`Next step: ${next!.title}`} onPress={() => setProgress(completeStep(progress, puzzle, method.id, entry.step))}
+              className="h-12 min-w-0 flex-1 flex-row items-center gap-2 rounded-lg bg-primary pr-2 pl-3 active:bg-primary/85">
+              <Text numberOfLines={1} className="min-w-0 flex-1 font-mono text-sm font-semibold text-primary-foreground">Next · {next!.title}</Text>
+              <Icon as={ChevronRight} size={18} className="text-primary-foreground" />
+            </Pressable>}
+        </View>
+      </>}
     </Surface>
     <Sheet open={stepsOpen} onClose={() => setStepsOpen(false)} title="Steps" description={`${state.done} of ${state.total} done`} scroll contentClassName="gap-0 px-2">
         {method.steps.map((st, i) => {
-          const learnedHere = stepLearned(st, cases, learned, entry);
-          return <Pressable key={st.title} accessibilityRole="button" accessibilityState={{ selected: i === entry.step }} onPress={() => { setStepsOpen(false); go(i); }}
-            className={cn("min-h-14 flex-row items-center gap-3 rounded-lg px-3 active:bg-muted/50", i === entry.step && "bg-muted")}>
-            <StatusMark done={entry.done.includes(stepId(st))} />
+          const learnedHere = stepLearned(st, cases, learned, entry), here = i === entry.step && !finished;
+          return <Pressable key={st.title} accessibilityRole="button" accessibilityState={{ selected: here }} onPress={() => { setStepsOpen(false); go(i); }}
+            className={cn("min-h-14 flex-row items-center gap-3 rounded-lg px-3 active:bg-muted/50", here && "bg-muted")}>
+            <StatusMark done={entry.done.includes(stepId(st))} current={here} />
             <View className="min-w-0 flex-1">
               <Text numberOfLines={1} className="text-[15px] font-medium"><Text className="text-muted-foreground">{i + 1}</Text> {st.title}</Text>
               <Text numberOfLines={1} className="text-xs text-muted-foreground">
@@ -246,5 +301,30 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
           </Pressable>;
         })}
     </Sheet>
+    <AlgPlayerSheet items={playable.map(item => item.play!)} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
   </Page>;
+}
+
+/** A course completed: what was done, then where to go from here. */
+function Finished({ puzzle, method, onTimer, onMethods }: { puzzle: PuzzleId; method: SolvingMethod; onTimer: () => void; onMethods: () => void }) {
+  return <ScrollView className="flex-1" contentContainerClassName="flex-grow justify-center gap-6 px-5 py-8">
+    <View className="size-12 items-center justify-center rounded-full bg-success/15">
+      <Icon as={Check} size={24} strokeWidth={3} className="text-success" />
+    </View>
+    <View className="gap-2">
+      <Label>{puzzleInfo(puzzle).label} · {LEVEL_LABEL[method.level]}</Label>
+      <Text accessibilityRole="header" className="text-2xl font-semibold tracking-tight">{method.name} done</Text>
+      <Text className="text-[15px] leading-[23px] text-muted-foreground">You have been through every step of {method.name}. Solve with it on the timer until it flows, then try a faster method.</Text>
+    </View>
+    <View className="gap-2">
+      <Pressable accessibilityRole="button" onPress={onTimer} className="h-12 flex-row items-center justify-center gap-2 rounded-lg bg-primary active:bg-primary/85">
+        <Icon as={Timer} size={17} className="text-primary-foreground" />
+        <Text className="text-[15px] font-semibold text-primary-foreground">Practise with the timer</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={onMethods} className="h-12 flex-row items-center justify-center gap-2 rounded-lg border border-border active:bg-muted/60">
+        <Icon as={GraduationCap} size={17} className="text-foreground" />
+        <Text className="text-[15px] font-medium">Learn another method</Text>
+      </Pressable>
+    </View>
+  </ScrollView>;
 }

@@ -16,7 +16,7 @@ mock.module("react-native", () => ({
   AppState: { addEventListener: () => ({ remove() {} }) },
   View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Linking: { openURL() {} },
   FlatList: ({ renderItem, data, horizontal, ...props }: any) => createElement("FlatList", { ...props, data, horizontal },
-    horizontal ? null : data.map((item: any, index: number) => createElement("Row", { key: item.key }, renderItem({ item, index })))),
+    data.map((item: any, index: number) => createElement("Row", { key: item.key }, renderItem({ item, index })))),
   StyleSheet: { create: (styles: unknown) => styles, absoluteFill: { position: "absolute", inset: 0 } },
 }));
 const stored = new Map<string, string>();
@@ -31,10 +31,10 @@ const cases = [
   { id: "OLL 3", set: "oll", group: "Dots" },
   { id: "OLL 4", set: "oll", group: "Lines" },
   { id: "PLL Aa", set: "pll", group: "Corners" },
-].map(c => ({ ...c, name: c.id, setLabel: c.set.toUpperCase() }));
+].map(c => ({ ...c, setup: "R U R' U'", setups_alt: [], stage: c.set.toUpperCase(), name: c.id, setLabel: c.set.toUpperCase(), algorithms: [{ alg: "R U R' U'", source: "jperm" }] }));
 const sets = [{ id: "oll", stage: "OLL", label: "OLL" }, { id: "pll", stage: "PLL", label: "PLL" }];
 mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: {
-  current: () => null, learned: () => ["OLL 4"], read: { catalog: () => ({ cases, sets }), stats: () => [] },
+  current: () => null, learned: () => ["OLL 4"], read: { catalog: () => ({ cases, sets }), stats: () => [], caseHistory: () => ({ summary: { count: 0 } }) },
 } }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
@@ -43,6 +43,7 @@ mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) 
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
 mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
+mock.module("../src/components/AlgPlayer", () => ({ AlgPlayerSheet: "AlgPlayerSheet" }));
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
@@ -170,4 +171,18 @@ test("cases opened from training use grouped order and retain their return desti
   await swipe(2);
   await act(() => { store.set(goBackAtom); });
   expect(store.get(routeAtom)).toEqual({ page: "training" });
+});
+
+test("a cube case plays its algorithms in 3D from its diagram; the sheet opens on the case's cube and stage", async () => {
+  await mount();
+  await open("OLL 1");
+  const sheet = () => renderer.root.findAllByType("AlgPlayerSheet" as any)[0]!;
+  expect(sheet().props.index).toBeNull();
+  const play = renderer.root.findAllByType("Pressable" as any).find(node => node.props.accessibilityLabel === "Play the algorithm in 3D")!;
+  await act(() => play.props.onPress());
+  expect(sheet().props.index).toBe(0);
+  expect(sheet().props.choice).toBe(0);
+  expect(sheet().props.items[0]).toMatchObject({ key: "OLL 1", algs: ["R U R' U'"], size: 3 });
+  await act(() => sheet().props.onClose());
+  expect(sheet().props.index).toBeNull();
 });

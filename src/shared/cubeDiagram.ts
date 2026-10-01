@@ -147,7 +147,7 @@ export function isoCells(state: CubeState, mask: CubeMask, held = false): IsoCel
 export type DiagramView = "iso" | "top" | "unfolded";
 export const viewForStage = (stage: string): DiagramView => stage === "OLL" || stage === "PLL" || stage === "ZBLL" || stage === "Parity" ? "top" : stage === "PBL" ? "unfolded" : "iso";
 /** Without a stage, the mask alone tells a last-layer case. */
-export const viewForMask = (mask: CubeMask): DiagramView => mask === "OLL" || mask === "PLL" ? "top" : "iso";
+export const viewForMask = (mask: CubeMask): DiagramView => mask === "OLL" || mask === "EO" || mask === "PLL" ? "top" : "iso";
 export type TopCell = IsoCell;
 /** Rectangle as a polygon with one radius per corner: top-left, top-right, bottom-right, bottom-left. */
 function roundedRect(x: number, y: number, width: number, height: number, radii: readonly number[]): string {

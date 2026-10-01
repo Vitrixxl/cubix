@@ -123,7 +123,7 @@ function PhoneSetup({ modes }: { modes: SetupMode[] }) {
     );
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip="Every way to practise" className="-ml-2 size-10" />} title={chosen.label} sub={chosen.detail} />
+      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip="Every way to practise" className="size-8 max-md:size-10" />} title={chosen.label} sub={chosen.detail} />
       <Surface className="flex-1" key={chosen.id}>
         {chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <LearningSetup mode={chosen.id} />}
       </Surface>

@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, Check, ChevronRight, LogOut, Moon, Sun } from "lucide-react-native";
+import { BookA, BookOpen, Check, ChevronRight, LogOut, Moon, Sun } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { joinedDate } from "../../../src/client/lib/format";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
-import { colorModeAtom, guidesAtom, settingsOpenAtom, themeAtom, userAtom } from "../state";
+import { colorModeAtom, guidesAtom, notationAtom, settingsOpenAtom, themeAtom, userAtom } from "../state";
 import { Label } from "./layout";
 import { Sheet } from "./Sheet";
 import { UserAvatar } from "./UserAvatar";
@@ -92,8 +92,13 @@ function Appearance() {
 }
 
 function Help({ onOpen }: { onOpen: () => void }) {
-  const openGuides = useSetAtom(guidesAtom);
+  const openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
   return <Section title="Help">
+    <Pressable accessibilityRole="button" onPress={() => { onOpen(); openNotation(true); }} className="h-12 flex-row items-center gap-3 rounded-lg bg-muted/40 px-3 active:bg-muted">
+      <Icon as={BookA} size={18} className="text-muted-foreground" />
+      <Text className="flex-1 text-[15px]">Notation</Text>
+      <Icon as={ChevronRight} size={16} className="text-muted-foreground" />
+    </Pressable>
     <Pressable accessibilityRole="button" onPress={() => { onOpen(); openGuides("about"); }} className="h-12 flex-row items-center gap-3 rounded-lg bg-muted/40 px-3 active:bg-muted">
       <Icon as={BookOpen} size={18} className="text-muted-foreground" />
       <Text className="flex-1 text-[15px]">Guides</Text>

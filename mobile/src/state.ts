@@ -12,7 +12,7 @@ import { storage } from "./platform/storage";
 // ---------------------------------------------------------------------------
 // Routing: one atom plus a bounded history so the Android back button behaves like the browser.
 // ---------------------------------------------------------------------------
-export type GuideId = "about" | "timer" | "algorithms" | "training" | "duel" | "methods" | "averages";
+export type GuideId = "about" | "timer" | "algorithms" | "training" | "duel" | "methods" | "notation" | "averages";
 export type Route =
   | { page: "learn"; method?: string }
   | { page: "algorithms"; caseId?: string; caseIds?: string[] }
@@ -30,6 +30,8 @@ export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[]
 export type Page = Route["page"];
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
 export const guidesAtom = atom<GuideId | null>(null);
+/** Whether the notation guide is open in a sheet of its own (from Learn and the account menu). */
+export const notationAtom = atom(false);
 
 const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {

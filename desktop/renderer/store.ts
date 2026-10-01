@@ -8,9 +8,12 @@ import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
-import { courseEntry, courseStorageKey, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
+import { completeStep, courseEntry, courseStorageKey, finishCourse, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
+import type { CubeMask } from "../../src/shared/cubeAppearance";
 export const catalog = catalogData as any;
+/** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
+export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
 export const matches = (c: any, q: string) =>
   q
     .toLowerCase()
@@ -134,6 +137,13 @@ export class Store {
   learnPick = "";
   /** The set shown by each step that teaches several, by `puzzle:method:step`. */
   learnSets: Record<string, string> = {};
+  /** The algorithms the 3D player steps through (a Learn step's), the one shown and its alternative played. */
+  algView: { items: PlayItem[]; index: number; choice: number } | null = null;
+  /** The course just finished: its page says so until another step is opened. */
+  learnFinished = false;
+  /** The puzzle and the move shown by the notation guide. */
+  notationPuzzle: PuzzleId = "333";
+  notationMove = "R";
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     return () => {
@@ -231,9 +241,16 @@ export class Store {
   /** Shows a step of the course, the page back at its top. */
   learnStep(index: number) {
     const course = this.learning;
+    this.learnFinished = false;
     if (!course) return;
     this.saveCourse(goToStep(this.course, course.puzzle, course.method.id, index));
     this.direction = index < course.entry.step ? -1 : 1;
+  }
+  /** Opens the 3D player on one of a list of algorithms. */
+  openAlg(items: PlayItem[], index: number) {
+    this.algView = { items, index, choice: 0 };
+    this.overlay = "algPlayer";
+    this.emit();
   }
   /** Closes the dialog or sheet open over the app. */
   closeOverlay = () => {
@@ -982,6 +999,7 @@ export class Store {
           this.forward = [];
           this.learnMethod = arg;
           this.learnPick = arg;
+          this.learnFinished = false;
           break;
         }
         case "learnMethods":
@@ -992,6 +1010,7 @@ export class Store {
           this.forward = [];
           this.learnPick = this.learnMethod;
           this.learnMethod = "";
+          this.learnFinished = false;
           break;
         case "learnFrom": {
           // From the solving methods guide: its puzzle becomes the app's, then the method's course opens.
@@ -1007,6 +1026,22 @@ export class Store {
         case "learnStep":
           this.learnStep(Number(arg));
           break;
+        case "learnNext": {
+          const course = this.learning;
+          if (!course) break;
+          this.saveCourse(completeStep(this.course, course.puzzle, course.method.id, course.entry.step));
+          this.learnFinished = false;
+          this.direction = 1;
+          break;
+        }
+        case "learnFinish": {
+          const course = this.learning;
+          if (!course) break;
+          this.saveCourse(finishCourse(this.course, course.puzzle, course.method.id));
+          this.learnFinished = true;
+          this.direction = 1;
+          break;
+        }
         case "learnDone": {
           const course = this.learning;
           if (course) this.saveCourse(toggleStepDone(this.course, course.puzzle, course.method.id, course.entry.step));
@@ -1022,6 +1057,28 @@ export class Store {
           if (course) this.learnSets = { ...this.learnSets, [`${course.puzzle}:${course.method.id}:${course.entry.step}`]: arg };
           break;
         }
+        case "algView": {
+          const view = this.algView;
+          if (!view) break;
+          const index = Math.max(0, Math.min(view.items.length - 1, view.index + (arg === "previous" ? -1 : 1)));
+          this.algView = { ...view, index, choice: 0 };
+          break;
+        }
+        case "algChoice":
+          if (this.algView) this.algView = { ...this.algView, choice: Number(arg) || 0 };
+          break;
+        case "notation":
+          this.notationPuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
+          this.notationMove = "R";
+          this.overlay = "notation";
+          break;
+        case "notationPuzzle":
+          if (isPuzzle(arg)) this.notationPuzzle = arg;
+          this.notationMove = "R";
+          break;
+        case "notationMove":
+          this.notationMove = arg;
+          break;
         case "methods":
           this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
           this.guideMethod = "";
@@ -1044,6 +1101,7 @@ export class Store {
         case "guidePage":
           this.guidePage = arg;
           if (arg === "methodsGuide") this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
+          if (arg === "notationGuide") this.notationPuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
           document.querySelector(".guides-body")?.scrollTo({ top: 0 });
           break;
         case "search":

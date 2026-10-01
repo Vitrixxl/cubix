@@ -75,6 +75,26 @@ export function toggleStepDone(progress: CourseProgress, puzzle: PuzzleId, metho
   const step = methodOf(puzzle, method)?.steps[index];
   return step ? update(progress, puzzle, method, entry => ({ ...entry, done: toggle(entry.done, stepId(step)) })) : progress;
 }
+/** Next step: the step shown is done, the following one is shown. */
+export function completeStep(progress: CourseProgress, puzzle: PuzzleId, method: string, index: number): CourseProgress {
+  const steps = methodOf(puzzle, method)?.steps ?? [], step = steps[index];
+  if (!step) return progress;
+  return update(progress, puzzle, method, entry => ({
+    ...entry,
+    done: entry.done.includes(stepId(step)) ? entry.done : [...entry.done, stepId(step)],
+    step: Math.min(steps.length - 1, index + 1),
+  }));
+}
+/** Finish: every step of the method done, the last one still shown. */
+export function finishCourse(progress: CourseProgress, puzzle: PuzzleId, method: string): CourseProgress {
+  const steps = methodOf(puzzle, method)?.steps ?? [];
+  return steps.length ? update(progress, puzzle, method, entry => ({ ...entry, done: steps.map(stepId) })) : progress;
+}
+/** Whether every step of a course is done. */
+export const courseDone = (progress: CourseProgress, puzzle: PuzzleId, method: SolvingMethod) => {
+  const entry = courseEntry(progress, puzzle, method.id);
+  return method.steps.every(step => entry.done.includes(stepId(step)));
+};
 export const toggleAlgLearned = (progress: CourseProgress, puzzle: PuzzleId, method: string, id: string) =>
   update(progress, puzzle, method, entry => ({ ...entry, learned: toggle(entry.learned, id) }));
 
@@ -118,5 +138,5 @@ export function stepLearned(step: MethodStep, cases: readonly Pick<CaseDto, "id"
   };
 }
 
-/** The case an inline algorithm solves: the algorithm undone from a solved cube, rotations and brackets included. */
-export const algSetup = (alg: Pick<MethodAlgorithm, "alg">) => invertAlg(alg.alg);
+/** The case an inline algorithm is shown on: its own setup, or the algorithm undone from a solved cube, rotations and brackets included. */
+export const algSetup = (alg: Pick<MethodAlgorithm, "alg" | "setup">) => alg.setup ?? invertAlg(alg.alg);

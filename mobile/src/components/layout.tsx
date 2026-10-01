@@ -24,7 +24,7 @@ export function Mono({ className, ...props }: React.ComponentProps<typeof Text>)
 
 /** A quiet caption over a value or a block (`LABEL`). */
 export function Label({ className, ...props }: React.ComponentProps<typeof Text>) {
-  return <Text className={cn("text-xs font-medium text-muted-foreground", className)} {...props} />;
+  return <Text className={cn("font-mono text-xs font-medium text-muted-foreground", className)} {...props} />;
 }
 
 /** A screen: the page padding and the gap between its head and its content. */
@@ -34,19 +34,20 @@ export function Page({ className, ...props }: ViewProps) {
 
 /** The way back in a page head: a 40 dp chevron. */
 export function BackButton({ onPress, label = "Back" }: { onPress: () => void; label?: string }) {
-  return <Button variant="ghost" size="icon" className="-ml-2 size-10" accessibilityLabel={label} onPress={onPress}>
+  return <Button variant="ghost" size="icon" className="size-10" accessibilityLabel={label} onPress={onPress}>
     <Icon as={ChevronLeft} size={20} />
   </Button>;
 }
 
-/** Page head: an optional lead (back button, avatar), the title and its subtitle, then the page's controls on the right. */
+/** Page head on one row: an optional lead (back button, avatar), the title and its subtitle beside it, then the page's controls on the right. */
 export function PageHead({ title, sub, lead, children, className }: { title: ReactNode; sub?: ReactNode; lead?: ReactNode; children?: ReactNode; className?: string }) {
   return <View className={cn("min-h-10 flex-row items-center justify-between gap-2", className)}>
     <View className="min-w-0 flex-1 flex-row items-center gap-2">
       {lead}
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text numberOfLines={1} accessibilityRole="header" className="text-xl font-semibold tracking-tight">{title}</Text>
-        {sub ? <Text numberOfLines={1} className="text-xs text-muted-foreground">{sub}</Text> : null}
+      {/* One line: the title, then its subtitle on the same baseline, cut short where the row runs out. */}
+      <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
+        <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-mono text-xl font-semibold tracking-tight">{title}</Text>
+        {sub ? <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{sub}</Text> : null}
       </View>
     </View>
     {children ? <View className="shrink-0 flex-row items-center gap-1">{children}</View> : null}

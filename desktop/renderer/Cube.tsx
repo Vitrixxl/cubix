@@ -8,21 +8,17 @@ import {
   turnCube,
   type CubeOrientation,
   type CubeScene as Scene,
+  type CubeShape,
 } from "../../src/shared/cubeScene";
-function paintCube(
-  ctx: CanvasRenderingContext2D,
-  scene: Scene,
-  seconds: number,
-  size: number,
-  orientation: CubeOrientation,
-) {
+/** Paints cube shapes (see `cubeShapes`) centred on a square canvas of `size` CSS pixels, `radius` cube units across half of it. */
+export function paintShapes(ctx: CanvasRenderingContext2D, shapes: CubeShape[], size: number, radius: number) {
   ctx.clearRect(0, 0, size, size);
-  const unit = size / 2 / cubeViewRadius(scene);
-  for (const { points, color, line } of cubeShapes(scene, seconds, undefined, undefined, orientation)) {
+  const unit = size / 2 / radius;
+  for (const { points, color, line } of shapes) {
     ctx.beginPath();
     points.forEach((v, i) => {
-      const x = size / 2 + v[0] * unit,
-        y = size / 2 - v[1] * unit;
+      const x = size / 2 + v[0]! * unit,
+        y = size / 2 - v[1]! * unit;
       i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     });
     const hex = "#" + color.toString(16).padStart(6, "0");
@@ -36,6 +32,15 @@ function paintCube(
       ctx.fill();
     }
   }
+}
+function paintCube(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  seconds: number,
+  size: number,
+  orientation: CubeOrientation,
+) {
+  paintShapes(ctx, cubeShapes(scene, seconds, undefined, undefined, orientation), size, cubeViewRadius(scene));
 }
 export function Cube({
   scene,

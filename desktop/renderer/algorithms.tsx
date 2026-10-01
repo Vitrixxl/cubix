@@ -1,12 +1,11 @@
 /** The algorithms page: the case list and the case detail. */
 import { catalogSections } from "../../src/client/lib/practiceCatalog";
-import { shortId, maskForStage } from "../../src/client/lib/caseState";
+import { displayAlg, shortId, maskForStage } from "../../src/client/lib/caseState";
 import { useLayoutEffect, useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, RotateCcw, Search, Timer, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Play, PlayCircle, Search, Timer, X } from "lucide-react";
 import { store as s, matches } from "./store";
 import { TouchAction, TouchBar } from "./phone";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
-import { Cube } from "./Cube";
 import { fmtTime } from "../../src/client/lib/format";
 import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, MONO, MenuAction, PAGE, PageHead, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
 import { Badge } from "@/components/ui/badge";
@@ -296,26 +295,28 @@ function CaseDetail() {
   const { index, count } = caseSteps(c),
     st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id);
+  const openPlayer = () => s.openAlg([{
+    key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined,
+    context: `${c.setLabel} · ${c.group}`, algs: c.algorithms.map(displayAlg),
+    note: c.notes, size: c.cube_size ?? 3, mask: maskForStage(c.stage),
+  }], 0);
   const block = "flex flex-col gap-2 px-4 py-4 md:px-1 md:py-5";
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:gap-8 md:px-1 md:pt-1 md:pb-5">
-        <div className="shrink-0">
-          {c.cube ? (
-            <Cube setup={c.setup} cubeSize={c.cube_size ?? 3} mask={maskForStage(c.stage)} size={mobile ? 112 : 168} replay={s.replay} />
-          ) : (
+      <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:items-start md:gap-8 md:px-1 md:pt-1 md:pb-5">
+        <div className="shrink-0 self-center">
+          {c.cube ? <button type="button" data-play={c.id} aria-label={`Play ${c.id} in 3D`} onClick={openPlayer}
+            className="relative rounded-md outline-none hover:ring-2 focus-visible:ring-2 ring-ring/50">
             <Diagram c={c} size={mobile ? 104 : 152} />
-          )}
+            <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground" aria-hidden="true"><Play className="size-2.5 fill-current" /></span>
+          </button> : <Diagram c={c} size={mobile ? 104 : 152} />}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-4 md:gap-5">
           {!mobile && (
-            <div className="flex items-start gap-4">
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className={LABEL}>
-                  {c.setLabel} · {c.group}
-                </span>
-                <h2 className="text-3xl font-semibold tracking-tight">{c.id}</h2>
-                {c.name !== c.id && <p className="text-sm text-muted-foreground">{c.name}</p>}
+            <div className="flex items-center gap-4">
+              <div className="flex min-w-0 flex-1 items-baseline gap-3">
+                <h2 className="min-w-0 shrink-0 truncate text-2xl font-semibold tracking-tight">{c.id}</h2>
+                <p className="min-w-0 truncate text-sm text-muted-foreground">{c.name !== c.id ? c.name : `${c.setLabel} · ${c.group}`}</p>
               </div>
               <CaseStepper index={index} count={count} />
             </div>
@@ -333,11 +334,6 @@ function CaseDetail() {
             <ActionToggle action={"learn:" + c.id} pressed={learned} icon={Check} className="aria-pressed:bg-success/15 aria-pressed:text-success">
               {learned ? "Learned" : "Mark learned"}
             </ActionToggle>
-            {c.cube && (
-              <Button action="replayCube" icon={RotateCcw} tip="Replay the setup on the cube">
-                Replay
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -351,9 +347,9 @@ function CaseDetail() {
         {c.algorithms.map((a: any, i: number) => (
           <div key={i} className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1">
             <span className={cn(MONO, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
-            <Alg text={a.alg} size={16} className="flex-1" />
+            <Alg text={displayAlg(a)} size={16} className="flex-1" />
             <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
-              {i === 0 && <Badge variant="secondary" className="text-primary">Primary</Badge>}
+              {i === 0 && <Badge variant="secondary" className="rounded-md text-primary">Primary</Badge>}
               {a.stm != null && <span className={MONO}>{a.stm} STM</span>}
               <span>{SOURCES[a.source] ?? a.source}</span>
               {a.youtube && <Button action={"url:" + a.youtube} icon={PlayCircle} size="icon-xs" tip="Watch the video" />}
@@ -371,7 +367,7 @@ function CaseDetail() {
 
 /**
  * Phones: the case pushed as a page of its own, back to the list in the header. A swipe sideways steps through the
- * set; Train, Learned and Replay stay at the bottom, under the thumb.
+ * set; Train and Learned stay at the bottom, under the thumb.
  */
 function Detail() {
   const c = s.find(s.caseId),
@@ -381,7 +377,7 @@ function Detail() {
     learned = s.learned.has(c.id);
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="back" icon={ChevronLeft} tip="Back · Alt+B" className="-ml-2 size-10" />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
+      <PageHead lead={<Button action="back" icon={ChevronLeft} tip="Back · Alt+B" className="size-8 max-md:size-10" />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
         <CaseStepper index={index} count={count} touch />
       </PageHead>
       <Surface
@@ -401,7 +397,6 @@ function Detail() {
         <TouchBar className="shrink-0 border-t bg-muted/30 px-2 py-2">
           <TouchAction action="train" icon={Timer} label="Train" primary />
           <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="good" />
-          {c.cube && <TouchAction action="replayCube" icon={RotateCcw} label="Replay" />}
         </TouchBar>
       </Surface>
     </div>

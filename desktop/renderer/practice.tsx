@@ -680,7 +680,7 @@ function CrossSolution({ font, toggle }: { font: number; toggle: React.ReactNode
 
 /** Back to the training setup, from the header of a running training. */
 function ChangeTraining() {
-  return <Button action="trainingSetup" icon={ChevronLeft} tip="Change what to train" className="-ml-2" />;
+  return <Button action="trainingSetup" icon={ChevronLeft} tip="Change what to train" className="size-8 max-md:size-10" />;
 }
 
 /** The session's times, newest first, as plain rows; right-click a row for its menu. */
