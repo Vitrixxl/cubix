@@ -18,7 +18,7 @@ import { shortId } from "../lib/caseState";
 import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
 import { useColors } from "../theme";
 import { CaseDiagram } from "./CaseDiagram";
-import { Choice, Empty, Label, Mono, SearchField } from "./layout";
+import { Choice, Empty, Label, Numeric, SearchField } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
 import { Sheet, SheetScrollView } from "./Sheet";
 import { SolveMenu } from "./SolveMenus";
@@ -66,12 +66,12 @@ export function SubHead({ title, children }: { title: ReactNode; children?: Reac
   </View>;
 }
 
-/** A figure: its label over the value in mono; an empty one is a faded dash. */
+/** A figure: its label over the value in Geist; an empty one is a faded dash. */
 export function Stat({ label, value, tone = "" }: { label: string; value: string | null | undefined; tone?: Tone }) {
   const empty = value == null || value === "–" || value === "-";
   return <View className="w-1/3 min-w-0 gap-1.5 pr-3">
     <Text numberOfLines={1} className="text-xs text-muted-foreground">{label}</Text>
-    <Mono numberOfLines={1} className={cn("text-xl font-medium tracking-tight", empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{empty ? "–" : value}</Mono>
+    <Numeric numberOfLines={1} className={cn("text-xl font-medium tracking-tight", empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{empty ? "–" : value}</Numeric>
   </View>;
 }
 
@@ -132,7 +132,7 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
           <Text className="text-xs font-medium">{picked.count ? plural(picked.count, "solve") : "No solves"}</Text>
           <Text className="text-xs text-muted-foreground"> on {picked.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</Text>
         </Text>
-        {finite.length ? <Mono numberOfLines={1} className="ml-auto text-xs text-muted-foreground">Best {fmtTime(best(times))}{times.length >= 5 ? ` · Ao5 ${fmtTime(bestAverage(times, 5))}` : ""}</Mono> : null}
+        {finite.length ? <Numeric numberOfLines={1} className="ml-auto text-xs text-muted-foreground">Best {fmtTime(best(times))}{times.length >= 5 ? ` · Ao5 ${fmtTime(bestAverage(times, 5))}` : ""}</Numeric> : null}
       </View> : <View className="mt-3 h-4 flex-row items-center justify-between gap-4">
         <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</Text>
         <View className="shrink-0 flex-row items-center gap-1">
@@ -157,7 +157,7 @@ export function Trend({ history, averages, count = 100, height = 160 }: { histor
   return <View style={{ height }} accessibilityRole="image" accessibilityLabel={`Last ${shown.length} solves and their average of five`}>
     <View className="flex-1 flex-row gap-3">
       <View className="w-12" importantForAccessibility="no-hide-descendants">
-        {ticks.map(t => <Mono key={t} className="absolute right-0 text-[11px] leading-[13px] text-muted-foreground" style={{ top: y(t) - 6.5 }}>{fmtTime(t)}</Mono>)}
+        {ticks.map(t => <Numeric key={t} className="absolute right-0 text-[11px] leading-[13px] text-muted-foreground" style={{ top: y(t) - 6.5 }}>{fmtTime(t)}</Numeric>)}
       </View>
       <View className="flex-1" onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && <Svg width={width} height={h}>
@@ -192,10 +192,10 @@ export function LatestSolves({ history, count = 5 }: { history: HistoryPoint[]; 
       const pb = v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time);
       return <SolveMenu key={v.id} solve={{ id: v.id, time_ms: v.timeMs, penalty: v.penalty, comment: v.comment, created_at: v.at }}
         className="h-10 flex-row items-center gap-3 rounded-md px-2 active:bg-muted/60">
-        <Mono className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Mono>
+        <Numeric className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Numeric>
         <View className="w-24 flex-row items-center gap-1.5">
-          <Mono className={cn("text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Mono>
-          {v.penalty === "+2" ? <Mono className="text-xs text-warning">+2</Mono> : null}
+          <Numeric className={cn("text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Numeric>
+          {v.penalty === "+2" ? <Numeric className="text-xs text-warning">+2</Numeric> : null}
           {pb ? <Text className="text-xs font-medium text-success">PB</Text> : null}
         </View>
         <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
@@ -232,7 +232,7 @@ export function Goal({ a }: { a: AchievementDto }) {
     <View className="min-w-0 flex-1 gap-1.5">
       <View className="flex-row items-baseline justify-between gap-3">
         <Text numberOfLines={1} className="shrink text-sm font-medium">{a.title}</Text>
-        <Mono className="shrink-0 text-xs text-muted-foreground">{Math.round(a.ratio * 100)}%</Mono>
+        <Numeric className="shrink-0 text-xs text-muted-foreground">{Math.round(a.ratio * 100)}%</Numeric>
       </View>
       <View className="h-1.5 overflow-hidden rounded-full bg-muted">
         <View className="h-full rounded-full bg-primary/70" style={{ width: `${clamp01(a.ratio) * 100}%` }} />
@@ -248,7 +248,7 @@ const CaseTile = memo(function CaseTile({ c, stats, width, onOpen }: { c: CaseDt
     className="items-center gap-1 rounded-lg px-1 pt-2.5 pb-2 active:bg-muted/50" style={{ width, opacity: trained ? 1 : 0.5 }}>
     <CaseDiagram c={c} size={Math.min(64, width - 12)} />
     <Text numberOfLines={1} className="text-xs font-medium">{shortId(c)}</Text>
-    <Mono numberOfLines={1} className="text-[11px] text-muted-foreground">{trained ? fmtTime(stats!.summary.best) : "–"}</Mono>
+    <Numeric numberOfLines={1} className="text-[11px] text-muted-foreground">{trained ? fmtTime(stats!.summary.best) : "–"}</Numeric>
   </Pressable>;
 });
 
@@ -306,7 +306,7 @@ export function TrainingProgress({ cases, sets, profile, learned, onOpen, scroll
             className="mt-1 h-10 flex-row items-center gap-2 rounded-lg px-1 active:bg-muted/50">
             <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
             <Text className="text-sm font-medium">{row.set.label}</Text>
-            <Mono className="text-xs text-muted-foreground">{row.trained} / {row.count}</Mono>
+            <Numeric className="text-xs text-muted-foreground">{row.trained} / {row.count}</Numeric>
           </Pressable>
           : <View className="flex-row gap-1">{row.cases.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} width={tileWidth} onOpen={onOpen} />)}</View>} />}
     </View>

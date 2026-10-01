@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Flag, Radio, Search } from "lucide-react";
 import { navigate, useAdmin, useLiveState, useRoute, withParams, type LogRow, type Requests as Data } from "./api";
 import { admin } from "./api";
-import { Choose, Failure, FilterInput, IpLink, Kind, MONO, Nothing, num, RowsSkeleton, Status, UserLink, ViewHead, when } from "./parts";
+import { Choose, Failure, FilterInput, IpLink, Kind, NUMERIC, Nothing, num, RowsSkeleton, Status, UserLink, ViewHead, when } from "./parts";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -122,8 +122,8 @@ export function Requests({ phone }: { phone: boolean }) {
             { value: "30d", label: "Last 30 days" },
           ]}
         />
-        <FilterInput value={value("ip")} onCommit={(v) => set({ ip: v || null })} placeholder="IP" mono action="requests:ip" className="w-full sm:w-40" />
-        <FilterInput value={value("path")} onCommit={(v) => set({ path: v || null })} placeholder="Path" icon={<Search />} mono action="requests:path" className="w-full sm:w-48" />
+        <FilterInput value={value("ip")} onCommit={(v) => set({ ip: v || null })} placeholder="IP" numeric action="requests:ip" className="w-full sm:w-40" />
+        <FilterInput value={value("path")} onCommit={(v) => set({ path: v || null })} placeholder="Path" icon={<Search />} numeric action="requests:path" className="w-full sm:w-48" />
         <FilterInput value={value("user")} onCommit={(v) => set({ user: v || null })} placeholder="Account" action="requests:user" className="w-full sm:w-40" />
         {any && (
           <Button variant="outline" onClick={() => navigate("/admin/requests", true)} data-action="requests:reset">
@@ -144,13 +144,13 @@ export function Requests({ phone }: { phone: boolean }) {
               <li key={r.id} className="flex flex-col gap-1 border-b py-2.5 last:border-0">
                 <span className="flex min-w-0 items-center gap-2">
                   <Status status={r.status} />
-                  <span className={cn(MONO, "text-xs text-muted-foreground")}>{r.method}</span>
-                  <span className={cn(MONO, "min-w-0 flex-1 truncate text-sm")}>{r.path}</span>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{r.method}</span>
+                  <span className={cn(NUMERIC, "min-w-0 flex-1 truncate text-sm")}>{r.path}</span>
                 </span>
                 <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                  <span className={MONO}>{when(r.at, true)}</span>·<Kind kind={r.kind} important={r.important} />·
+                  <span className={NUMERIC}>{when(r.at, true)}</span>·<Kind kind={r.kind} important={r.important} />·
                   {r.userId ? <UserLink id={r.userId} name={r.username} /> : <IpLink ip={r.ip} />}
-                  <span className={cn(MONO, "ml-auto")}>{r.durationMs.toFixed(0)} ms</span>
+                  <span className={cn(NUMERIC, "ml-auto")}>{r.durationMs.toFixed(0)} ms</span>
                 </span>
               </li>
             ))}
@@ -171,25 +171,25 @@ export function Requests({ phone }: { phone: boolean }) {
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.id} title={r.userAgent ?? undefined}>
-                  <TableCell className={cn(MONO, "text-xs text-muted-foreground")} title={new Date(r.at).toLocaleString()}>
+                  <TableCell className={cn(NUMERIC, "text-xs text-muted-foreground")} title={new Date(r.at).toLocaleString()}>
                     {when(r.at, true)}
                   </TableCell>
                   <TableCell>
                     <Status status={r.status} />
                   </TableCell>
                   <TableCell className="max-w-0 truncate">
-                    <span className={cn(MONO, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
-                    <span className={MONO}>{r.path}</span>
+                    <span className={cn(NUMERIC, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
+                    <span className={NUMERIC}>{r.path}</span>
                   </TableCell>
                   <TableCell>
                     <Kind kind={r.kind} important={r.important} />
                   </TableCell>
-                  <TableCell className={cn(MONO, "text-right text-muted-foreground")}>{r.durationMs < 10 ? r.durationMs.toFixed(1) : r.durationMs.toFixed(0)} ms</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right text-muted-foreground")}>{r.durationMs < 10 ? r.durationMs.toFixed(1) : r.durationMs.toFixed(0)} ms</TableCell>
                   <TableCell className="max-w-36 truncate">
                     <UserLink id={r.userId} name={r.username} />
                   </TableCell>
                   <TableCell className="max-w-36 truncate">
-                    <button type="button" className={cn(MONO, "truncate text-left outline-none transition-colors hover:text-primary focus-visible:text-primary")} onClick={() => set({ ip: r.ip })} title={`Only ${r.ip}`}>
+                    <button type="button" className={cn(NUMERIC, "truncate text-left outline-none transition-colors hover:text-primary focus-visible:text-primary")} onClick={() => set({ ip: r.ip })} title={`Only ${r.ip}`}>
                       {r.ip}
                     </button>
                   </TableCell>
@@ -201,7 +201,7 @@ export function Requests({ phone }: { phone: boolean }) {
       </div>
       {d && rows.length > 0 && (
         <div className="flex items-center justify-between gap-3">
-          <span className={cn(MONO, "text-xs text-muted-foreground")}>
+          <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
             {num(rows.length)} of {total}
           </span>
           {older.error && <span className="text-xs text-destructive">{older.error}</span>}

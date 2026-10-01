@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CrossPractice } from "../components/CrossPractice";
-import { Alg, BackButton, Fade, Label, MenuItem, Mono, MoreMenu, Page, PageHead, TouchAction } from "../components/layout";
+import { Alg, BackButton, Fade, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, TouchAction } from "../components/layout";
 import { LearningGroups } from "../components/LearningGroups";
 import {
   CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock, useSessionSolves,
@@ -247,7 +247,7 @@ function SessionSheet({ open, onClose, selectedCases, solves, onUndo }: { open: 
     return trainingSessionRows(cases.filter(c => ids.has(c.id)), solves);
   }, [cases, selectedCases, solves]);
   return <Sheet open={open} onClose={onClose} snapPoints={["55%", "100%"]} contentClassName="px-0"
-    title={<Text accessibilityRole="header" className="text-base font-semibold">Session <Mono className="text-base font-normal text-muted-foreground">{solves.length}</Mono></Text>}
+    title={<Text accessibilityRole="header" className="text-base font-semibold">Session <Numeric className="text-base font-normal text-muted-foreground">{solves.length}</Numeric></Text>}
     description="Tap a time for its details · hold it for +2, DNF or delete"
     right={onUndo ? <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={onUndo}><Icon as={Undo2} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Undo</Text></Button> : null}>
     <SheetScrollView style={{ flex: 1 }} contentContainerClassName="gap-1 px-3 pb-4">
@@ -258,10 +258,10 @@ function SessionSheet({ open, onClose, selectedCases, solves, onUndo }: { open: 
         </View>
         <View className="min-w-0 flex-1 gap-1.5 pt-0.5">
           {!list.length ? <Text className="text-sm text-muted-foreground/60">No attempt yet</Text> : <>
-            {validCount > 1 && <Mono className="text-xs text-muted-foreground">mean {fmtTime(average)}</Mono>}
+            {validCount > 1 && <Numeric className="text-xs text-muted-foreground">mean {fmtTime(average)}</Numeric>}
             <View className="flex-row flex-wrap gap-1.5">
               {[...list].reverse().map(v => <SolveMenu key={v.id} solve={v} className="h-9 justify-center rounded-md bg-muted px-2.5 active:bg-muted/70">
-                <Mono className={cn("text-sm", v.penalty === "dnf" ? "text-destructive" : effective(v.time_ms, v.penalty) === fastest ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>{fmtSolve(v.time_ms, v.penalty)}</Mono>
+                <Numeric className={cn("text-sm", v.penalty === "dnf" ? "text-destructive" : effective(v.time_ms, v.penalty) === fastest ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>{fmtSolve(v.time_ms, v.penalty)}</Numeric>
               </SolveMenu>)}
             </View>
           </>}

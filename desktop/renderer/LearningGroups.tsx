@@ -48,7 +48,7 @@ function GroupItem({ group, index, count, start, save, move }: {
   move: (group: string, key: string) => void;
 }) {
   return <Reorder.Item value={group} className="flex h-10 items-center gap-3 rounded-lg bg-popover pr-1 pl-3 hover:bg-muted/50" onDragStart={start} onDragEnd={() => save(group)} whileDrag={{ boxShadow: "0 8px 24px rgb(0 0 0 / 0.25)" }}>
-    <span className="w-6 font-mono text-xs text-muted-foreground tabular-nums" aria-hidden="true">{index + 1}.</span>
+    <span className="w-6 font-sans text-xs text-muted-foreground tabular-nums" aria-hidden="true">{index + 1}.</span>
     <span className="flex-1 truncate text-sm">{group}</span>
     <button type="button" className="flex size-8 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing" aria-label={`Move ${group}`} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Drag to reorder · ↑ / ↓" onKeyDown={event => {
       if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;

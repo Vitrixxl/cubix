@@ -10,7 +10,7 @@ import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MONO, run, usePhone } from "./ui";
+import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, NUMERIC, run, usePhone } from "./ui";
 import { PhoneSheet, SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
 import { AlgView } from "./algView";
@@ -195,7 +195,7 @@ function MethodsDialog() {
         <ol className="flex flex-col gap-4">
           {method.steps.map((step, i) => (
             <li key={step.title} className="flex gap-4">
-              <span className={cn(MONO, "w-5 shrink-0 pt-px text-sm text-muted-foreground")}>{i + 1}</span>
+              <span className={cn(NUMERIC, "w-5 shrink-0 pt-px text-sm text-muted-foreground")}>{i + 1}</span>
               <div className="flex flex-col gap-1">
                 <strong className="text-sm font-medium">{step.title}</strong>
                 <p className="text-sm text-muted-foreground">{step.text}</p>
@@ -287,7 +287,7 @@ function SolveDetails() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <span className={cn(MONO, "text-5xl font-medium tracking-tight", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
+        <span className={cn(NUMERIC, "text-5xl font-medium tracking-tight", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
           {fmtSolve(solve.time_ms, solve.penalty)}
         </span>
         <span className="text-sm text-muted-foreground">{solve.displayDate}</span>

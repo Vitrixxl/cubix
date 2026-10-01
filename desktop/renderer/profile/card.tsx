@@ -1,7 +1,7 @@
 /** The profile's one building block: a card with a heading row (title, muted meta, a link to its page) and a body. */
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { InHead, MONO, type Props, run, usePhone } from "../ui";
+import { InHead, NUMERIC, type Props, run, usePhone } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -95,8 +95,8 @@ export function SubPageHead({ title, meta, children, back = true }: { title: Rea
   );
 }
 
-/** Where a count goes in a sentence: mono, full colour. */
-export const Num = ({ children }: Props) => <span className={cn(MONO, "font-medium text-foreground")}>{children}</span>;
+/** Where a count goes in a sentence: tabular digits, full colour. */
+export const Num = ({ children }: Props) => <span className={cn(NUMERIC, "font-medium text-foreground")}>{children}</span>;
 
 /** The body card of a page: its toolbar on top, then the rest, scrolling inside unless `scroll` is off. */
 export function PageCard({ toolbar, children, className, scroll = true }: { toolbar?: React.ReactNode; scroll?: boolean } & Props) {

@@ -12,7 +12,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { storage } from "../platform/storage";
 import { useColors } from "../theme";
-import { Empty, Figure, Mono } from "./layout";
+import { Empty, Figure, Numeric } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
 import { SolveMenu, useSolveMenu, type SolveSummary } from "./SolveMenus";
 
@@ -167,7 +167,7 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
   return <View className={cn("gap-1", height === undefined && "min-h-40 flex-1")}>
     <View className={cn("flex-row gap-2.5", height === undefined && "min-h-0 flex-1")} style={height !== undefined ? { height } : undefined}>
       <View className="w-12" pointerEvents="none">
-        {H > 0 && [0, 1, 2, 3].map(i => <Mono key={i} className="absolute right-0 text-[11px] text-muted-foreground" style={{ top: (12 + i / 3 * 202) / 240 * H - 7 }}>{fmtTime(scale.lo + scale.height * (1 - i / 3))}</Mono>)}
+        {H > 0 && [0, 1, 2, 3].map(i => <Numeric key={i} className="absolute right-0 text-[11px] text-muted-foreground" style={{ top: (12 + i / 3 * 202) / 240 * H - 7 }}>{fmtTime(scale.lo + scale.height * (1 - i / 3))}</Numeric>)}
       </View>
       <View className="min-w-0 flex-1" onLayout={onLayout}
         onStartShouldSetResponder={() => true} onMoveShouldSetResponder={() => true} onResponderTerminationRequest={() => !gesture.current?.moved}
@@ -186,8 +186,8 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
         {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">Reset zoom</Text></Button>}
         {selection && <View pointerEvents="none" className="absolute bottom-1 self-center rounded-md bg-popover px-2 py-1"><Text className="text-[11px]">{fmtDate(history[selection[0]!]!.at)} — {fmtDate(history[selection[1]!]!.at)}</Text></View>}
         {point && <View pointerEvents="none" className="absolute top-2 gap-0.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg" style={x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }}>
-          <Mono className="text-[15px] font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Mono>
-          {averages[hover!] != null && <Mono className="text-xs" style={{ color: colors.chart2 }}>Ao5 {fmtTime(averages[hover!])}</Mono>}
+          <Numeric className="text-[15px] font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Numeric>
+          {averages[hover!] != null && <Numeric className="text-xs" style={{ color: colors.chart2 }}>Ao5 {fmtTime(averages[hover!])}</Numeric>}
           <Text className="text-[11px] text-muted-foreground">#{hover! + 1} · {fmtDate(point.at)}</Text>
         </View>}
       </View>
@@ -226,8 +226,8 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
     const solve: SolveSummary = { id: v.id, time_ms: v.timeMs, penalty: v.penalty, created_at: v.at, comment: v.comment };
     return <SolveMenu solve={solve} accessibilityLabel={`Solve ${index + 1}: ${fmtTime(v.time, { blank: "DNF" })}`} className="min-h-11 justify-center border-b border-border px-1 py-1.5 active:bg-muted/50">
       <View className="flex-row items-center gap-3">
-        <Mono className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Mono>
-        <Mono className={cn("text-base", v.time == null ? "text-destructive" : pb ? "text-primary" : v.penalty === "+2" ? "text-warning" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Mono>
+        <Numeric className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Numeric>
+        <Numeric className={cn("text-base", v.time == null ? "text-destructive" : pb ? "text-primary" : v.penalty === "+2" ? "text-warning" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Numeric>
         {pb && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px] text-primary">PB</Text></Badge>}
         {v.penalty === "+2" && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px]">+2</Text></Badge>}
         <Text numberOfLines={1} className="ml-auto text-xs text-muted-foreground">{fmtDate(v.at)}</Text>
@@ -245,7 +245,7 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
         <Pressable accessibilityRole="button" accessibilityLabel="Show only commented solves" accessibilityState={{ selected: commented }} onPress={() => setCommented(!commented)}
           className={cn("h-9 flex-row items-center gap-1 rounded-lg px-2", commented ? "bg-muted" : "active:bg-muted/50")}>
           <Icon as={MessageSquare} size={15} className={commented ? "text-foreground" : "text-muted-foreground"} />
-          <Mono className="text-xs text-muted-foreground">{commentCount}</Mono>
+          <Numeric className="text-xs text-muted-foreground">{commentCount}</Numeric>
         </Pressable>
       </View>
     </View>

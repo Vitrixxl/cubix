@@ -4,7 +4,7 @@ import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { shortId } from "../../src/client/lib/caseState";
 import { BookOpen, Box, Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Play, Search, type LucideIcon } from "lucide-react";
 import { store as s, catalog, matches } from "./store";
-import { Button, Diagram, Figure, MONO, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
+import { Button, Diagram, Figure, NUMERIC, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
@@ -150,7 +150,7 @@ function SetupTitle({ title, meta, children, aside }: { title: string; meta?: Re
       <div className="flex max-w-xl min-w-0 flex-col gap-1.5">
         <h2 className="text-xl font-semibold tracking-tight max-md:hidden md:text-2xl">
           {title}
-          {meta != null && <span className={cn(MONO, "ml-2 text-base font-normal text-muted-foreground")}>{meta}</span>}
+          {meta != null && <span className={cn(NUMERIC, "ml-2 text-base font-normal text-muted-foreground")}>{meta}</span>}
         </h2>
         {children && <p className="text-sm text-muted-foreground">{children}</p>}
       </div>
@@ -178,7 +178,7 @@ function CrossSetup() {
                 s.crossMoves === n && "bg-primary/12 hover:bg-primary/15",
               )}
             >
-              <span className={cn(MONO, "text-3xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
+              <span className={cn(NUMERIC, "text-3xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
               <span className="text-xs text-muted-foreground">moves</span>
             </button>
           ))}
@@ -240,7 +240,7 @@ function CasesSetup() {
                   {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
                   <span className="w-10 text-xs font-medium text-muted-foreground">{set.stage}</span>
                   <span className="truncate text-sm font-medium">{set.label}</span>
-                  <span className={cn(MONO, "text-xs text-muted-foreground")}>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                     {count} / {chosen.length}
                   </span>
                 </button>
@@ -261,7 +261,7 @@ function CasesSetup() {
                           className="flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground outline-none hover:text-foreground"
                         >
                           {group}
-                          <span className={MONO}>
+                          <span className={NUMERIC}>
                             {members.filter((c: any) => s.selected.has(c.id)).length} / {members.length}
                           </span>
                         </button>

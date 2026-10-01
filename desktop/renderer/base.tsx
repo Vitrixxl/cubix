@@ -24,11 +24,11 @@ export type Props = {
 /** Everything but the running digits fades out while a solve runs (the root carries `data-running`). */
 export const FADE = "transition-opacity duration-200 group-data-running/app:pointer-events-none group-data-running/app:opacity-0";
 
-/** Times and figures: mono with tabular digits. */
-export const MONO = "font-mono tabular-nums";
+/** Times and figures: Geist with tabular digits. */
+export const NUMERIC = "font-sans tabular-nums";
 
 /** The small uppercase-free caption over a figure or a block. */
-export const LABEL = "font-mono text-xs font-medium text-muted-foreground";
+export const LABEL = "font-sans text-xs font-medium text-muted-foreground";
 
 /** The width of the window and its height, kept up to date. */
 export function useViewport() {
@@ -92,7 +92,7 @@ export function Empty({ children, className }: Props) {
 export function Alg({ text, size = 18, className }: { text: string; size?: number; className?: string }) {
   return (
     <div
-      className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-mono leading-snug font-medium tracking-tight", className)}
+      className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)}
       style={{ fontSize: size }}
     >
       {text?.split(/\s+/).map((word, i) => (
@@ -188,11 +188,11 @@ export function Avatar({ name, size = 32, className }: { name: string | undefine
 }
 
 /**
- * How a figure reads: its label, how far it stands from the value and the value's lines: `mono` (the app's captions),
+ * How a figure reads: its label, how far it stands from the value and the value's lines: `default` (the app's captions),
  * `plain` (the profile's cards), `strong` (the administration) or `small` (the phone's session strip).
  */
 const CAPTION = {
-  mono: [LABEL, "gap-1", "tracking-tight"],
+  default: [LABEL, "gap-1", "tracking-tight"],
   plain: ["text-xs text-muted-foreground", "gap-1.5", "leading-none tracking-tight"],
   strong: ["text-xs font-medium text-muted-foreground", "gap-1.5", "leading-none tracking-tight"],
   small: ["text-[11px] font-medium text-muted-foreground", "gap-0.5", "leading-none"],
@@ -202,7 +202,7 @@ const CAPTION = {
 const VALUE_SIZE = { sm: "text-sm", base: "text-base", lg: "text-lg", xl: "text-xl", "2xl": "text-2xl", "4xl": "text-4xl" } as const;
 
 /**
- * A figure: its label small and muted, the value in mono underneath; an empty one (a dash) is faded. `inline` sets
+ * A figure: its label small and muted, the value in Geist underneath; an empty one (a dash) is faded. `inline` sets
  * the label on the left and the value on the right, the label never cut. `aside` stands beside the value (a change),
  * `sub` under it (a breakdown).
  */
@@ -211,7 +211,7 @@ export function Figure({
   value,
   tone = "",
   size = "lg",
-  caption = "mono",
+  caption = "default",
   inline = false,
   aside,
   sub,
@@ -230,7 +230,7 @@ export function Figure({
   const empty = value == null || (typeof value === "string" && /^[-–—]$/.test(value.trim())),
     [labelClass, gap, line] = CAPTION[caption];
   const shown = (
-    <span className={cn(MONO, "truncate font-medium", VALUE_SIZE[size], line, empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>
+    <span className={cn(NUMERIC, "truncate font-medium", VALUE_SIZE[size], line, empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>
       {empty ? "–" : value}
     </span>
   );
@@ -272,7 +272,7 @@ export function SectionHead({ title, meta, children, className, rule = false }: 
   return (
     <div className={cn("flex min-h-8 shrink-0 items-center gap-2", rule && "border-b pb-2", className)}>
       <h2 className="text-sm font-medium">{title}</h2>
-      {meta != null && <span className={cn(MONO, "text-sm text-muted-foreground")}>{meta}</span>}
+      {meta != null && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{meta}</span>}
       {children && <div className="ml-auto flex items-center gap-1">{children}</div>}
     </div>
   );

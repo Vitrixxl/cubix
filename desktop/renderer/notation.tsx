@@ -8,7 +8,7 @@ import { CUBE_READING, PUZZLE_NOTATION, cubeNotation, describeMove, isCubeNotati
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { PLAYER_SPEEDS, speedLabel } from "../../src/client/lib/algPlayer";
 import { store as s, run } from "./store";
-import { Choice, LABEL, MONO, Tip, usePhone } from "./ui";
+import { Choice, LABEL, NUMERIC, Tip, usePhone } from "./ui";
 import { PlayerCube, useAlgPlayer, usePlayback } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ export function NotationContent({ guide = false }: { guide?: boolean }) {
               {section.examples && (
                 <div className="flex flex-wrap gap-x-5 gap-y-1">
                   {section.examples.map((example) => (
-                    <span key={example} className={cn(MONO, "text-base font-medium")}>
+                    <span key={example} className={cn(NUMERIC, "text-base font-medium")}>
                       {example}
                     </span>
                   ))}
@@ -99,7 +99,7 @@ function MoveBlock({ block }: { block: NotationBlock }) {
   return (
     <div className="flex flex-col gap-1.5" data-notation-block={block.move}>
       <div className="flex min-w-0 items-baseline gap-2">
-        <span className={cn(MONO, "text-sm font-semibold")}>{block.move}</span>
+        <span className={cn(NUMERIC, "text-sm font-semibold")}>{block.move}</span>
         <span className="min-w-0 text-sm leading-snug text-muted-foreground">{block.name === block.move ? block.text : `${block.name}: ${block.text}`}</span>
       </div>
       <div className="grid grid-cols-3 gap-1">
@@ -123,7 +123,7 @@ function MoveTile({ move }: { move: string }) {
       aria-label={`${move}: ${describeMove(move, puzzleInfo(s.notationPuzzle).cubeSize ?? 3) || "play it"}`}
       onClick={run("notationMove:" + move)}
       className={cn(
-        MONO,
+        NUMERIC,
         "flex items-center justify-center rounded-lg border px-3 text-base font-medium outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50",
         phone ? "h-11" : "h-10",
         on && "border-primary/50 bg-primary/10 text-primary hover:bg-primary/10",
@@ -143,7 +143,7 @@ function MovePlayer({ move, size, phone = false }: { move: string; size: number;
     <div className={cn("flex items-center gap-4", phone ? "flex-row" : "flex-col")} data-notation-player>
       <PlayerCube player={player} size={phone ? 132 : 240} />
       <div className={cn("flex min-w-0 flex-col gap-2", phone ? "flex-1" : "items-center text-center")}>
-        <span className={cn(MONO, "font-semibold tracking-tight", move.length > 6 ? "text-lg" : "text-4xl")}>{move}</span>
+        <span className={cn(NUMERIC, "font-semibold tracking-tight", move.length > 6 ? "text-lg" : "text-4xl")}>{move}</span>
         {text && <p className="text-sm text-muted-foreground">{text}</p>}
         <LoopControls player={player} />
       </div>
@@ -168,7 +168,7 @@ function LoopControls({ player }: { player: AlgPlayer }) {
           size="sm"
           aria-pressed={p.speed === speed}
           onClick={() => player.setSpeed(speed)}
-          className={cn(MONO, "px-2 text-xs text-muted-foreground aria-pressed:bg-muted aria-pressed:text-foreground", phone && "h-11")}
+          className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:bg-muted aria-pressed:text-foreground", phone && "h-11")}
         >
           {speedLabel(speed)}
         </Button>

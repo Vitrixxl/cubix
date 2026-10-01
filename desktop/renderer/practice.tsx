@@ -40,7 +40,7 @@ import {
   FADE,
   Figure,
   LABEL,
-  MONO,
+  NUMERIC,
   PAGE,
   MenuAction,
   MenuChoice,
@@ -515,7 +515,7 @@ export function Practice() {
                 {typing ? (
                   <input
                     ref={typedRef}
-                    className={cn(MONO, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 focus:border-primary")}
+                    className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 focus:border-primary")}
                     aria-label="Time"
                     placeholder="0.000"
                     inputMode="decimal"
@@ -607,7 +607,7 @@ export function Practice() {
           }}
           title={
             <>
-              {training ? "Session" : "Times"} <span className={cn(MONO, "font-normal text-muted-foreground")}>{s.solves.length}</span>
+              {training ? "Session" : "Times"} <span className={cn(NUMERIC, "font-normal text-muted-foreground")}>{s.solves.length}</span>
             </>
           }
           description="Tap a time for its details · hold it for +2, DNF or delete"
@@ -644,7 +644,7 @@ function SessionPeek({ training }: { training: boolean }) {
         <Figure key={label} label={label} value={value} tone={tone} caption="small" size="base" className="flex-1" />
       ))}
       <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
-        <span className={MONO}>{plural(s.solves.length, training ? "attempt" : "solve")}</span>
+        <span className={NUMERIC}>{plural(s.solves.length, training ? "attempt" : "solve")}</span>
         <ChevronUp className="size-4" />
       </span>
     </button>
@@ -715,7 +715,7 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                   <span className="text-sm text-muted-foreground/60">No attempt yet</span>
                 ) : (
                   <>
-                    {validCount > 1 && <span className={cn(MONO, "text-xs text-muted-foreground")}>mean {fmtTime(average)}</span>}
+                    {validCount > 1 && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>mean {fmtTime(average)}</span>}
                     <div className="flex flex-wrap gap-1">
                       {[...solves].reverse().map((v) => (
                         <SolveMenu key={v.id} solve={v}>
@@ -724,7 +724,7 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                             data-action={"solve:" + v.id}
                             onClick={run("solve:" + v.id)}
                             className={cn(
-                              MONO,
+                              NUMERIC,
                               "flex h-6 items-center gap-1 rounded-md bg-muted px-1.5 text-xs outline-none select-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50",
                               touch && "h-9 px-2.5 text-sm",
                               v.penalty === "dnf" ? "text-destructive" : effective(v.time_ms, v.penalty) === fastest ? "text-success" : v.penalty === "+2" ? "text-warning" : "",
@@ -754,8 +754,8 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                   onClick={run("solve:" + v.id)}
                   className="flex min-w-0 flex-1 items-center gap-3 self-stretch text-left outline-none"
                 >
-                  <span className={cn(MONO, "w-7 shrink-0 text-right text-xs text-muted-foreground")}>{s.solves.length - i}</span>
-                  <span className={cn(MONO, touch ? "text-base" : "text-sm", TONE_TEXT[solveTone(v, extremes)])}>{fmtSolve(v.time_ms, v.penalty)}</span>
+                  <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-xs text-muted-foreground")}>{s.solves.length - i}</span>
+                  <span className={cn(NUMERIC, touch ? "text-base" : "text-sm", TONE_TEXT[solveTone(v, extremes)])}>{fmtSolve(v.time_ms, v.penalty)}</span>
                   {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
                 </button>
                 <SolveActions solve={v} className={cn(touch && "hidden")} />
@@ -781,7 +781,7 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
     ao5 = practiceSummary(s.solves).ao5;
   const chip = cn("flex h-7 items-center justify-center rounded-md", mobile ? "min-w-0 flex-1 px-1 text-xs" : "min-w-18 px-2");
   return (
-    <div className={cn(MONO, "average-window mt-6 flex w-full shrink-0 items-center justify-center gap-1.5 text-sm md:mt-8", mobile && "gap-1", FADE)} aria-label="Current average of 5" data-no-timer>
+    <div className={cn(NUMERIC, "average-window mt-6 flex w-full shrink-0 items-center justify-center gap-1.5 text-sm md:mt-8", mobile && "gap-1", FADE)} aria-label="Current average of 5" data-no-timer>
       {!mobile && <span className={cn(LABEL, "mr-1.5")}>Ao5</span>}
       {Array.from({ length: 5 }, (_, i) => {
         const v = last[i - (5 - last.length)];

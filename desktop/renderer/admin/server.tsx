@@ -1,13 +1,13 @@
 /** The server: how long it has been running, which build, the database and the request log's limits. */
 import { useAdmin, useLiveState, type Overview } from "./api";
-import { bytes, date, Failure, FiguresSkeleton, Kpi, MONO, num, SectionHead, span, useNow, when, ViewHead } from "./parts";
+import { bytes, date, Failure, FiguresSkeleton, Kpi, NUMERIC, num, SectionHead, span, useNow, when, ViewHead } from "./parts";
 import { cn } from "@/lib/utils";
 
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex min-h-10 items-center gap-4 border-b text-sm last:border-0">
       <span className="w-48 shrink-0 text-muted-foreground max-sm:w-32">{label}</span>
-      <span className={cn(MONO, "min-w-0 flex-1 truncate")}>{value}</span>
+      <span className={cn(NUMERIC, "min-w-0 flex-1 truncate")}>{value}</span>
       {hint && <span className="shrink-0 text-xs text-muted-foreground max-sm:hidden">{hint}</span>}
     </div>
   );

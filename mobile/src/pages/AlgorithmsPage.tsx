@@ -17,7 +17,7 @@ import { local } from "../api";
 import { sourceLabel } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { MethodsSheet } from "../components/GuidesDialog";
-import { Alg, BackButton, Choice, Empty, Figure, Label, MenuItem, Mono, MoreMenu, Page, PageHead, SearchField, Surface, TouchAction, TouchBar } from "../components/layout";
+import { Alg, BackButton, Choice, Empty, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, SearchField, Surface, TouchAction, TouchBar } from "../components/layout";
 import { CubePreview } from "../components/Practice";
 import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
 import { SessionButton } from "../components/PuzzlePicker";
@@ -123,7 +123,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
         className="h-10 min-w-0 flex-1 flex-row items-center gap-2 rounded-lg px-2 active:bg-muted/50">
         <Icon as={row.expanded ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
         <Text numberOfLines={1} className="shrink text-sm font-medium">{row.group}</Text>
-        <Mono className="text-xs text-muted-foreground">{row.list.length}</Mono>
+        <Numeric className="text-xs text-muted-foreground">{row.list.length}</Numeric>
       </Pressable>
       <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-2.5" accessibilityLabel={`Train ${row.group}`} onPress={() => trainAll(row.list)}>
         <Icon as={Timer} size={15} className="text-muted-foreground" />
@@ -178,7 +178,7 @@ const CaseRow = memo(function CaseRow({ c, best, learned, detail, onOpen, onTogg
         <Text numberOfLines={1} className="text-sm font-medium">{shortId(c)}</Text>
         {detail ?? (c.name !== c.id && c.name) ? <Text numberOfLines={1} className="text-xs text-muted-foreground">{detail ?? c.name}</Text> : null}
       </View>
-      <Mono className={cn("text-sm", best != null ? "text-foreground/80" : "text-muted-foreground/50")}>{best != null ? fmtTime(best) : "–"}</Mono>
+      <Numeric className={cn("text-sm", best != null ? "text-foreground/80" : "text-muted-foreground/50")}>{best != null ? fmtTime(best) : "–"}</Numeric>
     </Pressable>
     {/* The learned status after the time, like an issue's status: a green disc with a check, or a quiet dashed circle. */}
     <Pressable onPress={() => onToggle(c.id)} accessibilityRole="checkbox" accessibilityState={{ checked: learned }} accessibilityLabel={learned ? `${c.id} learned` : `Mark ${c.id} learned`}
@@ -241,7 +241,7 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
   return <Page>
     <PageHead lead={<BackButton onPress={onBack} />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
       <Button variant="outline" size="icon" className="size-9" disabled={!previous} onPress={() => step(previous)} accessibilityLabel="Previous case"><Icon as={ChevronLeft} size={18} /></Button>
-      <Mono className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {siblings.length}</Mono>
+      <Numeric className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {siblings.length}</Numeric>
       <Button variant="outline" size="icon" className="size-9" disabled={!next} onPress={() => step(next)} accessibilityLabel="Next case"><Icon as={ChevronRight} size={18} /></Button>
     </PageHead>
     <Surface className="flex-1">
@@ -307,13 +307,13 @@ const CasePage = memo(function CasePage({ c, stats, width, replay, onPlay }: { c
       <Label className="pb-1">Algorithms</Label>
       {c.algorithms.map((a, i) => <View key={i}
         className="-mx-2 flex-row gap-4 rounded-lg px-2 py-2 active:bg-muted/50">
-        <Mono className="w-4 pt-0.5 text-xs text-muted-foreground">{i + 1}</Mono>
+        <Numeric className="w-4 pt-0.5 text-xs text-muted-foreground">{i + 1}</Numeric>
         <View className="min-w-0 flex-1 gap-1.5">
           <Alg text={displayAlg(a)} size={16} selectable />
           <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
             {i === 0 && <Badge variant="secondary"><Text className="text-primary">Primary</Text></Badge>}
             {a.recommended_by?.includes("jperm") && <Text className="text-xs text-muted-foreground">J Perm pick</Text>}
-            {a.stm != null && <Mono className="text-xs text-muted-foreground">{a.stm} STM</Mono>}
+            {a.stm != null && <Numeric className="text-xs text-muted-foreground">{a.stm} STM</Numeric>}
             <Text className="text-xs text-muted-foreground">{sourceLabel(a.source)}</Text>
             {a.youtube && <Button variant="ghost" size="sm" className="-my-1 h-8 gap-1.5 px-2" onPress={() => void Linking.openURL(a.youtube!)} accessibilityLabel="Watch the video">
               <Icon as={CirclePlay} size={15} className="text-muted-foreground" /><Text className="text-xs text-muted-foreground">Video</Text>

@@ -16,7 +16,7 @@ import {
   IpLink,
   Kind,
   Kpi,
-  MONO,
+  NUMERIC,
   Nothing,
   num,
   RowsSkeleton,
@@ -82,7 +82,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         }
         sub={
           <>
-            Created {date(u.createdAt)} · seen {ago(u.lastSeenAt, now)} · <span className={MONO}>{u.id}</span>
+            Created {date(u.createdAt)} · seen {ago(u.lastSeenAt, now)} · <span className={NUMERIC}>{u.id}</span>
           </>
         }
       >
@@ -123,11 +123,11 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
                 {d.puzzles.map((p) => (
                   <TableRow key={p.puzzleId + p.solveMode}>
                     <TableCell className="font-medium">{event(p.puzzleId, p.solveMode)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right")}>{num(p.solves)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right text-muted-foreground")}>{num(p.dnf)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right text-muted-foreground max-sm:hidden")}>{num(p.trainingSolves)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right")}>{fmtTime(p.bestMs)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right")}>{fmtTime(p.meanMs == null ? null : Math.round(p.meanMs))}</TableCell>
+                    <TableCell className={cn(NUMERIC, "text-right")}>{num(p.solves)}</TableCell>
+                    <TableCell className={cn(NUMERIC, "text-right text-muted-foreground")}>{num(p.dnf)}</TableCell>
+                    <TableCell className={cn(NUMERIC, "text-right text-muted-foreground max-sm:hidden")}>{num(p.trainingSolves)}</TableCell>
+                    <TableCell className={cn(NUMERIC, "text-right")}>{fmtTime(p.bestMs)}</TableCell>
+                    <TableCell className={cn(NUMERIC, "text-right")}>{fmtTime(p.meanMs == null ? null : Math.round(p.meanMs))}</TableCell>
                     <TableCell className="text-right text-muted-foreground max-sm:hidden">{ago(p.lastAt, now)}</TableCell>
                   </TableRow>
                 ))}
@@ -155,7 +155,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
                     <TableCell className="text-muted-foreground">{when(s.at)}</TableCell>
                     <TableCell>{event(s.puzzleId, s.solveMode)}</TableCell>
                     <TableCell className="text-muted-foreground max-sm:hidden">{s.caseId ?? s.scrambleType}</TableCell>
-                    <TableCell className={cn(MONO, "text-right")}>
+                    <TableCell className={cn(NUMERIC, "text-right")}>
                       {s.penalty === "dnf" ? (
                         <span className="text-muted-foreground">DNF</span>
                       ) : (
@@ -181,7 +181,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
             <ul className="flex flex-col">
               {d.sessions.map((s) => (
                 <li key={s.id} className="flex h-11 items-center gap-3 border-b text-sm last:border-0">
-                  <span className={cn(MONO, "w-24 shrink-0 text-xs text-muted-foreground")}>{s.id}</span>
+                  <span className={cn(NUMERIC, "w-24 shrink-0 text-xs text-muted-foreground")}>{s.id}</span>
                   <span className="min-w-0 flex-1 truncate">used {ago(s.lastUsedAt ?? s.createdAt, now)}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">until {date(s.expiresAt)}</span>
                 </li>
@@ -198,7 +198,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
               {d.ips.map((ip) => (
                 <li key={ip.ip} className="flex h-11 items-center gap-3 border-b text-sm last:border-0">
                   <IpLink ip={ip.ip} className="min-w-0 flex-1" />
-                  <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>
+                  <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>
                     {num(ip.days)} d · last {ip.lastDay.slice(5)}
                   </span>
                 </li>
@@ -220,7 +220,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
                   <span className="min-w-0 flex-1 truncate">
                     vs <UserLink id={duel.opponentId} name={duel.opponent} />
                   </span>
-                  <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>
+                  <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>
                     {fmtTime(duel.ao5)} / {fmtTime(duel.opponentAo5)}
                   </span>
                 </li>
@@ -242,13 +242,13 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
             <TableBody>
               {d.recentRequests.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className={cn(MONO, "w-36 text-xs text-muted-foreground")}>{when(r.at, true)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "w-36 text-xs text-muted-foreground")}>{when(r.at, true)}</TableCell>
                   <TableCell className="w-14">
                     <Status status={r.status} />
                   </TableCell>
                   <TableCell className="max-w-0 truncate">
-                    <span className={cn(MONO, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
-                    <span className={MONO}>{r.path}</span>
+                    <span className={cn(NUMERIC, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
+                    <span className={NUMERIC}>{r.path}</span>
                   </TableCell>
                   <TableCell className="w-28 max-sm:hidden">
                     <Kind kind={r.kind} important={r.important} />
@@ -336,7 +336,7 @@ function Delete({ id, username }: { id: string; username: string }) {
         </AlertDialogHeader>
         <Field>
           <FieldLabel htmlFor="delete-confirm">
-            Type <span className={cn(MONO, "font-semibold")}>{username}</span> to confirm
+            Type <span className={cn(NUMERIC, "font-semibold")}>{username}</span> to confirm
           </FieldLabel>
           <Input id="delete-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} data-action="user:delete:confirm" />
           {error && <FieldDescription className="text-destructive">{error}</FieldDescription>}

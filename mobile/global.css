@@ -16,7 +16,6 @@
  */
 @theme inline {
     --font-sans: Geist;
-    --font-mono: GeistMono;
     --font-heading: Geist;
     --color-background: var(--background);
     --color-foreground: var(--foreground);

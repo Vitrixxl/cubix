@@ -12,9 +12,9 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { useEffect, useState } from "react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Figure, MONO } from "../base";
+import { Figure, NUMERIC } from "../base";
 
-export { Avatar, MONO, SectionHead } from "../base";
+export { Avatar, NUMERIC, SectionHead } from "../base";
 
 /* Formats. Every time is in ms since the epoch; days are UTC. */
 export const num = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("en-US"));
@@ -82,7 +82,7 @@ export function useNow() {
   return now;
 }
 
-/** A key figure: the label, the value in mono, one quiet line under it (a breakdown or the change since yesterday). */
+/** A key figure: the label, the value in Geist, one quiet line under it (a breakdown or the change since yesterday). */
 export function Kpi({ label, value, sub, delta, invert = false, className }: { label: string; value: React.ReactNode; sub?: React.ReactNode; delta?: number | null; invert?: boolean; className?: string }) {
   return (
     <Figure
@@ -104,11 +104,11 @@ export function Kpi({ label, value, sub, delta, invert = false, className }: { l
 }
 /** The change since yesterday: an arrow and the difference, red only when it goes the wrong way. */
 export function Delta({ value, invert = false }: { value: number; invert?: boolean }) {
-  if (!value) return <span className={cn(MONO, "text-muted-foreground")}>±0</span>;
+  if (!value) return <span className={cn(NUMERIC, "text-muted-foreground")}>±0</span>;
   const bad = invert ? value > 0 : value < 0;
   const I = value > 0 ? ArrowUp : ArrowDown;
   return (
-    <span className={cn(MONO, "inline-flex items-center gap-0.5", bad ? "text-destructive" : "text-foreground/80")}>
+    <span className={cn(NUMERIC, "inline-flex items-center gap-0.5", bad ? "text-destructive" : "text-foreground/80")}>
       <I className="size-3" />
       {num(Math.abs(value))}
     </span>
@@ -121,7 +121,7 @@ export function Status({ status }: { status: number }) {
     <Badge
       variant="outline"
       className={cn(
-        MONO,
+        NUMERIC,
         "rounded-sm border-transparent px-1.5",
         status >= 500 ? "bg-destructive/15 text-destructive" : status >= 400 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground",
       )}
@@ -173,7 +173,7 @@ export function UserLink({ id, name, guest }: { id: string | null; name: string 
 }
 export function IpLink({ ip, className }: { ip: string; className?: string }) {
   return (
-    <Link to={ipPath(ip)} title={`Requests from ${ip}`} className={cn(MONO, className)}>
+    <Link to={ipPath(ip)} title={`Requests from ${ip}`} className={cn(NUMERIC, className)}>
       {ip}
     </Link>
   );
@@ -231,7 +231,7 @@ export function Pager({ page, limit, total, params }: { page: number; limit: num
   };
   return (
     <div className="flex shrink-0 items-center justify-between gap-3 pt-3">
-      <span className={cn(MONO, "text-xs text-muted-foreground")}>
+      <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
         {num(first)}–{num(last)} of {num(total)}
       </span>
       <Pagination className="mx-0 w-auto">
@@ -240,7 +240,7 @@ export function Pager({ page, limit, total, params }: { page: number; limit: num
             <PaginationPrevious href={link(Math.max(0, page - 1))} onClick={go(page - 1)} aria-disabled={page <= 0} className={cn(page <= 0 && "pointer-events-none opacity-40")} />
           </PaginationItem>
           <PaginationItem>
-            <span className={cn(MONO, "px-2 text-xs text-muted-foreground")}>
+            <span className={cn(NUMERIC, "px-2 text-xs text-muted-foreground")}>
               {page + 1} / {pages}
             </span>
           </PaginationItem>
@@ -340,7 +340,7 @@ export function Choose({ value, options, onChange, label, action, className }: {
 }
 
 /** A text filter: applied a moment after typing stops, cleared with its ×. */
-export function FilterInput({ value, onCommit, placeholder, icon, className, action, mono = false }: { value: string; onCommit: (value: string) => void; placeholder: string; icon?: React.ReactNode; className?: string; action?: string; mono?: boolean }) {
+export function FilterInput({ value, onCommit, placeholder, icon, className, action, numeric = false }: { value: string; onCommit: (value: string) => void; placeholder: string; icon?: React.ReactNode; className?: string; action?: string; numeric?: boolean }) {
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
   useEffect(() => {
@@ -351,7 +351,7 @@ export function FilterInput({ value, onCommit, placeholder, icon, className, act
   return (
     <InputGroup className={className}>
       {icon && <InputGroupAddon>{icon}</InputGroupAddon>}
-      <InputGroupInput value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label={placeholder} data-action={action} className={cn(mono && text && MONO)} spellCheck={false} />
+      <InputGroupInput value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label={placeholder} data-action={action} className={cn(numeric && text && NUMERIC)} spellCheck={false} />
       {text && (
         <InputGroupAddon align="inline-end">
           <InputGroupButton

@@ -8,7 +8,7 @@ import { cubeViewRadius } from "../../../src/shared/cubeScene";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { Choice, Mono } from "./layout";
+import { Choice, Numeric } from "./layout";
 import { Sheet } from "./Sheet";
 
 /**
@@ -82,11 +82,11 @@ function Words({ words, size, current, onMove }: { words: ReturnType<typeof read
   return <View className="min-w-0 flex-row flex-wrap" style={{ columnGap: size * 0.4, rowGap: size * 0.25 }}>
     {words.map((word, i) => <View key={i} className="flex-row">
       {word.map((part, j) => part.move === undefined
-        ? <Text key={j} className="font-mono font-medium text-muted-foreground" style={style}>{part.text}</Text>
+        ? <Text key={j} className="font-sans font-medium text-muted-foreground" style={style}>{part.text}</Text>
         : <Pressable key={j} disabled={!onMove} onPress={() => onMove?.(part.move!)} accessibilityRole="button" accessibilityLabel={`Move ${part.text}`}
           accessibilityState={{ selected: part.move === current }} hitSlop={4}
           className={cn("rounded-[4px] px-[2px]", part.move === current && "bg-primary/15")}>
-          <Text className={cn("font-mono font-medium tracking-tight", part.move === current && "text-primary")} style={style}>{part.text}</Text>
+          <Text className={cn("font-sans font-medium tracking-tight", part.move === current && "text-primary")} style={style}>{part.text}</Text>
         </Pressable>)}
     </View>)}
   </View>;
@@ -108,12 +108,12 @@ export function PlayerControls({ player }: { player: AlgPlayer }) {
       {button(p.playing ? "Pause" : ended ? "Play again" : "Play", p.playing ? Pause : ended ? RotateCcw : Play, player.toggle, false, true)}
       {button("Next move", StepForward, player.stepForward, p.target >= total)}
       <Pressable accessibilityRole="button" accessibilityLabel={`Speed ${speedLabel(p.speed)}`} onPress={player.cycleSpeed} className="h-11 min-w-11 items-center justify-center rounded-lg px-2 active:bg-muted/60">
-        <Mono className="text-sm text-muted-foreground">{speedLabel(p.speed)}</Mono>
+        <Numeric className="text-sm text-muted-foreground">{speedLabel(p.speed)}</Numeric>
       </Pressable>
     </View>
     <View className="flex-row items-center gap-3">
       <Scrubber value={p.position} total={total} onSeek={(at, settle) => player.seek(at, settle)} />
-      <Mono className="w-12 text-right text-xs text-muted-foreground">{Math.floor(Math.round(p.position * 10) / 10)} / {total}</Mono>
+      <Numeric className="w-12 text-right text-xs text-muted-foreground">{Math.floor(Math.round(p.position * 10) / 10)} / {total}</Numeric>
     </View>
   </View>;
 }
@@ -177,12 +177,12 @@ function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: P
   return <>
     <View className="flex-row items-center gap-1">
       <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-        <Text numberOfLines={1} accessibilityRole="header" className="shrink font-mono text-lg font-semibold tracking-tight">{item.name}</Text>
+        <Text numberOfLines={1} accessibilityRole="header" className="shrink font-sans text-lg font-semibold tracking-tight">{item.name}</Text>
         <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{item.detail ?? item.context}</Text>
       </View>
       {count > 1 && <>
         {step("Previous algorithm", ChevronLeft, index - 1)}
-        <Mono className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {count}</Mono>
+        <Numeric className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {count}</Numeric>
         {step("Next algorithm", ChevronRight, index + 1)}
       </>}
     </View>

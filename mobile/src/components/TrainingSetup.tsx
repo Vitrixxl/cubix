@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import type { useDailyLearning } from "../hooks/useDailyLearning";
 import { casesAtom, crossMovesAtom, learnedCaseIdsAtom, puzzleAtom, routeAtom, selectedCaseIdsAtom, setsAtom, trainingKindAtom, trainingSetupModeAtom } from "../state";
 import { CaseSelector } from "./CaseSelector";
-import { BackButton, Figure, Mono, Page, PageHead, SearchField, Surface } from "./layout";
+import { BackButton, Figure, Numeric, Page, PageHead, SearchField, Surface } from "./layout";
 import { SessionButton } from "./PuzzlePicker";
 import { useBackTo } from "./Practice";
 
@@ -106,7 +106,7 @@ function CrossSetup({ onStart }: { onStart: () => void }) {
           const on = moves === n;
           return <Pressable key={n} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${n} moves`} onPress={() => setMoves(n)}
             className={cn("flex-1 gap-1 rounded-lg px-4 py-3", on ? "bg-primary/15" : "bg-muted/40 active:bg-muted")}>
-            <Mono className={cn("text-3xl font-medium", on && "text-primary")}>{n}</Mono>
+            <Numeric className={cn("text-3xl font-medium", on && "text-primary")}>{n}</Numeric>
             <Text className="text-xs text-muted-foreground">moves</Text>
           </Pressable>;
         })}

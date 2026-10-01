@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
 import { CaseDiagram } from "./CaseDiagram";
-import { Mono } from "./layout";
+import { Numeric } from "./layout";
 
 /** Open sets survive leaving the setup screen, per catalogue. */
 const selectorExpansion = new Map<string, Record<string, boolean>>();
@@ -78,7 +78,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
               <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
               <Text numberOfLines={1} className="w-10 text-xs font-medium text-muted-foreground">{row.set.stage}</Text>
               <Text numberOfLines={1} className="shrink text-sm font-medium">{row.set.label}</Text>
-              <Mono className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Mono>
+              <Numeric className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Numeric>
             </Pressable>
             <Button variant="ghost" size="sm" className="h-10 px-2.5" onPress={() => all ? onChange(selected.filter(id => !row.ids.includes(id))) : toggle(row.ids.filter(id => !sel.has(id)))}>
               <Text className="text-xs text-muted-foreground">{all ? "Unselect all" : "Select all"}</Text>
@@ -88,7 +88,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
         if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={`Select the ${row.group} cases`} onPress={() => toggle(row.ids)}
           className="mt-2 h-8 flex-row items-center gap-2 self-start rounded-md px-1 active:bg-muted/50">
           <Text numberOfLines={1} className="text-xs font-medium text-muted-foreground">{row.group}</Text>
-          <Mono className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Mono>
+          <Numeric className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Numeric>
         </Pressable>;
         return <View className={cn("flex-row", row.end ? "pb-3" : "pb-1")} style={{ gap: TILE_GAP }}>
           {row.cases.map(c => <Tile key={c.id} c={c} width={tileWidth} on={sel.has(c.id)} onPress={() => toggle([c.id])} onLongPress={() => onOpenCase?.(c.id)} />)}

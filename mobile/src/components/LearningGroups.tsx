@@ -106,7 +106,7 @@ export function LearningGroups({ groups, disabled = false, onReorder }: {
           transform: [{ translateY: active ? translateY : shift * ROW_HEIGHT }],
         }}>
           <View className={active ? "flex-1 flex-row items-center gap-2.5 rounded-lg border border-primary bg-accent pl-3.5 pr-1.5" : "flex-1 flex-row items-center gap-2.5 rounded-lg border border-transparent bg-muted/50 pl-3.5 pr-1.5"}>
-            <Text className="w-7 font-mono text-[13px] text-muted-foreground">{position + 1}.</Text>
+            <Text className="w-7 font-sans text-[13px] text-muted-foreground">{position + 1}.</Text>
             <Text numberOfLines={2} className="flex-1 font-sans text-sm text-foreground">{group}</Text>
             <GroupHandle group={group} position={position} count={groups.length} disabled={disabled}
               start={y => start(index, y)} move={move} finish={finish} adjust={direction => accessibleMove(index, direction)} />

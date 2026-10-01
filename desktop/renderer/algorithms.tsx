@@ -7,7 +7,7 @@ import { store as s, matches } from "./store";
 import { TouchAction, TouchBar } from "./phone";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, MONO, MenuAction, PAGE, PageHead, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, NUMERIC, MenuAction, PAGE, PageHead, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
 import { Badge } from "@/components/ui/badge";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
@@ -162,7 +162,7 @@ function CaseList({ wide }: { wide: boolean }) {
                 >
                   {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                   <span className="truncate">{group}</span>
-                  <span className={cn(MONO, "text-xs font-normal text-muted-foreground")}>{members.length}</span>
+                  <span className={cn(NUMERIC, "text-xs font-normal text-muted-foreground")}>{members.length}</span>
                 </button>
                 <Button action={"train:" + key} icon={Timer} size="xs" className={cn("text-muted-foreground", !wide && "opacity-0 group-hover/head:opacity-100 focus-visible:opacity-100")}>
                   Train
@@ -196,7 +196,7 @@ function CaseRow({ c, touch = false, detail }: { c: any; touch?: boolean; detail
           <span className="truncate text-sm font-medium">{shortId(c)}</span>
           {(detail ?? (c.name !== c.id && c.name)) && <span className="truncate text-xs text-muted-foreground">{detail ?? c.name}</span>}
         </span>
-        <span className={cn(MONO, "text-sm", st ? "text-foreground/80" : "text-muted-foreground/50")}>{st ? fmtTime(st.best) : "–"}</span>
+        <span className={cn(NUMERIC, "text-sm", st ? "text-foreground/80" : "text-muted-foreground/50")}>{st ? fmtTime(st.best) : "–"}</span>
       </button>
       <LearnedMark id={c.id} learned={learned} touch={touch} />
     </div>
@@ -246,7 +246,7 @@ function SetSummary() {
                 >
                   <span className="w-40 truncate text-sm font-medium">{group}</span>
                   <Bar ratio={learned / members.length} className="max-w-48 flex-1" />
-                  <span className={cn(MONO, "text-xs text-muted-foreground")}>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                     {learned} / {members.length}
                   </span>
                 </button>
@@ -269,7 +269,7 @@ function CaseStepper({ index, count, touch = false }: { index: number; count: nu
   return (
     <div className="flex shrink-0 items-center gap-1">
       <Button action="caseStep:previous" icon={ChevronLeft} size="icon-sm" disabled={index === 0} tip="Previous case (←)" className={touch ? "size-10" : undefined} />
-      <span className={cn(MONO, "text-center text-xs text-muted-foreground", touch ? "min-w-10" : "min-w-12")}>
+      <span className={cn(NUMERIC, "text-center text-xs text-muted-foreground", touch ? "min-w-10" : "min-w-12")}>
         {index + 1} / {count}
       </span>
       <Button action="caseStep:next" icon={ChevronRight} size="icon-sm" disabled={index === count - 1} tip="Next case (→)" className={touch ? "size-10" : undefined} />
@@ -346,11 +346,11 @@ function CaseDetail() {
         <h3 className={cn(LABEL, "pb-1")}>Algorithms</h3>
         {c.algorithms.map((a: any, i: number) => (
           <div key={i} className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1">
-            <span className={cn(MONO, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
+            <span className={cn(NUMERIC, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
             <Alg text={displayAlg(a)} size={16} className="flex-1" />
             <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
               {i === 0 && <Badge variant="secondary" className="rounded-md text-primary">Primary</Badge>}
-              {a.stm != null && <span className={MONO}>{a.stm} STM</span>}
+              {a.stm != null && <span className={NUMERIC}>{a.stm} STM</span>}
               <span>{SOURCES[a.source] ?? a.source}</span>
               {a.youtube && <Button action={"url:" + a.youtube} icon={PlayCircle} size="icon-xs" tip="Watch the video" />}
             </span>

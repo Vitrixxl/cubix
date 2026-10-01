@@ -9,7 +9,7 @@ import { fmtSolve, fmtTime } from "../../src/client/lib/format";
 import { eventInfo, eventLabel, heldScramble } from "../../src/shared/puzzles";
 import { Ban, Plus, Send, Swords, Trophy, X, MessageSquare, Box, Undo2 } from "lucide-react";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
-import { ActionToggle, Alg, Button, Figure, FADE, LABEL, MONO, MenuAction, PAGE, PageHead, SectionHead, Surface, isPhone, useViewport } from "./ui";
+import { ActionToggle, Alg, Button, Figure, FADE, LABEL, NUMERIC, MenuAction, PAGE, PageHead, SectionHead, Surface, isPhone, useViewport } from "./ui";
 import { LiveDigits } from "./practice";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -148,7 +148,7 @@ function Side({ name, level, tag, rest, startedAt, phase, hint, mine, className,
     <section className={cn("duel-side flex min-h-0 min-w-0 touch-manipulation flex-col items-center justify-center gap-3 select-none [container-type:size] md:gap-5", mine ? "mine" : "theirs", phase, className)} {...handlers}>
       <header className={cn("flex items-center gap-2 text-sm", FADE)}>
         <strong className="font-medium">{name}</strong>
-        {level ? <span className={cn(MONO, "text-muted-foreground")}>{fmtTime(level)}</span> : null}
+        {level ? <span className={cn(NUMERIC, "text-muted-foreground")}>{fmtTime(level)}</span> : null}
         <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium", mine ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>{tag}</span>
       </header>
       <LiveDigits text={rest} startedAt={startedAt} phase={phase} className={cn("text-[clamp(40px,min(calc(170cqw/var(--chars)),40cqh),168px)]", !mine && phase === "idle" && "text-foreground/70")} />
@@ -369,7 +369,7 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
                 <span
                   key={r}
                   className={cn(
-                    MONO,
+                    NUMERIC,
                     "flex h-8 items-center justify-center rounded-md text-sm",
                     r === round && !duel.over && "bg-muted",
                     v?.penalty === "dnf" && "text-destructive",
@@ -381,7 +381,7 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
                 </span>
               );
             })}
-            <span className={cn(MONO, "flex h-8 items-center justify-center text-sm font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>
+            <span className={cn(NUMERIC, "flex h-8 items-center justify-center text-sm font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>
               {raceAverage(own) || "–"}
             </span>
             {actions &&
@@ -495,7 +495,7 @@ function Result() {
           ].map(([name, value, won], i) => (
             <div key={i} className="flex flex-col gap-1">
               <span className={LABEL}>{name as string}</span>
-              <span className={cn(MONO, "text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{raceAverage(value as number | null) || "–"}</span>
+              <span className={cn(NUMERIC, "text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{raceAverage(value as number | null) || "–"}</span>
             </div>
           ))}
         </div>

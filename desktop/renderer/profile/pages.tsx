@@ -4,7 +4,7 @@ import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
 import { fmtSolve, fmtTime, plural, shortDate } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
-import { Bar, Choice, Diagram, Empty, Figure, Icon, MONO, PuzzleButton, SelectMenu, run } from "../ui";
+import { Bar, Choice, Diagram, Empty, Figure, Icon, NUMERIC, PuzzleButton, SelectMenu, run } from "../ui";
 import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -66,7 +66,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
               >
                 {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                 {set.label}
-                <span className={cn(MONO, "text-xs font-normal text-muted-foreground")}>
+                <span className={cn(NUMERIC, "text-xs font-normal text-muted-foreground")}>
                   {done} / {chosen.length} trained
                 </span>
               </button>
@@ -87,7 +87,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
                       >
                         <Diagram c={c} size={64} />
                         <span className="max-w-full truncate text-xs font-medium">{shortId(c)}</span>
-                        <span className={cn(MONO, "text-xs", st ? (s.learned.has(c.id) ? "text-primary" : "text-foreground") : "text-muted-foreground")}>
+                        <span className={cn(NUMERIC, "text-xs", st ? (s.learned.has(c.id) ? "text-primary" : "text-foreground") : "text-muted-foreground")}>
                           {st ? fmtTime(st.summary.best) : "–"}
                         </span>
                       </button>
@@ -133,7 +133,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
             />
             <div className="ml-auto flex w-48 items-center gap-3 max-md:hidden">
               <Bar ratio={total ? unlocked / total : 0} className="h-1.5 flex-1" />
-              <span className={cn(MONO, "text-xs text-muted-foreground")}>{Math.round((total ? unlocked / total : 0) * 100)}%</span>
+              <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{Math.round((total ? unlocked / total : 0) * 100)}%</span>
             </div>
           </>
         }
@@ -150,7 +150,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
                 <div className="flex h-10 items-center gap-2">
                   {members[0].puzzle && <Icon name={"Puzzle" + members[0].puzzle} size={16} className="text-muted-foreground" />}
                   <h2 className="text-sm font-semibold">{group}</h2>
-                  <span className={cn(MONO, "text-xs text-muted-foreground")}>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                     {members.filter((a) => a.unlocked).length} / {members.length}
                   </span>
                 </div>
@@ -161,7 +161,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <div className="flex items-baseline justify-between gap-3">
                           <span className={cn("truncate text-sm font-medium", !a.unlocked && "text-foreground/80")}>{a.title}</span>
-                          <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>{a.unlockedAt ? shortDate(a.unlockedAt) : a.detail}</span>
+                          <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{a.unlockedAt ? shortDate(a.unlockedAt) : a.detail}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">{a.description}</p>
                         {!a.unlocked && (
@@ -231,11 +231,11 @@ export function BattlesPage({ phone }: { phone: boolean }) {
                         <span className="truncate text-xs text-muted-foreground">{phone ? shortDate(b.at) : battleEvent(b)}</span>
                       </div>
                     </TableCell>
-                    <TableCell className={cn(MONO, b.result === "win" && "text-success")}>{ao5Text(b.ao5[0])}</TableCell>
-                    <TableCell className={cn(MONO, b.result === "loss" && "text-success")}>{ao5Text(b.ao5[1])}</TableCell>
+                    <TableCell className={cn(NUMERIC, b.result === "win" && "text-success")}>{ao5Text(b.ao5[0])}</TableCell>
+                    <TableCell className={cn(NUMERIC, b.result === "loss" && "text-success")}>{ao5Text(b.ao5[1])}</TableCell>
                     {!phone && (
                       <TableCell>
-                        <div className={cn(MONO, "grid grid-cols-5 gap-x-4 text-xs")}>
+                        <div className={cn(NUMERIC, "grid grid-cols-5 gap-x-4 text-xs")}>
                           {[...Array(ROUNDS).keys()].map((r) => (
                             <span key={r} className="flex flex-col">
                               <span>{b.mine[r] ? fmtSolve(b.mine[r]!.ms, b.mine[r]!.penalty) : "–"}</span>

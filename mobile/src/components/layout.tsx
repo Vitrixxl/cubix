@@ -17,14 +17,14 @@ export type { Tone };
  * (title, subtitle, controls, "…" menu), surfaces, figures, and the rows of large touch targets at the bottom of a stage.
  */
 
-/** Figures and moves: Geist Mono with even digits. */
-export function Mono({ className, ...props }: React.ComponentProps<typeof Text>) {
-  return <Text className={cn("font-mono tabular-nums", className)} {...props} />;
+/** Figures and moves: Geist with even digits. */
+export function Numeric({ className, ...props }: React.ComponentProps<typeof Text>) {
+  return <Text className={cn("font-sans tabular-nums", className)} {...props} />;
 }
 
 /** A quiet caption over a value or a block (`LABEL`). */
 export function Label({ className, ...props }: React.ComponentProps<typeof Text>) {
-  return <Text className={cn("font-mono text-xs font-medium text-muted-foreground", className)} {...props} />;
+  return <Text className={cn("font-sans text-xs font-medium text-muted-foreground", className)} {...props} />;
 }
 
 /** A screen: the page padding and the gap between its head and its content. */
@@ -46,7 +46,7 @@ export function PageHead({ title, sub, lead, children, className }: { title: Rea
       {lead}
       {/* One line: the title, then its subtitle on the same baseline, cut short where the row runs out. */}
       <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-        <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-mono text-xl font-semibold tracking-tight">{title}</Text>
+        <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-sans text-xl font-semibold tracking-tight">{title}</Text>
         {sub ? <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{sub}</Text> : null}
       </View>
     </View>
@@ -85,7 +85,7 @@ export function Figure({ label, value, tone = "", size = "base", className }: { 
   const empty = typeof value === "string" && /^[-–—]$/.test(value.trim());
   return <View className={cn("min-w-0 gap-1", className)}>
     <Label numberOfLines={1}>{label}</Label>
-    <Mono numberOfLines={1} className={cn("font-medium tracking-tight", FIGURE[size], empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Mono>
+    <Numeric numberOfLines={1} className={cn("font-medium tracking-tight", FIGURE[size], empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Numeric>
   </View>;
 }
 
@@ -104,11 +104,11 @@ export function Bar({ ratio, done = true, className }: { ratio: number; done?: b
   </View>;
 }
 
-/** Moves in Geist Mono, wrapping between moves only; brackets and rotations in parentheses are muted. */
+/** Moves in Geist, wrapping between moves only; brackets and rotations in parentheses are muted. */
 export function Alg({ text, size = 18, className, selectable }: { text: string; size?: number; className?: string; selectable?: boolean }) {
   const words = (text ?? "").trim().split(/\s+/).filter(Boolean);
   return <View className={cn("min-w-0 flex-row flex-wrap", className)} style={{ columnGap: size * 0.5, rowGap: size * 0.3 }}>
-    {words.map((word, i) => <Text key={i} selectable={selectable} className={cn("font-mono font-medium tracking-tight", /[()[\]]/.test(word) && "text-muted-foreground")}
+    {words.map((word, i) => <Text key={i} selectable={selectable} className={cn("font-sans font-medium tracking-tight", /[()[\]]/.test(word) && "text-muted-foreground")}
       style={{ fontSize: size, lineHeight: Math.round(size * 1.3) }}>{word.replace(/ /g, " ")}</Text>)}
   </View>;
 }
@@ -145,7 +145,7 @@ export function Fade({ hidden, children, className, style }: { hidden: boolean; 
   return <Animated.View pointerEvents={hidden ? "none" : "box-none"} className={className} style={[style, { opacity }]}>{children}</Animated.View>;
 }
 
-/** Small toggles in a row (a set, a filter), the chosen one filled; `count` in muted mono after the label. */
+/** Small toggles in a row (a set, a filter), the chosen one filled; `count` in muted text after the label. */
 export function Choice<T extends string>({ value, options, onChange, label, className }: { value: T; options: { id: T; label: string; count?: number }[]; onChange: (id: T) => void; label: string; className?: string }) {
   return <View accessibilityRole="radiogroup" accessibilityLabel={label} className={cn("flex-row flex-wrap gap-1", className)}>
     {options.map(o => {
@@ -153,7 +153,7 @@ export function Choice<T extends string>({ value, options, onChange, label, clas
       return <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => onChange(o.id)}
         className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-2.5", on ? "bg-muted" : "active:bg-muted/50")}>
         <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
-        {o.count !== undefined ? <Mono className="text-xs text-muted-foreground">{o.count}</Mono> : null}
+        {o.count !== undefined ? <Numeric className="text-xs text-muted-foreground">{o.count}</Numeric> : null}
       </Pressable>;
     })}
   </View>;

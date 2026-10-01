@@ -3,7 +3,7 @@ import { BookOpen, CalendarDays, Gauge, Layers, MessageSquare, Swords, Timer, Tr
 import { store as s } from "../store";
 import { fmtTime, plural, shortDate, solvedAt } from "../../../src/client/lib/format";
 import { timerFigures } from "../../../src/client/lib/practiceSummary";
-import { Bar, Figure, MONO, SolveMenu, run } from "../ui";
+import { Bar, Figure, NUMERIC, SolveMenu, run } from "../ui";
 import { RESULT_MARK, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,13 +32,13 @@ export function LatestSolves({ history, averages, count = 5, phone = false }: { 
               onClick={run("solve:" + v.id)}
               className={cn("grid h-9 w-full items-center gap-3 rounded-md px-2 text-left outline-none hover:bg-muted/60 focus-visible:bg-muted/60", columns)}
             >
-              <span className={cn(MONO, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
+              <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
               <span className="flex items-center gap-1.5">
-                <span className={cn(MONO, "text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</span>
-                {v.penalty === "+2" && <span className={cn(MONO, "text-xs text-warning")}>+2</span>}
+                <span className={cn(NUMERIC, "text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</span>
+                {v.penalty === "+2" && <span className={cn(NUMERIC, "text-xs text-warning")}>+2</span>}
                 {pb && <span className="text-xs font-medium text-success">PB</span>}
               </span>
-              {!phone && <span className={cn(MONO, "text-xs text-muted-foreground")}>{averages[index] != null ? `Ao5 ${fmtTime(averages[index])}` : ""}</span>}
+              {!phone && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{averages[index] != null ? `Ao5 ${fmtTime(averages[index])}` : ""}</span>}
               <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                 {v.comment && (
                   <>
@@ -129,7 +129,7 @@ export function TrainingSection({ d }: { d: ProfileData }) {
               <div key={r.stage} className="col-span-3 grid grid-cols-subgrid items-center" title={`${r.learned} learned · ${r.trained} trained · ${r.total} cases`}>
                 <span className="text-sm font-medium">{r.stage}</span>
                 <TwoTone {...r} />
-                <span className={cn(MONO, "text-right text-xs whitespace-nowrap text-muted-foreground")}>
+                <span className={cn(NUMERIC, "text-right text-xs whitespace-nowrap text-muted-foreground")}>
                   <span className="text-foreground">{r.learned}</span> / {r.total}
                 </span>
               </div>
@@ -179,7 +179,7 @@ export function Goal({ a }: { a: any }) {
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex items-baseline justify-between gap-3">
           <span className="truncate text-sm font-medium">{a.title}</span>
-          <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>{Math.round(a.ratio * 100)}%</span>
+          <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{Math.round(a.ratio * 100)}%</span>
         </div>
         <Bar ratio={a.ratio} fill="bg-primary/70" className="h-1.5" />
       </div>
@@ -230,7 +230,7 @@ const RESULT_TONE = { win: "bg-success/15 text-success", loss: "bg-destructive/1
 
 export function ResultMark({ result }: { result: DuelRecord["result"] }) {
   return (
-    <span className={cn(MONO, "flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold", RESULT_TONE[result])} aria-label={result}>
+    <span className={cn(NUMERIC, "flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold", RESULT_TONE[result])} aria-label={result}>
       {RESULT_MARK[result]}
     </span>
   );
@@ -271,7 +271,7 @@ export function BattlesSection() {
                 <div key={b.id} className="flex h-9 items-center gap-3">
                   <ResultMark result={b.result} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{b.opponent}</span>
-                  <span className={cn(MONO, "text-xs whitespace-nowrap")}>
+                  <span className={cn(NUMERIC, "text-xs whitespace-nowrap")}>
                     {ao5Text(b.ao5[0])} <span className="text-muted-foreground">vs</span> {ao5Text(b.ao5[1])}
                   </span>
                   <span className="w-12 text-right text-xs text-muted-foreground">{shortDate(b.at)}</span>

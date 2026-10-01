@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { fmtTime, best, bestAverage, plural, shortDate } from "../../../src/client/lib/format";
 import { HEAT_LEVELS, heatDays, heatmap, heatYears, type ActivitySolve, type HeatCell, type HeatDay } from "../../../src/client/lib/profile";
-import { MONO } from "../ui";
+import { NUMERIC } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,7 @@ function HeatTip({ hover, day }: { hover: Hover; day: HeatDay | undefined }) {
         {cell.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
       </span>
       {times.some((t) => t != null) && (
-        <span className={cn(MONO, "text-background/70")}>
+        <span className={cn(NUMERIC, "text-background/70")}>
           Best {fmtTime(best(times))}
           {times.length >= 5 && ` · Ao5 ${fmtTime(bestAverage(times, 5))}`}
         </span>

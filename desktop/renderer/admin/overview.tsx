@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import { useAdmin, useLiveState, useMostActive, type LogRow, type Overview as Data } from "./api";
 import { DailyChart } from "./charts";
-import { ago, Failure, FiguresSkeleton, IpLink, Kpi, Link, MONO, num, SectionHead, Status, useNow, UserLink, userPath, ViewHead, when, Nothing } from "./parts";
+import { ago, Failure, FiguresSkeleton, IpLink, Kpi, Link, NUMERIC, num, SectionHead, Status, useNow, UserLink, userPath, ViewHead, when, Nothing } from "./parts";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -110,13 +110,13 @@ function RecentImportant({ live }: { live: { connected: boolean; tick: number; i
         <ul className="flex flex-col">
           {rows.map((r) => (
             <li key={r.id} className="flex h-10 items-center gap-3 border-b text-sm last:border-0">
-              <span className={cn(MONO, "w-16 shrink-0 text-xs text-muted-foreground")} title={new Date(r.at).toLocaleString()}>
+              <span className={cn(NUMERIC, "w-16 shrink-0 text-xs text-muted-foreground")} title={new Date(r.at).toLocaleString()}>
                 {when(r.at, true)}
               </span>
               <Status status={r.status} />
               <span className="min-w-0 flex-1 truncate">
-                <span className={cn(MONO, "mr-1.5 text-xs text-muted-foreground")}>{r.method}</span>
-                <span className={MONO}>{r.path}</span>
+                <span className={cn(NUMERIC, "mr-1.5 text-xs text-muted-foreground")}>{r.method}</span>
+                <span className={NUMERIC}>{r.path}</span>
               </span>
               <span className="hidden w-24 shrink-0 truncate text-right text-xs text-muted-foreground sm:block">{r.kind}</span>
               <span className="w-28 shrink-0 truncate text-right text-xs max-sm:hidden">
@@ -163,7 +163,7 @@ function MostActive({ tick }: { tick: number }) {
               <span className="min-w-0 flex-1 truncate">
                 <UserLink id={u.id} name={u.username} guest={u.isGuest} />
               </span>
-              <span className={cn(MONO, "w-24 shrink-0 text-right")}>
+              <span className={cn(NUMERIC, "w-24 shrink-0 text-right")}>
                 {num(u.solves7d)} <span className="text-xs text-muted-foreground">solves</span>
               </span>
               <span className="w-24 shrink-0 text-right text-xs text-muted-foreground max-sm:hidden">{ago(u.lastSeenAt, now)}</span>

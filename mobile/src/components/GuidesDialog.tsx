@@ -135,7 +135,7 @@ function MethodBody({ method }: { method: ReturnType<typeof useMethod>["method"]
       <Text className="text-[15px] leading-[24px] text-muted-foreground">{method.summary}</Text>
     </View>
     {method.steps.map((step, i) => <View key={step.title} className="flex-row gap-3">
-      <Text className="min-w-4 font-mono text-[15px] leading-[24px] text-muted-foreground">{i + 1}</Text>
+      <Text className="min-w-4 font-sans text-[15px] leading-[24px] text-muted-foreground">{i + 1}</Text>
       <View className="min-w-0 flex-1 gap-0.5">
         <Text className="text-[15px] font-semibold leading-[24px]">{step.title}</Text>
         <Text className="text-[15px] leading-[24px] text-muted-foreground">{step.text}</Text>

@@ -14,7 +14,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { api, local } from "../api";
 import { AchievementList, AchievementTotal } from "../components/Achievements";
-import { Empty, MenuItem, Mono, MoreMenu, Page, PageHead } from "../components/layout";
+import { Empty, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
 import {
   AchievementBadge, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, TrainingProgress, Trend, TrendLegend, TwoTone,
 } from "../components/ProfileProgress";
@@ -30,7 +30,7 @@ import {
 
 /** A battle's result as its letter, green for a win and red for a loss. */
 function BattleMark({ b }: { b: DuelRecord }) {
-  return <Mono className={cn("text-[13px] font-semibold", b.result === "win" ? "text-success" : b.result === "loss" ? "text-destructive" : "text-muted-foreground")}>{RESULT_MARK[b.result]}</Mono>;
+  return <Numeric className={cn("text-[13px] font-semibold", b.result === "win" ? "text-success" : b.result === "loss" ? "text-destructive" : "text-muted-foreground")}>{RESULT_MARK[b.result]}</Numeric>;
 }
 
 /** Every battle kept on this device: result, opponent and event, both averages, then the five rounds. */
@@ -50,12 +50,12 @@ function BattleList() {
           <Text numberOfLines={1} className="text-sm font-semibold">{b.opponent}</Text>
           <Text numberOfLines={1} className="text-xs text-muted-foreground">{`${eventInfo(b.event)?.label ?? b.event} · ${shortDate(b.at)}`}</Text>
         </View>
-        <Mono className="text-sm">{ao5Text(b.ao5[0])}<Text className="text-sm text-muted-foreground"> vs </Text>{ao5Text(b.ao5[1])}</Mono>
+        <Numeric className="text-sm">{ao5Text(b.ao5[0])}<Text className="text-sm text-muted-foreground"> vs </Text>{ao5Text(b.ao5[1])}</Numeric>
       </View>
       <View className="h-12 flex-row border-t border-border bg-muted/30">
         {[...Array(ROUNDS).keys()].map(r => <View key={r} className={cn("flex-1 items-center justify-center gap-0.5", r > 0 && "border-l border-border")}>
-          <Mono className="text-[11.5px]">{b.mine[r] ? fmtSolve(b.mine[r]!.ms, b.mine[r]!.penalty) : "–"}</Mono>
-          <Mono className="text-[11.5px] text-muted-foreground">{b.theirs[r] ? fmtSolve(b.theirs[r]!.ms, b.theirs[r]!.penalty) : "–"}</Mono>
+          <Numeric className="text-[11.5px]">{b.mine[r] ? fmtSolve(b.mine[r]!.ms, b.mine[r]!.penalty) : "–"}</Numeric>
+          <Numeric className="text-[11.5px] text-muted-foreground">{b.theirs[r] ? fmtSolve(b.theirs[r]!.ms, b.theirs[r]!.penalty) : "–"}</Numeric>
         </View>)}
       </View>
     </View>)}
@@ -84,7 +84,7 @@ type Overview = ReturnType<typeof overviewData>;
 function Fact({ icon, value, children }: { icon: LucideIcon; value: string; children: string }) {
   return <View className="flex-row items-center gap-1.5">
     <Icon as={icon} size={16} className="text-muted-foreground" />
-    <Mono className="text-sm font-medium">{value}</Mono>
+    <Numeric className="text-sm font-medium">{value}</Numeric>
     <Text className="text-sm text-muted-foreground">{children}</Text>
   </View>;
 }
@@ -125,7 +125,7 @@ function TrainingSection({ d, total, trainingSolves, onMore }: { d: Overview; to
       {d.stages.map(r => <View key={r.stage} className="flex-row items-center gap-4" accessibilityLabel={`${r.stage}: ${r.learned} learned, ${r.trained} trained, ${r.total} cases`}>
         <Text className="w-14 text-sm font-medium">{r.stage}</Text>
         <TwoTone {...r} />
-        <Mono className="w-16 text-right text-xs text-muted-foreground"><Mono className="text-xs">{r.learned}</Mono> / {r.total}</Mono>
+        <Numeric className="w-16 text-right text-xs text-muted-foreground"><Numeric className="text-xs">{r.learned}</Numeric> / {r.total}</Numeric>
       </View>)}
       <View className="flex-row items-center gap-4">
         <View className="flex-row items-center gap-1.5"><View className="size-2.5 rounded-[2px] bg-primary" /><Text className="text-xs text-muted-foreground">Learned</Text></View>
@@ -177,7 +177,7 @@ function BattlesSection({ onMore, onDuel }: { onMore: () => void; onDuel: () => 
         {list.slice(0, 3).map(b => <View key={b.id} className="h-10 flex-row items-center gap-3">
           <ResultMark b={b} />
           <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-medium">{b.opponent}</Text>
-          <Mono className="text-xs">{ao5Text(b.ao5[0])}<Text className="text-xs text-muted-foreground"> vs </Text>{ao5Text(b.ao5[1])}</Mono>
+          <Numeric className="text-xs">{ao5Text(b.ao5[0])}<Text className="text-xs text-muted-foreground"> vs </Text>{ao5Text(b.ao5[1])}</Numeric>
           <Text className="w-12 text-right text-xs text-muted-foreground">{shortDate(b.at)}</Text>
         </View>)}
       </View>
@@ -244,7 +244,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
         <View className="flex-row items-center gap-3">
           <UserAvatar user={user} size={56} />
           <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-            <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-mono text-xl font-semibold tracking-tight">{user.username}</Text>
+            <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-sans text-xl font-semibold tracking-tight">{user.username}</Text>
             <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)}</Text>
           </View>
           <View className="shrink-0 flex-row items-center gap-2">{controls}</View>

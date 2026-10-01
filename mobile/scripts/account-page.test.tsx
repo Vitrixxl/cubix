@@ -53,7 +53,7 @@ mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/tabs", () => ({ Tabs: "Tabs", TabsList: "TabsList", TabsTrigger: "TabsTrigger" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["Empty", "MenuItem", "Mono", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
+mock.module("../src/components/layout", () => Object.fromEntries(["Empty", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
 const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom } = await import("../src/state");

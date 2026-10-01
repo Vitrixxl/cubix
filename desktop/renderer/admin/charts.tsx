@@ -3,7 +3,7 @@
 import { Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-import { compact, dayLabel, MONO, num } from "./parts";
+import { compact, dayLabel, NUMERIC, num } from "./parts";
 
 export type Series = { key: string; label: string; color: string; kind?: "bar" | "line" };
 
@@ -28,7 +28,7 @@ export function DailyChart({
     <figure className={cn("flex min-w-0 flex-col gap-2", className)} data-chart-title={title}>
       <figcaption className="flex min-h-5 items-center gap-3">
         <span className="text-sm font-medium">{title}</span>
-        {total != null && <span className={cn(MONO, "text-sm text-muted-foreground")}>{total}</span>}
+        {total != null && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{total}</span>}
         {series.length > 1 && (
           <span className="ml-auto flex items-center gap-3">
             {series.map((s) => (
@@ -72,7 +72,7 @@ function TooltipRow({ value, label, color }: { value: number; label: React.React
     <div className="flex w-full items-center gap-2">
       <span className="size-2 shrink-0 rounded-[2px]" style={{ background: color }} />
       <span className="text-muted-foreground">{label}</span>
-      <span className={cn(MONO, "ml-auto pl-3 font-medium text-foreground")}>{num(value)}</span>
+      <span className={cn(NUMERIC, "ml-auto pl-3 font-medium text-foreground")}>{num(value)}</span>
     </div>
   );
 }

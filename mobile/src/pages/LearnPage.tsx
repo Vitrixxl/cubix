@@ -16,7 +16,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { CaseDiagram } from "../components/CaseDiagram";
-import { Alg, BackButton, Bar, Choice, Label, Mono, Page, PageHead, Surface } from "../components/layout";
+import { Alg, BackButton, Bar, Choice, Label, Numeric, Page, PageHead, Surface } from "../components/layout";
 import { PuzzleIcon, SessionButton } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
@@ -127,7 +127,7 @@ function LearnToggle({ item, onToggle }: { item: Item; onToggle: (item: Item) =>
   return <Pressable onPress={() => onToggle(item)} accessibilityRole="switch" accessibilityState={{ checked: item.learned }} accessibilityLabel={item.learned ? `${item.name} learned` : `Mark ${item.name} learned`}
     className={cn("h-11 flex-row items-center gap-1.5 self-start rounded-lg border px-3", item.learned ? "border-success/40 bg-success/15 active:bg-success/25" : "border-border active:bg-muted/60")}>
     <Icon as={Check} size={15} className={item.learned ? "text-success" : "text-muted-foreground"} />
-    <Text className={cn("font-mono text-sm font-medium", item.learned ? "text-success" : "text-muted-foreground")}>{item.learned ? "Learned" : "Mark learned"}</Text>
+    <Text className={cn("font-sans text-sm font-medium", item.learned ? "text-success" : "text-muted-foreground")}>{item.learned ? "Learned" : "Mark learned"}</Text>
   </Pressable>;
 }
 
@@ -233,7 +233,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
     </View> : null}
     {count.total > 0 && <View className="gap-2 pt-1">
       <View className="flex-row items-center justify-between gap-3">
-        <Label>Algorithms <Mono className="text-xs text-muted-foreground">{count.learned} / {count.total} learned</Mono></Label>
+        <Label>Algorithms <Numeric className="text-xs text-muted-foreground">{count.learned} / {count.total} learned</Numeric></Label>
         <Pressable accessibilityRole="button" accessibilityLabel="Notation" onPress={() => openNotation(true)} className="-mr-2 h-9 flex-row items-center gap-1 rounded-md px-2 active:bg-muted/50">
           <Icon as={BookA} size={14} className="text-muted-foreground" />
           <Text className="text-xs text-muted-foreground">Notation</Text>
@@ -250,8 +250,8 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
         className="min-h-14 flex-row items-center gap-3 border-b border-border px-4 active:bg-muted/50">
         <StatusMark done={finished || done} current={!finished && !done} />
         <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-          <Text numberOfLines={1} className="min-w-0 flex-1 font-mono text-[15px] font-medium">{finished ? `${method.name} done` : step.title}</Text>
-          <Text className="font-mono text-xs text-muted-foreground">{finished ? method.steps.length : entry.step + 1} / {method.steps.length}</Text>
+          <Text numberOfLines={1} className="min-w-0 flex-1 font-sans text-[15px] font-medium">{finished ? `${method.name} done` : step.title}</Text>
+          <Text className="font-sans text-xs text-muted-foreground">{finished ? method.steps.length : entry.step + 1} / {method.steps.length}</Text>
         </View>
         <Icon as={ChevronsUpDown} size={16} className="text-muted-foreground" />
       </Pressable>
@@ -280,7 +280,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
             </Pressable>
             : <Pressable accessibilityRole="button" accessibilityLabel={`Next step: ${next!.title}`} onPress={() => setProgress(completeStep(progress, puzzle, method.id, entry.step))}
               className="h-12 min-w-0 flex-1 flex-row items-center gap-2 rounded-lg bg-primary pr-2 pl-3 active:bg-primary/85">
-              <Text numberOfLines={1} className="min-w-0 flex-1 font-mono text-sm font-semibold text-primary-foreground">Next · {next!.title}</Text>
+              <Text numberOfLines={1} className="min-w-0 flex-1 font-sans text-sm font-semibold text-primary-foreground">Next · {next!.title}</Text>
               <Icon as={ChevronRight} size={18} className="text-primary-foreground" />
             </Pressable>}
         </View>

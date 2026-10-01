@@ -16,7 +16,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { deletedSolveIdAtom, statsVersionAtom, updatedSolveAtom } from "../state";
-import { Alg, Mono, TouchAction, TouchBar } from "./layout";
+import { Alg, Numeric, TouchAction, TouchBar } from "./layout";
 import { Sheet, SheetInput } from "./Sheet";
 
 /** Notes are capped like the server does; the field simply stops accepting text there. */
@@ -89,7 +89,7 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
     {children}
     <Sheet open={detail !== null} onClose={() => setDetail(null)} title="Solve" description={shown ? fmtDate(shown.created_at) : undefined}>
       {shown && <View className="gap-4">
-        <Mono className={cn("text-center text-5xl font-semibold tracking-tight", shown.penalty === "dnf" && "text-destructive", shown.penalty === "+2" && "text-warning")}>{fmtSolve(shown.time_ms, shown.penalty)}</Mono>
+        <Numeric className={cn("text-center text-5xl font-semibold tracking-tight", shown.penalty === "dnf" && "text-destructive", shown.penalty === "+2" && "text-warning")}>{fmtSolve(shown.time_ms, shown.penalty)}</Numeric>
         {shown.scramble ? <View className="items-center"><Alg text={shown.scramble} size={16} selectable className="justify-center" /></View> : null}
         {shown.comment ? <Text selectable className="text-center text-sm">{shown.comment}</Text> : null}
         <TouchBar className="rounded-xl bg-muted/40 p-1">
@@ -131,7 +131,7 @@ export function SolveMenu({ solve, children, className, rootClassName, onPress, 
   return <ContextMenu relativeTo="longPress" className={rootClassName} onOpenChange={open => { if (open) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); }}>
     <ContextMenuTrigger delayLongPress={350} onPress={onPress ?? (() => openSolve(current))} className={className} {...props}>{children}</ContextMenuTrigger>
     <ContextMenuContent className="min-w-60" insets={{ top: insets.top + 8, bottom: insets.bottom + 8, left: 12, right: 12 }}>
-      <ContextMenuLabel><Mono className={cn("text-base font-semibold", current.penalty === "dnf" && "text-destructive")}>{fmtSolve(current.time_ms, current.penalty)}</Mono></ContextMenuLabel>
+      <ContextMenuLabel><Numeric className={cn("text-base font-semibold", current.penalty === "dnf" && "text-destructive")}>{fmtSolve(current.time_ms, current.penalty)}</Numeric></ContextMenuLabel>
       <ContextMenuRadioGroup value={current.penalty} onValueChange={value => void setPenalty(current, value as Penalty)}>
         <ContextMenuRadioItem value="none" className="min-h-11"><Text>No penalty</Text></ContextMenuRadioItem>
         <ContextMenuRadioItem value="+2" className="min-h-11"><Text>+2</Text></ContextMenuRadioItem>

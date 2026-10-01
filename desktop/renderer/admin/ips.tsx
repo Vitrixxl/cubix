@@ -1,7 +1,7 @@
 /** The addresses the app was used from over a period: counts, first and last seen, the accounts seen from each; a row
  * opens its requests. */
 import { navigate, useAdmin, useRoute, withParams, type Ips as Data } from "./api";
-import { ago, Failure, FilterInput, Kpi, MONO, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, UserLink, ViewHead, when, ipPath } from "./parts";
+import { ago, Failure, FilterInput, Kpi, NUMERIC, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, UserLink, ViewHead, when, ipPath } from "./parts";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -42,7 +42,7 @@ export function Ips({ phone }: { phone: boolean }) {
         <Kpi label="Errors" value={d ? num(d.totals.errors) : "–"} />
         <Kpi label="Rate-limited" value={d ? num(d.totals.limited) : "–"} />
       </section>
-      <FilterInput value={q} onCommit={(v) => navigate(withParams(params, { q: v, page: null }), true)} placeholder="Filter addresses" mono action="ips:search" className="w-full sm:w-72" />
+      <FilterInput value={q} onCommit={(v) => navigate(withParams(params, { q: v, page: null }), true)} placeholder="Filter addresses" numeric action="ips:search" className="w-full sm:w-72" />
       <div className={cn("min-w-0", ips.loading && d && "opacity-70 transition-opacity")}>
         {ips.error && !d ? (
           <Failure error={ips.error} retry={ips.reload} className="my-2" />
@@ -56,8 +56,8 @@ export function Ips({ phone }: { phone: boolean }) {
               <li key={r.ip}>
                 <button type="button" onClick={() => navigate(ipPath(r.ip))} className="flex w-full flex-col gap-1 border-b py-2.5 text-left last:border-0">
                   <span className="flex items-center gap-2">
-                    <span className={cn(MONO, "min-w-0 flex-1 truncate text-sm")}>{r.ip}</span>
-                    <span className={cn(MONO, "text-sm")}>{num(r.requests)}</span>
+                    <span className={cn(NUMERIC, "min-w-0 flex-1 truncate text-sm")}>{r.ip}</span>
+                    <span className={cn(NUMERIC, "text-sm")}>{num(r.requests)}</span>
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
                     {num(r.errors)} errors · {num(r.limited)} limited · {num(r.userCount)} accounts · seen {ago(r.lastSeenAt, now)}
@@ -84,12 +84,12 @@ export function Ips({ phone }: { phone: boolean }) {
             <TableBody>
               {d.rows.map((r) => (
                 <TableRow key={r.ip} className="cursor-pointer" onClick={() => navigate(ipPath(r.ip))} data-ip={r.ip}>
-                  <TableCell className={cn(MONO, "font-medium")}>{r.ip}</TableCell>
-                  <TableCell className={cn(MONO, "text-right")}>{num(r.requests)}</TableCell>
-                  <TableCell className={cn(MONO, "text-right", r.errors ? "text-warning" : "text-muted-foreground")}>{num(r.errors)}</TableCell>
-                  <TableCell className={cn(MONO, "text-right", r.serverErrors ? "text-destructive" : "text-muted-foreground")}>{num(r.serverErrors)}</TableCell>
-                  <TableCell className={cn(MONO, "text-right", r.limited ? "text-warning" : "text-muted-foreground")}>{num(r.limited)}</TableCell>
-                  <TableCell className={cn(MONO, "text-right text-muted-foreground")}>{num(r.activeDays)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "font-medium")}>{r.ip}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right")}>{num(r.requests)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right", r.errors ? "text-warning" : "text-muted-foreground")}>{num(r.errors)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right", r.serverErrors ? "text-destructive" : "text-muted-foreground")}>{num(r.serverErrors)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right", r.limited ? "text-warning" : "text-muted-foreground")}>{num(r.limited)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right text-muted-foreground")}>{num(r.activeDays)}</TableCell>
                   <TableCell className="text-right text-muted-foreground" title={when(r.firstSeenAt)}>
                     {ago(r.firstSeenAt, now)}
                   </TableCell>
@@ -101,7 +101,7 @@ export function Ips({ phone }: { phone: boolean }) {
                       {r.users.slice(0, 3).map((u) => (
                         <UserLink key={u.id} id={u.id} name={u.username} />
                       ))}
-                      {r.userCount > 3 && <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>+{num(r.userCount - 3)}</span>}
+                      {r.userCount > 3 && <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>+{num(r.userCount - 3)}</span>}
                       {!r.userCount && <span className="text-muted-foreground">–</span>}
                     </span>
                   </TableCell>

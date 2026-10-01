@@ -9,7 +9,7 @@ import { AlgPlayer, PLAYER_SPEEDS, algScene, readAlg, speedLabel, type PlayerOpt
 import { cubeViewRadius } from "../../src/shared/cubeScene";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import { paintShapes } from "./Cube";
-import { MONO, Tip } from "./base";
+import { NUMERIC, Tip } from "./base";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -81,7 +81,7 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
 export function PlayerAlg({ player, text, size = 18, className }: { player?: AlgPlayer | null; text: string; size?: number; className?: string }) {
   const words = useMemo(() => readAlg(text).words, [text]);
   return (
-    <div className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-mono leading-snug font-medium tracking-tight", className)} style={{ fontSize: size }}>
+    <div className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)} style={{ fontSize: size }}>
       {player ? <LitWords player={player} words={words} /> : words.map((word, i) => <span key={i}>{word.map((part, j) => <span key={j} className={cn(part.move === undefined && "text-muted-foreground")}>{part.text}</span>)}</span>)}
     </div>
   );
@@ -160,14 +160,14 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
         {button("Next move (→)", StepForward, player.stepForward, p.target >= total)}
         {compact || touch ? (
           <Tip content="Speed">
-            <Button variant="ghost" size={touch ? "lg" : "sm"} onClick={player.cycleSpeed} aria-label={`Speed ${speedLabel(p.speed)}`} className={cn(MONO, "min-w-11 text-muted-foreground hover:text-foreground", touch && "h-11")}>
+            <Button variant="ghost" size={touch ? "lg" : "sm"} onClick={player.cycleSpeed} aria-label={`Speed ${speedLabel(p.speed)}`} className={cn(NUMERIC, "min-w-11 text-muted-foreground hover:text-foreground", touch && "h-11")}>
               {speedLabel(p.speed)}
             </Button>
           </Tip>
         ) : (
           <ToggleGroup aria-label="Speed" size="sm" spacing={1} value={[String(p.speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className="ml-auto">
             {PLAYER_SPEEDS.map((speed) => (
-              <ToggleGroupItem key={speed} value={String(speed)} className={cn(MONO, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground")}>
+              <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground")}>
                 {speedLabel(speed)}
               </ToggleGroupItem>
             ))}
@@ -191,7 +191,7 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
           }}
           className={cn("flex-1", touch && "py-3")}
         />
-        <span className={cn(MONO, "w-14 shrink-0 text-right text-xs text-muted-foreground")} aria-live={held ? "off" : "polite"}>
+        <span className={cn(NUMERIC, "w-14 shrink-0 text-right text-xs text-muted-foreground")} aria-live={held ? "off" : "polite"}>
           {Math.floor(done)} / {total}
         </span>
       </div>

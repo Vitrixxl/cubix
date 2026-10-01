@@ -5,7 +5,7 @@
  */
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { store as s, run } from "./store";
-import { Choice, MONO, Tip, usePhone } from "./ui";
+import { Choice, NUMERIC, Tip, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, playerKeys, useAlgPlayer } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export function AlgView() {
           <ChevronLeft />
         </Button>
       </Tip>
-      <span className={cn(MONO, "min-w-12 text-center text-xs text-muted-foreground")}>
+      <span className={cn(NUMERIC, "min-w-12 text-center text-xs text-muted-foreground")}>
         {view.index + 1} / {count}
       </span>
       <Tip content="Next algorithm">
@@ -55,7 +55,7 @@ export function AlgView() {
       <div className="flex min-h-0 flex-1 flex-col gap-4" onKeyDown={playerKeys(player)}>
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span className="min-w-0 truncate font-mono text-lg font-semibold tracking-tight">{item.name}</span>
+            <span className="min-w-0 truncate font-sans text-lg font-semibold tracking-tight">{item.name}</span>
             <span className="min-w-0 truncate text-xs text-muted-foreground">{item.detail ?? item.context}</span>
           </div>
           {stepper}

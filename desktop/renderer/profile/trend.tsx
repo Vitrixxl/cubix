@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { fmtTime, shortDate } from "../../../src/client/lib/format";
 import { trendScale } from "../../../src/client/lib/profile";
-import { MONO } from "../ui";
+import { NUMERIC } from "../ui";
 import { cn } from "@/lib/utils";
 
 const W = 800,
@@ -21,7 +21,7 @@ export function Trend({ history, averages, count = 100, className }: { history: 
     <div className={cn("grid grid-cols-[auto_1fr] grid-rows-[1fr_auto] gap-x-3 gap-y-2", className)}>
       <div className="relative w-12" aria-hidden="true">
         {ticks.map((t) => (
-          <span key={t} className={cn(MONO, "absolute right-0 -translate-y-1/2 text-xs text-muted-foreground")} style={{ top: (y(t) / H) * 100 + "%" }}>
+          <span key={t} className={cn(NUMERIC, "absolute right-0 -translate-y-1/2 text-xs text-muted-foreground")} style={{ top: (y(t) / H) * 100 + "%" }}>
             {fmtTime(t)}
           </span>
         ))}
@@ -54,8 +54,8 @@ export function Trend({ history, averages, count = 100, className }: { history: 
               className={cn("pointer-events-none absolute top-0 z-10 flex flex-col gap-0.5 rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background", x(hover!) > W / 2 ? "-translate-x-[calc(100%+10px)]" : "translate-x-2.5")}
               style={{ left: (x(hover!) / W) * 100 + "%" }}
             >
-              <strong className={cn(MONO, "font-medium")}>{fmtTime(point.time, { blank: "DNF" })}</strong>
-              {finite(ao5[hover!]) && <span className={cn(MONO, "text-background/70")}>Ao5 {fmtTime(ao5[hover!])}</span>}
+              <strong className={cn(NUMERIC, "font-medium")}>{fmtTime(point.time, { blank: "DNF" })}</strong>
+              {finite(ao5[hover!]) && <span className={cn(NUMERIC, "text-background/70")}>Ao5 {fmtTime(ao5[hover!])}</span>}
               <span className="text-background/70">
                 #{from + hover! + 1} · {point.displayDate}
               </span>

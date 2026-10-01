@@ -39,7 +39,7 @@ mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "Label", "MenuItem", "Mono", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "Label", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { LearnPage } = await import("../src/pages/LearnPage");
 const { routeAtom, learnMethodAtom, selectedCaseIdsAtom, courseProgressAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

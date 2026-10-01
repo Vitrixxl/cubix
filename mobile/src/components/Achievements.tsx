@@ -8,7 +8,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { useColors } from "../theme";
-import { Bar, Choice, Empty, Mono } from "./layout";
+import { Bar, Choice, Empty, Numeric } from "./layout";
 import { ChoiceButton, PuzzleIcon } from "./PuzzlePicker";
 
 /**
@@ -20,7 +20,7 @@ import { ChoiceButton, PuzzleIcon } from "./PuzzlePicker";
 /** "17 / 210" and a bar. */
 export function AchievementTotal({ summary }: { summary: AchievementSummaryDto }) {
   return <View className="flex-row items-center gap-2.5" accessibilityLabel={`${summary.unlocked} of ${summary.total} achievements unlocked`}>
-    <Mono className="text-[13px] text-muted-foreground">{summary.unlocked} / {summary.total}</Mono>
+    <Numeric className="text-[13px] text-muted-foreground">{summary.unlocked} / {summary.total}</Numeric>
     <Bar ratio={summary.total ? summary.unlocked / summary.total : 0} className="w-16" />
   </View>;
 }
@@ -37,7 +37,7 @@ const AchievementRow = memo(function AchievementRow({ achievement: a }: { achiev
     <View className="min-w-0 flex-1 gap-1">
       <View className="flex-row items-start justify-between gap-2.5">
         <Text className="shrink text-sm font-semibold">{a.title}</Text>
-        <Mono className="shrink text-right text-xs text-muted-foreground">{note}</Mono>
+        <Numeric className="shrink text-right text-xs text-muted-foreground">{note}</Numeric>
       </View>
       <Text className="text-xs leading-[17px] text-muted-foreground">{a.description}</Text>
       <Bar ratio={a.ratio} done={a.unlocked} className="mt-1" />
@@ -83,7 +83,7 @@ export function AchievementList({ summary, initialGroup, scrollKey }: { summary:
         return <View className="min-h-10 flex-row items-center gap-3 pt-2.5 pb-1">
           {puzzle ? <PuzzleIcon puzzle={puzzle} size={18} color={colors.foreground} /> : <Icon as={Trophy} size={18} />}
           <Text className="flex-1 text-sm font-semibold">{row.group}</Text>
-          <Mono className="text-xs text-muted-foreground">{row.unlocked} / {row.total}</Mono>
+          <Numeric className="text-xs text-muted-foreground">{row.unlocked} / {row.total}</Numeric>
         </View>;
       }} />
   </View>;

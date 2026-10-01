@@ -5,7 +5,7 @@ import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime } from "../../src/client/lib/format";
 import { timerFigures } from "../../src/client/lib/practiceSummary";
-import { Choice, Empty, Figure, MONO, SolveActions, SolveMenu, plural, run } from "./ui";
+import { Choice, Empty, Figure, NUMERIC, SolveActions, SolveMenu, plural, run } from "./ui";
 import { PageCard, Stats } from "./profile/card";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -213,7 +213,7 @@ function SolvesTable({
             <Toggle pressed={commented} onPressedChange={setCommented} aria-label="Show only commented solves" className="aria-pressed:text-foreground">
               <MessageSquare />
               <span className="max-md:hidden">Commented</span>
-              <span className={cn(MONO, "text-xs text-muted-foreground")}>{commentCount}</span>
+              <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{commentCount}</span>
             </Toggle>
           </span>
         </>
@@ -240,17 +240,17 @@ function SolvesTable({
                   onClick={run("solve:" + v.id)}
                   className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3"
                 >
-                  <span className={cn(MONO, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
+                  <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
                   <span className="flex items-center gap-2">
-                    <span className={cn(MONO, "text-sm", v.time == null ? "text-destructive" : pb ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>
+                    <span className={cn(NUMERIC, "text-sm", v.time == null ? "text-destructive" : pb ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>
                       {fmtTime(v.time, { blank: "DNF" })}
                     </span>
                     {pb && <span className="rounded-md bg-success/15 px-1.5 py-px text-[11px] font-medium text-success">PB</span>}
                     {v.penalty === "+2" && <span className="rounded-md bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">+2</span>}
                     {v.comment && <MessageSquare className="size-3 text-muted-foreground md:hidden" />}
                   </span>
-                  <span className={cn(MONO, "text-xs text-muted-foreground max-md:hidden")}>{fmtTime(ao5[index])}</span>
-                  <span className={cn(MONO, "text-xs text-muted-foreground max-md:hidden")}>{fmtTime(ao12[index])}</span>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground max-md:hidden")}>{fmtTime(ao5[index])}</span>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground max-md:hidden")}>{fmtTime(ao12[index])}</span>
                   <span className="truncate text-xs text-muted-foreground max-md:hidden">{v.comment}</span>
                   <span className="truncate text-xs text-muted-foreground">{v.displayDate}</span>
                 </button>

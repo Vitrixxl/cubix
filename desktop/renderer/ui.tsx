@@ -4,7 +4,7 @@ import { Check, ChevronDown, Circle, Ellipsis, Info, MessageSquare, Trash2, type
 import { store as s, run } from "./store";
 import { Cube } from "./Cube";
 import { SessionButton } from "./phone";
-import { FADE, Icon, InHead, MONO, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
+import { FADE, Icon, InHead, NUMERIC, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -149,7 +149,7 @@ export function Choice({
           className="px-2.5 text-muted-foreground aria-pressed:text-foreground"
         >
           {o.label}
-          {o.count != null && <span className={cn(MONO, "text-xs text-muted-foreground")}>{o.count}</span>}
+          {o.count != null && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{o.count}</span>}
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
@@ -305,7 +305,7 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
       <ContextMenuContent className="min-w-48 max-md:min-w-56 max-md:[&_[role^=menuitem]]:min-h-10">
         {ms != null && (
           <ContextMenuGroup>
-            <ContextMenuLabel className={MONO}>{fmtSolve(ms, penalty as any)}</ContextMenuLabel>
+            <ContextMenuLabel className={NUMERIC}>{fmtSolve(ms, penalty as any)}</ContextMenuLabel>
           </ContextMenuGroup>
         )}
         <ContextMenuRadioGroup value={penalty} onValueChange={(v: string) => void s.action(`penalty:${id}:${v}`)}>

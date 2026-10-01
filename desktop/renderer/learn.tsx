@@ -17,7 +17,7 @@ import {
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Figure, Icon, LABEL, MONO, PAGE, PageHead, PuzzleButton, Surface, Tip, plural, run, usePhone } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Figure, Icon, LABEL, NUMERIC, PAGE, PageHead, PuzzleButton, Surface, Tip, plural, run, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function Learn() {
@@ -147,12 +147,12 @@ function MethodDetail({ row, label }: { row: MethodRow; label: string }) {
               done = progress.started && s.course.courses[`${s.puzzle}:${method.id}`]?.done.includes(stepId(step));
             return (
               <div key={step.title} className="flex items-start gap-3 py-1.5">
-                <span className={cn(MONO, "w-5 shrink-0 pt-px text-sm text-muted-foreground")}>{i + 1}</span>
+                <span className={cn(NUMERIC, "w-5 shrink-0 pt-px text-sm text-muted-foreground")}>{i + 1}</span>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-sm font-medium">{step.title}</span>
                   <p className="text-sm text-muted-foreground">{step.text}</p>
                 </div>
-                <span className={cn(MONO, "shrink-0 pt-px text-xs text-muted-foreground")}>{count ? plural(count, "alg") : "Intuitive"}</span>
+                <span className={cn(NUMERIC, "shrink-0 pt-px text-xs text-muted-foreground")}>{count ? plural(count, "alg") : "Intuitive"}</span>
                 <StepMark done={!!done} />
               </div>
             );
@@ -320,7 +320,7 @@ function AlgRow({ item, items, touch = false }: { item: Item; items: Item[]; tou
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span className="truncate font-mono text-sm font-medium">{item.name}</span>
+          <span className="truncate font-sans text-sm font-medium">{item.name}</span>
           {item.detail && <span className="truncate text-xs text-muted-foreground">{item.detail}</span>}
         </div>
         <Alg text={item.alg} size={touch ? 16 : 17} />
@@ -550,7 +550,7 @@ function Course({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMe
           <div className="flex flex-col gap-2 px-2.5">
             <div className="flex items-baseline justify-between">
               <span className={LABEL}>Steps</span>
-              <span className={cn(MONO, "text-xs text-muted-foreground")}>
+              <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                 {progress.done} / {progress.total}
               </span>
             </div>
@@ -569,7 +569,7 @@ function Course({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMe
             <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-2 pt-1 pb-6">
               <header className="flex items-center gap-4">
                 <div className="flex min-w-0 flex-1 items-baseline gap-3">
-                  <h2 className="min-w-0 truncate font-mono text-xl font-semibold tracking-tight">{step.title}</h2>
+                  <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{step.title}</h2>
                   <span className={cn(LABEL, "shrink-0")}>
                     {entry.step + 1} / {method.steps.length}
                   </span>

@@ -10,7 +10,7 @@ import { applyTheme } from "../theme";
 import { Logo, usePhone, WindowSidebar } from "../base";
 import { Toasts } from "../Toasts";
 import { admin, AdminError, LiveContext, navigate, onExpired, refreshAll, useLive, useRefreshed, useRoute } from "./api";
-import { MONO } from "./parts";
+import { NUMERIC } from "./parts";
 import { Overview } from "./overview";
 import { Users } from "./users";
 import { User } from "./user";
@@ -160,13 +160,13 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
           spellCheck={false}
           autoFocus={!phone}
           aria-invalid={!!error || undefined}
-          className={cn(MONO, phone && "h-12 text-base md:text-base")}
+          className={cn(NUMERIC, phone && "h-12 text-base md:text-base")}
         />
         {error ? (
           <FieldError>{error}</FieldError>
         ) : (
           <FieldDescription>
-            Generated inside the container with <Kbd className="font-mono">{COMMAND}</Kbd>
+            Generated inside the container with <Kbd className="font-sans">{COMMAND}</Kbd>
           </FieldDescription>
         )}
       </Field>
@@ -292,7 +292,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
               <span className={cn("size-1.5 rounded-full", live.connected ? "bg-success" : "bg-muted-foreground/50")} aria-hidden="true" />
               {live.connected ? "Live" : "Reconnecting…"}
             </span>
-            <span className={cn(MONO, "text-xs text-muted-foreground max-sm:hidden")} data-slot="refreshed">
+            <span className={cn(NUMERIC, "text-xs text-muted-foreground max-sm:hidden")} data-slot="refreshed">
               {refreshed ? "Updated " + new Date(refreshed).toLocaleTimeString("en-GB") : ""}
             </span>
             <Button variant="outline" size="icon-sm" aria-label="Refresh" onClick={refreshAll} data-action="admin:refresh">

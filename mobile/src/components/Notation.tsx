@@ -10,7 +10,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { notationAtom, puzzleAtom } from "../state";
 import { PlayerCube, useAlgPlayer, usePlayback } from "./AlgPlayer";
-import { Choice, Label, Mono } from "./layout";
+import { Choice, Label, Numeric } from "./layout";
 import { Sheet, SheetScrollView } from "./Sheet";
 
 /**
@@ -66,7 +66,7 @@ function CubeNotation({ size, state }: { size: number; state: Notation }) {
 function MoveBlock({ block, state }: { block: NotationBlock; state: Notation }) {
   return <View className="gap-1.5">
     <View className="flex-row items-baseline gap-2">
-      <Mono className="text-sm font-semibold text-foreground">{block.move}</Mono>
+      <Numeric className="text-sm font-semibold text-foreground">{block.move}</Numeric>
       <Text className="min-w-0 flex-1 text-sm leading-[19px] text-muted-foreground">{block.name === block.move ? block.text : `${block.name}: ${block.text}`}</Text>
     </View>
     <View className="flex-row gap-1">
@@ -80,7 +80,7 @@ function MoveTile({ move, state, wide = false }: { move: string; state: Notation
   return <Pressable accessibilityRole="button" accessibilityLabel={`${move}: ${describeMove(move, puzzleInfo(state.puzzle).cubeSize ?? 3) || "play it"}`} accessibilityState={{ selected: on }}
     onPress={() => state.setMove(move)}
     className={cn("h-11 items-center justify-center rounded-lg border border-border px-3 active:bg-muted/60", !wide && "flex-1", on && "border-primary/50 bg-primary/10")}>
-    <Mono className={cn("text-base font-medium", on ? "text-primary" : "text-foreground")}>{move}</Mono>
+    <Numeric className={cn("text-base font-medium", on ? "text-primary" : "text-foreground")}>{move}</Numeric>
   </Pressable>;
 }
 
@@ -91,7 +91,7 @@ function MovePlayer({ move, size }: { move: string; size: number }) {
   return <View className="flex-row items-center gap-4">
     <PlayerCube player={player} size={128} />
     <View className="min-w-0 flex-1 gap-1.5">
-      <Mono className={cn("font-semibold text-foreground", move.length > 6 ? "text-lg" : "text-4xl leading-[44px]")}>{move}</Mono>
+      <Numeric className={cn("font-semibold text-foreground", move.length > 6 ? "text-lg" : "text-4xl leading-[44px]")}>{move}</Numeric>
       <Text className="text-sm leading-[20px] text-muted-foreground">{describeMove(move, size)}</Text>
       <LoopControls player={player} />
     </View>
@@ -106,7 +106,7 @@ function LoopControls({ player }: { player: AlgPlayer }) {
     </Pressable>
     {PLAYER_SPEEDS.map(speed => <Pressable key={speed} accessibilityRole="radio" accessibilityState={{ checked: p.speed === speed }} accessibilityLabel={`Speed ${speedLabel(speed)}`}
       onPress={() => player.setSpeed(speed)} className={cn("h-11 min-w-11 items-center justify-center rounded-lg px-1.5", p.speed === speed ? "bg-muted" : "active:bg-muted/60")}>
-      <Mono className={cn("text-xs", p.speed === speed ? "text-foreground" : "text-muted-foreground")}>{speedLabel(speed)}</Mono>
+      <Numeric className={cn("text-xs", p.speed === speed ? "text-foreground" : "text-muted-foreground")}>{speedLabel(speed)}</Numeric>
     </Pressable>)}
   </View>;
 }
@@ -116,7 +116,7 @@ function PuzzleNotation({ puzzle }: { puzzle: PuzzleId }) {
     {(PUZZLE_NOTATION[puzzle] ?? []).map(section => <View key={section.title} className="gap-1.5">
       <Label accessibilityRole="header">{section.title}</Label>
       <Text className="text-[15px] leading-[23px] text-muted-foreground">{section.text}</Text>
-      {section.examples ? <View className="flex-row flex-wrap gap-x-5 gap-y-1">{section.examples.map(e => <Mono key={e} className="text-base font-medium text-foreground">{e}</Mono>)}</View> : null}
+      {section.examples ? <View className="flex-row flex-wrap gap-x-5 gap-y-1">{section.examples.map(e => <Numeric key={e} className="text-base font-medium text-foreground">{e}</Numeric>)}</View> : null}
     </View>)}
   </>;
 }

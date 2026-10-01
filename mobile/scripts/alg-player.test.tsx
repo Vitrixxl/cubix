@@ -27,7 +27,7 @@ mock.module("../src/components/Sheet", () => ({
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["Choice", "Label", "Mono"].map(name => [name, name])));
+mock.module("../src/components/layout", () => Object.fromEntries(["Choice", "Label", "Numeric"].map(name => [name, name])));
 (globalThis as any).requestAnimationFrame = (callback: (time: number) => void) => setTimeout(() => callback(performance.now()), 8) as unknown as number;
 (globalThis as any).cancelAnimationFrame = (frame: number) => clearTimeout(frame);
 const { AlgPlayerSheet } = await import("../src/components/AlgPlayer");

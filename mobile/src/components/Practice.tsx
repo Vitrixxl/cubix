@@ -22,7 +22,7 @@ import { launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { cubeSwitchLockedAtom, deletedSolveIdAtom, timerRunningAtom, updatedSolveAtom } from "../state";
 import { useColors } from "../theme";
-import { Fade, Mono, Surface } from "./layout";
+import { Fade, Numeric, Surface } from "./layout";
 import { SolveMenu, useSolveMenu } from "./SolveMenus";
 import { StaticCubeSvg } from "./StaticCubeSvg";
 
@@ -233,7 +233,7 @@ export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: 
     <TextInput value={text} onChangeText={value => setText(value.replace(/[^\d.,:]/g, ""))} onSubmitEditing={submit} submitBehavior="submit"
       keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.000" placeholderTextColor={colors.mutedForeground + "66"}
       cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel="Time" editable={!disabled}
-      className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-mono font-medium", text && ms === null ? "text-destructive" : "text-timer")}
+      className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-sans font-medium", text && ms === null ? "text-destructive" : "text-timer")}
       style={{ fontSize: size * 0.8, includeFontPadding: false }} />
     {error ? <View className="mt-3 flex-row items-center gap-2">
       <Text className="text-sm text-destructive">{error}</Text>
@@ -263,11 +263,11 @@ export function AverageWindow({ solves, hidden }: { solves: SolveDto[]; hidden?:
   return <Fade hidden={!!hidden} className="mt-6 w-full flex-row gap-1">
     {Array.from({ length: 5 }, (_, i) => {
       const index = i - (5 - last.length), v = last[index];
-      if (!v) return <View key={i} className="h-8 min-w-0 flex-1 items-center justify-center rounded-md bg-muted/50"><Mono className="text-xs text-muted-foreground/50">–</Mono></View>;
+      if (!v) return <View key={i} className="h-8 min-w-0 flex-1 items-center justify-center rounded-md bg-muted/50"><Numeric className="text-xs text-muted-foreground/50">–</Numeric></View>;
       const dropped = index === fastest || index === slowest, time = fmtSolve(v.time_ms, v.penalty);
       return <SolveMenu key={v.id} solve={v} accessibilityLabel={`Solve ${time}`} rootClassName="min-w-0 flex-1"
         className={cn("h-8 items-center justify-center rounded-md bg-muted active:bg-muted/70", index === last.length - 1 && "border border-foreground/30")}>
-        <Mono numberOfLines={1} className={cn("text-xs", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Mono>
+        <Numeric numberOfLines={1} className={cn("text-xs", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
       </SolveMenu>;
     })}
   </Fade>;
@@ -280,10 +280,10 @@ export function SessionPeek({ figures, count, noun, onPress, hidden }: { figures
       className="h-14 flex-row items-center gap-4 rounded-xl bg-muted/45 px-4 active:bg-muted/70">
       {figures.map(([label, value, tone]) => <View key={label} className="min-w-0 flex-1 gap-0.5">
         <Text className="text-[11px] font-medium text-muted-foreground">{label}</Text>
-        <Mono numberOfLines={1} className={cn("text-base font-medium", value === "–" ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Mono>
+        <Numeric numberOfLines={1} className={cn("text-base font-medium", value === "–" ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Numeric>
       </View>)}
       <View className="flex-row items-center gap-1.5">
-        <Mono className="text-sm text-muted-foreground">{count} {noun}{count === 1 ? "" : "s"}</Mono>
+        <Numeric className="text-sm text-muted-foreground">{count} {noun}{count === 1 ? "" : "s"}</Numeric>
         <Icon as={ChevronUp} size={16} className="text-muted-foreground" />
       </View>
     </Pressable>

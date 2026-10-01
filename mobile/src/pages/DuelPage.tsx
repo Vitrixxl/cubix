@@ -10,7 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { Alg, Fade, Figure, Label, MenuItem, Mono, MoreMenu, Page, PageHead, Surface, TouchAction, TouchBar } from "../components/layout";
+import { Alg, Fade, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, Surface, TouchAction, TouchBar } from "../components/layout";
 import { Digits, LiveDigits, StopSurface, digitsSize, responder, timerHint, useTimerChrome } from "../components/Practice";
 import { SessionButton } from "../components/PuzzlePicker";
 import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
@@ -91,7 +91,7 @@ function Side({ name, level, tag, mine, children, hint, running }: { name: strin
   return <View className="min-h-0 flex-1 items-center justify-center gap-2">
     <Fade hidden={running} className="flex-row items-center gap-2">
       <Text numberOfLines={1} className="shrink text-sm font-medium">{name}</Text>
-      {level ? <Mono className="text-sm text-muted-foreground">{fmtTime(level)}</Mono> : null}
+      {level ? <Numeric className="text-sm text-muted-foreground">{fmtTime(level)}</Numeric> : null}
       <View className={cn("rounded-md px-1.5 py-0.5", mine ? "bg-primary/15" : "bg-muted")}>
         <Text className={cn("text-xs font-medium", mine ? "text-primary" : "text-muted-foreground")}>{tag}</Text>
       </View>
@@ -190,11 +190,11 @@ function Board() {
         {[...Array(ROUNDS).keys()].map(r => {
           const v = solves[r], won = !!v && !!other[r] && compare(solveTime(v), solveTime(other[r]!)) === "win";
           return <View key={r} className={cn(cell, r === duel.round && !duel.over && "bg-muted")}>
-            <Mono numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs", v?.penalty === "dnf" && "text-destructive", won && "text-success", !v && "text-muted-foreground/40")}>{v ? fmtSolve(v.ms, v.penalty) : "–"}</Mono>
+            <Numeric numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs", v?.penalty === "dnf" && "text-destructive", won && "text-success", !v && "text-muted-foreground/40")}>{v ? fmtSolve(v.ms, v.penalty) : "–"}</Numeric>
           </View>;
         })}
         <View className={cn(cell, "flex-[1.1]")}>
-          <Mono numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>{raceAverage(own) || "–"}</Mono>
+          <Numeric numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>{raceAverage(own) || "–"}</Numeric>
         </View>
       </View>;
     })}
@@ -240,7 +240,7 @@ function Result() {
       {([[duel.players[duel.seat]?.name ?? "", own, result === "win"], [opponent, rival, result === "loss"]] as const).map(([name, value, won], i) =>
         <View key={i} className="flex-1 gap-1">
           <Label numberOfLines={1}>{name}</Label>
-          <Mono className={cn("text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{raceAverage(value) || "–"}</Mono>
+          <Numeric className={cn("text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{raceAverage(value) || "–"}</Numeric>
         </View>)}
     </View>
     <View className="rounded-xl bg-muted/30 p-2"><Board /></View>

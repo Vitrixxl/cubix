@@ -82,7 +82,7 @@ export function HistoryChart({ history, averages, range, onRange }: {
   return (
     <div className="grid min-h-40 flex-1 grid-cols-[auto_1fr] grid-rows-[1fr_auto] gap-x-3 gap-y-1.5">
       <div className="relative w-12" aria-hidden="true">
-        {[0, 1, 2, 3].map(i => <span key={i} className="absolute right-0 -translate-y-1/2 font-mono text-[11px] text-muted-foreground tabular-nums" style={{ top: (12 + i / 3 * 202) / 240 * 100 + "%" }}>{fmtTime(lo + height * (1 - i / 3))}</span>)}
+        {[0, 1, 2, 3].map(i => <span key={i} className="absolute right-0 -translate-y-1/2 font-sans text-[11px] text-muted-foreground tabular-nums" style={{ top: (12 + i / 3 * 202) / 240 * 100 + "%" }}>{fmtTime(lo + height * (1 - i / 3))}</span>)}
       </div>
       <div
         ref={plot}
@@ -152,8 +152,8 @@ export function HistoryChart({ history, averages, range, onRange }: {
         {point && <>
           {value != null && <div className="pointer-events-none absolute size-2.5 -translate-1/2 rounded-full bg-chart-1 ring-2 ring-background" style={{ left: x(hover!) / 8 + "%", top: y(value) / 240 * 100 + "%" }} />}
           <div className={cn("pointer-events-none absolute top-1 flex min-w-32 flex-col gap-0.5 rounded-lg bg-popover px-2.5 py-2 text-popover-foreground shadow-md ring-1 ring-foreground/10", x(hover!) > 400 ? "-translate-x-[calc(100%+12px)]" : "translate-x-3")} style={{ left: x(hover!) / 8 + "%" }}>
-            <strong className="font-mono text-sm font-medium tabular-nums">{fmtTime(point.time, { blank: "DNF" })}</strong>
-            {averages[hover!] != null && <span className="font-mono text-xs text-chart-2 tabular-nums">Ao5 {fmtTime(averages[hover!])}</span>}
+            <strong className="font-sans text-sm font-medium tabular-nums">{fmtTime(point.time, { blank: "DNF" })}</strong>
+            {averages[hover!] != null && <span className="font-sans text-xs text-chart-2 tabular-nums">Ao5 {fmtTime(averages[hover!])}</span>}
             <small className="text-xs text-muted-foreground">#{hover! + 1} · {point.displayDate}</small>
           </div>
         </>}

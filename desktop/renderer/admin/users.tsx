@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
 import { listUrl, navigate, useAdmin, useRoute, withParams, type Users as Data } from "./api";
-import { ago, date, Failure, GuestTag, Avatar, MONO, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, userPath, ViewHead, when } from "./parts";
+import { ago, date, Failure, GuestTag, Avatar, NUMERIC, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, userPath, ViewHead, when } from "./parts";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,7 +52,7 @@ export function Users({ phone }: { phone: boolean }) {
           {(["all", "registered", "guests"] as const).map((id) => (
             <ToggleGroupItem key={id} value={id} data-action={"users:filter:" + id} className="gap-1.5 px-3">
               {id === "all" ? "All" : id === "registered" ? "Registered" : "Guests"}
-              {d && <span className={cn(MONO, "text-xs text-muted-foreground")}>{num(d.counts[id])}</span>}
+              {d && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{num(d.counts[id])}</span>}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -119,12 +119,12 @@ export function Users({ phone }: { phone: boolean }) {
                   <TableCell className="text-muted-foreground" title={u.lastSeenAt ? when(u.lastSeenAt) : undefined}>
                     {ago(u.lastSeenAt, now)}
                   </TableCell>
-                  <TableCell className={cn(MONO, "text-right")}>
+                  <TableCell className={cn(NUMERIC, "text-right")}>
                     {num(u.solves7d)} <span className="text-muted-foreground">/ {num(u.solves)}</span>
                   </TableCell>
-                  <TableCell className={cn(MONO, "text-right")}>{num(u.learnedCases)}</TableCell>
-                  <TableCell className={cn(MONO, "text-right")}>{num(u.duels)}</TableCell>
-                  <TableCell className={cn(MONO, "text-right")}>{num(u.activeSessions)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right")}>{num(u.learnedCases)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right")}>{num(u.duels)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right")}>{num(u.activeSessions)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{u.lastSolveAt ? ago(u.lastSolveAt, now) : "–"}</TableCell>
                 </TableRow>
               ))}
