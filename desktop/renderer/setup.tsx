@@ -220,7 +220,8 @@ function CasesSetup() {
           </div>
         }
       />
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t px-2 pt-2 md:px-0">
+      {/* The set and group rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
+      <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t px-2 pt-2">
         {s.allSets().map((set: any) => {
           const chosen = cases.filter((c: any) => c.set === set.id && matches(c, s.query)),
             count = chosen.filter((c: any) => s.selected.has(c.id)).length,
