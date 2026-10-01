@@ -22,6 +22,7 @@ import { Sheet } from "../components/Sheet";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { displayAlg, maskForStage, shortId } from "../lib/caseState";
 import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
+import { useTourTarget } from "../tour";
 import {
   casesAtom, courseProgressAtom, goBackAtom, learnMethodAtom, learnedCaseIdsAtom, notationAtom, previousRouteAtom, puzzleAtom, replaceRouteAtom, routeAtom,
   selectedCaseIdsAtom, setsAtom,
@@ -66,11 +67,12 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const setRoute = useSetAtom(routeAtom);
   const recommended = recommendedMethod(puzzle);
   const open = (id: string) => { setProgress(openCourse(progress, puzzle, id)); setRoute({ page: "learn", method: id }); };
+  const list = useTourTarget("learn");
   return <Page>
     <PageHead title="Learn"><SessionButton /></PageHead>
     <Text className="-mt-1 text-sm text-muted-foreground">Choose a {puzzleInfo(puzzle).label} method, then follow it step by step.</Text>
     <ScrollView className="-mx-4 flex-1" contentContainerClassName="px-4 pb-4">
-      <Surface>
+      <Surface {...list}>
         {METHODS[puzzle].map((method, i) => {
           const facts = methodFacts(method, cases), state = methodProgress(progress, puzzle, method), isRecommended = method.id === recommended;
           return <Pressable key={method.id} accessibilityRole="button" accessibilityLabel={`${state.started ? "Continue" : "Start"} ${method.name}`} onPress={() => open(method.id)}

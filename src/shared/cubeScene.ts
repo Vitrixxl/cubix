@@ -86,16 +86,11 @@ export type CubeOrientation = readonly V[];
 export const cubeOrientation = (yaw = CUBE_YAW, pitch = CUBE_PITCH): CubeOrientation =>
   [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map((e) => rotate(rotate(e, 1, -yaw), 0, pitch));
 /**
- * Turns the cube like a trackball: `across` about the screen's vertical axis, `down` about its horizontal one, so a
- * drag spins it endlessly either way and always the way the pointer goes, upside down included. The axes are kept
- * orthonormal so endless turning never skews the cube.
+ * Spins the cube about its own vertical axis by `across` radians, endlessly either way, the way the pointer goes; its
+ * tilt (`pitch`, the view's) never changes, so a drag can't turn the cube over. Undo the tilt, turn about y, tilt back.
  */
-export function turnCube(m: CubeOrientation, across: number, down: number): CubeOrientation {
-  const [x, y] = m.map((c) => rotate(rotate(c, 1, across), 0, down)),
-    norm = (v: V) => scale(v, 1 / Math.hypot(...v)),
-    ux = norm(x),
-    uy = norm(add(y, scale(ux, -(ux[0] * y[0] + ux[1] * y[1] + ux[2] * y[2]))));
-  return [ux, uy, [ux[1] * uy[2] - ux[2] * uy[1], ux[2] * uy[0] - ux[0] * uy[2], ux[0] * uy[1] - ux[1] * uy[0]]];
+export function turnCube(m: CubeOrientation, across: number, pitch = CUBE_PITCH): CubeOrientation {
+  return m.map((c) => rotate(rotate(rotate(c, 0, -pitch), 1, across), 0, pitch));
 }
 export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,

@@ -56,7 +56,11 @@ export function LatestSolves({ history, averages, count = 5, phone = false }: { 
   );
 }
 
-export function TimerSection({ d, phone }: { d: ProfileData; phone: boolean }) {
+/**
+ * The timer's card. `fill` (the desktop overview) stretches the curve over the height the card is given and leaves the
+ * latest solves to the statistics page.
+ */
+export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone: boolean; fill?: boolean }) {
   const t = d.timer,
     event = s.event(s.profilePuzzle, s.profileSolveMode);
   return (
@@ -66,12 +70,13 @@ export function TimerSection({ d, phone }: { d: ProfileData; phone: boolean }) {
       meta={t.count ? plural(t.count, "solve") + (phone ? "" : ` · ${s.label("scrambles", s.profileScramble)} scrambles`) : event.label}
       open={t.count ? "playground" : undefined}
       more="Statistics"
-      body={t.count ? undefined : "flex-1 items-center justify-center py-10"}
+      aside={t.count ? <TrendLegend /> : undefined}
+      className={fill ? "min-h-52 flex-1" : undefined}
+      body={cn(fill && "min-h-0 flex-1", !t.count && "items-center justify-center")}
     >
       {!t.count ? (
-        <div className="flex flex-col items-center gap-3 text-center text-sm text-muted-foreground">
-          <Timer className="size-6" />
-          <p>No timed {event.label} solves yet: your records and your curve appear here.</p>
+        <div className="flex flex-col items-center gap-3 py-2 text-center">
+          <p className="text-sm text-muted-foreground">No {event.label} solves yet.</p>
           <Button variant="outline" data-action="nav:playground" onClick={run("nav:playground")}>
             <Timer />
             Open the timer
@@ -80,23 +85,19 @@ export function TimerSection({ d, phone }: { d: ProfileData; phone: boolean }) {
       ) : (
         <>
           <Stats columns={6}>
-            {/* The count is in the heading. */}
             {timerFigures(t).slice(0, 6).map(([label, value, tone]) => (
               <Figure key={label} label={label} value={value} tone={tone} caption="plain" size="xl" />
             ))}
           </Stats>
-          <div className="flex flex-col gap-2">
-            <SubHead title={`Last ${Math.min(100, d.history.length)} solves`}>
-              <TrendLegend />
-            </SubHead>
-            <Trend history={d.history} averages={d.ao5} className={phone ? "h-40" : "h-48"} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <SubHead title="Latest solves">
-              <MoreLink actions={["statsView:table", "profileMode:playground"]}>View all</MoreLink>
-            </SubHead>
-            <LatestSolves history={d.history} averages={d.ao5} phone={phone} />
-          </div>
+          <Trend history={d.history} averages={d.ao5} className={fill ? "min-h-24 flex-1" : phone ? "h-40" : "h-48"} />
+          {!fill && (
+            <div className="flex flex-col gap-1">
+              <SubHead title="Latest solves">
+                <MoreLink actions={["statsView:table", "profileMode:playground"]}>View all</MoreLink>
+              </SubHead>
+              <LatestSolves history={d.history} averages={d.ao5} phone={phone} />
+            </div>
+          )}
         </>
       )}
     </Section>
@@ -114,18 +115,22 @@ function TwoTone({ trained, learned, total }: { trained: number; learned: number
   );
 }
 
-export function TrainingSection({ d }: { d: ProfileData }) {
+/** Learned and trained cases per stage; `compact` (the overview's bottom row) keeps the first three stages. */
+export function TrainingSection({ d, compact = false }: { d: ProfileData; compact?: boolean }) {
+  const stages = compact ? d.stages.slice(0, 3) : d.stages;
   return (
-    <Section label="Training" title="Training" meta={`${d.learned} of ${d.cases.length} learned`} open="training" more="Cases">
-      <Stats columns={3}>
-        <Figure caption="plain" size="xl" label="Learned" value={d.learned.toLocaleString()} tone="accent" />
-        <Figure caption="plain" size="xl" label="Trained" value={d.trained.toLocaleString()} />
-        <Figure caption="plain" size="xl" label="Solves" value={d.trainingSolves.toLocaleString()} />
-      </Stats>
-      {d.stages.length ? (
+    <Section label="Training" title="Training" meta={`${d.learned} of ${d.cases.length} learned`} open="training" more="Cases" body={compact ? "gap-3 pt-1" : undefined}>
+      {!compact && (
+        <Stats columns={3}>
+          <Figure caption="plain" size="xl" label="Learned" value={d.learned.toLocaleString()} tone="accent" />
+          <Figure caption="plain" size="xl" label="Trained" value={d.trained.toLocaleString()} />
+          <Figure caption="plain" size="xl" label="Solves" value={d.trainingSolves.toLocaleString()} />
+        </Stats>
+      )}
+      {stages.length ? (
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3">
-            {d.stages.map((r) => (
+          <div className={cn("grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4", compact ? "gap-y-2.5" : "gap-y-3")}>
+            {stages.map((r) => (
               <div key={r.stage} className="col-span-3 grid grid-cols-subgrid items-center" title={`${r.learned} learned · ${r.trained} trained · ${r.total} cases`}>
                 <span className="text-sm font-medium">{r.stage}</span>
                 <TwoTone {...r} />
@@ -135,16 +140,18 @@ export function TrainingSection({ d }: { d: ProfileData }) {
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-[2px] bg-primary" />
-              Learned
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-[2px] bg-primary/35" />
-              Trained
-            </span>
-          </div>
+          {!compact && (
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-[2px] bg-primary" />
+                Learned
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-[2px] bg-primary/35" />
+                Trained
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">No algorithm sets for this puzzle.</p>
@@ -187,9 +194,28 @@ export function Goal({ a }: { a: any }) {
   );
 }
 
-export function AchievementsSection({ d, wide = false }: { d: ProfileData; wide?: boolean }) {
+export function AchievementsSection({ d, wide = false, compact = false }: { d: ProfileData; wide?: boolean; compact?: boolean }) {
   const recent = d.recent.slice(0, wide ? 4 : 3),
     goals = d.goals.slice(0, 3);
+  if (compact) {
+    const next = d.goals[0];
+    return (
+      <Section label="Achievements" title="Achievements" meta={`${d.unlocked} of ${d.totalAchievements}`} open="achievements" more="All" body="gap-3 pt-1">
+        {d.recent[0] ? (
+          <div className="flex items-center gap-3" title={d.recent[0].description}>
+            <Badge a={d.recent[0]} />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-sm font-medium">{d.recent[0].title}</span>
+              <span className="text-xs text-muted-foreground">Unlocked {d.recent[0].unlockedAt ? shortDate(d.recent[0].unlockedAt) : ""}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Your first solves unlock the first ones.</p>
+        )}
+        {next && <Goal a={next} />}
+      </Section>
+    );
+  }
   return (
     <Section label="Achievements" title="Achievements" meta={`${d.unlocked} of ${d.totalAchievements} unlocked`} open="achievements" more="All" body={wide ? "grid grid-cols-2 gap-x-10" : undefined}>
       <div className="flex flex-col gap-2">
@@ -236,11 +262,10 @@ export function ResultMark({ result }: { result: DuelRecord["result"] }) {
   );
 }
 
-/** A clean empty state for a battle-less account: what lands here and where to start. */
+/** An empty battle history offers the next action without reserving space for results. */
 export function NoBattles({ className }: { className?: string }) {
   return (
-    <div className={cn("flex flex-col items-start gap-3 py-2 text-sm text-muted-foreground", className)}>
-      <p>Race another cuber over five scrambles: your results land here.</p>
+    <div className={cn("flex flex-col items-start gap-3 text-sm", className)}>
       <Button variant="outline" data-action="nav:duel" onClick={run("nav:duel")}>
         <Swords />
         Find an opponent
@@ -249,12 +274,12 @@ export function NoBattles({ className }: { className?: string }) {
   );
 }
 
-export function BattlesSection() {
+export function BattlesSection({ compact = false }: { compact?: boolean }) {
   const list = battles(),
     won = list.filter((b) => b.result === "win").length,
     lost = list.filter((b) => b.result === "loss").length;
   return (
-    <Section label="Battles" title="Battles" meta={list.length ? battleRecord(list) : undefined} open={list.length ? "duels" : undefined} more="History">
+    <Section label="Battles" title="Battles" meta={list.length ? battleRecord(list) : undefined} open={list.length ? "duels" : undefined} more="History" body={compact ? "pt-1" : undefined}>
       {!list.length ? (
         <NoBattles />
       ) : (
@@ -264,24 +289,25 @@ export function BattlesSection() {
             <Figure caption="plain" size="xl" label="Won" value={String(won)} tone="good" />
             <Figure caption="plain" size="xl" label="Win rate" value={Math.round((won / Math.max(1, won + lost)) * 100) + "%"} />
           </Stats>
-          <div className="flex flex-col gap-1">
-            <SubHead title="Recent battles" />
+          {!compact && (
             <div className="flex flex-col gap-1">
-              {list.slice(0, 3).map((b) => (
-                <div key={b.id} className="flex h-9 items-center gap-3">
-                  <ResultMark result={b.result} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{b.opponent}</span>
-                  <span className={cn(NUMERIC, "text-xs whitespace-nowrap")}>
-                    {ao5Text(b.ao5[0])} <span className="text-muted-foreground">vs</span> {ao5Text(b.ao5[1])}
-                  </span>
-                  <span className="w-12 text-right text-xs text-muted-foreground">{shortDate(b.at)}</span>
-                </div>
-              ))}
+              <SubHead title="Recent battles" />
+              <div className="flex flex-col gap-1">
+                {list.slice(0, 3).map((b) => (
+                  <div key={b.id} className="flex h-9 items-center gap-3">
+                    <ResultMark result={b.result} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{b.opponent}</span>
+                    <span className={cn(NUMERIC, "text-xs whitespace-nowrap")}>
+                      {ao5Text(b.ao5[0])} <span className="text-muted-foreground">vs</span> {ao5Text(b.ao5[1])}
+                    </span>
+                    <span className="w-12 text-right text-xs text-muted-foreground">{shortDate(b.at)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </Section>
   );
 }
-

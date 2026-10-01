@@ -1,0 +1,50 @@
+{
+  "222": [
+    "beginner",
+    "ortega",
+    "cll",
+    "eg"
+  ],
+  "333": [
+    "beginner",
+    "cfop",
+    "roux",
+    "zz"
+  ],
+  "444": [
+    "reduction",
+    "yau"
+  ],
+  "555": [
+    "reduction",
+    "yau"
+  ],
+  "666": [
+    "reduction",
+    "yau"
+  ],
+  "777": [
+    "reduction",
+    "yau"
+  ],
+  "sq1": [
+    "beginner",
+    "vandenbergh"
+  ],
+  "pyram": [
+    "beginner",
+    "l4e"
+  ],
+  "skewb": [
+    "beginner",
+    "sarah"
+  ],
+  "minx": [
+    "beginner",
+    "speed"
+  ],
+  "clock": [
+    "beginner",
+    "7-simul"
+  ]
+}

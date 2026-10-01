@@ -8,6 +8,7 @@ mod db;
 mod duel;
 mod error;
 mod live;
+mod journey;
 mod practice;
 mod release;
 mod stats;

@@ -20,6 +20,9 @@ import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { TabBar } from "./src/components/TabBar";
+import { Introduction } from "./src/components/Introduction";
+import { introductionAtom, journeyAtom } from "./src/journey";
+import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
 import { ProfilePage } from "./src/pages/AccountPage";
@@ -88,6 +91,8 @@ function Session() {
 }
 
 function Shell() {
+  const introduction = useAtomValue(introductionAtom);
+  const closeIntroduction = useSetAtom(introductionAtom);
   const insets = useSafeAreaInsets();
   const running = useAtomValue(timerRunningAtom);
   const [keyboardVisible, setKeyboardVisible] = useAtom(keyboardVisibleAtom);
@@ -118,9 +123,14 @@ function Shell() {
   const goBack = useSetAtom(goBackAtom);
   // The hardware back button walks the in-app history, like the browser's back button.
   useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => running || goBack());
+    // The first setup has to be finished; a setup opened again from the account, a goal or the tour close.
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (introduction === "setup" && !journeyProfile(store.get(journeyAtom))) return true;
+      if (introduction) { closeIntroduction(null); return true; }
+      return running || goBack();
+    });
     return () => subscription.remove();
-  }, [goBack, running]);
+  }, [goBack, running, introduction, closeIntroduction, store]);
   // The Learn tab comes back to the course it showed.
   const navigate = useCallback((page: Page) => setRoute(page === "learn" ? { page, method: store.get(learnMethodAtom) } : { page } as Route), [setRoute, store]);
   const active = route.page;
@@ -129,7 +139,8 @@ function Shell() {
   useEffect(() => { if (active !== "profile") resetProfileFilters(f => Object.keys(f).length ? {} : f); }, [active, resetProfileFilters]);
   // Sheets render where their provider is: this one sits inside the solve menu, so the times listed in a sheet keep
   // their long-press menu. (The solve menu's own sheets use the provider of the whole app.)
-  return <SolveMenuProvider><BottomSheetModalProvider>
+  return <SolveMenuProvider><BottomSheetModalProvider><View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} pointerEvents={introduction ? "none" : "auto"} accessibilityElementsHidden={!!introduction} importantForAccessibility={introduction ? "no-hide-descendants" : "auto"}>
     <LiveConnection />
     <ScramblerHost />
     <KeyboardAvoidingView behavior="padding" className="flex-1">
@@ -146,5 +157,5 @@ function Shell() {
     <NotationSheet />
     <SyncIndicator hidden={running} />
     <Toast />
-  </BottomSheetModalProvider></SolveMenuProvider>;
+    </View><Introduction /></View></BottomSheetModalProvider></SolveMenuProvider>;
 }

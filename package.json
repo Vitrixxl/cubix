@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p desktop && bun run --cwd mobile typecheck",
     "test": "bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && sh scripts/rust.sh test --locked",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/rust-api.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
-    "test:ui": "bun run build:api && bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts"
+    "test:ui": "bun run build:api && bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts && bun desktop/testing/introduction.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -37,6 +37,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-is": "^19",
+    "react-router": "^8.4.0",
     "recharts": "3.8.0",
     "shadcn": "^4.21.0",
     "sonner": "^2.0.8",

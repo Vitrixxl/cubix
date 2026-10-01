@@ -301,9 +301,9 @@ export class AlgPlayer {
     this.emit();
   };
   cycleSpeed = () => this.setSpeed(nextSpeed(this.playback.speed));
-  /** Turns the cube like a trackball (radians across and down, see `turnCube`). */
-  rotate = (across: number, down: number) => {
-    this.orientation = turnCube(this.orientation, across, down);
+  /** Spins the cube about its vertical axis (radians across, see `turnCube`); its tilt stays the view's. */
+  rotate = (across: number) => {
+    this.orientation = turnCube(this.orientation, across, this.options.view?.pitch);
     this.emit();
   };
   resetView = () => {

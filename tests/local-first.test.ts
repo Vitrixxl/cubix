@@ -6,6 +6,7 @@ import { history } from "../src/client/local/stats";
 import type { SolveDto } from "../src/shared/types";
 import { learningCases, learningKey, orderedGroups, type LearningTrack } from "../src/client/lib/dailyLearning";
 import { cases } from "../src/client/local/catalog";
+import { goalKey, personalGoals, type JourneyProfile, type PersonalGoal } from "../src/client/lib/journey";
 
 const trackGroups = (track: LearningTrack) => orderedGroups(learningCases(cases,track));
 
@@ -41,6 +42,71 @@ function device(remote: ReturnType<typeof setup>["remote"], storage = new Storag
   cleanup.push(local.stop);
   return {local,api:local.api,storage,control};
 }
+
+test("personal setup and independent goals survive offline restart, lost acknowledgements and account changes", async () => {
+  const { remote, db, origin } = setup(), a = device(remote);
+  const auth = await a.api.register("journey_alice", "a-long-test-password");
+  const profile: JourneyProfile = { kind: "profile", level: "beginner", knownPuzzles: ["333"], knownMethods: { "333": ["cfop", "roux"] }, priority: "222", priorityMethod: "ortega", learningPuzzles: ["222", "444"], learningMethods: { "222": ["ortega"], "444": ["reduction", "yau"] }, completedAt: new Date().toISOString() };
+  const time: PersonalGoal = { kind: "time", puzzle: "333", solveMode: "standard", metric: "single", targetMs: 20000, createdAt: new Date().toISOString() };
+  const learning: PersonalGoal = { kind: "learning", puzzle: "222", setId: null, createdAt: time.createdAt };
+  const first = goalKey(), second = goalKey();
+  a.control.offline = true;
+  await a.api.updateJourney({ profile, [first]: time });
+  const reopened = device(remote, a.storage);
+  expect(reopened.local.read.journey().profile).toEqual(profile);
+  reopened.control.loseAck = true;
+  await reopened.local.sync();
+  await reopened.local.sync();
+  expect(reopened.local.status().pending).toBe(0);
+  expect(db.db.query<{ n: number }>("SELECT count(*) n FROM personal_entries").get()?.n).toBe(2);
+  const b = device(remote);
+  await b.api.login("journey_alice", "a-long-test-password"); await b.local.sync();
+  expect(b.local.read.journey().profile).toEqual(profile);
+  // Both devices change different goal keys while disconnected.
+  b.control.offline = true; reopened.control.offline = true;
+  await b.api.updateJourney({ [second]: learning });
+  await reopened.api.updateJourney({ [first]: { ...time, targetMs: 15000 } });
+  b.control.offline = false; reopened.control.offline = false;
+  await b.local.sync(); await reopened.local.sync(); await b.local.sync();
+  expect(personalGoals(b.local.read.journey())).toHaveLength(2);
+  expect(b.local.read.journey()[first]).toMatchObject({ targetMs: 15000 });
+  await reopened.api.updateJourney({ [second]: null }); await reopened.local.sync(); await b.local.sync();
+  expect(b.local.read.journey()[second]).toBeNull();
+  expect(personalGoals(b.local.read.journey())).toHaveLength(1);
+  // Legacy clients never receive unknown journey entities, but still advance their cursor.
+  const oldPull = await fetch(origin + "/api/sync?after=0", { headers: { Authorization: `Bearer ${auth.token}` } }).then(r => r.json()) as any;
+  expect(oldPull.changes.some((c: any) => c.kind === "personal_entries")).toBe(false);
+  await b.api.logout(); await b.api.register("journey_bob", "a-long-test-password"); await b.local.sync();
+  expect(b.local.read.journey()).toEqual({});
+  await b.api.logout(); await b.api.login("journey_alice", "a-long-test-password"); await b.local.sync();
+  expect(b.local.read.journey().profile).toEqual(profile);
+});
+
+test("personal entry HTTP validation is account-scoped and invalid batches roll back", async () => {
+  const { remote } = setup();
+  const auth = await remote(null).register("journey_validation", "a-long-test-password"), api = remote(auth.token);
+  const other = await remote(null).register("journey_isolated", "a-long-test-password");
+  const at = "2026-10-01T10:00:00.000Z", key = goalKey();
+  const time: PersonalGoal = { kind: "time", puzzle: "333", solveMode: "standard", metric: "ao5", targetMs: 20000, createdAt: at };
+  const op = (key: string, value: unknown) => ({ id: crypto.randomUUID(), method: "PUT", path: "journey", body: { key, value }, createdAt: at });
+  for (const invalid of [{ ...time, targetMs: 0 }, { ...time, metric: "ao3" }, { ...time, dueDate: "2026-02-30" }, { ...time, createdAt: "2026-02-30T10:00:00.000Z" }, { ...time, solveMode: "bad" }, { ...time, kind: "learning", puzzle: "222", setId: "pll" }]) {
+    await expect(api.syncPush([op(key, invalid)])).rejects.toMatchObject({ status: 422 });
+  }
+  await expect(api.syncPush([op("profile", null)])).rejects.toMatchObject({ status: 422 });
+  await expect(api.syncPush([op("profile", { kind: "profile", level: "beginner", knownPuzzles: ["333"], priority: "222", priorityMethod: "cfop", completedAt: at })])).rejects.toMatchObject({ status: 422 });
+  await expect(api.syncPush([op("profile", { kind: "profile", level: "beginner", knownPuzzles: ["333"], knownMethods: { "333": ["bad"] }, priority: "222", completedAt: at })])).rejects.toMatchObject({ status: 422 });
+  const profile = { kind: "profile", level: "beginner", knownPuzzles: [], priority: "444", learningPuzzles: ["444"], learningMethods: { "444": ["reduction", "yau"] }, completedAt: at };
+  for (const invalid of [{ ...profile, learningPuzzles: ["444", "444"] }, { ...profile, learningMethods: { "444": ["yau", "yau"] } }, { ...profile, learningMethods: { "222": ["ortega"] } }, { ...profile, learningMethods: { "444": ["cfop"] } }, { ...profile, priority: null }]) {
+    await expect(api.syncPush([op("profile", invalid)])).rejects.toMatchObject({ status: 422 });
+  }
+  await expect(api.syncPush([op("bad-key", time)])).rejects.toMatchObject({ status: 422 });
+  await expect(api.syncPush([op(key, time), op(goalKey(), { ...time, targetMs: -1 })])).rejects.toMatchObject({ status: 422 });
+  expect((await api.syncPull(0)).changes).toEqual([]);
+  await api.syncPush([op(key, time)]);
+  await api.syncPush([op("profile", { ...profile, priority: null, learningPuzzles: [], learningMethods: {} })]);
+  expect((await api.syncPull(0)).changes[0]).toMatchObject({ kind: "personal_entries", value: { key, value: time } });
+  expect((await remote(other.token).syncPull(0)).changes).toEqual([]);
+});
 
 test("anonymous practice is entirely local and survives reopening offline",async () => {
   const {remote,db} = setup(); const a = device(remote); a.control.offline=true;

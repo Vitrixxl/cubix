@@ -1,6 +1,6 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
 import React, { useState } from "react";
-import { Check, GraduationCap, MessageSquare, Trash2 } from "lucide-react";
+import { Check, Compass, GraduationCap, MessageSquare, RotateCcw, Trash2 } from "lucide-react";
 import { store as s, matches } from "./store";
 import { call, openExternal } from "./bridge";
 import { accents } from "./theme";
@@ -150,6 +150,24 @@ function GuidesDialog() {
             {GUIDES[id].name}
           </Button>
         ))}
+        {/* Replays: the app tour (the shared `tour` action) and the introduction, which leaves the guides behind. */}
+        <div className="flex gap-0.5 md:mt-auto md:flex-col md:border-t md:pt-2 max-md:border-l max-md:pl-1">
+          <Button action="tour" icon={Compass} className="justify-start font-normal text-muted-foreground">
+            Replay tour
+          </Button>
+          <UiButton
+            variant="ghost"
+            data-action="onboarding"
+            className="justify-start font-normal text-muted-foreground"
+            onClick={() => {
+              close();
+              void s.action("onboarding");
+            }}
+          >
+            <RotateCcw />
+            Redo the introduction
+          </UiButton>
+        </div>
       </nav>
       <article
         className="guides-body min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-10 md:px-10 md:pt-10"

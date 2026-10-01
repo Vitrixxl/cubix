@@ -9,7 +9,6 @@ import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
 import { puzzleOf } from "../../../src/shared/puzzles";
 import type { AchievementDto, CaseDto, CaseHistoryDto, HistoryPoint, ProfileDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -19,6 +18,7 @@ import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
 import { useColors } from "../theme";
 import { CaseDiagram } from "./CaseDiagram";
 import { Choice, Empty, Label, Numeric, SearchField } from "./layout";
+import { Section } from "./ProfileCard";
 import { ChoiceButton } from "./PuzzlePicker";
 import { Sheet, SheetScrollView } from "./Sheet";
 import { SolveMenu } from "./SolveMenus";
@@ -33,38 +33,7 @@ import { TimerStats } from "./TimesChart";
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
-/** A profile section, every one built the same: a heading row (title, muted meta, a link to its page) and a body. */
-export function Section({ title, meta, more = "Details", onMore, aside, children, className, bodyClassName, label }: {
-  title: ReactNode; meta?: ReactNode; more?: string; onMore?: () => void; aside?: ReactNode; children: ReactNode; className?: string; bodyClassName?: string; label?: string;
-}) {
-  return <Card className={cn("gap-0 py-0", className)} accessibilityLabel={label}>
-    <View className="min-h-13 flex-row items-center gap-3 pt-2 pr-3 pl-5">
-      <Text accessibilityRole="header" className="shrink-0 text-base font-semibold tracking-tight">{title}</Text>
-      {meta != null ? <Text numberOfLines={1} className="min-w-0 shrink text-sm text-muted-foreground">{meta}</Text> : null}
-      <View className="ml-auto shrink-0 flex-row items-center gap-1">
-        {aside}
-        {onMore ? <MoreLink onPress={onMore}>{more}</MoreLink> : null}
-      </View>
-    </View>
-    <View className={cn("gap-5 px-5 pt-3 pb-5", bodyClassName)}>{children}</View>
-  </Card>;
-}
-
-/** A quiet link at the end of a heading row: "Details ›". */
-export function MoreLink({ onPress, children }: { onPress: () => void; children: ReactNode }) {
-  return <Button variant="ghost" size="sm" className="h-9 gap-0.5 px-2" onPress={onPress}>
-    <Text className="text-sm text-muted-foreground">{children}</Text>
-    <Icon as={ChevronRight} size={15} className="text-muted-foreground" />
-  </Button>;
-}
-
-/** A small heading inside a section, with an optional control on the right. */
-export function SubHead({ title, children }: { title: ReactNode; children?: ReactNode }) {
-  return <View className="h-8 flex-row items-center gap-2">
-    <Text className="text-sm font-medium text-muted-foreground">{title}</Text>
-    {children ? <View className="ml-auto flex-row items-center">{children}</View> : null}
-  </View>;
-}
+export { EmptyLine, MoreLink, Section, SubHead, Tag } from "./ProfileCard";
 
 /** A figure: its label over the value in Geist; an empty one is a faded dash. */
 export function Stat({ label, value, tone = "" }: { label: string; value: string | null | undefined; tone?: Tone }) {
@@ -98,21 +67,17 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
   const step = HEAT_CELL + HEAT_GAP;
   const times = (picked && days.get(picked.key)?.times) ?? [];
   const finite = times.filter(t => t != null);
-  return <Card className="gap-0 py-0" accessibilityLabel="Activity">
-    <View className="min-h-13 flex-row items-center gap-3 pt-2 pr-2 pl-5">
-      <Text className="text-base font-semibold tracking-tight">{plural(total, "solve")}</Text>
-      <ChoiceButton label="Period" variant="ghost" value={String(year)} className="ml-auto px-2"
-        options={[{ id: "null", label: "Last 12 months" }, ...years.map(y => ({ id: String(y), label: String(y) }))]}
-        onChange={v => setYear(v === "null" ? null : Number(v))} />
-    </View>
-    <View className="px-5 pt-2 pb-4">
+  return <Section label="Activity" title="Activity" meta={plural(total, "solve")} bodyClassName="gap-0"
+    aside={<ChoiceButton label="Period" variant="ghost" value={String(year)} className="px-2"
+      options={[{ id: "null", label: "Last 12 months" }, ...years.map(y => ({ id: String(y), label: String(y) }))]}
+      onChange={v => setYear(v === "null" ? null : Number(v))} />}>
       <View className="flex-row">
         <View style={{ width: HEAT_LABEL, paddingTop: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }} importantForAccessibility="no-hide-descendants">
           {["Mon", "", "Wed", "", "Fri", "", ""].map((d, i) => <View key={i} className="justify-center" style={{ height: HEAT_CELL }}>
             <Text className="text-[11px] leading-[13px] text-muted-foreground">{d}</Text>
           </View>)}
         </View>
-        <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} className="-mr-5 min-w-0 flex-1" contentContainerClassName="pr-5"
+        <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} className="-mr-4 min-w-0 flex-1" contentContainerClassName="pr-4"
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: false })}>
           <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? "over the last 12 months" : `in ${year}`}`}
             style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }}>
@@ -141,8 +106,7 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
           <Text className="text-xs text-muted-foreground">More</Text>
         </View>
       </View>}
-    </View>
-  </Card>;
+  </Section>;
 });
 
 /** The latest solves and their Ao5 as two lines over three quiet ticks, the first and last dates under it. */

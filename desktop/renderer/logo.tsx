@@ -18,3 +18,13 @@ export function Logo({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
+
+/** The app's name: Qbix, its Q bold. */
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <span className={"tracking-tight " + (className ?? "")} aria-label="Qbix">
+      <span className="font-extrabold">Q</span>
+      <span className="font-medium">bix</span>
+    </span>
+  );
+}

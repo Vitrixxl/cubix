@@ -17,7 +17,7 @@ import {
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Figure, Icon, LABEL, NUMERIC, PAGE, PageHead, PuzzleButton, Surface, Tip, plural, run, usePhone } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Figure, Icon, LABEL, PlayBadge, NUMERIC, PAGE, PageHead, PuzzleButton, Surface, Tip, plural, run, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function Learn() {
@@ -88,7 +88,7 @@ function Methods() {
         <PuzzleButton />
       </PageHead>
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
-        <nav aria-label="Methods" className="flex w-72 shrink-0 flex-col gap-0.5 overflow-y-auto rounded-xl border bg-card p-2">
+        <nav aria-label="Methods" data-tour="learn" className="flex w-72 shrink-0 flex-col gap-0.5 overflow-y-auto rounded-xl border bg-card p-2">
           {rows.map((row) => {
             return (
             <button
@@ -181,7 +181,7 @@ function PhoneMethods({ rows, label }: { rows: MethodRow[]; label: string }) {
       <PageHead title="Learn" sub={`Choose a ${label} method`} puzzle />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Surface className="shrink-0">
-          <nav aria-label="Methods" className="flex flex-col">
+          <nav aria-label="Methods" data-tour="learn" className="flex flex-col">
             {rows.map((row, i) => {
               return (
               <button
@@ -307,12 +307,10 @@ function AlgRow({ item, items, touch = false }: { item: Item; items: Item[]; tou
             data-play={item.key}
             aria-label={`Play ${item.name} in 3D`}
             onClick={play}
-            className="relative shrink-0 cursor-pointer self-center rounded-md outline-none ring-ring/50 ring-offset-2 ring-offset-background transition-shadow hover:ring-2 focus-visible:ring-2"
+            className="group/play relative shrink-0 cursor-pointer self-center rounded-md outline-none ring-ring/50 ring-offset-2 ring-offset-background transition-shadow hover:ring-2 focus-visible:ring-2"
           >
             {item.diagram}
-            <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground" aria-hidden="true">
-              <Play className="size-2.5 fill-current" />
-            </span>
+            <PlayBadge compact />
           </button>
         </Tip>
       ) : (

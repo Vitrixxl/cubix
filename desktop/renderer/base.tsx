@@ -5,13 +5,14 @@
 import React, { useEffect, useState } from "react";
 import { isPhone } from "../../src/client/lib/viewport";
 import { TONE_TEXT, type Tone } from "../../src/client/lib/tone";
+import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export { Logo } from "./logo";
+export { Logo, Wordmark } from "./logo";
 export type { Tone } from "../../src/client/lib/tone";
 export { isPhone } from "../../src/client/lib/viewport";
 
@@ -44,9 +45,22 @@ export function useViewport() {
 /** Whether the window gets the phone layout: the stylesheet's `max-md:` (src/client/lib/viewport.ts). */
 export const usePhone = () => isPhone(useViewport().w);
 
-/** The sidebar of a window: labelled on wide windows, icons only below; the window's width alone decides. */
+/** Above this window width the sidebar can show its labels; below it keeps to its icons. */
+export const SIDEBAR_WIDE = 1100;
+const FOLDED_KEY = "cubix.sidebar.folded";
+
+/** The sidebar of a window: labelled on wide windows unless the user folded it (remembered), icons only below. */
 export function WindowSidebar(props: Omit<React.ComponentProps<typeof SidebarProvider>, "open" | "onOpenChange">) {
-  return <SidebarProvider open={useViewport().w > 1100} onOpenChange={() => {}} {...props} />;
+  const wide = useViewport().w > SIDEBAR_WIDE,
+    [folded, setFolded] = useState(() => localStorage.getItem(FOLDED_KEY) === "1");
+  const change = (open: boolean) => {
+    if (!wide) return;
+    setFolded(!open);
+    try {
+      localStorage.setItem(FOLDED_KEY, open ? "0" : "1");
+    } catch {}
+  };
+  return <SidebarProvider open={wide && !folded} onOpenChange={change} {...props} />;
 }
 
 /** An SVG of desktop/assets/icons drawn in the current colour: the WCA puzzle icons. */
@@ -131,6 +145,26 @@ export function Strip({ children, className, label }: Props & { label?: string }
     <section aria-label={label} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl border bg-muted/45 px-4 py-3", FADE, className)}>
       {children}
     </section>
+  );
+}
+
+/**
+ * The mark on a diagram that plays its moves in 3D: a small accent button inside the diagram's bottom right corner,
+ * "3D" beside the triangle unless `compact`. Its parent button carries `group/play` and the click.
+ */
+export function PlayBadge({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "absolute right-1 bottom-1 flex h-6 items-center justify-center gap-1 rounded-md bg-primary text-[11px] font-semibold text-primary-foreground shadow-sm ring-2 ring-background",
+        // The triangle carries some empty space on its left: a little less padding there keeps the content centred.
+        compact ? "w-6" : "pr-1.5 pl-1",
+      )}
+    >
+      <Play className="size-3 fill-current" />
+      {!compact && "3D"}
+    </span>
   );
 }
 
@@ -251,7 +285,7 @@ export function Figure({
 }
 
 /** A thin bar: the accent once reached (`done`), muted while on its way; `fill` names another colour. */
-export function Bar({ ratio, done = true, fill, className }: { ratio: number; done?: boolean; fill?: string; className?: string }) {
+export function Bar({ ratio, done = true, fill, className, label, text }: { ratio: number; done?: boolean; fill?: string; className?: string; label?: string; text?: string }) {
   const value = Math.max(0, Math.min(1, ratio));
   return (
     <div
@@ -260,6 +294,8 @@ export function Bar({ ratio, done = true, fill, className }: { ratio: number; do
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
+      aria-label={label}
+      aria-valuetext={text}
     >
       <div className={cn("h-full rounded-full", fill ?? (done ? "bg-primary" : "bg-muted-foreground/60"))} style={{ width: value * 100 + "%" }} />
     </div>

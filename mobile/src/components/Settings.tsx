@@ -18,7 +18,7 @@ import { Sheet } from "./Sheet";
 import { UserAvatar } from "./UserAvatar";
 
 /**
- * The settings, as the web's dialog but in a tall sheet: the account and its sign-out, the appearance (mode and accent)
+ * The settings, as the web's dialog but in a tall sheet: the account and, apart, signing out, the appearance (mode and accent)
  * and, on the native app, the guides and the installed version.
  */
 export function SettingsSheet() {
@@ -55,11 +55,12 @@ function Account({ onSignedOut }: { onSignedOut: () => void }) {
         <Text numberOfLines={1} className="text-[15px] font-semibold">{user.username}</Text>
         <Text className="text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)} · synced</Text>
       </View>
-      <Button variant="outline" size="sm" className="h-10 gap-2" disabled={busy} onPress={() => void signOut()}>
-        <Icon as={LogOut} size={15} />
-        <Text>{busy ? "Signing out…" : "Sign out"}</Text>
-      </Button>
     </View>
+    {/* Signing out stands apart from the account, centred on its own row. */}
+    <Button variant="outline" className="h-11 w-full justify-center gap-2 border-destructive/40" disabled={busy} accessibilityLabel="Log out" onPress={() => void signOut()}>
+      <Icon as={LogOut} size={16} className="text-destructive" />
+      <Text className="text-destructive">{busy ? "Logging out…" : "Log out"}</Text>
+    </Button>
   </Section>;
 }
 

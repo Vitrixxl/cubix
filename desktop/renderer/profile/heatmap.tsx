@@ -1,5 +1,6 @@
 /** The contribution graph: solves per day as squares, a week per column (Monday on top), a year wide. */
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Joined } from "./card";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import { fmtTime, best, bestAverage, plural, shortDate } from "../../../src/client/lib/format";
@@ -15,7 +16,9 @@ const GAP = 3,
 
 type Hover = { cell: HeatCell; rect: DOMRect };
 
-export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; latest: string | null; phone: boolean }) {
+/** `pane`: drawn flat inside the profile's joined panel instead of as a card of its own. */
+export function Heatmap({ solves, latest, phone, pane = false, className }: { solves: ActivitySolve[]; latest: string | null; phone: boolean; pane?: boolean; className?: string }) {
+  pane = useContext(Joined) || pane;
   const [year, setYear] = useState<number | null>(null),
     [hover, setHover] = useState<Hover | null>(null),
     [width, setWidth] = useState(0),
@@ -23,7 +26,10 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = () => setWidth(el.clientWidth);
+    const measure = () => {
+      const style = getComputedStyle(el);
+      setWidth(el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight));
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -41,7 +47,7 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
     if (phone && scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth;
   }, [phone, year, weeks]);
   return (
-    <Card className="gap-0 py-0" aria-label="Activity">
+    <Card className={cn("shrink-0 gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label="Activity">
       <div className="flex min-h-13 items-center gap-3 px-5 pt-2">
         <h2 className="text-base font-semibold tracking-tight">
           {plural(total, "solve")} {phone ? "" : year == null ? "in the last year" : `in ${year}`}
@@ -76,7 +82,7 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
               </span>
             ))}
           </div>
-          <div ref={scroller} className={cn(phone && "-mr-5 min-w-0 overflow-x-auto pr-5 pb-1")}>
+          <div ref={scroller} className={cn("min-w-0", phone ? "-mr-5 overflow-x-auto pr-5 pb-1" : "overflow-hidden")}>
             <div
               className="grid"
               role="img"
@@ -84,7 +90,8 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
               onMouseLeave={() => setHover(null)}
               style={{ width: gridWidth - LABEL, gridTemplateColumns: `repeat(${weeks}, ${cell}px)`, gridTemplateRows: `auto repeat(7, ${cell}px)`, gap: GAP }}
             >
-              {months.map((m) => (
+              {/* A month starting in the last weeks would stick out past the grid. */}
+              {months.filter((m) => phone || m.week < weeks - 2).map((m) => (
                 <span key={m.week} className="pb-1 text-xs leading-none whitespace-nowrap text-muted-foreground" style={{ gridRow: 1, gridColumn: m.week + 1 }}>
                   {m.label}
                 </span>
@@ -103,7 +110,7 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
             </div>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between gap-4 text-xs text-muted-foreground" style={phone ? undefined : { width: gridWidth, marginInline: "auto" }}>
+        <div className="mt-3 flex items-center justify-between gap-4 text-xs text-muted-foreground" style={phone ? undefined : { width: Math.min(gridWidth, width), marginInline: "auto" }}>
           <span className="truncate">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</span>
           <span className="flex shrink-0 items-center gap-1">
             Less

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Cubix",
-  "short_name": "Cubix",
+  "name": "Qbix",
+  "short_name": "Qbix",
   "description": "Speedcubing timer and algorithm trainer.",
   "start_url": "/",
   "scope": "/",

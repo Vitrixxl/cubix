@@ -101,7 +101,7 @@ function Lobby() {
     <div className={cn(PAGE, "duel-lobby")}>
       <PageHead title="Duel" puzzle />
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-[6vh] max-md:justify-end max-md:pb-0">
-        <Surface className="w-full max-w-lg">
+        <Surface className="w-full max-w-lg" data-tour="duel">
           <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-7 text-center">
             <span className={cn("flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground", searching && "animate-pulse bg-primary/15 text-primary")}>
               <Swords className="size-6" />

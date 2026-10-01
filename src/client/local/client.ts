@@ -6,18 +6,19 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
+import { goalProgress, personalGoals, journeyProfile, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned" | "learning-order"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; groupOrder: LearningGroupOrder; outbox: Operation[]; cursor: number }
+type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
+interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
 const LEGACY_LEARNED_KEY = "cubix.algs.learnedCaseIds";
 const GUEST: UserDto = { id: "local-guest", username: "Guest", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
-const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, groupOrder:{}, outbox:[], cursor:0 });
+const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, groupOrder:{}, journey:{}, outbox:[], cursor:0 });
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
@@ -67,6 +68,7 @@ export function createLocalClient(options: {
     // Only the latest learning mark of a case needs to reach the server.
     if (kind === "learned") workspace.outbox = workspace.outbox.filter(op => !(op.kind === "learned" && !op.error && op.body.caseId === body.caseId));
     if (kind === "learning-order") workspace.outbox = workspace.outbox.filter(op => !(op.kind === kind && op.body.track === body.track));
+    if (kind === "journey") workspace.outbox = workspace.outbox.filter(op => !(op.kind === kind && op.body.key === body.key));
     workspace.outbox.push({ id:crypto.randomUUID(), kind, localId, body, createdAt });
   };
   const save = (id: string, value: Workspace) => write("workspace:" + id,value);
@@ -74,6 +76,7 @@ export function createLocalClient(options: {
     const stored = read<(Workspace & { cache?: unknown }) | null>("workspace:" + id,null);
     const workspace: Workspace & { cache?: unknown } = stored ?? empty();
     workspace.learned ??= {};
+    if (!workspace.journey) { workspace.journey = {}; workspace.cursor = 0; save(id, workspace); }
     if (!stored?.groupOrder) {
       workspace.groupOrder = {};
       // Old clients advanced past order events they could not consume; replay once on upgrade.
@@ -173,7 +176,11 @@ export function createLocalClient(options: {
     await edit(id, workspace => {
       const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
       for (const change of [...changes].sort((a,b) => Number(a.kind === "solves") - Number(b.kind === "solves"))) {
-        if (change.kind === "learning_group_orders") {
+        if (change.kind === "personal_entries") {
+          const row = change.value as JourneyEntryDto | null;
+          if (!row || !validJourneyEntry(row.key, row.value, cases) || workspace.outbox.some(op => op.kind === "journey" && op.body.key === row.key)) continue;
+          workspace.journey[row.key] = row.value;
+        } else if (change.kind === "learning_group_orders") {
           const row = change.value as LearningGroupOrderDto | null;
           if (!row || !isLearningTrack(row.track) || workspace.outbox.some(op => op.kind === "learning-order" && op.body.track === row.track)) continue;
           workspace.groupOrder[row.track] = orderedGroups(learningCases(cases,row.track),row.groups);
@@ -223,7 +230,7 @@ export function createLocalClient(options: {
           const workspace = data(id), op = workspace.outbox.find(op => !op.error);
           if (!op) break;
           activeOperation = op.id;
-          let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : op.kind === "learning-order" ? "learning-group-order" : "solves";
+          let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : op.kind === "learning-order" ? "learning-group-order" : op.kind === "journey" ? "journey" : "solves";
           const body = { ...op.body };
           if (op.kind === "solve") {
             const sid = sessionServerId(workspace,body.sessionId);
@@ -235,7 +242,7 @@ export function createLocalClient(options: {
             if (!serverId) throw new Error("The solve is waiting to synchronize.");
             path += "/" + serverId;
           }
-          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
+          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" || op.kind === "journey" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
           const result: any = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
@@ -299,6 +306,11 @@ export function createLocalClient(options: {
 
   /** Synchronous reads of local data, for screens that must render without any loading state. */
   const reads = {
+    journey: () => data().journey,
+    goals: () => {
+      const workspace = data(), solves = liveSolves(workspace), learned = new Set(learnedIds(workspace));
+      return personalGoals(workspace.journey).map(([key, goal]) => ({ key, goal, progress: goalProgress(goal, solves, learned, cases, journeyProfile(workspace.journey)) }));
+    },
     catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
     stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
@@ -309,6 +321,15 @@ export function createLocalClient(options: {
   const api = {
     ...options.remote(options.getToken()),
     me: async () => current(),
+    /** Save the entire setup in one local transaction; independent goal operations preserve other devices' additions. */
+    updateJourney: async (changes: Journey) => localMutation((workspace, id) => {
+      if (Object.entries(changes).some(([key, value]) => !validJourneyEntry(key, value, cases))) throw new Error("Invalid goal or profile.");
+      const next = { ...workspace.journey, ...changes };
+      if (personalGoals(next).length > 100) throw new Error("Keep at most 100 personal goals.");
+      workspace.journey = next;
+      for (const [key, value] of Object.entries(changes)) operation(workspace, id, "journey", 0, { key, value });
+      return next;
+    }),
     cases: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).cases,
     sets: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).sets,
     register: async (username: string,password: string) => authenticate(await options.remote(null).register(username,password)),

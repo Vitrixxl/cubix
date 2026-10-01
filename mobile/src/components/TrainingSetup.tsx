@@ -15,6 +15,7 @@ import { CaseSelector } from "./CaseSelector";
 import { BackButton, Figure, Numeric, Page, PageHead, SearchField, Surface } from "./layout";
 import { SessionButton } from "./PuzzlePicker";
 import { useBackTo } from "./Practice";
+import { useTourTarget } from "../tour";
 
 export type DailyLearning = ReturnType<typeof useDailyLearning>;
 /** A setup mode: `cross1`, or a learning mode (`practice`, `review`, a track). */
@@ -56,10 +57,11 @@ export function TrainingSetup({ daily, onStart }: { daily: DailyLearning; onStar
   const chosen = modes.find(m => m.id === setupMode);
   const last = lastMode(kind, puzzle, daily.mode);
   useBackTo(() => setSetupMode(""), !!chosen);
+  const modesTarget = useTourTarget("training");
   if (!chosen) return <Page>
     <PageHead title="Training"><SessionButton /></PageHead>
     <Text className="-mt-1 text-sm text-muted-foreground">Pick a way to practise.</Text>
-    <Surface>
+    <Surface {...modesTarget}>
       <ScrollView bounces={false}>
         {modes.map((m, i) => <Pressable key={m.id} accessibilityRole="button" accessibilityLabel={`${m.label}, ${m.detail}`} onPress={() => setSetupMode(m.id)}
           className={cn("min-h-16 flex-row items-center gap-3 px-4 active:bg-muted/50", i > 0 && "border-t border-border")}>

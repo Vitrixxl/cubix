@@ -28,7 +28,8 @@ const server = Bun.serve<Socket>({
     }
     // The administration is drawn by the same page (see rust-api/src/web.rs).
     const admin = url.pathname === "/admin" || url.pathname.startsWith("/admin/");
-    const path = decodeURIComponent(url.pathname === "/" || admin ? "/index.html" : url.pathname);
+    const app = /^\/(onboarding|timer|algorithms|training|duel|learn|profile)(\/|$)/.test(url.pathname);
+    const path = decodeURIComponent(url.pathname === "/" || admin || app ? "/index.html" : url.pathname);
     if (path.split("/").includes("..")) return new Response("Invalid path", { status: 400 });
     const file = Bun.file(WEB_DIR + path);
     return (await file.exists()) ? new Response(file, { headers: { "cache-control": "no-cache" } }) : new Response("Not found", { status: 404 });

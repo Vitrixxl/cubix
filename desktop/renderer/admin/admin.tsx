@@ -225,7 +225,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
   const live = useLive(true);
   const refreshed = useRefreshed();
   useEffect(() => {
-    document.title = (VIEWS.find(([v]) => v === view)?.[1] ?? "Account") + " · Cubix admin";
+    document.title = (VIEWS.find(([v]) => v === view)?.[1] ?? "Account") + " · Qbix admin";
   }, [view]);
   const body =
     view === "users" && id ? (
@@ -315,5 +315,5 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
 }
 
 applyTheme("t3-code", false);
-document.title = "Cubix admin";
+document.title = "Qbix admin";
 createRoot(document.getElementById("root")!).render(<AdminApp />);

@@ -11,6 +11,8 @@ import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { completeStep, courseEntry, courseStorageKey, finishCourse, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
+import { journeyProfile, type Journey, type PersonalGoal, type GoalProgress } from "../../src/client/lib/journey";
+import { go, goPage, readRoute, type AppRoute } from "./navigation";
 export const catalog = catalogData as any;
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
@@ -24,13 +26,12 @@ export const matches = (c: any, q: string) =>
         .toLowerCase()
         .includes(word),
     );
-const PAGE_ORDER = ["playground", "learn", "algorithms", "training", "duel", "profile"];
+const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "learn", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
 /** Whether a window this wide keeps the session's times beside the stage, with no button to fold them away. */
 export const timesAlwaysShown = (width: number, training: boolean) => !isPhone(width) && width >= (training ? 1200 : 980);
-const LOCATION_KEY = "cubix.location";
 /** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
 function slideDirection(
   from: { page: string; caseId: string },
@@ -58,6 +59,11 @@ export class Store {
   light = false;
   user: any = { isGuest: true, username: "Guest" };
   learned = new Set<string>();
+  journey: Journey = {};
+  personalGoals: { key: string; goal: PersonalGoal; progress: GoalProgress }[] = [];
+  editGoalKey = "";
+  private introducedAccount = "";
+  introductionReady = false;
   selected = new Set<string>();
   reviewIds: string[] = [];
   sets: Record<string, string> = {};
@@ -110,7 +116,6 @@ export class Store {
   timerEpoch = 0;
   running = false;
   learningFrozen = false;
-  history: any[] = [];
   /** Slide direction of the next page transition: 1 pushes in from the right (or below), -1 from the left (or above). */
   direction = 1;
   /**
@@ -118,7 +123,6 @@ export class Store {
    * (a profile section, training started from its setup, a case) slides sideways.
    */
   axis: "x" | "y" = "y";
-  forward: any[] = [];
   revision = 0;
   request = 0;
   goal = new Set<string>();
@@ -152,44 +156,8 @@ export class Store {
   };
   emit = () => {
     this.version++;
-    this.saveLocation();
     this.listeners.forEach((fn) => fn());
   };
-  /** Where the app stood, kept on this device so a relaunch opens there again. */
-  savedLocation = "";
-  saveLocation() {
-    if (!this.ready) return;
-    const value = JSON.stringify({
-      page: this.page,
-      caseId: this.caseId,
-      profileMode: this.profileMode,
-      trainingStep: this.trainingStep,
-      setupMode: this.setupMode,
-      learnMethod: this.learnMethod,
-    });
-    if (value === this.savedLocation) return;
-    this.savedLocation = value;
-    try {
-      localStorage.setItem(LOCATION_KEY, value);
-    } catch {}
-  }
-  restoreLocation() {
-    let saved: any;
-    try {
-      saved = JSON.parse(localStorage.getItem(LOCATION_KEY) ?? "null");
-    } catch {}
-    if (!saved || !PAGE_ORDER.includes(saved.page)) return;
-    this.page = saved.page;
-    this.caseId = typeof saved.caseId === "string" && this.find(saved.caseId) ? saved.caseId : "";
-    if (typeof saved.profileMode === "string") this.profileMode = saved.profileMode;
-    if (saved.trainingStep === "setup" || saved.trainingStep === "practice") this.trainingStep = saved.trainingStep;
-    if (typeof saved.setupMode === "string") this.setupMode = saved.setupMode;
-    if (methodOf(this.puzzle as PuzzleId, saved.learnMethod)) this.learnMethod = saved.learnMethod;
-    this.showTimes = timesOpenAtStart(this.page);
-    this.profilePuzzle = this.puzzle;
-    this.profileSolveMode = this.solveMode;
-    this.profileScramble = this.scrambleType;
-  }
   /** First-block training: timer solves on scrambles whose cross and one pair take `crossMoves` turns. */
   get crossTraining() {
     return this.page === "training" && this.trainingKind === "cross1" && this.puzzle === "333";
@@ -243,8 +211,8 @@ export class Store {
     const course = this.learning;
     this.learnFinished = false;
     if (!course) return;
-    this.saveCourse(goToStep(this.course, course.puzzle, course.method.id, index));
     this.direction = index < course.entry.step ? -1 : 1;
+    goPage("learn", { puzzle: course.puzzle, learnMethod: course.method.id, learnStep: Math.max(0, Math.min(course.method.steps.length - 1, index)) });
   }
   /** Opens the 3D player on one of a list of algorithms. */
   openAlg(items: PlayItem[], index: number) {
@@ -305,6 +273,7 @@ export class Store {
       const v = await call("init");
       if (v.protocol !== 2) throw Error("Incompatible data engine");
       this.user = v.user;
+      this.journey = v.journey ?? {};
       this.localData = !!v.localData;
       this.syncStatus(v.status);
       for (const [k, raw] of Object.entries(v.storage)) {
@@ -326,7 +295,8 @@ export class Store {
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
-      this.restoreLocation();
+      const route = readRoute(window.location.pathname, window.location.search);
+      if (route && route.page !== "onboarding") this.applyRoute(route);
       this.ready = true;
       this.emit();
       await this.refresh();
@@ -343,6 +313,25 @@ export class Store {
   get signedIn() {
     return !this.user.isGuest && !this.expired;
   }
+  checkIntroduction() {
+    if (!this.signedIn || this.introducedAccount === this.user.id) return;
+    this.introducedAccount = this.user.id;
+    if (journeyProfile(this.journey)) { this.introductionReady = true; return; }
+    this.introductionReady = false;
+    const owner = this.user.id;
+    // A new device first pulls the account's existing setup; offline accounts still reach setup.
+    void call("sync").then(() => this.refresh()).then(() => {
+      if (this.user.id === owner && this.signedIn) { this.introductionReady = true; this.emit(); }
+    }).catch(this.fail);
+  }
+  async updateJourney(changes: Journey) {
+    const owner = this.user.id;
+    const saved = await call("updateJourney", changes);
+    if (owner !== this.user.id) return;
+    this.journey = saved;
+    this.emit();
+    await this.refresh();
+  }
   /** The engine's sync state: "signin" once the server has refused the account's token. */
   syncStatus(status: { state?: string } | undefined) {
     const expired = status?.state === "signin" && !this.user.isGuest;
@@ -354,6 +343,10 @@ export class Store {
   async authenticate(mode: "login" | "register", username: string, password: string) {
     const v = await call(mode, username, password);
     this.user = v.user;
+    this.journey = {};
+    this.personalGoals = [];
+    this.introducedAccount = "";
+    this.introductionReady = false;
     this.expired = false;
     this.localData = false;
     this.sessions.clear();
@@ -416,6 +409,9 @@ export class Store {
       this.prefs["cubix.duels"] = v.duels;
       this.learned = new Set(v.learned);
       this.learningGroupOrder = v.learningGroupOrder ?? {};
+      this.journey = v.journey ?? {};
+      if (v.goals) this.personalGoals = v.goals;
+      this.checkIntroduction();
       await this.refreshLearning();
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
@@ -570,27 +566,28 @@ export class Store {
       learnMethod: this.learnMethod,
     };
   }
-  navigate(page: string, caseId = "") {
+  /** Applies a URL supplied by React Router; this never changes browser history. */
+  applyRoute(route: AppRoute) {
+    if (route.page === "onboarding") return;
+    const { page } = route;
+    if (route.puzzle && route.puzzle !== this.puzzle) { this.puzzle = route.puzzle; this.pref("cubix.puzzle", this.puzzle); this.loadContext(); }
+    const caseId = route.caseId && this.find(route.caseId) ? route.caseId : "";
+    const method = methodOf(this.puzzle as PuzzleId, route.learnMethod) ? route.learnMethod : "";
     this.axis = page === this.page ? "x" : "y";
-    this.direction =
-      page === "profile" && this.page === "profile" && this.profileMode !== "overview"
-        ? -1
-        : slideDirection(this.location(), { page, caseId });
-    this.history.push(this.location());
-    this.forward = [];
-    this.page = page;
-    this.caseId = caseId;
-    this.overlay = "";
-    this.timerEpoch++;
-    this.showTimes = timesOpenAtStart(page);
-    if (page === "profile") {
-      this.profileMode = "overview";
-      this.profilePuzzle = this.puzzle;
-      this.profileSolveMode = this.solveMode;
-      this.profileScramble = this.scrambleType;
+    this.direction = slideDirection(this.location(), { page, caseId });
+    if (page === this.page && page === "learn") this.direction = method && method === this.learnMethod && route.learnStep !== undefined ? Math.sign(route.learnStep - (this.learning?.entry.step ?? 0)) || 1 : method ? 1 : -1;
+    if (page === this.page && page === "profile") this.direction = route.profileMode === "overview" ? -1 : 1;
+    if (page === "profile" && this.page !== "profile") {
+      this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
-    void this.syncScramble();
-    void this.refresh();
+    this.page = page; this.caseId = caseId; this.profileMode = route.profileMode;
+    this.trainingStep = route.trainingStep; this.learnMethod = method;
+    if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
+    if (method) this.learnPick = method;
+    this.learnFinished = false;
+    if (this.overlay !== "tour") this.overlay = "";
+    this.timerEpoch++; this.showTimes = timesOpenAtStart(page);
+    void this.syncScramble(); void this.refresh(); this.emit();
   }
   /** The timer and the cross+1 training each keep their own scramble: show the one of the current context. */
   async syncScramble() {
@@ -606,21 +603,6 @@ export class Store {
     this.emit();
     if (!this.scramble) await this.nextScramble();
     else this.prefetchCrossSolutions();
-  }
-  travel(back = true) {
-    const stack = back ? this.history : this.forward,
-      other = back ? this.forward : this.history;
-    const next = stack.pop();
-    if (!next) return;
-    this.direction = back ? -1 : 1;
-    this.axis = next.page === this.page ? "x" : "y";
-    other.push(this.location());
-    Object.assign(this, next);
-    this.overlay = "";
-    this.timerEpoch++;
-    void this.syncScramble();
-    void this.refresh();
-    this.emit();
   }
   /** A solve of the timer session or of a profile history, shaped like a timer solve. */
   findSolve(id: number) {
@@ -641,18 +623,24 @@ export class Store {
       arg = ix < 0 ? "" : action.slice(ix + 1);
     try {
       switch (kind) {
+        case "onboarding":
+          goPage("onboarding");
+          break;
+        case "tour":
+          this.overlay = kind;
+          break;
         case "nav":
-          this.navigate(arg);
+          goPage(arg, { puzzle: this.puzzle as PuzzleId });
           break;
         case "case":
-          this.navigate("algorithms", arg);
+          goPage("algorithms", { caseId: arg, puzzle: this.puzzle as PuzzleId });
           break;
         case "back":
         case "historyBack":
-          this.travel();
+          go(-1);
           break;
         case "historyForward":
-          this.travel(false);
+          go(1);
           break;
         case "setupMode":
           this.setupMode = arg;
@@ -661,7 +649,7 @@ export class Store {
           this.setupMode = "";
           this.direction = -1;
           this.axis = "x";
-          this.trainingStep = "setup";
+          goPage("training", { puzzle: this.puzzle as PuzzleId });
           this.timerEpoch++;
           break;
         case "trainingStart": {
@@ -673,7 +661,7 @@ export class Store {
             if (learningModeForPuzzle(mode, this.puzzle) === mode)
               this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode });
           }
-          this.trainingStep = "practice";
+          goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
           this.direction = 1;
           this.axis = "x";
           this.timerEpoch++;
@@ -759,8 +747,7 @@ export class Store {
             // Training a group or a case from the catalogue skips the setup screen.
             this.trainingKind = "cases";
             this.pref("cubix.training.kind", "cases");
-            this.trainingStep = "practice";
-            this.navigate("training");
+            goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
           }
           if (kind === "train" || !this.selected.has(this.training?.id))
             await this.nextCase();
@@ -812,8 +799,7 @@ export class Store {
           this.per("cubix.practice.modeByPuzzle", event.solveMode);
           this.loadContext();
           this.overlay = "";
-          this.caseId = "";
-          this.learnMethod = "";
+          goPage(this.page, { puzzle: event.puzzle, trainingStep: this.trainingStep, profileMode: this.profileMode }, true);
           this.learnPick = "";
           this.timerEpoch++;
           await this.nextCase();
@@ -878,14 +864,7 @@ export class Store {
           await this.refresh();
           break;
         case "profileMode":
-          // Profile sections are pages of their own: they slide in and join the back/forward history.
-          if (arg === this.profileMode) break;
-          this.direction = arg === "overview" ? -1 : 1;
-          this.axis = "x";
-          this.history.push(this.location());
-          this.forward = [];
-          this.profileMode = arg;
-          this.overlay = "";
+          goPage("profile", { profileMode: arg, puzzle: this.puzzle as PuzzleId });
           break;
         case "profileStage":
           this.profileStage = arg;
@@ -909,8 +888,7 @@ export class Store {
             next =
               ids[ids.indexOf(this.caseId) + (arg === "previous" ? -1 : 1)];
           if (next) {
-            this.caseId = next;
-            await this.refresh();
+            goPage("algorithms", { caseId: next, puzzle: this.puzzle as PuzzleId }, true);
           }
           break;
         }
@@ -985,42 +963,19 @@ export class Store {
           this.learnPick = arg;
           break;
         case "learnMethod": {
-          // A course is a page of its own: it slides in and joins the back/forward history.
           if (!methodOf(this.puzzle as PuzzleId, arg)) break;
           this.saveCourse(openCourse(this.course, this.puzzle as PuzzleId, arg));
-          if (this.page !== "learn") {
-            this.learnMethod = arg;
-            this.navigate("learn");
-            break;
-          }
-          this.direction = 1;
-          this.axis = "x";
-          this.history.push(this.location());
-          this.forward = [];
-          this.learnMethod = arg;
-          this.learnPick = arg;
-          this.learnFinished = false;
+          goPage("learn", { learnMethod: arg, puzzle: this.puzzle as PuzzleId });
           break;
         }
         case "learnMethods":
-          if (!this.learnMethod) break;
-          this.direction = -1;
-          this.axis = "x";
-          this.history.push(this.location());
-          this.forward = [];
-          this.learnPick = this.learnMethod;
-          this.learnMethod = "";
-          this.learnFinished = false;
+          goPage("learn", { puzzle: this.puzzle as PuzzleId });
           break;
         case "learnFrom": {
-          // From the solving methods guide: its puzzle becomes the app's, then the method's course opens.
           const [puzzle, method] = arg.split(":");
           if (!isPuzzle(puzzle) || !methodOf(puzzle, method)) break;
-          if (puzzle !== this.puzzle) await this.action("puzzle:" + (eventOf(puzzle, "standard")?.id ?? puzzle));
           this.saveCourse(openCourse(this.course, puzzle, method!));
-          this.learnMethod = method!;
-          this.learnPick = method!;
-          this.navigate("learn");
+          goPage("learn", { puzzle, learnMethod: method });
           break;
         }
         case "learnStep":
@@ -1030,6 +985,7 @@ export class Store {
           const course = this.learning;
           if (!course) break;
           this.saveCourse(completeStep(this.course, course.puzzle, course.method.id, course.entry.step));
+          goPage("learn", { puzzle: course.puzzle, learnMethod: course.method.id, learnStep: courseEntry(this.course, course.puzzle, course.method.id).step });
           this.learnFinished = false;
           this.direction = 1;
           break;
@@ -1139,4 +1095,3 @@ export const run = (...actions: string[]) => (e: { currentTarget: HTMLElement })
     for (const action of actions) await store.action(action);
   })();
 };
-

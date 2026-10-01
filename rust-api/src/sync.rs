@@ -28,7 +28,7 @@ pub fn migrate(db: &Connection) -> Result<()> {
           UNIQUE(user_id,kind,entity_id));
         CREATE INDEX IF NOT EXISTS idx_sync_owner ON sync_changes(user_id,seq);",
     )?;
-    for table in ["sessions", "solves", "learned_cases", "learning_group_orders"] {
+    for table in ["sessions", "solves", "learned_cases", "learning_group_orders", "personal_entries"] {
         for (event, row, deleted) in [
             ("INSERT", "NEW", 0),
             ("UPDATE", "NEW", 0),
@@ -63,7 +63,7 @@ pub fn cursor(db: &Connection, uid: &str) -> Result<i64> {
     .and_then(|r| r["seq"].as_i64())
     .unwrap_or(0))
 }
-pub fn pull(db: &Connection, uid: &str, after: i64, learning_groups: bool) -> Result<Value> {
+pub fn pull(db: &Connection, uid: &str, after: i64, learning_groups: bool, journey: bool) -> Result<Value> {
     let rows = all(
         db,
         "SELECT * FROM sync_changes WHERE user_id=? AND seq>? ORDER BY seq LIMIT 500",
@@ -78,6 +78,7 @@ pub fn pull(db: &Connection, uid: &str, after: i64, learning_groups: bool) -> Re
         if table == "learning_group_orders" && !learning_groups {
             continue;
         }
+        if table == "personal_entries" && !journey { continue; }
         let mut value = one(
             db,
             &format!("SELECT * FROM {table} WHERE user_id=? AND id=?"),
@@ -94,6 +95,9 @@ pub fn pull(db: &Connection, uid: &str, after: i64, learning_groups: bool) -> Re
         {
             value["groups"] = serde_json::from_str(value["groups"].as_str().unwrap_or("[]"))
                 .map_err(ApiError::internal)?;
+        }
+        if table == "personal_entries" && let Some(ref mut value) = value {
+            value["value"] = serde_json::from_str(value["value"].as_str().unwrap_or("null")).map_err(ApiError::internal)?;
         }
         changes.push(json!({"kind":table,"id":row["entity_id"],"value":value}));
     }
@@ -148,7 +152,7 @@ pub fn push(
                 .is_some_and(|s| s.parse::<u64>().is_ok_and(|id| id > 0));
             if !((method == "POST" && ["sessions", "solves"].contains(&path))
                 || (solve && ["PATCH", "DELETE"].contains(&method))
-                || (method == "PUT" && ["learned", "learning-group-order"].contains(&path)))
+                || (method == "PUT" && ["learned", "learning-group-order", "journey"].contains(&path)))
             {
                 return Err(ApiError::validation());
             }

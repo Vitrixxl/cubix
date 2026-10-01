@@ -15,6 +15,7 @@ import { Digits, LiveDigits, StopSurface, digitsSize, responder, timerHint, useT
 import { SessionButton } from "../components/PuzzlePicker";
 import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
+import { useTourTarget } from "../tour";
 import { ao5, clock, compare, opponentStatus, raceAverage, ROUNDS, shownSolve, solveTime, useDuel } from "../lib/duel";
 import { eventAtom } from "../state";
 import { alpha, useColors } from "../theme";
@@ -38,6 +39,7 @@ export function DuelPage() {
 /** Before a race: the player's level on the event and the button to start (or stop) looking for an opponent. */
 function Lobby() {
   const { duel } = useDuel();
+  const panel = useTourTarget("duel");
   const event = useAtomValue(eventAtom);
   const searching = duel.status === "searching";
   const [, setSecond] = useState(0);
@@ -50,7 +52,7 @@ function Lobby() {
   return <Page>
     <PageHead title="Duel"><SessionButton /></PageHead>
     <View className="flex-1" />
-    <Surface>
+    <Surface {...panel}>
       <View className="items-center gap-3 px-6 pt-8 pb-7">
         <View className={cn("size-12 items-center justify-center rounded-xl", searching ? "bg-primary/15" : "bg-muted")}>
           <Icon as={Swords} size={24} className={searching ? "text-primary" : "text-muted-foreground"} />

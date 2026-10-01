@@ -30,6 +30,7 @@ const logout = mock(async () => ({ ok: true }));
 mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "token" }, local: {
   current: () => null, learned: () => ["OLL 1"],
   read: {
+    journey: () => ({}), goals: () => [],
     catalog: () => ({ cases, sets }),
     profile: (cube: string, filter: unknown) => {
       profileCalls.push({ cube, filter });
@@ -42,9 +43,10 @@ mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "
 mock.module("../src/hooks/usePreservedScroll", () => ({ usePreservedScroll: () => ({ ref: { current: null }, onScroll() {}, onContentSizeChange() {} }) }));
 mockLucide();
 mock.module("../src/components/ProfileProgress", () => ({
-  ...Object.fromEntries(["AchievementBadge", "Goal", "Heatmap", "LatestSolves", "MoreLink", "ProfileCaseDialog", "Section", "Stat", "Stats", "SubHead", "TrainingProgress", "Trend", "TrendLegend", "TwoTone"]
+  ...Object.fromEntries(["AchievementBadge", "EmptyLine", "Goal", "Heatmap", "LatestSolves", "MoreLink", "ProfileCaseDialog", "Section", "Stat", "Stats", "SubHead", "Tag", "TrainingProgress", "Trend", "TrendLegend", "TwoTone"]
     .map(name => [name, name])),
 }));
+mock.module("../src/components/ProfileCard", () => Object.fromEntries(["EmptyLine", "MoreLink", "Section", "SubHead", "Tag"].map(name => [name, name])));
 mock.module("../src/components/Achievements", () => ({ AchievementList: "AchievementList", AchievementTotal: "AchievementTotal" }));
 mock.module("../src/components/TimesChart", () => ({ TimerStats: "TimerStats" }));
 mock.module("../src/components/PuzzlePicker", () => ({ EventPicker: "EventPicker", ChoiceButton: "ChoiceButton" }));
@@ -57,6 +59,7 @@ mock.module("../src/components/layout", () => Object.fromEntries(["Empty", "Menu
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
 const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom } = await import("../src/state");
+const { introductionAtom } = await import("../src/journey");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 let renderer: ReactTestRenderer;
@@ -78,6 +81,7 @@ const card = (title: string) => all("Section").find(node => node.props.title ===
 const texts = () => all("Text").map(node => [node.props.children].flat().join(""));
 const tabs = () => all("Tabs")[0]!;
 const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
+const button = (label: string) => all("Button").find(node => node.props.accessibilityLabel === label || node.findAllByType("Text" as any).some(t => [t.props.children].flat().join("") === label))!;
 
 test("the overview shows the account, its activity, timer, training, awards and battles, with the profile's puzzle", async () => {
   await mount();
@@ -99,14 +103,43 @@ test("the overview shows the account, its activity, timer, training, awards and 
   expect(all("ChoiceButton")).toHaveLength(0);
 });
 
-test("the account's menu opens the settings and the guides and signs out", async () => {
+test("the account's menu opens the settings and the guides; logging out is its own centred button at the end", async () => {
   const store = await mount();
   await act(() => item("Settings").props.onPress());
   expect(store.get(settingsOpenAtom)).toBe(true);
   await act(() => item("Guides").props.onPress());
   expect(store.get(guidesAtom)).toBe("about");
-  await act(() => item("Sign out").props.onPress());
+  expect(all("MenuItem").map(node => node.props.children)).toEqual(["Notation", "Guides", "Settings"]);
+  const logOut = button("Log out");
+  expect(logOut.props.className).toContain("w-full");
+  expect(logOut.props.className).toContain("justify-center");
+  // Last thing of the overview, apart from the identity row.
+  const scroll = all("ScrollView")[0]!;
+  const last = scroll.children.at(-1) as any;
+  expect(last.findAllByType("Button" as any)[0]).toBe(logOut);
+  await act(async () => logOut.props.onPress());
   expect(logout).toHaveBeenCalledTimes(1);
+});
+
+test("the overview reads as identity, figures, journey, goals, activity, then the sections", async () => {
+  const store = await mount();
+  const titles = all("Section").map(node => node.props.title);
+  expect(titles).toEqual(["Your journey", "Your goals", "Timer", "Training", "Achievements", "Battles"]);
+  // The figures as an even grid of labelled cells, not a sentence.
+  const figures = ["Solves", "Active day", "Day streak", "Cases learned", "Best single"];
+  for (const label of figures) expect(texts()).toContain(label);
+  expect(all("Numeric").map(node => node.props.children)).toEqual(expect.arrayContaining(["3", "1", "9.980"]));
+  // No goals: the heading, one line and the add button in the heading.
+  expect(all("EmptyLine").some(node => String(node.props.children).startsWith("No goals yet"))).toBe(true);
+  const add = card("Your goals").props.aside;
+  expect(add.props.accessibilityLabel).toBe("Add goal");
+  await act(() => add.props.onPress());
+  expect(store.get(introductionAtom)).toBe("goal");
+  // Without a saved setup the journey card offers to set it up.
+  await act(() => button("Set up").props.onPress());
+  expect(store.get(introductionAtom)).toBe("setup");
+  await act(() => button("Replay tour").props.onPress());
+  expect(store.get(introductionAtom)).toBe("tour");
 });
 
 test("the cards and the tabs switch sections without adding history", async () => {

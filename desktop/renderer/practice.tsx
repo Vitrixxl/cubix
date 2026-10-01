@@ -45,7 +45,6 @@ import {
   MenuAction,
   MenuChoice,
   PageHead,
-  SectionHead,
   SelectMenu,
   SolveActions,
   SolveMenu,
@@ -57,6 +56,7 @@ import {
   useViewport,
 } from "./ui";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
 
@@ -150,11 +150,12 @@ export function useSquare(element: HTMLElement | null) {
  * The running digits: tinted with the accent, the milliseconds smaller in a muted version of it; red while holding,
  * green once ready.
  */
-export function Digits({ text, phase, className, digitsRef }: { text: string; phase: string; className?: string; digitsRef?: React.Ref<HTMLDivElement> }) {
+export function Digits({ text, phase, className, digitsRef, "data-tour": tour }: { text: string; phase: string; className?: string; digitsRef?: React.Ref<HTMLDivElement>; "data-tour"?: string }) {
   const armed = phase === "holding" || phase === "ready";
   return (
     <div
       ref={digitsRef}
+      data-tour={tour}
       className={cn(
         "flex items-baseline font-sans leading-none font-semibold tracking-[-0.04em] tabular-nums whitespace-nowrap transition-[transform,color] duration-[380ms,80ms] ease-[cubic-bezier(0.2,0,0,1)] will-change-transform",
         armed ? (phase === "holding" ? "text-destructive" : "text-success") : "text-[color:color-mix(in_oklch,var(--foreground)_85%,var(--primary))]",
@@ -345,7 +346,7 @@ export function Practice() {
         ) : (
           <>
             <div className="flex items-start gap-3">
-              <div className="scramble max-h-[30vh] min-w-0 flex-1 overflow-y-auto">
+              <div className="scramble max-h-[30vh] min-w-0 flex-1 overflow-y-auto" data-tour="scramble">
                 {s.generating && !s.scramble ? (
                   <span className="flex flex-col gap-2" aria-label="Generating a scramble">
                     <Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} />
@@ -386,7 +387,7 @@ export function Practice() {
   const statistics = (
     // Desktop: each figure on one line, label left and value right; two rows of three when the band is narrow, one row
     // when there is room. Lines split the figures of a row.
-    <div className="@container shrink-0">
+    <div className="@container shrink-0" data-tour="session">
     <Strip
       label="Statistics"
       className={cn(mobile ? "grid-cols-4 px-3" : "grid-cols-3 gap-x-0 gap-y-2.5 px-0 py-2.5 @5xl:grid-flow-col @5xl:grid-cols-none @5xl:auto-cols-fr")}
@@ -517,6 +518,7 @@ export function Practice() {
                     ref={typedRef}
                     className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 focus:border-primary")}
                     aria-label="Time"
+                    data-tour="timer"
                     placeholder="0.000"
                     inputMode="decimal"
                     value={typed}
@@ -533,6 +535,7 @@ export function Practice() {
                   />
                 ) : (
                   <LiveDigits
+                    data-tour="timer"
                     digitsRef={digitsRef}
                     startedAt={timer.startedAt}
                     text={timer.phase === "holding" || timer.phase === "ready" ? "0.000" : fmtTime(timer.elapsed)}
@@ -540,7 +543,7 @@ export function Practice() {
                     className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
                   />
                 )}
-                <div className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-4", s.notice && "font-medium text-success", FADE)}>
+                <div data-tour="timer" className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-4", s.notice && "font-medium text-success", FADE)}>
                   {s.notice ? (
                     <>
                       {training ? <Check className="size-4" /> : <Trophy className="size-4" />}
@@ -592,7 +595,7 @@ export function Practice() {
           {mobile ? <SessionPeek training={training} /> : statistics}
         </div>
         {timesColumn && (
-          <aside className={cn("flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border bg-card px-3 pt-2 pb-1 xl:w-68", FADE)}>
+          <aside aria-label="Session times" data-tour="session" className={cn("flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border bg-card xl:w-68", FADE)}>
             <Times closable={!timesAlways} />
           </aside>
         )}
@@ -639,6 +642,7 @@ function SessionPeek({ training }: { training: boolean }) {
       onClick={run("times")}
       className={cn("flex h-14 shrink-0 items-center gap-4 rounded-xl bg-muted/45 px-4 text-left outline-none active:bg-muted/70", FADE)}
       aria-label="Session times"
+      data-tour="session"
     >
       {figures.map(([label, value, tone]) => (
         <Figure key={label} label={label} value={value} tone={tone} caption="small" size="base" className="flex-1" />
@@ -683,24 +687,46 @@ function ChangeTraining() {
   return <Button action="trainingSetup" icon={ChevronLeft} tip="Change what to train" className="size-8 max-md:size-10" />;
 }
 
+/** An empty session: in the middle of the column, what will appear here (how to start is under the timer). */
+function NoTimes() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
+      <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <ListOrdered className="size-5" />
+      </span>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-medium">No times yet</span>
+        <span className="text-xs text-muted-foreground">Every solve of this session lands here.</span>
+      </div>
+    </div>
+  );
+}
+
 /** The session's times, newest first, as plain rows; right-click a row for its menu. */
 function Times({ closable = true, bare = false, touch = false }: { closable?: boolean; bare?: boolean; touch?: boolean }) {
   const training = s.practicePage() === "training",
     extremes = sessionExtremes(s.solves);
   return (
     <>
+      {/* The column's heading: its name and count, its actions on the right, a line under it across the panel. */}
       {!bare && (
-        <SectionHead title={training ? "Session" : "Times"} meta={s.solves.length} rule>
-          {training && !!s.solves.length && (
-            <Button action="undo" icon={Undo2} size="xs" className="text-muted-foreground">
-              Undo
-            </Button>
-          )}
-          {closable && <Button action="times" icon={X} size="icon-xs" tip="Close" />}
-        </SectionHead>
+        <header className="flex h-11 shrink-0 items-center gap-2 border-b pr-2 pl-4">
+          <h2 className="text-sm font-medium">{training ? "Session" : "Times"}</h2>
+          <Badge variant="secondary" className={cn(NUMERIC, "min-w-5 px-1.5 text-muted-foreground")}>
+            {s.solves.length}
+          </Badge>
+          <div className="ml-auto flex items-center gap-1">
+            {training && !!s.solves.length && (
+              <Button action="undo" icon={Undo2} size="xs" className="text-muted-foreground">
+                Undo
+              </Button>
+            )}
+            {closable && <Button action="times" icon={X} size="icon-xs" tip="Close" />}
+          </div>
+        </header>
       )}
       {training ? (
-        <div className="-mx-2 mt-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+        <div className={cn("flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto", bare ? "-mx-2 mt-1" : "p-2")}>
           {trainingSessionRows<any, any>(
             s.cases().filter((c: any) => s.practiceSelected.has(c.id) || s.solves.some((v) => v.case_id === c.id)),
             s.solves,
@@ -743,8 +769,8 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
           ))}
         </div>
       ) : (
-        <div className="times-list -mx-2 mt-1 flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {!s.solves.length && <div className="px-2 py-3 text-sm text-muted-foreground">No solves in this session yet.</div>}
+        <div className={cn("times-list flex min-h-0 flex-1 flex-col overflow-y-auto", bare ? "-mx-2 mt-1" : "p-2")}>
+          {!s.solves.length && <NoTimes />}
           {[...s.solves].reverse().map((v, i) => (
             <SolveMenu key={v.id} solve={v}>
               <div className={cn("group/row flex h-8 shrink-0 items-center gap-2 rounded-md px-2 select-none hover:bg-muted/50", touch && "h-11 active:bg-muted/50")}>

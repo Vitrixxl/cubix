@@ -25,6 +25,7 @@ import { TimerStats } from "../components/TimesChart";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { useSlide } from "../hooks/useSlide";
+import { useTourTarget } from "../tour";
 import { displayAlg, maskForStage, shortId } from "../lib/caseState";
 import {
   casesAtom, collapsedAlgorithmGroupsAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, previousRouteAtom, puzzleAtom,
@@ -89,6 +90,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   const openGuides = useSetAtom(guidesAtom);
   const [methods, setMethods] = useState(false);
   const [query, setQuery] = useState("");
+  const listTarget = useTourTarget("algorithms");
   // Counts ignore the learning filter: the header and the filter always describe the whole set.
   const everything = useMemo(() => catalogSections(cases, sets, setByStage, learned, "all"), [sets, cases, setByStage, learned]);
   const sections = useMemo(() => catalogSections(cases, sets, setByStage, learned, learningFilter), [sets, cases, setByStage, learned, learningFilter]);
@@ -160,10 +162,12 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
         { id: "not-learned", label: "To learn", count: (whole?.all.length ?? 0) - (whole?.learnedCount ?? 0) },
       ]} />
     </View>}
-    <FlatList key={listKey} {...scroll} data={rows} keyExtractor={row => row.key} renderItem={renderRow} keyboardShouldPersistTaps="handled"
-      initialNumToRender={14} maxToRenderPerBatch={10} windowSize={7} scrollEventThrottle={64}
-      className="-mx-4 flex-1" contentContainerClassName="px-4 pb-4"
-      ListEmptyComponent={<Empty>{found ? "No case matches." : "No cases for this puzzle."}</Empty>} />
+    <View {...listTarget} className="-mx-4 min-h-0 flex-1">
+      <FlatList key={listKey} {...scroll} data={rows} keyExtractor={row => row.key} renderItem={renderRow} keyboardShouldPersistTaps="handled"
+        initialNumToRender={14} maxToRenderPerBatch={10} windowSize={7} scrollEventThrottle={64}
+        className="flex-1" contentContainerClassName="px-4 pb-4"
+        ListEmptyComponent={<Empty>{found ? "No case matches." : "No cases for this puzzle."}</Empty>} />
+    </View>
     <MethodsSheet open={methods} onClose={() => setMethods(false)} />
   </Page>;
 }

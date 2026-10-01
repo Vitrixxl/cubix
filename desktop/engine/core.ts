@@ -117,7 +117,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   }
   const methods = new Set(Object.keys(local.api).filter(k => !['connectLive'].includes(k)));
   async function run(req: EngineRequest): Promise<unknown> {
-    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: storage.all(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder() };
+    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: storage.all(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
       const trainingMode = q.page === 'training';
@@ -133,7 +133,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
         jobs[trainingMode ? 'training' : 'scramble'] = lastAdvance.promise.then(v => v[trainingMode ? 'training' : 'scramble']);
       }
       if (!trainingMode) prefetchScramble(context);
-      return { revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), ...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise]))) };
+      return { revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), goals: q.page === 'profile' ? local.read.goals() : undefined, ...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise]))) };
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);

@@ -16,6 +16,9 @@ export function MoreLink({ actions, children, className }: { actions: string[] }
   );
 }
 
+/** Inside the overview's joined panel, sections are drawn flat and the panel's lines separate them. */
+export const Joined = React.createContext(false);
+
 /** A section of the profile: every one is built the same, heading row then body, same padding. */
 export function Section({
   title,
@@ -27,6 +30,7 @@ export function Section({
   className,
   body,
   label,
+  pane = false,
 }: {
   title: React.ReactNode;
   meta?: React.ReactNode;
@@ -36,9 +40,12 @@ export function Section({
   aside?: React.ReactNode;
   body?: string;
   label?: string;
+  /** Flat, inside a joined panel whose lines separate the sections, instead of a card of its own. */
+  pane?: boolean;
 } & Props) {
+  pane = React.useContext(Joined) || pane;
   return (
-    <Card className={cn("gap-0 py-0", className)} aria-label={label}>
+    <Card className={cn("gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label={label}>
       <div className="flex min-h-13 shrink-0 items-center gap-3 px-5 pt-2">
         <h2 className="shrink-0 text-base font-semibold tracking-tight">{title}</h2>
         {meta != null && <span className="min-w-0 truncate text-sm text-muted-foreground">{meta}</span>}

@@ -49,6 +49,7 @@ export function TrainingSetup() {
       <div className="flex min-h-0 flex-1 gap-6 max-md:flex-col max-md:gap-3 xl:gap-8">
         <nav
           aria-label="Training modes"
+          data-tour="training"
           className="flex shrink-0 flex-col gap-0.5 overflow-y-auto rounded-xl border bg-card p-2 md:w-64"
         >
           {modes.map((m) => (
@@ -95,7 +96,7 @@ function PhoneSetup({ modes }: { modes: SetupMode[] }) {
         <PageHead title="Training" puzzle />
         <p className="-mt-1 text-sm text-muted-foreground">Pick a way to practise.</p>
         <Surface className="shrink-0">
-          <nav aria-label="Training modes" className="flex flex-col">
+          <nav aria-label="Training modes" data-tour="training" className="flex flex-col">
             {modes.map((m, i) => (
               <button
                 key={m.id}
@@ -159,12 +160,16 @@ function SetupTitle({ title, meta, children, aside }: { title: string; meta?: Re
   );
 }
 
+/** The choice sits in the middle of the screen: the title, its line, then the three move counts. */
 function CrossSetup() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-6">
-        <SetupTitle title="Cross + 1">Scrambles whose back block takes exactly the chosen number of moves.</SetupTitle>
-        <div className="flex gap-2 px-4 md:px-1" role="radiogroup" aria-label="Moves">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-4 py-6 text-center">
+        <div className="flex max-w-xl flex-col items-center gap-1.5">
+          <h2 className="text-xl font-semibold tracking-tight max-md:hidden md:text-2xl">Cross + 1</h2>
+          <p className="text-sm text-muted-foreground">Scrambles whose back block takes exactly the chosen number of moves.</p>
+        </div>
+        <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label="Moves">
           {CROSS_PLUS_ONE_MOVES.map((n) => (
             <button
               key={n}
@@ -174,11 +179,11 @@ function CrossSetup() {
               data-action={"crossMoves:" + n}
               onClick={run("crossMoves:" + n)}
               className={cn(
-                "flex w-24 flex-col items-start gap-1 rounded-lg bg-muted/40 px-4 py-3 text-left outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50 max-md:w-auto max-md:flex-1",
+                "flex flex-1 flex-col items-center gap-1 rounded-lg bg-muted/40 px-4 py-5 outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50",
                 s.crossMoves === n && "bg-primary/12 hover:bg-primary/15",
               )}
             >
-              <span className={cn(NUMERIC, "text-3xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
+              <span className={cn(NUMERIC, "text-4xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
               <span className="text-xs text-muted-foreground">moves</span>
             </button>
           ))}

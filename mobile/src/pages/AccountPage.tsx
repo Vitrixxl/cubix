@@ -1,10 +1,11 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Swords, Timer as TimerIcon, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookA, BookOpen, LogOut, Settings, Swords, Timer as TimerIcon } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { fmtSolve, fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
 import { timerFigures } from "../../../src/client/lib/practiceSummary";
 import { achievementLists, activityOf, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
+import { LEVELS, journeyProfile } from "../../../src/client/lib/journey";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementSummaryDto, CaseDto, ProfileDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,13 @@ import { api, local } from "../api";
 import { AchievementList, AchievementTotal } from "../components/Achievements";
 import { Empty, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
 import {
-  AchievementBadge, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, TrainingProgress, Trend, TrendLegend, TwoTone,
+  AchievementBadge, EmptyLine, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, Tag, TrainingProgress, Trend, TrendLegend, TwoTone,
 } from "../components/ProfileProgress";
 import { ChoiceButton, EventPicker } from "../components/PuzzlePicker";
 import { TimerStats } from "../components/TimesChart";
 import { UserAvatar } from "../components/UserAvatar";
+import { JourneyCard, PersonalGoals } from "../components/PersonalGoals";
+import { journeyAtom } from "../journey";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
@@ -80,24 +83,46 @@ function overviewData(profile: ProfileDto, cases: CaseDto[], learned: ReadonlySe
 }
 type Overview = ReturnType<typeof overviewData>;
 
-/** One fact of the header: an icon, the figure, its noun. */
-function Fact({ icon, value, children }: { icon: LucideIcon; value: string; children: string }) {
-  return <View className="flex-row items-center gap-1.5">
-    <Icon as={icon} size={16} className="text-muted-foreground" />
-    <Numeric className="text-sm font-medium">{value}</Numeric>
-    <Text className="text-sm text-muted-foreground">{children}</Text>
+/** One figure of the strip under the identity: a big tabular number over its label; an empty one is a faded dash. */
+function Kpi({ label, value, className }: { label: string; value: string; className?: string }) {
+  const empty = value === "–";
+  return <View className={cn("min-w-0 flex-1 gap-0.5 px-3 py-3", className)} accessibilityLabel={`${label}: ${empty ? "none" : value}`}>
+    <Numeric numberOfLines={1} className={cn("text-2xl font-semibold tracking-tight", empty && "text-muted-foreground/60")}>{value}</Numeric>
+    <Text numberOfLines={1} className="text-xs text-muted-foreground">{label}</Text>
+  </View>;
+}
+
+/** Solves, active days, streak on the first row; cases learned and best single on the second: an even grid of cells. */
+function KpiStrip({ solves, days, streak, learned, best }: { solves: number; days: number; streak: number; learned: number; best: string }) {
+  return <View className="overflow-hidden rounded-xl border border-border bg-card" accessibilityLabel="Your figures">
+    <View className="flex-row">
+      <Kpi label={solves === 1 ? "Solve" : "Solves"} value={solves.toLocaleString()} />
+      <Kpi label={days === 1 ? "Active day" : "Active days"} value={days.toLocaleString()} className="border-l border-border" />
+      <Kpi label="Day streak" value={String(streak)} className="border-l border-border" />
+    </View>
+    <View className="flex-row border-t border-border">
+      <Kpi label="Cases learned" value={String(learned)} />
+      <Kpi label="Best single" value={best} className="border-l border-border" />
+    </View>
+  </View>;
+}
+
+/** The end of the overview: signing out, on its own centred row. */
+function LogOutButton() {
+  const [busy, setBusy] = useState(false);
+  const logOut = async () => { if (busy) return; setBusy(true); try { await api.logout(); } finally { setBusy(false); } };
+  return <View className="items-center pt-2">
+    <Button variant="outline" className="h-11 w-full justify-center gap-2 border-destructive/40" disabled={busy} accessibilityLabel="Log out" onPress={() => void logOut()}>
+      <Icon as={LogOut} size={16} className="text-destructive" />
+      <Text className="text-destructive">{busy ? "Logging out…" : "Log out"}</Text>
+    </Button>
   </View>;
 }
 
 function TimerSection({ d, label, onMore, onTimer }: { d: Overview; label: string; onMore: () => void; onTimer: () => void }) {
   const t = d.timer;
-  return <Section label="Timer" title="Timer" meta={t.count ? plural(t.count, "solve") : label} onMore={t.count ? onMore : undefined} more="Statistics"
-    bodyClassName={t.count ? undefined : "items-center py-8"}>
-    {!t.count ? <View className="items-center gap-3">
-      <Icon as={TimerIcon} size={24} className="text-muted-foreground" />
-      <Text className="text-center text-sm text-muted-foreground">No timed {label} solves yet: your records and your curve appear here.</Text>
-      <Button variant="outline" onPress={onTimer}><Icon as={TimerIcon} size={16} /><Text>Open the timer</Text></Button>
-    </View> : <>
+  return <Section label="Timer" title="Timer" meta={t.count ? plural(t.count, "solve") : label} onMore={t.count ? onMore : undefined} more="Statistics">
+    {!t.count ? <EmptyLine action={<Button variant="outline" size="sm" className="h-9" onPress={onTimer}><Icon as={TimerIcon} size={15} /><Text>Open the timer</Text></Button>}>No timed solves yet.</EmptyLine> : <>
       <Stats>
         {/* The count is in the heading. */}
         {timerFigures(t).slice(0, 6).map(([label, value, tone]) => <Stat key={label} label={label} value={value} tone={tone} />)}
@@ -131,7 +156,7 @@ function TrainingSection({ d, total, trainingSolves, onMore }: { d: Overview; to
         <View className="flex-row items-center gap-1.5"><View className="size-2.5 rounded-[2px] bg-primary" /><Text className="text-xs text-muted-foreground">Learned</Text></View>
         <View className="flex-row items-center gap-1.5"><View className="size-2.5 rounded-[2px] bg-primary/35" /><Text className="text-xs text-muted-foreground">Trained</Text></View>
       </View>
-    </View> : <Text className="text-sm text-muted-foreground">No algorithm sets for this puzzle.</Text>}
+    </View> : <EmptyLine>No algorithm sets for this puzzle.</EmptyLine>}
   </Section>;
 }
 
@@ -148,12 +173,12 @@ function AchievementsSection({ d, summary, onMore }: { d: Overview; summary: Ach
           </View>
         </View>)}
         {Array.from({ length: 3 - d.recent.length }, (_, i) => <View key={i} className="flex-1" />)}
-      </View> : <Text className="text-sm text-muted-foreground">Your first solves unlock the first ones.</Text>}
+      </View> : <EmptyLine>Your first solves unlock the first ones.</EmptyLine>}
     </View>
     <View className="gap-2">
       <SubHead title="Closest goals" />
       {d.goals.length ? <View className="gap-3">{d.goals.map(a => <Goal key={a.id} a={a} />)}</View>
-        : <Text className="text-sm text-muted-foreground">Everything is unlocked.</Text>}
+        : <EmptyLine>Everything is unlocked.</EmptyLine>}
     </View>
   </Section>;
 }
@@ -163,10 +188,7 @@ function BattlesSection({ onMore, onDuel }: { onMore: () => void; onDuel: () => 
   const list = battles();
   const won = list.filter(b => b.result === "win").length, lost = list.filter(b => b.result === "loss").length;
   return <Section label="Battles" title="Battles" meta={list.length ? battleRecord(list) : undefined} onMore={list.length ? onMore : undefined} more="History">
-    {!list.length ? <View className="items-start gap-3">
-      <Text className="text-sm text-muted-foreground">Race another cuber over five scrambles: your results land here.</Text>
-      <Button variant="outline" onPress={onDuel}><Icon as={Swords} size={16} /><Text>Find an opponent</Text></Button>
-    </View> : <>
+    {!list.length ? <EmptyLine action={<Button variant="outline" size="sm" className="h-9" onPress={onDuel}><Icon as={Swords} size={15} /><Text>Find an opponent</Text></Button>}>No battles yet.</EmptyLine> : <>
       <Stats>
         <Stat label="Played" value={String(list.length)} />
         <Stat label="Won" value={String(won)} tone="good" />
@@ -187,8 +209,8 @@ function BattlesSection({ onMore, onDuel }: { onMore: () => void; onDuel: () => 
 
 /**
  * The account, as the web app's profile on a phone: the player and the puzzle the statistics are about in the head,
- * the sections as tabs (Overview · Timer · Training · Awards · Battles), and settings, guides and sign-out in its "…"
- * menu. The puzzle, scramble and solve-mode filters are the profile's own and leave the rest of the app untouched.
+ * the sections as tabs (Overview · Timer · Training · Awards · Battles), settings and guides in its "…" menu, and
+ * signing out at the end of the overview. The puzzle, scramble and solve-mode filters are the profile's own and leave the rest of the app untouched.
  */
 export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: string }) {
   const [filters, setFilters] = useAtom(profileFiltersAtom);
@@ -205,6 +227,8 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const learnedIds = useAtomValue(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const user = useAtomValue(userAtom);
+  const journey = useAtomValue(journeyAtom);
+  const level = LEVELS.find(l => l.id === journeyProfile(journey)?.level)?.label;
   const setRoute = useSetAtom(routeAtom), replaceRoute = useSetAtom(replaceRouteAtom);
   const openSettings = useSetAtom(settingsOpenAtom), openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
@@ -226,7 +250,6 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       <MenuItem icon={BookA} onPress={() => openNotation(true)}>Notation</MenuItem>
       <MenuItem icon={BookOpen} onPress={() => openGuides("about")}>Guides</MenuItem>
       <MenuItem icon={Settings} onPress={() => openSettings(true)}>Settings</MenuItem>
-      <MenuItem icon={LogOut} destructive onPress={() => void api.logout()}>Sign out</MenuItem>
     </MoreMenu>
   </>;
   const sectionTitle = PROFILE_SECTIONS.find(s => s.id === section)?.label;
@@ -239,29 +262,27 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
     {section !== "overview" && <PageHead title={section === "achievements" ? "Achievements" : sectionTitle}
       sub={section === "playground" && d.timer.count ? plural(d.timer.count, "solve") : eventLabel}>{controls}</PageHead>}
     {section === "overview" && <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
-      className="-mx-4 flex-1" contentContainerClassName="gap-4 px-4 pt-1 pb-4">
-      <View className="gap-4">
-        <View className="flex-row items-center gap-3">
-          <UserAvatar user={user} size={56} />
-          <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-            <Text numberOfLines={1} accessibilityRole="header" className="max-w-full shrink-0 font-sans text-xl font-semibold tracking-tight">{user.username}</Text>
-            <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)}</Text>
+      className="-mx-4 flex-1" contentContainerClassName="gap-3 px-4 pt-1 pb-6">
+      <View className="flex-row items-center gap-3">
+        <UserAvatar user={user} size={56} />
+        <View className="min-w-0 flex-1 gap-1">
+          <View className="flex-row items-center gap-2">
+            <Text numberOfLines={1} accessibilityRole="header" className="shrink font-sans text-xl font-semibold tracking-tight">{user.username}</Text>
+            {level ? <Tag tone="primary">{level}</Tag> : null}
           </View>
-          <View className="shrink-0 flex-row items-center gap-2">{controls}</View>
+          <Text numberOfLines={1} className="text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)} · {eventLabel}</Text>
         </View>
-        <View className="flex-row flex-wrap gap-x-5 gap-y-1.5">
-          <Fact icon={Layers} value={profile.totalSolves.toLocaleString()}>{profile.totalSolves === 1 ? "solve" : "solves"}</Fact>
-          <Fact icon={CalendarDays} value={profile.activeDays.toLocaleString()}>{profile.activeDays === 1 ? "active day" : "active days"}</Fact>
-          <Fact icon={Flame} value={String(d.streak)}>day streak</Fact>
-          <Fact icon={BookOpen} value={String(d.learned)}>cases learned</Fact>
-          <Fact icon={Trophy} value={d.timer.count ? fmtTime(d.timer.best) : "–"}>best single</Fact>
-        </View>
+        <View className="shrink-0 flex-row items-center gap-1">{controls}</View>
       </View>
+      <KpiStrip solves={profile.totalSolves} days={profile.activeDays} streak={d.streak} learned={d.learned} best={d.timer.count ? fmtTime(d.timer.best) : "–"} />
+      <JourneyCard />
+      <PersonalGoals />
       <Heatmap solves={d.activity} latest={d.latest} />
       <TimerSection d={d} label={eventLabel} onMore={() => show("playground")} onTimer={() => setRoute({ page: "playground" })} />
       <TrainingSection d={d} total={catalog.cases.length} trainingSolves={profile.trainingSolves} onMore={() => show("training")} />
       <AchievementsSection d={d} summary={summary} onMore={() => show("achievements")} />
       <BattlesSection onMore={() => show("duels")} onDuel={() => setRoute({ page: "duel" })} />
+      <LogOutButton />
     </ScrollView>}
     {section === "playground" && <View className="min-h-0 flex-1 gap-3">
       <View className="flex-row items-center gap-2">

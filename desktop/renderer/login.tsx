@@ -8,7 +8,7 @@ import { Eye, EyeOff, HardDrive } from "lucide-react";
 import { store as s } from "./store";
 import { usePhone } from "./ui";
 import { credentialErrors } from "../../src/client/lib/credentials";
-import { Logo } from "./logo";
+import { Logo, Wordmark } from "./logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -157,7 +157,7 @@ export function LoginPage() {
     <div className="flex flex-col items-start gap-1.5 md:items-center md:text-center">
       <div className="mb-3 flex items-center gap-2.5">
         <Logo size={phone ? 24 : 22} />
-        <span className="text-xl font-semibold tracking-tight md:text-lg">cubix</span>
+        <Wordmark className="text-2xl md:text-xl" />
       </div>
       <h1 className="text-2xl font-semibold tracking-tight md:text-xl">{register ? "Create your account" : "Welcome back"}</h1>
       <p className="text-sm text-muted-foreground">Time your solves, learn algorithms, race in duels.</p>

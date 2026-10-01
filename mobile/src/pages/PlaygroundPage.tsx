@@ -24,6 +24,7 @@ import { TimesSheet } from "../components/TimesSheet";
 import { LastSolveBar } from "../components/SolveMenus";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { useLayout } from "../hooks/useLayout";
+import { useTourTarget } from "../tour";
 
 /** Replay pace of the scramble on the preview cube. */
 const REPLAY_START_MS = 350, REPLAY_MOVE_MS = 120;
@@ -101,8 +102,10 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const summary = practiceSummary(shown);
   const peek: Metric[] = [["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Best", fmtTime(summary.best), "good"]];
   const loading = generating && (slow || !scramble) || !scramble && !generationError;
+  // What the guided tour points at on this page.
+  const scrambleTarget = useTourTarget("scramble"), timerTarget = useTourTarget("timer"), sessionTarget = useTourTarget("session");
 
-  const prompt = <View style={{ maxHeight: Math.round(height * 0.3) }}>
+  const prompt = <View {...scrambleTarget} style={{ maxHeight: Math.round(height * 0.3) }}>
     {loading
       ? <View accessibilityLabel="Generating a scramble" className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
       : generationError ? <View className="items-start gap-2"><Text className="text-sm text-destructive">{generationError}</Text><Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>Retry</Text></Button></View>
@@ -117,7 +120,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
       <PageHead title="Timer"><SessionButton scramble /></PageHead>
     </Fade>
     <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
-      readout={area => <>
+      readout={area => <View {...timerTarget} className="w-full items-center">
         {typing
           ? <TypedTime size={digitsSize(area, 6)} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message}
             onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} />
@@ -127,9 +130,9 @@ function TimerSession({ context }: { context: PracticeContext }) {
             <SaveError timer={timer} />
           </>}
         <AverageWindow solves={shown} hidden={running} />
-      </>}
+      </View>}
       bar={<LastSolveBar solve={saving ? null : lastSolve} extra={<TouchAction icon={Shuffle} label="Scramble" accessibilityLabel="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
-    <SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} />
+    <View {...sessionTarget}><SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} /></View>
     <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title="Times" />
     <StopSurface timer={timer} />
   </Page>;

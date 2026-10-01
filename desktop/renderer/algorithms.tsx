@@ -2,12 +2,12 @@
 import { catalogSections } from "../../src/client/lib/practiceCatalog";
 import { displayAlg, shortId, maskForStage } from "../../src/client/lib/caseState";
 import { useLayoutEffect, useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Play, PlayCircle, Search, Timer, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, Search, Timer, X } from "lucide-react";
 import { store as s, matches } from "./store";
 import { TouchAction, TouchBar } from "./phone";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, NUMERIC, MenuAction, PAGE, PageHead, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, NUMERIC, MenuAction, PAGE, PageHead, PlayBadge, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
 import { Badge } from "@/components/ui/badge";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
@@ -86,7 +86,7 @@ function CaseList({ wide }: { wide: boolean }) {
   const [query, setQuery] = useState(""),
     found = wide && query.trim() ? s.cases().filter((c: any) => matches(c, query)).slice(0, 80) : null;
   return (
-    <div className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] overflow-hidden rounded-xl border bg-card px-3 pt-3")}>
+    <div data-tour="algorithms" className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] overflow-hidden rounded-xl border bg-card px-3 pt-3")}>
       {wide && (
         <InputGroup className="h-10 shrink-0">
           <InputGroupInput placeholder="Search cases: oll 21, pll t…" aria-label="Search cases" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -105,7 +105,9 @@ function CaseList({ wide }: { wide: boolean }) {
       {found ? (
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
           {!found.length && <Empty>No case matches.</Empty>}
-          {found.map((c: any) => <CaseRow key={c.id} c={c} touch detail={`${c.setLabel} · ${c.group}`} />)}
+          <div className={TILES}>
+            {found.map((c: any) => <CaseTile key={c.id} c={c} touch detail={`${c.setLabel} · ${c.group}`} />)}
+          </div>
         </div>
       ) : (
       <>
@@ -168,7 +170,11 @@ function CaseList({ wide }: { wide: boolean }) {
                   Train
                 </Button>
               </div>
-              {!closed && members.map((c: any) => <CaseRow key={c.id} c={c} touch={wide} />)}
+              {!closed && (
+                <div className={TILES}>
+                  {members.map((c: any) => <CaseTile key={c.id} c={c} touch={wide} />)}
+                </div>
+              )}
             </section>
           );
         })}
@@ -179,26 +185,42 @@ function CaseList({ wide }: { wide: boolean }) {
   );
 }
 
-function CaseRow({ c, touch = false, detail }: { c: any; touch?: boolean; detail?: string }) {
+/** The cases of a group as a grid of square tiles, as many per line as the list's width holds. */
+const TILES = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5 pt-0.5 pb-1";
+
+/** A case as a square tile: its diagram, then its name and best time on one line, the learned mark in the top right corner. */
+function CaseTile({ c, touch = false, detail }: { c: any; touch?: boolean; detail?: string }) {
   const st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id),
     selected = s.caseId === c.id;
   return (
-    <div className={cn("group/row -mx-2 flex items-center gap-1 rounded-lg pr-2 transition-colors hover:bg-muted/50", selected && !touch && "bg-muted hover:bg-muted", touch && "pr-0 hover:bg-transparent active:bg-muted/50")}>
+    <div
+      className={cn(
+        // Hover only where there is a pointer: on touch screens it would stick to the last tile tapped.
+        "group/row relative aspect-square min-w-0 rounded-lg bg-muted/45 transition-colors [@media(hover:hover)]:hover:bg-muted/80",
+        selected && !touch && "bg-muted ring-1 ring-primary/70 [@media(hover:hover)]:hover:bg-muted",
+        touch && "active:bg-muted/80",
+      )}
+      title={detail ?? (c.name !== c.id ? c.name : undefined)}
+    >
       <button
         type="button"
         data-action={"case:" + c.id}
         onClick={run("case:" + c.id)}
-        className="case-row-open flex min-w-0 flex-1 items-center gap-3 py-1.5 pl-2 text-left outline-none"
+        className="case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
-        <Diagram c={c} size={48} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium">{shortId(c)}</span>
-          {(detail ?? (c.name !== c.id && c.name)) && <span className="truncate text-xs text-muted-foreground">{detail ?? c.name}</span>}
+        <span className="flex min-h-0 flex-1 items-center justify-center">
+          <Diagram c={c} size={70} />
         </span>
-        <span className={cn(NUMERIC, "text-sm", st ? "text-foreground/80" : "text-muted-foreground/50")}>{st ? fmtTime(st.best) : "–"}</span>
+        {/* One line under the diagram: the name on the left, the best time on the right. */}
+        <span className="flex items-baseline justify-between gap-1.5">
+          <span className="min-w-0 truncate text-xs font-medium">{shortId(c)}</span>
+          <span className={cn(NUMERIC, "shrink-0 text-[11px]", st ? "text-muted-foreground" : "text-muted-foreground/60")}>{st ? fmtTime(st.best) : "–"}</span>
+        </span>
       </button>
-      <LearnedMark id={c.id} learned={learned} touch={touch} />
+      <span className="absolute top-0.5 right-0.5">
+        <LearnedMark id={c.id} learned={learned} />
+      </span>
     </div>
   );
 }
@@ -302,13 +324,13 @@ function CaseDetail() {
   }], 0);
   const block = "flex flex-col gap-2 px-4 py-4 md:px-1 md:py-5";
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
       <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:items-start md:gap-8 md:px-1 md:pt-1 md:pb-5">
         <div className="shrink-0 self-center">
           {c.cube ? <button type="button" data-play={c.id} aria-label={`Play ${c.id} in 3D`} onClick={openPlayer}
-            className="relative rounded-md outline-none hover:ring-2 focus-visible:ring-2 ring-ring/50">
+            className="group/play relative rounded-md outline-none hover:ring-2 focus-visible:ring-2 ring-ring/50">
             <Diagram c={c} size={mobile ? 104 : 152} />
-            <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground" aria-hidden="true"><Play className="size-2.5 fill-current" /></span>
+            <PlayBadge />
           </button> : <Diagram c={c} size={mobile ? 104 : 152} />}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-4 md:gap-5">
@@ -345,9 +367,9 @@ function CaseDetail() {
       <section className={cn(block, "gap-1")}>
         <h3 className={cn(LABEL, "pb-1")}>Algorithms</h3>
         {c.algorithms.map((a: any, i: number) => (
-          <div key={i} className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1">
+          <div key={i} className="-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1">
             <span className={cn(NUMERIC, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
-            <Alg text={displayAlg(a)} size={16} className="flex-1" />
+            <Alg text={displayAlg(a)} size={16} className="min-w-0 flex-1" />
             <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
               {i === 0 && <Badge variant="secondary" className="rounded-md text-primary">Primary</Badge>}
               {a.stm != null && <span className={NUMERIC}>{a.stm} STM</span>}

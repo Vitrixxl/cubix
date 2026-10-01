@@ -83,7 +83,7 @@ export async function timeSolve(page: Page) {
 }
 
 /** The app is used signed in: on its login page, creates the account `username` (or signs in when it exists). */
-export async function signIn(page: Page, username: string, password = "a-long-test-password") {
+export async function signIn(page: Page, username: string, password = "a-long-test-password", onboarding = false) {
   await page.waitForSelector(".login, .rail, .tabbar", { timeout: 60000 });
   if (!(await page.locator(".login").count())) return;
   await page.locator('[data-action="login:mode:register"]').click();
@@ -91,12 +91,21 @@ export async function signIn(page: Page, username: string, password = "a-long-te
   await page.fill("#login-password", password);
   await page.locator('[data-action="login:submit"]').click();
   const error = page.locator("[data-slot=field-error]");
-  await Promise.race([page.waitForSelector(".rail, .tabbar", { timeout: 30000 }), error.waitFor({ timeout: 30000 })]);
+  await Promise.race([page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 }), error.waitFor({ timeout: 30000 })]);
   if (await page.locator(".login").count()) {
     // Taken: the account exists already, sign in to it.
     await page.locator('[data-action="login:mode:login"]').click();
     await page.fill("#login-password", password);
     await page.locator('[data-action="login:submit"]').click();
+    await page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 });
+  }
+  // Ordinary UI fixtures use an established profile; onboarding has its own full interaction test.
+  if (!onboarding) {
+    await page.evaluate(async () => {
+      const initial = await window.cubix.call("init") as any;
+      if (!initial.journey?.profile) await window.cubix.call("updateJourney", { profile: { kind: "profile", level: "beginner", knownPuzzles: ["333"], priority: "333", completedAt: new Date().toISOString() } });
+    });
+    if (new URL(page.url()).pathname === "/onboarding") await page.goto(new URL("/timer", page.url()).href);
     await page.waitForSelector(".rail, .tabbar", { timeout: 30000 });
   }
 }

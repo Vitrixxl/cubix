@@ -1,5 +1,6 @@
 import { puzzleId, type PuzzleInput, type PracticeFilter, type PuzzleId, type SolveMode, type ScrambleType, type CubeSize } from "../shared/puzzles";
 import type { AuthDto, UserDto, CaseDto, SetDto, CaseStatsDto, CaseHistoryDto, SessionDto, SessionMode, SolveDto, Penalty, LearnedCaseDto, LearningGroupOrderDto } from "../shared/types";
+import type { JourneyEntryDto } from "./lib/journey";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -31,7 +32,7 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     return value as T;
   }
   return {
-    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}&learningGroups=1`),
+    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders" | "personal_entries"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}&learningGroups=1&journey=1`),
     syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | null }[] }>("/sync", "POST", { operations }),
     setLearningGroupOrder: (track: LearningGroupOrderDto["track"], groups: string[]) => request<LearningGroupOrderDto>("/learning-group-order", "PUT", { track, groups }),
     learnedCases: () => request<string[]>("/learned"),

@@ -372,7 +372,7 @@ pub(crate) fn route(
             if after < 0 {
                 return Err(ApiError::validation());
             }
-            return crate::sync::pull(db, uid, after, query.get("learningGroups").is_some_and(|v| v == "1"));
+            return crate::sync::pull(db, uid, after, query.get("learningGroups").is_some_and(|v| v == "1"), query.get("journey").is_some_and(|v| v == "1"));
         }
         if method == "POST" {
             if user["password_hash"].is_null() {
@@ -571,6 +571,7 @@ pub(crate) fn route(
             params![id, uid],
             "Unknown solve",
         ),
+        ("PUT", ["journey"]) => crate::journey::put(db, state, uid, body),
         ("PUT", ["learning-group-order"]) => {
             let track = enum_string(body, "track", &["F2L", "OLL", "PLL"])?;
             let groups = body["groups"].as_array().filter(|g| !g.is_empty() && g.len() <= 100)
