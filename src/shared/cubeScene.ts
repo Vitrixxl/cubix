@@ -85,12 +85,19 @@ function hull(points: V[]) {
 export type CubeOrientation = readonly V[];
 export const cubeOrientation = (yaw = CUBE_YAW, pitch = CUBE_PITCH): CubeOrientation =>
   [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map((e) => rotate(rotate(e, 1, -yaw), 0, pitch));
+/** How far a drag may tilt the cube toward its top or its bottom (radians), short of turning it over. */
+export const CUBE_TILT = 1.2;
+/** The tilt of an orientation: where the cube's up axis points, toward the viewer or away. */
+export const cubePitch = (m: CubeOrientation) => Math.atan2(m[1]![2]!, m[1]![1]!);
 /**
- * Spins the cube about its own vertical axis by `across` radians, endlessly either way, the way the pointer goes; its
- * tilt (`pitch`, the view's) never changes, so a drag can't turn the cube over. Undo the tilt, turn about y, tilt back.
+ * Turns the cube under a drag: `across` radians about its own vertical axis, endlessly either way; `down` tilts it
+ * toward its top (or its bottom), held within ±`CUBE_TILT` so it can never be turned over. Undo the tilt, turn about
+ * y, tilt back to the new, bounded angle.
  */
-export function turnCube(m: CubeOrientation, across: number, pitch = CUBE_PITCH): CubeOrientation {
-  return m.map((c) => rotate(rotate(rotate(c, 0, -pitch), 1, across), 0, pitch));
+export function turnCube(m: CubeOrientation, across: number, down = 0): CubeOrientation {
+  const from = cubePitch(m),
+    to = Math.max(-CUBE_TILT, Math.min(CUBE_TILT, from + down));
+  return m.map((c) => rotate(rotate(rotate(c, 0, -from), 1, across), 0, to));
 }
 export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,

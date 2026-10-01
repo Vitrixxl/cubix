@@ -301,9 +301,9 @@ export class AlgPlayer {
     this.emit();
   };
   cycleSpeed = () => this.setSpeed(nextSpeed(this.playback.speed));
-  /** Spins the cube about its vertical axis (radians across, see `turnCube`); its tilt stays the view's. */
-  rotate = (across: number) => {
-    this.orientation = turnCube(this.orientation, across, this.options.view?.pitch);
+  /** Spins the cube about its vertical axis and tilts it within bounds (radians across and down, see `turnCube`). */
+  rotate = (across: number, down = 0) => {
+    this.orientation = turnCube(this.orientation, across, down);
     this.emit();
   };
   resetView = () => {

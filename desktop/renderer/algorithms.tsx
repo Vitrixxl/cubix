@@ -154,13 +154,14 @@ function CaseList({ wide }: { wide: boolean }) {
           const key = section.active.id + ":" + group,
             closed = s.collapsed.has(key);
           return (
-            <section key={group} className="flex flex-col pb-2">
-              <div className="group/head -mx-2 flex items-center gap-1 rounded-lg pr-1 hover:bg-muted/40">
+            <section key={group} className="flex flex-col gap-1.5 pb-3">
+              {/* The group's name folds it; the button hugs its words, its edges on the tiles' edges. */}
+              <div className="group/head flex items-center justify-between gap-1">
                 <button
                   type="button"
                   data-action={"collapse:" + key}
                   onClick={run("collapse:" + key)}
-                  className="flex h-9 min-w-0 flex-1 items-center gap-2 px-2 text-left text-sm font-medium outline-none"
+                  className="flex h-8 min-w-0 items-center gap-2 rounded-md px-2 text-left text-sm font-medium outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                   <span className="truncate">{group}</span>
@@ -186,7 +187,7 @@ function CaseList({ wide }: { wide: boolean }) {
 }
 
 /** The cases of a group as a grid of square tiles, as many per line as the list's width holds. */
-const TILES = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5 pt-0.5 pb-1";
+const TILES = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5";
 
 /** A case as a square tile: its diagram, then its name and best time on one line, the learned mark in the top right corner. */
 function CaseTile({ c, touch = false, detail }: { c: any; touch?: boolean; detail?: string }) {

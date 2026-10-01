@@ -47,7 +47,7 @@ export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }
     onPanResponderMove: event => {
       const { pageX, pageY } = event.nativeEvent, from = last.current;
       if (!from) return;
-      player.rotate((pageX - from.x) * 0.012);
+      player.rotate((pageX - from.x) * 0.012, (pageY - from.y) * 0.012);
       last.current = { x: pageX, y: pageY };
     },
     onPanResponderRelease: (_, gesture) => {

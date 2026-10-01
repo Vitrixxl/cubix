@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Activity, AppWindow, Globe, KeyRound, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
 import { applyTheme } from "../theme";
+import { DEFAULT_THEME } from "../../../src/client/lib/theme";
 import { Logo, usePhone, WindowSidebar } from "../base";
 import { Toasts } from "../Toasts";
 import { admin, AdminError, LiveContext, navigate, onExpired, refreshAll, useLive, useRefreshed, useRoute } from "./api";
@@ -314,6 +315,6 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
   );
 }
 
-applyTheme("t3-code", false);
+applyTheme(DEFAULT_THEME, false);
 document.title = "Qbix admin";
 createRoot(document.getElementById("root")!).render(<AdminApp />);

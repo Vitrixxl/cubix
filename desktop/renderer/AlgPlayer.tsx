@@ -63,7 +63,7 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
         }}
         onPointerMove={(e) => {
           if (!drag.current) return;
-          player.rotate((e.clientX - drag.current[0]!) * 0.012);
+          player.rotate((e.clientX - drag.current[0]!) * 0.012, (e.clientY - drag.current[1]!) * 0.012);
           drag.current = [e.clientX, e.clientY];
         }}
         onPointerUp={() => (drag.current = null)}

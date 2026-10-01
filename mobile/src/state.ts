@@ -1,4 +1,4 @@
-import type { ThemeId } from "../../src/client/lib/theme";
+import { DEFAULT_THEME, type ThemeId } from "../../src/client/lib/theme";
 import { atom } from "jotai";
 import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { eventInfo, eventOf, isPuzzle, puzzleInfo, puzzleOf, type EventId, type PuzzleId, type ScrambleType, type SolveMode } from "../../src/shared/puzzles";
@@ -159,7 +159,7 @@ export const trainingStepAtom = atom<"setup" | "practice">("setup");
 export const trainingSetupModeAtom = atom("");
 
 export type { ThemeId } from "../../src/client/lib/theme";
-export const themeAtom = persisted<ThemeId>("cubix.ui.theme", "t3-code");
+export const themeAtom = persisted<ThemeId>("cubix.ui.theme", DEFAULT_THEME);
 export const colorModeAtom = persisted<"light" | "dark">("cubix.ui.colorMode", "dark");
 
 // ---------------------------------------------------------------------------

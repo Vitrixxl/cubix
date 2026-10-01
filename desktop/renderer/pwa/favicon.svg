@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18">
+  <!-- The app's mark (desktop/renderer/logo.tsx): four stickers, the top right one in the default accent. -->
+  <style>.s{fill:#262626}@media (prefers-color-scheme:dark){.s{fill:#e5e5e5}}</style>
+  <rect class="s" x="0" y="0" width="8.25" height="8.25" rx="2.2"/>
+  <rect x="9.75" y="0" width="8.25" height="8.25" rx="2.2" fill="#ed2677"/>
+  <rect class="s" x="0" y="9.75" width="8.25" height="8.25" rx="2.2"/>
+  <rect class="s" x="9.75" y="9.75" width="8.25" height="8.25" rx="2.2"/>
+</svg>

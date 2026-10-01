@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { mix, themeTokens, type ThemeId } from "../../src/client/lib/theme";
+import { DEFAULT_THEME, mix, themeTokens, type ThemeId } from "../../src/client/lib/theme";
 export { alpha, mix } from "../../src/client/lib/theme";
 
 /**
@@ -45,6 +45,6 @@ export function buildColors(id: ThemeId, mode: "light" | "dark"): Colors {
   return colors;
 }
 
-export const ColorsContext = createContext<Colors>(buildColors("t3-code", "dark"));
+export const ColorsContext = createContext<Colors>(buildColors(DEFAULT_THEME, "dark"));
 /** The current colours as plain values. */
 export const useColors = () => useContext(ColorsContext);

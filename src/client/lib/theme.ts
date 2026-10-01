@@ -1,4 +1,6 @@
 export type ThemeId = "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";
+/** The theme until the user picks one: pink. */
+export const DEFAULT_THEME: ThemeId = "t3-chat";
 
 type Rgb = [number, number, number];
 function parse(color: string): Rgb {

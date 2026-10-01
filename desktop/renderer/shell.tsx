@@ -39,7 +39,7 @@ function Me({ size = 32 }: { size?: number }) {
 
 /**
  * Desktop navigation: a labelled column on the page background. The wordmark and the puzzle every page works on, the
- * sections by name, then the guides, the settings and, last, the account: the profile link with its own sign-out
+ * sections by name (the name itself leads to the timer), then the guides, the settings and, last, the account: the profile link with its own sign-out
  * icon button on its right. Narrow windows keep the icons.
  */
 export function Rail() {
@@ -52,13 +52,22 @@ export function Rail() {
     // Folded, the icons are named by their tooltips: these come almost at once, and move from icon to icon instantly.
     <TooltipProvider delay={open ? 400 : 80} closeDelay={0}>
     <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
-      <SidebarHeader className="gap-3 pt-4">
+      <SidebarHeader className="pt-4">
         {/* The name, and the button folding the sidebar to its icons; folded, the logo turns into that button on hover. */}
         <div data-brand="" className="group/brand flex h-9 items-center gap-2.5 pl-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pl-0">
-          <span className={cn("flex min-w-0 flex-1 items-center gap-2.5 group-data-[collapsible=icon]:flex-none", foldable && "group-data-[collapsible=icon]:group-hover/brand:hidden")}>
+          {/* The name leads to the timer, the app's home. */}
+          <Link
+            to={pageUrl("playground", { puzzle: s.puzzle as PuzzleId })}
+            data-action="nav:home"
+            aria-label="Qbix · Timer"
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50 group-data-[collapsible=icon]:flex-none",
+              foldable && "group-data-[collapsible=icon]:group-hover/brand:hidden",
+            )}
+          >
             <Logo size={22} />
             <Wordmark className="text-xl group-data-[collapsible=icon]:hidden" />
-          </span>
+          </Link>
           {foldable && (
             <Tooltip>
               <TooltipTrigger
@@ -79,22 +88,6 @@ export function Rail() {
             </Tooltip>
           )}
         </div>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <PuzzlePicker
-              trigger={
-                <SidebarMenuButton size="lg" aria-label={"Puzzle: " + e.label} className="gap-2.5 group-data-[collapsible=icon]:justify-center">
-                  <Icon name={"Puzzle" + e.id} size={22} />
-                  <span className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                    <span className="text-xs text-muted-foreground">Puzzle</span>
-                    <span className="truncate font-medium">{e.label}</span>
-                  </span>
-                  <ChevronsUpDown className="ml-auto text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                </SidebarMenuButton>
-              }
-            />
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -143,8 +136,25 @@ export function Rail() {
               Alt S
             </Kbd>
           </SidebarMenuItem>
+          {/* The puzzle every page works on, at the foot of the sidebar above the account. */}
+          <SidebarMenuItem>
+            <PuzzlePicker
+              side="right"
+              align="end"
+              trigger={
+                <SidebarMenuButton size="lg" aria-label={"Puzzle: " + e.label} className="gap-2.5 group-data-[collapsible=icon]:justify-center">
+                  <Icon name={"Puzzle" + e.id} size={22} />
+                  <span className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+                    <span className="text-xs text-muted-foreground">Puzzle</span>
+                    <span className="truncate font-medium">{e.label}</span>
+                  </span>
+                  <ChevronsUpDown className="ml-auto text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              }
+            />
+          </SidebarMenuItem>
           {/* The account: the profile link, and beside it on the right its own sign-out icon button. */}
-          <SidebarMenuItem className="mt-2 flex items-center gap-1 border-t pt-2 group-data-[collapsible=icon]:flex-col">
+          <SidebarMenuItem className="mt-1 flex items-center gap-1 border-t pt-2 group-data-[collapsible=icon]:flex-col">
             <SidebarMenuButton
               data-action="nav:profile"
               aria-current={profile ? "page" : undefined}

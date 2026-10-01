@@ -1,4 +1,5 @@
 import {appearanceFromStorage} from "../appearance";
+import { DEFAULT_THEME } from "../../src/client/lib/theme";
 import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
@@ -55,7 +56,7 @@ export class Store {
   solveMode = "standard";
   scrambleType = "normal";
   entry = "timer";
-  themeName = "t3-code";
+  themeName: string = DEFAULT_THEME;
   light = false;
   user: any = { isGuest: true, username: "Guest" };
   learned = new Set<string>();

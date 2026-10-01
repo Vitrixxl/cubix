@@ -1,4 +1,4 @@
-import {THEMES} from '../src/client/lib/theme';
+import {DEFAULT_THEME, THEMES} from '../src/client/lib/theme';
 export type Appearance = {themeName: string; light: boolean};
 /** Preferences are JSON strings in the engine's local storage, not Electron localStorage. */
 export function appearanceFromStorage(storage: Record<string, unknown>): Appearance {
@@ -7,7 +7,7 @@ export function appearanceFromStorage(storage: Record<string, unknown>): Appeara
   }
   const name = preference('cubix.ui.theme');
   return {
-    themeName: THEMES.some(theme => theme.id === name) ? name : 't3-code',
+    themeName: THEMES.some(theme => theme.id === name) ? name : DEFAULT_THEME,
     light: preference('cubix.ui.colorMode') === 'light',
   };
 }

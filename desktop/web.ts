@@ -66,13 +66,13 @@ export async function buildWeb(out = WEB_DIR) {
     .replace("<!-- styles -->", styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    "))
     .replace("<!-- scripts -->", scripts.map((src) => `<script type="module" src="${src}"></script>`).join("\n    "));
   await writeFile(join(out, "index.html"), html);
-  for (const name of ["manifest.webmanifest", "icon-192.png", "icon-512.png"]) await cp(join("desktop/renderer/pwa", name), join(out, name));
+  for (const name of ["manifest.webmanifest", "favicon.svg", "icon-192.png", "icon-512.png"]) await cp(join("desktop/renderer/pwa", name), join(out, name));
   for (const directory of ["icons", "cases"]) await cp(join("desktop/assets", directory), join(out, "assets", directory), { recursive: true });
   // Everything the app needs to open offline, scramblers included: the engine worker starts before the
   // service worker controls a first visit. Case diagrams are kept once shown.
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
   // The administration is never used offline.
-  const precache = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", worker, ...app.filter((path) => !basename(path).startsWith("admin-")), ...icons, ...vendorFiles];
+  const precache = ["/", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, ...app.filter((path) => !basename(path).startsWith("admin-")), ...icons, ...vendorFiles];
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
   for (const url of precache) hasher.update(url).update(await readFile(join(out, url === "/" ? "index.html" : url)));

@@ -77,7 +77,10 @@ try {
   await page.locator(".rail [data-brand]").hover();
   await page.locator('[data-action="sidebar:toggle"]').click();
   await page.waitForFunction(() => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === "expanded");
-  assert.equal(await page.locator(".rail").getByLabel("Qbix").count(), 1, "the sidebar carries the Qbix name");
+  assert.equal(await page.locator(".rail").getByLabel("Qbix", { exact: true }).count(), 1, "the sidebar carries the Qbix name");
+  await page.locator('.rail [data-action="nav:home"]').click();
+  await page.waitForURL(url => url.pathname === "/timer");
+  await page.goto(origin + "/profile?puzzle=333"); await page.locator('[aria-label="Personal goals"]').waitFor();
   // A fresh account: compact empty states, still inside the window.
   const fresh = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();
   fresh.on("pageerror", e => errors.push(e.message));

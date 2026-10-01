@@ -131,8 +131,8 @@ export function Cube({
       }}
       onPointerMove={(e) => {
         if (!drag.current) return;
-        // Endless about the vertical axis; the tilt stays.
-        rotation.current = turnCube(rotation.current, (e.clientX - drag.current[0]!) * 0.012);
+        // Endless about the vertical axis; the tilt stops short of turning the cube over.
+        rotation.current = turnCube(rotation.current, (e.clientX - drag.current[0]!) * 0.012, (e.clientY - drag.current[1]!) * 0.012);
         drag.current = [e.clientX, e.clientY];
         redraw.current();
       }}
