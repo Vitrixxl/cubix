@@ -51,7 +51,7 @@ export const FADE = "transition-opacity duration-200 group-data-running/app:poin
 export const MONO = "font-mono tabular-nums";
 
 /** The small uppercase-free caption over a figure or a block. */
-export const LABEL = "text-xs font-medium text-muted-foreground";
+export const LABEL = "font-mono text-xs font-medium text-muted-foreground";
 
 /** An SVG of desktop/assets/icons drawn in the current colour: the WCA puzzle icons. */
 export function Icon({ name, size = 16, className }: { name: string; size?: number; className?: string }) {
@@ -141,11 +141,12 @@ export function ActionToggle({
   className,
   disabled,
   size = "default",
-}: { action: string; pressed: boolean; icon?: LucideIcon; tip?: React.ReactNode; disabled?: boolean; size?: "default" | "sm" | "lg" } & Props) {
+  variant,
+}: { action: string; pressed: boolean; icon?: LucideIcon; tip?: React.ReactNode; disabled?: boolean; size?: "default" | "sm" | "lg"; variant?: "default" | "outline" } & Props) {
   const head = React.useContext(InHead);
   const toggle = (
     <Toggle
-      variant={head ? "outline" : "default"}
+      variant={variant ?? (head ? "outline" : "default")}
       data-action={action}
       pressed={pressed}
       size={size}
@@ -437,7 +438,7 @@ export function PageHead({
   const mobile = useViewport().w <= MOBILE;
   return (
     <InHead.Provider value={true}>
-    <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-6 gap-y-3", mobile ? "gap-x-2" : "flex-wrap", FADE)}>
+    <header className={cn("flex min-h-10 shrink-0 items-center gap-y-3", mobile ? "justify-between gap-x-2" : "flex-wrap justify-start gap-x-6", FADE)}>
       <div className="flex min-w-0 items-center gap-2 md:gap-3">
         {lead}
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -445,7 +446,7 @@ export function PageHead({
           {sub && <p className="truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
         </div>
       </div>
-      <div className={cn("flex min-w-0 items-center justify-end gap-1", mobile ? "shrink-0" : "flex-wrap")}>
+      <div className={cn("flex min-w-0 items-center gap-1", mobile ? "shrink-0 justify-end" : "flex-wrap justify-start")}>
         {mobile && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
         {children}
         {more && <MoreMenu>{more}</MoreMenu>}
@@ -520,7 +521,7 @@ export function Surface({ children, className, ...rest }: Props & React.HTMLAttr
 /** A secondary group of figures (level 2): a quiet muted band, no outline. */
 export function Strip({ children, className, label }: Props & { label?: string }) {
   return (
-    <section aria-label={label} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl bg-muted/45 px-4 py-3", FADE, className)}>
+    <section aria-label={label} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl border bg-muted/45 px-4 py-3", FADE, className)}>
       {children}
     </section>
   );
@@ -586,17 +587,20 @@ export function Figure({
   value,
   tone,
   size = "base",
+  inline = false,
   className,
 }: {
   label: React.ReactNode;
   value: React.ReactNode;
   tone?: "" | "good" | "bad" | "accent";
   size?: "sm" | "base" | "lg" | "xl";
+  /** Label and value on one line: the label on the left, the value on the right. */
+  inline?: boolean;
   className?: string;
 }) {
   const empty = typeof value === "string" && /^[-–—]$/.test(value.trim());
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
+    <div className={cn("flex min-w-0", inline ? "flex-row items-baseline justify-between gap-3" : "flex-col gap-1", className)}>
       <span className={cn(LABEL, "truncate")}>{label}</span>
       <span
         className={cn(

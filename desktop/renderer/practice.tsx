@@ -374,12 +374,27 @@ export function Practice() {
       : !(label === "Ao5" && s.practicePage() === "playground") && !(label === "Solves" && timesColumn),
   );
   const statistics = (
-    <Strip label="Statistics" className={cn(mobile ? "grid-cols-4 px-3" : "flex")}>
+    // Desktop: each figure on one line, label left and value right; two rows of three when the band is narrow, one row
+    // when there is room. Lines split the figures of a row.
+    <div className="@container shrink-0">
+    <Strip
+      label="Statistics"
+      className={cn(mobile ? "grid-cols-4 px-3" : "grid-cols-3 gap-x-0 gap-y-2.5 px-0 py-2.5 @5xl:grid-flow-col @5xl:grid-cols-none @5xl:auto-cols-fr")}
+    >
       {/* On the desktop every figure takes an equal share of the band. */}
-      {metrics.slice(0, mobile ? 4 : undefined).map(([label, value, tone]) => (
-        <Figure key={label} label={label} value={value} tone={tone} size={mobile ? "sm" : "base"} className={cn(!mobile && "flex-1")} />
+      {metrics.slice(0, mobile ? 4 : undefined).map(([label, value, tone], i) => (
+        <Figure
+          key={label}
+          label={label}
+          value={value}
+          tone={tone}
+          size={mobile ? "sm" : "base"}
+          inline={!mobile}
+          className={cn(mobile ? "items-center text-center" : cn("px-4 [&>span:first-child]:shrink-0 [&>span:first-child]:overflow-visible", i % 3 !== 0 && "border-l", i > 0 && i % 3 === 0 && "@5xl:border-l"))}
+        />
       ))}
     </Strip>
+    </div>
   );
   const phase = timer.phase.toLowerCase();
   const scrambleOptions = s.info().scrambles
@@ -390,9 +405,8 @@ export function Practice() {
       { id: "typing", label: "Typing" },
       { id: "casual", label: "Casual" },
     ];
-  return (
-    <div className={cn(PAGE, "practice")}>
-      {cross ? (
+  const head = (
+    cross ? (
         <PageHead
           title="Cross + 1"
           puzzle={!mobile}
@@ -472,9 +486,15 @@ export function Practice() {
           {replay}
           {timesToggle}
         </PageHead>
-      )}
+      )
+  );
+  return (
+    <div className={cn(PAGE, "practice")}>
+      {mobile && head}
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
-        <div className="flex min-w-0 flex-1 flex-col gap-3 md:gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 md:gap-5">
+          {/* On the desktop the header heads the stage's column, so the times card beside it reaches the top. */}
+          {!mobile && head}
           {/* Phones keep the stage as a card (the whole card is the tap target); the desktop sets the scramble, the cube
               and the digits straight on the page. */}
           <Stage
@@ -535,17 +555,17 @@ export function Practice() {
                 {s.practicePage() === "playground" && <AverageWindow mobile={mobile} />}
                 {/* The last solve's actions, there before the first solve too (disabled) so the timer never moves. */}
                 {!mobile && (
-                  <div className={cn("mt-3 flex shrink-0 flex-wrap items-center justify-center gap-1", FADE)} aria-label="Last solve" data-no-timer>
-                    <ActionToggle action={"penalty:" + last?.id + ":+2"} pressed={last?.penalty === "+2"} disabled={!last || s.saving} size="sm" className="aria-pressed:text-warning">
+                  <div className={cn("mt-3 flex shrink-0 flex-wrap items-center justify-center gap-1.5", FADE)} aria-label="Last solve" data-no-timer>
+                    <ActionToggle action={"penalty:" + last?.id + ":+2"} pressed={last?.penalty === "+2"} disabled={!last || s.saving} size="sm" variant="outline" className="aria-pressed:text-warning">
                       +2
                     </ActionToggle>
-                    <ActionToggle action={"penalty:" + last?.id + ":dnf"} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} size="sm" className="aria-pressed:text-destructive">
+                    <ActionToggle action={"penalty:" + last?.id + ":dnf"} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} size="sm" variant="outline" className="aria-pressed:text-destructive">
                       DNF
                     </ActionToggle>
-                    <Button action={"comment:" + last?.id} icon={MessageSquare} disabled={!last || s.saving} size="sm" className={cn("text-muted-foreground", last?.comment && "text-primary")}>
+                    <Button action={"comment:" + last?.id} icon={MessageSquare} disabled={!last || s.saving} size="sm" variant="outline" className={cn("text-muted-foreground", last?.comment && "text-primary")}>
                       Comment
                     </Button>
-                    <Button action={"delete:" + last?.id} icon={Trash2} disabled={!last || s.saving} size="sm" className="text-muted-foreground hover:text-destructive">
+                    <Button action={"delete:" + last?.id} icon={Trash2} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground hover:text-destructive">
                       Delete
                     </Button>
                   </div>
@@ -784,12 +804,12 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
   const chip = cn("flex h-7 items-center justify-center rounded-md", mobile ? "min-w-0 flex-1 px-1 text-xs" : "min-w-18 px-2");
   return (
     <div className={cn(MONO, "average-window mt-6 flex w-full shrink-0 items-center justify-center gap-1.5 text-sm md:mt-8", mobile && "gap-1", FADE)} aria-label="Current average of 5" data-no-timer>
-      {!mobile && <span className="mr-1.5 font-sans text-xs font-medium text-muted-foreground">Ao5</span>}
+      {!mobile && <span className={cn(LABEL, "mr-1.5")}>Ao5</span>}
       {Array.from({ length: 5 }, (_, i) => {
         const v = last[i - (5 - last.length)];
         if (!v)
           return (
-            <span key={i} className={cn(chip, "bg-muted/50 text-muted-foreground/50")}>
+            <span key={i} className={cn(chip, "border border-dashed bg-muted/30 text-muted-foreground/50")}>
               –
             </span>
           );
@@ -804,11 +824,11 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
               onClick={(e) => { e.currentTarget.blur(); void s.action("solve:" + v.id); }}
               className={cn(
                 chip,
-                "bg-muted outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50",
+                "border bg-muted/60 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50",
                 dropped && "text-muted-foreground",
                 !dropped && v.penalty === "+2" && "text-warning",
                 v.penalty === "dnf" && "text-destructive",
-                index === last.length - 1 && "ring-1 ring-foreground/30",
+                index === last.length - 1 && "border-foreground/40",
               )}
             >
               {dropped ? `(${time})` : time}

@@ -159,6 +159,8 @@ try {
     await act(page, "nav:profile");
     await check(page, "profile");
     for (const mode of ["playground", "training", "achievements", "duels"]) {
+      // A section without data (no battles yet) has no link to open.
+      if (!(await page.locator(`[data-action="profileMode:${mode}"]:visible`).count()) && !(await page.locator('[data-action="menu:more"]:visible').count())) continue;
       await act(page, "profileMode:" + mode);
       await check(page, "profile-" + mode);
       if (mode === "playground") {
@@ -167,7 +169,7 @@ try {
         await act(page, "statsView:chart");
       }
       // Phones switch the sections with a segmented control rather than opening them as pages.
-      await act(page, width! <= 700 ? "profileMode:overview" : "back");
+      await act(page, "profileMode:overview");
     }
     await act(page, "settings");
     await check(page, "settings");

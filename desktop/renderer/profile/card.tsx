@@ -117,7 +117,7 @@ export function SubPageHead({ title, meta, children, back = true }: { title: Rea
           <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
           {meta != null && <span className="truncate pl-1 text-sm text-muted-foreground">{meta}</span>}
         </div>
-        {children && <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{children}</div>}
+        {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
       </header>
     </InHead.Provider>
   );

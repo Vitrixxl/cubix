@@ -150,6 +150,13 @@
   html {
     @apply font-sans antialiased;
     }
+  /* The interface's words — titles, buttons, tabs, menu items, labels, table heads — are set in mono; sentences
+     (subtitles, descriptions, guides) stay in the sans. */
+  :is(h1, h2, h3, h4, button, label, th, [role="tab"], [data-slot="badge"], [data-slot="kbd"],
+    [data-slot$="menu-item"], [data-slot$="menu-label"], [data-slot$="menu-radio-item"], [data-slot$="menu-checkbox-item"],
+    [data-slot="select-item"], [data-slot="sidebar-menu-button"], [data-slot="tooltip-content"]) {
+    font-family: var(--font-mono);
+  }
   html, body, #root {
     @apply h-full overflow-hidden;
   }
