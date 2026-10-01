@@ -22,10 +22,26 @@ bun install --frozen-lockfile
 bun run dev             # site sur http://127.0.0.1:5180 (API de production) et Electron
 bun run dev:web         # le même site, sans Electron, pour un navigateur
 bun run build:web       # dist/web, servi par l'API quand il existe
-make                    # paquet dans artifacts/electron/cubix-linux-x64, puis installation
+bun run build:desktop   # paquet Electron pour Linux ou macOS, selon la machine
+make                    # Linux : construit le paquet, puis l'installe
 ```
 
-`make` installe le desktop dans `~/.local/share/cubix-electron` avec l'entrée de menu
+Sur macOS, après un clone ou un pull, installer **Bun 1.4+** et **Node.js 24+**, puis :
+
+```sh
+bun install --frozen-lockfile
+bun run build:desktop
+open artifacts/electron/Cubix-darwin-*/Cubix.app
+```
+
+Le build crée `artifacts/electron/Cubix-darwin-arm64/Cubix.app` sur Apple Silicon,
+ou `Cubix-darwin-x64/Cubix.app` sur Intel. Copier `Cubix.app` dans `/Applications`
+pour l'installer. Le build s'exécute sur le Mac cible ; aucun build Rust ou Android
+n'est nécessaire, la fenêtre ouvre l'API de production. L'application est signée
+localement (ad hoc), sans certificat Apple ; elle n'est pas notariée pour une
+distribution publique.
+
+Sous Linux, `make` installe le desktop dans `~/.local/share/cubix-electron` avec l'entrée de menu
 Cubix et la commande `~/.local/bin/cubix`, sans sudo ; il ne sert qu'à mettre à jour la
 fenêtre Electron elle-même. Voir [le guide desktop](desktop/README.md).
 

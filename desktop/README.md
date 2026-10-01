@@ -34,15 +34,38 @@ le relais quand il se ferme.
 ```sh
 bun install --frozen-lockfile
 bun run dev                 # construit le site, le sert sur 127.0.0.1:5180, ouvre Electron
-bun run build:desktop       # artifacts/electron/cubix-linux-x64 : runtime Electron + fenêtre
-make install                # installation utilisateur, menu et commande cubix
+bun run build:desktop       # paquet natif Linux ou macOS, selon la machine
+make install                # Linux : installation utilisateur, menu et commande cubix
 ```
+
+### macOS
+
+Avec Bun **1.4+** et Node.js **24+**, exécuter sur le Mac :
+
+```sh
+bun install --frozen-lockfile
+bun run build:desktop
+open artifacts/electron/Cubix-darwin-*/Cubix.app
+```
+
+Le paquet est `artifacts/electron/Cubix-darwin-arm64/Cubix.app` sur Apple Silicon
+ou `Cubix-darwin-x64/Cubix.app` sur Intel. Il contient la fenêtre Electron, ses
+helpers, l'icône Cubix et les licences. Copier `Cubix.app` dans `/Applications`
+pour l'installer. Le build ne compile ni le serveur Rust ni Android : il ouvre
+par défaut l'application de production.
+
+Electron Packager assemble le bundle et le signe ad hoc, sans compte Apple. Une
+signature Developer ID et la notarisation restent nécessaires pour distribuer
+publiquement une application reconnue par Gatekeeper. Voir la
+[documentation Electron](https://www.electronjs.org/docs/latest/tutorial/code-signing).
+
+### Développement et Linux
 
 `bun run dev` relaie `/api` vers `CUBIX_API_ORIGIN` (production par défaut) et
 utilise ses propres données (`~/.local/share/cubix-desktop-dev`), séparées de
 l'application installée. `bun run dev:web` sert le site sans ouvrir Electron.
 
-`make` remplace l'installation précédente, ancien lanceur compris, dans
+Sous Linux, `make` remplace l'installation précédente, ancien lanceur compris, dans
 `~/.local/share/cubix-electron`, crée l'entrée de menu et `~/.local/bin/cubix`, sans
 sudo. `make uninstall` conserve les données. Réinstaller n'est utile que lorsque la
 fenêtre Electron elle-même change.
