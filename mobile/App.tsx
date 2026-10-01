@@ -1,37 +1,38 @@
-import { useFonts } from "expo-font";
-import { StatusBar } from "expo-status-bar";
-import * as SystemUI from "expo-system-ui";
+import "./global.css";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { PortalHost } from "@rn-primitives/portal";
 import { Provider, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { AppState, BackHandler, InteractionManager, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Suspense, useCallback, useEffect } from "react";
+import { AppState, BackHandler, InteractionManager, Keyboard, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardAvoidingView, KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import { local, localChanged } from "./src/api";
-import { LiveConnection } from "./src/components/LiveConnection";
-import { SettingsDialog } from "./src/components/Settings";
-import { GuidesDialog } from "./src/components/GuidesDialog";
-import { Nav } from "./src/components/Nav";
-import { SolveMenuProvider } from "./src/components/SolveMenus";
+import { PUZZLES } from "../src/shared/puzzles";
+import { authToken, local, localChanged, syncStatusChanged } from "./src/api";
 import { prefetchCaseDiagrams } from "./src/components/CaseDiagram";
+import { GuidesSheet } from "./src/components/GuidesDialog";
+import { Fade } from "./src/components/layout";
+import { LiveConnection } from "./src/components/LiveConnection";
 import { PageStack } from "./src/components/PageStack";
-import { PageSkeleton } from "./src/components/Skeleton";
+import { SettingsSheet } from "./src/components/Settings";
+import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
+import { TabBar } from "./src/components/TabBar";
+import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
-import { useLayout } from "./src/hooks/useLayout";
-import { PUZZLES } from "../src/shared/puzzles";
 import { ProfilePage } from "./src/pages/AccountPage";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
-import { PlaygroundPage } from "./src/pages/PlaygroundPage";
+import { AuthScreen } from "./src/pages/AuthScreen";
 import { DuelPage } from "./src/pages/DuelPage";
+import { PlaygroundPage } from "./src/pages/PlaygroundPage";
 import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
-import { casesAtom, colorModeAtom, goBackAtom, keyboardVisibleAtom, profileFiltersAtom, routeAtom, setsAtom, statsAtom, statsVersionAtom, themeAtom, timerRunningAtom, userAtom, type Page, type Route } from "./src/state";
-import { buildTheme, ThemeContext } from "./src/theme";
-import { FONT_FILES, installGeist } from "./src/fonts";
-
-// Every Text and TextInput renders in Geist from the very first frame (see src/fonts.ts).
-installGeist();
+import {
+  casesAtom, goBackAtom, hasTokenAtom, keyboardVisibleAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
+  timerRunningAtom, userAtom, type Page, type Route,
+} from "./src/state";
 
 function renderPage(route: Route) {
   switch (route.page) {
@@ -44,49 +45,56 @@ function renderPage(route: Route) {
 }
 
 export function App() {
-  // Geist, Geist Mono and the WCA glyphs; the startup gate keeps the native splash up until they are ready.
-  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
-  return <SafeAreaProvider><Provider><Themed><StartupGate fontsReady={!!(fontsLoaded || fontError)}><Shell /></StartupGate></Themed></Provider></SafeAreaProvider>;
+  return <GestureHandlerRootView style={{ flex: 1 }}>
+    <SafeAreaProvider>
+      <KeyboardProvider>
+        <Provider>
+          <ThemeProvider>
+            <BottomSheetModalProvider>
+              <StartupGate fontsReady><Session /></StartupGate>
+            </BottomSheetModalProvider>
+            <PortalHost />
+          </ThemeProvider>
+        </Provider>
+      </KeyboardProvider>
+    </SafeAreaProvider>
+  </GestureHandlerRootView>;
 }
 
-function Themed({ children }: { children: React.ReactNode }) {
-  const themeId = useAtomValue(themeAtom), colorMode = useAtomValue(colorModeAtom);
-  const theme = useMemo(() => buildTheme(themeId, colorMode), [themeId, colorMode]);
+/** The account on this device, kept in step with the local workspace; without a signed-in account, the sign-in screen. */
+function Session() {
+  const [user, setUser] = useAtom(userAtom);
+  const setHasToken = useSetAtom(hasTokenAtom);
+  const bumpStats = useSetAtom(statsVersionAtom);
+  const signedIn = useAtomValue(signedInAtom);
   useEffect(() => {
-    void SystemUI.setBackgroundColorAsync(theme.bg);
-  }, [theme]);
-  return <ThemeContext.Provider value={theme}>
-    <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
-    <View style={[styles.app, { backgroundColor: theme.bg }]}>{children}</View>
-  </ThemeContext.Provider>;
+    const refresh = () => { setUser(local.current()); setHasToken(!!authToken.get()); bumpStats(v => v + 1); };
+    refresh();
+    void local.restore();
+    const unsubscribe = localChanged.on(refresh);
+    // An expired session (401) clears the token: back to the sign-in screen.
+    const unsubscribeStatus = syncStatusChanged.on(status => { if (status.state === "signin") setHasToken(!!authToken.get()); });
+    const reconnect = () => { void local.restore(); };
+    const appState = AppState.addEventListener("change", state => { if (state === "active") reconnect(); });
+    const retry = setInterval(reconnect, 30000);
+    return () => { unsubscribe(); unsubscribeStatus(); appState.remove(); clearInterval(retry); };
+  }, [setUser, setHasToken, bumpStats]);
+  useReleaseCheck(true);
+  if (!signedIn) return <AuthScreen key={user?.id ?? "none"} initialUsername={user && !user.isGuest ? user.username : ""} />;
+  return <Shell />;
 }
 
 function Shell() {
   const insets = useSafeAreaInsets();
-  const { phone, navInFlow, insets: safe } = useLayout();
   const running = useAtomValue(timerRunningAtom);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useAtom(keyboardVisibleAtom);
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
     const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
     return () => { show.remove(); hide.remove(); };
   }, [setKeyboardVisible]);
-  const [user, setUser] = useAtom(userAtom);
-  const bumpStats = useSetAtom(statsVersionAtom);
-  useEffect(() => {
-    const refresh = () => { setUser(local.current()); bumpStats(v => v + 1); };
-    refresh();
-    void local.restore();
-    const unsubscribe = localChanged.on(refresh);
-    const reconnect = () => { void local.restore(); };
-    const appState = AppState.addEventListener("change", state => { if (state === "active") reconnect(); });
-    const retry = setInterval(reconnect, 30000);
-    return () => { unsubscribe(); appState.remove(); clearInterval(retry); };
-  }, [setUser, bumpStats]);
-  useReleaseCheck(true);
-  // Warm every page's data once the first screen is up: the catalogue of each puzzle and the current
-  // puzzle's cases, sets and statistics, so switching tabs later never computes anything visible.
+  // Warm every page's data once the first screen is up: the catalogue of each puzzle and the current puzzle's cases,
+  // sets and statistics, so switching tabs later never computes anything visible.
   const store = useStore();
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -112,29 +120,26 @@ function Shell() {
   }, [goBack, running]);
   const navigate = useCallback((page: Page) => setRoute({ page } as Route), [setRoute]);
   const active = route.page;
-  // The profile's filters last while its pages are browsed and reset once another tab is opened.
+  // The profile's filters last while its sections are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);
   useEffect(() => { if (active !== "profile") resetProfileFilters(f => Object.keys(f).length ? {} : f); }, [active, resetProfileFilters]);
-  return <SolveMenuProvider>
+  // Sheets render where their provider is: this one sits inside the solve menu, so the times listed in a sheet keep
+  // their long-press menu. (The solve menu's own sheets use the provider of the whole app.)
+  return <SolveMenuProvider><BottomSheetModalProvider>
     <LiveConnection />
     <ScramblerHost />
-    <KeyboardAvoidingView behavior={Platform.OS === "android" ? "height" : undefined} style={styles.main}>
-    <View style={[styles.main, { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      {/* Nothing suspends any more; the boundary only guards against a future async atom. */}
-      <Suspense fallback={<PageSkeleton page={active} />}>
-        {!user ? <PageSkeleton page={active} /> : <PageStack route={route} render={renderPage} />}
-      </Suspense>
-    </View>
+    <KeyboardAvoidingView behavior="padding" className="flex-1">
+      <View className="min-h-0 flex-1" style={{ paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
+        {/* Nothing suspends; the boundary only guards against a future async atom. */}
+        <Suspense fallback={<View className="flex-1" />}>
+          <PageStack route={route} render={renderPage} />
+        </Suspense>
+      </View>
     </KeyboardAvoidingView>
-    <Nav active={active} onNavigate={navigate} onSettings={() => setSettingsOpen(true)} settingsOpen={settingsOpen} hidden={running || keyboardVisible} collapsed={navInFlow && keyboardVisible} phone={phone} />
-    <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-    <GuidesDialog />
-    <SyncIndicator hidden={running} offset={navInFlow ? 74 + safe.bottom : 84 + safe.bottom} />
+    {!keyboardVisible && <Fade hidden={running}><TabBar active={active} onNavigate={navigate} /></Fade>}
+    <SettingsSheet />
+    <GuidesSheet />
+    <SyncIndicator hidden={running} />
     <Toast />
-  </SolveMenuProvider>;
+  </BottomSheetModalProvider></SolveMenuProvider>;
 }
-
-const styles = StyleSheet.create({
-  app: { flex: 1 },
-  main: { flex: 1, minHeight: 0 },
-});

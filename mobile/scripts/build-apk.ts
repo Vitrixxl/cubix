@@ -7,11 +7,13 @@ import { spawnSync } from "node:child_process";
 import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { NATIVE_INPUTS, buildNumber, commitHash, runtimeVersion } from "../app.config";
+import { API_ORIGIN, NATIVE_INPUTS, buildNumber, commitHash, runtimeVersion } from "../app.config";
 
 const root = resolve(import.meta.dir, "..");
 const debug = process.argv.includes("--debug");
 const arm64 = process.argv.includes("--arm64");
+/** `--arch=x86_64` builds for one ABI only, e.g. an APK for the emulator. */
+const arch = process.argv.find(argument => argument.startsWith("--arch="))?.slice("--arch=".length) ?? (arm64 ? "arm64-v8a" : undefined);
 const outputArgument = process.argv.find(argument => argument.startsWith("--output="))?.slice("--output=".length);
 const home = process.env.HOME ?? "";
 const env: NodeJS.ProcessEnv = {
@@ -70,6 +72,9 @@ run("bun", ["scripts/build-cases.ts"]);
 const fingerprint = createHash("sha256");
 for (const path of NATIVE_INPUTS) fingerprint.update(readFileSync(resolve(root, path)));
 fingerprint.update(`build:${build}`);
+// The API origin and the update switch are written into the native manifest: a test build pointed at a local API
+// (or without updates) must never leave its manifest to the next production build.
+fingerprint.update(`api:${API_ORIGIN} updates:${process.env.CUBIX_UPDATES ?? "on"}`);
 const hash = fingerprint.digest("hex"), stamp = resolve(root, ".expo/android-prebuild.sha256");
 if (process.argv.includes("--prebuild") || !existsSync(resolve(root, "android/gradlew")) || !existsSync(stamp) || readFileSync(stamp, "utf8") !== hash) {
   run("bunx", ["expo", "prebuild", "--platform", "android", "--no-install"]);
@@ -79,10 +84,10 @@ if (process.argv.includes("--prebuild") || !existsSync(resolve(root, "android/gr
 // Gradle's default JS inputs exclude the shared sources outside mobile/ and public env values.
 // Always refresh the release bundle, while retaining the expensive native compilation cache.
 const tasks = debug ? ["assembleDebug"] : [":app:createBundleReleaseJsAndAssets", "--rerun", "assembleRelease"];
-run("./gradlew", [...tasks, ...(arm64 ? ["-PreactNativeArchitectures=arm64-v8a"] : []), "--no-daemon", "--console=plain", "--max-workers=4"], resolve(root, "android"));
+run("./gradlew", [...tasks, ...(arch ? [`-PreactNativeArchitectures=${arch}`] : []), "--no-daemon", "--console=plain", "--max-workers=4"], resolve(root, "android"));
 const apk = resolve(root, `android/app/build/outputs/apk/${debug ? "debug/app-debug.apk" : "release/app-release.apk"}`);
 mkdirSync(resolve(root, "build"), { recursive: true });
-const out = resolve(root, outputArgument ?? `build/cubix-${debug ? "debug" : "release"}${arm64 ? "-arm64" : ""}.apk`);
+const out = resolve(root, outputArgument ?? `build/cubix-${debug ? "debug" : "release"}${arm64 ? "-arm64" : arch ? `-${arch}` : ""}.apk`);
 copyFileSync(apk, `${out}.tmp`);
 renameSync(`${out}.tmp`, out);
 console.log(`APK: ${out}`);

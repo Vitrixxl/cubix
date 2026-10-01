@@ -1,54 +1,56 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { Box, Eye, EyeOff, Shuffle } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
-import { fmtSolve } from "../../../src/client/lib/format";
+import { Pressable, View } from "react-native";
+import { fmtTime } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
+import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../../src/shared/crossPlusOne";
 import { contextKey, type PracticeContext } from "../../../src/shared/puzzles";
-import type { SolveDto } from "../../../src/shared/types";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Text } from "@/components/ui/text";
 import { api } from "../api";
-import { crossContextAtom, crossMovesAtom, crossScrambleAtom, statsVersionAtom } from "../state";
-import { useTheme } from "../theme";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
-import { usePreservedList } from "../hooks/usePreservedList";
 import { ensureLaunchSession } from "../lib/launchSession";
+import { TimesSheet } from "./TimesSheet";
 import { crossSolutions, type CrossSolution } from "../scrambler";
-import { IconComment, IconEye, IconShuffle, IconTimer, IconTrophy, IconUndo } from "./icons";
-import { CubePreview, Moves, PracticeFrame, PromptBlock, TimesColumn, Toast, framePreviewSize, sessionMetrics, useBackTo, usePracticeLock, useScrambleGeneration, useSessionSolves, useTimerFont } from "./Practice";
-import { PuzzlePicker } from "./PuzzlePicker";
-import { Sheet } from "./Sheet";
-import { SolveStrip, SolveActionButtons, SolveInfoButton, SolveRow } from "./SolveMenus";
-import { TimerSurface } from "./TimerSurface";
-import { Btn, Empty, Mark, PageHead, Segmented, SkeletonLine, mono } from "./ui";
+import { crossContextAtom, crossMovesAtom, crossScrambleAtom, statsVersionAtom } from "../state";
+import { Alg, BackButton, Fade, Label, MenuItem, MoreMenu, Page, PageHead, TouchAction } from "./layout";
+import {
+  AverageWindow, CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock,
+  useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
+} from "./Practice";
+import { LastSolveBar } from "./SolveMenus";
 
 /**
- * First-block training on the 3×3 (web `crossTraining`): timer solves on scrambles whose white cross and one
- * back pair take exactly 3, 4 or 5 moves, recorded as timer solves of the `cross1-N` scramble type.
+ * First-block training on the 3×3 (web `crossTraining`): timer solves on scrambles whose white cross and one back pair
+ * take exactly 3, 4 or 5 moves, recorded as timer solves of the `cross1-N` scramble type.
  */
 export function CrossPractice({ onBack }: { onBack: () => void }) {
   const context = useAtomValue(crossContextAtom);
-  const [showTimes, setShowTimes] = useState(false);
   // Each number of moves is its own context: its scramble, its session and its times.
-  return <CrossSession key={contextKey(context)} context={context} onBack={onBack} showTimes={showTimes} setShowTimes={setShowTimes} />;
+  return <CrossSession key={contextKey(context)} context={context} onBack={onBack} />;
 }
 
-function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: PracticeContext; onBack: () => void; showTimes: boolean; setShowTimes: (value: boolean) => void }) {
-  const t = useTheme();
-  const layout = useLayout();
+function CrossSession({ context, onBack }: { context: PracticeContext; onBack: () => void }) {
+  const { height } = useLayout();
   const [moves, setMoves] = useAtom(crossMovesAtom);
   const scramble = useAtomValue(crossScrambleAtom);
   const storeScramble = useSetAtom(crossScrambleAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
   const [saving, setSaving] = useState(false);
   const [solves, setSolves] = useSessionSolves("playground", context);
+  const shown = useShownSolves(solves);
   const [lastSolveId, setLastSolveId] = useState<number | null>(null);
-  const [record, setRecord] = useState({ at: 0, message: "" });
+  const [notice, showNotice] = useNotice();
   const [revealed, setRevealed] = useState(false);
   const [solutions, setSolutions] = useState<{ scramble: string; list: CrossSolution[] | null } | null>(null);
   const [solutionError, setSolutionError] = useState("");
   const [replay, setReplay] = useState(0);
-  const timesAlways = !layout.phone && layout.width >= 1000;
+  const [showTimes, setShowTimes] = useState(false);
 
   // The context travels with the scramble: a generation that ends after a change of moves keeps its own.
   const generation = useScrambleGeneration(context, next => storeScramble({ context, scramble: next }));
@@ -76,86 +78,68 @@ function CrossSession({ context, onBack, showTimes, setShowTimes }: { context: P
       bumpStats(v => v + 1);
       // Records span every launch, unlike the listed session.
       const message = recordMessage(solveRecords((await api.solves("playground", Infinity, context.puzzle, context)).reverse(), solve.id));
-      if (message) setRecord({ at: Date.now(), message });
+      if (message) showNotice(message);
       void generateNext();
     } finally { setSaving(false); }
-  }, [scramble, context, generateNext]);
+  }, [scramble, context, generateNext, showNotice]);
   const timer = useTimer({ onStop, canStart: !saving && !generating && !!scramble && !generationError });
+  useTimerChrome(timer);
   const { busy, running, locked } = usePracticeLock(timer, saving);
   useBackTo(onBack, !busy);
   const nextScramble = () => { if (!busy && !generating) { timer.reset(); void generateNext(); } };
-  const lastSolve = lastSolveId === null ? null : solves.find(solve => solve.id === lastSolveId) ?? null;
-  const promptFont = layout.phone ? (scramble.length > 90 ? 15 : 19) : scramble.length > 120 ? 20 : 27;
-  const previewSize = framePreviewSize(layout);
-  const timerFont = useTimerFont();
-  const solutionFont = Math.max(15, promptFont - 5);
-  const shown = revealed && solutions?.scramble === scramble ? solutions.list : undefined;
-
-  const head = <PageHead title="Training" sub={`Cross + 1 · ${moves} moves`} padding={layout.pagePadding} onBack={onBack} right={<PuzzlePicker />}
-    controls={<>
-      <Segmented options={CROSS_PLUS_ONE_MOVES.map(n => ({ id: String(n), label: `${n} moves` }))} value={String(moves)} disabled={locked} onChange={value => setMoves(Number(value))} />
-      {previewSize > 0 && <Btn iconOnly={layout.phone} icon={IconUndo} label={layout.phone ? undefined : "Replay"} disabled={!scramble} onPress={() => setReplay(n => n + 1)} accessibilityLabel="Replay the scramble on the cube" />}
-      <Btn iconOnly={layout.phone} icon={IconShuffle} label={layout.phone ? undefined : "New scramble"} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} accessibilityLabel="New scramble" />
-      {!timesAlways && <Btn iconOnly={layout.phone} icon={IconTimer} label={layout.phone ? undefined : "Times"} active={showTimes} disabled={busy} onPress={() => setShowTimes(!showTimes)} accessibilityLabel="Times" />}
-    </>} />;
+  const lastSolve = lastSolveId === null ? null : shown.find(solve => solve.id === lastSolveId) ?? null;
+  const promptFont = scramble.length > 90 ? 15 : 18;
+  const previewSize = height < 760 ? 0 : 84;
+  const solutionFont = Math.max(15, promptFont - 3);
+  const list = revealed && solutions?.scramble === scramble ? solutions.list : undefined;
+  const summary = practiceSummary(shown);
+  const peek: Metric[] = [["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Best", fmtTime(summary.best), "good"]];
 
   const prompt = <>
-    <PromptBlock label={`Scramble · back block in ${moves} moves`}>
-      {generationError ? <View style={styles.error}><Text style={{ color: t.danger, fontSize: 13 }}>{generationError}</Text><Btn small label="Retry" onPress={() => void generateNext()} /></View>
-        : generating && (slow || !scramble) ? <View style={{ gap: promptFont * 0.5, paddingVertical: promptFont * 0.2 }}><SkeletonLine width="94%" height={promptFont * 1.05} /><SkeletonLine width="72%" height={promptFont * 1.05} /></View>
-        : <Moves alg={scramble} size={promptFont} />}
-    </PromptBlock>
-    {revealed && <PromptBlock label="Solution · z2, white on the bottom">
-      {shown ? <View style={styles.solutions}>
-        {shown.map(v => <View key={v.moves + v.slot} style={styles.solution}>
-          <Moves alg={heldMoves(v.moves)} size={solutionFont} />
-          <Mark textStyle={{ fontSize: 12, lineHeight: 20 }}>{v.slot} block</Mark>
+    {generationError ? <View className="items-start gap-2"><Text className="text-sm text-destructive">{generationError}</Text><Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>Retry</Text></Button></View>
+      : generating && (slow || !scramble) ? <View accessibilityLabel="Generating a scramble" className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
+      : <Alg text={scramble} size={promptFont} />}
+    {revealed && <View className="gap-2">
+      <Label>Solution · z2, white on the bottom</Label>
+      {list ? <View className="gap-1.5">
+        {list.map(v => <View key={v.moves + v.slot} className="flex-row items-center gap-4">
+          <Alg text={heldMoves(v.moves)} size={solutionFont} className="flex-1" />
+          <Text className="text-xs text-muted-foreground">{v.slot} block</Text>
         </View>)}
-        {!shown.length && <Text style={{ color: t.muted, fontSize: 13 }}>No solution within 6 moves.</Text>}
-      </View> : solutionError ? <View style={styles.error}><Text style={{ color: t.danger, fontSize: 13 }}>{solutionError}</Text><Btn small label="Retry" onPress={() => { setRevealed(false); setTimeout(() => setRevealed(true)); }} /></View>
-        : <View accessibilityLabel="Searching the solutions" style={{ paddingVertical: solutionFont * 0.1 }}><SkeletonLine width={solutionFont * 9} height={solutionFont * 1.4} /></View>}
-    </PromptBlock>}
-    <View style={styles.actions}>
-      <Btn icon={IconEye} label={revealed ? "Hide solution" : "Show solution"} disabled={busy || !scramble || generating} onPress={() => setRevealed(v => !v)} />
+        {!list.length && <Text className="text-sm text-muted-foreground">No solution within 6 moves.</Text>}
+      </View> : solutionError ? <View className="flex-row items-center gap-2"><Text className="text-sm text-destructive">{solutionError}</Text>
+        <Button size="sm" variant="outline" onPress={() => { setRevealed(false); setTimeout(() => setRevealed(true)); }}><Text>Retry</Text></Button></View>
+        : <Skeleton accessibilityLabel="Searching the solutions" style={{ height: solutionFont * 1.4, width: solutionFont * 9 }} />}
+    </View>}
+    <View className="-ml-2.5 flex-row">
+      <Button variant="ghost" size="sm" className="h-9 gap-1.5" disabled={busy || !scramble || generating} onPress={() => setRevealed(v => !v)}>
+        <Icon as={revealed ? EyeOff : Eye} size={15} className="text-muted-foreground" />
+        <Text className="text-[13px] text-muted-foreground">{revealed ? "Hide solution" : "Show solution"}</Text>
+      </Button>
     </View>
   </>;
+  const visual = previewSize > 0 ? (scramble && !(generating && slow)
+    ? <Pressable accessibilityRole="button" accessibilityLabel="Replay the scramble on the cube" onPress={() => setReplay(n => n + 1)}><CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /></Pressable>
+    : <View style={{ width: previewSize, height: previewSize }} />) : null;
 
-  const times = <CrossTimes solves={solves} context={context} />;
-  return <>
-    <PracticeFrame head={head} prompt={prompt} timer={timer} disabled={!!timer.saveError}
-      visual={previewSize > 0 && scramble && !(generating && slow) ? <CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /> : previewSize > 0 ? <View style={{ width: previewSize, height: previewSize }} /> : null}
-      notice={<Toast at={record.at} hidden={running} icon={<IconTrophy size={14} color={t.good} />} message={record.message} />}
-      readout={<TimerSurface timer={timer} fontSize={timerFont} short={layout.short} />}
-      strip={<SolveStrip solve={saving ? null : lastSolve} />}
-      metrics={sessionMetrics(solves)} columns={4} dense
-      side={!layout.phone && (timesAlways || showTimes) ? <TimesColumn title="Times" count={solves.length} onClose={timesAlways ? undefined : () => setShowTimes(false)}>{times}</TimesColumn> : null} />
-    {layout.phone && <Sheet open={showTimes} onClose={() => setShowTimes(false)} title="Times" sub={String(solves.length)} tall flush>{times}</Sheet>}
-  </>;
+  return <Page>
+    <Fade hidden={running}>
+      <PageHead lead={<BackButton label="Change what to train" onPress={onBack} />} title="Cross + 1" sub={`${moves}-move first block`}>
+        <MoreMenu>
+          {CROSS_PLUS_ONE_MOVES.map(n => <MenuItem key={n} icon={Box} disabled={locked || n === moves} onPress={() => setMoves(n)}>{`${n}-move first block${n === moves ? " ✓" : ""}`}</MenuItem>)}
+        </MoreMenu>
+      </PageHead>
+    </Fade>
+    <Stage timer={timer} disabled={!!timer.saveError} running={running} prompt={prompt} visual={visual}
+      readout={area => <>
+        <TimerDigits timer={timer} area={area} />
+        <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !scramble || generating ? "One moment…" : false })}</Hint>
+        <SaveError timer={timer} />
+        <AverageWindow solves={shown} hidden={running} />
+      </>}
+      bar={<LastSolveBar solve={saving ? null : lastSolve} extra={<TouchAction icon={Shuffle} label="Scramble" accessibilityLabel="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
+    <SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} />
+    <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title="Times" />
+    <StopSurface timer={timer} />
+  </Page>;
 }
-
-/** The times of this session, newest first: number, time, then its actions (`.times` rows). */
-function CrossTimes({ solves, context }: { solves: SolveDto[]; context: PracticeContext }) {
-  const t = useTheme();
-  const scroll = usePreservedList<SolveDto>(`cross-times:${contextKey(context)}`);
-  return <FlatList {...scroll} data={[...solves].reverse()} keyExtractor={solve => String(solve.id)} initialNumToRender={16} maxToRenderPerBatch={12} windowSize={5}
-    style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}
-    ListEmptyComponent={<Empty>No times yet.</Empty>}
-    renderItem={({ item: s, index: i }) => <SolveRow solve={s} style={[styles.timeRow, { borderColor: t.line }]}>
-      <Text style={[mono(t, 12), { width: 28, color: t.muted }]}>{solves.length - i}</Text>
-      <Text style={[mono(t, 15, "500"), { minWidth: 64 }, s.penalty === "dnf" && { color: t.danger }]}>{fmtSolve(s.time_ms, s.penalty)}</Text>
-      {s.comment ? <IconComment size={12} color={t.muted} /> : null}
-      <View style={styles.timeActions}>
-        <SolveActionButtons solve={s} />
-        <SolveInfoButton solve={s} />
-      </View>
-    </SolveRow>} />;
-}
-
-const styles = StyleSheet.create({
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
-  error: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
-  solutions: { gap: 2 },
-  solution: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
-  timeRow: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderBottomWidth: 1 },
-  timeActions: { flexDirection: "row", alignItems: "center", gap: 2, marginLeft: "auto" },
-});

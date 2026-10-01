@@ -12,7 +12,7 @@ RUN cargo build --locked --release --manifest-path rust-api/Cargo.toml
 # TypeScript itself, and no install script (Electron, Playwright) is needed to build.
 FROM oven/bun:1.4 AS web
 WORKDIR /app
-COPY package.json bun.lock tsconfig.json ./
+COPY package.json bun.lock bunfig.toml tsconfig.json ./
 RUN bun install --frozen-lockfile --production --ignore-scripts
 COPY data ./data
 COPY src ./src

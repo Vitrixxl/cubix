@@ -1,22 +1,26 @@
 import { atom, useAtom } from "jotai";
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+import { ChartLine, MessageSquare, Table } from "lucide-react-native";
+import { memo, useMemo, useRef, useState, type ReactNode } from "react";
+import { FlatList, Pressable, ScrollView, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
-import { effective, fmtDate, fmtSolve, fmtTime } from "../../../src/client/lib/format";
+import { effective, fmtDate, fmtTime } from "../../../src/client/lib/format";
 import type { CaseHistoryDto, HistoryPoint } from "../../../src/shared/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
 import { storage } from "../platform/storage";
-import { FONT, useTheme } from "../theme";
-import { IconComment, IconGrid, IconTrash, type IconProps } from "./icons";
-import { Select } from "./Select";
-import { Sheet } from "./Sheet";
-import { useSolveMenu, type SolveSummary } from "./SolveMenus";
-import { Btn, Empty, Label, mono, CellGroup } from "./ui";
+import { useColors } from "../theme";
+import { Empty, Figure, Mono } from "./layout";
+import { ChoiceButton } from "./PuzzlePicker";
+import { SolveMenu, useSolveMenu, type SolveSummary } from "./SolveMenus";
 
 /**
- * The web app's solve statistics (`TimerStats` in desktop/renderer/main.tsx): a strip of figures, then a
- * panel showing the solves either as a zoomable chart (single times and the rolling Ao5) or as a table
- * with the penalty, comment and delete actions of each solve. `compact` is the case-statistics look:
- * flat figures in four columns and a borderless panel of fixed height; otherwise the panel fills the page.
+ * The solve statistics of a selection (the web's `TimerStats`): a strip of figures, then a panel showing the solves
+ * either as a zoomable chart (single times and the rolling Ao5) or as a list, each solve opening its sheet and, held,
+ * its menu. `compact` is the case-statistics look: figures in four columns and a panel of fixed height; otherwise the
+ * panel fills the page.
  */
 
 /** Chart or table, remembered across launches like the web preference `cubix.profile.statsView`. */
@@ -26,98 +30,66 @@ const initialView = (): StatsView => { try { return storage.getItem(VIEW_KEY) ==
 const statsViewAtom = atom<StatsView>(initialView());
 
 type Sort = "newest" | "oldest" | "fastest" | "slowest";
-const SORTS: { value: Sort; label: string }[] = [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "fastest", label: "Fastest first" }, { value: "slowest", label: "Slowest first" }];
-/** Rows drawn before the table asks for more; long timer histories stay light. */
+const SORTS: { id: Sort; label: string }[] = [{ id: "newest", label: "Newest first" }, { id: "oldest", label: "Oldest first" }, { id: "fastest", label: "Fastest first" }, { id: "slowest", label: "Slowest first" }];
+/** Rows drawn before the list asks for more; long timer histories stay light. */
 const PAGE = 100;
 type Range = [number, number];
 
-const IconChart = ({ size = 16, color = "currentColor", strokeWidth = 2 }: IconProps) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><Path d="M4 4v16h16" /><Path d="m7 14 4-4 3 3 5-6" /></Svg>;
-
-/** `.stat-strip`: the seven figures, as raised tiles scrolling sideways, or flat in four columns (`compact`). */
-function StatStrip({ summary, compact, bleed = 0 }: { summary: CaseHistoryDto["summary"]; compact?: boolean; bleed?: number }) {
-  const t = useTheme();
-  const items: [string, string, boolean][] = [
-    ["Best", fmtTime(summary.best), true], ["Ao5", fmtTime(summary.ao5), false], ["Ao12", fmtTime(summary.ao12), false],
-    ["Mean", fmtTime(summary.mean), false], ["Best Ao5", fmtTime(summary.bestAo5), false], ["Best Ao12", fmtTime(summary.bestAo12), false],
-    ["Solves", String(summary.count), false],
+/** The seven figures: four columns over two rows, flat. */
+function StatStrip({ summary }: { summary: CaseHistoryDto["summary"] }) {
+  const items: [string, string, "" | "good" | "accent"][] = [
+    ["Best", fmtTime(summary.best), "good"], ["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Mean", fmtTime(summary.mean), ""],
+    ["Best Ao5", fmtTime(summary.bestAo5), "good"], ["Best Ao12", fmtTime(summary.bestAo12), "good"], ["Solves", String(summary.count), ""],
   ];
-  if (compact) {
-    const rows = [items.slice(0, 4), items.slice(4)];
-    return <View style={{ gap: 12 }}>{rows.map((row, r) => <View key={r} style={styles.compactRow}>
-      {Array.from({ length: 4 }, (_, c) => {
-        const item = row[c];
-        return <View key={c} style={[styles.compactCell, c > 0 && { paddingLeft: 12, borderLeftWidth: item ? 1 : 0, borderColor: t.line }]}>
-          {item && <><Label numberOfLines={1}>{item[0]}</Label><Text numberOfLines={1} style={[mono(t, 17), item[2] && { color: t.accent }]}>{item[1]}</Text></>}
-        </View>;
-      })}
-    </View>)}</View>;
-  }
-  return <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginHorizontal: -bleed }} contentContainerStyle={[styles.strip, { paddingHorizontal: bleed }]}>
-    {items.map(([label, value, accent]) => <View key={label} accessibilityLabel={`${label}: ${value}`} style={[styles.statTile, { backgroundColor: t.raised, borderColor: t.line }]}>
-      <Label numberOfLines={1}>{label}</Label>
-      <Text numberOfLines={1} style={[mono(t, 21), accent && { color: t.accent }]}>{value}</Text>
-    </View>)}
-  </ScrollView>;
+  return <View className="flex-row flex-wrap gap-y-3 rounded-xl bg-muted/45 px-3 py-3">
+    {items.map(([label, value, tone]) => <View key={label} style={{ width: "25%" }} className="pr-2"><Figure label={label} value={value} tone={tone} size="base" /></View>)}
+  </View>;
 }
 
 /**
- * Solve statistics of one selection. `empty` shows when there is no solve; `fill` lets the panel take the
- * remaining height of a page (the chart grows, the table scrolls inside it); `bleed` lets the figures
- * scroll sideways to the edges of a page with that padding.
+ * Solve statistics of one selection. `empty` shows when there is no solve; `fill` lets the panel take the remaining
+ * height of a page (the chart grows, the list scrolls inside it).
  */
-export function TimerStats({ data, empty, compact, fill, bleed }: { data: CaseHistoryDto | undefined; empty: ReactNode; compact?: boolean; fill?: boolean; bleed?: number }) {
-  // The table order and filter survive the remount that follows a deleted solve.
+export function TimerStats({ data, empty, compact, fill }: { data: CaseHistoryDto | undefined; empty: ReactNode; compact?: boolean; fill?: boolean }) {
+  // The list order and filter survive the remount that follows a deleted solve.
   const [sort, setSort] = useState<Sort>("newest");
   const [commented, setCommented] = useState(false);
   if (!data?.summary.count) return typeof empty === "string" ? <Empty>{empty}</Empty> : <>{empty}</>;
   const history = data.history;
-  return <View style={[{ gap: 14 }, fill && { flex: 1, minHeight: 0 }]}>
-    <StatStrip summary={data.summary} compact={compact} bleed={bleed} />
+  return <View className={cn("gap-3", fill && "min-h-0 flex-1")}>
+    <StatStrip summary={data.summary} />
     <StatsPanel key={`${history[0]?.id}:${history.at(-1)?.id}:${history.length}`} history={history} ao5={data.ao5} compact={compact} fill={fill} table={{ sort, setSort, commented, setCommented }} />
   </View>;
 }
 
-/** The chart/table panel alone, for screens that show their own figures (case detail). */
-export function TimesChart({ history, ao5, height = 200 }: { history: HistoryPoint[]; ao5: (number | null)[]; height?: number }) {
-  const [sort, setSort] = useState<Sort>("newest");
-  const [commented, setCommented] = useState(false);
-  if (history.length === 0) return <Empty>No attempts on this case yet.</Empty>;
-  return <StatsPanel key={`${history[0]?.id}:${history.at(-1)?.id}:${history.length}`} history={history} ao5={ao5} compact chartHeight={height} table={{ sort, setSort, commented, setCommented }} />;
-}
-
 type TableState = { sort: Sort; setSort: (sort: Sort) => void; commented: boolean; setCommented: (commented: boolean) => void };
 
-function StatsPanel({ history, ao5, compact, fill, chartHeight = 200, table }: { history: HistoryPoint[]; ao5: (number | null)[]; compact?: boolean; fill?: boolean; chartHeight?: number; table: TableState }) {
-  const t = useTheme();
+function StatsPanel({ history, ao5, compact, fill, table }: { history: HistoryPoint[]; ao5: (number | null)[]; compact?: boolean; fill?: boolean; table: TableState }) {
+  const colors = useColors();
   const [view, setView] = useAtom(statsViewAtom);
   const [range, setRange] = useState<Range>([0, history.length - 1]);
   const changeView = (next: StatsView) => { setView(next); try { storage.setItem(VIEW_KEY, next); } catch { /* Best effort. */ } };
-  const toggle = <ViewToggle value={view} onChange={changeView} />;
-  return <View style={[styles.panel, compact ? [styles.panelFlat, { borderTopColor: t.line }] : { backgroundColor: t.raised, borderColor: t.line }, fill && { flex: 1, minHeight: 0 }]}>
-    {view === "table" ? <SolvesTable history={history} range={range} toggle={toggle} fill={fill} {...table} /> : <>
-      <View style={styles.between}>
-        {toggle}
-        <View style={styles.legend}>
-          <View style={styles.legendItem}><View style={[styles.swatch, { backgroundColor: t.accent }]} /><Text style={[styles.legendText, { color: t.accent }]}>Single</Text></View>
-          <View style={styles.legendItem}><View style={[styles.swatch, { backgroundColor: t.series2 }]} /><Text style={[styles.legendText, { color: t.series2 }]}>Ao5</Text></View>
-        </View>
-      </View>
-      <HistoryChart history={history} averages={ao5} range={range} onRange={setRange} height={fill ? undefined : chartHeight} />
-    </>}
-  </View>;
-}
-
-/** `.stats-view-toggle`: chart or table, icons only on phones. */
-function ViewToggle({ value, onChange }: { value: StatsView; onChange: (view: StatsView) => void }) {
-  const t = useTheme();
-  return <View style={[styles.toggle, { borderColor: t.line }]} accessibilityRole="tablist">
-    {([["chart", "Chart", IconChart], ["table", "Table", IconGrid]] as const).map(([id, label, Icon]) => {
-      const active = value === id;
-      return <Pressable key={id} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} onPress={() => onChange(id)}
-        style={({ pressed }) => [styles.toggleItem, { backgroundColor: active ? t.surface3 : pressed ? t.hover : "transparent" }]}>
-        <Icon size={15} color={active ? t.text : t.muted} />
+  const toggle = <View className="flex-row items-center gap-1" accessibilityRole="tablist">
+    {([["chart", "Chart", ChartLine], ["table", "Table", Table]] as const).map(([id, label, I]) => {
+      const on = view === id;
+      return <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => changeView(id)}
+        className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-2.5", on ? "bg-muted" : "active:bg-muted/50")}>
+        <Icon as={I} size={15} className={on ? "text-foreground" : "text-muted-foreground"} />
+        <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
       </Pressable>;
     })}
+  </View>;
+  return <View className={cn("gap-3", compact ? "" : "rounded-xl border border-border bg-card p-3", fill && "min-h-0 flex-1")}>
+    {view === "table" ? <SolvesTable history={history} range={range} toggle={toggle} fill={fill} {...table} /> : <>
+      <View className="flex-row items-center justify-between gap-2">
+        {toggle}
+        <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-chart-1" /><Text className="text-xs text-muted-foreground">Single</Text></View>
+          <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full" style={{ backgroundColor: colors.chart2 }} /><Text className="text-xs text-muted-foreground">Ao5</Text></View>
+        </View>
+      </View>
+      <HistoryChart history={history} averages={ao5} range={range} onRange={setRange} height={fill ? undefined : 200} />
+    </>}
   </View>;
 }
 
@@ -130,12 +102,12 @@ function fitRange(start: number, width: number, last: number): Range {
 }
 
 /**
- * `HistoryChart`: single times (accent) and the rolling Ao5 (series colour) over the visible period, four
- * hairline levels with their times on the left, the first and last dates below. A tap shows the solve under
- * the finger; dragging across the chart selects a period and zooms into it; "Reset zoom" shows every solve.
+ * Single times (accent) and the rolling Ao5 (series colour) over the visible period, four hairline levels with their
+ * times on the left, the first and last dates below. A tap shows the solve under the finger; dragging across the chart
+ * selects a period and zooms into it; "Reset zoom" shows every solve.
  */
 const HistoryChart = memo(function HistoryChart({ history, averages, range, onRange, height }: { history: HistoryPoint[]; averages: (number | null)[]; range: Range; onRange: (range: Range) => void; height?: number }) {
-  const t = useTheme();
+  const colors = useColors();
   const [size, setSize] = useState({ w: 0, h: height ?? 0 });
   const [hover, setHover] = useState<number | null>(null);
   const [drag, setDrag] = useState<{ start: number; end: number } | null>(null);
@@ -192,46 +164,44 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
   const point = hover != null ? history[hover] : null;
   const value = point ? point.time ?? averages[hover!] : null;
   const onLayout = (e: LayoutChangeEvent) => { const { width, height: h } = e.nativeEvent.layout; setSize(s => s.w === width && s.h === h ? s : { w: width, h }); };
-  return <View style={[styles.chartArea, height === undefined && { flex: 1, minHeight: 160 }]}>
-    <View style={[styles.chartRow, height !== undefined ? { height } : { flex: 1, minHeight: 0 }]}>
-      <View style={styles.axis} pointerEvents="none">
-        {H > 0 && [0, 1, 2, 3].map(i => <Text key={i} style={[styles.axisText, { color: t.muted, top: (12 + i / 3 * 202) / 240 * H - 7 }]}>{fmtTime(scale.lo + scale.height * (1 - i / 3))}</Text>)}
+  return <View className={cn("gap-1", height === undefined && "min-h-40 flex-1")}>
+    <View className={cn("flex-row gap-2.5", height === undefined && "min-h-0 flex-1")} style={height !== undefined ? { height } : undefined}>
+      <View className="w-12" pointerEvents="none">
+        {H > 0 && [0, 1, 2, 3].map(i => <Mono key={i} className="absolute right-0 text-[11px] text-muted-foreground" style={{ top: (12 + i / 3 * 202) / 240 * H - 7 }}>{fmtTime(scale.lo + scale.height * (1 - i / 3))}</Mono>)}
       </View>
-      <View style={{ flex: 1, minWidth: 0 }} onLayout={onLayout}
+      <View className="min-w-0 flex-1" onLayout={onLayout}
         onStartShouldSetResponder={() => true} onMoveShouldSetResponder={() => true} onResponderTerminationRequest={() => !gesture.current?.moved}
         onResponderGrant={onGrant} onResponderMove={onMove} onResponderRelease={onRelease} onResponderTerminate={cancel}
         accessibilityLabel="Solve times: tap a point to read it, drag across the chart to zoom into a period">
         {W > 0 && H > 0 && <Svg width={W} height={H}>
-          {[0, 1, 2, 3].map(i => <Line key={i} x1={0} x2={W} y1={(12 + i / 3 * 202) / 240 * H} y2={(12 + i / 3 * 202) / 240 * H} stroke={t.line} strokeWidth={1} />)}
-          <Path d={paths.single} fill="none" stroke={t.accent} strokeWidth={1.8} strokeLinejoin="round" />
-          <Path d={paths.average} fill="none" stroke={t.series2} strokeWidth={1.8} strokeLinejoin="round" />
+          {[0, 1, 2, 3].map(i => <Line key={i} x1={0} x2={W} y1={(12 + i / 3 * 202) / 240 * H} y2={(12 + i / 3 * 202) / 240 * H} stroke={colors.border} strokeWidth={1} />)}
+          <Path d={paths.average} fill="none" stroke={colors.chart2} strokeWidth={1.6} strokeLinejoin="round" />
+          <Path d={paths.single} fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinejoin="round" />
           {visible.map((v, i) => v.time != null && (visible.length < 40 || (history[first + i - 1]?.time == null && history[first + i + 1]?.time == null))
-            ? <Circle key={i} cx={x(first + i)} cy={y(v.time)} r={2.5} fill={t.accent} /> : null)}
-          {hover != null && <Line x1={x(hover)} x2={x(hover)} y1={0} y2={H} stroke={t.muted} strokeDasharray="3 3" />}
-          {hover != null && value != null && <Circle cx={x(hover)} cy={y(value)} r={4.5} fill={t.accent} stroke={t.raised} strokeWidth={2} />}
-          {selection && <Rect x={x(selection[0])} y={0} width={Math.max(1, x(selection[1]) - x(selection[0]))} height={H} fill={t.soft} stroke={t.accent} strokeWidth={1} />}
+            ? <Circle key={i} cx={x(first + i)} cy={y(v.time)} r={2.5} fill={colors.primary} /> : null)}
+          {hover != null && <Line x1={x(hover)} x2={x(hover)} y1={0} y2={H} stroke={colors.mutedForeground} strokeDasharray="3 3" />}
+          {hover != null && value != null && <Circle cx={x(hover)} cy={y(value)} r={4.5} fill={colors.primary} stroke={colors.card} strokeWidth={2} />}
+          {selection && <Rect x={x(selection[0]!)} y={0} width={Math.max(1, x(selection[1]!) - x(selection[0]!))} height={H} fill={colors.primary} fillOpacity={0.12} stroke={colors.primary} strokeWidth={1} />}
         </Svg>}
-        {zoomed && <Btn small label="Reset zoom" onPress={() => { setHover(null); onRange([0, end]); }} style={[styles.reset, { backgroundColor: t.surface2 }]} textStyle={{ fontSize: 11 }} />}
-        {selection && <View pointerEvents="none" style={[styles.selectionLabel, { backgroundColor: t.surface2 }]}><Text style={{ color: t.text, fontSize: 11 }}>{fmtDate(history[selection[0]].at)} — {fmtDate(history[selection[1]].at)}</Text></View>}
-        {point && <View pointerEvents="none" style={[styles.tip, { backgroundColor: t.surface2, borderColor: t.line }, t.menuShadow, x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }]}>
-          <Text style={[mono(t, 15, "600")]}>{point.time == null ? "DNF" : fmtTime(point.time)}</Text>
-          {averages[hover!] != null && <Text style={[mono(t, 12), { color: t.series2 }]}>Ao5 {fmtTime(averages[hover!])}</Text>}
-          <Text style={{ color: t.muted, fontSize: 11 }}>#{hover! + 1} · {fmtDate(point.at)}</Text>
+        {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">Reset zoom</Text></Button>}
+        {selection && <View pointerEvents="none" className="absolute bottom-1 self-center rounded-md bg-popover px-2 py-1"><Text className="text-[11px]">{fmtDate(history[selection[0]!]!.at)} — {fmtDate(history[selection[1]!]!.at)}</Text></View>}
+        {point && <View pointerEvents="none" className="absolute top-2 gap-0.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg" style={x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }}>
+          <Mono className="text-[15px] font-semibold">{point.time == null ? "DNF" : fmtTime(point.time)}</Mono>
+          {averages[hover!] != null && <Mono className="text-xs" style={{ color: colors.chart2 }}>Ao5 {fmtTime(averages[hover!])}</Mono>}
+          <Text className="text-[11px] text-muted-foreground">#{hover! + 1} · {fmtDate(point.at)}</Text>
         </View>}
       </View>
     </View>
-    <View style={styles.dates}>
-      <Text numberOfLines={1} style={[styles.dateText, { color: t.muted }]}>{history[first] ? fmtDate(history[first].at) : ""}</Text>
-      <Text numberOfLines={1} style={[styles.dateText, { color: t.muted }]}>{last !== first && history[last] ? fmtDate(history[last].at) : ""}</Text>
+    <View className="ml-[58px] flex-row justify-between gap-3">
+      <Text numberOfLines={1} className="shrink text-[11px] text-muted-foreground">{history[first] ? fmtDate(history[first]!.at) : ""}</Text>
+      <Text numberOfLines={1} className="shrink text-[11px] text-muted-foreground">{last !== first && history[last] ? fmtDate(history[last]!.at) : ""}</Text>
     </View>
   </View>;
 });
 
-/** Every solve of the visible period, sorted as asked, each with its penalty, comment and delete buttons. */
+/** Every solve of the visible period, sorted as asked; a solve opens its sheet, held its menu. */
 function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, setCommented }: { history: HistoryPoint[]; range: Range; toggle: ReactNode; fill?: boolean } & TableState) {
-  const t = useTheme();
   const [shown, setShown] = useState(PAGE);
-  const [details, setDetails] = useState<{ solve: SolveSummary; index: number } | null>(null);
   const { optimistic } = useSolveMenu();
   const rows = useMemo(() => {
     const byTime = (a: HistoryPoint, b: HistoryPoint, direction: 1 | -1) => a.time == null ? (b.time == null ? 0 : 1) : b.time == null ? -1 : (a.time - b.time) * direction;
@@ -254,128 +224,38 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
   type Row = (typeof rows)[number];
   const renderRow = ({ item: { v, index, pb } }: { item: Row }) => {
     const solve: SolveSummary = { id: v.id, time_ms: v.timeMs, penalty: v.penalty, created_at: v.at, comment: v.comment };
-    return <View style={[styles.solveRow, { borderBottomColor: t.line }]}>
-      <View style={styles.solveLine}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Solve ${index + 1}: ${v.time == null ? "DNF" : fmtTime(v.time)}. Show details`} onPress={() => setDetails({ solve, index })}
-          style={({ pressed }) => [styles.historyRow, pressed && { backgroundColor: t.hover }]}>
-          <Text style={[styles.index, { color: t.muted }]}>{index + 1}</Text>
-          <Text numberOfLines={1} style={[styles.time, mono(t, 13, "600"), v.time == null ? { color: t.danger } : pb ? { color: t.accent } : null]}>{v.time == null ? "DNF" : fmtTime(v.time)}</Text>
-          <View style={styles.tags}>
-            {pb && <Tag accent>PB</Tag>}
-            {v.penalty === "+2" && <Tag>+2</Tag>}
-          </View>
-        </Pressable>
-        <SolveActions solve={solve} />
+    return <SolveMenu solve={solve} accessibilityLabel={`Solve ${index + 1}: ${v.time == null ? "DNF" : fmtTime(v.time)}`} className="min-h-11 justify-center border-b border-border px-1 py-1.5 active:bg-muted/50">
+      <View className="flex-row items-center gap-3">
+        <Mono className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Mono>
+        <Mono className={cn("text-base", v.time == null ? "text-destructive" : pb ? "text-primary" : v.penalty === "+2" ? "text-warning" : "")}>{v.time == null ? "DNF" : fmtTime(v.time)}</Mono>
+        {pb && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px] text-primary">PB</Text></Badge>}
+        {v.penalty === "+2" && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px]">+2</Text></Badge>}
+        <Text numberOfLines={1} className="ml-auto text-xs text-muted-foreground">{fmtDate(v.at)}</Text>
       </View>
-      {v.comment ? <Text style={[styles.comment, { color: t.text }]}>{v.comment}</Text> : null}
-    </View>;
+      {v.comment ? <Text className="pt-0.5 pl-12 text-[13px] leading-[18px]">{v.comment}</Text> : null}
+    </SolveMenu>;
   };
-  const more = rows.length > shown ? <Btn label={`Show more (${rows.length - shown} left)`} onPress={() => setShown(shown + PAGE)} style={{ alignSelf: "center", marginTop: 6 }} /> : null;
-  const empty = <Empty>{commented ? "No commented solve yet. Add one with the bubble on a time." : "No solves match."}</Empty>;
+  const more = rows.length > shown ? <Button variant="outline" className="mt-2 self-center" onPress={() => setShown(shown + PAGE)}><Text>Show more ({rows.length - shown} left)</Text></Button> : null;
+  const empty = <Empty>{commented ? "No commented solve yet. Hold a time to add a comment." : "No solves match."}</Empty>;
   return <>
-    <View style={styles.between}>
+    <View className="flex-row items-center justify-between gap-2">
       {toggle}
-      <View style={styles.tableTools}>
-        <Select value={sort} accessibilityLabel="Sort solves" options={SORTS} onChange={setSort} style={{ backgroundColor: t.surface3, borderColor: "transparent" }} />
-        <Btn variant="ghost" active={commented} accessibilityLabel="Show only commented solves" icon={<IconComment size={14} color={commented ? t.text : t.muted} />} onPress={() => setCommented(!commented)}>
-          <Text style={[mono(t, 12), { color: t.muted }]}>{commentCount}</Text>
-        </Btn>
+      <View className="shrink flex-row items-center gap-1">
+        <ChoiceButton label="Sort solves" value={sort} options={SORTS} onChange={setSort} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Show only commented solves" accessibilityState={{ selected: commented }} onPress={() => setCommented(!commented)}
+          className={cn("h-9 flex-row items-center gap-1 rounded-lg px-2", commented ? "bg-muted" : "active:bg-muted/50")}>
+          <Icon as={MessageSquare} size={15} className={commented ? "text-foreground" : "text-muted-foreground"} />
+          <Mono className="text-xs text-muted-foreground">{commentCount}</Mono>
+        </Pressable>
       </View>
-    </View>
-    <View style={[styles.solvesHead, { borderBottomColor: t.line }]}>
-      <Text style={[styles.headText, styles.index, { color: t.muted }]}>#</Text>
-      <Text style={[styles.headText, { flex: 1, color: t.muted }]}>Time</Text>
-      <Text style={[styles.headText, { color: t.muted, paddingRight: 8 }]}>Actions</Text>
     </View>
     {fill
       ? <FlatList key={`${range.join(":")}:${sort}:${commented}`} data={rows.slice(0, shown)} keyExtractor={row => String(row.v.id)} renderItem={renderRow}
-        style={{ flex: 1, minHeight: 0, marginHorizontal: -6, marginTop: -12 }} initialNumToRender={14} windowSize={7} showsVerticalScrollIndicator={false}
-        ListEmptyComponent={empty} ListFooterComponent={more} contentContainerStyle={{ paddingBottom: 8 }} />
-      : <ScrollView nestedScrollEnabled style={{ maxHeight: 260, marginHorizontal: -6, marginTop: -12 }} showsVerticalScrollIndicator={false}>
+        className="min-h-0 flex-1" initialNumToRender={14} windowSize={7} showsVerticalScrollIndicator={false}
+        ListEmptyComponent={empty} ListFooterComponent={more} contentContainerClassName="pb-2" />
+      : <ScrollView nestedScrollEnabled className="max-h-72" showsVerticalScrollIndicator={false}>
         {rows.length ? rows.slice(0, shown).map(row => <View key={row.v.id}>{renderRow({ item: row })}</View>) : empty}
         {more}
       </ScrollView>}
-    <SolveDetails details={details} onClose={() => setDetails(null)} />
   </>;
 }
-
-/** `.tag`: tiny PB / +2 badge. */
-function Tag({ children, accent }: { children: string; accent?: boolean }) {
-  const t = useTheme();
-  return <View style={[styles.tag, { backgroundColor: accent ? t.soft : t.surface2 }]}><Text style={[styles.tagText, { color: accent ? t.accent : t.muted }]}>{children}</Text></View>;
-}
-
-/** `.solve-row-actions`: +2, DNF, comment and delete of one solve. */
-function SolveActions({ solve, labels }: { solve: SolveSummary; labels?: boolean }) {
-  const t = useTheme();
-  const { deleteTime, togglePenalty, editComment, busy } = useSolveMenu();
-  const size = labels ? 32 : 28;
-  const text = labels ? 13 : 12;
-  return <CellGroup style={[styles.actions, labels && { width: undefined, justifyContent: "center" }]}>
-    <Btn variant="ghost" size={size} active={solve.penalty === "+2"} label="+2" textStyle={{ fontSize: text }} style={styles.action} disabled={busy} accessibilityLabel="+2 penalty" onPress={() => void togglePenalty(solve, "+2")} />
-    <Btn variant="ghost" size={size} active={solve.penalty === "dnf"} label="DNF" textStyle={{ fontSize: text }} style={styles.action} disabled={busy} accessibilityLabel="Did not finish" onPress={() => void togglePenalty(solve, "dnf")} />
-    <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel={solve.comment ? "Edit comment" : "Add comment"} icon={<IconComment size={15} color={solve.comment ? t.accent : t.secondary} />} label={labels ? "Comment" : undefined} textStyle={{ fontSize: text }} onPress={() => editComment(solve)} />
-    <Btn variant="ghost" size={size} style={styles.action} disabled={busy} accessibilityLabel="Delete solve" icon={<IconTrash size={15} strokeWidth={2} color={t.danger} />} label={labels ? "Delete" : undefined} textStyle={{ fontSize: text, color: t.danger }} onPress={() => void deleteTime(solve.id)} />
-  </CellGroup>;
-}
-
-/** The "Solve" dialog of a table row: the time, its date and comment, and the same actions centred. */
-function SolveDetails({ details, onClose }: { details: { solve: SolveSummary; index: number } | null; onClose: () => void }) {
-  const t = useTheme();
-  const { optimistic } = useSolveMenu();
-  const last = useRef(details);
-  useEffect(() => { if (details) last.current = details; }, [details]);
-  const shown = details ?? last.current;
-  const pending = shown ? optimistic.get(shown.solve.id) : undefined;
-  // A deleted solve closes its dialog.
-  useEffect(() => { if (details && pending === null) onClose(); }, [details, pending, onClose]);
-  const solve = shown && pending ? pending : shown?.solve;
-  return <Sheet open={!!details} onClose={onClose} title="Solve" sub={shown ? `#${shown.index + 1}` : undefined}>
-    {solve && <View style={styles.details}>
-      <Text style={[mono(t, 44, "500"), { letterSpacing: -1 }, solve.penalty === "dnf" && { color: t.danger }]}>{fmtSolve(solve.time_ms, solve.penalty)}</Text>
-      <Text style={{ color: t.muted, fontSize: 13 }}>{fmtDate(solve.created_at)}</Text>
-      {solve.comment ? <Text style={{ color: t.text, fontSize: 14, textAlign: "center" }} selectable>{solve.comment}</Text> : null}
-      <SolveActions solve={solve} labels />
-    </View>}
-  </Sheet>;
-}
-
-const styles = StyleSheet.create({
-  strip: { flexDirection: "row", gap: 10 },
-  statTile: { minWidth: 104, gap: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 0, borderWidth: 1 },
-  compactRow: { flexDirection: "row" },
-  compactCell: { flex: 1, minWidth: 0, gap: 4 },
-  panel: { gap: 12, minHeight: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 0, borderWidth: 1 },
-  panelFlat: { paddingHorizontal: 0, paddingBottom: 0, paddingTop: 12, borderWidth: 0, borderTopWidth: 1, borderRadius: 0 },
-  between: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  legend: { flexDirection: "row", alignItems: "center", gap: 12 },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  legendText: { fontSize: 12, fontWeight: "600" },
-  swatch: { width: 10, height: 3, borderRadius: 0 },
-  toggle: { flexDirection: "row", gap: 2, padding: 2, borderWidth: 1, borderRadius: 0 },
-  toggleItem: { height: 26, paddingHorizontal: 10, borderRadius: 0, alignItems: "center", justifyContent: "center" },
-  chartArea: { gap: 4 },
-  chartRow: { flexDirection: "row", gap: 10 },
-  axis: { width: 52, position: "relative" },
-  axisText: { position: "absolute", right: 0, fontSize: 11, lineHeight: 14, fontFamily: FONT.mono },
-  dates: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginLeft: 62 },
-  dateText: { fontSize: 11, flexShrink: 1 },
-  reset: { position: "absolute", right: 4, top: 4, height: 26, minHeight: 26, paddingHorizontal: 8 },
-  selectionLabel: { position: "absolute", bottom: 4, alignSelf: "center", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 0 },
-  tip: { position: "absolute", top: 8, gap: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 0, borderWidth: 1 },
-  tableTools: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
-  solvesHead: { flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 6, borderBottomWidth: 1, marginHorizontal: -6, paddingLeft: 6 },
-  headText: { fontSize: 12, fontWeight: "600" },
-  solveRow: { borderBottomWidth: 1 },
-  solveLine: { flexDirection: "row", alignItems: "center" },
-  historyRow: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 36, paddingHorizontal: 6, borderRadius: 0 },
-  index: { width: 34, fontSize: 12 },
-  time: { width: 72 },
-  tags: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 },
-  tag: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 0 },
-  tagText: { fontSize: 10, fontWeight: "700" },
-  actions: { width: 150, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2 },
-  action: { paddingHorizontal: 8 },
-  comment: { fontSize: 13, lineHeight: 18, paddingLeft: 50, paddingRight: 6, paddingBottom: 8 },
-  details: { alignItems: "center", gap: 10, paddingTop: 4 },
-});

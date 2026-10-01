@@ -3,8 +3,7 @@ import { catalogSections, toggleSelection } from "../src/client/lib/practiceCata
 import { practiceSummary, trainingSessionRows } from "../src/client/lib/practiceSummary";
 import { LaunchSessions } from "../src/client/lib/launchSessions";
 import { PracticeTimer, HOLD_DELAY_MS } from "../src/client/lib/practiceTimer";
-import { THEMES, buildTheme } from "../src/client/lib/theme";
-import { theme as desktopTheme } from "../desktop/renderer/theme";
+import { THEMES, buildTheme, themeTokens } from "../src/client/lib/theme";
 
 const cases = [
   { id: "a", set: "full", group: "one" }, { id: "b", set: "full", group: "two" },
@@ -100,13 +99,13 @@ test("timer reset cancels delayed readiness and a stopped solve is saved only on
   } finally { timer.dispose(); }
 });
 
-test("all desktop themes use the same palette as mobile in both color modes", () => {
+test("the web and the phone app take every theme's colours from the same tokens", () => {
   for (const { id } of THEMES) for (const mode of ["light", "dark"] as const) {
-    const native = buildTheme(id, mode), css = desktopTheme(id, mode === "light");
-    for (const token of ["bg", "surface", "surface2", "surface3", "text", "accent", "good", "danger"] as const)
-      expect(css["--" + token]).toBe(native[token]);
-    expect(css["--secondary"]).toBe(native.text2);
-    expect(css["--muted"]).toBe(native.readableMuted);
-    expect(css["--series"]).toBe(native.series2);
+    const css = themeTokens(id, mode), native = themeTokens(id, mode, "rgb"), palette = buildTheme(id, mode);
+    expect(Object.keys(native).sort()).toEqual(Object.keys(css).sort());
+    for (const tokens of [css, native]) {
+      expect(tokens.primary).toBe(palette.accent);
+      expect(tokens["chart-2"]).toBe(palette.series2);
+    }
   }
 });

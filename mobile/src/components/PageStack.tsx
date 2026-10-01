@@ -5,11 +5,12 @@ import { useLayout } from "../hooks/useLayout";
 import { SLIDE } from "../hooks/useSlide";
 import { lastNavigationAtom, type NavigationKind, type Route } from "../state";
 
-/** How far a route sits below its tab's first page. */
-function routeDepth(route: Route, phone: boolean) {
-  if (route.page !== "profile" || !route.mode) return 0;
-  // On a tablet a profile case opens in a sheet over the gallery, not as a page of its own.
-  return (route.mode === "achievements" && route.group) || (phone && route.caseId) ? 2 : 1;
+/**
+ * How far a route sits below its tab's first page. The account's sections are tabs of one page and a case opens in a
+ * sheet, so every route is a tab's first page; the algorithm list slides its case page itself (AlgorithmsPage).
+ */
+function routeDepth(_route: Route, _phone: boolean) {
+  return 0;
 }
 
 /**

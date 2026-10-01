@@ -372,7 +372,7 @@ test("admin WebSocket pushes newly logged important requests while live",async()
  const {origin}=setup();const admin=await login(origin);const live=await adminSocket(origin,admin.cookie);
  await fetch(origin+"/quiet-page");
  expect((await call(origin,"POST","/api/auth/login",{body:{username:"nobody",password:"wrong-secret-password"}})).status).toBe(401);
- const event=await eventually(async()=>live.important.find((r:any)=>r.path==="/api/auth/login"),Boolean);
+ const event:any=await eventually(async()=>live.important.find((r:any)=>r.path==="/api/auth/login"),Boolean);
  expect(event).toMatchObject({status:401,kind:"auth",important:true,method:"POST"});expect(typeof event.id).toBe("number");
  expect(live.important.some((r:any)=>r.path==="/quiet-page")).toBe(false);
  expect(JSON.stringify(live.important)).not.toContain("wrong-secret-password");

@@ -1,99 +1,102 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, BackHandler, Easing, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ScrollViewProps, type StyleProp, type ViewStyle } from "react-native";
+import {
+  BottomSheetBackdrop,
+  BottomSheetFlatList,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+  BottomSheetView,
+  type BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
+import { styled } from "nativewind";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { BackHandler, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FONT, useTheme } from "../theme";
-import { IconClose } from "./icons";
-import { Btn, HeadCells } from "./ui";
-
-/** The scroll view of a dialog body: no scrollbar, taps reach inputs while the keyboard is up. */
-export function SheetScrollView(props: ScrollViewProps) {
-  return <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" {...props} />;
-}
-
-interface SheetProps {
-  open: boolean; onClose: () => void; children: ReactNode;
-  /** Header title (`.modal h2`, 17 px), also the accessibility name of the close button. */
-  title: string;
-  /** Muted mono figure after the title ("Times 12"). */
-  sub?: string;
-  /** Extra header controls, placed before the close button. */
-  actions?: ReactNode;
-  /** `false` hides the header row (the body draws its own). */
-  header?: boolean;
-  /** Fixed height `min(720, window - 72)` (`.sheet`), for lists; otherwise the dialog fits its content. */
-  tall?: boolean;
-  /** 760 px wide on large screens instead of 540. */
-  wide?: boolean;
-  /** No body padding (`.sheet`: the body runs edge to edge, with its own rows and lines). */
-  flush?: boolean;
-  style?: StyleProp<ViewStyle>;
-}
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
+import { useColors } from "../theme";
 
 /**
- * The web app's `.modal` / `.sheet`: a centred raised card (radius 12, 1px line, 16 px padding on
- * phones) over a dimmed backdrop, fading in with a 4 px drop like `menu-in`. Backdrop taps and the
- * back button close it. Use `SheetScrollView` for a body that may overflow.
+ * A sheet from the bottom (the web's `PhoneSheet`, a Base UI drawer there): a handle to swipe it away, its title,
+ * then its content. By default it takes the height of its content; `tall` takes the screen's height (a dialog's worth
+ * of content); `snapPoints` let it rest half open and be pulled up. The Android back button closes it.
+ *
+ * Content that scrolls uses `SheetScrollView` or `SheetFlatList`, text fields `SheetInput`, so dragging and the
+ * keyboard cooperate with the sheet.
  */
-export function Sheet({ open, onClose, children, title, sub, actions, header = true, tall, wide, flush, style }: SheetProps) {
-  const t = useTheme();
-  const window = useWindowDimensions();
+export function Sheet({ open, onClose, title, description, right, tall = false, snapPoints, hideTitle = false, children, contentClassName, scroll = false, contentPanning = true }: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  description?: ReactNode;
+  /** Controls at the end of the title row. */
+  right?: ReactNode;
+  tall?: boolean;
+  snapPoints?: (string | number)[];
+  hideTitle?: boolean;
+  children: ReactNode;
+  /** Classes of the content column (padding, gap). */
+  contentClassName?: string;
+  /** Wrap the content in a scroll view. */
+  scroll?: boolean;
+  /** Whether dragging the content moves the sheet (off for content with its own drags, like reordering). */
+  contentPanning?: boolean;
+}) {
+  const ref = useRef<BottomSheetModal>(null);
+  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const [mounted, setMounted] = useState(open);
-  const progress = useRef(new Animated.Value(0)).current;
+  const { height } = useWindowDimensions();
+  const latestClose = useRef(onClose);
+  latestClose.current = onClose;
+  // Only a presented sheet is dismissed: dismissing one that never opened leaves the modal "dismissing" for good.
+  const presented = useRef(false);
   useEffect(() => {
-    if (open) {
-      setMounted(true);
-      Animated.timing(progress, { toValue: 1, duration: 160, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
-    } else if (mounted) {
-      Keyboard.dismiss();
-      Animated.timing(progress, { toValue: 0, duration: 120, useNativeDriver: true }).start(({ finished }) => { if (finished) setMounted(false); });
-    }
-  }, [open, mounted, progress]);
-  if (!mounted) return null;
-  const phone = window.width <= 700;
-  const pad = phone ? 16 : 22;
-  const available = window.height - insets.top - insets.bottom - 32;
-  const width = Math.min(wide ? 760 : 540, window.width - 32 - insets.left - insets.right);
-  const maxHeight = Math.max(200, available - 24);
-  const size = { width, maxHeight, height: tall ? Math.min(720, available - 48) : undefined };
-  return <Modal transparent visible statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={onClose}>
-    <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: t.backdrop, opacity: progress }]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-    </Animated.View>
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} pointerEvents="box-none"
-      style={[styles.host, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16, paddingLeft: insets.left + 16, paddingRight: insets.right + 16 }]}>
-      <Animated.View accessibilityViewIsModal style={[styles.card, size, { backgroundColor: t.bg, borderColor: t.line, opacity: progress }, style]}>
-        {header && <View style={[styles.heading, { paddingLeft: pad, borderColor: t.line }]}>
-          <View style={styles.titleText}>
-            <Text numberOfLines={1} style={[styles.title, { color: t.text }]} accessibilityRole="header">{title}</Text>
-            {sub ? <Text style={[styles.sub, { color: t.muted }]}>{sub}</Text> : null}
-          </View>
-          <HeadCells height={52}>
-            {actions}
-            <Btn iconOnly icon={<IconClose size={16} color={t.muted} />} accessibilityLabel={`Close ${title.toLowerCase()}`} onPress={onClose} />
-          </HeadCells>
-        </View>}
-        <View style={[styles.body, tall && { flex: 1 }, !flush && { paddingHorizontal: pad, paddingBottom: pad, paddingTop: pad }]}>{children}</View>
-      </Animated.View>
-    </KeyboardAvoidingView>
-    <BackClose onClose={onClose} />
-  </Modal>;
-}
-function BackClose({ onClose }: { onClose: () => void }) {
+    if (open) { presented.current = true; ref.current?.present(); }
+    else if (presented.current) { presented.current = false; ref.current?.dismiss(); }
+  }, [open]);
   useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => { onClose(); return true; });
+    if (!open) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => { ref.current?.dismiss(); return true; });
     return () => subscription.remove();
-  }, [onClose]);
-  return null;
+  }, [open]);
+  const backdrop = useCallback((props: BottomSheetBackdropProps) =>
+    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.55} pressBehavior="close" />, []);
+  const top = insets.top + 48;
+  const points = snapPoints ?? (tall ? [height - top] : undefined);
+  const head = !hideTitle && <View className="flex-row items-center gap-2 px-5 pt-1 pb-2">
+    <View className="min-w-0 flex-1 gap-0.5">
+      {typeof title === "string" ? <Text accessibilityRole="header" className="text-base font-semibold">{title}</Text> : title}
+      {description ? <Text className="text-xs text-muted-foreground">{description}</Text> : null}
+    </View>
+    {right}
+  </View>;
+  const body = cn("gap-4 px-5 pt-2", contentClassName);
+  return <BottomSheetModal ref={ref} onDismiss={() => { presented.current = false; latestClose.current(); }} backdropComponent={backdrop}
+    snapPoints={points} enableDynamicSizing={!points} maxDynamicContentSize={height - top}
+    enableContentPanningGesture={contentPanning}
+    keyboardBehavior="interactive" keyboardBlurBehavior="restore" android_keyboardInputMode="adjustResize" enableBlurKeyboardOnGesture
+    backgroundStyle={{ backgroundColor: colors.popover, borderTopLeftRadius: 18, borderTopRightRadius: 18 }}
+    handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.5, width: 40 }}>
+    {scroll
+      ? <BottomSheetScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} keyboardShouldPersistTaps="handled">
+        {head}
+        <View className={body}>{children}</View>
+      </BottomSheetScrollView>
+      : <BottomSheetView style={points ? { flex: 1 } : undefined}>
+        {head}
+        <View className={cn(body, points && "min-h-0 flex-1")} style={{ paddingBottom: insets.bottom + 20 }}>{children}</View>
+      </BottomSheetView>}
+  </BottomSheetModal>;
 }
 
-const styles = StyleSheet.create({
-  host: { flex: 1, alignItems: "center", justifyContent: "center" },
-  card: { borderRadius: 0, borderWidth: 1, overflow: "hidden", flexShrink: 1 },
-  // The title row of the web's dialogs: 52 px, a line under it, the close button as its last cell.
-  heading: { flexDirection: "row", alignItems: "center", gap: 0, height: 52, borderBottomWidth: 1 },
-  titleText: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "baseline", gap: 10 },
-  title: { fontSize: 17, fontWeight: "600", letterSpacing: -0.25, flexShrink: 1 },
-  sub: { fontFamily: FONT.mono, fontSize: 13 },
-  body: { flexShrink: 1, minHeight: 0 },
-});
+/** A scroll view inside a sheet: dragging it down at the top pulls the sheet. */
+export const SheetScrollView = styled(BottomSheetScrollView, { className: "style", contentContainerClassName: "contentContainerStyle" } as never) as unknown as typeof BottomSheetScrollView & React.ComponentType<{ className?: string; contentContainerClassName?: string }>;
+/** A list inside a sheet. */
+export const SheetFlatList = BottomSheetFlatList;
+
+/** A text field inside a sheet, which the sheet lifts above the keyboard. */
+const StyledSheetInput = styled(BottomSheetTextInput, { className: "style" } as never) as unknown as React.ComponentType<React.ComponentProps<typeof BottomSheetTextInput> & { className?: string }>;
+export function SheetInput({ className, ...props }: React.ComponentProps<typeof BottomSheetTextInput> & { className?: string }) {
+  const colors = useColors();
+  return <StyledSheetInput placeholderTextColor={colors.mutedForeground} cursorColor={colors.primary} selectionColor={colors.primary + "55"}
+    className={cn("min-h-11 rounded-lg border border-input bg-input/30 px-3 font-sans text-base text-foreground", className)} {...props} />;
+}

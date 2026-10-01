@@ -1,0 +1,4 @@
+[install]
+# bun-plugin-tailwind declares `bun` as a peer: installing it puts an npm `bun` stub in node_modules/.bin that shadows
+# the real Bun in every package script. The peers the app needs are direct dependencies.
+peer = false

@@ -1,0 +1,42 @@
+diff --git a/dist/commonjs/native/styles/functions/color-mix.js b/dist/commonjs/native/styles/functions/color-mix.js
+index 7c099e6560d5805c7c159fa54c07d6e48b1ab549..2af5ec00b5b865ebe21b7702238decd78bce542d 100644
+--- a/dist/commonjs/native/styles/functions/color-mix.js
++++ b/dist/commonjs/native/styles/functions/color-mix.js
+@@ -13,7 +13,8 @@ const colorMix = (resolveValue, value) => {
+   if (!Array.isArray(resolved)) return;
+ 
+   // Resolved descriptors may be cached and shared by another styled component.
+-  const args = [...resolved];
++  // Tailwind 4 opacity modifiers compile to a trailing null argument: drop it.
++  const args = resolved.filter(arg => arg != null);
+   try {
+     const space = args.shift();
+     const leftValue = args.shift();
+diff --git a/dist/module/native/styles/functions/color-mix.js b/dist/module/native/styles/functions/color-mix.js
+index 4cdd49dc3d602ea98b70e6079d111b9cc5d5ed37..138222dff1e0e42cd489617ba249f921c8f6249c 100644
+--- a/dist/module/native/styles/functions/color-mix.js
++++ b/dist/module/native/styles/functions/color-mix.js
+@@ -9,7 +9,8 @@ export const colorMix = (resolveValue, value) => {
+   if (!Array.isArray(resolved)) return;
+ 
+   // Resolved descriptors may be cached and shared by another styled component.
+-  const args = [...resolved];
++  // Tailwind 4 opacity modifiers compile to a trailing null argument: drop it.
++  const args = resolved.filter(arg => arg != null);
+   try {
+     const space = args.shift();
+     const leftValue = args.shift();
+diff --git a/src/native/styles/functions/color-mix.ts b/src/native/styles/functions/color-mix.ts
+index c134e49757de6723a04c3f6b4084a1bb65da1004..a85f98c483f28275f5b3be12e7feff1c96d18f2e 100644
+--- a/src/native/styles/functions/color-mix.ts
++++ b/src/native/styles/functions/color-mix.ts
+@@ -19,7 +19,8 @@ export const colorMix: StyleFunctionResolver = (resolveValue, value) => {
+   if (!Array.isArray(resolved)) return;
+ 
+   // Resolved descriptors may be cached and shared by another styled component.
+-  const args: unknown[] = [...(resolved as unknown[])];
++  // Tailwind 4 opacity modifiers compile to a trailing null argument: drop it.
++  const args: unknown[] = (resolved as unknown[]).filter(arg => arg != null);
+   try {
+     const space = args.shift();
+     const leftValue = args.shift();

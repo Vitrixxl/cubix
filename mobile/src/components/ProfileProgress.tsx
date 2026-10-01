@@ -1,109 +1,114 @@
 import { useSetAtom } from "jotai";
+import { BookOpen, CalendarDays, ChevronDown, ChevronRight, Gauge, Layers, MessageSquare, Timer, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { FlatList, Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { best, bestAverage, fmtTime } from "../../../src/client/lib/format";
 import { puzzleOf } from "../../../src/shared/puzzles";
-import type { CaseDto, CaseHistoryDto, ProfileDto, SetDto } from "../../../src/shared/types";
-import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
-import { mix, useTheme } from "../theme";
-import { useLayout } from "../hooks/useLayout";
+import type { AchievementDto, CaseDto, CaseHistoryDto, HistoryPoint, ProfileDto, SetDto } from "../../../src/shared/types";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
+import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
+import { useColors } from "../theme";
 import { CaseDiagram } from "./CaseDiagram";
-import { IconChevronDown, IconNext, IconTimer } from "./icons";
+import { Choice, Empty, Label, Mono, SearchField } from "./layout";
+import { ChoiceButton } from "./PuzzlePicker";
 import { Sheet, SheetScrollView } from "./Sheet";
+import { SolveMenu } from "./SolveMenus";
 import { TimerStats } from "./TimesChart";
-import { Btn, Empty, Input, Label, ProgressBar, Segmented, mono } from "./ui";
 
 /**
- * The account pages' building blocks, after the web app (desktop/renderer/main.tsx): the overview cards
- * (`Activity` heatmap, `Sparkline`, `Ring`, `MiniBars`, `OverviewCard`), the training progress grid of cases
- * (`TrainingProgress`) and the statistics dialog of one case (`ProfileCaseDialog`).
+ * The account's building blocks, after the web app's GitHub-style profile (desktop/renderer/profile/*): the `Section`
+ * card every overview block is built with, its figures (`Stat`), the contribution graph (`Heatmap`), the timer curve
+ * (`Trend`), the latest solves, the training bars and achievement goals; then the training progress grid of cases
+ * (`TrainingProgress`) and the statistics sheet of one case (`ProfileCaseDialog`).
  */
 
 export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
-/** `.ov-card` (`Go` when pressable): a raised card with a title row and a chevron when it opens a page. */
-export function OverviewCard({ title, detail, onPress, accessibilityLabel, children }: { title?: string; detail?: string; onPress?: () => void; accessibilityLabel?: string; children: ReactNode }) {
-  const t = useTheme();
-  const { short } = useLayout();
-  return <Pressable disabled={!onPress} onPress={onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={accessibilityLabel}
-    style={({ pressed }) => [styles.card, short && styles.cardShort, { backgroundColor: t.raised, borderColor: pressed ? t.lineStrong : t.line }]}>
-    {title !== undefined && <View style={styles.cardHead}>
-      <Text style={[styles.cardTitle, { color: t.text }]}>{title}</Text>
-      {detail ? <Text numberOfLines={1} style={[styles.cardDetail, { color: t.muted }]}>{detail}</Text> : null}
-      {onPress && <View style={styles.chevron}><IconNext size={14} color={t.muted} /></View>}
-    </View>}
-    {children}
-  </Pressable>;
+/** A profile section, every one built the same: a heading row (title, muted meta, a link to its page) and a body. */
+export function Section({ title, meta, more = "Details", onMore, aside, children, className, bodyClassName, label }: {
+  title: ReactNode; meta?: ReactNode; more?: string; onMore?: () => void; aside?: ReactNode; children: ReactNode; className?: string; bodyClassName?: string; label?: string;
+}) {
+  return <Card className={cn("gap-0 py-0", className)} accessibilityLabel={label}>
+    <View className="min-h-13 flex-row items-center gap-3 pt-2 pr-3 pl-5">
+      <Text accessibilityRole="header" className="shrink-0 text-base font-semibold tracking-tight">{title}</Text>
+      {meta != null ? <Text numberOfLines={1} className="min-w-0 shrink text-sm text-muted-foreground">{meta}</Text> : null}
+      <View className="ml-auto shrink-0 flex-row items-center gap-1">
+        {aside}
+        {onMore ? <MoreLink onPress={onMore}>{more}</MoreLink> : null}
+      </View>
+    </View>
+    <View className={cn("gap-5 px-5 pt-3 pb-5", bodyClassName)}>{children}</View>
+  </Card>;
 }
 
-/** `.ring`: a track and an accent arc, the percentage in the middle. */
-export function Ring({ ratio, size = 58, stroke = 5 }: { ratio: number; size?: number; stroke?: number }) {
-  const t = useTheme();
-  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
-  return <View style={{ width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-    <Svg width={size} height={size}>
-      <Circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={t.surface2} strokeWidth={stroke} />
-      {ratio > 0 && <Circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={t.accent} strokeWidth={stroke} strokeLinecap="round"
-        strokeDasharray={`${c} ${c}`} strokeDashoffset={c * (1 - clamp01(ratio))} transform={`rotate(-90 ${size / 2} ${size / 2})`} />}
-    </Svg>
-    <View style={[StyleSheet.absoluteFill, styles.center]}><Text style={[mono(t, 11.5), { color: t.text }]}>{Math.round(clamp01(ratio) * 100)}%</Text></View>
+/** A quiet link at the end of a heading row: "Details ›". */
+export function MoreLink({ onPress, children }: { onPress: () => void; children: ReactNode }) {
+  return <Button variant="ghost" size="sm" className="h-9 gap-0.5 px-2" onPress={onPress}>
+    <Text className="text-sm text-muted-foreground">{children}</Text>
+    <Icon as={ChevronRight} size={15} className="text-muted-foreground" />
+  </Button>;
+}
+
+/** A small heading inside a section, with an optional control on the right. */
+export function SubHead({ title, children }: { title: ReactNode; children?: ReactNode }) {
+  return <View className="h-8 flex-row items-center gap-2">
+    <Text className="text-sm font-medium text-muted-foreground">{title}</Text>
+    {children ? <View className="ml-auto flex-row items-center">{children}</View> : null}
   </View>;
 }
 
-/** `.mini-bars`: label, bar and value per row, the columns aligned like the web grid. */
-export function MiniBars({ rows }: { rows: { label: string; value: string; ratio: number; done?: boolean }[] }) {
-  const t = useTheme();
-  const { short } = useLayout();
-  if (!rows.length) return null;
-  const gap = short ? 7 : 9;
-  return <View style={styles.bars}>
-    <View style={{ gap, maxWidth: "50%" }}>{rows.map(r => <Text key={r.label} numberOfLines={1} style={[styles.barCell, { color: t.secondary, fontSize: 12 }]}>{r.label}</Text>)}</View>
-    <View style={{ gap, flex: 1, minWidth: 40 }}>{rows.map(r => <View key={r.label} style={[styles.barCell, { justifyContent: "center" }]}><ProgressBar value={r.ratio} unlocked={r.done ?? true} /></View>)}</View>
-    <View style={{ gap, alignItems: "flex-end" }}>{rows.map(r => <Text key={r.label} style={[styles.barCell, mono(t, 11, "400"), { color: t.muted }]}>{r.value}</Text>)}</View>
+/** A figure: its label over the value in mono; an empty one is a faded dash. */
+export function Stat({ label, value, tone }: { label: string; value: string | null | undefined; tone?: "good" | "accent" | "bad" }) {
+  const empty = value == null || value === "–" || value === "-";
+  return <View className="w-1/3 min-w-0 gap-1.5 pr-3">
+    <Text numberOfLines={1} className="text-xs text-muted-foreground">{label}</Text>
+    <Mono numberOfLines={1} className={cn("text-xl font-medium tracking-tight",
+      empty ? "text-muted-foreground/60" : tone === "good" ? "text-success" : tone === "accent" ? "text-primary" : tone === "bad" ? "text-destructive" : "")}>{empty ? "–" : value}</Mono>
   </View>;
 }
 
-/** `.sparkline`: the latest 40 timed solves as an area line; the best (hollow) and last dots stand out. */
-export function Sparkline({ values, height = 96 }: { values: (number | null)[]; height?: number }) {
-  const t = useTheme();
-  const [width, setWidth] = useState(0);
-  const points = values.filter((v): v is number => v != null).slice(-40);
-  if (points.length < 2) return null;
-  const low = Math.min(...points), high = Math.max(low + 1, Math.max(...points));
-  const pad = 5, w = Math.max(0, width - pad * 2), h = height - 8;
-  const x = (i: number) => pad + (i / (points.length - 1)) * w;
-  const y = (v: number) => 4 + (4 + (1 - (v - low) / (high - low)) * 26) / 32 * h;
-  const line = points.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
-  const bestIndex = points.indexOf(low), last = points.length - 1;
-  return <View style={{ height }} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-    {width > 0 && <Svg width={width} height={height}>
-      <Path d={`${line} L${x(last)} ${height} L${x(0)} ${height} Z`} fill={t.accent} fillOpacity={0.07} />
-      <Path d={line} fill="none" stroke={t.accent} strokeWidth={1.5} strokeLinejoin="round" />
-      {bestIndex !== last && <Circle cx={x(bestIndex)} cy={y(points[bestIndex])} r={4} fill={t.raised} stroke={t.accent} strokeWidth={2} />}
-      <Circle cx={x(last)} cy={y(points[last])} r={5} fill={t.accent} stroke={t.raised} strokeWidth={2} />
-    </Svg>}
-  </View>;
+/** Figures three to a row. */
+export function Stats({ children }: { children: ReactNode }) {
+  return <View className="flex-row flex-wrap gap-y-4">{children}</View>;
 }
 
-const HEAT_GAP = 3, HEAT_LABEL = 28, MONTH_ROW = 14;
-const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 export type ActivitySolve = { at: string; time: number | null; timer: boolean };
+export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+export const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
+const HEAT_GAP = 3, HEAT_CELL = 12, HEAT_LABEL = 30, MONTH_ROW = 16;
+/** Five steps of the accent: none, then the four quarters of the active days (GitHub's graph). */
+const LEVELS = ["bg-muted", "bg-primary/35", "bg-primary/60", "bg-primary/85", "bg-primary"];
+type HeatCell = { key: string; date: Date; count: number; hidden: boolean };
+
+/** The days to draw: the last 53 weeks up to today, or one calendar year. */
+function period(year: number | null) {
+  const today = new Date();
+  const first = year == null ? new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364) : new Date(year, 0, 1);
+  const last = year == null ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : new Date(year, 11, 31);
+  const start = new Date(first);
+  start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+  const weeks = Math.ceil(((last.getTime() - start.getTime()) / 86400000 + 1) / 7);
+  return { first, last, start, weeks, today };
+}
 
 /**
- * `Activity`: GitHub-style solves per day, one column per week (Monday on top), as many weeks as fit.
- * Tapping a day shows its solves and best times.
+ * The contribution graph (the web's profile/heatmap.tsx): solves per day as squares, a week per column (Monday on
+ * top), a year wide. The weeks scroll sideways and open on the latest months; the day names stay put. Tapping a day
+ * names its solves and best times under the graph.
  */
-export const Activity = memo(function Activity({ solves, summary, detail }: { solves: ActivitySolve[]; summary: { label: string; value: string }[]; detail: string }) {
-  const t = useTheme();
-  const { height: windowHeight } = useLayout();
-  const [avail, setAvail] = useState(0);
-  const [picked, setPicked] = useState<number | null>(null);
-  const weeks = avail ? Math.max(1, Math.min(53, Math.floor((avail - HEAT_LABEL - HEAT_GAP + HEAT_GAP) / (9 + HEAT_GAP)))) : 0;
-  const cell = weeks ? Math.max(9, Math.min(windowHeight <= 640 ? 10 : windowHeight < 800 ? 12 : 17, Math.floor((avail - HEAT_LABEL) / weeks - HEAT_GAP))) : 9;
+export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: ActivitySolve[]; latest: string | null }) {
+  const [year, setYear] = useState<number | null>(null);
+  const [picked, setPicked] = useState<HeatCell | null>(null);
+  const scroller = useRef<ScrollView>(null);
   const days = useMemo(() => {
     const map = new Map<string, { count: number; times: (number | null)[] }>();
     for (const solve of solves) {
@@ -114,89 +119,199 @@ export const Activity = memo(function Activity({ solves, summary, detail }: { so
     }
     return map;
   }, [solves]);
-  const { cells, months, peak } = useMemo(() => {
-    const today = new Date(), end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const start = new Date(end);
-    start.setDate(end.getDate() - ((end.getDay() + 6) % 7) - (weeks - 1) * 7);
-    const cells: { key: string; date: Date; count: number; future: boolean }[] = [];
+  const years = useMemo(() => [...new Set([new Date().getFullYear(), ...[...days.keys()].map(k => Number(k.slice(0, 4)))])].sort((a, b) => b - a), [days]);
+  const { cells, weeks, months, level, total } = useMemo(() => {
+    const { first, last, start, weeks, today } = period(year);
+    const cells: HeatCell[] = [];
     for (let i = 0; i < weeks * 7; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      const key = dayKey(d);
-      cells.push({ key, date: d, count: days.get(key)?.count ?? 0, future: d > end });
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      const key = dayKey(date);
+      cells.push({ key, date, count: days.get(key)?.count ?? 0, hidden: date < first || date > last || date > today });
     }
-    // A month label sits over the first week starting in that month, unless the next label is too close.
+    const counts = cells.filter(c => !c.hidden && c.count).map(c => c.count).sort((a, b) => a - b);
+    const quartile = (q: number) => counts[Math.min(counts.length - 1, Math.floor(q * counts.length))] ?? 0;
+    const steps = [quartile(0.25), quartile(0.5), quartile(0.75)];
+    const level = (count: number) => !count ? 0 : count <= steps[0]! ? 1 : count <= steps[1]! ? 2 : count <= steps[2]! ? 3 : 4;
+    // A month is named over the week of its first day, unless the previous name is too close.
     const months: { week: number; label: string }[] = [];
     for (let w = 0; w < weeks; w++) {
-      const month = cells[w * 7].date.getMonth();
-      if (w && month === cells[(w - 1) * 7].date.getMonth()) continue;
+      const week = cells.slice(w * 7, w * 7 + 7);
+      const opening = w === 0 ? week.find(c => c.date >= first) : week.find(c => c.date.getDate() === 1);
+      if (!opening || opening.date > last) continue;
       if (months.length && w - months.at(-1)!.week < 3) months.pop();
-      months.push({ week: w, label: cells[w * 7].date.toLocaleDateString(undefined, { month: "short" }) });
+      months.push({ week: w, label: opening.date.toLocaleDateString(undefined, { month: "short" }) });
     }
-    return { cells, months, peak: Math.max(1, ...[...days.values()].map(d => d.count)) };
-  }, [days, weeks]);
-  useEffect(() => { setPicked(null); }, [weeks, solves]);
-  const heat = (ratio: number) => mix(t.accent, 30 + Math.round(ratio * 70), t.surface2);
-  const shown = cells.reduce((sum, c) => sum + c.count, 0);
-  const step = cell + HEAT_GAP;
-  const gridHeight = MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP;
-  const width = HEAT_LABEL + weeks * step;
-  const onPress = (e: GestureResponderEvent) => {
-    const { locationX, locationY } = e.nativeEvent;
-    const week = Math.floor((locationX - HEAT_LABEL - HEAT_GAP) / step), day = Math.floor((locationY - MONTH_ROW - HEAT_GAP) / step);
-    const i = week * 7 + day;
-    if (week < 0 || week >= weeks || day < 0 || day > 6 || cells[i]?.future) { setPicked(null); return; }
-    setPicked(current => current === i ? null : i);
-  };
-  const hovered = picked !== null ? cells[picked] : null;
-  const times = (hovered && days.get(hovered.key)?.times) ?? [];
-  const tipLeft = picked !== null ? Math.max(0, Math.min(width - 150, HEAT_LABEL + HEAT_GAP + Math.floor(picked / 7) * step + cell / 2 - 75)) : 0;
-  const tipBottom = picked !== null ? gridHeight - (MONTH_ROW + HEAT_GAP + (picked % 7) * step) + 6 : 0;
-  return <View onLayout={e => setAvail(Math.floor(e.nativeEvent.layout.width))} accessibilityLabel="Activity">
-    {weeks > 0 && <View style={[styles.activity, { width: Math.min(avail, Math.max(width, 0)) }]}>
-      <View style={styles.activityHead}>
-        <Text style={[styles.activityTitle, { color: t.text }]}>{plural(shown, "solve")} in the last {weeks >= 52 ? "year" : plural(weeks, "week")}</Text>
-        <View style={styles.activitySummary}>{summary.map(m => <Text key={m.label} style={{ fontSize: 13, color: t.muted }}>
-          <Text style={[mono(t, 13, "600")]}>{m.value}</Text> {m.label}
-        </Text>)}</View>
-      </View>
-      <Pressable onPress={onPress} accessibilityRole="image" accessibilityLabel={`Solves per day over the last ${weeks} weeks`} style={{ width, height: gridHeight }}>
-        {months.map(m => <Text key={m.week} style={[styles.heatLabel, { color: t.muted, left: HEAT_LABEL + HEAT_GAP + m.week * step, top: 0 }]}>{m.label}</Text>)}
-        {["Mon", "Wed", "Fri"].map((d, i) => <Text key={d} style={[styles.heatLabel, { color: t.muted, left: 0, top: MONTH_ROW + HEAT_GAP + i * 2 * step + (cell - 12) / 2 }]}>{d}</Text>)}
-        <View style={[styles.weeks, { left: HEAT_LABEL + HEAT_GAP, top: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }]} pointerEvents="none">
-          {Array.from({ length: weeks }, (_, w) => <View key={w} style={{ gap: HEAT_GAP }}>
-            {cells.slice(w * 7, w * 7 + 7).map((c, d) => <View key={c.key} style={{ width: cell, height: cell, borderRadius: 0, backgroundColor: c.count ? heat(c.count / peak) : t.surface2, opacity: c.future ? 0.25 : 1, borderWidth: picked === w * 7 + d ? 1 : 0, borderColor: t.text }} />)}
+    return { cells, weeks, months, level, total: counts.reduce((sum, n) => sum + n, 0) };
+  }, [days, year]);
+  useEffect(() => { setPicked(null); }, [year, solves]);
+  const step = HEAT_CELL + HEAT_GAP;
+  const times = (picked && days.get(picked.key)?.times) ?? [];
+  const finite = times.filter(t => t != null);
+  return <Card className="gap-0 py-0" accessibilityLabel="Activity">
+    <View className="min-h-13 flex-row items-center gap-3 pt-2 pr-2 pl-5">
+      <Text className="text-base font-semibold tracking-tight">{plural(total, "solve")}</Text>
+      <ChoiceButton label="Period" variant="ghost" value={String(year)} className="ml-auto px-2"
+        options={[{ id: "null", label: "Last 12 months" }, ...years.map(y => ({ id: String(y), label: String(y) }))]}
+        onChange={v => setYear(v === "null" ? null : Number(v))} />
+    </View>
+    <View className="px-5 pt-2 pb-4">
+      <View className="flex-row">
+        <View style={{ width: HEAT_LABEL, paddingTop: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }} importantForAccessibility="no-hide-descendants">
+          {["Mon", "", "Wed", "", "Fri", "", ""].map((d, i) => <View key={i} className="justify-center" style={{ height: HEAT_CELL }}>
+            <Text className="text-[11px] leading-[13px] text-muted-foreground">{d}</Text>
           </View>)}
         </View>
-        {hovered && <View pointerEvents="none" style={[styles.heatTip, { left: tipLeft, bottom: tipBottom, backgroundColor: t.surface2, borderColor: t.line }, t.menuShadow]}>
-          <Text style={{ color: t.muted, fontSize: 12 }}>{hovered.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</Text>
-          <Text style={{ color: t.text, fontSize: 14, fontWeight: "600", marginBottom: 2 }}>{plural(hovered.count, "solve")}</Text>
-          {([["Best", best(times)], ["Best Ao5", bestAverage(times, 5)], ["Best Ao12", bestAverage(times, 12)]] as const).map(([label, value]) => <View key={label} style={styles.tipRow}>
-            <Text style={{ color: t.muted, fontSize: 12 }}>{label}</Text><Text style={[mono(t, 12)]}>{fmtTime(value)}</Text>
-          </View>)}
-        </View>}
-      </Pressable>
-      <View style={styles.activityFoot}>
-        <Text numberOfLines={1} style={{ color: t.muted, fontSize: 12, flexShrink: 1 }}>{detail}</Text>
-        <View style={styles.legend}>
-          <Text style={[styles.legendText, { color: t.muted }]}>Less</Text>
-          {[0, 0.25, 0.5, 0.75, 1].map(r => <View key={r} style={{ width: cell, height: cell, borderRadius: 0, backgroundColor: r ? heat(r) : t.surface2 }} />)}
-          <Text style={[styles.legendText, { color: t.muted }]}>More</Text>
-        </View>
+        <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} className="-mr-5 min-w-0 flex-1" contentContainerClassName="pr-5"
+          onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: false })}>
+          <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? "over the last 12 months" : `in ${year}`}`}
+            style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }}>
+            {months.map(m => <Text key={m.week} className="absolute top-0 text-[11px] leading-[13px] text-muted-foreground" style={{ left: m.week * step }}>{m.label}</Text>)}
+            <View className="absolute flex-row" style={{ top: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }}>
+              {Array.from({ length: weeks }, (_, w) => <View key={w} style={{ gap: HEAT_GAP }}>
+                {cells.slice(w * 7, w * 7 + 7).map(c => c.hidden ? <View key={c.key} style={{ width: HEAT_CELL, height: HEAT_CELL }} />
+                  : <Pressable key={c.key} hitSlop={1} onPress={() => setPicked(p => p?.key === c.key ? null : c)} accessibilityLabel={`${plural(c.count, "solve")} on ${c.date.toDateString()}`}
+                    className={cn("rounded-[3px]", LEVELS[level(c.count)], picked?.key === c.key && "border border-foreground")} style={{ width: HEAT_CELL, height: HEAT_CELL }} />)}
+              </View>)}
+            </View>
+          </View>
+        </ScrollView>
       </View>
-    </View>}
-  </View>;
+      {picked ? <View className="mt-3 h-4 flex-row items-center gap-2">
+        <Text numberOfLines={1} className="shrink text-xs">
+          <Text className="text-xs font-medium">{picked.count ? plural(picked.count, "solve") : "No solves"}</Text>
+          <Text className="text-xs text-muted-foreground"> on {picked.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</Text>
+        </Text>
+        {finite.length ? <Mono numberOfLines={1} className="ml-auto text-xs text-muted-foreground">Best {fmtTime(best(times))}{times.length >= 5 ? ` · Ao5 ${fmtTime(bestAverage(times, 5))}` : ""}</Mono> : null}
+      </View> : <View className="mt-3 h-4 flex-row items-center justify-between gap-4">
+        <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</Text>
+        <View className="shrink-0 flex-row items-center gap-1">
+          <Text className="text-xs text-muted-foreground">Less</Text>
+          {LEVELS.map(c => <View key={c} className={cn("size-2.5 rounded-[2px]", c)} />)}
+          <Text className="text-xs text-muted-foreground">More</Text>
+        </View>
+      </View>}
+    </View>
+  </Card>;
 });
 
-/** `.profile-tile`: diagram, short name and best time; untrained cases are faded. */
+/** The latest solves and their Ao5 as two lines over three quiet ticks, the first and last dates under it. */
+export function Trend({ history, averages, count = 100, height = 160 }: { history: HistoryPoint[]; averages: (number | null)[]; count?: number; height?: number }) {
+  const colors = useColors();
+  const [width, setWidth] = useState(0);
+  const from = Math.max(0, history.length - count), shown = history.slice(from), ao5 = averages.slice(from);
+  const finite = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
+  const values = [...shown.map(v => v.time), ...ao5].filter(finite);
+  if (values.length < 2) return <View className="items-center justify-center" style={{ height }}><Text className="text-sm text-muted-foreground">Your curve appears after two timed solves.</Text></View>;
+  const sorted = [...values].sort((a, b) => a - b);
+  // The slowest few percent would squash the rest: the scale stops near the top 3 %.
+  const low = sorted[0]!, high = Math.max(low + 1, sorted[Math.floor(sorted.length * 0.97)]!);
+  const top = 8, bottom = 8, h = height - 22;
+  const x = (i: number) => shown.length === 1 ? width / 2 : (i / (shown.length - 1)) * width;
+  const y = (v: number) => top + (1 - (Math.min(v, high) - low) / (high - low)) * (h - top - bottom);
+  const line = (points: (number | null)[]) => points.map((v, i) => finite(v) ? `${finite(points[i - 1]) ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}` : "").join(" ");
+  const ticks = [0, 1, 2].map(i => high - ((high - low) * i) / 2);
+  return <View style={{ height }} accessibilityRole="image" accessibilityLabel={`Last ${shown.length} solves and their average of five`}>
+    <View className="flex-1 flex-row gap-3">
+      <View className="w-12" importantForAccessibility="no-hide-descendants">
+        {ticks.map(t => <Mono key={t} className="absolute right-0 text-[11px] leading-[13px] text-muted-foreground" style={{ top: y(t) - 6.5 }}>{fmtTime(t)}</Mono>)}
+      </View>
+      <View className="flex-1" onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
+        {width > 0 && <Svg width={width} height={h}>
+          {ticks.map(t => <Path key={t} d={`M0 ${y(t)} H${width}`} stroke={colors.border} strokeWidth={1} />)}
+          <Path d={line(shown.map(v => v.time))} fill="none" stroke={colors.primary} strokeOpacity={0.55} strokeWidth={1.5} strokeLinejoin="round" />
+          <Path d={line(ao5)} fill="none" stroke={colors.chart2} strokeWidth={2} strokeLinejoin="round" />
+        </Svg>}
+      </View>
+    </View>
+    <View className="ml-15 h-[22px] flex-row items-end justify-between">
+      <Text className="text-xs text-muted-foreground">{shown[0]?.at ? shortDate(shown[0].at) : ""}</Text>
+      <Text className="text-xs text-muted-foreground">{shown.at(-1)?.at ? shortDate(shown.at(-1)!.at) : ""}</Text>
+    </View>
+  </View>;
+}
+
+/** The two series named beside the chart. */
+export function TrendLegend() {
+  return <View className="flex-row items-center gap-4">
+    <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-primary" /><Text className="text-xs text-muted-foreground">Single</Text></View>
+    <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-chart-2" /><Text className="text-xs text-muted-foreground">Ao5</Text></View>
+  </View>;
+}
+
+/** The hour for today's solves, the day for older ones. */
+const solvedAt = (iso: string) => {
+  const d = new Date(iso);
+  return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : shortDate(iso);
+};
+
+/** The latest timer solves, newest first; a tap opens one, a long press its menu. */
+export function LatestSolves({ history, count = 5 }: { history: HistoryPoint[]; count?: number }) {
+  const from = Math.max(0, history.length - count);
+  const rows = history.slice(from).map((v, i) => ({ v, index: from + i })).reverse();
+  return <View className="-mx-2">
+    {rows.map(({ v, index }) => {
+      const previous = history[index - 1];
+      const pb = v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time);
+      return <SolveMenu key={v.id} solve={{ id: v.id, time_ms: v.timeMs, penalty: v.penalty, comment: v.comment, created_at: v.at }}
+        className="h-10 flex-row items-center gap-3 rounded-md px-2 active:bg-muted/60">
+        <Mono className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Mono>
+        <View className="w-24 flex-row items-center gap-1.5">
+          <Mono className={cn("text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{v.time == null ? "DNF" : fmtTime(v.time)}</Mono>
+          {v.penalty === "+2" ? <Mono className="text-xs text-warning">+2</Mono> : null}
+          {pb ? <Text className="text-xs font-medium text-success">PB</Text> : null}
+        </View>
+        <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+          {v.comment ? <><Icon as={MessageSquare} size={13} className="text-muted-foreground" /><Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{v.comment}</Text></> : null}
+        </View>
+        <Text className="text-xs text-muted-foreground">{solvedAt(v.at)}</Text>
+      </SolveMenu>;
+    })}
+  </View>;
+}
+
+/** Two tones on one bar: the cases trained, and over them the ones learned. */
+export function TwoTone({ trained, learned, total }: { trained: number; learned: number; total: number }) {
+  const pct = (n: number) => `${total ? (n / total) * 100 : 0}%` as const;
+  return <View className="h-1.5 min-w-12 flex-1 overflow-hidden rounded-full bg-muted" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: learned }}>
+    <View className="absolute inset-y-0 left-0 rounded-full bg-primary/35" style={{ width: pct(Math.max(trained, learned)) }} />
+    <View className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: pct(learned) }} />
+  </View>;
+}
+
+const CATEGORY_ICON: Record<string, LucideIcon> = { knowledge: BookOpen, speed: Timer, average: Gauge, volume: Layers, dedication: CalendarDays };
+
+/** An achievement's mark: its category's icon on a square, in the accent once unlocked. */
+export function AchievementBadge({ a, large = false }: { a: AchievementDto; large?: boolean }) {
+  return <View className={cn("shrink-0 items-center justify-center rounded-lg", large ? "size-10" : "size-9", a.unlocked ? "bg-primary/15" : "bg-muted")}>
+    <Icon as={CATEGORY_ICON[a.category] ?? Trophy} size={large ? 20 : 16} className={a.unlocked ? "text-primary" : "text-muted-foreground"} />
+  </View>;
+}
+
+/** A goal on its way: its mark, title, percentage and a bar. */
+export function Goal({ a }: { a: AchievementDto }) {
+  return <View className="flex-row items-center gap-3">
+    <AchievementBadge a={a} />
+    <View className="min-w-0 flex-1 gap-1.5">
+      <View className="flex-row items-baseline justify-between gap-3">
+        <Text numberOfLines={1} className="shrink text-sm font-medium">{a.title}</Text>
+        <Mono className="shrink-0 text-xs text-muted-foreground">{Math.round(a.ratio * 100)}%</Mono>
+      </View>
+      <View className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <View className="h-full rounded-full bg-primary/70" style={{ width: `${clamp01(a.ratio) * 100}%` }} />
+      </View>
+    </View>
+  </View>;
+}
+
+/** A case of the progress grid: picture, short name and best time; untrained cases are faded. */
 const CaseTile = memo(function CaseTile({ c, stats, width, onOpen }: { c: CaseDto; stats?: CaseHistoryDto; width: number; onOpen: (id: string) => void }) {
-  const t = useTheme();
   const trained = !!stats?.summary.count;
   return <Pressable accessibilityRole="button" accessibilityLabel={`${c.id}, ${trained ? `best ${fmtTime(stats!.summary.best)}, ${stats!.summary.count} solves` : "not trained"}`} onPress={() => onOpen(c.id)}
-    style={({ pressed }) => [styles.tile, { width, backgroundColor: pressed ? t.surface2 : t.raised, borderColor: t.line, opacity: trained ? 1 : 0.5 }]}>
-    <CaseDiagram c={c} size={72} />
-    <Text numberOfLines={1} style={{ color: t.text, fontSize: 12.5, fontWeight: "600" }}>{shortId(c)}</Text>
-    <Text numberOfLines={1} style={[mono(t, 11.5), { color: t.secondary }]}>{trained ? fmtTime(stats!.summary.best) : "—"}</Text>
+    className="items-center gap-1 rounded-lg px-1 pt-2.5 pb-2 active:bg-muted/50" style={{ width, opacity: trained ? 1 : 0.5 }}>
+    <CaseDiagram c={c} size={Math.min(64, width - 12)} />
+    <Text numberOfLines={1} className="text-xs font-medium">{shortId(c)}</Text>
+    <Mono numberOfLines={1} className="text-[11px] text-muted-foreground">{trained ? fmtTime(stats!.summary.best) : "–"}</Mono>
   </Pressable>;
 });
 
@@ -206,19 +321,17 @@ const matches = (c: CaseDto, setLabel: string, q: string) => {
 };
 
 /**
- * `TrainingProgress`: stage tabs, a search and the trained / learned counts, then each set as a collapsible
- * grid of case tiles. A tile opens the case statistics.
+ * Stage filters, a search and the trained / learned counts, then each set as a collapsible grid of case tiles. A tile
+ * opens the case's statistics.
  */
 export function TrainingProgress({ cases, sets, profile, learned, onOpen, scrollKey }: { cases: CaseDto[]; sets: SetDto[]; profile: ProfileDto; learned: ReadonlySet<string>; onOpen: (id: string) => void; scrollKey: string }) {
-  const t = useTheme();
-  const { width, pagePadding, navSpace } = useLayout();
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState("all");
   const [closed, setClosed] = useState<Record<string, boolean>>({});
+  const [width, setWidth] = useState(0);
   const byCase = useMemo(() => new Map(profile.cases.map(c => [c.summary.caseId, c])), [profile.cases]);
-  const inner = Math.min(width, 1100) - pagePadding * 2;
-  const columns = Math.max(2, Math.floor((inner + 8) / 100));
-  const tileWidth = Math.floor((inner - 8 * (columns - 1)) / columns);
+  const columns = Math.max(3, Math.floor((width + 4) / 88));
+  const tileWidth = width ? Math.floor((width - 4 * (columns - 1)) / columns) : 84;
   const q = query.trim();
   type Row = { key: string } & ({ kind: "set"; set: SetDto; trained: number; count: number; open: boolean } | { kind: "cases"; cases: CaseDto[] });
   const rows = useMemo(() => {
@@ -242,46 +355,44 @@ export function TrainingProgress({ cases, sets, profile, learned, onOpen, scroll
   }, [stage, q]);
   const learnedCount = cases.filter(c => learned.has(c.id)).length;
   const stages = ["all", ...new Set(cases.map(c => c.stage))];
-  return <View style={{ flex: 1, minHeight: 0 }}>
-    <View style={[styles.toolbar, { paddingHorizontal: pagePadding }]}>
-      <Segmented plain scroll options={stages.map(value => ({ id: value, label: value === "all" ? "All" : value }))} value={stage} onChange={setStage} />
-      <View style={styles.searchRow}>
-        <Input accessibilityLabel="Search cases" placeholder="Search cases…" value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} style={styles.search} />
-        <Text numberOfLines={2} style={{ color: t.muted, fontSize: 12, flexShrink: 1 }}>{profile.cases.length} / {cases.length} trained · {learnedCount} learned</Text>
-      </View>
+  return <View className="min-h-0 flex-1 gap-2">
+    <Choice label="Stage" value={stage} onChange={setStage} options={stages.map(value => ({ id: value, label: value === "all" ? "All" : value }))} />
+    <SearchField value={query} onChangeText={setQuery} placeholder="Search cases…" />
+    <Text className="text-xs text-muted-foreground">{profile.cases.length} / {cases.length} trained · {learnedCount} learned</Text>
+    <View className="min-h-0 flex-1" onLayout={e => setWidth(e.nativeEvent.layout.width)}>
+      {width > 0 && <FlatList key={key} {...scroll} data={rows} keyExtractor={row => row.key}
+        initialNumToRender={6} maxToRenderPerBatch={6} windowSize={5} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
+        className="flex-1" contentContainerClassName="pb-4" keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={<Empty>No cases match.</Empty>}
+        renderItem={({ item: row }) => row.kind === "set"
+          ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} onPress={() => setClosed({ ...closed, [row.set.id]: row.open })}
+            className="mt-1 h-10 flex-row items-center gap-2 rounded-lg px-1 active:bg-muted/50">
+            <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
+            <Text className="text-sm font-medium">{row.set.label}</Text>
+            <Mono className="text-xs text-muted-foreground">{row.trained} / {row.count}</Mono>
+          </Pressable>
+          : <View className="flex-row gap-1">{row.cases.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} width={tileWidth} onOpen={onOpen} />)}</View>} />}
     </View>
-    <FlatList key={key} {...scroll} data={rows} keyExtractor={row => row.key}
-      initialNumToRender={6} maxToRenderPerBatch={6} windowSize={5} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
-      style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: pagePadding, paddingBottom: navSpace }} keyboardShouldPersistTaps="handled"
-      ListEmptyComponent={<Empty>No cases match.</Empty>}
-      renderItem={({ item: row }) => row.kind === "set"
-        ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} onPress={() => setClosed({ ...closed, [row.set.id]: row.open })} style={({ pressed }) => [styles.setTitle, pressed && { backgroundColor: t.hover }]}>
-          <View style={{ transform: [{ rotate: row.open ? "0deg" : "-90deg" }] }}><IconChevronDown size={12} color={t.text} /></View>
-          <Text style={{ color: t.text, fontSize: 13.5, fontWeight: "600" }}>{row.set.label}</Text>
-          <Text style={[mono(t, 11.5), { color: t.muted }]}>{row.trained} / {row.count}</Text>
-        </Pressable>
-        : <View style={styles.grid}>{row.cases.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} width={tileWidth} onOpen={onOpen} />)}</View>} />
   </View>;
 }
 
-/** The statistics of one case in a dialog (web `profileCase` overlay), with a shortcut to train it. */
+/** The statistics of one case in a sheet, with a shortcut to train it. */
 export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined; data?: CaseHistoryDto; onClose: () => void }) {
-  const t = useTheme();
   const setSelection = useSetAtom(selectedCaseIdsAtom);
   const setPuzzle = useSetAtom(puzzleAtom);
   const setRoute = useSetAtom(routeAtom);
-  // The dialog keeps showing its case while it fades out.
+  // The sheet keeps showing its case while it goes away.
   const last = useRef(c);
   if (c) last.current = c;
   const shown = c ?? last.current;
-  const train = () => { if (!shown) return; setPuzzle(puzzleOf(shown)); setSelection([shown.id]); setRoute({ page: "training" }); };
-  return <Sheet open={!!c} onClose={onClose} title={shown?.id ?? "Case"} wide
-    actions={shown && <Btn small variant="ghost" icon={IconTimer} label="Train" onPress={train} />}>
-    {shown && <SheetScrollView contentContainerStyle={{ gap: 14 }}>
-      <View style={styles.caseHead}>
+  const train = () => { if (!shown) return; onClose(); setPuzzle(puzzleOf(shown)); setSelection([shown.id]); setRoute({ page: "training", autostart: true }); };
+  return <Sheet open={!!c} onClose={onClose} title={shown?.id ?? "Case"} description={shown ? (shown.name !== shown.id ? shown.name : shown.group) : undefined} snapPoints={["75%", "100%"]} contentClassName="px-0"
+    right={shown && <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={train}><Icon as={Timer} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Train</Text></Button>}>
+    {shown && <SheetScrollView style={{ flex: 1 }} contentContainerClassName="gap-4 px-5 pb-8">
+      <View className="flex-row items-center gap-3">
         <CaseDiagram c={shown} size={56} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: t.text, fontSize: 14, fontWeight: "600" }}>{shown.name !== shown.id ? shown.name : shown.group}</Text>
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-sm font-semibold">{shown.setLabel} · {shown.group}</Text>
           <Label>{plural(data?.summary.count ?? 0, "solve")}</Label>
         </View>
       </View>
@@ -289,33 +400,3 @@ export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined
     </SheetScrollView>}
   </Sheet>;
 }
-
-const styles = StyleSheet.create({
-  card: { gap: 16, paddingVertical: 18, paddingHorizontal: 20, borderRadius: 0, borderWidth: 1 },
-  cardShort: { gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
-  cardHead: { flexDirection: "row", alignItems: "baseline", gap: 10, minWidth: 0 },
-  cardTitle: { fontSize: 13, fontWeight: "600", flexShrink: 0 },
-  cardDetail: { fontSize: 12, flexShrink: 1, minWidth: 0 },
-  chevron: { marginLeft: "auto", alignSelf: "center" },
-  center: { alignItems: "center", justifyContent: "center" },
-  bars: { flexDirection: "row", gap: 12 },
-  barCell: { height: 18, lineHeight: 18 },
-  activity: { gap: 10, maxWidth: "100%" },
-  activityHead: { gap: 4 },
-  activityTitle: { fontSize: 13, fontWeight: "600" },
-  activitySummary: { flexDirection: "row", flexWrap: "wrap", columnGap: 16, rowGap: 4 },
-  heatLabel: { position: "absolute", fontSize: 11, lineHeight: 12 },
-  weeks: { position: "absolute", flexDirection: "row" },
-  heatTip: { position: "absolute", width: 150, gap: 2, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 0, borderWidth: 1 },
-  tipRow: { flexDirection: "row", justifyContent: "space-between", gap: 14 },
-  activityFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  legend: { flexDirection: "row", alignItems: "center", gap: 3 },
-  legendText: { fontSize: 11, marginHorizontal: 4 },
-  toolbar: { gap: 10, paddingTop: 12, paddingBottom: 6 },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  search: { flex: 1, minWidth: 160, maxWidth: 300, minHeight: 32, height: 32, paddingVertical: 0 },
-  setTitle: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 4, borderRadius: 0, marginTop: 4, marginBottom: 4 },
-  grid: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  tile: { alignItems: "center", gap: 2, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 4, borderRadius: 0, borderWidth: 1 },
-  caseHead: { flexDirection: "row", alignItems: "center", gap: 12 },
-});
