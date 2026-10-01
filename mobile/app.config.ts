@@ -26,6 +26,11 @@ export function commitHash(): string {
 }
 /** Production API by default; the same variable points development builds at a local server. */
 export const API_ORIGIN = (process.env.EXPO_PUBLIC_API_ORIGIN ?? "https://cubix.vitrixxl.fr").replace(/\/$/, "");
+/**
+ * `CUBIX_UPDATES=off` builds an APK that never looks for over-the-air updates: a test build pointed at a local API
+ * (EXPO_PUBLIC_API_ORIGIN) keeps the JavaScript it was built with.
+ */
+const UPDATES_ENABLED = process.env.CUBIX_UPDATES !== "off";
 
 /**
  * Files that shape the native Android build. When none of them changes, a new commit only
@@ -34,6 +39,8 @@ export const API_ORIGIN = (process.env.EXPO_PUBLIC_API_ORIGIN ?? "https://cubix.
 export const NATIVE_INPUTS = [
   "app.json", "app.config.ts", "plugins/withReleaseSigning.js", "bun.lock",
   "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png", "assets/fonts/cubing-icons.ttf",
+  // Geist and Geist Mono are linked natively as font families with their weights (expo-font in app.json).
+  ...["Regular", "Medium", "SemiBold", "Bold"].flatMap(weight => [`assets/fonts/Geist-${weight}.ttf`, `assets/fonts/GeistMono-${weight}.ttf`]),
 ];
 /**
  * expo-updates runtime version: a hash of the native inputs. An update is only offered to
@@ -57,7 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     updates: {
       ...config.updates,
       url: `${API_ORIGIN}/api/mobile/updates/manifest`,
-      enabled: true,
+      enabled: UPDATES_ENABLED,
       // Launch the cached bundle at once and fetch a newer one in the background for the next start.
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,

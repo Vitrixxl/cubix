@@ -8,12 +8,19 @@
     "types": [
       "react-native",
       "bun"
-    ]
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
   "include": [
     "index.ts",
     "App.tsx",
     "app.config.ts",
+    "nativewind-env.d.ts",
+    "css.d.ts",
     "src/**/*",
     "scripts/**/*",
     "../src/shared/**/*",

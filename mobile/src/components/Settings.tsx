@@ -1,179 +1,120 @@
-import { THEMES } from "../../../src/client/lib/theme";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useEffect, useState, type ReactNode } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { api, authToken } from "../api";
+import { BookOpen, Check, ChevronRight, LogOut, Moon, Sun } from "lucide-react-native";
+import { useState, type ReactNode } from "react";
+import { Linking, Pressable, View } from "react-native";
+import { THEMES } from "../../../src/client/lib/theme";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Separator } from "@/components/ui/separator";
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
+import { api } from "../api";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
-import { guidesAtom, colorModeAtom, routeAtom, statsVersionAtom, themeAtom, userAtom } from "../state";
-import { useTheme } from "../theme";
-import { Sheet, SheetScrollView } from "./Sheet";
-import { Avatar, Btn, FormError, Input, Label, Muted, Segmented, CellGroup } from "./ui";
+import { colorModeAtom, guidesAtom, settingsOpenAtom, themeAtom, userAtom } from "../state";
+import { Label } from "./layout";
+import { Sheet } from "./Sheet";
+import { UserAvatar } from "./UserAvatar";
 
 /**
- * The web app's Settings dialog (`Settings` in desktop/renderer/main.tsx): plain sections separated by
- * lines. Account: the sign-in / create-account form for a guest, or the signed-in account with Sign out.
- * Appearance: theme, accent, help (opens the guides) and, on the native app, the installed version.
+ * The settings, as the web's dialog but in a tall sheet: the account and its sign-out, the appearance (mode and accent)
+ * and, on the native app, the guides and the installed version.
  */
-
-export type AuthMode = "register" | "login";
-
-/** `.account-form`: Sign in / Create account tabs, username, password and the submit button. */
-export function AccountForm({ initialMode = "register", onDone }: { initialMode?: AuthMode; onDone?: () => void } = {}) {
-  const t = useTheme();
-  const [mode, setMode] = useState<AuthMode>(initialMode);
-  useEffect(() => { setMode(initialMode); }, [initialMode]);
-  const setUser = useSetAtom(userAtom);
-  const setRoute = useSetAtom(routeAtom);
-  const bumpStats = useSetAtom(statsVersionAtom);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const submit = async () => {
-    if (busy) return;
-    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) { setError("Username: 3–24 letters, digits or underscores."); return; }
-    if (password.length < (mode === "register" ? 10 : 1)) { setError(mode === "register" ? "Password: 10 characters or more." : "Enter your password."); return; }
-    setBusy(true); setError("");
-    try {
-      const result = mode === "register" ? await api.register(username, password) : await api.login(username, password);
-      authToken.set(result.token); setUser(result.user); bumpStats(v => v + 1);
-      setPassword("");
-      if (onDone) onDone(); else setRoute({ page: "profile" });
-    } catch (e) { setError((e as Error).message); }
-    finally { setBusy(false); }
-  };
-  return <View style={styles.form}>
-    <Segmented plain options={[{ id: "login", label: "Sign in" }, { id: "register", label: "Create account" }]} value={mode} onChange={m => { setMode(m); setError(""); }} disabled={busy} itemStyle={{ height: 32 }} />
-    <Muted>{mode === "register" ? "An account keeps your times, statistics and achievements in sync between devices." : "Your local times are merged into your account."}</Muted>
-    <View style={styles.field}><Text style={[styles.fieldLabel, { color: t.secondary }]}>Username</Text><Input accessibilityLabel="Username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username" maxLength={24} editable={!busy} style={styles.input} /></View>
-    <View style={styles.field}><Text style={[styles.fieldLabel, { color: t.secondary }]}>Password</Text><Input accessibilityLabel="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete={mode === "register" ? "new-password" : "current-password"} textContentType={mode === "register" ? "newPassword" : "password"} maxLength={128} editable={!busy} onSubmitEditing={() => void submit()} style={styles.input} /></View>
-    {mode === "register" && <Muted size={12}>3–24 letters, digits or underscores. Password: 10 characters or more.</Muted>}
-    {error ? <FormError>{error}</FormError> : null}
-    <Btn variant="primary" size={36} disabled={busy} label={busy ? "One moment…" : mode === "register" ? "Create account" : "Sign in"} onPress={() => void submit()} style={{ alignSelf: "flex-start" }} />
-  </View>;
+export function SettingsSheet() {
+  const [open, setOpen] = useAtom(settingsOpenAtom);
+  useReleaseCheck(open);
+  useOtaCheck(open);
+  return <Sheet open={open} onClose={() => setOpen(false)} title="Settings" tall scroll contentClassName="gap-6">
+    <Account onSignedOut={() => setOpen(false)} />
+    <Appearance />
+    <Help onOpen={() => setOpen(false)} />
+    <Version />
+  </Sheet>;
 }
 
-/** The signed-in account: avatar, name, join date and Sign out. */
-function SignedIn() {
-  const t = useTheme();
-  const [user, setUser] = useAtom(userAtom);
-  const bumpStats = useSetAtom(statsVersionAtom);
-  const setRoute = useSetAtom(routeAtom);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  if (!user) return null;
-  const logout = async () => {
-    setBusy(true); setError("");
-    try {
-      await api.logout(); authToken.clear(); setUser(await api.me()); bumpStats(v => v + 1);
-      setRoute({ page: "profile" });
-    } catch (e) { setError((e as Error).message); }
-    finally { setBusy(false); }
-  };
-  return <View style={{ gap: 8 }}>
-    <View style={styles.signedIn}>
-      <View style={styles.account}>
-        <Avatar username={user.username} size={44} />
-        <View style={{ flexShrink: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: t.text, fontSize: 14, fontWeight: "600" }}>{user.username}</Text>
-          <Text style={{ color: t.muted, fontSize: 12 }}>Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</Text>
-        </View>
-      </View>
-      <Btn size={30} label={busy ? "Signing out…" : "Sign out"} disabled={busy} onPress={() => void logout()} />
-    </View>
-    {error ? <FormError>{error}</FormError> : null}
-  </View>;
-}
-
-/** Device preferences: they apply to guests as well as signed-in cubers. */
-function AppearanceSettings({ onNavigate }: { onNavigate?: () => void } = {}) {
-  const t = useTheme();
-  const openGuides = useSetAtom(guidesAtom);
-  const [mode, setMode] = useAtom(colorModeAtom);
-  const [theme, setTheme] = useAtom(themeAtom);
-  return <View accessibilityLabel="Appearance">
-    <Row label="Theme">
-      <CellGroup style={styles.choices}>
-        <Btn size={30} active={mode === "dark"} label="Dark" onPress={() => setMode("dark")} />
-        <Btn size={30} active={mode === "light"} label="Light" onPress={() => setMode("light")} />
-      </CellGroup>
-    </Row>
-    <Row label="Accent">
-      <View style={styles.choices} accessibilityLabel="Accent colour">
-        {THEMES.map(item => {
-          const chosen = theme === item.id;
-          return <Pressable key={item.id} accessibilityRole="radio" accessibilityLabel={item.name} accessibilityState={{ selected: chosen }} onPress={() => setTheme(item.id)} hitSlop={3}
-            style={[styles.swatchRing, { borderColor: chosen ? t.text : "transparent" }]}>
-            <View style={[styles.swatch, { backgroundColor: item.color }]} />
-          </Pressable>;
-        })}
-      </View>
-    </Row>
-    <Row label="Help"><Btn size={30} active label="Open the guides" onPress={() => { onNavigate?.(); openGuides("about"); }} /></Row>
-    <VersionRow />
-  </View>;
-}
-
-/**
- * Shows the installed build. A JavaScript update fetched over the air only needs a restart;
- * a new native build needs the APK the server announces.
- */
-function VersionRow() {
-  const t = useTheme();
-  const latest = useAtomValue(latestReleaseAtom);
-  const pending = useOtaPending();
-  const outdated = !pending && updateAvailable(APP_BUILD, latest, APP_RUNTIME);
-  return <Row label="Version">
-    <View style={styles.version}>
-      <Text style={{ color: t.muted, fontSize: 13 }} accessibilityLabel="Installed version">{APP_VERSION}{APP_COMMIT ? ` · ${APP_COMMIT}` : ""}</Text>
-      {pending && <Btn size={30} variant="primary" label="Restart to update" onPress={() => void restartWithUpdate()} />}
-      {outdated && <Btn size={30} variant="primary" label="Download update" accessibilityHint={`Build ${latest?.apkCommit?.slice(0, 7)}`} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)} />}
-    </View>
-  </Row>;
-}
-
-/** `.settings .panel`: a section under a top line with its quiet uppercase title. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
-  const t = useTheme();
-  return <View style={[styles.section, { borderTopColor: t.line }]}>
+  return <View className="gap-3">
     <Label>{title}</Label>
     {children}
   </View>;
 }
 
-/** The Settings dialog; `authMode` picks the form tab a guest sees first (the account header's buttons). */
-export function SettingsDialog({ open, onClose, authMode = "register" }: { open: boolean; onClose: () => void; authMode?: AuthMode }) {
+function Account({ onSignedOut }: { onSignedOut: () => void }) {
   const user = useAtomValue(userAtom);
-  useReleaseCheck(open);
-  useOtaCheck(open);
-  return <Sheet open={open} onClose={onClose} title="Settings">
-    <SheetScrollView contentContainerStyle={{ paddingBottom: 4 }}>
-      <Section title="Account">
-        {!user || user.isGuest ? <AccountForm initialMode={authMode} onDone={onClose} /> : <SignedIn />}
-      </Section>
-      <Section title="Appearance"><AppearanceSettings onNavigate={onClose} /></Section>
-    </SheetScrollView>
-  </Sheet>;
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+  const signOut = async () => {
+    setBusy(true);
+    try { await api.logout(); onSignedOut(); } finally { setBusy(false); }
+  };
+  return <Section title="Account">
+    <View className="flex-row items-center gap-3 rounded-xl bg-muted/40 p-3">
+      <UserAvatar user={user} size={44} />
+      <View className="min-w-0 flex-1">
+        <Text numberOfLines={1} className="text-[15px] font-semibold">{user.username}</Text>
+        <Text className="text-xs text-muted-foreground">Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })} · synced</Text>
+      </View>
+      <Button variant="outline" size="sm" className="h-10 gap-2" disabled={busy} onPress={() => void signOut()}>
+        <Icon as={LogOut} size={15} />
+        <Text>{busy ? "Signing out…" : "Sign out"}</Text>
+      </Button>
+    </View>
+  </Section>;
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  const t = useTheme();
-  return <View style={styles.row}><Text style={[styles.label, { color: t.text }]}>{label}</Text>{children}</View>;
+function Appearance() {
+  const [mode, setMode] = useAtom(colorModeAtom);
+  const [theme, setTheme] = useAtom(themeAtom);
+  return <Section title="Appearance">
+    <View className="flex-row gap-2" accessibilityRole="radiogroup" accessibilityLabel="Theme">
+      {([["dark", "Dark", Moon], ["light", "Light", Sun]] as const).map(([id, label, I]) => {
+        const on = mode === id;
+        return <Pressable key={id} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setMode(id)}
+          className={cn("h-12 flex-1 flex-row items-center justify-center gap-2 rounded-lg", on ? "bg-primary/15" : "bg-muted/40 active:bg-muted")}>
+          <Icon as={I} size={17} className={on ? "text-foreground" : "text-muted-foreground"} />
+          <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
+        </Pressable>;
+      })}
+    </View>
+    <View className="flex-row justify-between" accessibilityRole="radiogroup" accessibilityLabel="Accent colour">
+      {THEMES.map(item => {
+        const on = theme === item.id;
+        return <Pressable key={item.id} accessibilityRole="radio" accessibilityLabel={item.name} accessibilityState={{ checked: on }} onPress={() => setTheme(item.id)}
+          className={cn("size-12 items-center justify-center rounded-full border-2", on ? "border-foreground" : "border-transparent")}>
+          <View className="size-9 items-center justify-center rounded-full" style={{ backgroundColor: item.color }}>
+            {on ? <Icon as={Check} size={18} className="text-white" /> : null}
+          </View>
+        </Pressable>;
+      })}
+    </View>
+  </Section>;
 }
 
-const styles = StyleSheet.create({
-  section: { gap: 10, paddingVertical: 16, borderTopWidth: 1 },
-  form: { gap: 12 },
-  field: { gap: 6 },
-  fieldLabel: { fontSize: 12.5, fontWeight: "500" },
-  input: { minHeight: 38, height: 38, paddingVertical: 0 },
-  signedIn: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  account: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1, minWidth: 0 },
-  row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 44 },
-  label: { fontSize: 13.5, fontWeight: "500" },
-  choices: { flexDirection: "row", alignItems: "center", gap: 4 },
-  version: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", gap: 12, flexShrink: 1 },
-  swatchRing: { padding: 1.5, borderRadius: 0, borderWidth: 1.5 },
-  swatch: { width: 22, height: 22, borderRadius: 0 },
-});
+function Help({ onOpen }: { onOpen: () => void }) {
+  const openGuides = useSetAtom(guidesAtom);
+  return <Section title="Help">
+    <Pressable accessibilityRole="button" onPress={() => { onOpen(); openGuides("about"); }} className="h-12 flex-row items-center gap-3 rounded-lg bg-muted/40 px-3 active:bg-muted">
+      <Icon as={BookOpen} size={18} className="text-muted-foreground" />
+      <Text className="flex-1 text-[15px]">Guides</Text>
+      <Icon as={ChevronRight} size={16} className="text-muted-foreground" />
+    </Pressable>
+  </Section>;
+}
+
+/**
+ * The installed build. A JavaScript update fetched over the air only needs a restart; a new native build needs the APK
+ * the server announces.
+ */
+function Version() {
+  const latest = useAtomValue(latestReleaseAtom);
+  const pending = useOtaPending();
+  const outdated = !pending && updateAvailable(APP_BUILD, latest, APP_RUNTIME);
+  return <View className="gap-3">
+    <Separator />
+    <View className="flex-row flex-wrap items-center justify-between gap-3">
+      <Text className="text-xs text-muted-foreground" accessibilityLabel="Installed version">Cubix {APP_VERSION}{APP_COMMIT ? ` · ${APP_COMMIT}` : ""}</Text>
+      {pending && <Button size="sm" onPress={() => void restartWithUpdate()}><Text>Restart to update</Text></Button>}
+      {outdated && <Button size="sm" accessibilityHint={`Build ${latest?.apkCommit?.slice(0, 7)}`} onPress={() => void Linking.openURL(APK_DOWNLOAD_URL)}><Text>Download update</Text></Button>}
+    </View>
+  </View>;
+}

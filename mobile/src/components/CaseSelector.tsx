@@ -1,13 +1,16 @@
-import { groupCases, toggleSelection } from "../../../src/client/lib/practiceCatalog";
+import { Check, ChevronDown, ChevronRight } from "lucide-react-native";
 import { memo, useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
+import { groupCases, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
-import { FONT, useTheme } from "../theme";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
 import { CaseDiagram } from "./CaseDiagram";
-import { IconChevronDown, IconNext } from "./icons";
-import { CheckCell, Label, Muted } from "./ui";
+import { Mono } from "./layout";
 
 /** Open sets survive leaving the setup screen, per catalogue. */
 const selectorExpansion = new Map<string, Record<string, boolean>>();
@@ -18,22 +21,21 @@ function matchesCase(c: CaseDto, query: string) {
   return query.toLowerCase().split(/\s+/).every(word => text.includes(word));
 }
 
-const TILE_MIN = 68, TILE_GAP = 2;
-type Row = { key: string; last: boolean } & (
-  | { kind: "set"; set: SetDto; ids: string[]; all: string[]; count: number; open: boolean }
-  | { kind: "group"; group: string; all: string[]; count: number; total: number }
-  | { kind: "tiles"; cases: CaseDto[]; first: boolean; end: boolean }
+const TILE_MIN = 84, TILE_GAP = 4;
+type Row = { key: string } & (
+  | { kind: "set"; set: SetDto; ids: string[]; count: number; open: boolean }
+  | { kind: "group"; group: string; ids: string[]; count: number }
+  | { kind: "tiles"; cases: CaseDto[]; end: boolean }
 );
 
 /**
- * The free practice catalogue of the training setup (`.setup-scroll`): one row per set with its checkbox,
- * stage, name, selected count and chevron; an open set lists its groups and a grid of case pictures, the
- * chosen ones lit, the others dimmed. A long press on a picture opens the case.
+ * The free practice catalogue (web `CasesSetup`): one row per set (chevron, stage, name, selected count and Select
+ * all); an open set lists its groups (a tap selects the group) and a grid of case pictures, the chosen ones lit and
+ * ticked. A long press on a picture opens the case.
  */
 export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, onChange, query, onOpenCase }: {
   cases: CaseDto[]; sets: SetDto[]; selected: string[]; onChange: (ids: string[]) => void; query: string; onOpenCase?: (id: string) => void;
 }) {
-  const t = useTheme();
   const selectorKey = sets.map(s => s.id).join(":");
   const [open, setOpen] = useState<Record<string, boolean>>(() => selectorExpansion.get(selectorKey) ?? {});
   useEffect(() => { selectorExpansion.set(selectorKey, open); }, [selectorKey, open]);
@@ -45,82 +47,62 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   const rows = useMemo(() => {
     const result: Row[] = [];
     for (const set of sets) {
-      const inSet = cases.filter(c => c.set === set.id);
-      const chosen = q ? inSet.filter(c => matchesCase(c, q)) : inSet;
+      const chosen = cases.filter(c => c.set === set.id && (!q || matchesCase(c, q)));
       if (!chosen.length) continue;
       const ids = chosen.map(c => c.id), count = ids.filter(id => sel.has(id)).length;
       const expanded = open[set.id] ?? (count > 0 || !!q);
-      const setRows: Row[] = [{ key: set.id, last: false, kind: "set", set, ids, all: inSet.map(c => c.id), count, open: expanded }];
-      if (expanded) {
-        const groups = groupCases(chosen);
-        for (const [group, members] of groups) {
-          if (groups.size > 1) setRows.push({ key: `${set.id}:${group}`, last: false, kind: "group", group, all: inSet.filter(c => c.group === group).map(c => c.id), count: members.filter(c => sel.has(c.id)).length, total: members.length });
-          for (let i = 0; i < members.length; i += columns)
-            setRows.push({ key: `${set.id}:${group}:${i}`, last: false, kind: "tiles", cases: members.slice(i, i + columns), first: i === 0, end: i + columns >= members.length });
-        }
+      result.push({ key: set.id, kind: "set", set, ids, count, open: expanded });
+      if (!expanded) continue;
+      const groups = groupCases(chosen);
+      for (const [group, members] of groups) {
+        if (groups.size > 1) result.push({ key: `${set.id}:${group}`, kind: "group", group, ids: members.map(c => c.id), count: members.filter(c => sel.has(c.id)).length });
+        for (let i = 0; i < members.length; i += columns)
+          result.push({ key: `${set.id}:${group}:${i}`, kind: "tiles", cases: members.slice(i, i + columns), end: i + columns >= members.length });
       }
-      setRows.at(-1)!.last = true;
-      result.push(...setRows);
     }
     return result;
   }, [sets, cases, q, sel, open, columns]);
   const scroll = usePreservedList<Row>(`case-selector:${selectorKey}:${q}`);
   const tileWidth = width > 0 ? (width - TILE_GAP * (columns - 1)) / columns : TILE_MIN;
-  return <View style={styles.list} onLayout={event => setWidth(event.nativeEvent.layout.width - 20)}>
+  return <View className="min-h-0 flex-1 border-t border-border" onLayout={event => setWidth(event.nativeEvent.layout.width - 24)}>
     {width > 0 && <FlatList key={`${selectorKey}:${q}:${columns}`} {...scroll} data={rows} keyExtractor={row => row.key}
-      initialNumToRender={12} maxToRenderPerBatch={8} windowSize={7} scrollEventThrottle={64}
-      style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 24 }} keyboardShouldPersistTaps="handled"
-      ListEmptyComponent={<Muted style={{ padding: 16, textAlign: "center" }}>No cases match.</Muted>}
+      initialNumToRender={12} maxToRenderPerBatch={8} windowSize={7} scrollEventThrottle={64} keyboardShouldPersistTaps="handled"
+      className="flex-1" contentContainerClassName="px-3 pt-1 pb-4"
+      ListEmptyComponent={<Text className="p-4 text-center text-sm text-muted-foreground">No cases match.</Text>}
       renderItem={({ item: row }) => {
-        const divider = row.last && { borderBottomWidth: 1, borderColor: t.line };
-        if (row.kind === "set") return <View style={[styles.setHead, { borderColor: t.line }]}>
-          <CheckCell checked={row.count > 0 && row.count === row.ids.length} mixed={row.count > 0 && row.count < row.ids.length}
-            onPress={() => toggle(row.all)} accessibilityLabel={`Select ${row.set.label}`} style={{ borderRightWidth: 1 }} />
-          <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} accessibilityLabel={`${row.set.label}, ${row.count} of ${row.ids.length} selected`}
-            onPress={() => setOpen({ ...open, [row.set.id]: !row.open })}
-            style={({ pressed }) => [styles.setTitle, { backgroundColor: pressed ? t.hover : "transparent" }]}>
-            <Label style={styles.stage} numberOfLines={1}>{row.set.stage}</Label>
-            <Text numberOfLines={1} style={[styles.setLabel, { color: t.text }]}>{row.set.label}</Text>
-            <Text style={[styles.count, { color: t.muted }]}>{row.count} / {row.ids.length}</Text>
-            <View style={{ marginLeft: "auto" }}>{row.open ? <IconChevronDown size={12} color={t.muted} /> : <IconNext size={12} color={t.muted} />}</View>
-          </Pressable>
-        </View>;
-        if (row.kind === "group") return <View style={divider}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Select the ${row.group} cases`} onPress={() => toggle(row.all)}
-            style={({ pressed }) => [styles.groupTitle, { backgroundColor: pressed ? t.hover : "transparent" }]}>
-            <Text numberOfLines={1} style={[styles.groupLabel, { color: t.secondary }]}>{row.group}</Text>
-            <Text style={[styles.groupCount, { color: t.muted }]}>{row.count} / {row.total}</Text>
-          </Pressable>
-        </View>;
-        return <View style={[styles.grid, { paddingTop: row.first ? 4 : 0, paddingBottom: row.end ? 14 : TILE_GAP }, divider]}>
+        if (row.kind === "set") {
+          const all = row.count === row.ids.length;
+          return <View className="-mx-1 mt-1 flex-row items-center gap-1">
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} accessibilityLabel={`${row.set.label}, ${row.count} of ${row.ids.length} selected`}
+              onPress={() => setOpen({ ...open, [row.set.id]: !row.open })} className="h-12 min-w-0 flex-1 flex-row items-center gap-2.5 rounded-lg px-2 active:bg-muted/50">
+              <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
+              <Text numberOfLines={1} className="w-10 text-xs font-medium text-muted-foreground">{row.set.stage}</Text>
+              <Text numberOfLines={1} className="shrink text-sm font-medium">{row.set.label}</Text>
+              <Mono className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Mono>
+            </Pressable>
+            <Button variant="ghost" size="sm" className="h-10 px-2.5" onPress={() => all ? onChange(selected.filter(id => !row.ids.includes(id))) : toggle(row.ids.filter(id => !sel.has(id)))}>
+              <Text className="text-xs text-muted-foreground">{all ? "Unselect all" : "Select all"}</Text>
+            </Button>
+          </View>;
+        }
+        if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={`Select the ${row.group} cases`} onPress={() => toggle(row.ids)}
+          className="mt-2 h-8 flex-row items-center gap-2 self-start rounded-md px-1 active:bg-muted/50">
+          <Text numberOfLines={1} className="text-xs font-medium text-muted-foreground">{row.group}</Text>
+          <Mono className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Mono>
+        </Pressable>;
+        return <View className={cn("flex-row", row.end ? "pb-3" : "pb-1")} style={{ gap: TILE_GAP }}>
           {row.cases.map(c => <Tile key={c.id} c={c} width={tileWidth} on={sel.has(c.id)} onPress={() => toggle([c.id])} onLongPress={() => onOpenCase?.(c.id)} />)}
         </View>;
       }} />}
   </View>;
 });
 
-/** `.setup-tile`: the case picture and its short name; chosen = surface2 and full opacity. */
+/** A case to pick: its picture and short name; chosen, it is lit and ticked. */
 const Tile = memo(function Tile({ c, width, on, onPress, onLongPress }: { c: CaseDto; width: number; on: boolean; onPress: () => void; onLongPress: () => void }) {
-  const t = useTheme();
   return <Pressable onPress={onPress} onLongPress={onLongPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${c.id}${c.name !== c.id ? `, ${c.name}` : ""}`}
-    style={({ pressed }) => [styles.tile, { width, backgroundColor: on ? t.surface2 : pressed ? t.hover : "transparent" }]}>
-    <View style={{ opacity: on ? 1 : 0.38 }}><CaseDiagram c={c} size={Math.min(60, width - 8)} /></View>
-    <Text numberOfLines={1} style={[styles.tileId, { color: on ? t.text : t.muted, fontWeight: on ? "600" : "400" }]}>{shortId(c)}</Text>
+    className={cn("items-center gap-1.5 rounded-lg px-1 pt-2.5 pb-2", on ? "bg-primary/10" : "active:bg-muted/50")} style={{ width }}>
+    <View style={{ opacity: on ? 1 : 0.55 }}><CaseDiagram c={c} size={Math.min(56, width - 12)} /></View>
+    <Text numberOfLines={1} className={cn("text-xs", on ? "text-foreground" : "text-muted-foreground")}>{shortId(c)}</Text>
+    {on ? <View className="absolute top-1.5 right-1.5 size-4 items-center justify-center rounded-full bg-primary"><Icon as={Check} size={11} className="text-primary-foreground" /></View> : null}
   </Pressable>;
-});
-
-const styles = StyleSheet.create({
-  list: { flex: 1, minHeight: 0 },
-  // A set is one cell tall, flush with the list's edges, its selection a square cell on the left.
-  setHead: { flexDirection: "row", alignItems: "center", height: 64, marginHorizontal: -10, borderBottomWidth: 1 },
-  setTitle: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12, height: 40, paddingHorizontal: 10, borderRadius: 0 },
-  stage: { width: 42, flexShrink: 0 },
-  setLabel: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
-  count: { fontFamily: FONT.mono, fontSize: 12, flexShrink: 0 },
-  groupTitle: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 8, height: 28, paddingHorizontal: 8, borderRadius: 0, maxWidth: "100%" },
-  groupLabel: { fontSize: 12, fontWeight: "500", flexShrink: 1 },
-  groupCount: { fontFamily: FONT.mono, fontSize: 11 },
-  grid: { flexDirection: "row", gap: TILE_GAP },
-  tile: { alignItems: "center", gap: 4, paddingTop: 8, paddingBottom: 6, borderRadius: 0 },
-  tileId: { fontSize: 12, paddingHorizontal: 2, maxWidth: "100%" },
 });

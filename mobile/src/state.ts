@@ -5,7 +5,7 @@ import { eventInfo, eventOf, isPuzzle, puzzleInfo, puzzleOf, type EventId, type 
 import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/shared/types";
 import type { TimeEntry } from "../../src/client/lib/format";
 import { sets as catalogSets } from "../../src/client/local/catalog";
-import { api, local } from "./api";
+import { api, authToken, local } from "./api";
 import { storage } from "./platform/storage";
 
 // ---------------------------------------------------------------------------
@@ -20,6 +20,11 @@ export type Route =
   | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string };
 /** A profile detail view; no mode shows the overview tiles. */
 export type ProfileMode = "playground" | "training" | "achievements" | "duels";
+/** The account's sections, as its tabs show them. */
+export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[] = [
+  { id: "overview", label: "Overview" }, { id: "playground", label: "Timer" }, { id: "training", label: "Training" },
+  { id: "achievements", label: "Awards" }, { id: "duels", label: "Battles" },
+];
 export type Page = Route["page"];
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
 export const guidesAtom = atom<GuideId | null>(null);
@@ -194,6 +199,12 @@ export const crossScrambleAtom = atom(get => {
 
 /** Read synchronously from the local workspace, so the shell never waits for an account. */
 export const userAtom = atom<UserDto | null>(local.current());
+/** Whether this device holds the account's session token; a sign-out or an expired session (401) clears it. */
+export const hasTokenAtom = atom(!!authToken.get());
+/** The app is only used signed in: an account and its token, or the sign-in screen. */
+export const signedInAtom = atom(get => { const user = get(userAtom); return !!user && !user.isGuest && get(hasTokenAtom); });
+/** The settings sheet (the account's "…" menu). */
+export const settingsOpenAtom = atom(false);
 /** Transient UI focus state; never persisted with user preferences. */
 export const timerRunningAtom = atom(false);
 /** The Android keyboard covers the floating navigation; reclaim that space in forms. */

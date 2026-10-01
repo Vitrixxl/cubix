@@ -1,56 +1,62 @@
+import * as Haptics from "expo-haptics";
+import { useKeepAwake } from "expo-keep-awake";
 import { useAtomValue, useSetAtom } from "jotai";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Animated, BackHandler, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { bestAverage, fmtTime } from "../../../src/client/lib/format";
+import { ChevronUp, Trophy, type LucideIcon } from "lucide-react-native";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { BackHandler, Pressable, TextInput, View, type GestureResponderEvent } from "react-native";
+import { bestAverage, effective, fmtSolve, fmtTime, parseTypedTime } from "../../../src/client/lib/format";
 import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { applyAlg, parseAlg, parseScramble, solved } from "../../../src/shared/cube";
 import type { CubeMask, DiagramView } from "../../../src/shared/cubeDiagram";
 import type { PracticeContext } from "../../../src/shared/puzzles";
 import type { SessionMode, SolveDto } from "../../../src/shared/types";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
 import { api, localChanged } from "../api";
-import { cubeSwitchLockedAtom, deletedSolveIdAtom, timerRunningAtom, updatedSolveAtom } from "../state";
-import { FONT, useTheme } from "../theme";
-import { useLayout } from "../hooks/useLayout";
 import type { TimerApi } from "../hooks/useTimer";
 import { launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
+import { cubeSwitchLockedAtom, deletedSolveIdAtom, timerRunningAtom, updatedSolveAtom } from "../state";
+import { useColors } from "../theme";
+import { Fade, Mono, Surface, type Tone } from "./layout";
+import { SolveMenu, useSolveMenu } from "./SolveMenus";
 import { StaticCubeSvg } from "./StaticCubeSvg";
-import { StopSurface, responder } from "./TimerSurface";
-import { IconClose } from "./icons";
-import { Btn, Label, Metrics, type MetricItem } from "./ui";
 
 /**
- * The pieces shared by the practice screens (timer, case training, cross + 1), like the web `.practice`
- * page on a phone: the page head, the prompt (`.prompt`: what to solve, with its picture), the timer
- * filling the middle and the session figures (`.metrics`) at the bottom. While the timer runs everything
- * but the time fades out.
+ * The pieces shared by the practice screens (timer, case training, cross + 1, duel), after the web phone layout: a
+ * stage card with the prompt on top (what to solve and its picture), the time in the middle and the last solve's
+ * actions as a row of large targets at the bottom, then the session under it. While the timer runs everything but the
+ * time fades out.
  */
 
 /** Generation shorter than this stays invisible: the previous scramble simply becomes the next one. */
 const SLOW_GENERATION_MS = 120;
 
+export type Metric = [label: string, value: string, tone: Tone];
 /**
- * The session figures under the timer (`store.metrics()` on the web): Best and Best Ao5/Ao12 in green,
- * Worst in red (DNF as soon as one attempt is a DNF), the current averages in the accent.
+ * The session figures (`store.metrics()` on the web): Best and Best Ao5/Ao12 in green, Worst in red (DNF as soon as one
+ * attempt is a DNF), the current averages in the accent.
  */
-export function sessionMetrics(solves: readonly Pick<SolveDto, "time_ms" | "penalty">[]): MetricItem[] {
+export function sessionMetrics(solves: readonly Pick<SolveDto, "time_ms" | "penalty">[]): Metric[] {
   const summary = practiceSummary(solves), times = summary.times;
   const worst = !times.length ? fmtTime(null) : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
   return [
-    { label: "Best", value: fmtTime(summary.best), tone: "good" },
-    { label: "Worst", value: worst, tone: "bad" },
-    { label: "Mean", value: fmtTime(summary.mean) },
-    { label: "Ao5", value: fmtTime(summary.ao5), tone: "accent" },
-    { label: "Best Ao5", value: fmtTime(bestAverage(times, 5)), tone: "good" },
-    { label: "Ao12", value: fmtTime(summary.ao12), tone: "accent" },
-    { label: "Best Ao12", value: fmtTime(bestAverage(times, 12)), tone: "good" },
-    { label: "Solves", value: String(summary.count) },
+    ["Best", fmtTime(summary.best), "good"],
+    ["Worst", worst, "bad"],
+    ["Mean", fmtTime(summary.mean), ""],
+    ["Ao5", fmtTime(summary.ao5), "accent"],
+    ["Best Ao5", fmtTime(bestAverage(times, 5)), "good"],
+    ["Ao12", fmtTime(summary.ao12), "accent"],
+    ["Best Ao12", fmtTime(bestAverage(times, 12)), "good"],
+    ["Solves", String(summary.count), ""],
   ];
 }
 
 /**
- * This launch's session of a practice context (see lib/launchSession), oldest first; every solve still syncs
- * to the profile. Deletions and edits made from any list or dialog apply at once.
+ * This launch's session of a practice context (see lib/launchSession), oldest first; every solve still syncs to the
+ * profile. Deletions and edits made from any list or sheet apply at once.
  */
 export function useSessionSolves(mode: SessionMode, context: PracticeContext) {
   const [solves, setSolves] = useState<SolveDto[]>([]);
@@ -72,9 +78,19 @@ export function useSessionSolves(mode: SessionMode, context: PracticeContext) {
   return [solves, setSolves] as const;
 }
 
+/** The session's solves as the rows should already look, pending penalties and deletions applied. */
+export function useShownSolves(solves: SolveDto[]) {
+  const { optimistic } = useSolveMenu();
+  return useMemo(() => optimistic.size ? solves.flatMap(solve => {
+    if (!optimistic.has(solve.id)) return [solve];
+    const pending = optimistic.get(solve.id);
+    return pending ? [{ ...solve, ...pending } as SolveDto] : [];
+  }) : solves, [solves, optimistic]);
+}
+
 /**
- * Scramble generation for a practice context: `generate()` hands the next scramble to `save`. Only a generation
- * that takes a while (cubing.js in the native engine) reports `slow`, so instant ones never flash a skeleton.
+ * Scramble generation for a practice context: `generate()` hands the next scramble to `save`. Only a generation that
+ * takes a while (cubing.js in the native engine) reports `slow`, so instant ones never flash a skeleton.
  */
 export function useScrambleGeneration(context: PracticeContext, save: (scramble: string) => void) {
   const [generating, setGenerating] = useState(false);
@@ -112,65 +128,195 @@ export function usePracticeLock(timer: TimerApi, saving: boolean) {
   return { busy, running, locked };
 }
 
-/**
- * `.practice.running …`: the page head, scramble, figures and hints fade out (180 ms) while the timer
- * runs, leaving only the time, and fade back afterwards (`showMs`). The layout never moves.
- */
-export function RunningFade({ hidden, children, style, showMs = 250 }: { hidden: boolean; children: ReactNode; style?: StyleProp<ViewStyle>; showMs?: number }) {
-  const opacity = useRef(new Animated.Value(hidden ? 0 : 1)).current;
+/** The Android back button leaves a running training for its setup screen, like the header's back arrow. */
+export function useBackTo(onBack: () => void, enabled = true) {
+  const latest = useRef(onBack); latest.current = onBack;
+  // The app's history handler subscribes again whenever a solve starts or stops; subscribing after it (next tick)
+  // keeps this one first, as the most recent listener runs first.
+  const running = useAtomValue(timerRunningAtom);
   useEffect(() => {
-    Animated.timing(opacity, { toValue: hidden ? 0 : 1, duration: hidden ? 180 : showMs, useNativeDriver: true }).start();
-  }, [hidden, opacity]);
-  return <Animated.View pointerEvents={hidden ? "none" : "box-none"} style={[style, { opacity }]}>{children}</Animated.View>;
+    if (!enabled || running) return;
+    let subscription: { remove: () => void } | undefined;
+    const timer = setTimeout(() => { subscription = BackHandler.addEventListener("hardwareBackPress", () => { latest.current(); return true; }); });
+    return () => { clearTimeout(timer); subscription?.remove(); };
+  }, [enabled, running]);
 }
 
-/**
- * Extends touch arming to the page background: a touch that starts on anything but a control
- * (buttons and lists claim their own touches first) holds the timer, like the web's document listener.
- */
-export function TouchArea({ timer, enabled, children, style }: { timer: TimerApi; enabled: boolean; children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[styles.area, style]} {...responder(timer, !enabled)}>{children}</View>;
-}
-
-/** `.notice`: a brief green line of praise (trophy, 13 px semibold) at the top of the timer, shown at each new `at`; fades out on its own. */
-export function Notice({ at, hidden, top, icon, message }: { at: number; hidden: boolean; top: number; icon: ReactNode; message: string }) {
-  const t = useTheme();
-  const opacity = useRef(new Animated.Value(0)).current;
-  const [shown, setShown] = useState(false);
+/** A brief line of praise (a new personal best) shown in place of the hint for a few seconds at each new `at`. */
+export function useNotice() {
+  const [notice, setNotice] = useState<{ at: number; message: string; icon: LucideIcon } | null>(null);
   useEffect(() => {
-    if (!at) return;
-    setShown(true);
-    Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    const hide = setTimeout(() => Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setShown(false)), 4000);
+    if (!notice) return;
+    const hide = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(hide);
-  }, [at, opacity]);
-  if (!shown || hidden) return null;
-  return <Animated.View pointerEvents="none" style={[styles.notice, { top, opacity }]}>
-    <View style={styles.noticeBody}>
-      {icon}
-      <Text numberOfLines={1} style={{ color: t.good, fontSize: 13, fontWeight: "600", flexShrink: 1 }}>{message}</Text>
-    </View>
-  </Animated.View>;
+  }, [notice]);
+  const show = useCallback((message: string, icon: LucideIcon = Trophy) => setNotice({ at: Date.now(), message, icon }), []);
+  return [notice, show] as const;
 }
 
-/** `.alg`: moves in Geist Mono, wrapping between moves only, 0.62em apart. */
-export const Moves = memo(function Moves({ alg, size }: { alg: string; size: number }) {
-  const t = useTheme();
-  const tokens = useMemo(() => alg.trim().split(/\s+/).filter(Boolean), [alg]);
-  return <View style={[styles.moves, { columnGap: size * 0.62 }]}>
-    {tokens.map((token, i) => <Text key={i} style={{ fontFamily: FONT.mono, fontWeight: "500", fontSize: size, lineHeight: Math.round(size * 1.55), color: t.text }}>{token}</Text>)}
-  </View>;
+/** Responder props arming the timer on touch down and starting or cancelling on release. */
+export function responder(timer: TimerApi, disabled: boolean) {
+  return {
+    onStartShouldSetResponder: () => !disabled,
+    onResponderTerminationRequest: () => false,
+    onResponderGrant: (_event: GestureResponderEvent) => { timer.press(); },
+    onResponderRelease: () => { timer.release(); },
+    onResponderTerminate: () => { if (timer.phase === "holding" || timer.phase === "ready") timer.reset(); },
+  };
+}
+
+/** Full-screen layer shown while the timer runs: the first touch anywhere stops it. */
+export function StopSurface({ timer }: { timer: TimerApi }) {
+  if (timer.phase !== "running") return null;
+  return <View className="absolute inset-0 z-50" onStartShouldSetResponderCapture={() => true} onResponderGrant={() => timer.press()} onResponderTerminationRequest={() => false} />;
+}
+
+/** Publishes the running state (tab bar, sync badge) and keeps the screen on during practice; buzzes when armed. */
+export function useTimerChrome(timer: TimerApi) {
+  useKeepAwake("cubix-practice", { suppressDeactivateWarnings: true });
+  const setRunning = useSetAtom(timerRunningAtom);
+  useLayoutEffect(() => { setRunning(timer.phase === "running"); }, [timer.phase, setRunning]);
+  useLayoutEffect(() => () => { setRunning(false); }, [setRunning]);
+  useEffect(() => { if (timer.phase === "ready") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); }, [timer.phase]);
+}
+
+/** The font size of the digits in an area: wide enough for the text, at most 42% of the height, 64–128 dp. */
+export function digitsSize(area: { width: number; height: number }, chars: number, max = 128) {
+  const byWidth = (1.6 * area.width) / Math.max(6, chars);
+  return Math.round(Math.max(Math.min(64, max), Math.min(byWidth, area.height ? area.height * 0.42 : byWidth, max)));
+}
+
+/**
+ * The running digits: tinted with the accent, the milliseconds smaller in a muted version of it; red while holding,
+ * green once ready.
+ */
+export const Digits = memo(function Digits({ text, phase, size, color }: { text: string; phase: string; size: number; color?: string }) {
+  const armed = phase === "holding" || phase === "ready";
+  const dot = text.indexOf(".");
+  const head = dot < 0 ? text : text.slice(0, dot + 1), tail = dot < 0 ? "" : text.slice(dot + 1);
+  const tone = armed ? (phase === "holding" ? "text-destructive" : "text-success") : "text-timer";
+  return <Text accessibilityRole="timer" numberOfLines={1} className={cn("text-center font-sans font-semibold tabular-nums", !color && tone)}
+    style={{ fontSize: size, lineHeight: Math.round(size * 1.08), letterSpacing: -size * 0.04, includeFontPadding: false, ...(color ? { color } : null) }}>
+    {head}
+    {tail ? <Text className={cn("font-sans font-semibold tabular-nums", !color && (armed ? tone : "text-timer-ms"))} style={{ fontSize: size * 0.62, letterSpacing: -size * 0.62 * 0.03, ...(color ? { color } : null) }}>{tail}</Text> : null}
+  </Text>;
 });
 
-/** `.prompt-block`: a quiet label over its content. */
-export function PromptBlock({ label, children }: { label: string; children: ReactNode }) {
-  return <View style={styles.block}><Label>{label}</Label>{children}</View>;
+/** Only this text re-renders on animation frames, never the page. */
+export const LiveDigits = memo(function LiveDigits({ startedAt, size, color }: { startedAt: number; size: number; color?: string }) {
+  const [text, setText] = useState(() => fmtTime(performance.now() - startedAt));
+  useEffect(() => {
+    let frame: number;
+    const tick = () => { setText(fmtTime(performance.now() - startedAt)); frame = requestAnimationFrame(tick); };
+    tick();
+    return () => cancelAnimationFrame(frame);
+  }, [startedAt]);
+  return <Digits text={text} phase="running" size={size} color={color} />;
+});
+
+/** The hint under the digits, or the praise of a new record in its place. */
+export function Hint({ children, notice, hidden }: { children: ReactNode; notice?: { message: string; icon: LucideIcon } | null; hidden?: boolean }) {
+  return <View className={cn("mt-3 min-h-5 flex-row items-center justify-center gap-1.5 px-3", hidden && "opacity-0")}>
+    {notice ? <>
+      <Icon as={notice.icon} size={16} className="text-success" />
+      <Text numberOfLines={1} className="text-sm font-medium text-success">{notice.message}</Text>
+    </> : <Text numberOfLines={1} className="text-center text-sm text-muted-foreground">{children}</Text>}
+  </View>;
+}
+
+/** The hint of a timer phase. */
+export function timerHint(timer: TimerApi, { disabled, unsaved, idle = "Hold, then release to start" }: { disabled?: string | false; unsaved?: boolean; idle?: string } = {}) {
+  if (disabled) return disabled;
+  switch (timer.phase) {
+    case "holding": return "Keep holding…";
+    case "ready": return "Release to start";
+    case "running": return "Tap to stop";
+    default: return unsaved ? `Not saved · ${idle}` : idle;
+  }
+}
+
+/** The time of a timer at rest or running, sized to its area. */
+export function TimerDigits({ timer, area, max }: { timer: TimerApi; area: { width: number; height: number }; max?: number }) {
+  const armed = timer.phase === "ready" || timer.phase === "holding";
+  const text = armed ? "0.000" : fmtTime(timer.elapsed, { blank: "0.000" });
+  const size = digitsSize(area, text.length, max);
+  return timer.phase === "running" ? <LiveDigits startedAt={timer.startedAt} size={size} /> : <Digits text={text} phase={timer.phase} size={size} />;
 }
 
 /**
- * The cube after `alg`, drawn like the case diagrams. Each change of `replay` plays the moves again from
- * the solved cube, one turn at a time, as the web cube's replay button does. A `held` scramble is applied white
- * on top and shown yellow on top (see `parseScramble`); a case setup is applied yellow on top.
+ * Typing entry: the digits become a field for a time measured on an external timer, in their place, with the same
+ * hint line, so switching entry never moves the page.
+ */
+export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: number; disabled?: boolean; error?: string; onRetry?: () => void; onSubmit: (ms: number) => void }) {
+  const colors = useColors();
+  const [text, setText] = useState("");
+  const ms = parseTypedTime(text);
+  const submit = () => { if (ms === null || disabled) return; setText(""); onSubmit(ms); };
+  const hint = !text ? "Type your time, then Enter: 1234 is 12.34" : ms === null ? "Not a time" : `${fmtTime(ms)} · Enter to save`;
+  return <View className="w-full items-center">
+    <TextInput value={text} onChangeText={value => setText(value.replace(/[^\d.,:]/g, ""))} onSubmitEditing={submit} submitBehavior="submit"
+      keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.000" placeholderTextColor={colors.mutedForeground + "66"}
+      cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel="Time" editable={!disabled}
+      className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-mono font-medium", text && ms === null ? "text-destructive" : "text-timer")}
+      style={{ fontSize: size * 0.8, includeFontPadding: false }} />
+    {error ? <View className="mt-3 flex-row items-center gap-2">
+      <Text className="text-sm text-destructive">{error}</Text>
+      <Button size="sm" variant="outline" onPress={onRetry}><Text>Retry</Text></Button>
+    </View> : <Hint>{hint}</Hint>}
+  </View>;
+}
+
+/** A failed save under the time, with its retry. */
+export function SaveError({ timer }: { timer: TimerApi }) {
+  if (!timer.saveError) return null;
+  return <View className="mt-3 flex-row flex-wrap items-center justify-center gap-2 px-3">
+    <Text className="text-sm text-destructive">{timer.saveError}</Text>
+    <Button size="sm" variant="outline" onPress={timer.retrySave}><Text>Retry</Text></Button>
+  </View>;
+}
+
+/**
+ * The current average of five as it is counted: the last five solves as chips, the fastest and the slowest dropped
+ * (in brackets), the newest outlined. Empty slots until there are five. A chip opens its solve; held, its menu.
+ */
+export function AverageWindow({ solves, hidden }: { solves: SolveDto[]; hidden?: boolean }) {
+  const last = solves.slice(-5);
+  const times = last.map(v => effective(v.time_ms, v.penalty) ?? Infinity);
+  const full = last.length === 5;
+  const fastest = full ? times.indexOf(Math.min(...times)) : -1, slowest = full ? times.lastIndexOf(Math.max(...times)) : -1;
+  return <Fade hidden={!!hidden} className="mt-6 w-full flex-row gap-1">
+    {Array.from({ length: 5 }, (_, i) => {
+      const index = i - (5 - last.length), v = last[index];
+      if (!v) return <View key={i} className="h-8 min-w-0 flex-1 items-center justify-center rounded-md bg-muted/50"><Mono className="text-xs text-muted-foreground/50">–</Mono></View>;
+      const dropped = index === fastest || index === slowest, time = fmtSolve(v.time_ms, v.penalty);
+      return <SolveMenu key={v.id} solve={v} accessibilityLabel={`Solve ${time}`} rootClassName="min-w-0 flex-1"
+        className={cn("h-8 items-center justify-center rounded-md bg-muted active:bg-muted/70", index === last.length - 1 && "border border-foreground/30")}>
+        <Mono numberOfLines={1} className={cn("text-xs", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Mono>
+      </SolveMenu>;
+    })}
+  </Fade>;
+}
+
+/** Under the stage: the session's main figures, one tap (or a swipe of the sheet) from its times. */
+export function SessionPeek({ figures, count, noun, onPress, hidden }: { figures: Metric[]; count: number; noun: string; onPress: () => void; hidden?: boolean }) {
+  return <Fade hidden={!!hidden}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Session times" onPress={onPress}
+      className="h-14 flex-row items-center gap-4 rounded-xl bg-muted/45 px-4 active:bg-muted/70">
+      {figures.map(([label, value, tone]) => <View key={label} className="min-w-0 flex-1 gap-0.5">
+        <Text className="text-[11px] font-medium text-muted-foreground">{label}</Text>
+        <Mono numberOfLines={1} className={cn("text-base font-medium", value === "–" ? "text-muted-foreground/60" : tone === "good" ? "text-success" : tone === "accent" ? "text-primary" : "")}>{value}</Mono>
+      </View>)}
+      <View className="flex-row items-center gap-1.5">
+        <Mono className="text-sm text-muted-foreground">{count} {noun}{count === 1 ? "" : "s"}</Mono>
+        <Icon as={ChevronUp} size={16} className="text-muted-foreground" />
+      </View>
+    </Pressable>
+  </Fade>;
+}
+
+/**
+ * The cube after `alg`, drawn like the case diagrams. Each change of `replay` plays the moves again from the solved
+ * cube, one turn at a time. A `held` scramble is applied white on top and shown yellow on top (see `parseScramble`).
  */
 export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask, view, replay = 0, held = false }: { alg: string; cube?: number; size: number; mask?: CubeMask; view?: DiagramView; replay?: number; held?: boolean }) {
   const moves = useMemo(() => { try { return held ? parseScramble(alg, cube) : parseAlg(alg, cube); } catch { return []; } }, [alg, cube, held]);
@@ -192,118 +338,26 @@ export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask
   return <StaticCubeSvg state={state} size={size} mask={mask} view={view} held={held} />;
 });
 
-/** Size of the prompt's picture in the training frames: none on short phones. */
-export function framePreviewSize({ phone, width, height }: { phone: boolean; width: number; height: number }) {
-  return phone ? (height < 760 ? 0 : 76) : height < 700 ? 92 : width < 1200 ? 112 : 132;
-}
-
-/** The Android back button leaves a running training for its setup screen, like the header's back arrow. */
-export function useBackTo(onBack: () => void, enabled = true) {
-  const latest = useRef(onBack); latest.current = onBack;
-  // The app's history handler subscribes again whenever a solve starts or stops; subscribing after it (next
-  // tick) keeps this one first, as the most recent listener runs first.
-  const running = useAtomValue(timerRunningAtom);
-  useEffect(() => {
-    if (!enabled || running) return;
-    let subscription: { remove: () => void } | undefined;
-    const timer = setTimeout(() => { subscription = BackHandler.addEventListener("hardwareBackPress", () => { latest.current(); return true; }); });
-    return () => { clearTimeout(timer); subscription?.remove(); };
-  }, [enabled, running]);
-}
-
-/** Timer digits size of the phone page (`clamp(52px, 19cqw, 110px)`), smaller on wider screens' short heights. */
-export function useTimerFont() {
-  const { width, height, phone } = useLayout();
-  return phone ? Math.max(52, Math.min(width * 0.19, 110)) : Math.max(60, Math.min(width * 0.08, height * 0.12, 150));
-}
-
-/** The practice screen of a running training (case practice, cross + 1). */
-export function PracticeFrame({ head, prompt, visual, timer, readout, strip, metrics, columns, dense, side, notice, disabled }: {
-  head: ReactNode; prompt: ReactNode; visual?: ReactNode; timer: TimerApi; readout: ReactNode;
-  /** The last solve's actions, along the bottom of the timer (`SolveStrip`). */
-  strip?: ReactNode;
-  metrics: MetricItem[]; columns?: number; dense?: boolean;
-  /** The times column of wide screens (`.column-right`). */
-  side?: ReactNode;
-  /** `.notice`, over the top of the timer. */
-  notice?: ReactNode;
-  disabled: boolean;
+/**
+ * The stage card: the prompt and its picture on top, the readout in the middle (it measures its area for the digits),
+ * the touch bar at the bottom. A touch anywhere but on a control arms the timer.
+ */
+export function Stage({ timer, disabled, running, prompt, visual, readout, bar }: {
+  timer: TimerApi; disabled: boolean; running: boolean; prompt: ReactNode; visual?: ReactNode;
+  readout: (area: { width: number; height: number }) => ReactNode; bar: ReactNode;
 }) {
-  const t = useTheme();
-  const layout = useLayout();
-  const running = timer.phase === "running";
-  return <View style={styles.page}>
-    <RunningFade hidden={running} showMs={180}>{head}</RunningFade>
-    <View style={styles.body}>
-      <View style={styles.stage}>
-        <RunningFade hidden={running} showMs={180} style={[styles.prompt, { borderColor: t.line, paddingHorizontal: layout.phone ? 16 : 32, paddingVertical: layout.phone ? 14 : 22, gap: layout.phone ? 14 : 28 }]}>
-          <ScrollView style={[styles.promptScroll, { maxHeight: layout.height * 0.4 - (layout.phone ? 28 : 44) }]} contentContainerStyle={styles.promptMain} showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled">{prompt}</ScrollView>
-          {visual ? <View style={styles.visual}>{visual}</View> : null}
-        </RunningFade>
-        <View style={styles.timer} {...responder(timer, disabled)}>
-          {notice}
-          {readout}
-        </View>
-        <RunningFade hidden={running} showMs={180}>{strip}<Metrics items={metrics} columns={columns} dense={dense} /></RunningFade>
-      </View>
-      {side}
-    </View>
-    <StopSurface timer={timer} />
-  </View>;
-}
-
-/** `.column-right` of wide screens: the session or times list beside the timer, with its head. */
-export function TimesColumn({ title, count, onClose, actions, children }: { title: string; count: number; onClose?: () => void; actions?: ReactNode; children: ReactNode }) {
-  const t = useTheme();
-  return <View style={[styles.column, { borderColor: t.line }]}>
-    <View style={[styles.columnHead, { borderColor: t.line }]}>
-      <Text style={{ color: t.text, fontSize: 14, fontWeight: "600" }}>{title}</Text>
-      <Text style={{ color: t.muted, fontSize: 12, fontFamily: FONT.mono }}>{count}</Text>
-      <View style={styles.columnActions}>
-        {actions}
-        {onClose && <Btn small iconOnly icon={IconClose} onPress={onClose} accessibilityLabel={`Close ${title.toLowerCase()}`} />}
+  const [area, setArea] = useState({ width: 320, height: 0 });
+  return <Surface className={cn("flex-1", running && "border-transparent bg-transparent")}>
+    <View className="min-h-0 flex-1 px-4 pt-4" {...responder(timer, disabled)}>
+      <Fade hidden={running} className="flex-row items-start gap-3">
+        <View className="min-w-0 flex-1 gap-3">{prompt}</View>
+        {visual ? <View className="shrink-0">{visual}</View> : null}
+      </Fade>
+      <View className="min-h-0 flex-1 items-center justify-center overflow-hidden"
+        onLayout={event => { const { width, height } = event.nativeEvent.layout; setArea(current => current.width === width && current.height === height ? current : { width, height }); }}>
+        {readout(area)}
       </View>
     </View>
-    {children}
-  </View>;
+    <Fade hidden={running}>{bar}</Fade>
+  </Surface>;
 }
-
-/** `.notice` of the training frames: a brief line over the timer, shown for a few seconds at each new `at`. */
-export function Toast({ at, icon, message, hidden }: { at: number; icon: ReactNode; message: string; hidden: boolean }) {
-  const t = useTheme();
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    if (!at) return;
-    setShown(true);
-    const hide = setTimeout(() => setShown(false), 5000);
-    return () => clearTimeout(hide);
-  }, [at]);
-  if (!shown || hidden) return null;
-  return <View pointerEvents="none" style={styles.toast}>
-    <View style={[styles.toastBody, { backgroundColor: t.surface2, borderColor: t.line }]}>
-      {icon}
-      <Text numberOfLines={1} style={{ color: t.text, fontSize: 13, fontWeight: "500", flexShrink: 1 }}>{message}</Text>
-    </View>
-  </View>;
-}
-
-const styles = StyleSheet.create({
-  area: { flex: 1, minHeight: 0 },
-  notice: { position: "absolute", left: 0, right: 0, zIndex: 3, alignItems: "center" },
-  noticeBody: { flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "92%", paddingVertical: 4 },
-  page: { flex: 1, minHeight: 0 },
-  body: { flex: 1, minHeight: 0, flexDirection: "row" },
-  stage: { flex: 1, minWidth: 0, minHeight: 0 },
-  prompt: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, flexShrink: 0 },
-  promptScroll: { flex: 1, minWidth: 0 },
-  promptMain: { gap: 8 },
-  visual: { flexShrink: 0, alignItems: "center", justifyContent: "center" },
-  block: { gap: 4 },
-  moves: { flexDirection: "row", flexWrap: "wrap" },
-  timer: { flex: 1, minHeight: 0, alignItems: "center", justifyContent: "center" },
-  column: { width: 320, borderLeftWidth: 1, minHeight: 0 },
-  columnHead: { flexDirection: "row", alignItems: "center", gap: 8, height: 48, paddingHorizontal: 14, borderBottomWidth: 1 },
-  columnActions: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 6 },
-  toast: { position: "absolute", top: 18, left: 12, right: 12, alignItems: "center", zIndex: 2 },
-  toastBody: { flexDirection: "row", alignItems: "center", gap: 8, height: 34, paddingHorizontal: 14, borderRadius: 0, borderWidth: 1, maxWidth: "100%" },
-});

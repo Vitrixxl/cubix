@@ -1,5 +1,4 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { createStore, Provider, useAtomValue } from "jotai";
 
@@ -26,37 +25,40 @@ const achievements = { unlocked: 1, total: 3, achievements: [
   { id: "c", title: "Sub-15", description: "", group: "3×3", ratio: 0.6, unlocked: false, detail: "Best 9.980" },
 ] };
 const profileCalls: unknown[] = [];
-mock.module("../src/api", () => ({ api: {}, authToken: {}, local: {
+const logout = mock(async () => ({ ok: true }));
+mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "token" }, local: {
   current: () => null, learned: () => ["OLL 1"],
   read: {
     catalog: () => ({ cases, sets }),
     profile: (cube: string, filter: unknown) => {
       profileCalls.push({ cube, filter });
-      return { user: guest, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 0, activeDays: 1 };
+      return { user: account, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 0, activeDays: 1 };
     },
     achievements: () => achievements,
   },
 } }));
 mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5 }));
-mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ navSpace: 16, phone: true, short: false, width: 390, height: 844, pagePadding: 14 }) }));
 mock.module("../src/hooks/usePreservedScroll", () => ({ usePreservedScroll: () => ({ ref: { current: null }, onScroll() {}, onContentSizeChange() {} }) }));
+mock.module("lucide-react-native", () => Object.fromEntries(["BookOpen", "CalendarDays", "Flame", "Layers", "LogOut", "Settings", "Swords", "Timer", "Trophy"].map(name => [name, name])));
 mock.module("../src/components/ProfileProgress", () => ({
-  Activity: "Activity", MiniBars: "MiniBars", OverviewCard: "OverviewCard", ProfileCaseDialog: "ProfileCaseDialog", Ring: "Ring", Sparkline: "Sparkline", TrainingProgress: "TrainingProgress",
+  ...Object.fromEntries(["AchievementBadge", "Goal", "Heatmap", "LatestSolves", "MoreLink", "ProfileCaseDialog", "Section", "Stat", "Stats", "SubHead", "TrainingProgress", "Trend", "TrendLegend", "TwoTone"]
+    .map(name => [name, name])),
+  dayKey: (d: Date) => d.toISOString().slice(0, 10),
+  shortDate: (iso: string) => iso.slice(0, 10),
   plural: (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`,
 }));
 mock.module("../src/components/Achievements", () => ({ AchievementList: "AchievementList", AchievementTotal: "AchievementTotal" }));
-mock.module("../src/components/Settings", () => ({ SettingsDialog: "SettingsDialog", AccountForm: "AccountForm" }));
-mock.module("../src/components/TimesChart", () => ({ TimerStats: "TimerStats", TimesChart: "TimesChart" }));
-mock.module("../src/components/PuzzlePicker", () => ({ PuzzleSelect: "PuzzleSelect" }));
-mock.module("../src/components/Select", () => ({ Select: "Select" }));
-mock.module("../src/components/ui", () => ({
-  Avatar: "Avatar", Btn: "Btn", Empty: "Empty", Label: "Label",
-  PageHead: ({ controls, ...props }: any) => createElement("PageHead", props, controls),
-  mono: () => ({}),
-}));
-const guest = { id: "guest", username: "Guest", isGuest: true, createdAt: "2026-09-01T00:00:00Z" };
+mock.module("../src/components/TimesChart", () => ({ TimerStats: "TimerStats" }));
+mock.module("../src/components/PuzzlePicker", () => ({ EventPicker: "EventPicker", ChoiceButton: "ChoiceButton" }));
+mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
+mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
+mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
+mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
+mock.module("../src/components/ui/tabs", () => ({ Tabs: "Tabs", TabsList: "TabsList", TabsTrigger: "TabsTrigger" }));
+mock.module("../src/components/layout", () => Object.fromEntries(["Empty", "MenuItem", "Mono", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
+const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
-const { routeAtom, userAtom, profileFiltersAtom } = await import("../src/state");
+const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 let renderer: ReactTestRenderer;
@@ -65,79 +67,75 @@ function Routed() {
   const route = useAtomValue(routeAtom);
   return route.page === "profile" ? <ProfilePage mode={route.mode} group={route.group} /> : null;
 }
-async function mount(user = guest) {
+async function mount() {
   const store = createStore();
-  store.set(userAtom, user);
+  store.set(userAtom, account);
   store.set(routeAtom, { page: "profile" });
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
   return store;
 }
 const all = (type: string) => renderer.root.findAllByType(type as any);
-const head = () => all("PageHead")[0];
-const card = (title: string) => all("OverviewCard").find(node => node.props.title === title)!;
-const button = (label: string) => all("Btn").find(node => node.props.label === label)!;
+const head = () => all("PageHead")[0]!;
+const card = (title: string) => all("Section").find(node => node.props.title === title)!;
+const texts = () => all("Text").map(node => [node.props.children].flat().join(""));
+const tabs = () => all("Tabs")[0]!;
+const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
 
-test("the guest overview shows activity, timer, training and achievements, with sign-in buttons and the profile filters", async () => {
+test("the overview shows the account, its activity, timer, training, awards and battles, with the profile's puzzle", async () => {
   await mount();
-  expect(head().props.title).toBe("Guest");
-  expect(head().props.sub).toBe("Times stay on this device");
-  expect(all("Activity")).toHaveLength(1);
-  expect(card("Timer").props.detail).toBe("Best of 3 solves · Normal");
-  expect(all("Sparkline")).toHaveLength(1);
-  expect(card("Training")).toBeDefined();
-  expect(card("Achievements")).toBeDefined();
-  // The event only, no scramble type on the overview.
-  expect(all("PuzzleSelect")).toHaveLength(1);
-  expect(all("Select").map(node => node.props.accessibilityLabel)).toEqual([]);
-  const dialog = () => all("SettingsDialog")[0];
-  expect(dialog().props.open).toBe(false);
-  await act(() => button("Sign in").props.onPress());
-  expect(dialog().props).toMatchObject({ open: true, authMode: "login" });
-  await act(() => dialog().props.onClose());
-  await act(() => button("Create account").props.onPress());
-  expect(dialog().props).toMatchObject({ open: true, authMode: "register" });
+  expect(texts()).toContain("vitrix");
+  expect(texts().some(text => text.startsWith("Joined "))).toBe(true);
+  // No page head on the overview: the user is its header.
+  expect(all("PageHead")).toHaveLength(0);
+  expect(tabs().props.value).toBe("overview");
+  expect(all("TabsTrigger").map(node => node.props.value)).toEqual(["overview", "playground", "training", "achievements", "duels"]);
+  expect(all("Heatmap")).toHaveLength(1);
+  expect(card("Timer").props.meta).toBe("3 solves");
+  expect(all("Trend")).toHaveLength(1);
+  expect(all("LatestSolves")).toHaveLength(1);
+  expect(card("Training").props.meta).toBe("1 of 2 learned");
+  expect(card("Achievements").props.meta).toBe("1 of 3 unlocked");
+  expect(card("Battles")).toBeDefined();
+  expect(all("EventPicker")).toHaveLength(1);
+  // The scramble type only on the timer section.
+  expect(all("ChoiceButton")).toHaveLength(0);
 });
 
-test("a signed-in account shows its name and no sign-in buttons", async () => {
-  await mount({ id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" });
-  expect(head().props.title).toBe("vitrix");
-  expect(head().props.sub).toMatch(/^Joined /);
-  expect(button("Sign in")).toBeUndefined();
-  expect(button("Create account")).toBeUndefined();
-});
-
-test("each card opens its page, whose back button returns to the overview", async () => {
+test("the account's menu opens the settings and the guides and signs out", async () => {
   const store = await mount();
-  await act(() => card("Timer").props.onPress());
+  await act(() => item("Settings").props.onPress());
+  expect(store.get(settingsOpenAtom)).toBe(true);
+  await act(() => item("Guides").props.onPress());
+  expect(store.get(guidesAtom)).toBe("about");
+  await act(() => item("Sign out").props.onPress());
+  expect(logout).toHaveBeenCalledTimes(1);
+});
+
+test("the cards and the tabs switch sections without adding history", async () => {
+  const store = await mount();
+  await act(() => card("Timer").props.onMore());
   expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "playground" });
+  expect(tabs().props.value).toBe("playground");
   expect(head().props.title).toBe("Timer");
-  expect(head().props.sub).toBe("3×3");
-  // The timer page adds the scramble type filter and shows the solve statistics.
-  expect(all("Select").map(node => node.props.accessibilityLabel)).toEqual(["Scramble type"]);
-  expect(all("TimerStats")[0].props.fill).toBe(true);
-  await act(() => head().props.onBack());
-  expect(store.get(routeAtom)).toEqual({ page: "profile" });
-
-  await act(() => card("Training").props.onPress());
-  expect(head().props.title).toBe("Training");
+  expect(all("ChoiceButton").map(node => node.props.label)).toEqual(["Scramble type"]);
+  expect(all("TimerStats")[0]!.props.fill).toBe(true);
+  await act(() => tabs().props.onValueChange("training"));
+  expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "training" });
   expect(all("TrainingProgress")).toHaveLength(1);
-  await act(() => head().props.onBack());
-
-  await act(() => card("Achievements").props.onPress());
-  expect(head().props.title).toBe("Achievements");
+  await act(() => tabs().props.onValueChange("achievements"));
   expect(all("AchievementTotal")).toHaveLength(1);
   expect(all("AchievementList")).toHaveLength(1);
-  await act(() => head().props.onBack());
+  await act(() => tabs().props.onValueChange("overview"));
   expect(store.get(routeAtom)).toEqual({ page: "profile" });
 });
 
-test("the profile filters change the profile's own selection", async () => {
+test("the profile's puzzle changes the profile's own selection", async () => {
   const store = await mount();
   profileCalls.length = 0;
-  await act(() => all("PuzzleSelect")[0].props.onChange("222"));
+  await act(() => all("EventPicker")[0]!.props.onChange("222"));
   expect(store.get(profileFiltersAtom).cube).toBe("222");
   expect(profileCalls.at(-1)).toMatchObject({ cube: "222" });
-  await act(() => all("PuzzleSelect")[0].props.onChange("333oh"));
+  await act(() => all("EventPicker")[0]!.props.onChange("333oh"));
   expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
   expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });
 });
@@ -145,15 +143,16 @@ test("the profile filters change the profile's own selection", async () => {
 test("an empty timer selection offers to open the timer", async () => {
   timerCount = 0;
   const store = await mount();
-  expect(card("Timer").props.detail).toBe("No solves in this selection yet");
-  expect(all("Sparkline")).toHaveLength(0);
-  await act(() => card("Timer").props.onPress());
-  const stats = all("TimerStats")[0];
+  // No statistics link without a solve, but a way to the timer.
+  expect(card("Timer").props.onMore).toBeUndefined();
+  expect(all("Trend")).toHaveLength(0);
+  await act(() => tabs().props.onValueChange("playground"));
+  const stats = all("TimerStats")[0]!;
   expect(stats.props.data.summary.count).toBe(0);
   // The empty state is passed to the statistics, which render it when there is no solve.
   let empty!: ReactTestRenderer;
   await act(() => { empty = create(stats.props.empty); });
-  const open = empty.root.findAllByType("Btn" as any).find(node => node.props.label === "Open the timer")!;
+  const open = empty.root.findAllByType("Button" as any)[0]!;
   await act(() => open.props.onPress());
   await act(() => empty.unmount());
   expect(store.get(routeAtom)).toEqual({ page: "playground" });

@@ -32,21 +32,23 @@ const cases = [
   { id: "PLL Aa", set: "pll", group: "Corners" },
 ].map(c => ({ ...c, name: c.id, setLabel: c.set.toUpperCase() }));
 const sets = [{ id: "oll", stage: "OLL", label: "OLL" }, { id: "pll", stage: "PLL", label: "PLL" }];
-mock.module("../src/api", () => ({ api: {}, local: {
+mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: {
   current: () => null, learned: () => ["OLL 4"], read: { catalog: () => ({ cases, sets }), stats: () => [] },
 } }));
-mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ navSpace: 80, phone: true, width: 390, pagePadding: 14 }) }));
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
-mock.module("../src/components/TimesChart", () => ({ TimesChart: () => null }));
+mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
 mock.module("../src/components/AlgText", () => ({ AlgText: () => null, sourceLabel: (source: string) => source }));
-mock.module("../src/components/GuidesDialog", () => ({ MethodsDialog: () => null }));
-mock.module("../src/components/PuzzlePicker", () => ({ PuzzlePicker: () => null }));
-mock.module("../src/components/Sheet", () => ({ Sheet: () => null }));
-mock.module("../src/components/icons", () => ({ IconBack: () => null, IconBook: () => null, IconCheck: () => null, IconChevronDown: () => null, IconNext: () => null, IconTimer: () => null }));
-mock.module("../src/components/ui", () => Object.fromEntries([
-  ...["Btn", "CellGroup", "CheckCell", "Checkbox", "Control", "Empty", "Input", "Label", "ListRow", "Mark", "Metric", "Metrics", "PageHead", "Segmented"].map(name => [name, name]),
-  ["mono", () => ({})],
-]));
+mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
+mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null }));
+mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
+mock.module("lucide-react-native", () => Object.fromEntries(["BookOpen", "Check", "ChevronDown", "ChevronLeft", "ChevronRight", "CirclePlay", "RotateCcw", "Timer"].map(name => [name, name])));
+mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
+mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
+mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
+mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
+mock.module("../src/components/layout", () => Object.fromEntries(
+  ["Alg", "BackButton", "Choice", "Empty", "Figure", "Label", "MenuItem", "Mono", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
 const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedAlgorithmGroupsAtom, stageAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -67,11 +69,14 @@ async function mount() {
   return store;
 }
 const browser = () => renderer.root.findAllByType("FlatList" as any).find(node => !node.props.horizontal)!;
-/** The segmented control offering this option id (stage tabs, set variants, learning filter). */
-const segmented = (id: string) => renderer.root.findAllByType("Segmented" as any).find(node => node.props.options.some((option: any) => option.id === id))!;
+const texts = (node: any) => node.findAllByType("Text" as any).map((text: any) => text.props.children);
+/** The stage tab of this name. */
+const tab = (stage: string) => renderer.root.findAll((node: any) => node.props.accessibilityRole === "tab" && texts(node).includes(stage))[0]!;
+/** The learning filter. */
+const filter = () => renderer.root.findAllByType("Choice" as any).find(node => node.props.label === "Filter")!;
 const pager = () => renderer.root.findAllByType("FlatList" as any).find(node => node.props.horizontal)!;
 async function open(id: string) {
-  const card = renderer.root.findAllByType("Pressable" as any).find(node =>
+  const card = renderer.root.findAllByType("Pressable" as any).find(node => node.props.accessibilityRole === "button" &&
     node.findAllByType("Text" as any).some(text => text.props.children === id.replace("OLL ", "")))!;
   await act(() => card.props.onPress());
   const viewport = renderer.root.findAllByType("View" as any).find(node => node.props.onLayout)!;
@@ -85,24 +90,24 @@ test("the stage tabs display only their stage, including when the learning filte
   await mount();
   const visibleIds = () => browser().props.data.flatMap((row: any) => row.kind === "case" ? [row.c.id] : []);
   expect(visibleIds()).toEqual(["OLL 1", "OLL 3", "OLL 2", "OLL 4"]);
-  await act(() => segmented("PLL").props.onChange("PLL"));
+  await act(() => tab("PLL").props.onPress());
   expect(visibleIds()).toEqual(["PLL Aa"]);
-  expect(segmented("learned").props.options.find((option: any) => option.id === "learned").count).toBe(0);
-  await act(() => segmented("learned").props.onChange("learned"));
-  expect(segmented("PLL").props.value).toBe("PLL");
+  expect(filter().props.options.find((option: any) => option.id === "learned").count).toBe(0);
+  await act(() => filter().props.onChange("learned"));
+  expect(tab("PLL").props.accessibilityState.selected).toBe(true);
   expect(visibleIds()).toEqual([]);
   expect(browser().props.data.some((row: any) => row.kind === "empty")).toBe(true);
-  await act(() => segmented("OLL").props.onChange("OLL"));
+  await act(() => tab("OLL").props.onPress());
   expect(visibleIds()).toEqual(["OLL 4"]);
   // The counts describe the whole set whatever the filter.
-  expect(segmented("learned").props.options.map((option: any) => option.count)).toEqual([4, 1, 3]);
+  expect(filter().props.options.map((option: any) => option.count)).toEqual([4, 1, 3]);
 });
 
 test("the header counts learned cases of every stage and a group folds under its title", async () => {
   const store = await mount();
   const head = renderer.root.findAllByType("PageHead" as any)[0]!;
   expect(head.props.sub).toBe("1 of 5 learned");
-  const dots = renderer.root.findAllByType("Pressable" as any).find(node => node.findAllByType("Text" as any).some(text => text.props.children === "Dots"))!;
+  const dots = renderer.root.findAllByType("Pressable" as any).find(node => node.props.accessibilityState?.expanded !== undefined && node.findAllByType("Text" as any).some(text => text.props.children === "Dots"))!;
   await act(() => dots.props.onPress());
   expect(store.get(collapsedAlgorithmGroupsAtom)).toEqual({ "oll:Dots": true });
   expect(browser().props.data.flatMap((row: any) => row.kind === "case" ? [row.c.id] : [])).toEqual(["OLL 2", "OLL 4"]);
@@ -142,11 +147,11 @@ test("pager snapshots the displayed filter and expanded groups", async () => {
 test("the on-screen return pops the details, including after the next-case button", async () => {
   const store = await mount();
   await open("OLL 1");
-  await act(() => renderer.root.findAllByType("Btn" as any).find(node => node.props.accessibilityLabel === "Next case")!.props.onPress());
+  await act(() => renderer.root.findAllByType("Button" as any).find(node => node.props.accessibilityLabel === "Next case")!.props.onPress());
   expect(store.get(routeAtom)).toMatchObject({ caseId: "OLL 3" });
-  const head = renderer.root.findAllByType("PageHead" as any).find(node => node.props.onBack)!;
+  const head = renderer.root.findAllByType("PageHead" as any).find(node => node.props.lead)!;
   expect(head.props.title).toBe("OLL 3");
-  await act(() => head.props.onBack());
+  await act(() => head.props.lead.props.onPress());
   expect(store.get(routeAtom)).toEqual({ page: "algorithms" });
   await act(() => { store.set(goBackAtom); });
   expect(store.get(routeAtom)).toEqual({ page: "playground" });

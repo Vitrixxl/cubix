@@ -1,30 +1,26 @@
+import { CloudAlert } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SyncStatus } from "../../../src/client/local/client";
+import { Icon } from "@/components/ui/icon";
+import { Text } from "@/components/ui/text";
 import { local, syncStatusChanged } from "../api";
-import { AccountForm } from "./Settings";
-import { useTheme } from "../theme";
-import { Sheet } from "./Sheet";
 
-
-/** `offset`: distance from the window bottom, clearing the navigation bar. */
-export function SyncIndicator({ hidden, offset }: { hidden: boolean; offset: number }) {
-  const t = useTheme();
+/**
+ * A change that could not reach the server: a pill over the tab bar, a tap retries. (An expired session needs no
+ * pill: the app returns to the sign-in screen.)
+ */
+export function SyncIndicator({ hidden }: { hidden: boolean }) {
+  const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<SyncStatus>(local.status);
-  const [signIn, setSignIn] = useState(false);
-  useEffect(() => syncStatusChanged.on(status => { setStatus(status); if (status.state === "synced" || status.state === "syncing") setSignIn(false); }), []);
-  if (hidden || (status.state !== "error" && status.state !== "signin")) return null;
-  const label = status.state === "signin" ? "Sign in again" : "Couldn't save · Retry";
-  return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => status.state === "signin" ? setSignIn(true) : void local.retry()} style={[styles.indicator, { bottom: offset, backgroundColor: t.danger }, t.shadow]}>
-      <View style={styles.badge}><Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>!</Text></View>
-      <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>{label}</Text>
+  useEffect(() => syncStatusChanged.on(setStatus), []);
+  if (hidden || status.state !== "error") return null;
+  return <View pointerEvents="box-none" className="absolute right-0 left-0 items-center" style={{ bottom: Math.max(insets.bottom, 8) + 72 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Couldn't save. Retry" onPress={() => void local.retry()}
+      className="flex-row items-center gap-2 rounded-full bg-destructive px-4 py-2.5 shadow-lg active:opacity-80">
+      <Icon as={CloudAlert} size={16} className="text-white" />
+      <Text className="text-sm font-semibold text-white">Couldn't save · Retry</Text>
     </Pressable>
-    <Sheet open={signIn} title="Sign in" onClose={() => setSignIn(false)}><AccountForm initialMode="login" /></Sheet>
-  </>;
+  </View>;
 }
-
-const styles = StyleSheet.create({
-  indicator: { position: "absolute", alignSelf: "center", zIndex: 50, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 0 },
-  badge: { width: 18, height: 18, borderRadius: 0, backgroundColor: "#fff3", alignItems: "center", justifyContent: "center" },
-});

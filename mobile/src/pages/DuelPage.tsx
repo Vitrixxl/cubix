@@ -1,26 +1,28 @@
-import { useKeepAwake } from "expo-keep-awake";
-import { useAtomValue, useSetAtom } from "jotai";
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useAtomValue } from "jotai";
+import { Ban, MessageSquare, Plus, Send, Swords, Trophy, Undo2, X } from "lucide-react-native";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { BottomSheetFlatListMethods } from "@gorhom/bottom-sheet";
+import { Pressable, View } from "react-native";
 import { fmtSolve, fmtTime } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
-import { eventAtom, timerRunningAtom } from "../state";
-import { FONT, useTheme } from "../theme";
-import { useLayout } from "../hooks/useLayout";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
+import { Alg, Fade, Figure, Label, MenuItem, Mono, MoreMenu, Page, PageHead, Surface, TouchAction, TouchBar } from "../components/layout";
+import { Digits, LiveDigits, StopSurface, digitsSize, responder, useTimerChrome } from "../components/Practice";
+import { SessionButton } from "../components/PuzzlePicker";
+import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
 import { ao5, compare, ROUNDS, solveTime, useDuel, type DuelSolve } from "../lib/duel";
-import { AlgText } from "../components/AlgText";
-import { IconClose, IconComment, IconSend, IconSwords, IconTrophy } from "../components/icons";
-import { PuzzlePicker } from "../components/PuzzlePicker";
-import { RunningFade } from "../components/Practice";
-import { Sheet } from "../components/Sheet";
-import { StopSurface, responder } from "../components/TimerSurface";
-import { Btn, Label, PageHead, SkeletonLine, mono } from "../components/ui";
+import { eventAtom } from "../state";
+import { alpha, useColors } from "../theme";
 
 /**
- * The web app's duel (desktop/renderer/duel.tsx) at phone size: looking for an opponent near the player's level,
- * then the race — the scramble, the opponent's timer over the player's, the rounds as a board of cells in the tab
- * bar's sixths — the chat and the result with its rematch.
+ * The web app's duel (desktop/renderer/duel.tsx) on a phone: looking for an opponent near the player's level, then the
+ * race — the scramble, the opponent's timer over the player's, the rounds as a board — with the chat and the result in
+ * sheets.
  */
 export function DuelPage() {
   const { duel } = useDuel();
@@ -38,12 +40,10 @@ const clock = (ms: number) => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 };
 
-/** Before a race: the player's level on the event and one big cell to start (or stop) looking for an opponent. */
+/** Before a race: the player's level on the event and the button to start (or stop) looking for an opponent. */
 function Lobby() {
-  const t = useTheme();
   const { duel } = useDuel();
   const event = useAtomValue(eventAtom);
-  const { pagePadding } = useLayout();
   const searching = duel.status === "searching";
   const [, setSecond] = useState(0);
   useEffect(() => {
@@ -52,47 +52,37 @@ function Lobby() {
     return () => clearInterval(id);
   }, [searching]);
   const label = eventInfo(event)?.label ?? event;
-  const figures: [string, string | null][] = [
-    ["Your level", duel.level === undefined ? null : duel.level === null ? "New" : fmtTime(duel.level)],
-    ["Searching", searching ? clock(Date.now() - duel.searchSince) : "—"],
-    ["Also searching", searching ? String(duel.searching) : "—"],
-  ];
-  return <View style={styles.page}>
-    <PageHead title="Duel" sub={label} padding={pagePadding} right={<PuzzlePicker />} />
-    <View style={[styles.lobbyHead, { borderColor: t.line, paddingHorizontal: pagePadding }]}>
-      <Label>{`One against one · ${label}`}</Label>
-      <Text style={[styles.lobbyTitle, { color: t.text }]}>{searching ? "Looking for an opponent" : "Race an Ao5"}</Text>
-      <Text style={{ color: duel.notice ? t.danger : t.muted, fontSize: 13.5, lineHeight: 20 }}>
-        {duel.notice || "The same five scrambles for both of you, against a player near your level."}
-      </Text>
-    </View>
-    <View style={styles.figures}>
-      {figures.map(([name, value], i) => <View key={name} style={[styles.figure, { borderColor: t.line, borderLeftWidth: i ? 1 : 0 }]}>
-        <Label>{name}</Label>
-        {value === null ? <SkeletonLine width={72} height={26} radius={0} /> : <Text numberOfLines={1} style={[mono(t, 26), { lineHeight: 32 }]}>{value}</Text>}
-      </View>)}
-    </View>
-    <Pressable accessibilityRole="button" onPress={() => searching ? duel.leave() : void duel.search(event)}
-      style={({ pressed }) => [styles.start, { borderColor: t.line, backgroundColor: searching ? pressed ? t.hover : "transparent" : pressed ? t.accentPressed : t.accent }]}>
-      <Text style={[styles.startText, { color: searching ? t.text : "#fff" }]}>{searching ? "Cancel" : "Find an opponent"}</Text>
-    </Pressable>
-  </View>;
+  return <Page>
+    <PageHead title="Duel"><SessionButton /></PageHead>
+    <View className="flex-1" />
+    <Surface>
+      <View className="items-center gap-3 px-6 pt-8 pb-7">
+        <View className={cn("size-12 items-center justify-center rounded-xl", searching ? "bg-primary/15" : "bg-muted")}>
+          <Icon as={Swords} size={24} className={searching ? "text-primary" : "text-muted-foreground"} />
+        </View>
+        <Text accessibilityRole="header" className="text-center text-2xl font-semibold tracking-tight">{searching ? "Looking for an opponent" : "Race an Ao5"}</Text>
+        <Text className={cn("max-w-sm text-center text-sm leading-[20px]", duel.notice ? "text-destructive" : "text-muted-foreground")}>
+          {duel.notice || `The same five ${label} scrambles for both of you, against a player near your level.`}
+        </Text>
+      </View>
+      <View className="flex-row gap-4 border-y border-border bg-muted/30 px-6 py-4">
+        <View className="flex-1">{duel.level === undefined ? <View className="gap-1"><Label>Your level</Label><Skeleton className="h-7 w-20" /></View>
+          : <Figure label="Your level" size="lg" value={duel.level === null ? "New" : fmtTime(duel.level)} />}</View>
+        <Figure className="flex-1" label="Searching" size="lg" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
+        <Figure className="flex-1" label="Also searching" size="lg" value={searching ? String(duel.searching) : "–"} />
+      </View>
+      <View className="p-5">
+        <Button size="lg" variant={searching ? "outline" : "default"} className="h-12 gap-2 rounded-lg" onPress={() => searching ? duel.leave() : void duel.search(event)}>
+          <Icon as={searching ? X : Swords} size={17} className={searching ? "text-foreground" : "text-primary-foreground"} />
+          <Text className="text-base">{searching ? "Cancel" : "Find an opponent"}</Text>
+        </Button>
+      </View>
+    </Surface>
+  </Page>;
 }
 
 /** The time of a side at rest: its latest solve, or zero before its first. */
 const shown = (v: DuelSolve | undefined) => (v ? fmtSolve(v.ms, v.penalty) : "0.000");
-
-/** Only this text node re-renders on animation frames. */
-const LiveTime = memo(function LiveTime({ startedAt, style }: { startedAt: number; style: object }) {
-  const [text, setText] = useState(() => fmtTime(performance.now() - startedAt));
-  useEffect(() => {
-    let frame: number;
-    const tick = () => { setText(fmtTime(performance.now() - startedAt)); frame = requestAnimationFrame(tick); };
-    tick();
-    return () => cancelAnimationFrame(frame);
-  }, [startedAt]);
-  return <Text style={style}>{text}</Text>;
-});
 
 /** What the opponent is doing, in a word or two. */
 function opponentStatus(d: ReturnType<typeof useDuel>["duel"]) {
@@ -110,26 +100,35 @@ function useDuelTimer(): TimerApi {
   const timer = useTimer({ onStop: ms => duel.solve(ms), canStart: duel.canSolve });
   useEffect(() => { timer.reset(); }, [epoch]);
   useEffect(() => { if (timer.phase !== "stopped") duel.timer(timer.phase); }, [timer.phase, duel]);
-  const setRunning = useSetAtom(timerRunningAtom);
-  useLayoutEffect(() => { setRunning(timer.phase === "running"); }, [timer.phase, setRunning]);
-  useLayoutEffect(() => () => { setRunning(false); }, [setRunning]);
+  useTimerChrome(timer);
   return timer;
 }
 
+/** A side of the race: who, their level and what they are doing, then their time. */
+function Side({ name, level, tag, mine, children, hint, running }: { name: string; level: number | null; tag: string; mine: boolean; children: React.ReactNode; hint?: string; running: boolean }) {
+  return <View className="min-h-0 flex-1 items-center justify-center gap-2">
+    <Fade hidden={running} className="flex-row items-center gap-2">
+      <Text numberOfLines={1} className="shrink text-sm font-medium">{name}</Text>
+      {level ? <Mono className="text-sm text-muted-foreground">{fmtTime(level)}</Mono> : null}
+      <View className={cn("rounded-md px-1.5 py-0.5", mine ? "bg-primary/15" : "bg-muted")}>
+        <Text className={cn("text-xs font-medium", mine ? "text-primary" : "text-muted-foreground")}>{tag}</Text>
+      </View>
+    </Fade>
+    {children}
+    {hint !== undefined ? <Text numberOfLines={1} className={cn("min-h-5 text-sm text-muted-foreground", running && "opacity-0")}>{hint}</Text> : null}
+  </View>;
+}
+
 function Race() {
-  useKeepAwake("cubix-duel", { suppressDeactivateWarnings: true });
-  const t = useTheme();
   const { duel } = useDuel();
-  const { pagePadding, width } = useLayout();
   const timer = useDuelTimer();
   const running = timer.phase === "running";
   const opponent = duel.opponent, me = duel.players[duel.seat], round = duel.round;
   const event = eventInfo(duel.event);
   const scramble = duel.scrambles[Math.min(round, ROUNDS - 1)] ?? "";
-  const [digitsWidth, setDigitsWidth] = useState(width);
-  const font = Math.max(40, Math.min(digitsWidth * 0.19, 96));
-  const digit = (color: string) => ({ fontFamily: FONT.mono, fontSize: font, lineHeight: Math.round(font * 1.12), fontWeight: "500" as const, letterSpacing: -font * 0.04, color, fontVariant: ["tabular-nums" as const], includeFontPadding: false });
-  const phaseColor = (phase: string, rest: string) => phase === "holding" ? t.danger : phase === "ready" ? t.good : rest;
+  const [area, setArea] = useState({ width: 320, height: 200 });
+  const size = digitsSize(area, 6, 104);
+  const myLast = duel.me[duel.latest(duel.me)];
   const myHint = !duel.opponentHere ? `${opponent.name} left the race`
     : duel.over ? "Race over"
     : !duel.scrambles.length ? "Drawing the scrambles…"
@@ -137,122 +136,113 @@ function Race() {
     : timer.phase === "holding" ? "Keep holding…"
     : timer.phase === "ready" ? "Release to start"
     : running ? "Tap to stop" : "Hold, then release to start";
-  const scrambleFont = scramble.length > 90 ? 15 : 19;
-  return <View style={styles.page}>
-    <RunningFade hidden={running}>
-      <PageHead title="Duel" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`} padding={pagePadding}
-        controls={<>
-          {duel.over && duel.dismissed === duel.game && <Btn icon={IconTrophy} label="Result" onPress={() => duel.showResult(true)} />}
-          {!duel.opponentHere && <Btn icon={IconSwords} label="New" accessibilityLabel="New opponent" onPress={() => void duel.next()} />}
-          <Btn icon={IconComment} label={duel.unread ? `Chat · ${duel.unread}` : "Chat"} active={duel.chatOpen} onPress={() => duel.toggleChat()} />
-          <Btn icon={IconClose} label="Leave" onPress={() => duel.leave()} />
-        </>} />
-      <View style={[styles.scramble, { borderColor: t.line, paddingHorizontal: pagePadding }]}>
-        <Label>{duel.over ? "Race over · Ao5" : `Round ${round + 1} of ${ROUNDS} · Scramble`}</Label>
-        {duel.over ? <Text style={{ color: t.muted, fontSize: 14 }}>Five rounds raced.</Text>
-          : scramble ? <AlgText alg={scramble} size={scrambleFont} lineHeight={Math.round(scrambleFont * 1.55)} />
-          : <SkeletonLine width="90%" height={scrambleFont * 1.3} radius={0} />}
+  const promptFont = scramble.length > 90 ? 15 : 18;
+  const theirPhase = duel.opponentPhase;
+  const colors = useColors();
+  return <Page>
+    <Fade hidden={running}>
+      <PageHead title="Duel" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}>
+        <Button variant={duel.chatOpen ? "secondary" : "outline"} size="icon" className="size-9" onPress={() => duel.toggleChat()} accessibilityLabel={duel.unread ? `Chat, ${duel.unread} new` : "Chat"}>
+          <Icon as={MessageSquare} size={19} />
+          {duel.unread ? <View className="absolute top-1 right-1 min-w-4 items-center rounded-full bg-primary px-1"><Text className="text-[10px] font-semibold text-primary-foreground">{duel.unread}</Text></View> : null}
+        </Button>
+        <MoreMenu>
+          {duel.over && duel.dismissed === duel.game ? <MenuItem icon={Trophy} onPress={() => duel.showResult(true)}>Result</MenuItem> : null}
+          {!duel.opponentHere ? <MenuItem icon={Swords} onPress={() => void duel.next()}>New opponent</MenuItem> : null}
+          <MenuItem icon={X} destructive onPress={() => duel.leave()}>Leave the race</MenuItem>
+        </MoreMenu>
+      </PageHead>
+    </Fade>
+    <Surface className={cn("flex-1", running && "border-transparent bg-transparent")}>
+      <Fade hidden={running} className="px-4 pt-4">
+        {duel.over ? <Text className="text-sm text-muted-foreground">Five rounds raced.</Text>
+          : scramble ? <Alg text={scramble} size={promptFont} />
+          : <Skeleton style={{ height: promptFont * 1.4, width: "90%" }} />}
+      </Fade>
+      <View className="min-h-0 flex-1 py-2" onLayout={event => { const { width, height } = event.nativeEvent.layout; setArea({ width, height: height / 2 }); }}>
+        <View className={cn("min-h-0 flex-1", !duel.opponentHere && "opacity-50")}>
+          <Side name={opponent.name} level={opponent.level} tag={opponentStatus(duel)} mine={false} running={running}>
+            {theirPhase === "running" ? <LiveDigits startedAt={duel.opponentStart} size={size} />
+              : <Digits text={theirPhase === "idle" ? shown(duel.them[duel.latest(duel.them)]) : "0.000"} phase={theirPhase} size={size} color={theirPhase === "idle" ? alpha(colors.foreground, 70) : undefined} />}
+          </Side>
+        </View>
+        <View className="min-h-0 flex-1" {...responder(timer, !duel.canSolve && !running)}>
+          <Side name={me?.name ?? ""} level={me?.level ?? null} tag="You" mine running={running} hint={myHint}>
+            {running ? <LiveDigits startedAt={timer.startedAt} size={size} />
+              : <Digits text={timer.phase === "idle" || timer.phase === "stopped" ? shown(duel.me[duel.latest(duel.me)]) : "0.000"} phase={timer.phase} size={size} />}
+          </Side>
+        </View>
       </View>
-    </RunningFade>
-    <View style={[styles.side, { borderColor: t.line, borderBottomWidth: 1 }]} onLayout={e => setDigitsWidth(e.nativeEvent.layout.width)}>
-      <SideHead name={opponent.name} level={opponent.level} tag={opponentStatus(duel)} accent={duel.opponentPhase === "running"} />
-      <View style={styles.readout}>
-        {duel.opponentPhase === "running"
-          ? <LiveTime startedAt={duel.opponentStart} style={digit(t.text)} />
-          : <Text style={digit(!duel.opponentHere ? t.muted : phaseColor(duel.opponentPhase, t.text))}>{duel.opponentPhase === "idle" ? shown(duel.them[duel.latest(duel.them)]) : "0.000"}</Text>}
-      </View>
-    </View>
-    <View style={styles.side} {...responder(timer, !duel.canSolve && !running)}>
-      <SideHead name={me?.name ?? ""} level={me?.level ?? null} tag="You" />
-      <View style={styles.readout}>
-        {running ? <LiveTime startedAt={timer.startedAt} style={digit(t.accent)} />
-          : <Text style={digit(phaseColor(timer.phase, t.accent))}>{timer.phase === "idle" || timer.phase === "stopped" ? shown(duel.me[duel.latest(duel.me)]) : "0.000"}</Text>}
-        <Text numberOfLines={1} style={[styles.hint, { color: t.muted, opacity: running ? 0 : 1 }]}>{myHint}</Text>
-      </View>
-    </View>
-    <RunningFade hidden={running}><Board actions /></RunningFade>
+      <Fade hidden={running} className="border-t border-border bg-muted/30 px-2 py-2">
+        <Board />
+        <TouchBar className="pt-1">
+          <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={myLast?.penalty === "+2"} tone="text-warning" disabled={!myLast} onPress={() => duel.penalty("+2")} />
+          <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={myLast?.penalty === "dnf"} tone="text-destructive" disabled={!myLast} onPress={() => duel.penalty("dnf")} />
+          <TouchAction icon={Undo2} label="Redo" accessibilityLabel="Take the solve back and redo it" disabled={!duel.canCancel} onPress={() => duel.cancel()} />
+        </TouchBar>
+      </Fade>
+    </Surface>
     <Chat />
     <Result />
     <StopSurface timer={timer} />
-  </View>;
+  </Page>;
 }
 
-/** The head of a side: its name and level, then a cell saying who or what, flush on the right. */
-function SideHead({ name, level, tag, accent }: { name: string; level: number | null; tag: string; accent?: boolean }) {
-  const t = useTheme();
-  const { pagePadding } = useLayout();
-  return <View style={[styles.sideHead, { borderColor: t.line, paddingLeft: pagePadding }]}>
-    <Text numberOfLines={1} style={{ color: t.text, fontSize: 13.5, fontWeight: "600", flexShrink: 1 }}>{name}</Text>
-    {level ? <Text style={[mono(t, 12, "400"), { color: t.muted }]}>{fmtTime(level)}</Text> : null}
-    <View style={[styles.sideTag, { borderColor: t.line }]}><Label style={accent ? { color: t.accent } : undefined}>{tag}</Label></View>
-  </View>;
-}
+const average = (v: number | null | undefined) => (v === undefined ? "" : v === null ? "DNF" : fmtTime(v));
 
-/**
- * The rounds in the tab bar's sixths: the five rounds and the Ao5 of the player, then (with `actions`) +2, DNF and
- * Cancel two sixths each, then the opponent's. The round being raced is lit, won rounds and the better Ao5 green.
- */
-function Board({ actions = false }: { actions?: boolean }) {
-  const t = useTheme();
+/** The rounds: one row per player, the round being raced marked, each won round and the better Ao5 in green. */
+function Board() {
   const { duel } = useDuel();
-  const row = (seat: number) => {
-    const solves = duel.results[seat] ?? [], other = duel.results[1 - seat] ?? [];
-    const own = ao5(solves), rival = ao5(other);
-    return <View key={seat} style={[styles.boardRow, { borderColor: t.line, borderTopWidth: seat === duel.seat ? 0 : 1 }]}>
-      {[...Array(ROUNDS).keys()].map(r => {
-        const v = solves[r], won = !!v && !!other[r] && compare(solveTime(v), solveTime(other[r]!)) === "win";
-        return <View key={r} style={[styles.boardCell, { borderColor: t.line, borderLeftWidth: r ? 1 : 0, backgroundColor: r === duel.round ? t.surface2 : "transparent" }]}>
-          <Text style={[styles.round, { color: r === duel.round ? t.accent : t.muted }]}>{r + 1}</Text>
-          <Text numberOfLines={1} style={[mono(t, 12.5), { color: v?.penalty === "dnf" ? t.danger : won ? t.good : t.text }]}>{v ? fmtSolve(v.ms, v.penalty) : ""}</Text>
-        </View>;
-      })}
-      <View style={[styles.boardCell, { borderColor: t.line, borderLeftWidth: 1 }]}>
-        <Text style={[styles.round, { color: t.muted }]}>AO5</Text>
-        <Text numberOfLines={1} style={[mono(t, 12.5, "600"), { color: own !== undefined && rival !== undefined && compare(own, rival) === "win" ? t.good : t.text }]}>
-          {own === undefined ? "" : own === null ? "DNF" : fmtTime(own)}
-        </Text>
-      </View>
-    </View>;
-  };
-  const last = duel.me[duel.latest(duel.me)];
-  const cell = (label: string, onPress: () => void, on: boolean, disabled: boolean, tone: string, first = false) =>
-    <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
-      style={({ pressed }) => [styles.action, { borderColor: t.line, borderLeftWidth: first ? 0 : 1, opacity: disabled ? 0.4 : 1, backgroundColor: on || pressed ? tone + "24" : "transparent" }]}>
-      <Text style={[mono(t, 15), { color: on ? tone : t.secondary }]}>{label}</Text>
-    </Pressable>;
-  return <View style={[styles.board, { borderColor: t.line }]}>
-    {row(duel.seat)}
-    {actions && <View style={[styles.boardRow, { borderColor: t.line, borderTopWidth: 1 }]}>
-      {cell("+2", () => duel.penalty("+2"), last?.penalty === "+2", !last, t.warning, true)}
-      {cell("DNF", () => duel.penalty("dnf"), last?.penalty === "dnf", !last, t.danger)}
-      {cell("Cancel", () => duel.cancel(), false, !duel.canCancel, t.danger)}
-    </View>}
-    {row(1 - duel.seat)}
+  const cell = "h-8 min-w-0 flex-1 items-center justify-center rounded-md";
+  return <View accessibilityLabel="Rounds" className="gap-0.5">
+    <View className="flex-row items-center gap-1 px-1">
+      <View className="w-16" />
+      {[...Array(ROUNDS).keys()].map(r => <Text key={r} className="min-w-0 flex-1 text-center text-xs text-muted-foreground">{r + 1}</Text>)}
+      <Text className="min-w-0 flex-[1.1] text-center text-xs text-muted-foreground">Ao5</Text>
+    </View>
+    {[duel.seat, 1 - duel.seat].map(seat => {
+      const solves = duel.results[seat] ?? [], other = duel.results[1 - seat] ?? [];
+      const own = ao5(solves), rival = ao5(other), mine = seat === duel.seat;
+      return <View key={seat} className="min-h-8 flex-row items-center gap-1 px-1">
+        <View className="w-16 flex-row items-baseline gap-1">
+          <Text numberOfLines={1} className="shrink text-xs font-medium">{duel.players[seat]?.name}</Text>
+          {mine && <Text className="text-[10px] text-muted-foreground">you</Text>}
+        </View>
+        {[...Array(ROUNDS).keys()].map(r => {
+          const v = solves[r], won = !!v && !!other[r] && compare(solveTime(v), solveTime(other[r]!)) === "win";
+          return <View key={r} className={cn(cell, r === duel.round && !duel.over && "bg-muted")}>
+            <Mono numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs", v?.penalty === "dnf" && "text-destructive", won && "text-success", !v && "text-muted-foreground/40")}>{v ? fmtSolve(v.ms, v.penalty) : "–"}</Mono>
+          </View>;
+        })}
+        <View className={cn(cell, "flex-[1.1]")}>
+          <Mono numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>{average(own) || "–"}</Mono>
+        </View>
+      </View>;
+    })}
   </View>;
 }
 
-/** Live chat with the opponent, in a sheet: messages over a field and its send cell. */
+/** Live chat with the opponent, in a sheet: messages over a field and its send button. */
 function Chat() {
-  const t = useTheme();
   const { duel } = useDuel();
   const [text, setText] = useState("");
-  const list = useRef<FlatList>(null);
-  const send = () => { duel.say(text); setText(""); };
-  return <Sheet open={duel.chatOpen} onClose={() => duel.toggleChat()} title="Chat" sub={String(duel.chat.length)} tall flush>
-    <FlatList ref={list} data={duel.chat} keyExtractor={(_, i) => String(i)} style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 6 }}
+  const list = useRef<BottomSheetFlatListMethods>(null);
+  const send = () => { if (!text.trim()) return; duel.say(text); setText(""); };
+  useLayoutEffect(() => { list.current?.scrollToEnd({ animated: false }); }, [duel.chat.length]);
+  return <Sheet open={duel.chatOpen} onClose={() => { if (duel.chatOpen) duel.toggleChat(); }} title="Chat" description={`With ${duel.opponent.name}`} snapPoints={["60%", "100%"]} contentClassName="gap-2 px-0">
+    <View className="min-h-0 flex-1"><SheetFlatList ref={list} style={{ flex: 1 }} data={duel.chat} keyExtractor={(_, i) => String(i)} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, gap: 10 }}
       onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
-      ListEmptyComponent={<Text style={{ color: t.muted, fontSize: 12.5, padding: 16 }}>No messages yet.</Text>}
-      renderItem={({ item }) => <View style={styles.chatLine}>
-        <Text style={[mono(t, 11, "400"), { color: item.seat === duel.seat ? t.accent : t.muted }]}>{duel.players[item.seat]?.name}</Text>
-        <Text style={{ color: t.text, fontSize: 14 }}>{item.text}</Text>
-      </View>} />
-    <View style={[styles.chatForm, { borderColor: t.line }]}>
-      <TextInput value={text} onChangeText={setText} maxLength={300} onSubmitEditing={send} submitBehavior="submit" returnKeyType="send"
-        editable={duel.opponentHere} placeholder={duel.opponentHere ? "Message" : `${duel.opponent.name} left`} placeholderTextColor={t.muted}
-        cursorColor={t.accent} selectionColor={t.soft} style={[styles.chatInput, { color: t.text }]} accessibilityLabel="Message" />
+      ListEmptyComponent={<Text className="py-2 text-sm text-muted-foreground">No messages yet.</Text>}
+      renderItem={({ item }) => <View className={cn("max-w-[85%] gap-0.5 rounded-xl px-3 py-2", item.seat === duel.seat ? "self-end bg-primary/15" : "self-start bg-muted")}>
+        <Text className={cn("text-xs font-medium", item.seat === duel.seat ? "text-primary" : "text-muted-foreground")}>{duel.players[item.seat]?.name}</Text>
+        <Text className="text-[15px]">{item.text}</Text>
+      </View>} /></View>
+    <View className="flex-row items-center gap-2 px-5">
+      <SheetInput value={text} onChangeText={setText} maxLength={300} onSubmitEditing={send} submitBehavior="submit" returnKeyType="send"
+        editable={duel.opponentHere} placeholder={duel.opponentHere ? "Message" : `${duel.opponent.name} left`} accessibilityLabel="Message" className="flex-1" />
       <Pressable accessibilityRole="button" accessibilityLabel="Send" disabled={!text.trim() || !duel.opponentHere} onPress={send}
-        style={({ pressed }) => [styles.chatSend, { borderColor: t.line, opacity: text.trim() && duel.opponentHere ? 1 : 0.4, backgroundColor: pressed ? t.hover : "transparent" }]}>
-        <IconSend size={16} color={t.text} />
+        className={cn("size-11 items-center justify-center rounded-lg bg-primary active:bg-primary/85", (!text.trim() || !duel.opponentHere) && "opacity-40")}>
+        <Icon as={Send} size={18} className="text-primary-foreground" />
       </Pressable>
     </View>
   </Sheet>;
@@ -260,63 +250,28 @@ function Chat() {
 
 /** Once both have raced the five rounds: who won, the rounds, and a rematch or another opponent. */
 function Result() {
-  const t = useTheme();
   const { duel } = useDuel();
-  if (!duel.over) return null;
+  const open = duel.over && duel.dismissed !== duel.game;
   const own = ao5(duel.me), rival = ao5(duel.them), result = compare(own, rival), opponent = duel.opponent.name;
   const asked = duel.rematch[duel.seat], offered = duel.rematch[1 - duel.seat];
   const note = !duel.opponentHere ? `${opponent} left.` : offered && !asked ? `${opponent} wants a rematch.` : asked ? `Waiting for ${opponent}…` : "";
-  const average = (v: number | null | undefined) => v === undefined ? "" : v === null ? "DNF" : fmtTime(v);
-  const cells: [string, () => void, boolean, boolean][] = [
-    [offered && !asked ? "Accept rematch" : "Rematch", () => duel.askRematch(), !duel.opponentHere || asked, offered && !asked],
-    ["New opponent", () => void duel.next(), false, false],
-    ["Leave", () => duel.leave(), false, false],
-  ];
-  return <Sheet open={duel.dismissed !== duel.game} onClose={() => duel.showResult(false)} title={result === "win" ? "You win" : result === "loss" ? `${opponent} wins` : "Draw"} flush>
-    <View style={[styles.score, { borderColor: t.line }]}>
+  return <Sheet open={open} onClose={() => { if (open) duel.showResult(false); }} title={result === "win" ? "You win" : result === "loss" ? `${opponent} wins` : "Draw"}
+    description="Average of five, best and worst dropped.">
+    <View className="flex-row gap-6">
       {([[duel.players[duel.seat]?.name ?? "", own, result === "win"], [opponent, rival, result === "loss"]] as const).map(([name, value, won], i) =>
-        <View key={i} style={[styles.scoreSide, { borderColor: t.line, borderLeftWidth: i ? 1 : 0 }]}>
+        <View key={i} className="flex-1 gap-1">
           <Label numberOfLines={1}>{name}</Label>
-          <Text style={[mono(t, 34), { lineHeight: 40, color: won ? t.good : t.text }]}>{average(value)}</Text>
-          <Label>Ao5</Label>
+          <Mono className={cn("text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{average(value) || "–"}</Mono>
         </View>)}
     </View>
-    <Board />
-    {note ? <Text style={[styles.note, { color: t.muted, borderColor: t.line }]}>{note}</Text> : null}
-    <View style={[styles.boardRow, { borderColor: t.line, borderTopWidth: 1 }]}>
-      {cells.map(([label, onPress, disabled, primary], i) => <Pressable key={label} accessibilityRole="button" disabled={disabled} onPress={onPress}
-        style={({ pressed }) => [styles.resultCell, { borderColor: t.line, borderLeftWidth: i ? 1 : 0, opacity: disabled ? 0.4 : 1, backgroundColor: primary ? t.accent : pressed ? t.hover : "transparent" }]}>
-        <Text numberOfLines={1} style={[mono(t, 13), { color: primary ? "#fff" : t.text }]}>{label}</Text>
-      </Pressable>)}
+    <View className="rounded-xl bg-muted/30 p-2"><Board /></View>
+    {note ? <Text className="text-sm text-muted-foreground">{note}</Text> : null}
+    <View className="gap-2">
+      <Button size="lg" className="h-12 rounded-lg" disabled={!duel.opponentHere || asked} onPress={() => duel.askRematch()}><Text className="text-base">{offered && !asked ? "Accept rematch" : "Rematch"}</Text></Button>
+      <View className="flex-row gap-2">
+        <Button variant="outline" size="lg" className="h-12 flex-1 rounded-lg" onPress={() => void duel.next()}><Text>New opponent</Text></Button>
+        <Button variant="ghost" size="lg" className="h-12 flex-1 rounded-lg" onPress={() => duel.leave()}><Text>Leave</Text></Button>
+      </View>
     </View>
   </Sheet>;
 }
-
-const styles = StyleSheet.create({
-  page: { flex: 1, minHeight: 0 },
-  lobbyHead: { gap: 8, paddingVertical: 24, borderBottomWidth: 1 },
-  lobbyTitle: { fontSize: 28, fontWeight: "600", letterSpacing: -0.6, fontFamily: FONT.mono },
-  figures: { flex: 1, minHeight: 0, flexDirection: "row", borderBottomWidth: 0 },
-  figure: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", gap: 10 },
-  start: { height: 64, alignItems: "center", justifyContent: "center", borderTopWidth: 1 },
-  startText: { fontFamily: FONT.mono, fontSize: 20, fontWeight: "500", letterSpacing: 0.6 },
-  scramble: { gap: 6, paddingVertical: 12, borderBottomWidth: 1 },
-  side: { flex: 1, minHeight: 0 },
-  sideHead: { flexDirection: "row", alignItems: "center", gap: 10, height: 36, borderBottomWidth: 1 },
-  sideTag: { alignSelf: "stretch", justifyContent: "center", marginLeft: "auto", paddingHorizontal: 14, borderLeftWidth: 1 },
-  readout: { flex: 1, alignItems: "center", justifyContent: "center" },
-  hint: { fontSize: 12.5, lineHeight: 18, height: 18, marginTop: 10 },
-  board: { borderTopWidth: 1 },
-  boardRow: { flexDirection: "row", height: 48 },
-  boardCell: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center" },
-  round: { position: "absolute", top: 4, left: 6, fontSize: 9.5, fontFamily: FONT.mono },
-  action: { flex: 1, alignItems: "center", justifyContent: "center" },
-  chatLine: { paddingVertical: 6, paddingHorizontal: 16, gap: 1 },
-  chatForm: { flexDirection: "row", height: 52, borderTopWidth: 1 },
-  chatInput: { flex: 1, paddingHorizontal: 16, fontSize: 14 },
-  chatSend: { width: 52, alignItems: "center", justifyContent: "center", borderLeftWidth: 1 },
-  score: { flexDirection: "row", borderBottomWidth: 1 },
-  scoreSide: { flex: 1, minWidth: 0, alignItems: "center", gap: 6, paddingVertical: 20, paddingHorizontal: 10 },
-  note: { fontSize: 13, paddingVertical: 12, paddingHorizontal: 16, borderTopWidth: 1 },
-  resultCell: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", height: 52 },
-});

@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const { withNativewind } = require("nativewind/metro");
 const path = require("node:path");
 
 const projectRoot = __dirname;
@@ -20,4 +21,6 @@ config.transformer.babelTransformerPath = require.resolve("react-native-svg-tran
 config.resolver.assetExts = config.resolver.assetExts.filter(ext => ext !== "svg");
 config.resolver.sourceExts = [...config.resolver.sourceExts, "svg"];
 
-module.exports = config;
+// Tailwind through NativeWind. The colour tokens are set at run time from the accent and the mode (src/theme.ts),
+// so no variable may be inlined at build time. 1rem is 16 dp, like the web.
+module.exports = withNativewind(config, { inlineVariables: false, inlineRem: 16 });

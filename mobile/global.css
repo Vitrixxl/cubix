@@ -1,0 +1,82 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" source(none);
+@import "nativewind/theme";
+@source "./App.tsx";
+@source "./src";
+
+/*
+ * The web app's shadcn preset (desktop/renderer/globals.css: base-nova, neutral, radius 0.625rem, Geist) for the
+ * Android app. The colours are CSS variables: `src/theme.ts` sets them at run time from the accent and the mode
+ * (`themeTokens` in src/client/lib/theme.ts, shared with the web), with the preset's dark blue values as defaults.
+ */
+@theme inline {
+    --font-sans: Geist;
+    --font-mono: GeistMono;
+    --font-heading: Geist;
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    /* Timer digits: 85% text and 15% accent; the milliseconds in a muted version of it. */
+    --color-timer: var(--timer);
+    --color-timer-ms: var(--timer-ms);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --radius-2xl: 18px;
+    --radius-3xl: 22px;
+}
+
+:root {
+    --background: #090c11;
+    --foreground: #f4f7fa;
+    --card: #10141a;
+    --popover: #131920;
+    --muted: #1f262e;
+    --secondary: #1f262e;
+    --accent: #222933;
+    --muted-foreground: #9ca5b1;
+    --border: rgba(189, 208, 232, 0.11);
+    --input: rgba(189, 208, 232, 0.16);
+    --destructive: #ff6467;
+    --success: #53d277;
+    --warning: #f7b83d;
+    --card-foreground: #f4f7fa;
+    --popover-foreground: #f4f7fa;
+    --secondary-foreground: #f4f7fa;
+    --accent-foreground: #f4f7fa;
+    --sidebar-foreground: #f4f7fa;
+    --sidebar-accent: #222933;
+    --sidebar-accent-foreground: #f4f7fa;
+    --sidebar-border: rgba(189, 208, 232, 0.11);
+    --primary: #3987e5;
+    --primary-foreground: #fafafa;
+    --ring: #3987e5;
+    --sidebar-primary: #3987e5;
+    --sidebar-primary-foreground: #fafafa;
+    --sidebar-ring: #3987e5;
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --timer: #d8e6f7;
+    --timer-ms: #869ebc;
+}

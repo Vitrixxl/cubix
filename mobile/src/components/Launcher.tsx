@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { useTheme } from "../theme";
+import { Animated, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Text } from "@/components/ui/text";
+import { useColors } from "../theme";
 import { LauncherCube } from "./LauncherCube";
 
 /**
@@ -9,7 +10,7 @@ import { LauncherCube } from "./LauncherCube";
  * fades out over the mounted app and calls `onHidden`.
  */
 export function Launcher({ message, progress, finish, onHidden }: { message: string; progress?: number; finish: boolean; onHidden: () => void }) {
-  const t = useTheme();
+  const colors = useColors();
   const { width, height } = useWindowDimensions();
   const opacity = useRef(new Animated.Value(1)).current;
   const [gone, setGone] = useState(false);
@@ -24,14 +25,14 @@ export function Launcher({ message, progress, finish, onHidden }: { message: str
   }, [opacity]);
   if (gone) return null;
   const size = Math.round(Math.min(width * 0.46, height * 0.28, 200));
-  return <Animated.View style={[StyleSheet.absoluteFill, styles.screen, { backgroundColor: t.bg, opacity }]} accessibilityViewIsModal>
+  return <Animated.View style={[StyleSheet.absoluteFill, styles.screen, { backgroundColor: colors.background, opacity }]} accessibilityViewIsModal>
     <LauncherCube size={size} finish={finish} onSettled={settled} />
     <View style={styles.title}>
-      <Text style={{ color: t.text, fontSize: 24, fontWeight: "700", lineHeight: 30, letterSpacing: -0.5 }}>Cubix</Text>
-      <Text accessibilityRole="progressbar" accessibilityLiveRegion="polite" style={{ color: t.readableMuted, fontSize: 13, lineHeight: 20, textAlign: "center", minHeight: 20 }}>{message}</Text>
+      <Text className="text-2xl font-bold tracking-tight">Cubix</Text>
+      <Text accessibilityRole="progressbar" accessibilityLiveRegion="polite" className="min-h-5 text-center text-[13px] leading-[20px] text-muted-foreground">{message}</Text>
     </View>
-    <View style={[styles.bar, { backgroundColor: t.surface3, opacity: progress === undefined ? 0 : 1 }]}>
-      <View style={{ width: `${Math.max(0, Math.min(100, progress ?? 0))}%`, height: "100%", backgroundColor: t.accent, borderRadius: 0 }} />
+    <View style={[styles.bar, { backgroundColor: colors.muted, opacity: progress === undefined ? 0 : 1 }]}>
+      <View style={{ width: `${Math.max(0, Math.min(100, progress ?? 0))}%`, height: "100%", backgroundColor: colors.primary, borderRadius: 2 }} />
     </View>
   </Animated.View>;
 }
