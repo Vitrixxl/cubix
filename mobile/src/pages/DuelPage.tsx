@@ -11,11 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { Alg, Fade, Figure, Label, MenuItem, Mono, MoreMenu, Page, PageHead, Surface, TouchAction, TouchBar } from "../components/layout";
-import { Digits, LiveDigits, StopSurface, digitsSize, responder, useTimerChrome } from "../components/Practice";
+import { Digits, LiveDigits, StopSurface, digitsSize, responder, timerHint, useTimerChrome } from "../components/Practice";
 import { SessionButton } from "../components/PuzzlePicker";
 import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
-import { ao5, compare, ROUNDS, solveTime, useDuel, type DuelSolve } from "../lib/duel";
+import { ao5, clock, compare, opponentStatus, raceAverage, ROUNDS, shownSolve, solveTime, useDuel } from "../lib/duel";
 import { eventAtom } from "../state";
 import { alpha, useColors } from "../theme";
 
@@ -34,11 +34,6 @@ export function DuelPage() {
   }, [event, duel]);
   return duel.status === "racing" ? <Race /> : <Lobby />;
 }
-
-const clock = (ms: number) => {
-  const seconds = Math.floor(ms / 1000);
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-};
 
 /** Before a race: the player's level on the event and the button to start (or stop) looking for an opponent. */
 function Lobby() {
@@ -81,19 +76,6 @@ function Lobby() {
   </Page>;
 }
 
-/** The time of a side at rest: its latest solve, or zero before its first. */
-const shown = (v: DuelSolve | undefined) => (v ? fmtSolve(v.ms, v.penalty) : "0.000");
-
-/** What the opponent is doing, in a word or two. */
-function opponentStatus(d: ReturnType<typeof useDuel>["duel"]) {
-  if (!d.opponentHere) return "Left";
-  if (d.over) return "Finished";
-  if (d.opponentPhase === "running") return "Solving";
-  if (d.opponentPhase !== "idle") return "Ready";
-  if (d.them[d.round]) return "Done";
-  return d.scrambles.length ? `Round ${d.round + 1}` : "Waiting";
-}
-
 /** The player's timer: a hold then a release like the timer page; every phase reaches the opponent. */
 function useDuelTimer(): TimerApi {
   const { duel, epoch } = useDuel();
@@ -129,13 +111,12 @@ function Race() {
   const [area, setArea] = useState({ width: 320, height: 200 });
   const size = digitsSize(area, 6, 104);
   const myLast = duel.me[duel.latest(duel.me)];
-  const myHint = !duel.opponentHere ? `${opponent.name} left the race`
-    : duel.over ? "Race over"
-    : !duel.scrambles.length ? "Drawing the scrambles…"
-    : duel.me[round] ? `Waiting for ${opponent.name}`
-    : timer.phase === "holding" ? "Keep holding…"
-    : timer.phase === "ready" ? "Release to start"
-    : running ? "Tap to stop" : "Hold, then release to start";
+  const myHint = timerHint(timer, {
+    disabled: !duel.opponentHere ? `${opponent.name} left the race`
+      : duel.over ? "Race over"
+      : !duel.scrambles.length ? "Drawing the scrambles…"
+      : !!duel.me[round] && `Waiting for ${opponent.name}`,
+  });
   const promptFont = scramble.length > 90 ? 15 : 18;
   const theirPhase = duel.opponentPhase;
   const colors = useColors();
@@ -163,21 +144,21 @@ function Race() {
         <View className={cn("min-h-0 flex-1", !duel.opponentHere && "opacity-50")}>
           <Side name={opponent.name} level={opponent.level} tag={opponentStatus(duel)} mine={false} running={running}>
             {theirPhase === "running" ? <LiveDigits startedAt={duel.opponentStart} size={size} />
-              : <Digits text={theirPhase === "idle" ? shown(duel.them[duel.latest(duel.them)]) : "0.000"} phase={theirPhase} size={size} color={theirPhase === "idle" ? alpha(colors.foreground, 70) : undefined} />}
+              : <Digits text={theirPhase === "idle" ? shownSolve(duel.them[duel.latest(duel.them)]) : "0.000"} phase={theirPhase} size={size} color={theirPhase === "idle" ? alpha(colors.foreground, 70) : undefined} />}
           </Side>
         </View>
         <View className="min-h-0 flex-1" {...responder(timer, !duel.canSolve && !running)}>
           <Side name={me?.name ?? ""} level={me?.level ?? null} tag="You" mine running={running} hint={myHint}>
             {running ? <LiveDigits startedAt={timer.startedAt} size={size} />
-              : <Digits text={timer.phase === "idle" || timer.phase === "stopped" ? shown(duel.me[duel.latest(duel.me)]) : "0.000"} phase={timer.phase} size={size} />}
+              : <Digits text={timer.phase === "idle" || timer.phase === "stopped" ? shownSolve(duel.me[duel.latest(duel.me)]) : "0.000"} phase={timer.phase} size={size} />}
           </Side>
         </View>
       </View>
       <Fade hidden={running} className="border-t border-border bg-muted/30 px-2 py-2">
         <Board />
         <TouchBar className="pt-1">
-          <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={myLast?.penalty === "+2"} tone="text-warning" disabled={!myLast} onPress={() => duel.penalty("+2")} />
-          <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={myLast?.penalty === "dnf"} tone="text-destructive" disabled={!myLast} onPress={() => duel.penalty("dnf")} />
+          <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={myLast?.penalty === "+2"} tone="warning" disabled={!myLast} onPress={() => duel.penalty("+2")} />
+          <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={myLast?.penalty === "dnf"} tone="bad" disabled={!myLast} onPress={() => duel.penalty("dnf")} />
           <TouchAction icon={Undo2} label="Redo" accessibilityLabel="Take the solve back and redo it" disabled={!duel.canCancel} onPress={() => duel.cancel()} />
         </TouchBar>
       </Fade>
@@ -187,8 +168,6 @@ function Race() {
     <StopSurface timer={timer} />
   </Page>;
 }
-
-const average = (v: number | null | undefined) => (v === undefined ? "" : v === null ? "DNF" : fmtTime(v));
 
 /** The rounds: one row per player, the round being raced marked, each won round and the better Ao5 in green. */
 function Board() {
@@ -215,7 +194,7 @@ function Board() {
           </View>;
         })}
         <View className={cn(cell, "flex-[1.1]")}>
-          <Mono numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>{average(own) || "–"}</Mono>
+          <Mono numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className={cn("text-xs font-medium", own !== undefined && rival !== undefined && compare(own, rival) === "win" && "text-success")}>{raceAverage(own) || "–"}</Mono>
         </View>
       </View>;
     })}
@@ -261,7 +240,7 @@ function Result() {
       {([[duel.players[duel.seat]?.name ?? "", own, result === "win"], [opponent, rival, result === "loss"]] as const).map(([name, value, won], i) =>
         <View key={i} className="flex-1 gap-1">
           <Label numberOfLines={1}>{name}</Label>
-          <Mono className={cn("text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{average(value) || "–"}</Mono>
+          <Mono className={cn("text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{raceAverage(value) || "–"}</Mono>
         </View>)}
     </View>
     <View className="rounded-xl bg-muted/30 p-2"><Board /></View>

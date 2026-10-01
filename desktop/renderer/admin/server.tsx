@@ -1,6 +1,6 @@
 /** The server: how long it has been running, which build, the database and the request log's limits. */
 import { useAdmin, useLiveState, type Overview } from "./api";
-import { bytes, date, Failure, FiguresSkeleton, Kpi, MONO, num, Section, span, useNow, when, ViewHead } from "./parts";
+import { bytes, date, Failure, FiguresSkeleton, Kpi, MONO, num, SectionHead, span, useNow, when, ViewHead } from "./parts";
 import { cn } from "@/lib/utils";
 
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: React.ReactNode }) {
@@ -37,7 +37,7 @@ export function Server() {
           </section>
           <div className="grid gap-x-10 gap-y-7 lg:grid-cols-2">
               <section aria-label="Build">
-                <Section title="Build" />
+                <SectionHead rule title="Build" />
                 <Row label="Version" value={d.version} />
                 <Row label="Build" value={d.build ?? "–"} />
                 <Row label="Commit" value={d.commit ? d.commit.slice(0, 12) : "–"} hint={d.commit ?? undefined} />
@@ -45,7 +45,7 @@ export function Server() {
                 <Row label="Server clock" value={when(d.now, true)} hint="at the last refresh" />
               </section>
               <section aria-label="Database and log">
-                <Section title="Database and request log" />
+                <SectionHead rule title="Database and request log" />
                 <Row label="Database size" value={bytes(d.db.bytes)} hint={`${num(d.db.bytes)} bytes`} />
                 <Row label="Free pages" value={bytes(d.db.freeBytes)} />
                 <Row label="Log rows" value={`${num(d.db.logRows)} / ${num(d.log.maxRows)}`} hint="ordinary rows kept" />

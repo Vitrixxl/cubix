@@ -14,7 +14,6 @@ export function applyTheme(name: string, light: boolean) {
   root.classList.toggle("dark", !light);
   root.style.colorScheme = light ? "light" : "dark";
   const tokens = themeTokens(id, light ? "light" : "dark");
-  // The status colours stay those of globals.css.
-  for (const [key, value] of Object.entries(tokens)) if (!["destructive", "success", "warning"].includes(key)) root.style.setProperty("--" + key, value);
+  for (const [key, value] of Object.entries(tokens)) root.style.setProperty("--" + key, value);
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", tokens.background!);
 }

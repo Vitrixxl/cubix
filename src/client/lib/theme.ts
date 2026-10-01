@@ -1,20 +1,5 @@
 export type ThemeId = "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";
 
-/** Platform-independent palette; renderers adapt these tokens to native styles or CSS. */
-export interface Theme {
-  id: ThemeId; mode: "light" | "dark";
-  bg: string; surface: string; surface2: string; surface3: string; hover: string;
-  text: string; text2: string; muted: string; readableMuted: string; line: string;
-  /** `accentSoft`: accent-tinted background (tags, selection), the web `--soft`. */
-  accent: string; accentSoft: string; series2: string;
-  good: string; danger: string; warning: string;
-  /** `.btn:hover` and `.select-trigger:hover` background */
-  surface3Hover: string;
-  /** Cards, menus and dialogs: white on the light theme, the first surface on the dark one. */
-  raised: string;
-  shadow: { shadowColor: string; shadowOpacity: number; shadowRadius: number; shadowOffset: { width: number; height: number }; elevation: number };
-}
-
 type Rgb = [number, number, number];
 function parse(color: string): Rgb {
   const hex = color.replace("#", "");
@@ -30,61 +15,32 @@ export function mix(a: string, percent: number, b: string): string {
 /** `color-mix(in srgb, a p%, transparent)` */
 export const alpha = (color: string, percent: number) => { const [r, g, b] = parse(color); return `rgba(${r}, ${g}, ${b}, ${(percent / 100).toFixed(3)})`; };
 
-const DARK: Record<ThemeId, Pick<Theme, "bg" | "surface" | "surface2" | "surface3" | "text" | "text2" | "muted" | "accent" | "series2">> = {
-  "t3-code": { bg: "#0b0b0e", surface: "#14141a", surface2: "#1c1c24", surface3: "#262630", text: "#eef0f5", text2: "#a9adba", muted: "#6f7384", accent: "#3987e5", series2: "#d95926" },
-  "t3-chat": { bg: "#130d14", surface: "#1c121c", surface2: "#291828", surface3: "#382036", text: "#fff1f7", text2: "#cdb0be", muted: "#886c7a", accent: "#ed2677", series2: "#ff82b5" },
-  grove: { bg: "#0b100d", surface: "#121a15", surface2: "#1a2720", surface3: "#25362c", text: "#edf7f0", text2: "#a7bdad", muted: "#687d6e", accent: "#39ad78", series2: "#c5b878" },
-  ocean: { bg: "#091015", surface: "#101b22", surface2: "#172832", surface3: "#213845", text: "#edf8fd", text2: "#a6bfca", muted: "#677e89", accent: "#42a4dc", series2: "#8ad4da" },
-  ember: { bg: "#120d0b", surface: "#1d1512", surface2: "#2b1d18", surface3: "#3b2921", text: "#fff4ee", text2: "#ccb2a5", muted: "#8b7063", accent: "#e1783f", series2: "#f0b080" },
-  iris: { bg: "#0e0b13", surface: "#17121e", surface2: "#21192d", surface3: "#30233f", text: "#f8f1ff", text2: "#bdaacf", muted: "#786987", accent: "#9a67df", series2: "#d59ad7" },
+/** Each theme's accent and second chart series (the rolling Ao5), per mode. */
+const ACCENTS: Record<"dark" | "light", Record<ThemeId, { accent: string; series2: string }>> = {
+  dark: {
+    "t3-code": { accent: "#3987e5", series2: "#d95926" },
+    "t3-chat": { accent: "#ed2677", series2: "#ff82b5" },
+    grove: { accent: "#39ad78", series2: "#c5b878" },
+    ocean: { accent: "#42a4dc", series2: "#8ad4da" },
+    ember: { accent: "#e1783f", series2: "#f0b080" },
+    iris: { accent: "#9a67df", series2: "#d59ad7" },
+  },
+  light: {
+    "t3-code": { accent: "#245cc5", series2: "#a44514" },
+    "t3-chat": { accent: "#b91b59", series2: "#7845b3" },
+    grove: { accent: "#23734e", series2: "#876718" },
+    ocean: { accent: "#186b98", series2: "#257571" },
+    ember: { accent: "#a64c22", series2: "#855c17" },
+    iris: { accent: "#7843b7", series2: "#a43881" },
+  },
 };
-/** Accent tint as an 8-bit alpha suffix: 16–20 % on dark themes, 12 % on light ones. */
-const softAlpha = (id: ThemeId, mode: "light" | "dark") => mode === "light" ? "1e" : id === "iris" ? "33" : id === "t3-code" ? "28" : "2d";
-const LIGHT_ACCENT: Record<ThemeId, { accent: string; series2: string }> = {
-  "t3-code": { accent: "#245cc5", series2: "#a44514" },
-  "t3-chat": { accent: "#b91b59", series2: "#7845b3" },
-  grove: { accent: "#23734e", series2: "#876718" },
-  ocean: { accent: "#186b98", series2: "#257571" },
-  ember: { accent: "#a64c22", series2: "#855c17" },
-  iris: { accent: "#7843b7", series2: "#a43881" },
-};
-
-const cache = new Map<string, Theme>();
-export function buildTheme(id: ThemeId, mode: "light" | "dark"): Theme {
-  const key = `${id}:${mode}`;
-  const existing = cache.get(key);
-  if (existing) return existing;
-  let theme: Theme;
-  if (mode === "dark") {
-    const d = DARK[id];
-    theme = {
-      id, mode, ...d, hover: "#ffffff0d", accentSoft: d.accent + softAlpha(id, mode), raised: d.surface,
-      readableMuted: mix(d.text, 65, d.bg), line: mix(d.text, 15, d.bg),
-      good: "#4ccf4c", danger: "#e66767", warning: "#fab219",
-      surface3Hover: mix(d.surface3, 70, mix(d.text, 8, d.surface3)),
-      shadow: { shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
-    };
-  } else {
-    const { accent, series2 } = LIGHT_ACCENT[id];
-    const text = "#192334", bg = mix(accent, 4, "#ffffff"), surface = mix(accent, 7, "#ffffff");
-    theme = {
-      id, mode, bg, surface, raised: "#ffffff", surface2: mix(accent, 11, "#ffffff"), surface3: mix(accent, 16, "#ffffff"),
-      hover: accent + "11", text, text2: "#48566b", muted: "#617087",
-      readableMuted: mix(text, 65, bg), line: mix(text, 18, bg),
-      accent, accentSoft: accent + softAlpha(id, mode), series2,
-      good: "#237444", danger: "#bb3545", warning: "#93600b",
-      surface3Hover: mix(mix(accent, 16, "#ffffff"), 70, mix(text, 8, mix(accent, 16, "#ffffff"))),
-      shadow: { shadowColor: "#1c2d48", shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
-    };
-  }
-  cache.set(key, theme);
-  return theme;
-}
+/** A theme's accent and second chart series in a mode. */
+export const buildTheme = (id: ThemeId, mode: "light" | "dark") => ACCENTS[mode][id];
 
 export const THEMES = ([
   ["t3-code", "Blue"], ["t3-chat", "Pink"], ["grove", "Green"],
   ["ocean", "Cyan"], ["ember", "Orange"], ["iris", "Purple"],
-] as const).map(([id, name]) => ({ id, name, color: DARK[id].accent }));
+] as const).map(([id, name]) => ({ id, name, color: ACCENTS.dark[id].accent }));
 
 // ---------------------------------------------------------------------------
 // shadcn tokens: the preset's neutrals leaning towards the accent's hue, the accent as primary. The web writes them as
@@ -93,12 +49,12 @@ export const THEMES = ([
 const linear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 const linearRgb = (hex: string) => parse(hex).map(v => linear(v / 255)) as Rgb;
 /** Relative luminance of a hex colour (WCAG). */
-export function luminance(hex: string) {
+function luminance(hex: string) {
   const [r, g, b] = linearRgb(hex);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 /** The OKLCH hue of a hex colour, in degrees. */
-export function hueOf(hex: string) {
+function hueOf(hex: string) {
   const [r, g, b] = linearRgb(hex),
     l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b),
     m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b),
@@ -108,7 +64,7 @@ export function hueOf(hex: string) {
   return ((Math.atan2(bb, a) * 180) / Math.PI + 360) % 360;
 }
 /** An OKLCH colour as sRGB hex, or `rgba()` when it is translucent (`alpha` in %). Out-of-gamut channels are clipped. */
-export function oklchToRgb(l: number, c: number, h: number, alpha?: number): string {
+function oklchToRgb(l: number, c: number, h: number, alpha?: number): string {
   const hr = (h * Math.PI) / 180, a = c * Math.cos(hr), b = c * Math.sin(hr);
   const l_ = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3,
     m_ = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3,
@@ -156,7 +112,7 @@ const NEUTRALS: Record<"dark" | "light", Record<string, [number, number, number?
     input: [0.89, 0.014],
   },
 };
-/** The preset's fixed status colours (globals.css): errors, the best time and +2. */
+/** The preset's status colours, the same for every accent: errors (and the worst time, DNF), the best time and +2. */
 const STATUS: Record<"dark" | "light", Record<string, [number, number, number]>> = {
   dark: { destructive: [0.704, 0.191, 22.216], success: [0.77, 0.17, 150], warning: [0.82, 0.15, 80] },
   light: { destructive: [0.577, 0.245, 27.325], success: [0.52, 0.13, 150], warning: [0.58, 0.13, 70] },
@@ -174,7 +130,8 @@ export function themeTokens(id: ThemeId, mode: "light" | "dark", format: "oklch"
   const foreground = 1.05 / (luminance(t.accent) + 0.05) >= 3.5 ? color(0.985, 0, 0) : color(0.145, 0, 0);
   const hue = hueOf(t.accent);
   const neutral = Object.fromEntries(Object.entries(NEUTRALS[mode]).map(([key, [l, c, a]]) => [key, color(l, c, hue, a)]));
-  const status = Object.fromEntries(Object.entries(STATUS[mode]).map(([key, [l, c, h]]) => [key, color(l, c, h)]));
+  // Written as the preset writes them: the hue is not rounded.
+  const status = Object.fromEntries(Object.entries(STATUS[mode]).map(([key, [l, c, h]]) => [key, format === "rgb" ? oklchToRgb(l, c, h) : `oklch(${l} ${c} ${h})`]));
   return {
     ...neutral,
     ...status,

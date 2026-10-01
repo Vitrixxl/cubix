@@ -2,10 +2,10 @@ import {appearanceFromStorage} from "../appearance";
 import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
-import { practiceSummary } from "../../src/client/lib/practiceSummary";
+import { sessionMetrics, type Metric } from "../../src/client/lib/practiceSummary";
+import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import { bestAverage, fmtTime } from "../../src/client/lib/format";
 import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { duel } from "./duelClient";
@@ -21,6 +21,11 @@ export const matches = (c: any, q: string) =>
         .includes(word),
     );
 const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "profile"];
+/** From this width a training opens with its times shown, and Escape no longer folds them away. */
+export const TIMES_OPEN_WIDTH = 1024;
+const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
+/** Whether a window this wide keeps the session's times beside the stage, with no button to fold them away. */
+export const timesAlwaysShown = (width: number, training: boolean) => !isPhone(width) && width >= (training ? 1200 : 980);
 const LOCATION_KEY = "cubix.location";
 /** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
 function slideDirection(
@@ -76,7 +81,6 @@ export class Store {
   localData = false;
   overlay = "";
   overlaySolve: any = null;
-  anchor: DOMRect | null = null;
   search = "";
   query = "";
   learningFilter = "all";
@@ -162,7 +166,7 @@ export class Store {
     if (typeof saved.profileMode === "string") this.profileMode = saved.profileMode;
     if (saved.trainingStep === "setup" || saved.trainingStep === "practice") this.trainingStep = saved.trainingStep;
     if (typeof saved.setupMode === "string") this.setupMode = saved.setupMode;
-    this.showTimes = this.page === "training" && innerWidth >= 1024;
+    this.showTimes = timesOpenAtStart(this.page);
     this.profilePuzzle = this.puzzle;
     this.profileSolveMode = this.solveMode;
     this.profileScramble = this.scrambleType;
@@ -203,6 +207,11 @@ export class Store {
   per(key: string, value: any) {
     this.pref(key, { ...this.prefs[key], [this.puzzle]: value });
   }
+  /** Closes the dialog or sheet open over the app. */
+  closeOverlay = () => {
+    this.overlay = "";
+    this.emit();
+  };
   fail = (e: any) => {
     this.error = e.message ?? String(e);
     this.saving = false;
@@ -527,7 +536,7 @@ export class Store {
     this.caseId = caseId;
     this.overlay = "";
     this.timerEpoch++;
-    this.showTimes = page === "training" && innerWidth >= 1024;
+    this.showTimes = timesOpenAtStart(page);
     if (page === "profile") {
       this.profileMode = "overview";
       this.profilePuzzle = this.puzzle;
@@ -578,7 +587,7 @@ export class Store {
       (row ? { ...row, time_ms: row.timeMs } : this.overlaySolve)
     );
   }
-  async action(action: string, element?: HTMLElement) {
+  async action(action: string) {
     if (this.running || this.saving) return;
     this.error = "";
     const ix = action.indexOf(":"),
@@ -740,7 +749,6 @@ export class Store {
           break;
         case "menu":
           this.overlay = this.overlay === arg ? "" : arg;
-          this.anchor = element ? lineRect(element) : null;
           break;
         case "puzzle": {
           const event = eventInfo(arg);
@@ -952,39 +960,26 @@ export class Store {
       this.fail(e);
     }
   }
-  /** Session figures under the timer: label, value and the tone it is drawn in. */
-  metrics(): [label: string, value: string, tone: "" | "good" | "bad" | "accent"][] {
-    const summary = practiceSummary(this.solves), times = summary.times,
-      bestOf = (size: number) => bestAverage(times, size),
-      worst = !times.length ? null : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
-    if (this.practicePage() === "training")
-      return [["Best", fmtTime(summary.best), "good"], ["Mean", fmtTime(summary.mean), ""], ["Solves", String(summary.count), ""]];
-    return [
-      ["Best", fmtTime(summary.best), "good"],
-      ["Worst", worst ?? fmtTime(null), "bad"],
-      ["Mean", fmtTime(summary.mean), ""],
-      ["Ao5", fmtTime(summary.ao5), "accent"],
-      ["Best Ao5", fmtTime(bestOf(5)), "good"],
-      ["Ao12", fmtTime(summary.ao12), "accent"],
-      ["Best Ao12", fmtTime(bestOf(12)), "good"],
-      ["Solves", String(summary.count), ""],
-    ];
+  /** Session figures under the timer: label, value and the tone it is drawn in; a training keeps three. */
+  metrics(): Metric[] {
+    const all = sessionMetrics(this.solves);
+    if (this.practicePage() === "training") return all.filter(([label]) => ["Best", "Mean", "Solves"].includes(label));
+    return all;
   }
+  /** The scramble types the timer offers for the puzzle (cross + 1 has its own page). */
+  scrambleOptions = () =>
+    this.info().scrambles.filter((id: string) => !id.startsWith("cross1-")).map((id: string) => ({ id, label: this.label("scrambles", id) }));
 }
 export const store = new Store();
 
 /**
- * The rectangle of an element's lines: its box, widened by 1px on the sides where the line it sits against belongs to
- * a neighbour (a header cell has no bottom border, the header's line is under it), as the grid background does.
+ * A click handler running store actions one after the other. The element pressed loses the focus: Space starts the
+ * timer and must not press it again.
  */
-function lineRect(element: Element) {
-  const r = element.getBoundingClientRect(),
-    style = getComputedStyle(element),
-    own = (side: string) => parseFloat(style.getPropertyValue(`border-${side}-width`)) > 0;
-  return new DOMRect(
-    r.left - (own("left") ? 0 : 1),
-    r.top - (own("top") ? 0 : 1),
-    r.width + (own("left") ? 0 : 1) + (own("right") ? 0 : 1),
-    r.height + (own("top") ? 0 : 1) + (own("bottom") ? 0 : 1),
-  );
-}
+export const run = (...actions: string[]) => (e: { currentTarget: HTMLElement }) => {
+  e.currentTarget.blur();
+  void (async () => {
+    for (const action of actions) await store.action(action);
+  })();
+};
+

@@ -3,7 +3,7 @@
  * (rust-api/src/duel.rs). The server pairs players of similar levels and keeps the score; this client mirrors its
  * state for a page. The web app and the Android app each give it their own host: scrambles, level, token and storage.
  */
-import { averageOf, effective } from "./format";
+import { averageOf, effective, fmtSolve, fmtTime } from "./format";
 import { eventInfo, type PracticeContext, type ScrambleType } from "../../shared/puzzles";
 import type { Penalty } from "../../shared/types";
 
@@ -52,6 +52,29 @@ export function keepRecord(list: DuelRecord[], record: DuelRecord): DuelRecord[]
 export function battleRecord(list: DuelRecord[]) {
   const count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length;
   return `${count("win")} won · ${count("loss")} lost` + (count("draw") ? ` · ${count("draw")} drawn` : "");
+}
+
+/** A battle's result as its letter. */
+export const RESULT_MARK = { win: "W", loss: "L", draw: "D" } as const;
+/** A battle's average: DNF when it is one. */
+export const ao5Text = (v: number | null) => fmtTime(v, { blank: "DNF" });
+/** An Ao5 of the race: nothing until the five solves are in, DNF when it is one. */
+export const raceAverage = (v: number | null | undefined) => (v === undefined ? "" : ao5Text(v));
+/** The time of a side at rest: its latest solve, or zero before its first. */
+export const shownSolve = (v: DuelSolve | undefined) => (v ? fmtSolve(v.ms, v.penalty) : "0.000");
+/** Minutes and seconds, for how long a search has been running. */
+export function clock(ms: number) {
+  const seconds = Math.floor(ms / 1000);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+/** What the opponent is doing, in a word or two. */
+export function opponentStatus(d: Pick<DuelClient, "opponentHere" | "over" | "opponentPhase" | "them" | "round" | "scrambles">) {
+  if (!d.opponentHere) return "Left";
+  if (d.over) return "Finished";
+  if (d.opponentPhase === "running") return "Solving";
+  if (d.opponentPhase !== "idle") return "Ready";
+  if (d.them[d.round]) return "Done";
+  return d.scrambles.length ? `Round ${d.round + 1}` : "Waiting";
 }
 
 /** What a platform gives the duel: its API, scrambles, the player's level and token, and where battles go. */

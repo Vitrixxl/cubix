@@ -12,7 +12,7 @@ import {
   Failure,
   FiguresSkeleton,
   GuestTag,
-  Initials,
+  Avatar,
   IpLink,
   Kind,
   Kpi,
@@ -20,14 +20,14 @@ import {
   Nothing,
   num,
   RowsSkeleton,
-  Section,
-  solveTime,
+  SectionHead,
   Status,
   useNow,
   UserLink,
   ViewHead,
   when,
 } from "./parts";
+import { fmtTime } from "../../../src/client/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +71,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         lead={
           <>
             {back}
-            <Initials name={u.username} size={40} />
+            <Avatar name={u.username} size={40} />
           </>
         }
         title={
@@ -103,7 +103,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
       </section>
       <div className="grid gap-x-8 gap-y-6 xl:grid-cols-2">
         <section className="flex min-w-0 flex-col" aria-label="Puzzles">
-          <Section title="Puzzles" meta={d.puzzles.length || undefined} />
+          <SectionHead rule title="Puzzles" meta={d.puzzles.length || undefined} />
           {!d.puzzles.length ? (
             <Nothing>No solve yet.</Nothing>
           ) : (
@@ -126,8 +126,8 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
                     <TableCell className={cn(MONO, "text-right")}>{num(p.solves)}</TableCell>
                     <TableCell className={cn(MONO, "text-right text-muted-foreground")}>{num(p.dnf)}</TableCell>
                     <TableCell className={cn(MONO, "text-right text-muted-foreground max-sm:hidden")}>{num(p.trainingSolves)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right")}>{solveTime(p.bestMs)}</TableCell>
-                    <TableCell className={cn(MONO, "text-right")}>{solveTime(p.meanMs == null ? null : Math.round(p.meanMs))}</TableCell>
+                    <TableCell className={cn(MONO, "text-right")}>{fmtTime(p.bestMs)}</TableCell>
+                    <TableCell className={cn(MONO, "text-right")}>{fmtTime(p.meanMs == null ? null : Math.round(p.meanMs))}</TableCell>
                     <TableCell className="text-right text-muted-foreground max-sm:hidden">{ago(p.lastAt, now)}</TableCell>
                   </TableRow>
                 ))}
@@ -136,7 +136,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
           )}
         </section>
         <section className="flex min-w-0 flex-col" aria-label="Recent solves">
-          <Section title="Recent solves" meta={d.recentSolves.length || undefined} />
+          <SectionHead rule title="Recent solves" meta={d.recentSolves.length || undefined} />
           {!d.recentSolves.length ? (
             <Nothing>No solve yet.</Nothing>
           ) : (
@@ -160,7 +160,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
                         <span className="text-muted-foreground">DNF</span>
                       ) : (
                         <>
-                          {solveTime(s.effectiveMs)}
+                          {fmtTime(s.effectiveMs)}
                           {s.penalty === "+2" && <span className="ml-1 text-xs text-muted-foreground">+2</span>}
                         </>
                       )}
@@ -174,7 +174,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
       </div>
       <div className="grid gap-x-8 gap-y-6 lg:grid-cols-3">
         <section className="flex min-w-0 flex-col" aria-label="Signed-in devices">
-          <Section title="Signed-in devices" meta={d.sessions.length || undefined} />
+          <SectionHead rule title="Signed-in devices" meta={d.sessions.length || undefined} />
           {!d.sessions.length ? (
             <Nothing>Signed out everywhere.</Nothing>
           ) : (
@@ -190,7 +190,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
           )}
         </section>
         <section className="flex min-w-0 flex-col" aria-label="IP addresses">
-          <Section title="IP addresses" meta={d.ips.length || undefined} />
+          <SectionHead rule title="IP addresses" meta={d.ips.length || undefined} />
           {!d.ips.length ? (
             <Nothing>No address recorded.</Nothing>
           ) : (
@@ -207,7 +207,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
           )}
         </section>
         <section className="flex min-w-0 flex-col" aria-label="Duels">
-          <Section title="Duels" meta={d.duels.played || undefined} />
+          <SectionHead rule title="Duels" meta={d.duels.played || undefined} />
           {!d.duels.recent.length ? (
             <Nothing>No duel yet.</Nothing>
           ) : (
@@ -221,7 +221,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
                     vs <UserLink id={duel.opponentId} name={duel.opponent} />
                   </span>
                   <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>
-                    {solveTime(duel.ao5)} / {solveTime(duel.opponentAo5)}
+                    {fmtTime(duel.ao5)} / {fmtTime(duel.opponentAo5)}
                   </span>
                 </li>
               ))}
@@ -230,11 +230,11 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         </section>
       </div>
       <section className="flex min-w-0 flex-col" aria-label="Recent requests">
-        <Section title="Recent requests" meta={d.recentRequests.length || undefined}>
+        <SectionHead rule title="Recent requests" meta={d.recentRequests.length || undefined}>
           <Button variant="outline" size="sm" onClick={() => navigate(`/admin/requests?user=${encodeURIComponent(u.id)}`)} data-action="user:requests">
             All requests
           </Button>
-        </Section>
+        </SectionHead>
         {!d.recentRequests.length ? (
           <Nothing>No request logged.</Nothing>
         ) : (

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
 import { listUrl, navigate, useAdmin, useRoute, withParams, type Users as Data } from "./api";
-import { ago, date, Failure, GuestTag, Initials, MONO, Nothing, num, Pager, ROW_LINK, RowsSkeleton, SortHead, useNow, userPath, ViewHead, when } from "./parts";
+import { ago, date, Failure, GuestTag, Avatar, MONO, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, userPath, ViewHead, when } from "./parts";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -69,7 +69,7 @@ export function Users({ phone }: { phone: boolean }) {
             {d.rows.map((u) => (
               <li key={u.id}>
                 <button type="button" onClick={() => open(u.id)} className="flex w-full items-center gap-3 border-b py-3 text-left last:border-0">
-                  <Initials name={u.username} size={32} />
+                  <Avatar name={u.username} size={32} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-center gap-1.5 truncate font-medium">
                       {u.username} {u.isGuest && <GuestTag />}
@@ -99,10 +99,10 @@ export function Users({ phone }: { phone: boolean }) {
             </TableHeader>
             <TableBody>
               {d.rows.map((u) => (
-                <TableRow key={u.id} className={ROW_LINK} onClick={() => open(u.id)} data-user={u.username}>
+                <TableRow key={u.id} className="cursor-pointer" onClick={() => open(u.id)} data-user={u.username}>
                   <TableCell className="max-w-64">
                     <span className="flex min-w-0 items-center gap-2.5">
-                      <Initials name={u.username} size={24} />
+                      <Avatar name={u.username} size={24} />
                       <a
                         href={userPath(u.id)}
                         onClick={(e) => e.preventDefault()}

@@ -1,7 +1,7 @@
 /** The addresses the app was used from over a period: counts, first and last seen, the accounts seen from each; a row
  * opens its requests. */
 import { navigate, useAdmin, useRoute, withParams, type Ips as Data } from "./api";
-import { ago, Failure, FilterInput, Kpi, MONO, Nothing, num, Pager, ROW_LINK, RowsSkeleton, SortHead, useNow, UserLink, ViewHead, when, ipPath } from "./parts";
+import { ago, Failure, FilterInput, Kpi, MONO, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, UserLink, ViewHead, when, ipPath } from "./parts";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -83,7 +83,7 @@ export function Ips({ phone }: { phone: boolean }) {
             </TableHeader>
             <TableBody>
               {d.rows.map((r) => (
-                <TableRow key={r.ip} className={ROW_LINK} onClick={() => navigate(ipPath(r.ip))} data-ip={r.ip}>
+                <TableRow key={r.ip} className="cursor-pointer" onClick={() => navigate(ipPath(r.ip))} data-ip={r.ip}>
                   <TableCell className={cn(MONO, "font-medium")}>{r.ip}</TableCell>
                   <TableCell className={cn(MONO, "text-right")}>{num(r.requests)}</TableCell>
                   <TableCell className={cn(MONO, "text-right", r.errors ? "text-warning" : "text-muted-foreground")}>{num(r.errors)}</TableCell>

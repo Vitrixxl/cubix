@@ -3,7 +3,9 @@ import { BookOpen, CalendarDays, ChevronDown, ChevronRight, Gauge, Layers, Messa
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { best, bestAverage, fmtTime } from "../../../src/client/lib/format";
+import { best, bestAverage, fmtTime, plural, shortDate, solvedAt } from "../../../src/client/lib/format";
+import { HEAT_LEVELS, heatDays, heatmap, heatYears, trendScale, type ActivitySolve, type HeatCell } from "../../../src/client/lib/profile";
+import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
 import { puzzleOf } from "../../../src/shared/puzzles";
 import type { AchievementDto, CaseDto, CaseHistoryDto, HistoryPoint, ProfileDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,6 @@ import { TimerStats } from "./TimesChart";
  * (`TrainingProgress`) and the statistics sheet of one case (`ProfileCaseDialog`).
  */
 
-export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
 /** A profile section, every one built the same: a heading row (title, muted meta, a link to its page) and a body. */
@@ -66,12 +67,11 @@ export function SubHead({ title, children }: { title: ReactNode; children?: Reac
 }
 
 /** A figure: its label over the value in mono; an empty one is a faded dash. */
-export function Stat({ label, value, tone }: { label: string; value: string | null | undefined; tone?: "good" | "accent" | "bad" }) {
+export function Stat({ label, value, tone = "" }: { label: string; value: string | null | undefined; tone?: Tone }) {
   const empty = value == null || value === "–" || value === "-";
   return <View className="w-1/3 min-w-0 gap-1.5 pr-3">
     <Text numberOfLines={1} className="text-xs text-muted-foreground">{label}</Text>
-    <Mono numberOfLines={1} className={cn("text-xl font-medium tracking-tight",
-      empty ? "text-muted-foreground/60" : tone === "good" ? "text-success" : tone === "accent" ? "text-primary" : tone === "bad" ? "text-destructive" : "")}>{empty ? "–" : value}</Mono>
+    <Mono numberOfLines={1} className={cn("text-xl font-medium tracking-tight", empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{empty ? "–" : value}</Mono>
   </View>;
 }
 
@@ -80,25 +80,7 @@ export function Stats({ children }: { children: ReactNode }) {
   return <View className="flex-row flex-wrap gap-y-4">{children}</View>;
 }
 
-export type ActivitySolve = { at: string; time: number | null; timer: boolean };
-export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-export const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-
 const HEAT_GAP = 3, HEAT_CELL = 12, HEAT_LABEL = 30, MONTH_ROW = 16;
-/** Five steps of the accent: none, then the four quarters of the active days (GitHub's graph). */
-const LEVELS = ["bg-muted", "bg-primary/35", "bg-primary/60", "bg-primary/85", "bg-primary"];
-type HeatCell = { key: string; date: Date; count: number; hidden: boolean };
-
-/** The days to draw: the last 53 weeks up to today, or one calendar year. */
-function period(year: number | null) {
-  const today = new Date();
-  const first = year == null ? new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364) : new Date(year, 0, 1);
-  const last = year == null ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : new Date(year, 11, 31);
-  const start = new Date(first);
-  start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
-  const weeks = Math.ceil(((last.getTime() - start.getTime()) / 86400000 + 1) / 7);
-  return { first, last, start, weeks, today };
-}
 
 /**
  * The contribution graph (the web's profile/heatmap.tsx): solves per day as squares, a week per column (Monday on
@@ -109,41 +91,9 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
   const [year, setYear] = useState<number | null>(null);
   const [picked, setPicked] = useState<HeatCell | null>(null);
   const scroller = useRef<ScrollView>(null);
-  const days = useMemo(() => {
-    const map = new Map<string, { count: number; times: (number | null)[] }>();
-    for (const solve of solves) {
-      const key = dayKey(new Date(solve.at)), day = map.get(key) ?? { count: 0, times: [] };
-      day.count++;
-      if (solve.timer) day.times.push(solve.time);
-      map.set(key, day);
-    }
-    return map;
-  }, [solves]);
-  const years = useMemo(() => [...new Set([new Date().getFullYear(), ...[...days.keys()].map(k => Number(k.slice(0, 4)))])].sort((a, b) => b - a), [days]);
-  const { cells, weeks, months, level, total } = useMemo(() => {
-    const { first, last, start, weeks, today } = period(year);
-    const cells: HeatCell[] = [];
-    for (let i = 0; i < weeks * 7; i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      const key = dayKey(date);
-      cells.push({ key, date, count: days.get(key)?.count ?? 0, hidden: date < first || date > last || date > today });
-    }
-    const counts = cells.filter(c => !c.hidden && c.count).map(c => c.count).sort((a, b) => a - b);
-    const quartile = (q: number) => counts[Math.min(counts.length - 1, Math.floor(q * counts.length))] ?? 0;
-    const steps = [quartile(0.25), quartile(0.5), quartile(0.75)];
-    const level = (count: number) => !count ? 0 : count <= steps[0]! ? 1 : count <= steps[1]! ? 2 : count <= steps[2]! ? 3 : 4;
-    // A month is named over the week of its first day, unless the previous name is too close.
-    const months: { week: number; label: string }[] = [];
-    for (let w = 0; w < weeks; w++) {
-      const week = cells.slice(w * 7, w * 7 + 7);
-      const opening = w === 0 ? week.find(c => c.date >= first) : week.find(c => c.date.getDate() === 1);
-      if (!opening || opening.date > last) continue;
-      if (months.length && w - months.at(-1)!.week < 3) months.pop();
-      months.push({ week: w, label: opening.date.toLocaleDateString(undefined, { month: "short" }) });
-    }
-    return { cells, weeks, months, level, total: counts.reduce((sum, n) => sum + n, 0) };
-  }, [days, year]);
+  const days = useMemo(() => heatDays(solves), [solves]);
+  const years = useMemo(() => heatYears(days), [days]);
+  const { cells, weeks, months, level, total } = useMemo(() => heatmap(days, year), [days, year]);
   useEffect(() => { setPicked(null); }, [year, solves]);
   const step = HEAT_CELL + HEAT_GAP;
   const times = (picked && days.get(picked.key)?.times) ?? [];
@@ -171,7 +121,7 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
               {Array.from({ length: weeks }, (_, w) => <View key={w} style={{ gap: HEAT_GAP }}>
                 {cells.slice(w * 7, w * 7 + 7).map(c => c.hidden ? <View key={c.key} style={{ width: HEAT_CELL, height: HEAT_CELL }} />
                   : <Pressable key={c.key} hitSlop={1} onPress={() => setPicked(p => p?.key === c.key ? null : c)} accessibilityLabel={`${plural(c.count, "solve")} on ${c.date.toDateString()}`}
-                    className={cn("rounded-[3px]", LEVELS[level(c.count)], picked?.key === c.key && "border border-foreground")} style={{ width: HEAT_CELL, height: HEAT_CELL }} />)}
+                    className={cn("rounded-[3px]", HEAT_LEVELS[level(c.count)], picked?.key === c.key && "border border-foreground")} style={{ width: HEAT_CELL, height: HEAT_CELL }} />)}
               </View>)}
             </View>
           </View>
@@ -187,7 +137,7 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
         <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</Text>
         <View className="shrink-0 flex-row items-center gap-1">
           <Text className="text-xs text-muted-foreground">Less</Text>
-          {LEVELS.map(c => <View key={c} className={cn("size-2.5 rounded-[2px]", c)} />)}
+          {HEAT_LEVELS.map(c => <View key={c} className={cn("size-2.5 rounded-[2px]", c)} />)}
           <Text className="text-xs text-muted-foreground">More</Text>
         </View>
       </View>}
@@ -199,18 +149,11 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
 export function Trend({ history, averages, count = 100, height = 160 }: { history: HistoryPoint[]; averages: (number | null)[]; count?: number; height?: number }) {
   const colors = useColors();
   const [width, setWidth] = useState(0);
-  const from = Math.max(0, history.length - count), shown = history.slice(from), ao5 = averages.slice(from);
-  const finite = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
-  const values = [...shown.map(v => v.time), ...ao5].filter(finite);
-  if (values.length < 2) return <View className="items-center justify-center" style={{ height }}><Text className="text-sm text-muted-foreground">Your curve appears after two timed solves.</Text></View>;
-  const sorted = [...values].sort((a, b) => a - b);
-  // The slowest few percent would squash the rest: the scale stops near the top 3 %.
-  const low = sorted[0]!, high = Math.max(low + 1, sorted[Math.floor(sorted.length * 0.97)]!);
-  const top = 8, bottom = 8, h = height - 22;
+  const h = height - 22, scale = trendScale(history, averages, count, h);
+  if (!scale) return <View className="items-center justify-center" style={{ height }}><Text className="text-sm text-muted-foreground">Your curve appears after two timed solves.</Text></View>;
+  const { shown, ao5, y, ticks } = scale;
   const x = (i: number) => shown.length === 1 ? width / 2 : (i / (shown.length - 1)) * width;
-  const y = (v: number) => top + (1 - (Math.min(v, high) - low) / (high - low)) * (h - top - bottom);
-  const line = (points: (number | null)[]) => points.map((v, i) => finite(v) ? `${finite(points[i - 1]) ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}` : "").join(" ");
-  const ticks = [0, 1, 2].map(i => high - ((high - low) * i) / 2);
+  const line = (points: (number | null)[]) => scale.line(points, x, n => n.toFixed(1));
   return <View style={{ height }} accessibilityRole="image" accessibilityLabel={`Last ${shown.length} solves and their average of five`}>
     <View className="flex-1 flex-row gap-3">
       <View className="w-12" importantForAccessibility="no-hide-descendants">
@@ -239,12 +182,6 @@ export function TrendLegend() {
   </View>;
 }
 
-/** The hour for today's solves, the day for older ones. */
-const solvedAt = (iso: string) => {
-  const d = new Date(iso);
-  return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : shortDate(iso);
-};
-
 /** The latest timer solves, newest first; a tap opens one, a long press its menu. */
 export function LatestSolves({ history, count = 5 }: { history: HistoryPoint[]; count?: number }) {
   const from = Math.max(0, history.length - count);
@@ -257,7 +194,7 @@ export function LatestSolves({ history, count = 5 }: { history: HistoryPoint[]; 
         className="h-10 flex-row items-center gap-3 rounded-md px-2 active:bg-muted/60">
         <Mono className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Mono>
         <View className="w-24 flex-row items-center gap-1.5">
-          <Mono className={cn("text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{v.time == null ? "DNF" : fmtTime(v.time)}</Mono>
+          <Mono className={cn("text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Mono>
           {v.penalty === "+2" ? <Mono className="text-xs text-warning">+2</Mono> : null}
           {pb ? <Text className="text-xs font-medium text-success">PB</Text> : null}
         </View>

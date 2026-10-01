@@ -1,6 +1,6 @@
 /** Every screen at phone and desktop window sizes: the page never scrolls, nothing leaves the window,
  * the practice prompt, timer and metrics never overlap. Screenshots go to artifacts/electron/testing. */
-import { SHOTS, act, launchApp, resize, scrambled, startServer } from "./app";
+import { SHOTS, act, launchApp, resize, scrambled, signIn, startServer } from "./app";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -19,47 +19,49 @@ const problems = () => page.evaluate(() => {
   const visible = (element: Element) => { const r = box(element); return r.width > 0 && r.height > 0; };
   const root = document.documentElement;
   if (root.scrollHeight > innerHeight || root.scrollWidth > innerWidth) issues.push("the page scrolls");
-  const nav = document.querySelector(".nav");
+  // Phones navigate with the tab bar at the foot, the desktop with the sidebar.
+  const tabbar = document.querySelector('nav[aria-label="Sections"]');
   const inWindow = (selector: string) => {
     for (const element of document.querySelectorAll(selector)) {
       if (!visible(element)) continue;
       const r = box(element);
       if (r.left < -1 || r.right > innerWidth + 1 || r.top < -1 || r.bottom > innerHeight + 1) issues.push(`${selector} outside the window`);
-      else if (nav?.classList.contains("tabbar") && !element.closest(".nav") && r.bottom > box(nav).top + 1) issues.push(`${selector} under the tab bar`);
+      else if (tabbar && !tabbar.contains(element) && r.bottom > box(tabbar).top + 1) issues.push(`${selector} under the tab bar`);
     }
   };
-  inWindow(".nav .button");
-  // The header controls scroll sideways on phones when they do not fit; the title row must fit.
-  inWindow(".page-title .button");
-  for (const element of document.querySelectorAll(".page-head, .page-title"))
-    if (element.scrollWidth > element.clientWidth + 1) issues.push(`.${element.className.split(" ")[0]} clipped`);
-  const practice = document.querySelector(".page.practice");
-  if (practice) {
-    inWindow(".prompt .button");
-    inWindow(".timer-digits");
-    inWindow(".solve-actions .button");
-    inWindow(".metrics .metric");
-    const [prompt, timer, metrics] = [".prompt", ".timer", ".metrics"].map((selector) => box(document.querySelector(selector)!));
-    if (prompt.bottom > timer.top + 1) issues.push("the prompt overlaps the timer");
-    if (timer.bottom > metrics.top + 1) issues.push("the timer overlaps the metrics");
-    const cube = document.querySelector(".cube-box"), digits = document.querySelector(".timer-digits");
+  inWindow('nav[aria-label="Sections"] button');
+  inWindow('[data-slot="sidebar"] button');
+  // Every page opens with its header: the title and its controls must fit on it.
+  inWindow('[data-slot="sidebar-inset"] header button');
+  for (const element of document.querySelectorAll('[data-slot="sidebar-inset"] header'))
+    if (element.scrollWidth > element.clientWidth + 1) issues.push("the page header is clipped");
+  // The practice: the prompt (scramble or case) over the timer, the figures under it.
+  const timer = document.querySelector("[data-phase]");
+  if (timer) {
+    const prompt = timer.previousElementSibling;
+    inWindow("[data-phase] > :first-child"); // the digits, or the typed time
+    // The controls of the stage: the prompt's, the last solve's and, on phones, the bar at the thumb.
+    inWindow("[data-no-timer] button");
+    const metrics = document.querySelector('[aria-label="Statistics"], [aria-label="Session times"]');
+    if (metrics) inWindow('[aria-label="Statistics"] > *, [aria-label="Session times"]');
+    const t = box(timer);
+    if (prompt && box(prompt).bottom > t.top + 1) issues.push("the prompt overlaps the timer");
+    if (metrics && t.bottom > box(metrics).top + 1) issues.push("the timer overlaps the metrics");
+    const cube = prompt?.querySelector('[class~="group/cube"]'), digits = timer.firstElementChild;
     if (cube && digits) {
       const [c, d] = [box(cube), box(digits)];
       if (c.left < d.right - 1 && c.bottom > d.top + 1) issues.push("the cube overlaps the timer");
     }
-    for (const element of document.querySelectorAll(".prompt-text")) {
-      const alg = element.querySelector(".alg");
-      if (alg && element.clientHeight + 1 < Math.min(element.scrollHeight, parseFloat(getComputedStyle(alg).lineHeight))) issues.push("an algorithm has less than one readable line");
+    for (const alg of prompt?.querySelectorAll(".alg") ?? []) {
+      const shown = alg.parentElement!;
+      if (shown.clientHeight + 1 < Math.min(shown.scrollHeight, parseFloat(getComputedStyle(alg).lineHeight))) issues.push("an algorithm has less than one readable line");
     }
   }
-  const overview = document.querySelector(".overview");
-  if (overview) {
-    const r = box(overview);
-    for (const element of overview.querySelectorAll(".ov-card, .ov-figure")) {
-      const b = box(element);
-      if (b.width && (b.left < r.left - 1 || b.right > r.right + 1)) issues.push(`.${element.className.split(" ").at(-1)} outside the overview`);
-      if (element.scrollWidth > element.clientWidth + 1) issues.push(`.${element.className.split(" ").at(-1)} clipped`);
-    }
+  // Cards (the profile's, the phone's stage) stay inside the window and are never cut sideways.
+  for (const card of document.querySelectorAll('[data-slot="sidebar-inset"] [data-slot="card"]')) {
+    const r = box(card);
+    if (r.width && (r.left < -1 || r.right > innerWidth + 1)) issues.push("a card outside the window");
+    if (card.scrollWidth > card.clientWidth + 1) issues.push("a card clipped");
   }
   return [...new Set(issues)];
 });
@@ -71,10 +73,10 @@ async function check(name: string) {
     await resize(page, width, height);
     await page.waitForSelector("[data-exiting]", { state: "detached" });
     await page.waitForTimeout(250);
-    // Phones show the session times in a sheet over the practice: close it to check the practice itself.
-    const sheet = page.locator(".sheet-backdrop");
+    // Phones may show the session times in a sheet over the practice: close it to check the practice itself.
+    const sheet = page.locator('[data-slot="drawer-popup"]');
     if (await sheet.count()) {
-      await sheet.click({ position: { x: 4, y: 4 } });
+      await page.keyboard.press("Escape");
       await sheet.waitFor({ state: "detached" });
     }
     await page.screenshot({ path: `${SHOTS}/${name}-${width}x${height}.png` });
@@ -89,32 +91,34 @@ async function check(name: string) {
 }
 
 try {
-  await page.waitForSelector(".timer");
+  // The app is used signed in.
+  await signIn(page, "responsive");
+  await page.waitForSelector("[data-phase]");
   await scrambled(page);
   await check("timer");
-  // A typed time shows the actions of the last solve under the timer.
-  await act(page, "menu:entries");
-  await page.getByRole("option", { name: "Typing", exact: true }).click();
+  // A typed time enables the actions of the last solve under the timer.
+  await act(page, "menu:entry");
+  await page.getByRole("menuitemradio", { name: "Typing", exact: true }).click();
   await page.getByRole("textbox", { name: "Time", exact: true }).fill("1234");
   await page.keyboard.press("Enter");
-  await page.waitForSelector('[data-action^="penalty:"]');
-  await act(page, "menu:entries");
-  await page.getByRole("option", { name: "Timer", exact: true }).click();
+  await page.waitForSelector('[data-action^="penalty:"]:not([disabled]):not([data-disabled])');
+  await act(page, "menu:entry");
+  await page.getByRole("menuitemradio", { name: "Timer", exact: true }).click();
   await check("timer-solved");
 
   await act(page, "nav:algorithms");
-  await page.waitForSelector(".algorithms-page");
+  await page.waitForSelector('[data-action^="case:"]');
   await check("algorithms");
   await act(page, "case:F2L 1");
   await check("case"); // opened beside the list on desktop, as a page of its own on phones
 
   await act(page, "nav:training");
-  await page.waitForSelector(".training-setup");
+  await page.waitForSelector('[data-action^="setupMode:"]');
   await check("training-setup");
   await act(page, "setupMode:practice");
   await act(page, "selectSet:f2l");
   await act(page, "trainingStart:cases:practice");
-  await page.waitForSelector(".case-title");
+  await page.waitForSelector('[data-action="solution"]');
   await act(page, "solution");
   await check("training");
   await act(page, "trainingSetup");
@@ -124,7 +128,7 @@ try {
   await check("cross-plus-one");
 
   await act(page, "nav:profile");
-  await page.waitForSelector(".overview");
+  await page.waitForSelector('[data-action^="profileMode:"]');
   await check("profile");
 
   assert.deepEqual(failures, []);

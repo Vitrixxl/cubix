@@ -5,9 +5,10 @@
  */
 import React from "react";
 import { ChevronDown, type LucideIcon } from "lucide-react";
-import { store as s } from "./store";
+import { store as s, run } from "./store";
 import { EVENTS } from "../../src/shared/puzzles";
-import { Icon, type Props } from "./ui";
+import { TIME_ENTRIES } from "../../src/client/lib/format";
+import { Icon, type Props, type Tone } from "./base";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button as UiButton } from "@/components/ui/button";
@@ -61,14 +62,23 @@ export function TouchBar({ children, className }: Props) {
   );
 }
 
-/** One cell of a touch bar dispatching a store action; `pressed` marks an on/off one. */
+/** The colour of a pressed touch target by tone (over the pressed muted ground); `good` also tints the ground. */
+const PRESSED_TONE: Record<Tone, string> = {
+  "": "",
+  good: "text-success! bg-success/15!",
+  bad: "text-destructive!",
+  accent: "text-primary!",
+  warning: "text-warning!",
+};
+
+/** One cell of a touch bar dispatching a store action; `pressed` marks an on/off one, `tone` colours it while on. */
 export function TouchAction({
   action,
   icon: I,
   label,
   pressed,
   disabled,
-  tone,
+  tone = "",
   primary = false,
 }: {
   action: string;
@@ -76,7 +86,7 @@ export function TouchAction({
   label: React.ReactNode;
   pressed?: boolean;
   disabled?: boolean;
-  tone?: string;
+  tone?: Tone;
   primary?: boolean;
 }) {
   return (
@@ -85,14 +95,11 @@ export function TouchAction({
       variant={primary ? "default" : "ghost"}
       aria-pressed={pressed}
       disabled={disabled}
-      onClick={(e) => {
-        e.currentTarget.blur();
-        void s.action(action, e.currentTarget);
-      }}
+      onClick={run(action)}
       className={cn(
         "h-12 flex-col gap-0.5 px-1 text-[11px] font-medium",
         !primary && "text-muted-foreground aria-pressed:bg-muted aria-pressed:text-foreground",
-        pressed && tone,
+        pressed && PRESSED_TONE[tone],
       )}
     >
       {I ? <I className="size-[18px]" /> : null}
@@ -158,10 +165,7 @@ function SheetChoice({ label, value, options, onChange, columns = 3 }: {
 export function SessionSheet() {
   const open = s.overlay.startsWith("session"),
     scramble = s.overlay === "session:scramble",
-    close = () => {
-      s.overlay = "";
-      s.emit();
-    };
+    close = s.closeOverlay;
   const current = s.event().id;
   return (
     <PhoneSheet open={open} onOpenChange={(next) => !next && open && close()} title={scramble ? "Puzzle and scramble" : "Puzzle"} tall={scramble}>
@@ -196,9 +200,7 @@ export function SessionSheet() {
             label="Scramble"
             value={s.scrambleType}
             columns={2}
-            options={s.info().scrambles
-              .filter((id: string) => !id.startsWith("cross1-"))
-              .map((id: string) => ({ id, label: s.label("scrambles", id) }))}
+            options={s.scrambleOptions()}
             onChange={(id) => void s.action("scrambleType:" + id).then(() => {
               s.overlay = "session:scramble";
               s.emit();
@@ -207,11 +209,7 @@ export function SessionSheet() {
           <SheetChoice
             label="Entry"
             value={s.entry}
-            options={[
-              { id: "timer", label: "Timer" },
-              { id: "typing", label: "Typing" },
-              { id: "casual", label: "Casual" },
-            ]}
+            options={TIME_ENTRIES}
             onChange={(id) => {
               void s.action("entry:" + id);
               s.overlay = "session:scramble";

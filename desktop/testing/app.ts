@@ -60,10 +60,16 @@ export const scrambled = (page: Page) =>
     return !!text && !text.includes("Generating");
   }, undefined, { timeout: 60000 });
 
-/** The "Solves" metric of the practice page: this launch's session only. */
+/**
+ * The solves of the practice page's session (this launch's only): the "Solves" figure of the statistics, or the count
+ * beside the times list's heading when the list stands beside the stage (the figure then leaves the statistics).
+ */
 export const solveCount = (page: Page, n: number) =>
-  page.waitForFunction((n) => [...document.querySelectorAll(".metrics .metric")]
-    .some((metric) => metric.querySelector(".label")?.textContent === "Solves" && metric.querySelector(".metric-value")?.textContent === String(n)), n);
+  page.waitForFunction((n) => {
+    const figure = [...document.querySelectorAll('[aria-label="Statistics"] > *')].find((f) => f.firstElementChild?.textContent === "Solves"),
+      heading = [...document.querySelectorAll("h2")].find((h) => h.textContent === "Times" || h.textContent === "Session");
+    return (figure?.lastElementChild ?? heading?.nextElementSibling)?.textContent === String(n);
+  }, n);
 
 /** Starts and stops the timer with the keyboard. */
 export async function timeSolve(page: Page) {

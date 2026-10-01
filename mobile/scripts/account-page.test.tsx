@@ -1,6 +1,7 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { createStore, Provider, useAtomValue } from "jotai";
+import { mockLucide } from "../tests/lucide-mock";
 
 // The account page with its cards, dialogs and native drawing replaced by host nodes: what is checked
 // is which sections the overview shows, where they lead, and which filters each page offers.
@@ -37,15 +38,12 @@ mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "tok
     achievements: () => achievements,
   },
 } }));
-mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5 }));
+mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5, RESULT_MARK: {}, ao5Text: String }));
 mock.module("../src/hooks/usePreservedScroll", () => ({ usePreservedScroll: () => ({ ref: { current: null }, onScroll() {}, onContentSizeChange() {} }) }));
-mock.module("lucide-react-native", () => Object.fromEntries(["BookOpen", "CalendarDays", "Flame", "Layers", "LogOut", "Settings", "Swords", "Timer", "Trophy"].map(name => [name, name])));
+mockLucide();
 mock.module("../src/components/ProfileProgress", () => ({
   ...Object.fromEntries(["AchievementBadge", "Goal", "Heatmap", "LatestSolves", "MoreLink", "ProfileCaseDialog", "Section", "Stat", "Stats", "SubHead", "TrainingProgress", "Trend", "TrendLegend", "TwoTone"]
     .map(name => [name, name])),
-  dayKey: (d: Date) => d.toISOString().slice(0, 10),
-  shortDate: (iso: string) => iso.slice(0, 10),
-  plural: (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`,
 }));
 mock.module("../src/components/Achievements", () => ({ AchievementList: "AchievementList", AchievementTotal: "AchievementTotal" }));
 mock.module("../src/components/TimesChart", () => ({ TimerStats: "TimerStats" }));

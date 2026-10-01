@@ -2,7 +2,9 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Swords, Timer as TimerIcon, Trophy, type LucideIcon } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { fmtSolve, fmtTime } from "../../../src/client/lib/format";
+import { fmtSolve, fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
+import { timerFigures } from "../../../src/client/lib/practiceSummary";
+import { achievementLists, activityOf, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementSummaryDto, CaseDto, ProfileDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -14,21 +16,17 @@ import { api, local } from "../api";
 import { AchievementList, AchievementTotal } from "../components/Achievements";
 import { Empty, MenuItem, Mono, MoreMenu, Page, PageHead } from "../components/layout";
 import {
-  AchievementBadge, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, TrainingProgress, Trend, TrendLegend, TwoTone, dayKey, plural,
-  shortDate, type ActivitySolve,
+  AchievementBadge, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, TrainingProgress, Trend, TrendLegend, TwoTone,
 } from "../components/ProfileProgress";
 import { ChoiceButton, EventPicker } from "../components/PuzzlePicker";
 import { TimerStats } from "../components/TimesChart";
 import { UserAvatar } from "../components/UserAvatar";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
-import { battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
+import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
   PROFILE_SECTIONS, deletedSolveIdAtom, guidesAtom, learnedCaseIdsAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom,
   settingsOpenAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode,
 } from "../state";
-
-const RESULT_MARK = { win: "W", loss: "L", draw: "D" } as const;
-const ao5Text = (v: number | null) => (v === null ? "DNF" : fmtTime(v));
 
 /** A battle's result as its letter, green for a win and red for a loss. */
 function BattleMark({ b }: { b: DuelRecord }) {
@@ -70,32 +68,14 @@ function ResultMark({ b }: { b: DuelRecord }) {
   return <View className={cn("size-7 items-center justify-center rounded-md", RESULT_TONE[b.result])}><BattleMark b={b} /></View>;
 }
 
-/** Consecutive active days reaching today (or yesterday, still alive). */
-function currentStreak(days: Set<string>) {
-  const today = new Date(), d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
-  let current = 0;
-  while (days.has(dayKey(d))) { current++; d.setDate(d.getDate() - 1); }
-  return current;
-}
-
 function overviewData(profile: ProfileDto, cases: CaseDto[], learned: ReadonlySet<string>, summary: AchievementSummaryDto) {
   const trainedIds = new Set(profile.cases.map(c => c.summary.caseId));
-  const stages = [...new Set(cases.map(c => c.stage))].map(stage => {
-    const members = cases.filter(c => c.stage === stage);
-    return { stage, total: members.length, learned: members.filter(c => learned.has(c.id)).length, trained: members.filter(c => trainedIds.has(c.id)).length };
-  });
-  const activity: ActivitySolve[] = [
-    ...profile.playground.history.map(v => ({ at: v.at, time: v.time, timer: true })),
-    ...profile.cases.flatMap(c => c.history.map(v => ({ at: v.at, time: v.time, timer: false }))),
-  ].filter(v => v.at);
-  const latest = activity.reduce<string | null>((max, v) => (!max || v.at > max ? v.at : max), null);
+  const activity = activityOf(profile), { goals, recent } = achievementLists(summary.achievements);
   return {
     timer: profile.playground.summary, history: profile.playground.history, ao5: profile.playground.ao5,
-    learned: cases.filter(c => learned.has(c.id)).length, trained: trainedIds.size, stages,
-    goals: summary.achievements.filter(a => !a.unlocked).sort((a, b) => b.ratio - a.ratio).slice(0, 3),
-    recent: summary.achievements.filter(a => a.unlocked && a.unlockedAt).sort((a, b) => (a.unlockedAt! < b.unlockedAt! ? 1 : -1)).slice(0, 3),
-    activity, latest, streak: currentStreak(new Set(activity.map(v => dayKey(new Date(v.at))))),
+    learned: cases.filter(c => learned.has(c.id)).length, trained: trainedIds.size, stages: stageCounts(cases, learned, trainedIds),
+    goals: goals.slice(0, 3), recent: recent.slice(0, 3),
+    activity, latest: latestOf(activity), streak: streaks(activity).current,
   };
 }
 type Overview = ReturnType<typeof overviewData>;
@@ -119,12 +99,8 @@ function TimerSection({ d, label, onMore, onTimer }: { d: Overview; label: strin
       <Button variant="outline" onPress={onTimer}><Icon as={TimerIcon} size={16} /><Text>Open the timer</Text></Button>
     </View> : <>
       <Stats>
-        <Stat label="Best single" value={fmtTime(t.best)} tone="good" />
-        <Stat label="Best Ao5" value={fmtTime(t.bestAo5)} />
-        <Stat label="Best Ao12" value={fmtTime(t.bestAo12)} />
-        <Stat label="Current Ao5" value={fmtTime(t.ao5)} tone="accent" />
-        <Stat label="Current Ao12" value={fmtTime(t.ao12)} tone="accent" />
-        <Stat label="Mean" value={fmtTime(t.mean)} />
+        {/* The count is in the heading. */}
+        {timerFigures(t).slice(0, 6).map(([label, value, tone]) => <Stat key={label} label={label} value={value} tone={tone} />)}
       </Stats>
       <View className="gap-2">
         <SubHead title={`Last ${Math.min(100, d.history.length)} solves`}><TrendLegend /></SubHead>
@@ -268,7 +244,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
           <UserAvatar user={user} size={56} />
           <View className="min-w-0 flex-1 gap-0.5">
             <Text numberOfLines={1} accessibilityRole="header" className="text-xl font-semibold tracking-tight">{user.username}</Text>
-            <Text numberOfLines={1} className="text-sm text-muted-foreground">Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</Text>
+            <Text numberOfLines={1} className="text-sm text-muted-foreground">Joined {joinedDate(user.createdAt)}</Text>
           </View>
           <View className="shrink-0 flex-row items-center gap-2">{controls}</View>
         </View>

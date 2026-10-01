@@ -6,9 +6,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, HardDrive } from "lucide-react";
 import { store as s } from "./store";
-import { MOBILE, useViewport } from "./ui";
+import { usePhone } from "./ui";
+import { credentialErrors } from "../../src/client/lib/credentials";
 import { Logo } from "./logo";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,7 @@ function GoogleMark() {
 }
 
 export function LoginPage() {
-  const phone = useViewport().w <= MOBILE;
+  const phone = usePhone();
   const [mode, setMode] = useState<Mode>("login"),
     // After an ended session the account is known: only its password is asked again.
     [username, setUsername] = useState<string>(s.expired ? (s.user.username ?? "") : ""),
@@ -50,11 +50,9 @@ export function LoginPage() {
     e.preventDefault();
     if (pending) return;
     const name = username.trim();
-    if (!name) return setError({ field: "username", message: "Enter your username." });
-    if (!password) return setError({ field: "password", message: "Enter your password." });
     // The API's rules, said before asking it.
-    if (register && !/^[a-zA-Z0-9_]{3,24}$/.test(name)) return setError({ field: "username", message: "Use 3–24 letters, digits or underscores." });
-    if (register && password.length < 10) return setError({ field: "password", message: "Use 10 characters or more." });
+    const [invalid] = credentialErrors(register, name, password);
+    if (invalid) return setError(invalid);
     setError(null);
     setPending(true);
     try {
@@ -69,9 +67,8 @@ export function LoginPage() {
     }
   }
 
-  const big = phone && "h-12 text-base md:text-base";
   const fields = (
-    <FieldGroup className={cn(phone ? "gap-5" : "gap-4")}>
+    <FieldGroup className="gap-4 max-md:gap-5">
       <Field data-invalid={error?.field === "username" || undefined}>
         <FieldLabel htmlFor="login-username">Username</FieldLabel>
         <Input
@@ -86,7 +83,7 @@ export function LoginPage() {
           spellCheck={false}
           maxLength={24}
           aria-invalid={error?.field === "username" || undefined}
-          className={cn(big)}
+          className="max-md:h-12 max-md:text-base"
         />
         {error?.field === "username" ? (
           <FieldError>{error.message}</FieldError>
@@ -96,7 +93,7 @@ export function LoginPage() {
       </Field>
       <Field data-invalid={error?.field === "password" || undefined}>
         <FieldLabel htmlFor="login-password">Password</FieldLabel>
-        <InputGroup className={cn(phone && "h-12")}>
+        <InputGroup className="max-md:h-12">
           <InputGroupInput
             ref={secret}
             id="login-password"
@@ -107,7 +104,7 @@ export function LoginPage() {
             autoComplete={register ? "new-password" : "current-password"}
             maxLength={128}
             aria-invalid={error?.field === "password" || undefined}
-            className={cn(phone && "text-base md:text-base")}
+            className="max-md:text-base"
           />
           <InputGroupAddon align="inline-end">
             <InputGroupButton
@@ -132,13 +129,13 @@ export function LoginPage() {
   );
   const actions = (
     <div className="flex flex-col gap-4">
-      <Button type="submit" size="lg" disabled={pending} data-action="login:submit" className={cn("w-full", phone && "h-12 text-base")}>
+      <Button type="submit" size="lg" disabled={pending} data-action="login:submit" className="w-full max-md:h-12 max-md:text-base">
         {pending ? (register ? "Creating account…" : "Signing in…") : register ? "Create account" : "Sign in"}
       </Button>
-      <FieldSeparator className={cn(!phone && "[&_[data-slot=field-separator-content]]:bg-card")}>or</FieldSeparator>
+      <FieldSeparator className="md:[&_[data-slot=field-separator-content]]:bg-card">or</FieldSeparator>
       <Tooltip>
         <TooltipTrigger render={<span className="flex w-full" tabIndex={0} />}>
-          <Button type="button" variant="outline" size="lg" disabled aria-describedby="google-soon" className={cn("w-full", phone && "h-12 text-base")}>
+          <Button type="button" variant="outline" size="lg" disabled aria-describedby="google-soon" className="w-full max-md:h-12 max-md:text-base">
             <GoogleMark />
             Continue with Google
             <Badge id="google-soon" variant="secondary" className="ml-1 rounded-sm">
@@ -157,12 +154,12 @@ export function LoginPage() {
     </div>
   );
   const head = (
-    <div className={cn("flex flex-col gap-1.5", phone ? "items-start" : "items-center text-center")}>
+    <div className="flex flex-col items-start gap-1.5 md:items-center md:text-center">
       <div className="mb-3 flex items-center gap-2.5">
         <Logo size={phone ? 24 : 22} />
-        <span className={cn("font-semibold tracking-tight", phone ? "text-xl" : "text-lg")}>cubix</span>
+        <span className="text-xl font-semibold tracking-tight md:text-lg">cubix</span>
       </div>
-      <h1 className={cn("font-semibold tracking-tight", phone ? "text-2xl" : "text-xl")}>{register ? "Create your account" : "Welcome back"}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight md:text-xl">{register ? "Create your account" : "Welcome back"}</h1>
       <p className="text-sm text-muted-foreground">Time your solves, learn algorithms, race in duels.</p>
     </div>
   );
@@ -174,7 +171,7 @@ export function LoginPage() {
         setError(null);
       }}
     >
-      <TabsList className={cn("w-full", phone && "h-11!")}>
+      <TabsList className="w-full max-md:h-11!">
         <TabsTrigger value="login" data-action="login:mode:login">
           Sign in
         </TabsTrigger>

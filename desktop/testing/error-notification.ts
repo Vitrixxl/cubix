@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import tailwind from "bun-plugin-tailwind";
+import { tailwind } from "../web";
 
 const root = resolve(import.meta.dir, "../..");
 const result = await Bun.build({
@@ -63,7 +63,7 @@ try {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(server.url.href);
-  await page.locator('.app').waitFor();
+  await page.locator('.app').waitFor({ state: "attached" });
   const message = "Case cube and practice context do not match.";
   await page.evaluate(message => (window as any).testToast.error(message), message);
   const toast = page.locator('.error-toast');

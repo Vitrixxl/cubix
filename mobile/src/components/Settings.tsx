@@ -2,6 +2,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, Check, ChevronRight, LogOut, Moon, Sun } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, View } from "react-native";
+import { joinedDate } from "../../../src/client/lib/format";
 import { THEMES } from "../../../src/client/lib/theme";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -52,7 +53,7 @@ function Account({ onSignedOut }: { onSignedOut: () => void }) {
       <UserAvatar user={user} size={44} />
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="text-[15px] font-semibold">{user.username}</Text>
-        <Text className="text-xs text-muted-foreground">Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })} · synced</Text>
+        <Text className="text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)} · synced</Text>
       </View>
       <Button variant="outline" size="sm" className="h-10 gap-2" disabled={busy} onPress={() => void signOut()}>
         <Icon as={LogOut} size={15} />

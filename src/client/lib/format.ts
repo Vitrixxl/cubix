@@ -79,3 +79,18 @@ export function rollingAverages(times: readonly (number | null)[], size: number)
 
 /** Best rolling average of `size`, e.g. the best Ao5 of a series. */
 export const bestAverage = (times: readonly (number | null)[], size: number) => best(rollingAverages(times, size));
+
+/** "1 solve", "1,204 solves". */
+export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+
+/** A day as "12 Mar". */
+export const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
+/** The hour for today's solves, the day for older ones. */
+export function solvedAt(iso: string) {
+  const d = new Date(iso);
+  return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : shortDate(iso);
+}
+
+/** When an account was created, as "Mar 2026". */
+export const joinedDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", year: "numeric" });

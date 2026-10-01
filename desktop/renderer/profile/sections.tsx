@@ -1,14 +1,15 @@
 /** The overview's sections: timer, training, achievements and battles, each one card built the same way. */
 import { BookOpen, CalendarDays, Gauge, Layers, MessageSquare, Swords, Timer, Trophy, type LucideIcon } from "lucide-react";
 import { store as s } from "../store";
-import { fmtTime } from "../../../src/client/lib/format";
-import { MONO, SolveMenu, plural } from "../ui";
-import { battleRecord, type DuelRecord } from "../duelClient";
+import { fmtTime, plural, shortDate, solvedAt } from "../../../src/client/lib/format";
+import { timerFigures } from "../../../src/client/lib/practiceSummary";
+import { Bar, Figure, MONO, SolveMenu, run } from "../ui";
+import { RESULT_MARK, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { MoreLink, Section, Stat, Stats, SubHead, go } from "./card";
+import { MoreLink, Section, Stats, SubHead } from "./card";
 import { Trend, TrendLegend } from "./trend";
-import { battles, shortDate, solvedAt, type ProfileData } from "./data";
+import { battles, type ProfileData } from "./data";
 
 /** The latest timer solves, newest first; a click opens one, a right-click its menu. */
 export function LatestSolves({ history, averages, count = 5, phone = false }: { history: any[]; averages: (number | null)[]; count?: number; phone?: boolean }) {
@@ -28,12 +29,12 @@ export function LatestSolves({ history, averages, count = 5, phone = false }: { 
             <button
               type="button"
               data-action={"solve:" + v.id}
-              onClick={go("solve:" + v.id)}
+              onClick={run("solve:" + v.id)}
               className={cn("grid h-9 w-full items-center gap-3 rounded-md px-2 text-left outline-none hover:bg-muted/60 focus-visible:bg-muted/60", columns)}
             >
               <span className={cn(MONO, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
               <span className="flex items-center gap-1.5">
-                <span className={cn(MONO, "text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{v.time == null ? "DNF" : fmtTime(v.time)}</span>
+                <span className={cn(MONO, "text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</span>
                 {v.penalty === "+2" && <span className={cn(MONO, "text-xs text-warning")}>+2</span>}
                 {pb && <span className="text-xs font-medium text-success">PB</span>}
               </span>
@@ -71,7 +72,7 @@ export function TimerSection({ d, phone }: { d: ProfileData; phone: boolean }) {
         <div className="flex flex-col items-center gap-3 text-center text-sm text-muted-foreground">
           <Timer className="size-6" />
           <p>No timed {event.label} solves yet: your records and your curve appear here.</p>
-          <Button variant="outline" data-action="nav:playground" onClick={go("nav:playground")}>
+          <Button variant="outline" data-action="nav:playground" onClick={run("nav:playground")}>
             <Timer />
             Open the timer
           </Button>
@@ -79,12 +80,10 @@ export function TimerSection({ d, phone }: { d: ProfileData; phone: boolean }) {
       ) : (
         <>
           <Stats columns={6}>
-            <Stat label="Best single" value={fmtTime(t.best)} tone="good" />
-            <Stat label="Best Ao5" value={fmtTime(t.bestAo5)} />
-            <Stat label="Best Ao12" value={fmtTime(t.bestAo12)} />
-            <Stat label="Current Ao5" value={fmtTime(t.ao5)} tone="accent" />
-            <Stat label="Current Ao12" value={fmtTime(t.ao12)} tone="accent" />
-            <Stat label="Mean" value={fmtTime(t.mean)} />
+            {/* The count is in the heading. */}
+            {timerFigures(t).slice(0, 6).map(([label, value, tone]) => (
+              <Figure key={label} label={label} value={value} tone={tone} caption="plain" size="xl" />
+            ))}
           </Stats>
           <div className="flex flex-col gap-2">
             <SubHead title={`Last ${Math.min(100, d.history.length)} solves`}>
@@ -119,9 +118,9 @@ export function TrainingSection({ d }: { d: ProfileData }) {
   return (
     <Section label="Training" title="Training" meta={`${d.learned} of ${d.cases.length} learned`} open="training" more="Cases">
       <Stats columns={3}>
-        <Stat label="Learned" value={d.learned.toLocaleString()} tone="accent" />
-        <Stat label="Trained" value={d.trained.toLocaleString()} />
-        <Stat label="Solves" value={d.trainingSolves.toLocaleString()} />
+        <Figure caption="plain" size="xl" label="Learned" value={d.learned.toLocaleString()} tone="accent" />
+        <Figure caption="plain" size="xl" label="Trained" value={d.trained.toLocaleString()} />
+        <Figure caption="plain" size="xl" label="Solves" value={d.trainingSolves.toLocaleString()} />
       </Stats>
       {d.stages.length ? (
         <div className="flex flex-col gap-3">
@@ -182,9 +181,7 @@ export function Goal({ a }: { a: any }) {
           <span className="truncate text-sm font-medium">{a.title}</span>
           <span className={cn(MONO, "shrink-0 text-xs text-muted-foreground")}>{Math.round(a.ratio * 100)}%</span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary/70" style={{ width: Math.max(0, Math.min(1, a.ratio)) * 100 + "%" }} />
-        </div>
+        <Bar ratio={a.ratio} fill="bg-primary/70" className="h-1.5" />
       </div>
     </div>
   );
@@ -229,9 +226,7 @@ export function AchievementsSection({ d, wide = false }: { d: ProfileData; wide?
   );
 }
 
-const RESULT_MARK = { win: "W", loss: "L", draw: "D" } as const;
 const RESULT_TONE = { win: "bg-success/15 text-success", loss: "bg-destructive/15 text-destructive", draw: "bg-muted text-muted-foreground" } as const;
-export const ao5Text = (v: number | null) => (v === null ? "DNF" : fmtTime(v));
 
 export function ResultMark({ result }: { result: DuelRecord["result"] }) {
   return (
@@ -246,7 +241,7 @@ export function NoBattles({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col items-start gap-3 py-2 text-sm text-muted-foreground", className)}>
       <p>Race another cuber over five scrambles: your results land here.</p>
-      <Button variant="outline" data-action="nav:duel" onClick={go("nav:duel")}>
+      <Button variant="outline" data-action="nav:duel" onClick={run("nav:duel")}>
         <Swords />
         Find an opponent
       </Button>
@@ -265,9 +260,9 @@ export function BattlesSection() {
       ) : (
         <>
           <Stats columns={3}>
-            <Stat label="Played" value={String(list.length)} />
-            <Stat label="Won" value={String(won)} tone="good" />
-            <Stat label="Win rate" value={Math.round((won / Math.max(1, won + lost)) * 100) + "%"} />
+            <Figure caption="plain" size="xl" label="Played" value={String(list.length)} />
+            <Figure caption="plain" size="xl" label="Won" value={String(won)} tone="good" />
+            <Figure caption="plain" size="xl" label="Win rate" value={Math.round((won / Math.max(1, won + lost)) * 100) + "%"} />
           </Stats>
           <div className="flex flex-col gap-1">
             <SubHead title="Recent battles" />

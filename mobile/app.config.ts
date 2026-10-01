@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { posix, resolve } from "node:path";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 function git(...args: string[]): string {
@@ -38,10 +38,18 @@ const UPDATES_ENABLED = process.env.CUBIX_UPDATES !== "off";
  */
 export const NATIVE_INPUTS = [
   "app.json", "app.config.ts", "plugins/withReleaseSigning.js", "bun.lock",
-  "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png", "assets/fonts/cubing-icons.ttf",
-  // Geist and Geist Mono are linked natively as font families with their weights (expo-font in app.json).
-  ...["Regular", "Medium", "SemiBold", "Bold"].flatMap(weight => [`assets/fonts/Geist-${weight}.ttf`, `assets/fonts/GeistMono-${weight}.ttf`]),
+  "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png",
+  ...fontFiles(),
 ];
+/** The font files expo-font links natively (app.json): its plain fonts, then each Android family's weights. */
+function fontFiles(): string[] {
+  type FontPlugin = { fonts?: string[]; android?: { fonts?: { fontDefinitions?: { path: string }[] }[] } };
+  const { expo } = JSON.parse(readFileSync(resolve(__dirname, "app.json"), "utf8")) as { expo: { plugins?: unknown[] } };
+  const plugin = expo.plugins?.find((entry): entry is [string, FontPlugin] => Array.isArray(entry) && entry[0] === "expo-font");
+  const options = plugin?.[1] ?? {};
+  return [...options.fonts ?? [], ...(options.android?.fonts ?? []).flatMap(family => (family.fontDefinitions ?? []).map(font => font.path))]
+    .map(path => posix.normalize(path));
+}
 /**
  * expo-updates runtime version: a hash of the native inputs. An update is only offered to
  * APKs built with the same runtime version, so a JavaScript bundle never meets native code

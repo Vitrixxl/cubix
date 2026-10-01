@@ -93,9 +93,9 @@ export function SolveMenuProvider({ children }: { children: ReactNode }) {
         {shown.scramble ? <View className="items-center"><Alg text={shown.scramble} size={16} selectable className="justify-center" /></View> : null}
         {shown.comment ? <Text selectable className="text-center text-sm">{shown.comment}</Text> : null}
         <TouchBar className="rounded-xl bg-muted/40 p-1">
-          <TouchAction icon={Plus} label="+2" pressed={shown.penalty === "+2"} tone="text-warning" disabled={busy} onPress={() => void togglePenalty(shown, "+2")} accessibilityLabel="+2 penalty" />
-          <TouchAction icon={Ban} label="DNF" pressed={shown.penalty === "dnf"} tone="text-destructive" disabled={busy} onPress={() => void togglePenalty(shown, "dnf")} accessibilityLabel="Did not finish" />
-          <TouchAction icon={MessageSquare} label="Comment" pressed={!!shown.comment} tone="text-primary" disabled={busy} onPress={() => editComment(shown)} />
+          <TouchAction icon={Plus} label="+2" pressed={shown.penalty === "+2"} tone="warning" disabled={busy} onPress={() => void togglePenalty(shown, "+2")} accessibilityLabel="+2 penalty" />
+          <TouchAction icon={Ban} label="DNF" pressed={shown.penalty === "dnf"} tone="bad" disabled={busy} onPress={() => void togglePenalty(shown, "dnf")} accessibilityLabel="Did not finish" />
+          <TouchAction icon={MessageSquare} label="Comment" pressed={!!shown.comment} tone="accent" disabled={busy} onPress={() => editComment(shown)} />
           <TouchAction icon={Trash2} label="Delete" disabled={busy} onPress={() => void deleteTime(shown.id)} accessibilityLabel="Delete solve" />
         </TouchBar>
         {error ? <Text className="text-center text-sm text-destructive">{error}</Text> : null}
@@ -153,9 +153,9 @@ export function LastSolveBar({ solve, extra }: { solve: SolveSummary | null; ext
   const last = solve && pending !== null ? { ...solve, ...pending } : null;
   const off = !last || busy;
   return <TouchBar className="border-t border-border px-2 py-1.5">
-    <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={last?.penalty === "+2"} tone="text-warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />
-    <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={last?.penalty === "dnf"} tone="text-destructive" disabled={off} onPress={() => last && void togglePenalty(last, "dnf")} />
-    <TouchAction icon={MessageSquare} label="Comment" pressed={!!last?.comment} tone="text-primary" disabled={off} onPress={() => last && editComment(last)} />
+    <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={last?.penalty === "+2"} tone="warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />
+    <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={last?.penalty === "dnf"} tone="bad" disabled={off} onPress={() => last && void togglePenalty(last, "dnf")} />
+    <TouchAction icon={MessageSquare} label="Comment" pressed={!!last?.comment} tone="accent" disabled={off} onPress={() => last && editComment(last)} />
     <TouchAction icon={Trash2} label="Delete" accessibilityLabel="Delete solve" disabled={off} onPress={() => last && void deleteTime(last.id)} />
     {extra}
   </TouchBar>;

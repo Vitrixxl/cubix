@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig } from "motion/react";
-import { store as s } from "./store";
+import { store as s, TIMES_OPEN_WIDTH } from "./store";
 import { onEvent } from "./bridge";
 import { applyTheme } from "./theme";
 import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
-import { MOBILE, PageSkeleton, useViewport } from "./ui";
+import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
 import { Frame, Rail, TabBar } from "./shell";
 import { Practice } from "./practice";
 import { TrainingSetup } from "./setup";
@@ -15,7 +15,7 @@ import { Profile } from "./profile";
 import { DuelPage } from "./duel";
 import { Overlays } from "./overlays";
 import { LoginPage } from "./login";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 /** Kept on this device so a relaunch draws the right screen before the engine answers. */
 const SIGNED_IN_KEY = "cubix.signedIn";
@@ -65,7 +65,7 @@ function App() {
         }
       } else if (e.key === "Escape") {
         // Dialogs and menus close themselves; with none open, Escape folds the times away.
-        if (!s.overlay && innerWidth < 1024 && s.showTimes) {
+        if (!s.overlay && innerWidth < TIMES_OPEN_WIDTH && s.showTimes) {
           s.showTimes = false;
           s.emit();
         }
@@ -101,8 +101,7 @@ function App() {
       localStorage.setItem(SIGNED_IN_KEY, s.signedIn ? "1" : "0");
     } catch {}
   }, [s.ready, s.signedIn]);
-  const { w } = useViewport(),
-    mobile = w <= MOBILE,
+  const mobile = usePhone(),
     // On the desktop a case opens beside the list, so the algorithms page stays in place.
     frameKey =
       s.page +
@@ -121,9 +120,7 @@ function App() {
   return (
     <TooltipProvider delay={400}>
       <MotionConfig reducedMotion="user">
-        <SidebarProvider
-          open={w > 1100}
-          onOpenChange={() => {}}
+        <WindowSidebar
           data-running={s.running ? "" : undefined}
           className="group/app h-svh min-h-0 overflow-hidden bg-background max-md:flex-col"
           style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "3.5rem" } as React.CSSProperties}
@@ -151,7 +148,7 @@ function App() {
             )}
           </SidebarInset>
           {mobile && <TabBar />}
-        </SidebarProvider>
+        </WindowSidebar>
         <Toasts light={s.light} />
         <Overlays />
         <ErrorNotification message={s.error} />

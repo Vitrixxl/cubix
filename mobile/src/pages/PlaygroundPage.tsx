@@ -4,21 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
-import { effective, fmtSolve, fmtTime } from "../../../src/client/lib/format";
+import { fmtTime } from "../../../src/client/lib/format";
 import { applyAlg, parseAlg, parseScramble, solved, type Move } from "../../../src/shared/cube";
 import { contextKey, heldScramble, puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
-import type { SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
-import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import { playgroundScrambleAtom, practiceContextAtom, timeEntryAtom } from "../state";
-import { Alg, Fade, Figure, Mono, Page, PageHead, TouchAction } from "../components/layout";
+import { Alg, Fade, Page, PageHead, TouchAction } from "../components/layout";
 import {
-  AverageWindow, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, TypedTime, digitsSize, sessionMetrics, timerHint,
+  AverageWindow, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, TypedTime, digitsSize, timerHint,
   useNotice, usePracticeLock, useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
 } from "../components/Practice";
 import { SessionButton } from "../components/PuzzlePicker";

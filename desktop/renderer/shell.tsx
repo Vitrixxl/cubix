@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
 import { BookOpen, Boxes, ChevronsUpDown, Dumbbell, LogOut, Settings, Swords, Timer, type LucideIcon } from "lucide-react";
-import { store as s } from "./store";
+import { store as s, run } from "./store";
 import { Avatar, FADE, Icon, Logo, PuzzlePicker, type Props } from "./ui";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
@@ -35,14 +35,9 @@ const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string
   ["duel", "Duel", Swords, "Alt 5"],
 ];
 
-const go = (action: string) => (e: React.MouseEvent<HTMLElement>) => {
-  e.currentTarget.blur();
-  void s.action(action, e.currentTarget);
-};
-
 /** The player's face: the account's initials. */
 function Me({ size = 32 }: { size?: number }) {
-  return <Avatar user={s.user} size={size} />;
+  return <Avatar name={s.user.username} size={size} />;
 }
 
 /**
@@ -87,7 +82,7 @@ export function Rail() {
                   isActive={s.page === page}
                   aria-current={s.page === page ? "page" : undefined}
                   tooltip={`${label} · ${shortcut.replace(" ", "+")}`}
-                  onClick={go("nav:" + page)}
+                  onClick={run("nav:" + page)}
                   className="h-9 text-muted-foreground data-active:text-foreground"
                 >
                   <I />
@@ -104,13 +99,13 @@ export function Rail() {
       <SidebarFooter className="pb-4">
         <SidebarMenu className="gap-0.5">
           <SidebarMenuItem>
-            <SidebarMenuButton data-action="help" tooltip="Guides" onClick={go("help")} className="h-9 text-muted-foreground">
+            <SidebarMenuButton data-action="help" tooltip="Guides" onClick={run("help")} className="h-9 text-muted-foreground">
               <BookOpen />
               <span>Guides</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton data-action="settings" tooltip="Settings · Alt+S" onClick={go("settings")} className="h-9 text-muted-foreground">
+            <SidebarMenuButton data-action="settings" tooltip="Settings · Alt+S" onClick={run("settings")} className="h-9 text-muted-foreground">
               <Settings />
               <span>Settings</span>
             </SidebarMenuButton>
@@ -118,14 +113,14 @@ export function Rail() {
               Alt S
             </Kbd>
           </SidebarMenuItem>
-          <SidebarMenuItem className="account mt-2 border-t pt-2">
+          <SidebarMenuItem className="mt-2 border-t pt-2">
             <SidebarMenuButton
               size="lg"
               data-action="nav:profile"
               isActive={profile}
               aria-current={profile ? "page" : undefined}
               tooltip={s.user.username + " · Profile · Alt+4"}
-              onClick={go("nav:profile")}
+              onClick={run("nav:profile")}
               className="gap-2.5 pr-9"
             >
               <Me />
@@ -185,7 +180,7 @@ export function TabBar() {
             type="button"
             data-action={"nav:" + page}
             aria-current={here ? "page" : undefined}
-            onClick={go("nav:" + page)}
+            onClick={run("nav:" + page)}
             className={cn(
               "flex flex-col items-center gap-1 rounded-lg py-1 text-[11px] font-medium text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
               here && "text-foreground",

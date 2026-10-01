@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { isLearningTrack, isReviewMode, learningCases, learningTrackOf, reviewCases, trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { CROSS_PLUS_ONE_MOVES } from "../../../src/shared/crossPlusOne";
+import { plural } from "../../../src/client/lib/format";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -18,7 +19,6 @@ import { useBackTo } from "./Practice";
 export type DailyLearning = ReturnType<typeof useDailyLearning>;
 /** A setup mode: `cross1`, or a learning mode (`practice`, `review`, a track). */
 type SetupMode = { id: string; label: string; detail: string; icon: LucideIcon };
-export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 
 /** The mode trained last (web `defaultSetupMode`), marked in the list. */
 function lastMode(kind: string, puzzle: string, mode: LearningMode) {

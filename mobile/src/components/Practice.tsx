@@ -4,8 +4,10 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronUp, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BackHandler, Pressable, TextInput, View, type GestureResponderEvent } from "react-native";
-import { bestAverage, effective, fmtSolve, fmtTime, parseTypedTime } from "../../../src/client/lib/format";
-import { practiceSummary } from "../../../src/client/lib/practiceSummary";
+import { effective, fmtSolve, fmtTime, parseTypedTime } from "../../../src/client/lib/format";
+import type { Metric } from "../../../src/client/lib/practiceSummary";
+import { timerHint as sharedTimerHint } from "../../../src/client/lib/practiceTimer";
+import { TONE_TEXT } from "../../../src/client/lib/tone";
 import { applyAlg, parseAlg, parseScramble, solved } from "../../../src/shared/cube";
 import type { CubeMask, DiagramView } from "../../../src/shared/cubeDiagram";
 import type { PracticeContext } from "../../../src/shared/puzzles";
@@ -20,7 +22,7 @@ import { launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { cubeSwitchLockedAtom, deletedSolveIdAtom, timerRunningAtom, updatedSolveAtom } from "../state";
 import { useColors } from "../theme";
-import { Fade, Mono, Surface, type Tone } from "./layout";
+import { Fade, Mono, Surface } from "./layout";
 import { SolveMenu, useSolveMenu } from "./SolveMenus";
 import { StaticCubeSvg } from "./StaticCubeSvg";
 
@@ -34,25 +36,7 @@ import { StaticCubeSvg } from "./StaticCubeSvg";
 /** Generation shorter than this stays invisible: the previous scramble simply becomes the next one. */
 const SLOW_GENERATION_MS = 120;
 
-export type Metric = [label: string, value: string, tone: Tone];
-/**
- * The session figures (`store.metrics()` on the web): Best and Best Ao5/Ao12 in green, Worst in red (DNF as soon as one
- * attempt is a DNF), the current averages in the accent.
- */
-export function sessionMetrics(solves: readonly Pick<SolveDto, "time_ms" | "penalty">[]): Metric[] {
-  const summary = practiceSummary(solves), times = summary.times;
-  const worst = !times.length ? fmtTime(null) : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
-  return [
-    ["Best", fmtTime(summary.best), "good"],
-    ["Worst", worst, "bad"],
-    ["Mean", fmtTime(summary.mean), ""],
-    ["Ao5", fmtTime(summary.ao5), "accent"],
-    ["Best Ao5", fmtTime(bestAverage(times, 5)), "good"],
-    ["Ao12", fmtTime(summary.ao12), "accent"],
-    ["Best Ao12", fmtTime(bestAverage(times, 12)), "good"],
-    ["Solves", String(summary.count), ""],
-  ];
-}
+export { sessionMetrics, type Metric } from "../../../src/client/lib/practiceSummary";
 
 /**
  * This launch's session of a practice context (see lib/launchSession), oldest first; every solve still syncs to the
@@ -224,16 +208,8 @@ export function Hint({ children, notice, hidden }: { children: ReactNode; notice
   </View>;
 }
 
-/** The hint of a timer phase. */
-export function timerHint(timer: TimerApi, { disabled, unsaved, idle = "Hold, then release to start" }: { disabled?: string | false; unsaved?: boolean; idle?: string } = {}) {
-  if (disabled) return disabled;
-  switch (timer.phase) {
-    case "holding": return "Keep holding…";
-    case "ready": return "Release to start";
-    case "running": return "Tap to stop";
-    default: return unsaved ? `Not saved · ${idle}` : idle;
-  }
-}
+/** The hint of a timer phase on a phone (src/client/lib/practiceTimer.ts). */
+export const timerHint = (timer: TimerApi, options?: { disabled?: string | false; unsaved?: boolean }) => sharedTimerHint(timer.phase, options);
 
 /** The time of a timer at rest or running, sized to its area. */
 export function TimerDigits({ timer, area, max }: { timer: TimerApi; area: { width: number; height: number }; max?: number }) {
@@ -304,7 +280,7 @@ export function SessionPeek({ figures, count, noun, onPress, hidden }: { figures
       className="h-14 flex-row items-center gap-4 rounded-xl bg-muted/45 px-4 active:bg-muted/70">
       {figures.map(([label, value, tone]) => <View key={label} className="min-w-0 flex-1 gap-0.5">
         <Text className="text-[11px] font-medium text-muted-foreground">{label}</Text>
-        <Mono numberOfLines={1} className={cn("text-base font-medium", value === "–" ? "text-muted-foreground/60" : tone === "good" ? "text-success" : tone === "accent" ? "text-primary" : "")}>{value}</Mono>
+        <Mono numberOfLines={1} className={cn("text-base font-medium", value === "–" ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Mono>
       </View>)}
       <View className="flex-row items-center gap-1.5">
         <Mono className="text-sm text-muted-foreground">{count} {noun}{count === 1 ? "" : "s"}</Mono>

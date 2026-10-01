@@ -14,14 +14,12 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { credentialErrors, PASSWORD_MIN } from "../../../src/client/lib/credentials";
 import { api, authToken, local } from "../api";
 import { Logo } from "../components/Logo";
 import { useColors } from "../theme";
 
 export type AuthMode = "login" | "register";
-/** The server's rules (rust-api/src/api.rs): 3–24 letters, digits or underscores; ten characters of password or more. */
-const USERNAME = /^[A-Za-z0-9_]{3,24}$/;
-const PASSWORD_MIN = 10;
 
 /** Google's four-colour G, for the sign-in button to come. */
 function GoogleMark({ size = 18 }: { size?: number }) {
@@ -61,13 +59,15 @@ export function AuthScreen({ initialMode = "login", initialUsername = "" }: { in
   // With the keyboard up, the foot keeps only the submit button, right above it.
   const keyboard = useKeyboardState(state => state.isVisible);
   const register = mode === "register";
-  const usernameError = !tried ? "" : !username.trim() ? "Enter your username." : register && !USERNAME.test(username.trim()) ? "Use 3–24 letters, digits or underscores." : "";
-  const passwordError = !tried ? "" : !password ? "Enter your password." : register && password.length < PASSWORD_MIN ? `Use ${PASSWORD_MIN} characters or more.` : "";
+  // The server's rules, said before asking it; each field shows its most pressing error once the form was tried.
+  const errors = tried ? credentialErrors(register, username.trim(), password) : [];
+  const usernameError = errors.find(e => e.field === "username")?.message ?? "";
+  const passwordError = errors.find(e => e.field === "password")?.message ?? "";
   const submit = async () => {
     if (busy) return;
     setTried(true); setError("");
     const name = username.trim();
-    if (!name || !password || register && (!USERNAME.test(name) || password.length < PASSWORD_MIN)) return;
+    if (credentialErrors(register, name, password).length) return;
     setBusy(true);
     try {
       // A guest account from an older version still on the server: bring its times home first, so the new account

@@ -4,7 +4,7 @@ import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { shortId } from "../../src/client/lib/caseState";
 import { BookOpen, Box, Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Play, Search, type LucideIcon } from "lucide-react";
 import { store as s, catalog, matches } from "./store";
-import { Button, Diagram, Figure, MOBILE, MONO, PAGE, PageHead, Surface, type Props, plural, useViewport } from "./ui";
+import { Button, Diagram, Figure, MONO, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
@@ -41,12 +41,11 @@ function defaultSetupMode() {
 /** Training starts here: the modes listed on the left, the chosen one on the right with what it needs and its start. */
 export function TrainingSetup() {
   const modes = setupModes(),
-    current = modes.find((m) => m.id === (s.setupMode || defaultSetupMode())) ?? modes[0]!,
-    mobile = useViewport().w <= MOBILE;
-  if (mobile) return <PhoneSetup modes={modes} />;
+    current = modes.find((m) => m.id === (s.setupMode || defaultSetupMode())) ?? modes[0]!;
+  if (usePhone()) return <PhoneSetup modes={modes} />;
   return (
     <div className={PAGE}>
-      <PageHead title="Training" puzzle sub={mobile ? undefined : "Pick a way to practise, then start"} />
+      <PageHead title="Training" puzzle sub="Pick a way to practise, then start" />
       <div className="flex min-h-0 flex-1 gap-6 max-md:flex-col max-md:gap-3 xl:gap-8">
         <nav
           aria-label="Training modes"
@@ -58,17 +57,13 @@ export function TrainingSetup() {
               type="button"
               data-action={"setupMode:" + m.id}
               aria-current={m === current ? "true" : undefined}
-              onClick={(e) => {
-                e.currentTarget.blur();
-                void s.action("setupMode:" + m.id);
-              }}
+              onClick={run("setupMode:" + m.id)}
               className={cn(
                 "flex shrink-0 items-center gap-3 rounded-lg px-2.5 py-2 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50",
                 m === current && "bg-muted hover:bg-muted",
-                mobile && "py-1.5 pr-3.5",
               )}
             >
-              <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground", m === current && "bg-primary/15 text-primary", mobile && "size-7")}>
+              <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground", m === current && "bg-primary/15 text-primary")}>
                 <m.icon className="size-4" />
               </span>
               <span className="flex min-w-0 flex-col">
@@ -80,7 +75,7 @@ export function TrainingSetup() {
         </nav>
         {/* The modes are the box; the chosen one sits on the page. */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col" key={current.id}>
-          {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup mobile={mobile} /> : <LearningSetup mode={current.id} />}
+          {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup /> : <LearningSetup mode={current.id} />}
         </div>
       </div>
     </div>
@@ -106,10 +101,7 @@ function PhoneSetup({ modes }: { modes: SetupMode[] }) {
                 key={m.id}
                 type="button"
                 data-action={"setupMode:" + m.id}
-                onClick={(e) => {
-                  e.currentTarget.blur();
-                  void s.action("setupMode:" + m.id);
-                }}
+                onClick={run("setupMode:" + m.id)}
                 className={cn("flex min-h-16 items-center gap-3 px-4 text-left outline-none active:bg-muted/50", i > 0 && "border-t")}
               >
                 <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground", m.id === last && "bg-primary/15 text-primary")}>
@@ -133,7 +125,7 @@ function PhoneSetup({ modes }: { modes: SetupMode[] }) {
     <div className={PAGE}>
       <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip="Every way to practise" className="-ml-2 size-10" />} title={chosen.label} sub={chosen.detail} />
       <Surface className="flex-1" key={chosen.id}>
-        {chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup mobile /> : <LearningSetup mode={chosen.id} />}
+        {chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <LearningSetup mode={chosen.id} />}
       </Surface>
     </div>
   );
@@ -180,10 +172,7 @@ function CrossSetup() {
               role="radio"
               aria-checked={s.crossMoves === n}
               data-action={"crossMoves:" + n}
-              onClick={(e) => {
-                e.currentTarget.blur();
-                void s.action("crossMoves:" + n);
-              }}
+              onClick={run("crossMoves:" + n)}
               className={cn(
                 "flex w-24 flex-col items-start gap-1 rounded-lg bg-muted/40 px-4 py-3 text-left outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50 max-md:w-auto max-md:flex-1",
                 s.crossMoves === n && "bg-primary/12 hover:bg-primary/15",
@@ -200,10 +189,10 @@ function CrossSetup() {
   );
 }
 
-function CasesSetup({ mobile }: { mobile: boolean }) {
+function CasesSetup() {
   const cases = s.cases();
   const search = (
-    <InputGroup className={mobile ? "w-full" : "w-56"}>
+    <InputGroup className="w-56 max-md:w-full">
       <InputGroupInput
         placeholder="Search cases…"
         aria-label="Search cases"
@@ -244,10 +233,7 @@ function CasesSetup({ mobile }: { mobile: boolean }) {
                 <button
                   type="button"
                   data-action={"selectorToggle:" + set.id}
-                  onClick={(e) => {
-                    e.currentTarget.blur();
-                    void s.action("selectorToggle:" + set.id);
-                  }}
+                  onClick={run("selectorToggle:" + set.id)}
                   className="flex h-10 min-w-0 flex-1 items-center gap-2.5 px-2 text-left outline-none"
                 >
                   {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
@@ -270,10 +256,7 @@ function CasesSetup({ mobile }: { mobile: boolean }) {
                         <button
                           type="button"
                           data-action={"selectGroup:" + set.id + ":" + group}
-                          onClick={(e) => {
-                            e.currentTarget.blur();
-                            void s.action("selectGroup:" + set.id + ":" + group);
-                          }}
+                          onClick={run("selectGroup:" + set.id + ":" + group)}
                           className="flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground outline-none hover:text-foreground"
                         >
                           {group}
@@ -292,10 +275,7 @@ function CasesSetup({ mobile }: { mobile: boolean }) {
                               data-action={"select:" + c.id}
                               aria-pressed={on}
                               title={c.name}
-                              onClick={(e) => {
-                                e.currentTarget.blur();
-                                void s.action("select:" + c.id);
-                              }}
+                              onClick={run("select:" + c.id)}
                               className={cn(
                                 "relative flex flex-col items-center gap-1.5 rounded-lg px-1 pt-2.5 pb-2 text-xs text-muted-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50",
                                 on && "bg-primary/10 text-foreground hover:bg-primary/15",
@@ -342,7 +322,7 @@ function LearningSetup({ mode }: { mode: string }) {
         </SetupTitle>
         <div className="flex gap-10 px-4 md:gap-12 md:px-1">
           {figures.map(([label, value]) => (
-            <Figure key={label} label={label} value={value} size="lg" />
+            <Figure key={label} label={label} value={value} size="2xl" />
           ))}
         </div>
       </div>

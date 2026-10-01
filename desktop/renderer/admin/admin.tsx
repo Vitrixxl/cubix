@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Activity, AppWindow, Globe, KeyRound, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
 import { applyTheme } from "../theme";
-import { Logo } from "../logo";
+import { Logo, usePhone, WindowSidebar } from "../base";
 import { Toasts } from "../Toasts";
 import { admin, AdminError, LiveContext, navigate, onExpired, refreshAll, useLive, useRefreshed, useRoute } from "./api";
 import { MONO } from "./parts";
@@ -35,7 +35,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarProvider,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -47,18 +46,7 @@ const VIEWS: [id: string, label: string, icon: LucideIcon][] = [
   ["ips", "IP addresses", Globe],
   ["server", "Server", ServerIcon],
 ];
-const PHONE = 700;
 const COMMAND = "cubix-api admin-token";
-
-function useWidth() {
-  const [w, setW] = useState(innerWidth);
-  useEffect(() => {
-    const resize = () => setW(innerWidth);
-    addEventListener("resize", resize);
-    return () => removeEventListener("resize", resize);
-  }, []);
-  return w;
-}
 
 function AdminApp() {
   const [phase, setPhase] = useState<"checking" | "login" | "in" | "offline">("checking");
@@ -118,7 +106,7 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
   const [token, setToken] = useState(""),
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
-  const phone = useWidth() <= PHONE;
+  const phone = usePhone();
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (pending) return;
@@ -233,8 +221,7 @@ function Nav({ view }: { view: string }) {
 
 function Shell({ onSignOut }: { onSignOut: () => void }) {
   const { view, id } = useRoute();
-  const w = useWidth(),
-    phone = w <= PHONE;
+  const phone = usePhone();
   const live = useLive(true);
   const refreshed = useRefreshed();
   useEffect(() => {
@@ -256,9 +243,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
     );
   return (
     <LiveContext.Provider value={live}>
-      <SidebarProvider
-        open={w > 1100}
-        onOpenChange={() => {}}
+      <WindowSidebar
         className="h-svh min-h-0 overflow-hidden"
         style={{ "--sidebar-width": "14rem", "--sidebar-width-icon": "3.5rem" } as React.CSSProperties}
       >
@@ -324,7 +309,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
             <div className="mx-auto w-full max-w-[1600px] px-4 pt-5 pb-10 md:px-6 xl:px-8">{body}</div>
           </div>
         </SidebarInset>
-      </SidebarProvider>
+      </WindowSidebar>
     </LiveContext.Provider>
   );
 }

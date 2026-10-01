@@ -13,7 +13,7 @@ import { cases } from '../../src/client/local/catalog';
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
-import { fmtDate } from '../../src/client/lib/format';
+import { fmtDate, joinedDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
 import { crossPlusOneSolutions } from '../../src/shared/crossPlusOne';
@@ -99,7 +99,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       const out = Object.fromEntries(Object.entries(v).map(([k, v]) => [k, display(v)]));
       if (typeof v.at === 'string') out.displayDate = fmtDate(v.at);
       if (typeof v.createdAt === 'string') out.displayDate = fmtDate(v.createdAt);
-      if (typeof v.createdAt === 'string' && v.username) out.joined = new Date(v.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+      if (typeof v.createdAt === 'string' && v.username) out.joined = joinedDate(v.createdAt);
       if (typeof v.unlockedAt === 'string') out.unlockedDate = new Date(v.unlockedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
       return out;
     }

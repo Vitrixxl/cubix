@@ -4,11 +4,15 @@
 @import "nativewind/theme";
 @source "./App.tsx";
 @source "./src";
+@source "../src/client/lib/tone.ts";
+@source "../src/client/lib/profile.ts";
 
 /*
  * The web app's shadcn preset (desktop/renderer/globals.css: base-nova, neutral, radius 0.625rem, Geist) for the
  * Android app. The colours are CSS variables: `src/theme.ts` sets them at run time from the accent and the mode
- * (`themeTokens` in src/client/lib/theme.ts, shared with the web), with the preset's dark blue values as defaults.
+ * (`themeTokens` in src/client/lib/theme.ts, shared with the web), with the preset's dark blue values as defaults. The
+ * status colours (destructive, success, warning) have no default: ThemeProvider sets them with the others around the
+ * whole app.
  */
 @theme inline {
     --font-sans: Geist;
@@ -58,9 +62,6 @@
     --muted-foreground: #9ca5b1;
     --border: rgba(189, 208, 232, 0.11);
     --input: rgba(189, 208, 232, 0.16);
-    --destructive: #ff6467;
-    --success: #53d277;
-    --warning: #f7b83d;
     --card-foreground: #f4f7fa;
     --popover-foreground: #f4f7fa;
     --secondary-foreground: #f4f7fa;

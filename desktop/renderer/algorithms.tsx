@@ -8,7 +8,7 @@ import { TouchAction, TouchBar } from "./phone";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Cube } from "./Cube";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, MOBILE, MONO, MenuAction, PAGE, PageHead, SectionHead, Surface, useViewport } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, MONO, MenuAction, PAGE, PageHead, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
 import { Badge } from "@/components/ui/badge";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,7 @@ function useScrollPosition(key: string) {
 /** Algorithms: the case list on the left and the chosen case on the right; phones open the case as a page. */
 export function Algorithms() {
   const { w } = useViewport(),
-    mobile = w <= MOBILE;
+    mobile = isPhone(w);
   const sections = catalogSections<any, any>(s.cases(), s.allSets(), s.sets, s.learned, "all");
   const learned = sections.reduce((sum, section) => sum + section.learnedCount, 0);
   const total = sections.reduce((sum, section) => sum + section.all.length, 0);
@@ -158,10 +158,7 @@ function CaseList({ wide }: { wide: boolean }) {
                 <button
                   type="button"
                   data-action={"collapse:" + key}
-                  onClick={(e) => {
-                    e.currentTarget.blur();
-                    void s.action("collapse:" + key);
-                  }}
+                  onClick={run("collapse:" + key)}
                   className="flex h-9 min-w-0 flex-1 items-center gap-2 px-2 text-left text-sm font-medium outline-none"
                 >
                   {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -192,10 +189,7 @@ function CaseRow({ c, touch = false, detail }: { c: any; touch?: boolean; detail
       <button
         type="button"
         data-action={"case:" + c.id}
-        onClick={(e) => {
-          e.currentTarget.blur();
-          void s.action("case:" + c.id);
-        }}
+        onClick={run("case:" + c.id)}
         className="case-row-open flex min-w-0 flex-1 items-center gap-3 py-1.5 pl-2 text-left outline-none"
       >
         <Diagram c={c} size={48} />
@@ -205,14 +199,7 @@ function CaseRow({ c, touch = false, detail }: { c: any; touch?: boolean; detail
         </span>
         <span className={cn(MONO, "text-sm", st ? "text-foreground/80" : "text-muted-foreground/50")}>{st ? fmtTime(st.best) : "–"}</span>
       </button>
-      <ActionToggle
-        action={"learn:" + c.id}
-        pressed={learned}
-        icon={Check}
-        tip={learned ? "Learned" : "Mark learned"}
-        size="sm"
-        className={cn("text-muted-foreground/50 aria-pressed:bg-success/15 aria-pressed:text-success", touch && "size-11")}
-      />
+      <LearnedMark id={c.id} learned={learned} touch={touch} />
     </div>
   );
 }
@@ -242,7 +229,7 @@ function SetSummary() {
       </header>
       <div className="grid shrink-0 grid-cols-4 gap-6 rounded-xl bg-muted/45 px-5 py-4">
         {figures.map(([label, value]) => (
-          <Figure key={label} label={label} value={value} size="lg" />
+          <Figure key={label} label={label} value={value} size="2xl" />
         ))}
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1 px-1 pt-5">
@@ -255,10 +242,7 @@ function SetSummary() {
                 <button
                   type="button"
                   data-action={"case:" + members[0].id}
-                  onClick={(e) => {
-                    e.currentTarget.blur();
-                    void s.action("case:" + members[0].id);
-                  }}
+                  onClick={run("case:" + members[0].id)}
                   className="flex h-10 min-w-0 flex-1 items-center gap-4 text-left outline-none"
                 >
                   <span className="w-40 truncate text-sm font-medium">{group}</span>
@@ -304,15 +288,15 @@ const caseSteps = (c: any) => {
 
 /**
  * One case in full, as the page's surface: the diagram, the name, its figures and actions on top, then setup,
- * algorithms and statistics, each under a hairline.
+ * algorithms and statistics, each under its label.
  */
 function CaseDetail() {
   const c = s.find(s.caseId),
-    mobile = useViewport().w <= MOBILE;
+    mobile = usePhone();
   const { index, count } = caseSteps(c),
     st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id);
-  const block = "flex flex-col gap-2 border-t px-4 py-4 md:px-1 md:py-5";
+  const block = "flex flex-col gap-2 px-4 py-4 md:px-1 md:py-5";
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:gap-8 md:px-1 md:pt-1 md:pb-5">
@@ -341,16 +325,17 @@ function CaseDetail() {
             <Figure label="Mean" value={st ? fmtTime(st.mean) : "–"} />
             <Figure label="Attempts" value={st?.count ?? 0} />
           </div>
+          {/* Phones have these at the bottom, under the thumb (Detail). */}
           <div className="flex flex-wrap items-center gap-1.5 max-md:hidden">
-            <Button action="train" icon={Timer} variant="default" size={mobile ? "sm" : "default"}>
+            <Button action="train" icon={Timer} variant="default">
               Train
             </Button>
-            <ActionToggle action={"learn:" + c.id} pressed={learned} icon={Check} size={mobile ? "sm" : "default"} className="aria-pressed:bg-success/15 aria-pressed:text-success">
-              {learned ? "Learned" : mobile ? "Learn" : "Mark learned"}
+            <ActionToggle action={"learn:" + c.id} pressed={learned} icon={Check} className="aria-pressed:bg-success/15 aria-pressed:text-success">
+              {learned ? "Learned" : "Mark learned"}
             </ActionToggle>
             {c.cube && (
-              <Button action="replayCube" icon={RotateCcw} size={mobile ? "icon-sm" : undefined} tip="Replay the setup on the cube">
-                {!mobile && "Replay"}
+              <Button action="replayCube" icon={RotateCcw} tip="Replay the setup on the cube">
+                Replay
               </Button>
             )}
           </div>
@@ -415,7 +400,7 @@ function Detail() {
         <CaseDetail />
         <TouchBar className="shrink-0 border-t bg-muted/30 px-2 py-2">
           <TouchAction action="train" icon={Timer} label="Train" primary />
-          <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="text-success! bg-success/15!" />
+          <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="good" />
           {c.cube && <TouchAction action="replayCube" icon={RotateCcw} label="Replay" />}
         </TouchBar>
       </Surface>

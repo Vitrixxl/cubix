@@ -43,3 +43,20 @@ export class PracticeTimer {
     if (this.snapshot.phase === "holding" || this.snapshot.phase === "ready") this.reset();
   };
 }
+
+/**
+ * The line under the digits for a timer phase. `disabled` replaces it while the timer cannot start; `keyboard` speaks
+ * of Space and any key (the desktop) rather than of touches; `unsaved` warns that the timer records nothing.
+ */
+export function timerHint(phase: TimerPhase, { disabled, unsaved = false, keyboard = false }: { disabled?: string | false; unsaved?: boolean; keyboard?: boolean } = {}) {
+  if (disabled) return disabled;
+  switch (phase) {
+    case "holding": return "Keep holding…";
+    case "ready": return "Release to start";
+    case "running": return keyboard ? "Any key to stop" : "Tap to stop";
+    default: {
+      const idle = keyboard ? "Hold Space, release to start" : "Hold, then release to start";
+      return unsaved ? `Not saved · ${idle}` : idle;
+    }
+  }
+}

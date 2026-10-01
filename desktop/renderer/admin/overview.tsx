@@ -2,9 +2,9 @@
  * most active accounts of the week. */
 import { useMemo } from "react";
 import { ChevronRight } from "lucide-react";
-import { useAdmin, useLiveState, type LogRow, type Overview as Data, type Users } from "./api";
+import { useAdmin, useLiveState, useMostActive, type LogRow, type Overview as Data } from "./api";
 import { DailyChart } from "./charts";
-import { ago, Failure, FiguresSkeleton, IpLink, Kpi, Link, MONO, num, Section, Status, useNow, UserLink, userPath, ViewHead, when, Nothing } from "./parts";
+import { ago, Failure, FiguresSkeleton, IpLink, Kpi, Link, MONO, num, SectionHead, Status, useNow, UserLink, userPath, ViewHead, when, Nothing } from "./parts";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -95,11 +95,11 @@ function RecentImportant({ live }: { live: { connected: boolean; tick: number; i
   }, [live.important, stored.data]);
   return (
     <section className="flex min-w-0 flex-col" aria-label="Recent important requests">
-      <Section title="Recent important requests">
+      <SectionHead rule title="Recent important requests">
         <Link to="/admin/requests?important=1" className="flex items-center gap-0.5 text-xs text-muted-foreground">
           All <ChevronRight className="size-3.5" />
         </Link>
-      </Section>
+      </SectionHead>
       {stored.error && !stored.data ? (
         <Failure error={stored.error} retry={stored.reload} className="mt-3" />
       ) : !stored.data ? (
@@ -133,7 +133,7 @@ function RecentImportant({ live }: { live: { connected: boolean; tick: number; i
 
 /** The accounts with the most solves this week. */
 function MostActive({ tick }: { tick: number }) {
-  const users = useAdmin<Users>("/users?sort=solves&limit=200", { tick: Math.floor(tick / 6) });
+  const users = useMostActive(Math.floor(tick / 6));
   const now = useNow();
   const top = useMemo(
     () =>
@@ -145,11 +145,11 @@ function MostActive({ tick }: { tick: number }) {
   );
   return (
     <section className="flex min-w-0 flex-col" aria-label="Most active accounts">
-      <Section title="Most active · 7 d">
+      <SectionHead rule title="Most active · 7 d">
         <Link to="/admin/users?sort=lastSeen" className="flex items-center gap-0.5 text-xs text-muted-foreground">
           All <ChevronRight className="size-3.5" />
         </Link>
-      </Section>
+      </SectionHead>
       {users.error && !users.data ? (
         <Failure error={users.error} retry={users.reload} className="mt-3" />
       ) : !users.data ? (

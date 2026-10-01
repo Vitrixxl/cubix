@@ -1,5 +1,5 @@
-/** Chart gestures against deterministic guest history in the real Electron app. */
-import { SHOTS, act as click, launchApp, startServer } from "./app";
+/** Chart gestures against a deterministic history (a guest's, taken over by the account) in the real Electron app. */
+import { SHOTS, act as click, launchApp, signIn, startServer } from "./app";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -26,21 +26,26 @@ const { origin, server } = await startServer(join(dir, "server"));
 const { app, page, errors } = await launchApp({ dir, origin });
 try {
   const act = (action: string) => click(page, action);
+  // The app is used signed in: the new account takes the guest history over.
+  await signIn(page, "chart");
   await act("nav:profile");
   await act("profileMode:playground");
-  const rows = page.locator(".history-row"), plot = page.locator(".chart-plot");
-  // Chart and table share one panel; its header states how many solves the period holds.
-  const view = async (name: "Chart" | "Table") => {
-    await page.getByRole("button", { name, exact: true }).click();
-    await page.locator(name === "Chart" ? ".chart-plot" : ".solves-head").waitFor();
+  // One row per solve in the table: the row's button opens the solve, its actions stand beside it.
+  const rows = page.locator('[data-action^="solve:"]'), plot = page.getByRole("group", { name: /^Solve times/ });
+  const row = (i: number) => rows.nth(i).locator("..");
+  // Chart and table share one panel; its toolbar states how many solves the period holds, after the view switch.
+  const view = async (name: "chart" | "table") => {
+    await page.locator(`[data-action="statsView:${name}"]`).click();
+    await (name === "chart" ? plot : page.getByRole("button", { name: "Sort solves" })).waitFor();
   };
-  const shownCount = () => page.evaluate(() => Number(document.querySelector(".solves-count")?.textContent?.split(" ")[0] ?? 0));
-  await page.waitForFunction(() => document.querySelector(".solves-count")?.textContent === "600 solves");
+  const countText = () => document.querySelector('[aria-label="View"] + span')?.textContent ?? "";
+  const shownCount = () => page.evaluate(() => Number((document.querySelector('[aria-label="View"] + span')?.textContent ?? "0").split(" ")[0]!.replaceAll(",", "")));
+  await page.waitForFunction(() => document.querySelector('[aria-label="View"] + span')?.textContent === "600 solves", undefined, { timeout: 60000 });
   assert.equal(await rows.count(), 0);
-  await view("Table");
+  await view("table");
   assert.equal(await rows.count(), 100); // The table draws its rows in pages.
-  await view("Chart");
-  const summary = await page.locator(".stat-strip").innerText();
+  await view("chart");
+  const summary = await page.locator('[aria-label="Summary"]').innerText();
   const bounds = async () => {
     const box = (await plot.boundingBox())!;
     return { x: box.x, y: box.y + box.height / 2, width: box.width };
@@ -56,7 +61,7 @@ try {
   };
   const selectedCount = async (expected?: number) => {
     await page.waitForFunction(n => {
-      const count = Number(document.querySelector(".solves-count")?.textContent?.split(" ")[0] ?? 0);
+      const count = Number((document.querySelector('[aria-label="View"] + span')?.textContent ?? "0").split(" ")[0]!.replaceAll(",", ""));
       return n == null ? count > 1 && count < 600 : count === n;
     }, expected);
     return shownCount();
@@ -64,21 +69,21 @@ try {
   await drag(0.25, 0.65);
   const selected = await selectedCount();
   assert(selected > 230 && selected < 250, `Selected ${selected}`);
-  assert.equal(await page.locator(".solves-count").innerText(), `${selected} of 600 solves`);
-  assert.equal(await page.locator(".stat-strip").innerText(), summary);
-  await view("Table"); // The selection carries over to the table and back.
+  assert.equal(await page.evaluate(countText), `${selected} of 600 solves`);
+  assert.equal(await page.locator('[aria-label="Summary"]').innerText(), summary);
+  await view("table"); // The selection carries over to the table and back.
   assert.equal(await shownCount(), selected);
   const beforePan = await rows.first().innerText();
-  await view("Chart");
+  await view("chart");
   await drag(0.6, 0.3, true);
   assert.equal(await shownCount(), selected);
-  await view("Table");
+  await view("table");
   assert.notEqual(await rows.first().innerText(), beforePan);
-  await view("Chart");
+  await view("chart");
   const b = await bounds();
   await page.mouse.move(b.x + b.width / 2, b.y);
   await page.mouse.wheel(0, -220);
-  await page.waitForFunction(n => Number(document.querySelector(".solves-count")?.textContent?.split(" ")[0]) < n, selected);
+  await page.waitForFunction(n => Number((document.querySelector('[aria-label="View"] + span')?.textContent ?? "0").split(" ")[0]) < n, selected);
   const zoomCount = await shownCount();
   assert(zoomCount > 1);
   await plot.focus();
@@ -107,53 +112,57 @@ try {
   await selectedCount(600);
   console.log("Chart: selection, reverse selection, zoom, pan, reset, keyboard and cancellation passed");
 
-  await view("Table");
-  const times = () => page.locator(".history-row > span:nth-child(2)").allInnerTexts();
+  await view("table");
+  // The time of each row, without its PB or +2 tag.
+  const times = () => page.locator('[data-action^="solve:"] > span:nth-child(2) > span:first-child').allInnerTexts();
   const seconds = (v: string) => (v === "DNF" ? Infinity : Number(v));
-  await page.getByRole("button", { name: "Sort solves" }).click();
-  await page.getByRole("option", { name: "Fastest first" }).click();
+  const sort = page.getByRole("button", { name: "Sort solves" });
+  await sort.click();
+  await page.getByRole("menuitemradio", { name: "Fastest first" }).click();
   const fastest = (await times()).slice(0, 20).map(seconds);
   assert.deepEqual(fastest, [...fastest].sort((a, b) => a - b));
-  await page.getByRole("button", { name: "Sort solves" }).click();
-  await page.keyboard.press("ArrowDown");
+  // The keyboard: arrows move through the sorts, Enter picks one.
+  await sort.click();
+  const highlighted = page.locator("[role=menuitemradio][data-highlighted]");
+  await page.getByRole("menu").waitFor();
+  for (let i = 0; i < 4 && !(await highlighted.filter({ hasText: "Slowest first" }).count()); i++) await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
-  assert.equal(await page.getByRole("button", { name: "Sort solves" }).innerText(), "Slowest first");
+  assert.equal(await sort.innerText(), "Slowest first");
   assert.equal((await times())[0], "1:23.000"); // DNFs stay last in both directions, as on mobile.
-  await page.getByRole("button", { name: "Sort solves" }).click();
-  await page.getByRole("option", { name: "Newest first" }).click();
+  await sort.click();
+  await page.getByRole("menuitemradio", { name: "Newest first" }).click();
   await page.getByRole("button", { name: "Show more (500 left)" }).click();
   assert.equal(await rows.count(), 200);
 
-  const first = page.locator(".solve-row").first(),
-    newest = await first.locator(".history-row").innerText();
-  await first.getByRole("button", { name: "+2 penalty" }).click();
-  await page.waitForFunction(() => document.querySelector(".solve-row .history-tags")?.textContent?.includes("+2"));
-  await first.getByRole("button", { name: "Add comment" }).click();
-  await page.locator(".modal textarea").fill("Missed the last AUF");
+  const newest = await rows.first().innerText();
+  await row(0).locator('[data-action$=":+2"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-action^="solve:"]')?.textContent?.includes("+2"));
+  await row(0).getByRole("button", { name: "Add comment" }).click();
+  await page.locator("[role=dialog] textarea").fill("Missed the last AUF");
   await page.getByRole("button", { name: "Save" }).click();
-  await page.locator(".solve-comment", { hasText: "Missed the last AUF" }).waitFor();
+  await rows.filter({ hasText: "Missed the last AUF" }).waitFor();
   await page.getByRole("button", { name: "Show only commented solves" }).click();
-  await page.waitForFunction(() => document.querySelectorAll(".history-row").length === 1);
-  await page.locator(".solve-row").first().getByRole("button", { name: "Delete solve" }).click();
+  await page.waitForFunction(() => document.querySelectorAll('[data-action^="solve:"]').length === 1);
+  await row(0).getByRole("button", { name: "Delete solve" }).click();
   await page.getByText("No commented solve yet").waitFor();
   await page.getByRole("button", { name: "Show only commented solves" }).click();
   await selectedCount(599);
-  assert.notEqual(await page.locator(".history-row").first().innerText(), newest);
+  assert.notEqual(await rows.first().innerText(), newest);
   console.log("Table: sort menu (mouse and keyboard), paging, +2, comment, commented filter and delete passed");
 
   await mkdir(SHOTS, { recursive: true });
   for (const [width, height] of [[1920, 1080], [1280, 800], [800, 600], [640, 480], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(100);
-    for (const name of ["Table", "Chart"] as const) {
+    for (const name of ["table", "chart"] as const) {
       await view(name);
       await page.waitForTimeout(100);
       const layout = await page.evaluate(() => {
-        const panel = document.querySelector(".stats-grid > .panel")!.getBoundingClientRect();
-        const tabbar = document.querySelector(".nav.tabbar")?.getBoundingClientRect();
-        const plot = document.querySelector(".chart-plot")?.getBoundingClientRect();
-        const bar = document.querySelector(".stats-grid > .panel > .row")!;
-        const profile = document.querySelector(".profile-main")!;
+        const bar = document.querySelector('[aria-label="View"]')!.parentElement!;
+        const panel = bar.closest('[data-slot="card"]')!.getBoundingClientRect();
+        const tabbar = document.querySelector('nav[aria-label="Sections"]')?.getBoundingClientRect();
+        const plot = document.querySelector('[role="group"][aria-label^="Solve times"]')?.getBoundingClientRect();
+        const profile = document.querySelector('[data-slot="sidebar-inset"] section[aria-label="Timer"]')!;
         return {
           visible: panel.bottom <= (tabbar?.top ?? innerHeight) && panel.right <= innerWidth && (!plot || plot.height >= 40),
           barFits: bar.scrollWidth <= bar.clientWidth + 1,
@@ -161,7 +170,7 @@ try {
           internalFits: profile.scrollHeight <= profile.clientHeight + 1,
         };
       });
-      await page.screenshot({ path: `${SHOTS}/history-${name.toLowerCase()}-${width}.png` });
+      await page.screenshot({ path: `${SHOTS}/history-${name}-${width}.png` });
       assert.deepEqual(layout, { visible: true, barFits: true, fits: true, internalFits: true }, `${name} ${width}×${height}`);
     }
   }
@@ -171,7 +180,7 @@ try {
     await page.getByRole("option", { name: label, exact: true }).click();
     await selectedCount(count);
     if (count) {
-      assert.equal(await page.locator(".chart-reset").count(), 0);
+      assert.equal(await page.getByRole("button", { name: "Reset zoom" }).count(), 0);
       assert(!(await plot.innerHTML()).match(/NaN|Infinity/));
       await plot.focus();
       await page.keyboard.press("+");
@@ -179,8 +188,10 @@ try {
       await selectedCount(count);
       const p = await bounds();
       await page.mouse.move(p.x + p.width / 2, p.y);
-      await page.locator(".chart-tip").waitFor();
-      if (count === 7) assert((await page.locator(".chart-tip").innerText()).includes("DNF"));
+      // The hovered solve's card: its time, its Ao5 and its date.
+      const tip = plot.locator("strong");
+      await tip.waitFor();
+      if (count === 7) assert((await tip.innerText()).includes("DNF"));
     }
   }
   assert.deepEqual(errors, []);

@@ -1,17 +1,17 @@
 import * as React from "react"
+import { isPhone, PHONE_MAX_WIDTH } from "../../../src/client/lib/viewport"
 
-const MOBILE_BREAKPOINT = 701
-
+/** Whether the window gets the phone layout (shadcn's hook, on the app's breakpoint). */
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const mql = window.matchMedia(`(max-width: ${PHONE_MAX_WIDTH}px)`)
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      setIsMobile(isPhone(window.innerWidth))
     }
     mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    setIsMobile(isPhone(window.innerWidth))
     return () => mql.removeEventListener("change", onChange)
   }, [])
 

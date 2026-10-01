@@ -6,14 +6,32 @@
  *   /assets/*              icons and case diagrams
  */
 import { cp, mkdir, rm, readdir, readFile, writeFile } from "node:fs/promises";
-import { basename, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { brotliCompressSync, gzipSync, constants } from "node:zlib";
+import type { BunPlugin } from "bun";
+import { compile, Features } from "@tailwindcss/node";
+import { Scanner } from "@tailwindcss/oxide";
 import { copyCubing } from "./vendor";
-import tailwind from "bun-plugin-tailwind";
 
 const root = resolve(import.meta.dir, "..");
 process.chdir(root);
 export const WEB_DIR = resolve(root, "dist/web");
+
+/** Tailwind for Bun.build: each imported stylesheet that uses Tailwind is compiled with the classes found in its
+ * `@source` paths (or the whole project without `source(…)`); other stylesheets go to Bun's own CSS loader. */
+export const tailwind: BunPlugin = {
+  name: "tailwind",
+  setup(build) {
+    build.onLoad({ filter: /\.css$/ }, async ({ path }) => {
+      const compiler = await compile(await Bun.file(path).text(), { base: dirname(path), shouldRewriteUrls: true, onDependency() {} });
+      if (!(compiler.features & (Features.AtApply | Features.JsPluginCompat | Features.ThemeFunction | Features.Utilities))) return undefined;
+      const scope = compiler.root === "none" ? [] : [compiler.root === null ? { base: root, pattern: "**/*" } : compiler.root];
+      const scanner = new Scanner({ sources: [...scope.map((source) => ({ ...source, negated: false })), ...compiler.sources] });
+      const candidates = compiler.features & Features.Utilities ? scanner.scan() : [];
+      return { contents: compiler.build(candidates), loader: "css" };
+    });
+  },
+};
 
 export async function buildWeb(out = WEB_DIR) {
   await rm(out, { recursive: true, force: true });

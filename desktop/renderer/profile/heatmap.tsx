@@ -2,35 +2,22 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
-import { fmtTime, best, bestAverage } from "../../../src/client/lib/format";
-import { MONO, plural } from "../ui";
+import { fmtTime, best, bestAverage, plural, shortDate } from "../../../src/client/lib/format";
+import { HEAT_LEVELS, heatDays, heatmap, heatYears, type ActivitySolve, type HeatCell, type HeatDay } from "../../../src/client/lib/profile";
+import { MONO } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { dayKey, shortDate, type ActivitySolve } from "./data";
 
 const GAP = 3,
-  LABEL = 30,
-  /** Five steps of the accent: none, then the four quarters of the active days. */
-  LEVELS = ["bg-muted", "bg-primary/35", "bg-primary/60", "bg-primary/85", "bg-primary"];
+  LABEL = 30;
 
-type Cell = { key: string; date: Date; count: number; hidden: boolean };
-
-/** The days to draw: the last 53 weeks up to today, or one calendar year. */
-function period(year: number | null) {
-  const today = new Date(),
-    first = year == null ? new Date(today.getFullYear(), today.getMonth(), today.getDate() - 364) : new Date(year, 0, 1),
-    last = year == null ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : new Date(year, 11, 31),
-    start = new Date(first);
-  start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
-  const weeks = Math.ceil(((last.getTime() - start.getTime()) / 86400000 + 1) / 7);
-  return { first, last, start, weeks, today };
-}
+type Hover = { cell: HeatCell; rect: DOMRect };
 
 export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; latest: string | null; phone: boolean }) {
   const [year, setYear] = useState<number | null>(null),
-    [hover, setHover] = useState<{ cell: Cell; rect: DOMRect } | null>(null),
+    [hover, setHover] = useState<Hover | null>(null),
     [width, setWidth] = useState(0),
     box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -42,53 +29,19 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const days = useMemo(() => {
-    const map = new Map<string, { count: number; times: (number | null)[] }>();
-    for (const solve of solves) {
-      const key = dayKey(new Date(solve.at)),
-        day = map.get(key) ?? { count: 0, times: [] };
-      day.count++;
-      if (solve.timer) day.times.push(solve.time);
-      map.set(key, day);
-    }
-    return map;
-  }, [solves]);
-  const years = [...new Set([new Date().getFullYear(), ...[...days.keys()].map((k) => Number(k.slice(0, 4)))])].sort((a, b) => b - a);
+  const days = useMemo(() => heatDays(solves), [solves]),
+    years = useMemo(() => heatYears(days), [days]),
+    { cells, weeks, months, level, total } = useMemo(() => heatmap(days, year), [days, year]);
   const scroller = useRef<HTMLDivElement>(null);
-  const { first, last, start, weeks, today } = period(year),
-    cells: Cell[] = [];
-  for (let i = 0; i < weeks * 7; i++) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + i);
-    const key = dayKey(date);
-    cells.push({ key, date, count: days.get(key)?.count ?? 0, hidden: date < first || date > last || date > today });
-  }
-  // The active days split in four quarters, like GitHub's graph: a few busy days don't flatten the rest.
-  const counts = cells.filter((c) => !c.hidden && c.count).map((c) => c.count).sort((a, b) => a - b),
-    quartile = (q: number) => counts[Math.min(counts.length - 1, Math.floor(q * counts.length))] ?? 0,
-    steps = [quartile(0.25), quartile(0.5), quartile(0.75)],
-    level = (count: number) => (!count ? 0 : count <= steps[0]! ? 1 : count <= steps[1]! ? 2 : count <= steps[2]! ? 3 : 4),
-    total = counts.reduce((sum, n) => sum + n, 0);
   // Squares fill the card's width, between GitHub's size and a comfortable one; phones scroll sideways.
   const cell = phone ? 12 : Math.max(9, Math.min(16, Math.floor((width - LABEL) / weeks - GAP))),
     gridWidth = LABEL + weeks * (cell + GAP) - GAP;
-  const months: { week: number; label: string }[] = [];
-  // A month is named over the week of its first day, unless the previous name is too close.
-  for (let w = 0; w < weeks; w++) {
-    const week = cells.slice(w * 7, w * 7 + 7),
-      opening = w === 0 ? week.find((c) => c.date >= first) : week.find((c) => c.date.getDate() === 1);
-    if (!opening || opening.date > last) continue;
-    if (months.length && w - months.at(-1)!.week < 3) months.pop();
-    months.push({ week: w, label: opening.date.toLocaleDateString(undefined, { month: "short" }) });
-  }
   useLayoutEffect(() => {
     // Phones show the latest months first.
     if (phone && scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth;
   }, [phone, year, weeks]);
-  const hovered = hover && days.get(hover.cell.key),
-    times = hovered?.times ?? [];
   return (
-    <Card className="heatmap gap-0 py-0" aria-label="Activity">
+    <Card className="gap-0 py-0" aria-label="Activity">
       <div className="flex min-h-13 items-center gap-3 px-5 pt-2">
         <h2 className="text-base font-semibold tracking-tight">
           {plural(total, "solve")} {phone ? "" : year == null ? "in the last year" : `in ${year}`}
@@ -141,7 +94,7 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
                   <span
                     key={c.key}
                     data-count={c.count}
-                    className={cn("heat-cell rounded-[3px] outline-offset-1", LEVELS[level(c.count)], hover?.cell.key === c.key && "outline outline-foreground/70")}
+                    className={cn("rounded-[3px] outline-offset-1", HEAT_LEVELS[level(c.count)], hover?.cell.key === c.key && "outline outline-foreground/70")}
                     onMouseEnter={(e) => setHover({ cell: c, rect: e.currentTarget.getBoundingClientRect() })}
                     style={{ gridRow: 2 + (i % 7), gridColumn: 1 + Math.floor(i / 7) }}
                   />
@@ -154,36 +107,43 @@ export function Heatmap({ solves, latest, phone }: { solves: ActivitySolve[]; la
           <span className="truncate">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</span>
           <span className="flex shrink-0 items-center gap-1">
             Less
-            {LEVELS.map((c) => (
+            {HEAT_LEVELS.map((c) => (
               <span key={c} className={cn("size-2.5 rounded-[2px]", c)} />
             ))}
             More
           </span>
         </div>
       </div>
-      {hover &&
-        createPortal(
-          <div
-            role="tooltip"
-            className={cn(
-              "pointer-events-none fixed z-50 flex -translate-y-full flex-col gap-0.5 rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background",
-              hover.rect.left < 140 ? "" : hover.rect.right > innerWidth - 140 ? "-translate-x-full" : "-translate-x-1/2",
-            )}
-            style={{ left: hover.rect.left + (hover.rect.left < 140 ? 0 : hover.rect.right > innerWidth - 140 ? hover.rect.width : hover.rect.width / 2), top: hover.rect.top - 6 }}
-          >
-            <span>
-              <strong className="font-medium">{hover.cell.count ? plural(hover.cell.count, "solve") : "No solves"}</strong> on{" "}
-              {hover.cell.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
-            </span>
-            {times.some((t) => t != null) && (
-              <span className={cn(MONO, "text-background/70")}>
-                Best {fmtTime(best(times))}
-                {times.length >= 5 && ` · Ao5 ${fmtTime(bestAverage(times, 5))}`}
-              </span>
-            )}
-          </div>,
-          document.body,
-        )}
+      {hover && <HeatTip hover={hover} day={days.get(hover.cell.key)} />}
     </Card>
+  );
+}
+
+/** The hovered day: its solves, and the best single and Ao5 of its timed ones. */
+function HeatTip({ hover, day }: { hover: Hover; day: HeatDay | undefined }) {
+  const times = day?.times ?? [],
+    { cell, rect } = hover,
+    edge = rect.left < 140 ? "start" : rect.right > innerWidth - 140 ? "end" : "middle";
+  return createPortal(
+    <div
+      role="tooltip"
+      className={cn(
+        "pointer-events-none fixed z-50 flex -translate-y-full flex-col gap-0.5 rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background",
+        edge === "end" ? "-translate-x-full" : edge === "middle" && "-translate-x-1/2",
+      )}
+      style={{ left: rect.left + (edge === "start" ? 0 : edge === "end" ? rect.width : rect.width / 2), top: rect.top - 6 }}
+    >
+      <span>
+        <strong className="font-medium">{cell.count ? plural(cell.count, "solve") : "No solves"}</strong> on{" "}
+        {cell.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+      </span>
+      {times.some((t) => t != null) && (
+        <span className={cn(MONO, "text-background/70")}>
+          Best {fmtTime(best(times))}
+          {times.length >= 5 && ` · Ao5 ${fmtTime(bestAverage(times, 5))}`}
+        </span>
+      )}
+    </div>,
+    document.body,
   );
 }

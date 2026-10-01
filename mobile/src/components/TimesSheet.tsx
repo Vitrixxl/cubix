@@ -1,22 +1,14 @@
 import { useMemo } from "react";
 import { View } from "react-native";
-import { effective, fmtSolve } from "../../../src/client/lib/format";
+import { fmtSolve } from "../../../src/client/lib/format";
+import { sessionExtremes, sessionMetrics, solveTone } from "../../../src/client/lib/practiceSummary";
+import { TONE_TEXT } from "../../../src/client/lib/tone";
 import type { SolveDto } from "../../../src/shared/types";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { Figure, Mono } from "./layout";
-import { sessionMetrics } from "./Practice";
 import { Sheet, SheetFlatList } from "./Sheet";
 import { SolveMenu } from "./SolveMenus";
-
-/** The session's fastest and slowest solves (a DNF is the slowest), once there are two. */
-function sessionExtremes(solves: SolveDto[]): { best?: number; worst?: number } {
-  if (solves.length < 2) return {};
-  const ranked = [...solves].sort((a, b) => (effective(a.time_ms, a.penalty) ?? Infinity) - (effective(b.time_ms, b.penalty) ?? Infinity));
-  return { best: ranked[0]!.id, worst: ranked.at(-1)!.id };
-}
-const toneOf = (v: SolveDto, extremes: { best?: number; worst?: number }) =>
-  v.penalty === "dnf" || v.id === extremes.worst ? "text-destructive" : v.id === extremes.best ? "text-success" : v.penalty === "+2" ? "text-warning" : "";
 
 /**
  * The session's times in a sheet resting half open: its figures, then every time newest first. A tap opens a time,
@@ -36,7 +28,7 @@ export function TimesSheet({ open, onClose, solves, title }: { open: boolean; on
       ListEmptyComponent={<Text className="px-2 py-3 text-sm text-muted-foreground">No solves in this session yet.</Text>}
       renderItem={({ item: v, index }) => <SolveMenu solve={v} className="h-12 flex-row items-center gap-3 rounded-lg px-2 active:bg-muted/50">
         <Mono className="w-8 text-right text-xs text-muted-foreground">{solves.length - index}</Mono>
-        <Mono className={cn("text-lg", toneOf(v, extremes))}>{fmtSolve(v.time_ms, v.penalty)}</Mono>
+        <Mono className={cn("text-lg", TONE_TEXT[solveTone(v, extremes)])}>{fmtSolve(v.time_ms, v.penalty)}</Mono>
         {v.comment ? <Text numberOfLines={1} className="flex-1 text-xs text-muted-foreground">“{v.comment}”</Text> : null}
       </SolveMenu>} />
   </Sheet>;

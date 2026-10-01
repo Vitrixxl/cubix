@@ -1,17 +1,15 @@
 /** Visual primitives and page building blocks shared by every screen, composed from the shadcn components. */
-import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, Ellipsis, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
-import { store as s } from "./store";
+import React, { useRef, useState } from "react";
+import { Check, ChevronDown, Circle, Ellipsis, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
+import { store as s, run } from "./store";
 import { Cube } from "./Cube";
 import { SessionButton } from "./phone";
+import { FADE, Icon, InHead, MONO, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,50 +34,11 @@ import {
 import { EVENTS } from "../../src/shared/puzzles";
 import { fmtSolve } from "../../src/client/lib/format";
 
-export type Props = {
-  children?: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-};
+export * from "./base";
+export { plural } from "../../src/client/lib/format";
+export { run } from "./store";
 
-export const MOBILE = 700;
-
-/** Everything but the running digits fades out while a solve runs (the root carries `data-running`). */
-export const FADE = "transition-opacity duration-200 group-data-running/app:pointer-events-none group-data-running/app:opacity-0";
-
-/** Times and figures: mono with tabular digits. */
-export const MONO = "font-mono tabular-nums";
-
-/** The small uppercase-free caption over a figure or a block. */
-export const LABEL = "font-mono text-xs font-medium text-muted-foreground";
-
-/** An SVG of desktop/assets/icons drawn in the current colour: the WCA puzzle icons. */
-export function Icon({ name, size = 16, className }: { name: string; size?: number; className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn("inline-block shrink-0 bg-current mask-contain mask-center mask-no-repeat", className)}
-      style={{ width: size, height: size, maskImage: `url(../assets/icons/${name}.svg)` }}
-    />
-  );
-}
-
-const run = (action: string) => (e: React.MouseEvent<HTMLElement>) => {
-  // Space starts the timer: it must not click the button pressed last.
-  e.currentTarget.blur();
-  void s.action(action, e.currentTarget);
-};
-
-type Variant = "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
 type Size = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
-
-/** Inside a page header every control is bordered (outline); elsewhere buttons stay quiet (ghost). */
-export const InHead = React.createContext(false);
-/** The variant a control takes where it stands, unless it names one. */
-export const useQuiet = (variant?: Variant): Variant => {
-  const head = React.useContext(InHead);
-  return variant ?? (head ? "outline" : "ghost");
-};
 
 /** A shadcn button dispatching a store action, with a tooltip when it has one (icon buttons always do). */
 export function Button({
@@ -119,16 +78,6 @@ export function Button({
     </UiButton>
   );
   return tip ? <Tip content={tip}>{button}</Tip> : button;
-}
-
-/** A tooltip over any element. */
-export function Tip({ content, children, side = "bottom" }: { content: React.ReactNode; side?: "top" | "bottom" | "left" | "right" } & { children: React.ReactElement }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger render={children} />
-      <TooltipContent side={side}>{content}</TooltipContent>
-    </Tooltip>
-  );
 }
 
 /** An on/off button dispatching its action on each press. */
@@ -389,11 +338,60 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
   );
 }
 
-export function Empty({ children, className }: Props) {
+/**
+ * The actions of a solve row, shown while the row is hovered or focused (the row is a `group/row`): +2, DNF, the
+ * comment when asked, and delete.
+ */
+export function SolveActions({ solve, comment = false, className }: { solve: { id: number; penalty?: string; comment?: string | null }; comment?: boolean; className?: string }) {
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground", className)}>
-      {children}
-    </div>
+    <span className={cn("flex items-center opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100", className)}>
+      <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
+        +2
+      </ActionToggle>
+      <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
+        DNF
+      </ActionToggle>
+      {comment && (
+        <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? "Edit comment" : "Add comment"} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
+      )}
+      <Button action={"delete:" + solve.id} icon={Trash2} size="icon-xs" label="Delete solve" className="text-muted-foreground hover:text-destructive" />
+    </span>
+  );
+}
+
+/**
+ * Whether a case is learned, as a status mark after its time (like an issue's status): a green disc with a check once
+ * learned, a quiet dashed circle otherwise, clearer while the row (`group/row`) is hovered or focused. A click toggles
+ * it without opening the row.
+ */
+export function LearnedMark({ id, learned, touch = false }: { id: string; learned: boolean; touch?: boolean }) {
+  const label = learned ? "Learned" : "Mark learned";
+  return (
+    <Tip content={label}>
+      <button
+        type="button"
+        data-action={"learn:" + id}
+        aria-pressed={learned}
+        aria-label={label}
+        onClick={(e) => {
+          e.stopPropagation();
+          run("learn:" + id)(e);
+        }}
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50",
+          touch ? "size-11" : "size-7",
+          learned ? "text-success" : "text-muted-foreground/40 group-hover/row:text-muted-foreground/80 group-focus-within/row:text-muted-foreground/80 hover:text-foreground",
+        )}
+      >
+        {learned ? (
+          <span className="flex size-3.5 items-center justify-center rounded-full bg-current">
+            <Check className="size-2.5 text-background" strokeWidth={3.5} />
+          </span>
+        ) : (
+          <Circle className="size-4" strokeDasharray="3.5 3" />
+        )}
+      </button>
+    </Tip>
   );
 }
 
@@ -403,22 +401,6 @@ export function Diagram({ c, size = 96, className }: { c: any; size?: number; cl
     <Cube scene={c.cube} size={size} animated={false} />
   ) : (
     <img className={cn("block shrink-0", className)} src={"../assets/" + c.asset} width={size} height={size} alt={c.id} />
-  );
-}
-
-/** Moves in notation; brackets and parentheses muted. */
-export function Alg({ text, size = 18, className }: { text: string; size?: number; className?: string }) {
-  return (
-    <div
-      className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-mono leading-snug font-medium tracking-tight", className)}
-      style={{ fontSize: size }}
-    >
-      {text?.split(/\s+/).map((word, i) => (
-        <span key={i} className={cn(/[()\[\]]/.test(word) && "text-muted-foreground")}>
-          {word}
-        </span>
-      ))}
-    </div>
   );
 }
 
@@ -435,10 +417,10 @@ export function PageHead({
   more,
   children,
 }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean | "scramble"; more?: React.ReactNode } & Props) {
-  const mobile = useViewport().w <= MOBILE;
+  const phone = usePhone();
   return (
     <InHead.Provider value={true}>
-    <header className={cn("flex min-h-10 shrink-0 items-center gap-y-3", mobile ? "justify-between gap-x-2" : "flex-wrap justify-start gap-x-6", FADE)}>
+    <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-2 gap-y-3 md:flex-wrap md:justify-start md:gap-x-6", FADE)}>
       <div className="flex min-w-0 items-center gap-2 md:gap-3">
         {lead}
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -446,8 +428,8 @@ export function PageHead({
           {sub && <p className="truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
         </div>
       </div>
-      <div className={cn("flex min-w-0 items-center gap-1", mobile ? "shrink-0 justify-end" : "flex-wrap justify-start")}>
-        {mobile && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
+      <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 md:shrink md:flex-wrap md:justify-start">
+        {phone && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
         {children}
         {more && <MoreMenu>{more}</MoreMenu>}
       </div>
@@ -494,172 +476,5 @@ export function MenuChoice({ label, action, value, options }: { label: string; a
         ))}
       </DropdownMenuRadioGroup>
     </DropdownMenuGroup>
-  );
-}
-
-/** The padding every page has, and its column. */
-export const PAGE = "flex h-full min-h-0 flex-col gap-3 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 md:gap-5 md:px-6 md:pt-5 md:pb-5 xl:px-8";
-
-/**
- * The main work surface of a page (level 1): one calm card, the page's heart. Everything else stays on the page
- * background, grouped by headings and hairlines or in a quieter muted strip.
- */
-export function Surface({ children, className, ...rest }: Props & React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <Card
-      className={cn(
-        "min-h-0 gap-0 py-0 transition-[background-color,box-shadow] duration-200 group-data-running/app:bg-transparent group-data-running/app:ring-transparent",
-        className,
-      )}
-      {...rest}
-    >
-      {children}
-    </Card>
-  );
-}
-
-/** A secondary group of figures (level 2): a quiet muted band, no outline. */
-export function Strip({ children, className, label }: Props & { label?: string }) {
-  return (
-    <section aria-label={label} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl border bg-muted/45 px-4 py-3", FADE, className)}>
-      {children}
-    </section>
-  );
-}
-
-/** A whole page on its way: its header, the main surface and the side list, shaped like the timer. */
-export function PageSkeleton({ side = true }: { side?: boolean }) {
-  return (
-    <div className={PAGE} aria-busy="true" aria-label="Loading">
-      <header className="flex min-h-10 items-center justify-between">
-        <Skeleton className="h-7 w-40" />
-        <div className="flex gap-2">
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-8 w-24" />
-        </div>
-      </header>
-      <div className="flex min-h-0 flex-1 gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl p-6 ring-1 ring-foreground/10">
-            <Skeleton className="h-6 w-4/5" />
-            <Skeleton className="h-6 w-3/5" />
-            <div className="flex flex-1 flex-col items-center justify-center gap-5">
-              <Skeleton className="h-24 w-72 max-w-full" />
-              <div className="flex gap-2">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Skeleton key={i} className="h-7 w-12 md:w-18" />
-                ))}
-              </div>
-            </div>
-          </div>
-          <Skeleton className="h-16 w-full rounded-xl" />
-        </div>
-        {side && (
-          <div className="flex w-64 flex-col gap-3 max-lg:hidden">
-            <Skeleton className="h-4 w-20" />
-            {Array.from({ length: 10 }, (_, i) => (
-              <Skeleton key={i} className="h-5 w-full" />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export { Logo } from "./logo";
-
-export function Avatar({ user, size = 32, className }: { user: any; size?: number; className?: string }) {
-  return (
-    <span
-      className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary", className)}
-      style={{ width: size, height: size, fontSize: size / 2.8 }}
-      aria-hidden="true"
-    >
-      {user?.username?.slice(0, 2).toUpperCase()}
-    </span>
-  );
-}
-
-/** A figure: its label small and muted, the value in mono underneath. */
-export function Figure({
-  label,
-  value,
-  tone,
-  size = "base",
-  inline = false,
-  className,
-}: {
-  label: React.ReactNode;
-  value: React.ReactNode;
-  tone?: "" | "good" | "bad" | "accent";
-  size?: "sm" | "base" | "lg" | "xl";
-  /** Label and value on one line: the label on the left, the value on the right. */
-  inline?: boolean;
-  className?: string;
-}) {
-  const empty = typeof value === "string" && /^[-–—]$/.test(value.trim());
-  return (
-    <div className={cn("flex min-w-0", inline ? "flex-row items-baseline justify-between gap-3" : "flex-col gap-1", className)}>
-      <span className={cn(LABEL, "truncate")}>{label}</span>
-      <span
-        className={cn(
-          MONO,
-          "truncate leading-none font-medium tracking-tight",
-          { sm: "text-sm", base: "text-lg", lg: "text-2xl", xl: "text-4xl" }[size],
-          empty
-            ? "text-muted-foreground/60"
-            : tone === "good"
-              ? "text-success"
-              : tone === "bad"
-                ? "text-destructive"
-                : tone === "accent"
-                  ? "text-primary"
-                  : "",
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-export function useViewport() {
-  const [v, set] = useState({ w: innerWidth, h: innerHeight });
-  useEffect(() => {
-    const resize = () => set({ w: innerWidth, h: innerHeight });
-    addEventListener("resize", resize);
-    return () => removeEventListener("resize", resize);
-  }, []);
-  return v;
-}
-
-export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
-
-/** A thin bar: the accent once reached (`done`), muted while on its way. */
-export function Bar({ ratio, done = true, className }: { ratio: number; done?: boolean; className?: string }) {
-  const value = Math.max(0, Math.min(1, ratio));
-  return (
-    <div
-      className={cn("h-1 min-w-10 overflow-hidden rounded-full bg-muted", className)}
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(value * 100)}
-    >
-      <div className={cn("h-full rounded-full", done ? "bg-primary" : "bg-muted-foreground/60")} style={{ width: value * 100 + "%" }} />
-    </div>
-  );
-}
-
-/** A section title (level 2): a small heading, an optional muted count and the section's own controls; `rule` draws
- * the hairline under it. */
-export function SectionHead({ title, meta, children, className, rule = false }: { title: React.ReactNode; meta?: React.ReactNode; rule?: boolean } & Props) {
-  return (
-    <div className={cn("flex min-h-8 shrink-0 items-center gap-2", rule && "border-b pb-2", className)}>
-      <h2 className="text-sm font-medium">{title}</h2>
-      {meta != null && <span className={cn(MONO, "text-sm text-muted-foreground")}>{meta}</span>}
-      {children && <div className="ml-auto flex items-center gap-1">{children}</div>}
-    </div>
   );
 }

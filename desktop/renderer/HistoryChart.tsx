@@ -152,7 +152,7 @@ export function HistoryChart({ history, averages, range, onRange }: {
         {point && <>
           {value != null && <div className="pointer-events-none absolute size-2.5 -translate-1/2 rounded-full bg-chart-1 ring-2 ring-background" style={{ left: x(hover!) / 8 + "%", top: y(value) / 240 * 100 + "%" }} />}
           <div className={cn("pointer-events-none absolute top-1 flex min-w-32 flex-col gap-0.5 rounded-lg bg-popover px-2.5 py-2 text-popover-foreground shadow-md ring-1 ring-foreground/10", x(hover!) > 400 ? "-translate-x-[calc(100%+12px)]" : "translate-x-3")} style={{ left: x(hover!) / 8 + "%" }}>
-            <strong className="font-mono text-sm font-medium tabular-nums">{point.time == null ? "DNF" : fmtTime(point.time)}</strong>
+            <strong className="font-mono text-sm font-medium tabular-nums">{fmtTime(point.time, { blank: "DNF" })}</strong>
             {averages[hover!] != null && <span className="font-mono text-xs text-chart-2 tabular-nums">Ao5 {fmtTime(averages[hover!])}</span>}
             <small className="text-xs text-muted-foreground">#{hover! + 1} · {point.displayDate}</small>
           </div>

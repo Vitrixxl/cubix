@@ -2,6 +2,7 @@ import { afterEach, expect, mock, test } from "bun:test";
 import { createElement } from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { createStore, Provider, useAtomValue } from "jotai";
+import { mockLucide } from "./lucide-mock";
 
 // Render the real browser, pager and routing atoms with native drawing replaced by host nodes.
 // Slides finish at once so each step sees the settled page.
@@ -38,11 +39,11 @@ mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, l
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
 mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
-mock.module("../src/components/AlgText", () => ({ AlgText: () => null, sourceLabel: (source: string) => source }));
+mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) => source }));
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null }));
 mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
-mock.module("lucide-react-native", () => Object.fromEntries(["BookOpen", "Check", "ChevronDown", "ChevronLeft", "ChevronRight", "CirclePlay", "RotateCcw", "Timer"].map(name => [name, name])));
+mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));

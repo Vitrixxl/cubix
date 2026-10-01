@@ -1,29 +1,18 @@
 /** The profile's sub-pages: training cases, achievements and battles; a heading, then one card that scrolls inside. */
-import type { ReactNode } from "react";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
-import { fmtSolve, fmtTime } from "../../../src/client/lib/format";
+import { fmtSolve, fmtTime, plural, shortDate } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
-import { Choice, Diagram, Empty, Icon, MONO, PuzzleButton, SelectMenu, plural } from "../ui";
-import { ROUNDS, battleRecord, type DuelRecord } from "../duelClient";
+import { Bar, Choice, Diagram, Empty, Figure, Icon, MONO, PuzzleButton, SelectMenu, run } from "../ui";
+import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Stat, Stats, SubPageHead, go } from "./card";
-import { Badge, NoBattles, ResultMark, ao5Text } from "./sections";
-import { battles, shortDate } from "./data";
-
-/** The body card of a sub-page: its toolbar on top, the rest scrolling inside. */
-function PageCard({ toolbar, children, className }: { toolbar?: ReactNode; children: ReactNode; className?: string }) {
-  return (
-    <Card className={cn("min-h-0 flex-1 gap-0 py-0", className)}>
-      {toolbar && <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pt-4 pb-3">{toolbar}</div>}
-      <div className={cn("min-h-0 flex-1 overflow-y-auto px-5 pb-5", !toolbar && "pt-4")}>{children}</div>
-    </Card>
-  );
-}
+import { PageCard, Stats, SubPageHead } from "./card";
+import { Badge, NoBattles, ResultMark } from "./sections";
+import { battles } from "./data";
 
 export function TrainingPage({ phone }: { phone: boolean }) {
   const p = s.profile,
@@ -72,7 +61,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
               <button
                 type="button"
                 data-action={"collapse:" + key}
-                onClick={go("collapse:" + key)}
+                onClick={run("collapse:" + key)}
                 className="-mx-2 flex h-10 items-center gap-2 rounded-md px-2 text-left text-sm font-medium outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
               >
                 {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -90,7 +79,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
                         key={c.id}
                         type="button"
                         data-action={"profileCase:" + c.id}
-                        onClick={go("profileCase:" + c.id)}
+                        onClick={run("profileCase:" + c.id)}
                         className={cn(
                           "flex flex-col items-center gap-1 rounded-lg px-1 pt-3 pb-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50",
                           !st && "opacity-45 hover:opacity-100",
@@ -143,9 +132,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
               options={["all", "unlocked", "locked"].map((f) => ({ id: f, label: f[0]!.toUpperCase() + f.slice(1) }))}
             />
             <div className="ml-auto flex w-48 items-center gap-3 max-md:hidden">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-primary" style={{ width: (total ? unlocked / total : 0) * 100 + "%" }} />
-              </div>
+              <Bar ratio={total ? unlocked / total : 0} className="h-1.5 flex-1" />
               <span className={cn(MONO, "text-xs text-muted-foreground")}>{Math.round((total ? unlocked / total : 0) * 100)}%</span>
             </div>
           </>
@@ -178,9 +165,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
                         </div>
                         <p className="text-xs text-muted-foreground">{a.description}</p>
                         {!a.unlocked && (
-                          <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
-                            <div className="h-full rounded-full bg-primary/70" style={{ width: Math.max(0, Math.min(1, a.ratio)) * 100 + "%" }} />
-                          </div>
+                          <Bar ratio={a.ratio} fill="bg-primary/70" className="mt-1" />
                         )}
                       </div>
                     </div>
@@ -215,11 +200,11 @@ export function BattlesPage({ phone }: { phone: boolean }) {
         <>
           <Card className="shrink-0 gap-0 px-5 py-4">
             <Stats columns={5}>
-              <Stat label="Played" value={String(list.length)} />
-              <Stat label="Won" value={String(count("win"))} tone="good" />
-              <Stat label="Lost" value={String(count("loss"))} />
-              <Stat label="Win rate" value={Math.round((count("win") / Math.max(1, count("win") + count("loss"))) * 100) + "%"} />
-              <Stat label="Best Ao5" value={averages.length ? fmtTime(Math.min(...averages)) : "–"} tone="accent" />
+              <Figure caption="plain" size="xl" label="Played" value={String(list.length)} />
+              <Figure caption="plain" size="xl" label="Won" value={String(count("win"))} tone="good" />
+              <Figure caption="plain" size="xl" label="Lost" value={String(count("loss"))} />
+              <Figure caption="plain" size="xl" label="Win rate" value={Math.round((count("win") / Math.max(1, count("win") + count("loss"))) * 100) + "%"} />
+              <Figure caption="plain" size="xl" label="Best Ao5" value={averages.length ? fmtTime(Math.min(...averages)) : "–"} tone="accent" />
             </Stats>
           </Card>
           <PageCard>

@@ -2,7 +2,7 @@ import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
 import { Check, ChevronLeft, ChevronRight, CirclePlay, Eye, EyeOff, LayoutList, Shuffle, Undo2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
-import { effective, fmtSolve, fmtTime } from "../../../src/client/lib/format";
+import { effective, fmtSolve, fmtTime, plural } from "../../../src/client/lib/format";
 import { isReviewMode, learningModeForPuzzle, learningTrackOf, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningGoal";
 import { practiceSummary, trainingSessionRows } from "../../../src/client/lib/practiceSummary";
@@ -26,7 +26,7 @@ import {
 } from "../components/Practice";
 import { Sheet, SheetScrollView } from "../components/Sheet";
 import { LastSolveBar, SolveMenu } from "../components/SolveMenus";
-import { plural, TrainingSetup, type DailyLearning } from "../components/TrainingSetup";
+import { TrainingSetup, type DailyLearning } from "../components/TrainingSetup";
 import { useDailyLearning } from "../hooks/useDailyLearning";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";

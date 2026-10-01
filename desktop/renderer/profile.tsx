@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Trophy, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { fmtTime } from "../../src/client/lib/format";
-import { Avatar, Button, InHead, MOBILE, MenuAction, MoreMenu, PuzzleButton, SelectMenu, plural, useViewport } from "./ui";
+import { Avatar, Button, InHead, MenuAction, MoreMenu, PuzzleButton, SelectMenu, plural, usePhone } from "./ui";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,7 @@ import { Num, SubPageHead } from "./profile/card";
 import { Heatmap } from "./profile/heatmap";
 import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
 import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
-import { profileData, type ProfileData } from "./profile/data";
+import { useProfileData, type ProfileData } from "./profile/data";
 
 const SECTIONS: Record<string, string> = {
   playground: "Timer",
@@ -89,7 +89,7 @@ function ProfileHeader({ d, phone }: { d: ProfileData; phone: boolean }) {
   return phone ? (
     <header className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <Avatar user={user} size={56} />
+        <Avatar name={user?.username} size={56} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h1 className="truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
           <p className="truncate text-sm text-muted-foreground">{joined ?? event.label}</p>
@@ -100,7 +100,7 @@ function ProfileHeader({ d, phone }: { d: ProfileData; phone: boolean }) {
     </header>
   ) : (
     <header className="flex items-center gap-6">
-      <Avatar user={user} size={88} />
+      <Avatar name={user?.username} size={88} />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-col gap-0.5">
           <h1 className="truncate text-2xl font-semibold tracking-tight">{user?.username}</h1>
@@ -118,9 +118,9 @@ function ProfileHeader({ d, phone }: { d: ProfileData; phone: boolean }) {
 
 /** The overview: the user, the year of practice, then the timer beside training, achievements and battles. */
 function Overview({ phone }: { phone: boolean }) {
-  const d = profileData();
+  const d = useProfileData();
   return (
-    <div className={cn("flex flex-col", phone ? "gap-4" : "gap-6")}>
+    <div className="flex flex-col gap-4 md:gap-6">
       <ProfileHeader d={d} phone={phone} />
       <Heatmap solves={d.activity} latest={d.latest} phone={phone} />
       {phone ? (
@@ -192,7 +192,7 @@ function ProfileSkeleton({ phone }: { phone: boolean }) {
   return (
     <div className={cn(COLUMN, "flex flex-col gap-6 py-6", phone && "px-4 py-4")} aria-busy="true" aria-label="Loading">
       <div className="flex items-center gap-6">
-        <Skeleton className={cn("rounded-full", phone ? "size-14" : "size-22")} />
+        <Skeleton className="size-22 rounded-full max-md:size-14" />
         <div className="flex flex-1 flex-col gap-2.5">
           <Skeleton className="h-7 w-48" />
           <Skeleton className="h-4 w-32" />
@@ -210,13 +210,13 @@ function ProfileSkeleton({ phone }: { phone: boolean }) {
 
 /** Account page: the overview, or one of its sections opened from it as a page of its own. */
 export function Profile() {
-  const phone = useViewport().w <= MOBILE,
+  const phone = usePhone(),
     p = s.profile,
     mode = s.profileMode in SECTIONS ? s.profileMode : "overview";
   if (phone) return <PhoneProfile mode={mode} />;
   if (!p) return <ProfileSkeleton phone={false} />;
   return mode === "overview" ? (
-    <div className="profile-scroll h-full min-h-0 overflow-y-auto">
+    <div className="h-full min-h-0 overflow-y-auto">
       <div className={cn(COLUMN, "py-6")}>
         <Overview phone={false} />
       </div>
@@ -250,7 +250,7 @@ function PhoneProfile({ mode }: { mode: string }) {
       {!p ? (
         <ProfileSkeleton phone />
       ) : mode === "overview" ? (
-        <div className="profile-scroll min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
           <Overview phone />
         </div>
       ) : (

@@ -1,11 +1,12 @@
 /** Solve statistics: the summary figures, the progress chart and the solves table. */
 import React, { useState } from "react";
-import { ArrowDownUp, ChartLine, ChevronDown, List, MessageSquare, Trash2 } from "lucide-react";
+import { ArrowDownUp, ChartLine, ChevronDown, List, MessageSquare } from "lucide-react";
 import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Button, Choice, Empty, Figure, MONO, SolveMenu, plural } from "./ui";
-import { Stat, Stats } from "./profile/card";
+import { timerFigures } from "../../src/client/lib/practiceSummary";
+import { Choice, Empty, Figure, MONO, SolveActions, SolveMenu, plural, run } from "./ui";
+import { PageCard, Stats } from "./profile/card";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
@@ -20,26 +21,18 @@ import {
 
 /** The summary figures: a card of their own on a page, plain figures inside a dialog (`compact`). */
 function StatStrip({ summary, compact }: { summary: any; compact: boolean }) {
-  const figures: [string, string, "" | "good" | "accent"][] = [
-    ["Best single", fmtTime(summary.best), "good"],
-    ["Best Ao5", fmtTime(summary.bestAo5), ""],
-    ["Best Ao12", fmtTime(summary.bestAo12), ""],
-    ["Current Ao5", fmtTime(summary.ao5), "accent"],
-    ["Current Ao12", fmtTime(summary.ao12), "accent"],
-    ["Mean", fmtTime(summary.mean), ""],
-    ["Solves", summary.count.toLocaleString(), ""],
-  ];
+  const figures = timerFigures(summary);
   return compact ? (
     <div className="grid shrink-0 grid-cols-4 gap-x-6 gap-y-4 lg:grid-cols-7">
       {figures.map(([label, value, tone]) => (
-        <Figure key={label} label={label} value={value} tone={tone} size="base" />
+        <Figure key={label} label={label} value={value} tone={tone} />
       ))}
     </div>
   ) : (
     <Card className="shrink-0 gap-0 px-5 py-4" aria-label="Summary">
       <Stats columns={7}>
         {figures.map(([label, value, tone]) => (
-          <Stat key={label} label={label} value={value} tone={tone || undefined} />
+          <Figure key={label} label={label} value={value} tone={tone} caption="plain" size="xl" />
         ))}
       </Stats>
     </Card>
@@ -54,10 +47,9 @@ function Panel({ compact, toolbar, children }: { compact: boolean; toolbar: Reac
       {children}
     </div>
   ) : (
-    <Card className="min-h-0 flex-1 gap-0 py-0">
-      <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pt-4 pb-3">{toolbar}</div>
-      <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">{children}</div>
-    </Card>
+    <PageCard toolbar={toolbar} scroll={false}>
+      {children}
+    </PageCard>
   );
 }
 
@@ -245,16 +237,13 @@ function SolvesTable({
                 <button
                   type="button"
                   data-action={"solve:" + v.id}
-                  onClick={(e) => {
-                    e.currentTarget.blur();
-                    void s.action("solve:" + v.id);
-                  }}
+                  onClick={run("solve:" + v.id)}
                   className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3"
                 >
                   <span className={cn(MONO, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
                   <span className="flex items-center gap-2">
                     <span className={cn(MONO, "text-sm", v.time == null ? "text-destructive" : pb ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>
-                      {v.time == null ? "DNF" : fmtTime(v.time)}
+                      {fmtTime(v.time, { blank: "DNF" })}
                     </span>
                     {pb && <span className="rounded-md bg-success/15 px-1.5 py-px text-[11px] font-medium text-success">PB</span>}
                     {v.penalty === "+2" && <span className="rounded-md bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">+2</span>}
@@ -265,16 +254,7 @@ function SolvesTable({
                   <span className="truncate text-xs text-muted-foreground max-md:hidden">{v.comment}</span>
                   <span className="truncate text-xs text-muted-foreground">{v.displayDate}</span>
                 </button>
-                <span className="flex w-28 items-center justify-end opacity-0 max-md:hidden transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100">
-                  <ActionToggle action={`penalty:${v.id}:+2`} pressed={v.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
-                    +2
-                  </ActionToggle>
-                  <ActionToggle action={`penalty:${v.id}:dnf`} pressed={v.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
-                    DNF
-                  </ActionToggle>
-                  <Button action={"comment:" + v.id} icon={MessageSquare} size="icon-xs" label={v.comment ? "Edit comment" : "Add comment"} className={cn("text-muted-foreground", v.comment && "text-primary")} />
-                  <Button action={"delete:" + v.id} icon={Trash2} size="icon-xs" label="Delete solve" className="text-muted-foreground hover:text-destructive" />
-                </span>
+                <SolveActions solve={v} comment className="w-28 justify-end max-md:hidden" />
               </div>
               {v.comment && <p className="-mt-1 pb-2 pl-[4.5rem] text-xs text-muted-foreground md:hidden">{v.comment}</p>}
             </div>

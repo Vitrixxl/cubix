@@ -179,9 +179,12 @@ const CaseRow = memo(function CaseRow({ c, best, learned, detail, onOpen, onTogg
       </View>
       <Mono className={cn("text-sm", best != null ? "text-foreground/80" : "text-muted-foreground/50")}>{best != null ? fmtTime(best) : "–"}</Mono>
     </Pressable>
+    {/* The learned status after the time, like an issue's status: a green disc with a check, or a quiet dashed circle. */}
     <Pressable onPress={() => onToggle(c.id)} accessibilityRole="checkbox" accessibilityState={{ checked: learned }} accessibilityLabel={learned ? `${c.id} learned` : `Mark ${c.id} learned`}
-      className={cn("size-11 items-center justify-center rounded-lg", learned ? "bg-success/15" : "active:bg-muted/50")}>
-      <Icon as={Check} size={17} className={learned ? "text-success" : "text-muted-foreground/40"} />
+      className="size-11 items-center justify-center rounded-full active:bg-muted/50">
+      {learned ? <View className="size-4 items-center justify-center rounded-full bg-success">
+        <Icon as={Check} size={12} strokeWidth={3} className="text-background" />
+      </View> : <View className="size-4 rounded-full border-[1.5px] border-dashed border-muted-foreground/40" />}
     </Pressable>
   </View>;
 });
@@ -251,7 +254,7 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
       </View>
       <TouchBar className="border-t border-border bg-muted/30 px-2 py-2">
         <TouchAction icon={Timer} label="Train" primary onPress={train} accessibilityLabel={`Train ${c.id}`} />
-        <TouchAction icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="text-success bg-success/15" onPress={() => toggleLearned(c.id)} accessibilityLabel={`${c.id} learned`} />
+        <TouchAction icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="good" onPress={() => toggleLearned(c.id)} accessibilityLabel={`${c.id} learned`} />
         {cube && <TouchAction icon={RotateCcw} label="Replay" onPress={() => setReplay(n => n + 1)} accessibilityLabel="Replay the setup on the cube" />}
       </TouchBar>
     </Surface>

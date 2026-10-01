@@ -1,6 +1,8 @@
 @import "tailwindcss" source(none);
 @source "./";
 @source "../guides";
+@source "../../src/client/lib/tone.ts";
+@source "../../src/client/lib/profile.ts";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -20,6 +22,8 @@
     --breakpoint-md: 43.8125rem;
 }
 
+/* Times: the best in green, +2 in amber (the worst and DNF use --destructive). The status colours, like the accent and
+   the tinted neutrals, are set on the document by applyTheme (desktop/renderer/theme.ts) before the first paint. */
 @theme inline {
     --color-success: var(--success);
     --color-warning: var(--warning);
@@ -99,9 +103,6 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    /* Times: the best in green, +2 in amber (the worst and DNF use --destructive). */
-    --success: oklch(0.52 0.13 150);
-    --warning: oklch(0.58 0.13 70);
 }
 
 .dark {
@@ -136,8 +137,6 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
-    --success: oklch(0.77 0.17 150);
-    --warning: oklch(0.82 0.15 80);
 }
 
 @layer base {

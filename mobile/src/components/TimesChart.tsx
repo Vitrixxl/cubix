@@ -186,7 +186,7 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
         {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">Reset zoom</Text></Button>}
         {selection && <View pointerEvents="none" className="absolute bottom-1 self-center rounded-md bg-popover px-2 py-1"><Text className="text-[11px]">{fmtDate(history[selection[0]!]!.at)} — {fmtDate(history[selection[1]!]!.at)}</Text></View>}
         {point && <View pointerEvents="none" className="absolute top-2 gap-0.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg" style={x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }}>
-          <Mono className="text-[15px] font-semibold">{point.time == null ? "DNF" : fmtTime(point.time)}</Mono>
+          <Mono className="text-[15px] font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Mono>
           {averages[hover!] != null && <Mono className="text-xs" style={{ color: colors.chart2 }}>Ao5 {fmtTime(averages[hover!])}</Mono>}
           <Text className="text-[11px] text-muted-foreground">#{hover! + 1} · {fmtDate(point.at)}</Text>
         </View>}
@@ -224,10 +224,10 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
   type Row = (typeof rows)[number];
   const renderRow = ({ item: { v, index, pb } }: { item: Row }) => {
     const solve: SolveSummary = { id: v.id, time_ms: v.timeMs, penalty: v.penalty, created_at: v.at, comment: v.comment };
-    return <SolveMenu solve={solve} accessibilityLabel={`Solve ${index + 1}: ${v.time == null ? "DNF" : fmtTime(v.time)}`} className="min-h-11 justify-center border-b border-border px-1 py-1.5 active:bg-muted/50">
+    return <SolveMenu solve={solve} accessibilityLabel={`Solve ${index + 1}: ${fmtTime(v.time, { blank: "DNF" })}`} className="min-h-11 justify-center border-b border-border px-1 py-1.5 active:bg-muted/50">
       <View className="flex-row items-center gap-3">
         <Mono className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Mono>
-        <Mono className={cn("text-base", v.time == null ? "text-destructive" : pb ? "text-primary" : v.penalty === "+2" ? "text-warning" : "")}>{v.time == null ? "DNF" : fmtTime(v.time)}</Mono>
+        <Mono className={cn("text-base", v.time == null ? "text-destructive" : pb ? "text-primary" : v.penalty === "+2" ? "text-warning" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Mono>
         {pb && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px] text-primary">PB</Text></Badge>}
         {v.penalty === "+2" && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px]">+2</Text></Badge>}
         <Text numberOfLines={1} className="ml-auto text-xs text-muted-foreground">{fmtDate(v.at)}</Text>

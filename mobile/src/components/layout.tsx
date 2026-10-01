@@ -7,7 +7,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
 import { useColors } from "../theme";
+
+export type { Tone };
 
 /**
  * The app's page furniture, after the web phone layout (desktop/renderer/ui.tsx and phone.tsx): a page with its head
@@ -75,24 +78,13 @@ export function Surface({ className, ...props }: ViewProps) {
   return <Card className={cn("gap-0 overflow-hidden py-0", className)} {...props} />;
 }
 
-export type Tone = "" | "good" | "bad" | "accent" | "warning";
-const TONE: Record<Tone, string> = { "": "", good: "text-success", bad: "text-destructive", accent: "text-primary", warning: "text-warning" };
 const FIGURE: Record<"sm" | "base" | "lg" | "xl", string> = { sm: "text-sm", base: "text-lg", lg: "text-2xl", xl: "text-4xl" };
 /** A caption over a figure; an empty figure (a dash) is faded. */
 export function Figure({ label, value, tone = "", size = "base", className }: { label: ReactNode; value: ReactNode; tone?: Tone; size?: "sm" | "base" | "lg" | "xl"; className?: string }) {
   const empty = typeof value === "string" && /^[-–—]$/.test(value.trim());
   return <View className={cn("min-w-0 gap-1", className)}>
     <Label numberOfLines={1}>{label}</Label>
-    <Mono numberOfLines={1} className={cn("font-medium tracking-tight", FIGURE[size], empty ? "text-muted-foreground/60" : TONE[tone])}>{value}</Mono>
-  </View>;
-}
-
-/** A section title with an optional muted count and its own controls on the right. */
-export function SectionHead({ title, meta, children, className }: { title: ReactNode; meta?: ReactNode; children?: ReactNode; className?: string }) {
-  return <View className={cn("min-h-8 flex-row items-center gap-2", className)}>
-    <Text className="text-sm font-medium">{title}</Text>
-    {meta != null ? <Mono className="text-sm text-muted-foreground">{meta}</Mono> : null}
-    {children ? <View className="ml-auto flex-row items-center gap-1">{children}</View> : null}
+    <Mono numberOfLines={1} className={cn("font-medium tracking-tight", FIGURE[size], empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Mono>
   </View>;
 }
 
@@ -125,17 +117,18 @@ export function TouchBar({ className, ...props }: ViewProps) {
   return <View className={cn("flex-row gap-1", className)} {...props} />;
 }
 
-/** One target of a touch bar; `pressed` marks an on/off one, `tone` colours it while on. */
-export function TouchAction({ icon, label, onPress, pressed, disabled, tone, primary = false, accessibilityLabel }: {
-  icon?: LucideIcon; label: string; onPress: () => void; pressed?: boolean; disabled?: boolean; tone?: string; primary?: boolean; accessibilityLabel?: string;
+/** One target of a touch bar; `pressed` marks an on/off one, `tone` colours it while on (`good` also tints its ground). */
+export function TouchAction({ icon, label, onPress, pressed, disabled, tone = "", primary = false, accessibilityLabel }: {
+  icon?: LucideIcon; label: string; onPress: () => void; pressed?: boolean; disabled?: boolean; tone?: Tone; primary?: boolean; accessibilityLabel?: string;
 }) {
+  const text = cn(primary ? "text-primary-foreground" : pressed ? "text-foreground" : "text-muted-foreground", pressed && TONE_TEXT[tone]);
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: pressed, disabled }} disabled={disabled} onPress={onPress}
     className={cn("h-14 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg px-1",
       primary ? "bg-primary active:bg-primary/85" : pressed ? "bg-muted" : "active:bg-muted/60",
-      pressed && tone && tone.split(" ").filter(c => c.startsWith("bg-")).join(" "),
+      pressed && tone === "good" && "bg-success/15",
       disabled && "opacity-40")}>
-    {icon ? <Icon as={icon} size={19} className={cn(primary ? "text-primary-foreground" : pressed ? "text-foreground" : "text-muted-foreground", pressed && tone && tone.split(" ").filter(c => c.startsWith("text-")).join(" "))} /> : null}
-    <Text numberOfLines={1} className={cn("text-[11px] font-medium", primary ? "text-primary-foreground" : pressed ? "text-foreground" : "text-muted-foreground", pressed && tone && tone.split(" ").filter(c => c.startsWith("text-")).join(" "))}>{label}</Text>
+    {icon ? <Icon as={icon} size={19} className={text} /> : null}
+    <Text numberOfLines={1} className={cn("text-[11px] font-medium", text)}>{label}</Text>
   </Pressable>;
 }
 

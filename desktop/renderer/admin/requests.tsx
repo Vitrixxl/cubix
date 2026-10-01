@@ -50,10 +50,11 @@ export function Requests({ phone }: { phone: boolean }) {
     }
   };
   const any = FILTERS.some((k) => value(k));
-  const done = older.done || (d ? rows.length >= d.total : false);
+  const done = older.done || (d ? !d.totalCapped && rows.length >= d.total : false),
+    total = d ? num(d.total) + (d.totalCapped ? "+" : "") : "";
   return (
     <div className="flex flex-col gap-5">
-      <ViewHead title="Requests" sub={d ? `${num(d.total)} ${any ? "matching" : "logged"} · newest first` : "The request log, newest first"}>
+      <ViewHead title="Requests" sub={d ? `${total} ${any ? "matching" : "logged"} · newest first` : "The request log, newest first"}>
         <Toggle
           variant="outline"
           pressed={following}
@@ -201,7 +202,7 @@ export function Requests({ phone }: { phone: boolean }) {
       {d && rows.length > 0 && (
         <div className="flex items-center justify-between gap-3">
           <span className={cn(MONO, "text-xs text-muted-foreground")}>
-            {num(rows.length)} of {num(d.total)}
+            {num(rows.length)} of {total}
           </span>
           {older.error && <span className="text-xs text-destructive">{older.error}</span>}
           {!done && (

@@ -12,9 +12,9 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { useEffect, useState } from "react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Figure, MONO } from "../base";
 
-export const MONO = "font-mono tabular-nums";
-export const LABEL = "text-xs font-medium text-muted-foreground";
+export { Avatar, MONO, SectionHead } from "../base";
 
 /* Formats. Every time is in ms since the epoch; days are UTC. */
 export const num = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("en-US"));
@@ -64,12 +64,6 @@ export function ago(at: number | null | undefined, now = Date.now()) {
   return date(at);
 }
 export const dayLabel = (day: string) => new Date(day + "T00:00:00Z").toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: "UTC" });
-export function solveTime(ms: number | null | undefined) {
-  if (ms == null) return "–";
-  const minutes = Math.floor(ms / 60000),
-    seconds = (ms % 60000) / 1000;
-  return minutes ? `${minutes}:${seconds.toFixed(3).padStart(6, "0")}` : seconds.toFixed(3);
-}
 export function event(puzzle: string, mode: string) {
   try {
     return eventLabel(puzzle as PuzzleId, mode as SolveMode);
@@ -91,18 +85,21 @@ export function useNow() {
 /** A key figure: the label, the value in mono, one quiet line under it (a breakdown or the change since yesterday). */
 export function Kpi({ label, value, sub, delta, invert = false, className }: { label: string; value: React.ReactNode; sub?: React.ReactNode; delta?: number | null; invert?: boolean; className?: string }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
-      <span className={cn(LABEL, "truncate")}>{label}</span>
-      <span className="flex min-w-0 items-baseline gap-2">
-        <span className={cn(MONO, "truncate text-2xl leading-none font-medium tracking-tight")}>{value}</span>
-        {delta != null && (
+    <Figure
+      label={label}
+      value={value}
+      caption="strong"
+      size="2xl"
+      aside={
+        delta != null && (
           <span className="text-xs" title="Since yesterday">
             <Delta value={delta} invert={invert} />
           </span>
-        )}
-      </span>
-      {sub && <span className="min-w-0 truncate text-xs text-muted-foreground">{sub}</span>}
-    </div>
+        )
+      }
+      sub={sub}
+      className={className}
+    />
   );
 }
 /** The change since yesterday: an arrow and the difference, red only when it goes the wrong way. */
@@ -179,19 +176,6 @@ export function IpLink({ ip, className }: { ip: string; className?: string }) {
     <Link to={ipPath(ip)} title={`Requests from ${ip}`} className={cn(MONO, className)}>
       {ip}
     </Link>
-  );
-}
-
-/** The initials of an account, like the app's avatar. */
-export function Initials({ name, size = 28 }: { name: string; size?: number }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="flex shrink-0 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary"
-      style={{ width: size, height: size, fontSize: size / 2.8 }}
-    >
-      {name.slice(0, 2).toUpperCase()}
-    </span>
   );
 }
 
@@ -316,17 +300,6 @@ export function FiguresSkeleton({ count = 6, className }: { count?: number; clas
   );
 }
 
-/** A heading over a group, with its count and controls; `rule` draws the hairline under it. */
-export function Section({ title, meta, children, className }: { title: React.ReactNode; meta?: React.ReactNode; children?: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("flex min-h-8 shrink-0 items-center gap-2 border-b pb-2", className)}>
-      <h2 className="text-sm font-medium">{title}</h2>
-      {meta != null && <span className={cn(MONO, "text-sm text-muted-foreground")}>{meta}</span>}
-      {children && <div className="ml-auto flex items-center gap-1">{children}</div>}
-    </div>
-  );
-}
-
 /** The page's title row: the title, one line under it, the view's controls on the right. */
 export function ViewHead({ title, sub, lead, children }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; children?: React.ReactNode }) {
   return (
@@ -342,9 +315,6 @@ export function ViewHead({ title, sub, lead, children }: { title: React.ReactNod
     </header>
   );
 }
-
-/** A table row that opens something: the whole row is the target, the links inside keep their own. */
-export const ROW_LINK = "cursor-pointer";
 
 /** An empty list, said plainly. */
 export function Nothing({ children }: { children: React.ReactNode }) {

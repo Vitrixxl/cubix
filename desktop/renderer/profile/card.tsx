@@ -1,24 +1,15 @@
 /** The profile's one building block: a card with a heading row (title, muted meta, a link to its page) and a body. */
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { store as s } from "../store";
-import { InHead, MOBILE, MONO, type Props, useViewport } from "../ui";
+import { InHead, MONO, type Props, run, usePhone } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-/** Runs a store action from a click, leaving the focus so Space never presses it again. */
-export const go = (...actions: string[]) => (e: React.MouseEvent<HTMLElement>) => {
-  e.currentTarget.blur();
-  void (async () => {
-    for (const action of actions) await s.action(action);
-  })();
-};
-
 /** A quiet link at the end of a heading row: "View all ›". */
 export function MoreLink({ actions, children, className }: { actions: string[] } & Props) {
   return (
-    <Button variant="ghost" size="sm" data-action={actions.at(-1)} onClick={go(...actions)} className={cn("-mr-2 gap-0.5 text-muted-foreground hover:text-foreground", className)}>
+    <Button variant="ghost" size="sm" data-action={actions.at(-1)} onClick={run(...actions)} className={cn("-mr-2 gap-0.5 text-muted-foreground hover:text-foreground", className)}>
       {children}
       <ChevronRight />
     </Button>
@@ -71,28 +62,9 @@ export function SubHead({ title, children }: { title: React.ReactNode } & Props)
   );
 }
 
-/** A figure: label over the value, the value in mono. */
-export function Stat({ label, value, tone, className }: { label: React.ReactNode; value: React.ReactNode; tone?: "good" | "accent" | "bad"; className?: string }) {
-  const empty = value == null || value === "–" || value === "-";
-  return (
-    <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
-      <span className="truncate text-xs text-muted-foreground">{label}</span>
-      <span
-        className={cn(
-          MONO,
-          "truncate text-xl leading-none font-medium tracking-tight",
-          empty ? "text-muted-foreground/60" : tone === "good" ? "text-success" : tone === "accent" ? "text-primary" : tone === "bad" ? "text-destructive" : "",
-        )}
-      >
-        {empty ? "–" : value}
-      </span>
-    </div>
-  );
-}
-
 /** A row of figures: `columns` of them on one line where there is room, as many as fit otherwise. */
 export function Stats({ children, className, columns }: { columns?: number } & Props) {
-  const wide = useViewport().w > MOBILE;
+  const wide = !usePhone();
   return (
     <div
       className={cn("grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-x-6 gap-y-4", className)}
@@ -110,7 +82,7 @@ export function SubPageHead({ title, meta, children, back = true }: { title: Rea
       <header className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex min-w-0 items-center gap-2">
           {back && (
-            <Button variant="ghost" size="icon" aria-label="Back to the profile" data-action="profileMode:overview" onClick={go("profileMode:overview")} className="-ml-2">
+            <Button variant="ghost" size="icon" aria-label="Back to the profile" data-action="profileMode:overview" onClick={run("profileMode:overview")} className="-ml-2">
               <ChevronLeft />
             </Button>
           )}
@@ -125,3 +97,13 @@ export function SubPageHead({ title, meta, children, back = true }: { title: Rea
 
 /** Where a count goes in a sentence: mono, full colour. */
 export const Num = ({ children }: Props) => <span className={cn(MONO, "font-medium text-foreground")}>{children}</span>;
+
+/** The body card of a page: its toolbar on top, then the rest, scrolling inside unless `scroll` is off. */
+export function PageCard({ toolbar, children, className, scroll = true }: { toolbar?: React.ReactNode; scroll?: boolean } & Props) {
+  return (
+    <Card className={cn("min-h-0 flex-1 gap-0 py-0", className)}>
+      {toolbar && <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pt-4 pb-3">{toolbar}</div>}
+      <div className={cn("min-h-0 flex-1 px-5 pb-5", scroll ? "overflow-y-auto" : "flex flex-col", !toolbar && "pt-4")}>{children}</div>
+    </Card>
+  );
+}

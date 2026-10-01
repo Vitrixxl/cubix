@@ -10,7 +10,7 @@ import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MOBILE, MONO, useViewport } from "./ui";
+import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, MONO, run, usePhone } from "./ui";
 import { PhoneSheet, SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
@@ -20,27 +20,28 @@ import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList, Co
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 
-const close = () => {
-  s.overlay = "";
-  s.emit();
-};
+const close = s.closeOverlay;
 
-/** A dialog shown while the app overlay is `id`; phones get a sheet from the bottom, full height when `tall`. */
-function Modal({ id, children, className, title, description, hideHeader = false, tall = false }: {
+/**
+ * A dialog shown while the app overlay is `id`; phones get a sheet from the bottom, full height when `tall`.
+ * `className` styles the dialog, `sheetClassName` the sheet's body.
+ */
+function Modal({ id, children, className, sheetClassName, title, description, hideHeader = false, tall = false }: {
   id: string;
   title: React.ReactNode;
   description?: React.ReactNode;
   hideHeader?: boolean;
   tall?: boolean;
   className?: string;
+  sheetClassName?: string;
   children: React.ReactNode;
 }) {
-  const mobile = useViewport().w <= MOBILE,
+  const phone = usePhone(),
     open = s.overlay === id,
     onOpenChange = (next: boolean) => !next && s.overlay === id && close();
-  if (mobile)
+  if (phone)
     return (
-      <PhoneSheet open={open} onOpenChange={onOpenChange} title={title} description={description} tall={tall} hideTitle={hideHeader}>
+      <PhoneSheet open={open} onOpenChange={onOpenChange} title={title} description={description} tall={tall} hideTitle={hideHeader} className={sheetClassName}>
         {children}
       </PhoneSheet>
     );
@@ -74,7 +75,7 @@ function Settings() {
       <section className="flex flex-col gap-3">
         <h3 className={LABEL}>Account</h3>
         <div className="flex items-center gap-3">
-          <Avatar user={s.user} size={40} />
+          <Avatar name={s.user.username} size={40} />
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-medium">{s.user.username}</span>
             <span className="text-xs text-muted-foreground">Joined {s.profile?.user?.joined}</span>
@@ -107,10 +108,7 @@ function Settings() {
               title={a.name}
               aria-label={a.name}
               aria-pressed={s.themeName === a.id}
-              onClick={(e) => {
-                e.currentTarget.blur();
-                void s.action("theme:" + a.id);
-              }}
+              onClick={run("theme:" + a.id)}
               className={cn(
                 "flex size-7 items-center justify-center rounded-md outline-none transition-shadow focus-visible:ring-3 focus-visible:ring-ring/50",
                 s.themeName === a.id && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-popover",
@@ -128,12 +126,17 @@ function Settings() {
 
 /** The guides: their list on the left, the chosen guide on the right; phones get a full-height sheet, the list on top. */
 function GuidesDialog() {
-  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide,
-    mobile = useViewport().w <= MOBILE,
-    open = s.overlay === "guides",
-    onOpenChange = (next: boolean) => !next && s.overlay === "guides" && close();
-  const body = (
-    <>
+  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide;
+  return (
+    <Modal
+      id="guides"
+      title="Guides"
+      description="How Cubix works"
+      hideHeader
+      tall
+      className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl"
+      sheetClassName="gap-0 p-0"
+    >
       <nav aria-label="Guides" className="flex shrink-0 flex-col gap-0.5 p-3 md:w-52 md:border-r md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:border-b max-md:pr-12 max-md:[scrollbar-width:none]">
         <span className={cn(LABEL, "px-2.5 pb-2 max-md:hidden")}>Guides</span>
         {(Object.keys(GUIDES) as Guide[]).map((id) => (
@@ -163,24 +166,7 @@ function GuidesDialog() {
       >
         <GuideContent page={page} puzzle={s.guidePuzzle} method={s.guideMethod} />
       </article>
-    </>
-  );
-  if (mobile)
-    return (
-      <PhoneSheet open={open} onOpenChange={onOpenChange} title="Guides" tall hideTitle className="gap-0 p-0">
-        {body}
-      </PhoneSheet>
-    );
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Guides</DialogTitle>
-          <DialogDescription>How Cubix works</DialogDescription>
-        </DialogHeader>
-        {body}
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }
 
