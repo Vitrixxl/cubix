@@ -13,6 +13,8 @@ import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
 import { DuelPage } from "./duel";
+import { CoachingPage } from "./coaching/page";
+import { coaching } from "./coaching/client";
 import { Learn } from "./learn";
 import { Overlays } from "./overlays";
 import { LoginPage } from "./login";
@@ -61,6 +63,7 @@ function App() {
             Digit3: "nav:training",
             Digit4: "nav:duel",
             Digit5: "nav:learn",
+            Digit6: "nav:coaching",
             KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
@@ -111,6 +114,8 @@ function App() {
     };
   }, []);
   useLayoutEffect(() => applyTheme(s.themeName, s.light), [s.themeName, s.light]);
+  // Coaching keeps its socket open while an account is signed in: messages and calls reach every page.
+  useEffect(() => coaching.attach(s.ready && s.signedIn ? s.user.id : null), [s.ready, s.signedIn, s.user.id]);
   useLayoutEffect(() => faviconPuzzle(s.event().id), [s.puzzle, s.solveMode]);
   useEffect(() => {
     if (!s.ready) return;
@@ -125,7 +130,9 @@ function App() {
         (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
         (s.page === "profile" ? ":" + s.profileMode : "") +
         (s.page === "training" ? ":" + s.trainingStep : "") +
-        (s.page === "learn" ? ":" + (s.learnMethod || "methods") : "");
+        (s.page === "learn" ? ":" + (s.learnMethod || "methods") : "") +
+        // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
+        (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "");
   const slide = { direction: s.direction, axis: s.axis };
   // Until the engine answers, the last launch decides; a first visit opens on the login page.
   const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) === "1";
@@ -168,6 +175,8 @@ function App() {
                     <Learn />
                   ) : s.page === "duel" ? (
                     <DuelPage />
+                  ) : s.page === "coaching" ? (
+                    <CoachingPage />
                   ) : (
                     <Profile />
                   )}

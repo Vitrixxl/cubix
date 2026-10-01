@@ -247,6 +247,17 @@ pub async fn dispatch(
         ("GET", ["ips"]) => admin_data::ips(&state, &admin_data::Query::new(&query)?).await?,
         ("GET", ["users"]) => admin_data::users(&state, &admin_data::Query::new(&query)?).await?,
         ("GET", ["users", id]) => admin_data::user(&state, admin_data::user_id(id)?).await?,
+        ("GET", ["coaching"]) => state.db.call(|db| crate::coaching::admin_overview(db)).await?,
+        ("POST", ["coaching", "applications", id, verdict @ ("approve" | "reject")]) => {
+            let id: i64 = id.parse().map_err(|_| ApiError::validation())?;
+            let approve = *verdict == "approve";
+            state.db.call(move |db| crate::coaching::decide(db, id, approve)).await?
+        }
+        ("POST", ["coaching", "coaches", id, change @ ("enable" | "disable")]) => {
+            let id = admin_data::user_id(id)?;
+            let active = *change == "enable";
+            state.db.call(move |db| crate::coaching::set_active(db, &id, active)).await?
+        }
         ("POST", ["users", id, "revoke"]) | ("DELETE", ["users", id]) => {
             let id = admin_data::user_id(id)?;
             let value = if method == Method::POST {

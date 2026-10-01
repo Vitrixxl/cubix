@@ -1,8 +1,9 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, Headset, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
+import { coaching } from "./coaching/client";
 import { Avatar, FADE, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import {
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
@@ -30,6 +32,7 @@ const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string
   ["training", "Training", Dumbbell, "Alt 3"],
   ["duel", "Duel", Swords, "Alt 4"],
   ["learn", "Learn", GraduationCap, "Alt 5"],
+  ["coaching", "Coaching", Headset, "Alt 6"],
 ];
 
 /** The player's face: the account's initials. */
@@ -117,6 +120,7 @@ export function Rail() {
                   <I />
                   <span>{label}</span>
                 </SidebarMenuButton>
+                {page === "coaching" && !!coaching.me?.unread && <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0">{coaching.me.unread}</SidebarMenuBadge>}
                 <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
                   {shortcut}
                 </Kbd>
@@ -199,13 +203,14 @@ const MOBILE_TABS: [page: string, label: string, icon: LucideIcon | null][] = [
   ["training", "Training", Dumbbell],
   ["duel", "Duel", Swords],
   ["learn", "Learn", GraduationCap],
+  ["coaching", "Coach", Headset],
   ["profile", "Account", null],
 ];
 
 export function TabBar() {
   return (
     <nav
-      className={cn("tabbar grid shrink-0 grid-cols-6 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
+      className={cn("tabbar grid shrink-0 grid-cols-7 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
       aria-label="Sections"
     >
       {MOBILE_TABS.map(([page, label, I]) => {
@@ -218,8 +223,9 @@ export function TabBar() {
           ),
           body = (
             <>
-              <span className={cn("flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
+              <span className={cn("relative flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
                 {I ? <I className="size-5" /> : <Me size={22} />}
+                {page === "coaching" && !!coaching.me?.unread && <span className="absolute top-0.5 right-2 size-2 rounded-full bg-primary" aria-label="Unread messages" />}
               </span>
               <span className="max-w-full truncate">{label}</span>
             </>

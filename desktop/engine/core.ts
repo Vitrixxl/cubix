@@ -153,7 +153,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       return { ...solve, record };
     }
     // One-on-one races: the account's token names the player, recent timer solves place them among the others.
-    if (req.method === 'duelToken') return local.current().isGuest ? null : storage.getItem(tokenKey);
+    if (req.method === 'duelToken' || req.method === 'apiToken') return local.current().isGuest ? null : storage.getItem(tokenKey);
     if (req.method === 'duelLevel') {
       const [puzzle, solveMode] = req.args;
       return levelOf(await local.api.solves('playground', 12, puzzle, { solveMode, scrambleType: 'normal' }));

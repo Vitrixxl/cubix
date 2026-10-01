@@ -27,7 +27,7 @@ export const matches = (c: any, q: string) =>
         .toLowerCase()
         .includes(word),
     );
-const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "learn", "profile"];
+const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "learn", "coaching", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
@@ -141,6 +141,8 @@ export class Store {
   setupMode = "";
   /** The method whose course the Learn page shows; empty, the list of methods. */
   learnMethod = "";
+  /** The coaching view and its argument, as in /coaching/<view>/<id>. */
+  coachingView = "";
   /** Method highlighted in the list of methods, before it is opened. */
   learnPick = "";
   /** The set shown by each step that teaches several, by `puzzle:method:step`. */
@@ -592,6 +594,9 @@ export class Store {
     this.direction = slideDirection(this.location(), { page, caseId });
     if (page === this.page && page === "learn") this.direction = method && method === this.learnMethod && route.learnStep !== undefined ? Math.sign(route.learnStep - (this.learning?.entry.step ?? 0)) || 1 : method ? 1 : -1;
     if (page === this.page && page === "profile") this.direction = route.profileMode === "overview" ? -1 : 1;
+    // Deeper into coaching (a coach, a call) pushes forward; back to a list comes back.
+    if (page === this.page && page === "coaching") this.direction = (route.coaching ?? "").split("/").length >= this.coachingView.split("/").length ? 1 : -1;
+    this.coachingView = route.coaching ?? "";
     if (page === "profile" && this.page !== "profile") {
       this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
@@ -1108,7 +1113,7 @@ export class Store {
           if (this.page === "learn") this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
           if (this.page === "learn") this.guideMethod = this.learnMethod || this.learnPick || (recommendedMethod(this.guidePuzzle) ?? "");
           this.guidePage =
-            this.page === "learn" ? "methodsGuide" : this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
+            this.page === "learn" ? "methodsGuide" : this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "coaching" ? "coachingGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
           this.overlay = "guides";
           break;
         case "guidePage":

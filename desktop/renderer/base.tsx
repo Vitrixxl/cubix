@@ -69,7 +69,7 @@ export function Icon({ name, size = 16, className }: { name: string; size?: numb
     <span
       aria-hidden="true"
       className={cn("inline-block shrink-0 bg-current mask-contain mask-center mask-no-repeat", className)}
-      style={{ width: size, height: size, maskImage: `url(../assets/icons/${name}.svg)` }}
+      style={{ width: size, height: size, maskImage: `url(/assets/icons/${name}.svg)` }}
     />
   );
 }

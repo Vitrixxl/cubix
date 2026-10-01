@@ -1,7 +1,7 @@
 /** One account: its figures, 90 days of activity, puzzles, recent solves, sessions, IPs, duels and requests, and the
  * two actions an administrator has on it (sign out everywhere, delete). */
 import { useState } from "react";
-import { ArrowLeft, LogOut, Trash2 } from "lucide-react";
+import { ArrowLeft, Headset, LogOut, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { admin, AdminError, listUrl, navigate, useAdmin, type UserDetail } from "./api";
 import { DailyChart } from "./charts";
@@ -86,6 +86,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
           </>
         }
       >
+        <CoachToggle id={u.id} coach={u.coach} onDone={detail.reload} />
         <Revoke id={u.id} sessions={u.activeSessions} onDone={detail.reload} />
         <Delete id={u.id} username={u.username} />
       </ViewHead>
@@ -263,6 +264,34 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         )}
       </section>
     </div>
+  );
+}
+
+/** Makes the account a coach without an application, or takes it off the list of coaches. */
+function CoachToggle({ id, coach, onDone }: { id: string; coach: "active" | "disabled" | null; onDone: () => void }) {
+  const [pending, setPending] = useState(false);
+  const active = coach === "active";
+  return (
+    <Button
+      variant="outline"
+      disabled={pending}
+      data-action={active ? "user:coach:off" : "user:coach:on"}
+      onClick={async () => {
+        setPending(true);
+        try {
+          await admin(`/coaching/coaches/${encodeURIComponent(id)}/${active ? "disable" : "enable"}`, { method: "POST" });
+          toast.success(active ? "No longer a coach" : "Now a coach");
+          onDone();
+        } catch (error) {
+          toast.error((error as Error).message);
+        } finally {
+          setPending(false);
+        }
+      }}
+    >
+      <Headset />
+      {active ? "Remove coach" : "Make coach"}
+    </Button>
   );
 }
 

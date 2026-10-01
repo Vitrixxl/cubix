@@ -281,6 +281,7 @@ async fn respond(
             if value.is_ok()
                 && method != Method::GET
                 && !path.starts_with("auth/")
+                && !path.starts_with("coaching/")
                 && let Some(uid) = caller.id()
             {
                 copy.hub.notify_sync(uid, crate::sync::cursor(db, uid)?);
@@ -377,6 +378,9 @@ pub(crate) fn route(
         }
     }
     let parts: Vec<_> = path.split('/').collect();
+    if parts[0] == "coaching" {
+        return crate::coaching::route(db, state, method, &parts[1..], query, body, user);
+    }
     match (method, parts.as_slice()) {
         ("GET", ["auth", "me"]) => Ok(accounts::public(user)),
         ("GET", ["stats"]) => {

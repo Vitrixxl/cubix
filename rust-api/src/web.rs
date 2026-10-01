@@ -35,6 +35,8 @@ pub fn router(dir: PathBuf) -> Router {
         .route_service("/duel", ServeFile::new(dir.join("index.html")))
         .route_service("/learn", ServeFile::new(dir.join("index.html")))
         .route_service("/learn/{*method}", ServeFile::new(dir.join("index.html")))
+        .route_service("/coaching", ServeFile::new(dir.join("index.html")))
+        .route_service("/coaching/{*page}", ServeFile::new(dir.join("index.html")))
         .route_service("/profile", ServeFile::new(dir.join("index.html")))
         .route_service("/profile/{*page}", ServeFile::new(dir.join("index.html")))
         .fallback_service(

@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Activity, AppWindow, Globe, KeyRound, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
+import { Activity, AppWindow, Globe, Headset, KeyRound, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
 import { applyTheme } from "../theme";
 import { DEFAULT_THEME } from "../../../src/client/lib/theme";
 import { Logo, usePhone, WindowSidebar } from "../base";
@@ -18,6 +18,7 @@ import { User } from "./user";
 import { Requests } from "./requests";
 import { Ips } from "./ips";
 import { Server } from "./server";
+import { Coaching } from "./coaching";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +46,7 @@ const VIEWS: [id: string, label: string, icon: LucideIcon][] = [
   ["users", "Users", UsersIcon],
   ["requests", "Requests", Activity],
   ["ips", "IP addresses", Globe],
+  ["coaching", "Coaching", Headset],
   ["server", "Server", ServerIcon],
 ];
 const COMMAND = "cubix-api admin-token";
@@ -237,6 +239,8 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
       <Requests phone={phone} />
     ) : view === "ips" ? (
       <Ips phone={phone} />
+    ) : view === "coaching" ? (
+      <Coaching phone={phone} />
     ) : view === "server" ? (
       <Server />
     ) : (

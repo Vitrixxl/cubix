@@ -59,7 +59,7 @@ export type UserRow = {
 };
 export type Users = { counts: { all: number; registered: number; guests: number }; total: number; rows: UserRow[]; page: number; limit: number };
 export type UserDetail = {
-  user: UserRow & { practiceSessions: number };
+  user: UserRow & { practiceSessions: number; coach: "active" | "disabled" | null };
   puzzles: { puzzleId: string; solveMode: string; solves: number; dnf: number; trainingSolves: number; bestMs: number | null; meanMs: number | null; lastAt: number | null }[];
   activity: { day: string; requests: number; active: boolean; solves: number }[];
   recentSolves: { id: number; at: number; timeMs: number; penalty: string; effectiveMs: number | null; puzzleId: string; solveMode: string; scrambleType: string; caseId: string | null }[];

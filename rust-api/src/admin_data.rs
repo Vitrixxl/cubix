@@ -469,6 +469,11 @@ pub async fn user(state: &AppState, id: String) -> Result<Value> {
             let ips = all(db, "SELECT ip,count(*) days,max(day) lastDay FROM traffic_daily_users WHERE user_id=? GROUP BY ip ORDER BY lastDay DESC,days DESC LIMIT 20", [&id])?;
             let practice = one(db, "SELECT count(*) n FROM sessions WHERE user_id=?", [&id])?.unwrap_or_default();
             user["practiceSessions"] = practice["n"].clone();
+            // Whether the account coaches (see coaching.rs): listed, or turned off by the administration.
+            user["coach"] = match one(db, "SELECT active FROM coaches WHERE user_id=?", [&id])? {
+                Some(row) => json!(if row["active"] == 1 { "active" } else { "disabled" }),
+                None => Value::Null,
+            };
             Ok(json!({
                 "user": user,
                 "puzzles": puzzles,

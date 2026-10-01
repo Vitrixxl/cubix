@@ -400,7 +400,7 @@ export function Diagram({ c, size = 96, className }: { c: any; size?: number; cl
   return c.cube ? (
     <Cube scene={c.cube} size={size} animated={false} />
   ) : (
-    <img className={cn("block shrink-0", className)} src={"../assets/" + c.asset} width={size} height={size} alt={c.id} />
+    <img className={cn("block shrink-0", className)} src={"/assets/" + c.asset} width={size} height={size} alt={c.id} />
   );
 }
 
