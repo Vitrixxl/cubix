@@ -78,8 +78,14 @@ try {
   await page.locator('[data-action="sidebar:toggle"]').click();
   await page.waitForFunction(() => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === "expanded");
   assert.equal(await page.locator(".rail").getByLabel("Qbix", { exact: true }).count(), 1, "the sidebar carries the Qbix name");
-  await page.locator('.rail [data-action="nav:home"]').click();
-  await page.waitForURL(url => url.pathname === "/timer");
+  // The mark is the puzzle picker: picking a puzzle redraws it, and the tab's icon with it.
+  const favicon = () => page.locator('link[rel="icon"][type="image/svg+xml"]').getAttribute("href");
+  const before = await favicon();
+  await page.locator('.rail [data-brand] [data-action="menu:puzzles"]').click();
+  await page.getByRole("option", { name: "Pyraminx" }).click();
+  await page.waitForFunction(() => document.querySelector('.rail [data-brand] [aria-label^="Puzzle"]')?.getAttribute("aria-label") === "Puzzle: Pyraminx");
+  assert.notEqual(await favicon(), before, "the tab's icon follows the puzzle");
+  assert.equal(await page.locator('.rail a[href="https://buymeacoffee.com/vitrixxl"]').count(), 1, "the sidebar links to Buy Me a Coffee");
   await page.goto(origin + "/profile?puzzle=333"); await page.locator('[aria-label="Personal goals"]').waitFor();
   // A fresh account: compact empty states, still inside the window.
   const fresh = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();

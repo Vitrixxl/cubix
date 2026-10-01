@@ -5,7 +5,7 @@ import { store as s, catalog } from "../store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { LEVELS, PROFILE_KEY, goalTitle, journeyProfile, learningPlan } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, goalTitle, journeyProfile } from "../../../src/client/lib/journey";
 import { puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { localDay } from "../../../src/client/lib/dailyLearning";
 import { METHODS } from "../../../src/shared/methods";
@@ -30,15 +30,15 @@ function PuzzleBadges({ puzzles, methods, empty }: { puzzles: readonly PuzzleId[
   );
 }
 
-/** The level and the puzzles from the introduction; it can be redone, and the tour replayed, from here. */
+/** The puzzles that can be solved, and those whose course has begun; the setup can be redone, and the tour replayed, from here. */
 export function PersonalInfo({ className }: { className?: string }) {
   const profile = journeyProfile(s.journey),
-    plan = learningPlan(profile);
+    learning = (Object.keys(s.course.methods) as PuzzleId[]).filter((p) => !profile?.knownPuzzles.includes(p)),
+    methods = Object.fromEntries(learning.map((p) => [p, [s.course.methods[p]!]]));
   return (
     <Section
       label="Personal setup"
       title="Your journey"
-      meta={profile && LEVELS.find((l) => l.id === profile.level)?.label}
       className={className}
       body="gap-4"
     >
@@ -47,7 +47,7 @@ export function PersonalInfo({ className }: { className?: string }) {
           <div className="flex flex-col gap-1.5">
             <dt className="text-xs text-muted-foreground">Learning</dt>
             <dd>
-              <PuzzleBadges puzzles={plan.puzzles} methods={plan.methods} empty="Nothing yet" />
+              <PuzzleBadges puzzles={learning} methods={methods} empty="Nothing yet" />
             </dd>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -58,7 +58,7 @@ export function PersonalInfo({ className }: { className?: string }) {
           </div>
         </dl>
       ) : (
-        <p className="text-sm text-muted-foreground">Tell us your level and what you want to learn.</p>
+        <p className="text-sm text-muted-foreground">Tell us the puzzles you can already solve.</p>
       )}
       <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" size="sm" data-action="onboarding" onClick={() => void s.action("onboarding")}>

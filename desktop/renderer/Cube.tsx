@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { call } from "./bridge";
 import {
   cubeOrientation,
@@ -10,6 +10,7 @@ import {
   type CubeScene as Scene,
   type CubeShape,
 } from "../../src/shared/cubeScene";
+import { isPolyPuzzle, polyOrientation, polyScene, polySceneDuration, polyShapes } from "../../src/shared/puzzleScene";
 /** Paints cube shapes (see `cubeShapes`) centred on a square canvas of `size` CSS pixels, `radius` cube units across half of it. */
 export function paintShapes(ctx: CanvasRenderingContext2D, shapes: CubeShape[], size: number, radius: number) {
   ctx.clearRect(0, 0, size, size);
@@ -51,6 +52,7 @@ export function Cube({
   replay = 0,
   animated = true,
   held = false,
+  puzzle,
 }: {
   scene?: Scene;
   setup?: string;
@@ -61,15 +63,20 @@ export function Cube({
   animated?: boolean;
   /** A scramble, applied white on top and shown yellow on top, rather than a case setup. */
   held?: boolean;
+  /** A pyraminx or a megaminx scramble rather than a cube's (see `polyScene`); other puzzles keep `cubeSize`. */
+  puzzle?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     [loaded, setLoaded] = useState<Scene | undefined>(scene),
     rotation = useRef(cubeOrientation()),
     drag = useRef<number[] | null>(null),
     start = useRef(0),
-    redraw = useRef<() => void>(() => {});
+    redraw = useRef<() => void>(() => {}),
+    // Built here at once: the pyraminx and the megaminx need no engine.
+    poly = useMemo(() => (isPolyPuzzle(puzzle) ? polyScene(puzzle, setup, animated) : undefined), [puzzle, setup, animated]);
   useEffect(() => {
     let cancelled = false;
+    if (poly) return;
     if (scene) setLoaded(scene);
     else
       call("cubePreview", setup, cubeSize, mask, held)
@@ -80,32 +87,25 @@ export function Cube({
     return () => {
       cancelled = true;
     };
-  }, [scene, setup, cubeSize, mask, held]);
+  }, [scene, setup, cubeSize, mask, held, poly]);
   // A new scene or a replay restarts the animation; a new size only redraws it where it stands.
   useEffect(() => {
     start.current = performance.now();
-    rotation.current = cubeOrientation();
-  }, [loaded, replay]);
+    rotation.current = poly ? polyOrientation(poly.puzzle) : cubeOrientation();
+  }, [loaded, poly, replay]);
   useEffect(() => {
     let frame = 0;
     const draw = () => {
-      if (!canvas.current || !loaded) return;
+      if (!canvas.current || (!loaded && !poly)) return;
       const ratio = devicePixelRatio;
       canvas.current.width = Math.round(size * ratio);
       canvas.current.height = Math.round(size * ratio);
       const ctx = canvas.current.getContext("2d")!;
       ctx.scale(ratio, ratio);
-      paintCube(
-        ctx,
-        loaded,
-        animated ? (performance.now() - start.current) / 1000 : 99,
-        size,
-        rotation.current,
-      );
-      if (
-        animated &&
-        (performance.now() - start.current) / 1000 < cubeSceneDuration(loaded)
-      )
+      const seconds = animated ? (performance.now() - start.current) / 1000 : 99;
+      if (poly) paintShapes(ctx, polyShapes(poly, seconds, rotation.current), size, poly.radius);
+      else paintCube(ctx, loaded!, seconds, size, rotation.current);
+      if (animated && seconds < (poly ? polySceneDuration(poly) : cubeSceneDuration(loaded!)))
         frame = requestAnimationFrame(draw);
     };
     redraw.current = () => {
@@ -117,7 +117,7 @@ export function Cube({
       cancelAnimationFrame(frame);
       redraw.current = () => {};
     };
-  }, [loaded, size, replay, animated]);
+  }, [loaded, poly, size, replay, animated]);
   return (
     <canvas
       ref={canvas}

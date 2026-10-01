@@ -1,9 +1,9 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookA, BookOpen, Boxes, ChevronsUpDown, Dumbbell, GraduationCap, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
-import { Avatar, FADE, Icon, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
+import { Avatar, FADE, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
@@ -11,7 +11,7 @@ import { Button as UiButton } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router";
 import { pageUrl } from "./navigation";
-import type { PuzzleId } from "../../src/shared/puzzles";
+import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import {
   Sidebar,
   SidebarContent,
@@ -38,9 +38,9 @@ function Me({ size = 32 }: { size?: number }) {
 }
 
 /**
- * Desktop navigation: a labelled column on the page background. The wordmark and the puzzle every page works on, the
- * sections by name (the name itself leads to the timer), then the guides, the settings and, last, the account: the profile link with its own sign-out
- * icon button on its right. Narrow windows keep the icons.
+ * Desktop navigation: a labelled column on the page background. The puzzle every page works on, as the app's mark
+ * beside its name, the sections by name, then the guides, the settings, a coffee for the author and, last, the account:
+ * the profile link with its own sign-out icon button on its right. Narrow windows keep the icons.
  */
 export function Rail() {
   const e = s.event(),
@@ -53,21 +53,29 @@ export function Rail() {
     <TooltipProvider delay={open ? 400 : 80} closeDelay={0}>
     <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
       <SidebarHeader className="pt-4">
-        {/* The name, and the button folding the sidebar to its icons; folded, the logo turns into that button on hover. */}
-        <div data-brand="" className="group/brand flex h-9 items-center gap-2.5 pl-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pl-0">
-          {/* The name leads to the timer, the app's home. */}
-          <Link
-            to={pageUrl("playground", { puzzle: s.puzzle as PuzzleId })}
-            data-action="nav:home"
-            aria-label="Qbix · Timer"
-            className={cn(
-              "flex min-w-0 flex-1 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50 group-data-[collapsible=icon]:flex-none",
-              foldable && "group-data-[collapsible=icon]:group-hover/brand:hidden",
-            )}
-          >
-            <Logo size={22} />
-            <Wordmark className="text-xl group-data-[collapsible=icon]:hidden" />
-          </Link>
+        {/* The puzzle's mark, which picks the puzzle every page works on, the name, and the button folding the sidebar to
+            its icons; folded, the mark and that button stand one above the other. */}
+        <div data-brand="" className="flex h-9 items-center gap-1.5 pl-1 group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1 group-data-[collapsible=icon]:pl-0">
+          <Tooltip>
+            <PuzzlePicker
+              side={open ? "bottom" : "right"}
+              trigger={
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label={"Puzzle: " + e.label}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-md outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/50 aria-expanded:bg-sidebar-accent"
+                    />
+                  }
+                >
+                  <Logo size={22} puzzle={e.id} />
+                </TooltipTrigger>
+              }
+            />
+            <TooltipContent side="right">Puzzle · {e.label}</TooltipContent>
+          </Tooltip>
+          <Wordmark className="min-w-0 flex-1 text-xl group-data-[collapsible=icon]:hidden" />
           {foldable && (
             <Tooltip>
               <TooltipTrigger
@@ -78,7 +86,7 @@ export function Rail() {
                     data-action="sidebar:toggle"
                     aria-label={open ? "Collapse the sidebar" : "Expand the sidebar"}
                     onClick={toggleSidebar}
-                    className="shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:group-hover/brand:flex"
+                    className="shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8"
                   />
                 }
               >
@@ -92,15 +100,19 @@ export function Rail() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu className="gap-0.5" aria-label="Sections">
-            {SECTIONS.map(([page, label, I, shortcut]) => (
+            {SECTIONS.map(([page, label, I, shortcut]) => {
+              // Greyed while the puzzle's course comes first; a click offers to skip it.
+              const locked = s.lockedPage(page);
+              return (
               <SidebarMenuItem key={page}>
                 <SidebarMenuButton
                   data-action={"nav:" + page}
+                  data-locked={locked || undefined}
                   isActive={s.page === page}
                   aria-current={s.page === page ? "page" : undefined}
-                  tooltip={`${label} · ${shortcut.replace(" ", "+")}`}
-                  render={<Link to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} />}
-                  className="h-9 text-muted-foreground data-active:text-foreground"
+                  tooltip={locked ? `${label} · learn the ${puzzleInfo(s.puzzle as PuzzleId).label} first` : `${label} · ${shortcut.replace(" ", "+")}`}
+                  {...(locked ? { onClick: run("nav:" + page) } : { render: <Link to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} /> })}
+                  className={cn("h-9 text-muted-foreground data-active:text-foreground", locked && "opacity-45 hover:opacity-70")}
                 >
                   <I />
                   <span>{label}</span>
@@ -109,7 +121,8 @@ export function Rail() {
                   {shortcut}
                 </Kbd>
               </SidebarMenuItem>
-            ))}
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -136,22 +149,16 @@ export function Rail() {
               Alt S
             </Kbd>
           </SidebarMenuItem>
-          {/* The puzzle every page works on, at the foot of the sidebar above the account. */}
+          {/* Support for the app, above the account. */}
           <SidebarMenuItem>
-            <PuzzlePicker
-              side="right"
-              align="end"
-              trigger={
-                <SidebarMenuButton size="lg" aria-label={"Puzzle: " + e.label} className="gap-2.5 group-data-[collapsible=icon]:justify-center">
-                  <Icon name={"Puzzle" + e.id} size={22} />
-                  <span className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
-                    <span className="text-xs text-muted-foreground">Puzzle</span>
-                    <span className="truncate font-medium">{e.label}</span>
-                  </span>
-                  <ChevronsUpDown className="ml-auto text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                </SidebarMenuButton>
-              }
-            />
+            <SidebarMenuButton
+              tooltip="Buy me a coffee"
+              render={<a href="https://buymeacoffee.com/vitrixxl" target="_blank" rel="noreferrer" />}
+              className="h-9 text-muted-foreground"
+            >
+              <Coffee className="text-primary" />
+              <span>Buy me a coffee</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           {/* The account: the profile link, and beside it on the right its own sign-out icon button. */}
           <SidebarMenuItem className="mt-1 flex items-center gap-1 border-t pt-2 group-data-[collapsible=icon]:flex-col">
@@ -202,22 +209,29 @@ export function TabBar() {
       aria-label="Sections"
     >
       {MOBILE_TABS.map(([page, label, I]) => {
-        const here = s.page === page;
-        return (
-          <Link
-            key={page}
-            data-action={"nav:" + page}
-            aria-current={here ? "page" : undefined}
-            to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })}
-            className={cn(
-              "flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 text-[10px] font-medium tracking-tight text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
-              here && "text-foreground",
-            )}
-          >
-            <span className={cn("flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
-              {I ? <I className="size-5" /> : <Me size={22} />}
-            </span>
-            <span className="max-w-full truncate">{label}</span>
+        const here = s.page === page,
+          locked = s.lockedPage(page),
+          className = cn(
+            "flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 text-[10px] font-medium tracking-tight text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
+            here && "text-foreground",
+            locked && "opacity-45",
+          ),
+          body = (
+            <>
+              <span className={cn("flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
+                {I ? <I className="size-5" /> : <Me size={22} />}
+              </span>
+              <span className="max-w-full truncate">{label}</span>
+            </>
+          );
+        // Greyed while the puzzle's course comes first; a tap offers to skip it.
+        return locked ? (
+          <button key={page} type="button" data-action={"nav:" + page} data-locked="" onClick={run("nav:" + page)} className={className}>
+            {body}
+          </button>
+        ) : (
+          <Link key={page} data-action={"nav:" + page} aria-current={here ? "page" : undefined} to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} className={className}>
+            {body}
           </Link>
         );
       })}

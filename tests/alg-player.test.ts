@@ -115,7 +115,7 @@ describe("the playback clock", () => {
   });
   test("speed doubles the pace and cycles", () => {
     expect(advance(play({ ...startPlayback(), speed: 2 }, 8), 0.5).position).toBeCloseTo(2);
-    expect([nextSpeed(0.5), nextSpeed(1), nextSpeed(2)]).toEqual([1, 2, 0.5]);
+    expect([nextSpeed(0.25), nextSpeed(0.5), nextSpeed(1), nextSpeed(2)]).toEqual([0.5, 1, 2, 0.25]);
   });
 });
 

@@ -23,6 +23,7 @@ import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { displayAlg, maskForStage, shortId } from "../lib/caseState";
 import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
 import { useTourTarget } from "../tour";
+import { puzzleLockedAtom, unlockPuzzleAtom } from "../journey";
 import {
   casesAtom, courseProgressAtom, goBackAtom, learnMethodAtom, learnedCaseIdsAtom, notationAtom, previousRouteAtom, puzzleAtom, replaceRouteAtom, routeAtom,
   selectedCaseIdsAtom, setsAtom,
@@ -65,12 +66,12 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const cases = useAtomValue(casesAtom);
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const setRoute = useSetAtom(routeAtom);
-  const recommended = recommendedMethod(puzzle);
+  const recommended = recommendedMethod(puzzle), locked = useAtomValue(puzzleLockedAtom);
   const open = (id: string) => { setProgress(openCourse(progress, puzzle, id)); setRoute({ page: "learn", method: id }); };
   const list = useTourTarget("learn");
   return <Page>
     <PageHead title="Learn"><SessionButton /></PageHead>
-    <Text className="-mt-1 text-sm text-muted-foreground">Choose a {puzzleInfo(puzzle).label} method, then follow it step by step.</Text>
+    <Text className="-mt-1 text-sm text-muted-foreground">{locked ? `Finish a course to open the ${puzzleInfo(puzzle).label} everywhere.` : `Choose a ${puzzleInfo(puzzle).label} method, then follow it step by step.`}</Text>
     <ScrollView className="-mx-4 flex-1" contentContainerClassName="px-4 pb-4">
       <Surface {...list}>
         {METHODS[puzzle].map((method, i) => {
@@ -165,6 +166,8 @@ const AlgRow = memo(function AlgRow({ item, puzzle, onToggle, onPlay }: { item: 
 
 function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
+  // Training opens with the puzzle, once its course is done (or skipped).
+  const locked = useAtomValue(puzzleLockedAtom), unlock = useSetAtom(unlockPuzzleAtom);
   const cases = useAtomValue(casesAtom), sets = useAtomValue(setsAtom);
   const [learnedIds, toggleLearned] = useAtom(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
@@ -270,12 +273,12 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
             <Icon as={ChevronLeft} size={18} className="text-muted-foreground" />
             <Text className="text-sm font-medium text-muted-foreground">Previous</Text>
           </Pressable>
-          {chosen && <Pressable accessibilityRole="button" accessibilityLabel={`Train ${chosen.label}`} onPress={train} className="h-12 flex-row items-center gap-1.5 rounded-lg px-3 active:bg-muted/60">
+          {chosen && !locked && <Pressable accessibilityRole="button" accessibilityLabel={`Train ${chosen.label}`} onPress={train} className="h-12 flex-row items-center gap-1.5 rounded-lg px-3 active:bg-muted/60">
             <Icon as={Timer} size={17} className="text-muted-foreground" />
             <Text className="text-sm font-medium text-muted-foreground">Train</Text>
           </Pressable>}
           {last
-            ? <Pressable accessibilityRole="button" accessibilityLabel="Finish" onPress={() => { setProgress(finishCourse(progress, puzzle, method.id)); setFinished(true); }}
+            ? <Pressable accessibilityRole="button" accessibilityLabel="Finish" onPress={() => { setProgress(finishCourse(progress, puzzle, method.id)); void unlock(method.id); setFinished(true); }}
               className="h-12 min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-lg bg-primary px-3 active:bg-primary/85">
               <Icon as={Flag} size={17} className="text-primary-foreground" />
               <Text className="text-[15px] font-semibold text-primary-foreground">Finish</Text>

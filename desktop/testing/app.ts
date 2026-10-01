@@ -3,6 +3,7 @@
 import { _electron as electron, type Page } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { PUZZLES } from "../../src/shared/puzzles";
 delete process.env.ELECTRON_RUN_AS_NODE;
 
 export const SHOTS = "artifacts/electron/testing";
@@ -99,12 +100,13 @@ export async function signIn(page: Page, username: string, password = "a-long-te
     await page.locator('[data-action="login:submit"]').click();
     await page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 });
   }
-  // Ordinary UI fixtures use an established profile; onboarding has its own full interaction test.
+  // Ordinary UI fixtures use an established profile that solves every puzzle, so none opens locked on its course;
+  // onboarding and locking have their own full interaction test.
   if (!onboarding) {
-    await page.evaluate(async () => {
+    await page.evaluate(async (knownPuzzles) => {
       const initial = await window.cubix.call("init") as any;
-      if (!initial.journey?.profile) await window.cubix.call("updateJourney", { profile: { kind: "profile", level: "beginner", knownPuzzles: ["333"], priority: "333", completedAt: new Date().toISOString() } });
-    });
+      if (!initial.journey?.profile) await window.cubix.call("updateJourney", { profile: { kind: "profile", knownPuzzles, priority: null, completedAt: new Date().toISOString() } });
+    }, PUZZLES.map(p => p.id));
     if (new URL(page.url()).pathname === "/onboarding") await page.goto(new URL("/timer", page.url()).href);
     await page.waitForSelector(".rail, .tabbar", { timeout: 30000 });
   }

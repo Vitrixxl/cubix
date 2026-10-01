@@ -164,7 +164,7 @@ export const algShapes = (scene: AlgScene, position: number, orientation?: CubeO
 // ---------------------------------------------------------------------------
 // Playback clock
 // ---------------------------------------------------------------------------
-export const PLAYER_SPEEDS = [0.5, 1, 2] as const;
+export const PLAYER_SPEEDS = [0.25, 0.5, 1, 2] as const;
 /** Moves per second at 1×. */
 export const MOVES_PER_SECOND = 2;
 

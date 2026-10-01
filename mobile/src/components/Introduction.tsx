@@ -1,11 +1,10 @@
 /**
- * Native setup and tour. The setup walks through a welcome, the level, the puzzles the player can solve, the ones to
- * learn (methods inline under each chosen puzzle), goals (one-tap suggestions or a custom one) and a summary; it saves
- * with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
+ * Native setup and tour. The setup walks through a welcome and the puzzles the player can solve (methods inline under
+ * each chosen one); any other puzzle opens on its course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
  * dims everything but the step's tab and the view it points at inside the page (`useTourTarget`).
  */
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, Check, Flag, Gauge, Layers, Plus, Timer, X } from "lucide-react-native";
+import { GraduationCap, Layers, Timer, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -14,13 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { LEVELS, PROFILE_KEY, TOUR_STEPS, goalKey, goalTitle, journeyProfile, learningPlan, parseGoalTarget, validDueDate, type Experience, type Journey, type PersonalGoal } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, TOUR_STEPS, goalKey, journeyProfile, parseGoalTarget, validDueDate, type Journey, type PersonalGoal } from "../../../src/client/lib/journey";
 import { METHODS } from "../../../src/shared/methods";
 import { EVENTS, PUZZLES, puzzleInfo, type PuzzleId, type SolveMode } from "../../../src/shared/puzzles";
 import { api, local } from "../api";
 import { useReducedMotion } from "../hooks/useReducedMotion";
-import { editingGoalAtom, introductionAtom, journeyAtom, levelDescription, suggestedGoals } from "../journey";
-import { eventAtom, replaceRouteAtom, scrambleTypeAtom, userAtom } from "../state";
+import { editingGoalAtom, introductionAtom, journeyAtom } from "../journey";
+import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, userAtom } from "../state";
 import { alpha, useColors } from "../theme";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
 
@@ -55,34 +54,18 @@ function Choices<T extends string>({ label, options, value, onChange, multiple =
   </View>;
 }
 
-/** A level as a large card: its name and a line saying who it is for. */
-function LevelCard({ label, description, selected, onPress }: { label: string; description: string; selected: boolean; onPress: () => void }) {
-  const colors = useColors();
-  return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress}
-    style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? alpha(colors.primary, 10) : colors.card, borderRadius: 12, padding: 16 }}>
-    <View style={{ flex: 1, gap: 2 }}>
-      <Text className="text-base font-semibold">{label}</Text>
-      <Text className="text-sm text-muted-foreground">{description}</Text>
-    </View>
-    <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.primary : "transparent", alignItems: "center", justifyContent: "center" }}>
-      {selected ? <Icon as={Check} size={14} className="text-primary-foreground" /> : null}
-    </View>
-  </Pressable>;
-}
-
 /** The puzzles as a grid of tiles; under it, each chosen puzzle with its methods to pick, so nothing hides a level down. */
-function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel, first }: {
-  value: PuzzleId[]; methods: Partial<Record<PuzzleId, string[]>>; onToggle: (id: PuzzleId) => void; onMethod: (puzzle: PuzzleId, method: string) => void; methodsLabel: string; first?: boolean;
+function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel }: {
+  value: PuzzleId[]; methods: Partial<Record<PuzzleId, string[]>>; onToggle: (id: PuzzleId) => void; onMethod: (puzzle: PuzzleId, method: string) => void; methodsLabel: string;
 }) {
   const colors = useColors();
   return <View style={{ gap: 16 }}>
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityLabel="Puzzles">
       {PUZZLES.map(p => {
-        const on = value.includes(p.id), lead = first && value[0] === p.id;
+        const on = value.includes(p.id);
         return <Pressable key={p.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => onToggle(p.id)}
           style={{ width: "31.5%", minHeight: 56, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? alpha(colors.primary, 10) : colors.card, borderRadius: 12, alignItems: "center", justifyContent: "center", padding: 8, gap: 2 }}>
           <Text className="text-[15px] font-semibold">{p.label}</Text>
-          {lead ? <Text className="text-[11px] text-primary">First</Text> : null}
         </Pressable>;
       })}
     </View>
@@ -131,22 +114,10 @@ function GoalForm({ puzzle: first, initial, onSave, busy, submitLabel }: { puzzl
   </View>;
 }
 
-/** A line of the summary: a caption and its value. */
-function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
-  return <View style={{ gap: 4 }}>
-    <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
-    {typeof children === "string" ? <Text className="text-base">{children}</Text> : children}
-  </View>;
-}
-
-const STEPS = ["welcome", "level", "known", "learning", "goals", "summary"] as const;
+const STEPS = ["welcome", "known"] as const;
 const STEP_TITLES: Record<typeof STEPS[number], [string, string]> = {
-  welcome: ["Welcome to Cubix", "A minute to set up"],
-  level: ["Your level", "Where you are today"],
+  welcome: ["Welcome to Cubix", "A few seconds to set up"],
   known: ["What can you solve?", "Skip if none yet"],
-  learning: ["What to learn", "The first one comes first"],
-  goals: ["Your goals", "Optional"],
-  summary: ["All set", "Check and save"],
 };
 const toggle = <T,>(list: T[], item: T) => list.includes(item) ? list.filter(i => i !== item) : [...list, item];
 const withoutKey = <T,>(record: Partial<Record<PuzzleId, T>>, key: PuzzleId) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== key)) as Partial<Record<PuzzleId, T>>;
@@ -156,14 +127,10 @@ function Editor({ goalOnly }: { goalOnly: boolean }) {
   const journey = useAtomValue(journeyAtom), existing = journeyProfile(journey), owner = useAtomValue(userAtom)?.id;
   const key = useAtomValue(editingGoalAtom), initial = journey[key];
   const setIntro = useSetAtom(introductionAtom), setEvent = useSetAtom(eventAtom), setScramble = useSetAtom(scrambleTypeAtom), replace = useSetAtom(replaceRouteAtom);
+  const current = useAtomValue(puzzleAtom);
   // Editing a saved setup skips the welcome.
-  const [step, setStep] = useState(existing ? 1 : 0), [direction, setDirection] = useState(1), [level, setLevel] = useState<Experience>(existing?.level ?? "new");
+  const [step, setStep] = useState(existing ? 1 : 0), [direction, setDirection] = useState(1);
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState(existing?.knownMethods ?? {});
-  const plan = learningPlan(existing);
-  const [learningPuzzles, setLearningPuzzles] = useState<PuzzleId[]>(plan.puzzles), [learningMethods, setLearningMethods] = useState(plan.methods);
-  const priority = learningPuzzles[0] ?? null, priorityMethod = priority ? learningMethods[priority]?.[0] : undefined;
-  // Goals picked in the goals step, by suggestion id or `custom:<n>`; each gets its own key when saved.
-  const [drafts, setDrafts] = useState<Record<string, PersonalGoal>>({}), [custom, setCustom] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const name = STEPS[step]!;
   const go = (next: number) => { setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
@@ -175,13 +142,17 @@ function Editor({ goalOnly }: { goalOnly: boolean }) {
       await api.updateJourney(changes);
       if (local.current().id !== owner) return;
       Keyboard.dismiss();
-      if (!goalOnly) { if (priority) { setEvent(priority); setScramble("normal"); } replace(priority && (level === "new" || !known.includes(priority)) ? { page: "learn", ...(priorityMethod ? { method: priorityMethod } : {}) } : { page: "playground" }); }
+      // A puzzle the player can solve opens on the timer; with none, the current one opens on its course.
+      if (!goalOnly) {
+        const puzzle = known.includes(current) ? current : known[0] ?? current;
+        if (puzzle !== current) { setEvent(puzzle); setScramble("normal"); }
+        replace(known.includes(puzzle) ? { page: "playground" } : { page: "learn" });
+      }
       setIntro(tour ? "tour" : null);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const finish = (tour: boolean) => void save({
-    [PROFILE_KEY]: { kind: "profile", level, knownPuzzles: known, knownMethods, priority, learningPuzzles, learningMethods, ...(priorityMethod ? { priorityMethod } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() },
-    ...Object.fromEntries(Object.values(drafts).map(goal => [goalKey(), goal])),
+    [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, completedAt: existing?.completedAt ?? new Date().toISOString() },
   }, tour);
 
   if (goalOnly) return <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={close}>
@@ -192,20 +163,13 @@ function Editor({ goalOnly }: { goalOnly: boolean }) {
           <Button variant="ghost" size="icon" disabled={busy} onPress={close} accessibilityLabel="Close"><Icon as={X} size={18} /></Button>
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 16 }}>
-          <GoalForm puzzle={existing?.priority ?? "333"} initial={initial?.kind !== "profile" ? initial ?? undefined : undefined} busy={busy} onSave={goal => void save({ [key || goalKey()]: goal })} />
+          <GoalForm puzzle={existing?.priority ?? current} initial={initial?.kind !== "profile" ? initial ?? undefined : undefined} busy={busy} onSave={goal => void save({ [key || goalKey()]: goal })} />
           {!!error && <Text accessibilityRole="alert" className="text-destructive">{error}</Text>}
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
   </Modal>;
 
-  const goalPuzzle = priority ?? known[0] ?? "333";
-  const catalog = local.read.catalog(goalPuzzle);
-  const suggestions = suggestedGoals(level, goalPuzzle, known.includes(goalPuzzle), catalog.sets.filter(s => catalog.cases.some(c => c.set === s.id)));
-  const titleOf = (goal: PersonalGoal) => goalTitle(goal, local.read.catalog(goal.puzzle).sets);
-  const puzzleList = (list: PuzzleId[], methods: Partial<Record<PuzzleId, string[]>>) => list.length
-    ? list.map(p => `${puzzleInfo(p).label}${methods[p]?.length ? ` (${methods[p]!.map(id => METHODS[p].find(m => m.id === id)?.name).filter(Boolean).join(", ")})` : ""}`).join(" · ")
-    : "None yet";
   const [title, sub] = STEP_TITLES[name];
   const last = step === STEPS.length - 1;
 
@@ -229,56 +193,26 @@ function Editor({ goalOnly }: { goalOnly: boolean }) {
           <StepTransition identity={step} direction={direction}>
             <View style={{ gap: 12 }}>
               {name === "welcome" && <>
-                <Text className="text-base leading-6">A timer, an algorithm library and a trainer for every WCA puzzle. Tell Cubix where you are and it sets things up for you.</Text>
-                {([[Gauge, "Your level", "So suggestions fit you."], [Layers, "Your puzzles", "What you can solve and what to learn next."], [Flag, "Your goals", "Times to beat and sets to learn, tracked for you."]] as const).map(([I, head, line]) =>
+                <Text className="text-base leading-6">A timer, an algorithm library and a trainer for every WCA puzzle. Tell Cubix what you can solve and it sets things up for you.</Text>
+                {([[Layers, "Your puzzles and methods", "What you can solve today."], [GraduationCap, "Learn the others", "A new puzzle starts with its course."], [Timer, "Then time and train", "Everything opens once it is solved."]] as const).map(([I, head, line]) =>
                   <View key={head} style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, backgroundColor: colors.card }}>
                     <View style={{ width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: colors.muted }}><Icon as={I} size={18} className="text-muted-foreground" /></View>
                     <View style={{ flex: 1 }}><Text className="text-[15px] font-medium">{head}</Text><Text className="text-sm text-muted-foreground">{line}</Text></View>
                   </View>)}
               </>}
-              {name === "level" && LEVELS.map(l => <LevelCard key={l.id} label={l.label} description={levelDescription[l.id]} selected={level === l.id} onPress={() => setLevel(l.id)} />)}
               {name === "known" && <PuzzleChooser value={known} methods={knownMethods} methodsLabel="methods you use"
                 onToggle={p => { setKnown(v => toggle(v, p)); if (known.includes(p)) setKnownMethods(v => withoutKey(v, p)); }}
                 onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
-              {name === "learning" && <PuzzleChooser value={learningPuzzles} methods={learningMethods} methodsLabel="methods to learn" first
-                onToggle={p => { setLearningPuzzles(v => toggle(v, p)); if (learningPuzzles.includes(p)) setLearningMethods(v => withoutKey(v, p)); }}
-                onMethod={(p, m) => setLearningMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
-              {name === "goals" && <>
-                <Text className="text-sm text-muted-foreground">Tap a suggestion to add it, or write your own.</Text>
-                {suggestions.map(({ id, goal }) => {
-                  const on = !!drafts[id];
-                  return <Pressable key={id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => setDrafts(d => { const next = { ...d }; if (on) delete next[id]; else next[id] = goal; return next; })}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? alpha(colors.primary, 10) : colors.card, borderRadius: 12, padding: 14 }}>
-                    <Icon as={goal.kind === "time" ? Timer : BookOpen} size={18} className={on ? "text-primary" : "text-muted-foreground"} />
-                    <Text className="flex-1 text-[15px]">{titleOf(goal)}</Text>
-                    <Icon as={on ? Check : Plus} size={18} className={on ? "text-primary" : "text-muted-foreground"} />
-                  </Pressable>;
-                })}
-                {Object.entries(drafts).filter(([id]) => id.startsWith("custom:")).map(([id, goal]) => <View key={id} style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: colors.primary, borderRadius: 12, paddingLeft: 14, backgroundColor: alpha(colors.primary, 10) }}>
-                  <Text className="flex-1 text-[15px]">{titleOf(goal)}</Text>
-                  <Button variant="ghost" size="icon" accessibilityLabel="Remove goal" onPress={() => setDrafts(d => Object.fromEntries(Object.entries(d).filter(([k]) => k !== id)))}><Icon as={X} size={16} /></Button>
-                </View>)}
-                {custom ? <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, gap: 12 }}>
-                  <GoalForm puzzle={goalPuzzle} busy={busy} submitLabel="Add goal" onSave={goal => { setDrafts(d => ({ ...d, [`custom:${Object.keys(d).length}:${Date.now()}`]: goal })); setCustom(false); }} />
-                  <Button variant="ghost" onPress={() => setCustom(false)}><Text>Cancel</Text></Button>
-                </View> : <Button variant="outline" onPress={() => setCustom(true)}><Icon as={Plus} size={16} /><Text>Custom goal</Text></Button>}
-              </>}
-              {name === "summary" && <View style={{ gap: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 16, backgroundColor: colors.card }}>
-                <SummaryRow label="Level">{LEVELS.find(l => l.id === level)?.label ?? level}</SummaryRow>
-                <SummaryRow label="Can solve">{puzzleList(known, knownMethods)}</SummaryRow>
-                <SummaryRow label="Learning">{puzzleList(learningPuzzles, learningMethods)}</SummaryRow>
-                <SummaryRow label="Goals">{Object.values(drafts).length ? <View style={{ gap: 4 }}>{Object.values(drafts).map((goal, i) => <Text key={i} className="text-base">{titleOf(goal)}</Text>)}</View> : "No goal for now"}</SummaryRow>
-              </View>}
             </View>
           </StepTransition>
           {!!error && <Text accessibilityRole="alert" className="text-destructive">{error}</Text>}
         </ScrollView>
         <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderColor: colors.border }}>
-          {step > 0 ? <Button variant="ghost" disabled={busy} onPress={() => { setCustom(false); go(step - 1); }}><Text>Back</Text></Button> : null}
-          {last ? <>
-            <Button variant="outline" className="flex-1" disabled={busy} onPress={() => finish(false)}><Text>Skip</Text></Button>
+          {step > 0 ? <Button variant="ghost" disabled={busy} onPress={() => go(step - 1)}><Text>Back</Text></Button> : null}
+          {last ? existing ? <Button className="flex-1" disabled={busy} onPress={() => finish(false)}><Text>{busy ? "Saving…" : "Save"}</Text></Button> : <>
+            <Button variant="outline" className="flex-1" disabled={busy} onPress={() => finish(false)}><Text>Skip the tour</Text></Button>
             <Button className="flex-1" disabled={busy} onPress={() => finish(true)}><Text>{busy ? "Saving…" : "Start the tour"}</Text></Button>
-          </> : <Button className="flex-1" disabled={busy} onPress={() => { setCustom(false); go(step + 1); }}><Text>{step === 0 ? "Get started" : "Continue"}</Text></Button>}
+          </> : <Button className="flex-1" disabled={busy} onPress={() => go(step + 1)}><Text>{step === 0 ? "Get started" : "Continue"}</Text></Button>}
         </View>
       </View>
     </KeyboardAvoidingView>

@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { PROFILE_KEY, goalTitle, journeyProfile, learningPlan, type GoalProgress, type Journey, type PersonalGoal } from "../../../src/client/lib/journey";
+import { PROFILE_KEY, goalTitle, journeyProfile, type GoalProgress, type Journey, type PersonalGoal } from "../../../src/client/lib/journey";
 import { METHODS } from "../../../src/shared/methods";
 import { puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { api, local } from "../api";
 import { editingGoalAtom, goalsAtom, introductionAtom, journeyAtom } from "../journey";
 import { useTourTarget } from "../tour";
+import { courseProgressAtom } from "../state";
 import { EmptyLine, Section, Tag } from "./ProfileCard";
 
 const methodNames = (puzzle: PuzzleId, ids?: string[]) => (ids ?? []).map(id => METHODS[puzzle].find(m => m.id === id)?.name).filter(Boolean).join(", ");
@@ -29,12 +30,14 @@ function PuzzleTags({ label, puzzles, methods, empty, first }: { label: string; 
 /** "Your journey": what the player is learning and can already solve, with the setup and the tour one tap away. */
 export function JourneyCard() {
   const profile = journeyProfile(useAtomValue(journeyAtom)), setIntro = useSetAtom(introductionAtom);
-  const plan = learningPlan(profile);
+  // Learning: the puzzles whose course has begun and that cannot be solved yet.
+  const courses = useAtomValue(courseProgressAtom).methods;
+  const learning = (Object.keys(courses) as PuzzleId[]).filter(p => !profile?.knownPuzzles.includes(p));
   return <Section title="Your journey" label="Your journey">
     {profile ? <>
-      <PuzzleTags label="Learning" puzzles={plan.puzzles} methods={plan.methods} empty="Nothing chosen yet" first />
+      <PuzzleTags label="Learning" puzzles={learning} methods={Object.fromEntries(learning.map(p => [p, [courses[p]!]]))} empty="Nothing yet" />
       <PuzzleTags label="Can solve" puzzles={profile.knownPuzzles} methods={profile.knownMethods ?? {}} empty="None yet" />
-    </> : <EmptyLine>Tell Cubix your level and puzzles to get a plan.</EmptyLine>}
+    </> : <EmptyLine>Tell Cubix the puzzles you can already solve.</EmptyLine>}
     <View className="flex-row gap-2">
       <Button variant="outline" size="sm" className="h-10 flex-1 gap-2" onPress={() => setIntro("setup")}>
         <Icon as={SlidersHorizontal} size={15} /><Text>{profile ? "Edit setup" : "Set up"}</Text>

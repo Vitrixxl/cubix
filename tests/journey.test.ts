@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { goalKey, goalProgress, learningPlan, parseGoalTarget, validJourneyEntry, type PersonalGoal } from "../src/client/lib/journey";
+import { goalKey, goalProgress, learningPlan, parseGoalTarget, puzzleLocked, validJourneyEntry, withKnownPuzzle, type PersonalGoal } from "../src/client/lib/journey";
 import { cases } from "../src/client/local/catalog";
 import type { SolveDto } from "../src/shared/types";
 import { METHODS } from "../src/shared/methods";
@@ -65,4 +65,20 @@ test("learning plans support several puzzles and methods, no selection and legac
   expect(validJourneyEntry("profile", { ...profile, priority: null, learningPuzzles: [], learningMethods: {} }, cases)).toBe(true);
   expect(validJourneyEntry("profile", { ...profile, priority: null, learningPuzzles: [], learningMethods: {}, priorityMethod: "yau" }, cases)).toBe(false);
   expect(learningPlan({ kind: "profile", level: "beginner", knownPuzzles: [], priority: "222", priorityMethod: "ortega", completedAt: goal.createdAt })).toEqual({ puzzles: ["222"], methods: { "222": ["ortega"] } });
+});
+
+test("a puzzle stays locked until it can be solved, and a level is no longer required", () => {
+  const profile = { kind: "profile" as const, knownPuzzles: ["333" as const], priority: null, completedAt: goal.createdAt };
+  expect(validJourneyEntry("profile", profile, cases)).toBe(true);
+  expect(validJourneyEntry("profile", { ...profile, level: "expert" }, cases)).toBe(false);
+  expect(puzzleLocked(undefined, "444")).toBe(false);
+  expect(puzzleLocked(profile, "333")).toBe(false);
+  expect(puzzleLocked(profile, "444")).toBe(true);
+  const unlocked = withKnownPuzzle(profile, "444", "reduction");
+  expect(unlocked.knownPuzzles).toEqual(["333", "444"]);
+  expect(unlocked.knownMethods).toEqual({ "444": ["reduction"] });
+  expect(puzzleLocked(unlocked, "444")).toBe(false);
+  expect(validJourneyEntry("profile", unlocked, cases)).toBe(true);
+  // Skipping the tutorial adds the puzzle without a method; an unknown method is ignored.
+  expect(withKnownPuzzle(profile, "222", "nope")).toEqual({ ...profile, knownPuzzles: ["333", "222"] });
 });

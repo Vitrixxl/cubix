@@ -6,10 +6,11 @@ import { TOUR_STEPS, journeyProfile, personalGoals, type Journey } from "../../s
 import { mockLucide } from "../tests/lucide-mock";
 
 const account = { id: "native-user", isGuest: false };
-const userAtom = atom(account), statsVersionAtom = atom(0), eventAtom = atom("333"), scrambleTypeAtom = atom("normal"), replaceRouteAtom = atom({ page: "playground" });
+const userAtom = atom(account), statsVersionAtom = atom(0), eventAtom = atom("333"), puzzleAtom = atom("333"), scrambleTypeAtom = atom("normal"), replaceRouteAtom = atom({ page: "playground" });
+const routeAtom = atom({ page: "playground" }), courseProgressAtom = atom({ methods: {}, courses: {} });
 const store = createStore();
 let saved: Journey = {};
-mock.module("../src/state", () => ({ userAtom, statsVersionAtom, eventAtom, scrambleTypeAtom, replaceRouteAtom }));
+mock.module("../src/state", () => ({ userAtom, statsVersionAtom, eventAtom, puzzleAtom, scrambleTypeAtom, replaceRouteAtom, routeAtom, courseProgressAtom }));
 mock.module("../src/api", () => ({ api: {
   updateJourney: async (changes: Journey) => { saved = { ...saved, ...changes }; store.set(statsVersionAtom, n => n + 1); return saved; },
 }, local: { current: () => account, restore: async () => {}, read: {
@@ -45,7 +46,7 @@ const button = (text: string) => nodes("Button").find(n => n.props.accessibility
 const choice = (text: string) => nodes("Pressable").find(n => label(n).includes(text))!;
 const header = () => nodes("Text").find(n => n.props.accessibilityRole === "header")!.props.children;
 
-test("native onboarding: welcome, level cards, puzzle tiles with methods inline, suggested and custom goals, a summary, then the tour", async () => {
+test("native onboarding: welcome, then the puzzles and methods the player can solve, then the tour", async () => {
   try {
     await act(async () => { renderer = create(<Provider store={store}><Introduction /></Provider>); });
     expect(store.get(introductionAtom)).toBe("setup");
@@ -55,56 +56,23 @@ test("native onboarding: welcome, level cards, puzzle tiles with methods inline,
     expect(header()).toBe("Welcome to Cubix");
     await act(() => button("Get started").props.onPress());
 
-    expect(header()).toBe("Your level");
-    expect(choice("Getting started").props.accessibilityState.checked).toBe(true);
-    expect(label(choice("Advanced"))).toContain("I know full sets and chase every tenth.");
-    await act(() => choice("Advanced").props.onPress());
-    await act(() => button("Continue").props.onPress());
-
+    // No level any more: only what can be solved.
     expect(header()).toBe("What can you solve?");
     expect(choice("Ortega")).toBeUndefined();
+    await act(() => choice("4×4").props.onPress());
+    await act(() => choice("Yau").props.onPress());
+    // Unpicking a puzzle drops its methods.
+    await act(() => choice("4×4").props.onPress());
+    expect(choice("Yau")).toBeUndefined();
     await act(() => choice("2×2").props.onPress());
     // The methods of a chosen puzzle show under the tiles right away.
     await act(() => choice("Ortega").props.onPress());
     expect(choice("Ortega").props.accessibilityState.checked).toBe(true);
-    await act(() => button("Continue").props.onPress());
-
-    expect(header()).toBe("What to learn");
-    await act(() => choice("3×3").props.onPress());
-    expect(label(choice("3×3"))).toContain("First");
-    await act(() => choice("CFOP").props.onPress());
-    await act(() => choice("Roux").props.onPress());
-    await act(() => choice("Roux").props.onPress()); expect(choice("Roux").props.accessibilityState.checked).toBe(false);
-    await act(() => choice("Roux").props.onPress());
-    await act(() => choice("4×4").props.onPress());
-    await act(() => choice("Reduction").props.onPress()); await act(() => choice("Yau").props.onPress());
-    // Unpicking a puzzle drops its methods.
-    await act(() => choice("4×4").props.onPress()); expect(choice("4×4").props.accessibilityState.checked).toBe(false);
-    expect(choice("Yau")).toBeUndefined();
-    expect(choice("3×3").props.accessibilityState.checked).toBe(true);
-    await act(() => choice("4×4").props.onPress());
-    expect(choice("Yau").props.accessibilityState.checked).toBe(false);
-    await act(() => choice("Reduction").props.onPress()); await act(() => choice("Yau").props.onPress());
-    await act(() => button("Continue").props.onPress());
-
-    expect(header()).toBe("Your goals");
-    // One tap adds a suggestion: the 3×3 is not solved yet, so learning to solve it comes first.
-    const suggestions = nodes("Pressable").filter(n => n.props.accessibilityRole === "checkbox");
-    expect(label(suggestions[0]!)).toContain("Learn to solve 3×3");
-    const single = suggestions.find(n => label(n).some(t => t.includes("single")))!;
-    await act(() => single.props.onPress());
-    expect(single.props.accessibilityState.checked).toBe(true);
-    await act(() => button("Custom goal").props.onPress());
-    await act(() => button("Add goal").props.onPress());
-    expect(nodes("Button").some(n => n.props.accessibilityLabel === "Remove goal")).toBe(true);
-    await act(() => button("Continue").props.onPress());
-
-    expect(header()).toBe("All set");
-    expect(nodes("Text").some(n => [n.props.children].flat().join("") === "Advanced")).toBe(true);
     await act(async () => button("Start the tour").props.onPress());
-    expect(journeyProfile(saved)).toMatchObject({ level: "advanced", knownPuzzles: ["222"], knownMethods: { "222": ["ortega"] }, priority: "333", priorityMethod: "cfop", learningPuzzles: ["333", "444"], learningMethods: { "333": ["cfop", "roux"], "444": ["reduction", "yau"] } });
-    expect(personalGoals(saved)).toHaveLength(2);
-    expect(personalGoals(saved).map(([, goal]) => goal.kind).sort()).toEqual(["time", "time"]);
+    expect(journeyProfile(saved)).toEqual({ kind: "profile", knownPuzzles: ["222"], knownMethods: { "222": ["ortega"] }, priority: null, completedAt: expect.any(String) });
+    expect(personalGoals(saved)).toHaveLength(0);
+    // The 3×3 cannot be solved yet: the app switches to the 2×2, which can.
+    expect(store.get(eventAtom)).toBe("222");
     expect(store.get(introductionAtom)).toBe("tour");
 
     // The tour opens each step's page, with step dots and "n / N".
@@ -125,10 +93,10 @@ test("native onboarding: welcome, level cards, puzzle tiles with methods inline,
     await act(() => input.props.onChangeText("0"));
     const submit = () => nodes("Button").filter(n => label(n).includes("Add goal")).at(-1)!;
     await act(() => submit().props.onPress());
-    expect(personalGoals(saved)).toHaveLength(2);
+    expect(personalGoals(saved)).toHaveLength(0);
     await act(() => input.props.onChangeText("15"));
     await act(async () => submit().props.onPress());
-    expect(personalGoals(saved)).toHaveLength(3);
+    expect(personalGoals(saved)).toHaveLength(1);
     const edit = nodes("Button").find(n => String(n.props.accessibilityLabel).startsWith("Edit "))!;
     await act(() => edit.props.onPress());
     expect(store.get(editingGoalAtom)).toBe(personalGoals(saved)[0]![0]);
@@ -136,20 +104,17 @@ test("native onboarding: welcome, level cards, puzzle tiles with methods inline,
     await act(async () => button("Save goal").props.onPress());
     expect(personalGoals(saved)[0]![1]).toMatchObject({ targetMs: 12000 });
     await act(async () => nodes("Button").find(n => String(n.props.accessibilityLabel).startsWith("Delete "))!.props.onPress());
-    expect(personalGoals(saved)).toHaveLength(2);
+    expect(personalGoals(saved)).toHaveLength(0);
 
-    // Opened again from the account, the setup can be closed and saved without the tour.
+    // Opened again from the account, the setup opens on the puzzles, can be closed, and saves without the tour.
     await act(() => store.set(introductionAtom, "setup"));
     expect(button("Close")).toBeDefined();
-    // Editing a saved setup opens on the level, past the welcome.
-    expect(header()).toBe("Your level");
-    await act(() => button("Continue").props.onPress()); await act(() => button("Continue").props.onPress());
-    expect(choice("3×3").props.accessibilityState.checked).toBe(true);
-    await act(() => choice("3×3").props.onPress()); await act(() => choice("4×4").props.onPress());
-    await act(() => button("Continue").props.onPress()); await act(() => button("Continue").props.onPress());
-    await act(async () => button("Skip").props.onPress());
-    expect(journeyProfile(saved)).toMatchObject({ priority: null, learningPuzzles: [], learningMethods: {} });
-    expect(personalGoals(saved)).toHaveLength(2);
+    expect(header()).toBe("What can you solve?");
+    expect(choice("2×2").props.accessibilityState.checked).toBe(true);
+    await act(() => choice("3×3").props.onPress());
+    expect(button("Start the tour")).toBeUndefined();
+    await act(async () => button("Save").props.onPress());
+    expect(journeyProfile(saved)).toMatchObject({ knownPuzzles: ["222", "333"], knownMethods: { "222": ["ortega"] } });
     expect(store.get(introductionAtom)).toBeNull();
     expect(store.get(replaceRouteAtom).page).toBe("playground");
   } finally { await act(() => renderer.unmount()); }

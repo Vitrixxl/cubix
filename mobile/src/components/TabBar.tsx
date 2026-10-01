@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { userAtom, type Page } from "../state";
+import { isLockedPage, puzzleLockedAtom } from "../journey";
 import { alpha, useColors } from "../theme";
 import { UserAvatar } from "./UserAvatar";
 import { useTourTarget } from "../tour";
@@ -26,19 +27,20 @@ const TABS: [page: Page, label: string, icon: LucideIcon | null][] = [
 
 export function TabBar({ active, onNavigate }: { active: Page; onNavigate: (page: Page) => void }) {
   const insets = useSafeAreaInsets();
-  const user = useAtomValue(userAtom);
+  const user = useAtomValue(userAtom), locked = useAtomValue(puzzleLockedAtom);
   return <View accessibilityRole="tablist" className="flex-row border-t border-border bg-background px-1 pt-1.5" style={{ paddingBottom: Math.max(insets.bottom, 8) }}>
-    {TABS.map(([page, label, I]) => <Tab key={page} page={page} label={label} here={active === page} onPress={() => onNavigate(page)}>
+    {TABS.map(([page, label, I]) => <Tab key={page} page={page} label={label} here={active === page} locked={isLockedPage(locked, page)} onPress={() => onNavigate(page)}>
       {I ? <Icon as={I} size={20} className={active === page ? "text-primary" : "text-muted-foreground"} /> : <UserAvatar user={user} size={22} />}
     </Tab>)}
   </View>;
 }
 
 /** One tab: icon over word. Tagged `tab:<page>` for the guided tour. */
-function Tab({ page, label, here, onPress, children }: { page: Page; label: string; here: boolean; onPress: () => void; children: ReactNode }) {
+/** Greyed while the puzzle's course comes first; a tap then offers to skip it. */
+function Tab({ page, label, here, locked, onPress, children }: { page: Page; label: string; here: boolean; locked: boolean; onPress: () => void; children: ReactNode }) {
   const colors = useColors();
   const tour = useTourTarget(`tab:${page}`);
-  return <View {...tour} className="flex-1">
+  return <View {...tour} className="flex-1" style={locked ? { opacity: 0.45 } : undefined}>
     <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: here }} onPress={onPress}
       className="items-center gap-1 rounded-lg py-1 active:bg-muted/50">
       {/* The highlight as a plain style: a class toggled on a view that keeps its other classes loses its radius. */}

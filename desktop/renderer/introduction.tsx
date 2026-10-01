@@ -5,13 +5,12 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, ArrowRight, Ban, CalendarDays, Check, ChevronLeft, ChevronRight, CornerDownLeft, Gauge, GraduationCap, Plus, Shapes, Target, Timer, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Ban, CalendarDays, Check, ChevronLeft, ChevronRight, CornerDownLeft, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react";
 import { store as s, catalog } from "./store";
 import { Icon, Logo, Wordmark, usePhone } from "./ui";
 import { PhoneSheet } from "./phone";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -20,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PUZZLES, EVENTS, puzzleInfo, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
-import { LEVELS, PROFILE_KEY, TOUR_STEPS, goalKey, goalTitle, journeyProfile, learningPlan, parseGoalTarget, validDueDate, type Experience, type Journey, type PersonalGoal } from "../../src/client/lib/journey";
+import { PROFILE_KEY, TOUR_STEPS, goalKey, journeyProfile, parseGoalTarget, validDueDate, type PersonalGoal } from "../../src/client/lib/journey";
 import type { SetDto } from "../../src/shared/types";
 import { METHODS } from "../../src/shared/methods";
 import { go, goPage, pageUrl } from "./navigation";
@@ -30,46 +29,15 @@ const close = () => s.closeOverlay();
 /* ------------------------------------------------------------------ Onboarding */
 
 const STEPS = [
-  { label: "Welcome", title: "Welcome to Cubix", sub: "A minute to set the app up for you" },
-  { label: "Level", title: "Your level", sub: "Pick the one closest to you" },
-  { label: "Puzzles", title: "Puzzles you can solve", sub: "Then tick the methods you use" },
-  { label: "Learning", title: "What do you want to learn?", sub: "Your first pick comes first" },
-  { label: "Goals", title: "Your goals", sub: "Optional, tracked on your profile" },
-  { label: "Ready", title: "All set", sub: "Check your choices, then take the tour" },
+  { label: "Welcome", title: "Welcome to Cubix", sub: "A few seconds to set the app up for you" },
+  { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
 ] as const;
 const LAST = STEPS.length - 1;
-
-const LEVEL_TEXT: Record<Experience, string> = {
-  new: "I can't solve a cube yet",
-  beginner: "I solve the 3×3 with a beginner method",
-  intermediate: "I use a speed method like CFOP",
-  advanced: "I'm fast and learn full algorithm sets",
-};
 
 /** A selectable card: one border, the primary tint once chosen, nothing else. */
 const CARD =
   "relative flex cursor-pointer rounded-xl border bg-card text-left outline-none transition-colors hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/10 aria-pressed:border-primary aria-pressed:bg-primary/10";
 const SECTION_LABEL = "text-xs font-medium text-muted-foreground";
-
-/** The level as signal bars: none lit when starting out, three when advanced. */
-function Bars({ n }: { n: number }) {
-  return (
-    <span className="flex h-4 items-end gap-[3px]" aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <span key={i} className={cn("w-1 rounded-[1px]", i < n ? "bg-primary" : "bg-muted-foreground/25")} style={{ height: 6 + i * 4 }} />
-      ))}
-    </span>
-  );
-}
-
-/** The check of a chosen card, top right. */
-function Mark({ on, className }: { on: boolean; className?: string }) {
-  return (
-    <span aria-hidden="true" className={cn("flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors", on && "border-primary bg-primary text-primary-foreground", className)}>
-      {on && <Check className="size-3.5" strokeWidth={3} />}
-    </span>
-  );
-}
 
 /** One line: the title, then its muted subtitle on the same baseline. */
 function StepHead({ title, sub }: { title: string; sub: string }) {
@@ -87,15 +55,14 @@ function StepHead({ title, sub }: { title: string; sub: string }) {
 
 function Welcome() {
   const rows = [
-    { icon: Gauge, title: "Your level", text: "So suggestions fit you" },
-    { icon: Shapes, title: "Your puzzles and methods", text: "What you solve today" },
-    { icon: GraduationCap, title: "What to learn", text: "Cubix opens on it" },
-    { icon: Target, title: "Goals", text: "Tracked on your profile" },
+    { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
+    { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
+    { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
   ];
   return (
-    <ol className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
+    <ol className="grid gap-2 sm:grid-cols-3 sm:gap-3">
       {rows.map((r, i) => (
-        <li key={r.title} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 lg:flex-col lg:items-start lg:gap-4 lg:p-5">
+        <li key={r.title} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 sm:flex-col sm:items-start sm:gap-4 sm:p-5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <r.icon className="size-[18px]" />
           </span>
@@ -109,42 +76,6 @@ function Welcome() {
         </li>
       ))}
     </ol>
-  );
-}
-
-function LevelStep({ level, onChange }: { level: Experience; onChange: (level: Experience) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const move = (event: React.KeyboardEvent) => {
-    const delta = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : event.key === "ArrowUp" || event.key === "ArrowLeft" ? -1 : 0;
-    if (!delta) return;
-    event.preventDefault();
-    const index = (LEVELS.findIndex((l) => l.id === level) + delta + LEVELS.length) % LEVELS.length;
-    onChange(LEVELS[index]!.id);
-    ref.current?.querySelectorAll<HTMLElement>("[role=radio]")[index]?.focus();
-  };
-  return (
-    <div ref={ref} role="radiogroup" aria-label="Level" onKeyDown={move} className="grid gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
-      {LEVELS.map((l, i) => (
-        <button
-          key={l.id}
-          type="button"
-          role="radio"
-          aria-checked={level === l.id}
-          tabIndex={level === l.id ? 0 : -1}
-          onClick={() => onChange(l.id)}
-          className={cn(CARD, "items-center gap-4 px-4 py-3.5 sm:min-h-24 sm:items-start sm:px-5 sm:py-4 lg:min-h-36")}
-        >
-          <span className="flex min-w-0 flex-1 flex-col gap-1 lg:h-full lg:gap-2">
-            <span className="flex items-center gap-2.5 font-medium sm:text-base lg:flex-col lg:items-start lg:gap-4">
-              <Bars n={i} />
-              {l.label}
-            </span>
-            <span className="text-sm text-muted-foreground">{LEVEL_TEXT[l.id]}</span>
-          </span>
-          <Mark on={level === l.id} />
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -162,35 +93,33 @@ function Tile({ label, checked, glyph, onClick }: { label: string; checked: bool
 type MethodMap = Partial<Record<PuzzleId, string[]>>;
 
 /** Puzzles as tiles, then the methods of each chosen one inline, in the order they were picked. */
-function PuzzleStep({ learning, value, methods, onToggle, onNone, onMethod }: {
-  learning: boolean;
+function PuzzleStep({ value, methods, onToggle, onNone, onMethod }: {
   value: PuzzleId[];
   methods: MethodMap;
   onToggle: (puzzle: PuzzleId) => void;
-  onNone?: () => void;
+  onNone: () => void;
   onMethod: (puzzle: PuzzleId, method: string) => void;
 }) {
   const phone = usePhone();
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-6">
-      <div role="group" aria-label={learning ? "Puzzles to learn" : "Puzzles you can solve"} className="grid shrink-0 grid-cols-4 gap-1.5 sm:grid-cols-6 sm:gap-2.5">
-        {onNone && <Tile label="None yet" checked={!value.length} onClick={onNone} glyph={<Ban className="size-6 sm:size-[30px]" strokeWidth={1.5} />} />}
+      <div role="group" aria-label="Puzzles you can solve" className="grid shrink-0 grid-cols-4 gap-1.5 sm:grid-cols-6 sm:gap-2.5">
+        <Tile label="None yet" checked={!value.length} onClick={onNone} glyph={<Ban className="size-6 sm:size-[30px]" strokeWidth={1.5} />} />
         {PUZZLES.map((p) => (
           <Tile key={p.id} label={p.label} checked={value.includes(p.id)} onClick={() => onToggle(p.id)} glyph={<Icon name={"Puzzle" + p.id} size={phone ? 24 : 30} />} />
         ))}
       </div>
       <section aria-label="Methods" className="flex min-h-0 flex-1 flex-col gap-1">
-        <h2 className={SECTION_LABEL}>{learning ? "Methods to learn" : "Methods you know"}</h2>
+        <h2 className={SECTION_LABEL}>Methods you know</h2>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {value.length ? (
-            value.map((id, i) => {
+            value.map((id) => {
               const p = puzzleInfo(id);
               return (
                 <div key={id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b py-2.5 last:border-b-0">
                   <span className="flex w-36 shrink-0 items-center gap-2 text-sm font-medium">
                     <Icon name={"Puzzle" + id} size={18} className="text-muted-foreground" />
                     {p.label}
-                    {learning && i === 0 && value.length > 1 && <Badge variant="secondary">First</Badge>}
                   </span>
                   <div role="group" aria-label={`${p.label} methods`} className="flex flex-wrap gap-1.5">
                     {METHODS[id].map((m) => {
@@ -216,170 +145,40 @@ function PuzzleStep({ learning, value, methods, onToggle, onNone, onMethod }: {
               );
             })
           ) : (
-            <p className="py-2.5 text-sm text-muted-foreground">{learning ? "Pick a puzzle to choose its methods, or continue to skip." : "Pick a puzzle to choose its methods."}</p>
+            <p className="py-2.5 text-sm text-muted-foreground">Nothing yet? Cubix starts you on the 3×3 course.</p>
           )}
         </div>
       </section>
     </div>
-  );
-}
-
-/** A typical average of 5 for a beginner on each puzzle, in seconds; the level scales it. */
-const BEGINNER_AO5: Record<PuzzleId, number> = { "222": 15, "333": 60, "444": 150, "555": 270, "666": 480, "777": 720, sq1: 90, pyram: 15, skewb: 15, minx: 300, clock: 30 };
-const LEVEL_SCALE: Record<Experience, number> = { new: 1.5, beginner: 1, intermediate: 0.4, advanced: 0.2 };
-const roundTarget = (seconds: number) => (seconds < 20 ? Math.max(2, Math.round(seconds)) : seconds < 60 ? Math.round(seconds / 5) * 5 : seconds < 300 ? Math.round(seconds / 10) * 10 : Math.round(seconds / 30) * 30);
-
-/** One-click goals from the answers: learn the first puzzle or set, beat a time on the puzzles already solved. */
-function suggestedGoals(level: Experience, known: PuzzleId[], learning: PuzzleId[], learningMethods: MethodMap): PersonalGoal[] {
-  const createdAt = new Date().toISOString(), out: PersonalGoal[] = [];
-  const sets = catalog.sets as SetDto[];
-  for (const puzzle of learning.slice(0, 2)) {
-    if (!known.includes(puzzle)) { out.push({ kind: "learning", puzzle, setId: null, createdAt }); continue; }
-    const method = METHODS[puzzle].find((m) => learningMethods[puzzle]?.includes(m.id));
-    const setId = method?.steps.flatMap((step) => step.sets ?? []).find((id) => sets.some((set) => set.id === id && puzzleOf(set) === puzzle));
-    if (setId) out.push({ kind: "learning", puzzle, setId, createdAt });
-  }
-  const timed = [...learning.filter((p) => known.includes(p)), ...known.filter((p) => !learning.includes(p))];
-  for (const puzzle of timed.slice(0, 2)) out.push({ kind: "time", puzzle, metric: "ao5", solveMode: "standard", targetMs: roundTarget(BEGINNER_AO5[puzzle] * LEVEL_SCALE[level]) * 1000, createdAt });
-  if (!out.length) out.push({ kind: "learning", puzzle: "333", setId: null, createdAt });
-  return out.slice(0, 4);
-}
-
-const titleOf = (goal: PersonalGoal) => goalTitle(goal, catalog.sets);
-const GoalIcon = ({ goal }: { goal: PersonalGoal }) => (goal.kind === "time" ? <Timer className="size-4" /> : <GraduationCap className="size-4" />);
-
-function GoalsStep({ goals, setGoals, suggestions, puzzle }: { goals: Journey; setGoals: (update: (goals: Journey) => Journey) => void; suggestions: PersonalGoal[]; puzzle: PuzzleId }) {
-  const drafts = Object.entries(goals).filter((entry): entry is [string, PersonalGoal] => !!entry[1] && entry[1].kind !== "profile");
-  const [custom, setCustom] = useState(false);
-  const toggle = (goal: PersonalGoal) => {
-    const key = drafts.find(([, d]) => titleOf(d) === titleOf(goal))?.[0];
-    setGoals((g) => (key ? Object.fromEntries(Object.entries(g).filter(([id]) => id !== key)) : { ...g, [goalKey()]: goal }));
-  };
-  return (
-    <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto overscroll-contain md:grid-cols-2 md:content-stretch md:gap-8 md:overflow-hidden">
-      <div className="flex flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain md:pr-1">
-        <section aria-label="Suggested goals" className="flex flex-col gap-1.5">
-          <h2 className={SECTION_LABEL}>Suggested for you</h2>
-          {suggestions.map((goal) => {
-            const added = drafts.some(([, d]) => titleOf(d) === titleOf(goal));
-            return (
-              <button key={titleOf(goal)} type="button" aria-pressed={added} onClick={() => toggle(goal)} className={cn(CARD, "items-center gap-3 px-3 py-2.5")}>
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground", added && "bg-primary/15 text-primary")}>
-                  <GoalIcon goal={goal} />
-                </span>
-                <span className="min-w-0 flex-1 text-sm font-medium">{titleOf(goal)}</span>
-                {added ? <Check className="size-4 text-primary" strokeWidth={3} aria-hidden="true" /> : <Plus className="size-4 text-muted-foreground" aria-hidden="true" />}
-              </button>
-            );
-          })}
-        </section>
-        <section aria-label="Custom goal" className="flex flex-col gap-2">
-          {custom ? (
-            <>
-              <h2 className={SECTION_LABEL}>Custom goal</h2>
-              <div className="rounded-xl border p-4">
-                <GoalForm puzzle={puzzle} onCancel={() => setCustom(false)} onSave={(goal) => setGoals((g) => ({ ...g, [goalKey()]: goal }))} />
-              </div>
-            </>
-          ) : (
-            <Button variant="outline" className="self-start" onClick={() => setCustom(true)}>
-              <Plus />
-              Custom goal
-            </Button>
-          )}
-        </section>
-      </div>
-      <section aria-label="Added goals" className="flex flex-col gap-1.5 md:min-h-0">
-        <h2 className={SECTION_LABEL}>
-          Added <span className="tabular-nums">{drafts.length || ""}</span>
-        </h2>
-        {drafts.length ? (
-          <ul className="flex flex-col overscroll-contain rounded-xl border md:min-h-0 md:overflow-y-auto">
-            {drafts.map(([key, goal]) => (
-              <li key={key} className="flex items-center gap-3 border-b py-2 pr-2 pl-3 last:border-b-0">
-                <span className="text-muted-foreground">
-                  <GoalIcon goal={goal} />
-                </span>
-                <span className="min-w-0 flex-1 text-sm">{titleOf(goal)}</span>
-                <Button size="icon-sm" variant="ghost" aria-label={`Remove ${titleOf(goal)}`} onClick={() => setGoals((g) => Object.fromEntries(Object.entries(g).filter(([id]) => id !== key)))}>
-                  <X />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="rounded-xl border border-dashed px-3 py-4 text-sm text-muted-foreground">No goal yet. Add one here or later on your profile.</p>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function PuzzleList({ puzzles, methods, first = false }: { puzzles: PuzzleId[]; methods: MethodMap; first?: boolean }) {
-  if (!puzzles.length) return <span className="text-sm text-muted-foreground">None</span>;
-  return (
-    <span className="flex flex-wrap gap-1.5">
-      {puzzles.map((id, i) => {
-        const names = METHODS[id].filter((m) => methods[id]?.includes(m.id)).map((m) => m.name);
-        return (
-          <Badge key={id} variant="outline" className="h-7 gap-1.5 px-2 text-sm font-normal">
-            <Icon name={"Puzzle" + id} size={14} className="text-muted-foreground" />
-            {puzzleInfo(id).label}
-            {!!names.length && <span className="text-muted-foreground">· {names.join(", ")}</span>}
-            {first && i === 0 && puzzles.length > 1 && <span className="text-xs text-primary">first</span>}
-          </Badge>
-        );
-      })}
-    </span>
-  );
-}
-
-function Summary({ rows }: { rows: { label: string; step: number; value: ReactNode }[] }) {
-  return (
-    <dl className="flex min-h-0 max-w-3xl flex-col overflow-y-auto overscroll-contain rounded-xl border">
-      {rows.map((r) => (
-        <div key={r.label} className="flex items-start gap-3 border-b px-4 py-3 last:border-b-0 max-sm:flex-wrap sm:items-center sm:gap-6">
-          <dt className="w-28 shrink-0 text-sm text-muted-foreground max-sm:flex-1">{r.label}</dt>
-          <dd className="min-w-0 flex-1 max-sm:order-last max-sm:basis-full">{r.value}</dd>
-          <Button variant="ghost" size="xs" className="text-muted-foreground" aria-label={`Edit ${r.label.toLowerCase()}`} data-step={r.step}>
-            Edit
-          </Button>
-        </div>
-      ))}
-    </dl>
   );
 }
 
 export function Onboarding() {
   const existing = journeyProfile(s.journey);
   const [[step, dir], setStepDir] = useState<[number, number]>([existing ? 1 : 0, 1]);
-  const [reached, setReached] = useState(existing ? LAST : 0);
-  const [level, setLevel] = useState<Experience>(existing?.level ?? "new");
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
-  const plan = learningPlan(existing);
-  const [learningPuzzles, setLearningPuzzles] = useState<PuzzleId[]>(plan.puzzles), [learningMethods, setLearningMethods] = useState<MethodMap>(plan.methods);
-  const priority = learningPuzzles[0] ?? null, priorityMethod = priority ? learningMethods[priority]?.[0] : undefined;
-  const [goals, setGoals] = useState<Journey>({}), [saving, setSaving] = useState(false), [error, setError] = useState("");
+  const [saving, setSaving] = useState(false), [error, setError] = useState("");
   const owner = s.user.id;
   const reduced = useReducedMotion();
   const goTo = (next: number) => {
     if (next < 0 || next > LAST || next === step) return;
     setStepDir([next, next > step ? 1 : -1]);
-    setReached((r) => Math.max(r, next));
   };
   const finish = async (tour: boolean) => {
     if (saving) return;
     setSaving(true); setError("");
     try {
-      await s.updateJourney({ [PROFILE_KEY]: { kind: "profile", level, knownPuzzles: known, knownMethods, priority, learningPuzzles, learningMethods, ...(priorityMethod ? { priorityMethod } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() }, ...goals });
+      // Only what can be solved is asked; any other puzzle opens on its course until it is learnt or skipped.
+      await s.updateJourney({ [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, completedAt: existing?.completedAt ?? new Date().toISOString() } });
       if (s.user.id !== owner) return;
+      const puzzle = known.includes(s.puzzle as PuzzleId) ? (s.puzzle as PuzzleId) : known[0] ?? (s.puzzle as PuzzleId);
+      if (puzzle !== s.puzzle) { s.pref("cubix.puzzle", puzzle); s.puzzle = puzzle; s.loadContext(); }
       s.overlay = "";
-      if (priority) { s.pref("cubix.puzzle", priority); s.puzzle = priority; s.loadContext(); }
-      goPage(priority && (level === "new" || !known.includes(priority)) ? "learn" : "playground", { puzzle: priority ?? s.puzzle as PuzzleId, learnMethod: priorityMethod }, true);
+      goPage(known.includes(puzzle) ? "playground" : "learn", { puzzle }, true);
       s.overlay = tour ? "tour" : ""; s.emit();
     } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
   };
-  const advance = () => (step < LAST ? goTo(step + 1) : void finish(true));
+  const advance = () => (step < LAST ? goTo(step + 1) : void finish(!existing));
   // Enter continues, as in a form: from the page, a heading, a choice card or a tile, never from a button or field.
   const onKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -389,70 +188,26 @@ export function Onboarding() {
     event.preventDefault();
     advance();
   };
-  const toggle = (set: (fn: (v: PuzzleId[]) => PuzzleId[]) => void, setMethods: (fn: (v: MethodMap) => MethodMap) => void) => (p: PuzzleId) => {
-    set((v) => (v.includes(p) ? v.filter((id) => id !== p) : [...v, p]));
-    setMethods((v) => Object.fromEntries(Object.entries(v).filter(([id]) => id !== p)));
+  const toggle = (p: PuzzleId) => {
+    setKnown((v) => (v.includes(p) ? v.filter((id) => id !== p) : [...v, p]));
+    setKnownMethods((v) => Object.fromEntries(Object.entries(v).filter(([id]) => id !== p)));
   };
-  const method = (setMethods: (fn: (v: MethodMap) => MethodMap) => void) => (p: PuzzleId, m: string) =>
-    setMethods((v) => ({ ...v, [p]: v[p]?.includes(m) ? v[p]!.filter((id) => id !== m) : [...(v[p] ?? []), m] }));
-  const drafts = Object.values(goals).filter((g): g is PersonalGoal => !!g && g.kind !== "profile");
+  const method = (p: PuzzleId, m: string) =>
+    setKnownMethods((v) => ({ ...v, [p]: v[p]?.includes(m) ? v[p]!.filter((id) => id !== m) : [...(v[p] ?? []), m] }));
   const content = [
     <Welcome />,
-    <LevelStep level={level} onChange={setLevel} />,
-    <PuzzleStep learning={false} value={known} methods={knownMethods} onToggle={toggle(setKnown, setKnownMethods)} onNone={() => { setKnown([]); setKnownMethods({}); }} onMethod={method(setKnownMethods)} />,
-    <PuzzleStep learning value={learningPuzzles} methods={learningMethods} onToggle={toggle(setLearningPuzzles, setLearningMethods)} onMethod={method(setLearningMethods)} />,
-    <GoalsStep goals={goals} setGoals={setGoals} suggestions={suggestedGoals(level, known, learningPuzzles, learningMethods)} puzzle={priority ?? known[0] ?? (s.puzzle as PuzzleId)} />,
-    <Summary
-      rows={[
-        { label: "Level", step: 1, value: <span className="flex items-center gap-2.5 text-sm font-medium"><Bars n={LEVELS.findIndex((l) => l.id === level)} />{LEVELS.find((l) => l.id === level)!.label}</span> },
-        { label: "Can solve", step: 2, value: <PuzzleList puzzles={known} methods={knownMethods} /> },
-        { label: "Learning", step: 3, value: <PuzzleList puzzles={learningPuzzles} methods={learningMethods} first /> },
-        { label: "Goals", step: 4, value: drafts.length ? <ul className="flex flex-col gap-1 text-sm">{drafts.map((g) => <li key={titleOf(g)} className="flex items-center gap-2"><span className="text-muted-foreground"><GoalIcon goal={g} /></span>{titleOf(g)}</li>)}</ul> : <span className="text-sm text-muted-foreground">None</span> },
-      ]}
-    />,
+    <PuzzleStep value={known} methods={knownMethods} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); }} onMethod={method} />,
   ][step];
   const slide = reduced ? 0 : 56;
   return (
     <MotionConfig reducedMotion="user">
-      <main
-        className="journey-setup flex h-svh flex-col overflow-hidden bg-background text-foreground"
-        aria-labelledby="journey-title"
-        onKeyDown={onKeyDown}
-        onClick={(e) => {
-          // The summary's Edit buttons jump back to their step.
-          const edit = (e.target as HTMLElement).closest<HTMLElement>("[data-step]");
-          if (edit) goTo(Number(edit.dataset.step));
-        }}
-      >
+      <main className="journey-setup flex h-svh flex-col overflow-hidden bg-background text-foreground" aria-labelledby="journey-title" onKeyDown={onKeyDown}>
         <header className="flex h-14 shrink-0 items-center gap-4 px-4 md:h-16 md:px-8">
           <span className="flex items-center gap-2.5">
             <Logo size={20} />
             <Wordmark className="text-lg max-sm:hidden" />
           </span>
-          <nav aria-label="Setup progress" className="mx-auto flex items-center gap-3">
-            <ol className="flex items-center">
-              {STEPS.slice(1).map((st, i) => {
-                const n = i + 1;
-                return (
-                  <li key={st.label}>
-                    <button
-                      type="button"
-                      aria-label={st.label}
-                      aria-current={n === step ? "step" : undefined}
-                      disabled={n > reached || saving}
-                      onClick={() => goTo(n)}
-                      className="group/dot flex h-6 items-center px-0.5 outline-none disabled:cursor-default"
-                    >
-                      <span className={cn("h-1.5 w-7 rounded-[2px] transition-colors group-focus-visible/dot:ring-3 group-focus-visible/dot:ring-ring/50 md:w-10", n <= step ? "bg-primary" : n <= reached ? "bg-primary/35" : "bg-muted")} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-            <span className="w-24 text-xs text-muted-foreground tabular-nums max-sm:w-auto" aria-live="polite">
-              {step ? <>{step} / {LAST}<span className="max-sm:hidden"> · {STEPS[step].label}</span></> : "Introduction"}
-            </span>
-          </nav>
+          <span className="flex-1" />
           {existing ? (
             <Button variant="ghost" size="sm" disabled={saving} onClick={() => (history.length > 1 ? go(-1) : goPage("playground"))}>
               Cancel
@@ -461,7 +216,10 @@ export function Onboarding() {
             <span className="w-[54px] max-sm:hidden" aria-hidden="true" />
           )}
         </header>
-        <div className="relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 md:px-8" inert={saving}>
+        {/* On a wide screen the step and its buttons sit together in the middle, a short way for the mouse; phones keep
+            the buttons at the foot, under the thumb. */}
+        <div className="flex min-h-0 flex-1 flex-col md:justify-center md:pb-16">
+        <div className="relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 md:flex-initial md:px-8" inert={saving}>
           <AnimatePresence mode="wait" initial={false} custom={dir}>
             <motion.section
               key={step}
@@ -471,7 +229,7 @@ export function Onboarding() {
               animate="center"
               exit="exit"
               transition={{ x: { type: "spring", stiffness: 520, damping: 42 }, opacity: { duration: 0.14 } }}
-              className={cn("flex min-h-0 flex-1 flex-col gap-4 pt-2 pb-4 md:gap-6 md:pt-6 md:pb-6", step === 0 && "justify-center pb-[8vh]")}
+              className={cn("flex min-h-0 flex-1 flex-col gap-4 pt-2 pb-4 md:flex-initial md:gap-6 md:pt-6 md:pb-6", step === 0 && "max-md:justify-center max-md:pb-[8vh]")}
             >
               <StepHead title={STEPS[step].title} sub={STEPS[step].sub} />
               {content}
@@ -479,20 +237,21 @@ export function Onboarding() {
             </motion.section>
           </AnimatePresence>
         </div>
-        <footer className="journey-footer shrink-0 border-t">
+        <footer className="journey-footer shrink-0 max-md:border-t">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 md:px-8">
             <Button variant="ghost" disabled={saving || step === 0} onClick={() => goTo(step - 1)} className={cn(step === 0 && "invisible")}>
               <ArrowLeft />
               Back
             </Button>
             <div className="flex items-center gap-2">
-              {step === LAST && (
+              {step === LAST && !existing && (
                 <Button variant="outline" disabled={saving} onClick={() => void finish(false)}>
-                  {existing ? "Save" : "Skip"}
+                  <span className="max-sm:hidden">Skip the tour</span>
+                  <span className="sm:hidden">Skip</span>
                 </Button>
               )}
               <Button disabled={saving} onClick={advance}>
-                {saving ? "Saving…" : step === 0 ? "Get started" : step === LAST ? (existing ? "Save & take the tour" : "Start the tour") : "Continue"}
+                {saving ? "Saving…" : step === 0 ? "Get started" : step === LAST ? (existing ? "Save" : "Start the tour") : "Continue"}
                 {!saving && <ArrowRight />}
                 {!saving && (
                   <Kbd aria-hidden="true" className="ml-1 bg-primary-foreground/15 text-primary-foreground max-md:hidden">
@@ -503,6 +262,7 @@ export function Onboarding() {
             </div>
           </div>
         </footer>
+        </div>
       </main>
     </MotionConfig>
   );

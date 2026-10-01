@@ -27,8 +27,12 @@ const cases = [
   { id: "OLL 1", name: "Runway", set: "oll", group: "Dot" },
 ].map(c => ({ ...c, stage: "OLL", setLabel: c.set, setup: "F U R U' R' F'", setups_alt: [], algorithms }));
 const sets = [{ id: "2look-oll", stage: "OLL", label: "2-Look OLL", count: 2 }, { id: "oll", stage: "OLL", label: "OLL", count: 1 }];
-mock.module("../src/api", () => ({ api: { setLearned: async () => {} }, authToken: { get: () => "token" }, local: {
-  current: () => ({ id: "u1", username: "u1", isGuest: false, createdAt: "" }), learned: () => ["2L-OLL I-Shape"], read: { catalog: () => ({ cases, sets }), stats: () => [] },
+/** The account's setup: it solves the 3×3 unless a test says otherwise; updates are recorded. */
+const solver = { kind: "profile", knownPuzzles: ["333"], priority: null, completedAt: "2026-10-01T10:00:00.000Z" };
+let journey: Record<string, any> = { profile: solver };
+const journeyUpdates: any[] = [];
+mock.module("../src/api", () => ({ api: { setLearned: async () => {}, updateJourney: async (changes: any) => { journeyUpdates.push(changes); } }, authToken: { get: () => "token" }, local: {
+  current: () => ({ id: "u1", username: "u1", isGuest: false, createdAt: "" }), learned: () => ["2L-OLL I-Shape"], read: { catalog: () => ({ cases, sets }), stats: () => [], journey: () => journey },
 } }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
 mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: () => null }));
@@ -131,6 +135,8 @@ test("a beginner step teaches its own algorithms, plays them in 3D and keeps the
 });
 
 test("the yellow cross and yellow face cases play from their own setups; Finish completes the method", async () => {
+  // A player who cannot solve the 3×3 yet: no Train while learning, and Finish unlocks the puzzle.
+  journey = { profile: { ...solver, knownPuzzles: [] } };
   const store = await mount();
   await press("Start Beginner");
   for (let i = 0; i < 3; i++) await tap("Next step");
@@ -142,8 +148,25 @@ test("the yellow cross and yellow face cases play from their own setups; Finish 
   await tap("Next step: Last layer permutation");
   // The last step finishes the course: every step done, the page says so and offers what next.
   expect(control("Next step")).toBeUndefined();
+  expect(control("Train")).toBeUndefined();
   await tap("Finish");
+  expect(journeyUpdates.at(-1)).toEqual({ profile: { ...solver, knownPuzzles: ["333"], knownMethods: { "333": ["beginner"] } } });
+  journey = { profile: solver };
   expect(store.get(courseProgressAtom).courses["333:beginner"]!.done).toHaveLength(6);
   expect(renderer.root.findAll((n: any) => n.type === "Text" && n.props.children?.join?.("") === "Beginner done").length).toBeGreaterThan(0);
   await tap("Beginner done");
+});
+
+test("picking a puzzle opens its timer; one that cannot be solved yet opens Learn with the question", async () => {
+  const { pickEventAtom, learnPromptAtom } = await import("../src/journey");
+  const store = createStore();
+  journey = { profile: solver };
+  store.set(routeAtom, { page: "algorithms" });
+  store.set(pickEventAtom, "444");
+  expect(store.get(routeAtom)).toEqual({ page: "learn" });
+  expect(store.get(learnPromptAtom)).toEqual({ event: "333", page: "algorithms" });
+  store.set(learnPromptAtom, null);
+  store.set(pickEventAtom, "333");
+  expect(store.get(routeAtom)).toEqual({ page: "playground" });
+  expect(store.get(learnPromptAtom)).toBeNull();
 });

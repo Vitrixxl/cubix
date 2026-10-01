@@ -84,7 +84,7 @@ function Methods() {
   const current = rows.find((r) => r.method.id === s.learnPick) ?? rows.find((r) => r.method.id === s.course.methods[puzzle] && r.progress.started) ?? rows.find((r) => r.recommended) ?? rows[0]!;
   return (
     <div className={PAGE}>
-      <PageHead title="Learn" sub="Choose a method, then follow it step by step">
+      <PageHead title="Learn" sub={s.locked ? `Finish a course to open the ${label} everywhere` : "Choose a method, then follow it step by step"}>
         <PuzzleButton />
       </PageHead>
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
@@ -419,6 +419,8 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
 
 /** The set Train this step starts on: the one shown. */
 function trainAction(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry) {
+  // Training opens with the puzzle, once its course is done.
+  if (s.locked) return "";
   const sets = stepSets(method.steps[entry.step]!, s.allSets(), puzzle) as any[];
   const chosen = sets.find((set) => set.id === s.learnSets[`${puzzle}:${method.id}:${entry.step}`]) ?? firstOpenSet(sets, s.cases(), s.learned);
   return chosen ? "train:" + chosen.id : "";

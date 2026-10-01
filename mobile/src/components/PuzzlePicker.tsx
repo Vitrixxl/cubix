@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ChevronDown } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, timeEntryAtom } from "../state";
 import { useColors } from "../theme";
+import { pickEventAtom } from "../journey";
 import { Sheet } from "./Sheet";
 
 /** Official WCA event glyphs from the @cubing/icons font (MIT). */
@@ -82,7 +83,7 @@ export function SessionTrigger({ event, detail, onPress, disabled }: { event: Ev
  */
 export function SessionButton({ scramble = false }: { scramble?: boolean }) {
   const [open, setOpen] = useState(false);
-  const [event, setEvent] = useAtom(eventAtom);
+  const event = useAtomValue(eventAtom), setEvent = useSetAtom(pickEventAtom);
   const locked = useAtomValue(cubeSwitchLockedAtom);
   const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);

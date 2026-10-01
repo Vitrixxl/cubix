@@ -2,6 +2,7 @@
 import { isReviewMode, learningTrackOf } from "../../src/client/lib/dailyLearning";
 import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../src/shared/crossPlusOne";
 import { heldScramble } from "../../src/shared/puzzles";
+import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { practiceSummary, sessionExtremes, solveTone, trainingSessionRows, type Metric } from "../../src/client/lib/practiceSummary";
 import { PracticeTimer, timerHint, type TimerPhase, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
 import { TONE_TEXT } from "../../src/client/lib/tone";
@@ -239,7 +240,9 @@ export function Practice() {
   const c = training ? s.find(s.training?.id) : null,
     ready = training ? !!c && s.practiceSelected.has(c.id) : true,
     cubeSize = training ? 0 : s.info()?.cubeSize,
-    hasCube = training ? !!c && !c.flat && !c.diagram : !!cubeSize,
+    // The pyraminx and the megaminx get their own 3D model; the other puzzles without a cube size show none.
+    poly = !training && isPolyPuzzle(s.puzzle),
+    hasCube = training ? !!c && !c.flat && !c.diagram : !!cubeSize || poly,
     text = (training ? s.training?.setup : s.scramble) ?? "",
     promptFont = mobile
       ? text.length > 90 ? 15 : 18
@@ -262,6 +265,7 @@ export function Practice() {
         size={previewSize}
         replay={s.replay}
         held={!training && heldScramble(s.context().scrambleType)}
+        puzzle={poly ? s.puzzle : undefined}
       />
     ) : training && s.training?.svg ? (
       <div

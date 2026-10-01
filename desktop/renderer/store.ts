@@ -12,7 +12,7 @@ import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { completeStep, courseEntry, courseStorageKey, finishCourse, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
-import { journeyProfile, type Journey, type PersonalGoal, type GoalProgress } from "../../src/client/lib/journey";
+import { LOCKED_PAGES, PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey, type PersonalGoal, type GoalProgress } from "../../src/client/lib/journey";
 import { go, goPage, readRoute, type AppRoute } from "./navigation";
 export const catalog = catalogData as any;
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
@@ -63,6 +63,11 @@ export class Store {
   journey: Journey = {};
   personalGoals: { key: string; goal: PersonalGoal; progress: GoalProgress }[] = [];
   editGoalKey = "";
+  /** Where the player was before picking a puzzle they cannot solve yet, for "Not now". */
+  lockedFrom: { event: string; page: string } | undefined;
+  /** The section a locked button leads to once the tutorial is skipped. */
+  skipTarget = "";
+  private quietPuzzle = false;
   private introducedAccount = "";
   introductionReady = false;
   selected = new Set<string>();
@@ -206,6 +211,19 @@ export class Store {
   get learning() {
     const puzzle = this.puzzle as PuzzleId, method = methodOf(puzzle, this.learnMethod);
     return method ? { puzzle, method, entry: courseEntry(this.course, puzzle, method.id) } : undefined;
+  }
+  /** The current puzzle cannot be solved yet: only Learn (and the account) are open on it. */
+  get locked() {
+    return puzzleLocked(journeyProfile(this.journey), this.puzzle as PuzzleId);
+  }
+  /** Whether `page` waits for the course of `puzzle` (the current one by default). */
+  lockedPage(page: string, puzzle = this.puzzle as PuzzleId) {
+    return puzzleLocked(journeyProfile(this.journey), puzzle) && (LOCKED_PAGES as readonly string[]).includes(page);
+  }
+  /** The current puzzle can be solved from now on: after its course, or with the tutorial skipped. */
+  async unlockPuzzle(method?: string) {
+    const profile = journeyProfile(this.journey);
+    if (profile && this.locked) await this.updateJourney({ [PROFILE_KEY]: withKnownPuzzle(profile, this.puzzle as PuzzleId, method) });
   }
   /** Shows a step of the course, the page back at its top. */
   learnStep(index: number) {
@@ -586,7 +604,7 @@ export class Store {
     if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
     if (method) this.learnPick = method;
     this.learnFinished = false;
-    if (this.overlay !== "tour") this.overlay = "";
+    if (this.overlay !== "tour" && this.overlay !== "learnPuzzle") this.overlay = "";
     this.timerEpoch++; this.showTimes = timesOpenAtStart(page);
     void this.syncScramble(); void this.refresh(); this.emit();
   }
@@ -631,8 +649,42 @@ export class Store {
           this.overlay = kind;
           break;
         case "nav":
+          if (this.lockedPage(arg)) {
+            this.skipTarget = arg;
+            this.overlay = "skipLearning";
+            break;
+          }
           goPage(arg, { puzzle: this.puzzle as PuzzleId });
           break;
+        case "learnPuzzle": {
+          // The answer to "Learn to solve this puzzle?": start a course, skip it, or go back to the previous puzzle.
+          const from = this.lockedFrom;
+          this.lockedFrom = undefined;
+          this.overlay = "";
+          if (arg === "skip") {
+            await this.unlockPuzzle();
+            goPage("playground", { puzzle: this.puzzle as PuzzleId }, true);
+          } else if (arg === "cancel" && from) {
+            this.quietPuzzle = true;
+            await this.action("puzzle:" + from.event).finally(() => (this.quietPuzzle = false));
+            goPage(from.page, { puzzle: this.puzzle as PuzzleId }, true);
+          } else {
+            const method = this.course.methods[this.puzzle as PuzzleId] ?? recommendedMethod(this.puzzle as PuzzleId);
+            if (method && methodOf(this.puzzle as PuzzleId, method)) {
+              this.saveCourse(openCourse(this.course, this.puzzle as PuzzleId, method));
+              goPage("learn", { puzzle: this.puzzle as PuzzleId, learnMethod: method });
+            }
+          }
+          break;
+        }
+        case "skipLearning": {
+          const page = this.skipTarget;
+          this.skipTarget = "";
+          this.overlay = "";
+          await this.unlockPuzzle();
+          if (page) goPage(page, { puzzle: this.puzzle as PuzzleId });
+          break;
+        }
         case "case":
           goPage("algorithms", { caseId: arg, puzzle: this.puzzle as PuzzleId });
           break;
@@ -795,12 +847,19 @@ export class Store {
         case "puzzle": {
           const event = eventInfo(arg);
           if (!event) break;
+          const from = { event: this.event().id, page: this.page }, previous = this.puzzle;
           this.puzzle = event.puzzle;
           this.pref("cubix.puzzle", event.puzzle);
           this.per("cubix.practice.modeByPuzzle", event.solveMode);
           this.loadContext();
           this.overlay = "";
-          goPage(this.page, { puzzle: event.puzzle, trainingStep: this.trainingStep, profileMode: this.profileMode }, true);
+          // A new puzzle opens on the timer, wherever the player was; one they cannot solve yet on its course, with the
+          // question first: learn it, or unlock everything at once.
+          if (this.locked && previous !== event.puzzle && !this.quietPuzzle) {
+            this.lockedFrom = from;
+            this.overlay = "learnPuzzle";
+          }
+          goPage(this.quietPuzzle ? this.page : this.locked ? "learn" : "playground", { puzzle: event.puzzle, trainingStep: this.trainingStep, profileMode: this.profileMode }, true);
           this.learnPick = "";
           this.timerEpoch++;
           await this.nextCase();
@@ -995,6 +1054,7 @@ export class Store {
           const course = this.learning;
           if (!course) break;
           this.saveCourse(finishCourse(this.course, course.puzzle, course.method.id));
+          await this.unlockPuzzle(course.method.id);
           this.learnFinished = true;
           this.direction = 1;
           break;

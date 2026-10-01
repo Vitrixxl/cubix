@@ -5,16 +5,12 @@ import { effective, fmtTime, rollingAverages } from "./format";
 import { parseTypedTime } from "./format";
 import { METHODS } from "../../shared/methods";
 
-export const LEVELS = [
-  { id: "new", label: "Getting started" },
-  { id: "beginner", label: "Beginner" },
-  { id: "intermediate", label: "Intermediate" },
-  { id: "advanced", label: "Advanced" },
-] as const;
-export type Experience = typeof LEVELS[number]["id"];
+/** Older profiles still carry a self-assessed level; setup no longer asks for it. */
+const LEVEL_IDS = ["new", "beginner", "intermediate", "advanced"] as const;
+export type Experience = typeof LEVEL_IDS[number];
 export interface JourneyProfile {
   kind: "profile";
-  level: Experience;
+  level?: Experience;
   knownPuzzles: PuzzleId[];
   knownMethods?: Partial<Record<PuzzleId, string[]>>;
   priority: PuzzleId | null;
@@ -40,6 +36,20 @@ export function parseGoalTarget(text: string): number | null {
   return ms !== null && ms > 0 && ms <= 86_400_000 ? ms : null;
 }
 export const journeyProfile = (journey: Journey): JourneyProfile | undefined => journey.profile?.kind === "profile" ? journey.profile : undefined;
+/** The sections a puzzle opens once it can be solved; until then only Learn (and the account) are open on it. */
+export const LOCKED_PAGES = ["playground", "algorithms", "training", "duel"] as const;
+/** A puzzle is locked while the profile does not list it as solved: its course comes first. */
+export const puzzleLocked = (profile: JourneyProfile | undefined, puzzle: PuzzleId) => !!profile && !profile.knownPuzzles.includes(puzzle);
+/** The profile once `puzzle` can be solved, with the method that was learnt (or the tutorial skipped). */
+export function withKnownPuzzle(profile: JourneyProfile, puzzle: PuzzleId, method?: string): JourneyProfile {
+  const methods = profile.knownMethods?.[puzzle] ?? [];
+  const known = METHODS[puzzle].some(m => m.id === method) && !methods.includes(method!) ? [...methods, method!] : methods;
+  return {
+    ...profile,
+    knownPuzzles: profile.knownPuzzles.includes(puzzle) ? profile.knownPuzzles : [...profile.knownPuzzles, puzzle],
+    ...(known.length ? { knownMethods: { ...profile.knownMethods, [puzzle]: known } } : {}),
+  };
+}
 /** Read existing single-priority profiles without rewriting an account's saved choices. */
 export function learningPlan(profile?: JourneyProfile) {
   return {
@@ -58,7 +68,7 @@ export function validJourneyEntry(key: string, value: unknown, cases: readonly C
   if (value === null) return key !== PROFILE_KEY;
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  if (key === PROFILE_KEY) return v.kind === "profile" && LEVELS.some(l => l.id === v.level) && (v.priority === null || isPuzzle(v.priority)) && validAt(v.completedAt)
+  if (key === PROFILE_KEY) return v.kind === "profile" && (v.level === undefined || LEVEL_IDS.includes(v.level as Experience)) && (v.priority === null || isPuzzle(v.priority)) && validAt(v.completedAt)
     && Array.isArray(v.knownPuzzles) && v.knownPuzzles.length <= 11 && v.knownPuzzles.every(isPuzzle) && new Set(v.knownPuzzles).size === v.knownPuzzles.length
     && (v.priorityMethod === undefined || typeof v.priorityMethod === "string" && isPuzzle(v.priority) && METHODS[v.priority].some(m => m.id === v.priorityMethod))
     && (v.learningPuzzles === undefined || Array.isArray(v.learningPuzzles) && v.learningPuzzles.length <= 11 && v.learningPuzzles.every(isPuzzle) && new Set(v.learningPuzzles).size === v.learningPuzzles.length && (v.priority === null ? !v.learningPuzzles.length : v.learningPuzzles.includes(v.priority)))

@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium, type Page } from "playwright";
+import { chromium } from "playwright";
 import { startServer, signIn } from "./app";
 import { TOUR_STEPS } from "../../src/client/lib/journey";
 
@@ -19,7 +19,6 @@ page.on("pageerror", e => errors.push(e.message));
 await mkdir(SHOTS, { recursive: true });
 const shot = (name: string) => page.screenshot({ path: `${SHOTS}/${name}.png` });
 const heading = (text: string) => page.getByRole("heading", { name: text, exact: true }).waitFor();
-const next = () => page.getByRole("button", { name: "Continue", exact: true }).click();
 const checkbox = (name: string) => page.getByRole("checkbox", { name, exact: true });
 const checked = async (name: string) => (await checkbox(name).getAttribute("aria-checked")) === "true";
 const noPageScroll = async (what: string) =>
@@ -83,12 +82,6 @@ async function tour(name: string, { desktop }: { desktop: boolean }) {
   assert.equal(await page.locator("[data-app-shell]").evaluate((n: HTMLElement) => n.inert), false);
 }
 
-/** Picks `option` in the shadcn select named `label`. */
-async function choose(p: Page, label: string, option: string) {
-  await p.getByRole("combobox", { name: label, exact: true }).click();
-  await p.getByRole("option", { name: option, exact: true }).click();
-}
-
 try {
   await page.goto(origin); await signIn(page, "introduction_ui", "a-long-test-password", true);
   await heading("Welcome to Cubix");
@@ -98,71 +91,37 @@ try {
   await page.goto(origin + "/duel"); await heading("Welcome to Cubix");
   assert.equal(new URL(page.url()).pathname, "/onboarding");
   await fits(SIZES, "welcome");
-  // Enter continues from the page.
-  await page.keyboard.press("Enter"); await heading("Your level");
-  await page.getByRole("radio", { name: /^Beginner/ }).click();
-  await page.keyboard.press("ArrowDown"); assert.equal(await page.getByRole("radio", { name: /^Intermediate/ }).getAttribute("aria-checked"), "true");
-  await page.keyboard.press("ArrowUp"); assert.equal(await page.getByRole("radio", { name: /^Beginner/ }).getAttribute("aria-checked"), "true");
-  await fits(SIZES, "level");
-  await page.getByRole("radio", { name: /^Beginner/ }).focus();
-  await page.keyboard.press("Enter"); await heading("Puzzles you can solve");
+  // Enter continues from the page; no level is asked, only what can be solved.
+  await page.keyboard.press("Enter"); await heading("What can you solve?");
+  assert.equal(await page.getByRole("radio").count(), 0, "no level cards");
 
   assert.equal(await checked("None yet"), true);
   await checkbox("3×3").click();
   assert.equal(await checked("None yet"), false);
   await checkbox("3×3 CFOP").click(); await checkbox("3×3 Roux").click();
   assert.equal(await checked("3×3 CFOP"), true);
-  await fits(SIZES, "known");
-  await next();
-
-  await heading("What do you want to learn?");
-  await checkbox("2×2").click();
-  await checkbox("2×2 Ortega").click(); await checkbox("2×2 Ortega").click();
-  assert.equal(await checked("2×2 Ortega"), false);
-  await checkbox("2×2 Ortega").click();
-  await checkbox("4×4").click(); await checkbox("4×4 Reduction").click(); await checkbox("4×4 Yau").click();
+  await checkbox("4×4").click(); await checkbox("4×4 Yau").click();
   // Removing a puzzle removes its methods; picking it again starts empty.
   await checkbox("4×4").click(); assert.equal(await checkbox("4×4 Yau").count(), 0);
   await checkbox("4×4").click(); assert.equal(await checked("4×4 Yau"), false);
-  await checkbox("4×4 Reduction").click(); await checkbox("4×4 Yau").click();
-  assert.equal(await checked("2×2"), true);
-  await fits(SIZES, "learning");
-  await next();
-
-  await heading("Your goals");
-  const suggested = page.locator('[aria-label="Suggested goals"] button');
-  assert.ok(await suggested.count() >= 2, "goals are suggested from the answers");
-  await suggested.first().click();
-  assert.equal(await suggested.first().getAttribute("aria-pressed"), "true");
-  await suggested.nth(1).click(); await suggested.nth(1).click();
-  assert.equal(await suggested.nth(1).getAttribute("aria-pressed"), "false", "a suggestion toggles off");
-  const drafts = page.locator('[aria-label="Added goals"] li');
-  assert.equal(await drafts.count(), 1);
-  await page.getByRole("button", { name: "Custom goal", exact: true }).click();
-  await choose(page, "Puzzle", "3×3");
-  await choose(page, "Result", "Single");
-  await page.getByLabel("Target (seconds)", { exact: true }).fill("0");
-  await page.getByRole("button", { name: "Add goal", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "Enter a time" }).waitFor();
-  await page.getByLabel("Target (seconds)", { exact: true }).fill("20");
-  await page.getByRole("button", { name: "Add goal", exact: true }).click();
-  assert.equal(await drafts.count(), 2);
-  await fits(SIZES, "goals");
+  await checkbox("4×4").click();
+  await fits(SIZES, "known");
   await page.setViewportSize({ width: 360, height: 640 }); await shot("setup-mobile");
   await page.setViewportSize({ width: 1280, height: 800 });
-  await next();
-
-  await heading("All set");
-  await page.getByRole("button", { name: "Edit level", exact: true }).click(); await heading("Your level");
-  await page.getByRole("button", { name: "Ready", exact: true }).click(); await heading("All set");
-  await fits(SIZES, "summary");
   await page.getByRole("button", { name: "Start the tour", exact: true }).click();
   await page.locator(".journey-setup").waitFor({ state: "detached" });
   await tour("desktop", { desktop: true });
+  assert.equal(new URL(page.url()).searchParams.get("puzzle") ?? "333", "333");
+  assert.equal(await page.locator("[data-locked]").count(), 0, "a puzzle that can be solved opens every section");
 
   const goals = page.locator('[aria-label="Personal goals"]');
+  await page.locator('[data-action="nav:profile"]').first().click();
+  await goals.waitFor();
+  assert.equal(await goals.locator("article").count(), 0, "the setup adds no goal");
+  await goals.getByRole("button", { name: "Add goal", exact: true }).click();
+  await page.getByRole("dialog", { name: "Add goal", exact: true }).getByLabel("Target (seconds)").fill("20");
+  await page.getByRole("dialog", { name: "Add goal", exact: true }).getByRole("button", { name: "Add goal", exact: true }).click();
   await goals.locator("article").first().waitFor();
-  assert.equal(await goals.locator("article").count(), 2);
   await page.evaluate(() => window.cubix.call("addSolve", { puzzle: "333", solveMode: "standard", scrambleType: "normal", timeMs: 19000 }));
   await goals.locator('article[data-complete="true"]').first().waitFor();
 
@@ -180,7 +139,7 @@ try {
   await shot("goal-dialog-desktop");
   await dialog.getByRole("button", { name: "Add goal", exact: true }).click();
   await dialog.waitFor({ state: "detached" });
-  await page.waitForFunction(() => document.querySelectorAll('[aria-label="Personal goals"] article').length === 3);
+  await page.waitForFunction(() => document.querySelectorAll('[aria-label="Personal goals"] article').length === 2);
   await goals.getByRole("button", { name: "Add goal", exact: true }).click();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await dialog.waitFor({ state: "detached" });
@@ -202,15 +161,70 @@ try {
   await tour("phone", { desktop: false });
   await page.setViewportSize({ width: 1280, height: 800 });
 
-  // Edit the setup: the saved answers come back.
+  // A puzzle that cannot be solved yet: picking it asks to learn it, and only Learn stays open on it.
+  const puzzlePick = async (label: string) => {
+    await page.locator('.rail [data-action="menu:puzzles"]').click();
+    await page.getByRole("option", { name: label, exact: true }).click();
+  };
+  const learnDialog = (name: string) => page.getByRole("dialog", { name: `Learn to solve the ${name}?`, exact: true });
+  const skipDialog = page.getByRole("dialog", { name: "Skip the tutorial?", exact: true });
+  await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
+  await puzzlePick("4×4");
+  await learnDialog("4×4").waitFor();
+  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "444");
+  assert.deepEqual(await page.locator('.rail [data-locked]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:algorithms", "nav:training", "nav:duel"]);
+  await shot("learn-puzzle-dialog");
+  // Not now: back to the 3×3 and the page it was on.
+  await learnDialog("4×4").getByRole("button", { name: "Not now", exact: true }).click();
+  await page.waitForURL(url => url.pathname === "/algorithms" && url.searchParams.get("puzzle") === "333");
+  assert.equal(await page.locator("[data-locked]").count(), 0);
+  // Start learning opens the recommended course.
+  await puzzlePick("4×4");
+  await learnDialog("4×4").getByRole("button", { name: "Start learning", exact: true }).click();
+  await page.waitForURL(url => url.pathname === "/learn/reduction" && url.searchParams.get("puzzle") === "444");
+  assert.equal(await page.locator('[data-action^="train:"]').count(), 0, "no training from a course while the puzzle is locked");
+  // A greyed section offers to skip the tutorial: from a click, a shortcut or a link.
+  await page.locator('.rail [data-action="nav:playground"]').click();
+  await skipDialog.waitFor(); await shot("skip-tutorial-dialog");
+  await skipDialog.getByRole("button", { name: "Keep learning", exact: true }).click();
+  await skipDialog.waitFor({ state: "detached" });
+  assert.equal(new URL(page.url()).pathname, "/learn/reduction");
+  await page.keyboard.press("Alt+3"); await skipDialog.waitFor();
+  await page.keyboard.press("Escape"); await skipDialog.waitFor({ state: "detached" });
+  await page.goto(origin + "/timer?puzzle=444");
+  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "444");
+  await page.locator('.rail [data-action="nav:training"]').click();
+  await skipDialog.getByRole("button", { name: "Skip the tutorial", exact: true }).click();
+  await page.waitForURL(url => url.pathname === "/training" && url.searchParams.get("puzzle") === "444");
+  assert.equal(await page.locator("[data-locked]").count(), 0, "skipping the tutorial opens every section");
+  // "Unlock everything" opens every section of the puzzle, on its timer.
+  await puzzlePick("2×2");
+  await learnDialog("2×2").getByRole("button", { name: "Unlock everything", exact: true }).click();
+  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "222");
+  assert.equal(await page.locator("[data-locked]").count(), 0);
+  // A puzzle the player can solve opens on its timer, wherever they were.
+  await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
+  await puzzlePick("3×3");
+  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "333");
+  await page.locator('[data-action="nav:training"]').first().click(); await page.waitForURL("**/training?*");
+  await puzzlePick("2×2");
+  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "222");
+  // Finishing a course opens the puzzle.
+  await puzzlePick("5×5");
+  await learnDialog("5×5").getByRole("button", { name: "Start learning", exact: true }).click();
+  await page.waitForURL(url => url.pathname === "/learn/reduction" && url.searchParams.get("puzzle") === "555");
+  await page.goto(origin + "/learn/reduction?puzzle=555&step=3");
+  await page.locator('[data-action="learnFinish"]').click();
+  await page.locator("[data-finished]").waitFor();
+  await page.waitForFunction(() => !document.querySelector("[data-locked]"));
+  await page.locator('[data-finished] [data-action="nav:playground"]').click();
+  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "555");
+
+  // Edit the setup: the saved answers come back, with the puzzles unlocked since.
   await page.locator('[data-action="nav:profile"]').first().click();
-  await page.locator('[aria-label="Personal setup"] [data-action="onboarding"]').click(); await heading("Your level");
-  assert.equal(await page.getByRole("radio", { name: /^Beginner/ }).getAttribute("aria-checked"), "true");
-  await next(); await heading("Puzzles you can solve"); assert.equal(await checked("3×3"), true); assert.equal(await checked("3×3 CFOP"), true);
-  await next(); await heading("What do you want to learn?");
-  assert.equal(await checked("2×2"), true); assert.equal(await checked("4×4"), true); assert.equal(await checked("4×4 Yau"), true);
-  await checkbox("4×4").click(); await checkbox("2×2").click();
-  await next(); await heading("Your goals"); await next(); await heading("All set");
+  await page.locator('[aria-label="Personal setup"] [data-action="onboarding"]').click(); await heading("What can you solve?");
+  for (const name of ["3×3", "3×3 CFOP", "3×3 Roux", "4×4", "2×2", "5×5", "5×5 Reduction"]) assert.equal(await checked(name), true, `${name} is known`);
+  await checkbox("2×2").click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.locator(".journey-setup").waitFor({ state: "detached" });
   await page.reload(); await page.locator(".rail").waitFor();
@@ -218,7 +232,7 @@ try {
 
   // Redo the introduction from the guides, then cancel back to the app.
   await page.locator('[data-action="help"]').first().click();
-  await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("Your level");
+  await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.locator(".rail").waitFor();
   assert.notEqual(new URL(page.url()).pathname, "/onboarding");
@@ -235,6 +249,7 @@ try {
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await page.goBack(); await page.waitForURL("**/profile?*");
   await page.goForward(); await page.waitForURL("**/algorithms?*");
+  // The 2×2 is no longer known: its course is still open.
   await page.goto(origin + "/learn/ortega?puzzle=222");
   await page.waitForSelector('[data-action="learnMethods"]');
   await page.reload(); await page.waitForSelector('[data-action="learnMethods"]');
@@ -242,6 +257,8 @@ try {
   await page.goto(origin + "/learn/ortega?puzzle=222&step=1");
   await page.waitForSelector('[data-action="learnMethods"]');
   assert.equal(new URL(page.url()).searchParams.get("step"), "1");
+  await page.goto(origin + "/algorithms?puzzle=222");
+  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "222");
   await page.goto(origin + "/profile/playground?puzzle=333");
   await page.waitForSelector('[data-action="profileMode:overview"]');
   assert.equal(new URL(page.url()).pathname, "/profile/playground");
@@ -252,7 +269,7 @@ try {
   await page.locator(".rail").waitFor({ state: "detached" });
   await page.getByRole("button", { name: "Sign in", exact: true }).waitFor();
   assert.deepEqual(errors, []);
-  console.log("Onboarding (welcome, level, puzzles with inline methods, learning, suggested and custom goals, summary) at five sizes without page scroll, Enter/arrow keys, the goal dialog, the tour's tab and in-page cut-outs on desktop and phone, replay and redo from the guides, edit/cancel, routing and logout passed.");
+  console.log("Onboarding (welcome, puzzles with inline methods) at five sizes without page scroll, Enter, the goal dialog, puzzle locking (learn dialog, greyed sections, skip, finish), the tour's tab and in-page cut-outs on desktop and phone, replay and redo from the guides, edit/cancel, routing and logout passed.");
 } catch (error) {
   await mkdir(SHOTS, { recursive: true });
   await page.screenshot({ path: `${SHOTS}/failure.png` });

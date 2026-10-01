@@ -23,7 +23,8 @@ pub fn put(db: &Connection, state: &AppState, uid: &str, body: &Value) -> Result
     let v = body.get("value").ok_or_else(ApiError::validation)?;
     if v.to_string().len() > 2048 { return Err(ApiError::validation()); }
     if key == "profile" {
-        if v["kind"] != "profile" || !["new", "beginner", "intermediate", "advanced"].iter().any(|l| v["level"] == *l) {
+        // The level is optional: older profiles kept one, setup no longer asks for it.
+        if v["kind"] != "profile" || v.get("level").is_some_and(|level| !["new", "beginner", "intermediate", "advanced"].iter().any(|l| level == *l)) {
             return Err(ApiError::validation());
         }
         let priority = v.get("priority").ok_or_else(ApiError::validation)?;

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import { store as s, TIMES_OPEN_WIDTH } from "./store";
 import { onEvent } from "./bridge";
-import { applyTheme } from "./theme";
+import { applyTheme, faviconPuzzle } from "./theme";
 import { Toasts } from "./Toasts";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
@@ -19,7 +19,8 @@ import { LoginPage } from "./login";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
-import { bindNavigation, go, readRoute } from "./navigation";
+import { bindNavigation, go, pageUrl, readRoute } from "./navigation";
+import type { PuzzleId } from "../../src/shared/puzzles";
 import { journeyProfile } from "../../src/client/lib/journey";
 /** Kept on this device so a relaunch draws the right screen before the engine answers. */
 const SIGNED_IN_KEY = "cubix.signedIn";
@@ -110,6 +111,7 @@ function App() {
     };
   }, []);
   useLayoutEffect(() => applyTheme(s.themeName, s.light), [s.themeName, s.light]);
+  useLayoutEffect(() => faviconPuzzle(s.event().id), [s.puzzle, s.solveMode]);
   useEffect(() => {
     if (!s.ready) return;
     try {
@@ -137,6 +139,8 @@ function App() {
   if (s.ready && !s.introductionReady) return <PageSkeleton />;
   if (s.ready && !journeyProfile(s.journey) && route?.page !== "onboarding") return <Navigate to="/onboarding" replace />;
   if (!route) return <Navigate to="/timer" replace />;
+  // A puzzle that cannot be solved yet keeps to its course; the tour still shows every section.
+  if (s.ready && s.overlay !== "tour" && s.lockedPage(route.page, route.puzzle)) return <Navigate to={pageUrl("learn", { puzzle: route.puzzle ?? (s.puzzle as PuzzleId) })} replace />;
   if (route.page === "onboarding") return <TooltipProvider><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={s.error} /></TooltipProvider>;
   return (
     <TooltipProvider delay={400}>

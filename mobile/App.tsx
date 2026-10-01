@@ -21,7 +21,8 @@ import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { TabBar } from "./src/components/TabBar";
 import { Introduction } from "./src/components/Introduction";
-import { introductionAtom, journeyAtom } from "./src/journey";
+import { introductionAtom, isLockedPage, journeyAtom, puzzleLockedAtom, skipLearningAtom } from "./src/journey";
+import { LearnGate } from "./src/components/LearnGate";
 import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
@@ -131,8 +132,12 @@ function Shell() {
     });
     return () => subscription.remove();
   }, [goBack, running, introduction, closeIntroduction, store]);
-  // The Learn tab comes back to the course it showed.
-  const navigate = useCallback((page: Page) => setRoute(page === "learn" ? { page, method: store.get(learnMethodAtom) } : { page } as Route), [setRoute, store]);
+  // The Learn tab comes back to the course it showed; a section waiting for the puzzle's course asks to skip it.
+  const setSkip = useSetAtom(skipLearningAtom);
+  const navigate = useCallback((page: Page) => {
+    if (isLockedPage(store.get(puzzleLockedAtom), page)) setSkip(page);
+    else setRoute(page === "learn" ? { page, method: store.get(learnMethodAtom) } : { page } as Route);
+  }, [setRoute, setSkip, store]);
   const active = route.page;
   // The profile's filters last while its sections are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);
@@ -155,6 +160,7 @@ function Shell() {
     <SettingsSheet />
     <GuidesSheet />
     <NotationSheet />
+    <LearnGate />
     <SyncIndicator hidden={running} />
     <Toast />
     </View><Introduction /></View></BottomSheetModalProvider></SolveMenuProvider>;

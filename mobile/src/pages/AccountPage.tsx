@@ -5,7 +5,6 @@ import { ScrollView, View } from "react-native";
 import { fmtSolve, fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
 import { timerFigures } from "../../../src/client/lib/practiceSummary";
 import { achievementLists, activityOf, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
-import { LEVELS, journeyProfile } from "../../../src/client/lib/journey";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
 import type { AchievementSummaryDto, CaseDto, ProfileDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,12 @@ import { api, local } from "../api";
 import { AchievementList, AchievementTotal } from "../components/Achievements";
 import { Empty, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
 import {
-  AchievementBadge, EmptyLine, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, Tag, TrainingProgress, Trend, TrendLegend, TwoTone,
+  AchievementBadge, EmptyLine, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, TrainingProgress, Trend, TrendLegend, TwoTone,
 } from "../components/ProfileProgress";
 import { ChoiceButton, EventPicker } from "../components/PuzzlePicker";
 import { TimerStats } from "../components/TimesChart";
 import { UserAvatar } from "../components/UserAvatar";
 import { JourneyCard, PersonalGoals } from "../components/PersonalGoals";
-import { journeyAtom } from "../journey";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
@@ -227,8 +225,6 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const learnedIds = useAtomValue(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const user = useAtomValue(userAtom);
-  const journey = useAtomValue(journeyAtom);
-  const level = LEVELS.find(l => l.id === journeyProfile(journey)?.level)?.label;
   const setRoute = useSetAtom(routeAtom), replaceRoute = useSetAtom(replaceRouteAtom);
   const openSettings = useSetAtom(settingsOpenAtom), openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
@@ -268,7 +264,6 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
         <View className="min-w-0 flex-1 gap-1">
           <View className="flex-row items-center gap-2">
             <Text numberOfLines={1} accessibilityRole="header" className="shrink font-sans text-xl font-semibold tracking-tight">{user.username}</Text>
-            {level ? <Tag tone="primary">{level}</Tag> : null}
           </View>
           <Text numberOfLines={1} className="text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)} · {eventLabel}</Text>
         </View>

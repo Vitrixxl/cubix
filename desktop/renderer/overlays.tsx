@@ -8,7 +8,7 @@ import { LearningGroups } from "./LearningGroups";
 import { fmtSolve } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
-import { PUZZLES } from "../../src/shared/puzzles";
+import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, NUMERIC, run, usePhone } from "./ui";
 import { PhoneSheet, SessionSheet } from "./phone";
@@ -331,6 +331,47 @@ function SolveDetails() {
 }
 
 /** Every dialog of the app, each open while the app overlay names it. */
+/** Picking a puzzle the player cannot solve yet: learn it, say it is already known, or go back to the previous one. */
+function LearnPuzzle() {
+  const puzzle = puzzleInfo(s.puzzle as PuzzleId).label;
+  const phone = usePhone();
+  return (
+    <Modal id="learnPuzzle" title={`Learn to solve the ${puzzle}?`} description={`Learn it step by step, and the timer, algorithms, training and duels open on the ${puzzle} once you finish. Already know it? Unlock everything now.`} className="sm:max-w-md">
+      <div className={cn("flex gap-2", phone ? "flex-col-reverse" : "items-center justify-end")}>
+        {s.lockedFrom && (
+          <Button action="learnPuzzle:cancel" variant="ghost" className={cn(!phone && "mr-auto")}>
+            Not now
+          </Button>
+        )}
+        <Button action="learnPuzzle:skip" variant="outline">
+          Unlock everything
+        </Button>
+        <Button action="learnPuzzle:start" variant="default" icon={GraduationCap}>
+          Start learning
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+/** A greyed section while the puzzle's course comes first: keep learning, or skip the tutorial and open everything. */
+function SkipLearning() {
+  const puzzle = puzzleInfo(s.puzzle as PuzzleId).label;
+  const phone = usePhone();
+  return (
+    <Modal id="skipLearning" title="Skip the tutorial?" description={`This section opens once you can solve the ${puzzle}. Skip the tutorial if you already know how.`} className="sm:max-w-md">
+      <div className={cn("flex gap-2", phone ? "flex-col-reverse" : "justify-end")}>
+        <UiButton variant="ghost" onClick={close}>
+          Keep learning
+        </UiButton>
+        <Button action="skipLearning" variant="default">
+          Skip the tutorial
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 export function Overlays() {
   return (
     <>
@@ -341,6 +382,8 @@ export function Overlays() {
       <SessionSheet />
       <MethodsDialog />
       <SearchDialog />
+      <LearnPuzzle />
+      <SkipLearning />
       <Modal id="algPlayer" title={s.algView?.items[s.algView.index]?.name ?? "Algorithm"} description="The algorithm played on the cube" hideHeader tall className="flex h-[min(86vh,560px)] gap-0 overflow-hidden p-0 sm:max-w-4xl" sheetClassName="pb-6">
         <AlgView />
       </Modal>

@@ -7,6 +7,7 @@ import { useSquare } from "./practice";
 import { PracticeTimer, timerHint, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
 import { fmtSolve, fmtTime } from "../../src/client/lib/format";
 import { eventInfo, eventLabel, heldScramble } from "../../src/shared/puzzles";
+import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { Ban, Plus, Send, Swords, Trophy, X, MessageSquare, Box, Undo2 } from "lucide-react";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
 import { ActionToggle, Alg, Button, Figure, FADE, LABEL, NUMERIC, MenuAction, PAGE, PageHead, SectionHead, Surface, isPhone, useViewport } from "./ui";
@@ -170,8 +171,10 @@ function Race() {
     round = duel.round,
     event = eventInfo(duel.event),
     cubeSize = event ? s.info(event.puzzle)?.cubeSize : 0,
+    // The pyraminx and the megaminx have a 3D model too.
+    previewed = !!cubeSize || isPolyPuzzle(event?.puzzle),
     scramble = duel.scrambles[Math.min(round, ROUNDS - 1)] ?? "",
-    cubeShown = !mobile && duel.showCube && !!cubeSize,
+    cubeShown = !mobile && duel.showCube && previewed,
     [cubeBox, setCubeBox] = useState<HTMLDivElement | null>(null),
     cubeSide = useSquare(cubeBox);
   const myLast = duel.me[duel.latest(duel.me)];
@@ -244,7 +247,7 @@ function Race() {
             New opponent
           </Button>
         )}
-        {!mobile && !!cubeSize && (
+        {!mobile && previewed && (
           <ActionToggle action="duel:cube" pressed={duel.showCube} icon={Box} tip="Show or hide the cube">
             Cube
           </ActionToggle>
@@ -285,7 +288,7 @@ function Race() {
               {cubeShown && (
                 <div className={cn("duel-cube group/cube relative flex min-h-0 items-center justify-center", FADE)} ref={setCubeBox}>
                   {cubeSide > 0 && scramble && !duel.over && (
-                    <Cube setup={scramble} cubeSize={cubeSize} size={Math.round(Math.min(cubeSide * 0.85, 220))} held={heldScramble("normal")} />
+                    <Cube setup={scramble} cubeSize={cubeSize} puzzle={event?.puzzle} size={Math.round(Math.min(cubeSide * 0.85, 220))} held={heldScramble("normal")} />
                   )}
                   <Button action="duel:cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute top-0 right-0 text-muted-foreground opacity-0 group-hover/cube:opacity-100" />
                 </div>
