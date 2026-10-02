@@ -4,7 +4,7 @@ const request = <T>(r: IDBRequest<T>) => new Promise<T>((resolve, reject) => { r
 
 /** Preferences and the local-first workspace, kept in memory for the engine's synchronous reads
  * and written through to IndexedDB, which has room for years of solves. */
-export async function openStorage(failed: (message: string) => void): Promise<EngineStorage & { importAll(values: Record<string, string>): Promise<void> }> {
+export async function openStorage(failed: (message: string) => void): Promise<EngineStorage & { importAll(values: Record<string, string>): Promise<void>; freeze(): void }> {
   const open = indexedDB.open("cubix", 1);
   open.onupgradeneeded = () => open.result.createObjectStore("storage");
   const db = await request(open);
@@ -12,8 +12,11 @@ export async function openStorage(failed: (message: string) => void): Promise<En
   const [keys, stored] = await Promise.all([request(read.getAllKeys()), request(read.getAll())]);
   const values: Record<string, string> = {};
   keys.forEach((key, i) => { values[String(key)] = stored[i]; });
+  // An engine replaced by a newer one writes nothing more: the newer one owns the data.
+  let frozen = false;
   // Transactions on one store complete in the order they were created, so the last write wins.
   const write = (action: (store: IDBObjectStore) => void) => {
+    if (frozen) return Promise.resolve();
     const transaction = db.transaction("storage", "readwrite");
     action(transaction.objectStore("storage"));
     transaction.onerror = () => failed("Your device storage is full or unavailable. This change could not be saved.");
@@ -24,6 +27,7 @@ export async function openStorage(failed: (message: string) => void): Promise<En
     setItem(key, value) { values[key] = value; void write(store => store.put(value, key)).catch(() => {}); },
     removeItem(key) { delete values[key]; void write(store => store.delete(key)).catch(() => {}); },
     all: () => ({ ...values }),
+    freeze() { frozen = true; },
     async importAll(next) {
       Object.assign(values, next);
       await write(store => { for (const [key, value] of Object.entries(next)) store.put(value, key); });

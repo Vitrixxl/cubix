@@ -19,7 +19,7 @@ const ports = new Set<Port>();
 const owners = new Map<number, { port: Port; id: number; method: string }>();
 let sequence = 0;
 let engine: ReturnType<typeof createEngine> | undefined;
-let starting: Promise<{ imported: boolean }> | undefined;
+let starting: Promise<{ imported: boolean; displaced: boolean }> | undefined;
 
 /** The tab that asked last: it draws the scrambles the engine needs. */
 let active: Port | undefined;
@@ -58,25 +58,42 @@ function route(message: EngineMessage) {
   owner.port.postMessage({ ...message, id: owner.id });
   if (!message.error && MUTATIONS.has(owner.method)) for (const port of ports) if (port !== owner.port) port.postMessage({ event: "changed" });
 }
-/** One engine per origin. A tab of an older version keeps its own until it closes: wait for it, saying so. */
+/**
+ * One engine writes the data at a time, and a new one never waits: it takes the lock from an engine of another version
+ * (left running by a tab opened before a deployment). That engine stops at once and its tabs reload onto this version;
+ * tabs of versions that predate this hand-over are reloaded by the service worker (`stale` in bridge.ts and sw.ts).
+ * Returns whether another engine was running.
+ */
 async function exclusive() {
-  if (!shared || !navigator.locks) return;
+  if (!shared || !navigator.locks) return false;
   const forever = () => new Promise<never>(() => {});
-  const free = await new Promise<boolean>(answer =>
-    void navigator.locks.request("cubix-engine", { ifAvailable: true }, lock => { answer(!!lock); return lock ? forever() : undefined; }));
-  if (free) return;
-  broadcast({ event: "blocked" });
-  await new Promise<void>(granted => void navigator.locks.request("cubix-engine", () => { granted(); return forever(); }));
+  const held = ((await navigator.locks.query()).held ?? []).some((lock) => lock.name === "cubix-engine");
+  await new Promise<void>((granted) =>
+    void navigator.locks.request("cubix-engine", { steal: true }, () => { granted(); return forever(); }).catch(retire));
+  return held;
 }
+/** Replaced by a newer engine: write nothing more, answer nothing more, and send the tabs to the new version. */
+let retired = false;
+function retire() {
+  if (retired) return;
+  retired = true;
+  engine?.stop();
+  engine = undefined;
+  frozen?.();
+  broadcast({ event: "replaced" });
+}
+let frozen: (() => void) | undefined;
 function start({ legacy }: Start) {
   return (starting ??= (async () => {
-    await exclusive();
+    const displaced = await exclusive();
     const storage = await openStorage(value => broadcast({ event: "error", value }));
+    frozen = storage.freeze;
+    if (retired) storage.freeze();
     // The desktop app kept its data in a file before it became this web app: bring it in once.
     const imported = !!legacy && Object.keys(storage.all()).length === 0;
     if (imported) await storage.importAll(legacy!);
-    engine = createEngine({ origin: scope.location.origin, storage, scrambles, emit: route });
-    return { imported };
+    if (!retired) engine = createEngine({ origin: scope.location.origin, storage, scrambles, emit: route });
+    return { imported, displaced };
   })());
 }
 function connect(port: Port) {
@@ -90,6 +107,7 @@ function connect(port: Port) {
     } else if ("id" in data) {
       active = port;
       const id = ++sequence;
+      if (retired) return port.postMessage({ id: data.id, error: "Cubix was updated. Reloading…" });
       owners.set(id, { port, id: data.id, method: data.method });
       engine?.request({ ...data, id });
     } else if (data.type === "close") {
@@ -99,7 +117,8 @@ function connect(port: Port) {
     }
     else if (data.type === "start") {
       try {
-        port.postMessage({ event: "started", value: await start(data) });
+        const value = await start(data);
+        port.postMessage(retired ? { event: "replaced" } : { event: "started", value });
       } catch (error) {
         starting = undefined;
         port.postMessage({ event: "failed", value: (error as Error)?.message ?? String(error) });

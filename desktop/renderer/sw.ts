@@ -56,3 +56,25 @@ worker.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || url.origin !== worker.location.origin || url.pathname.startsWith("/api/")) return;
   event.respondWith(event.request.mode === "navigate" ? page(event.request) : asset(event.request, url));
 });
+/**
+ * A tab's engine took over from one of another version (bridge.ts `stale`). Tabs of recent versions reload by
+ * themselves once no solve runs; tabs of versions from before that hand-over do not answer which engine they run,
+ * and would keep writing with the old one: reload them.
+ */
+worker.addEventListener("message", (event) => {
+  if (event.data?.type !== "stale") return;
+  event.ports[0]?.postMessage({ ok: true });
+  const source = (event.source as Client | null)?.id;
+  event.waitUntil((async () => {
+    const tabs = (await worker.clients.matchAll({ type: "window" })) as WindowClient[];
+    await Promise.all(tabs.filter((tab) => tab.id !== source).map(async (tab) => {
+      const channel = new MessageChannel();
+      const answered = new Promise<boolean>((answer) => {
+        channel.port1.onmessage = () => answer(true);
+        setTimeout(() => answer(false), 1500);
+      });
+      tab.postMessage({ type: "engine?" }, [channel.port2]);
+      if (!(await answered)) await tab.navigate(tab.url).catch(() => null);
+    }));
+  })());
+});

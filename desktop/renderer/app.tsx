@@ -42,6 +42,11 @@ function App() {
       if (event.event === "changed") void s.refresh();
       else if (event.event === "sync") s.syncStatus(event.value);
       else if (event.event === "error") s.fail(event.value);
+      // A newer version took over the data: reload onto it, never in the middle of a solve.
+      else if (event.event === "replaced") {
+        const reload = () => (s.running ? setTimeout(reload, 500) : window.location.reload());
+        reload();
+      }
       else if (event.event === "browser-backward") go(-1);
       else if (event.event === "browser-forward") go(1);
     });
