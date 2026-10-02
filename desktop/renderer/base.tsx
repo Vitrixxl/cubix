@@ -149,20 +149,23 @@ export function Strip({ children, className, label }: Props & { label?: string }
 }
 
 /**
- * The mark on a diagram that plays its moves in 3D: a small accent button inside the diagram's bottom right corner,
- * "3D" beside the triangle unless `compact`. Its parent button carries `group/play` and the click.
+ * The mark on a diagram that plays its moves in 3D, "3D" beside the triangle unless `compact`. It shows on hover or
+ * focus, centred, so it never hides part of the case; touch screens, which cannot hover, keep it in the bottom right
+ * corner. Its parent button carries `group/play` and the click.
  */
 export function PlayBadge({ compact = false }: { compact?: boolean }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "absolute right-1 bottom-1 flex h-6 items-center justify-center gap-1 rounded-md bg-primary text-[11px] font-semibold text-primary-foreground shadow-sm ring-2 ring-background",
+        "pointer-events-none absolute inset-0 m-auto flex items-center justify-center gap-1 rounded-full bg-primary font-semibold text-primary-foreground shadow-md ring-2 ring-background transition-opacity",
+        "opacity-0 group-hover/play:opacity-100 group-focus-visible/play:opacity-100",
+        "[@media(hover:none)]:inset-auto [@media(hover:none)]:right-1 [@media(hover:none)]:bottom-1 [@media(hover:none)]:h-6 [@media(hover:none)]:rounded-md [@media(hover:none)]:opacity-100",
         // The triangle carries some empty space on its left: a little less padding there keeps the content centred.
-        compact ? "w-6" : "pr-1.5 pl-1",
+        compact ? "size-9 [@media(hover:none)]:w-6" : "h-9 w-fit pr-3.5 pl-3 text-xs [@media(hover:none)]:pr-1.5 [@media(hover:none)]:pl-1",
       )}
     >
-      <Play className="size-3 fill-current" />
+      <Play className="size-3.5 fill-current" />
       {!compact && "3D"}
     </span>
   );
