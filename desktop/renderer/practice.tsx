@@ -579,10 +579,10 @@ export function Practice() {
                 {/* The last solve's actions, there before the first solve too (disabled) so the timer never moves. */}
                 {!mobile && (
                   <div className={cn("mt-3 flex shrink-0 flex-wrap items-center justify-center gap-1.5", FADE)} aria-label="Last solve" data-no-timer>
-                    <ActionToggle action={"penalty:" + last?.id + ":+2"} pressed={last?.penalty === "+2"} disabled={!last || s.saving} size="sm" variant="outline" className="aria-pressed:text-warning">
+                    <ActionToggle action={"penalty:" + last?.id + ":+2"} pressed={last?.penalty === "+2"} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground aria-pressed:text-warning">
                       +2
                     </ActionToggle>
-                    <ActionToggle action={"penalty:" + last?.id + ":dnf"} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} size="sm" variant="outline" className="aria-pressed:text-destructive">
+                    <ActionToggle action={"penalty:" + last?.id + ":dnf"} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground aria-pressed:text-destructive">
                       DNF
                     </ActionToggle>
                     <Button action={"comment:" + last?.id} icon={MessageSquare} disabled={!last || s.saving} size="sm" variant="outline" className={cn("text-muted-foreground", last?.comment && "text-primary")}>
