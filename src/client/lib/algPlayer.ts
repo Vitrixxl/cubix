@@ -6,7 +6,7 @@
  */
 import { applyMove, invertToken, parseMove, solved, type Move } from "../../shared/cube";
 import { stickerColors, type CubeMask } from "../../shared/cubeAppearance";
-import { cubeOrientation, cubeSceneDuration, cubeShapes, turnCube, type CubeOrientation, type CubeScene } from "../../shared/cubeScene";
+import { cubeFace, cubeOrientation, cubeSceneDuration, cubeShapes, turnCube, type CubeOrientation, type CubeScene } from "../../shared/cubeScene";
 
 /** A piece of a written algorithm: a move (its index among the written moves in `move`) or bracket marks. */
 export interface AlgPart { text: string; move?: number }
@@ -232,6 +232,9 @@ export interface PlayerOptions {
   view?: { yaw: number; pitch: number };
 }
 
+/** The face held in front, in cube axes, and how long `showFront` makes it glow. */
+const FRONT = [0, 0, 1], FRONT_PULSE_MS = 1400;
+
 /**
  * One algorithm being played: the clock running frame by frame, the cube's orientation under the pointer, and
  * listeners told of every change (the renderer redraws, the controls follow `playback`). Both renderers use it as is.
@@ -246,6 +249,8 @@ export class AlgPlayer {
   private frame = 0;
   private last = 0;
   private timers: ReturnType<typeof setTimeout>[] = [];
+  private pulseStart = 0;
+  private pulseFrame = 0;
   constructor(readonly scene: AlgScene, private options: PlayerOptions = {}) {
     this.playback = startPlayback(options.speed ?? 1);
     this.home = options.view ? cubeOrientation(options.view.yaw, options.view.pitch) : cubeOrientation();
@@ -310,9 +315,30 @@ export class AlgPlayer {
     this.orientation = this.home;
     this.emit();
   };
+  /** Makes the face to hold in front glow (see `pulse`), turning the cube back first if that face is out of sight. */
+  showFront = () => {
+    if (!cubeFace(this.scene.size, FRONT, this.orientation).seen) this.orientation = this.home;
+    this.pulseStart = Date.now();
+    if (this.pulseFrame) cancelAnimationFrame(this.pulseFrame);
+    const tick = () => {
+      this.emit();
+      this.pulseFrame = Date.now() - this.pulseStart < FRONT_PULSE_MS ? requestAnimationFrame(tick) : 0;
+    };
+    tick();
+  };
+  /** The glow of `showFront` while it lasts: the front face on screen (see `cubeFace`) and how far along it is, 0 to 1. */
+  pulse = () => {
+    const t = (Date.now() - this.pulseStart) / FRONT_PULSE_MS;
+    if (!this.pulseStart || t >= 1) return null;
+    const face = cubeFace(this.scene.size, FRONT, this.orientation);
+    return face.seen ? { ...face, t } : null;
+  };
+  /** Turned away from the view it started with (see `resetView`). */
+  turned = () => this.orientation !== this.home;
   dispose = () => {
     if (this.frame) cancelAnimationFrame(this.frame);
-    this.frame = 0;
+    if (this.pulseFrame) cancelAnimationFrame(this.pulseFrame);
+    this.frame = this.pulseFrame = 0;
     this.timers.forEach(clearTimeout);
     this.timers = [];
     this.listeners.clear();

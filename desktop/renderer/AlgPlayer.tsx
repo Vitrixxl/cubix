@@ -4,7 +4,7 @@
  * logic is `src/client/lib/algPlayer` (shared with Android); this file only draws it and wires the pointer.
  */
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ChevronFirst, Pause, Play, RotateCcw, StepBack, StepForward } from "lucide-react";
+import { ChevronFirst, Focus, Pause, Play, Rotate3d, RotateCcw, StepBack, StepForward } from "lucide-react";
 import { AlgPlayer, PLAYER_SPEEDS, algScene, readAlg, speedLabel, type PlayerOptions } from "../../src/client/lib/algPlayer";
 import { cubeViewRadius } from "../../src/shared/cubeScene";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
@@ -31,6 +31,44 @@ export function useAlgPlayer(alg: string, size: number | null | undefined, mask:
 /** The playback, re-rendering on each frame of it. */
 export const usePlayback = (player: AlgPlayer) => useSyncExternalStore(player.subscribe, player.getSnapshot);
 
+/** The glow of `AlgPlayer.showFront` on the painted cube: the front face lit, two waves spreading from its centre. */
+function paintPulse(ctx: CanvasRenderingContext2D, player: AlgPlayer, size: number) {
+  const pulse = player.pulse();
+  if (!pulse) return;
+  const unit = size / 2 / cubeViewRadius(player.scene),
+    at = (v: number[]) => [size / 2 + v[0]! * unit, size / 2 - v[1]! * unit] as const,
+    [cx, cy] = at(pulse.centre),
+    corners = pulse.corners.map(at),
+    reach = Math.max(...corners.map(([x, y]) => Math.hypot(x - cx, y - cy))),
+    fade = 1 - pulse.t;
+  ctx.save();
+  ctx.beginPath();
+  corners.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.shadowColor = `rgba(255,255,255,${fade})`;
+  ctx.shadowBlur = size / 14;
+  ctx.strokeStyle = `rgba(255,255,255,${0.8 * fade})`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.clip();
+  ctx.fillStyle = `rgba(255,255,255,${0.22 * fade})`;
+  ctx.fill();
+  for (const delay of [0, 0.3]) {
+    const t = (pulse.t - delay) / (1 - delay);
+    if (t <= 0) continue;
+    const r = t * reach,
+      band = reach * 0.18,
+      wave = ctx.createRadialGradient(cx, cy, Math.max(0, r - band), cx, cy, r + band);
+    wave.addColorStop(0, "rgba(255,255,255,0)");
+    wave.addColorStop(0.5, `rgba(255,255,255,${0.55 * (1 - t)})`);
+    wave.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = wave;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** The cube: drag to turn it, double-click to see it from the start again. */
 export function PlayerCube({ player, size, className }: { player: AlgPlayer; size: number; className?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null),
@@ -43,7 +81,10 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
     element.height = Math.round(size * ratio);
     const ctx = element.getContext("2d")!;
     ctx.scale(ratio, ratio);
-    const draw = () => paintShapes(ctx, player.shapes(), size, cubeViewRadius(player.scene));
+    const draw = () => {
+      paintShapes(ctx, player.shapes(), size, cubeViewRadius(player.scene));
+      paintPulse(ctx, player, size);
+    };
     draw();
     return player.subscribe(draw);
   }, [player, size]);
@@ -71,6 +112,28 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
         onDoubleClick={() => player.resetView()}
       />
     </Tip>
+  );
+}
+
+/**
+ * Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been
+ * turned.
+ */
+export function ViewButtons({ player, className }: { player: AlgPlayer; className?: string }) {
+  const turned = useSyncExternalStore(player.subscribe, player.turned);
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <Button variant="secondary" size="lg" onClick={player.showFront} className="gap-2 shadow-md">
+        <Focus />
+        Show front
+      </Button>
+      {turned && (
+        <Button variant="secondary" size="lg" onClick={player.resetView} className="gap-2 shadow-md">
+          <Rotate3d />
+          Reset view
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -113,17 +176,25 @@ function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<type
   ));
 }
 
-/** Space plays or pauses, the arrows step: for the element holding the player. */
-export function playerKeys(player: AlgPlayer | null) {
-  return (e: React.KeyboardEvent) => {
-    if (!player || (e.target as HTMLElement).closest("input,textarea,[role=slider]")) return;
-    if (e.key === " ") player.toggle();
-    else if (e.key === "ArrowLeft") player.stepBack();
-    else if (e.key === "ArrowRight") player.stepForward();
-    else return;
-    e.preventDefault();
-    e.stopPropagation();
-  };
+/**
+ * Space plays or pauses, the arrows step, wherever the focus is while the player is shown: on the dialog itself, the
+ * scrubber or the speed buttons too, which would otherwise take the keys. Only text fields keep them.
+ */
+export function usePlayerKeys(player: AlgPlayer | null) {
+  useEffect(() => {
+    if (!player) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest?.("input:not([type=range]),textarea,[contenteditable]")) return;
+      if (e.key === " ") player.toggle();
+      else if (e.key === "ArrowLeft") player.stepBack();
+      else if (e.key === "ArrowRight") player.stepForward();
+      else return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    document.addEventListener("keydown", key, true);
+    return () => document.removeEventListener("keydown", key, true);
+  }, [player]);
 }
 
 /**

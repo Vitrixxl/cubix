@@ -1,7 +1,10 @@
 import { colorOf, cubeSize, FACES, slotsFor, type CubeState, type Face } from './cube';
 
-/** What a case shows: the whole cube, a last-layer stage (`EO` the top edges alone: the yellow cross), or the first two layers. */
-export type CubeMask = 'full' | 'OLL' | 'EO' | 'PLL' | 'F2L';
+/**
+ * What a case shows: the whole cube, a last-layer stage (`EO` the top edges alone: the yellow cross), the first two
+ * layers, or the first layer alone (`F1L`, with the side centres).
+ */
+export type CubeMask = 'full' | 'OLL' | 'EO' | 'PLL' | 'F2L' | 'F1L';
 // Fixed viewing references: blue front, red right, yellow top.
 export const FACE_HEX: Record<Face, number> = {
   U: 0xffe62a, D: 0xece8e2, F: 0x3d7ce0, B: 0x1abe57, R: 0xeb4242, L: 0xff801f,
@@ -38,7 +41,9 @@ export function stickerColors(final: CubeState, mask: CubeMask, held = false): n
   }
   const up = FACES.find(f => faces[f] === 'U')!;
   const upNormal = slots[FACES.indexOf(up) * area].n;
-  const originOnTop = (origin: number) => slots[origin].p.reduce((v, p, i) => v + p * upNormal[i], 0) === (size - 1) / 2;
+  const height = (origin: number) => slots[origin].p.reduce((v, p, i) => v + p * upNormal[i], 0);
+  const originOnTop = (origin: number) => height(origin) === (size - 1) / 2;
+  const center = (origin: number) => slots[origin].p.filter(v => Math.abs(v) === (size - 1) / 2).length === 1;
   const corner = (origin: number) => slots[origin].p.every(v => Math.abs(v) === (size - 1) / 2);
   const colors = new Array<number>(final.length);
   for (let slot = 0; slot < final.length; slot++) {
@@ -47,7 +52,9 @@ export function stickerColors(final: CubeState, mask: CubeMask, held = false): n
     colors[origin] = mask === 'OLL' ? (face === 'U' ? palette.U : top ? GREY : DIM)
       : mask === 'EO' ? (face === 'U' && !corner(origin) ? palette.U : top ? GREY : DIM)
       : mask === 'PLL' ? (top ? palette[face] : DIM)
-      : mask === 'F2L' && originOnTop(origin) ? GREY : palette[face];
+      : mask === 'F2L' && originOnTop(origin) ? GREY
+      : mask === 'F1L' && height(origin) !== -(size - 1) / 2 && !(center(origin) && !originOnTop(origin)) ? GREY
+      : palette[face];
   }
   return colors;
 }

@@ -1,10 +1,11 @@
-import { ChevronFirst, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, StepBack, StepForward } from "lucide-react-native";
+import { ChevronFirst, ChevronLeft, ChevronRight, Focus, Pause, Play, Rotate3d, RotateCcw, StepBack, StepForward } from "lucide-react-native";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { PanResponder, Pressable, View } from "react-native";
-import Svg, { Polygon, Polyline } from "react-native-svg";
+import Svg, { Circle, ClipPath, Defs, G, Polygon, Polyline } from "react-native-svg";
 import { AlgPlayer, algScene, readAlg, speedLabel, type PlayerOptions } from "../../../src/client/lib/algPlayer";
 import type { CubeMask } from "../../../src/shared/cubeAppearance";
 import { cubeViewRadius } from "../../../src/shared/cubeScene";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,45 @@ export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }
       {player.shapes().map((shape, i) => shape.line
         ? <Polyline key={i} points={points(shape.points)} fill="none" stroke={hex(shape.color)} strokeWidth={120 / size} />
         : <Polygon key={i} points={points(shape.points)} fill={hex(shape.color)} />)}
+      <Pulse player={player} unit={unit} />
     </Svg>
+  </View>;
+}
+
+/** The glow of `AlgPlayer.showFront`, as the web canvas draws it: the front face lit, two waves spreading from its centre. */
+function Pulse({ player, unit }: { player: AlgPlayer; unit: number }) {
+  const pulse = player.pulse();
+  if (!pulse) return null;
+  const at = (v: number[]) => [60 + v[0]! * unit, 60 - v[1]! * unit] as const,
+    [cx, cy] = at(pulse.centre),
+    corners = pulse.corners.map(at),
+    reach = Math.max(...corners.map(([x, y]) => Math.hypot(x - cx, y - cy))),
+    outline = corners.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" "),
+    fade = 1 - pulse.t;
+  return <G>
+    <Defs><ClipPath id="front"><Polygon points={outline} /></ClipPath></Defs>
+    <Polygon points={outline} fill="#fff" fillOpacity={0.22 * fade} stroke="#fff" strokeOpacity={0.8 * fade} strokeWidth={1} />
+    <G clipPath="url(#front)">
+      {[0, 0.3].map(delay => {
+        const t = (pulse.t - delay) / (1 - delay);
+        return t > 0 ? <Circle key={delay} cx={cx} cy={cy} r={t * reach} fill="none" stroke="#fff" strokeOpacity={0.55 * (1 - t)} strokeWidth={reach * 0.18} /> : null;
+      })}
+    </G>
+  </G>;
+}
+
+/** Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been turned. */
+function ViewButtons({ player }: { player: AlgPlayer }) {
+  const turned = useSyncExternalStore(player.subscribe, player.turned);
+  return <View className="flex-row justify-center gap-2">
+    <Button variant="secondary" size="lg" onPress={player.showFront} className="gap-2">
+      <Icon as={Focus} size={18} className="text-secondary-foreground" />
+      <Text>Show front</Text>
+    </Button>
+    {turned && <Button variant="secondary" size="lg" onPress={player.resetView} className="gap-2">
+      <Icon as={Rotate3d} size={18} className="text-secondary-foreground" />
+      <Text>Reset view</Text>
+    </Button>}
   </View>;
 }
 
@@ -168,7 +207,7 @@ export function AlgPlayerSheet({ items, index, onIndex, onClose, choice: initial
 
 function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: PlayItem; choice: number; onChoice: (choice: number) => void; count: number; index: number; onIndex: (index: number) => void }) {
   const alg = item.algs[choice] ?? item.algs[0]!;
-  const player = useAlgPlayer(alg, item.size, item.mask, { autoplay: 600, setup: item.setup });
+  const player = useAlgPlayer(alg, item.size, item.mask, { setup: item.setup });
   const step = (label: string, icon: typeof Play, target: number) =>
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={target < 0 || target >= count} onPress={() => onIndex(target)}
       className={cn("size-11 items-center justify-center rounded-lg active:bg-muted/60", (target < 0 || target >= count) && "opacity-40")}>
@@ -187,6 +226,7 @@ function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: P
       </>}
     </View>
     {player && <View className="items-center"><PlayerCube player={player} size={250} /></View>}
+    {player && <ViewButtons player={player} />}
     {player && <PlayerControls player={player} />}
     {item.algs.length > 1 && <Choice label="Algorithm" value={String(choice)} onChange={id => onChoice(Number(id))}
       options={item.algs.map((_, i) => ({ id: String(i), label: i ? `Alternative ${i}` : "Main" }))} />}

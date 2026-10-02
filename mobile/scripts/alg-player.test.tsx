@@ -10,7 +10,7 @@ mock.module("react-native", () => ({
   View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView",
   PanResponder: { create: (config: any) => { responders++; return { panHandlers: { config } }; } },
 }));
-mock.module("react-native-svg", () => ({ default: "Svg", Polygon: "Polygon", Polyline: "Polyline" }));
+mock.module("react-native-svg", () => ({ default: "Svg", Circle: "Circle", ClipPath: "ClipPath", Defs: "Defs", G: "G", Polygon: "Polygon", Polyline: "Polyline" }));
 const stored = new Map<string, string>();
 mock.module("../src/platform/storage", () => ({ storage: {
   getItem: (key: string) => stored.get(key) ?? null,
@@ -27,6 +27,7 @@ mock.module("../src/components/Sheet", () => ({
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
+mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/layout", () => Object.fromEntries(["Choice", "Label", "Numeric"].map(name => [name, name])));
 (globalThis as any).requestAnimationFrame = (callback: (time: number) => void) => setTimeout(() => callback(performance.now()), 8) as unknown as number;
 (globalThis as any).cancelAnimationFrame = (frame: number) => clearTimeout(frame);

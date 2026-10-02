@@ -99,6 +99,21 @@ export function turnCube(m: CubeOrientation, across: number, down = 0): CubeOrie
     to = Math.max(-CUBE_TILT, Math.min(CUBE_TILT, from + down));
   return m.map((c) => rotate(rotate(rotate(c, 0, -from), 1, across), 0, to));
 }
+/**
+ * Where the outer face of normal `normal` (cube axes, F is +z) falls on screen, in the units of `cubeShapes`: its
+ * centre and its four corners in turn, and whether it is seen.
+ */
+export function cubeFace(size: number, normal: V, orientation: CubeOrientation) {
+  const turn = (v: V) => add(add(scale(orientation[0]!, v[0]!), scale(orientation[1]!, v[1]!)), scale(orientation[2]!, v[2]!)),
+    k = normal.findIndex((v) => v !== 0);
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sa, sb]) => {
+    const v = scale(normal, size / 2);
+    v[(k + 1) % 3] = (sa! * size) / 2;
+    v[(k + 2) % 3] = (sb! * size) / 2;
+    return turn(v).slice(0, 2);
+  });
+  return { centre: turn(scale(normal, size / 2)).slice(0, 2), corners, seen: turn(normal)[2]! > 0.0001 };
+}
 export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,
     index = Math.min(Math.floor(progress), scene.moves.length),

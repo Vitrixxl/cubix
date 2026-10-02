@@ -6,7 +6,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { store as s, run } from "./store";
 import { Choice, NUMERIC, Tip, usePhone } from "./ui";
-import { PlayerAlg, PlayerControls, PlayerCube, playerKeys, useAlgPlayer } from "./AlgPlayer";
+import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer, usePlayerKeys } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +15,9 @@ export function AlgView() {
     phone = usePhone(),
     item = view?.items[view.index],
     alg = item ? (item.algs[view!.choice] ?? item.algs[0]!) : "";
-  const player = useAlgPlayer(alg, item?.size, item?.mask, { autoplay: 600, setup: item?.setup });
+  const player = useAlgPlayer(alg, item?.size, item?.mask, { setup: item?.setup });
+  // Only while the dialog is open: its content can outlive it for the closing animation.
+  usePlayerKeys(s.overlay === "algPlayer" ? player : null);
   if (!view || !item) return null;
   const count = view.items.length;
   const stepper = count > 1 && (
@@ -52,7 +54,7 @@ export function AlgView() {
   );
   if (phone)
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-4" onKeyDown={playerKeys(player)}>
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
             <span className="min-w-0 truncate font-sans text-lg font-semibold tracking-tight">{item.name}</span>
@@ -61,14 +63,18 @@ export function AlgView() {
           {stepper}
         </div>
         {player && <PlayerCube key={alg} player={player} size={260} className="self-center" />}
+        {player && <ViewButtons player={player} className="self-center" />}
         {player && <PlayerControls player={player} touch />}
         {choices}
         {text}
       </div>
     );
   return (
-    <div className="flex h-full min-h-0" onKeyDown={playerKeys(player)}>
-      <div className="flex w-[420px] shrink-0 items-center justify-center bg-muted/30">{player && <PlayerCube key={alg} player={player} size={360} />}</div>
+    <div className="flex h-full min-h-0">
+      <div className="relative flex w-[420px] shrink-0 items-center justify-center bg-muted/30">
+        {player && <PlayerCube key={alg} player={player} size={360} />}
+        {player && <ViewButtons player={player} className="absolute bottom-6 left-1/2 -translate-x-1/2" />}
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-6 pt-5">
         <header className="flex items-center gap-4 pr-8">
           <div className="flex min-w-0 flex-1 items-baseline gap-3">
@@ -78,7 +84,8 @@ export function AlgView() {
           {stepper}
         </header>
         {choices}
-        <div className="min-h-0 flex-1 overflow-y-auto">{text}</div>
+        {/* Room for the lit move's background and focus ring, which the scrolling would clip. */}
+        <div className="-m-1.5 min-h-0 flex-1 overflow-y-auto p-1.5">{text}</div>
         {player && <PlayerControls player={player} />}
       </div>
     </div>

@@ -151,7 +151,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         },
         {
           title: "First-layer corners", text: "Bring each white corner under its slot and repeat R U R' U' until it drops in correctly.",
-          mask: "F2L", algs: [CORNER_INSERTION],
+          mask: "F1L", algs: [CORNER_INSERTION],
           tips: ["Turn the top until the corner sits above the slot between its two side colours."],
         },
         {

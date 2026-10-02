@@ -125,7 +125,7 @@ test("a beginner step teaches its own algorithms, plays them in 3D and keeps the
   expect(sheet().props.index).toBeNull();
   await tap("Play Corner insertion in 3D");
   expect(sheet().props.index).toBe(0);
-  expect(sheet().props.items[0]).toMatchObject({ name: "Corner insertion", algs: ["R U R' U'"], size: 3, mask: "F2L" });
+  expect(sheet().props.items[0]).toMatchObject({ name: "Corner insertion", algs: ["R U R' U'"], size: 3, mask: "F1L" });
   await act(() => sheet().props.onClose());
   expect(sheet().props.index).toBeNull();
   // Back to the methods: the beginner course now continues.
