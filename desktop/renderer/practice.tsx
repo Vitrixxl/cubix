@@ -366,15 +366,19 @@ export function Practice() {
           </>
         )}
       </div>
-      {cubeShown && previewSize > 0 && (
-        <div className="group/cube relative shrink-0" style={{ width: previewSize, height: previewSize }}>
+      {mobile && cubeShown && previewSize > 0 && (
+        <div className="relative shrink-0" style={{ width: previewSize, height: previewSize }}>
           {visual}
-          {!mobile && (
-            <Button action="cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute -top-1 -right-1 text-muted-foreground opacity-0 transition-opacity group-hover/cube:opacity-100 focus-visible:opacity-100" />
-          )}
         </div>
       )}
     </section>
+  );
+  // The desktop sets the cube at the top right of the page, level with the header, rather than under it.
+  const desktopCube = !mobile && cubeShown && previewSize > 0 && (
+    <div className={cn("group/cube relative shrink-0", FADE)} style={{ width: previewSize, height: previewSize }}>
+      {visual}
+      <Button action="cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute -top-1 -right-1 text-muted-foreground opacity-0 transition-opacity group-hover/cube:opacity-100 focus-visible:opacity-100" />
+    </div>
   );
   const timesToggle = !timesAlways && !mobile && (
     <ActionToggle action="times" pressed={s.showTimes} icon={ListOrdered} tip="Alt+T">
@@ -499,12 +503,10 @@ export function Practice() {
       {mobile && head}
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
         <div className="flex min-w-0 flex-1 flex-col gap-3 md:gap-5">
-          {/* On the desktop the header heads the stage's column, so the times card beside it reaches the top. */}
-          {!mobile && head}
           {/* Phones keep the stage as a card (the whole card is the tap target); the desktop sets the scramble, the cube
               and the digits straight on the page. */}
           <Stage
-            className={cn("stage flex-1", mobile ? "touch-manipulation select-none" : "flex min-h-0 flex-col pt-1 pb-1")}
+            className={cn("stage flex-1", mobile ? "touch-manipulation select-none" : "flex min-h-0 flex-col pb-1")}
             onPointerDown={(e) => {
               if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest("button, a, [data-no-timer]")) return;
               if (mobile || running) timer.press();
@@ -512,7 +514,19 @@ export function Practice() {
             onPointerUp={timer.release}
           >
             <div className={cn("contents", mobile && "flex min-h-0 flex-1 flex-col px-4 pt-4")}>
-              {prompt}
+              {mobile ? (
+                prompt
+              ) : (
+                // On the desktop the header heads the stage's column, so the times card beside it reaches the top, and
+                // the cube stands beside the header and the scramble.
+                <div className="flex shrink-0 items-start gap-6">
+                  <div className="flex min-w-0 flex-1 flex-col gap-6">
+                    {head}
+                    {prompt}
+                  </div>
+                  {desktopCube}
+                </div>
+              )}
               <section
                 className="timer relative flex min-h-0 flex-1 touch-manipulation flex-col items-center justify-center select-none [container-type:size]"
                 data-phase={timer.phase[0]!.toUpperCase() + timer.phase.slice(1)}
