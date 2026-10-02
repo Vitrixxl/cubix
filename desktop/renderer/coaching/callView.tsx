@@ -1,17 +1,22 @@
-/** A session's call: the other party large, oneself small in the corner, the controls under them and the chat beside. */
-import { useEffect, useReducer, useRef, useState } from "react";
-import { MessageSquare, Mic, MicOff, MonitorUp, PhoneOff, Video, VideoOff } from "lucide-react";
+/**
+ * A session's call: the other party large, oneself small in a corner (moved by dragging), the controls under them and
+ * the chat beside. Leaving the page keeps the call going in a floating window (floating.tsx).
+ */
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { MessageSquare, Mic, MicOff, MonitorUp, PhoneOff, PictureInPicture2, ScreenShareOff, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, PAGE, PageHead, Tip, usePhone } from "../ui";
 import { go } from "../navigation";
 import { callOpen, coaching, type Booking } from "./client";
-import { Call } from "./call";
+import { store as s } from "../store";
+import { enterCall, type Call } from "./call";
 import { Chat } from "./chat";
 import { useMinute } from "./sessions";
 import { Back, Nothing, PANEL, relative, span, url } from "./parts";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export function CallView({ id }: { id: string }) {
   useEffect(() => {
@@ -52,38 +57,22 @@ export function CallView({ id }: { id: string }) {
 }
 
 function Room({ b, now }: { b: Booking; now: number }) {
-  const [, redraw] = useReducer((n: number) => n + 1, 0);
-  const [call] = useState(() => new Call(b, redraw));
+  useSyncExternalStore(s.subscribe, () => s.version);
+  // The call under way, if it is this one: it went on floating while the player was elsewhere.
+  const [call] = useState(() => enterCall(b));
   const phone = usePhone();
   const [chat, setChat] = useState(!phone);
   useEffect(() => {
     // The notice offering to join has done its job.
     toast.dismiss("coaching-call-" + b.id);
-    void call.start();
-    // Closing the window leaves the call too.
-    const leave = () => call.close();
-    addEventListener("pagehide", leave);
-    return () => {
-      removeEventListener("pagehide", leave);
-      call.close();
-    };
-  }, [call]);
+  }, [b.id]);
   const conversation = coaching.conversations?.find((c) => c.id === b.conversationId);
-  const peerVideo = call.remote.getVideoTracks().length > 0 && call.peerCamera;
-  const status =
-    call.phase === "ended"
-      ? call.notice || "The call has ended."
-      : call.phase === "connected"
-        ? null
-        : call.phase === "starting"
-          ? "Starting your camera…"
-          : call.phase === "waiting"
-            ? `Waiting for ${b.with.username} to join…`
-            : `Connecting to ${b.with.username}…`;
+  const peerVideo = seesPeer(call);
+  const status = callStatus(call);
   return (
     <div className={PAGE}>
       <PageHead
-        lead={<Back to={url("sessions")} label="Leave the call" />}
+        lead={<Back to={url("sessions")} label="Every session" />}
         title={`Session with ${b.with.username}`}
         sub={now < b.endsAt ? `${span(b.startsAt, b.endsAt)} · ends ${relative(b.endsAt, now)}` : `${span(b.startsAt, b.endsAt)} · over`}
       />
@@ -107,16 +96,7 @@ function Room({ b, now }: { b: Booking; now: number }) {
                 <MicOff className="size-3.5" /> {b.with.username} is muted
               </span>
             )}
-            {call.devices.video && (
-              <div className="absolute right-3 bottom-3 aspect-video w-[min(30%,14rem)] overflow-hidden rounded-lg bg-neutral-800 ring-1 ring-white/15">
-                <Stream stream={call.local} muted className={cn("size-full object-cover", !call.sharing && "-scale-x-100", !call.camera && !call.sharing && "invisible")} />
-                {!call.camera && !call.sharing && (
-                  <span className="absolute inset-0 flex items-center justify-center">
-                    <VideoOff className="size-5 text-neutral-400" />
-                  </span>
-                )}
-              </div>
-            )}
+            {call.phase !== "ended" && <SelfView call={call} />}
           </div>
           {call.notice && call.phase !== "ended" && <p className="shrink-0 text-center text-xs text-muted-foreground">{call.notice}</p>}
           <div className="flex shrink-0 items-center justify-center gap-2" data-slot="call-controls">
@@ -134,6 +114,19 @@ function Room({ b, now }: { b: Booking; now: number }) {
             <Control active={chat} onClick={() => setChat(!chat)} tip={chat ? "Hide the chat" : "Show the chat"} action="call:chat">
               <MessageSquare />
             </Control>
+            {call.phase !== "ended" && (
+              <Control
+                onClick={() => {
+                  // Back where the player came from, the call floating in a corner.
+                  if ((history.state?.idx ?? 0) > 0) go(-1);
+                  else go(url("sessions"));
+                }}
+                tip="Keep the call in a corner and browse the app"
+                action="call:minimize"
+              >
+                <PictureInPicture2 />
+              </Control>
+            )}
             <UiButton
               variant="destructive"
               size="lg"
@@ -159,8 +152,134 @@ function Room({ b, now }: { b: Booking; now: number }) {
   );
 }
 
+/** What to say over the other party's picture, or null once they are there. */
+export function callStatus(call: Call) {
+  const name = call.booking.with.username;
+  return call.phase === "ended"
+    ? call.notice || "The call has ended."
+    : call.phase === "connected"
+      ? null
+      : call.phase === "starting"
+        ? "Starting your camera…"
+        : call.phase === "waiting"
+          ? `Waiting for ${name} to join…`
+          : `Connecting to ${name}…`;
+}
+/** Whether the other party's picture comes through. */
+export const seesPeer = (call: Call) => call.remote.getVideoTracks().length > 0 && call.peerCamera;
+
+/**
+ * Where one's own picture sits over the other party's, as fractions of the room it moves in, and how wide it is in pixels
+ * (none until resized); kept between calls.
+ */
+const selfAt: { x: number; y: number; w?: number } = { x: 1, y: 1 };
+
+/**
+ * One's own picture, or the screen being shared, in a corner of the other party's; dragged anywhere over it, resized from
+ * its inner corner. Without a camera it says so. A shared screen keeps its own shape, and a button on it stops it once confirmed.
+ */
+function SelfView({ call }: { call: Call }) {
+  // A copy: the drag measures from where the picture was, which writing `selfAt` must not move.
+  const [at, setAt] = useState(() => ({ ...selfAt }));
+  const drag = useRef<{ x: number; y: number; from: typeof selfAt; resize?: number } | null>(null);
+  const stream = call.sharing ? call.screen : call.devices.video ? call.local : undefined;
+  const shown = call.sharing || (call.devices.video && call.camera);
+  // The shared screen's width over its height, so no bars frame it; the camera fills a 16:9 tile.
+  const [screenRatio, setScreenRatio] = useState(16 / 9);
+  const ratio = call.sharing ? screenRatio : 16 / 9;
+  const [stopping, setStopping] = useState(false);
+  // The handle sits on the corner facing the middle of the room, so it never hides against an edge.
+  const left = at.x > 0.5,
+    top = at.y > 0.5;
+  const move = (next: typeof selfAt) => {
+    Object.assign(selfAt, next);
+    setAt(next);
+  };
+  return (
+    <div className="pointer-events-none absolute inset-3">
+      <div
+        className={cn("group pointer-events-auto absolute max-w-[70%] min-w-32 cursor-grab touch-none overflow-hidden rounded-lg bg-neutral-800 shadow-lg ring-1 ring-white/15 select-none active:cursor-grabbing", !at.w && "w-[min(30%,14rem)]")}
+        style={{ left: `${at.x * 100}%`, top: `${at.y * 100}%`, translate: `${-at.x * 100}% ${-at.y * 100}%`, width: at.w, aspectRatio: ratio }}
+        data-slot="self-view"
+        title="Drag to move your picture"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          const resize = (e.target as HTMLElement).closest("[data-slot=self-resize]") ? e.currentTarget.offsetWidth : undefined;
+          drag.current = { x: e.clientX, y: e.clientY, from: at, resize };
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current,
+            tile = e.currentTarget,
+            room = tile.parentElement;
+          if (!d || !room) return;
+          const dx = e.clientX - d.x,
+            dy = e.clientY - d.y;
+          if (d.resize !== undefined) {
+            // Pulling the handle away from the picture grows it, whichever way the height or the width says more.
+            const grow = Math.max(left ? -dx : dx, (top ? -dy : dy) * ratio);
+            return move({ ...d.from, w: Math.min(room.clientWidth, room.clientHeight * ratio, Math.max(128, d.resize + grow)) });
+          }
+          const clamp = (v: number) => Math.min(1, Math.max(0, v));
+          move({
+            ...d.from,
+            x: clamp(d.from.x + dx / Math.max(1, room.clientWidth - tile.offsetWidth)),
+            y: clamp(d.from.y + dy / Math.max(1, room.clientHeight - tile.offsetHeight)),
+          });
+        }}
+        onPointerUp={() => (drag.current = null)}
+        onPointerCancel={() => (drag.current = null)}
+      >
+        {stream && <Stream stream={stream} muted onRatio={call.sharing ? setScreenRatio : undefined} className={cn("pointer-events-none size-full", call.sharing ? "object-contain" : "-scale-x-100 object-cover", !shown && "invisible")} />}
+        {!shown && (
+          <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs text-neutral-400">
+            <VideoOff className="size-5" />
+            {call.devices.video ? "Camera off" : "No camera"}
+          </span>
+        )}
+        <ResizeCorner top={top} left={left} data-slot="self-resize" title="Drag to resize your picture" />
+        {call.sharing && (
+          <button
+            type="button"
+            data-action="call:stop-sharing"
+            // Not a drag of the picture.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => setStopping(true)}
+            className={cn("absolute flex h-6 cursor-pointer items-center gap-1 rounded-md bg-black/70 px-1.5 text-xs whitespace-nowrap text-white transition-colors hover:bg-destructive", top ? "top-1.5" : "bottom-1.5", left ? "right-1.5" : "left-1.5")}
+          >
+            <ScreenShareOff className="size-3.5" />
+            Stop sharing
+          </button>
+        )}
+      </div>
+      <AlertDialog open={stopping && call.sharing} onOpenChange={setStopping}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Stop sharing your screen?</AlertDialogTitle>
+            <AlertDialogDescription>{call.booking.with.username} sees your camera again.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep sharing</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" data-action="call:stop-sharing-confirm" onClick={() => void call.toggleScreen()}>
+              Stop sharing
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/** The corner bracket that resizes a picture when dragged, shown while the picture (a `group`) is hovered. */
+export function ResizeCorner({ top, left, className, ...props }: { top: boolean; left: boolean } & React.ComponentProps<"span">) {
+  return (
+    <span {...props} className={cn("absolute size-5 touch-none opacity-0 transition-opacity group-hover:opacity-100", top ? "top-0" : "bottom-0", left ? "left-0" : "right-0", left === top ? "cursor-nwse-resize" : "cursor-nesw-resize", className)}>
+      <span className={cn("absolute size-2.5 border-white/80", top ? "top-1.5 border-t-2" : "bottom-1.5 border-b-2", left ? "left-1.5 border-l-2" : "right-1.5 border-r-2")} />
+    </span>
+  );
+}
+
 /** A square toggle of the call: a device turned off goes red, a panel or the screen shown takes the accent. */
-function Control({ off = false, active = false, disabled, onClick, tip, action, children }: { off?: boolean; active?: boolean; disabled?: boolean; onClick: () => void; tip: string; action: string; children: React.ReactNode }) {
+export function Control({ off = false, active = false, disabled, onClick, tip, action, children }: { off?: boolean; active?: boolean; disabled?: boolean; onClick: () => void; tip: string; action: string; children: React.ReactNode }) {
   return (
     <Tip content={tip}>
       <UiButton
@@ -179,11 +298,19 @@ function Control({ off = false, active = false, disabled, onClick, tip, action, 
   );
 }
 
-/** A <video> showing a stream, which may change under it. */
-function Stream({ stream, muted = false, className }: { stream: MediaStream; muted?: boolean; className?: string }) {
+/** A <video> showing a stream, which may change under it; `onRatio` hears its width over its height as it changes. */
+export function Stream({ stream, muted = false, onRatio, className }: { stream: MediaStream; muted?: boolean; onRatio?: (ratio: number) => void; className?: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (ref.current && ref.current.srcObject !== stream) ref.current.srcObject = stream;
   });
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || !onRatio) return;
+    const measure = () => video.videoWidth && video.videoHeight && onRatio(video.videoWidth / video.videoHeight);
+    measure();
+    video.addEventListener("resize", measure);
+    return () => video.removeEventListener("resize", measure);
+  }, [onRatio]);
   return <video ref={ref} autoPlay playsInline muted={muted} className={className} />;
 }

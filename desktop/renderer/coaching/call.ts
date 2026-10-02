@@ -2,7 +2,8 @@
  * A session's video call: the camera and microphone go peer to peer over WebRTC; the coaching socket carries the
  * signalling. The coach always makes the offer and the student answers, so the two never offer at once. Each side
  * keeps one audio and one video transceiver: muting, turning the camera off and sharing the screen only swap or
- * disable tracks, with no new negotiation.
+ * disable tracks, with no new negotiation. The call outlives its page: leaving it for the rest of the app keeps the call
+ * going in a floating window (see `live`), until one leaves it.
  */
 import { store as s } from "../store";
 import { coaching, type Booking, type CallEvent } from "./client";
@@ -25,18 +26,18 @@ export class Call {
   private pc?: RTCPeerConnection;
   private audio?: RTCRtpTransceiver;
   private video?: RTCRtpTransceiver;
-  private screen?: MediaStream;
+  /** The screen (or window) being shown instead of the camera. */
+  screen?: MediaStream;
   private pending: RTCIceCandidateInit[] = [];
   private closed = false;
   /** Socket events are handled one after the other: each may wait on the connection. */
   private queue = Promise.resolve();
 
-  constructor(public booking: Booking, private changed: () => void) {}
+  constructor(public booking: Booking) {}
   get offers() {
     return this.booking.role === "coach";
   }
   private emit() {
-    this.changed();
     s.emit();
   }
 
@@ -241,5 +242,28 @@ export class Call {
     coaching.signal({ type: "leave", booking: this.booking.id });
     this.reset();
     this.stopTracks();
+    if (live.call === this) {
+      live.call = undefined;
+      coaching.inCall = "";
+    }
+    s.emit();
   }
 }
+
+/** The call under way, kept while the player goes elsewhere in the app; `hidden` folds its floating window to a button. */
+export const live: { call?: Call; hidden: boolean } = { hidden: false };
+
+/** The call of a session: the one under way, or a new one (which ends any other). */
+export function enterCall(booking: Booking) {
+  if (live.call?.booking.id === booking.id && live.call.phase !== "ended") return live.call;
+  live.call?.close();
+  const call = new Call(booking);
+  live.call = call;
+  live.hidden = false;
+  coaching.inCall = booking.id;
+  void call.start();
+  return call;
+}
+
+// Closing the window leaves the call too.
+addEventListener("pagehide", () => live.call?.close());

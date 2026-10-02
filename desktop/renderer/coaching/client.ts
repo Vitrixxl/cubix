@@ -242,6 +242,8 @@ class Coaching {
   waiting = new Set<string>();
   /** The conversation on screen: its messages are read as they arrive. */
   open: number | null = null;
+  /** The session whose call is under way, on its page or floating over the app. */
+  inCall = "";
   connected = false;
   failure = "";
   private socket?: WebSocket;
@@ -500,7 +502,7 @@ class Coaching {
     s.emit();
   }
 
-  /** The page of a call takes the call events while it is open. */
+  /** The call under way takes the call events while it is open. */
   onCall(listener?: (event: CallEvent) => void) {
     this.callListener = listener;
   }
@@ -565,7 +567,7 @@ class Coaching {
       case "presence":
         if (event.inCall) {
           this.waiting.add(event.booking);
-          if (!location.pathname.startsWith("/coaching/call/"))
+          if (this.inCall !== event.booking && !location.pathname.startsWith("/coaching/call/"))
             toast(`${event.user} is waiting in your session`, {
               id: "coaching-call-" + event.booking,
               duration: 30_000,

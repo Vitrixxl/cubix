@@ -16,6 +16,7 @@ import { DuelPage } from "./duel";
 import { CoachingPage } from "./coaching/page";
 import { CoachingSidebar } from "./coaching/rail";
 import { coaching } from "./coaching/client";
+import { FloatingCall } from "./coaching/floating";
 import { Learn } from "./learn";
 import { Overlays } from "./overlays";
 import { LoginPage } from "./login";
@@ -199,6 +200,7 @@ function App() {
           </SidebarInset>
           {mobile && <TabBar />}
         </WindowSidebar>
+        <FloatingCall />
         <Toasts light={s.light} />
         <Overlays />
         <ErrorNotification message={s.error} />

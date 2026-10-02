@@ -213,8 +213,8 @@ function About({ c, own }: { c: Coach; own: boolean }) {
     next = slots?.slots[0]?.start ?? c.nextSlot;
   return (
     <div className={cn(PANEL, "shrink-0")} data-slot="coach-about">
-      <div className="flex flex-wrap items-start gap-5 p-5">
-        <Avatar name={c.username} src={c.avatar} size={80} />
+      <div className="flex flex-wrap items-stretch gap-5 p-5">
+        <Avatar name={c.username} src={c.avatar} size={80} className="self-start" />
         <div className="flex min-w-60 flex-1 flex-col gap-2">
           <span className="text-lg font-semibold tracking-tight">{c.headline || c.username}</span>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -232,7 +232,7 @@ function About({ c, own }: { c: Coach; own: boolean }) {
               </span>
             )}
           </span>
-          <p className="max-h-28 overflow-y-auto whitespace-pre-line text-muted-foreground">{c.bio || "This coach has not written about themselves yet."}</p>
+          <p className="max-h-28 max-w-3xl overflow-y-auto whitespace-pre-line text-muted-foreground">{c.bio || "This coach has not written about themselves yet."}</p>
           {!!c.events.length && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {c.events.map((e) => (
@@ -244,7 +244,7 @@ function About({ c, own }: { c: Coach; own: boolean }) {
             </div>
           )}
         </div>
-        <div className="flex w-64 shrink-0 flex-col gap-3 rounded-lg bg-muted/40 p-4 max-sm:w-full">
+        <div className="flex w-64 shrink-0 flex-col justify-center gap-3 border-l pl-5 max-sm:w-full max-sm:border-t max-sm:border-l-0 max-sm:pt-4 max-sm:pl-0">
           <span className={cn(NUMERIC, "flex items-baseline gap-2")}>
             <span className="text-2xl font-semibold text-primary">{price(c.priceCents)}</span>
             <span className="text-muted-foreground">for {c.sessionMinutes} min</span>
@@ -331,7 +331,7 @@ function Reviews({ c }: { c: Coach }) {
       {!c.reviewList?.length ? (
         <Nothing className="py-8">No review yet.</Nothing>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex shrink-0 items-center gap-5 px-4 pt-1 pb-4" aria-label="Ratings">
             <div className="flex shrink-0 flex-col items-center gap-1">
               <span className={cn(NUMERIC, "text-4xl font-semibold tracking-tight")}>{c.rating?.toFixed(1) ?? "–"}</span>
@@ -350,7 +350,7 @@ function Reviews({ c }: { c: Coach }) {
               ))}
             </div>
           </div>
-          <ul className="flex flex-col gap-2.5 px-3 pb-3" data-slot="reviews">
+          <ul className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pb-3" data-slot="reviews">
             {c.reviewList.map((r, i) => (
               <li key={i} className="flex flex-col gap-2.5 rounded-lg border bg-muted/30 p-3.5">
                 <span className="flex items-center gap-2.5">
