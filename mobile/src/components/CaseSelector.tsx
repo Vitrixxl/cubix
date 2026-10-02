@@ -64,7 +64,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   }, [sets, cases, q, sel, open, columns]);
   const scroll = usePreservedList<Row>(`case-selector:${selectorKey}:${q}`);
   const tileWidth = width > 0 ? (width - TILE_GAP * (columns - 1)) / columns : TILE_MIN;
-  return <View className="min-h-0 flex-1 border-t border-border" onLayout={event => setWidth(event.nativeEvent.layout.width - 24)}>
+  return <View className="min-h-0 flex-1" onLayout={event => setWidth(event.nativeEvent.layout.width - 24)}>
     {width > 0 && <FlatList key={`${selectorKey}:${q}:${columns}`} {...scroll} data={rows} keyExtractor={row => row.key}
       initialNumToRender={12} maxToRenderPerBatch={8} windowSize={7} scrollEventThrottle={64} keyboardShouldPersistTaps="handled"
       className="flex-1" contentContainerClassName="px-3 pt-1 pb-4"
@@ -76,9 +76,8 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
             <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} accessibilityLabel={`${row.set.label}, ${row.count} of ${row.ids.length} selected`}
               onPress={() => setOpen({ ...open, [row.set.id]: !row.open })} className="h-12 min-w-0 flex-1 flex-row items-center gap-2.5 rounded-lg px-2 active:bg-muted/50">
               <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
-              <Text numberOfLines={1} className="w-10 text-xs font-medium text-muted-foreground">{row.set.stage}</Text>
-              <Text numberOfLines={1} className="shrink text-sm font-medium">{row.set.label}</Text>
-              <Numeric className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Numeric>
+              <Text numberOfLines={1} className="shrink text-[15px] font-medium">{row.set.label}</Text>
+              <Numeric className={cn("text-xs", row.count ? "font-medium text-primary" : "text-muted-foreground")}>{row.count} / {row.ids.length}</Numeric>
             </Pressable>
             <Button variant="ghost" size="sm" className="h-10 px-2.5" onPress={() => all ? onChange(selected.filter(id => !row.ids.includes(id))) : toggle(row.ids.filter(id => !sel.has(id)))}>
               <Text className="text-xs text-muted-foreground">{all ? "Unselect all" : "Select all"}</Text>
@@ -100,7 +99,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
 /** A case to pick: its picture and short name; chosen, it is lit and ticked. */
 const Tile = memo(function Tile({ c, width, on, onPress, onLongPress }: { c: CaseDto; width: number; on: boolean; onPress: () => void; onLongPress: () => void }) {
   return <Pressable onPress={onPress} onLongPress={onLongPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${c.id}${c.name !== c.id ? `, ${c.name}` : ""}`}
-    className={cn("items-center gap-1.5 rounded-lg px-1 pt-2.5 pb-2", on ? "bg-primary/10" : "active:bg-muted/50")} style={{ width }}>
+    className={cn("items-center gap-1.5 rounded-lg px-1 pt-2.5 pb-2 active:bg-muted/50", on && "bg-primary/10")} style={{ width }}>
     <View style={{ opacity: on ? 1 : 0.55 }}><CaseDiagram c={c} size={Math.min(56, width - 12)} /></View>
     <Text numberOfLines={1} className={cn("text-xs", on ? "text-foreground" : "text-muted-foreground")}>{shortId(c)}</Text>
     {on ? <View className="absolute top-1.5 right-1.5 size-4 items-center justify-center rounded-full bg-primary"><Icon as={Check} size={11} className="text-primary-foreground" /></View> : null}

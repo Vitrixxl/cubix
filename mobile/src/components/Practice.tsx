@@ -22,7 +22,7 @@ import { launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { cubeSwitchLockedAtom, deletedSolveIdAtom, timerRunningAtom, updatedSolveAtom } from "../state";
 import { useColors } from "../theme";
-import { Fade, Numeric, Surface } from "./layout";
+import { Fade, Numeric } from "./layout";
 import { SolveMenu, useSolveMenu } from "./SolveMenus";
 import { StaticCubeSvg } from "./StaticCubeSvg";
 
@@ -260,31 +260,31 @@ export function AverageWindow({ solves, hidden }: { solves: SolveDto[]; hidden?:
   const times = last.map(v => effective(v.time_ms, v.penalty) ?? Infinity);
   const full = last.length === 5;
   const fastest = full ? times.indexOf(Math.min(...times)) : -1, slowest = full ? times.lastIndexOf(Math.max(...times)) : -1;
-  return <Fade hidden={!!hidden} className="mt-6 w-full flex-row gap-1">
+  return <Fade hidden={!!hidden} className="mt-6 w-full max-w-md flex-row gap-1.5">
     {Array.from({ length: 5 }, (_, i) => {
       const index = i - (5 - last.length), v = last[index];
-      if (!v) return <View key={i} className="h-8 min-w-0 flex-1 items-center justify-center rounded-md bg-muted/50"><Numeric className="text-xs text-muted-foreground/50">–</Numeric></View>;
+      if (!v) return <View key={i} className="h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border"><Numeric className="text-xs text-muted-foreground/40">–</Numeric></View>;
       const dropped = index === fastest || index === slowest, time = fmtSolve(v.time_ms, v.penalty);
       return <SolveMenu key={v.id} solve={v} accessibilityLabel={`Solve ${time}`} rootClassName="min-w-0 flex-1"
-        className={cn("h-8 items-center justify-center rounded-md bg-muted active:bg-muted/70", index === last.length - 1 && "border border-foreground/30")}>
-        <Numeric numberOfLines={1} className={cn("text-xs", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
+        className={cn("h-9 items-center justify-center rounded-lg bg-muted active:bg-muted/70", index === last.length - 1 && "border border-foreground/25")}>
+        <Numeric numberOfLines={1} className={cn("text-[13px]", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
       </SolveMenu>;
     })}
   </Fade>;
 }
 
-/** Under the stage: the session's main figures, one tap (or a swipe of the sheet) from its times. */
+/** At the foot of a practice page: the session's main figures, one tap (or a swipe of the sheet) from its times. */
 export function SessionPeek({ figures, count, noun, onPress, hidden }: { figures: Metric[]; count: number; noun: string; onPress: () => void; hidden?: boolean }) {
   return <Fade hidden={!!hidden}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Session times" onPress={onPress}
-      className="h-14 flex-row items-center gap-4 rounded-xl bg-muted/45 px-4 active:bg-muted/70">
+    <Pressable accessibilityRole="button" accessibilityLabel={`Session times, ${count} ${noun}${count === 1 ? "" : "s"}`} onPress={onPress}
+      className="-mx-4 h-16 flex-row items-center gap-4 border-t border-border px-5 active:bg-muted/50">
       {figures.map(([label, value, tone]) => <View key={label} className="min-w-0 flex-1 gap-0.5">
-        <Text className="text-[11px] font-medium text-muted-foreground">{label}</Text>
-        <Numeric numberOfLines={1} className={cn("text-base font-medium", value === "–" ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{value}</Numeric>
+        <Text className="text-xs text-muted-foreground">{label}</Text>
+        <Numeric numberOfLines={1} className={cn("text-[17px] font-semibold", value === "–" ? "text-muted-foreground/50" : TONE_TEXT[tone])}>{value}</Numeric>
       </View>)}
-      <View className="flex-row items-center gap-1.5">
-        <Numeric className="text-sm text-muted-foreground">{count} {noun}{count === 1 ? "" : "s"}</Numeric>
-        <Icon as={ChevronUp} size={16} className="text-muted-foreground" />
+      <View className="h-9 flex-row items-center gap-1 rounded-lg bg-muted px-2.5">
+        <Numeric className="text-[13px] font-medium">{count}</Numeric>
+        <Icon as={ChevronUp} size={15} className="text-muted-foreground" />
       </View>
     </Pressable>
   </Fade>;
@@ -315,25 +315,23 @@ export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask
 });
 
 /**
- * The stage card: the prompt and its picture on top, the readout in the middle (it measures its area for the digits),
- * the touch bar at the bottom. A touch anywhere but on a control arms the timer.
+ * The stage: the prompt and its picture on top, the readout in the middle (it measures its area for the digits), the
+ * last solve's actions under it. A touch anywhere but on a control arms the timer.
  */
 export function Stage({ timer, disabled, running, prompt, visual, readout, bar }: {
   timer: TimerApi; disabled: boolean; running: boolean; prompt: ReactNode; visual?: ReactNode;
   readout: (area: { width: number; height: number }) => ReactNode; bar: ReactNode;
 }) {
   const [area, setArea] = useState({ width: 320, height: 0 });
-  return <Surface className={cn("flex-1", running && "border-transparent bg-transparent")}>
-    <View className="min-h-0 flex-1 px-4 pt-4" {...responder(timer, disabled)}>
-      <Fade hidden={running} className="flex-row items-start gap-3">
-        <View className="min-w-0 flex-1 gap-3">{prompt}</View>
-        {visual ? <View className="shrink-0">{visual}</View> : null}
-      </Fade>
-      <View className="min-h-0 flex-1 items-center justify-center overflow-hidden"
-        onLayout={event => { const { width, height } = event.nativeEvent.layout; setArea(current => current.width === width && current.height === height ? current : { width, height }); }}>
-        {readout(area)}
-      </View>
+  return <View className="min-h-0 flex-1" {...responder(timer, disabled)}>
+    <Fade hidden={running} className="flex-row items-start gap-4 pt-1">
+      <View className="min-w-0 flex-1 gap-3">{prompt}</View>
+      {visual ? <View className="shrink-0">{visual}</View> : null}
+    </Fade>
+    <View className="min-h-0 flex-1 items-center justify-center overflow-hidden"
+      onLayout={event => { const { width, height } = event.nativeEvent.layout; setArea(current => current.width === width && current.height === height ? current : { width, height }); }}>
+      {readout(area)}
     </View>
-    <Fade hidden={running}>{bar}</Fade>
-  </Surface>;
+    <Fade hidden={running} className="pb-1">{bar}</Fade>
+  </View>;
 }

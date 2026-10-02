@@ -41,7 +41,7 @@ test("the cube screen only appears for a download and holds practice through the
   expect(splashHidden).toBe(0);
   expect(mounts).toBe(0);
   await act(() => finishCheck({ isAvailable: true, manifest: { id: "new" } }));
-  expect(JSON.stringify(renderer.toJSON())).toContain("50 %");
+  expect(JSON.stringify(renderer.toJSON())).toContain("50%");
   expect(launcher!.finish).toBe(false);
   expect(splashHidden).toBe(1);
   await act(() => renderer.unmount());
@@ -51,7 +51,7 @@ test("the cube screen only appears for a download and holds practice through the
   await act(() => finishDownload({ isNew: true, manifest: { id: "new" } }));
   expect(reloads).toBe(1);
   expect(stored.get("cubix.startup-update.attempt")).toBe("new");
-  expect(JSON.stringify(renderer.toJSON())).toContain("Ouverture de la nouvelle version");
+  expect(JSON.stringify(renderer.toJSON())).toContain("Opening the new version");
   // The cube keeps cycling until the new bundle takes over; practice never mounts under it.
   expect(launcher!.finish).toBe(false);
   expect(mounts).toBe(0);

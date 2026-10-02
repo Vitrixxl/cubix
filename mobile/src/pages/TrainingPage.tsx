@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CrossPractice } from "../components/CrossPractice";
-import { Alg, BackButton, Fade, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, TouchAction } from "../components/layout";
+import { Alg, BackButton, Fade, HeadButton, Label, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
 import { LearningGroups } from "../components/LearningGroups";
 import {
   CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock, useSessionSolves,
@@ -26,7 +26,8 @@ import {
 } from "../components/Practice";
 import { Sheet, SheetScrollView } from "../components/Sheet";
 import { LastSolveBar, SolveMenu } from "../components/SolveMenus";
-import { TrainingSetup, type DailyLearning } from "../components/TrainingSetup";
+import { SetupPage, TrainHome, useSetupModes, type DailyLearning } from "../components/TrainingSetup";
+import { SlideSwitch } from "../components/SlideSwitch";
 import { useDailyLearning } from "../hooks/useDailyLearning";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
@@ -34,7 +35,7 @@ import { executableAlg, maskForStage, shortId } from "../lib/caseState";
 import { ensureLaunchSession } from "../lib/launchSession";
 import {
   casesAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, solveModeAtom,
-  statsVersionAtom, trainingKindAtom, trainingStepAtom, userAtom,
+  statsVersionAtom, trainingKindAtom, trainingSetupModeAtom, trainingStepAtom, userAtom,
 } from "../state";
 
 export function TrainingPage() {
@@ -43,20 +44,31 @@ export function TrainingPage() {
   return <TrainingRoot key={user?.id ?? "guest"} />;
 }
 
-/** Setup first, then the practice it started: cases of the catalogue or cross + 1 scrambles (web `trainingStep`). */
+/** The mode trained last (web `defaultSetupMode`), marked in the list. */
+function lastMode(kind: string, puzzle: string, mode: LearningMode) {
+  if (kind === "cross1" && puzzle === "333") return "cross1";
+  return isReviewMode(mode) ? "review" : learningTrackOf(mode) ?? "practice";
+}
+
+/**
+ * The ways to practise first, then the chosen one's setup, then the practice it started: cases of the catalogue or
+ * cross + 1 scrambles (web `trainingStep`). Each step slides in over the previous one.
+ */
 function TrainingRoot() {
   const daily = useDailyLearning();
   const puzzle = useAtomValue(puzzleAtom);
   const solveMode = useAtomValue(solveModeAtom);
   const [step, setStep] = useAtom(trainingStepAtom);
   const [kind, setKind] = useAtom(trainingKindAtom);
+  const [setupMode, setSetupMode] = useAtom(trainingSetupModeAtom);
   const route = useAtomValue(routeAtom);
   const replaceRoute = useSetAtom(replaceRouteAtom);
+  const modes = useSetupModes();
   // Training a group or a case from the catalogue skips the setup screen.
   const autostart = route.page === "training" && !!route.autostart;
   useEffect(() => {
     if (!autostart) return;
-    setKind("cases"); daily.setMode("practice"); setStep("practice");
+    setKind("cases"); daily.setMode("practice"); setSetupMode("practice"); setStep("practice");
     replaceRoute({ page: "training" });
   }, [autostart]);
   const start = useCallback((mode: string) => {
@@ -67,10 +79,18 @@ function TrainingRoot() {
     }
     setStep("practice");
   }, [puzzle, daily.setMode]);
+  // Leaving a session goes back to its setup, leaving a setup to the list.
   const toSetup = useCallback(() => setStep("setup"), []);
-  if (step === "setup" && !autostart) return <TrainingSetup daily={daily} onStart={start} />;
-  if (kind === "cross1" && puzzle === "333" && !autostart) return <CrossPractice key={solveMode} onBack={toSetup} />;
-  return <TrainingSession key={`${puzzle}:${solveMode}`} daily={daily} onBack={toSetup} />;
+  const toList = useCallback(() => setSetupMode(""), []);
+  const chosen = modes.find(m => m.id === setupMode);
+  const practising = step === "practice" || autostart;
+  const id = practising ? `practice:${kind === "cross1" && puzzle === "333" ? "cross1" : "cases"}` : chosen ? `setup:${chosen.id}` : "list";
+  return <SlideSwitch id={id} depth={practising ? 2 : chosen ? 1 : 0}>
+    {practising
+      ? kind === "cross1" && puzzle === "333" && !autostart ? <CrossPractice key={solveMode} onBack={toSetup} /> : <TrainingSession key={`${puzzle}:${solveMode}`} daily={daily} onBack={toSetup} />
+      : chosen ? <SetupPage mode={chosen} onBack={toList} onStart={start} />
+      : <TrainHome last={lastMode(kind, puzzle, daily.mode)} onOpen={setSetupMode} />}
+  </SlideSwitch>;
 }
 
 /** Case practice: the chosen cases one after the other, their setup, solution and session times. */
@@ -184,7 +204,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
         <Icon as={CirclePlay} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Video</Text>
       </Button>}
       <Button variant="ghost" size="sm" className={cn("h-9 gap-1.5", currentLearned && "bg-success/15")} disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityState={{ selected: currentLearned }}>
-        {currentLearned && <Icon as={Check} size={15} className="text-success" />}
+        <Icon as={Check} size={15} className={currentLearned ? "text-success" : "text-muted-foreground"} />
         <Text className={cn("text-[13px]", currentLearned ? "text-success" : "text-muted-foreground")}>{currentLearned ? "Learned" : "Mark learned"}</Text>
       </Button>
     </View>
@@ -204,14 +224,13 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
     : <CaseDiagram c={current.c} size={previewSize} />) : null;
   const peek: Metric[] = [["Best", fmtTime(summary.best), "good"], ["Mean", fmtTime(summary.mean), ""]];
 
-  return <Page>
+  return <Page className="pb-0">
     <Fade hidden={running}>
       <PageHead lead={<BackButton label="Change what to train" onPress={onBack} />}
         title={track ? `Learn ${track}` : reviewing ? "Review" : "Free practice"}
-        sub={track ? "Training · one new case a day" : reviewing ? "Training · every learned case" : `Training · ${plural(selected.length, "case")}`}>
-        {!learning && <Button variant="outline" size="icon" className="size-9" disabled={busy || caseHistory.index <= 0} onPress={previousCase} accessibilityLabel="Previous case">
-          <Icon as={ChevronLeft} size={18} />
-        </Button>}
+        sub={track ? "one new case a day" : reviewing ? "every learned case" : plural(selected.length, "case")}>
+        {!learning && <HeadButton icon={ChevronLeft} label="Previous case" disabled={busy || caseHistory.index <= 0} onPress={previousCase} />}
+        {(!learning || reviewing) && <HeadButton icon={ChevronRight} label="Next case" disabled={busy || !current} onPress={nextCase} />}
         <MoreMenu>
           {learning && !reviewing && <MenuItem icon={LayoutList} disabled={locked} onPress={() => setShowGroups(true)}>Group order</MenuItem>}
           {track && <MenuItem icon={Check} disabled={locked || !reviewing && !daily.trackLearned} onPress={() => setMode(reviewing ? track : `review:${track}`)}>{reviewing ? `Learn ${track}` : "Train learned"}</MenuItem>}
@@ -226,7 +245,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
         <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !current && "Select cases to begin" })}</Hint>
         <SaveError timer={timer} />
       </>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve} extra={(!learning || reviewing) ? <TouchAction icon={ChevronRight} label="Next case" disabled={busy || !current} onPress={nextCase} /> : undefined} />} />
+      bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
     <SessionPeek figures={peek} count={shown.length} noun="attempt" onPress={() => setShowTimes(true)} hidden={running} />
     <SessionSheet open={showTimes} onClose={() => setShowTimes(false)} selectedCases={selectedCases} solves={shown} onUndo={solves.length ? undoLast : undefined} />
     <Sheet open={showGroups} onClose={() => setShowGroups(false)} title="Group order" description={`Learn ${track ?? ""}: drag the families into the order you want to learn them`} tall contentPanning={false}>

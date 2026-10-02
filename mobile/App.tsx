@@ -3,7 +3,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
 import { Provider, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
 import { Suspense, useCallback, useEffect } from "react";
-import { AppState, BackHandler, InteractionManager, Keyboard, View } from "react-native";
+import { AppState, BackHandler, Keyboard, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardAvoidingView, KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +16,7 @@ import { Fade } from "./src/components/layout";
 import { LiveConnection } from "./src/components/LiveConnection";
 import { PageStack } from "./src/components/PageStack";
 import { SettingsSheet } from "./src/components/Settings";
+import { SessionSheet } from "./src/components/PuzzlePicker";
 import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
@@ -36,9 +37,22 @@ import { TrainingPage } from "./src/pages/TrainingPage";
 import { useReleaseCheck } from "./src/release";
 import { ScramblerHost } from "./src/scrambler";
 import {
-  casesAtom, goBackAtom, hasTokenAtom, keyboardVisibleAtom, learnMethodAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
-  timerRunningAtom, userAtom, type Page, type Route,
+  TAB_ROOT, casesAtom, goBackAtom, replaceRouteAtom, hasTokenAtom, keyboardVisibleAtom, openTabAtom, profileFiltersAtom, routeAtom, setsAtom, signedInAtom, statsAtom, statsVersionAtom,
+  tabOf, timerRunningAtom, userAtom, type Route, type Tab,
 } from "./src/state";
+
+/**
+ * Runs `tasks` one at a time once the first frames are drawn, each in its own slice of the JS thread, so warming caches
+ * never holds a tap back; returns its cancellation.
+ */
+function afterFirstFrames(...tasks: (() => void)[]) {
+  let timer = setTimeout(next, 400), index = 0;
+  function next() {
+    tasks[index++]?.();
+    if (index < tasks.length) timer = setTimeout(next, 30);
+  }
+  return () => clearTimeout(timer);
+}
 
 function renderPage(route: Route) {
   switch (route.page) {
@@ -105,39 +119,44 @@ function Shell() {
   // Warm every page's data once the first screen is up: the catalogue of each puzzle and the current puzzle's cases,
   // sets and statistics, so switching tabs later never computes anything visible.
   const store = useStore();
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      for (const puzzle of PUZZLES) local.read.catalog(puzzle.id);
-      store.get(casesAtom); store.get(setsAtom); store.get(statsAtom);
-      local.read.achievements();
-    });
-    return () => task.cancel();
-  }, [store]);
+  useEffect(() => afterFirstFrames(
+    () => { store.get(casesAtom); store.get(setsAtom); },
+    () => store.get(statsAtom),
+    ...PUZZLES.map(puzzle => () => { local.read.catalog(puzzle.id); }),
+    () => { local.read.achievements(); },
+  ), [store]);
   // Then the diagrams of the current puzzle's cases, so the algorithm list and selector open without geometry work.
   const cases = useAtomValue(casesAtom);
   useEffect(() => {
     let cancel = () => {};
-    const task = InteractionManager.runAfterInteractions(() => { cancel = prefetchCaseDiagrams(cases); });
-    return () => { task.cancel(); cancel(); };
+    const stop = afterFirstFrames(() => { cancel = prefetchCaseDiagrams(cases); });
+    return () => { stop(); cancel(); };
   }, [cases]);
-  const [route, setRoute] = useAtom(routeAtom);
-  const goBack = useSetAtom(goBackAtom);
+  const route = useAtomValue(routeAtom);
+  const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom);
   // The hardware back button walks the in-app history, like the browser's back button.
   useEffect(() => {
     // The first setup has to be finished; a setup opened again from the guides, or the tour, close.
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (introduction === "setup" && !journeyProfile(store.get(journeyAtom))) return true;
       if (introduction) { closeIntroduction(null); return true; }
-      return running || goBack();
+      if (running || goBack()) return true;
+      // With nothing left to go back to, another tab returns to the timer before the app closes (Android's start
+      // destination).
+      if (tabOf(store.get(routeAtom).page) === "timer") return false;
+      replaceRoute(TAB_ROOT.timer);
+      return true;
     });
     return () => subscription.remove();
-  }, [goBack, running, introduction, closeIntroduction, store]);
-  // The Learn tab comes back to the course it showed; a section waiting for the puzzle's course asks to skip it.
-  const setSkip = useSetAtom(skipLearningAtom);
-  const navigate = useCallback((page: Page) => {
-    if (isLockedPage(store.get(puzzleLockedAtom), page)) setSkip(page);
-    else setRoute(page === "learn" ? { page, method: store.get(learnMethodAtom) } : { page } as Route);
-  }, [setRoute, setSkip, store]);
+  }, [goBack, running, introduction, closeIntroduction, store, replaceRoute]);
+  // A tab opens on the page it showed last; a tab waiting for the puzzle's course asks to skip it.
+  const setSkip = useSetAtom(skipLearningAtom), openTab = useSetAtom(openTabAtom);
+  const locked = useAtomValue(puzzleLockedAtom);
+  const tabLocked = useCallback((tab: Tab) => isLockedPage(locked, TAB_ROOT[tab].page), [locked]);
+  const navigate = useCallback((tab: Tab) => {
+    if (tabLocked(tab)) setSkip(TAB_ROOT[tab].page);
+    else openTab(tab);
+  }, [tabLocked, setSkip, openTab]);
   const active = route.page;
   // The profile's filters last while its sections are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);
@@ -156,8 +175,9 @@ function Shell() {
         </Suspense>
       </View>
     </KeyboardAvoidingView>
-    {!keyboardVisible && <Fade hidden={running}><TabBar active={active} onNavigate={navigate} /></Fade>}
+    {!keyboardVisible && <Fade hidden={running}><TabBar active={tabOf(active)} locked={tabLocked} onNavigate={navigate} /></Fade>}
     <SettingsSheet />
+    <SessionSheet />
     <GuidesSheet />
     <NotationSheet />
     <LearnGate />

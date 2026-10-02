@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, BookOpen, LogOut, Settings, Swords, Timer as TimerIcon } from "lucide-react-native";
+import { Settings, Swords, Timer as TimerIcon } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { fmtSolve, fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
@@ -9,12 +9,11 @@ import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../
 import type { AchievementSummaryDto, CaseDto, ProfileDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { api, local } from "../api";
+import { local } from "../api";
 import { AchievementList, AchievementTotal } from "../components/Achievements";
-import { Empty, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
+import { BackButton, Empty, HeadButton, Numeric, Page, PageHead } from "../components/layout";
 import {
   AchievementBadge, EmptyLine, Goal, Heatmap, LatestSolves, MoreLink, ProfileCaseDialog, Section, Stat, Stats, SubHead, TrainingProgress, Trend, TrendLegend, TwoTone,
 } from "../components/ProfileProgress";
@@ -25,7 +24,7 @@ import { useTourTarget } from "../tour";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
-  PROFILE_SECTIONS, deletedSolveIdAtom, guidesAtom, notationAtom, learnedCaseIdsAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom,
+  PROFILE_SECTIONS, deletedSolveIdAtom, goBackAtom, learnedCaseIdsAtom, previousRouteAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom,
   settingsOpenAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode,
 } from "../state";
 
@@ -102,18 +101,6 @@ function KpiStrip({ solves, days, streak, learned, best }: { solves: number; day
       <Kpi label="Cases learned" value={String(learned)} />
       <Kpi label="Best single" value={best} className="border-l border-border" />
     </View>
-  </View>;
-}
-
-/** The end of the overview: signing out, on its own centred row. */
-function LogOutButton() {
-  const [busy, setBusy] = useState(false);
-  const logOut = async () => { if (busy) return; setBusy(true); try { await api.logout(); } finally { setBusy(false); } };
-  return <View className="items-center pt-2">
-    <Button variant="outline" className="h-11 w-full justify-center gap-2 border-destructive/40" disabled={busy} accessibilityLabel="Log out" onPress={() => void logOut()}>
-      <Icon as={LogOut} size={16} className="text-destructive" />
-      <Text className="text-destructive">{busy ? "Logging out…" : "Log out"}</Text>
-    </Button>
   </View>;
 }
 
@@ -230,8 +217,9 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const learnedIds = useAtomValue(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const user = useAtomValue(userAtom);
-  const setRoute = useSetAtom(routeAtom), replaceRoute = useSetAtom(replaceRouteAtom);
-  const openSettings = useSetAtom(settingsOpenAtom), openGuides = useSetAtom(guidesAtom), openNotation = useSetAtom(notationAtom);
+  const setRoute = useSetAtom(routeAtom), replaceRoute = useSetAtom(replaceRouteAtom), goBack = useSetAtom(goBackAtom);
+  const previousRoute = useAtomValue(previousRouteAtom);
+  const openSettings = useSetAtom(settingsOpenAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
   const catalog = useMemo(() => local.read.catalog(cube), [cube]);
   const profile = useMemo(() => local.read.profile(cube, { solveMode, scrambleType }), [cube, solveMode, scrambleType, user?.id, deletedSolveId, statsVersion]);
@@ -240,50 +228,20 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const scroll = usePreservedScroll(`profile:${cube}:${solveMode}:${scrambleType}`);
   if (!user) return null;
   const section = mode && PROFILE_SECTIONS.some(s => s.id === mode) ? mode : "overview";
-  const show = (next: string) => replaceRoute(next === "overview" ? { page: "profile" } : { page: "profile", mode: next as ProfileMode });
+  // A section opens as a page of its own over the overview; its back arrow returns to it.
+  const show = (next: ProfileMode) => setRoute({ page: "profile", mode: next });
+  const back = () => previousRoute?.page === "profile" && !previousRoute.mode ? goBack() : replaceRoute({ page: "profile" });
   const d = useMemo(() => overviewData(profile, catalog.cases, learned, summary), [profile, catalog.cases, learned, summary]);
   const selected = catalog.cases.find(c => c.id === caseId);
   const event = eventOf(cube, solveMode);
   const eventLabel = event?.label ?? puzzleInfo(cube).label;
-  const controls = <>
-    <EventPicker value={event?.id ?? cube} onChange={setEvent} />
-    <MoreMenu label="Account">
-      <MenuItem icon={BookA} onPress={() => openNotation(true)}>Notation</MenuItem>
-      <MenuItem icon={BookOpen} onPress={() => openGuides("about")}>Guides</MenuItem>
-      <MenuItem icon={Settings} onPress={() => openSettings(true)}>Settings</MenuItem>
-    </MoreMenu>
-  </>;
-  const sectionTitle = PROFILE_SECTIONS.find(s => s.id === section)?.label;
-  return <Page>
-    <Tabs value={section} onValueChange={show}>
-      <TabsList className="h-10 w-full">
-        {PROFILE_SECTIONS.map(s => <TabsTrigger key={s.id} value={s.id} className="h-8 flex-1 px-1"><Text numberOfLines={1} className="text-[13px]">{s.label}</Text></TabsTrigger>)}
-      </TabsList>
-    </Tabs>
-    {section !== "overview" && <PageHead title={section === "achievements" ? "Achievements" : sectionTitle}
-      sub={section === "playground" && d.timer.count ? plural(d.timer.count, "solve") : eventLabel}>{controls}</PageHead>}
-    {section === "overview" && <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
-      className="-mx-4 flex-1" contentContainerClassName="gap-3 px-4 pt-1 pb-6">
-      <View className="flex-row items-center gap-3">
-        <UserAvatar user={user} size={56} />
-        <View className="min-w-0 flex-1 gap-1">
-          <View className="flex-row items-center gap-2">
-            <Text numberOfLines={1} accessibilityRole="header" className="shrink font-sans text-xl font-semibold tracking-tight">{user.username}</Text>
-          </View>
-          <Text numberOfLines={1} className="text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)} · {eventLabel}</Text>
-        </View>
-        <View className="shrink-0 flex-row items-center gap-1">{controls}</View>
-      </View>
-      <TourTarget name="profile-overview">
-        <KpiStrip solves={profile.totalSolves} days={profile.activeDays} streak={d.streak} learned={d.learned} best={d.timer.count ? fmtTime(d.timer.best) : "–"} />
-      </TourTarget>
-      <Heatmap solves={d.activity} latest={d.latest} />
-      <TimerSection d={d} label={eventLabel} onMore={() => show("playground")} onTimer={() => setRoute({ page: "playground" })} />
-      <TrainingSection d={d} total={catalog.cases.length} trainingSolves={profile.trainingSolves} onMore={() => show("training")} />
-      <AchievementsSection d={d} summary={summary} onMore={() => show("achievements")} />
-      <BattlesSection onMore={() => show("duels")} onDuel={() => setRoute({ page: "duel" })} />
-      <LogOutButton />
-    </ScrollView>}
+  const picker = <EventPicker value={event?.id ?? cube} onChange={setEvent} />;
+  const sectionTitle = section === "achievements" ? "Achievements" : PROFILE_SECTIONS.find(s => s.id === section)?.label;
+  if (section !== "overview") return <Page className="pb-0">
+    <PageHead lead={<BackButton label="Profile" onPress={back} />} title={sectionTitle}
+      sub={section === "playground" && d.timer.count ? plural(d.timer.count, "solve") : undefined}>
+      {section !== "achievements" && section !== "duels" ? picker : null}
+    </PageHead>
     {section === "playground" && <View className="min-h-0 flex-1 gap-3">
       <View className="flex-row items-center gap-2">
         <Text className="text-sm text-muted-foreground">Scramble</Text>
@@ -307,5 +265,27 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       <Text className="text-sm text-muted-foreground">{battles().length ? battleRecord(battles()) : "Your battles appear here."}</Text>
       <BattleList />
     </View>}
+  </Page>;
+  return <Page className="pb-0">
+    <View className="min-h-12 flex-row items-center gap-3">
+      <UserAvatar user={user} size={44} />
+      <View className="min-w-0 flex-1">
+        <Text numberOfLines={1} accessibilityRole="header" className="font-sans text-xl font-semibold tracking-tight">{user.username}</Text>
+        <Text numberOfLines={1} className="text-xs text-muted-foreground">Joined {joinedDate(user.createdAt)}</Text>
+      </View>
+      {picker}
+      <HeadButton icon={Settings} label="Settings" onPress={() => openSettings(true)} />
+    </View>
+    <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
+      className="-mx-4 flex-1" contentContainerClassName="gap-3 px-4 pt-1 pb-6">
+      <TourTarget name="profile-overview">
+        <KpiStrip solves={profile.totalSolves} days={profile.activeDays} streak={d.streak} learned={d.learned} best={d.timer.count ? fmtTime(d.timer.best) : "–"} />
+      </TourTarget>
+      <Heatmap solves={d.activity} latest={d.latest} />
+      <TimerSection d={d} label={eventLabel} onMore={() => show("playground")} onTimer={() => setRoute({ page: "playground" })} />
+      <TrainingSection d={d} total={catalog.cases.length} trainingSolves={profile.trainingSolves} onMore={() => show("training")} />
+      <AchievementsSection d={d} summary={summary} onMore={() => show("achievements")} />
+      <BattlesSection onMore={() => show("duels")} onDuel={() => setRoute({ page: "duel" })} />
+    </ScrollView>
   </Page>;
 }

@@ -1,4 +1,4 @@
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Ban, MessageSquare, Plus, Send, Swords, Trophy, Undo2, X } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BottomSheetFlatListMethods } from "@gorhom/bottom-sheet";
@@ -10,14 +10,15 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { Alg, Fade, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, Surface, TouchAction, TouchBar } from "../components/layout";
+import { Alg, BackButton, Fade, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, HeadButton } from "../components/layout";
+import { SolveAction } from "../components/SolveMenus";
 import { Digits, LiveDigits, StopSurface, digitsSize, responder, timerHint, useTimerChrome } from "../components/Practice";
 import { SessionButton } from "../components/PuzzlePicker";
 import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
 import { useTourTarget } from "../tour";
 import { ao5, clock, compare, opponentStatus, raceAverage, ROUNDS, shownSolve, solveTime, useDuel } from "../lib/duel";
-import { eventAtom } from "../state";
+import { eventAtom, goBackAtom, previousRouteAtom, replaceRouteAtom } from "../state";
 import { alpha, useColors } from "../theme";
 
 /**
@@ -49,33 +50,38 @@ function Lobby() {
     return () => clearInterval(id);
   }, [searching]);
   const label = eventInfo(event)?.label ?? event;
-  return <Page>
-    <PageHead title="Duel"><SessionButton /></PageHead>
-    <View className="flex-1" />
-    <Surface {...panel}>
-      <View className="items-center gap-3 px-6 pt-8 pb-7">
-        <View className={cn("size-12 items-center justify-center rounded-xl", searching ? "bg-primary/15" : "bg-muted")}>
-          <Icon as={Swords} size={24} className={searching ? "text-primary" : "text-muted-foreground"} />
+  return <Page className="pb-0">
+    <PageHead lead={<DuelBack />} title="Duel"><SessionButton /></PageHead>
+    <View {...panel} className="flex-1 justify-center gap-8 pb-6">
+      <View className="items-center gap-3 px-4">
+        <View className={cn("size-16 items-center justify-center rounded-2xl", searching ? "bg-primary/15" : "bg-muted")}>
+          <Icon as={Swords} size={28} className={searching ? "text-primary" : "text-muted-foreground"} />
         </View>
         <Text accessibilityRole="header" className="text-center text-2xl font-semibold tracking-tight">{searching ? "Looking for an opponent" : "Race an Ao5"}</Text>
-        <Text className={cn("max-w-sm text-center text-sm leading-[20px]", duel.notice ? "text-destructive" : "text-muted-foreground")}>
+        <Text className={cn("max-w-sm text-center text-[15px] leading-[22px]", duel.notice ? "text-destructive" : "text-muted-foreground")}>
           {duel.notice || `The same five ${label} scrambles for both of you, against a player near your level.`}
         </Text>
       </View>
-      <View className="flex-row gap-4 border-y border-border bg-muted/30 px-6 py-4">
-        <View className="flex-1">{duel.level === undefined ? <View className="gap-1"><Label>Your level</Label><Skeleton className="h-7 w-20" /></View>
+      <View className="flex-row overflow-hidden rounded-2xl border border-border bg-card">
+        <View className="flex-1 px-4 py-4">{duel.level === undefined ? <View className="gap-1"><Label>Your level</Label><Skeleton className="h-7 w-20" /></View>
           : <Figure label="Your level" size="lg" value={duel.level === null ? "New" : fmtTime(duel.level)} />}</View>
-        <Figure className="flex-1" label="Searching" size="lg" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
-        <Figure className="flex-1" label="Also searching" size="lg" value={searching ? String(duel.searching) : "–"} />
+        <Figure className="flex-1 border-l border-border px-4 py-4" label="Waiting" size="lg" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
+        <Figure className="flex-1 border-l border-border px-4 py-4" label="Searching" size="lg" value={searching ? String(duel.searching) : "–"} />
       </View>
-      <View className="p-5">
-        <Button size="lg" variant={searching ? "outline" : "default"} className="h-12 gap-2 rounded-lg" onPress={() => searching ? duel.leave() : void duel.search(event)}>
-          <Icon as={searching ? X : Swords} size={17} className={searching ? "text-foreground" : "text-primary-foreground"} />
-          <Text className="text-base">{searching ? "Cancel" : "Find an opponent"}</Text>
-        </Button>
-      </View>
-    </Surface>
+    </View>
+    <View className="pb-3">
+      <Button size="lg" variant={searching ? "outline" : "default"} className="h-12 gap-2 rounded-xl" onPress={() => searching ? duel.leave() : void duel.search(event)}>
+        <Icon as={searching ? X : Swords} size={17} className={searching ? "text-foreground" : "text-primary-foreground"} />
+        <Text className="text-base font-semibold">{searching ? "Cancel" : "Find an opponent"}</Text>
+      </Button>
+    </View>
   </Page>;
+}
+
+/** Back to the ways to practise: the previous page when it is one, the Train tab otherwise. A search goes on meanwhile. */
+function DuelBack() {
+  const previous = useAtomValue(previousRouteAtom), goBack = useSetAtom(goBackAtom), replace = useSetAtom(replaceRouteAtom);
+  return <BackButton label="Train" onPress={() => previous?.page === "training" ? goBack() : replace({ page: "training" })} />;
 }
 
 /** The player's timer: a hold then a release like the timer page; every phase reaches the opponent. */
@@ -122,13 +128,10 @@ function Race() {
   const promptFont = scramble.length > 90 ? 15 : 18;
   const theirPhase = duel.opponentPhase;
   const colors = useColors();
-  return <Page>
+  return <Page className="pb-0">
     <Fade hidden={running}>
-      <PageHead title="Duel" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}>
-        <Button variant={duel.chatOpen ? "secondary" : "outline"} size="icon" className="size-9" onPress={() => duel.toggleChat()} accessibilityLabel={duel.unread ? `Chat, ${duel.unread} new` : "Chat"}>
-          <Icon as={MessageSquare} size={19} />
-          {duel.unread ? <View className="absolute top-1 right-1 min-w-4 items-center rounded-full bg-primary px-1"><Text className="text-[10px] font-semibold text-primary-foreground">{duel.unread}</Text></View> : null}
-        </Button>
+      <PageHead lead={<DuelBack />} title="Duel" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}>
+        <HeadButton icon={MessageSquare} label={duel.unread ? `Chat, ${duel.unread} new` : "Chat"} active={duel.chatOpen} badge={duel.unread || undefined} onPress={() => duel.toggleChat()} />
         <MoreMenu>
           {duel.over && duel.dismissed === duel.game ? <MenuItem icon={Trophy} onPress={() => duel.showResult(true)}>Result</MenuItem> : null}
           {!duel.opponentHere ? <MenuItem icon={Swords} onPress={() => void duel.next()}>New opponent</MenuItem> : null}
@@ -136,8 +139,8 @@ function Race() {
         </MoreMenu>
       </PageHead>
     </Fade>
-    <Surface className={cn("flex-1", running && "border-transparent bg-transparent")}>
-      <Fade hidden={running} className="px-4 pt-4">
+    <View className="min-h-0 flex-1">
+      <Fade hidden={running} className="pt-1">
         {duel.over ? <Text className="text-sm text-muted-foreground">Five rounds raced.</Text>
           : scramble ? <Alg text={scramble} size={promptFont} />
           : <Skeleton style={{ height: promptFont * 1.4, width: "90%" }} />}
@@ -156,15 +159,15 @@ function Race() {
           </Side>
         </View>
       </View>
-      <Fade hidden={running} className="border-t border-border bg-muted/30 px-2 py-2">
+      <Fade hidden={running} className="-mx-4 border-t border-border px-3 pt-2 pb-2">
         <Board />
-        <TouchBar className="pt-1">
-          <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={myLast?.penalty === "+2"} tone="warning" disabled={!myLast} onPress={() => duel.penalty("+2")} />
-          <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={myLast?.penalty === "dnf"} tone="bad" disabled={!myLast} onPress={() => duel.penalty("dnf")} />
-          <TouchAction icon={Undo2} label="Redo" accessibilityLabel="Take the solve back and redo it" disabled={!duel.canCancel} onPress={() => duel.cancel()} />
-        </TouchBar>
+        <View className="flex-row justify-center gap-1 pt-1">
+          <SolveAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" on={myLast?.penalty === "+2"} tone="warning" disabled={!myLast} onPress={() => duel.penalty("+2")} />
+          <SolveAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" on={myLast?.penalty === "dnf"} tone="bad" disabled={!myLast} onPress={() => duel.penalty("dnf")} />
+          <SolveAction icon={Undo2} label="Redo" accessibilityLabel="Take the solve back and redo it" disabled={!duel.canCancel} onPress={() => duel.cancel()} />
+        </View>
       </Fade>
-    </Surface>
+    </View>
     <Chat />
     <Result />
     <StopSurface timer={timer} />

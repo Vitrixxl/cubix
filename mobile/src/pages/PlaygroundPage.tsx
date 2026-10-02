@@ -14,7 +14,7 @@ import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import { playgroundScrambleAtom, practiceContextAtom, timeEntryAtom } from "../state";
-import { Alg, Fade, Page, PageHead, TouchAction } from "../components/layout";
+import { Alg, Fade, HeadButton, Page } from "../components/layout";
 import {
   AverageWindow, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, TypedTime, digitsSize, timerHint,
   useNotice, usePracticeLock, useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
@@ -94,10 +94,10 @@ function TimerSession({ context }: { context: PracticeContext }) {
     return () => clearTimeout(step);
   }, [replayAt, moves.length]);
   const previewState = useMemo(() => cube && scramble ? applyAlg(solved(cube), replayAt === null ? moves : moves.slice(0, replayAt)) : null, [cube, scramble, moves, replayAt]);
-  const previewSize = height < 700 ? 0 : 84;
+  const previewSize = height < 640 ? 0 : height < 760 ? 76 : 92;
   const canReplay = !!cube && !!scramble && moves.length > 0 && !generating;
   // Long scrambles (6×6, 7×7, Megaminx) get smaller moves so they fit the prompt without scrolling.
-  const promptFont = scramble.length > 300 ? 12.5 : scramble.length > 160 ? 14 : scramble.length > 90 ? 15 : 18;
+  const promptFont = scramble.length > 300 ? 12.5 : scramble.length > 160 ? 14 : scramble.length > 90 ? 16 : 19;
 
   const summary = practiceSummary(shown);
   const peek: Metric[] = [["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Best", fmtTime(summary.best), "good"]];
@@ -115,9 +115,10 @@ function TimerSession({ context }: { context: PracticeContext }) {
     <StaticCubeSvg state={previewState} size={previewSize} held={held} />
   </Pressable> : null;
 
-  return <Page>
-    <Fade hidden={running}>
-      <PageHead title="Timer"><SessionButton scramble /></PageHead>
+  return <Page className="pb-0">
+    <Fade hidden={running} className="min-h-12 flex-row items-center justify-between gap-2">
+      <SessionButton scramble />
+      <HeadButton icon={Shuffle} label="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
     </Fade>
     <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
       readout={area => <View {...timerTarget} className="w-full items-center">
@@ -131,7 +132,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
           </>}
         <AverageWindow solves={shown} hidden={running} />
       </View>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve} extra={<TouchAction icon={Shuffle} label="Scramble" accessibilityLabel="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
+      bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
     <View {...sessionTarget}><SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} /></View>
     <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title="Times" />
     <StopSurface timer={timer} />

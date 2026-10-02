@@ -73,7 +73,7 @@ export function Sheet({ open, onClose, title, description, right, tall = false, 
   return <BottomSheetModal ref={ref} onDismiss={() => { presented.current = false; latestClose.current(); }} backdropComponent={backdrop}
     snapPoints={points} enableDynamicSizing={!points} maxDynamicContentSize={height - top}
     enableContentPanningGesture={contentPanning}
-    keyboardBehavior="interactive" keyboardBlurBehavior="restore" android_keyboardInputMode="adjustResize" enableBlurKeyboardOnGesture
+    keyboardBehavior="interactive" keyboardBlurBehavior="restore" android_keyboardInputMode="adjustPan" enableBlurKeyboardOnGesture
     backgroundStyle={{ backgroundColor: colors.popover, borderTopLeftRadius: 18, borderTopRightRadius: 18 }}
     handleIndicatorStyle={{ backgroundColor: colors.mutedForeground, opacity: 0.5, width: 40 }}>
     {scroll

@@ -17,10 +17,10 @@ import { local } from "../api";
 import { sourceLabel } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { MethodsSheet } from "../components/GuidesDialog";
-import { Alg, BackButton, Choice, Empty, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, SearchField, Surface, TouchAction, TouchBar } from "../components/layout";
+import { Alg, BackButton, Choice, Empty, Figure, HeadButton, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, SearchField } from "../components/layout";
 import { CubePreview } from "../components/Practice";
 import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
-import { SessionButton } from "../components/PuzzlePicker";
+import { LearnHeader } from "../components/LearnHeader";
 import { TimerStats } from "../components/TimesChart";
 import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
@@ -96,7 +96,6 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   const sections = useMemo(() => catalogSections(cases, sets, setByStage, learned, learningFilter), [sets, cases, setByStage, learned, learningFilter]);
   const section = sections.find(s => s.stage === stage) ?? sections[0];
   const whole = everything.find(s => s.stage === section?.stage);
-  const learnedTotal = everything.reduce((sum, s) => sum + s.learnedCount, 0);
   const total = everything.reduce((sum, s) => sum + s.all.length, 0);
   const found = query.trim() ? cases.filter(c => matches(c, query.trim())).slice(0, 80) : null;
   const rows = useMemo(() => {
@@ -136,31 +135,35 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
     return <Empty>{learningFilter === "learned" ? "No learned cases in this set yet." : "Every case of this set is learned."}</Empty>;
   };
   return <Page className="gap-3 pb-0">
-    <PageHead title="Algorithms" sub={`${learnedTotal} of ${total} learned`}>
-      <SessionButton />
+    <LearnHeader part="algorithms">
       <MoreMenu>
         <MenuItem icon={BookOpen} onPress={() => setMethods(true)}>Solving methods</MenuItem>
         <MenuItem icon={BookOpen} onPress={() => openGuides("algorithms")}>Algorithms guide</MenuItem>
       </MoreMenu>
-    </PageHead>
-    <SearchField value={query} onChangeText={setQuery} placeholder="Search cases: oll 21, pll t…" />
-    {!found && section && <View className="gap-2 border-b border-border pb-3">
-      {sections.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="gap-5">
+    </LearnHeader>
+    <SearchField value={query} onChangeText={setQuery} placeholder={`Search ${total} cases: oll 21, pll t…`} />
+    {!found && section && <View className="-mx-4 gap-2 border-b border-border pb-2.5">
+      {sections.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="gap-6 px-4">
         {sections.map(s => {
           const on = s.stage === section.stage;
-          return <Pressable key={s.stage} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setStage(s.stage)} className="h-9 justify-center">
-            <Text className={cn("text-[15px] font-medium", on ? "text-foreground" : "text-muted-foreground")}>{s.stage}</Text>
-            <View className={cn("absolute right-0 bottom-0 left-0 h-0.5 rounded-full", on ? "bg-foreground" : "bg-transparent")} />
+          return <Pressable key={s.stage} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setStage(s.stage)} className="h-10 justify-center">
+            <Text className={cn("text-[15px]", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{s.stage}</Text>
+            <View className={cn("absolute right-0 bottom-0 left-0 h-0.5 rounded-full", on ? "bg-primary" : "bg-transparent")} />
           </Pressable>;
         })}
       </ScrollView>}
-      {section.variants.length > 1 && <Choice label="Set" value={section.active.id} onChange={id => setSetByStage(previous => ({ ...previous, [section.stage]: id }))}
-        options={section.variants.map(v => ({ id: v.id, label: v.label.startsWith(`${section.stage} `) ? v.label.slice(section.stage.length + 1) : v.label, count: v.count }))} />}
-      <Choice label="Filter" value={learningFilter} onChange={setLearningFilter} options={[
-        { id: "all", label: "All", count: whole?.all.length ?? 0 },
-        { id: "learned", label: "Learned", count: whole?.learnedCount ?? 0 },
-        { id: "not-learned", label: "To learn", count: (whole?.all.length ?? 0) - (whole?.learnedCount ?? 0) },
-      ]} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="items-center gap-1 px-4">
+        {section.variants.length > 1 && <>
+          <Choice label="Set" value={section.active.id} onChange={id => setSetByStage(previous => ({ ...previous, [section.stage]: id }))} className="flex-nowrap"
+            options={section.variants.map(v => ({ id: v.id, label: v.label.startsWith(`${section.stage} `) ? v.label.slice(section.stage.length + 1) : v.label, count: v.count }))} />
+          <View className="mx-1.5 h-5 w-px bg-border" />
+        </>}
+        <Choice label="Filter" value={learningFilter} onChange={setLearningFilter} className="flex-nowrap" options={[
+          { id: "all", label: "All", count: whole?.all.length ?? 0 },
+          { id: "learned", label: "Learned", count: whole?.learnedCount ?? 0 },
+          { id: "not-learned", label: "To learn", count: (whole?.all.length ?? 0) - (whole?.learnedCount ?? 0) },
+        ]} />
+      </ScrollView>
     </View>}
     <View {...listTarget} className="-mx-4 min-h-0 flex-1">
       <FlatList key={listKey} {...scroll} data={rows} keyExtractor={row => row.key} renderItem={renderRow} keyboardShouldPersistTaps="handled"
@@ -242,13 +245,12 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
   const renderPage = useCallback(({ item }: { item: CaseDto }) => <CasePage c={item} stats={stats.get(item.id)} width={width} replay={item.id === c.id ? replay : 0} onPlay={cube ? setPlaying : undefined} />, [stats, width, replay, c.id, cube]);
   const playItem: PlayItem | null = cube ? { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: `${c.setLabel} · ${c.group}`, algs: c.algorithms.map(displayAlg), note: c.notes, size: c.cube_size ?? puzzleInfo(puzzleOf(c)).cubeSize ?? 3, mask: maskForStage(c.stage) } : null;
   const train = () => { setSelection([c.id]); setRoute({ page: "training", autostart: true }); };
-  return <Page>
-    <PageHead lead={<BackButton onPress={onBack} />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
-      <Button variant="outline" size="icon" className="size-9" disabled={!previous} onPress={() => step(previous)} accessibilityLabel="Previous case"><Icon as={ChevronLeft} size={18} /></Button>
-      <Numeric className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {siblings.length}</Numeric>
-      <Button variant="outline" size="icon" className="size-9" disabled={!next} onPress={() => step(next)} accessibilityLabel="Next case"><Icon as={ChevronRight} size={18} /></Button>
+  return <Page className="pb-0">
+    <PageHead lead={<BackButton onPress={onBack} />} title={c.id} sub={`${index + 1} / ${siblings.length} · ${c.group}`}>
+      <HeadButton icon={ChevronLeft} label="Previous case" disabled={!previous} onPress={() => step(previous)} />
+      <HeadButton icon={ChevronRight} label="Next case" disabled={!next} onPress={() => step(next)} />
     </PageHead>
-    <Surface className="flex-1">
+    <View className="-mx-4 min-h-0 flex-1">
       {/* The exact width, never rounded: native paging steps by the real width of the list. */}
       <View className="min-h-0 flex-1" onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         {width > 0 && <FlatList ref={list} horizontal pagingEnabled showsHorizontalScrollIndicator={false} bounces={false} overScrollMode="never"
@@ -260,12 +262,23 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
           onScrollToIndexFailed={({ index: target }) => list.current?.scrollToOffset({ offset: width * target, animated: false })}
           style={{ flex: 1 }} />}
       </View>
-      <TouchBar className="border-t border-border bg-muted/30 px-2 py-2">
-        <TouchAction icon={Timer} label="Train" primary onPress={train} accessibilityLabel={`Train ${c.id}`} />
-        <TouchAction icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="good" onPress={() => toggleLearned(c.id)} accessibilityLabel={`${c.id} learned`} />
-        {cube && <TouchAction icon={RotateCcw} label="Replay" onPress={() => setReplay(n => n + 1)} accessibilityLabel="Replay the setup on the cube" />}
-      </TouchBar>
-    </Surface>
+      <View className="flex-row items-center gap-1.5 border-t border-border bg-background px-3 py-2.5">
+        <Pressable accessibilityRole="button" accessibilityLabel={`${c.id} learned`} accessibilityState={{ selected: learned }} onPress={() => toggleLearned(c.id)}
+          className={cn("h-12 flex-row items-center gap-1.5 rounded-xl border px-3.5 active:opacity-70", learned ? "border-transparent bg-success/15" : "border-border")}>
+          <Icon as={Check} size={17} className={learned ? "text-success" : "text-muted-foreground"} />
+          <Text className={cn("text-sm font-medium", learned ? "text-success" : "text-muted-foreground")}>{learned ? "Learned" : "Mark learned"}</Text>
+        </Pressable>
+        {cube && <Pressable accessibilityRole="button" accessibilityLabel="Replay the setup on the cube" onPress={() => setReplay(n => n + 1)}
+          className="size-12 items-center justify-center rounded-xl active:bg-muted">
+          <Icon as={RotateCcw} size={18} className="text-muted-foreground" />
+        </Pressable>}
+        <Pressable accessibilityRole="button" accessibilityLabel={`Train ${c.id}`} onPress={train}
+          className="h-12 min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary active:bg-primary/85">
+          <Icon as={Timer} size={17} className="text-primary-foreground" />
+          <Text className="text-[15px] font-semibold text-primary-foreground">Train</Text>
+        </Pressable>
+      </View>
+    </View>
     {playItem && <AlgPlayerSheet items={[playItem]} index={playing === null ? null : 0} choice={playing ?? 0} onIndex={() => {}} onClose={() => setPlaying(null)} />}
   </Page>;
 }
@@ -282,7 +295,7 @@ const CasePage = memo(function CasePage({ c, stats, width, replay, onPlay }: { c
   const count = summary?.count ?? 0;
   const block = "gap-2 border-t border-border px-4 py-4";
   return <ScrollView style={{ width }} contentContainerClassName="pb-4" showsVerticalScrollIndicator={false}>
-    <View className="flex-row items-center gap-6 px-4 pt-4 pb-4">
+    <View className="flex-row items-center gap-6 px-4 pt-2 pb-4">
       {isCube && !c.diagram
         ? <Pressable accessibilityRole="button" accessibilityLabel="Play the algorithm in 3D" disabled={!onPlay} onPress={() => onPlay?.(0)} className="rounded-md active:opacity-70">
           <CubePreview alg={c.setup} cube={c.cube_size ?? info.cubeSize ?? 3} size={112} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} replay={replay} />

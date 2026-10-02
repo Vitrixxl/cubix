@@ -105,7 +105,7 @@ function LoopControls({ player }: { player: AlgPlayer }) {
       <Icon as={player.active ? Pause : Play} size={18} className="text-muted-foreground" />
     </Pressable>
     {PLAYER_SPEEDS.map(speed => <Pressable key={speed} accessibilityRole="radio" accessibilityState={{ checked: p.speed === speed }} accessibilityLabel={`Speed ${speedLabel(speed)}`}
-      onPress={() => player.setSpeed(speed)} className={cn("h-11 min-w-11 items-center justify-center rounded-lg px-1.5", p.speed === speed ? "bg-muted" : "active:bg-muted/60")}>
+      onPress={() => player.setSpeed(speed)} className={cn("h-11 min-w-11 items-center justify-center rounded-lg px-1.5 active:bg-muted/60", p.speed === speed && "bg-muted")}>
       <Numeric className={cn("text-xs", p.speed === speed ? "text-foreground" : "text-muted-foreground")}>{speedLabel(speed)}</Numeric>
     </Pressable>)}
   </View>;

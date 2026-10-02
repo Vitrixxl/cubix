@@ -42,6 +42,7 @@ mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
 mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) => source }));
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
+mock.module("../src/components/LearnHeader", () => ({ LearnHeader: ({ children, part }: any) => createElement("LearnHeader", { part }, children) }));
 mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
 mock.module("../src/components/AlgPlayer", () => ({ AlgPlayerSheet: "AlgPlayerSheet" }));
 mockLucide();
@@ -50,7 +51,7 @@ mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "Label", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "HeadButton", "Label", "ListGroup", "ListRow", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
 const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedAlgorithmGroupsAtom, stageAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -105,10 +106,10 @@ test("the stage tabs display only their stage, including when the learning filte
   expect(filter().props.options.map((option: any) => option.count)).toEqual([4, 1, 3]);
 });
 
-test("the header counts learned cases of every stage and a group folds under its title", async () => {
+test("the library sits under Learn's head, its search counts every case, and a group folds under its title", async () => {
   const store = await mount();
-  const head = renderer.root.findAllByType("PageHead" as any)[0]!;
-  expect(head.props.sub).toBe("1 of 5 learned");
+  expect(renderer.root.findAllByType("LearnHeader" as any)[0]!.props.part).toBe("algorithms");
+  expect(renderer.root.findAllByType("SearchField" as any)[0]!.props.placeholder).toContain("5 cases");
   const dots = renderer.root.findAllByType("Pressable" as any).find(node => node.props.accessibilityState?.expanded !== undefined && node.findAllByType("Text" as any).some(text => text.props.children === "Dots"))!;
   await act(() => dots.props.onPress());
   expect(store.get(collapsedAlgorithmGroupsAtom)).toEqual({ "oll:Dots": true });
@@ -149,7 +150,7 @@ test("pager snapshots the displayed filter and expanded groups", async () => {
 test("the on-screen return pops the details, including after the next-case button", async () => {
   const store = await mount();
   await open("OLL 1");
-  await act(() => renderer.root.findAllByType("Button" as any).find(node => node.props.accessibilityLabel === "Next case")!.props.onPress());
+  await act(() => renderer.root.findAllByType("HeadButton" as any).find(node => node.props.label === "Next case")!.props.onPress());
   expect(store.get(routeAtom)).toMatchObject({ caseId: "OLL 3" });
   const head = renderer.root.findAllByType("PageHead" as any).find(node => node.props.lead)!;
   expect(head.props.title).toBe("OLL 3");

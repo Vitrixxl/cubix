@@ -1,6 +1,6 @@
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ChevronDown } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import { TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { EVENTS, eventInfo, puzzleInfo, scrambleLabel, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
@@ -10,7 +10,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, timeEntryAtom } from "../state";
 import { useColors } from "../theme";
-import { pickEventAtom } from "../journey";
+import { learnPromptAtom, pickEventAtom } from "../journey";
 import { Sheet } from "./Sheet";
 
 /** Official WCA event glyphs from the @cubing/icons font (MIT). */
@@ -39,7 +39,7 @@ export function SheetChoice<T extends string>({ label, value, options, onChange,
         const on = o.id === value;
         return <View key={o.id} style={{ width: `${100 / columns}%`, padding: 2 }}>
           <Pressable accessibilityRole="radio" accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => { if (!on) onChange(o.id); }}
-            className={cn("h-11 items-center justify-center rounded-lg px-2", on ? "bg-primary/15" : "bg-muted/40 active:bg-muted", disabled && "opacity-50")}>
+            className={cn("h-11 items-center justify-center rounded-lg px-2 active:bg-muted", on ? "bg-primary/15" : "bg-muted/40", disabled && "opacity-50")}>
             <Text numberOfLines={1} className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
           </Pressable>
         </View>;
@@ -56,7 +56,7 @@ export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onCh
       const on = e.id === value;
       return <View key={e.id} style={{ width: "25%", padding: 2 }}>
         <Pressable accessibilityRole="radio" accessibilityLabel={e.label} accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => onChange(e.id)}
-          className={cn("h-20 items-center justify-center gap-1.5 rounded-lg px-1", on ? "bg-primary/15" : "active:bg-muted", disabled && "opacity-50")}>
+          className={cn("h-20 items-center justify-center gap-1.5 rounded-lg px-1 active:bg-muted", on && "bg-primary/15", disabled && "opacity-50")}>
           <PuzzleIcon puzzle={e.id} size={24} color={on ? colors.foreground : colors.mutedForeground} />
           <Text numberOfLines={2} className={cn("text-center text-[11px] leading-tight", on ? "text-foreground" : "text-muted-foreground")}>{e.label}</Text>
         </Pressable>
@@ -68,40 +68,60 @@ export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onCh
 /** A header button showing the current event (and a non-normal scramble), opening a sheet to change it. */
 export function SessionTrigger({ event, detail, onPress, disabled }: { event: EventId; detail?: string; onPress: () => void; disabled?: boolean }) {
   const label = eventInfo(event)?.label ?? event;
-  return <Button variant="outline" className="h-9 max-w-48 gap-1.5 px-2.5" disabled={disabled} onPress={onPress} accessibilityLabel={`Puzzle: ${label}${detail ? `, ${detail}` : ""}`} accessibilityHint="Choose a puzzle">
-    <PuzzleIcon puzzle={event} size={16} />
-    <Text numberOfLines={1} className="shrink text-sm font-medium">
-      {label}{detail ? <Text className="text-sm text-muted-foreground"> · {detail}</Text> : null}
+  return <Pressable disabled={disabled} onPress={onPress} accessibilityRole="button" accessibilityLabel={`Puzzle: ${label}${detail ? `, ${detail}` : ""}`} accessibilityHint="Choose a puzzle"
+    className={cn("h-10 max-w-52 shrink flex-row items-center gap-2 rounded-xl bg-muted pr-2.5 pl-3 active:bg-muted/70", disabled && "opacity-50")}>
+    <PuzzleIcon puzzle={event} size={17} />
+    <Text numberOfLines={1} className="shrink text-sm font-semibold">
+      {label}{detail ? <Text className="text-sm font-normal text-muted-foreground"> · {detail}</Text> : null}
     </Text>
-    <Icon as={ChevronDown} size={15} className="text-muted-foreground" />
-  </Button>;
+    <Icon as={ChevronDown} size={16} className="text-muted-foreground" />
+  </Pressable>;
 }
+
+/** The puzzle sheet of the app, open from a page head: `timer` also holds the scramble type and the time entry. */
+export const sessionSheetAtom = atom<null | "puzzle" | "timer">(null);
 
 /**
  * The app's puzzle in a page head. On the timer (`scramble`), the same sheet also holds the scramble type and the
  * time entry, instead of three small menus. Locked while a solve holds the session.
  */
 export function SessionButton({ scramble = false }: { scramble?: boolean }) {
-  const [open, setOpen] = useState(false);
+  const open = useSetAtom(sessionSheetAtom);
+  const event = useAtomValue(eventAtom);
+  const locked = useAtomValue(cubeSwitchLockedAtom);
+  const scrambleType = useAtomValue(scrambleTypeAtom);
+  const entry = useAtomValue(timeEntryAtom);
+  return <SessionTrigger event={event} disabled={locked} onPress={() => open(scramble ? "timer" : "puzzle")}
+    detail={scramble ? [scrambleType !== "normal" && scrambleLabel(scrambleType), entry !== "timer" && TIME_ENTRIES.find(e => e.id === entry)?.label].filter(Boolean).join(" · ") || undefined : undefined} />;
+}
+
+/**
+ * The sheet of `SessionButton`, rendered once by the shell: picking a puzzle restarts the timer's session, and the
+ * sheet must stay open meanwhile to choose the scramble type.
+ */
+export function SessionSheet() {
+  const [mode, setMode] = useAtom(sessionSheetAtom);
+  const scramble = mode === "timer";
   const event = useAtomValue(eventAtom), setEvent = useSetAtom(pickEventAtom);
   const locked = useAtomValue(cubeSwitchLockedAtom);
   const [scrambleType, setScrambleType] = useAtom(scrambleTypeAtom);
   const [entry, setEntry] = useAtom(timeEntryAtom);
   const puzzle = useAtomValue(puzzleAtom);
-  return <>
-    <SessionTrigger event={event} detail={scramble && scrambleType !== "normal" ? scrambleLabel(scrambleType) : undefined} disabled={locked} onPress={() => setOpen(true)} />
-    <Sheet open={open} onClose={() => setOpen(false)} title={scramble ? "Puzzle and scramble" : "Puzzle"} scroll={scramble} tall={scramble}>
-      <View className="gap-2">
-        {scramble && <Text className="text-xs font-medium text-muted-foreground">Puzzle</Text>}
-        <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) setOpen(false); setEvent(id); }} />
-      </View>
-      {scramble && <>
-        <SheetChoice label="Scramble" columns={2} value={scrambleType} disabled={locked}
-          options={timerScrambles(puzzleInfo(puzzle).scrambles).map(id => ({ id, label: scrambleLabel(id) }))} onChange={setScrambleType} />
-        <SheetChoice<TimeEntry> label="Entry" value={entry} disabled={locked} options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label }))} onChange={setEntry} />
-      </>}
-    </Sheet>
-  </>;
+  const close = () => setMode(null);
+  // A puzzle still to learn asks first (LearnGate): the sheet makes way for the question.
+  const prompted = useAtomValue(learnPromptAtom);
+  useEffect(() => { if (prompted) close(); }, [prompted]);
+  return <Sheet open={!!mode} onClose={close} title={scramble ? "Puzzle and scramble" : "Puzzle"} scroll={scramble} tall={scramble}>
+    <View className="gap-2">
+      {scramble && <Text className="text-xs font-medium text-muted-foreground">Puzzle</Text>}
+      <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) close(); setEvent(id); }} />
+    </View>
+    {scramble && <>
+      <SheetChoice label="Scramble" columns={2} value={scrambleType} disabled={locked}
+        options={timerScrambles(puzzleInfo(puzzle).scrambles).map(id => ({ id, label: scrambleLabel(id) }))} onChange={setScrambleType} />
+      <SheetChoice<TimeEntry> label="Entry" value={entry} disabled={locked} options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label }))} onChange={setEntry} />
+    </>}
+  </Sheet>;
 }
 
 /** A filter's own event (the profile), picked from the same grid. */

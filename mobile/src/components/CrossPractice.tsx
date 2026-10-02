@@ -18,7 +18,7 @@ import { ensureLaunchSession } from "../lib/launchSession";
 import { TimesSheet } from "./TimesSheet";
 import { crossSolutions, type CrossSolution } from "../scrambler";
 import { crossContextAtom, crossMovesAtom, crossScrambleAtom, statsVersionAtom } from "../state";
-import { Alg, BackButton, Fade, Label, MenuItem, MoreMenu, Page, PageHead, TouchAction } from "./layout";
+import { Alg, BackButton, Fade, HeadButton, Label, MenuItem, MoreMenu, Page, PageHead } from "./layout";
 import {
   AverageWindow, CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock,
   useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
@@ -122,9 +122,10 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
     ? <Pressable accessibilityRole="button" accessibilityLabel="Replay the scramble on the cube" onPress={() => setReplay(n => n + 1)}><CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /></Pressable>
     : <View style={{ width: previewSize, height: previewSize }} />) : null;
 
-  return <Page>
+  return <Page className="pb-0">
     <Fade hidden={running}>
       <PageHead lead={<BackButton label="Change what to train" onPress={onBack} />} title="Cross + 1" sub={`${moves}-move first block`}>
+        <HeadButton icon={Shuffle} label="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
         <MoreMenu>
           {CROSS_PLUS_ONE_MOVES.map(n => <MenuItem key={n} icon={Box} disabled={locked || n === moves} onPress={() => setMoves(n)}>{`${n}-move first block${n === moves ? " ✓" : ""}`}</MenuItem>)}
         </MoreMenu>
@@ -137,7 +138,7 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
         <SaveError timer={timer} />
         <AverageWindow solves={shown} hidden={running} />
       </>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve} extra={<TouchAction icon={Shuffle} label="Scramble" accessibilityLabel="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
+      bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
     <SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} />
     <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title="Times" />
     <StopSurface timer={timer} />

@@ -73,7 +73,7 @@ function StatsPanel({ history, ao5, compact, fill, table }: { history: HistoryPo
     {([["chart", "Chart", ChartLine], ["table", "Table", Table]] as const).map(([id, label, I]) => {
       const on = view === id;
       return <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => changeView(id)}
-        className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-2.5", on ? "bg-muted" : "active:bg-muted/50")}>
+        className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-2.5 active:bg-muted/50", on && "bg-muted")}>
         <Icon as={I} size={15} className={on ? "text-foreground" : "text-muted-foreground"} />
         <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
       </Pressable>;
@@ -243,7 +243,7 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
       <View className="shrink flex-row items-center gap-1">
         <ChoiceButton label="Sort solves" value={sort} options={SORTS} onChange={setSort} />
         <Pressable accessibilityRole="button" accessibilityLabel="Show only commented solves" accessibilityState={{ selected: commented }} onPress={() => setCommented(!commented)}
-          className={cn("h-9 flex-row items-center gap-1 rounded-lg px-2", commented ? "bg-muted" : "active:bg-muted/50")}>
+          className={cn("h-9 flex-row items-center gap-1 rounded-lg px-2 active:bg-muted/50", commented && "bg-muted")}>
           <Icon as={MessageSquare} size={15} className={commented ? "text-foreground" : "text-muted-foreground"} />
           <Numeric className="text-xs text-muted-foreground">{commentCount}</Numeric>
         </Pressable>

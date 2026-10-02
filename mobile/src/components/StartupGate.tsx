@@ -78,9 +78,9 @@ export function StartupGate({ children, fontsReady }: { children: ReactNode; fon
     if (connected === false && loaded && !visible) setToast(OFFLINE_TOAST);
   }, [connected, loaded, visible, setToast]);
   const percent = typeof downloadProgress === "number" ? Math.floor(Math.max(0, Math.min(1, downloadProgress)) * 100) : undefined;
-  const message = loaded ? "Ouverture de Cubix…"
-    : currentPhase === "restarting" ? "Ouverture de la nouvelle version…"
-    : `Téléchargement de la mise à jour…${percent === undefined ? "" : ` ${percent} %`}`;
+  const message = loaded ? "Opening Qbix…"
+    : currentPhase === "restarting" ? "Opening the new version…"
+    : `Downloading the update…${percent === undefined ? "" : ` ${percent}%`}`;
   return <>
     {loaded && children}
     {visible && <Launcher message={message} progress={loaded ? undefined : percent} finish={loaded} onHidden={() => setHidden(true)} />}

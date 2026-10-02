@@ -18,7 +18,7 @@ import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles"
 import { api, local } from "../api";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { introductionAtom, journeyAtom } from "../journey";
-import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, userAtom } from "../state";
+import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom, userAtom, type Page } from "../state";
 import { alpha, useColors } from "../theme";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
 
@@ -68,7 +68,7 @@ function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel }: {
 
 const STEPS = ["welcome", "known"] as const;
 const STEP_TITLES: Record<typeof STEPS[number], [string, string]> = {
-  welcome: ["Welcome to Cubix", "A few seconds to set up"],
+  welcome: ["Welcome to Qbix", "A few seconds to set up"],
   known: ["What can you solve?", "Skip if none yet"],
 };
 const toggle = <T,>(list: T[], item: T) => list.includes(item) ? list.filter(i => i !== item) : [...list, item];
@@ -127,7 +127,7 @@ function Editor() {
           <StepTransition identity={step} direction={direction}>
             <View style={{ gap: 12 }}>
               {name === "welcome" && <>
-                <Text className="text-base leading-6">A timer, an algorithm library and a trainer for every WCA puzzle. Tell Cubix what you can solve and it sets things up for you.</Text>
+                <Text className="text-base leading-[24px]">A timer, an algorithm library and a trainer for every WCA puzzle. Tell Qbix what you can solve and it sets things up for you.</Text>
                 {([[Layers, "Your puzzles and methods", "What you can solve today."], [GraduationCap, "Learn the others", "A new puzzle starts with its course."], [Timer, "Then time and train", "Everything opens once it is solved."]] as const).map(([I, head, line]) =>
                   <View key={head} style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, backgroundColor: colors.card }}>
                     <View style={{ width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: colors.muted }}><Icon as={I} size={18} className="text-muted-foreground" /></View>
@@ -195,16 +195,23 @@ function useGlidingRect(target: Rect | null, reduced: boolean) {
   return shown;
 }
 
+/** The shared steps in the order of the phone's tabs: the timer, Train (its ways to practise, the duel), Learn, Profile. */
+const PAGE_ORDER: Page[] = ["playground", "training", "duel", "learn", "algorithms", "profile"];
+const TOUR = [...TOUR_STEPS].sort((a, b) => PAGE_ORDER.indexOf(a.page) - PAGE_ORDER.indexOf(b.page));
+
 function Tour() {
   const colors = useColors(), insets = useSafeAreaInsets(), reduced = useReducedMotion();
   const [step, setStep] = useState(0), [direction, setDirection] = useState(1);
   const replace = useSetAtom(replaceRouteAtom), setIntro = useSetAtom(introductionAtom);
   const settled = useAtomValue(settledPageAtom), version = useAtomValue(tourTargetsVersionAtom);
-  const current = TOUR_STEPS[step]!, last = step === TOUR_STEPS.length - 1;
+  const current = TOUR[step]!, last = step === TOUR.length - 1;
+  const resetTraining = useSetAtom(trainingStepAtom), resetSetup = useSetAtom(trainingSetupModeAtom);
   const overlay = useRef<View>(null);
   const [frame, setFrame] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
   const [measured, setMeasured] = useState<{ step: number; tab: Rect | null; inner: Rect | null } | null>(null);
   useEffect(() => {
+    // Training shows its ways to practise, not a session left open.
+    if (current.page === "training") { resetTraining("setup"); resetSetup(""); }
     replace({ page: current.page });
     AccessibilityInfo.announceForAccessibility?.(`${current.title}. ${current.body}`);
   }, [step]);
@@ -213,7 +220,7 @@ function Tour() {
     if (settled !== current.page) return;
     let live = true;
     const timer = setTimeout(() => {
-      void Promise.all([measureTourTarget(`tab:${current.target}`), measureTourTarget(current.inner)])
+      void Promise.all([measureTourTarget(`tab:${tabOf(current.page)}`), measureTourTarget(current.inner)])
         .then(([tab, inner]) => { if (live) setMeasured({ step, tab, inner }); });
     }, 60);
     return () => { live = false; clearTimeout(timer); };
@@ -244,15 +251,15 @@ function Tour() {
     <View style={{ position: "absolute", left: 12, right: 12, ...(side === "top" ? { top: top + 12 } : { bottom: Math.max(0, height - bottom) + 12 }), padding: 16, gap: 12, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
         <View style={{ flexDirection: "row", gap: 5, flex: 1 }} importantForAccessibility="no-hide-descendants">
-          {TOUR_STEPS.map((_, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: i === step ? colors.primary : i < step ? alpha(colors.primary, 45) : colors.muted }} />)}
+          {TOUR.map((_, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: i === step ? colors.primary : i < step ? alpha(colors.primary, 45) : colors.muted }} />)}
         </View>
-        <Text className="text-xs text-muted-foreground">{step + 1} / {TOUR_STEPS.length}</Text>
+        <Text className="text-xs text-muted-foreground">{step + 1} / {TOUR.length}</Text>
         <Button variant="ghost" size="icon" className="-mr-2 size-9" onPress={end} accessibilityLabel="End tour"><Icon as={X} size={17} /></Button>
       </View>
       <StepTransition identity={step} direction={direction}>
         <View style={{ gap: 6 }}>
           <Text accessibilityRole="header" className="text-lg font-semibold">{current.title}</Text>
-          <Text className="text-[15px] leading-6 text-muted-foreground">{current.body}</Text>
+          <Text className="text-[15px] leading-[24px] text-muted-foreground">{current.body}</Text>
         </View>
       </StepTransition>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>

@@ -28,7 +28,7 @@ export function Launcher({ message, progress, finish, onHidden }: { message: str
   return <Animated.View style={[StyleSheet.absoluteFill, styles.screen, { backgroundColor: colors.background, opacity }]} accessibilityViewIsModal>
     <LauncherCube size={size} finish={finish} onSettled={settled} />
     <View style={styles.title}>
-      <Text className="text-2xl font-bold tracking-tight">Cubix</Text>
+      <Text accessibilityLabel="Qbix" className="text-2xl tracking-tight"><Text className="text-2xl font-extrabold">Q</Text><Text className="text-2xl font-medium">bix</Text></Text>
       <Text accessibilityRole="progressbar" accessibilityLiveRegion="polite" className="min-h-5 text-center text-[13px] leading-[20px] text-muted-foreground">{message}</Text>
     </View>
     <View style={[styles.bar, { backgroundColor: colors.muted, opacity: progress === undefined ? 0 : 1 }]}>

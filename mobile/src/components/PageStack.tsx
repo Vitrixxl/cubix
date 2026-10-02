@@ -4,92 +4,83 @@ import { Animated, Easing, StyleSheet, View } from "react-native";
 import { useLayout } from "../hooks/useLayout";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { SLIDE } from "../hooks/useSlide";
-import { lastNavigationAtom, type NavigationKind, type Page, type Route } from "../state";
+import { lastNavigationAtom, routeDepth, tabOf, type NavigationKind, type Route } from "../state";
 import { settledPageAtom } from "../tour";
+import { useColors } from "../theme";
 
-/** The tabs in the order of the tab bar (TabBar.tsx): a later tab sits below an earlier one in the vertical carousel. */
-export const TAB_ORDER: readonly Page[] = ["playground", "algorithms", "training", "duel", "learn", "profile"];
-
-/** Tab switches: the carousel's own pace, a little longer than a push since the page travels the screen's height. */
-export const TAB_SLIDE = { duration: 350, easing: Easing.bezier(0.33, 1, 0.68, 1), useNativeDriver: true } as const;
-
-/**
- * How far a route sits below its tab's first page. The account's sections are tabs of one page and a case opens in a
- * sheet, so every route is a tab's first page; the algorithm list slides its case page itself (AlgorithmsPage).
- */
-function routeDepth(_route: Route, _phone: boolean) {
-  return 0;
-}
+/** Tab switches and Learn's two parts: a short cross-fade, the new page rising a few points as it appears. */
+export const FADE = { duration: 220, easing: Easing.bezier(0.2, 0, 0, 1), useNativeDriver: true } as const;
+const RISE = 10;
 
 /**
- * Within a tab: 1 slides the new page in from the right, -1 from the left, 0 swaps without motion. Any change of depth
- * slides. Across tabs the carousel decides (`tabDirection`), so this is 0 unless a push goes deeper or a pop shallower.
+ * The motion between two routes. Another tab, or another part of the same tab, fades through; going one page deeper
+ * slides the new page in from the right (`direction` 1), coming back from the left (-1). `reduced` swaps at once.
  */
-export function slideDirection(from: Route, to: Route, kind: NavigationKind, phone: boolean) {
-  const change = Math.sign(routeDepth(to, phone) - routeDepth(from, phone));
-  if (!change || from.page === to.page) return change;
-  return (kind === "push" && change > 0) || (kind === "pop" && change < 0) ? change : 0;
-}
-
-/** Across tabs: 1 brings the new page up from below (a later tab), -1 down from above (an earlier one), 0 within a tab. */
-export function tabDirection(from: Route, to: Route) {
-  if (from.page === to.page) return 0;
-  return Math.sign(TAB_ORDER.indexOf(to.page) - TAB_ORDER.indexOf(from.page));
-}
-
-export type Slide = { axis: "x" | "y"; direction: number };
-/** The motion between two routes: vertical between tabs, horizontal within one; `reduced` swaps without moving. */
-export function slideOf(from: Route, to: Route, kind: NavigationKind, phone: boolean, reduced = false): Slide {
-  if (reduced) return { axis: "x", direction: 0 };
-  const vertical = tabDirection(from, to);
-  return vertical ? { axis: "y", direction: vertical } : { axis: "x", direction: slideDirection(from, to, kind, phone) };
+export type Slide = { kind: "none" } | { kind: "fade" } | { kind: "slide"; direction: 1 | -1 };
+export function slideOf(from: Route, to: Route, kind: NavigationKind, reduced = false): Slide {
+  if (reduced || JSON.stringify(from) === JSON.stringify(to)) return { kind: "none" };
+  if (tabOf(from.page) !== tabOf(to.page)) return { kind: "fade" };
+  const change = Math.sign(routeDepth(to) - routeDepth(from));
+  // A case of the library slides itself over the list (AlgorithmsPage).
+  if (from.page === to.page && from.page === "algorithms") return { kind: "none" };
+  if (!change) return from.page === to.page ? { kind: "none" } : { kind: "fade" };
+  // A replace that goes deeper (opening a section in place) still reads as a step forward.
+  return { kind: "slide", direction: kind === "pop" ? -1 : change as 1 | -1 };
 }
 
 type Screen = { id: number; route: Route };
 type Stack = { route: Route; screens: Screen[]; slide: Slide; progress: Animated.Value };
 
 /**
- * Renders the current route. Tabs form a vertical carousel: a later tab rises from below while the current one leaves
- * by the top, an earlier one comes down from above. Inside a tab, going deeper pushes the page off to the left while
- * the next one arrives from the right, going back does the opposite. Both pages stay mounted only for the slide.
+ * Renders the current route. Both pages stay mounted only while they move: across tabs the old page fades out as the
+ * new one fades in, inside a tab the old page leaves by one side while the new one comes from the other.
  */
 export function PageStack({ route, render }: { route: Route; render: (route: Route) => ReactNode }) {
   const kind = useAtomValue(lastNavigationAtom);
   const reduced = useReducedMotion();
   const window = useLayout();
-  const [size, setSize] = useState({ width: window.width, height: window.height });
+  const [width, setWidth] = useState(window.width);
   const settle = useSetAtom(settledPageAtom);
-  const [stack, setStack] = useState<Stack>(() => ({ route, screens: [{ id: 0, route }], slide: { axis: "x", direction: 0 }, progress: new Animated.Value(1) }));
+  const colors = useColors();
+  const [stack, setStack] = useState<Stack>(() => ({ route, screens: [{ id: 0, route }], slide: { kind: "none" }, progress: new Animated.Value(1) }));
   if (stack.route !== route) {
     // Decided during render so the new route never paints for a frame inside the old page.
     const top = stack.screens.at(-1)!;
-    const slide = slideOf(top.route, route, kind, window.phone, reduced);
-    setStack(slide.direction
+    const slide = slideOf(top.route, route, kind, reduced);
+    setStack(slide.kind !== "none"
       ? { route, slide, progress: new Animated.Value(0), screens: [top, { id: top.id + 1, route }] }
       : { route, slide, progress: new Animated.Value(1), screens: [{ ...top, route }] });
   }
   useEffect(() => {
     const { progress, slide, route: shown } = stack;
-    if (!slide.direction) { settle(shown.page); return; }
+    if (slide.kind === "none") { settle(shown.page); return; }
     settle(null);
-    const animation = Animated.timing(progress, { toValue: 1, ...(slide.axis === "y" ? TAB_SLIDE : SLIDE) });
+    const animation = Animated.timing(progress, { toValue: 1, ...(slide.kind === "fade" ? FADE : SLIDE) });
     animation.start(({ finished }) => {
       if (!finished) return;
-      setStack(s => s.progress === progress ? { ...s, slide: { ...s.slide, direction: 0 }, screens: s.screens.slice(-1) } : s);
+      setStack(s => s.progress === progress ? { ...s, slide: { kind: "none" }, screens: s.screens.slice(-1) } : s);
     });
     return () => animation.stop();
-  }, [stack.progress, stack.slide.direction]);
+  }, [stack.progress, stack.slide.kind]);
   const top = stack.screens.at(-1)!;
-  const offset = stack.slide.direction * (stack.slide.axis === "y" ? size.height : size.width);
-  return <View style={styles.stack} onLayout={e => { const { width, height } = e.nativeEvent.layout; setSize(s => s.width === width && s.height === height ? s : { width, height }); }}>
+  const moving = stack.screens.length > 1;
+  return <View style={styles.stack} onLayout={e => { const next = e.nativeEvent.layout.width; setWidth(w => w === next ? w : next); }}>
     {stack.screens.map(screen => {
-      const entering = screen === top;
-      const shift = stack.screens.length > 1
-        ? stack.progress.interpolate({ inputRange: [0, 1], outputRange: entering ? [offset, 0] : [0, -offset] })
-        : 0;
+      const entering = screen === top, { slide, progress } = stack;
+      let style: object = {};
+      if (moving && slide.kind === "fade") style = entering
+        ? { opacity: progress.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 0, 1] }), transform: [{ translateY: progress.interpolate({ inputRange: [0, 0.35, 1], outputRange: [RISE, RISE, 0] }) }] }
+        : { opacity: progress.interpolate({ inputRange: [0, 0.35, 1], outputRange: [1, 0, 0] }) };
+      else if (moving && slide.kind === "slide") {
+        // The deeper page moves over the whole width, on top; the one underneath a third of the way, as Android's own
+        // navigation does.
+        const deep = entering === (slide.direction === 1);
+        const range = slide.direction === 1 ? (entering ? [width, 0] : [0, -width / 3]) : (entering ? [-width / 3, 0] : [0, width]);
+        style = { zIndex: deep ? 1 : 0, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: range }) }] };
+      }
       return <Animated.View key={screen.id} pointerEvents={entering ? "auto" : "none"}
         accessibilityElementsHidden={!entering} importantForAccessibility={entering ? "auto" : "no-hide-descendants"}
-        style={[StyleSheet.absoluteFill, { transform: stack.slide.axis === "y" ? [{ translateY: shift }] : [{ translateX: shift }] }]}>
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }, style]}>
         {render(screen.route)}
       </Animated.View>;
     })}

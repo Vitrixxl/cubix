@@ -1,8 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { useSetAtom } from "jotai";
-import { Ban, Info, MessageSquare, Plus, Trash2 } from "lucide-react-native";
+import { Ban, Info, MessageSquare, Plus, Trash2, type LucideIcon } from "lucide-react-native";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { View, type PressableProps } from "react-native";
+import { Pressable, View, type PressableProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fmtSolve } from "../../../src/client/lib/format";
 import type { Penalty, SolveDto } from "../../../src/shared/types";
@@ -146,17 +146,36 @@ export function SolveMenu({ solve, children, className, rootClassName, onPress, 
   </ContextMenu>;
 }
 
-/** The last solve's actions along the bottom of a stage: +2, DNF, comment and delete, then `extra`. Disabled before a solve. */
+/**
+ * The last solve's actions under the time: +2, DNF, a note and delete, shown once there is a solve to act on; `extra`
+ * (the next case) stays on the right at all times.
+ */
 export function LastSolveBar({ solve, extra }: { solve: SolveSummary | null; extra?: ReactNode }) {
   const { togglePenalty, editComment, deleteTime, busy, optimistic } = useContext(MenuContext);
   const pending = solve ? optimistic.get(solve.id) : undefined;
   const last = solve && pending !== null ? { ...solve, ...pending } : null;
-  const off = !last || busy;
-  return <TouchBar className="border-t border-border px-2 py-1.5">
-    <TouchAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" pressed={last?.penalty === "+2"} tone="warning" disabled={off} onPress={() => last && void togglePenalty(last, "+2")} />
-    <TouchAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" pressed={last?.penalty === "dnf"} tone="bad" disabled={off} onPress={() => last && void togglePenalty(last, "dnf")} />
-    <TouchAction icon={MessageSquare} label="Comment" pressed={!!last?.comment} tone="accent" disabled={off} onPress={() => last && editComment(last)} />
-    <TouchAction icon={Trash2} label="Delete" accessibilityLabel="Delete solve" disabled={off} onPress={() => last && void deleteTime(last.id)} />
+  return <View className={cn("min-h-12 flex-row items-center gap-2", extra ? "justify-between" : "justify-center")}>
+    <View className="flex-row items-center gap-1" style={last ? undefined : { opacity: 0 }} pointerEvents={last ? "auto" : "none"}
+      accessibilityElementsHidden={!last} importantForAccessibility={last ? "auto" : "no-hide-descendants"}>
+      <SolveAction icon={Plus} label="+2" accessibilityLabel="+2 penalty" on={last?.penalty === "+2"} tone="warning" disabled={busy} onPress={() => last && void togglePenalty(last, "+2")} />
+      <SolveAction icon={Ban} label="DNF" accessibilityLabel="Did not finish" on={last?.penalty === "dnf"} tone="bad" disabled={busy} onPress={() => last && void togglePenalty(last, "dnf")} />
+      <SolveAction icon={MessageSquare} label="Note" accessibilityLabel="Comment" on={!!last?.comment} tone="accent" disabled={busy} onPress={() => last && editComment(last)} />
+      <SolveAction icon={Trash2} label="" accessibilityLabel="Delete solve" disabled={busy} onPress={() => last && void deleteTime(last.id)} />
+    </View>
     {extra}
-  </TouchBar>;
+  </View>;
+}
+
+const ON: Record<"warning" | "bad" | "accent", string> = { warning: "bg-warning/15", bad: "bg-destructive/15", accent: "bg-primary/15" };
+const ON_TEXT: Record<"warning" | "bad" | "accent", string> = { warning: "text-warning", bad: "text-destructive", accent: "text-primary" };
+/** One compact action of a solve: its icon and a short word, tinted while it applies. */
+export function SolveAction({ icon, label, onPress, on, tone = "accent", disabled, accessibilityLabel }: {
+  icon: LucideIcon; label: string; onPress: () => void; on?: boolean; tone?: "warning" | "bad" | "accent"; disabled?: boolean; accessibilityLabel?: string;
+}) {
+  const text = on ? ON_TEXT[tone] : "text-muted-foreground";
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: on, disabled }} disabled={disabled} onPress={onPress}
+    className={cn("h-11 min-w-11 flex-row items-center justify-center gap-1.5 rounded-xl px-3 active:bg-muted", on && ON[tone], disabled && "opacity-40")}>
+    <Icon as={icon} size={17} className={text} />
+    {label ? <Text className={cn("text-[13px] font-medium", text)}>{label}</Text> : null}
+  </Pressable>;
 }

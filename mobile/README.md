@@ -141,13 +141,16 @@ l’émulateur Android, l’adresse de l’hôte est `http://10.0.2.2:PORT`.
 - Compte, fusion des temps invités, synchronisation différée et succès calculés
   localement à partir des temps synchronisés.
 - Thèmes clair/sombre et six accents, guides natifs disponibles sans le site web.
-- Navigation mobile : barre en bas du layout (pas superposée au contenu), coins
-  supérieurs arrondis et fine marge latérale ; icônes Algorithms, Training, Timer
-  (au centre), Account et Settings. Elle disparaît quand le clavier est ouvert.
-  Account affiche quatre cases (Timer, Training, Achievements, jours actifs) qui
-  ouvrent les détails ; les succès sont regroupés par puzzle en cases, chaque
-  succès en petite case avec son pourcentage. Settings ouvre le choix du puzzle,
-  le thème, l’accent et l’aide.
+- Navigation mobile : quatre onglets en bas, Timer, Train, Learn et Profile, l'onglet
+  courant sur une pastille teintée qui glisse d'un onglet à l'autre. Train regroupe les
+  exercices (pratique libre, révision, Cross + 1), l'apprentissage quotidien d'un set et le
+  duel ; Learn réunit les cours (une méthode pas à pas) et la bibliothèque d'algorithmes,
+  derrière un sélecteur Courses / Algorithms ; Profile affiche les statistiques, et chaque
+  section (Timer, Training, Achievements, Battles) s'ouvre en page ; les réglages sont
+  derrière l'engrenage. Chaque onglet revient à la page qu'il montrait ; toucher l'onglet
+  courant ramène à sa première page ; le retour Android, sans historique, ramène au Timer
+  avant de quitter. Changer d'onglet fait un fondu, ouvrir une page la fait glisser depuis
+  la droite. La barre disparaît quand le clavier est ouvert et pendant un solve.
 - Aucun chargement après le lancement : catalogue, statistiques et succès sont
   lus de façon synchrone depuis le stockage local et préchauffés au démarrage ;
   les rares attentes affichent un squelette de la page à venir. Le seul écran

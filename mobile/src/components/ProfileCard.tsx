@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export function Section({ title, meta, more = "Details", onMore, aside, children, className, bodyClassName, label }: {
   title: ReactNode; meta?: ReactNode; more?: string; onMore?: () => void; aside?: ReactNode; children?: ReactNode; className?: string; bodyClassName?: string; label?: string;
 }) {
-  return <Card className={cn("gap-0 rounded-xl py-0", className)} accessibilityLabel={label}>
+  return <Card className={cn("gap-0 rounded-2xl py-0 shadow-none", className)} accessibilityLabel={label}>
     <View className="min-h-12 flex-row items-center gap-2 pt-1 pr-2 pl-4">
       <Text accessibilityRole="header" numberOfLines={1} className="shrink-0 text-base font-semibold tracking-tight">{title}</Text>
       {meta != null ? <Text numberOfLines={1} className="min-w-0 shrink text-sm text-muted-foreground">{meta}</Text> : null}

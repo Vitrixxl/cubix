@@ -43,7 +43,7 @@ mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "Label", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "HeadButton", "Label", "ListGroup", "ListRow", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { LearnPage } = await import("../src/pages/LearnPage");
 const { routeAtom, learnMethodAtom, selectedCaseIdsAtom, courseProgressAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -78,7 +78,7 @@ const rows = () => renderer.root.findAllByType("FlatList" as any)[0]!.props.data
 
 test("the methods of the puzzle open as courses, remembered per account", async () => {
   const store = await mount();
-  const buttons = renderer.root.findAll((n: any) => n.props.accessibilityRole === "button" && /^Start /.test(n.props.accessibilityLabel ?? ""));
+  const buttons = renderer.root.findAllByType("ListRow" as any).filter((n: any) => /^Start /.test(n.props.accessibilityLabel ?? ""));
   expect(buttons.map(b => b.props.accessibilityLabel)).toEqual(["Start Beginner", "Start CFOP", "Start Roux", "Start ZZ"]);
   await press("Start CFOP");
   expect(store.get(routeAtom)).toEqual({ page: "learn", method: "cfop" });

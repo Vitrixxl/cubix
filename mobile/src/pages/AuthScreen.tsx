@@ -76,7 +76,7 @@ export function AuthScreen({ initialMode = "login", initialUsername = "" }: { in
       if (register) await api.register(name, password); else await api.login(name, password);
       setPassword("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Can't reach Cubix. Check your connection and try again.");
+      setError(e instanceof ApiError ? e.message : "Can't reach Qbix. Check your connection and try again.");
     } finally { setBusy(false); }
   };
   const switchMode = (next: string) => { setMode(next as AuthMode); setError(""); setTried(false); };
@@ -84,7 +84,7 @@ export function AuthScreen({ initialMode = "login", initialUsername = "" }: { in
     <KeyboardAwareScrollView bottomOffset={24} style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 40, paddingHorizontal: 24, paddingBottom: 24 }}>
       <View className="gap-8">
         <View className="gap-6">
-          <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text className="text-[22px] font-semibold tracking-tight">cubix</Text></View>
+          <View className="flex-row items-center gap-2.5"><Logo size={26} /><Text accessibilityLabel="Qbix" className="text-[22px] tracking-tight"><Text className="text-[22px] font-extrabold">Q</Text><Text className="text-[22px] font-medium">bix</Text></Text></View>
           <View className="gap-2">
             <Text accessibilityRole="header" className="text-2xl font-semibold tracking-tight">{register ? "Create your account" : "Welcome back"}</Text>
             <Text className="text-sm text-muted-foreground">Time your solves, learn algorithms, race in duels.</Text>

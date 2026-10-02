@@ -8,9 +8,11 @@ import { mockLucide } from "../tests/lucide-mock";
 const account = { id: "native-user", isGuest: false };
 const userAtom = atom(account), statsVersionAtom = atom(0), eventAtom = atom("333"), puzzleAtom = atom("333"), scrambleTypeAtom = atom("normal"), replaceRouteAtom = atom({ page: "playground" });
 const routeAtom = atom({ page: "playground" }), courseProgressAtom = atom({ methods: {}, courses: {} });
+const trainingStepAtom = atom("setup"), trainingSetupModeAtom = atom("");
+const tabOf = (page: string) => ({ playground: "timer", training: "train", duel: "train", learn: "learn", algorithms: "learn", profile: "profile" } as Record<string, string>)[page];
 const store = createStore();
 let saved: Journey = {};
-mock.module("../src/state", () => ({ userAtom, statsVersionAtom, eventAtom, puzzleAtom, scrambleTypeAtom, replaceRouteAtom, routeAtom, courseProgressAtom }));
+mock.module("../src/state", () => ({ userAtom, statsVersionAtom, eventAtom, puzzleAtom, scrambleTypeAtom, replaceRouteAtom, routeAtom, courseProgressAtom, tabOf, trainingStepAtom, trainingSetupModeAtom }));
 mock.module("../src/api", () => ({ api: {
   updateJourney: async (changes: Journey) => { saved = { ...saved, ...changes }; store.set(statsVersionAtom, n => n + 1); return saved; },
 }, local: { current: () => account, restore: async () => {}, read: {
@@ -51,7 +53,7 @@ test("native onboarding: welcome, then the puzzles and methods the player can so
     expect(nodes("Modal")).toHaveLength(0);
     // A first setup cannot be dismissed.
     expect(button("Close")).toBeUndefined();
-    expect(header()).toBe("Welcome to Cubix");
+    expect(header()).toBe("Welcome to Qbix");
     await act(() => button("Get started").props.onPress());
 
     // No level any more: only what can be solved.
@@ -72,8 +74,11 @@ test("native onboarding: welcome, then the puzzles and methods the player can so
     expect(store.get(eventAtom)).toBe("222");
     expect(store.get(introductionAtom)).toBe("tour");
 
-    // The tour opens each step's page, with step dots and "n / N".
-    for (const [i, step] of TOUR_STEPS.entries()) {
+    // The tour opens each step's page in the order of the phone's tabs, with step dots and "n / N".
+    const order = ["playground", "training", "duel", "learn", "algorithms", "profile"];
+    const steps = [...TOUR_STEPS].sort((a, b) => order.indexOf(a.page) - order.indexOf(b.page));
+    expect(steps.map(step => step.page)).toEqual(["playground", "playground", "playground", "training", "duel", "learn", "algorithms", "profile"]);
+    for (const [i, step] of steps.entries()) {
       expect(store.get(replaceRouteAtom).page).toBe(step.page);
       expect(nodes("Text").some(n => [n.props.children].flat().join("") === `${i + 1} / ${TOUR_STEPS.length}`)).toBe(true);
       await act(() => button(i === TOUR_STEPS.length - 1 ? "Done" : "Next").props.onPress());

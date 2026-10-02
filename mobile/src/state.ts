@@ -28,6 +28,25 @@ export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[]
   { id: "achievements", label: "Awards" }, { id: "duels", label: "Battles" },
 ];
 export type Page = Route["page"];
+/**
+ * The four tabs of the bottom bar. Each holds pages of its own: Learn shows the courses and the algorithm library,
+ * Train the ways to practise and the duel.
+ */
+export type Tab = "timer" | "train" | "learn" | "profile";
+export const TABS: readonly Tab[] = ["timer", "train", "learn", "profile"];
+const TAB_OF: Record<Page, Tab> = { playground: "timer", training: "train", duel: "train", learn: "learn", algorithms: "learn", profile: "profile" };
+export const tabOf = (page: Page): Tab => TAB_OF[page];
+/** The page a tab opens on the first time, and goes back to when its button is tapped again. */
+export const TAB_ROOT: Record<Tab, Route> = { timer: { page: "playground" }, train: { page: "training" }, learn: { page: "learn" }, profile: { page: "profile" } };
+/** How deep a route sits in its tab: its first page is 0, a page opened from it 1. */
+export function routeDepth(route: Route) {
+  switch (route.page) {
+    case "learn": return route.method ? 1 : 0;
+    case "duel": return 1;
+    case "profile": return route.mode ? 1 : 0;
+    default: return 0;
+  }
+}
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
 export const guidesAtom = atom<GuideId | null>(null);
 /** Whether the notation guide is open in a sheet of its own (from Learn and the account menu). */
@@ -70,6 +89,30 @@ export const goBackAtom = atom(null, (get, set) => {
 });
 /** The route a back step would return to, so detail views can pop instead of pushing their parent. */
 export const previousRouteAtom = atom(get => get(historyAtom).at(-2) ?? null);
+/**
+ * A tab button: another tab opens on the page it showed last (its root the first time); the current tab goes back to
+ * its root, dropping the pages opened in it from the history.
+ */
+export const openTabAtom = atom(null, (get, set, tab: Tab) => {
+  const history = get(historyAtom), current = history.at(-1)!;
+  if (tabOf(current.page) !== tab) {
+    const last = [...history].reverse().find(route => tabOf(route.page) === tab);
+    // Training opened on a selection starts once: coming back to the tab does not start it again.
+    set(routeAtom, last && !(last.page === "training" && last.autostart) ? last : TAB_ROOT[tab]);
+    return;
+  }
+  // Training keeps its steps (setup, a way to practise, the session) in state rather than in routes.
+  if (current.page === "training") { set(trainingStepAtom, "setup"); set(trainingSetupModeAtom, ""); }
+  // Learn's root is the part shown: the courses or the algorithm library.
+  const root = current.page === "algorithms" ? { page: "algorithms" } as Route : TAB_ROOT[tab];
+  if (JSON.stringify(current) === JSON.stringify(root)) return;
+  let kept = history.length;
+  while (kept > 1 && history[kept - 1]!.page === current.page && JSON.stringify(history[kept - 1]) !== JSON.stringify(root)) kept--;
+  const trimmed = history.slice(0, kept);
+  set(historyAtom, JSON.stringify(trimmed.at(-1)) === JSON.stringify(root) ? trimmed : [...trimmed, root]);
+  set(navigationKindAtom, "pop");
+  try { storage.setItem(LAST_TAB_KEY, JSON.stringify({ page: root.page })); } catch { /* Best effort. */ }
+});
 /**
  * The profile's own puzzle and solve filters: they browse other puzzles without touching the rest of the app,
  * and are shared by the overview and its detail pages. Unset values follow the app; leaving the profile clears them.

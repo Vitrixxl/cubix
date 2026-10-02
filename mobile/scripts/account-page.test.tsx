@@ -55,7 +55,7 @@ mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/tabs", () => ({ Tabs: "Tabs", TabsList: "TabsList", TabsTrigger: "TabsTrigger" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["Empty", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
+mock.module("../src/components/layout", () => Object.fromEntries(["BackButton", "Empty", "HeadButton", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
 const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom } = await import("../src/state");
@@ -78,18 +78,16 @@ const all = (type: string) => renderer.root.findAllByType(type as any);
 const head = () => all("PageHead")[0]!;
 const card = (title: string) => all("Section").find(node => node.props.title === title)!;
 const texts = () => all("Text").map(node => [node.props.children].flat().join(""));
-const tabs = () => all("Tabs")[0]!;
-const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
+const headButton = (label: string) => all("HeadButton").find(node => node.props.label === label)!;
 const button = (label: string) => all("Button").find(node => node.props.accessibilityLabel === label || node.findAllByType("Text" as any).some(t => [t.props.children].flat().join("") === label))!;
 
 test("the overview shows the account, its activity, timer, training, awards and battles, with the profile's puzzle", async () => {
   await mount();
   expect(texts()).toContain("vitrix");
   expect(texts().some(text => text.startsWith("Joined "))).toBe(true);
-  // No page head on the overview: the user is its header.
+  // No page head on the overview: the user is its header, with the puzzle and the settings.
   expect(all("PageHead")).toHaveLength(0);
-  expect(tabs().props.value).toBe("overview");
-  expect(all("TabsTrigger").map(node => node.props.value)).toEqual(["overview", "playground", "training", "achievements", "duels"]);
+  expect(headButton("Settings")).toBeDefined();
   expect(all("Heatmap")).toHaveLength(1);
   expect(card("Timer").props.meta).toBe("3 solves");
   expect(all("Trend")).toHaveLength(1);
@@ -102,22 +100,13 @@ test("the overview shows the account, its activity, timer, training, awards and 
   expect(all("ChoiceButton")).toHaveLength(0);
 });
 
-test("the account's menu opens the settings and the guides; logging out is its own centred button at the end", async () => {
+test("the gear opens the settings; signing out lives there, not on the overview", async () => {
   const store = await mount();
-  await act(() => item("Settings").props.onPress());
+  await act(() => headButton("Settings").props.onPress());
   expect(store.get(settingsOpenAtom)).toBe(true);
-  await act(() => item("Guides").props.onPress());
-  expect(store.get(guidesAtom)).toBe("about");
-  expect(all("MenuItem").map(node => node.props.children)).toEqual(["Notation", "Guides", "Settings"]);
-  const logOut = button("Log out");
-  expect(logOut.props.className).toContain("w-full");
-  expect(logOut.props.className).toContain("justify-center");
-  // Last thing of the overview, apart from the identity row.
-  const scroll = all("ScrollView")[0]!;
-  const last = scroll.children.at(-1) as any;
-  expect(last.findAllByType("Button" as any)[0]).toBe(logOut);
-  await act(async () => logOut.props.onPress());
-  expect(logout).toHaveBeenCalledTimes(1);
+  expect(all("MenuItem")).toHaveLength(0);
+  expect(texts()).not.toContain("Log out");
+  expect(logout).not.toHaveBeenCalled();
 });
 
 test("the overview reads as identity, figures, activity, then the sections", async () => {
@@ -130,21 +119,23 @@ test("the overview reads as identity, figures, activity, then the sections", asy
   expect(all("Numeric").map(node => node.props.children)).toEqual(expect.arrayContaining(["3", "1", "9.980"]));
 });
 
-test("the cards and the tabs switch sections without adding history", async () => {
+test("a card opens its section as a page over the overview, and its back arrow returns to it", async () => {
   const store = await mount();
   await act(() => card("Timer").props.onMore());
   expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "playground" });
-  expect(tabs().props.value).toBe("playground");
   expect(head().props.title).toBe("Timer");
   expect(all("ChoiceButton").map(node => node.props.label)).toEqual(["Scramble type"]);
   expect(all("TimerStats")[0]!.props.fill).toBe(true);
-  await act(() => tabs().props.onValueChange("training"));
-  expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "training" });
+  await act(() => head().props.lead.props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "profile" });
+  await act(() => card("Training").props.onMore());
   expect(all("TrainingProgress")).toHaveLength(1);
-  await act(() => tabs().props.onValueChange("achievements"));
+  await act(() => head().props.lead.props.onPress());
+  await act(() => card("Achievements").props.onMore());
+  expect(head().props.title).toBe("Achievements");
   expect(all("AchievementTotal")).toHaveLength(1);
   expect(all("AchievementList")).toHaveLength(1);
-  await act(() => tabs().props.onValueChange("overview"));
+  await act(() => head().props.lead.props.onPress());
   expect(store.get(routeAtom)).toEqual({ page: "profile" });
 });
 
@@ -165,7 +156,7 @@ test("an empty timer selection offers to open the timer", async () => {
   // No statistics link without a solve, but a way to the timer.
   expect(card("Timer").props.onMore).toBeUndefined();
   expect(all("Trend")).toHaveLength(0);
-  await act(() => tabs().props.onValueChange("playground"));
+  await act(() => store.set(routeAtom, { page: "profile", mode: "playground" }));
   const stats = all("TimerStats")[0]!;
   expect(stats.props.data.summary.count).toBe(0);
   // The empty state is passed to the statistics, which render it when there is no solve.
