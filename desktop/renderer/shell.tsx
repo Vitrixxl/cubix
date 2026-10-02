@@ -4,8 +4,6 @@ import { motion, useIsPresent } from "motion/react";
 import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, Headset, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
-import { badge, sections } from "./coaching/sections";
-import { Count, url } from "./coaching/parts";
 import { Avatar, FADE, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
@@ -25,9 +23,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 /** The sections: a mortarboard for the method courses, a cube library for the algorithms, a dumbbell for the drills. */
@@ -59,7 +54,8 @@ export function Rail() {
   return (
     // Folded, the icons are named by their tooltips: these come almost at once, and move from icon to icon instantly.
     <TooltipProvider delay={open ? 400 : 80} closeDelay={0}>
-    <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
+    {/* The fade must not drop the width transition: the sidebar would fold at once, ahead of the room it leaves. */}
+    <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE, "transition-[width,opacity]")}>
       <SidebarHeader className="pt-4">
         {/* The puzzle's mark, which picks the puzzle every page works on, the name, and the button folding the sidebar to
             its icons; folded, the mark and that button stand one above the other. */}
@@ -125,7 +121,7 @@ export function Rail() {
                   <I />
                   <span>{label}</span>
                 </SidebarMenuButton>
-                {page === "coaching" && !!coaching.me?.unread && !(open && s.page === "coaching") && (
+                {page === "coaching" && !!coaching.me?.unread && (
                   <>
                     <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0">
                       {coaching.me.unread}
@@ -137,7 +133,6 @@ export function Rail() {
                 <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
                   {shortcut}
                 </Kbd>
-                {page === "coaching" && s.page === "coaching" && <CoachingSections />}
               </SidebarMenuItem>
               );
             })}
@@ -205,32 +200,6 @@ export function Rail() {
       </SidebarFooter>
     </Sidebar>
     </TooltipProvider>
-  );
-}
-
-/** On the coaching page, its sections under Coaching; a coach's own come first, a line apart from a player's. */
-function CoachingSections() {
-  const view = s.coachingView.split("/")[0];
-  return (
-    <SidebarMenuSub aria-label="Coaching" data-slot="coaching-nav" className="mt-0.5">
-      {sections().map((group, i) =>
-        group.map(([id, label, I], j) => (
-          <SidebarMenuSubItem key={id} className={cn(i > 0 && j === 0 && "mt-1 border-t border-sidebar-border pt-1")}>
-            <SidebarMenuSubButton
-              render={<Link to={url(id)} />}
-              data-action={"coaching:" + id}
-              isActive={view === id}
-              aria-current={view === id ? "page" : undefined}
-              className="h-8 text-muted-foreground data-active:text-foreground [&>svg]:text-current"
-            >
-              <I />
-              <span className="truncate">{label}</span>
-              <Count n={badge(id)} />
-            </SidebarMenuSubButton>
-          </SidebarMenuSubItem>
-        )),
-      )}
-    </SidebarMenuSub>
   );
 }
 

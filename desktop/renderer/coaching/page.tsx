@@ -1,12 +1,12 @@
 /**
  * The coaching page. Players find a coach, book one of their slots, follow their sessions and talk with them; coaches
- * also get their dashboard, students, schedule and profile. The sections stand under Coaching in the app's sidebar (a
- * menu on phones and with the sidebar folded); a coach's page, their booking and a call take the whole page.
+ * also get their dashboard, students, schedule and profile. The sections are a second sidebar sliding out of the app's
+ * (a menu on phones); a coach's page, their booking and a call take the whole page.
  */
 import { useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { store as s } from "../store";
-import { PAGE, PageHead } from "../ui";
+import { PAGE, PageHead, usePhone } from "../ui";
 import { go } from "../navigation";
 import { coaching } from "./client";
 import { Count, url } from "./parts";
@@ -20,7 +20,6 @@ import { Schedule } from "./schedule";
 import { CallView } from "./callView";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
-import { useSidebar } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function CoachingPage() {
@@ -42,8 +41,8 @@ export function CoachingPage() {
 }
 
 function Shell({ view, arg }: { view: string; arg: string }) {
-  // The sections stand under Coaching in the labelled sidebar; folded to its icons (and on phones), a menu here holds them.
-  const menu = !useSidebar().open;
+  // The sections slide out of the app's sidebar (coaching/rail.tsx); phones keep them in a menu here.
+  const menu = usePhone();
   const current = sections().flat().find(([id]) => id === view);
   const body =
     view === "dashboard" ? (

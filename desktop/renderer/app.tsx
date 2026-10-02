@@ -14,6 +14,7 @@ import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
 import { DuelPage } from "./duel";
 import { CoachingPage } from "./coaching/page";
+import { CoachingSidebar } from "./coaching/rail";
 import { coaching } from "./coaching/client";
 import { Learn } from "./learn";
 import { Overlays } from "./overlays";
@@ -158,12 +159,19 @@ function App() {
     <TooltipProvider delay={400}>
       <MotionConfig reducedMotion="user">
         <WindowSidebar
+          compact={s.page === "coaching"}
           data-app-shell=""
           data-running={s.running ? "" : undefined}
           className="group/app h-svh min-h-0 overflow-hidden bg-background max-md:flex-col"
           style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "calc(3rem + 1px)" } as React.CSSProperties}
         >
-          {!mobile && <Rail />}
+          {/* The coaching sidebar pushes out of the app's, side by side with it. */}
+          {!mobile && (
+            <div className="flex shrink-0">
+              <Rail />
+              <CoachingSidebar open={s.page === "coaching"} />
+            </div>
+          )}
           <SidebarInset className="relative min-h-0 min-w-0 overflow-hidden">
             {!s.ready ? (
               <PageSkeleton side={!mobile} />

@@ -49,18 +49,26 @@ export const usePhone = () => isPhone(useViewport().w);
 export const SIDEBAR_WIDE = 1100;
 const FOLDED_KEY = "cubix.sidebar.folded";
 
-/** The sidebar of a window: labelled on wide windows unless the user folded it (remembered), icons only below. */
-export function WindowSidebar(props: Omit<React.ComponentProps<typeof SidebarProvider>, "open" | "onOpenChange">) {
+/**
+ * The sidebar of a window: labelled on wide windows unless the user folded it (remembered), icons only below. A page
+ * that needs the room (`compact`) folds it while it is shown; unfolding it there lasts until the page is left.
+ */
+export function WindowSidebar({ compact = false, ...props }: Omit<React.ComponentProps<typeof SidebarProvider>, "open" | "onOpenChange"> & { compact?: boolean }) {
   const wide = useViewport().w > SIDEBAR_WIDE,
-    [folded, setFolded] = useState(() => localStorage.getItem(FOLDED_KEY) === "1");
+    [folded, setFolded] = useState(() => localStorage.getItem(FOLDED_KEY) === "1"),
+    [unfolded, setUnfolded] = useState(false);
+  useEffect(() => {
+    if (!compact) setUnfolded(false);
+  }, [compact]);
   const change = (open: boolean) => {
     if (!wide) return;
+    if (compact) return setUnfolded(open);
     setFolded(!open);
     try {
       localStorage.setItem(FOLDED_KEY, open ? "0" : "1");
     } catch {}
   };
-  return <SidebarProvider open={wide && !folded} onOpenChange={change} {...props} />;
+  return <SidebarProvider open={wide && (compact ? unfolded : !folded)} onOpenChange={change} {...props} />;
 }
 
 /** An SVG of desktop/assets/icons drawn in the current colour: the WCA puzzle icons. */
