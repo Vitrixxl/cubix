@@ -137,7 +137,7 @@ function App() {
         (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
         (s.page === "profile" ? ":" + s.profileMode : "") +
         (s.page === "training" ? ":" + s.trainingStep : "") +
-        (s.page === "learn" ? ":" + (s.learnMethod || "methods") : "") +
+        (s.page === "learn" ? ":" + (s.learnMethod || s.learnSection || "home") : "") +
         // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
         (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "");
   const slide = { direction: s.direction, axis: s.axis };

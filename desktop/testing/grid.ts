@@ -90,15 +90,18 @@ const act = async (page: Page, action: string) => {
   await target.first().click();
   await settle(page);
 };
-/** Opens a method's course: on phones its row, on wider windows its entry in the list, then Start. */
+/** Opens a method's course from its card in the list of methods. */
 async function openMethod(page: Page, id: string) {
-  if (await page.locator(`[data-action="learnPick:${id}"]:visible`).count()) await act(page, "learnPick:" + id);
+  // Learn opens on the choice between methods and algorithms; the methods are a step further.
+  if (!(await page.locator(`[data-action="learnMethod:${id}"]:visible`).count())) await act(page, "learnMethods");
   await act(page, "learnMethod:" + id);
 }
 /** Shows a step of the open course: from the list of steps, in its sheet on phones. */
 async function learnStep(page: Page, index: number) {
   if (!(await page.locator(`[data-action="learnStep:${index}"]:visible`).count())) await act(page, "learnSteps");
   await act(page, "learnStep:" + index);
+  // Ahead of steps not done, it asks whether they were finished: just open the step.
+  if (await page.locator('[data-action="learnJump:open"]:visible').count()) await act(page, "learnJump:open");
 }
 const results: [string, string[]][] = [];
 async function check(page: Page, screen: string) {

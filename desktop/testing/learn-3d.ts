@@ -27,12 +27,15 @@ async function act(page: Page, action: string) {
   await settle(page);
 }
 async function openMethod(page: Page, id: string) {
-  if (await page.locator(`[data-action="learnPick:${id}"]:visible`).count()) await act(page, "learnPick:" + id);
+  // Learn opens on the choice between methods and algorithms; the methods are a step further.
+  if (!(await page.locator(`[data-action="learnMethod:${id}"]:visible`).count())) await act(page, "learnMethods");
   await act(page, "learnMethod:" + id);
 }
 async function learnStep(page: Page, index: number) {
   if (!(await page.locator(`[data-action="learnStep:${index}"]:visible`).count())) await act(page, "learnSteps");
   await act(page, "learnStep:" + index);
+  // Ahead of steps not done, it asks whether they were finished: just open the step.
+  if (await page.locator('[data-action="learnJump:open"]:visible').count()) await act(page, "learnJump:open");
 }
 const shot = async (page: Page, name: string) => {
   await settle(page);

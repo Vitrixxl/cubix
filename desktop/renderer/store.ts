@@ -9,7 +9,7 @@ import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
-import { completeStep, courseEntry, courseStorageKey, finishCourse, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
+import { completeStep, completeStepsBefore, courseEntry, courseStorageKey, finishCourse, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, toggleStepDone, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import { LOCKED_PAGES, PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey } from "../../src/client/lib/journey";
@@ -139,8 +139,10 @@ export class Store {
   crossSolutions: { scramble: string; list: { moves: string; slot: string }[] | null } | null = null;
   /** Mode highlighted on the training setup screen, before it starts. */
   setupMode = "";
-  /** The method whose course the Learn page shows; empty, the list of methods. */
+  /** The method whose course the Learn page shows; empty, the list of methods or the choice above it. */
   learnMethod = "";
+  /** Without a method: "methods" for their list (/learn/methods), empty for the choice between methods and algorithms. */
+  learnSection = "";
   /** The coaching view and its argument, as in /coaching/<view>/<id>. */
   coachingView = "";
   /** Method highlighted in the list of methods, before it is opened. */
@@ -592,7 +594,11 @@ export class Store {
     const method = methodOf(this.puzzle as PuzzleId, route.learnMethod) ? route.learnMethod : "";
     this.axis = page === this.page ? "x" : "y";
     this.direction = slideDirection(this.location(), { page, caseId });
-    if (page === this.page && page === "learn") this.direction = method && method === this.learnMethod && route.learnStep !== undefined ? Math.sign(route.learnStep - (this.learning?.entry.step ?? 0)) || 1 : method ? 1 : -1;
+    const section = !method && route.learnMethod === "methods" ? "methods" : "";
+    // Learn goes deeper from the choice to the methods, then to a course; within a course, with its steps.
+    const depth = (m: string, sec: string) => (m ? 2 : sec ? 1 : 0);
+    if (page === this.page && page === "learn")
+      this.direction = method && method === this.learnMethod && route.learnStep !== undefined ? Math.sign(route.learnStep - (this.learning?.entry.step ?? 0)) || 1 : Math.sign(depth(method, section) - depth(this.learnMethod, this.learnSection)) || 1;
     if (page === this.page && page === "profile") this.direction = route.profileMode === "overview" ? -1 : 1;
     // Deeper into coaching (a coach, a call) pushes forward; back to a list comes back.
     if (page === this.page && page === "coaching") this.direction = (route.coaching ?? "").split("/").length >= this.coachingView.split("/").length ? 1 : -1;
@@ -601,7 +607,7 @@ export class Store {
       this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
     this.page = page; this.caseId = caseId; this.profileMode = route.profileMode;
-    this.trainingStep = route.trainingStep; this.learnMethod = method;
+    this.trainingStep = route.trainingStep; this.learnMethod = method; this.learnSection = section;
     if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
     if (method) this.learnPick = method;
     this.learnFinished = false;
@@ -1030,6 +1036,9 @@ export class Store {
           break;
         }
         case "learnMethods":
+          goPage("learn", { puzzle: this.puzzle as PuzzleId, learnMethod: "methods" });
+          break;
+        case "learnHome":
           goPage("learn", { puzzle: this.puzzle as PuzzleId });
           break;
         case "learnFrom": {
@@ -1042,6 +1051,13 @@ export class Store {
         case "learnStep":
           this.learnStep(Number(arg));
           break;
+        case "learnJump": {
+          // A step further on, once asked whether the steps before it are finished ("<step>:done" if they are).
+          const [index, answer] = arg.split(":"), course = this.learning;
+          if (course && answer === "done") this.saveCourse(completeStepsBefore(this.course, course.puzzle, course.method.id, Number(index)));
+          this.learnStep(Number(index));
+          break;
+        }
         case "learnNext": {
           const course = this.learning;
           if (!course) break;

@@ -1,201 +1,147 @@
 /** The training setup screen: what to practise, before the timer. */
-import { isLearningTrack, isReviewMode, learningCases, learningTrackOf, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
+import { isLearningTrack, isReviewMode, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { shortId } from "../../src/client/lib/caseState";
-import { BookOpen, Box, Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Play, Search, type LucideIcon } from "lucide-react";
+import { Box, Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Play, Search, type LucideIcon } from "lucide-react";
 import { store as s, catalog, matches } from "./store";
 import { Button, Diagram, Figure, NUMERIC, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
+import { Picker, PickerCard } from "./picker";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
-type SetupMode = { id: string; label: string; detail: string; icon: LucideIcon };
+type SetupMode = { id: string; label: string; summary: string; detail: string; icon: LucideIcon };
 
+/** The ways to practise; learning a set case by case belongs to Learn, not here. */
 function setupModes(): SetupMode[] {
-  const learned = (cases: any[]) => cases.filter((c) => s.learned.has(c.id)).length;
   return [
-    ...(s.puzzle === "333" ? [{ id: "cross1", label: "Cross + 1", detail: `${s.crossMoves}-move first block`, icon: Box }] : []),
-    ...trainingModeOptions(s.puzzle).map(({ value, label }) => {
-      const pool = isLearningTrack(value) ? learningCases(catalog.cases, value) : [];
-      return {
+    ...(s.puzzle === "333" ? [{ id: "cross1", label: "Cross + 1", summary: "Scrambles whose first block takes an exact number of moves, to plan it in inspection.", detail: `${s.crossMoves}-move first block`, icon: Box }] : []),
+    ...trainingModeOptions(s.puzzle)
+      .filter(({ value }) => !isLearningTrack(value))
+      .map(({ value, label }) => ({
         id: value as string,
         label,
-        icon: value === "practice" ? LayoutGrid : value === "review" ? Check : BookOpen,
-        detail:
-          value === "practice"
-            ? plural(s.selected.size, "case") + " selected"
-            : value === "review"
-              ? plural(reviewCases(catalog.cases, s.learned, s.puzzle).length, "learned case")
-              : `${learned(pool)} / ${pool.length} learned`,
-      };
-    }),
+        icon: value === "practice" ? LayoutGrid : Check,
+        summary: value === "practice" ? "Pick the cases you want and drill them, one scramble after another." : "Every case you marked as learned, drawn at random, so none slips away.",
+        detail: value === "practice" ? plural(s.selected.size, "case") + " selected" : plural(reviewCases(catalog.cases, s.learned, s.puzzle).length, "learned case"),
+      })),
   ];
 }
 
-/** The mode the setup screen opens on: the one trained last. */
-function defaultSetupMode() {
+/** The mode trained last, marked on the choice. */
+function lastSetupMode() {
   if (s.trainingKind === "cross1" && s.puzzle === "333") return "cross1";
-  const mode = s.learningMode;
-  return isReviewMode(mode) ? "review" : learningTrackOf(mode) ?? "practice";
+  return isReviewMode(s.learningMode) ? "review" : "practice";
 }
 
-/** Training starts here: the modes listed on the left, the chosen one on the right with what it needs and its start. */
+/** Training starts here: the ways to practise as large cards in the middle; the chosen one on its own page, its Start beside what it needs. */
 export function TrainingSetup() {
   const modes = setupModes(),
-    current = modes.find((m) => m.id === (s.setupMode || defaultSetupMode())) ?? modes[0]!;
-  if (usePhone()) return <PhoneSetup modes={modes} />;
-  return (
-    <div className={PAGE}>
-      <PageHead title="Training" puzzle sub="Pick a way to practise, then start" />
-      <div className="flex min-h-0 flex-1 gap-6 max-md:flex-col max-md:gap-3 xl:gap-8">
-        <nav
-          aria-label="Training modes"
-          data-tour="training"
-          className="flex shrink-0 flex-col gap-0.5 overflow-y-auto rounded-xl border bg-card p-2 md:w-64"
-        >
-          {modes.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              data-action={"setupMode:" + m.id}
-              aria-current={m === current ? "true" : undefined}
-              onClick={run("setupMode:" + m.id)}
-              className={cn(
-                "flex shrink-0 items-center gap-3 rounded-lg px-2.5 py-2 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50",
-                m === current && "bg-muted hover:bg-muted",
-              )}
-            >
-              <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground", m === current && "bg-primary/15 text-primary")}>
-                <m.icon className="size-4" />
-              </span>
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">{m.label}</span>
-                <span className="truncate text-xs text-muted-foreground">{m.detail}</span>
-              </span>
-            </button>
-          ))}
-        </nav>
-        {/* The modes are the box; the chosen one sits on the page. */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col" key={current.id}>
-          {current.id === "cross1" ? <CrossSetup /> : current.id === "practice" ? <CasesSetup /> : <LearningSetup mode={current.id} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Phones: a step flow. First the ways to practise as large rows, the one trained last marked; then the chosen one on
- * its own page, back to the list in the header and its Start at the bottom, under the thumb.
- */
-function PhoneSetup({ modes }: { modes: SetupMode[] }) {
-  const chosen = modes.find((m) => m.id === s.setupMode),
-    last = defaultSetupMode();
+    chosen = modes.find((m) => m.id === s.setupMode),
+    last = lastSetupMode(),
+    phone = usePhone();
   if (!chosen)
     return (
       <div className={PAGE}>
-        <PageHead title="Training" puzzle />
-        <p className="-mt-1 text-sm text-muted-foreground">Pick a way to practise.</p>
-        <Surface className="shrink-0">
-          <nav aria-label="Training modes" data-tour="training" className="flex flex-col">
-            {modes.map((m, i) => (
-              <button
-                key={m.id}
-                type="button"
-                data-action={"setupMode:" + m.id}
-                onClick={run("setupMode:" + m.id)}
-                className={cn("flex min-h-16 items-center gap-3 px-4 text-left outline-none active:bg-muted/50", i > 0 && "border-t")}
-              >
-                <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground", m.id === last && "bg-primary/15 text-primary")}>
-                  <m.icon className="size-[18px]" />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-[15px] font-medium">{m.label}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {m.detail}
-                    {m.id === last && " · last trained"}
-                  </span>
-                </span>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </button>
-            ))}
-          </nav>
-        </Surface>
+        <PageHead title="Training" puzzle sub="Pick a way to practise" />
+        <Picker label="Training modes" tour="training">
+          {modes.map((m) => (
+            <PickerCard key={m.id} action={"setupMode:" + m.id} icon={<m.icon />} title={m.label} detail={m.summary} meta={m.detail} marked={m.id === last} badge={m.id === last ? "Last trained" : undefined} />
+          ))}
+        </Picker>
       </div>
     );
+  const body = chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <ReviewSetup />;
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip="Every way to practise" className="size-8 max-md:size-10" />} title={chosen.label} sub={chosen.detail} />
-      <Surface className="flex-1" key={chosen.id}>
-        {chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <LearningSetup mode={chosen.id} />}
-      </Surface>
+      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip="Every way to practise" className="size-8 max-md:size-10" />} title={chosen.label} sub={chosen.detail} puzzle />
+      {phone && chosen.id === "practice" ? (
+        <Surface className="flex-1" key={chosen.id}>
+          {body}
+        </Surface>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col" key={chosen.id}>
+          {body}
+        </div>
+      )}
     </div>
   );
 }
 
-/** The foot of the setup surface: what the start will train, and the start. */
+/** The start of a mode, large. */
+function Start({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
+  return (
+    <Button action={action} variant="default" size="lg" icon={Play} disabled={disabled} className="h-11 px-6">
+      {children}
+    </Button>
+  );
+}
+
+/** Phones: what the start will train and the start, at the bottom of a long list, under the thumb. */
 function SetupFoot({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
   return (
-    <footer className="flex shrink-0 items-center justify-between gap-4 border-t bg-muted/30 px-4 py-3 md:bg-transparent md:px-1 md:pb-0">
+    <footer className="flex shrink-0 items-center justify-between gap-4 border-t bg-muted/30 px-4 py-3">
       <span className="min-w-0 truncate text-sm text-muted-foreground">{children}</span>
-      <Button action={action} variant="default" size="lg" icon={Play} disabled={disabled} className="px-4 max-md:h-11 max-md:px-6">
+      <Start action={action} disabled={disabled}>
         Start
-      </Button>
+      </Start>
     </footer>
   );
 }
 
-/** The chosen mode's title and description. */
-function SetupTitle({ title, meta, children, aside }: { title: string; meta?: React.ReactNode; aside?: React.ReactNode } & Props) {
+/** A mode whose whole choice fits: its line, what it needs, then its start, together in the middle of the page. */
+function Centred({ text, children }: { text: string } & Props) {
   return (
-    <header className="flex shrink-0 flex-wrap items-end justify-between gap-4 px-4 pt-4 md:px-1 md:pt-1">
-      <div className="flex max-w-xl min-w-0 flex-col gap-1.5">
-        <h2 className="text-xl font-semibold tracking-tight max-md:hidden md:text-2xl">
-          {title}
-          {meta != null && <span className={cn(NUMERIC, "ml-2 text-base font-normal text-muted-foreground")}>{meta}</span>}
-        </h2>
-        {children && <p className="text-sm text-muted-foreground">{children}</p>}
-      </div>
-      {aside}
-    </header>
-  );
-}
-
-/** The choice sits in the middle of the screen: the title, its line, then the three move counts. */
-function CrossSetup() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-4 py-6 text-center">
-        <div className="flex max-w-xl flex-col items-center gap-1.5">
-          <h2 className="text-xl font-semibold tracking-tight max-md:hidden md:text-2xl">Cross + 1</h2>
-          <p className="text-sm text-muted-foreground">Scrambles whose back block takes exactly the chosen number of moves.</p>
-        </div>
-        <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label="Moves">
-          {CROSS_PLUS_ONE_MOVES.map((n) => (
-            <button
-              key={n}
-              type="button"
-              role="radio"
-              aria-checked={s.crossMoves === n}
-              data-action={"crossMoves:" + n}
-              onClick={run("crossMoves:" + n)}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg bg-muted/40 px-4 py-5 outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50",
-                s.crossMoves === n && "bg-primary/12 hover:bg-primary/15",
-              )}
-            >
-              <span className={cn(NUMERIC, "text-4xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
-              <span className="text-xs text-muted-foreground">moves</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <SetupFoot action="trainingStart:cross1">First block in {s.crossMoves} moves</SetupFoot>
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-4 py-6 text-center">
+      <p className="max-w-md text-sm text-muted-foreground">{text}</p>
+      {children}
     </div>
   );
 }
 
+function CrossSetup() {
+  return (
+    <Centred text="Scrambles whose back block takes exactly the chosen number of moves.">
+      <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label="Moves">
+        {CROSS_PLUS_ONE_MOVES.map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={s.crossMoves === n}
+            data-action={"crossMoves:" + n}
+            onClick={run("crossMoves:" + n)}
+            className={cn(
+              "flex flex-1 flex-col items-center gap-1 rounded-xl border bg-card px-4 py-5 outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/50",
+              s.crossMoves === n && "border-primary/50 bg-primary/10 hover:border-primary/50",
+            )}
+          >
+            <span className={cn(NUMERIC, "text-4xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
+            <span className="text-xs text-muted-foreground">moves</span>
+          </button>
+        ))}
+      </div>
+      <Start action="trainingStart:cross1">Start · {s.crossMoves} moves</Start>
+    </Centred>
+  );
+}
+
+function ReviewSetup() {
+  const pool = reviewCases(catalog.cases, s.learned, s.puzzle);
+  return (
+    <Centred text="Every case you marked as learned, drawn at random.">
+      <Figure label="Learned cases" value={pool.length} size="2xl" />
+      <Start action={"trainingStart:cases:review"} disabled={!pool.length}>
+        Start
+      </Start>
+    </Centred>
+  );
+}
+
+/** The cases to drill, set by set; the selection's count, the search and the start above them. */
 function CasesSetup() {
-  const cases = s.cases();
+  const cases = s.cases(),
+    phone = usePhone(),
+    summary = s.selected.size ? plural(s.selected.size, "case") + " selected" : "Select the cases to practise";
   const search = (
     <InputGroup className="w-56 max-md:w-full">
       <InputGroupInput
@@ -214,17 +160,20 @@ function CasesSetup() {
   );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <SetupTitle
-        title="Free practice"
-        aside={
-          <div className="flex items-center gap-2 max-md:w-full">
-            {search}
-            <Button action="clear" disabled={!s.selected.size}>
-              Clear
-            </Button>
-          </div>
-        }
-      />
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 pt-4 md:px-1 md:pt-1">
+        {!phone && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{summary}</span>}
+        <div className="flex items-center gap-2 max-md:w-full">
+          {search}
+          <Button action="clear" disabled={!s.selected.size}>
+            Clear
+          </Button>
+          {!phone && (
+            <Start action="trainingStart:cases:practice" disabled={!s.selected.size}>
+              Start
+            </Start>
+          )}
+        </div>
+      </header>
       {/* The set and group rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto border-t px-2 pt-2">
         {s.allSets().map((set: any) => {
@@ -305,36 +254,11 @@ function CasesSetup() {
           );
         })}
       </div>
-      <SetupFoot action="trainingStart:cases:practice" disabled={!s.selected.size}>
-        {s.selected.size ? plural(s.selected.size, "case") + " selected" : "Select the cases to practise"}
-      </SetupFoot>
-    </div>
-  );
-}
-
-function LearningSetup({ mode }: { mode: string }) {
-  const review = mode === "review",
-    track = isLearningTrack(mode) ? mode : undefined,
-    pool = track ? learningCases(catalog.cases, track) : reviewCases(catalog.cases, s.learned, s.puzzle),
-    learned = pool.filter((c) => s.learned.has(c.id)).length;
-  const figures: [string, number][] = review
-    ? [["Learned cases", pool.length]]
-    : [["Cases", pool.length], ["Learned", learned], ["Left", pool.length - learned]];
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-6">
-        <SetupTitle title={review ? "Review learned" : `Learn ${track}`}>
-          {review ? "Every case you marked as learned, drawn at random." : `One new ${track} case a day, group by group, until the set is learned.`}
-        </SetupTitle>
-        <div className="flex gap-10 px-4 md:gap-12 md:px-1">
-          {figures.map(([label, value]) => (
-            <Figure key={label} label={label} value={value} size="2xl" />
-          ))}
-        </div>
-      </div>
-      <SetupFoot action={"trainingStart:cases:" + mode} disabled={review && !pool.length}>
-        {review ? plural(pool.length, "learned case") : `${learned} of ${pool.length} learned`}
-      </SetupFoot>
+      {phone && (
+        <SetupFoot action="trainingStart:cases:practice" disabled={!s.selected.size}>
+          {summary}
+        </SetupFoot>
+      )}
     </div>
   );
 }

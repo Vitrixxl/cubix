@@ -85,6 +85,11 @@ export function completeStep(progress: CourseProgress, puzzle: PuzzleId, method:
     step: Math.min(steps.length - 1, index + 1),
   }));
 }
+/** Jumping ahead: the steps before `index` done, as the player said they finished them. */
+export function completeStepsBefore(progress: CourseProgress, puzzle: PuzzleId, method: string, index: number): CourseProgress {
+  const before = (methodOf(puzzle, method)?.steps ?? []).slice(0, Math.max(0, index)).map(stepId);
+  return before.length ? update(progress, puzzle, method, entry => ({ ...entry, done: [...new Set([...entry.done, ...before])] })) : progress;
+}
 /** Finish: every step of the method done, the last one still shown. */
 export function finishCourse(progress: CourseProgress, puzzle: PuzzleId, method: string): CourseProgress {
   const steps = methodOf(puzzle, method)?.steps ?? [];
