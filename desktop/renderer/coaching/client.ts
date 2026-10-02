@@ -205,8 +205,12 @@ export interface Slots {
 }
 /** What a call hears on the socket. */
 export type CallEvent =
-  | { type: "joined"; booking: string; peer: boolean }
-  | { type: "peer"; booking: string; present: boolean }
+  /** In the call: whether the other party is there too, else whether they have the app open. */
+  | { type: "joined"; booking: string; peer: boolean; online?: boolean }
+  /** The other party came, or went: on purpose ("left") or with their app ("lost"). */
+  | { type: "peer"; booking: string; present: boolean; reason?: "left" | "lost" }
+  /** The other party, not in the call yet, opened or closed the app. */
+  | { type: "online"; booking: string; online: boolean }
   | { type: "signal"; booking: string; data: any }
   | { type: "ended"; booking: string; reason: string }
   /** The socket closed, or came back. */
@@ -578,6 +582,7 @@ class Coaching {
         break;
       case "joined":
       case "peer":
+      case "online":
       case "signal":
       case "ended":
         this.callListener?.(event);

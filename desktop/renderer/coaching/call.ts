@@ -9,6 +9,14 @@ import { store as s } from "../store";
 import { coaching, type Booking, type CallEvent } from "./client";
 
 export type CallPhase = "starting" | "waiting" | "connecting" | "connected" | "ended";
+/**
+ * Why the connection does not come: this browser found no network route ("no-route"), the other party's did not
+ * ("peer-no-route"), or the two never reached each other ("unreachable").
+ */
+export type CallTrouble = "" | "no-route" | "peer-no-route" | "unreachable";
+
+/** How long a connection may take before the call says it cannot reach the other party. */
+const CONNECT_TIMEOUT = 20_000;
 
 export class Call {
   phase: CallPhase = "starting";
@@ -22,6 +30,15 @@ export class Call {
   /** What the other party said about their own devices. */
   peerMic = true;
   peerCamera = true;
+  /** Whether the other party has the app open, while they are not in the call. */
+  peerOnline = true;
+  /** How the other party went, until they come back. */
+  peerGone: "" | "left" | "lost" = "";
+  /** Our own link to the server dropped: the call waits for it to come back. */
+  offline = false;
+  trouble: CallTrouble = "";
+  /** The connection dropped once made, and tries to come back. */
+  unstable = false;
   devices = { audio: false, video: false };
   private pc?: RTCPeerConnection;
   private audio?: RTCRtpTransceiver;
@@ -32,6 +49,7 @@ export class Call {
   private closed = false;
   /** Socket events are handled one after the other: each may wait on the connection. */
   private queue = Promise.resolve();
+  private timer?: ReturnType<typeof setTimeout>;
 
   constructor(public booking: Booking) {}
   get offers() {
@@ -77,11 +95,14 @@ export class Call {
     if (this.closed) return;
     if (event.type === "ready") {
       // The socket came back: enter the call again.
+      this.offline = false;
       if (this.phase !== "ended") this.join();
+      this.emit();
       return;
     }
     if (event.type === "lost") {
       this.reset();
+      this.offline = true;
       this.phase = "waiting";
       this.emit();
       return;
@@ -90,16 +111,23 @@ export class Call {
     switch (event.type) {
       case "joined":
         this.phase = event.peer ? "connecting" : "waiting";
+        this.peerOnline = event.peer || event.online !== false;
         if (event.peer) await this.connect();
         break;
       case "peer":
         if (event.present) {
           this.phase = "connecting";
+          this.peerGone = "";
+          this.peerOnline = true;
           await this.connect();
         } else {
           this.reset();
           this.phase = "waiting";
+          this.peerGone = event.reason === "left" ? "left" : "lost";
         }
+        break;
+      case "online":
+        this.peerOnline = event.online;
         break;
       case "ended":
         this.phase = "ended";
@@ -123,17 +151,42 @@ export class Call {
       if (!this.remote.getTracks().includes(e.track)) this.remote.addTrack(e.track);
       this.emit();
     };
-    pc.onicecandidate = (e) => e.candidate && this.send({ candidate: e.candidate.toJSON() });
+    let candidates = 0;
+    pc.onicecandidate = (e) => {
+      if (!e.candidate) return;
+      candidates++;
+      this.send({ candidate: e.candidate.toJSON() });
+    };
+    pc.onicegatheringstatechange = () => {
+      // Done looking without a single way out: this browser cannot make the call (seen with some Chromium builds).
+      if (pc !== this.pc || pc.iceGatheringState !== "complete" || candidates) return;
+      this.trouble = "no-route";
+      this.send({ failure: "no-route" });
+      this.emit();
+    };
     pc.onconnectionstatechange = () => {
       if (pc !== this.pc) return;
-      if (pc.connectionState === "connected") this.phase = "connected";
-      else if (pc.connectionState === "failed") {
+      if (pc.connectionState === "connected") {
+        this.phase = "connected";
+        this.trouble = "";
+        this.unstable = false;
+        clearTimeout(this.timer);
+      } else if (pc.connectionState === "disconnected" && this.phase === "connected") {
         this.phase = "connecting";
+        this.unstable = true;
+      } else if (pc.connectionState === "failed") {
+        this.phase = "connecting";
+        this.trouble ||= "unreachable";
         // A broken path gets a new negotiation from the coach.
         if (this.offers) void this.offer(true);
       }
       this.emit();
     };
+    this.timer = setTimeout(() => {
+      if (pc !== this.pc || this.phase === "connected") return;
+      this.trouble ||= "unreachable";
+      this.emit();
+    }, CONNECT_TIMEOUT);
     if (this.offers) {
       this.audio = pc.addTransceiver(this.local.getAudioTracks()[0] ?? "audio", { direction: "sendrecv", streams: [this.local] });
       this.video = pc.addTransceiver(this.screenTrack() ?? this.local.getVideoTracks()[0] ?? "video", { direction: "sendrecv", streams: [this.local] });
@@ -151,6 +204,15 @@ export class Call {
       this.peerMic = !!data.state.mic;
       this.peerCamera = !!data.state.camera;
       return;
+    }
+    if (data.failure) {
+      if (data.failure === "no-route" && this.trouble !== "no-route") this.trouble = "peer-no-route";
+      return;
+    }
+    if (data.retry) {
+      // The other party tries again: a fresh connection, offered by the coach.
+      this.phase = "connecting";
+      return this.connect();
     }
     if (!this.pc) await this.connect();
     const pc = this.pc!;
@@ -182,7 +244,20 @@ export class Call {
   private sendState() {
     this.send({ state: { mic: this.mic, camera: this.camera || this.sharing } });
   }
+  /** Starts the connection afresh on both sides, after it could not be made. */
+  retry() {
+    this.queue = this.queue.then(async () => {
+      if (this.closed || this.phase !== "connecting") return;
+      this.send({ retry: true });
+      await this.connect();
+      this.emit();
+    });
+    this.emit();
+  }
   private reset() {
+    clearTimeout(this.timer);
+    this.trouble = "";
+    this.unstable = false;
     this.pc?.close();
     this.pc = this.audio = this.video = undefined;
     this.pending = [];

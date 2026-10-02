@@ -1227,6 +1227,10 @@ struct Inner {
     sockets: HashMap<String, HashMap<Uuid, Outbox>>,
     /// Who is in each session's call: the account and the socket it joined from.
     calls: HashMap<String, Vec<(String, Uuid)>>,
+    /// The two accounts of each call under way, so whoever waits hears when the other one opens or closes the app.
+    parties: HashMap<String, [String; 2]>,
+    /// The username of each account that joined a call, to tell the other party who waits.
+    names: HashMap<String, String>,
 }
 /// The open apps and the calls under way.
 #[derive(Default)]
@@ -1242,17 +1246,36 @@ impl Inner {
             let _ = tx.send(value.clone());
         }
     }
-    fn leave(&mut self, booking: &str, socket: Uuid) {
+    /// Takes a socket out of a call; the one left in hears why: "left" (on purpose) or "lost" (the app went away).
+    fn leave(&mut self, booking: &str, socket: Uuid, reason: &str) {
         let Some(members) = self.calls.get_mut(booking) else { return };
         let Some(i) = members.iter().position(|(_, s)| *s == socket) else { return };
         let (user, _) = members.remove(i);
         let rest = members.clone();
         if rest.is_empty() {
             self.calls.remove(booking);
+            self.parties.remove(booking);
         }
         for (other, socket) in rest {
-            self.send(&other, socket, json!({"type": "peer", "booking": booking, "present": false}));
+            self.send(&other, socket, json!({"type": "peer", "booking": booking, "present": false, "reason": reason}));
             self.notify(&other, &json!({"type": "presence", "booking": booking, "user": user, "inCall": false}));
+        }
+    }
+}
+impl Inner {
+    /// Tells whoever waits in a call for `user` that their app opened or closed; an app that opens hears who waits.
+    fn online(&self, user: &str, online: bool) {
+        for (booking, members) in &self.calls {
+            if !self.parties.get(booking).is_some_and(|p| p.iter().any(|u| u == user)) || members.iter().any(|(u, _)| u == user) {
+                continue;
+            }
+            for (other, socket) in members {
+                self.send(other, *socket, json!({"type": "online", "booking": booking, "online": online}));
+                if online {
+                    let name = self.names.get(other).cloned().unwrap_or_default();
+                    self.notify(user, &json!({"type": "presence", "booking": booking, "user": name, "inCall": true}));
+                }
+            }
         }
     }
 }
@@ -1262,7 +1285,12 @@ impl Rooms {
         self.0.lock().unwrap().notify(user, &value);
     }
     fn add(&self, user: &str, socket: Uuid, tx: Outbox) {
-        self.0.lock().unwrap().sockets.entry(user.to_owned()).or_default().insert(socket, tx);
+        let mut inner = self.0.lock().unwrap();
+        let first = !inner.sockets.contains_key(user);
+        inner.sockets.entry(user.to_owned()).or_default().insert(socket, tx);
+        if first {
+            inner.online(user, true);
+        }
     }
     fn remove(&self, user: &str, socket: Uuid) {
         let mut inner = self.0.lock().unwrap();
@@ -1273,19 +1301,23 @@ impl Rooms {
             .map(|(b, _)| b.clone())
             .collect();
         for booking in bookings {
-            inner.leave(&booking, socket);
+            inner.leave(&booking, socket, "lost");
         }
         if let Some(sockets) = inner.sockets.get_mut(user) {
             sockets.remove(&socket);
             if sockets.is_empty() {
                 inner.sockets.remove(user);
+                inner.online(user, false);
             }
         }
     }
     /// Enters a session's call. The same account joining from another app takes its place there; whoever is
-    /// already in learns that the other party arrived, and the newcomer whether someone waits.
-    fn join(&self, booking: &str, user: &str, socket: Uuid) {
+    /// already in learns that the other party arrived, and the newcomer whether someone waits, or else whether the
+    /// other party (`other`) has the app open at all.
+    fn join(&self, booking: &str, user: &str, name: &str, other: &str, socket: Uuid) {
         let mut inner = self.0.lock().unwrap();
+        inner.names.insert(user.to_owned(), name.to_owned());
+        inner.parties.insert(booking.to_owned(), [user.to_owned(), other.to_owned()]);
         let members = inner.calls.entry(booking.to_owned()).or_default();
         let replaced: Vec<Uuid> = members.iter().filter(|(u, s)| u == user && *s != socket).map(|(_, s)| *s).collect();
         members.retain(|(u, _)| u != user);
@@ -1297,10 +1329,11 @@ impl Rooms {
         for (other, s) in &others {
             inner.send(other, *s, json!({"type": "peer", "booking": booking, "present": true}));
         }
-        inner.send(user, socket, json!({"type": "joined", "booking": booking, "peer": !others.is_empty()}));
+        let online = inner.sockets.contains_key(other);
+        inner.send(user, socket, json!({"type": "joined", "booking": booking, "peer": !others.is_empty(), "online": online}));
     }
     fn leave(&self, booking: &str, socket: Uuid) {
-        self.0.lock().unwrap().leave(booking, socket);
+        self.0.lock().unwrap().leave(booking, socket, "left");
     }
     /// Passes an offer, answer or ICE candidate to the other party of the call.
     fn relay(&self, booking: &str, socket: Uuid, data: Value) {
@@ -1407,7 +1440,7 @@ async fn client(state: AppState, mut socket: WebSocket) {
                     ("ping", _) => { let _ = tx.send(json!({"type": "pong"})); }
                     ("join", Some(booking)) => match callable(&state, booking.clone(), uid.clone()).await {
                         Ok(other) => {
-                            state.coaching.join(&booking, &uid, id);
+                            state.coaching.join(&booking, &uid, &username, &other, id);
                             state.coaching.ring(&other, &booking, &username);
                         }
                         Err(error) => { let _ = tx.send(json!({"type": "ended", "booking": booking, "reason": error.message})); }

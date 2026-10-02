@@ -273,9 +273,10 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
           />
           {/* The group dims itself around a disabled control: the send button, off while nothing is written, must not grey the whole bar. */}
           <InputGroup className="min-h-12 rounded-xl border-foreground/15 bg-card shadow-xs has-disabled:bg-card has-disabled:opacity-100 dark:bg-input/30 dark:has-disabled:bg-input/30">
-            <InputGroupAddon align="inline-start" className="self-end pb-2.5">
+            {/* Both buttons sit the same 8px from the edges of the box. */}
+            <InputGroupAddon align="inline-start" className="ml-0! self-end py-2 pl-2">
               <Tip content="Send a picture or a video">
-                <InputGroupButton type="button" size="icon-sm" className="text-muted-foreground hover:text-foreground" aria-label="Send a picture or a video" onClick={() => picker.current?.click()} data-action="chat:attach">
+                <InputGroupButton type="button" size="icon-sm" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Send a picture or a video" onClick={() => picker.current?.click()} data-action="chat:attach">
                   <Paperclip />
                 </InputGroupButton>
               </Tip>
@@ -302,8 +303,8 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
               data-action="chat:input"
               className="max-h-32 min-h-12 resize-none py-3.5 text-sm placeholder:text-muted-foreground"
             />
-            <InputGroupAddon align="inline-end" className="self-end pb-2">
-              <InputGroupButton type="submit" variant="default" size="icon-sm" className="rounded-lg disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100" disabled={!text.trim() || sending} aria-label="Send" data-action="chat:send">
+            <InputGroupAddon align="inline-end" className="mr-0! self-end py-2 pr-2">
+              <InputGroupButton type="submit" variant="default" size="icon-sm" className="size-8 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100" disabled={!text.trim() || sending} aria-label="Send" data-action="chat:send">
                 <Send />
               </InputGroupButton>
             </InputGroupAddon>
