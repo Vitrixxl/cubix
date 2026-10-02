@@ -38,6 +38,8 @@ function profileData(p: any, achievements: any, learnedIds: ReadonlySet<string>,
     days: new Set(activity.map((v) => dayKey(new Date(v.at)))).size,
     streak: streaks(activity),
     latest: latestOf(activity),
+    /** Solves of the last seven days, every event together. */
+    week: activity.filter((v) => new Date(v.at).getTime() > Date.now() - 7 * 86_400_000).length,
   };
 }
 

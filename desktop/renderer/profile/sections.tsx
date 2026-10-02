@@ -289,12 +289,20 @@ export function ResultMark({ result }: { result: DuelRecord["result"] }) {
   );
 }
 
-/** An empty battle history offers the next action without reserving space for results. */
-export function NoBattles({ className }: { className?: string }) {
+/** An empty battle history, centred in whatever room it is given: what a battle is, and the way to a first one. */
+export function NoBattles({ compact = false, className }: { compact?: boolean; className?: string }) {
   return (
-    <div className={cn("flex flex-col items-start gap-3 text-sm", className)}>
-      <Button variant="outline" data-action="nav:duel" onClick={run("nav:duel")}>
-        <Swords />
+    <div className={cn("flex flex-1 flex-col items-center justify-center gap-3 text-center", className)}>
+      {!compact && (
+        <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Swords className="size-5" />
+        </span>
+      )}
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">No battles yet</p>
+        <p className="text-xs text-muted-foreground">Race a cuber of your level, solve for solve.</p>
+      </div>
+      <Button size="sm" variant="outline" data-action="nav:duel" onClick={run("nav:duel")}>
         Find an opponent
       </Button>
     </div>
@@ -306,9 +314,9 @@ export function BattlesSection({ compact = false }: { compact?: boolean }) {
     won = list.filter((b) => b.result === "win").length,
     lost = list.filter((b) => b.result === "loss").length;
   return (
-    <Section label="Battles" title="Battles" meta={list.length ? battleRecord(list) : undefined} open={list.length ? "duels" : undefined} more="History" body={compact ? "pt-1" : undefined}>
+    <Section label="Battles" title="Battles" meta={list.length ? battleRecord(list) : undefined} open={list.length ? "duels" : undefined} more="History" body={cn(compact && "pt-1", !list.length && "flex-1")}>
       {!list.length ? (
-        <NoBattles />
+        <NoBattles compact={compact} />
       ) : (
         <>
           <Stats columns={3}>

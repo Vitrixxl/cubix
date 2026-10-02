@@ -193,7 +193,7 @@ export function BattlesPage({ phone }: { phone: boolean }) {
     <>
       <SubPageHead title="Battles" meta={list.length ? plural(list.length, "battle") : undefined} back={!phone} />
       {!list.length ? (
-        <PageCard>
+        <PageCard scroll={false}>
           <NoBattles />
         </PageCard>
       ) : (

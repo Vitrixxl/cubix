@@ -2,7 +2,7 @@
  * The account page: who they are beside their year of practice, the records of every event beside the chosen one's curve,
  * then training, achievements and battles, the whole overview inside the window. Each section opens its own page.
  */
-import { BookA, BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, type LucideIcon } from "lucide-react";
+import { Activity, BookA, BookOpen, CalendarDays, Dumbbell, Flame, Layers, LogOut, Medal, Settings, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { Avatar, Button, InHead, MenuAction, MoreMenu, NUMERIC, PuzzleButton, SelectMenu, plural, usePhone } from "./ui";
 import { TimerStats } from "./stats";
@@ -34,12 +34,15 @@ function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
     facts: [LucideIcon, string, string, string?, string?][] = [
       [Layers, "Solves", d.activity.length.toLocaleString()],
       [CalendarDays, "Active days", d.days.toLocaleString()],
-      [Flame, "Streak", String(d.streak.current), d.streak.current ? "text-warning" : undefined, d.streak.longest > d.streak.current ? `best ${d.streak.longest}` : undefined],
+      [Flame, "Streak", String(d.streak.current), d.streak.current ? "text-warning" : undefined],
+      [Medal, "Best streak", String(d.streak.longest)],
+      [Activity, "This week", d.week.toLocaleString()],
+      [Dumbbell, "Trained", d.trainingSolves.toLocaleString()],
     ];
   return (
-    <Card className={cn("min-w-0 justify-between gap-5 p-5", phone && "gap-4 p-4")}>
+    <Card className={cn("min-w-0 justify-between gap-3 p-5", phone && "p-4")}>
       <div className="flex min-w-0 items-center gap-4">
-        <Avatar name={user?.username} size={phone ? 48 : 56} />
+        <Avatar name={user?.username} size={48} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h1 className="truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
           <p className="truncate text-sm text-muted-foreground">
@@ -62,7 +65,7 @@ function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
           </InHead.Provider>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-3" aria-label="Summary">
+      <div className="grid grid-cols-3 gap-x-3 gap-y-3" aria-label="Summary">
         {facts.map(([I, label, value, tone, sub]) => (
           <div key={label} className="flex min-w-0 flex-col gap-1">
             <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
@@ -70,7 +73,7 @@ function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
               {label}
             </span>
             <span className="flex items-baseline gap-1.5">
-              <span className={cn(NUMERIC, "text-2xl font-medium tracking-tight", value === "0" ? "text-muted-foreground/60" : tone)}>{value}</span>
+              <span className={cn(NUMERIC, "text-xl font-medium tracking-tight", value === "0" ? "text-muted-foreground/60" : tone)}>{value}</span>
               {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
             </span>
           </div>
