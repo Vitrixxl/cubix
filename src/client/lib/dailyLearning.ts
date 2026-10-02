@@ -41,9 +41,13 @@ export function reviewTrack(mode: unknown): LearningTrack | undefined {
 export const isReviewMode = (mode: LearningMode) => mode === "review" || !!reviewTrack(mode);
 /** The track a mode learns or reviews, shown as the selected training mode. */
 export const learningTrackOf = (mode: LearningMode) => isLearningTrack(mode) ? mode : reviewTrack(mode);
-/** Revision always stays on the selected puzzle, across every stage and set, or on one learning track. */
-export function reviewCases(cases: readonly CaseDto[], learned: ReadonlySet<string>, puzzle: string, track?: LearningTrack): CaseDto[] {
-  return (track ? learningCases(cases, track) : cases.filter(c => puzzleOf(c) === puzzle)).filter(c => learned.has(c.id));
+/** Revision always stays on the selected puzzle, across every stage and set, the chosen stages, or one learning track. */
+export function reviewCases(cases: readonly CaseDto[], learned: ReadonlySet<string>, puzzle: string, track?: LearningTrack, stages?: ReadonlySet<string>): CaseDto[] {
+  return (track ? learningCases(cases, track) : cases.filter(c => puzzleOf(c) === puzzle && (!stages?.size || stages.has(c.stage)))).filter(c => learned.has(c.id));
+}
+/** The stages of a puzzle, in catalogue order: what "Review learned" lets one pick. */
+export function puzzleStages(cases: readonly CaseDto[], puzzle: string): string[] {
+  return [...new Set(cases.filter(c => puzzleOf(c) === puzzle).map(c => c.stage))];
 }
 export function reviewStatus(mode: LearningMode, count: number): string {
   const track = reviewTrack(mode);

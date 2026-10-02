@@ -1,10 +1,11 @@
 /** The training setup screen: what to practise, before the timer. */
-import { isLearningTrack, isReviewMode, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
+import { isLearningTrack, isReviewMode, puzzleStages, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
+import { puzzleOf } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
 import { shortId } from "../../src/client/lib/caseState";
 import { Box, Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Play, Search, type LucideIcon } from "lucide-react";
 import { store as s, catalog, matches } from "./store";
-import { Button, Diagram, Figure, NUMERIC, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
+import { Button, Diagram, NUMERIC, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
 import { Picker, PickerCard } from "./picker";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -125,15 +126,40 @@ function CrossSetup() {
   );
 }
 
+/** The stages to review, as cards to pick together; the start shows under them once one holds learned cases. */
 function ReviewSetup() {
-  const pool = reviewCases(catalog.cases, s.learned, s.puzzle);
+  const stages = puzzleStages(catalog.cases, s.puzzle).map((stage) => {
+    const cases = catalog.cases.filter((c: any) => puzzleOf(c) === s.puzzle && c.stage === stage),
+      learned = cases.filter((c: any) => s.learned.has(c.id));
+    return { stage, cases, learned, sets: [...new Set(cases.map((c: any) => c.setLabel))] as string[] };
+  });
+  const pool = stages.filter((st) => s.reviewStages.has(st.stage)).reduce((n, st) => n + st.learned.length, 0);
   return (
-    <Centred text="Every case you marked as learned, drawn at random.">
-      <Figure label="Learned cases" value={pool.length} size="2xl" />
-      <Start action={"trainingStart:cases:review"} disabled={!pool.length}>
-        Start
-      </Start>
-    </Centred>
+    <Picker
+      label="Stages to review"
+      foot={
+        <div className="flex h-11 shrink-0 items-center justify-center pt-6 md:pt-8 box-content">
+          {pool > 0 && (
+            <Start action="trainingStart:cases:review">
+              Start · {plural(pool, "case")}
+            </Start>
+          )}
+        </div>
+      }
+    >
+      {stages.map((st) => (
+        <PickerCard
+          key={st.stage}
+          action={"reviewStage:" + st.stage}
+          icon={<Diagram c={st.learned[0] ?? st.cases[0]} size={32} />}
+          title={st.stage}
+          detail={st.sets.join(", ")}
+          meta={`${st.learned.length} / ${st.cases.length} learned`}
+          pressed={s.reviewStages.has(st.stage) && st.learned.length > 0}
+          disabled={!st.learned.length}
+        />
+      ))}
+    </Picker>
   );
 }
 

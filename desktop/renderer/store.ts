@@ -70,6 +70,8 @@ export class Store {
   introductionReady = false;
   selected = new Set<string>();
   reviewIds: string[] = [];
+  /** Stages "Review learned" draws from (F2L, OLL…), per puzzle; none is the whole puzzle. */
+  reviewStages = new Set<string>();
   sets: Record<string, string> = {};
   collapsed = new Set<string>();
   selectorOpen: Record<string, boolean> = {};
@@ -277,7 +279,7 @@ export class Store {
   reconcileLearning() {
     const mode = this.learningMode;
     if (this.learningFrozen || this.pendingSolve) return;
-    this.reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle, reviewTrack(mode)).map(c => c.id);
+    this.reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle, reviewTrack(mode), mode === "review" ? this.reviewStages : undefined).map(c => c.id);
     if (!isLearningTrack(mode)) return;
     const plan = this.learningPlan;
     const assignment = dailyAssignment(plan.tracks[mode], learningCases(catalog.cases, mode, plan.groupOrder?.[mode]), this.learned, localDay());
@@ -389,6 +391,7 @@ export class Store {
     this.selected = new Set(
       this.prefs["cubix.training.selectionByCube"]?.[p] ?? [],
     );
+    this.reviewStages = new Set(this.prefs["cubix.training.reviewStages"]?.[p] ?? []);
     this.sets = this.prefs["cubix.algs.setByCube"]?.[p] ?? {
       F2L: "f2l",
       OLL: "oll",
@@ -731,6 +734,10 @@ export class Store {
           await this.refresh();
           break;
         }
+        case "reviewStage":
+          this.reviewStages = toggleSelection(this.reviewStages, [arg]);
+          this.per("cubix.training.reviewStages", [...this.reviewStages]);
+          break;
         case "crossMoves": {
           const moves = Number(arg);
           if (!CROSS_PLUS_ONE_MOVES.includes(moves as 3) || moves === this.crossMoves) break;
