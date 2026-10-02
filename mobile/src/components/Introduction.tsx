@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { Input } from "@/components/ui/input";
+import { fmtTime, parseTypedTime } from "../../../src/client/lib/format";
 import { PROFILE_KEY, TOUR_STEPS, journeyProfile, type Journey } from "../../../src/client/lib/journey";
 import { METHODS } from "../../../src/shared/methods";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
@@ -36,9 +38,10 @@ function StepTransition({ children, identity, direction = 1 }: { children: React
   return <Animated.View style={{ opacity: progress, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [direction * 24, 0] }) }] }}>{children}</Animated.View>;
 }
 
-/** The puzzles as a grid of tiles; under it, each chosen puzzle with its methods to pick, so nothing hides a level down. */
-function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel }: {
-  value: PuzzleId[]; methods: Partial<Record<PuzzleId, string[]>>; onToggle: (id: PuzzleId) => void; onMethod: (puzzle: PuzzleId, method: string) => void; methodsLabel: string;
+/** The puzzles as a grid of tiles; under it, each chosen puzzle with its methods to pick and its best single (optional),
+ * so nothing hides a level down. */
+function PuzzleChooser({ value, methods, bests, onToggle, onMethod, onBest, methodsLabel }: {
+  value: PuzzleId[]; methods: Partial<Record<PuzzleId, string[]>>; bests: Partial<Record<PuzzleId, string>>; onToggle: (id: PuzzleId) => void; onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void; methodsLabel: string;
 }) {
   const colors = useColors();
   return <View style={{ gap: 16 }}>
@@ -51,9 +54,9 @@ function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel }: {
         </Pressable>;
       })}
     </View>
-    {value.map(p => METHODS[p].length ? <View key={p} style={{ gap: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }}>
-      <Text className="text-sm font-medium">{puzzleInfo(p).label} <Text className="text-sm text-muted-foreground">{methodsLabel}</Text></Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+    {value.map(p => <View key={p} style={{ gap: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }}>
+      <Text className="text-sm font-medium">{puzzleInfo(p).label}{METHODS[p].length ? <Text className="text-sm text-muted-foreground"> {methodsLabel}</Text> : null}</Text>
+      {METHODS[p].length ? <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {METHODS[p].map(m => {
           const on = methods[p]?.includes(m.id) ?? false;
           return <Pressable key={m.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => onMethod(p, m.id)}
@@ -61,8 +64,13 @@ function PuzzleChooser({ value, methods, onToggle, onMethod, methodsLabel }: {
             <Text className="text-sm">{m.name}</Text>
           </Pressable>;
         })}
+      </View> : null}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text className="flex-1 text-sm text-muted-foreground">Best single, if you know it</Text>
+        <Input value={bests[p] ?? ""} onChangeText={text => onBest(p, text)} keyboardType="decimal-pad" placeholder="12.34" accessibilityLabel={`Your best ${puzzleInfo(p).label} single`}
+          aria-invalid={!!bests[p]?.trim() && parseTypedTime(bests[p]!) === null} className="w-28 text-right tabular-nums" />
       </View>
-    </View> : null)}
+    </View>)}
   </View>;
 }
 
@@ -82,6 +90,7 @@ function Editor() {
   // Editing a saved setup skips the welcome.
   const [step, setStep] = useState(existing ? 1 : 0), [direction, setDirection] = useState(1);
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState(existing?.knownMethods ?? {});
+  const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const name = STEPS[step]!;
   const go = (next: number) => { setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
@@ -100,9 +109,14 @@ function Editor() {
       setIntro(tour ? "tour" : null);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
-  const finish = (tour: boolean) => void save({
-    [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, completedAt: existing?.completedAt ?? new Date().toISOString() },
-  }, tour);
+  const finish = (tour: boolean) => {
+    const typed = known.filter(p => bests[p]?.trim()).map(p => [p, parseTypedTime(bests[p]!)] as const);
+    const wrong = typed.find(([, ms]) => ms === null);
+    if (wrong) return setError(`${puzzleInfo(wrong[0]).label}: type your best like 12.34 or 1:05.21, or leave it empty.`);
+    void save({
+      [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() },
+    }, tour);
+  };
 
   const [title, sub] = STEP_TITLES[name];
   const last = step === STEPS.length - 1;
@@ -134,8 +148,9 @@ function Editor() {
                     <View style={{ flex: 1 }}><Text className="text-[15px] font-medium">{head}</Text><Text className="text-sm text-muted-foreground">{line}</Text></View>
                   </View>)}
               </>}
-              {name === "known" && <PuzzleChooser value={known} methods={knownMethods} methodsLabel="methods you use"
-                onToggle={p => { setKnown(v => toggle(v, p)); if (known.includes(p)) setKnownMethods(v => withoutKey(v, p)); }}
+              {name === "known" && <PuzzleChooser value={known} methods={knownMethods} bests={bests} methodsLabel="methods you use"
+                onBest={(p, text) => setBests(v => ({ ...v, [p]: text }))}
+                onToggle={p => { setKnown(v => toggle(v, p)); if (known.includes(p)) { setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); } }}
                 onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
             </View>
           </StepTransition>

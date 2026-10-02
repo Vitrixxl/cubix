@@ -14,6 +14,22 @@ bun run deploy
 
 Vérifier que la commande se termine avec succès et signaler toute erreur de mise à jour.
 
+Avant de valider quoi que ce soit (commit, push, mise en prod), lancer le dev
+dans Docker et laisser l’utilisateur valider lui-même la modification :
+
+```sh
+bun run dev:docker             # API seedée dans Docker + site local sur http://127.0.0.1:5181
+bun run dev:docker --electron  # la même chose dans la fenêtre Electron
+```
+
+Si la stack tourne déjà (conteneur `cubix-dev-api-1`, site sur le port 5181),
+la réutiliser au lieu d’en lancer une autre. Une modification de `rust-api`
+demande de reconstruire le conteneur (relancer `bun run dev:docker`). Donner
+à l’utilisateur l’URL et les étapes pour voir le changement (comptes seedés :
+`dev`, `coach`, `lena_speed`, `alex_cubes`…, mot de passe `cubix-dev-password`),
+puis attendre son accord explicite avant de commiter ou de pousser. Les tests
+headless restent obligatoires mais ne remplacent pas cette validation.
+
 Les écrans de l’application doivent rester à la hauteur de la fenêtre, sans
 défilement de la page. Placer les textes explicatifs dans les pages de guides
 accessibles via l’aide, jamais sous l’espace de pratique.

@@ -84,6 +84,14 @@ fn limited(state: &AppState, key: String) -> Result<()> {
         Ok(())
     }
 }
+/// The password hasher of every account.
+pub(crate) fn argon() -> Result<Argon2<'static>> {
+    Ok(Argon2::new(
+        Algorithm::Argon2id,
+        Version::V0x13,
+        ArgonParams::new(65536, 2, 1, None).map_err(ApiError::internal)?,
+    ))
+}
 async fn password(state: &AppState, password: String, hash: Option<String>) -> Result<String> {
     let permit = state
         .passwords
@@ -92,11 +100,7 @@ async fn password(state: &AppState, password: String, hash: Option<String>) -> R
         .map_err(|_| ApiError::new(429, "Too many sign-in requests. Try again shortly."))?;
     tokio::task::spawn_blocking(move || {
         let _permit = permit;
-        let argon = Argon2::new(
-            Algorithm::Argon2id,
-            Version::V0x13,
-            ArgonParams::new(65536, 2, 1, None).map_err(ApiError::internal)?,
-        );
+        let argon = argon()?;
         if let Some(hash) = hash {
             let parsed = PasswordHash::new(&hash).map_err(ApiError::internal)?;
             argon

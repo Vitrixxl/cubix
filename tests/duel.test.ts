@@ -121,3 +121,26 @@ test("players search their own event, without a level at first", async () => {
   await Promise.all([a.next("match"), c.next("match")]);
   expect((await b.next("queue")).searching).toBe(0);
 });
+
+test("an account signed in on two devices searches on both but never meets itself", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "cubix-duel-"));
+  cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
+  const origin = `http://127.0.0.1:${createRustApi(join(dir, "test.db")).server.port}`;
+  const register = async (username: string) =>
+    (await (await fetch(`${origin}/api/auth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username, password: "a-long-test-password" }) })).json()).token as string;
+  const [alice, bob] = await Promise.all([register("alice"), register("bob")]);
+  const phone = await player(origin), laptop = await player(origin), other = await player(origin);
+  phone.send({ type: "queue", event: "333", token: alice });
+  await phone.next("queued");
+  laptop.send({ type: "queue", event: "333", token: alice });
+  await laptop.next("queued");
+  // Without a level they would meet at once: they only see each other searching.
+  expect((await laptop.next("queue", (m) => m.searching === 1)).searching).toBe(1);
+  await Bun.sleep(1500);
+  other.send({ type: "queue", event: "333", token: bob });
+  const [first, against] = await Promise.all([phone.next("match"), other.next("match")]);
+  expect(first.race).toBe(against.race);
+  expect(against.players.map((p: any) => p.name).sort()).toEqual(["alice", "bob"]);
+  expect(first.players.map((p: any) => p.name).sort()).toEqual(["alice", "bob"]);
+  expect((await laptop.next("queue", (m) => m.searching === 0)).searching).toBe(0);
+});

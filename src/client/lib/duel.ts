@@ -244,7 +244,8 @@ export class DuelClient {
         this.platform.reset();
         break;
       case "state": {
-        const newGame = m.game !== this.game;
+        const newGame = m.game !== this.game,
+          before = this.them.filter(Boolean).length;
         this.game = m.game;
         this.scrambles = m.scrambles;
         this.results = m.results;
@@ -254,8 +255,9 @@ export class DuelClient {
           this.opponentPhase = "idle";
           this.platform.reset();
         }
-        // The opponent's time stops where the server recorded it.
-        if (this.them[this.round] || this.round === ROUNDS) this.opponentPhase = "idle";
+        // The opponent's time stops where the server recorded it, also when their solve closes the round and the
+        // race moves on to the next one, still empty on their side.
+        if (this.them.filter(Boolean).length > before || this.them[this.round] || this.round === ROUNDS) this.opponentPhase = "idle";
         if (this.host && !this.scrambles.length && this.generated !== this.game) void this.generate(this.game);
         this.record();
         break;

@@ -96,7 +96,7 @@ function Form() {
         </Field>
         {error?.field === "form" && <p className="text-sm text-destructive">{error.text}</p>}
       </div>
-      <div className="shrink-0 border-t p-4">
+      <div className="shrink-0 p-4 pt-0">
         <UiButton type="submit" size="lg" className="h-10 w-full" disabled={pending} data-action="coaching:apply:send">
           <Send />
           {pending ? "Sending…" : "Send my application"}

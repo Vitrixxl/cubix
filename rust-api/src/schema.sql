@@ -80,8 +80,9 @@ CREATE TABLE IF NOT EXISTS coach_applications (
  decided_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_coach_applications_user ON coach_applications(user_id, created_at);
--- A coach's public profile and weekly availability: `windows` is a JSON list of
--- {weekday (0 = Monday), start, end} in minutes of the day, in the coach's `timezone`.
+-- A coach's public profile and availability, in minutes of the day on the coach's `timezone`: `windows` is a JSON
+-- list of weekly openings {weekday (0 = Monday), start, end, from?, until?} (dates bounding the repetition),
+-- `days_off` whole dates, `overrides` one day's {date, start, end, open}: extra hours, or hours taken back.
 CREATE TABLE IF NOT EXISTS coaches (
  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
  active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),
@@ -95,6 +96,7 @@ CREATE TABLE IF NOT EXISTS coaches (
  timezone TEXT NOT NULL DEFAULT 'UTC',
  windows TEXT NOT NULL DEFAULT '[]',
  days_off TEXT NOT NULL DEFAULT '[]',
+ overrides TEXT NOT NULL DEFAULT '[]',
  created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS coach_bookings (
@@ -108,7 +110,10 @@ CREATE TABLE IF NOT EXISTS coach_bookings (
  price_cents INTEGER NOT NULL DEFAULT 0,
  created_at INTEGER NOT NULL,
  cancelled_at INTEGER,
- cancelled_by TEXT
+ cancelled_by TEXT,
+ -- Another time the coach offers, until the student takes it or turns it down.
+ proposed_start INTEGER,
+ proposed_end INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_coach_bookings_coach ON coach_bookings(coach_id, starts_at);
 CREATE INDEX IF NOT EXISTS idx_coach_bookings_student ON coach_bookings(student_id, starts_at);
@@ -137,6 +142,10 @@ CREATE TABLE IF NOT EXISTS coach_messages (
  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
  body TEXT NOT NULL,
  created_at INTEGER NOT NULL,
- read_at INTEGER
+ read_at INTEGER,
+ media_id TEXT,
+ media_type TEXT,
+ media_size INTEGER,
+ media_name TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_coach_messages_conversation ON coach_messages(conversation_id, id);

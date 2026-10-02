@@ -70,14 +70,14 @@ export function AlgView() {
       </div>
     );
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full min-h-0 min-w-0 flex-1">
       <div className="relative flex w-[420px] shrink-0 items-center justify-center bg-muted/30">
         {player && <PlayerCube key={alg} player={player} size={360} />}
         {player && <ViewButtons player={player} className="absolute bottom-6 left-1/2 -translate-x-1/2" />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-6 pt-5">
         <header className="flex items-center gap-4 pr-8">
-          <div className="flex min-w-0 flex-1 items-baseline gap-3">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <h2 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{item.name}</h2>
             <p className="min-w-0 truncate text-sm text-muted-foreground">{item.detail ?? item.context}</p>
           </div>

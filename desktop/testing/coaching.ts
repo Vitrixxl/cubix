@@ -106,9 +106,33 @@ try {
   assert.ok(await fits(coach), "the profile form fits");
   await coach.screenshot({ path: `${SHOTS}/coach-profile.png` });
   await go(coach, "/coaching/schedule");
-  for (let day = 0; day < 7; day++) await coach.locator(`[data-action="schedule:add:${day}"]`).click();
-  await coach.locator('[data-action="schedule:save"]').click();
-  await coach.waitForSelector('[data-action="schedule:save"]:has-text("Saved")');
+  // Weekly hours every day (the rule starts on weekdays), then a day off and extra hours picked in the calendar.
+  const dialog = coach.locator('[data-slot="schedule-dialog"]');
+  await coach.locator('[data-action="schedule:edit"]').click();
+  await coach.locator('[data-action="schedule:rule"]').click();
+  for (const day of ["Sat", "Sun"]) await dialog.locator(`[aria-label="${day}"]`).click();
+  await coach.locator('[data-action="schedule:save-rule"]').click();
+  await dialog.waitFor({ state: "detached" });
+  const calendarDays = coach.locator('[data-slot="calendar"] [data-day]:not([aria-disabled])');
+  await coach.locator('[data-action="schedule:edit"]').click();
+  await coach.locator('[data-action="schedule:cancel-date"]').click();
+  await calendarDays.nth(2).click();
+  await coach.locator('[data-action="schedule:continue"]').click();
+  await coach.locator('[data-action="schedule:confirm"]').click();
+  await dialog.waitFor({ state: "detached" });
+  assert.match((await calendarDays.nth(2).textContent())!, /Off/);
+  await coach.locator('[data-action="schedule:edit"]').click();
+  await coach.locator('[data-action="schedule:add-date"]').click();
+  await calendarDays.nth(3).click();
+  await coach.locator('[data-action="schedule:continue"]').click();
+  await coach.locator('[data-action="schedule:extra"]').click();
+  await dialog.waitFor({ state: "detached" });
+  // A click on the day shows its extra hours.
+  await calendarDays.nth(3).click();
+  await coach.waitForSelector('[data-slot="day-changes"] [data-change="open"]');
+  await coach.screenshot({ path: `${SHOTS}/schedule-day.png` });
+  await coach.keyboard.press("Escape");
+  await dialog.waitFor({ state: "detached" });
   assert.ok(await fits(coach), "the schedule fits");
   await coach.screenshot({ path: `${SHOTS}/schedule.png` });
 
@@ -119,8 +143,13 @@ try {
   await player.screenshot({ path: `${SHOTS}/coaches.png` });
   await player.locator('[data-coach="coach_anna"]').click();
   await settle(player);
-  await player.waitForSelector('[data-slot="slots"] button');
+  await player.waitForSelector('[data-slot="coach-about"]');
   assert.ok(await fits(player), "the coach page fits");
+  await player.screenshot({ path: `${SHOTS}/coach-about.png` });
+  await player.locator('[data-action="coaching:open-booking"]').click();
+  await settle(player);
+  await player.waitForSelector('[data-slot="slots"] button');
+  assert.ok(await fits(player), "the booking page fits");
   await player.locator('[data-slot="slots"] button').first().click();
   await player.fill("#booking-note", "My F2L is slow");
   await player.screenshot({ path: `${SHOTS}/coach-page.png` });
@@ -136,13 +165,26 @@ try {
   assert.ok(await fits(coach), "the dashboard fits");
   await coach.screenshot({ path: `${SHOTS}/dashboard.png` });
 
+  // The session shows in the coach's calendar: a click tells who booked, and their profile opens in a dialog.
+  await go(coach, "/coaching/schedule");
+  const chip = coach.locator(`[data-slot="calendar"] [data-booking="${booking}"]`);
+  await coach.waitForSelector('[data-slot="calendar"] [data-day]');
+  if (!(await chip.count())) await coach.locator('[data-action="calendar:next"]').click();
+  await chip.click();
+  await coach.waitForSelector('[data-slot="session-card"]:has-text("My F2L is slow")');
+  await coach.locator('[data-action="person:profile"]').click();
+  await coach.waitForSelector('[data-slot="person-dialog"] :text("Sessions together")');
+  await coach.screenshot({ path: `${SHOTS}/person.png` });
+  await coach.keyboard.press("Escape");
+  await coach.waitForSelector('[data-slot="person-dialog"]', { state: "detached" });
+
   // They write to each other: the coach sees the unread count, then answers.
   await go(player, "/coaching/messages");
   await player.locator('[data-slot="conversations"] a').first().click();
   await player.fill('[data-action="chat:input"]', "Hello! Should I bring my main?");
   await player.keyboard.press("Enter");
   await player.waitForSelector('[data-mine]:has-text("Should I bring my main?")');
-  await coach.waitForSelector('[data-slot="coaching-unread"]');
+  await coach.waitForSelector('[data-slot="coaching-unread"]:visible');
   await go(coach, "/coaching/students");
   await coach.locator('[data-slot="students"] a').first().click();
   await coach.waitForSelector('[data-slot="chat"] p:has-text("Should I bring my main?")');

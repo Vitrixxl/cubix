@@ -23,6 +23,8 @@ const server = Bun.serve<Socket>({
       }
       const headers = new Headers(request.headers);
       headers.delete("host");
+      // The administration only accepts requests from its own origin.
+      if (headers.has("origin")) headers.set("origin", upstream);
       return fetch(upstream + url.pathname + url.search, { method: request.method, headers, body: request.body, redirect: "manual" })
         .catch(() => new Response(JSON.stringify({ error: "API unavailable" }), { status: 502 }));
     }

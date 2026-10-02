@@ -212,7 +212,8 @@ export function PageSkeleton({ side = true }: { side?: boolean }) {
 }
 
 /** An account's face: the first two letters of its name on a disc of the accent. */
-export function Avatar({ name, size = 32, className }: { name: string | undefined; size?: number; className?: string }) {
+export function Avatar({ name, src, size = 32, className }: { name: string | undefined; src?: string | null; size?: number; className?: string }) {
+  if (src) return <img src={src} alt="" aria-hidden="true" loading="lazy" className={cn("shrink-0 rounded-full bg-muted object-cover", className)} style={{ width: size, height: size }} />;
   return (
     <span
       className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary", className)}

@@ -336,14 +336,16 @@ function Race() {
 /** The rounds: one row per player, the round being raced marked, each won round and the better Ao5 in green. */
 function Board({ actions = false, compact = false }: { actions?: boolean; compact?: boolean }) {
   const round = duel.round,
+    // One grid for every row (each a subgrid), so a column is as wide as its widest time and they line up.
     columns = actions
-      ? "grid-cols-[minmax(5rem,9rem)_repeat(5,minmax(0,1fr))_minmax(0,1fr)_minmax(0,11rem)]"
+      ? "grid-cols-[minmax(5rem,9rem)_repeat(6,minmax(max-content,1fr))_max-content]"
       : compact
-        ? "grid-cols-[minmax(3rem,4.5rem)_repeat(5,minmax(0,1fr))_minmax(0,1.1fr)] gap-1!"
-        : "grid-cols-[minmax(5rem,8rem)_repeat(5,minmax(0,1fr))_minmax(0,1fr)]";
+        ? "grid-cols-[minmax(3rem,4.5rem)_repeat(6,minmax(max-content,1fr))] gap-x-1"
+        : "grid-cols-[minmax(5rem,8rem)_repeat(6,minmax(max-content,1fr))]",
+    row = "col-span-full grid grid-cols-subgrid items-center px-2";
   return (
-    <div className={cn("duel-board flex shrink-0 flex-col gap-1", compact && "gap-0.5 [&_.duel-board-row]:min-h-8 [&_[role=row]>span]:text-xs", actions && FADE)} role="table" aria-label="Rounds">
-      <div className={cn("grid items-center gap-2 px-2 text-xs text-muted-foreground", columns)} role="row">
+    <div className={cn("duel-board grid shrink-0 gap-x-2 gap-y-1", columns, compact && "gap-y-0.5 [&_.duel-board-row]:min-h-8 [&_[role=row]>span]:text-xs", actions && FADE)} role="table" aria-label="Rounds">
+      <div className={cn(row, "text-xs text-muted-foreground")} role="row">
         <span />
         {ROUND_LIST.map((r) => (
           <span key={r} className="text-center">
@@ -360,7 +362,7 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
           rival = ao5(other),
           mine = seat === duel.seat;
         return (
-          <div key={seat} className={cn("duel-board-row grid min-h-10 items-center gap-2 rounded-lg px-2", columns, mine && "mine")} role="row">
+          <div key={seat} className={cn("duel-board-row min-h-10 rounded-lg", row, mine && "mine")} role="row">
             <span className="flex min-w-0 items-baseline gap-2">
               <strong className="truncate text-sm font-medium">{duel.players[seat]?.name}</strong>
               {mine && <small className="text-xs text-muted-foreground">you</small>}
@@ -373,7 +375,7 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
                   key={r}
                   className={cn(
                     NUMERIC,
-                    "flex h-8 items-center justify-center rounded-md text-sm",
+                    "flex h-8 items-center justify-center rounded-md px-1.5 text-sm",
                     r === round && !duel.over && "bg-muted",
                     v?.penalty === "dnf" && "text-destructive",
                     won && "text-success",

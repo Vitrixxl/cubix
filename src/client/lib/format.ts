@@ -48,9 +48,15 @@ export function fmtSolve(timeMs: number, penalty: Penalty): string {
 
 export const effective = (timeMs: number, penalty: Penalty): number | null => (penalty === "dnf" ? null : timeMs + (penalty === "+2" ? 2000 : 0));
 
+/** Formatters built once: `toLocaleDateString` with options builds a new one per call, sixty times slower
+ * over a profile's thousands of solves. */
+const DAY = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }),
+  HOUR = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }),
+  MONTH = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
+
 export function fmtDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return DAY.format(d) + " " + HOUR.format(d);
 }
 
 /** Average of N with best/worst dropped (WCA). More than one DNF → null. */
@@ -84,13 +90,13 @@ export const bestAverage = (times: readonly (number | null)[], size: number) => 
 export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 
 /** A day as "12 Mar". */
-export const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+export const shortDate = (iso: string) => DAY.format(new Date(iso));
 
 /** The hour for today's solves, the day for older ones. */
 export function solvedAt(iso: string) {
   const d = new Date(iso);
-  return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : shortDate(iso);
+  return d.toDateString() === new Date().toDateString() ? HOUR.format(d) : shortDate(iso);
 }
 
 /** When an account was created, as "Mar 2026". */
-export const joinedDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", year: "numeric" });
+export const joinedDate = (iso: string) => MONTH.format(new Date(iso));

@@ -1,0 +1,27 @@
+# Local development: the API and web app with seeded data, on 127.0.0.1:47130.
+# `bun run dev:docker` starts it and serves the local web sources against it (see README).
+name: cubix-dev
+services:
+  api:
+    build:
+      context: .
+      args:
+        CARGO_FEATURES: seed
+        CARGO_BUILD_JOBS: default
+    ports:
+      - "127.0.0.1:${CUBIX_DEV_API_PORT:-47130}:3000"
+    environment:
+      CUBIX_RATE_LIMIT: "100000"
+    volumes:
+      - data:/var/lib/cubix
+    init: true
+    # Seeds only an empty database, then serves.
+    command: ["sh", "-c", "cubix-api seed && exec cubix-api"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 2s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+volumes:
+  data:

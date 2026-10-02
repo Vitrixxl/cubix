@@ -5,6 +5,9 @@
 //! The HTTP routes live under /api/coaching (`route`, run on the database thread). The socket /api/coaching/live
 //! pushes chat messages and booking changes to every open app of an account, and relays the WebRTC signalling of a
 //! session's call between its coach and student; the media itself goes peer to peer.
+//!
+//! Pictures and videos sent in a conversation are posted raw to /api/coaching/conversations/{id}/media (`upload`)
+//! and kept as files beside the database; only the two parties of the conversation fetch them back (`media`).
 use crate::{
     AppState, accounts,
     accounts::{DAY_MS, now},
@@ -13,17 +16,21 @@ use crate::{
     error::{ApiError, Result},
 };
 use axum::{
+    Json,
+    body::{Body, Bytes},
     extract::{
-        State, WebSocketUpgrade,
+        Path, State, WebSocketUpgrade,
         ws::{CloseFrame, Message, WebSocket},
     },
-    response::Response,
+    http::{HeaderMap, header},
+    response::{IntoResponse, Response},
 };
 use jiff::{Timestamp, civil::Date, tz::TimeZone};
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
 use std::{
     collections::{HashMap, HashSet},
+    path::PathBuf,
     sync::Mutex,
     time::{Duration, Instant},
 };
@@ -42,6 +49,10 @@ const LATE: i64 = 30 * MINUTE;
 const UNKNOWN_COACH: &str = "Unknown coach";
 const UNKNOWN_BOOKING: &str = "Unknown session";
 const UNKNOWN_CONVERSATION: &str = "Unknown conversation";
+const UNKNOWN_MEDIA: &str = "Unknown picture or video";
+/// The largest video a message carries; pictures stop at `IMAGE_MAX`.
+pub const MEDIA_MAX: usize = 64 * 1024 * 1024;
+const IMAGE_MAX: usize = 10 * 1024 * 1024;
 
 /// Optional trimmed text of at most `max` characters, empty when absent.
 fn text(body: &Value, key: &str, max: usize) -> Result<String> {
@@ -90,7 +101,7 @@ fn ice_servers() -> Value {
 }
 
 /// A coach with their rating and how much they have coached.
-const COACH_SQL: &str = "SELECT c.*,u.username,
+const COACH_SQL: &str = "SELECT c.*,u.username,u.avatar,
  (SELECT avg(rating) FROM coach_reviews r WHERE r.coach_id=c.user_id) rating,
  (SELECT count(*) FROM coach_reviews r WHERE r.coach_id=c.user_id) reviews,
  (SELECT count(*) FROM coach_bookings b WHERE b.coach_id=c.user_id AND b.status='booked' AND b.ends_at<=?1) sessions,
@@ -104,11 +115,13 @@ fn coach_dto(row: &Value, own: bool) -> Value {
         "events": parsed(&row["events"]), "languages": parsed(&row["languages"]), "priceCents": row["price_cents"],
         "sessionMinutes": row["session_minutes"], "timezone": row["timezone"], "accepting": flag(&row["accepting"]),
         "active": flag(&row["active"]), "rating": row["rating"], "reviews": row["reviews"], "sessions": row["sessions"],
-        "students": row["students"], "since": row["created_at"],
+        "students": row["students"], "since": row["created_at"], "avatar": avatar_url(&row["avatar"]),
+        "newStudents": flag(&row["new_students"]),
     });
     if own {
         value["windows"] = parsed(&row["windows"]);
         value["daysOff"] = parsed(&row["days_off"]);
+        value["overrides"] = parsed(&row["overrides"]);
     }
     value
 }
@@ -122,11 +135,29 @@ fn own_coach(db: &Connection, uid: &str) -> Result<Value> {
         .ok_or_else(|| ApiError::new(403, "Only coaches can do this."))
 }
 
-/// One weekly opening: a weekday (0 = Monday) and minutes of the day.
+/// One weekly opening: a weekday (0 = Monday) and minutes of the day, repeated from `from` until `until` (the whole
+/// days, both included) or for good.
 struct Window {
     weekday: i8,
     start: i64,
     end: i64,
+    from: Option<Date>,
+    until: Option<Date>,
+}
+fn date(value: &Value) -> Option<Date> {
+    value.as_str().and_then(|d| d.parse().ok())
+}
+/// `start` and `end` of an hour range: quarter hours of one day, the end after the start.
+fn minutes_of_day(value: &Value) -> Option<(i64, i64)> {
+    let (start, end) = (value["start"].as_i64()?, value["end"].as_i64()?);
+    (start % 15 == 0 && end % 15 == 0 && 0 <= start && start < end && end <= 1440).then_some((start, end))
+}
+/// A date given as YYYY-MM-DD, or nothing when the key is absent or null.
+fn optional_date(value: &Value, key: &str) -> Result<Option<Date>> {
+    match &value[key] {
+        Value::Null => Ok(None),
+        other => date(other).map(Some).ok_or_else(ApiError::validation),
+    }
 }
 fn windows(coach: &Value) -> Vec<Window> {
     parsed(&coach["windows"])
@@ -138,11 +169,60 @@ fn windows(coach: &Value) -> Vec<Window> {
                         weekday: w["weekday"].as_i64()? as i8,
                         start: w["start"].as_i64()?,
                         end: w["end"].as_i64()?,
+                        from: date(&w["from"]),
+                        until: date(&w["until"]),
                     })
                 })
                 .collect()
         })
         .unwrap_or_default()
+}
+/// One day's exception to the weekly hours: extra hours (`open`) or hours taken back, in minutes of that day.
+struct Override {
+    date: Date,
+    start: i64,
+    end: i64,
+    open: bool,
+}
+fn overrides(coach: &Value) -> Vec<Override> {
+    parsed(&coach["overrides"])
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .filter_map(|o| Some(Override { date: date(&o["date"])?, start: o["start"].as_i64()?, end: o["end"].as_i64()?, open: o["open"].as_bool()? }))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+/// The hours a coach is open on a day, in minutes of that day, sorted and apart: the weekly openings in force that
+/// day and its extra hours, less the hours taken back. None on a day off.
+fn hours_on(day: Date, openings: &[Window], changes: &[Override], off: &HashSet<String>) -> Vec<(i64, i64)> {
+    if off.contains(&day.to_string()) {
+        return Vec::new();
+    }
+    let weekday = day.weekday().to_monday_zero_offset();
+    let mut open: Vec<(i64, i64)> = openings
+        .iter()
+        .filter(|w| w.weekday == weekday && w.from.is_none_or(|f| f <= day) && w.until.is_none_or(|u| day <= u))
+        .map(|w| (w.start, w.end))
+        .chain(changes.iter().filter(|o| o.open && o.date == day).map(|o| (o.start, o.end)))
+        .collect();
+    open.sort_unstable();
+    let mut merged: Vec<(i64, i64)> = Vec::new();
+    for (s, e) in open {
+        match merged.last_mut() {
+            Some(last) if s <= last.1 => last.1 = last.1.max(e),
+            _ => merged.push((s, e)),
+        }
+    }
+    for o in changes.iter().filter(|o| !o.open && o.date == day) {
+        merged = merged
+            .into_iter()
+            .flat_map(|(s, e)| [(s, e.min(o.start)), (s.max(o.end), e)])
+            .filter(|(s, e)| s < e)
+            .collect();
+    }
+    merged
 }
 /// The coach's sessions still to come or under way, which no new booking may overlap.
 fn busy(db: &Connection, coach: &str, from: i64) -> Result<Vec<(i64, i64)>> {
@@ -155,14 +235,15 @@ fn busy(db: &Connection, coach: &str, from: i64) -> Result<Vec<(i64, i64)>> {
     .map(|r| (r["starts_at"].as_i64().unwrap_or(0), r["ends_at"].as_i64().unwrap_or(0)))
     .collect())
 }
-/// The free slots of a coach from `from` for `days` days: each opening of their week, cut into sessions, on the
-/// coach's own clock (so a change of daylight saving time keeps their hours), minus days off, booked sessions and
-/// anything sooner than the notice. Sorted, as `(start, end)` in milliseconds.
-fn free_slots(coach: &Value, busy: &[(i64, i64)], from: i64, days: i64) -> Vec<(i64, i64)> {
+/// The free slots of a coach from `from` for `days` days: each day's open hours (`hours_on`), cut into sessions, on
+/// the coach's own clock (so a change of daylight saving time keeps their hours), minus booked sessions and anything
+/// sooner than the notice. Sorted, as `(start, end)` in milliseconds.
+pub(crate) fn free_slots(coach: &Value, busy: &[(i64, i64)], from: i64, days: i64) -> Vec<(i64, i64)> {
     let Ok(tz) = TimeZone::get(coach["timezone"].as_str().unwrap_or("UTC")) else { return Vec::new() };
     let Ok(start) = Timestamp::from_millisecond(from) else { return Vec::new() };
     let minutes = coach["session_minutes"].as_i64().filter(|m| LENGTHS.contains(m)).unwrap_or(60);
     let openings = windows(coach);
+    let changes = overrides(coach);
     let off: HashSet<String> = parsed(&coach["days_off"])
         .as_array()
         .map(|l| l.iter().filter_map(|d| d.as_str().map(str::to_owned)).collect())
@@ -171,20 +252,17 @@ fn free_slots(coach: &Value, busy: &[(i64, i64)], from: i64, days: i64) -> Vec<(
     let mut day = start.to_zoned(tz.clone()).date();
     let mut out = Vec::new();
     for _ in 0..=days {
-        if !off.contains(&day.to_string()) {
-            let weekday = day.weekday().to_monday_zero_offset();
-            for w in openings.iter().filter(|w| w.weekday == weekday) {
-                let mut m = w.start;
-                while m + minutes <= w.end {
-                    if let Ok(at) = day.at((m / 60) as i8, (m % 60) as i8, 0, 0).to_zoned(tz.clone()) {
-                        let s = at.timestamp().as_millisecond();
-                        let e = s + minutes * MINUTE;
-                        if s >= earliest && s < latest && !busy.iter().any(|&(a, b)| a < e && s < b) {
-                            out.push((s, e));
-                        }
+        for (start, end) in hours_on(day, &openings, &changes, &off) {
+            let mut m = start;
+            while m + minutes <= end {
+                if let Ok(at) = day.at((m / 60) as i8, (m % 60) as i8, 0, 0).to_zoned(tz.clone()) {
+                    let s = at.timestamp().as_millisecond();
+                    let e = s + minutes * MINUTE;
+                    if s >= earliest && s < latest && !busy.iter().any(|&(a, b)| a < e && s < b) {
+                        out.push((s, e));
                     }
-                    m += minutes;
                 }
+                m += minutes;
             }
         }
         match day.tomorrow() {
@@ -200,10 +278,15 @@ fn slot_dto(slots: &[(i64, i64)]) -> Value {
     json!(slots.iter().map(|(s, e)| json!({"start": s, "end": e})).collect::<Vec<_>>())
 }
 
-const BOOKING_SQL: &str = "SELECT b.*,cu.username coach_name,su.username student_name,r.rating,r.comment review_comment,
+const BOOKING_SQL: &str = "SELECT b.*,cu.username coach_name,su.username student_name,cu.avatar coach_avatar,su.avatar student_avatar,r.rating,r.comment review_comment,
  cv.id conversation_id FROM coach_bookings b JOIN users cu ON cu.id=b.coach_id JOIN users su ON su.id=b.student_id
  LEFT JOIN coach_reviews r ON r.booking_id=b.id
  LEFT JOIN coach_conversations cv ON cv.coach_id=b.coach_id AND cv.student_id=b.student_id";
+/// The other party of a session or a conversation row (with `coach_*` and `student_*` columns).
+fn party(row: &Value, uid: &str) -> Value {
+    let other = if row["coach_id"].as_str() == Some(uid) { "student" } else { "coach" };
+    json!({"id": row[&format!("{other}_id")], "username": row[&format!("{other}_name")], "avatar": avatar_url(&row[&format!("{other}_avatar")])})
+}
 /// A session as one of its two parties sees it.
 fn booking_dto(row: &Value, uid: &str) -> Value {
     let coach = row["coach_id"].as_str() == Some(uid);
@@ -211,12 +294,13 @@ fn booking_dto(row: &Value, uid: &str) -> Value {
         "id": row["id"], "role": if coach { "coach" } else { "student" },
         "coachId": row["coach_id"], "coachName": row["coach_name"],
         "studentId": row["student_id"], "studentName": row["student_name"],
-        "with": if coach { json!({"id": row["student_id"], "username": row["student_name"]}) } else { json!({"id": row["coach_id"], "username": row["coach_name"]}) },
+        "with": party(row, uid),
         "startsAt": row["starts_at"], "endsAt": row["ends_at"], "status": row["status"], "note": row["note"],
         "priceCents": row["price_cents"], "createdAt": row["created_at"], "cancelledAt": row["cancelled_at"],
         "cancelledByMe": row["cancelled_by"].as_str() == Some(uid),
         "review": if row["rating"].is_null() { Value::Null } else { json!({"rating": row["rating"], "comment": row["review_comment"]}) },
         "conversationId": row["conversation_id"],
+        "proposal": if row["proposed_start"].is_null() { Value::Null } else { json!({"start": row["proposed_start"], "end": row["proposed_end"]}) },
     })
 }
 fn booking_row(db: &Connection, id: &str, uid: &str) -> Result<Value> {
@@ -228,20 +312,24 @@ fn booking_row(db: &Connection, id: &str, uid: &str) -> Result<Value> {
     )
 }
 
-const CONVERSATION_SQL: &str = "SELECT cv.*,cu.username coach_name,su.username student_name,
+const CONVERSATION_SQL: &str = "SELECT cv.*,cu.username coach_name,su.username student_name,cu.avatar coach_avatar,su.avatar student_avatar,
  (SELECT body FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_body,
  (SELECT created_at FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_at,
  (SELECT sender_id FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_sender,
- (SELECT count(*) FROM coach_messages m WHERE m.conversation_id=cv.id AND m.sender_id!=?1 AND m.read_at IS NULL) unread
+ (SELECT media_type FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_media,
+ (SELECT count(*) FROM coach_messages m WHERE m.conversation_id=cv.id AND m.sender_id!=?1 AND m.read_at IS NULL) unread,
+ EXISTS(SELECT 1 FROM coach_bookings b WHERE b.coach_id=cv.coach_id AND b.student_id=cv.student_id) booked
  FROM coach_conversations cv JOIN users cu ON cu.id=cv.coach_id JOIN users su ON su.id=cv.student_id";
 fn conversation_dto(row: &Value, uid: &str) -> Value {
     let coach = row["coach_id"].as_str() == Some(uid);
     json!({
         "id": row["id"], "role": if coach { "coach" } else { "student" },
         "coachId": row["coach_id"], "studentId": row["student_id"],
-        "with": if coach { json!({"id": row["student_id"], "username": row["student_name"]}) } else { json!({"id": row["coach_id"], "username": row["coach_name"]}) },
-        "lastMessage": if row["last_at"].is_null() { Value::Null } else { json!({"body": row["last_body"], "at": row["last_at"], "mine": row["last_sender"].as_str() == Some(uid)}) },
+        "with": party(row, uid),
+        "lastMessage": if row["last_at"].is_null() { Value::Null } else { json!({"body": row["last_body"], "media": row["last_media"], "at": row["last_at"], "mine": row["last_sender"].as_str() == Some(uid)}) },
         "unread": row["unread"], "updatedAt": row["updated_at"],
+        // Messages open once the student booked the coach.
+        "open": flag(&row["booked"]),
         // The coach's private notes on the student never reach the student.
         "note": if coach { row["note"].clone() } else { Value::Null },
     })
@@ -357,6 +445,7 @@ pub fn route(
                 let mut value = coach_dto(&row, false);
                 value["nextSlot"] = slots.first().map_or(Value::Null, |(s, _)| json!(s));
                 value["openSlots"] = json!(slots.len());
+                value["practice"] = practice(db, row["user_id"].as_str().unwrap_or(""), 1)?;
                 list.push(value);
             }
             Ok(json!(list))
@@ -380,6 +469,8 @@ pub fn route(
             let mut value = coach_dto(&row, false);
             value["reviewList"] = json!(reviews.iter().map(|r| json!({"rating": r["rating"], "comment": r["comment"], "at": r["created_at"], "username": r["username"]})).collect::<Vec<_>>());
             value["ratingCounts"] = json!(counts);
+            value["practice"] = practice(db, id, 6)?;
+            value["history"] = history(db, id)?;
             Ok(value)
         }
         ("GET", ["coaches", id, "slots"]) => {
@@ -390,14 +481,18 @@ pub fn route(
             };
             let at = now();
             let slots = if flag(&row["accepting"]) { free_slots(&row, &busy(db, id, at)?, at, days) } else { Vec::new() };
-            Ok(json!({"timezone": row["timezone"], "sessionMinutes": row["session_minutes"], "priceCents": row["price_cents"], "accepting": flag(&row["accepting"]), "slots": slot_dto(&slots)}))
+            // Someone new sees no slot while the coach keeps to the students they have.
+            let welcome = flag(&row["new_students"]) || coached(db, id, uid)?;
+            let slots = if welcome { slots } else { Vec::new() };
+            Ok(json!({"timezone": row["timezone"], "sessionMinutes": row["session_minutes"], "priceCents": row["price_cents"], "accepting": flag(&row["accepting"]), "welcome": welcome, "slots": slot_dto(&slots)}))
         }
         ("PUT", ["profile"]) => {
             own_coach(db, uid)?;
             let price = body.get("priceCents").map_or(Some(0), Value::as_i64).filter(|p| (0..=100_000).contains(p)).ok_or_else(ApiError::validation)?;
             let accepting = body.get("accepting").map_or(Some(true), Value::as_bool).ok_or_else(ApiError::validation)?;
+            let newcomers = body.get("newStudents").map_or(Some(true), Value::as_bool).ok_or_else(ApiError::validation)?;
             db.execute(
-                "UPDATE coaches SET headline=?,bio=?,events=?,languages=?,price_cents=?,accepting=? WHERE user_id=?",
+                "UPDATE coaches SET headline=?,bio=?,events=?,languages=?,price_cents=?,accepting=?,new_students=? WHERE user_id=?",
                 params![
                     text(body, "headline", 80)?,
                     text(body, "bio", 2000)?,
@@ -405,6 +500,7 @@ pub fn route(
                     json!(words(body, "languages", 10, 24)?).to_string(),
                     price,
                     accepting as i64,
+                    newcomers as i64,
                     uid
                 ],
             )?;
@@ -417,18 +513,34 @@ pub fn route(
                 return Err(ApiError::new(422, "Unknown time zone."));
             }
             let minutes = body["sessionMinutes"].as_i64().filter(|m| LENGTHS.contains(m)).ok_or_else(ApiError::validation)?;
-            let list = body["windows"].as_array().filter(|l| l.len() <= 60).ok_or_else(ApiError::validation)?;
+            let list = body["windows"].as_array().filter(|l| l.len() <= 200).ok_or_else(ApiError::validation)?;
             let mut openings = Vec::new();
             for w in list {
-                let (Some(weekday), Some(start), Some(end)) = (w["weekday"].as_i64(), w["start"].as_i64(), w["end"].as_i64()) else {
+                let (Some(weekday), Some((start, end))) = (w["weekday"].as_i64(), minutes_of_day(w)) else {
                     return Err(ApiError::validation());
                 };
-                if !(0..=6).contains(&weekday) || start % 15 != 0 || end % 15 != 0 || !(0 <= start && start < end && end <= 1440) {
+                let (from, until) = (optional_date(w, "from")?, optional_date(w, "until")?);
+                if !(0..=6).contains(&weekday) || from.zip(until).is_some_and(|(f, u)| f > u) {
                     return Err(ApiError::validation());
                 }
-                openings.push(json!({"weekday": weekday, "start": start, "end": end}));
+                let mut opening = json!({"weekday": weekday, "start": start, "end": end});
+                if let Some(f) = from {
+                    opening["from"] = json!(f.to_string());
+                }
+                if let Some(u) = until {
+                    opening["until"] = json!(u.to_string());
+                }
+                openings.push(opening);
             }
             openings.sort_by_key(|w| (w["weekday"].as_i64(), w["start"].as_i64()));
+            let mut changes = Vec::new();
+            for o in body.get("overrides").and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default().iter().take(1000) {
+                let (Some(day), Some((start, end)), Some(open)) = (date(&o["date"]), minutes_of_day(o), o["open"].as_bool()) else {
+                    return Err(ApiError::validation());
+                };
+                changes.push(json!({"date": day.to_string(), "start": start, "end": end, "open": open}));
+            }
+            changes.sort_by(|a, b| (a["date"].as_str(), a["start"].as_i64()).cmp(&(b["date"].as_str(), b["start"].as_i64())));
             let mut off = Vec::new();
             for day in body.get("daysOff").and_then(Value::as_array).filter(|l| l.len() <= 400).ok_or_else(ApiError::validation)? {
                 let day = day.as_str().and_then(|d| d.parse::<Date>().ok()).ok_or_else(ApiError::validation)?;
@@ -437,8 +549,8 @@ pub fn route(
             off.sort();
             off.dedup();
             db.execute(
-                "UPDATE coaches SET timezone=?,session_minutes=?,windows=?,days_off=? WHERE user_id=?",
-                params![timezone, minutes, json!(openings).to_string(), json!(off).to_string(), uid],
+                "UPDATE coaches SET timezone=?,session_minutes=?,windows=?,days_off=?,overrides=? WHERE user_id=?",
+                params![timezone, minutes, json!(openings).to_string(), json!(off).to_string(), json!(changes).to_string(), uid],
             )?;
             Ok(coach_dto(&own_coach(db, uid)?, true))
         }
@@ -458,6 +570,9 @@ pub fn route(
             let coach = coach_row(db, coach_id)?.filter(|c| flag(&c["active"])).ok_or_else(|| ApiError::new(404, UNKNOWN_COACH))?;
             if !flag(&coach["accepting"]) {
                 return Err(ApiError::new(409, "This coach is not taking bookings right now."));
+            }
+            if !flag(&coach["new_students"]) && !coached(db, coach_id, uid)? {
+                return Err(ApiError::new(403, format!("{} is not taking new students right now.", coach["username"].as_str().unwrap_or("This coach"))));
             }
             let at = now();
             let Some(&(starts, ends)) = free_slots(&coach, &busy(db, coach_id, at)?, at, HORIZON_DAYS).iter().find(|(s, _)| *s == start) else {
@@ -492,9 +607,72 @@ pub fn route(
                 return Err(ApiError::new(409, "This session is over."));
             }
             db.execute(
-                "UPDATE coach_bookings SET status='cancelled',cancelled_at=?,cancelled_by=? WHERE id=?",
+                "UPDATE coach_bookings SET status='cancelled',cancelled_at=?,cancelled_by=?,proposed_start=NULL,proposed_end=NULL WHERE id=?",
                 params![now(), uid, id],
             )?;
+            for key in ["coach_id", "student_id"] {
+                state.coaching.notify(row[key].as_str().unwrap_or(""), json!({"type": "bookings"}));
+            }
+            Ok(booking_dto(&booking_row(db, id, uid)?, uid))
+        }
+        ("POST", ["bookings", id, "propose"]) => {
+            // The coach offers another time for a coming session (or takes the offer back with `start: null`).
+            let row = booking_row(db, id, uid)?;
+            if row["coach_id"].as_str() != Some(uid) {
+                return Err(ApiError::new(403, "Only the coach offers another time."));
+            }
+            if row["status"] != "booked" || row["ends_at"].as_i64().unwrap_or(0) <= now() {
+                return Err(ApiError::new(409, "This session can no longer be moved."));
+            }
+            let proposal = match body.get("start") {
+                None | Some(Value::Null) => None,
+                Some(start) => {
+                    let start = start.as_i64().ok_or_else(ApiError::validation)?;
+                    let end = start + row["ends_at"].as_i64().unwrap_or(0) - row["starts_at"].as_i64().unwrap_or(0);
+                    if start < now() + NOTICE {
+                        return Err(ApiError::new(422, "Offer a time at least an hour from now."));
+                    }
+                    if start == row["starts_at"].as_i64().unwrap_or(0) {
+                        return Err(ApiError::new(422, "That is the time of the session already."));
+                    }
+                    clash(db, &row, start, end)?;
+                    Some((start, end))
+                }
+            };
+            db.execute(
+                "UPDATE coach_bookings SET proposed_start=?,proposed_end=? WHERE id=?",
+                params![proposal.map(|p| p.0), proposal.map(|p| p.1), id],
+            )?;
+            for key in ["coach_id", "student_id"] {
+                state.coaching.notify(row[key].as_str().unwrap_or(""), json!({"type": "bookings"}));
+            }
+            Ok(booking_dto(&booking_row(db, id, uid)?, uid))
+        }
+        ("POST", ["bookings", id, "answer"]) => {
+            // The student takes the time the coach offered, or keeps the session where it was.
+            let row = booking_row(db, id, uid)?;
+            if row["student_id"].as_str() != Some(uid) {
+                return Err(ApiError::new(403, "Only the student answers an offer."));
+            }
+            let (Some(start), Some(end)) = (row["proposed_start"].as_i64(), row["proposed_end"].as_i64()) else {
+                return Err(ApiError::new(409, "The coach took this offer back."));
+            };
+            if row["status"] != "booked" {
+                return Err(ApiError::new(409, "This session is cancelled."));
+            }
+            let accept = body["accept"].as_bool().ok_or_else(ApiError::validation)?;
+            if accept {
+                if start <= now() {
+                    return Err(ApiError::new(409, "This time has passed."));
+                }
+                clash(db, &row, start, end)?;
+                db.execute(
+                    "UPDATE coach_bookings SET starts_at=?,ends_at=?,proposed_start=NULL,proposed_end=NULL WHERE id=?",
+                    params![start, end, id],
+                )?;
+            } else {
+                db.execute("UPDATE coach_bookings SET proposed_start=NULL,proposed_end=NULL WHERE id=?", [id])?;
+            }
             for key in ["coach_id", "student_id"] {
                 state.coaching.notify(row[key].as_str().unwrap_or(""), json!({"type": "bookings"}));
             }
@@ -524,12 +702,16 @@ pub fn route(
                 .collect::<Vec<_>>()
         )),
         ("POST", ["conversations"]) => {
-            // A player opens the conversation with a coach; coaches answer in the ones opened with them.
+            // A player who booked a coach (even a session cancelled since) opens their conversation; coaches answer in the
+            // ones opened with them.
             let coach_id = string(body, "coachId", 1, 64)?;
             if coach_id == uid {
                 return Err(ApiError::new(422, "You cannot message yourself."));
             }
-            coach_row(db, coach_id)?.filter(|c| flag(&c["active"])).ok_or_else(|| ApiError::new(404, UNKNOWN_COACH))?;
+            let coach = coach_row(db, coach_id)?.filter(|c| flag(&c["active"])).ok_or_else(|| ApiError::new(404, UNKNOWN_COACH))?;
+            if !coached(db, coach_id, uid)? {
+                return Err(ApiError::new(403, format!("Book a session with {} to write to them.", coach["username"].as_str().unwrap_or("this coach"))));
+            }
             let id = conversation_between(db, coach_id, uid)?;
             Ok(conversation_dto(&conversation_row(db, &id.to_string(), uid)?, uid))
         }
@@ -541,36 +723,19 @@ pub fn route(
             };
             let mut rows = all(
                 db,
-                "SELECT id,sender_id,body,created_at,read_at FROM coach_messages WHERE conversation_id=? AND id<? ORDER BY id DESC LIMIT 200",
+                &format!("SELECT {MESSAGE_COLUMNS} FROM coach_messages WHERE conversation_id=? AND id<? ORDER BY id DESC LIMIT 200"),
                 params![conversation["id"].as_i64(), before],
             )?;
             rows.reverse();
             Ok(json!(rows.iter().map(message_dto).collect::<Vec<_>>()))
         }
         ("POST", ["conversations", id, "messages"]) => {
-            let conversation = conversation_row(db, id, uid)?;
+            let conversation = writable(db, id, uid)?;
             let text = string(body, "body", 1, 2000)?.trim().to_owned();
             if text.is_empty() {
                 return Err(ApiError::validation());
             }
-            let at = now();
-            let cid = conversation["id"].as_i64().unwrap_or(0);
-            db.execute(
-                "INSERT INTO coach_messages(conversation_id,sender_id,body,created_at) VALUES(?,?,?,?)",
-                params![cid, uid, text, at],
-            )?;
-            db.execute("UPDATE coach_conversations SET updated_at=? WHERE id=?", params![at, cid])?;
-            let message = message_dto(&required(
-                db,
-                "SELECT id,sender_id,body,created_at,read_at FROM coach_messages WHERE id=last_insert_rowid()",
-                [],
-                "Unknown message",
-            )?);
-            let event = json!({"type": "message", "conversation": cid, "message": message, "from": user["username"]});
-            for key in ["coach_id", "student_id"] {
-                state.coaching.notify(conversation[key].as_str().unwrap_or(""), event.clone());
-            }
-            Ok(message)
+            post(db, state, &conversation, user, &text, None)
         }
         ("POST", ["conversations", id, "read"]) => {
             let conversation = conversation_row(db, id, uid)?;
@@ -591,16 +756,359 @@ pub fn route(
             }
             db.execute(
                 "UPDATE coach_conversations SET note=? WHERE id=?",
-                params![text(body, "note", 4000)?, conversation["id"].as_i64()],
+                params![text(body, "note", 20000)?, conversation["id"].as_i64()],
             )?;
             Ok(conversation_dto(&conversation_row(db, id, uid)?, uid))
         }
         ("GET", ["dashboard"]) => dashboard(db, uid),
+        ("GET", ["people", id]) => person(db, uid, id),
         _ => Err(ApiError::new(404, "Not found")),
     }
 }
+const MESSAGE_COLUMNS: &str = "id,sender_id,body,created_at,read_at,media_id,media_type,media_size,media_name";
 fn message_dto(row: &Value) -> Value {
-    json!({"id": row["id"], "senderId": row["sender_id"], "body": row["body"], "createdAt": row["created_at"], "readAt": row["read_at"]})
+    let media = if row["media_id"].is_null() {
+        Value::Null
+    } else {
+        json!({"id": row["media_id"], "type": row["media_type"], "size": row["media_size"], "name": row["media_name"]})
+    };
+    json!({"id": row["id"], "senderId": row["sender_id"], "body": row["body"], "createdAt": row["created_at"], "readAt": row["read_at"], "media": media})
+}
+/// A picture or a video attached to a message: its file's name under `media_dir`, type, size and original name.
+struct Media {
+    id: String,
+    kind: &'static str,
+    size: usize,
+    name: String,
+}
+/// Adds a message to the conversation and brings it to the open apps of both parties.
+fn post(db: &Connection, state: &AppState, conversation: &Value, user: &Value, text: &str, media: Option<&Media>) -> Result<Value> {
+    let at = now();
+    let cid = conversation["id"].as_i64().unwrap_or(0);
+    db.execute(
+        "INSERT INTO coach_messages(conversation_id,sender_id,body,created_at,media_id,media_type,media_size,media_name) VALUES(?,?,?,?,?,?,?,?)",
+        params![cid, user["id"].as_str(), text, at, media.map(|m| &m.id), media.map(|m| m.kind), media.map(|m| m.size as i64), media.map(|m| &m.name)],
+    )?;
+    db.execute("UPDATE coach_conversations SET updated_at=? WHERE id=?", params![at, cid])?;
+    let message = message_dto(&required(
+        db,
+        &format!("SELECT {MESSAGE_COLUMNS} FROM coach_messages WHERE id=last_insert_rowid()"),
+        [],
+        "Unknown message",
+    )?);
+    let event = json!({"type": "message", "conversation": cid, "message": message, "from": user["username"]});
+    for key in ["coach_id", "student_id"] {
+        state.coaching.notify(conversation[key].as_str().unwrap_or(""), event.clone());
+    }
+    Ok(message)
+}
+
+/// `CUBIX_MEDIA_DIR`, or a `coaching-media` directory beside the SQLite database, so the files outlive the container.
+fn media_dir() -> PathBuf {
+    if let Some(dir) = std::env::var_os("CUBIX_MEDIA_DIR").filter(|d| !d.is_empty()) {
+        return PathBuf::from(dir);
+    }
+    let db = std::env::var("CUBIX_DB").unwrap_or_else(|_| "cubix.db".into());
+    PathBuf::from(db).parent().map(|p| p.join("coaching-media")).unwrap_or_else(|| PathBuf::from("coaching-media"))
+}
+/// The type of a picture or a video, read from its first bytes rather than taken from the sender's word.
+fn sniff(bytes: &[u8]) -> Option<&'static str> {
+    let at = |offset: usize, magic: &[u8]| bytes.get(offset..offset + magic.len()) == Some(magic);
+    Some(if at(0, b"\xFF\xD8\xFF") {
+        "image/jpeg"
+    } else if at(0, b"\x89PNG\r\n\x1a\n") {
+        "image/png"
+    } else if at(0, b"GIF87a") || at(0, b"GIF89a") {
+        "image/gif"
+    } else if at(0, b"RIFF") && at(8, b"WEBP") {
+        "image/webp"
+    } else if at(4, b"ftypavif") {
+        "image/avif"
+    } else if at(4, b"ftypqt  ") {
+        "video/quicktime"
+    } else if at(4, b"ftyp") && !(at(8, b"heic") || at(8, b"heix") || at(8, b"mif1") || at(8, b"msf1")) {
+        "video/mp4"
+    } else if at(0, b"\x1A\x45\xDF\xA3") {
+        "video/webm"
+    } else {
+        return None;
+    })
+}
+/// The account of an `Authorization: Bearer …` header.
+fn signed_in(db: &Connection, headers: &HeaderMap) -> Result<Value> {
+    let authorization = headers.get(header::AUTHORIZATION).and_then(|v| v.to_str().ok()).unwrap_or("");
+    accounts::auth(db, authorization)?
+        .filter(|u| !u["password_hash"].is_null())
+        .ok_or_else(|| ApiError::new(401, "Please sign in again."))
+}
+/// `POST /api/coaching/conversations/{id}/media`: a picture or a video as the whole body, sent as a message of its own.
+/// Its original name may come URI-encoded in `X-File-Name`.
+pub async fn upload(State(state): State<AppState>, Path(id): Path<String>, headers: HeaderMap, bytes: Bytes) -> Response {
+    send_media(state, id, headers, bytes).await.map(Json).into_response()
+}
+async fn send_media(state: AppState, id: String, headers: HeaderMap, bytes: Bytes) -> Result<Value> {
+    let kind = sniff(&bytes).ok_or_else(|| ApiError::new(415, "Send a picture (JPEG, PNG, GIF, WebP, AVIF) or a video (MP4, MOV, WebM)."))?;
+    if kind.starts_with("image/") && bytes.len() > IMAGE_MAX {
+        return Err(ApiError::new(413, "Pictures are limited to 10 MB."));
+    }
+    let name: String = headers
+        .get("x-file-name")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| percent_encoding::percent_decode_str(v).decode_utf8_lossy().trim().chars().filter(|c| !c.is_control()).take(120).collect())
+        .unwrap_or_default();
+    // Only a party to the conversation leaves a file on the disk.
+    let (user, conversation) = state
+        .db
+        .call(move |db| {
+            let user = signed_in(db, &headers)?;
+            let conversation = writable(db, &id, user["id"].as_str().unwrap_or(""))?;
+            Ok((user, conversation))
+        })
+        .await?;
+    let media = Media { id: Uuid::new_v4().to_string(), kind, size: bytes.len(), name };
+    let dir = media_dir();
+    tokio::fs::create_dir_all(&dir).await.map_err(ApiError::internal)?;
+    let path = dir.join(&media.id);
+    tokio::fs::write(&path, &bytes).await.map_err(ApiError::internal)?;
+    let copy = state.clone();
+    let sent = state.db.call(move |db| post(db, &copy, &conversation, &user, "", Some(&media))).await;
+    if sent.is_err() {
+        let _ = tokio::fs::remove_file(&path).await;
+    }
+    sent
+}
+/// `GET /api/coaching/media/{id}`: a picture or a video of a conversation, for its two parties only.
+pub async fn media(State(state): State<AppState>, Path(id): Path<String>, headers: HeaderMap) -> Response {
+    let found = async {
+        // A UUID names the file: nothing else reaches the disk.
+        let id = Uuid::parse_str(&id).map_err(|_| ApiError::new(404, UNKNOWN_MEDIA))?.to_string();
+        let key = id.clone();
+        let kind = state
+            .db
+            .call(move |db| {
+                let user = signed_in(db, &headers)?;
+                let row = required(
+                    db,
+                    "SELECT m.media_type FROM coach_messages m JOIN coach_conversations cv ON cv.id=m.conversation_id
+                     WHERE m.media_id=?1 AND (cv.coach_id=?2 OR cv.student_id=?2)",
+                    params![key, user["id"].as_str()],
+                    UNKNOWN_MEDIA,
+                )?;
+                Ok(row["media_type"].as_str().unwrap_or("application/octet-stream").to_owned())
+            })
+            .await?;
+        let file = tokio::fs::File::open(media_dir().join(&id)).await.map_err(|_| ApiError::new(404, UNKNOWN_MEDIA))?;
+        let size = file.metadata().await.map_err(ApiError::internal)?.len();
+        Ok::<_, ApiError>((
+            [(header::CONTENT_TYPE, kind), (header::CONTENT_LENGTH, size.to_string()), (header::X_CONTENT_TYPE_OPTIONS, "nosniff".into())],
+            Body::from_stream(tokio_util::io::ReaderStream::new(file)),
+        ))
+    };
+    found.await.into_response()
+}
+/// `CUBIX_AVATAR_DIR`, or an `avatars` directory beside the SQLite database.
+fn avatar_dir() -> PathBuf {
+    if let Some(dir) = std::env::var_os("CUBIX_AVATAR_DIR").filter(|d| !d.is_empty()) {
+        return PathBuf::from(dir);
+    }
+    media_dir().with_file_name("avatars")
+}
+const AVATAR_MAX: usize = 2 * 1024 * 1024;
+/// `PUT /api/coaching/avatar`: the account's picture as the whole body (the app sends it square and small);
+/// `DELETE` takes it away. Answers the new picture's address.
+pub async fn set_avatar(State(state): State<AppState>, method: axum::http::Method, headers: HeaderMap, bytes: Bytes) -> Response {
+    replace_avatar(state, method == axum::http::Method::DELETE, headers, bytes).await.map(Json).into_response()
+}
+async fn replace_avatar(state: AppState, remove: bool, headers: HeaderMap, bytes: Bytes) -> Result<Value> {
+    let file = if remove {
+        None
+    } else {
+        let kind = sniff(&bytes).filter(|k| k.starts_with("image/") && *k != "image/gif").ok_or_else(|| ApiError::new(415, "Use a JPEG, PNG, WebP or AVIF picture."))?;
+        if bytes.len() > AVATAR_MAX {
+            return Err(ApiError::new(413, "Pictures are limited to 2 MB."));
+        }
+        // The type travels in the name, so serving it needs no lookup.
+        Some(format!("{}.{}", Uuid::new_v4(), kind.trim_start_matches("image/")))
+    };
+    let user = state.db.call(move |db| signed_in(db, &headers)).await?;
+    let dir = avatar_dir();
+    if let Some(name) = &file {
+        tokio::fs::create_dir_all(&dir).await.map_err(ApiError::internal)?;
+        tokio::fs::write(dir.join(name), &bytes).await.map_err(ApiError::internal)?;
+    }
+    let uid = user["id"].as_str().unwrap_or_default().to_owned();
+    let stored = file.clone();
+    state.db.call(move |db| Ok(db.execute("UPDATE users SET avatar=? WHERE id=?", params![stored, uid])?)).await?;
+    if let Some(old) = user["avatar"].as_str() {
+        let _ = tokio::fs::remove_file(dir.join(old)).await;
+    }
+    Ok(json!({"avatar": avatar_url(&json!(file))}))
+}
+/// `GET /api/avatars/{file}`: a picture of an account, for anyone signed in or not, like its username.
+pub async fn avatar(Path(file): Path<String>) -> Response {
+    let found = async {
+        let (id, ext) = file.split_once('.').ok_or_else(|| ApiError::new(404, "Unknown picture"))?;
+        let kind = match ext {
+            "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "webp" => "image/webp",
+            "avif" => "image/avif",
+            _ => return Err(ApiError::new(404, "Unknown picture")),
+        };
+        Uuid::parse_str(id).map_err(|_| ApiError::new(404, "Unknown picture"))?;
+        let bytes = tokio::fs::read(avatar_dir().join(&file)).await.map_err(|_| ApiError::new(404, "Unknown picture"))?;
+        Ok::<_, ApiError>(([(header::CONTENT_TYPE, kind), (header::X_CONTENT_TYPE_OPTIONS, "nosniff")], bytes))
+    };
+    found.await.into_response()
+}
+/// Removes the files no message refers to any more: their conversation or one of its parties went.
+pub fn sweep_media(db: &Connection) -> Result<()> {
+    let Ok(entries) = std::fs::read_dir(media_dir()) else { return Ok(()) };
+    let mut kept = db.prepare("SELECT 1 FROM coach_messages WHERE media_id=?")?;
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        if let Some(name) = name.to_str()
+            && Uuid::parse_str(name).is_ok()
+            && !kept.exists([name])?
+        {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+    Ok(())
+}
+
+/// Someone the caller coaches or is coached by: who they are, the sessions they had together, the coach's notes
+/// (for the coach only) and how they practise: timer solves per puzzle with the best single and the last Ao5.
+fn person(db: &Connection, uid: &str, id: &str) -> Result<Value> {
+    let conversation = one(
+        db,
+        "SELECT * FROM coach_conversations WHERE (coach_id=?1 AND student_id=?2) OR (coach_id=?2 AND student_id=?1)",
+        params![uid, id],
+    )?
+    .ok_or_else(|| ApiError::new(404, "Unknown person"))?;
+    let user = required(db, "SELECT id,username,avatar,created_at FROM users WHERE id=?", [id], "Unknown person")?;
+    let coach = conversation["coach_id"].as_str() == Some(uid);
+    let sessions: Vec<Value> = all(
+        db,
+        &format!("{BOOKING_SQL} WHERE (b.coach_id=?1 AND b.student_id=?2) OR (b.coach_id=?2 AND b.student_id=?1) ORDER BY b.starts_at DESC LIMIT 100"),
+        params![uid, id],
+    )?
+    .iter()
+    .map(|b| booking_dto(b, uid))
+    .collect();
+    Ok(json!({
+        "id": user["id"], "username": user["username"], "since": user["created_at"], "avatar": avatar_url(&user["avatar"]),
+        "role": if coach { "student" } else { "coach" }, "conversationId": conversation["id"],
+        "note": if coach { conversation["note"].clone() } else { Value::Null },
+        "sessions": sessions,
+        "practice": practice(db, id, 6)?,
+        "history": history(db, id)?,
+    }))
+}
+
+/// What the coach follows a student's progress with: their solves per day over the last 53 weeks, their last 50 timer
+/// solves per puzzle (oldest first, null for a DNF) with the last Ao12, and the cases they learned.
+fn history(db: &Connection, id: &str) -> Result<Value> {
+    let since = Timestamp::from_millisecond(now() - 371 * DAY_MS).map(|t| t.to_string()).unwrap_or_default();
+    let days: Vec<Value> = all(
+        db,
+        "SELECT substr(created_at,1,10) day,count(*) n FROM solves WHERE user_id=? AND created_at>=? GROUP BY day ORDER BY day",
+        params![id, since],
+    )?
+    .iter()
+    .map(|r| json!([r["day"], r["n"]]))
+    .collect();
+    let mut puzzles = serde_json::Map::new();
+    for row in all(db, "SELECT DISTINCT puzzle_id FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard'", [id])? {
+        let puzzle = row["puzzle_id"].as_str().unwrap_or_default();
+        let mut recent: Vec<Option<f64>> = all(
+            db,
+            "SELECT time_ms,penalty FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard' AND puzzle_id=? ORDER BY created_at DESC,id DESC LIMIT 50",
+            params![id, puzzle],
+        )?
+        .iter()
+        .map(crate::stats::effective)
+        .collect();
+        let ao12 = if recent.len() >= 12 { crate::stats::average(&recent[..12]) } else { None };
+        recent.reverse();
+        puzzles.insert(puzzle.to_owned(), json!({"ao12": ao12, "recent": recent}));
+    }
+    let learned: Vec<Value> = all(db, "SELECT case_id FROM learned_cases WHERE user_id=? AND learned=1", [id])?.iter().map(|r| r["case_id"].clone()).collect();
+    Ok(json!({"days": days, "puzzles": puzzles, "learned": learned}))
+}
+
+/// How someone practises: their solves, the days they solved on this month, the cases they learned, and their timer
+/// solves per puzzle (the `top` most solved) with the best single and the last Ao5. A best time they gave at sign-up
+/// stands while no solve beats it.
+fn practice(db: &Connection, id: &str, top: i64) -> Result<Value> {
+    let effective = crate::stats::EFFECTIVE_MS_SQL;
+    let month_ago = Timestamp::from_millisecond(now() - 30 * DAY_MS).map(|t| t.to_string()).unwrap_or_default();
+    let totals = required(
+        db,
+        "SELECT count(*) solves, count(DISTINCT CASE WHEN created_at>=?2 THEN substr(created_at,1,10) END) active_days, max(created_at) last_at
+         FROM solves WHERE user_id=?1",
+        params![id, month_ago],
+        "Unknown person",
+    )?;
+    let declared = crate::journey::declared_bests(db, id)?;
+    let mut puzzles = Vec::new();
+    for row in all(
+        db,
+        &format!("SELECT puzzle_id,count(*) solves,min({effective}) best FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard' GROUP BY puzzle_id ORDER BY solves DESC LIMIT ?"),
+        params![id, top],
+    )? {
+        let puzzle = row["puzzle_id"].as_str().unwrap_or_default();
+        let last: Vec<Option<f64>> = all(
+            db,
+            "SELECT time_ms,penalty FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard' AND puzzle_id=? ORDER BY created_at DESC,id DESC LIMIT 5",
+            params![id, puzzle],
+        )?
+        .iter()
+        .map(crate::stats::effective)
+        .collect();
+        let best = match (row["best"].as_f64(), declared.get(puzzle)) {
+            (Some(b), Some(&d)) => Some(b.min(d)),
+            (b, d) => b.or(d.copied()),
+        };
+        puzzles.push(json!({"puzzle": puzzle, "solves": row["solves"], "best": best, "ao5": if last.len() == 5 { crate::stats::average(&last) } else { None }}));
+    }
+    // Puzzles known from sign-up but never timed here still show their best.
+    for (puzzle, best) in &declared {
+        if (puzzles.len() as i64) < top && !puzzles.iter().any(|p| p["puzzle"] == puzzle.as_str()) {
+            puzzles.push(json!({"puzzle": puzzle, "solves": 0, "best": best, "ao5": null}));
+        }
+    }
+    let learned = one(db, "SELECT count(*) n FROM learned_cases WHERE user_id=? AND learned=1", [id])?.map(|r| r["n"].clone()).unwrap_or(json!(0));
+    Ok(json!({"solves": totals["solves"], "activeDays": totals["active_days"], "lastAt": totals["last_at"], "learned": learned, "puzzles": puzzles}))
+}
+/// Whether the student had a session with the coach (any, even cancelled): coaches closed to new students still
+/// take theirs.
+fn coached(db: &Connection, coach: &str, student: &str) -> Result<bool> {
+    Ok(one(db, "SELECT 1 FROM coach_bookings WHERE coach_id=? AND student_id=? LIMIT 1", params![coach, student])?.is_some())
+}
+/// A conversation the account may write in: only once its student booked the coach.
+fn writable(db: &Connection, id: &str, uid: &str) -> Result<Value> {
+    let conversation = conversation_row(db, id, uid)?;
+    if !coached(db, conversation["coach_id"].as_str().unwrap_or(""), conversation["student_id"].as_str().unwrap_or(""))? {
+        return Err(ApiError::new(403, "Messages open once a session is booked."));
+    }
+    Ok(conversation)
+}
+/// Fails when another session of the coach or of the student overlaps `start..end`.
+fn clash(db: &Connection, booking: &Value, start: i64, end: i64) -> Result<()> {
+    let taken = one(
+        db,
+        "SELECT coach_id FROM coach_bookings WHERE id!=?1 AND status='booked' AND starts_at<?4 AND ?3<ends_at AND (coach_id IN (?2,?5) OR student_id IN (?2,?5))",
+        params![booking["id"].as_str(), booking["coach_id"].as_str(), start, end, booking["student_id"].as_str()],
+    )?;
+    match taken {
+        Some(_) => Err(ApiError::new(409, "Another session already takes that time.")),
+        None => Ok(()),
+    }
+}
+/// Where an account's picture is fetched from, or null without one.
+fn avatar_url(file: &Value) -> Value {
+    file.as_str().map_or(Value::Null, |f| json!(format!("/api/avatars/{f}")))
 }
 
 /// What a coach plans with: the coming weeks (sessions, hours, expected income, free slots), the next sessions and
@@ -628,7 +1136,7 @@ fn dashboard(db: &Connection, uid: &str) -> Result<Value> {
         .collect();
     let students = all(
         db,
-        "SELECT u.id,u.username,cv.id conversation_id,cv.note,
+        "SELECT u.id,u.username,u.avatar,cv.id conversation_id,cv.note,
           (SELECT count(*) FROM coach_bookings b WHERE b.coach_id=?1 AND b.student_id=u.id AND b.status='booked' AND b.ends_at<=?2) done,
           (SELECT count(*) FROM coach_bookings b WHERE b.coach_id=?1 AND b.student_id=u.id AND b.status='booked' AND b.ends_at>?2) upcoming,
           (SELECT min(starts_at) FROM coach_bookings b WHERE b.coach_id=?1 AND b.student_id=u.id AND b.status='booked' AND b.ends_at>?2) next_at,
@@ -645,7 +1153,7 @@ fn dashboard(db: &Connection, uid: &str) -> Result<Value> {
         "openSlots": open.len(),
         "upcoming": booked.iter().take(30).map(|b| booking_dto(b, uid)).collect::<Vec<_>>(),
         "students": students.iter().map(|s| json!({
-            "id": s["id"], "username": s["username"], "conversationId": s["conversation_id"], "note": s["note"],
+            "id": s["id"], "username": s["username"], "avatar": avatar_url(&s["avatar"]), "conversationId": s["conversation_id"], "note": s["note"],
             "done": s["done"], "upcoming": s["upcoming"], "nextAt": s["next_at"], "lastAt": s["last_at"],
             "rating": s["rating"], "unread": s["unread"],
         })).collect::<Vec<_>>(),
@@ -920,7 +1428,7 @@ async fn client(state: AppState, mut socket: WebSocket) {
 mod tests {
     use super::*;
     fn coach(windows: Value, off: Value, tz: &str) -> Value {
-        json!({"timezone": tz, "session_minutes": 60, "windows": windows.to_string(), "days_off": off.to_string()})
+        json!({"timezone": tz, "session_minutes": 60, "windows": windows.to_string(), "days_off": off.to_string(), "overrides": "[]"})
     }
     fn ms(text: &str) -> i64 {
         text.parse::<Timestamp>().unwrap().as_millisecond()
@@ -946,5 +1454,36 @@ mod tests {
         // 5 Oct: 18:00 and 19:00 Paris are within the hour of notice; 20:00 stays. 12 Oct is off. 19 Oct loses 19:00.
         let days: Vec<i64> = slots.iter().map(|s| s.0).collect();
         assert_eq!(days, vec![ms("2026-10-05T18:00:00Z"), ms("2026-10-19T16:00:00Z"), ms("2026-10-19T18:00:00Z")]);
+    }
+    #[test]
+    fn rules_in_force_extra_hours_and_hours_taken_back() {
+        // Mondays 18:00–21:00 from 12 October until 26 October only; Tuesday 6 October gets 10:00–12:00 once; on
+        // Monday 19 October 19:00–20:00 is taken back; extra hours overlapping the rule do not double the slots.
+        let from = ms("2026-10-05T00:00:00Z");
+        let mut c = coach(json!([{"weekday": 0, "start": 18 * 60, "end": 21 * 60, "from": "2026-10-12", "until": "2026-10-26"}]), json!([]), "UTC");
+        c["overrides"] = json!([
+            {"date": "2026-10-06", "start": 600, "end": 720, "open": true},
+            {"date": "2026-10-19", "start": 19 * 60, "end": 20 * 60, "open": false},
+            {"date": "2026-10-12", "start": 17 * 60, "end": 19 * 60, "open": true}
+        ])
+        .to_string()
+        .into();
+        let starts: Vec<i64> = free_slots(&c, &[], from, 35).iter().map(|s| s.0).collect();
+        assert_eq!(
+            starts,
+            vec![
+                ms("2026-10-06T10:00:00Z"),
+                ms("2026-10-06T11:00:00Z"),
+                ms("2026-10-12T17:00:00Z"),
+                ms("2026-10-12T18:00:00Z"),
+                ms("2026-10-12T19:00:00Z"),
+                ms("2026-10-12T20:00:00Z"),
+                ms("2026-10-19T18:00:00Z"),
+                ms("2026-10-19T20:00:00Z"),
+                ms("2026-10-26T18:00:00Z"),
+                ms("2026-10-26T19:00:00Z"),
+                ms("2026-10-26T20:00:00Z"),
+            ]
+        );
     }
 }

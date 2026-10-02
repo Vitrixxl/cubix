@@ -1,0 +1,278 @@
+{
+  "consultation": "2026-09-30",
+  "scope": "Étude documentaire qualitative ; prix et métriques observés, sans audit financier.",
+  "sources": [
+    {
+      "id": "S01",
+      "title": "csTimer — présentation officielle",
+      "url": "https://www.cstimer.net/",
+      "type": "Éditeur",
+      "observation": "Fonctions, usage web et hors ligne ; aucun chiffre d’audience.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S02",
+      "title": "csTimer — stockage et sauvegardes",
+      "url": "https://github.com/cs0x7f/cstimer/blob/master/README.md",
+      "type": "Éditeur",
+      "observation": "Limites du stockage navigateur et export.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S03",
+      "title": "Twisty Timer — Google Play",
+      "url": "https://play.google.com/store/apps/details?hl=en&id=com.aricneto.twistytimer",
+      "type": "Boutique",
+      "observation": "1 M+ téléchargements, 4,8/5, environ 10,2 k évaluations en en-tête ; dernière mise à jour affichée : 23/06/2023.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S04",
+      "title": "Cubic Timer — Google Play",
+      "url": "https://play.google.com/store/apps/details?hl=en&id=com.hatopigeon.cubictimer",
+      "type": "Boutique",
+      "observation": "100 k+ téléchargements ; mise à jour affichée : 10/05/2026.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S05",
+      "title": "CubeTime — App Store US",
+      "url": "https://apps.apple.com/us/app/cubetime/id1600392245",
+      "type": "Boutique",
+      "observation": "Gratuit ; 4,7/5 et 315 évaluations au relevé. Fonctionnalités et avis visibles.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S06",
+      "title": "CubeTime — avis App Store Inde",
+      "url": "https://apps.apple.com/in/app/cubetime/id1600392245?platform=ipad&see-all=reviews",
+      "type": "Avis utilisateurs",
+      "observation": "Avis du 26/12/2024 sur une perte d’historique, et demandes d’entraînement. Cause non vérifiée.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S07",
+      "title": "CubeDesk — application publique",
+      "url": "https://www.cubedesk.io/",
+      "type": "Éditeur",
+      "observation": "Mode démo ; inscription demandée pour conserver les temps.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S08",
+      "title": "CubeDesk — dépôt officiel",
+      "url": "https://github.com/kash/cubedesk/blob/main/README.md",
+      "type": "Éditeur",
+      "observation": "Chronomètre, statistiques, entraînement et jeu avec d’autres cubers ; gratuit et open source.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S09",
+      "title": "CubeDesk — lancement desktop, 02/03/2021",
+      "url": "https://www.reddit.com/r/Cubers/comments/lw40f9",
+      "type": "Déclaration du créateur",
+      "observation": "Windows, Mac, Linux ; 4,99 $ annoncés, promotion 3,99 $. Information historique.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S10",
+      "title": "CubeDesk — activité et coûts, 27/01/2023",
+      "url": "https://news.ycombinator.com/item?id=34547265",
+      "type": "Déclaration du créateur",
+      "observation": "Commentaire kashnote : environ 1 000 utilisateurs quotidiens ; revenus Pro insuffisants pour les serveurs.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S11",
+      "title": "CubeDesk — audience, 13/12/2023",
+      "url": "https://news.ycombinator.com/item?id=38623695",
+      "type": "Déclaration du créateur",
+      "observation": "Commentaire kashnote : 50 000 utilisateurs annoncés ; activité non précisée.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S12",
+      "title": "CubeDesk vs csTimer — discussion, février–mars 2026",
+      "url": "https://www.reddit.com/r/Cubers/comments/1rh2a85/cubedesk_vs_cstimer/",
+      "type": "Avis utilisateurs",
+      "observation": "Design, personnalisation, compte et valeur des fonctions sociales.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S13",
+      "title": "csTimer vs CubeDesk — discussion, fin 2024",
+      "url": "https://www.reddit.com/r/Cubers/comments/1hqwfpn",
+      "type": "Avis utilisateurs",
+      "observation": "Variété des mélanges, petits éléments sur mobile, intégration matériel.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S14",
+      "title": "Historique smart cube et cube classique, 2024",
+      "url": "https://www.reddit.com/r/Cubers/comments/1cijg0a",
+      "type": "Avis utilisateurs",
+      "observation": "Demande de consolidation des données Cubeast, CubeDesk et csTimer.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S15",
+      "title": "Cubeast — présentation officielle",
+      "url": "https://www.cubeast.com/",
+      "type": "Éditeur",
+      "observation": "Analyse de phases, partage de résolutions, exercices et timers externes.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S16",
+      "title": "Cubeast — témoignage tarifaire, 18/10/2023",
+      "url": "https://www.reddit.com/r/Cubers/comments/17aoyrh",
+      "type": "Avis utilisateur historique",
+      "observation": "Academy à 5 $/mois selon un utilisateur ; tarif actuel non confirmé.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S17",
+      "title": "Smart cubes : attentes de progression, 20/03/2026",
+      "url": "https://www.reddit.com/r/Cubers/comments/1ryohbl/smart_cubes_problem_they_should_be_way_more/",
+      "type": "Avis utilisateurs",
+      "observation": "Entraînement personnalisé, export et hésitation face à l’abonnement.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S18",
+      "title": "Smart cubes : usages et paiement, 25/07/2026",
+      "url": "https://www.reddit.com/r/Cubers/comments/1v68zpo/app_for_smart_cubes_to_improve_and_practice/",
+      "type": "Avis utilisateurs",
+      "observation": "Pauses, cas faibles, connexion Bluetooth et confidentialité.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S19",
+      "title": "acubemy — site officiel",
+      "url": "https://acubemy.com/",
+      "type": "Éditeur",
+      "observation": "Web et applications mobiles ; socle gratuit, premium, répétition espacée.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S20",
+      "title": "acubemy — App Store Espagne",
+      "url": "https://apps.apple.com/es/app/acubemy/id6760343507",
+      "type": "Boutique",
+      "observation": "Premium 4,99 €/mois ou 49,99 €/an ; Supporter 14,99 €/mois ou 149,99 €/an.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S21",
+      "title": "Last Cube X — App Store US",
+      "url": "https://apps.apple.com/us/app/last-cube-x-cube-timer/id1661241296",
+      "type": "Boutique",
+      "observation": "173 évaluations, 4,8/5 ; achats listés 3,99 $/mois et 39,99 $/an. Description affichant encore d’autres prix.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S22",
+      "title": "Cube Timer Pro — Google Play",
+      "url": "https://play.google.com/store/apps/details?hl=en&id=com.peterhohsy.cubetimerpro",
+      "type": "Boutique",
+      "observation": "Relevé de recherche : 1,99 $, 1 k+ téléchargements, 143 évaluations ; achats supplémentaires et avis sur ceux-ci.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S23",
+      "title": "CubeX — Google Play",
+      "url": "https://play.google.com/store/apps/details?hl=en&id=diozz.cubex",
+      "type": "Boutique",
+      "observation": "10 M+ téléchargements, 4,6/5, environ 360 k évaluations en en-tête ; pub, achats et Play Pass.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S24",
+      "title": "ASolver — Google Play",
+      "url": "https://play.google.com/store/apps/details?hl=en&id=ru.bnice.asolver",
+      "type": "Boutique",
+      "observation": "10 M+ téléchargements, 4,6/5, environ 1,55 M évaluations en en-tête ; pub et achats.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S25",
+      "title": "CubeStation — Google Play",
+      "url": "https://play.google.com/store/apps/details?id=com.gan.cubestation",
+      "type": "Boutique",
+      "observation": "100 k+ téléchargements ; note d’en-tête 2,6/5 et environ 3,77 k évaluations. Autres agrégats visibles selon appareil.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S26",
+      "title": "CubeStation — téléchargement officiel",
+      "url": "https://www.ganrobot.com/",
+      "type": "Éditeur",
+      "observation": "Versions Global et CN ; comptes et données non partagés entre les deux serveurs.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S27",
+      "title": "CuberPal — App Store US",
+      "url": "https://apps.apple.com/us/app/cubing-timer-coach-cuberpal/id6758110729",
+      "type": "Boutique",
+      "observation": "Coaching et timer ; mensuel 9,99 $, annuel 49,99 $, offre annuelle 24,99 $ ; plusieurs produits listés.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S28",
+      "title": "CuberPal — tableau de bord public",
+      "url": "https://www.whatsthe.app/cuberpal",
+      "type": "Agrégateur connecté déclaré",
+      "observation": "Relevé actualisé le 30/09/2026 à 09:05:53 UTC : 174 $ sur 28 jours, MRR 79 $, 30 abonnements actifs, 407 téléchargements sur 28 jours. Le site indique une vérification RevenueCat.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S29",
+      "title": "cubrs — tarifs officiels",
+      "url": "https://cubrs.com/pricing",
+      "type": "Éditeur",
+      "observation": "Tout gratuit actuellement ; Pro non commercialisé, prix envisagés 3,99 $/mois et 29 $/an.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S30",
+      "title": "SpeedCubeDB — entraînement",
+      "url": "https://www.speedcubedb.com/t",
+      "type": "Éditeur",
+      "observation": "Entraînement et fiches personnelles d’algorithmes.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S31",
+      "title": "Publicité dans les timers — discussion, 2022",
+      "url": "https://www.reddit.com/r/Cubers/comments/sqzx2h/what_are_you_thoughts_on_ads_in_cube_timer_apps/",
+      "type": "Avis utilisateurs",
+      "observation": "Dons, retrait de la publicité et difficulté à faire payer face aux alternatives gratuites.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S32",
+      "title": "Tutoriels débutants — discussion, 2026",
+      "url": "https://www.reddit.com/r/Cubers/comments/1qp710k/building_free_cube_app_for_total_beginners_need/",
+      "type": "Avis utilisateurs",
+      "observation": "Préférence exprimée pour des explications visuelles et animations pas à pas.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S33",
+      "title": "Google Play — frais de service",
+      "url": "https://support.google.com/googleplay/android-developer/answer/112622?hl=en-GB",
+      "type": "Plateforme",
+      "observation": "15 % pour les abonnements à renouvellement automatique ; conditions distinctes selon produits et programmes.",
+      "consulted": "2026-09-30"
+    },
+    {
+      "id": "S34",
+      "title": "Apple — Small Business Program",
+      "url": "https://developer.apple.com/app-store/small-business-program/",
+      "type": "Plateforme",
+      "observation": "Taux réduit sous conditions ; retenu uniquement comme repère, pas comme conseil fiscal.",
+      "consulted": "2026-09-30"
+    }
+  ]
+}

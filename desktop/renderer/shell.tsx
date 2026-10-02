@@ -4,6 +4,8 @@ import { motion, useIsPresent } from "motion/react";
 import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, Headset, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
+import { badge, sections } from "./coaching/sections";
+import { Count, url } from "./coaching/parts";
 import { Avatar, FADE, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,9 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 /** The sections: a mortarboard for the method courses, a cube library for the algorithms, a dumbbell for the drills. */
@@ -120,10 +125,19 @@ export function Rail() {
                   <I />
                   <span>{label}</span>
                 </SidebarMenuButton>
-                {page === "coaching" && !!coaching.me?.unread && <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0">{coaching.me.unread}</SidebarMenuBadge>}
+                {page === "coaching" && !!coaching.me?.unread && !(open && s.page === "coaching") && (
+                  <>
+                    <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0">
+                      {coaching.me.unread}
+                    </SidebarMenuBadge>
+                    {/* Folded to its icons, the sidebar keeps a dot on the headset. */}
+                    <span data-slot="coaching-unread" aria-label={`${coaching.me.unread} unread`} className="pointer-events-none absolute top-1.5 left-6 hidden size-2 rounded-full bg-primary ring-2 ring-sidebar group-data-[collapsible=icon]:block" />
+                  </>
+                )}
                 <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
                   {shortcut}
                 </Kbd>
+                {page === "coaching" && s.page === "coaching" && <CoachingSections />}
               </SidebarMenuItem>
               );
             })}
@@ -191,6 +205,32 @@ export function Rail() {
       </SidebarFooter>
     </Sidebar>
     </TooltipProvider>
+  );
+}
+
+/** On the coaching page, its sections under Coaching; a coach's own come first, a line apart from a player's. */
+function CoachingSections() {
+  const view = s.coachingView.split("/")[0];
+  return (
+    <SidebarMenuSub aria-label="Coaching" data-slot="coaching-nav" className="mt-0.5">
+      {sections().map((group, i) =>
+        group.map(([id, label, I], j) => (
+          <SidebarMenuSubItem key={id} className={cn(i > 0 && j === 0 && "mt-1 border-t border-sidebar-border pt-1")}>
+            <SidebarMenuSubButton
+              render={<Link to={url(id)} />}
+              data-action={"coaching:" + id}
+              isActive={view === id}
+              aria-current={view === id ? "page" : undefined}
+              className="h-8 text-muted-foreground data-active:text-foreground [&>svg]:text-current"
+            >
+              <I />
+              <span className="truncate">{label}</span>
+              <Count n={badge(id)} />
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+        )),
+      )}
+    </SidebarMenuSub>
   );
 }
 

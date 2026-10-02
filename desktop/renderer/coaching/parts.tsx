@@ -9,10 +9,12 @@ import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-/** The joined panel of the coaching pages: one frame whose parts share lines. */
+/** A card of the coaching pages: each holds one thing, set apart from the next by space rather than lines. */
 export const PANEL = "flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card text-sm text-card-foreground";
-/** A heading inside a panel, on its own line. */
-export const PANEL_HEAD = "flex min-h-11 shrink-0 items-center gap-2 border-b px-4 text-sm font-medium";
+/** A card's heading, at its top. */
+export const PANEL_HEAD = "flex min-h-11 shrink-0 items-center gap-2 px-4 pt-1 text-sm font-medium";
+/** A list of rows inside a card: rows apart, highlighted under the pointer. */
+export const ROWS = "flex flex-col gap-0.5 p-1.5";
 
 export const url = (view = "") => "/coaching" + (view ? "/" + view : "");
 
@@ -83,7 +85,7 @@ export function RowLink({ to, active, children, className }: { to: string; activ
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={cn("flex w-full min-w-0 items-center gap-3 border-b px-4 py-3 text-left outline-none last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted aria-[current=page]:bg-muted", className)}
+      className={cn("flex w-full min-w-0 items-center gap-3 rounded-lg px-2.5 py-2.5 text-left outline-none hover:bg-muted/50 focus-visible:bg-muted aria-[current=page]:bg-muted", className)}
     >
       {children}
     </Link>
@@ -103,9 +105,9 @@ export function Count({ n, tone = "primary" }: { n: number; tone?: "primary" | "
 /** Rows on their way, shaped like a list of people. */
 export function RowsSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div aria-busy="true" aria-label="Loading" className="flex flex-col">
+    <div aria-busy="true" aria-label="Loading" className={ROWS}>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0">
+        <div key={i} className="flex items-center gap-3 px-2.5 py-2.5">
           <Skeleton className="size-8 rounded-full" />
           <div className="flex flex-1 flex-col gap-1.5">
             <Skeleton className="h-4 w-1/3" />
@@ -122,12 +124,12 @@ export function Nothing({ children, className }: { children: React.ReactNode; cl
   return <div className={cn("flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-sm text-muted-foreground", className)}>{children}</div>;
 }
 
-/** The figures of a panel, one line of equal cells split by lines. */
-export function Figures({ items, className }: { items: [label: string, value: React.ReactNode, tone?: string][]; className?: string }) {
+/** Figures as a row of small cards of equal width; `columns` caps how many share a line. */
+export function Figures({ items, columns = items.length, className }: { items: [label: string, value: React.ReactNode, tone?: string][]; columns?: number; className?: string }) {
   return (
-    <div className={cn("grid shrink-0 border-b", className)} style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-      {items.map(([label, value, tone], i) => (
-        <div key={label} className={cn("flex min-w-0 flex-col gap-1 px-4 py-3", i > 0 && "border-l")}>
+    <div className={cn("grid shrink-0 gap-3", className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      {items.map(([label, value, tone]) => (
+        <div key={label} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-card-foreground">
           <span className="truncate text-xs text-muted-foreground">{label}</span>
           <span className={cn(NUMERIC, "truncate text-xl font-medium tracking-tight", tone)}>{value}</span>
         </div>

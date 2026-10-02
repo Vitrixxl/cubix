@@ -21,7 +21,7 @@ export function readRoute(pathname: string, search: string): AppRoute | null {
   if (!parts.length) return null;
   const page = pages[parts[0]!];
   if (page === "coaching") {
-    if (parts.length > 3) return null;
+    if (parts.length > 4) return null;
     try { return { page, caseId: "", profileMode: "overview", trainingStep: "setup", learnMethod: "", coaching: parts.slice(1).map(decodeURIComponent).join("/") }; } catch { return null; }
   }
   if (!page || parts.length > 2) return null;

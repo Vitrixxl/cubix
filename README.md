@@ -111,6 +111,32 @@ bun run dev:api
 CUBIX_API_ORIGIN=http://127.0.0.1:47129 bun run dev
 ```
 
+### API locale avec données de test (Docker)
+
+```sh
+bun run dev:docker              # API seedée dans Docker + site local sur http://127.0.0.1:5181
+bun run dev:docker --electron   # la même chose dans la fenêtre Electron
+bun run dev:docker --reset      # repart d'une base vide, seedée à nouveau
+bun run dev:docker --stop       # arrête le conteneur, la base est conservée
+```
+
+`compose.dev.yaml` construit l'image avec la feature cargo `seed` (absente des images de
+production) et l'expose sur `http://127.0.0.1:47130`, qui sert aussi l'application web de
+l'image. Au démarrage, `cubix-api seed` remplit une base vide : 42 comptes avec un an de
+temps sur plusieurs épreuves (environ 60 000 solves, dont plus de 8 000 pour `dev`), cas
+appris et entraînements, 6 coachs avec disponibilités, séances passées et à venir, avis et
+messages non lus, candidatures de coach en attente, duels et trafic pour l'administration.
+Le générateur a une graine fixe : chaque `--reset` redonne les mêmes données, datées
+d'aujourd'hui. Le site local (sources de `desktop/renderer`, port 5181) garde son propre
+stockage navigateur et Electron, séparé du compte de production.
+
+| Accès | Identifiant | Mot de passe / jeton |
+| --- | --- | --- |
+| Compte principal (élève, 2 coachs) | `dev` | `cubix-dev-password` |
+| Coach avec élèves et messages | `coach` | `cubix-dev-password` |
+| Autres comptes | `lena_speed`, `alex_cubes`, `zoe_newbie`… | `cubix-dev-password` |
+| Administration (`/admin`) | — | `cbx_admin_dev` |
+
 L'API accepte `--host`, `--port`, `--version`, `--init-db` et
 `--import-history <username>`. `CUBIX_DB` choisit le fichier SQLite ; hors Docker,
 il est par défaut sous `$XDG_DATA_HOME/cubix/cubix.db` ou `~/.local/share/cubix/cubix.db`.

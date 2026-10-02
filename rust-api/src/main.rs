@@ -12,6 +12,8 @@ mod live;
 mod journey;
 mod practice;
 mod release;
+#[cfg(feature = "seed")]
+mod seed;
 mod stats;
 mod sync;
 mod traffic;
@@ -21,7 +23,7 @@ use axum::{
     Router,
     extract::DefaultBodyLimit,
     http::{HeaderValue, header},
-    routing::{any, get, put},
+    routing::{any, get, post, put},
 };
 use std::{
     collections::HashMap,
@@ -130,6 +132,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
+    // `cubix-api seed`, in development images only (compose.dev.yaml): fills an empty database.
+    #[cfg(feature = "seed")]
+    if args.get(1).is_some_and(|arg| arg == "seed") {
+        let catalog = Arc::new(catalog::Catalog::load());
+        match db.call(move |db| seed::run(db, &catalog)).await.map_err(|e| e.message)? {
+            Some(s) => println!("Seeded {} accounts and {} solves.", s.users, s.solves),
+            None => println!("The database already has accounts: not seeded."),
+        }
+        println!(
+            "Sign in as dev (or coach, lena_speed, alex_cubes…) with the password {}; admin token: {}",
+            seed::PASSWORD,
+            seed::ADMIN_TOKEN
+        );
+        return Ok(());
+    }
     if let Some(index) = args.iter().position(|arg| arg == "--import-history") {
         let name = args
             .get(index + 1)
@@ -187,6 +204,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/live", get(live::upgrade))
         .route("/api/duel", get(duel::upgrade))
         .route("/api/coaching/live", get(coaching::upgrade))
+        // Pictures and videos in coaching conversations travel raw, above the JSON limit below.
+        .route(
+            "/api/coaching/conversations/{id}/media",
+            post(coaching::upload).layer(DefaultBodyLimit::max(coaching::MEDIA_MAX)),
+        )
+        .route("/api/coaching/media/{id}", get(coaching::media))
+        .route(
+            "/api/coaching/avatar",
+            put(coaching::set_avatar).delete(coaching::set_avatar).layer(DefaultBodyLimit::max(4 * 1024 * 1024)),
+        )
+        .route("/api/avatars/{file}", get(coaching::avatar))
         // The APK upload carries a whole Android build, far above the JSON limit below.
         .route(
             "/api/mobile/apk",

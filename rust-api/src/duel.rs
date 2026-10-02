@@ -154,8 +154,12 @@ pub struct Arena {
     log: Option<activity::Log>,
 }
 
-/// How far apart two levels are, if they may meet now: a ratio, 0 for equal levels.
+/// How far apart two levels are, if they may meet now: a ratio, 0 for equal levels. An account signed in on two
+/// devices searches on both, but never meets itself.
 fn gap(a: &Waiting, b: &Waiting, now: Instant) -> Option<f64> {
+    if a.user.is_some() && a.user == b.user {
+        return None;
+    }
     let waited = now.duration_since(a.since.min(b.since));
     match (a.level, b.level) {
         (Some(x), Some(y)) => {
@@ -499,6 +503,23 @@ mod tests {
         assert!(gap(&waiting(None, 0), &waiting(None, 0), now).is_some());
         assert!(gap(&waiting(None, 0), &waiting(Some(9_000.), 0), now).is_none());
         assert!(gap(&waiting(None, 11), &waiting(Some(9_000.), 0), now).is_some());
+    }
+    #[test]
+    fn an_account_never_meets_itself() {
+        let mut inner = Inner::default();
+        let mut mine = [waiting(None, 40), waiting(None, 0)];
+        for w in &mut mine {
+            w.user = Some("u1".into());
+        }
+        inner.queue = mine.into();
+        Arena::pair(&mut inner);
+        assert_eq!(inner.queue.len(), 2);
+        // Someone else meets the device that has waited longest.
+        let first = inner.queue.iter().min_by_key(|w| w.since).unwrap().id;
+        inner.queue.push(waiting(None, 0));
+        Arena::pair(&mut inner);
+        assert_eq!(inner.queue.len(), 1);
+        assert!(inner.seats.contains_key(&first));
     }
     #[test]
     fn closest_level_first() {

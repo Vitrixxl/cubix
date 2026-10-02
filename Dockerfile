@@ -3,10 +3,12 @@ WORKDIR /app
 # Keep the 4 GiB Pi responsive: one compiler, no LTO, smaller code generation units.
 # The mobile app is built on the developer machine, never in this image.
 ARG CARGO_BUILD_JOBS=1
+# compose.dev.yaml adds `seed` (development data); production builds keep none.
+ARG CARGO_FEATURES=""
 ENV CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
 COPY rust-api ./rust-api
 COPY data ./data
-RUN cargo build --locked --release --manifest-path rust-api/Cargo.toml
+RUN cargo build --locked --release --manifest-path rust-api/Cargo.toml --features "$CARGO_FEATURES"
 
 # The web app, which the desktop app loads too. Only runtime dependencies are installed: Bun bundles
 # TypeScript itself, and no install script (Electron, Playwright) is needed to build.

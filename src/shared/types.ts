@@ -1,6 +1,6 @@
 /** HTTP and WebSocket contracts for the Rust API and native clients. */
 
-import type { CubeSize, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
+import type { CubeSize, EventId, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
 export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
 
 export type LearningGroupOrder = Partial<Record<"F2L" | "OLL" | "PLL", string[]>>;
@@ -138,6 +138,24 @@ export interface ProfileDto {
   totalSolves: number;
   trainingSolves: number;
   activeDays: number;
+  /** The records of every event timed, on its standard scrambles, whatever the profile's filter. */
+  records?: EventRecordDto[];
+  /** Every solve of every event, for the activity graph and the streak; `timer` marks the profile's own timer solves. */
+  activity?: { at: string; time: number | null; timer: boolean }[];
+}
+
+export interface EventRecordDto {
+  event: EventId;
+  puzzle: PuzzleId;
+  solveMode: SolveMode;
+  count: number;
+  best: number | null;
+  bestAo5: number | null;
+  bestAo12: number | null;
+  bestAo100: number | null;
+  lastAt: string | null;
+  /** The single is the best time given at setup, which no solve has beaten yet. */
+  declared?: boolean;
 }
 
 /** Computed locally from synchronized solves and learning marks, so every device agrees. */

@@ -14,6 +14,8 @@ export interface JourneyProfile {
   learningPuzzles?: PuzzleId[];
   learningMethods?: Partial<Record<PuzzleId, string[]>>;
   priorityMethod?: string;
+  /** The best single the player had on each known puzzle before Qbix, in milliseconds: optional. */
+  bests?: Partial<Record<PuzzleId, number>>;
   completedAt: string;
 }
 /** Entries other than the profile (personal goals, removed) are ignored. */
@@ -52,6 +54,7 @@ export function validJourneyEntry(key: string, value: unknown): value is Journey
     && (v.priorityMethod === undefined || typeof v.priorityMethod === "string" && isPuzzle(v.priority) && METHODS[v.priority].some(m => m.id === v.priorityMethod))
     && (v.learningPuzzles === undefined || Array.isArray(v.learningPuzzles) && v.learningPuzzles.length <= 11 && v.learningPuzzles.every(isPuzzle) && new Set(v.learningPuzzles).size === v.learningPuzzles.length && (v.priority === null ? !v.learningPuzzles.length : v.learningPuzzles.includes(v.priority)))
     && (v.learningMethods === undefined || v.learningMethods !== null && typeof v.learningMethods === "object" && !Array.isArray(v.learningMethods) && Array.isArray(v.learningPuzzles) && Object.entries(v.learningMethods).every(([p, methods]) => isPuzzle(p) && (v.learningPuzzles as string[]).includes(p) && Array.isArray(methods) && methods.every(id => typeof id === "string" && METHODS[p].some(m => m.id === id)) && new Set(methods).size === methods.length))
+    && (v.bests === undefined || v.bests !== null && typeof v.bests === "object" && !Array.isArray(v.bests) && Object.entries(v.bests).every(([p, ms]) => (v.knownPuzzles as string[]).includes(p) && Number.isInteger(ms) && (ms as number) > 0 && (ms as number) < 86_400_000))
     && (v.knownMethods === undefined || v.knownMethods !== null && typeof v.knownMethods === "object" && !Array.isArray(v.knownMethods) && Object.entries(v.knownMethods).every(([p, methods]) => isPuzzle(p) && (v.knownPuzzles as string[]).includes(p) && Array.isArray(methods) && methods.every(id => typeof id === "string" && METHODS[p].some(m => m.id === id)) && new Set(methods).size === methods.length));
 }
 

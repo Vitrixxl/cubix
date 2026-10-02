@@ -152,9 +152,9 @@ export function algScene(alg: string, size: number, mask: CubeMask = "full", set
     state = applyMove(state, move);
     states.push(Array.from(state));
   }
-  // Colours are given where the cube is in its usual colours, centres in place: a case at its end (solved), a setup at
-  // its start (a slice or a rotation then shows the centres moving). A stage's mask greys what it should there.
-  return { size, colors: stickerColors(setup === undefined ? state : start, mask), states, moves, sources: moves.map((m) => m.source) };
+  // Colours are given where the cube starts, centres in place, as the case's diagram shows it: a slice or a rotation
+  // in the algorithm (a leading y') then turns the centres away from there. A stage's mask greys what it should there.
+  return { size, colors: stickerColors(start, mask), states, moves, sources: moves.map((m) => m.source) };
 }
 
 /** Shapes of the scene `position` moves into it (fractions turn the layer part way), seen with `orientation`. */

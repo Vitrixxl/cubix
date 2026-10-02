@@ -21,6 +21,10 @@ uuid = { version = "1", features = ["v4"] }
 dotenvy = "0.15"
 jiff = { version = "0.2.37", default-features = false, features = ["std", "tzdb-bundle-always"] }
 
+[features]
+# `cubix-api seed`: development data, for compose.dev.yaml. Never in production images.
+seed = []
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

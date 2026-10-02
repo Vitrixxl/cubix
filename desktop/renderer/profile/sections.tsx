@@ -1,9 +1,9 @@
 /** The overview's sections: timer, training, achievements and battles, each one card built the same way. */
-import { BookOpen, CalendarDays, Gauge, Layers, MessageSquare, Swords, Timer, Trophy, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronDown, Gauge, Layers, MessageSquare, Swords, Timer, Trophy, type LucideIcon } from "lucide-react";
 import { store as s } from "../store";
 import { fmtTime, plural, shortDate, solvedAt } from "../../../src/client/lib/format";
 import { timerFigures } from "../../../src/client/lib/practiceSummary";
-import { Bar, Figure, NUMERIC, SolveMenu, run } from "../ui";
+import { Bar, Figure, Icon, NUMERIC, PuzzlePicker, SolveMenu, run } from "../ui";
 import { RESULT_MARK, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -56,9 +56,26 @@ export function LatestSolves({ history, averages, count = 5, phone = false }: { 
   );
 }
 
+/** The chosen event as the timer card's title, opening the puzzle picker: the records pick a timed event, this one any. */
+function EventTitle() {
+  const e = s.event(s.profilePuzzle, s.profileSolveMode);
+  return (
+    <PuzzlePicker
+      profile
+      trigger={
+        <Button variant="ghost" className="-ml-2.5 h-8 gap-2 px-2.5 text-base font-semibold tracking-tight">
+          <Icon name={"Puzzle" + e.id} size={18} className="text-primary" />
+          {e.label}
+          <ChevronDown className="text-muted-foreground" />
+        </Button>
+      }
+    />
+  );
+}
+
 /**
- * The timer's card. `fill` (the desktop overview) stretches the curve over the height the card is given and leaves the
- * latest solves to the statistics page.
+ * The chosen event's card: where it stands now (the records hold its bests), its curve and, on phones, its latest
+ * solves. `fill` (the desktop overview) stretches the curve over the height the card is given.
  */
 export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone: boolean; fill?: boolean }) {
   const t = d.timer,
@@ -66,13 +83,13 @@ export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone
   return (
     <Section
       label="Timer"
-      title="Timer"
-      meta={t.count ? plural(t.count, "solve") + (phone ? "" : ` · ${s.label("scrambles", s.profileScramble)} scrambles`) : event.label}
+      title={<EventTitle />}
+      meta={t.count && !phone ? `${s.label("scrambles", s.profileScramble)} scrambles` : undefined}
       open={t.count ? "playground" : undefined}
       more="Statistics"
-      aside={t.count ? <TrendLegend /> : undefined}
-      className={fill ? "min-h-52 flex-1" : undefined}
-      body={cn(fill && "min-h-0 flex-1", !t.count && "items-center justify-center")}
+      aside={t.count && !phone ? <TrendLegend /> : undefined}
+      className={fill ? "min-h-0 flex-1" : undefined}
+      body={cn(fill && "min-h-0 flex-1", !t.count && "flex-1 items-center justify-center")}
     >
       {!t.count ? (
         <div className="flex flex-col items-center gap-3 py-2 text-center">
@@ -84,8 +101,8 @@ export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone
         </div>
       ) : (
         <>
-          <Stats columns={6}>
-            {timerFigures(t).slice(0, 6).map(([label, value, tone]) => (
+          <Stats columns={4}>
+            {timerFigures(t).slice(3, phone ? 6 : 7).map(([label, value, tone]) => (
               <Figure key={label} label={label} value={value} tone={tone} caption="plain" size="xl" />
             ))}
           </Stats>
@@ -100,6 +117,16 @@ export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone
           )}
         </>
       )}
+    </Section>
+  );
+}
+
+/** The chosen event's latest solves as a section of their own, under the records on the desktop overview. */
+export function LatestSection({ d, className }: { d: ProfileData; className?: string }) {
+  if (!d.timer.count) return null;
+  return (
+    <Section label="Latest solves" title="Latest solves" open="playground" more="View all" className={className} body="min-h-0 flex-1 overflow-y-auto pt-0 pb-3">
+      <LatestSolves history={d.history} averages={d.ao5} count={12} />
     </Section>
   );
 }

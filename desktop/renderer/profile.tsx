@@ -1,19 +1,20 @@
 /**
- * The account page: the user and their figures, then the practice cards, the whole overview inside the window.
- * Each practice card opens its own page.
+ * The account page: who they are beside their year of practice, the records of every event beside the chosen one's curve,
+ * then training, achievements and battles, the whole overview inside the window. Each section opens its own page.
  */
-import { Award, BookA, BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, Trophy, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, CalendarDays, Flame, Layers, LogOut, Settings, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
-import { fmtTime } from "../../src/client/lib/format";
 import { Avatar, Button, InHead, MenuAction, MoreMenu, NUMERIC, PuzzleButton, SelectMenu, plural, usePhone } from "./ui";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button as UiButton } from "@/components/ui/button";
-import { Joined, SubPageHead } from "./profile/card";
+import { SubPageHead } from "./profile/card";
 import { Heatmap } from "./profile/heatmap";
-import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
+import { RecordsSection } from "./profile/records";
+import { AchievementsSection, BattlesSection, LatestSection, TimerSection, TrainingSection } from "./profile/sections";
 import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
 import { useProfileData, type ProfileData } from "./profile/data";
 
@@ -27,46 +28,26 @@ const SECTIONS: Record<string, string> = {
 /** The reading column: centred and capped like GitHub's, the page's padding around it. */
 const COLUMN = "mx-auto w-full max-w-7xl px-6 xl:px-8";
 
-/** The figures that sum up the practice, one line of equal cells. */
-function Facts({ d, className }: { d: ProfileData; className?: string }) {
-  const facts: [LucideIcon, string, string, string?][] = [
-    [Layers, "Solves", d.totalSolves.toLocaleString()],
-    [CalendarDays, "Active days", d.activeDays.toLocaleString()],
-    [Flame, "Day streak", String(d.streak.current), d.streak.current ? "text-warning" : undefined],
-    [BookOpen, "Cases learned", d.learned.toLocaleString(), "text-primary"],
-    [Trophy, "Best single", d.timer.count ? fmtTime(d.timer.best) : "–", "text-success"],
-    [Award, "Achievements", `${d.unlocked} / ${d.totalAchievements}`],
-  ];
+/** Who they are and how much they practise, every event together: the avatar and name, then three figures. */
+function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
+  const user = s.user,
+    facts: [LucideIcon, string, string, string?, string?][] = [
+      [Layers, "Solves", d.activity.length.toLocaleString()],
+      [CalendarDays, "Active days", d.days.toLocaleString()],
+      [Flame, "Streak", String(d.streak.current), d.streak.current ? "text-warning" : undefined, d.streak.longest > d.streak.current ? `best ${d.streak.longest}` : undefined],
+    ];
   return (
-    <div className={cn("grid shrink-0 grid-cols-3 md:grid-cols-6", className)} aria-label="Summary">
-      {facts.map(([I, label, value, tone], i) => (
-        <div key={label} className={cn("flex min-w-0 flex-col gap-1.5 px-4 py-3 max-md:px-3", i % 3 && "border-l", i >= 3 && "max-md:border-t md:border-l")}>
-          <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-            <I className="size-3.5 shrink-0 max-md:hidden" />
-            {label}
-          </span>
-          <span className={cn(NUMERIC, "truncate text-xl font-medium tracking-tight", value === "–" ? "text-muted-foreground/60" : tone)}>{value}</span>
+    <Card className={cn("min-w-0 justify-between gap-5 p-5", phone && "gap-4 p-4")}>
+      <div className="flex min-w-0 items-center gap-4">
+        <Avatar name={user?.username} size={phone ? 48 : 56} />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h1 className="truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
+          <p className="truncate text-sm text-muted-foreground">
+            {user?.joined ? `Joined ${user.joined}` : null}
+          </p>
         </div>
-      ))}
-    </div>
-  );
-}
-
-/** One line: the avatar, the name and when they joined (the level is in the journey); the profile's puzzle and settings on the right. */
-function ProfileHeader({ phone }: { phone: boolean }) {
-  const user = s.user;
-  const joined = user?.joined ? `Joined ${user.joined}` : null;
-  return (
-    <header className="flex min-h-10 shrink-0 items-center gap-3">
-      <Avatar name={user?.username} size={phone ? 44 : 40} />
-      <div className={cn("flex min-w-0 flex-1 gap-x-3", phone ? "flex-col gap-y-0.5" : "items-baseline")}>
-        <h1 className="min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
-        <p className="min-w-0 truncate text-sm text-muted-foreground">{joined}</p>
-      </div>
-      <InHead.Provider value={true}>
-        <div className="flex shrink-0 items-center gap-2">
-          <PuzzleButton profile />
-          {phone ? (
+        {phone && (
+          <InHead.Provider value={true}>
             <MoreMenu>
               <MenuAction action="notation" icon={BookA}>
                 Notation
@@ -78,62 +59,71 @@ function ProfileHeader({ phone }: { phone: boolean }) {
                 Settings
               </MenuAction>
             </MoreMenu>
-          ) : (
-            <Button action="settings" icon={Settings} tip="Settings" />
-          )}
-        </div>
-      </InHead.Provider>
-    </header>
+          </InHead.Provider>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-3" aria-label="Summary">
+        {facts.map(([I, label, value, tone, sub]) => (
+          <div key={label} className="flex min-w-0 flex-col gap-1">
+            <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+              <I className="size-3.5 shrink-0" />
+              {label}
+            </span>
+            <span className="flex items-baseline gap-1.5">
+              <span className={cn(NUMERIC, "text-2xl font-medium tracking-tight", value === "0" ? "text-muted-foreground/60" : tone)}>{value}</span>
+              {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
-/** The joined panel: one frame, its sections split by shared lines like the figures along its top. */
-const PANEL = "flex flex-col overflow-hidden rounded-xl border bg-card text-sm text-card-foreground";
-
 /**
- * The overview fills the window without scrolling it: the user, then one panel: their figures; the year of practice
- * over the timer's curve; training, achievements and battles along the bottom.
+ * The overview fills the window without scrolling it, as cards with room between them: who they are beside their year
+ * of practice; the records of every event and its latest solves beside the chosen event's curve; training, achievements
+ * and battles along the bottom.
  */
 function Overview() {
   const d = useProfileData();
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-x-hidden overflow-y-auto">
-      <ProfileHeader phone={false} />
-      <Joined.Provider value={true}>
-        {/* A short window scrolls the overview inside the page rather than squeezing the curve. */}
-        <div data-tour="profile-overview" className={cn(PANEL, "min-h-[38rem] flex-1")}>
-          <Facts d={d} className="border-b" />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col border-b">
-            <Heatmap solves={d.activity} latest={d.latest} phone={false} className="border-b" />
-            <TimerSection d={d} phone={false} fill />
-          </div>
-          <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem] [&>*+*]:border-l">
-            <TrainingSection d={d} compact />
-            <AchievementsSection d={d} compact />
-            <BattlesSection compact />
-          </div>
+    /* A short window scrolls the overview inside the page rather than squeezing the curve. */
+    <div data-tour="profile-overview" className="flex h-full min-h-[42rem] flex-col gap-4">
+      <div className="grid shrink-0 grid-cols-[20rem_minmax(0,1fr)] gap-4 2xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <Identity d={d} phone={false} />
+        <Heatmap solves={d.activity} latest={d.latest} phone={false} />
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
+        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+          <RecordsSection d={d} className={d.timer.count ? "max-h-[60%] shrink-0" : "min-h-0 flex-1"} />
+          <LatestSection d={d} className="min-h-0 flex-1" />
         </div>
-      </Joined.Provider>
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <TimerSection d={d} phone={false} fill />
+        </div>
+      </div>
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
+        <TrainingSection d={d} compact />
+        <AchievementsSection d={d} compact />
+        <BattlesSection compact />
+      </div>
     </div>
   );
 }
 
-/** Phones: the same sections one under the other in one panel, scrolling inside the page; signing out closes the list, centred. */
+/** Phones: the same cards one under the other, scrolling inside the page; signing out closes the list, centred. */
 function PhoneOverview() {
   const d = useProfileData();
   return (
-    <div className="flex flex-col gap-4">
-      <ProfileHeader phone />
-      <Joined.Provider value={true}>
-        <div data-tour="profile-overview" className={cn(PANEL, "[&>*+*]:border-t")}>
-          <Facts d={d} />
-          <Heatmap solves={d.activity} latest={d.latest} phone />
-          <TimerSection d={d} phone />
-          <TrainingSection d={d} />
-          <AchievementsSection d={d} />
-          <BattlesSection />
-        </div>
-      </Joined.Provider>
+    <div data-tour="profile-overview" className="flex flex-col gap-3">
+      <Identity d={d} phone />
+      <RecordsSection d={d} phone />
+      <TimerSection d={d} phone />
+      <Heatmap solves={d.activity} latest={d.latest} phone />
+      <TrainingSection d={d} />
+      <AchievementsSection d={d} />
+      <BattlesSection />
       <div className="flex justify-center pb-2">
         <UiButton variant="ghost" data-action="logout" onClick={() => void s.action("logout")} className="text-muted-foreground hover:text-destructive">
           <LogOut />
@@ -185,22 +175,28 @@ function SubPage({ mode, phone }: { mode: string; phone: boolean }) {
   );
 }
 
-/** The page on its way, shaped like it: the header, the graph and two columns of cards. */
+/** The page on its way, shaped like it: who they are beside the activity, the records beside the curve, three cards under them. */
 function ProfileSkeleton({ phone }: { phone: boolean }) {
-  return (
-    <div className={cn(COLUMN, "flex flex-col gap-6 py-6", phone && "px-4 py-4")} aria-busy="true" aria-label="Loading">
-      <div className="flex items-center gap-6">
-        <Skeleton className="size-22 rounded-full max-md:size-14" />
-        <div className="flex flex-1 flex-col gap-2.5">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-full max-w-lg" />
-        </div>
+  return phone ? (
+    <div className="flex flex-col gap-3 px-4 pt-1" aria-busy="true" aria-label="Loading">
+      <Skeleton className="h-36 rounded-xl" />
+      <Skeleton className="h-48 rounded-xl" />
+      <Skeleton className="h-72 rounded-xl" />
+    </div>
+  ) : (
+    <div className={cn(COLUMN, "flex h-full flex-col gap-4 py-5")} aria-busy="true" aria-label="Loading">
+      <div className="grid shrink-0 grid-cols-[20rem_minmax(0,1fr)] gap-4 2xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
       </div>
-      <Skeleton className="h-52 w-full rounded-xl" />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <Skeleton className="h-96 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl max-lg:hidden" />
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-4">
+        <Skeleton className="rounded-xl" />
+        <Skeleton className="rounded-xl" />
+      </div>
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-36 rounded-xl" />
       </div>
     </div>
   );
@@ -214,7 +210,7 @@ export function Profile() {
   if (phone) return <PhoneProfile mode={mode} />;
   if (!p) return <ProfileSkeleton phone={false} />;
   return mode === "overview" ? (
-    <section className={cn(COLUMN, "h-full min-h-0 py-5")} aria-label="Profile">
+    <section className={cn(COLUMN, "h-full min-h-0 overflow-x-hidden overflow-y-auto py-5")} aria-label="Profile">
       <Overview />
     </section>
   ) : (

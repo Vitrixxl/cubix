@@ -2,7 +2,8 @@
 import { useMemo } from "react";
 import { store as s } from "../store";
 import { DUELS_KEY, type DuelRecord } from "../duelClient";
-import { achievementLists, activityOf, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
+import type { EventRecordDto } from "../../../src/shared/types";
+import { achievementLists, activityOf, dayKey, type ActivitySolve, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
 
 /** Battles raced on this device, newest first. */
 export const battles = (): DuelRecord[] => s.prefs[DUELS_KEY] ?? [];
@@ -12,7 +13,8 @@ function profileData(p: any, achievements: any, learnedIds: ReadonlySet<string>,
     history: any[] = p.playground?.history ?? [],
     cases: any[] = s.cases(puzzle),
     trainedIds = new Set<string>((p.cases ?? []).map((c: any) => c.summary?.caseId)),
-    activity = activityOf(p),
+    // Every event's solves when the engine sends them, this event's otherwise.
+    activity: ActivitySolve[] = p.activity ?? activityOf(p),
     { goals, recent } = achievementLists<any>(achievements?.achievements ?? []);
   return {
     user: p.user,
@@ -30,7 +32,10 @@ function profileData(p: any, achievements: any, learnedIds: ReadonlySet<string>,
     totalAchievements: (achievements?.total ?? 0) as number,
     goals,
     recent,
+    records: (p.records ?? []) as EventRecordDto[],
     activity,
+    /** Days with at least one solve, every event together. */
+    days: new Set(activity.map((v) => dayKey(new Date(v.at)))).size,
     streak: streaks(activity),
     latest: latestOf(activity),
   };

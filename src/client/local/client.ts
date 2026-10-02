@@ -6,7 +6,7 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases } from "./catalog";
 import { history, profile, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
-import { PROFILE_KEY, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
+import { PROFILE_KEY, journeyProfile, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
@@ -181,6 +181,9 @@ export function createLocalClient(options: {
   async function merge(id: string, changes: Awaited<ReturnType<Remote["syncPull"]>>["changes"], cursor: number) {
     await edit(id, workspace => {
       const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
+      // Local IDs by server ID, built once: a first pull brings thousands of rows.
+      const byServer = (rows: Record<number, Session | Solve>) => new Map(Object.values(rows).flatMap(r => r.serverId === undefined ? [] : [[r.serverId, r.id] as const]));
+      const sessionIds = byServer(workspace.sessions), solveIds = byServer(workspace.solves);
       for (const change of [...changes].sort((a,b) => Number(a.kind === "solves") - Number(b.kind === "solves"))) {
         if (change.kind === "personal_entries") {
           const row = change.value as JourneyEntryDto | null;
@@ -196,20 +199,19 @@ export function createLocalClient(options: {
           if (!row || dirty.has(`learned:${row.case_id}`)) continue;
           if (row.learned) workspace.learned[row.case_id] = true; else delete workspace.learned[row.case_id];
         } else if (change.kind === "sessions") {
-          const existing = Object.values(workspace.sessions).find(s => s.serverId === change.id);
-          const localId = existing?.id ?? (id === "guest" ? newId() : change.id);
+          const localId = sessionIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
-          if (!change.value) delete workspace.sessions[localId];
-          else workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id };
+          if (!change.value) { delete workspace.sessions[localId]; sessionIds.delete(change.id); }
+          else { workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id }; sessionIds.set(change.id, localId); }
         } else if (change.kind === "solves") {
-          const existing = Object.values(workspace.solves).find(s => s.serverId === change.id);
-          const localId = existing?.id ?? (id === "guest" ? newId() : change.id);
+          const localId = solveIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`solves:${localId}`)) continue;
-          if (!change.value) delete workspace.solves[localId];
+          if (!change.value) { delete workspace.solves[localId]; solveIds.delete(change.id); }
           else {
             const row = change.value as SolveDto;
-            const sid = Object.values(workspace.sessions).find(s => s.serverId === row.session_id)?.id ?? row.session_id;
+            const sid = (row.session_id == null ? undefined : sessionIds.get(row.session_id)) ?? row.session_id;
             workspace.solves[localId] = { ...row, scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
+            solveIds.set(change.id, localId);
           }
         }
       }
@@ -262,9 +264,13 @@ export function createLocalClient(options: {
           });
         }
         activeOperation = undefined;
+        // Pages are merged by thousands: each merge rewrites the whole workspace, megabytes for a long history.
+        let cursor = data(id).cursor, batch: Awaited<ReturnType<Remote["syncPull"]>>["changes"] = [];
         while (stillCurrent()) {
-          const page = await remote.syncPull(data(id).cursor);
-          await merge(id,page.changes,page.cursor);
+          const page = await remote.syncPull(cursor);
+          batch.push(...page.changes); cursor = page.cursor;
+          if (page.more && batch.length < 5000) continue;
+          await merge(id,batch,cursor); batch = [];
           if (!page.more) break;
         }
         if (stillCurrent()) {
@@ -316,7 +322,7 @@ export function createLocalClient(options: {
     catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
     stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
-    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter),
+    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter,journeyProfile(data().journey)?.bests),
     achievements: () => achievements(liveSolves(),learnedIds()),
   };
 

@@ -40,7 +40,7 @@ export function Heatmap({ solves, latest, phone, pane = false, className }: { so
     { cells, weeks, months, level, total } = useMemo(() => heatmap(days, year), [days, year]);
   const scroller = useRef<HTMLDivElement>(null);
   // Squares fill the card's width, between GitHub's size and a comfortable one; phones scroll sideways.
-  const cell = phone ? 12 : Math.max(9, Math.min(16, Math.floor((width - LABEL) / weeks - GAP))),
+  const cell = phone ? 12 : Math.max(7, Math.min(16, Math.floor((width - LABEL) / weeks - GAP))),
     gridWidth = LABEL + weeks * (cell + GAP) - GAP;
   useLayoutEffect(() => {
     // Phones show the latest months first.

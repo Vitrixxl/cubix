@@ -17,6 +17,8 @@ export interface CubeScene {
 export interface CubeShape { points: number[][]; color: number; line: boolean }
 export const CUBE_BODY = 0x121216;
 export const CUBE_YAW = Math.PI / 4, CUBE_PITCH = 0.55;
+/** Distance from the eye to the cube's centre, in cube widths: a gentle perspective, so the far pieces shrink a little. */
+const CUBE_EYE = 5;
 
 /**
  * Desktop renderers consume the exact shared permutations, without a second move parser. A case setup is applied
@@ -63,13 +65,13 @@ function tipCurve(v: V, k: number) {
     return add(add(scale(start, (1 - t) ** 2), scale(control, 2 * t * (1 - t))), scale(tip, t * t));
   });
 }
-function hull(points: V[]) {
+function hull(points: number[][]) {
   const sorted = points
     .sort((a, b) => a[0] - b[0] || a[1] - b[1])
     .filter((p, i, a) => !i || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1]);
   const cross = (o: V, a: V, b: V) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-  const chain = (arr: V[]) => {
-    const out: V[] = [];
+  const chain = (arr: number[][]) => {
+    const out: number[][] = [];
     for (const p of arr) {
       while (out.length >= 2 && cross(out.at(-2)!, out.at(-1)!, p) <= 0) out.pop();
       out.push(p);
@@ -105,14 +107,18 @@ export function turnCube(m: CubeOrientation, across: number, down = 0): CubeOrie
  */
 export function cubeFace(size: number, normal: V, orientation: CubeOrientation) {
   const turn = (v: V) => add(add(scale(orientation[0]!, v[0]!), scale(orientation[1]!, v[1]!)), scale(orientation[2]!, v[2]!)),
-    k = normal.findIndex((v) => v !== 0);
+    eye = CUBE_EYE * size,
+    project = (v: V) => scale(v.slice(0, 2), eye / (eye - v[2]!)),
+    k = normal.findIndex((v) => v !== 0),
+    centre = turn(scale(normal, size / 2)),
+    n = turn(normal);
   const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sa, sb]) => {
     const v = scale(normal, size / 2);
     v[(k + 1) % 3] = (sa! * size) / 2;
     v[(k + 2) % 3] = (sb! * size) / 2;
-    return turn(v).slice(0, 2);
+    return project(turn(v));
   });
-  return { centre: turn(scale(normal, size / 2)).slice(0, 2), corners, seen: turn(normal)[2]! > 0.0001 };
+  return { centre: project(centre), corners, seen: n[0]! * -centre[0]! + n[1]! * -centre[1]! + n[2]! * (eye - centre[2]!) > 0.0001 };
 }
 export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,
@@ -128,7 +134,14 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
   const camera = orientation
       ? (v: V) => add(add(scale(orientation[0]!, v[0]!), scale(orientation[1]!, v[1]!)), scale(orientation[2]!, v[2]!))
       : (v: V) => rotate(rotate(v, 1, -yaw), 0, pitch),
-    pose = (v: V, turn: boolean) => camera(turn ? rotate(v, axis, angle) : v);
+    pose = (v: V, turn: boolean) => camera(turn ? rotate(v, axis, angle) : v),
+    eye = CUBE_EYE * scene.size,
+    project = (v: V) => scale(v.slice(0, 2), eye / (eye - v[2])),
+    // A face is seen when the eye is in front of its plane: its normal points toward the eye from a point of it.
+    seen = (n: V, at: V, turn: boolean) => {
+      const normal = pose(n, turn), point = pose(at, turn);
+      return normal[0] * -point[0] + normal[1] * -point[1] + normal[2] * (eye - point[2]) > 0.0001;
+    };
   const slabs: { start: number; end: number; turn: boolean }[] = [];
   for (let l = 0; l < scene.size; l++) {
     const last = slabs.at(-1);
@@ -141,7 +154,7 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
   slabs.sort((a, b) => (a.start - b.start) * facing);
   const shapes: CubeShape[] = [];
   const paint = (points: V[], color: number, line = false) => {
-    if (points.length) shapes.push({ points: points.map((v) => v.slice(0, 2)), color, line });
+    if (points.length) shapes.push({ points: points.map(project), color, line });
   };
   for (const { start, end, turn } of slabs) {
     const lo = [-h - 0.5, -h - 0.5, -h - 0.5],
@@ -150,16 +163,16 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
     hi[axis] = end - h + 0.5;
     const corners = Array.from({ length: 8 }, (_, i) => [0, 1, 2].map((k) => ((i >> k) & 1 ? hi[k] : lo[k])))
       .flatMap((v) => (v.every((c) => Math.abs(c) >= h + 0.5 - 0.0001) ? [0, 1, 2].flatMap((k) => tipCurve(v, k)) : [v]))
-      .map((v) => pose(v, turn).slice(0, 2));
-    paint(hull(corners), CUBE_BODY);
+      .map((v) => project(pose(v, turn)));
+    shapes.push({ points: hull(corners), color: CUBE_BODY, line: false });
     const edges: V[][] = [];
     const slots = slotsFor(scene.size);
     state.forEach((origin, slot) => {
       const { p, n } = slots[slot],
         layer = Math.round(p[axis] + h);
-      if (layer < start || layer > end || pose(n, turn)[2] <= 0.0001) return;
+      const center = add(p, scale(n, 0.5));
+      if (layer < start || layer > end || !seen(n, center, turn)) return;
       const normal = n.findIndex((v) => v !== 0),
-        center = add(p, scale(n, 0.5)),
         outside = (k: number, sign: number) => Math.abs(p[k] + sign * 0.5) >= h + 0.5 - 0.0001,
         extent = (k: number, sign: number) => {
           const v = [0, 0, 0];
@@ -200,7 +213,7 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
         for (const sign of [-1, 1]) {
           const neighbor = [0, 0, 0];
           neighbor[k] = sign;
-          if (k < normal || !outside(k, sign) || pose(neighbor, turn)[2] <= 0.0001) continue;
+          if (k < normal || !outside(k, sign) || !seen(neighbor, add(center, extent(k, sign)), turn)) continue;
           const end = (side: number) => {
             const v = add(center, add(extent(k, sign), extent(along, side)));
             return outside(along, side) ? tipCurve(v, along) : [v];

@@ -147,6 +147,12 @@ test("a move shown from a solved cube starts in the usual colours, centres inclu
   const scene = algScene("M", 3, "full", "")!;
   const top = slotsFor(3).findIndex((g) => g.n[1] === 1 && g.p[0] === 0 && g.p[2] === 0);
   expect(scene.colors[scene.states[0]![top]!]).toBe(FACE_HEX.U);
-  // A case still gets its colours where it ends, solved.
-  expect(algScene("x", 3)!.colors[algScene("x", 3)!.states.at(-1)![top]!]).toBe(FACE_HEX.U);
+  // A case too, as its diagram shows it: an algorithm opening on a rotation starts in the usual colours.
+  expect(algScene("x", 3)!.colors[algScene("x", 3)!.states[0]![top]!]).toBe(FACE_HEX.U);
+});
+
+test("a case opening on a rotation starts as its diagram, blue in front", () => {
+  const front = slotsFor(3).findIndex((g) => g.n[2] === 1 && g.p[0] === 0 && g.p[1] === 0);
+  const scene = algScene("y' U' R' U2 R U' R' U R", 3, "F2L")!;
+  expect(scene.colors[scene.states[0]![front]!]).toBe(FACE_HEX.F);
 });

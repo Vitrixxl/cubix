@@ -93,6 +93,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     const { c, auf } = entry, setup = size ? combineAuf(c.setup, auf) : c.setup;
     return { id: c.id, canPrevious: previousIndex(history, pool) !== -1, setup, algorithm: size ? compensateAuf(executableAlg(c.algorithms[0]), auf) : executableAlg(c.algorithms[0]), svg: size ? caseSvg(size, setup, c.stage) : null };
   }
+  const unlocked = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   function display(v: any): any {
     if (Array.isArray(v)) return v.map(display);
     if (v && typeof v === 'object') {
@@ -100,7 +101,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       if (typeof v.at === 'string') out.displayDate = fmtDate(v.at);
       if (typeof v.createdAt === 'string') out.displayDate = fmtDate(v.createdAt);
       if (typeof v.createdAt === 'string' && v.username) out.joined = joinedDate(v.createdAt);
-      if (typeof v.unlockedAt === 'string') out.unlockedDate = new Date(v.unlockedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+      if (typeof v.unlockedAt === 'string') out.unlockedDate = unlocked.format(new Date(v.unlockedAt));
       return out;
     }
     return v;

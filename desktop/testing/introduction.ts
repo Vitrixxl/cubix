@@ -215,13 +215,13 @@ try {
   assert.notEqual(new URL(page.url()).pathname, "/onboarding");
 
   // Routing: shortcuts, deep links, reload and history.
-  assert.deepEqual(await page.locator('[aria-label="Sections"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:algorithms", "nav:training", "nav:duel", "nav:learn"]);
+  assert.deepEqual(await page.locator('[aria-label="Sections"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:algorithms", "nav:training", "nav:duel", "nav:learn", "nav:coaching"]);
   await page.locator('[data-action="nav:profile"]').first().click(); await page.waitForURL("**/profile*");
-  for (const [key, pathname] of [["1", "/timer"], ["2", "/algorithms"], ["3", "/training"], ["4", "/duel"], ["5", "/learn"]]) {
+  for (const [key, pathname] of [["1", "/timer"], ["2", "/algorithms"], ["3", "/training"], ["4", "/duel"], ["5", "/learn"], ["6", "/coaching"]]) {
     await page.keyboard.press("Alt+" + key);
-    await page.waitForURL(url => url.pathname === pathname);
+    await page.waitForURL(url => url.pathname.startsWith(pathname));
   }
-  await page.keyboard.press("Alt+6"); assert.equal(new URL(page.url()).pathname, "/learn");
+  await page.keyboard.press("Alt+7"); assert.ok(new URL(page.url()).pathname.startsWith("/coaching"));
   await page.locator('[data-action="nav:profile"]').first().click();
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await page.goBack(); await page.waitForURL("**/profile?*");

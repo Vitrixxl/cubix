@@ -25,22 +25,50 @@ export interface Coach {
   sessions: number;
   students: number;
   since: number;
+  /** The address of their picture, or null. */
+  avatar: string | null;
+  /** Whether players who never had a session with them may book. */
+  newStudents: boolean;
+  /** How they practise: their most solved puzzles first (one in the list of coaches). */
+  practice?: Practice;
   nextSlot?: number | null;
   openSlots?: number;
   windows?: Opening[];
   daysOff?: string[];
+  overrides?: Override[];
   reviewList?: { rating: number; comment: string; at: number; username: string }[];
   ratingCounts?: number[];
+  /** Their activity over a year and per puzzle, on their own page only. */
+  history?: History;
 }
-/** A weekly opening: 0 = Monday, minutes of the day on the coach's clock. */
+/** A weekly opening: 0 = Monday, minutes of the day on the coach's clock, repeated between two dates (YYYY-MM-DD, both
+ * included) or for good. */
 export interface Opening {
   weekday: number;
   start: number;
   end: number;
+  from?: string | null;
+  until?: string | null;
+}
+/** One day's exception to the weekly hours: extra hours (`open`), or hours taken back. */
+export interface Override {
+  date: string;
+  start: number;
+  end: number;
+  open: boolean;
 }
 export interface Person {
   id: string;
   username: string;
+  avatar?: string | null;
+}
+/** How someone practises: timer solves per puzzle, most solved first, with the best single and the last Ao5. */
+export interface Practice {
+  solves: number;
+  activeDays: number;
+  lastAt: string | null;
+  learned: number;
+  puzzles: { puzzle: string; solves: number; best: number | null; ao5: number | null }[];
 }
 export interface Booking {
   id: string;
@@ -60,6 +88,8 @@ export interface Booking {
   cancelledByMe: boolean;
   review: { rating: number; comment: string } | null;
   conversationId: number | null;
+  /** Another time the coach offers, waiting for the student's answer. */
+  proposal: { start: number; end: number } | null;
 }
 export interface Conversation {
   id: number;
@@ -67,10 +97,12 @@ export interface Conversation {
   coachId: string;
   studentId: string;
   with: Person;
-  lastMessage: { body: string; at: number; mine: boolean } | null;
+  lastMessage: { body: string; media: string | null; at: number; mine: boolean } | null;
   unread: number;
   updatedAt: number;
   note: string | null;
+  /** Whether messages may be written: once the student booked the coach. */
+  open: boolean;
 }
 export interface Message {
   id: number;
@@ -78,6 +110,44 @@ export interface Message {
   body: string;
   createdAt: number;
   readAt: number | null;
+  /** A picture or a video sent as the message, fetched with `mediaUrl`. */
+  media: Media | null;
+}
+export interface Media {
+  id: string;
+  /** Its MIME type: image/… or video/… */
+  type: string;
+  size: number;
+  name: string;
+}
+/** The largest picture and video a message carries; the server checks them again. */
+export const IMAGE_MAX = 10 * 1024 * 1024;
+export const VIDEO_MAX = 64 * 1024 * 1024;
+/** What a message is, in a line: its words, or what it shows. */
+export const gist = (body: string, media: string | null | undefined) => body || (media?.startsWith("video/") ? "Video" : media ? "Photo" : "");
+/** Someone the account coaches or is coached by: their sessions together and how they practise. */
+export interface PersonProfile {
+  id: string;
+  username: string;
+  /** When their account was made, as an ISO date. */
+  since: string;
+  /** What they are to the account. */
+  role: "student" | "coach";
+  conversationId: number;
+  /** The coach's private notes on the student, for the coach only. */
+  note: string | null;
+  avatar: string | null;
+  sessions: Booking[];
+  practice: Practice;
+  history: History;
+}
+/** How someone progresses: solves per day over a year, their last timer solves per puzzle, the cases they learned. */
+export interface History {
+  /** [YYYY-MM-DD, solves], the days they solved on. */
+  days: [string, number][];
+  /** Per puzzle, the last Ao12 and up to 50 times, oldest first, null for a DNF. */
+  puzzles: Record<string, { ao12: number | null; recent: (number | null)[] }>;
+  learned: string[];
 }
 export interface Application {
   id: number;
@@ -107,6 +177,7 @@ export interface Week {
 export interface Student {
   id: string;
   username: string;
+  avatar: string | null;
   conversationId: number;
   note: string;
   done: number;
@@ -128,6 +199,8 @@ export interface Slots {
   sessionMinutes: number;
   priceCents: number;
   accepting: boolean;
+  /** False while the coach keeps to their students and the account is not one. */
+  welcome: boolean;
   slots: { start: number; end: number }[];
 }
 /** What a call hears on the socket. */
@@ -163,6 +236,7 @@ class Coaching {
   bookings?: Booking[];
   conversations?: Conversation[];
   messages = new Map<number, Message[]>();
+  people = new Map<string, PersonProfile>();
   dashboard?: Dashboard;
   /** Sessions whose call the other party is waiting in. */
   waiting = new Set<string>();
@@ -175,6 +249,8 @@ class Coaching {
   private timer?: ReturnType<typeof setTimeout>;
   private ping?: ReturnType<typeof setInterval>;
   private loading = new Map<string, Promise<unknown>>();
+  /** Pictures and videos fetched with the token, as object URLs, by media id. */
+  private media = new Map<string, Promise<string>>();
   private callListener?: (event: CallEvent) => void;
 
   /** Follows the signed-in account: a new one starts afresh and opens its socket. */
@@ -200,8 +276,11 @@ class Coaching {
     this.profiles.clear();
     this.slots.clear();
     this.messages.clear();
+    this.people.clear();
     this.waiting.clear();
     this.loading.clear();
+    for (const url of this.media.values()) void url.then(URL.revokeObjectURL, () => {});
+    this.media.clear();
   }
   get isCoach() {
     return !!this.me?.coach?.active;
@@ -225,12 +304,12 @@ class Coaching {
   }
 
   /** Fetches one piece of state (at most once at a time) and redraws. */
-  load(what: "me" | "coaches" | "bookings" | "conversations" | "dashboard" | `coach:${string}` | `slots:${string}` | `messages:${number}`) {
+  load(what: "me" | "coaches" | "bookings" | "conversations" | "dashboard" | `coach:${string}` | `slots:${string}` | `messages:${number}` | `person:${string}`) {
     const pending = this.loading.get(what);
     if (pending) return pending;
     const owner = this.user;
     const [kind, arg] = what.includes(":") ? [what.slice(0, what.indexOf(":")), what.slice(what.indexOf(":") + 1)] : [what, ""];
-    const path = kind === "coach" ? "coaches/" + encodeURIComponent(arg) : kind === "slots" ? `coaches/${encodeURIComponent(arg)}/slots` : kind === "messages" ? `conversations/${arg}/messages` : kind;
+    const path = kind === "coach" ? "coaches/" + encodeURIComponent(arg) : kind === "slots" ? `coaches/${encodeURIComponent(arg)}/slots` : kind === "messages" ? `conversations/${arg}/messages` : kind === "person" ? "people/" + encodeURIComponent(arg) : kind;
     const request = this.api("GET", path)
       .then((value) => {
         if (owner !== this.user) return;
@@ -242,6 +321,7 @@ class Coaching {
         else if (kind === "coach") this.profiles.set(arg, value);
         else if (kind === "slots") this.slots.set(arg, value);
         else if (kind === "messages") this.messages.set(Number(arg), value);
+        else if (kind === "person") this.people.set(arg, value);
         this.failure = "";
         s.emit();
       })
@@ -267,7 +347,25 @@ class Coaching {
     this.profiles.delete(coach.id);
     s.emit();
   }
-  async saveAvailability(availability: { timezone: string; sessionMinutes: number; windows: Opening[]; daysOff: string[] }) {
+  /** Sets the account's picture (a small square image), or takes it away. */
+  async setAvatar(picture: Blob | null) {
+    const token = await call("apiToken");
+    const response = await fetch(location.origin + "/api/coaching/avatar", {
+      method: picture ? "PUT" : "DELETE",
+      headers: { authorization: "Bearer " + token, ...(picture ? { "content-type": picture.type } : {}) },
+      body: picture ?? undefined,
+    }).catch(() => {
+      throw new CoachingError(0, "The server cannot be reached.");
+    });
+    const value = await response.json().catch(() => null);
+    if (!response.ok) throw new CoachingError(response.status, typeof value?.error === "string" ? value.error : `The server answered ${response.status}.`);
+    if (this.me?.coach) this.me = { ...this.me, coach: { ...this.me.coach, avatar: value.avatar } };
+    this.profiles.clear();
+    this.coaches = undefined;
+    s.emit();
+    return value.avatar as string | null;
+  }
+  async saveAvailability(availability: { timezone: string; sessionMinutes: number; windows: Opening[]; daysOff: string[]; overrides: Override[] }) {
     const coach = await this.api<Coach>("PUT", "availability", availability);
     if (this.me) this.me = { ...this.me, coach };
     void this.load("dashboard");
@@ -285,6 +383,16 @@ class Coaching {
   async cancel(id: string) {
     const booking = await this.api<Booking>("POST", `bookings/${id}/cancel`);
     this.replace(booking);
+  }
+  /** The coach offers another time for a session, or takes the offer back with null. */
+  async propose(id: string, start: number | null) {
+    this.replace(await this.api<Booking>("POST", `bookings/${id}/propose`, { start }));
+  }
+  /** The student takes the time the coach offered, or keeps the session where it was. */
+  async answer(id: string, accept: boolean) {
+    const booking = await this.api<Booking>("POST", `bookings/${id}/answer`, { accept });
+    this.replace(booking);
+    this.slots.delete(booking.coachId);
   }
   async review(id: string, rating: number, comment: string) {
     const booking = await this.api<Booking>("POST", `bookings/${id}/review`, { rating, comment });
@@ -307,10 +415,46 @@ class Coaching {
     const message = await this.api<Message>("POST", `conversations/${conversation}/messages`, { body });
     this.received(conversation, message);
   }
+  /** Sends a picture or a video as a message of its own. */
+  async sendMedia(conversation: number, file: File) {
+    const video = file.type.startsWith("video/");
+    if (!video && !file.type.startsWith("image/")) throw new CoachingError(415, `${file.name} is neither a picture nor a video.`);
+    if (file.size > (video ? VIDEO_MAX : IMAGE_MAX)) throw new CoachingError(413, `${file.name} is too large: ${video ? "videos stop at 64 MB" : "pictures stop at 10 MB"}.`);
+    const token = await call("apiToken");
+    let response: Response;
+    try {
+      response = await fetch(`${location.origin}/api/coaching/conversations/${conversation}/media`, {
+        method: "POST",
+        headers: { authorization: "Bearer " + token, "content-type": file.type || "application/octet-stream", "x-file-name": encodeURIComponent(file.name) },
+        body: file,
+      });
+    } catch {
+      throw new CoachingError(0, "The server cannot be reached.");
+    }
+    const value = await response.json().catch(() => null);
+    if (!response.ok) throw new CoachingError(response.status, typeof value?.error === "string" ? value.error : `The server answered ${response.status}.`);
+    this.received(conversation, value as Message);
+  }
+  /** A picture or a video of a conversation as a local URL: only its two parties may fetch it, with their token. */
+  mediaUrl(id: string) {
+    let url = this.media.get(id);
+    if (!url) {
+      url = call("apiToken")
+        .then((token) => fetch(`${location.origin}/api/coaching/media/${id}`, { headers: { authorization: "Bearer " + token } }))
+        .then(async (response) => {
+          if (!response.ok) throw new CoachingError(response.status, "This picture or video is unavailable.");
+          return URL.createObjectURL(await response.blob());
+        });
+      url.catch(() => this.media.delete(id));
+      this.media.set(id, url);
+    }
+    return url;
+  }
   async saveNote(conversation: number, note: string) {
     const saved = await this.api<Conversation>("PUT", `conversations/${conversation}/note`, { note });
     this.conversations = this.conversations?.map((c) => (c.id === saved.id ? saved : c));
     if (this.dashboard) this.dashboard = { ...this.dashboard, students: this.dashboard.students.map((st) => (st.conversationId === conversation ? { ...st, note: saved.note ?? "" } : st)) };
+    for (const [id, p] of this.people) if (p.conversationId === conversation) this.people.set(id, { ...p, note: saved.note ?? "" });
     s.emit();
   }
   /** Marks the conversation read, here and on the server. */
@@ -338,16 +482,17 @@ class Coaching {
     this.conversations = this.conversations?.map((c) => {
       if (c.id !== conversation) return c;
       known = true;
-      return { ...c, lastMessage: { body: message.body, at: message.createdAt, mine }, updatedAt: message.createdAt, unread: c.unread + (mine || shown ? 0 : 1) };
+      return { ...c, lastMessage: { body: message.body, media: message.media?.type ?? null, at: message.createdAt, mine }, updatedAt: message.createdAt, unread: c.unread + (mine || shown ? 0 : 1) };
     });
     this.conversations?.sort((a, b) => b.updatedAt - a.updatedAt);
     if (this.conversations && !known) void this.load("conversations");
     if (!mine && !shown) {
       if (this.me) this.me = { ...this.me, unread: this.me.unread + 1 };
       if (this.dashboard) this.dashboard = { ...this.dashboard, students: this.dashboard.students.map((st) => (st.conversationId === conversation ? { ...st, unread: st.unread + 1 } : st)) };
+      const text = gist(message.body, message.media?.type);
       toast(from ?? "New message", {
         id: "coaching-message-" + conversation,
-        description: message.body.length > 120 ? message.body.slice(0, 120) + "…" : message.body,
+        description: text.length > 120 ? text.slice(0, 120) + "…" : text,
         action: { label: "Open", onClick: () => go("/coaching/messages/" + conversation) },
       });
     }

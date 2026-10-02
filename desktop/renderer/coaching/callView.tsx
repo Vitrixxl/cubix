@@ -93,7 +93,7 @@ function Room({ b, now }: { b: Booking; now: number }) {
             <Stream stream={call.remote} className={cn("size-full object-contain", !peerVideo && "invisible")} />
             {(!peerVideo || status) && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-neutral-300">
-                <Avatar name={b.with.username} size={72} className={cn(call.phase === "waiting" && "animate-pulse")} />
+                <Avatar name={b.with.username} src={b.with.avatar} size={72} className={cn(call.phase === "waiting" && "animate-pulse")} />
                 <span data-slot="call-status">{status ?? `${b.with.username}'s camera is off`}</span>
                 {(call.phase === "connected" || call.phase === "connecting") && !call.peerMic && (
                   <span className="flex items-center gap-1.5 text-xs text-neutral-400">

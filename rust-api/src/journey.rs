@@ -1,4 +1,4 @@
-//! Personal setup: the puzzles and methods the player can solve.
+//! Personal setup: the puzzles and methods the player can solve, and the best time they already had on each.
 use crate::{api, db::{one, required}, error::{ApiError, Result}, practice};
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
@@ -59,6 +59,12 @@ pub fn put(db: &Connection, uid: &str, body: &Value) -> Result<Value> {
             }
         }
     }
+    // The best single they had before Qbix, per known puzzle, in milliseconds: optional.
+    if let Some(bests) = v.get("bests") {
+        for (puzzle, ms) in bests.as_object().ok_or_else(ApiError::validation)? {
+            if !known.iter().any(|p| p == puzzle) || !ms.as_u64().is_some_and(|ms| (1..86_400_000).contains(&ms)) { return Err(ApiError::validation()); }
+        }
+    }
     // Separate statements keep the change-feed trigger's REPLACE policy effective on updates.
     if one(db, "SELECT id FROM personal_entries WHERE user_id=? AND key=?", params![uid, key])?.is_some() {
         db.execute("UPDATE personal_entries SET value=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND key=?", params![v.to_string(), uid, key])?;
@@ -68,4 +74,10 @@ pub fn put(db: &Connection, uid: &str, body: &Value) -> Result<Value> {
     let mut row = required(db, "SELECT * FROM personal_entries WHERE user_id=? AND key=?", params![uid, key], "Unknown entry")?;
     row["value"] = v.clone();
     Ok(row)
+}
+/// The best singles a player gave at setup, by puzzle, in milliseconds.
+pub fn declared_bests(db: &Connection, uid: &str) -> Result<std::collections::BTreeMap<String, f64>> {
+    let entry = one(db, "SELECT value FROM personal_entries WHERE user_id=? AND key='profile'", [uid])?;
+    let value: Value = entry.and_then(|e| e["value"].as_str().and_then(|v| serde_json::from_str(v).ok())).unwrap_or(Value::Null);
+    Ok(value["bests"].as_object().map(|m| m.iter().filter_map(|(k, v)| Some((k.clone(), v.as_f64()?))).collect()).unwrap_or_default())
 }

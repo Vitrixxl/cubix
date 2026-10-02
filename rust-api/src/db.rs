@@ -43,6 +43,20 @@ impl Db {
         }
         // Free-text notes on a solve arrived after the first accounts.
         add_column_if_missing(&db, "solves", "comment", "TEXT")?;
+        // One day's extra hours or hours taken back arrived after the weekly hours.
+        add_column_if_missing(&db, "coaches", "overrides", "TEXT NOT NULL DEFAULT '[]'")?;
+        // Coaches may keep to the students they have; accounts may show a picture.
+        add_column_if_missing(&db, "coaches", "new_students", "INTEGER NOT NULL DEFAULT 1")?;
+        add_column_if_missing(&db, "users", "avatar", "TEXT")?;
+        // A coach may offer to move a session.
+        add_column_if_missing(&db, "coach_bookings", "proposed_start", "INTEGER")?;
+        add_column_if_missing(&db, "coach_bookings", "proposed_end", "INTEGER")?;
+        // Pictures and videos in coaching conversations arrived after the first messages.
+        for (column, definition) in [("media_id", "TEXT"), ("media_type", "TEXT"), ("media_size", "INTEGER"), ("media_name", "TEXT")] {
+            add_column_if_missing(&db, "coach_messages", column, definition)?;
+        }
+        db.execute_batch("CREATE UNIQUE INDEX IF NOT EXISTS idx_coach_messages_media ON coach_messages(media_id) WHERE media_id IS NOT NULL")?;
+        crate::coaching::sweep_media(&db)?;
         crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
         crate::activity::migrate(&db)?;

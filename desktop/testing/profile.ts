@@ -40,6 +40,8 @@ try {
       profile: { kind: "profile", level: "intermediate", knownPuzzles: ["333", "222"], knownMethods: { "333": ["cfop"] }, priority: "444", learningPuzzles: ["444"], learningMethods: { "444": ["yau"] }, priorityMethod: "yau", completedAt: now },
     });
     for (let i = 0; i < 24; i++) await window.cubix.call("addSolve", { puzzle: "333", solveMode: "standard", scrambleType: "normal", timeMs: 14000 + Math.round(Math.sin(i) * 3000 + i * 90), penalty: i === 7 ? "+2" : "none" });
+    for (let i = 0; i < 13; i++) await window.cubix.call("addSolve", { puzzle: "222", solveMode: "standard", scrambleType: "normal", timeMs: 4200 + Math.round(Math.cos(i) * 900), penalty: "none" });
+    for (let i = 0; i < 6; i++) await window.cubix.call("addSolve", { puzzle: "333", solveMode: "one-handed", scrambleType: "normal", timeMs: 26000 + i * 700, penalty: i === 2 ? "dnf" : "none" });
   });
   await page.goto(origin + "/profile?puzzle=333");
   await page.locator('[data-tour="profile-overview"]').waitFor();
@@ -50,6 +52,15 @@ try {
     await page.screenshot({ path: `${OUT}/overview-${width}x${height}.png` });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
+  // The records hold every event timed, the profile's own one chosen; a row picks its event.
+  const rows = page.getByRole("table", { name: "Personal records" }).getByRole("row").filter({ has: page.getByRole("cell") });
+  assert.deepEqual(await rows.evaluateAll(r => r.map(e => e.getAttribute("data-action"))), ["profilePuzzle:222", "profilePuzzle:333", "profilePuzzle:333oh"], "a record row per event timed");
+  assert.equal(await rows.nth(1).getAttribute("aria-selected"), "true", "the profile's event is chosen");
+  await rows.nth(0).click();
+  await page.waitForFunction(() => document.querySelector('[data-action="profilePuzzle:222"]')?.getAttribute("aria-selected") === "true");
+  await page.screenshot({ path: `${OUT}/overview-222.png` });
+  await rows.nth(1).click();
+  await page.waitForFunction(() => document.querySelector('[data-action="profilePuzzle:333"]')?.getAttribute("aria-selected") === "true");
   assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
   assert.equal(await page.locator('[data-tour="profile-overview"]').count(), 1, "the tour can show the profile");
   assert.equal(await page.locator('.rail [data-action="logout"]').count(), 1, "the sidebar has its own logout row");

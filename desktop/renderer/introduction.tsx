@@ -7,10 +7,12 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Ban, Check, CornerDownLeft, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react";
 import { store as s } from "./store";
-import { Icon, Logo, Wordmark, usePhone } from "./ui";
+import { Icon, Logo, NUMERIC, Wordmark, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { Input } from "@/components/ui/input";
+import { fmtTime, parseTypedTime } from "../../src/client/lib/format";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { PROFILE_KEY, TOUR_STEPS, journeyProfile } from "../../src/client/lib/journey";
 import { METHODS } from "../../src/shared/methods";
@@ -82,13 +84,15 @@ function Tile({ label, checked, glyph, onClick }: { label: string; checked: bool
 
 type MethodMap = Partial<Record<PuzzleId, string[]>>;
 
-/** Puzzles as tiles, then the methods of each chosen one inline, in the order they were picked. */
-function PuzzleStep({ value, methods, onToggle, onNone, onMethod }: {
+/** Puzzles as tiles, then the methods and the best single of each chosen one inline, in the order they were picked. */
+function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest }: {
   value: PuzzleId[];
   methods: MethodMap;
+  bests: Partial<Record<PuzzleId, string>>;
   onToggle: (puzzle: PuzzleId) => void;
   onNone: () => void;
   onMethod: (puzzle: PuzzleId, method: string) => void;
+  onBest: (puzzle: PuzzleId, text: string) => void;
 }) {
   const phone = usePhone();
   return (
@@ -100,7 +104,10 @@ function PuzzleStep({ value, methods, onToggle, onNone, onMethod }: {
         ))}
       </div>
       <section aria-label="Methods" className="flex min-h-0 flex-1 flex-col gap-1">
-        <h2 className={SECTION_LABEL}>Methods you know</h2>
+        <h2 className={cn(SECTION_LABEL, "flex justify-between")}>
+          Methods you know
+          {!!value.length && <span className="max-sm:hidden">Your best single, if you know it</span>}
+        </h2>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {value.length ? (
             value.map((id) => {
@@ -131,6 +138,7 @@ function PuzzleStep({ value, methods, onToggle, onNone, onMethod }: {
                       );
                     })}
                   </div>
+                  <PbInput puzzle={p.label} value={bests[id] ?? ""} onChange={(text) => onBest(id, text)} />
                 </div>
               );
             })
@@ -143,10 +151,31 @@ function PuzzleStep({ value, methods, onToggle, onNone, onMethod }: {
   );
 }
 
+/** The best single on a puzzle, typed as 12.34 or 1:05.21; optional, and flagged while it does not read as a time. */
+function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; onChange: (text: string) => void }) {
+  const invalid = !!value.trim() && parseTypedTime(value) === null;
+  return (
+    <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+      <span className="sm:hidden">PB</span>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        inputMode="decimal"
+        placeholder="PB · 12.34"
+        aria-label={`Your best ${puzzle} single`}
+        aria-invalid={invalid || undefined}
+        data-action={"journey:best:" + puzzle}
+        className={cn(NUMERIC, "h-8 w-28 text-right text-sm")}
+      />
+    </label>
+  );
+}
+
 export function Onboarding() {
   const existing = journeyProfile(s.journey);
   const [[step, dir], setStepDir] = useState<[number, number]>([existing ? 1 : 0, 1]);
   const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
+  const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
   const [saving, setSaving] = useState(false), [error, setError] = useState("");
   const owner = s.user.id;
   const reduced = useReducedMotion();
@@ -156,10 +185,13 @@ export function Onboarding() {
   };
   const finish = async (tour: boolean) => {
     if (saving) return;
+    const typed = known.filter((p) => bests[p]?.trim()).map((p) => [p, parseTypedTime(bests[p]!)] as const);
+    const wrong = typed.find(([, ms]) => ms === null);
+    if (wrong) return setError(`${puzzleInfo(wrong[0]).label}: type your best like 12.34 or 1:05.21, or leave it empty.`);
     setSaving(true); setError("");
     try {
       // Only what can be solved is asked; any other puzzle opens on its course until it is learnt or skipped.
-      await s.updateJourney({ [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, completedAt: existing?.completedAt ?? new Date().toISOString() } });
+      await s.updateJourney({ [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() } });
       if (s.user.id !== owner) return;
       const puzzle = known.includes(s.puzzle as PuzzleId) ? (s.puzzle as PuzzleId) : known[0] ?? (s.puzzle as PuzzleId);
       if (puzzle !== s.puzzle) { s.pref("cubix.puzzle", puzzle); s.puzzle = puzzle; s.loadContext(); }
@@ -181,12 +213,13 @@ export function Onboarding() {
   const toggle = (p: PuzzleId) => {
     setKnown((v) => (v.includes(p) ? v.filter((id) => id !== p) : [...v, p]));
     setKnownMethods((v) => Object.fromEntries(Object.entries(v).filter(([id]) => id !== p)));
+    setBests((v) => Object.fromEntries(Object.entries(v).filter(([id]) => id !== p)));
   };
   const method = (p: PuzzleId, m: string) =>
     setKnownMethods((v) => ({ ...v, [p]: v[p]?.includes(m) ? v[p]!.filter((id) => id !== m) : [...(v[p] ?? []), m] }));
   const content = [
     <Welcome />,
-    <PuzzleStep value={known} methods={knownMethods} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); }} onMethod={method} />,
+    <PuzzleStep value={known} methods={knownMethods} bests={bests} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }} onMethod={method} onBest={(p, text) => setBests((v) => ({ ...v, [p]: text }))} />,
   ][step];
   const slide = reduced ? 0 : 56;
   return (
