@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-22",
+ "generated": "2026-10-02",
  "sets": [
   {
    "id": "f2l",
@@ -76438,6 +76438,98 @@
    {
     "id": "blindfolded",
     "label": "Blindfolded"
+   }
+  ],
+  "events": [
+   {
+    "id": "222",
+    "label": "2×2",
+    "puzzle": "222",
+    "solveMode": "standard"
+   },
+   {
+    "id": "333",
+    "label": "3×3",
+    "puzzle": "333",
+    "solveMode": "standard"
+   },
+   {
+    "id": "444",
+    "label": "4×4",
+    "puzzle": "444",
+    "solveMode": "standard"
+   },
+   {
+    "id": "555",
+    "label": "5×5",
+    "puzzle": "555",
+    "solveMode": "standard"
+   },
+   {
+    "id": "666",
+    "label": "6×6",
+    "puzzle": "666",
+    "solveMode": "standard"
+   },
+   {
+    "id": "777",
+    "label": "7×7",
+    "puzzle": "777",
+    "solveMode": "standard"
+   },
+   {
+    "id": "333oh",
+    "label": "3×3 One-Handed",
+    "puzzle": "333",
+    "solveMode": "one-handed"
+   },
+   {
+    "id": "333bf",
+    "label": "3×3 Blindfolded",
+    "puzzle": "333",
+    "solveMode": "blindfolded"
+   },
+   {
+    "id": "444bf",
+    "label": "4×4 Blindfolded",
+    "puzzle": "444",
+    "solveMode": "blindfolded"
+   },
+   {
+    "id": "555bf",
+    "label": "5×5 Blindfolded",
+    "puzzle": "555",
+    "solveMode": "blindfolded"
+   },
+   {
+    "id": "sq1",
+    "label": "Square-1",
+    "puzzle": "sq1",
+    "solveMode": "standard"
+   },
+   {
+    "id": "pyram",
+    "label": "Pyraminx",
+    "puzzle": "pyram",
+    "solveMode": "standard"
+   },
+   {
+    "id": "skewb",
+    "label": "Skewb",
+    "puzzle": "skewb",
+    "solveMode": "standard"
+   },
+   {
+    "id": "minx",
+    "label": "Megaminx",
+    "puzzle": "minx",
+    "solveMode": "standard"
+   },
+   {
+    "id": "clock",
+    "label": "Clock",
+    "puzzle": "clock",
+    "solveMode": "standard"
    }
   ]
  },
