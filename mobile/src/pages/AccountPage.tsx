@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Settings, Swords, Timer as TimerIcon } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { local } from "../api";
+import { profileAchievementsAtom, profileCatalogAtom, profileDataAtom, profilePuzzleAtom, profileScrambleTypeAtom, profileSolveModeAtom } from "../profile";
 import { AchievementList, AchievementTotal } from "../components/Achievements";
 import { BackButton, Empty, HeadButton, Numeric, Page, PageHead } from "../components/layout";
 import {
@@ -24,8 +24,8 @@ import { useTourTarget } from "../tour";
 import { usePreservedScroll } from "../hooks/usePreservedScroll";
 import { RESULT_MARK, ao5Text, battleRecord, battles, useDuel, ROUNDS, type DuelRecord } from "../lib/duel";
 import {
-  PROFILE_SECTIONS, deletedSolveIdAtom, goBackAtom, learnedCaseIdsAtom, previousRouteAtom, profileFiltersAtom, puzzleAtom, replaceRouteAtom, routeAtom, scrambleTypeAtom,
-  settingsOpenAtom, solveModeAtom, statsVersionAtom, userAtom, type ProfileMode,
+  PROFILE_SECTIONS, goBackAtom, learnedCaseIdsAtom, previousRouteAtom, profileFiltersAtom, replaceRouteAtom, routeAtom,
+  settingsOpenAtom, userAtom, type ProfileMode,
 } from "../state";
 
 /** A battle's result as its letter, green for a win and red for a loss. */
@@ -203,17 +203,13 @@ function TourTarget({ name, children }: { name: string; children: React.ReactNod
 }
 
 export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: string }) {
-  const [filters, setFilters] = useAtom(profileFiltersAtom);
-  const appPuzzle = useAtomValue(puzzleAtom), appSolveMode = useAtomValue(solveModeAtom), appScrambleType = useAtomValue(scrambleTypeAtom);
-  const cube = filters.cube ?? appPuzzle, solveMode = filters.solveMode ?? appSolveMode;
-  const preferredScrambleType = filters.scrambleType ?? appScrambleType;
+  const setFilters = useSetAtom(profileFiltersAtom);
+  const cube = useAtomValue(profilePuzzleAtom), solveMode = useAtomValue(profileSolveModeAtom);
+  const scrambleType = useAtomValue(profileScrambleTypeAtom);
   const setEvent = useCallback((id: EventId) => {
     const event = eventInfo(id);
     if (event) setFilters(f => ({ ...f, cube: event.puzzle, solveMode: event.solveMode }));
   }, [setFilters]);
-  const scrambleType = puzzleInfo(cube).scrambles.includes(preferredScrambleType) ? preferredScrambleType : puzzleInfo(cube).scrambles[0]!;
-  const deletedSolveId = useAtomValue(deletedSolveIdAtom);
-  const statsVersion = useAtomValue(statsVersionAtom);
   const learnedIds = useAtomValue(learnedCaseIdsAtom);
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const user = useAtomValue(userAtom);
@@ -221,17 +217,17 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   const previousRoute = useAtomValue(previousRouteAtom);
   const openSettings = useSetAtom(settingsOpenAtom);
   // Everything is computed from the local workspace, so the page renders complete on first paint.
-  const catalog = useMemo(() => local.read.catalog(cube), [cube]);
-  const profile = useMemo(() => local.read.profile(cube, { solveMode, scrambleType }), [cube, solveMode, scrambleType, user?.id, deletedSolveId, statsVersion]);
-  const summary = useMemo(() => local.read.achievements(), [user?.id, deletedSolveId, statsVersion]);
+  const catalog = useAtomValue(profileCatalogAtom);
+  const profile = useAtomValue(profileDataAtom);
+  const summary = useAtomValue(profileAchievementsAtom);
   const [caseId, setCaseId] = useState<string | null>(null);
   const scroll = usePreservedScroll(`profile:${cube}:${solveMode}:${scrambleType}`);
-  if (!user) return null;
   const section = mode && PROFILE_SECTIONS.some(s => s.id === mode) ? mode : "overview";
   // A section opens as a page of its own over the overview; its back arrow returns to it.
   const show = (next: ProfileMode) => setRoute({ page: "profile", mode: next });
   const back = () => previousRoute?.page === "profile" && !previousRoute.mode ? goBack() : replaceRoute({ page: "profile" });
   const d = useMemo(() => overviewData(profile, catalog.cases, learned, summary), [profile, catalog.cases, learned, summary]);
+  if (!user) return null;
   const selected = catalog.cases.find(c => c.id === caseId);
   const event = eventOf(cube, solveMode);
   const eventLabel = event?.label ?? puzzleInfo(cube).label;

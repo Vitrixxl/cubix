@@ -58,7 +58,8 @@ mock.module("../src/components/ui/tabs", () => ({ Tabs: "Tabs", TabsList: "TabsL
 mock.module("../src/components/layout", () => Object.fromEntries(["BackButton", "Empty", "HeadButton", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
-const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom } = await import("../src/state");
+const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
+const { profileDataAtom, profileAchievementsAtom } = await import("../src/profile");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 let renderer: ReactTestRenderer;
@@ -148,6 +149,40 @@ test("the profile's puzzle changes the profile's own selection", async () => {
   await act(() => all("EventPicker")[0]!.props.onChange("333oh"));
   expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
   expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });
+});
+
+test("prepared profile data survives page changes and unmounts without rebuilding histories", async () => {
+  const store = createStore();
+  store.set(userAtom, account);
+  const prepared = store.get(profileDataAtom);
+  const awards = store.get(profileAchievementsAtom);
+  profileCalls.length = 0;
+  await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
+  for (const route of [{ page: "profile" }, { page: "profile", mode: "playground" }, { page: "playground" }, { page: "profile" }] as const) {
+    await act(() => store.set(routeAtom, route));
+  }
+  // Clearing already-default filters on leaving the profile must not invalidate its histories.
+  await act(() => store.set(profileFiltersAtom, {}));
+  expect(store.get(profileDataAtom)).toBe(prepared);
+  expect(store.get(profileAchievementsAtom)).toBe(awards);
+  expect(profileCalls).toHaveLength(0);
+  expect(card("Timer").props.meta).toBe("3 solves");
+});
+
+test("cached profile updates after sync, deletion and account changes, including while unmounted", async () => {
+  const store = await mount();
+  await act(() => store.set(routeAtom, { page: "playground" }));
+  timerCount = 4;
+  await act(() => store.set(statsVersionAtom, v => v + 1));
+  await act(() => store.set(routeAtom, { page: "profile" }));
+  expect(card("Timer").props.meta).toBe("4 solves");
+  timerCount = 2;
+  await act(() => store.set(deletedSolveIdAtom, 3));
+  expect(card("Timer").props.meta).toBe("2 solves");
+  timerCount = 1;
+  await act(() => store.set(userAtom, { ...account, id: "u2", username: "other" }));
+  expect(card("Timer").props.meta).toBe("1 solve");
+  expect(texts()).toContain("other");
 });
 
 test("an empty timer selection offers to open the timer", async () => {

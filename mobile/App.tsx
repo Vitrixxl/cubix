@@ -28,6 +28,7 @@ import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
 import { ProfilePage } from "./src/pages/AccountPage";
+import { profileAchievementsAtom, profileDataAtom } from "./src/profile";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
 import { AuthScreen } from "./src/pages/AuthScreen";
 import { DuelPage } from "./src/pages/DuelPage";
@@ -123,7 +124,8 @@ function Shell() {
     () => { store.get(casesAtom); store.get(setsAtom); },
     () => store.get(statsAtom),
     ...PUZZLES.map(puzzle => () => { local.read.catalog(puzzle.id); }),
-    () => { local.read.achievements(); },
+    () => { store.get(profileDataAtom); },
+    () => { store.get(profileAchievementsAtom); },
   ), [store]);
   // Then the diagrams of the current puzzle's cases, so the algorithm list and selector open without geometry work.
   const cases = useAtomValue(casesAtom);

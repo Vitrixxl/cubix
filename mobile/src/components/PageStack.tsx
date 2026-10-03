@@ -8,18 +8,18 @@ import { lastNavigationAtom, routeDepth, tabOf, type NavigationKind, type Route 
 import { settledPageAtom } from "../tour";
 import { useColors } from "../theme";
 
-/** Tab switches and Learn's two parts: a short cross-fade, the new page rising a few points as it appears. */
+/** Learn's two parts: a short cross-fade, the new page rising a few points as it appears. */
 export const FADE = { duration: 220, easing: Easing.bezier(0.2, 0, 0, 1), useNativeDriver: true } as const;
 const RISE = 10;
 
 /**
- * The motion between two routes. Another tab, or another part of the same tab, fades through; going one page deeper
+ * The motion between two routes. Another tab opens immediately; another part of the same tab fades through. Going one page deeper
  * slides the new page in from the right (`direction` 1), coming back from the left (-1). `reduced` swaps at once.
  */
 export type Slide = { kind: "none" } | { kind: "fade" } | { kind: "slide"; direction: 1 | -1 };
 export function slideOf(from: Route, to: Route, kind: NavigationKind, reduced = false): Slide {
   if (reduced || JSON.stringify(from) === JSON.stringify(to)) return { kind: "none" };
-  if (tabOf(from.page) !== tabOf(to.page)) return { kind: "fade" };
+  if (tabOf(from.page) !== tabOf(to.page)) return { kind: "none" };
   const change = Math.sign(routeDepth(to) - routeDepth(from));
   // A case of the library slides itself over the list (AlgorithmsPage).
   if (from.page === to.page && from.page === "algorithms") return { kind: "none" };
@@ -32,8 +32,8 @@ type Screen = { id: number; route: Route };
 type Stack = { route: Route; screens: Screen[]; slide: Slide; progress: Animated.Value };
 
 /**
- * Renders the current route. Both pages stay mounted only while they move: across tabs the old page fades out as the
- * new one fades in, inside a tab the old page leaves by one side while the new one comes from the other.
+ * Renders the current route. Tabs swap in the same commit, without waiting for an animation or rendering two pages.
+ * Inside a tab, both pages stay mounted only while they move.
  */
 export function PageStack({ route, render }: { route: Route; render: (route: Route) => ReactNode }) {
   const kind = useAtomValue(lastNavigationAtom);
@@ -61,7 +61,7 @@ export function PageStack({ route, render }: { route: Route; render: (route: Rou
       setStack(s => s.progress === progress ? { ...s, slide: { kind: "none" }, screens: s.screens.slice(-1) } : s);
     });
     return () => animation.stop();
-  }, [stack.progress, stack.slide.kind]);
+  }, [stack.progress, stack.slide.kind, stack.route, settle]);
   const top = stack.screens.at(-1)!;
   const moving = stack.screens.length > 1;
   return <View style={styles.stack} onLayout={e => { const next = e.nativeEvent.layout.width; setWidth(w => w === next ? w : next); }}>

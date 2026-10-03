@@ -15,8 +15,8 @@ test("four tabs: the timer, practice, learning and the profile", () => {
   expect(tabOf("playground")).toBe("timer");
 });
 
-test("another tab fades through; a page opened inside a tab slides in from the right and back from the left", () => {
-  expect(slideOf({ page: "playground" }, { page: "profile" }, "push")).toEqual({ kind: "fade" });
+test("another tab opens immediately; a page opened inside a tab slides in from the right and back from the left", () => {
+  expect(slideOf({ page: "playground" }, { page: "profile" }, "push")).toEqual({ kind: "none" });
   expect(slideOf({ page: "learn" }, { page: "learn", method: "cfop" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "learn", method: "cfop" }, { page: "learn" }, "pop")).toEqual({ kind: "slide", direction: -1 });
   expect(slideOf({ page: "profile" }, { page: "profile", mode: "training" }, "push")).toEqual({ kind: "slide", direction: 1 });
