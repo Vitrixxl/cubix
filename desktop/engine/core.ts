@@ -168,7 +168,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       // Those come with their token, and without their value when the tab already holds it.
       const kept = new Set(['stats', 'profile', 'achievements', 'caseHistory']), tokens: Record<string, number> = {};
       const values = await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise] as const));
-      const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : []; }));
+      const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: readonly [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : []; }));
       return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
