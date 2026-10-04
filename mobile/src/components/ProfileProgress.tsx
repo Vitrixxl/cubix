@@ -50,6 +50,7 @@ export function Stats({ children }: { children: ReactNode }) {
 }
 
 const HEAT_GAP = 3, HEAT_CELL = 12, HEAT_LABEL = 30, MONTH_ROW = 16;
+const hidden = { width: HEAT_CELL, height: HEAT_CELL }, cell = { width: HEAT_CELL, height: HEAT_CELL, borderRadius: 3 };
 
 /**
  * The contribution graph (the web's profile/heatmap.tsx): solves per day as squares, a week per column (Monday on
@@ -67,6 +68,12 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
   const step = HEAT_CELL + HEAT_GAP;
   const times = (picked && days.get(picked.key)?.times) ?? [];
   const finite = times.filter(t => t != null);
+  const colors = useColors();
+  // The steps of HEAT_LEVELS: the muted ground, then the accent ever less faded.
+  const heatStyle = useMemo(() => {
+    const levels = [{ backgroundColor: colors.muted }, ...[0.35, 0.6, 0.85, 1].map(opacity => ({ backgroundColor: colors.primary, opacity }))];
+    return (level: number) => levels[level]!;
+  }, [colors]);
   return <Section label="Activity" title="Activity" meta={plural(total, "solve")} bodyClassName="gap-0"
     aside={<ChoiceButton label="Period" variant="ghost" value={String(year)} className="px-2"
       options={[{ id: "null", label: "Last 12 months" }, ...years.map(y => ({ id: String(y), label: String(y) }))]}
@@ -82,13 +89,20 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
           <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? "over the last 12 months" : `in ${year}`}`}
             style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }}>
             {months.map(m => <Text key={m.week} className="absolute top-0 text-[11px] leading-[13px] text-muted-foreground" style={{ left: m.week * step }}>{m.label}</Text>)}
-            <View className="absolute flex-row" style={{ top: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }}>
-              {Array.from({ length: weeks }, (_, w) => <View key={w} style={{ gap: HEAT_GAP }}>
-                {cells.slice(w * 7, w * 7 + 7).map(c => c.hidden ? <View key={c.key} style={{ width: HEAT_CELL, height: HEAT_CELL }} />
-                  : <Pressable key={c.key} hitSlop={1} onPress={() => setPicked(p => p?.key === c.key ? null : c)} accessibilityLabel={`${plural(c.count, "solve")} on ${c.date.toDateString()}`}
-                    className={cn("rounded-[3px]", HEAT_LEVELS[level(c.count)], picked?.key === c.key && "border border-foreground")} style={{ width: HEAT_CELL, height: HEAT_CELL }} />)}
-              </View>)}
-            </View>
+            {/* A year is some 370 days: plain squares coloured by style, and one touch target finding the day under the
+              finger, render many times faster than a Pressable with NativeWind classes per day. */}
+            <Pressable style={{ position: "absolute", left: 0, top: MONTH_ROW + HEAT_GAP, width: weeks * step - HEAT_GAP, height: 7 * step - HEAT_GAP }}
+              onPress={e => {
+                const c = cells[Math.floor(e.nativeEvent.locationX / step) * 7 + Math.min(6, Math.floor(e.nativeEvent.locationY / step))];
+                if (c && !c.hidden) setPicked(p => p?.key === c.key ? null : c);
+              }}>
+              <View pointerEvents="none" style={{ flexDirection: "row", gap: HEAT_GAP }}>
+                {Array.from({ length: weeks }, (_, w) => <View key={w} style={{ gap: HEAT_GAP }}>
+                  {cells.slice(w * 7, w * 7 + 7).map(c => <View key={c.key} style={c.hidden ? hidden : [cell, heatStyle(level(c.count)),
+                    picked?.key === c.key && { borderWidth: 1, borderColor: colors.foreground }]} />)}
+                </View>)}
+              </View>
+            </Pressable>
           </View>
         </ScrollView>
       </View>

@@ -28,7 +28,8 @@ const STREAK_GOALS = [3, 7, 30];
 const LEARNED_GOALS = [1, 10, 50, 100];
 const TOTAL_GOALS = [100, 1000, 10000];
 
-const chronological = (a: SolveDto, b: SolveDto) => a.created_at.localeCompare(b.created_at) || a.id - b.id;
+// ISO timestamps order like their characters: a plain comparison, many times faster than localeCompare on Hermes.
+const chronological = (a: SolveDto, b: SolveDto) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0) || a.id - b.id;
 /** Full-scramble solves only: partial-scramble drills (2-gen, last layer…) are not solves. */
 const fullScramble = (s: SolveDto) => !s.case_id && scrambleTypeOf(s) === "normal";
 const seconds = (n: number) => n >= 60 && n % 60 === 0 ? `${n / 60}:00` : String(n);

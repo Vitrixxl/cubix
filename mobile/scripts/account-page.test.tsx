@@ -61,6 +61,9 @@ const { ProfilePage } = await import("../src/pages/AccountPage");
 const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
 const { profileDataAtom, profileAchievementsAtom } = await import("../src/profile");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+// The sections under the fold come a frame later: here, at once.
+(globalThis as any).requestAnimationFrame = (run: (time: number) => void) => { run(0); return 0; };
+(globalThis as any).cancelAnimationFrame = () => {};
 
 let renderer: ReactTestRenderer;
 afterEach(async () => { if (renderer) await act(() => renderer.unmount()); timerCount = 3; });

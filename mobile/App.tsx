@@ -160,6 +160,14 @@ function Shell() {
     else openTab(tab);
   }, [tabLocked, setSkip, openTab]);
   const active = route.page;
+  // New solves or a sync make the profile stale: compute it again in the background, so opening it later costs
+  // nothing. Never on the timer pages, where a busy JS thread would delay the next start and skew its time.
+  const statsVersion = useAtomValue(statsVersionAtom);
+  const timing = running || active === "playground" || active === "training" || active === "duel";
+  useEffect(() => {
+    if (timing) return;
+    return afterFirstFrames(() => { store.get(profileDataAtom); }, () => { store.get(profileAchievementsAtom); });
+  }, [store, statsVersion, timing]);
   // The profile's filters last while its sections are browsed and reset once another tab is opened.
   const resetProfileFilters = useSetAtom(profileFiltersAtom);
   useEffect(() => { if (active !== "profile") resetProfileFilters(f => Object.keys(f).length ? {} : f); }, [active, resetProfileFilters]);

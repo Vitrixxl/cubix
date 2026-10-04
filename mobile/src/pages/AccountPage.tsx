@@ -1,12 +1,12 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { Settings, Swords, Timer as TimerIcon } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { fmtSolve, fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
 import { timerFigures } from "../../../src/client/lib/practiceSummary";
 import { achievementLists, activityOf, latestOf, stageCounts, streaks } from "../../../src/client/lib/profile";
 import { eventInfo, eventOf, puzzleInfo, scrambleLabel, type EventId } from "../../../src/shared/puzzles";
-import type { AchievementSummaryDto, CaseDto, ProfileDto } from "../../../src/shared/types";
+import type { CaseDto, ProfileDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -68,13 +68,12 @@ function ResultMark({ b }: { b: DuelRecord }) {
   return <View className={cn("size-7 items-center justify-center rounded-md", RESULT_TONE[b.result])}><BattleMark b={b} /></View>;
 }
 
-function overviewData(profile: ProfileDto, cases: CaseDto[], learned: ReadonlySet<string>, summary: AchievementSummaryDto) {
+function overviewData(profile: ProfileDto, cases: CaseDto[], learned: ReadonlySet<string>) {
   const trainedIds = new Set(profile.cases.map(c => c.summary.caseId));
-  const activity = activityOf(profile), { goals, recent } = achievementLists(summary.achievements);
+  const activity = activityOf(profile);
   return {
     timer: profile.playground.summary, history: profile.playground.history, ao5: profile.playground.ao5,
     learned: cases.filter(c => learned.has(c.id)).length, trained: trainedIds.size, stages: stageCounts(cases, learned, trainedIds),
-    goals: goals.slice(0, 3), recent: recent.slice(0, 3),
     activity, latest: latestOf(activity), streak: streaks(activity).current,
   };
 }
@@ -145,7 +144,12 @@ function TrainingSection({ d, total, trainingSolves, onMore }: { d: Overview; to
   </Section>;
 }
 
-function AchievementsSection({ d, summary, onMore }: { d: Overview; summary: AchievementSummaryDto; onMore: () => void }) {
+function AchievementsSection({ onMore }: { onMore: () => void }) {
+  const summary = useAtomValue(profileAchievementsAtom);
+  const d = useMemo(() => {
+    const { goals, recent } = achievementLists(summary.achievements);
+    return { goals: goals.slice(0, 3), recent: recent.slice(0, 3) };
+  }, [summary]);
   return <Section label="Achievements" title="Achievements" meta={`${summary.unlocked} of ${summary.total} unlocked`} onMore={onMore} more="All">
     <View className="gap-2">
       <SubHead title="Recently unlocked" />
@@ -192,6 +196,15 @@ function BattlesSection({ onMore, onDuel }: { onMore: () => void; onDuel: () => 
   </Section>;
 }
 
+/** Every achievement, by group. */
+function AchievementsPage({ group }: { group?: string }) {
+  const summary = useAtomValue(profileAchievementsAtom);
+  return <View className="min-h-0 flex-1 gap-2">
+    <AchievementTotal summary={summary} />
+    <AchievementList summary={summary} initialGroup={group} scrollKey="profile-achievements" />
+  </View>;
+}
+
 /**
  * The account, as the web app's profile on a phone: the player and the puzzle the statistics are about in the head,
  * the sections as tabs (Overview · Timer · Training · Awards · Battles), settings and guides in its "…" menu, and
@@ -219,14 +232,20 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
   // Everything is computed from the local workspace, so the page renders complete on first paint.
   const catalog = useAtomValue(profileCatalogAtom);
   const profile = useAtomValue(profileDataAtom);
-  const summary = useAtomValue(profileAchievementsAtom);
   const [caseId, setCaseId] = useState<string | null>(null);
   const scroll = usePreservedScroll(`profile:${cube}:${solveMode}:${scrambleType}`);
   const section = mode && PROFILE_SECTIONS.some(s => s.id === mode) ? mode : "overview";
   // A section opens as a page of its own over the overview; its back arrow returns to it.
   const show = (next: ProfileMode) => setRoute({ page: "profile", mode: next });
   const back = () => previousRoute?.page === "profile" && !previousRoute.mode ? goBack() : replaceRoute({ page: "profile" });
-  const d = useMemo(() => overviewData(profile, catalog.cases, learned, summary), [profile, catalog.cases, learned, summary]);
+  const d = useMemo(() => overviewData(profile, catalog.cases, learned), [profile, catalog.cases, learned]);
+  // The sections under the fold, achievements first among them (the costliest to compute), come a frame after the
+  // rest: the tab shows at once.
+  const [below, setBelow] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setBelow(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   if (!user) return null;
   const selected = catalog.cases.find(c => c.id === caseId);
   const event = eventOf(cube, solveMode);
@@ -253,10 +272,7 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       <TrainingProgress cases={catalog.cases} sets={catalog.sets} profile={profile} learned={learned} onOpen={setCaseId} scrollKey={`profile-training:${cube}:${solveMode}`} />
       <ProfileCaseDialog c={selected} data={profile.cases.find(c => c.summary.caseId === caseId)} onClose={() => setCaseId(null)} />
     </>}
-    {section === "achievements" && <View className="min-h-0 flex-1 gap-2">
-      <AchievementTotal summary={summary} />
-      <AchievementList summary={summary} initialGroup={group} scrollKey="profile-achievements" />
-    </View>}
+    {section === "achievements" && <AchievementsPage group={group} />}
     {section === "duels" && <View className="min-h-0 flex-1 gap-2">
       <Text className="text-sm text-muted-foreground">{battles().length ? battleRecord(battles()) : "Your battles appear here."}</Text>
       <BattleList />
@@ -272,7 +288,8 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       {picker}
       <HeadButton icon={Settings} label="Settings" onPress={() => openSettings(true)} />
     </View>
-    <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={scroll.onContentSizeChange} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
+    {/* The scroll comes back once the whole overview is there. */}
+    <ScrollView ref={scroll.ref} onScroll={scroll.onScroll} onContentSizeChange={below ? scroll.onContentSizeChange : undefined} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
       className="-mx-4 flex-1" contentContainerClassName="gap-3 px-4 pt-1 pb-6">
       <TourTarget name="profile-overview">
         <KpiStrip solves={profile.totalSolves} days={profile.activeDays} streak={d.streak} learned={d.learned} best={d.timer.count ? fmtTime(d.timer.best) : "–"} />
@@ -280,8 +297,10 @@ export function ProfilePage({ mode, group }: { mode?: ProfileMode; group?: strin
       <Heatmap solves={d.activity} latest={d.latest} />
       <TimerSection d={d} label={eventLabel} onMore={() => show("playground")} onTimer={() => setRoute({ page: "playground" })} />
       <TrainingSection d={d} total={catalog.cases.length} trainingSolves={profile.trainingSolves} onMore={() => show("training")} />
-      <AchievementsSection d={d} summary={summary} onMore={() => show("achievements")} />
-      <BattlesSection onMore={() => show("duels")} onDuel={() => setRoute({ page: "duel" })} />
+      {below && <>
+        <AchievementsSection onMore={() => show("achievements")} />
+        <BattlesSection onMore={() => show("duels")} onDuel={() => setRoute({ page: "duel" })} />
+      </>}
     </ScrollView>
   </Page>;
 }
