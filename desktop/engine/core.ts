@@ -10,6 +10,7 @@ import { StaticCubeSvg } from '../../src/client/diagrams/StaticCubeSvg';
 import { viewForStage } from '../../src/shared/cubeDiagram';
 import { createElement } from 'react';
 import { cases } from '../../src/client/local/catalog';
+import { CATALOG_CACHE_PREFIX } from '../../src/client/local/catalog-cache';
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
@@ -27,6 +28,8 @@ export interface EngineStorage {
   /** Every stored preference, sent to the renderer at start-up. */
   all(): Record<string, string>;
 }
+/** An answer already shaped for the renderer. */
+class Shown { constructor(readonly value: unknown) {} }
 export interface EngineRequest { id: number; method: string; args: any[] }
 export type EngineMessage = { id: number; value?: unknown; error?: string } | { event: string; value?: unknown };
 
@@ -93,18 +96,41 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     return { id: c.id, canPrevious: previousIndex(history, pool) !== -1, setup, algorithm: size ? compensateAuf(executableAlg(c.algorithms[0]), auf) : executableAlg(c.algorithms[0]), svg: size ? caseSvg(size, setup, c.stage) : null };
   }
   const unlocked = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  // A solve's date never changes: each is formatted once, not at every refresh of a long history.
+  const dates = new Map<string, string>();
+  const dateOf = (iso: string) => { let text = dates.get(iso); if (text === undefined) dates.set(iso, (text = fmtDate(iso))); return text; };
   function display(v: any): any {
     if (Array.isArray(v)) return v.map(display);
     if (v && typeof v === 'object') {
       const out = Object.fromEntries(Object.entries(v).map(([k, v]) => [k, display(v)]));
-      if (typeof v.at === 'string') out.displayDate = fmtDate(v.at);
-      if (typeof v.createdAt === 'string') out.displayDate = fmtDate(v.createdAt);
+      if (typeof v.at === 'string') out.displayDate = dateOf(v.at);
+      if (typeof v.createdAt === 'string') out.displayDate = dateOf(v.createdAt);
       if (typeof v.createdAt === 'string' && v.username) out.joined = joinedDate(v.createdAt);
       if (typeof v.unlockedAt === 'string') out.unlockedDate = unlocked.format(new Date(v.unlockedAt));
       return out;
     }
     return v;
   }
+  /** Reads the client keeps until the data changes come back as the same objects: shown once, sent again as is. */
+  const shown = new WeakMap<object, { token: number; value: unknown }>();
+  let tokens = 0;
+  function shownOf<T extends object>(value: T, shape: (value: T) => any = display) {
+    let out = shown.get(value);
+    if (!out) shown.set(value, (out = { token: ++tokens, value: shape(value) }));
+    return out;
+  }
+  /** A tab that already holds this very figure (`known`, its token) is not sent it again. */
+  function displayed<T extends object>(value: T, shape?: (value: T) => any, known?: number) {
+    const out = shownOf(value, shape);
+    return out.token === known ? { token: out.token } : out;
+  }
+  /** The profile as the renderer uses it: a case's summary, not its whole history, and the activity without dates
+   * to show, a year of solves weighing megabytes otherwise. */
+  const profileView = ({ cases, activity, ...rest }: any) => ({
+    ...display(rest),
+    cases: cases.map(({ summary, name, stage }: any) => ({ summary, name, stage })),
+    activity,
+  });
   /** Whether this device holds times or learned cases outside any account (or a former server guest's token, whose
    * data is being brought here): signing in or creating an account imports them. */
   function localData() {
@@ -115,25 +141,35 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       return Object.values(guest?.solves ?? {}).some((solve: any) => !solve.deleted) || Object.values(guest?.learned ?? {}).some(Boolean);
     } catch { return false; }
   }
+  /** The preferences the renderer reads at start-up, without the workspace and catalogue: megabytes it never uses. */
+  const preferences = () => Object.fromEntries(Object.entries(storage.all()).filter(([key]) => !key.startsWith('cubix.local.v1:workspace:') && !key.startsWith(CATALOG_CACHE_PREFIX)));
   const methods = new Set(Object.keys(local.api).filter(k => !['connectLive'].includes(k)));
   async function run(req: EngineRequest): Promise<unknown> {
-    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: storage.all(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
+    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
       const trainingMode = q.page === 'training';
       const filter = { solveMode: context.solveMode };
       const jobs: Record<string, Promise<unknown>> = {
         solves: local.api.solves(trainingMode ? 'training' : 'playground', 1000, context.puzzle, context),
-        stats: local.api.stats(context.puzzle, filter),
+        stats: Promise.resolve(shownOf(local.read.stats(context.puzzle, filter)).value),
       };
-      if (q.page === 'profile') { jobs.profile = local.api.profile(undefined, undefined, q.profilePuzzle, q.profileFilter); jobs.achievements = local.api.achievements(); }
-      if (q.caseId) jobs.caseHistory = local.api.caseHistory(q.caseId, filter);
+      if (q.page === 'profile') {
+        jobs.profile = Promise.resolve(displayed(local.read.profile(q.profilePuzzle, q.profileFilter), profileView, q.known?.profile));
+        jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
+      }
+      if (q.caseId) jobs.caseHistory = Promise.resolve(displayed(local.read.caseHistory(q.caseId, filter), undefined, q.known?.caseHistory));
       if (q.advance) {
         if (!lastAdvance || lastAdvance.key !== q.advanceKey) lastAdvance = { key: q.advanceKey, promise: trainingMode ? Promise.resolve({ training: training('next', context.puzzle, q.selected, q.randomAuf, context.solveMode) }) : takeScramble(context).then(scramble => ({ scramble })) };
         jobs[trainingMode ? 'training' : 'scramble'] = lastAdvance.promise.then(v => v[trainingMode ? 'training' : 'scramble']);
       }
       if (!trainingMode) prefetchScramble(context);
-      return { revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise]))) };
+      // The figures kept by the client are already shown (`displayed`); only the rest is shaped here.
+      // Those come with their token, and without their value when the tab already holds it.
+      const kept = new Set(['stats', 'profile', 'achievements', 'caseHistory']), tokens: Record<string, number> = {};
+      const values = await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise] as const));
+      const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : []; }));
+      return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);
@@ -171,7 +207,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   async function handle(req: EngineRequest) {
     try {
       const value = await run(req);
-      emit({ id: req.id, value: display(value ?? null) }); connect();
+      emit({ id: req.id, value: value instanceof Shown ? value.value : display(value ?? null) }); connect();
     } catch (error) { emit({ id: req.id, error: (error as Error).message }); }
   }
   // Requests are handled one after another, like the solves they record.

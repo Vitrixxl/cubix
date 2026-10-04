@@ -3,7 +3,8 @@ import type { CaseHistoryDto, EventRecordDto, SolveDto, ProfileDto, UserDto } fr
 import { effective, best, bestAverage, mean, rollingAverages } from "../lib/format";
 import { cases } from "./catalog";
 
-export const chronological = (a: SolveDto, b: SolveDto) => a.created_at.localeCompare(b.created_at) || ((a as SolveDto & {serverId?:number}).serverId ?? a.id) - ((b as SolveDto & {serverId?:number}).serverId ?? b.id);
+// ISO timestamps of one format order like their characters: a plain comparison, many times faster than localeCompare.
+export const chronological = (a: SolveDto, b: SolveDto) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0) || ((a as SolveDto & {serverId?:number}).serverId ?? a.id) - ((b as SolveDto & {serverId?:number}).serverId ?? b.id);
 const casesById = new Map(cases.map(c => [c.id, c]));
 const defaultScrambles = new Map(PUZZLES.map(p => [p.id, p.scrambles[0]]));
 

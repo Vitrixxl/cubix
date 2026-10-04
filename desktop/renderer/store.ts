@@ -81,6 +81,8 @@ export class Store {
   profile: any = null;
   achievements: any = null;
   caseHistory: any = null;
+  /** The engine's tokens of the figures held: unchanged ones are not sent again. */
+  known: Record<string, number> = {};
   stats: any[] = [];
   error = "";
   saving = false;
@@ -423,6 +425,8 @@ export class Store {
         advance: false,
         selected: [...this.practiceSelected],
         randomAuf: this.randomAuf,
+        // Figures held already are not sent again while unchanged.
+        known: this.known,
       });
       if (request !== this.request) return;
       this.solves = v.solves
@@ -438,6 +442,11 @@ export class Store {
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
       if (v.caseHistory) this.caseHistory = v.caseHistory;
+      this.known = {
+        ...(this.profile && v.tokens?.profile ? { profile: v.tokens.profile } : {}),
+        ...(this.achievements && v.tokens?.achievements ? { achievements: v.tokens.achievements } : {}),
+        ...(this.caseHistory && v.tokens?.caseHistory ? { caseHistory: v.tokens.caseHistory } : {}),
+      };
       if (
         this.goal.size &&
         [...this.goal].every((id) => this.learned.has(id))

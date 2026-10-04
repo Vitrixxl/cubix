@@ -71,8 +71,25 @@ export function createLocalClient(options: {
     if (kind === "journey") workspace.outbox = workspace.outbox.filter(op => !(op.kind === kind && op.body.key === body.key));
     workspace.outbox.push({ id:crypto.randomUUID(), kind, localId, body, createdAt });
   };
-  const save = (id: string, value: Workspace) => write("workspace:" + id,value);
+  /* The parsed workspace stays in memory: a long history is megabytes of JSON, and every screen reads it several
+   * times. A small revision written beside it on each save tells whether another client sharing the storage (a tab,
+   * a reopened app) changed it since. `generation` numbers each state for the reads derived from it. */
+  let cached: { id: string; revision: string; workspace: Workspace } | undefined;
+  let generation = 0;
+  const cachedWorkspace = () => cached?.workspace;
+  const revisionKey = (id: string) => PREFIX + "revision:" + id;
+  const remember = (id: string, workspace: Workspace) => {
+    const revision = crypto.randomUUID();
+    storage.setItem(revisionKey(id), revision);
+    cached = { id, revision, workspace }; generation++;
+  };
+  const save = (id: string, value: Workspace) => {
+    try { write("workspace:" + id,value); remember(id, value); }
+    catch (error) { cached = undefined; generation++; throw error; }
+  };
   const data = (id = owner()) => {
+    if (cached?.id === id && storage.getItem(revisionKey(id)) === cached.revision) return cached.workspace;
+    cached = undefined;
     const stored = read<(Workspace & { cache?: unknown }) | null>("workspace:" + id,null);
     const workspace: Workspace & { cache?: unknown } = stored ?? empty();
     workspace.learned ??= {};
@@ -123,12 +140,27 @@ export function createLocalClient(options: {
       // Imported once: other workspaces on this device receive the marks through the guest import.
       storage.removeItem(LEGACY_LEARNED_KEY);
     }
+    if (cachedWorkspace() !== workspace) try { remember(id, workspace); } catch { /* Read again next time. */ }
     return workspace;
   };
   const lock = <T>(name: string, action: () => Promise<T>) => options.lock ? options.lock(name,action) : action();
   const edit = <T>(id: string, action: (workspace: Workspace) => T) => lock("cubix-local",async () => {
-    const workspace = data(id); const result = action(workspace); save(id,workspace); return result;
+    const workspace = data(id);
+    let result: T;
+    // A failed change may have half-modified the object in memory: the stored workspace stays the truth.
+    try { result = action(workspace); } catch (error) { cached = undefined; generation++; throw error; }
+    save(id,workspace); return result;
   });
+  /** Reads derived from the workspace, kept until it changes: screens ask again for unchanged figures. */
+  let memoGeneration = -1, memo = new Map<string, unknown>();
+  const derived = <T>(key: string, compute: () => T): T => {
+    // Reading first notices a change made by another client sharing the storage.
+    data();
+    if (memoGeneration !== generation) { memo = new Map(); memoGeneration = generation; }
+    key = owner() + "|" + key;
+    if (!memo.has(key)) memo.set(key, compute());
+    return memo.get(key) as T;
+  };
   let syncing: Promise<void> | null = null;
   let reconnecting: Promise<void> | null = null;
   type Connection = ReturnType<Remote["connectLive"]>;
@@ -356,17 +388,20 @@ export function createLocalClient(options: {
     notify(); schedule(); return value;
   }
 
-  /** Synchronous reads of local data, for screens that must render without any loading state. */
+  /** Every solve kept, oldest first: sorted once per change rather than by each read. */
+  const ordered = () => derived("ordered", () => liveSolves().sort(chronological));
+  const args = (...values: unknown[]) => JSON.stringify(values);
+  /** Synchronous reads of local data, for screens that must render without any loading state. Unchanged data gives
+   * back the very same objects, so screens can tell nothing changed. */
   const reads = {
     journey: () => data().journey,
     catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
-    stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => caseStats(liveSolves(),cubeSize,filter),
-    caseHistory: (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
-    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
-      const workspace = data();
-      return profile(current(),liveSolves(workspace),cubeSize,filter,journeyProfile(workspace.journey)?.bests);
-    },
-    achievements: () => achievements(liveSolves(),learnedIds()),
+    stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("stats" + args(puzzleId(cubeSize), filter.solveMode), () => caseStats(ordered(),cubeSize,filter)),
+    caseHistory: (caseId: string, filter: PracticeFilter = {}) => derived("case" + args(caseId, filter.solveMode), () =>
+      history(caseId,ordered().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard")))),
+    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("profile" + args(puzzleId(cubeSize), filter.solveMode, filter.scrambleType, current()), () =>
+      profile(current(),ordered(),cubeSize,filter,journeyProfile(data().journey)?.bests)),
+    achievements: () => derived("achievements", () => achievements(ordered(),learnedIds())),
   };
 
   const api = {
@@ -411,13 +446,19 @@ export function createLocalClient(options: {
       if (!Number.isFinite(body.timeMs) || body.timeMs < 0) throw new Error("Invalid solve time.");
       if (body.caseId && !cases.some(c => c.id === body.caseId)) throw new Error("Unknown case.");
       // Preserve insertion order even for imports/tests producing several solves in one millisecond.
-      const latest = Object.values(workspace.solves).reduce((at,s) => Math.max(at,Date.parse(s.created_at)),0);
+      const latest = Date.parse(derived("latest", () => Object.values(workspace.solves).reduce((at,s) => s.created_at > at ? s.created_at : at,""))) || 0;
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
       const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,created_at:createdAt };
       workspace.solves[solve.id] = solve;
       operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms},solve.created_at); return solve;
     }),
-    solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => { const workspace = data(); return liveSolves(workspace).filter(s => matchesPractice(s,cubeSize,filter) && (workspace.sessions[s.session_id ?? 0]?.mode ?? (s.case_id ? "training" : "playground")) === mode).sort(chronological).reverse().slice(0,limit); },
+    solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
+      const newest = derived("solves" + args(mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {
+        const workspace = data();
+        return ordered().filter(s => matchesPractice(s,cubeSize,filter) && (workspace.sessions[s.session_id ?? 0]?.mode ?? (s.case_id ? "training" : "playground")) === mode).reverse();
+      });
+      return newest.slice(0,limit);
+    },
     setPenalty: async (solveId: number, penalty: Penalty) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.penalty = penalty; operation(workspace,id,"penalty",solveId,{penalty}); return solve;
