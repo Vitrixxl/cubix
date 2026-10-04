@@ -153,7 +153,7 @@ try {
   await player.locator('[data-slot="slots"] button').first().click();
   await player.fill("#booking-note", "My F2L is slow");
   assert.ok(await player.locator('[data-action="coaching:book"]').isDisabled(), "booking requires accepting the policy");
-  await player.locator('#accept-cancellation-policy').check();
+  await player.getByRole("checkbox", { name: "I have read and accept the cancellation policy." }).check();
   await player.screenshot({ path: `${SHOTS}/coach-page.png` });
   await player.locator('[data-action="coaching:book"]').click();
   await player.waitForURL(/\/coaching\/sessions$/);
