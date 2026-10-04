@@ -17,16 +17,15 @@ import { go, goPage, readRoute, type AppRoute } from "./navigation";
 export const catalog = catalogData as any;
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
-export const matches = (c: any, q: string) =>
-  q
+/** Whether every word typed starts a word of the case, so "g perm" finds the G perms and not every case with a "g" somewhere. */
+export const matches = (c: any, q: string) => {
+  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase(),
+    words = [...text.split(/\s+/), ...text.split(/[^a-z0-9]+/)];
+  return q
     .toLowerCase()
     .split(/\s+/)
-    .every((word) =>
-      [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup]
-        .join(" ")
-        .toLowerCase()
-        .includes(word),
-    );
+    .every((word) => words.some((w) => w.startsWith(word)));
+};
 const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "learn", "coaching", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
