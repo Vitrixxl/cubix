@@ -1,11 +1,13 @@
-/** Every session of the account, as a student or as a coach: the coming ones to join, the past ones to review. */
+/** Every session on the shared calendar, filtered by status; a day opens its sessions and their actions. */
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Check, MessageSquare, Star, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, NUMERIC, Tip } from "../ui";
 import { go } from "../navigation";
 import { callOpen, coaching, price, type Booking } from "./client";
-import { Nothing, PANEL, ROWS, RowsSkeleton, Stars, day, dayKey, relative, span, time, url } from "./parts";
+import { Nothing, ROWS, Stars, day, dayKey, relative, span, time, url } from "./parts";
+import { BOX, DayBoxes, Month, MonthHeader, longDay, toDate } from "./calendar";
+import { CANCELLATION_NOTICE, cancellationOpen } from "./policy";
 import { store as s } from "../store";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -32,17 +34,28 @@ export function Sessions() {
     void coaching.load("bookings");
   }, []);
   const now = useMinute();
-  const [tab, setTab] = useState("upcoming");
+  const [tab, setTab] = useState("upcoming"),
+    [month, setMonth] = useState(""),
+    [picked, setPicked] = useState("");
   const all = coaching.bookings;
   const groups = {
     upcoming: all?.filter((b) => b.status === "booked" && b.endsAt > now).sort((a, b) => a.startsAt - b.startsAt),
-    past: all?.filter((b) => b.status === "booked" && b.endsAt <= now),
-    cancelled: all?.filter((b) => b.status === "cancelled"),
+    past: all?.filter((b) => b.status === "booked" && b.endsAt <= now).sort((a, b) => b.startsAt - a.startsAt),
+    cancelled: all?.filter((b) => b.status === "cancelled").sort((a, b) => b.startsAt - a.startsAt),
   };
   const list = groups[tab as keyof typeof groups];
+  const byDay = new Map<string, Booking[]>();
+  for (const b of [...(list ?? [])].sort((a, b) => a.startsAt - b.startsAt)) {
+    const key = dayKey(b.startsAt);
+    byDay.set(key, [...(byDay.get(key) ?? []), b]);
+  }
+  const today = dayKey(now),
+    shown = month || dayKey(list?.[0]?.startsAt ?? now).slice(0, 7),
+    sessions = byDay.get(picked) ?? [],
+    hasSessions = [...byDay.keys()].some((d) => d.startsWith(shown));
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <Tabs value={tab} onValueChange={(v: string) => setTab(v)} className="shrink-0">
+      <Tabs value={tab} onValueChange={(v: string) => { setTab(v); setMonth(""); setPicked(""); }} className="shrink-0">
         <TabsList>
           {(["upcoming", "past", "cancelled"] as const).map((id) => (
             <TabsTrigger key={id} value={id} data-action={"sessions:" + id} className="gap-1.5 px-3 capitalize">
@@ -52,26 +65,63 @@ export function Sessions() {
           ))}
         </TabsList>
       </Tabs>
-      <section aria-label="Sessions" className={cn(PANEL, "flex-1")}>
+      <section aria-label="Sessions" className="flex min-h-0 flex-1 flex-col gap-3">
+        <MonthHeader month={shown} today={today} onMonth={setMonth} />
         {!list ? (
-          <RowsSkeleton />
-        ) : !list.length ? (
-          <Nothing>
-            {tab === "upcoming" ? "No session planned." : tab === "past" ? "No session yet." : "No cancelled session."}
-            {tab === "upcoming" && (
-              <UiButton variant="outline" onClick={() => go(url("coaches"))} data-action="coaching:find">
-                Find a coach
-              </UiButton>
-            )}
-          </Nothing>
+          <Skeleton className="min-h-0 flex-1 rounded-xl" aria-label="Loading sessions" />
         ) : (
-          <ul className={cn(ROWS, "min-h-0 flex-1 overflow-y-auto")} data-slot="sessions">
-            {list.map((b) => (
-              <SessionRow key={b.id} b={b} now={now} />
-            ))}
-          </ul>
+          <>
+            {!hasSessions && (
+              <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm text-muted-foreground" role="status">
+                <span>{tab === "upcoming" ? "No upcoming session this month." : tab === "past" ? "No past session this month." : "No cancelled session this month."}</span>
+                {tab === "upcoming" && !list.length && (
+                  <UiButton variant="outline" size="sm" onClick={() => go(url("coaches"))} data-action="coaching:find">Find a coach</UiButton>
+                )}
+              </div>
+            )}
+            <Month
+              month={shown}
+              today={today}
+              allowPast
+              selected={(d) => d === picked}
+              disabled={(d) => !byDay.has(d)}
+              pick={(d) => setPicked(d)}
+              className="max-lg:min-h-0 max-lg:flex-1"
+              cell={(d) => ({
+                body: !!byDay.get(d)?.length && (
+                  <DayBoxes items={byDay.get(d)!}>
+                    {(b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        aria-label={`${time(b.startsAt)}–${time(b.endsAt)} · ${b.with.username}`}
+                        data-session={b.id}
+                        className={cn(BOX, "flex-col gap-0 px-0.5", tab === "cancelled" ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary hover:bg-primary/25")}
+                      >
+                        <span className={NUMERIC}>{time(b.startsAt)}</span>
+                        <span className="max-w-full truncate text-[10px] font-normal @max-[5rem]:hidden">{b.with.username}</span>
+                      </button>
+                    )}
+                  </DayBoxes>
+                ),
+              })}
+            />
+          </>
         )}
       </section>
+      <Dialog open={!!picked} onOpenChange={(open) => !open && setPicked("")}>
+        <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-3xl" data-slot="sessions-day">
+          <DialogHeader>
+            <DialogTitle>{picked ? longDay.format(toDate(picked)) : "Sessions"}</DialogTitle>
+            <DialogDescription className="capitalize">{tab} · {sessions.length} {sessions.length === 1 ? "session" : "sessions"}</DialogDescription>
+          </DialogHeader>
+          {sessions.length ? (
+            <ul className={cn(ROWS, "min-h-0 overflow-y-auto")} data-slot="sessions">
+              {sessions.map((b) => <SessionRow key={b.id} b={b} now={now} />)}
+            </ul>
+          ) : <Nothing>No session for this filter on this day.</Nothing>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -83,7 +133,7 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
     over = b.endsAt <= now;
   return (
     <li className={cn("flex flex-col gap-2 rounded-lg px-3 py-2.5 hover:bg-muted/40", b.status === "cancelled" && "opacity-60")} data-booking={b.id}>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 max-sm:flex-wrap">
         <div className="flex w-24 shrink-0 flex-col">
           <span className="text-xs text-muted-foreground">{day(b.startsAt)}</span>
           <span className={cn(NUMERIC, "font-medium")}>
@@ -109,7 +159,7 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
           </div>
         </div>
         {!compact && <span className={cn(NUMERIC, "shrink-0 text-muted-foreground max-md:hidden")}>{price(b.priceCents)}</span>}
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 max-sm:w-full max-sm:justify-end">
           {open && (
             <UiButton size="sm" onClick={() => go(url("call/" + b.id))} data-action="coaching:join" className={cn(waiting && "animate-pulse")}>
               <Video />
@@ -129,6 +179,11 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
           {b.status === "booked" && !over && <CancelButton b={b} />}
         </div>
       </div>
+      {b.status === "booked" && !over && (
+        <p className="text-xs text-muted-foreground" data-slot="cancellation-deadline">
+          {cancellationOpen(b.startsAt, now) ? `Cancellation allowed before ${span(b.startsAt - CANCELLATION_NOTICE)}.` : "Cancellation closed: this session starts within 24 hours."}
+        </p>
+      )}
       {b.proposal && b.status === "booked" && !over && <Offer b={b} />}
     </li>
   );
@@ -274,6 +329,8 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
 }
 
 export function CancelButton({ b, label = false }: { b: Booking; label?: boolean }) {
+  const now = useMinute();
+  const allowed = cancellationOpen(b.startsAt, now);
   const [pending, setPending] = useState(false),
     [open, setOpen] = useState(false);
   return (
@@ -292,17 +349,20 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
       )}
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel this session?</AlertDialogTitle>
+          <AlertDialogTitle>{allowed ? "Cancel this session?" : "Cancellation is closed"}</AlertDialogTitle>
           <AlertDialogDescription>
-            {day(b.startsAt)} at {time(b.startsAt)} with {b.with.username}. They are told at once and the slot opens again.
+            {day(b.startsAt)} at {time(b.startsAt)} with {b.with.username}.
+            {allowed ? " They are told at once and the slot opens again." : " Sessions cannot be cancelled in the final 24 hours before they start."}
           </AlertDialogDescription>
+          <p className="text-sm text-muted-foreground">Cancellation deadline: {span(b.startsAt - CANCELLATION_NOTICE)}. Cancellations must be made before this time.</p>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
-          <AlertDialogAction
+          <AlertDialogCancel>{allowed ? "Keep it" : "Close"}</AlertDialogCancel>
+          {allowed && <AlertDialogAction
             variant="destructive"
             disabled={pending}
             onClick={async () => {
+              if (!cancellationOpen(b.startsAt)) return;
               setPending(true);
               try {
                 await coaching.cancel(b.id);
@@ -316,7 +376,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
             }}
           >
             Cancel the session
-          </AlertDialogAction>
+          </AlertDialogAction>}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

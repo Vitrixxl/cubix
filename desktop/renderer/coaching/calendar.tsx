@@ -61,6 +61,7 @@ export function Month({
   today,
   selected,
   disabled,
+  allowPast = false,
   pick,
   cell,
   className,
@@ -68,8 +69,9 @@ export function Month({
   month: string;
   today: string;
   selected: (day: string) => boolean;
-  /** Days that cannot be picked, besides the past ones. */
+  /** Days that cannot be picked, besides past days when `allowPast` is false. */
   disabled?: (day: string) => boolean;
+  allowPast?: boolean;
   pick: (day: string, e: React.MouseEvent | React.KeyboardEvent) => void;
   cell: (day: string, past: boolean) => DayCell;
   className?: string;
@@ -89,7 +91,7 @@ export function Month({
       <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
         {days.map((day, i) => {
           const past = day < today,
-            off = past || !!disabled?.(day),
+            off = (past && !allowPast) || !!disabled?.(day),
             outside = !day.startsWith(month),
             chosen = selected(day),
             { corner, body, className } = cell(day, past);

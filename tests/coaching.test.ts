@@ -10,6 +10,7 @@ function setup() {
 async function account(origin:string,name:string) {
  const {token,user}=await createApiClient(origin,{getToken:()=>null}).register(name,"a-long-test-password");
  const call=async(method:string,path:string,body?:unknown)=>{
+  if(method==="POST"&&path==="bookings") body={cancellationPolicy:"24h-v1",...(body as object)};
   const response=await fetch(origin+"/api/coaching/"+path,{method,headers:{authorization:"Bearer "+token,...(body===undefined?{}:{"content-type":"application/json"})},body:body===undefined?undefined:JSON.stringify(body)});
   return {status:response.status,value:await response.json()};
  };
@@ -64,8 +65,14 @@ test("an application, once approved, makes a coach whom players can book, review
  expect((await player.call("POST","conversations",{coachId:coach.id})).status).toBe(403);
 
  const coachSocket=await socket(origin,coach.token),playerSocket=await socket(origin,player.token);
+ expect((await player.call("POST","bookings",{coachId:coach.id,start:slots[0].start,cancellationPolicy:null})).status).toBe(422);
  const booked=await player.call("POST","bookings",{coachId:coach.id,start:slots[0].start,note:"F2L lookahead"});
  expect(booked.status).toBe(200);expect(booked.value).toMatchObject({role:"student",status:"booked",priceCents:2500,note:"F2L lookahead",with:{username:"coach_anna"}});
+ const acceptance=db.db.query("SELECT cancellation_policy,cancellation_policy_accepted_at FROM coach_bookings WHERE id=?").get(booked.value.id) as any;
+ expect(acceptance.cancellation_policy).toBe("24h-v1");expect(acceptance.cancellation_policy_accepted_at).toBe(booked.value.createdAt);
+ // Both parties are blocked inside 24 hours; a rejected cancellation leaves the booking intact.
+ for(const party of [coach,player]) expect((await party.call("POST",`bookings/${booked.value.id}/cancel`)).value.error).toContain("24 hours");
+ expect((await player.get("bookings"))[0].status).toBe("booked");
  await coachSocket.next(m=>m.type==="bookings");
  expect((await player.call("POST","bookings",{coachId:coach.id,start:slots[0].start})).status).toBe(409);
  expect((await player.get(`coaches/${coach.id}/slots?days=2`)).slots[0].start).toBe(slots[1].start);
@@ -158,22 +165,25 @@ test("an application, once approved, makes a coach whom players can book, review
  expect((await player.call("POST",`bookings/${booked.value.id}/cancel`)).status).toBe(409);
 
  // The coach offers another time; the student keeps the session where it is, or moves it there.
+ const later=slots.find((s:any)=>s.start>Date.now()+25*3600000)!;
  expect((await outsider.call("POST","conversations",{coachId:coach.id})).status).toBe(403);
  const second=await player.call("POST","bookings",{coachId:coach.id,start:slots[3].start}),move=`bookings/${second.value.id}`;
  expect((await player.call("POST",`${move}/propose`,{start:slots[5].start})).status).toBe(403);
  expect((await coach.call("POST",`${move}/propose`,{start:slots[3].start})).status).toBe(422);
- expect((await coach.call("POST",`${move}/propose`,{start:slots[5].start})).value.proposal).toEqual({start:slots[5].start,end:slots[5].end});
- expect((await player.get("bookings")).find((b:any)=>b.id===second.value.id).proposal).toEqual({start:slots[5].start,end:slots[5].end});
+ expect((await coach.call("POST",`${move}/propose`,{start:later.start})).value.proposal).toEqual({start:later.start,end:later.end});
+ expect((await player.get("bookings")).find((b:any)=>b.id===second.value.id).proposal).toEqual({start:later.start,end:later.end});
  expect((await player.call("POST",`${move}/answer`,{accept:false})).value).toMatchObject({startsAt:slots[3].start,proposal:null});
  expect((await player.call("POST",`${move}/answer`,{accept:true})).status).toBe(409);
- await coach.call("POST",`${move}/propose`,{start:slots[5].start});
+ await coach.call("POST",`${move}/propose`,{start:later.start});
  expect((await coach.call("POST",`${move}/answer`,{accept:true})).status).toBe(403);
- expect((await player.call("POST",`${move}/answer`,{accept:true})).value).toMatchObject({startsAt:slots[5].start,endsAt:slots[5].end,proposal:null});
+ expect((await player.call("POST",`${move}/answer`,{accept:true})).value).toMatchObject({startsAt:later.start,endsAt:later.end,proposal:null});
  expect((await player.get(`coaches/${coach.id}/slots?days=2`)).slots.some((s:any)=>s.start===slots[3].start)).toBe(true);
 
  // A cancelled session frees its slot; a disabled coach leaves the list.
  expect((await coach.call("POST",`${move}/cancel`)).value).toMatchObject({status:"cancelled",cancelledByMe:true});
- expect((await player.get(`coaches/${coach.id}/slots?days=2`)).slots.some((s:any)=>s.start===slots[5].start)).toBe(true);
+ expect((await player.get(`coaches/${coach.id}/slots?days=2`)).slots.some((s:any)=>s.start===later.start)).toBe(true);
+ const another=await player.call("POST","bookings",{coachId:coach.id,start:later.start});
+ expect((await player.call("POST",`bookings/${another.value.id}/cancel`)).value).toMatchObject({status:"cancelled",cancelledByMe:true});
  expect((await adm("POST",`coaching/coaches/${coach.id}/disable`)).status).toBe(200);
  expect(await player.get("coaches")).toEqual([]);
  expect((await player.call("POST","conversations",{coachId:coach.id})).status).toBe(404);

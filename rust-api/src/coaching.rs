@@ -41,6 +41,11 @@ const MINUTE: i64 = 60_000;
 /// Slots are offered from an hour ahead, four weeks out.
 const NOTICE: i64 = 60 * MINUTE;
 const HORIZON_DAYS: i64 = 28;
+const CANCELLATION_POLICY: &str = "24h-v1";
+const CANCELLATION_ERROR: &str = "Sessions cannot be cancelled in the final 24 hours before they start.";
+fn cancellation_open(starts_at: i64, at: i64) -> bool {
+    starts_at.saturating_sub(at) > DAY_MS
+}
 /// The session lengths a coach may choose, in minutes.
 pub const LENGTHS: [i64; 5] = [30, 45, 60, 90, 120];
 /// The call opens a quarter of an hour before the session and stays open half an hour after it.
@@ -559,6 +564,9 @@ pub fn route(
                 .collect::<Vec<_>>()
         )),
         ("POST", ["bookings"]) => {
+            if body["cancellationPolicy"].as_str() != Some(CANCELLATION_POLICY) {
+                return Err(ApiError::new(422, "Please read and accept the cancellation policy before booking."));
+            }
             let coach_id = string(body, "coachId", 1, 64)?;
             let start = body["start"].as_i64().ok_or_else(ApiError::validation)?;
             let note = text(body, "note", 1000)?;
@@ -587,8 +595,8 @@ pub fn route(
             }
             let id = Uuid::new_v4().to_string();
             db.execute(
-                "INSERT INTO coach_bookings(id,coach_id,student_id,starts_at,ends_at,note,price_cents,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                params![id, coach_id, uid, starts, ends, note, coach["price_cents"].as_i64().unwrap_or(0), at],
+                "INSERT INTO coach_bookings(id,coach_id,student_id,starts_at,ends_at,note,price_cents,created_at,cancellation_policy,cancellation_policy_accepted_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                params![id, coach_id, uid, starts, ends, note, coach["price_cents"].as_i64().unwrap_or(0), at, CANCELLATION_POLICY, at],
             )?;
             conversation_between(db, coach_id, uid)?;
             for party in [coach_id, uid] {
@@ -601,12 +609,16 @@ pub fn route(
             if row["status"] != "booked" {
                 return Err(ApiError::new(409, "This session is already cancelled."));
             }
-            if row["ends_at"].as_i64().unwrap_or(0) <= now() {
+            let at = now();
+            if row["ends_at"].as_i64().unwrap_or(0) <= at {
                 return Err(ApiError::new(409, "This session is over."));
+            }
+            if !cancellation_open(row["starts_at"].as_i64().unwrap_or(0), at) {
+                return Err(ApiError::new(409, CANCELLATION_ERROR));
             }
             db.execute(
                 "UPDATE coach_bookings SET status='cancelled',cancelled_at=?,cancelled_by=?,proposed_start=NULL,proposed_end=NULL WHERE id=?",
-                params![now(), uid, id],
+                params![at, uid, id],
             )?;
             for key in ["coach_id", "student_id"] {
                 state.coaching.notify(row[key].as_str().unwrap_or(""), json!({"type": "bookings"}));
@@ -1458,6 +1470,15 @@ async fn client(state: AppState, mut socket: WebSocket) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cancellation_closes_exactly_twenty_four_hours_before_start() {
+        let at = 1_800_000_000_000;
+        assert!(cancellation_open(at + DAY_MS + 1, at));
+        assert!(!cancellation_open(at + DAY_MS, at));
+        assert!(!cancellation_open(at + DAY_MS - 1, at));
+        assert!(!cancellation_open(at, at));
+        assert!(!cancellation_open(at - 1, at));
+    }
     fn coach(windows: Value, off: Value, tz: &str) -> Value {
         json!({"timezone": tz, "session_minutes": 60, "windows": windows.to_string(), "days_off": off.to_string(), "overrides": "[]"})
     }

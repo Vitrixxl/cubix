@@ -51,6 +51,9 @@ impl Db {
         // A coach may offer to move a session.
         add_column_if_missing(&db, "coach_bookings", "proposed_start", "INTEGER")?;
         add_column_if_missing(&db, "coach_bookings", "proposed_end", "INTEGER")?;
+        // The policy and acceptance time are recorded only for bookings made with explicit consent.
+        add_column_if_missing(&db, "coach_bookings", "cancellation_policy", "TEXT")?;
+        add_column_if_missing(&db, "coach_bookings", "cancellation_policy_accepted_at", "INTEGER")?;
         // Pictures and videos in coaching conversations arrived after the first messages.
         for (column, definition) in [("media_id", "TEXT"), ("media_type", "TEXT"), ("media_size", "INTEGER"), ("media_name", "TEXT")] {
             add_column_if_missing(&db, "coach_messages", column, definition)?;

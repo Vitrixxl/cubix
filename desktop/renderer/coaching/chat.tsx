@@ -4,6 +4,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CalendarPlus, ChevronLeft, ImageUp, LoaderCircle, Paperclip, Send } from "lucide-react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { store as s } from "../store";
 import { Avatar, NUMERIC, Tip, usePhone } from "../ui";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export function Messages({ id }: { id: number | null }) {
@@ -30,7 +32,7 @@ export function Messages({ id }: { id: number | null }) {
   return (
     <div className="flex min-h-0 flex-1 gap-4">
       {showList && (
-        <div className={cn(PANEL, "shrink-0", phone ? "flex-1" : "w-72")}>
+        <ScrollArea className={cn(PANEL, "max-h-full min-w-0 shrink-0 self-start [&>[data-slot=scroll-area-viewport]]:h-auto [&>[data-slot=scroll-area-viewport]]:min-h-0", phone ? "w-full" : "w-72")}>
           {!list ? (
             <RowsSkeleton />
           ) : !list.length ? (
@@ -41,7 +43,7 @@ export function Messages({ id }: { id: number | null }) {
               </UiButton>
             </Nothing>
           ) : (
-            <ul className={cn(ROWS, "min-h-0 flex-1 overflow-y-auto")} data-slot="conversations">
+            <ul className={ROWS} data-slot="conversations">
               {list.map((c) => (
                 <li key={c.id}>
                   <ConversationRow c={c} active={c.id === id} />
@@ -49,7 +51,7 @@ export function Messages({ id }: { id: number | null }) {
               ))}
             </ul>
           )}
-        </div>
+        </ScrollArea>
       )}
       {showChat && (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col text-sm">
@@ -92,6 +94,8 @@ function ConversationRow({ c, active }: { c: Conversation; active: boolean }) {
  * screen. Their name opens the other party's file; the student also books the coach's slots from it.
  */
 export function Chat({ conversation: c, back, head = true, className }: { conversation: Conversation; back?: string; head?: boolean; className?: string }) {
+  const navigate = useNavigate();
+  const book = () => void navigate(url(`coach/${c.coachId}/book`), { state: { conversationId: c.id } });
   const messages = coaching.messages.get(c.id);
   useEffect(() => {
     void coaching.load(`messages:${c.id}`);
@@ -199,13 +203,6 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
             </button>
           </Tip>
           <PersonDialog id={c.role === "student" ? c.coachId : c.studentId} name={c.with.username} open={file} onOpenChange={setFile} inChat />
-          <span className="flex-1" />
-          {c.role === "student" && (
-            <UiButton variant="outline" size="sm" onClick={() => go(url(`coach/${c.coachId}/book`))} data-action="chat:book">
-              <CalendarPlus />
-              Book
-            </UiButton>
-          )}
         </div>
       )}
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 py-3" aria-live="polite" data-slot="messages">
@@ -250,14 +247,14 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
         <div className="flex shrink-0 items-center gap-3 m-3 mt-1 rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground" data-slot="chat-closed">
           <span className="flex-1">{c.role === "student" ? `Book a session with ${c.with.username} to write to them.` : `${c.with.username} can write once they book a session.`}</span>
           {c.role === "student" && (
-            <UiButton size="sm" onClick={() => go(url(`coach/${c.coachId}/book`))}>
+            <UiButton size="sm" onClick={book} data-action="chat:book">
               <CalendarPlus />
               Book
             </UiButton>
           )}
         </div>
       ) : (
-        <form onSubmit={send} className="shrink-0 p-3 pt-1">
+        <form onSubmit={send} className="flex shrink-0 items-end gap-2 p-3 pt-1">
           <input
             ref={picker}
             type="file"
@@ -272,7 +269,7 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
             data-action="chat:file"
           />
           {/* The group dims itself around a disabled control: the send button, off while nothing is written, must not grey the whole bar. */}
-          <InputGroup className="min-h-12 rounded-xl border-foreground/15 bg-card shadow-xs has-disabled:bg-card has-disabled:opacity-100 dark:bg-input/30 dark:has-disabled:bg-input/30">
+          <InputGroup className="min-h-12 min-w-0 flex-1 rounded-xl border-foreground/15 bg-card shadow-xs has-disabled:bg-card has-disabled:opacity-100 dark:bg-input/30 dark:has-disabled:bg-input/30">
             {/* Both buttons sit the same 8px from the edges of the box. */}
             <InputGroupAddon align="inline-start" className="ml-0! self-end py-2 pl-2">
               <Tip content="Send a picture or a video">
@@ -309,6 +306,12 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
+          {head && c.role === "student" && (
+            <UiButton type="button" variant="outline" className="h-12 rounded-xl" onClick={book} data-action="chat:book">
+              <CalendarPlus />
+              Book
+            </UiButton>
+          )}
         </form>
       )}
     </div>

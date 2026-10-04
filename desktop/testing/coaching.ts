@@ -152,9 +152,12 @@ try {
   assert.ok(await fits(player), "the booking page fits");
   await player.locator('[data-slot="slots"] button').first().click();
   await player.fill("#booking-note", "My F2L is slow");
+  assert.ok(await player.locator('[data-action="coaching:book"]').isDisabled(), "booking requires accepting the policy");
+  await player.locator('#accept-cancellation-policy').check();
   await player.screenshot({ path: `${SHOTS}/coach-page.png` });
   await player.locator('[data-action="coaching:book"]').click();
   await player.waitForURL(/\/coaching\/sessions$/);
+  await player.locator('[data-slot="calendar"] [data-session]').first().click();
   await player.waitForSelector('[data-slot="sessions"] [data-booking]');
   const booking = (await player.locator('[data-slot="sessions"] [data-booking]').first().getAttribute("data-booking"))!;
   await player.screenshot({ path: `${SHOTS}/sessions.png` });
@@ -181,6 +184,11 @@ try {
   // They write to each other: the coach sees the unread count, then answers.
   await go(player, "/coaching/messages");
   await player.locator('[data-slot="conversations"] a').first().click();
+  const conversationUrl = player.url();
+  await player.locator('form [data-action="chat:book"]').click();
+  await player.waitForURL(/\/book$/);
+  await player.getByRole("button", { name: "Back to conversation", exact: true }).click();
+  await player.waitForURL(conversationUrl);
   await player.fill('[data-action="chat:input"]', "Hello! Should I bring my main?");
   await player.keyboard.press("Enter");
   await player.waitForSelector('[data-mine]:has-text("Should I bring my main?")');
@@ -232,6 +240,7 @@ try {
   await player.reload();
   await player.waitForSelector('[data-action="sessions:past"]');
   await player.locator('[data-action="sessions:past"]').click();
+  await player.locator(`[data-slot="calendar"] [data-session="${booking}"]`).click();
   await player.locator('[data-action="coaching:review"]').click();
   await player.locator('[data-rating="5"]').click();
   await player.getByLabel("Comment").fill("Clear and patient, my F2L is already faster.");

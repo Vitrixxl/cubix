@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { store as s } from "../store";
 import { call } from "../bridge";
 import { go } from "../navigation";
+import { CANCELLATION_POLICY } from "./policy";
 
 export interface Coach {
   id: string;
@@ -378,7 +379,7 @@ class Coaching {
     s.emit();
   }
   async book(coachId: string, start: number, note: string) {
-    const booking = await this.api<Booking>("POST", "bookings", { coachId, start, note });
+    const booking = await this.api<Booking>("POST", "bookings", { coachId, start, note, cancellationPolicy: CANCELLATION_POLICY });
     this.bookings = [booking, ...(this.bookings ?? [])];
     void this.load(`slots:${coachId}`);
     void this.load("conversations");

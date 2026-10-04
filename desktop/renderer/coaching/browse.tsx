@@ -1,7 +1,7 @@
 /** Finding a coach: every coach as a card, then a coach's page: the slots to book first, their reviews beside. */
 import { useEffect, useMemo, useState } from "react";
 import { CalendarCheck, Check, Clock, Languages, MessageSquare, Search } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { toast } from "sonner";
 import { store as s } from "../store";
 import { Avatar, Icon, NUMERIC, PAGE, PageHead, plural } from "../ui";
@@ -18,6 +18,8 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CANCELLATION_TERMS, cancellationOpen } from "./policy";
 
 export function CoachList() {
   useEffect(() => {
@@ -373,6 +375,9 @@ function Reviews({ c }: { c: Coach }) {
 
 /** Booking a coach: their calendar of free slots and the times of the chosen day, the whole page. */
 export function BookPage({ id }: { id: string }) {
+  const { state } = useLocation();
+  const conversationId = state?.conversationId;
+  const fromConversation = Number.isSafeInteger(conversationId) && conversationId > 0;
   useEffect(() => {
     void coaching.load(`coach:${id}`);
     void coaching.load(`slots:${id}`);
@@ -382,7 +387,7 @@ export function BookPage({ id }: { id: string }) {
   return (
     <div className={PAGE}>
       <PageHead
-        lead={<Back to={url("coach/" + id)} label={c?.username ?? "Back"} />}
+        lead={<Back to={url(fromConversation ? "messages/" + conversationId : "coach/" + id)} label={fromConversation ? "Back to conversation" : c?.username ?? "Back"} />}
         title="Book a session"
         sub={
           c && (
@@ -445,6 +450,7 @@ function Booking({ id }: { id: string }) {
   const [picked, setPicked] = useState<string>(""),
     [slot, setSlot] = useState<number | null>(null),
     [note, setNote] = useState(""),
+    [accepted, setAccepted] = useState(false),
     [pending, setPending] = useState(false);
   // The first day with a slot comes chosen; a slot taken meanwhile is dropped.
   const chosenDay = byDay.has(picked) ? picked : (byDay.keys().next().value ?? "");
@@ -455,7 +461,7 @@ function Booking({ id }: { id: string }) {
     [month, setMonth] = useState(""),
     shown = month || (chosenDay || today).slice(0, 7);
   async function book() {
-    if (!chosen || pending) return;
+    if (!chosen || !accepted || pending) return;
     setPending(true);
     try {
       const booking = await coaching.book(id, chosen.start, note.trim());
@@ -531,8 +537,8 @@ function Booking({ id }: { id: string }) {
               }}
             />
           </div>
-          <div className={PANEL}>
-            <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5">
+          <div className={cn(PANEL, "max-h-full self-start")} data-slot="booking-details">
+            <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-5">
               <div className="flex flex-col gap-3">
                 <Step n={1} state={chosen ? "done" : "now"}>
                   Pick a time
@@ -552,9 +558,18 @@ function Booking({ id }: { id: string }) {
                 </Step>
                 <Textarea id="booking-note" aria-labelledby="booking-note-label" value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={4} placeholder="Optional: your average, the step you struggle with…" className="min-h-20 resize-none" />
               </div>
+              <div className="flex flex-col gap-3 text-xs" data-slot="cancellation-policy">
+                <h3 className="text-sm font-medium">Cancellation policy</h3>
+                <p id="cancellation-terms" className="text-muted-foreground">{CANCELLATION_TERMS}</p>
+                {chosen && !cancellationOpen(chosen.start) && <p className="font-medium text-warning">This session starts within 24 hours and cannot be cancelled once booked.</p>}
+                <label className="flex items-start gap-2" htmlFor="accept-cancellation-policy">
+                  <Checkbox id="accept-cancellation-policy" checked={accepted} onCheckedChange={setAccepted} aria-describedby="cancellation-terms" />
+                  <span>I have read and accept the cancellation policy.</span>
+                </label>
+              </div>
             </div>
             <div className="flex shrink-0 flex-col gap-1.5 p-4 pt-0">
-              <UiButton size="lg" className="h-11 w-full" disabled={!chosen || pending} onClick={book} data-action="coaching:book">
+              <UiButton size="lg" className="h-11 w-full" disabled={!chosen || !accepted || pending} onClick={book} data-action="coaching:book">
                 <CalendarCheck />
                 {chosen ? `Book ${span(chosen.start, chosen.end)}` : "Pick a time to book"}
               </UiButton>
