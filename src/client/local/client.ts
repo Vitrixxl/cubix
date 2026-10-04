@@ -1,10 +1,10 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
-import { ApiError, createApiClient, type AddSolveBody } from "../api-client";
+import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto, LearningGroupOrder, LearningGroupOrderDto } from "../../shared/types";
 import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGroups, type LearningTrack } from "../lib/dailyLearning";
 import { cases } from "./catalog";
-import { history, profile, chronological } from "./stats";
+import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
 import { PROFILE_KEY, journeyProfile, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
 
@@ -131,6 +131,10 @@ export function createLocalClient(options: {
   });
   let syncing: Promise<void> | null = null;
   let reconnecting: Promise<void> | null = null;
+  type Connection = ReturnType<Remote["connectLive"]>;
+  let live: { connection: Connection; id: string; token: string; user: UserDto; needsPull: boolean } | undefined;
+  let receiving: Promise<void> = Promise.resolve();
+  const transport = () => live && live.id === owner() && live.token === options.getToken() && live.connection.ws.readyState === 1 ? live : undefined;
   let scheduled: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
   let status: SyncStatus = { state: current().isGuest ? "local" : "offline", pending:data().outbox.length };
@@ -180,6 +184,7 @@ export function createLocalClient(options: {
 
   async function merge(id: string, changes: Awaited<ReturnType<Remote["syncPull"]>>["changes"], cursor: number) {
     await edit(id, workspace => {
+      if (cursor < workspace.cursor) return;
       const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
       // Local IDs by server ID, built once: a first pull brings thousands of rows.
       const byServer = (rows: Record<number, Session | Solve>) => new Map(Object.values(rows).flatMap(r => r.serverId === undefined ? [] : [[r.serverId, r.id] as const]));
@@ -205,9 +210,13 @@ export function createLocalClient(options: {
           else { workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id }; sessionIds.set(change.id, localId); }
         } else if (change.kind === "solves") {
           const localId = solveIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
-          if (dirty.has(`solves:${localId}`)) continue;
-          if (!change.value) { delete workspace.solves[localId]; solveIds.delete(change.id); }
+          // A remote deletion wins even over an edit queued locally but not uploaded yet.
+          if (!change.value) {
+            delete workspace.solves[localId]; solveIds.delete(change.id);
+            workspace.outbox = workspace.outbox.filter(op => !(op.localId === localId && ["penalty", "comment", "delete"].includes(op.kind)));
+          }
           else {
+            if (dirty.has(`solves:${localId}`)) continue;
             const row = change.value as SolveDto;
             const sid = (row.session_id == null ? undefined : sessionIds.get(row.session_id)) ?? row.session_id;
             workspace.solves[localId] = { ...row, scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
@@ -225,12 +234,13 @@ export function createLocalClient(options: {
     if (!token) { report("signin"); return; }
     await lock("cubix-sync:" + id,async () => {
       const remote = options.remote(token);
+      const socket = transport();
       const stillCurrent = () => owner() === id && options.getToken() === token && !stopped;
       if (!stillCurrent()) return;
       report("syncing");
       let activeOperation: string | undefined;
       try {
-        const verified = await remote.me();
+        const verified = socket ? socket.user : await remote.me();
         if (verified.id !== user.id || verified.isGuest) throw new ApiError(401,"Sign in to synchronize this account.");
         if (!stillCurrent()) return;
         write("user",verified);
@@ -251,7 +261,7 @@ export function createLocalClient(options: {
             path += "/" + serverId;
           }
           const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" || op.kind === "journey" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
-          const result: any = (await remote.syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
+          const result: any = (await (socket?.connection ?? remote).syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
             if (op.kind === "session" && latest.sessions[op.localId]) latest.sessions[op.localId].serverId = result.id;
@@ -266,13 +276,14 @@ export function createLocalClient(options: {
         activeOperation = undefined;
         // Pages are merged by thousands: each merge rewrites the whole workspace, megabytes for a long history.
         let cursor = data(id).cursor, batch: Awaited<ReturnType<Remote["syncPull"]>>["changes"] = [];
-        while (stillCurrent()) {
-          const page = await remote.syncPull(cursor);
+        while (stillCurrent() && (!socket || socket.needsPull)) {
+          const page = await (socket?.connection ?? remote).syncPull(cursor);
           batch.push(...page.changes); cursor = page.cursor;
           if (page.more && batch.length < 5000) continue;
           await merge(id,batch,cursor); batch = [];
           if (!page.more) break;
         }
+        if (socket) socket.needsPull = false;
         if (stillCurrent()) {
           const pending = data(id).outbox, failed = pending.find(op => op.error);
           report(failed ? "error" : pending.length ? "syncing" : "synced",failed?.error); notify();
@@ -308,6 +319,35 @@ export function createLocalClient(options: {
     return reconnecting;
   }
 
+  /** Serialized behind upload acknowledgements, so echoed server IDs cannot duplicate offline rows. */
+  function receiveLive(connection: Connection, message: LiveOutput): Promise<void> {
+    if (message.type === "ready") {
+      if (message.protocol === 2 && message.user && message.user.id === owner() && options.getToken()) {
+        live = { connection, id: owner(), token: options.getToken()!, user: message.user, needsPull: message.cursor === undefined || message.cursor > data().cursor };
+      }
+      return reconnected();
+    }
+    if (message.type === "sync") return cursorChanged(message.cursor);
+    if (message.type !== "changes") return Promise.resolve();
+    const active = transport();
+    if (!active || active.connection !== connection) return Promise.resolve();
+    receiving = receiving.then(async () => {
+      if (syncing) await syncing;
+      if (stopped || transport() !== active) return;
+      const cursor = data(active.id).cursor;
+      if (message.cursor <= cursor) return;
+      // A gap can follow an interrupted catch-up or a failed local write. Recover through the socket.
+      if (message.after > cursor) { active.needsPull = true; await sync(); return; }
+      await merge(active.id, message.changes, message.cursor);
+      if (stopped || transport() !== active) return;
+      const pending = data(active.id).outbox, failed = pending.find(op => op.error);
+      report(failed ? "error" : pending.length ? "syncing" : "synced", failed?.error);
+      notify();
+    }).catch(error => { if (transport() === active && !stopped) { active.needsPull = true; report("error", (error as Error).message); } });
+    return receiving;
+  }
+  const cursorChanged = (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync();
+
   async function localMutation<T>(change: (workspace: Workspace, id: string) => T): Promise<T> {
     const id = owner();
     let value: T;
@@ -320,9 +360,12 @@ export function createLocalClient(options: {
   const reads = {
     journey: () => data().journey,
     catalog: (cubeSize: PuzzleInput = 3) => catalog(cubeSize),
-    stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter).cases.map(c => c.summary),
+    stats: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => caseStats(liveSolves(),cubeSize,filter),
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => history(caseId,liveSolves().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard"))),
-    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => profile(current(),liveSolves(),cubeSize,filter,journeyProfile(data().journey)?.bests),
+    profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
+      const workspace = data();
+      return profile(current(),liveSolves(workspace),cubeSize,filter,journeyProfile(workspace.journey)?.bests);
+    },
     achievements: () => achievements(liveSolves(),learnedIds()),
   };
 
@@ -418,7 +461,11 @@ export function createLocalClient(options: {
   async function restore() {
     const token = options.getToken();
     if (!token) { report(current().isGuest ? "local" : "signin"); return; }
-    if (!current().isGuest) { await sync(); return; }
+    if (!current().isGuest) {
+      const socket = transport();
+      if (!socket || socket.needsPull || data().outbox.some(op => !op.error)) await sync();
+      return;
+    }
     // A token whose account this device does not know yet (server-side guests are gone: theirs fail).
     try {
       const user = await options.remote(token).me();
@@ -428,10 +475,13 @@ export function createLocalClient(options: {
     } catch (error) { if (error instanceof ApiError && error.status === 401) options.clearToken(); }
   }
   return { api, read: reads, sync, restore, current, reconnected,
+    receiveLive,
+    liveCursor: () => data().cursor,
+    disconnected: (connection: Connection) => { if (live?.connection === connection) live = undefined; },
     learned: () => learnedIds(),
     learningGroupOrder: () => data().groupOrder,
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
-    remoteChanged: (cursor?: number) => cursor !== undefined && cursor <= data().cursor ? Promise.resolve() : sync(),
+    remoteChanged: cursorChanged,
     retry: async () => { await edit(owner(),d => { for (const op of d.outbox) delete op.error; }); await sync(); },
     status: () => status,
     changed: () => { notify(); schedule(); },

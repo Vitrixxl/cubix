@@ -6,11 +6,15 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null; comment?: string | null }
-type LiveInput = { type: "auth"; token: string } | { type: "ping" };
-/** `sync` carries the account's latest change cursor; devices behind it pull immediately. */
-type LiveOutput = { type: "pong" }
-  | { type: "ready"; cursor?: number }
-  | { type: "sync"; cursor: number };
+export interface SyncPage { changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders" | "personal_entries"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[]; cursor: number; more: boolean }
+export interface SyncOperation { id: string; method: string; path: string; body: unknown; createdAt?: string }
+export interface SyncResult { results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[] }
+type LiveInput = { type: "auth"; token: string; protocol?: 2; after?: number } | { type: "ping" };
+export type LiveOutput = { type: "pong" }
+  | { type: "ready"; cursor?: number; protocol?: 2; user?: UserDto }
+  | { type: "sync"; cursor: number }
+  | ({ type: "changes"; after: number } & SyncPage)
+  | { type: "result"; requestId: string; value?: unknown; error?: string; status?: number };
 type LiveEvents = { open: Event; message: { data: LiveOutput }; close: CloseEvent; error: Event };
 
 const practiceQuery = (puzzle: PuzzleInput, filter: PracticeFilter = {}) => new URLSearchParams({ puzzle: puzzleId(puzzle), solveMode: filter.solveMode ?? "standard", ...(filter.scrambleType ? {scrambleType: filter.scrambleType} : {}) }).toString();
@@ -32,16 +36,39 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     return value as T;
   }
   return {
-    syncPull: (after: number) => request<{ changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders" | "personal_entries"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[]; cursor: number; more: boolean }>(`/sync?after=${after}&learningGroups=1&journey=1`),
-    syncPush: (operations: { id: string; method: string; path: string; body: unknown; createdAt?: string }[]) => request<{ results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | null }[] }>("/sync", "POST", { operations }),
+    syncPull: (after: number) => request<SyncPage>(`/sync?after=${after}&learningGroups=1&journey=1`),
+    syncPush: (operations: SyncOperation[]) => request<SyncResult>("/sync", "POST", { operations }),
     setLearningGroupOrder: (track: LearningGroupOrderDto["track"], groups: string[]) => request<LearningGroupOrderDto>("/learning-group-order", "PUT", { track, groups }),
     learnedCases: () => request<string[]>("/learned"),
     setLearned: (caseId: string, learned: boolean) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned }),
-    /** Live sync notifications for the signed-in account; practice writes never depend on it. */
+    /** Incremental account sync; durable uploads can fall back to HTTP after disconnection. */
     connectLive: () => {
       const ws = new WebSocket(base.replace(/^http/, "ws") + "/live");
+      const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
+      const rpc = <T>(type: "push" | "pull", body: object): Promise<T> => new Promise((resolve, reject) => {
+        if (ws.readyState !== WebSocket.OPEN) { reject(new TypeError("Connection closed")); return; }
+        const requestId = crypto.randomUUID();
+        const timer = setTimeout(() => { pending.delete(requestId); reject(new TypeError("Synchronization timed out")); ws.close(); }, 15000);
+        pending.set(requestId, { resolve, reject, timer });
+        try { ws.send(JSON.stringify({ type, requestId, ...body })); }
+        catch (error) { clearTimeout(timer); pending.delete(requestId); reject(error); }
+      });
+      ws.addEventListener("message", event => {
+        let data: LiveOutput;
+        try { data = JSON.parse(String(event.data)); } catch { return; }
+        if (data.type !== "result") return;
+        const job = pending.get(data.requestId); if (!job) return;
+        clearTimeout(job.timer); pending.delete(data.requestId);
+        if (data.error) job.reject(new ApiError(data.status ?? 500, data.error)); else job.resolve(data.value);
+      });
+      ws.addEventListener("close", () => {
+        for (const job of pending.values()) { clearTimeout(job.timer); job.reject(new TypeError("Connection closed")); }
+        pending.clear();
+      });
       return {
         ws,
+        syncPull: (after: number) => rpc<SyncPage>("pull", { after }),
+        syncPush: (operations: SyncOperation[]) => rpc<SyncResult>("push", { operations }),
         send: (message: LiveInput) => ws.send(JSON.stringify(message)),
         close: () => ws.close(),
         on<T extends keyof LiveEvents>(type: T, listener: (event: LiveEvents[T]) => void) {

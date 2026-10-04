@@ -310,7 +310,7 @@ pub(crate) struct Caller {
     pub user: Option<Value>,
 }
 impl Caller {
-    fn new(db: &Connection, authorization: &str) -> Result<Self> {
+    pub(crate) fn new(db: &Connection, authorization: &str) -> Result<Self> {
         let token_hash = accounts::bearer_hash(authorization);
         let user = match &token_hash {
             Some(hash) => accounts::by_token_hash(db, hash)?,
@@ -391,7 +391,7 @@ pub(crate) fn route(
             let filter = practice::query(query)?;
             let rows = all(
                 db,
-                "SELECT * FROM solves WHERE case_id IS NOT NULL AND user_id=? AND puzzle_id=? AND solve_mode=? ORDER BY case_id,created_at,id",
+                "SELECT id,case_id,time_ms,penalty,created_at FROM solves WHERE case_id IS NOT NULL AND user_id=? AND puzzle_id=? AND solve_mode=? ORDER BY case_id,created_at,id",
                 params![uid, filter.puzzle, filter.solve_mode],
             )?;
             let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
@@ -406,7 +406,7 @@ pub(crate) fn route(
             Ok(json!(
                 groups
                     .iter()
-                    .map(|(id, rows)| stats::history(id, rows)["summary"].clone())
+                    .map(|(id, rows)| stats::summary(id, rows))
                     .collect::<Vec<_>>()
             ))
         }
@@ -414,7 +414,7 @@ pub(crate) fn route(
             id,
             &all(
                 db,
-                "SELECT * FROM solves WHERE case_id=? AND user_id=? AND solve_mode=? ORDER BY created_at,id",
+                "SELECT id,session_id,time_ms,penalty,comment,created_at FROM solves WHERE case_id=? AND user_id=? AND solve_mode=? ORDER BY created_at,id",
                 params![id, uid, practice::query(query)?.solve_mode],
             )?,
         )),
@@ -474,14 +474,15 @@ pub(crate) fn route(
             }
             let limit = query_int(query, "limit", 500, 10000)?;
             let filter = practice::query(query)?;
+            // Keep the optional filter out of an OR so SQLite can seek by scramble type.
+            let scramble_clause = if filter.scramble_type.is_some() { "AND s.scramble_type=?4" } else { "" };
             Ok(json!(all(
                 db,
-                "SELECT s.* FROM solves s LEFT JOIN sessions se ON se.id=s.session_id WHERE s.user_id=? AND s.puzzle_id=? AND s.solve_mode=? AND (? IS NULL OR s.scramble_type=?) AND COALESCE(se.mode,CASE WHEN s.case_id IS NULL THEN 'playground' ELSE 'training' END)=? ORDER BY s.created_at DESC,s.id DESC LIMIT ?",
+                &format!("SELECT s.* FROM solves s LEFT JOIN sessions se ON se.id=s.session_id WHERE s.user_id=?1 AND s.puzzle_id=?2 AND s.solve_mode=?3 {scramble_clause} AND COALESCE(se.mode,CASE WHEN s.case_id IS NULL THEN 'playground' ELSE 'training' END)=?5 ORDER BY s.created_at DESC,s.id DESC LIMIT ?6"),
                 params![
                     uid,
                     filter.puzzle,
                     filter.solve_mode,
-                    filter.scramble_type,
                     filter.scramble_type,
                     mode,
                     limit

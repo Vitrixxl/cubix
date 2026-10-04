@@ -62,29 +62,69 @@ export function fmtDate(iso: string): string {
 /** Average of N with best/worst dropped (WCA). More than one DNF → null. */
 export function averageOf(times: (number | null)[]): number | null {
   if (times.length < 3) return null;
-  if (times.filter((t) => t === null).length > 1) return null;
-  const sorted = [...times].sort((a, b) => (a === null ? 1 : b === null ? -1 : a - b));
-  const trimmed = sorted.slice(1, -1) as number[];
-  return trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+  let sum = 0, min = Infinity, max = -Infinity, dnfs = 0;
+  for (const time of times) {
+    if (time === null) { if (++dnfs > 1) return null; }
+    else { sum += time; min = Math.min(min, time); max = Math.max(max, time); }
+  }
+  return (sum - min - (dnfs ? 0 : max)) / (times.length - 2);
 }
 
 export function mean(times: (number | null)[]): number | null {
-  const v = times.filter((t): t is number => t !== null);
-  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  let sum = 0, count = 0;
+  for (const time of times) if (time !== null) { sum += time; count++; }
+  return count ? sum / count : null;
 }
 
 export function best(times: (number | null)[]): number | null {
-  const v = times.filter((t): t is number => t !== null);
-  return v.length ? Math.min(...v) : null;
+  let minimum: number | null = null;
+  for (const time of times) if (time !== null) minimum = minimum === null ? time : Math.min(minimum, time);
+  return minimum;
+}
+
+/** Sliding sum and monotone queues: O(N) time, O(size) scratch space, including Ao100.
+ * DNF is excluded from the sum and counts as the discarded worst time. */
+function visitAverages(times: readonly (number | null)[], size: number, visit: (value: number | null, index: number) => void) {
+  if (!Number.isInteger(size) || size < 3 || size > times.length) {
+    for (let i = 0; i < times.length; i++) visit(null, i);
+    return;
+  }
+  const mins = new Array<number>(size), maxs = new Array<number>(size);
+  let minHead = 0, minTail = 0, maxHead = 0, maxTail = 0, sum = 0, dnfs = 0;
+  for (let i = 0; i < times.length; i++) {
+    if (i >= size) {
+      const expired = times[i - size];
+      if (expired === null) dnfs--; else sum -= expired;
+    }
+    while (minHead < minTail && mins[minHead % size] <= i - size) minHead++;
+    while (maxHead < maxTail && maxs[maxHead % size] <= i - size) maxHead++;
+    const time = times[i];
+    if (time === null) dnfs++;
+    else {
+      sum += time;
+      while (minTail > minHead && times[mins[(minTail - 1) % size]]! >= time) minTail--;
+      while (maxTail > maxHead && times[maxs[(maxTail - 1) % size]]! <= time) maxTail--;
+      mins[minTail++ % size] = i;
+      maxs[maxTail++ % size] = i;
+    }
+    visit(i + 1 < size || dnfs > 1 ? null :
+      (sum - times[mins[minHead % size]]! - (dnfs ? 0 : times[maxs[maxHead % size]]!)) / (size - 2), i);
+  }
 }
 
 /** Average of `size` ending at each time, oldest first; null until `size` times exist. */
 export function rollingAverages(times: readonly (number | null)[], size: number): (number | null)[] {
-  return times.map((_, i) => i + 1 < size ? null : averageOf(times.slice(i + 1 - size, i + 1)));
+  const result = new Array<number | null>(times.length);
+  visitAverages(times, size, (value, i) => { result[i] = value; });
+  return result;
 }
 
 /** Best rolling average of `size`, e.g. the best Ao5 of a series. */
-export const bestAverage = (times: readonly (number | null)[], size: number) => best(rollingAverages(times, size));
+export function bestAverage(times: readonly (number | null)[], size: number): number | null {
+  let minimum: number | null = null;
+  visitAverages(times, size, value => { if (value !== null) minimum = minimum === null ? value : Math.min(minimum, value); });
+  return minimum;
+}
 
 /** "1 solve", "1,204 solves". */
 export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;

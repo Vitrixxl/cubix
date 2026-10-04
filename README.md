@@ -92,7 +92,8 @@ docker compose logs -f api
 ```
 
 Le service expose l'application web sur `/`, `/api/*` et la WebSocket `/api/live`, qui
-transporte les notifications de synchronisation entre les appareils d'un même compte.
+transporte les modifications et les accusés de réception entre les appareils d'un même compte,
+sans requête HTTP de rechargement pendant la connexion.
 L'image construit l'application web dans une étape Bun (dépendances de production
 seulement) et la sert depuis `CUBIX_WEB_DIR` : fichiers précompressés (brotli, gzip),
 bundles nommés par leur contenu et mis en cache définitivement, page toujours revalidée.

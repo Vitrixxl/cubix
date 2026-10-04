@@ -1,5 +1,5 @@
 //! Durable, idempotent uploads and an incremental, account-scoped change feed.
-//! Every mutation bumps the owner's cursor; live sockets relay it so other devices pull at once.
+//! Every mutation bumps the owner's cursor; live sockets stream its changed entities to other devices.
 use crate::{
     AppState, api,
     db::{all, one},
@@ -71,19 +71,30 @@ pub fn pull(db: &Connection, uid: &str, after: i64, learning_groups: bool, journ
     )?;
     let cursor = rows.last().and_then(|r| r["seq"].as_i64()).unwrap_or(after);
     let more = rows.len() == 500;
-    let mut changes = Vec::new();
-    for row in rows {
+    // At most one indexed lookup per entity kind, rather than a query per change.
+    // JSON binds the bounded page's IDs without generating hundreds of SQL variants.
+    let mut entities = HashMap::new();
+    for table in ["sessions", "solves", "learned_cases", "learning_group_orders", "personal_entries"] {
+        if (table == "learning_group_orders" && !learning_groups) || (table == "personal_entries" && !journey) {
+            continue;
+        }
+        let ids: Vec<i64> = rows.iter()
+            .filter(|row| row["kind"] == table && row["deleted"] == 0)
+            .filter_map(|row| row["entity_id"].as_i64()).collect();
+        if ids.is_empty() { continue; }
+        for value in all(db, &format!("SELECT * FROM {table} WHERE id IN (SELECT value FROM json_each(?1)) AND user_id=?2"), params![json!(ids).to_string(), uid])? {
+            entities.insert((table, value["id"].as_i64().unwrap()), value);
+        }
+    }
+    let mut changes = Vec::with_capacity(rows.len());
+    for row in &rows {
         let table = row["kind"].as_str().unwrap();
         // Older clients interpret unknown entities as solves. Only opted-in clients receive orders.
         if table == "learning_group_orders" && !learning_groups {
             continue;
         }
         if table == "personal_entries" && !journey { continue; }
-        let mut value = one(
-            db,
-            &format!("SELECT * FROM {table} WHERE user_id=? AND id=?"),
-            params![uid, row["entity_id"].as_i64()],
-        )?;
+        let mut value = entities.remove(&(table, row["entity_id"].as_i64().unwrap()));
         if table == "sessions"
             && let Some(ref mut value) = value
         {

@@ -21,10 +21,11 @@ sont automatiques. `--init-db` effectue seulement cette initialisation.
   simultanées maximum, puis HTTP 429 pour éviter une croissance mémoire incontrôlée.
 - Tokens aléatoires de 256 bits, condensats SHA-256 en base, expiration après 30 jours.
   La conversion d’un invité invalide ses anciens tokens de manière atomique.
-- Notifications WebSocket `/api/live` indexées par utilisateur, avec un drapeau `sync` fusionné par socket.
+- Synchronisation WebSocket `/api/live` indexée par utilisateur, avec réveils fusionnés par socket.
   Authentification dans les cinq secondes, heartbeat/message valide toutes les 60 secondes.
   Le token est vérifié sur les messages entrants et avant les notifications sortantes.
-- Trames/messages limités à 16 Kio ; tampon de lecture de 4 Kio par WebSocket.
+- `/api/live` accepte des messages jusqu’à 2 Mio pour les lots d’opérations ; tampon de lecture de 4 Kio,
+  pages sortantes de 500 changements au plus et déconnexion d’un lecteur bloqué après 15 secondes.
 - `CUBIX_EXTRA_PORTS=5200,5201` ajoute des listeners pour les tests locaux, tous dans le
   **même processus** avec la même base et les mêmes workers.
 
@@ -85,10 +86,19 @@ Le journal conserve la dernière révision de chaque session, temps et marque d�
 (`learned_cases`, `PUT /api/learned` avec `{caseId, learned}` ; `GET /api/learned` liste les cas appris)
 ainsi que les suppressions.
 
-Chaque écriture réussie (routes historiques ou `POST /api/sync`) envoie `{"type":"sync","cursor":N}` sur les
-WebSockets `/api/live` du même compte, où `N` est le dernier numéro du journal. Un appareil dont le curseur
-local est inférieur tire immédiatement les changements ; le message `ready` porte aussi ce curseur pour rattraper
-une reconnexion. Le signal est fusionné par socket : une rafale d’écritures produit au plus un message.
+Les clients ouvrent `/api/live` avec `{"type":"auth","token":"…","protocol":2,"after":N}`.
+Après `ready`, les écritures diffusent directement `{type:"changes",after,cursor,changes,more}` aux appareils
+du même compte. Seules les entités modifiées sont envoyées ; une suppression porte `value:null`.
+Le client applique ces données au stockage local sans GET HTTP ni rechargement complet du compte.
+Les réveils sont fusionnés ; chaque page lit les entités par lots (au plus six requêtes SQL pour 500 changements).
+
+Les messages `{type:"push",requestId,operations}` transmettent la file locale et reçoivent
+`{type:"result",requestId,value}` ou `{type:"result",requestId,status,error}`. Après une coupure,
+`{type:"pull",requestId,after}` rattrape les pages manquantes par le même WebSocket. Les accusés de réception
+sont appliqués avant les échos pour conserver les identifiants locaux des temps créés hors ligne.
+Une connexion active ne déclenche aucun polling HTTP de synchronisation ; les pings maintiennent la session.
+HTTP reste disponible pour les anciens clients et comme secours si le WebSocket est indisponible.
+Les sockets sans `protocol:2` conservent les notifications `{type:"sync",cursor:N}`.
 
 `POST /api/sync` applique une liste de 1 à 100 opérations dans une transaction, pour un compte enregistré.
 Chaque opération possède un identifiant stable, une méthode, un chemin autorisé et un corps ; les créations

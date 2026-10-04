@@ -48,17 +48,16 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   let liveToken: string | null = null, reconnect: ReturnType<typeof setTimeout> | undefined;
   function connect() {
     const token = storage.getItem(tokenKey); if (token === liveToken && live) return;
-    live?.close(); live = undefined; liveToken = token;
+    if (live) { local.disconnected(live); live.close(); } live = undefined; liveToken = token;
     if (!token || local.current().isGuest) return;
     live = local.api.connectLive(); const current = live;
-    current.on('open', () => current.send({ type: 'auth', token }));
+    current.on('open', () => current.send({ type: 'auth', token, protocol: 2, after: local.liveCursor() }));
     current.on('message', ({ data }) => {
       if (live !== current) return;
-      if (data.type === 'ready') { emit({ event: 'live', value: 'online' }); void local.reconnected(); }
-      // Another device of this account changed practice data; pull it before the next periodic restore.
-      if (data.type === 'sync') void local.remoteChanged(data.cursor);
+      if (data.type === 'ready') emit({ event: 'live', value: 'online' });
+      void local.receiveLive(current, data);
     });
-    current.on('close', () => { if (live !== current) return; live = undefined; emit({ event: 'live', value: 'connecting' }); reconnect = setTimeout(connect, 3000); });
+    current.on('close', () => { local.disconnected(current); if (live !== current) return; live = undefined; emit({ event: 'live', value: 'connecting' }); reconnect = setTimeout(connect, 3000); });
     current.on('error', () => {});
   }
   let lastAdvance: { key: string; promise: Promise<Record<string, unknown>> } | undefined;

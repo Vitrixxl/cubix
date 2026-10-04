@@ -60,6 +60,9 @@ impl Db {
         crate::practice::migrate(&db)?;
         crate::sync::migrate(&db)?;
         crate::activity::migrate(&db)?;
+        // Installed after context migrations so existing databases get the same indexes.
+        db.execute_batch(include_str!("query-indexes.sql"))?;
+        db.execute_batch("PRAGMA optimize=0x10002;")?;
         // Personal goals and guest accounts were retired: what is left of them goes.
         db.execute("DELETE FROM personal_entries WHERE key!='profile'", [])?;
         crate::admin_data::purge_guests(&mut db)?;

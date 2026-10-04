@@ -307,6 +307,9 @@ test("admin account listing and detail report solves, activity, sessions, learne
  const {origin,db}=setup();const {CASES}=await import("./backend");
  const alice=await register(origin,"alice");const bob=await register(origin,"bob");
  db.db.exec("INSERT INTO users(id,username) VALUES('old-guest','guest-old')");const guest={user:{id:"old-guest",username:"guest-old"}};
+ // Registration and the direct INSERT can share a millisecond; give this ordering fixture distinct dates.
+ const created=Date.now();
+ for(const [i,id] of [alice.user.id,bob.user.id,guest.user.id].entries()) db.db.query("UPDATE users SET created_at=? WHERE id=?").run(new Date(created-2+i).toISOString(),id);
  for(const body of [{timeMs:10000},{timeMs:11000,penalty:"+2"},{timeMs:9000,penalty:"dnf"},{timeMs:3000,puzzle:"222"}])expect((await call(origin,"POST","/api/solves",{token:alice.token,body})).status).toBe(200);
  expect((await call(origin,"PUT","/api/learned",{token:alice.token,body:{caseId:CASES[0]!.id,learned:true}})).status).toBe(200);
  db.db.exec(`INSERT INTO duel_games(race,game,event,ended_at,player1_id,player1_name,player1_ao5,player2_id,player2_name,player2_ao5,winner,results) VALUES('race',1,'333',${Date.now()},'${bob.user.id}','bob',12000,'${alice.user.id}','alice',10000,1,'[]')`);

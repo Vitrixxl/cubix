@@ -313,13 +313,11 @@ fn booking_row(db: &Connection, id: &str, uid: &str) -> Result<Value> {
 }
 
 const CONVERSATION_SQL: &str = "SELECT cv.*,cu.username coach_name,su.username student_name,cu.avatar coach_avatar,su.avatar student_avatar,
- (SELECT body FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_body,
- (SELECT created_at FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_at,
- (SELECT sender_id FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_sender,
- (SELECT media_type FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1) last_media,
+ last.body last_body,last.created_at last_at,last.sender_id last_sender,last.media_type last_media,
  (SELECT count(*) FROM coach_messages m WHERE m.conversation_id=cv.id AND m.sender_id!=?1 AND m.read_at IS NULL) unread,
  EXISTS(SELECT 1 FROM coach_bookings b WHERE b.coach_id=cv.coach_id AND b.student_id=cv.student_id) booked
- FROM coach_conversations cv JOIN users cu ON cu.id=cv.coach_id JOIN users su ON su.id=cv.student_id";
+ FROM coach_conversations cv JOIN users cu ON cu.id=cv.coach_id JOIN users su ON su.id=cv.student_id
+ LEFT JOIN coach_messages last ON last.id=(SELECT m.id FROM coach_messages m WHERE m.conversation_id=cv.id ORDER BY m.id DESC LIMIT 1)";
 fn conversation_dto(row: &Value, uid: &str) -> Value {
     let coach = row["coach_id"].as_str() == Some(uid);
     json!({
