@@ -56,7 +56,7 @@ export function LatestSolves({ history, averages, count = 5, phone = false }: { 
   );
 }
 
-/** The chosen event as the timer card's title, opening the puzzle picker: the records pick a timed event, this one any. */
+/** The chosen event as the timer card's title, opening the puzzle picker. */
 function EventTitle() {
   const e = s.event(s.profilePuzzle, s.profileSolveMode);
   return (
@@ -74,12 +74,15 @@ function EventTitle() {
 }
 
 /**
- * The chosen event's card: where it stands now (the records hold its bests), its curve and, on phones, its latest
+ * The chosen event's card: its best single and where it stands now, its curve and, on phones, its latest
  * solves. `fill` (the desktop overview) stretches the curve over the height the card is given.
  */
 export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone: boolean; fill?: boolean }) {
   const t = d.timer,
-    event = s.event(s.profilePuzzle, s.profileSolveMode);
+    event = s.event(s.profilePuzzle, s.profileSolveMode),
+    all = timerFigures(t),
+    // Its best single beside where it stands now; the other bests are on the Timer page.
+    figures = [all[0]!, ...all.slice(3, phone ? 6 : 7)];
   return (
     <Section
       label="Timer"
@@ -101,8 +104,8 @@ export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone
         </div>
       ) : (
         <>
-          <Stats columns={4}>
-            {timerFigures(t).slice(3, phone ? 6 : 7).map(([label, value, tone]) => (
+          <Stats columns={figures.length}>
+            {figures.map(([label, value, tone]) => (
               <Figure key={label} label={label} value={value} tone={tone} caption="plain" size="xl" />
             ))}
           </Stats>
@@ -117,16 +120,6 @@ export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone
           )}
         </>
       )}
-    </Section>
-  );
-}
-
-/** The chosen event's latest solves as a section of their own, under the records on the desktop overview. */
-export function LatestSection({ d, className }: { d: ProfileData; className?: string }) {
-  if (!d.timer.count) return null;
-  return (
-    <Section label="Latest solves" title="Latest solves" open="playground" more="View all" className={className} body="min-h-0 flex-1 overflow-y-auto pt-0 pb-3">
-      <LatestSolves history={d.history} averages={d.ao5} count={12} />
     </Section>
   );
 }

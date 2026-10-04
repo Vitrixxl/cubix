@@ -10,6 +10,9 @@ export const SHOTS = "artifacts/electron/testing";
 
 export async function startServer(dir: string, env: Record<string, string> = {}) {
   await mkdir(dir, { recursive: true });
+  // An API already running, the Docker dev stack's (`bun run dev:docker`, http://127.0.0.1:5181): nothing to start.
+  const external = process.env.CUBIX_TEST_ORIGIN;
+  if (external) return { origin: external, server: { kill() {}, exited: Promise.resolve(0) } };
   const reserve = Bun.serve({ port: 0, fetch: () => new Response("") });
   const port = reserve.port!;
   reserve.stop();

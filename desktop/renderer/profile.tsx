@@ -1,5 +1,5 @@
 /**
- * The account page: who they are beside their year of practice, the records of every event beside the chosen one's curve,
+ * The account page: who they are beside their year of practice, the chosen event's figures and curve,
  * then training, achievements and battles, the whole overview inside the window. Each section opens its own page.
  */
 import { Activity, BookA, BookOpen, CalendarDays, Dumbbell, Flame, Layers, LogOut, Medal, Settings, type LucideIcon } from "lucide-react";
@@ -13,8 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button as UiButton } from "@/components/ui/button";
 import { SubPageHead } from "./profile/card";
 import { Heatmap } from "./profile/heatmap";
-import { RecordsSection } from "./profile/records";
-import { AchievementsSection, BattlesSection, LatestSection, TimerSection, TrainingSection } from "./profile/sections";
+import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
 import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
 import { useProfileData, type ProfileData } from "./profile/data";
 
@@ -85,7 +84,7 @@ function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
 
 /**
  * The overview fills the window without scrolling it, as cards with room between them: who they are beside their year
- * of practice; the records of every event and its latest solves beside the chosen event's curve; training, achievements
+ * of practice; the chosen event's figures and curve, its event picked in its title; training, achievements
  * and battles along the bottom.
  */
 function Overview() {
@@ -97,14 +96,8 @@ function Overview() {
         <Identity d={d} phone={false} />
         <Heatmap solves={d.activity} latest={d.latest} phone={false} />
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
-        <div className="flex min-h-0 min-w-0 flex-col gap-4">
-          <RecordsSection d={d} className={d.timer.count ? "max-h-[60%] shrink-0" : "min-h-0 flex-1"} />
-          <LatestSection d={d} className="min-h-0 flex-1" />
-        </div>
-        <div className="flex min-h-0 min-w-0 flex-col">
-          <TimerSection d={d} phone={false} fill />
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <TimerSection d={d} phone={false} fill />
       </div>
       <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
         <TrainingSection d={d} compact />
@@ -121,7 +114,6 @@ function PhoneOverview() {
   return (
     <div data-tour="profile-overview" className="flex flex-col gap-3">
       <Identity d={d} phone />
-      <RecordsSection d={d} phone />
       <TimerSection d={d} phone />
       <Heatmap solves={d.activity} latest={d.latest} phone />
       <TrainingSection d={d} />
