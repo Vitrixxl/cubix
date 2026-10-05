@@ -29,6 +29,8 @@ const { PageStack } = await import("../src/components/PageStack");
 const { settledPageAtom } = await import("../src/tour");
 import type { Route } from "../src/state";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as any).requestAnimationFrame = (run: (time: number) => void) => { run(0); return 0; };
+(globalThis as any).cancelAnimationFrame = () => {};
 let renderer: ReactTestRenderer;
 afterEach(async () => { if (renderer) await act(() => renderer.unmount()); timing.mockClear(); });
 

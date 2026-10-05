@@ -56,11 +56,13 @@ export function PageStack({ route, render }: { route: Route; render: (route: Rou
     if (slide.kind === "none") { settle(shown.page); return; }
     settle(null);
     const animation = Animated.timing(progress, { toValue: 1, ...(slide.kind === "fade" ? FADE : SLIDE) });
-    animation.start(({ finished }) => {
+    // Started a frame later, once the new page is built: its first frames are not spent mounting it, and no step of
+    // the motion is skipped.
+    const frame = requestAnimationFrame(() => animation.start(({ finished }) => {
       if (!finished) return;
       setStack(s => s.progress === progress ? { ...s, slide: { kind: "none" }, screens: s.screens.slice(-1) } : s);
-    });
-    return () => animation.stop();
+    }));
+    return () => { cancelAnimationFrame(frame); animation.stop(); };
   }, [stack.progress, stack.slide.kind, stack.route, settle]);
   const top = stack.screens.at(-1)!;
   const moving = stack.screens.length > 1;

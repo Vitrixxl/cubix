@@ -4,14 +4,16 @@ import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "reac
 import { FlatList, Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { best, bestAverage, fmtTime, plural, shortDate, solvedAt } from "../../../src/client/lib/format";
-import { HEAT_LEVELS, heatDays, heatmap, heatYears, trendScale, type ActivitySolve, type HeatCell } from "../../../src/client/lib/profile";
+import { HEAT_LEVELS, heatmap, trendScale, type HeatCell, type HeatDay } from "../../../src/client/lib/profile";
 import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
 import { puzzleOf } from "../../../src/shared/puzzles";
 import type { AchievementDto, CaseDto, CaseHistoryDto, HistoryPoint, ProfileDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { useAfterPaint } from "../hooks/useAfterPaint";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
 import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
@@ -55,16 +57,16 @@ const hidden = { width: HEAT_CELL, height: HEAT_CELL }, cell = { width: HEAT_CEL
 /**
  * The contribution graph (the web's profile/heatmap.tsx): solves per day as squares, a week per column (Monday on
  * top), a year wide. The weeks scroll sideways and open on the latest months; the day names stay put. Tapping a day
- * names its solves and best times under the graph.
+ * names its solves and best times under the graph. The days and the last 12 months come prepared (profile.ts); the
+ * squares are drawn a frame after the page, over a placeholder of their size.
  */
-export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: ActivitySolve[]; latest: string | null }) {
+export const Heatmap = memo(function Heatmap({ days, years, heat, latest }: { days: ReadonlyMap<string, HeatDay>; years: number[]; heat: ReturnType<typeof heatmap>; latest: string | null }) {
   const [year, setYear] = useState<number | null>(null);
   const [picked, setPicked] = useState<HeatCell | null>(null);
   const scroller = useRef<ScrollView>(null);
-  const days = useMemo(() => heatDays(solves), [solves]);
-  const years = useMemo(() => heatYears(days), [days]);
-  const { cells, weeks, months, level, total } = useMemo(() => heatmap(days, year), [days, year]);
-  useEffect(() => { setPicked(null); }, [year, solves]);
+  const ready = useAfterPaint();
+  const { cells, weeks, months, level, total } = useMemo(() => year == null ? heat : heatmap(days, year), [heat, days, year]);
+  useEffect(() => { setPicked(null); }, [year, days]);
   const step = HEAT_CELL + HEAT_GAP;
   const times = (picked && days.get(picked.key)?.times) ?? [];
   const finite = times.filter(t => t != null);
@@ -86,7 +88,7 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
         </View>
         <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} className="-mr-4 min-w-0 flex-1" contentContainerClassName="pr-4"
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: false })}>
-          <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? "over the last 12 months" : `in ${year}`}`}
+          {!ready ? <Skeleton accessibilityLabel="Loading the activity" style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }} /> : <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? "over the last 12 months" : `in ${year}`}`}
             style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }}>
             {months.map(m => <Text key={m.week} className="absolute top-0 text-[11px] leading-[13px] text-muted-foreground" style={{ left: m.week * step }}>{m.label}</Text>)}
             {/* A year is some 370 days: plain squares coloured by style, and one touch target finding the day under the
@@ -103,7 +105,7 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
                 </View>)}
               </View>
             </Pressable>
-          </View>
+          </View>}
         </ScrollView>
       </View>
       {picked ? <View className="mt-3 h-4 flex-row items-center gap-2">
@@ -125,6 +127,12 @@ export const Heatmap = memo(function Heatmap({ solves, latest }: { solves: Activ
 
 /** The latest solves and their Ao5 as two lines over three quiet ticks, the first and last dates under it. */
 export function Trend({ history, averages, count = 100, height = 160 }: { history: HistoryPoint[]; averages: (number | null)[]; count?: number; height?: number }) {
+  // Drawn a frame after the page, over a placeholder of its size.
+  if (!useAfterPaint()) return <Skeleton accessibilityLabel="Loading the curve" style={{ height }} />;
+  return <TrendChart history={history} averages={averages} count={count} height={height} />;
+}
+
+function TrendChart({ history, averages, count, height }: { history: HistoryPoint[]; averages: (number | null)[]; count: number; height: number }) {
   const colors = useColors();
   const [width, setWidth] = useState(0);
   const h = height - 22, scale = trendScale(history, averages, count, h);

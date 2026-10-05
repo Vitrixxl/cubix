@@ -27,8 +27,9 @@ export function SlideSwitch({ id, depth, children }: { id: string; depth: number
   useEffect(() => {
     if (!move) return;
     const animation = Animated.timing(move.progress, { toValue: 1, ...SLIDE });
-    animation.start(({ finished }) => { if (finished) setMove(current => current === move ? null : current); });
-    return () => animation.stop();
+    // Started a frame later, once the new step is built (PageStack).
+    const frame = requestAnimationFrame(() => animation.start(({ finished }) => { if (finished) setMove(current => current === move ? null : current); }));
+    return () => { cancelAnimationFrame(frame); animation.stop(); };
   }, [move]);
   const screens = move && move.from.id !== id ? [move.from, shown.current] : [shown.current];
   return <View style={styles.frame}>

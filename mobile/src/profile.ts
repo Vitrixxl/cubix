@@ -1,4 +1,6 @@
 import { atom } from "jotai";
+import { unwrap } from "jotai/utils";
+import { activityOf, heatDays, heatmap, heatYears, latestOf, streaks } from "../../src/client/lib/profile";
 import { puzzleInfo } from "../../src/shared/puzzles";
 import { local } from "./api";
 import { deletedSolveIdAtom, profileFiltersAtom, puzzleAtom, scrambleTypeAtom, solveModeAtom, statsVersionAtom, userAtom } from "./state";
@@ -13,11 +15,38 @@ export const profileScrambleTypeAtom = atom(get => {
   return types.includes(preferred) ? preferred : types[0]!;
 });
 export const profileCatalogAtom = atom(get => local.read.catalog(get(profilePuzzleAtom)));
-export const profileDataAtom = atom(get => {
-  get(userAtom); get(statsVersionAtom); get(deletedSolveIdAtom);
-  return local.read.profile(get(profilePuzzleAtom), { solveMode: get(profileSolveModeAtom), scrambleType: get(profileScrambleTypeAtom) });
+/** The account and selection a profile is about: data prepared for another one is not shown as this one's. */
+export const profileKeyAtom = atom(get => `${get(userAtom)?.id ?? ""}:${get(profilePuzzleAtom)}:${get(profileSolveModeAtom)}:${get(profileScrambleTypeAtom)}`);
+
+/** Resolves once the frame being drawn is on screen, so a page shows before the work it waits for runs. */
+const afterPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+/** The work of a superseded preparation: never runs, never settles. */
+const superseded = new Promise<never>(() => {});
+
+/**
+ * The profile and everything drawn from its histories (activity, streak, the contribution graph's days and default
+ * year), prepared once per change of the workspace and kept while pages come and go. It is worked out after a frame
+ * is painted, never during the render of the page asking for it: until then the last prepared one stays on screen
+ * (`null` the very first time), so opening the profile never waits for it.
+ */
+const preparedProfileAtom = atom(async (get, { signal }) => {
+  get(statsVersionAtom); get(deletedSolveIdAtom);
+  const key = get(profileKeyAtom), cube = get(profilePuzzleAtom);
+  const filter = { solveMode: get(profileSolveModeAtom), scrambleType: get(profileScrambleTypeAtom) };
+  await afterPaint();
+  if (signal.aborted) return superseded;
+  const profile = local.read.profile(cube, filter);
+  const activity = activityOf(profile), days = heatDays(activity);
+  return { key, profile, days, years: heatYears(days), heat: heatmap(days, null), latest: latestOf(activity), streak: streaks(activity).current };
 });
-export const profileAchievementsAtom = atom(get => {
+export type PreparedProfile = Awaited<ReturnType<(typeof preparedProfileAtom)["read"]>>;
+export const profileDataAtom = unwrap(preparedProfileAtom, previous => previous ?? null);
+
+/** The achievements, prepared the same way. */
+const preparedAchievementsAtom = atom(async (get, { signal }) => {
   get(userAtom); get(statsVersionAtom); get(deletedSolveIdAtom);
+  await afterPaint();
+  if (signal.aborted) return superseded;
   return local.read.achievements();
 });
+export const profileAchievementsAtom = unwrap(preparedAchievementsAtom, previous => previous ?? null);

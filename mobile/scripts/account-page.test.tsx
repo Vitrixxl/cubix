@@ -60,12 +60,15 @@ const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026
 const { ProfilePage } = await import("../src/pages/AccountPage");
 const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
 const { profileDataAtom, profileAchievementsAtom } = await import("../src/profile");
+const { settledPageAtom } = await import("../src/tour");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 // The sections under the fold come a frame later: here, at once.
 (globalThis as any).requestAnimationFrame = (run: (time: number) => void) => { run(0); return 0; };
 (globalThis as any).cancelAnimationFrame = () => {};
 
 let renderer: ReactTestRenderer;
+/** The profile is prepared after a painted frame: let it land. */
+const prepared = () => act(() => new Promise(resolve => setTimeout(resolve, 5)));
 afterEach(async () => { if (renderer) await act(() => renderer.unmount()); timerCount = 3; });
 function Routed() {
   const route = useAtomValue(routeAtom);
@@ -75,7 +78,9 @@ async function mount() {
   const store = createStore();
   store.set(userAtom, account);
   store.set(routeAtom, { page: "profile" });
+  store.set(settledPageAtom, "profile");
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
+  await prepared();
   return store;
 }
 const all = (type: string) => renderer.root.findAllByType(type as any);
@@ -102,6 +107,24 @@ test("the overview shows the account, its activity, timer, training, awards and 
   expect(all("EventPicker")).toHaveLength(1);
   // The scramble type only on the timer section.
   expect(all("ChoiceButton")).toHaveLength(0);
+});
+
+test("opening the profile never works it out during its render: placeholders first, the figures a frame later", async () => {
+  const store = createStore();
+  store.set(userAtom, account);
+  store.set(routeAtom, { page: "profile" });
+  store.set(settledPageAtom, "profile");
+  profileCalls.length = 0;
+  await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
+  expect(profileCalls).toHaveLength(0);
+  expect(texts()).toContain("vitrix");
+  expect(all("Heatmap")).toHaveLength(0);
+  expect(all("Section").map(node => [node.props.title, node.props.meta])).toEqual(expect.arrayContaining([["Timer", undefined], ["Achievements", undefined]]));
+  await prepared();
+  expect(profileCalls).toHaveLength(1);
+  expect(all("Heatmap")).toHaveLength(1);
+  expect(card("Timer").props.meta).toBe("3 solves");
+  expect(card("Achievements").props.meta).toBe("1 of 3 unlocked");
 });
 
 test("the gear opens the settings; signing out lives there, not on the overview", async () => {
@@ -147,9 +170,11 @@ test("the profile's puzzle changes the profile's own selection", async () => {
   const store = await mount();
   profileCalls.length = 0;
   await act(() => all("EventPicker")[0]!.props.onChange("222"));
+  await prepared();
   expect(store.get(profileFiltersAtom).cube).toBe("222");
   expect(profileCalls.at(-1)).toMatchObject({ cube: "222" });
   await act(() => all("EventPicker")[0]!.props.onChange("333oh"));
+  await prepared();
   expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
   expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });
 });
@@ -157,8 +182,12 @@ test("the profile's puzzle changes the profile's own selection", async () => {
 test("prepared profile data survives page changes and unmounts without rebuilding histories", async () => {
   const store = createStore();
   store.set(userAtom, account);
-  const prepared = store.get(profileDataAtom);
+  store.set(settledPageAtom, "profile");
+  store.get(profileDataAtom); store.get(profileAchievementsAtom);
+  await prepared();
+  const data = store.get(profileDataAtom);
   const awards = store.get(profileAchievementsAtom);
+  expect(data).not.toBeNull();
   profileCalls.length = 0;
   await act(() => { renderer = create(<Provider store={store}><Routed /></Provider>); });
   for (const route of [{ page: "profile" }, { page: "profile", mode: "playground" }, { page: "playground" }, { page: "profile" }] as const) {
@@ -166,7 +195,8 @@ test("prepared profile data survives page changes and unmounts without rebuildin
   }
   // Clearing already-default filters on leaving the profile must not invalidate its histories.
   await act(() => store.set(profileFiltersAtom, {}));
-  expect(store.get(profileDataAtom)).toBe(prepared);
+  await prepared();
+  expect(store.get(profileDataAtom)).toBe(data);
   expect(store.get(profileAchievementsAtom)).toBe(awards);
   expect(profileCalls).toHaveLength(0);
   expect(card("Timer").props.meta).toBe("3 solves");
@@ -178,12 +208,15 @@ test("cached profile updates after sync, deletion and account changes, including
   timerCount = 4;
   await act(() => store.set(statsVersionAtom, v => v + 1));
   await act(() => store.set(routeAtom, { page: "profile" }));
+  await prepared();
   expect(card("Timer").props.meta).toBe("4 solves");
   timerCount = 2;
   await act(() => store.set(deletedSolveIdAtom, 3));
+  await prepared();
   expect(card("Timer").props.meta).toBe("2 solves");
   timerCount = 1;
   await act(() => store.set(userAtom, { ...account, id: "u2", username: "other" }));
+  await prepared();
   expect(card("Timer").props.meta).toBe("1 solve");
   expect(texts()).toContain("other");
 });
@@ -195,6 +228,7 @@ test("an empty timer selection offers to open the timer", async () => {
   expect(card("Timer").props.onMore).toBeUndefined();
   expect(all("Trend")).toHaveLength(0);
   await act(() => store.set(routeAtom, { page: "profile", mode: "playground" }));
+  await prepared();
   const stats = all("TimerStats")[0]!;
   expect(stats.props.data.summary.count).toBe(0);
   // The empty state is passed to the statistics, which render it when there is no solve.

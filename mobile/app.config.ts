@@ -37,7 +37,7 @@ const UPDATES_ENABLED = process.env.CUBIX_UPDATES !== "off";
  * changes JavaScript and assets, which expo-updates delivers over the air without a new APK.
  */
 export const NATIVE_INPUTS = [
-  "app.json", "app.config.ts", "plugins/withReleaseSigning.js", "bun.lock",
+  "app.json", "app.config.ts", "plugins/withReleaseSigning.js", "plugins/withHighRefreshRate.js", "bun.lock",
   "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png",
   ...fontFiles(),
 ];
@@ -61,7 +61,7 @@ export function runtimeVersion(): string {
   return hash.digest("hex").slice(0, 16);
 }
 
-/** Extends app.json with the build identity, the update channel and the release signing plugin. */
+/** Extends app.json with the build identity, the update channel, the release signing and the refresh rate plugins. */
 export default ({ config }: ConfigContext): ExpoConfig => {
   const build = buildNumber();
   return {
@@ -79,6 +79,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: { ...config.android, versionCode: build || 1 },
     extra: { ...config.extra, build, commit: commitHash() },
-    plugins: [...(config.plugins ?? []), "./plugins/withReleaseSigning"],
+    plugins: [...(config.plugins ?? []), "./plugins/withReleaseSigning", "./plugins/withHighRefreshRate"],
   };
 };
