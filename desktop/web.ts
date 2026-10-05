@@ -33,10 +33,11 @@ export const tailwind: BunPlugin = {
   },
 };
 
-export async function buildWeb(out = WEB_DIR) {
+/** `devTools`: the development build, with the virtual smart cube at /dev/cube (desktop/renderer/dev); never deployed. */
+export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   await rm(out, { recursive: true, force: true });
   await mkdir(join(out, "build"), { recursive: true });
-  const production = { "process.env.NODE_ENV": '"production"' };
+  const production = { "process.env.NODE_ENV": '"production"', CUBIX_DEV: String(devTools) };
   const naming = { entry: "[name]-[hash].[ext]", chunk: "[name]-[hash].[ext]", asset: "[name]-[hash].[ext]" };
   const entries: string[] = [];
   const bundle = async (entrypoint: string, define: Record<string, string> = {}, splitting = false) => {
@@ -66,6 +67,13 @@ export async function buildWeb(out = WEB_DIR) {
     .replace("<!-- styles -->", styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    "))
     .replace("<!-- scripts -->", scripts.map((src) => `<script type="module" src="${src}"></script>`).join("\n    "));
   await writeFile(join(out, "index.html"), html);
+  if (devTools) {
+    // Outside the precache: the page is only served by the development server (desktop/dev.ts).
+    const page = await bundle("desktop/renderer/dev/virtualCube.tsx");
+    await writeFile(join(out, "dev-cube.html"), (await readFile("desktop/renderer/dev/cube.html", "utf8"))
+      .replace("<!-- styles -->", page.filter((path) => path.endsWith(".css")).map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    "))
+      .replace("<!-- scripts -->", page.filter((path) => path.endsWith(".js")).map((src) => `<script type="module" src="${src}"></script>`).join("\n    ")));
+  }
   for (const name of ["manifest.webmanifest", "favicon.svg", "icon-192.png", "icon-512.png"]) await cp(join("desktop/renderer/pwa", name), join(out, name));
   for (const directory of ["icons", "cases"]) await cp(join("desktop/assets", directory), join(out, "assets", directory), { recursive: true });
   // Everything the app needs to open offline, scramblers included: the engine worker starts before the

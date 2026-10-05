@@ -7,9 +7,19 @@ import { practiceSummary, sessionExtremes, solveTone, trainingSessionRows, type 
 import { PracticeTimer, timerHint, type TimerPhase, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
 import { TONE_TEXT } from "../../src/client/lib/tone";
 import { shortId, maskForStage } from "../../src/client/lib/caseState";
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { smartCube } from "../../src/client/lib/smartCube";
+import "./dev/devTools";
+import { LiveCube } from "./LiveCube";
+import { ScrambleStatus, SmartScramble, useScrambleProgress } from "./SmartScramble";
+import { useLatestAnalysis, useSmartSolve } from "./smartSolve";
+import { SolveStrip } from "./SolveAnalysis";
+import { balancedColumns, cellLines, FiguresBand, useWidth } from "./FiguresEditor";
 import {
   Ban,
+  Bluetooth,
+  BluetoothConnected,
+  BluetoothSearching,
   Box,
   Check,
   ChevronUp,
@@ -67,12 +77,15 @@ const typingInto = (e: KeyboardEvent) =>
 
 /**
  * The timer page's timer: Space (or a touch on phones) holds, releases and stops. It re-renders the page only when
- * its phase changes; the running time is drawn by `LiveDigits`.
+ * its phase changes; the running time is drawn by `LiveDigits`. `manual` false: something else starts it (a connected
+ * cube's first turn once scrambled), keys only stop it.
  */
-function useTimer(enabled: boolean) {
+function useTimer(enabled: boolean, manual = true) {
   const [snapshot, setSnapshot] = useState<TimerSnapshot>({ phase: "idle", elapsed: 0, startedAt: 0 });
-  const enabledRef = useRef(enabled);
+  const enabledRef = useRef(enabled),
+    manualRef = useRef(manual);
   enabledRef.current = enabled;
+  manualRef.current = manual;
   const [timer] = useState(() => new PracticeTimer({
     canStart: () => enabledRef.current,
     onStop: ms => { void s.save(ms); },
@@ -94,7 +107,7 @@ function useTimer(enabled: boolean) {
         stop();
         return;
       }
-      if (typingInto(e) || s.overlay || (s.entry === "typing" && s.page === "playground")) return;
+      if (typingInto(e) || s.overlay || !manualRef.current || (s.entry === "typing" && s.page === "playground")) return;
       if (e.code === "Space" && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         // The button focused last must not be clicked by the release.
@@ -125,7 +138,7 @@ function useTimer(enabled: boolean) {
   }, []);
   // A stopped timer rests like an idle one.
   const phase: Exclude<TimerPhase, "stopped"> = snapshot.phase === "stopped" ? "idle" : snapshot.phase;
-  return { phase, elapsed: snapshot.elapsed, startedAt: snapshot.startedAt, press, release };
+  return { phase, elapsed: snapshot.elapsed, startedAt: snapshot.startedAt, press, release, begin: timer.begin, finish: timer.finish };
 }
 
 /** The side of the largest square inside an element's padding box, kept up to date as it resizes. */
@@ -214,12 +227,17 @@ export function Practice() {
     timesColumn = !mobile && (timesAlways || s.showTimes),
     compact = w <= 900 || h <= 760;
   const Stage = mobile ? Surface : "div";
+  const cubeLink = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status),
+    connectable = typeof CUBIX_DEV !== "undefined" && CUBIX_DEV && !mobile && !training && s.puzzle === "333",
+    // A connected cube stands in the middle of the 3×3 timer, as it is in hand; the scramble follows it turn by turn,
+    // and its preview stays at the top as the state to reach. The cube starts the timer itself, once scrambled.
+    live = connectable && cubeLink === "on";
   const enabled =
       !s.saving &&
       !s.generating &&
       !s.error &&
       (!training || (!!s.practiceSelected.size && s.practiceSelected.has(s.training?.id))),
-    timer = useTimer(enabled),
+    timer = useTimer(enabled, !live),
     typing = s.page === "playground" && s.entry === "typing";
   const [typed, setTyped] = useState("");
   const typedRef = useRef<HTMLInputElement>(null);
@@ -249,12 +267,21 @@ export function Practice() {
       : text.length > 220 ? 15 : text.length > 120 ? (compact ? 17 : 19) : compact ? 21 : 26,
     cubePane = ready && (hasCube || training),
     cubeShown = cubePane && s.showCube,
-    previewSize = mobile ? (h < 760 ? 0 : 84) : Math.round(Math.max(116, Math.min(196, h * 0.19)));
-  const hint = timerHint(timer.phase, {
-    disabled: !enabled && (training ? "Select cases to begin" : "One moment…"),
-    unsaved: s.page === "playground" && s.entry === "casual",
-    keyboard: !mobile,
-  });
+    previewSize = mobile ? (h < 760 ? 0 : 84) : Math.round(Math.max(116, Math.min(196, h * 0.19))),
+    progress = useScrambleProgress(s.scramble, live && !s.generating),
+    [liveBox, setLiveBox] = useState<HTMLDivElement | null>(null),
+    liveSide = useSquare(live ? liveBox : null),
+    analysis = useLatestAnalysis();
+  // The cube times its own solves: its first turn once scrambled starts the timer, the solved cube stops it.
+  useSmartSolve({ active: live, scrambled: !!progress?.scrambled, begin: timer.begin, finish: timer.finish });
+  const hint =
+    live && timer.phase === "idle" && progress && !s.notice
+      ? <ScrambleStatus progress={progress} />
+      : timerHint(timer.phase, {
+          disabled: !enabled && (training ? "Select cases to begin" : "One moment…"),
+          unsaved: s.page === "playground" && s.entry === "casual",
+          keyboard: !mobile,
+        });
   const last = s.solves.find((v) => v.id === s.lastSolve);
   const visual = previewSize > 0 && ready && (
     hasCube ? (
@@ -277,7 +304,7 @@ export function Practice() {
       <Diagram c={c} size={previewSize} />
     ) : null
   );
-  const showCube = !mobile && cubePane && !cubeShown && (
+  const showCube = !mobile && !live && cubePane && !cubeShown && (
     <Button action="cube" icon={Box} size="icon-sm" tip="Show the cube" className="text-muted-foreground" />
   );
   const solutionToggle = (
@@ -356,6 +383,8 @@ export function Practice() {
                     <Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} />
                     <Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} />
                   </span>
+                ) : progress ? (
+                  <SmartScramble text={s.scramble} progress={progress} size={promptFont} />
                 ) : (
                   <Alg text={s.scramble} size={promptFont} />
                 )}
@@ -374,7 +403,8 @@ export function Practice() {
     </section>
   );
   // The desktop sets the cube at the top right of the page, level with the header, rather than under it.
-  const desktopCube = !mobile && cubeShown && previewSize > 0 && (
+  // A connected cube stands in the middle: no preview of the scramble beside the header.
+  const desktopCube = !mobile && !live && cubeShown && previewSize > 0 && (
     <div className={cn("group/cube relative shrink-0", FADE)} style={{ width: previewSize, height: previewSize }}>
       {visual}
       <Button action="cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute -top-1 -right-1 text-muted-foreground opacity-0 transition-opacity group-hover/cube:opacity-100 focus-visible:opacity-100" />
@@ -385,34 +415,48 @@ export function Practice() {
       {training ? "Session" : "Times"}
     </ActionToggle>
   );
-  const replay = hasCube && ready && !mobile && <Button action="replayCube" icon={RotateCcw} tip="Replay the scramble on the cube" />;
-  // The Ao5 has its own line under the digits and the solve count heads the times list: the strip keeps the rest.
-  const metrics = s.metrics().filter(([label]) =>
-    mobile
-      ? ["Best", "Worst", "Ao5", "Ao12", "Mean"].includes(label)
-      : !(label === "Ao5" && s.practicePage() === "playground") && !(label === "Solves" && timesColumn),
+  const replay = hasCube && ready && !mobile && !live && <Button action="replayCube" icon={RotateCcw} tip="Replay the scramble on the cube" />;
+  const connect = connectable && (
+    <Button
+      action="smartCube"
+      icon={cubeLink === "on" ? BluetoothConnected : cubeLink === "connecting" ? BluetoothSearching : Bluetooth}
+      tip={cubeLink === "on" ? `${smartCube.snapshot.name} connected · disconnect` : cubeLink === "connecting" ? "Connecting… · cancel" : "Connect the virtual cube (development)"}
+      className={cn(cubeLink === "on" && "text-primary")}
+    />
   );
-  const statistics = (
-    // Desktop: each figure on one line, label left and value right; two rows of three when the band is narrow, one row
-    // when there is room. Lines split the figures of a row.
-    <div className="@container shrink-0" data-tour="session">
-    <Strip
-      label="Statistics"
-      className={cn(mobile ? "grid-cols-4 px-3" : "grid-cols-3 gap-x-0 gap-y-2.5 px-0 py-2.5 @5xl:grid-flow-col @5xl:grid-cols-none @5xl:auto-cols-fr")}
-    >
-      {/* On the desktop every figure takes an equal share of the band. */}
-      {metrics.slice(0, mobile ? 4 : undefined).map(([label, value, tone], i) => (
-        <Figure
-          key={label}
-          label={label}
-          value={value}
-          tone={tone}
-          size={mobile ? "sm" : "lg"}
-          inline={!mobile}
-          className={cn(mobile ? "items-center text-center" : cn("px-4", i % 3 !== 0 && "border-l", i > 0 && i % 3 === 0 && "@5xl:border-l"))}
-        />
-      ))}
-    </Strip>
+  // Phones keep four fixed figures; the desktop's timer shows the figures the player chose (FiguresEditor), a training
+  // its own few.
+  const [band, setBand] = useState<HTMLDivElement | null>(null),
+    bandWidth = useWidth(band);
+  const chosen = !mobile && s.practicePage() === "playground",
+    metrics = mobile
+      ? s.metrics().filter(([label]) => ["Best", "Worst", "Ao5", "Ao12", "Mean"].includes(label))
+      : chosen
+        ? s.figuresShown()
+        : s.metrics().filter(([label]) => !(label === "Solves" && timesColumn));
+  const columns = balancedColumns(metrics.length, bandWidth),
+    rows = Math.ceil(metrics.length / columns);
+  const statistics = chosen ? (
+    <FiguresBand />
+  ) : (
+    // Each figure on one line on the desktop, label left and value right, in as few rows as fit, shared evenly.
+    <div ref={setBand} className="shrink-0" data-tour="session" style={{ "--columns": columns } as React.CSSProperties}>
+      <Strip
+        label="Statistics"
+        className={cn(mobile ? "grid-cols-4 px-3" : "grid-cols-[repeat(var(--columns),minmax(0,1fr))] gap-0 px-0 py-2.5")}
+      >
+        {metrics.slice(0, mobile ? 4 : undefined).map(([label, value, tone], i) => (
+          <Figure
+            key={label}
+            label={label}
+            value={value}
+            tone={tone}
+            size={mobile ? "sm" : "lg"}
+            inline={!mobile}
+            className={mobile ? "items-center text-center" : cellLines(i, columns, rows)}
+          />
+        ))}
+      </Strip>
     </div>
   );
   const head = (
@@ -493,6 +537,7 @@ export function Practice() {
               <SelectMenu action="entry" caption={compact ? undefined : "Entry"} value={s.entry} options={TIME_ENTRIES} />
             </>
           )}
+          {connect}
           {replay}
           {timesToggle}
         </PageHead>
@@ -531,6 +576,11 @@ export function Practice() {
                 className="timer relative flex min-h-0 flex-1 touch-manipulation flex-col items-center justify-center select-none [container-type:size]"
                 data-phase={timer.phase[0]!.toUpperCase() + timer.phase.slice(1)}
               >
+                {live && (
+                  <div ref={setLiveBox} className={cn("flex min-h-0 w-full flex-1 items-center justify-center", FADE)} data-no-timer>
+                    {liveSide > 0 && <LiveCube cube={smartCube} size={Math.min(liveSide, 520)} />}
+                  </div>
+                )}
                 {typing ? (
                   <input
                     ref={typedRef}
@@ -558,7 +608,7 @@ export function Practice() {
                     startedAt={timer.startedAt}
                     text={timer.phase === "holding" || timer.phase === "ready" ? "0.000" : fmtTime(timer.elapsed)}
                     phase={timer.phase}
-                    className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
+                    className={mobile ? "text-[clamp(64px,min(calc(160cqw/var(--chars)),42cqh),128px)]" : live ? "text-[clamp(40px,min(calc(90cqw/var(--chars)),13cqh),104px)]" : "text-[clamp(56px,min(calc(150cqw/var(--chars)),34cqh),232px)]"}
                   />
                 )}
                 <div data-tour="timer" className={cn("timer-hint mt-3 flex min-h-5 items-center gap-1.5 text-center text-sm text-muted-foreground md:mt-4", s.notice && "font-medium text-success", FADE)}>
@@ -610,6 +660,7 @@ export function Practice() {
               </TouchBar>
             )}
           </Stage>
+          {!mobile && live && analysis && !running && <SolveStrip analysis={analysis} />}
           {mobile ? <SessionPeek training={training} /> : statistics}
         </div>
         {timesColumn && (

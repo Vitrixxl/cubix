@@ -126,6 +126,27 @@ export function bestAverage(times: readonly (number | null)[], size: number): nu
   return minimum;
 }
 
+/**
+ * Worst rolling average of `size`: Infinity when one of them is a DNF (two DNFs in it), null until `size` times exist.
+ */
+export function worstAverage(times: readonly (number | null)[], size: number): number | null {
+  let maximum: number | null = null;
+  visitAverages(times, size, (value, i) => {
+    if (i + 1 < size) return;
+    const v = value ?? Infinity;
+    maximum = maximum === null ? v : Math.max(maximum, v);
+  });
+  return maximum;
+}
+
+/** The middle time, a DNF counting as the slowest; Infinity when the middle is a DNF. */
+export function median(times: readonly (number | null)[]): number | null {
+  if (!times.length) return null;
+  const sorted = times.map((t) => t ?? Infinity).sort((a, b) => a - b),
+    middle = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
 /** "1 solve", "1,204 solves". */
 export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 

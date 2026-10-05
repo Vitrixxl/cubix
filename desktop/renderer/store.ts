@@ -3,7 +3,7 @@ import { DEFAULT_THEME } from "../../src/client/lib/theme";
 import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { toggleSelection } from "../../src/client/lib/practiceCatalog";
-import { sessionMetrics, type Metric } from "../../src/client/lib/practiceSummary";
+import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigures, sessionMetrics, type Metric } from "../../src/client/lib/practiceSummary";
 import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
@@ -14,6 +14,9 @@ import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import { LOCKED_PAGES, PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey } from "../../src/client/lib/journey";
 import { go, goPage, readRoute, type AppRoute } from "./navigation";
+import { smartCube } from "../../src/client/lib/smartCube";
+import "./dev/devTools";
+import { toast } from "sonner";
 export const catalog = catalogData as any;
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
@@ -51,11 +54,11 @@ export class Store {
   learningGroupOrder: NonNullable<LearningPlan["groupOrder"]> = {};
   page = "playground";
   caseId = "";
+  /** A case opened in a dialog over its page (Learn's catalogue cases), without leaving it. */
+  caseDialog = "";
   puzzle = "333";
   solveMode = "standard";
   scrambleType = "normal";
-  /** A case opened in a dialog over its page (Learn's catalogue cases), without leaving it. */
-  caseDialog = "";
   entry = "timer";
   themeName: string = DEFAULT_THEME;
   light = false;
@@ -94,6 +97,8 @@ export class Store {
   revealed = false;
   randomAuf = true;
   showCube = true;
+  /** The figures of the timer's band, chosen by the player (see `sessionFigures`). */
+  figures: string[] = DEFAULT_FIGURES;
   /** The account's session ended on the server (401): the login page asks to sign in again. */
   expired = false;
   /** Times or learned cases of this device outside any account: signing in or creating an account keeps them. */
@@ -313,6 +318,7 @@ export class Store {
       this.puzzle = this.prefs["cubix.puzzle"] ?? "333";
       this.randomAuf = this.prefs["cubix.training.randomAuf"] ?? true;
       this.showCube = this.prefs["cubix.practice.showCube"] ?? true;
+      this.figures = cleanFigures(this.prefs["cubix.practice.figures"] ?? DEFAULT_FIGURES);
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
@@ -708,18 +714,18 @@ export class Store {
         case "case":
           goPage("algorithms", { caseId: arg, puzzle: this.puzzle as PuzzleId });
           break;
-        case "back":
-        case "historyBack":
-          go(-1);
-          break;
-        case "historyForward":
-          go(1);
         case "caseDialog":
           // The statistics shown are the case's own: none until they arrive.
           if (arg !== this.caseDialog) this.caseHistory = null;
           this.caseDialog = arg;
           await this.refresh();
           break;
+        case "back":
+        case "historyBack":
+          go(-1);
+          break;
+        case "historyForward":
+          go(1);
           break;
         case "setupMode":
           this.setupMode = arg;
@@ -827,13 +833,13 @@ export class Store {
             [...this.selected].filter((id) => !this.learned.has(id)),
           );
           if (kind === "train") {
+            this.caseDialog = "";
             // Training a group or a case from the catalogue skips the setup screen.
             this.trainingKind = "cases";
             this.pref("cubix.training.kind", "cases");
             goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
           }
           if (kind === "train" || !this.selected.has(this.training?.id))
-            this.caseDialog = "";
             await this.nextCase();
           break;
         }
@@ -857,6 +863,16 @@ export class Store {
         case "replayCube":
           this.replay++;
           break;
+        case "smartCube":
+          // Only the virtual cube of development for now; Bluetooth cubes will be drivers of their own.
+          if (smartCube.snapshot.status !== "off") smartCube.disconnect();
+          else if (typeof CUBIX_DEV !== "undefined" && CUBIX_DEV) {
+            const { virtualSmartCube } = await import("./dev/virtualSmartCube");
+            void smartCube.connect(virtualSmartCube).then(() => {
+              if (smartCube.snapshot.error) toast.error(smartCube.snapshot.error);
+            });
+          }
+          break;
         case "solution":
           this.revealed = !this.revealed;
           if (this.revealed && this.crossTraining) void this.loadCrossSolutions();
@@ -868,6 +884,24 @@ export class Store {
         case "times":
           this.showTimes = !this.showTimes;
           break;
+        case "figures": {
+          // figures:add:<id>, figures:set:<index>:<id>, figures:order:<id>,<id>…, figures:remove:<id>, figures:reset
+          const [verb, id = ""] = arg.split(/:(.*)/);
+          if (verb === "reset") this.figures = DEFAULT_FIGURES;
+          else if (verb === "order") {
+            const order = id.split(",");
+            // Only the same figures, in another order.
+            if (order.length === this.figures.length && [...order].sort().join() === [...this.figures].sort().join()) this.figures = order;
+          } else if (verb === "set") {
+            const [at, figure = ""] = id.split(/:(.*)/), index = Number(at);
+            if (parseFigure(figure) && this.figures[index] !== undefined && !this.figures.some((f, i) => f === figure && i !== index))
+              this.figures = this.figures.map((f, i) => (i === index ? figure : f));
+          }
+          else if (verb === "remove") this.figures = this.figures.filter((f) => f !== id);
+          else if (verb === "add" && parseFigure(id) && !this.figures.includes(id) && this.figures.length < FIGURE_LIMIT) this.figures = [...this.figures, id];
+          this.pref("cubix.practice.figures", this.figures);
+          break;
+        }
         case "cube":
           this.showCube = !this.showCube;
           this.pref("cubix.practice.showCube", this.showCube);
@@ -1176,6 +1210,10 @@ export class Store {
     } catch (e) {
       this.fail(e);
     }
+  }
+  /** The timer's band on the desktop: the figures the player chose. */
+  figuresShown(): Metric[] {
+    return sessionFigures(this.solves, this.figures);
   }
   /** Session figures under the timer: label, value and the tone it is drawn in; a training keeps three. */
   metrics(): Metric[] {

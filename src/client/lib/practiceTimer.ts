@@ -39,6 +39,19 @@ export class PracticeTimer {
     else if (this.snapshot.phase === "ready") this.update({ phase: "running", startedAt: this.now() });
   };
   reset = () => { this.dispose(); this.update({ phase: "idle", elapsed: 0 }); };
+  /** A solve started by something else than a key, such as a smart cube's first turn. */
+  begin = () => {
+    if (this.snapshot.phase === "running" || !this.options.canStart()) return false;
+    this.dispose();
+    this.update({ phase: "running", startedAt: this.now(), elapsed: 0 });
+    return true;
+  };
+  /** Ends a running solve with the time measured elsewhere (the cube's own clock). */
+  finish = (ms: number) => {
+    if (this.snapshot.phase !== "running") return;
+    this.update({ phase: "stopped", elapsed: ms });
+    this.options.onStop(ms);
+  };
   cancelArming = () => {
     if (this.snapshot.phase === "holding" || this.snapshot.phase === "ready") this.reset();
   };

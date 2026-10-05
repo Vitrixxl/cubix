@@ -13,11 +13,13 @@ import { cases } from '../../src/client/local/catalog';
 import { CATALOG_CACHE_PREFIX } from '../../src/client/local/catalog-cache';
 import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer, type TrainingHistory } from '../../src/client/lib/trainingHistory';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
+import { EVENTS, puzzleInfo, type PracticeContext, type PuzzleId } from '../../src/shared/puzzles';
 import { fmtDate, joinedDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
-import { generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
+import { competitionEvent, generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
+import { createScramblePool, SCRAMBLE_POOL_KEY } from '../../src/client/lib/scramblePool';
 import { crossPlusOneSolutions } from '../../src/shared/crossPlusOne';
+import { analyseSolve, type CatalogCase } from '../../src/client/lib/solveAnalysis';
 import { DUELS_KEY, keepRecord, levelOf } from '../../src/client/lib/duel';
 import type { CaseDto } from '../../src/shared/types';
 
@@ -64,10 +66,13 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     current.on('error', () => {});
   }
   let lastAdvance: { key: string; promise: Promise<Record<string, unknown>> } | undefined;
-  // One scramble per context is generated ahead, so asking for a new one answers without waiting for the search.
+  // Competition scrambles come from a reserve kept on the device for every event (scramblePool.ts), filled in the
+  // background from the launch; the other scramble types keep one scramble generated ahead per context.
+  const reserve = createScramblePool({ storage, events: EVENTS.map(e => e.id), generate: event => scrambles.randomScrambleForEvent(event) });
   const nextScrambles = new Map<string, Promise<string>>();
   const scrambleKey = (context: PracticeContext) => `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
   function prefetchScramble(context: PracticeContext) {
+    if (context.scrambleType === 'normal') return void reserve.fill(competitionEvent(context));
     const key = scrambleKey(context);
     if (nextScrambles.has(key)) return;
     const promise = generatePracticeScramble(context, scrambles);
@@ -75,6 +80,14 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     nextScrambles.set(key, promise);
   }
   function takeScramble(context: PracticeContext) {
+    if (context.scrambleType === 'normal') {
+      const event = competitionEvent(context), ready = reserve.take(event);
+      if (ready !== undefined) return Promise.resolve(ready);
+      // The reserve is empty (a first launch): this one is searched now, the reserve filled after it.
+      const searched = generatePracticeScramble(context, scrambles);
+      void searched.finally(() => void reserve.fill(event)).catch(() => {});
+      return searched;
+    }
     const key = scrambleKey(context), ready = nextScrambles.get(key) ?? generatePracticeScramble(context, scrambles);
     nextScrambles.delete(key);
     prefetchScramble(context);
@@ -142,9 +155,11 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     } catch { return false; }
   }
   /** The preferences the renderer reads at start-up, without the workspace and catalogue: megabytes it never uses. */
-  const preferences = () => Object.fromEntries(Object.entries(storage.all()).filter(([key]) => !key.startsWith('cubix.local.v1:workspace:') && !key.startsWith(CATALOG_CACHE_PREFIX)));
+  const preferences = () => Object.fromEntries(Object.entries(storage.all()).filter(([key]) => !key.startsWith('cubix.local.v1:workspace:') && !key.startsWith(CATALOG_CACHE_PREFIX) && key !== SCRAMBLE_POOL_KEY));
   const methods = new Set(Object.keys(local.api).filter(k => !['connectLive'].includes(k)));
   async function run(req: EngineRequest): Promise<unknown> {
+    // The reserve of scrambles fills from the launch, once the page has had a moment to draw.
+    if (req.method === 'init') setTimeout(() => void reserve.fill(), 1500);
     if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
@@ -175,6 +190,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);
     if (req.method === 'scramble') return await takeScramble(req.args[0]);
     if (req.method === 'crossSolutions') return crossPlusOneSolutions(req.args[0]);
+    // A smart cube solve, split into its steps and its cases: here, off the page, after the solve was saved.
+    if (req.method === 'analyseSolve') return analyseSolve(req.args[0], cases as unknown as CatalogCase[]);
     if (req.method === 'training') return training(req.args[0], req.args[1], req.args[2], req.args[3], req.args[4]);
     if (req.method === 'trainingCase') {
       const [c, useAuf] = req.args, size = puzzleInfo(c.puzzle_id ?? String(c.cube_size ?? 3).repeat(3)).cubeSize;

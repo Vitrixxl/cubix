@@ -1,5 +1,5 @@
 import type { Penalty } from "../../shared/types";
-import { averageOf, best, bestAverage, effective, fmtTime, mean } from "./format";
+import { averageOf, best, bestAverage, effective, fmtTime, mean, median, rollingAverages, worstAverage } from "./format";
 import type { Tone } from "./tone";
 
 /** Solves must be oldest first; rolling averages include DNF attempts. */
@@ -48,6 +48,58 @@ export function sessionMetrics(solves: readonly { time_ms: number; penalty: Pena
     ["Best Ao12", fmtTime(bestAverage(times, 12)), "good"],
     ["Solves", String(summary.count), ""],
   ];
+}
+
+/**
+ * The figures the timer's band shows, chosen by the player: "best", "worst", "mean", "median", "count", and averages of
+ * any size, current ("ao50"), best ("ao50:best") or worst ("ao50:worst").
+ */
+export const DEFAULT_FIGURES = ["best", "worst", "mean", "ao5:best", "ao12", "ao12:best"];
+export const FIGURE_LIMIT = 12;
+/** Averages from 3 (a mean of three trimmed to one) to 1000 times. */
+export const AVERAGE_SIZES = { min: 3, max: 1000 };
+const SINGLES: Record<string, [string, Tone]> = {
+  best: ["Best", "good"], worst: ["Worst", "bad"], mean: ["Mean", ""], median: ["Median", ""], count: ["Solves", ""],
+};
+export type Figure = { id: string; size?: number; which?: "current" | "best" | "worst" };
+export function parseFigure(id: string): Figure | null {
+  if (SINGLES[id]) return { id };
+  const m = /^ao(\d+)(?::(best|worst))?$/.exec(id);
+  const size = Number(m?.[1]);
+  if (!m || size < AVERAGE_SIZES.min || size > AVERAGE_SIZES.max) return null;
+  return { id, size, which: (m[2] as "best" | "worst" | undefined) ?? "current" };
+}
+export const averageFigure = (size: number, which: "current" | "best" | "worst") => `ao${size}${which === "current" ? "" : ":" + which}`;
+export function figureLabel(id: string) {
+  const figure = parseFigure(id);
+  if (!figure) return id;
+  if (!figure.size) return SINGLES[id]![0];
+  return `${figure.which === "best" ? "Best " : figure.which === "worst" ? "Worst " : ""}Ao${figure.size}`;
+}
+/** The chosen figures, valid and once each, at most `FIGURE_LIMIT`. */
+export const cleanFigures = (ids: unknown): string[] =>
+  Array.isArray(ids) ? [...new Set(ids.filter((id): id is string => typeof id === "string" && !!parseFigure(id)))].slice(0, FIGURE_LIMIT) : DEFAULT_FIGURES;
+const fmtFigure = (value: number | null) => (value === Infinity ? "DNF" : fmtTime(value));
+
+/** The chosen figures of a session, in order: best ones in green, worst ones in red, current averages in the accent. */
+export function sessionFigures(solves: readonly { time_ms: number; penalty: Penalty }[], ids: readonly string[]): Metric[] {
+  const times = practiceSummary(solves).times;
+  return ids.flatMap((id): Metric[] => {
+    const figure = parseFigure(id);
+    if (!figure) return [];
+    const label = figureLabel(id);
+    if (!figure.size) {
+      if (id === "count") return [[label, String(times.length), ""]];
+      const value = id === "best" ? best(times) : id === "mean" ? mean(times) : id === "median" ? median(times)
+        : !times.length ? null : times.includes(null) ? Infinity : Math.max(...(times as number[]));
+      return [[label, fmtFigure(value), SINGLES[id]![1]]];
+    }
+    const { size, which } = figure;
+    if (which === "best") return [[label, fmtFigure(bestAverage(times, size)), "good"]];
+    if (which === "worst") return [[label, fmtFigure(worstAverage(times, size)), "bad"]];
+    const current = times.length >= size ? rollingAverages(times.slice(-size), size).at(-1) ?? Infinity : null;
+    return [[label, fmtFigure(current), "accent"]];
+  });
 }
 
 /** The records of a selection of timer solves (a profile's summary): best single, averages, mean and the count. */

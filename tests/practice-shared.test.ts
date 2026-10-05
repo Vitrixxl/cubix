@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { catalogSections, toggleSelection } from "../src/client/lib/practiceCatalog";
 import { practiceSummary, trainingSessionRows } from "../src/client/lib/practiceSummary";
 import { LaunchSessions } from "../src/client/lib/launchSessions";
@@ -108,4 +108,23 @@ test("the web and the phone app take every theme's colours from the same tokens"
       expect(tokens["chart-2"]).toBe(palette.series2);
     }
   }
+});
+
+describe("a timer started and stopped by a smart cube", () => {
+  test("begins without holding and finishes with the cube's time", () => {
+    const stops: number[] = [];
+    const timer = new PracticeTimer({ canStart: () => true, onChange: () => {}, onStop: (ms) => stops.push(ms), now: () => 1000 });
+    expect(timer.begin()).toBe(true);
+    expect(timer.snapshot.phase).toBe("running");
+    expect(timer.begin()).toBe(false);
+    timer.finish(12345);
+    expect(timer.snapshot).toMatchObject({ phase: "stopped", elapsed: 12345 });
+    expect(stops).toEqual([12345]);
+    timer.finish(1);
+    expect(stops).toHaveLength(1);
+  });
+  test("does not begin when it cannot start", () => {
+    const timer = new PracticeTimer({ canStart: () => false, onChange: () => {}, onStop: () => {} });
+    expect(timer.begin()).toBe(false);
+  });
 });
