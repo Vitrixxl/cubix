@@ -1,11 +1,10 @@
 import { useAtom, useAtomValue } from "jotai";
 import { Shuffle } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { View } from "react-native";
 import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { fmtTime } from "../../../src/client/lib/format";
-import { applyAlg, parseAlg, parseScramble, solved, type Move } from "../../../src/shared/cube";
 import { contextKey, heldScramble, puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,17 +21,9 @@ import {
 import { SessionButton } from "../components/PuzzlePicker";
 import { TimesSheet } from "../components/TimesSheet";
 import { LastSolveBar } from "../components/SolveMenus";
-import { StaticCubeSvg } from "../components/StaticCubeSvg";
+import { ScrambleCube } from "../components/ScrambleCube";
 import { useLayout } from "../hooks/useLayout";
 import { useTourTarget } from "../tour";
-
-/** Replay pace of the scramble on the preview cube. */
-const REPLAY_START_MS = 350, REPLAY_MOVE_MS = 120;
-
-function scrambleMoves(scramble: string, size: number | null, held: boolean): Move[] {
-  if (!size || !scramble) return [];
-  try { return held ? parseScramble(scramble, size) : parseAlg(scramble, size); } catch { return []; }
-}
 
 /** The timer: a new puzzle, mode or scramble type starts a fresh attempt and session. */
 export function PlaygroundPage() {
@@ -81,21 +72,9 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const { busy, running } = usePracticeLock(timer, saving);
   const nextScramble = () => { if (!busy && !generating) { timer.reset(); void generateNext(); } };
 
-  // The scramble on its cube, replayed move by move on a tap.
-  const cube = info.cubeSize;
+  // The scramble played on its 3D puzzle.
   const held = heldScramble(context.scrambleType);
-  const moves = useMemo(() => scrambleMoves(scramble, cube, held), [scramble, cube, held]);
-  const [replayAt, setReplayAt] = useState<number | null>(null);
-  useEffect(() => setReplayAt(null), [scramble]);
-  useEffect(() => {
-    if (replayAt === null) return;
-    const done = replayAt >= moves.length;
-    const step = setTimeout(() => setReplayAt(done ? null : replayAt + 1), replayAt === 0 ? REPLAY_START_MS : done ? 0 : REPLAY_MOVE_MS);
-    return () => clearTimeout(step);
-  }, [replayAt, moves.length]);
-  const previewState = useMemo(() => cube && scramble ? applyAlg(solved(cube), replayAt === null ? moves : moves.slice(0, replayAt)) : null, [cube, scramble, moves, replayAt]);
-  const previewSize = height < 640 ? 0 : height < 760 ? 76 : 92;
-  const canReplay = !!cube && !!scramble && moves.length > 0 && !generating;
+  const previewSize = height < 640 ? 0 : height < 760 ? 84 : 104;
   // Long scrambles (6×6, 7×7, Megaminx) get smaller moves so they fit the prompt without scrolling.
   const promptFont = scramble.length > 300 ? 12.5 : scramble.length > 160 ? 14 : scramble.length > 90 ? 16 : 19;
 
@@ -111,9 +90,7 @@ function TimerSession({ context }: { context: PracticeContext }) {
       : generationError ? <View className="items-start gap-2"><Text className="text-sm text-destructive">{generationError}</Text><Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>Retry</Text></Button></View>
       : <Alg text={scramble} size={promptFont} />}
   </View>;
-  const visual = previewSize > 0 && previewState ? <Pressable accessibilityRole="button" accessibilityLabel="Replay the scramble on the cube" disabled={!canReplay || busy} onPress={() => setReplayAt(0)}>
-    <StaticCubeSvg state={previewState} size={previewSize} held={held} />
-  </Pressable> : null;
+  const visual = previewSize > 0 && scramble && !loading ? <ScrambleCube puzzle={context.puzzle} cubeSize={info.cubeSize} scramble={scramble} held={held} size={previewSize} still={busy} /> : null;
 
   return <Page className="pb-0">
     <Fade hidden={running} className="min-h-12 flex-row items-center justify-between gap-2">

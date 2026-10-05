@@ -8,10 +8,10 @@ mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, 
 const { slideOf } = await import("../src/components/PageStack");
 const { TABS, goBackAtom, openTabAtom, routeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom } = await import("../src/state");
 
-test("four tabs: the timer, practice, learning and the profile", () => {
-  expect(TABS).toEqual(["timer", "train", "learn", "profile"]);
+test("five tabs: the timer, practice, the duel, learning and the profile", () => {
+  expect(TABS).toEqual(["timer", "train", "battle", "learn", "profile"]);
   expect(tabOf("algorithms")).toBe("learn");
-  expect(tabOf("duel")).toBe("train");
+  expect(tabOf("duel")).toBe("battle");
   expect(tabOf("playground")).toBe("timer");
 });
 
@@ -20,7 +20,7 @@ test("another tab opens immediately; a page opened inside a tab slides in from t
   expect(slideOf({ page: "learn" }, { page: "learn", method: "cfop" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "learn", method: "cfop" }, { page: "learn" }, "pop")).toEqual({ kind: "slide", direction: -1 });
   expect(slideOf({ page: "profile" }, { page: "profile", mode: "training" }, "push")).toEqual({ kind: "slide", direction: 1 });
-  expect(slideOf({ page: "training" }, { page: "duel" }, "push")).toEqual({ kind: "slide", direction: 1 });
+  expect(slideOf({ page: "training" }, { page: "duel" }, "push")).toEqual({ kind: "none" });
 });
 
 test("Learn's two parts fade into each other; a case of the library slides itself", () => {
@@ -69,8 +69,9 @@ test("tapping Train again leaves a session for the ways to practise", () => {
   store.set(openTabAtom, "train");
   expect(store.get(trainingStepAtom)).toBe("setup");
   expect(store.get(trainingSetupModeAtom)).toBe("");
-  // From the duel, the same button comes back to the list.
-  store.set(routeAtom, { page: "duel" });
+  // The duel has a tab of its own; Train comes back to the list from it.
+  store.set(openTabAtom, "battle");
+  expect(store.get(routeAtom)).toEqual({ page: "duel" });
   store.set(openTabAtom, "train");
   expect(store.get(routeAtom)).toEqual({ page: "training" });
 });

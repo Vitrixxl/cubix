@@ -9,7 +9,7 @@ const account = { id: "native-user", isGuest: false };
 const userAtom = atom(account), statsVersionAtom = atom(0), eventAtom = atom("333"), puzzleAtom = atom("333"), scrambleTypeAtom = atom("normal"), replaceRouteAtom = atom({ page: "playground" });
 const routeAtom = atom({ page: "playground" }), courseProgressAtom = atom({ methods: {}, courses: {} });
 const trainingStepAtom = atom("setup"), trainingSetupModeAtom = atom("");
-const tabOf = (page: string) => ({ playground: "timer", training: "train", duel: "train", learn: "learn", algorithms: "learn", profile: "profile" } as Record<string, string>)[page];
+const tabOf = (page: string) => ({ playground: "timer", training: "train", duel: "battle", learn: "learn", algorithms: "learn", profile: "profile" } as Record<string, string>)[page];
 const store = createStore();
 let saved: Journey = {};
 mock.module("../src/state", () => ({ userAtom, statsVersionAtom, eventAtom, puzzleAtom, scrambleTypeAtom, replaceRouteAtom, routeAtom, courseProgressAtom, tabOf, trainingStepAtom, trainingSetupModeAtom }));

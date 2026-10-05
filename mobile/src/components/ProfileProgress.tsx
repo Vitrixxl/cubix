@@ -309,9 +309,9 @@ export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined
   if (c) last.current = c;
   const shown = c ?? last.current;
   const train = () => { if (!shown) return; onClose(); setPuzzle(puzzleOf(shown)); setSelection([shown.id]); setRoute({ page: "training", autostart: true }); };
-  return <Sheet open={!!c} onClose={onClose} title={shown?.id ?? "Case"} description={shown ? (shown.name !== shown.id ? shown.name : shown.group) : undefined} snapPoints={["75%", "100%"]} contentClassName="px-0"
+  return <Sheet open={!!c} onClose={onClose} title={shown?.id ?? "Case"} description={shown ? (shown.name !== shown.id ? shown.name : shown.group) : undefined} contentClassName="px-0"
     right={shown && <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={train}><Icon as={Timer} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Train</Text></Button>}>
-    {shown && <SheetScrollView style={{ flex: 1 }} contentContainerClassName="gap-4 px-5 pb-8">
+    {shown && <SheetScrollView contentContainerClassName="gap-4 px-5 pb-8">
       <View className="flex-row items-center gap-3">
         <CaseDiagram c={shown} size={56} />
         <View className="min-w-0 flex-1">

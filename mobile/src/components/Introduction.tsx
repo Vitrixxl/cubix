@@ -210,7 +210,7 @@ function useGlidingRect(target: Rect | null, reduced: boolean) {
   return shown;
 }
 
-/** The shared steps in the order of the phone's tabs: the timer, Train (its ways to practise, the duel), Learn, Profile. */
+/** The shared steps in the order of the phone's tabs: the timer, Train, Battle, Learn, Profile. */
 const PAGE_ORDER: Page[] = ["playground", "training", "duel", "learn", "algorithms", "profile"];
 const TOUR = [...TOUR_STEPS].sort((a, b) => PAGE_ORDER.indexOf(a.page) - PAGE_ORDER.indexOf(b.page));
 

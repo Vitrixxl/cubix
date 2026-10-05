@@ -93,8 +93,8 @@ export function LearningGroups({ groups, disabled = false, onReorder }: {
     AccessibilityInfo.announceForAccessibility(`${group}, position ${to + 1} of ${next.length}`);
   };
 
-  return <View ref={viewport} collapsable={false} className="min-h-0 flex-1" onLayout={measure}>
-    <ScrollView ref={scroll} className="min-h-0 flex-1" scrollEnabled={!dragging} bounces={false} removeClippedSubviews={false}
+  return <View ref={viewport} collapsable={false} className="min-h-0 shrink" onLayout={measure}>
+    <ScrollView ref={scroll} className="min-h-0 shrink grow-0" scrollEnabled={!dragging} bounces={false} removeClippedSubviews={false}
       onScroll={event => { geometry.current.offset = event.nativeEvent.contentOffset.y; update(); }} scrollEventThrottle={16}>
       {groups.map((group, index) => {
         const active = preview?.from === index;

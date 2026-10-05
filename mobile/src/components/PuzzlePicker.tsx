@@ -111,7 +111,7 @@ export function SessionSheet() {
   // A puzzle still to learn asks first (LearnGate): the sheet makes way for the question.
   const prompted = useAtomValue(learnPromptAtom);
   useEffect(() => { if (prompted) close(); }, [prompted]);
-  return <Sheet open={!!mode} onClose={close} title={scramble ? "Puzzle and scramble" : "Puzzle"} scroll={scramble} tall={scramble}>
+  return <Sheet open={!!mode} onClose={close} title={scramble ? "Puzzle and scramble" : "Puzzle"} scroll={scramble}>
     <View className="gap-2">
       {scramble && <Text className="text-xs font-medium text-muted-foreground">Puzzle</Text>}
       <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) close(); setEvent(id); }} />

@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue } from "jotai";
 import { Ban, MessageSquare, Plus, Send, Swords, Trophy, Undo2, X } from "lucide-react-native";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BottomSheetFlatListMethods } from "@gorhom/bottom-sheet";
@@ -10,7 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { Alg, BackButton, Fade, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, HeadButton } from "../components/layout";
+import { Alg, Fade, Figure, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, HeadButton } from "../components/layout";
 import { SolveAction } from "../components/SolveMenus";
 import { Digits, LiveDigits, StopSurface, digitsSize, responder, timerHint, useTimerChrome } from "../components/Practice";
 import { SessionButton } from "../components/PuzzlePicker";
@@ -18,7 +18,7 @@ import { Sheet, SheetFlatList, SheetInput } from "../components/Sheet";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
 import { useTourTarget } from "../tour";
 import { ao5, clock, compare, opponentStatus, raceAverage, ROUNDS, shownSolve, solveTime, useDuel } from "../lib/duel";
-import { eventAtom, goBackAtom, previousRouteAtom, replaceRouteAtom } from "../state";
+import { eventAtom } from "../state";
 import { alpha, useColors } from "../theme";
 
 /**
@@ -51,7 +51,7 @@ function Lobby() {
   }, [searching]);
   const label = eventInfo(event)?.label ?? event;
   return <Page className="pb-0">
-    <PageHead lead={<DuelBack />} title="Duel"><SessionButton /></PageHead>
+    <PageHead title="Battle"><SessionButton /></PageHead>
     <View {...panel} className="flex-1 justify-center gap-8 pb-6">
       <View className="items-center gap-3 px-4">
         <View className={cn("size-16 items-center justify-center rounded-2xl", searching ? "bg-primary/15" : "bg-muted")}>
@@ -76,12 +76,6 @@ function Lobby() {
       </Button>
     </View>
   </Page>;
-}
-
-/** Back to the ways to practise: the previous page when it is one, the Train tab otherwise. A search goes on meanwhile. */
-function DuelBack() {
-  const previous = useAtomValue(previousRouteAtom), goBack = useSetAtom(goBackAtom), replace = useSetAtom(replaceRouteAtom);
-  return <BackButton label="Train" onPress={() => previous?.page === "training" ? goBack() : replace({ page: "training" })} />;
 }
 
 /** The player's timer: a hold then a release like the timer page; every phase reaches the opponent. */
@@ -130,7 +124,7 @@ function Race() {
   const colors = useColors();
   return <Page className="pb-0">
     <Fade hidden={running}>
-      <PageHead lead={<DuelBack />} title="Duel" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}>
+      <PageHead title="Battle" sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}>
         <HeadButton icon={MessageSquare} label={duel.unread ? `Chat, ${duel.unread} new` : "Chat"} active={duel.chatOpen} badge={duel.unread || undefined} onPress={() => duel.toggleChat()} />
         <MoreMenu>
           {duel.over && duel.dismissed === duel.game ? <MenuItem icon={Trophy} onPress={() => duel.showResult(true)}>Result</MenuItem> : null}
@@ -213,8 +207,8 @@ function Chat() {
   const list = useRef<BottomSheetFlatListMethods>(null);
   const send = () => { if (!text.trim()) return; duel.say(text); setText(""); };
   useLayoutEffect(() => { list.current?.scrollToEnd({ animated: false }); }, [duel.chat.length]);
-  return <Sheet open={duel.chatOpen} onClose={() => { if (duel.chatOpen) duel.toggleChat(); }} title="Chat" description={`With ${duel.opponent.name}`} snapPoints={["60%", "100%"]} contentClassName="gap-2 px-0">
-    <View className="min-h-0 flex-1"><SheetFlatList ref={list} style={{ flex: 1 }} data={duel.chat} keyExtractor={(_, i) => String(i)} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, gap: 10 }}
+  return <Sheet open={duel.chatOpen} onClose={() => { if (duel.chatOpen) duel.toggleChat(); }} title="Chat" description={`With ${duel.opponent.name}`} contentClassName="gap-2 px-0">
+    <View className="min-h-0 shrink"><SheetFlatList ref={list} data={duel.chat} keyExtractor={(_, i) => String(i)} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8, gap: 10 }}
       onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
       ListEmptyComponent={<Text className="py-2 text-sm text-muted-foreground">No messages yet.</Text>}
       renderItem={({ item }) => <View className={cn("max-w-[85%] gap-0.5 rounded-xl px-3 py-2", item.seat === duel.seat ? "self-end bg-primary/15" : "self-start bg-muted")}>

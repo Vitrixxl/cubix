@@ -39,7 +39,7 @@ export function NotationContent({ state, scroll = false }: { state: Notation; sc
   return <>
     <Choice label="Puzzle" value={chosen} onChange={state.setPuzzle} options={state.list} />
     {size ? <MovePlayer key={`${size}:${state.move}`} move={state.move} size={size} /> : null}
-    {scroll ? <SheetScrollView style={{ flex: 1 }} contentContainerClassName="gap-6 pb-10">{body}</SheetScrollView> : <View className="gap-6">{body}</View>}
+    {scroll ? <SheetScrollView contentContainerClassName="gap-6 pb-10">{body}</SheetScrollView> : <View className="gap-6">{body}</View>}
   </>;
 }
 
@@ -124,7 +124,7 @@ function PuzzleNotation({ puzzle }: { puzzle: PuzzleId }) {
 /** The notation in a sheet taking the screen's height, opened anywhere with `notationAtom`. */
 export function NotationSheet() {
   const [open, setOpen] = useAtom(notationAtom);
-  return <Sheet open={open} onClose={() => setOpen(false)} title="Notation" description="How moves are written" tall contentPanning={false} contentClassName="gap-4">
+  return <Sheet open={open} onClose={() => setOpen(false)} title="Notation" description="How moves are written" contentPanning={false} contentClassName="gap-4">
     {open ? <NotationBody /> : null}
   </Sheet>;
 }

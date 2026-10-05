@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { Dumbbell, GraduationCap, Timer, UserRound, type LucideIcon } from "lucide-react-native";
+import { Dumbbell, GraduationCap, Swords, Timer, UserRound, type LucideIcon } from "lucide-react-native";
 import { type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,16 +7,17 @@ import { Icon } from "@/components/ui/icon";
 import { type Tab } from "../state";
 import { useTourTarget } from "../tour";
 
-/** The four tabs: the timer first, then practice, learning and the player's own page. */
+/** The five tabs: the timer first, then practice, the duel, learning and the player's own page. */
 const TABS: [tab: Tab, label: string, icon: LucideIcon][] = [
   ["timer", "Timer", Timer],
   ["train", "Train", Dumbbell],
+  ["battle", "Battle", Swords],
   ["learn", "Learn", GraduationCap],
   ["profile", "Profile", UserRound],
 ];
 
 /**
- * Four icon-only tabs: the current page uses the primary colour. Labels remain available to screen readers.
+ * Five icon-only tabs: the current page uses the primary colour. Labels remain available to screen readers.
  * `locked` greys the tabs waiting for the puzzle's course; a tap on them still goes through (it offers to skip it).
  */
 export function TabBar({ active: current, locked, onNavigate }: { active: Tab; locked: (tab: Tab) => boolean; onNavigate: (tab: Tab) => void }) {

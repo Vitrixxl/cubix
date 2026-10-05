@@ -18,13 +18,13 @@ export function TimesSheet({ open, onClose, solves, title }: { open: boolean; on
   const metrics = sessionMetrics(solves);
   const extremes = sessionExtremes(solves);
   const data = useMemo(() => [...solves].reverse(), [solves]);
-  return <Sheet open={open} onClose={onClose} snapPoints={["55%", "100%"]} contentClassName="gap-3 px-0"
+  return <Sheet open={open} onClose={onClose} contentClassName="gap-3 px-0"
     title={<Text accessibilityRole="header" className="text-base font-semibold">{title} <Numeric className="text-base font-normal text-muted-foreground">{solves.length}</Numeric></Text>}
     description="Tap a time for its details · hold it for +2, DNF or delete">
     <View className="mx-5 flex-row flex-wrap gap-y-3 rounded-xl bg-muted/45 px-3 py-3">
       {metrics.map(([label, value, tone]) => <View key={label} style={{ width: "25%" }} className="pr-2"><Figure label={label} value={value} tone={tone} size="sm" /></View>)}
     </View>
-    <SheetFlatList style={{ flex: 1 }} data={data} keyExtractor={solve => String(solve.id)} initialNumToRender={20} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
+    <SheetFlatList data={data} keyExtractor={solve => String(solve.id)} initialNumToRender={20} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
       ListEmptyComponent={<Text className="px-2 py-3 text-sm text-muted-foreground">No solves in this session yet.</Text>}
       renderItem={({ item: v, index }) => <SolveMenu solve={v} className="h-12 flex-row items-center gap-3 rounded-lg px-2 active:bg-muted/50">
         <Numeric className="w-8 text-right text-xs text-muted-foreground">{solves.length - index}</Numeric>

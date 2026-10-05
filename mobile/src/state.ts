@@ -29,20 +29,19 @@ export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[]
 ];
 export type Page = Route["page"];
 /**
- * The four tabs of the bottom bar. Each holds pages of its own: Learn shows the courses and the algorithm library,
- * Train the ways to practise and the duel.
+ * The five tabs of the bottom bar. Each holds pages of its own: Learn shows the courses and the algorithm library,
+ * Train the ways to practise, Battle the duel.
  */
-export type Tab = "timer" | "train" | "learn" | "profile";
-export const TABS: readonly Tab[] = ["timer", "train", "learn", "profile"];
-const TAB_OF: Record<Page, Tab> = { playground: "timer", training: "train", duel: "train", learn: "learn", algorithms: "learn", profile: "profile" };
+export type Tab = "timer" | "train" | "battle" | "learn" | "profile";
+export const TABS: readonly Tab[] = ["timer", "train", "battle", "learn", "profile"];
+const TAB_OF: Record<Page, Tab> = { playground: "timer", training: "train", duel: "battle", learn: "learn", algorithms: "learn", profile: "profile" };
 export const tabOf = (page: Page): Tab => TAB_OF[page];
 /** The page a tab opens on the first time, and goes back to when its button is tapped again. */
-export const TAB_ROOT: Record<Tab, Route> = { timer: { page: "playground" }, train: { page: "training" }, learn: { page: "learn" }, profile: { page: "profile" } };
+export const TAB_ROOT: Record<Tab, Route> = { timer: { page: "playground" }, train: { page: "training" }, battle: { page: "duel" }, learn: { page: "learn" }, profile: { page: "profile" } };
 /** How deep a route sits in its tab: its first page is 0, a page opened from it 1. */
 export function routeDepth(route: Route) {
   switch (route.page) {
     case "learn": return route.method ? 1 : 0;
-    case "duel": return 1;
     case "profile": return route.mode ? 1 : 0;
     default: return 0;
   }

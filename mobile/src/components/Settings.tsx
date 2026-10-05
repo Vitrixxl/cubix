@@ -24,7 +24,7 @@ export function SettingsSheet() {
   const [open, setOpen] = useAtom(settingsOpenAtom);
   useReleaseCheck(open);
   useOtaCheck(open);
-  return <Sheet open={open} onClose={() => setOpen(false)} title="Settings" tall scroll contentClassName="gap-6">
+  return <Sheet open={open} onClose={() => setOpen(false)} title="Settings" scroll contentClassName="gap-6">
     <Appearance />
     <Help onOpen={() => setOpen(false)} />
     <Account onSignedOut={() => setOpen(false)} />

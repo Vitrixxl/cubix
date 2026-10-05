@@ -1,18 +1,16 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, Box, Check, LayoutGrid, Play, Swords, type LucideIcon } from "lucide-react-native";
+import { BookOpen, Box, Check, LayoutGrid, Play, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { isLearningTrack, learningCases, reviewCases, trainingModeOptions, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { CROSS_PLUS_ONE_MOVES } from "../../../src/shared/crossPlusOne";
 import { plural } from "../../../src/client/lib/format";
-import { eventInfo } from "../../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import type { useDailyLearning } from "../hooks/useDailyLearning";
-import { useDuel } from "../lib/duel";
-import { casesAtom, crossMovesAtom, eventAtom, learnedCaseIdsAtom, puzzleAtom, routeAtom, selectedCaseIdsAtom, setsAtom } from "../state";
+import { casesAtom, crossMovesAtom, learnedCaseIdsAtom, puzzleAtom, routeAtom, selectedCaseIdsAtom, setsAtom } from "../state";
 import { CaseSelector } from "./CaseSelector";
 import { BackButton, Bar, Figure, ListGroup, ListRow, Numeric, Page, PageHead, SearchField } from "./layout";
 import { SessionButton } from "./PuzzlePicker";
@@ -49,14 +47,11 @@ export function useSetupModes(): SetupMode[] {
 }
 
 /**
- * The Train tab's first page: every way to practise the puzzle, grouped, the one trained last marked; then the duel.
- * A row opens its setup (`onOpen`), the duel its own page.
+ * The Train tab's first page: every way to practise the puzzle, grouped, the one trained last marked.
+ * A row opens its setup (`onOpen`).
  */
 export function TrainHome({ last, onOpen }: { last: string; onOpen: (mode: string) => void }) {
   const modes = useSetupModes();
-  const setRoute = useSetAtom(routeAtom);
-  const event = useAtomValue(eventAtom);
-  const { duel } = useDuel();
   const target = useTourTarget("training");
   const row = (m: SetupMode, first: boolean) => <ListRow key={m.id} first={first} icon={m.icon} tone={m.id === last ? "primary" : "muted"} title={m.label}
     accessibilityLabel={`${m.label}, ${m.detail}`} onPress={() => onOpen(m.id)}
@@ -64,7 +59,6 @@ export function TrainHome({ last, onOpen }: { last: string; onOpen: (mode: strin
     {m.progress !== undefined ? <Bar ratio={m.progress} className="mt-1.5 max-w-40" /> : null}
   </ListRow>;
   const drills = modes.filter(m => ["practice", "review", "cross1"].includes(m.id)), tracks = modes.filter(m => !drills.includes(m));
-  const searching = duel.status === "searching", racing = duel.status === "racing";
   return <Page className="pb-0">
     <PageHead title="Train"><SessionButton /></PageHead>
     <ScrollView className="-mx-4 flex-1" contentContainerClassName="gap-6 px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
@@ -72,10 +66,6 @@ export function TrainHome({ last, onOpen }: { last: string; onOpen: (mode: strin
         <ListGroup title="Drills">{drills.map((m, i) => row(m, i === 0))}</ListGroup>
         {tracks.length ? <ListGroup title="Learn a set">{tracks.map((m, i) => row(m, i === 0))}</ListGroup> : null}
       </View>
-      <ListGroup title="Compete">
-        <ListRow first icon={Swords} tone={searching || racing ? "primary" : "muted"} title="Duel" onPress={() => setRoute({ page: "duel" })}
-          detail={racing ? `Race in progress against ${duel.opponent.name}` : searching ? "Looking for an opponent…" : `Race an Ao5 of ${eventInfo(event)?.label ?? event} against a player near your level`} />
-      </ListGroup>
     </ScrollView>
   </Page>;
 }

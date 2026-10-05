@@ -200,7 +200,7 @@ export function AlgPlayerSheet({ items, index, onIndex, onClose, choice: initial
   if (index !== null && (index !== shown || !open)) { setShown(index); setChoice(open && index !== shown ? 0 : initial); setOpen(true); }
   if (index === null && open) setOpen(false);
   const item = items[shown];
-  return <Sheet open={index !== null} onClose={onClose} title={item?.name ?? "Algorithm"} hideTitle tall scroll contentPanning={false} contentClassName="gap-3">
+  return <Sheet open={index !== null} onClose={onClose} title={item?.name ?? "Algorithm"} hideTitle scroll contentPanning={false} contentClassName="gap-3">
     {item ? <PlayerBody key={`${item.key}:${choice}`} item={item} choice={choice} onChoice={setChoice} count={items.length} index={shown} onIndex={i => { setChoice(0); onIndex(i); }} /> : null}
   </Sheet>;
 }

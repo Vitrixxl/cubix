@@ -248,7 +248,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
       bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
     <SessionPeek figures={peek} count={shown.length} noun="attempt" onPress={() => setShowTimes(true)} hidden={running} />
     <SessionSheet open={showTimes} onClose={() => setShowTimes(false)} selectedCases={selectedCases} solves={shown} onUndo={solves.length ? undoLast : undefined} />
-    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title="Group order" description={`Learn ${track ?? ""}: drag the families into the order you want to learn them`} tall contentPanning={false}>
+    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title="Group order" description={`Learn ${track ?? ""}: drag the families into the order you want to learn them`} contentPanning={false}>
       {showGroups && <LearningGroups key={daily.mode} groups={daily.groups} disabled={locked} onReorder={daily.reorderGroups} />}
     </Sheet>
     <StopSurface timer={timer} />
@@ -265,11 +265,11 @@ function SessionSheet({ open, onClose, selectedCases, solves, onUndo }: { open: 
     const ids = new Set([...selectedCases.map(c => c.id), ...solves.map(s => s.case_id).filter((id): id is string => !!id)]);
     return trainingSessionRows(cases.filter(c => ids.has(c.id)), solves);
   }, [cases, selectedCases, solves]);
-  return <Sheet open={open} onClose={onClose} snapPoints={["55%", "100%"]} contentClassName="px-0"
+  return <Sheet open={open} onClose={onClose} contentClassName="px-0"
     title={<Text accessibilityRole="header" className="text-base font-semibold">Session <Numeric className="text-base font-normal text-muted-foreground">{solves.length}</Numeric></Text>}
     description="Tap a time for its details · hold it for +2, DNF or delete"
     right={onUndo ? <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={onUndo}><Icon as={Undo2} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Undo</Text></Button> : null}>
-    <SheetScrollView style={{ flex: 1 }} contentContainerClassName="gap-1 px-3 pb-4">
+    <SheetScrollView contentContainerClassName="gap-1 px-3 pb-4">
       {rows.map(({ c, solves: list, best: fastest, mean: average, validCount }) => <View key={c.id} className="flex-row items-start gap-3 rounded-lg px-2 py-2">
         <View className="w-11 items-center gap-1">
           <CaseDiagram c={c} size={40} />

@@ -19,8 +19,8 @@ const guides: Record<Exclude<GuideId, "methods" | "notation">, { title: string; 
   about: {
     title: "About Qbix", lead: "Qbix is a free cube timer and algorithm trainer. Sign in or create a free account to start.",
     sections: [
-      ["Your setup", "Edit setup, at the top of these guides, changes the puzzles you can solve and the methods you use. Picking a puzzle opens its timer; one you cannot solve yet opens on its course in Learn and asks whether to learn it or unlock everything, and Timer, Train and the algorithm library stay greyed until you finish the course or tap one of them and skip the tutorial. Replay tour, beside it, shows each tab again."],
-      ["Finding your way", "Four tabs at the bottom: Timer for full solves; Train for drills, the daily learning of a set and duels; Learn for the courses and the algorithm library; Profile for your statistics, achievements and battles, with the settings behind its gear. Each tab comes back to the page it showed last; tap the current tab again to return to its first page."],
+      ["Your setup", "Edit setup, at the top of these guides, changes the puzzles you can solve and the methods you use. Picking a puzzle opens its timer; one you cannot solve yet opens on its course in Learn and asks whether to learn it or unlock everything, and Timer, Train, Battle and the algorithm library stay greyed until you finish the course or tap one of them and skip the tutorial. Replay tour, beside it, shows each tab again."],
+      ["Finding your way", "Five tabs at the bottom: Timer for full solves; Train for drills and the daily learning of a set; Battle for duels; Learn for the courses and the algorithm library; Profile for your statistics, achievements and battles, with the settings behind its gear. Each tab comes back to the page it showed last; tap the current tab again to return to its first page."],
       ["Timer", "Apply the scramble, hold a free area of the screen until the time turns green, release to start, then tap to stop. Times, Ao5 and Ao12 are kept per puzzle, scramble type and solve mode."],
       ["Algorithms and training", "Learn holds the courses and the algorithm library: browse case diagrams, setups and algorithms there, then practise the cases you choose in Train. Qbix includes 2×2 to 7×7, Square-1, Pyraminx, Skewb, Megaminx and Clock."],
       ["Accounts and offline practice", "Your account keeps your times, statistics, learned cases and achievements in sync between devices. Signing in needs a connection; after that the timer, scrambles, catalogue and guides work offline, and your times are saved on the phone and sent once the connection is back. Times kept on the phone before accounts were required join your account when you sign in."],
@@ -31,7 +31,7 @@ const guides: Record<Exclude<GuideId, "methods" | "notation">, { title: string; 
   timer: {
     title: "Using the cube timer", lead: "Time physical solves with the touchscreen.",
     sections: [
-      ["1. Choose a puzzle and scramble", "Tap the puzzle at the top of the Timer: one sheet holds the puzzle (each WCA event, one-handed and blindfolded included), the scramble type and the time entry. Normal generates a scramble for the selected event; the shuffle button at the top right draws another one. Tap the cube to replay the scramble on it."],
+      ["1. Choose a puzzle and scramble", "Tap the puzzle at the top of the Timer: one sheet holds the puzzle (each WCA event, one-handed and blindfolded included), the scramble type and the time entry. Normal generates a scramble for the selected event; the shuffle button at the top right draws another one. The cube beside it plays each new scramble in 3D: tap it to play it again, drag it to turn it around."],
       ["2. Start", "Hold a free area of the screen for 0.3 seconds until the time turns green, then release. Releasing early cancels. Buttons and lists do not start the timer."],
       ["3. Stop and review", "Tap the screen to stop. Your time is saved and the next scramble appears. The buttons under the time add a +2 or a DNF to it, write a note or delete it. The chips under the time are your current average of five. Tap the session strip (Ao5, Ao12, Best) to open every time of the session: tap a time for its details, hold it for +2, DNF, a comment or its deletion."],
       ["Typing and casual entry", "Entry, in the puzzle sheet at the top of the Timer, chooses how times come in. Timer is the built-in timer. Typing replaces it with a field for a time measured on an external timer such as a speed-stacking mat: type it and confirm. Bare digits are read from the right, so 1234 is 12.34 and 12345 is 1:23.45; 12.34 and 1:23.45 work too. Casual runs the timer without recording anything: the time is shown, then forgotten, and the session, statistics and profile stay untouched."],
@@ -112,9 +112,9 @@ export function GuidesSheet() {
   const setIntro = useSetAtom(introductionAtom);
   const replayTour = () => { setGuide(null); setIntro("tour"); };
   const editSetup = () => { setGuide(null); setIntro("setup"); };
-  return <Sheet open={guide !== null} onClose={() => setGuide(null)} title="Guides" hideTitle tall contentClassName="gap-0 px-0 pt-0">
+  return <Sheet open={guide !== null} onClose={() => setGuide(null)} title="Guides" hideTitle contentClassName="gap-0 px-0 pt-0">
     <Chips label="Guides" items={GUIDE_NAMES} value={shown} onChange={setGuide} />
-    <SheetScrollView key={shown} style={{ flex: 1 }} contentContainerClassName="gap-3 px-5 pt-6 pb-10">
+    <SheetScrollView key={shown} contentContainerClassName="gap-3 px-5 pt-6 pb-10">
       <View className="flex-row items-center justify-between gap-3">
         <Label>Qbix · Guides</Label>
         <View className="flex-row gap-2">
@@ -184,13 +184,13 @@ function NotationGuide() {
 
 /** Solving methods on their own (the algorithms' menu): puzzle and method chips stay put while the method scrolls. */
 export function MethodsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return <Sheet open={open} onClose={onClose} title="Solving methods" tall contentClassName="gap-3 px-0">{open && <MethodsContent />}</Sheet>;
+  return <Sheet open={open} onClose={onClose} title="Solving methods" contentClassName="gap-3 px-0">{open && <MethodsContent />}</Sheet>;
 }
 function MethodsContent() {
   const state = useMethod();
   return <>
     <Chips label="Puzzle" items={PUZZLES.map(p => [p.id, p.label] as [PuzzleId, string])} value={state.puzzle} onChange={state.onPuzzle} />
     <Chips label="Method" items={METHODS[state.puzzle].map(m => [m.id, m.name] as [string, string])} value={state.method.id} onChange={state.onMethod} />
-    <SheetScrollView key={`${state.puzzle}:${state.method.id}`} style={{ flex: 1 }} contentContainerClassName="px-5 pt-2 pb-10"><MethodBody method={state.method} /></SheetScrollView>
+    <SheetScrollView key={`${state.puzzle}:${state.method.id}`} contentContainerClassName="px-5 pt-2 pb-10"><MethodBody method={state.method} /></SheetScrollView>
   </>;
 }
