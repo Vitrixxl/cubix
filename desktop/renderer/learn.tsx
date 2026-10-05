@@ -10,7 +10,6 @@ import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type 
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { viewForMask } from "../../src/shared/cubeDiagram";
-import { displayAlg, maskForStage, shortId } from "../../src/client/lib/caseState";
 import {
   LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodProgress, recommendedMethod, setGroups, stepId, stepLearned, stepSets,
   type CourseEntry,
@@ -18,8 +17,10 @@ import {
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Figure, Icon, LABEL, PlayBadge, NUMERIC, PAGE, PageHead, PuzzleButton, Surface, Tip, plural, run, usePhone } from "./ui";
+import { ActionToggle, Alg, Bar, Button, Choice, Figure, Icon, LABEL, PlayBadge, NUMERIC, PAGE, PageHead, PuzzleButton, Surface, Tip, plural, run, usePhone } from "./ui";
 import { Picker, PickerCard } from "./picker";
+import { CaseDetail, CaseTile, TILES } from "./algorithms";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -149,26 +150,6 @@ function Methods() {
 /** One algorithm of a step, from the catalogue or the step's own; `play` when the 3D player can show it. */
 type Item = { key: string; name: string; detail?: string; alg: string; alternatives: string[]; note?: string; learned: boolean; action: string; diagram: React.ReactNode; play?: PlayItem };
 
-function catalogItem(c: any, context: string): Item {
-  // The 3×3 cases go by their number (OLL 21 → 21, its name beside); the other puzzles' by their name.
-  const name = c.puzzle_id || c.cube_size ? c.name : shortId(c),
-    algs = c.algorithms.map(displayAlg),
-    size = c.diagram ? null : (c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize);
-  const detail = c.name !== c.id && c.name !== name ? c.name : undefined;
-  return {
-    key: c.id,
-    name,
-    detail,
-    alg: algs[0],
-    alternatives: algs.slice(1),
-    note: c.notes,
-    learned: s.learned.has(c.id),
-    action: "learn:" + c.id,
-    diagram: <Diagram c={c} size={64} />,
-    play: size ? { key: c.id, name, detail, context, algs, note: c.notes, size, mask: maskForStage(c.stage) } : undefined,
-  };
-}
-
 /** The case an inline algorithm solves, drawn like the catalogue's diagrams; puzzles without one keep their icon. */
 function InlineDiagram({ puzzle, step, a, size }: { puzzle: PuzzleId; step: MethodStep; a: MethodAlgorithm; size: number }) {
   const cube = puzzleInfo(puzzle).cubeSize,
@@ -211,14 +192,61 @@ export function LearnToggle({ action, learned, touch = false }: { action: string
   );
 }
 
+/** An algorithm's case; a click plays it, and the algorithms around it, in 3D. */
+function PlayDiagram({ item, items }: { item: Item; items: Item[] }) {
+  const playable = items.filter((i) => i.play);
+  if (!item.play) return <span className="shrink-0 self-center">{item.diagram}</span>;
+  return (
+    <Tip content="Play in 3D">
+      <button
+        type="button"
+        data-play={item.key}
+        aria-label={`Play ${item.name} in 3D`}
+        onClick={() => s.openAlg(playable.map((i) => i.play!), playable.indexOf(item))}
+        className="group/play relative shrink-0 cursor-pointer self-center rounded-md outline-none ring-ring/50 ring-offset-2 ring-offset-background transition-shadow hover:ring-2 focus-visible:ring-2"
+      >
+        {item.diagram}
+        <PlayBadge compact />
+      </button>
+    </Tip>
+  );
+}
+
+/** An algorithm's name and the case's own name beside it. */
+function AlgName({ item }: { item: Item }) {
+  return (
+    <div className="flex min-w-0 items-baseline gap-2">
+      <span className="truncate font-sans text-sm font-medium">{item.name}</span>
+      {item.detail && <span className="truncate text-xs text-muted-foreground">{item.detail}</span>}
+    </div>
+  );
+}
+
+/** The other ways to do an algorithm, folded under their count. */
+function Alternatives({ item, touch = false }: { item: Item; touch?: boolean }) {
+  const [open, setOpen] = useState(false);
+  if (!item.alternatives.length) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className={cn("-ml-1 flex w-fit items-center gap-1 rounded-md px-1 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50", touch && "min-h-9")}
+      >
+        {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+        {plural(item.alternatives.length, "alternative")}
+      </button>
+      {open && item.alternatives.map((alt, i) => <Alg key={i} text={alt} size={14} className="text-muted-foreground" />)}
+    </div>
+  );
+}
+
 /**
  * One algorithm: its case (a click plays it in 3D), its name, the algorithm, how to hold the cube, its alternatives,
  * then its learned toggle.
  */
 function AlgRow({ item, items, touch = false }: { item: Item; items: Item[]; touch?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const playable = items.filter((i) => i.play),
-    play = item.play ? () => s.openAlg(playable.map((i) => i.play!), playable.indexOf(item)) : undefined;
   const toggle = (
     <div className={cn("flex shrink-0 items-center", touch && "justify-end pt-1")}>
       <LearnToggle action={item.action} learned={item.learned} touch={touch} />
@@ -226,43 +254,12 @@ function AlgRow({ item, items, touch = false }: { item: Item; items: Item[]; tou
   );
   return (
     <div className={cn("group/row -mx-2 flex items-start gap-5 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/40", touch && "gap-4 pr-0 hover:bg-transparent")}>
-      {play ? (
-        <Tip content="Play in 3D">
-          <button
-            type="button"
-            data-play={item.key}
-            aria-label={`Play ${item.name} in 3D`}
-            onClick={play}
-            className="group/play relative shrink-0 cursor-pointer self-center rounded-md outline-none ring-ring/50 ring-offset-2 ring-offset-background transition-shadow hover:ring-2 focus-visible:ring-2"
-          >
-            {item.diagram}
-            <PlayBadge compact />
-          </button>
-        </Tip>
-      ) : (
-        <span className="shrink-0 self-center">{item.diagram}</span>
-      )}
+      <PlayDiagram item={item} items={items} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <span className="truncate font-sans text-sm font-medium">{item.name}</span>
-          {item.detail && <span className="truncate text-xs text-muted-foreground">{item.detail}</span>}
-        </div>
+        <AlgName item={item} />
         <Alg text={item.alg} size={touch ? 16 : 17} />
         {item.note && <p className="text-xs leading-relaxed text-muted-foreground">{item.note}</p>}
-        {item.alternatives.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              aria-expanded={open}
-              onClick={() => setOpen(!open)}
-              className={cn("-ml-1 flex w-fit items-center gap-1 rounded-md px-1 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50", touch && "min-h-9")}
-            >
-              {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-              {plural(item.alternatives.length, "alternative")}
-            </button>
-            {open && item.alternatives.map((alt, i) => <Alg key={i} text={alt} size={14} className="text-muted-foreground" />)}
-          </div>
-        )}
+        <Alternatives item={item} touch={touch} />
         {touch && toggle}
       </div>
       {!touch && <div className="self-center">{toggle}</div>}
@@ -270,7 +267,10 @@ function AlgRow({ item, items, touch = false }: { item: Item; items: Item[]; tou
   );
 }
 
-/** The step's content: its explanation and tips, its sets, then every algorithm it teaches. */
+/**
+ * The step's content: its explanation and tips, its sets, then every algorithm it teaches. On the desktop it fills the
+ * page's height and only the algorithms scroll; on a phone the whole step scrolls.
+ */
 function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
   const step = method.steps[entry.step]!,
     cases = s.cases(),
@@ -279,11 +279,11 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
     groups = chosen ? setGroups(cases, chosen.id) : [],
     inline = (step.algs ?? []).map((a) => inlineItem(puzzle, step, a, entry)),
     count = stepLearned(step, cases, s.learned, entry);
-  const catalogue = groups.map(([group, members]) => [group, members.map((c: any) => catalogItem(c, [chosen?.label, groups.length > 1 && group].filter(Boolean).join(" · ")))] as const),
-    items = [...inline, ...catalogue.flatMap(([, list]) => list)];
+  const fill = !touch;
   return (
     <>
-      <div className="flex max-w-2xl flex-col gap-4">
+      {/* Without algorithms, the explanation alone may need the scroll. */}
+      <div className={cn("flex max-w-2xl flex-col gap-4", fill && (count.total > 0 ? "shrink-0" : "min-h-0 overflow-y-auto pb-6"))}>
         <p className="text-[15px] leading-relaxed text-foreground/85">{step.text}</p>
         {!!step.tips?.length && (
           <section className="flex flex-col gap-1.5" aria-label="Tips">
@@ -306,8 +306,8 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
         )}
       </div>
       {count.total > 0 && (
-        <section className="flex max-w-4xl flex-col" aria-label="Algorithms">
-          <div className="flex min-h-8 flex-wrap items-center gap-x-4 gap-y-2 pb-1">
+        <section className={cn("flex max-w-4xl flex-col", fill && "min-h-0 flex-1")} aria-label="Algorithms">
+          <div className="flex min-h-8 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 pb-1">
             <h3 className={LABEL}>
               Algorithms <span className="font-normal">{count.learned} / {count.total} learned</span>
             </h3>
@@ -330,13 +330,19 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
               />
             )}
           </div>
-          {inline.map((item) => <AlgRow key={item.key} item={item} items={items} touch={touch} />)}
-          {catalogue.map(([group, list]) => (
-            <div key={group} className="flex flex-col pt-2">
-              {(groups.length > 1 || sets.length === 1) && <h4 className={cn(LABEL, "py-1")}>{groups.length > 1 ? group : chosen.label}</h4>}
-              {list.map((item) => <AlgRow key={item.key} item={item} items={items} touch={touch} />)}
-            </div>
-          ))}
+          {/* The rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
+          <div className={cn("flex flex-col", fill && "-mx-2 min-h-0 flex-1 overflow-y-auto px-2 pb-6")}>
+            {inline.map((item) => <AlgRow key={item.key} item={item} items={inline} touch={touch} />)}
+            {/* The catalogue's cases as tiles, like the algorithms page; a tile opens its case in a dialog. */}
+            {groups.map(([group, members]) => (
+              <div key={group} className="flex flex-col gap-1.5 pt-2">
+                {(groups.length > 1 || sets.length === 1) && <h4 className={cn(LABEL, "py-1")}>{groups.length > 1 ? group : chosen.label}</h4>}
+                <div className={TILES}>
+                  {members.map((c: any) => <CaseTile key={c.id} c={c} touch={touch} action={"caseDialog:" + c.id} selected={s.caseDialog === c.id} />)}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </>
@@ -518,8 +524,34 @@ function Finished({ puzzle, method, touch = false }: { puzzle: PuzzleId; method:
 /** A course: its steps in a box, the current one on the page, Previous and Next step beside its title. */
 function Course({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
   const phone = usePhone();
-  if (phone) return <PhoneCourse puzzle={puzzle} method={method} entry={entry} />;
-  return <DesktopCourse puzzle={puzzle} method={method} entry={entry} />;
+  return (
+    <>
+      {phone ? <PhoneCourse puzzle={puzzle} method={method} entry={entry} /> : <DesktopCourse puzzle={puzzle} method={method} entry={entry} />}
+      <CaseDialog />
+    </>
+  );
+}
+
+/** A case of the step opened over the course: the algorithms page's detail, in a dialog. */
+export function CaseDialog() {
+  const open = !!s.caseDialog && !!s.find(s.caseDialog);
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && void s.action("caseDialog:")}>
+      <DialogContent
+        className="flex max-h-[min(52rem,calc(100svh-4rem))] flex-col gap-0 overflow-hidden p-5 sm:max-w-4xl"
+        // The arrows step through the case's set, like the algorithms page; the course's own arrows wait behind.
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          e.preventDefault();
+          e.stopPropagation();
+          void s.action("caseStep:" + (e.key === "ArrowLeft" ? "previous" : "next"));
+        }}
+      >
+        <DialogTitle className="sr-only">{s.caseDialog}</DialogTitle>
+        {open && <CaseDetail key={s.caseDialog} id={s.caseDialog} dialog />}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
@@ -556,8 +588,8 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
           <Finished puzzle={puzzle} method={method} />
         ) : (
           <div key={entry.step} className="flex min-h-0 min-w-0 flex-1 flex-col self-stretch">
-            {/* Its algorithm rows reach 8px past their text (-mx-2): the column's padding holds them, so nothing scrolls sideways. */}
-            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-2 pt-1 pb-6">
+            {/* The step holds the page's height: its title and explanation stay, its algorithms scroll (StepBody). */}
+            <div className="flex min-h-0 flex-1 flex-col gap-6 px-2 pt-1">
               <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <div className="flex min-w-0 flex-1 items-baseline gap-3">
                   <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{step.title}</h2>

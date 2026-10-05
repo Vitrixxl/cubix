@@ -37,7 +37,7 @@ export function CoachingSidebar({ open }: { open: boolean }) {
                     <I />
                     <span>{label}</span>
                   </SidebarMenuButton>
-                  {!!badge(id) && <SidebarMenuBadge className="bg-primary text-primary-foreground">{badge(id)}</SidebarMenuBadge>}
+                  {!!badge(id) && <SidebarMenuBadge className="bg-primary text-primary-foreground peer-data-[size=default]/menu-button:top-2">{badge(id)}</SidebarMenuBadge>}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

@@ -187,13 +187,15 @@ function CaseList({ wide }: { wide: boolean }) {
 }
 
 /** The cases of a group as a grid of square tiles, as many per line as the list's width holds. */
-const TILES = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5";
+export const TILES = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5";
 
-/** A case as a square tile: its diagram, then its name and best time on one line, the learned mark in the top right corner. */
-function CaseTile({ c, touch = false, detail }: { c: any; touch?: boolean; detail?: string }) {
+/**
+ * A case as a square tile: its diagram, then its name and best time on one line, the learned mark in the top right
+ * corner. A click opens the case (`action`): on the algorithms page by default, in a dialog elsewhere.
+ */
+export function CaseTile({ c, touch = false, detail, action = "case:" + c.id, selected = s.caseId === c.id }: { c: any; touch?: boolean; detail?: string; action?: string; selected?: boolean }) {
   const st = s.stats.find((v) => v.caseId === c.id),
-    learned = s.learned.has(c.id),
-    selected = s.caseId === c.id;
+    learned = s.learned.has(c.id);
   return (
     <div
       className={cn(
@@ -206,8 +208,8 @@ function CaseTile({ c, touch = false, detail }: { c: any; touch?: boolean; detai
     >
       <button
         type="button"
-        data-action={"case:" + c.id}
-        onClick={run("case:" + c.id)}
+        data-action={action}
+        onClick={run(action)}
         className="case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <span className="flex min-h-0 flex-1 items-center justify-center">
@@ -310,11 +312,12 @@ const caseSteps = (c: any) => {
 
 /**
  * One case in full, as the page's surface: the diagram, the name, its figures and actions on top, then setup,
- * algorithms and statistics, each under its label.
+ * algorithms and statistics, each under its label. In a dialog (`dialog`) it keeps its title and actions on phones too.
  */
-function CaseDetail() {
-  const c = s.find(s.caseId),
-    mobile = usePhone();
+export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dialog?: boolean }) {
+  const c = s.find(id),
+    phone = usePhone(),
+    mobile = phone && !dialog;
   const { index, count } = caseSteps(c),
     st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id);
@@ -330,13 +333,14 @@ function CaseDetail() {
         <div className="shrink-0 self-center">
           {c.cube ? <button type="button" data-play={c.id} aria-label={`Play ${c.id} in 3D`} onClick={openPlayer}
             className="group/play relative rounded-md outline-none hover:ring-2 focus-visible:ring-2 ring-ring/50">
-            <Diagram c={c} size={mobile ? 104 : 152} />
+            <Diagram c={c} size={phone ? 104 : 152} />
             <PlayBadge />
-          </button> : <Diagram c={c} size={mobile ? 104 : 152} />}
+          </button> : <Diagram c={c} size={phone ? 104 : 152} />}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-4 md:gap-5">
           {!mobile && (
-            <div className="flex items-center gap-4">
+            // In a dialog, clear of its close button.
+            <div className={cn("flex items-center gap-4", dialog && "pr-8")}>
               <div className="flex min-w-0 flex-1 items-baseline gap-3">
                 <h2 className="min-w-0 shrink-0 truncate text-2xl font-semibold tracking-tight">{c.id}</h2>
                 <p className="min-w-0 truncate text-sm text-muted-foreground">{c.name !== c.id ? c.name : `${c.setLabel} · ${c.group}`}</p>
@@ -350,7 +354,7 @@ function CaseDetail() {
             <Figure label="Attempts" value={st?.count ?? 0} />
           </div>
           {/* Phones have these at the bottom, under the thumb (Detail). */}
-          <div className="flex flex-wrap items-center gap-1.5 max-md:hidden">
+          <div className={cn("flex flex-wrap items-center gap-1.5", mobile && "hidden")}>
             <Button action="train" icon={Timer} variant="default">
               Train
             </Button>

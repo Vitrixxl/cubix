@@ -40,10 +40,21 @@ type Point = readonly [number, number];
 type Vector = readonly [number, number, number];
 const sum = (a: Vector, b: Vector, factor = 1): Vector => [a[0] + b[0] * factor, a[1] + b[1] * factor, a[2] + b[2] * factor];
 const format = (points: Point[]) => points.map(([x, y]) => `${+x.toFixed(2)},${+y.toFixed(2)}`).join(" ");
-/** Isometric projection of a point in tile units: x runs right along the front face, y down, z from the back of the top face to the front. */
+/** Distance from the eye to the cube's centre, in cube widths, as on the 3D cube (shared/cubeScene `CUBE_EYE`). */
+const EYE = 5;
+// Depth of the silhouette's nearest vertices, in cube widths: drawn where the flat projection put them, so the cube keeps its size.
+const FIT = (EYE - 0.5 / Math.sqrt(3)) / EYE;
+/**
+ * Projection of a point in tile units: x runs right along the front face, y down, z from the back of the top face to the
+ * front. The isometric view with a gentle perspective, as the 3D cube: the near corner comes forward, the far side
+ * shrinks a little, so the back of the cube no longer reads larger than its front.
+ */
 const project = ([x, y, z]: Vector, dimension: number): Point => {
-  const scale = 3 / dimension;
-  return [60 + 17 * scale * (x - z), 5 + 9 * scale * (x + z) + 18 * scale * y];
+  const scale = 3 / dimension, half = dimension / 2;
+  // Towards the eye, which looks at the cube from its front top right corner.
+  const depth = (x - half - (y - half) + (z - half)) / (dimension * Math.sqrt(3));
+  const factor = FIT * EYE / (EYE - depth);
+  return [60 + 17 * scale * (x - z) * factor, 59 + (9 * scale * (x + z) + 18 * scale * y - 54) * factor];
 };
 /** Quarter turn from `from` to `to` around `center`, both one radius away on perpendicular sides. */
 function arc(center: Point, from: Point, to: Point): Point[] {

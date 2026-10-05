@@ -67,9 +67,9 @@ function App() {
           {
             Digit1: "nav:playground",
             Digit2: "nav:algorithms",
-            Digit3: "nav:training",
-            Digit4: "nav:duel",
-            Digit5: "nav:learn",
+            Digit3: "nav:learn",
+            Digit4: "nav:training",
+            Digit5: "nav:duel",
             Digit6: "nav:coaching",
             KeyS: "settings",
             KeyN: "next",

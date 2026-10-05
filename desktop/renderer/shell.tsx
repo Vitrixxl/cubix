@@ -29,9 +29,9 @@ import {
 const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string][] = [
   ["playground", "Timer", Timer, "Alt 1"],
   ["algorithms", "Algorithms", Boxes, "Alt 2"],
-  ["training", "Training", Dumbbell, "Alt 3"],
-  ["duel", "Duel", Swords, "Alt 4"],
-  ["learn", "Learn", GraduationCap, "Alt 5"],
+  ["learn", "Learn", GraduationCap, "Alt 3"],
+  ["training", "Training", Dumbbell, "Alt 4"],
+  ["duel", "Duel", Swords, "Alt 5"],
   ["coaching", "Coaching", Headset, "Alt 6"],
 ];
 
@@ -123,7 +123,7 @@ export function Rail() {
                 </SidebarMenuButton>
                 {page === "coaching" && !!coaching.me?.unread && (
                   <>
-                    <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0">
+                    <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0 peer-data-[size=default]/menu-button:top-2">
                       {coaching.me.unread}
                     </SidebarMenuBadge>
                     {/* Folded to its icons, the sidebar keeps a dot on the headset. */}
@@ -204,14 +204,14 @@ export function Rail() {
 }
 
 /**
- * Phone navigation follows the sidebar; Learn comes after Duel, the account last.
+ * Phone navigation follows the sidebar, the account last.
  */
 const MOBILE_TABS: [page: string, label: string, icon: LucideIcon | null][] = [
   ["playground", "Timer", Timer],
   ["algorithms", "Algorithms", Boxes],
+  ["learn", "Learn", GraduationCap],
   ["training", "Training", Dumbbell],
   ["duel", "Duel", Swords],
-  ["learn", "Learn", GraduationCap],
   ["coaching", "Coach", Headset],
   ["profile", "Account", null],
 ];
@@ -257,19 +257,18 @@ export function TabBar() {
 /**
  * Page frame. Switching sections is a vertical carousel: the new page slides in over the full height from below when
  * it comes later in the navigation order (from above otherwise) while the old one leaves the other way. Going deeper
- * into a page keeps a short sideways slide with a fade.
+ * into a page is the same carousel sideways: the deeper page comes in from the right, the shallower from the left.
  */
 export interface Slide {
   direction: number;
   axis: "x" | "y";
 }
-const SHIFT = 12,
-  CAROUSEL = { duration: 0.42, ease: [0.32, 0.72, 0, 1] } as const;
+const CAROUSEL = { duration: 0.42, ease: [0.32, 0.72, 0, 1] } as const;
+const offset = (axis: Slide["axis"], shift: number) => (axis === "y" ? { x: "0%", y: `${shift * 100}%` } : { x: `${shift * 100}%`, y: "0%" });
 const variants = {
-  enter: ({ direction, axis }: Slide) => (axis === "y" ? { opacity: 1, x: 0, y: `${direction * 100}%` } : { opacity: 0, x: direction * SHIFT, y: "0%" }),
-  center: { opacity: 1, x: 0, y: "0%" },
-  exit: ({ direction, axis }: Slide) =>
-    axis === "y" ? { opacity: 1, y: `${-direction * 100}%`, transition: CAROUSEL } : { opacity: 0, transition: { duration: 0.12 } },
+  enter: ({ direction, axis }: Slide) => offset(axis, direction),
+  center: { x: "0%", y: "0%" },
+  exit: ({ direction, axis }: Slide) => ({ ...offset(axis, -direction), transition: CAROUSEL }),
 };
 
 export function Frame({ children, slide }: { slide: Slide } & Props) {
@@ -290,7 +289,7 @@ export function Frame({ children, slide }: { slide: Slide } & Props) {
       initial="enter"
       animate="center"
       exit="exit"
-      transition={slide.axis === "y" ? CAROUSEL : { duration: 0.22, ease: [0.2, 0, 0, 1] }}
+      transition={CAROUSEL}
     >
       {mounted && children}
     </motion.div>

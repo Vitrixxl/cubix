@@ -26,7 +26,7 @@ export const matches = (c: any, q: string) => {
     .split(/\s+/)
     .every((word) => words.some((w) => w.startsWith(word)));
 };
-const PAGE_ORDER = ["playground", "algorithms", "training", "duel", "learn", "coaching", "profile"];
+const PAGE_ORDER = ["playground", "algorithms", "learn", "training", "duel", "coaching", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
@@ -54,6 +54,8 @@ export class Store {
   puzzle = "333";
   solveMode = "standard";
   scrambleType = "normal";
+  /** A case opened in a dialog over its page (Learn's catalogue cases), without leaving it. */
+  caseDialog = "";
   entry = "timer";
   themeName: string = DEFAULT_THEME;
   light = false;
@@ -414,7 +416,7 @@ export class Store {
       const v = await call("snapshot", {
         revision: request,
         context,
-        caseId: this.caseId,
+        caseId: this.caseDialog || this.caseId,
         page: this.practicePage(),
         profilePuzzle: this.profilePuzzle,
         profileFilter: {
@@ -617,7 +619,7 @@ export class Store {
     if (page === "profile" && this.page !== "profile") {
       this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
-    this.page = page; this.caseId = caseId; this.profileMode = route.profileMode;
+    this.page = page; this.caseId = caseId; this.caseDialog = ""; this.profileMode = route.profileMode;
     this.trainingStep = route.trainingStep; this.learnMethod = method; this.learnSection = section;
     if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
     if (method) this.learnPick = method;
@@ -712,6 +714,12 @@ export class Store {
           break;
         case "historyForward":
           go(1);
+        case "caseDialog":
+          // The statistics shown are the case's own: none until they arrive.
+          if (arg !== this.caseDialog) this.caseHistory = null;
+          this.caseDialog = arg;
+          await this.refresh();
+          break;
           break;
         case "setupMode":
           this.setupMode = arg;
@@ -803,7 +811,7 @@ export class Store {
             kind === "select"
               ? [arg]
               : kind === "train" && !arg
-                ? [this.caseId]
+                ? [this.caseDialog || this.caseId]
                 : this.cases()
                     .filter((c: any) =>
                       kind === "selectSet" || (kind === "train" && !arg.includes(":"))
@@ -825,6 +833,7 @@ export class Store {
             goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
           }
           if (kind === "train" || !this.selected.has(this.training?.id))
+            this.caseDialog = "";
             await this.nextCase();
           break;
         }
@@ -963,13 +972,15 @@ export class Store {
           this.pref("cubix.profile.statsView", arg);
           break;
         case "caseStep": {
-          const c = this.find(this.caseId),
+          const current = this.caseDialog || this.caseId,
+            c = this.find(current),
             ids = this.cases()
               .filter((v: any) => v.set === c.set)
               .map((v: any) => v.id),
             next =
-              ids[ids.indexOf(this.caseId) + (arg === "previous" ? -1 : 1)];
-          if (next) {
+              ids[ids.indexOf(current) + (arg === "previous" ? -1 : 1)];
+          if (next && this.caseDialog) await this.action("caseDialog:" + next);
+          else if (next) {
             goPage("algorithms", { caseId: next, puzzle: this.puzzle as PuzzleId }, true);
           }
           break;
