@@ -1,47 +1,38 @@
 /**
- * Draw the app logo, a solved 3×3 in the case-diagram style shown white side up with the MoYu wordmark on its
- * centre, and rasterise the mobile and desktop icons from it (needs rsvg-convert).
+ * Draw the app logo, the 3×3 mark of the app (desktop/renderer/logo.tsx `puzzleMark`): nine rounded stickers, the top
+ * right one in the default theme's pink. Rasterise the mobile and desktop icons from it (needs rsvg-convert) and pack
+ * the macOS one.
  */
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { $ } from "bun";
-import { StaticCubeSvg } from "../src/client/diagrams/StaticCubeSvg";
-import { solved } from "../src/shared/cube";
-import { ISO_VIEWBOX } from "../src/shared/cubeDiagram";
-import { FACE_COLORS } from "../src/shared/cubeAppearance";
+import { puzzleMark } from "../desktop/renderer/logo";
+import { buildTheme, DEFAULT_THEME } from "../src/client/lib/theme";
 
-// The diagrams pin yellow on top; the logo shows the cube as it sits on a table: white up, green front, red right.
-const RECOLOUR: [string, string][] = [[FACE_COLORS.U, FACE_COLORS.D], [FACE_COLORS.F, FACE_COLORS.B]];
-const MOYU_BLUE = "#2a52be";
-// Traced from the sticker sold as the MoYu logo; laid flat on the U centre through the isometric projection of
-// `shared/cubeDiagram` (x along the front edge, z from the back), reading towards the front-left face.
-const wordmark = (await Bun.file("assets/moyu-wordmark.svg").text()).match(/<path[^>]*\/>/)![0].replace("currentColor", MOYU_BLUE);
-const WORDMARK_VIEWBOX = "331 162 730 755", WORDMARK_SIZE = 0.72;
-const wordmarkOnTop = `<g transform="matrix(17 9 -17 9 60 5)"><svg x="${1.5 - WORDMARK_SIZE / 2}" y="${1.5 - WORDMARK_SIZE / 2}" width="${WORDMARK_SIZE}" height="${WORDMARK_SIZE}" viewBox="${WORDMARK_VIEWBOX}" preserveAspectRatio="xMidYMid meet">${wordmark}</svg></g>`;
+const PINK = buildTheme(DEFAULT_THEME, "dark").accent, STICKER = "#e5e5e5", GROUND = "#0b0b0e";
+const mark = puzzleMark("333");
+// The mark `size` wide, centred on (cx, cy).
+const markAt = (cx: number, cy: number, size: number) => `<svg x="${cx - size / 2}" y="${cy - size / 2}" width="${size}" height="${size}" viewBox="0 0 ${mark.box} ${mark.box}">
+    ${mark.parts.map(part => {
+      if (!("rect" in part)) throw new Error("the 3×3 mark is made of rounded squares");
+      const [x, y, width, height, rx] = part.rect.map(v => +v!.toFixed(3));
+      return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${rx}" fill="${part.accent ? PINK : STICKER}"/>`;
+    }).join("\n    ")}
+  </svg>`;
 
-const [, , width, height] = ISO_VIEWBOX.split(" ").map(Number);
-// The isometric cube, without the document wrapper, placed as a nested svg `size` wide and centred on (cx, cy).
-const cubeAt = (cx: number, cy: number, size: number) => renderToStaticMarkup(createElement(StaticCubeSvg, { state: solved(3), view: "iso" }))
-  .replace(/^<svg[^>]*>/, `<svg x="${cx - size / 2}" y="${cy - size * height / width / 2}" width="${size}" height="${size * height / width}" viewBox="${ISO_VIEWBOX}">`)
-  .replace(/<title[^>]*>.*?<\/title>/, "")
-  .replace(/#[0-9a-f]{6}/g, hex => RECOLOUR.find(([from]) => from === hex)?.[1] ?? hex)
-  .replace(/<\/svg>$/, `${wordmarkOnTop}</svg>`);
-
-// Launcher icon: the cube on a rounded dark slab.
+// Launcher icon: the mark on a rounded dark slab.
 const logo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#1c1c24"/>
-      <stop offset="1" stop-color="#0b0b0e"/>
+      <stop offset="1" stop-color="${GROUND}"/>
     </linearGradient>
   </defs>
   <rect width="128" height="128" rx="28" fill="url(#bg)"/>
-  ${cubeAt(64, 64, 112)}
+  ${markAt(64, 64, 72)}
 </svg>
 `;
-// Android adaptive foreground and splash: the cube alone, inside the 66/108 safe circle of a 192-unit layer.
+// Android adaptive foreground and splash: the mark alone, its corners inside the 66/108 safe circle of a 192-unit layer.
 const foreground = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="1024" height="1024">
-  ${cubeAt(96, 96, 108)}
+  ${markAt(96, 96, 78)}
 </svg>
 `;
 await Bun.write("assets/cubix.svg", logo);
@@ -52,4 +43,20 @@ await raster("assets/cubix.svg", "mobile/assets/favicon.png", 48);
 await raster("assets/cubix.svg", "desktop/linux/fr.vitrixxl.cubix.png", 512);
 await raster("mobile/assets/adaptive-foreground.svg", "mobile/assets/android-icon-foreground.png", 1024);
 await raster("mobile/assets/adaptive-foreground.svg", "mobile/assets/splash-icon.png", 1024);
+
+// macOS: an .icns of PNG images, each entry its type, its length (header included) and the image.
+const ICNS: [type: string, size: number][] = [["ic07", 128], ["ic08", 256], ["ic09", 512], ["ic10", 1024], ["ic11", 32], ["ic12", 64], ["ic13", 256], ["ic14", 512]];
+const entries = await Promise.all(ICNS.map(async ([type, size]) => {
+  const png = new Uint8Array(await $`rsvg-convert -w ${size} -h ${size} assets/cubix.svg`.arrayBuffer());
+  const entry = new Uint8Array(8 + png.length);
+  entry.set(new TextEncoder().encode(type));
+  new DataView(entry.buffer).setUint32(4, entry.length);
+  entry.set(png, 8);
+  return entry;
+}));
+const icns = new Uint8Array(8 + entries.reduce((sum, e) => sum + e.length, 0));
+icns.set(new TextEncoder().encode("icns"));
+new DataView(icns.buffer).setUint32(4, icns.length);
+entries.reduce((offset, e) => (icns.set(e, offset), offset + e.length), 8);
+await Bun.write("desktop/macos/cubix.icns", icns);
 console.log("Logo and icons written");
