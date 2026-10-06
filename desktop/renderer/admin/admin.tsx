@@ -8,7 +8,7 @@ import { createRoot } from "react-dom/client";
 import { Activity, AppWindow, Globe, Headset, KeyRound, Trophy, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
 import { applyTheme } from "../theme";
 import { DEFAULT_THEME } from "../../../src/client/lib/theme";
-import { Logo, usePhone, WindowSidebar } from "../base";
+import { Logo, usePhone, WindowSidebar, Wordmark } from "../base";
 import { Toasts } from "../Toasts";
 import { admin, AdminError, LiveContext, navigate, onExpired, refreshAll, useLive, useRefreshed, useRoute } from "./api";
 import { NUMERIC } from "./parts";
@@ -142,7 +142,7 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
       <div className={cn("flex flex-col gap-1.5", !phone && "items-center text-center")}>
         <div className="mb-3 flex items-center gap-2.5">
           <Logo size={22} />
-          <span className="text-lg font-semibold tracking-tight">cubix</span>
+          <Wordmark className="text-lg" />
           <span className="text-lg text-muted-foreground">admin</span>
         </div>
         <h1 className="text-xl font-semibold tracking-tight">Administration</h1>
@@ -261,7 +261,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
             <div className="flex h-8 items-center gap-2.5 px-2">
               <Logo size={16} />
               <span className="text-[15px] font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-                cubix <span className="font-normal text-muted-foreground">admin</span>
+                <Wordmark /> <span className="font-normal text-muted-foreground">admin</span>
               </span>
             </div>
           </SidebarHeader>
@@ -293,7 +293,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
               <>
                 <SidebarTrigger variant="outline" size="icon" aria-label="Views" data-action="admin:menu" />
                 <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Logo size={14} /> admin
+                  <Logo size={14} /> <Wordmark /> <span className="font-normal text-muted-foreground">admin</span>
                 </span>
               </>
             )}

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Check, MessageSquare, Star, Video, X } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, NUMERIC, Tip } from "../ui";
+import { Avatar, NUMERIC, plural, Tip } from "../ui";
 import { go } from "../navigation";
 import { callOpen, coaching, price, type Booking } from "./client";
 import { Nothing, ROWS, Stars, day, dayKey, relative, span, time, url } from "./parts";
@@ -20,6 +20,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
+import { msg } from "../../../src/client/i18n/msg";
+
+const SESSION_TABS = { upcoming: msg("Upcoming"), past: msg("Past"), cancelled: msg("Cancelled") };
 
 /** Redraws every half minute, so calls open and sessions end on time. */
 export function useMinute() {
@@ -60,8 +63,8 @@ export function Sessions() {
       <Tabs value={tab} onValueChange={(v: string) => { setTab(v); setMonth(""); setPicked(""); }} className="shrink-0">
         <TabsList>
           {(["upcoming", "past", "cancelled"] as const).map((id) => (
-            <TabsTrigger key={id} value={id} data-action={"sessions:" + id} className="gap-1.5 px-3 capitalize">
-              {id}
+            <TabsTrigger key={id} value={id} data-action={"sessions:" + id} className="gap-1.5 px-3">
+              {said(SESSION_TABS[id])}
               {groups[id] && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{groups[id]!.length}</span>}
             </TabsTrigger>
           ))}
@@ -98,10 +101,10 @@ export function Sessions() {
                         type="button"
                         aria-label={`${time(b.startsAt)}–${time(b.endsAt)} · ${b.with.username}`}
                         data-session={b.id}
-                        className={cn(BOX, "flex-col gap-0 px-0.5", tab === "cancelled" ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary hover:bg-primary/25")}
+                        className={cn(BOX, "gap-1.5 px-1.5", tab === "cancelled" ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary hover:bg-primary/25")}
                       >
-                        <span className={NUMERIC}>{time(b.startsAt)}</span>
-                        <span className="max-w-full truncate text-[10px] font-normal @max-[5rem]:hidden">{b.with.username}</span>
+                        <span className={cn(NUMERIC, "shrink-0")}>{time(b.startsAt)}</span>
+                        <span className="min-w-0 truncate font-normal @max-[7rem]:hidden">{b.with.username}</span>
                       </button>
                     )}
                   </DayBoxes>
@@ -115,7 +118,7 @@ export function Sessions() {
         <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-3xl" data-slot="sessions-day">
           <DialogHeader>
             <DialogTitle>{picked ? longDay.format(toDate(picked)) : tr("Sessions")}</DialogTitle>
-            <DialogDescription className="capitalize">{said(tab)} · {sessions.length} {sessions.length === 1 ? tr("session") : tr("sessions")}</DialogDescription>
+            <DialogDescription>{said(SESSION_TABS[tab as keyof typeof SESSION_TABS] ?? tab)} · {plural(sessions.length, "session")}</DialogDescription>
           </DialogHeader>
           {sessions.length ? (
             <ul className={cn(ROWS, "min-h-0 overflow-y-auto")} data-slot="sessions">

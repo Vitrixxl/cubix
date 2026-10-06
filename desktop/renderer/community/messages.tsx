@@ -1,6 +1,6 @@
 /** Conversations with friends and groups: the list, and one conversation with its messages and the box to write. */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Send, Users } from "lucide-react";
+import { MessagesSquare, Send, Users } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { Avatar } from "../ui";
@@ -43,9 +43,25 @@ export function Messages({ id }: { id: number | null }) {
         )}
       </div>
       <div className={cn(PANEL, "min-w-0 flex-1")}>
-        {current ? <Chat conversation={current} /> : <Nothing>{list && id ? tr("This conversation does not exist.") : list?.length ? "" : ""}</Nothing>}
+        {current ? (
+          <Chat conversation={current} />
+        ) : (
+          <Nothing>
+            <MessagesSquare className="size-6" />
+            {list && id ? tr("This conversation does not exist.") : tr("Your conversations open here.")}
+          </Nothing>
+        )}
       </div>
     </div>
+  );
+}
+
+/** A group's face beside its name, where a person has an avatar. */
+export function GroupMark({ size = 36 }: { size?: number }) {
+  return (
+    <span className="flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground" style={{ width: size, height: size }} aria-hidden="true">
+      <Users className="size-4" />
+    </span>
   );
 }
 
@@ -55,9 +71,7 @@ function ConversationRow({ c, active }: { c: Conversation; active: boolean }) {
   return (
     <RowLink to={communityUrl("messages/" + c.id)} active={active}>
       {c.kind === "group" ? (
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Users className="size-4" />
-        </span>
+        <GroupMark />
       ) : (
         <Avatar name={c.with!.username} src={c.with!.avatar} size={36} />
       )}
@@ -69,7 +83,7 @@ function ConversationRow({ c, active }: { c: Conversation; active: boolean }) {
         </span>
         <span className="flex items-center gap-2">
           <span className={cn("truncate text-xs", c.unread ? "text-foreground" : "text-muted-foreground")}>
-            {c.lastMessage ? (c.lastMessage.mine ? "You: " : c.kind === "group" ? c.lastMessage.from + ": " : "") + c.lastMessage.body : tr("No message yet")}
+            {c.lastMessage ? (c.lastMessage.mine ? tr("You: {0}", { 0: c.lastMessage.body }) : c.kind === "group" ? `${c.lastMessage.from}: ${c.lastMessage.body}` : c.lastMessage.body) : tr("No message yet")}
           </span>
           <Count n={c.unread} />
         </span>

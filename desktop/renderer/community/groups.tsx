@@ -8,10 +8,10 @@ import { Check, Crown, LogOut, MoreHorizontal, Pencil, Play, Plus, Shield, Sword
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { Icon } from "../base";
-import { Avatar, NUMERIC } from "../ui";
+import { Avatar, NUMERIC, plural } from "../ui";
 import { Nothing, PANEL, PANEL_HEAD, ROWS, RowLink, RowsSkeleton, relative } from "../coaching/parts";
 import { community, communityUrl, eventName, formatText, matchUrl, seatIn, type Format, type Group, type Match } from "./client";
-import { Chat } from "./messages";
+import { Chat, GroupMark } from "./messages";
 import { TournamentCard, Confirm } from "../tournaments/page";
 import { FormatFields, localInput } from "../tournaments/format";
 import { EVENTS } from "../../../src/shared/puzzles";
@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { tr } from "../../../src/client/i18n";
+import { msg } from "../../../src/client/i18n/msg";
 import { said } from "../base";
 
 const TABS = [
@@ -57,7 +58,7 @@ export function Groups({ id, tab }: { id: number | null; tab: string }) {
               {me.invitations.map((g) => (
                 <li key={g.id} className="flex flex-col gap-2 rounded-lg bg-primary/8 px-2.5 py-2.5" data-invitation={g.id}>
                   <span className="text-sm">
-                    <strong className="font-semibold">{said(g.invitedBy)}</strong> {" "}{tr("invites you to")}{" "}<strong className="font-semibold">{said(g.name)}</strong>
+                    <strong className="font-semibold">{g.invitedBy}</strong> {" "}{tr("invites you to")}{" "}<strong className="font-semibold">{g.name}</strong>
                   </span>
                   <span className="flex gap-1.5">
                     <Button size="sm" onClick={() => void community.join(g.id)}>
@@ -79,11 +80,11 @@ export function Groups({ id, tab }: { id: number | null; tab: string }) {
               {me.groups.map((g) => (
                 <li key={g.id}>
                   <RowLink to={communityUrl("groups/" + g.id + (tab ? "/" + tab : ""))} active={g.id === id}>
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground">{g.name.slice(0, 2).toUpperCase()}</span>
+                    <GroupMark />
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate font-medium">{said(g.name)}</span>
+                      <span className="truncate font-medium">{g.name}</span>
                       <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-                        {g.members} {" "}{tr("members")}{g.role !== "member" ? " · " + g.role : ""}
+                        {plural(g.members, "member")}{ROLE_LABEL[g.role] ? " · " + said(ROLE_LABEL[g.role]) : ""}
                       </span>
                     </span>
                   </RowLink>
@@ -93,7 +94,16 @@ export function Groups({ id, tab }: { id: number | null; tab: string }) {
           )}
         </div>
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{id ? <GroupView id={id} tab={tab} /> : <div className={cn(PANEL, "flex-1")} />}</div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{id ? (
+          <GroupView id={id} tab={tab} />
+        ) : (
+          <div className={cn(PANEL, "flex-1")}>
+            <Nothing>
+              <Users className="size-6" />
+              {tr("A group gathers its chat, members, tournaments and battles.")}
+            </Nothing>
+          </div>
+        )}</div>
     </div>
   );
 }
@@ -180,8 +190,8 @@ function GroupView({ id, tab }: { id: number; tab: string }) {
     <div className={cn(PANEL, "flex-1")} data-group={g.id}>
       <header className="flex shrink-0 items-start gap-4 px-5 pt-4 pb-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h2 className="truncate text-lg font-semibold tracking-tight">{said(g.name)}</h2>
-          {g.description && <p className="line-clamp-2 text-sm text-muted-foreground">{said(g.description)}</p>}
+          <h2 className="truncate text-lg font-semibold tracking-tight">{g.name}</h2>
+          {g.description && <p className="line-clamp-2 text-sm text-muted-foreground">{g.description}</p>}
         </div>
         <Tabs value={current} onValueChange={(v: string) => go(communityUrl(`groups/${g.id}/${v}`))}>
           <TabsList>
@@ -217,7 +227,7 @@ function GroupMenu({ g }: { g: Group }) {
     <AlertDialog open={deleting} onOpenChange={setDeleting}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{tr("Delete")}{" "}{said(g.name)}?</AlertDialogTitle>
+          <AlertDialogTitle>{tr("Delete")}{" "}{g.name}?</AlertDialogTitle>
           <AlertDialogDescription>{tr("Its chat, tournaments and battles go with it, for every member. This cannot be undone.")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -252,7 +262,7 @@ function GroupMenu({ g }: { g: Group }) {
   );
 }
 
-const ROLE_LABEL = { owner: "Owner", admin: "Admin", member: "", invited: "Invited" } as const;
+const ROLE_LABEL = { owner: msg("Owner"), admin: msg("Admin"), member: "", invited: msg("Invited") };
 
 function Members({ g }: { g: Group }) {
   const [name, setName] = useState("");
@@ -374,7 +384,7 @@ function TournamentDialog({ g }: { g: Group }) {
           }}
         >
           <DialogHeader>
-            <DialogTitle>{tr("New tournament in")}{" "}{said(g.name)}</DialogTitle>
+            <DialogTitle>{tr("New tournament in")}{" "}{g.name}</DialogTitle>
             <DialogDescription>{tr("Members register until it starts; the bracket is drawn at its start.")}</DialogDescription>
           </DialogHeader>
           <FieldGroup>
@@ -458,7 +468,7 @@ function BattleDialog({ g }: { g: Group }) {
   );
 }
 
-const BATTLE_STATUS: Record<Match["status"], string> = { waiting: "Waiting", ready: "Ready", live: "Live", done: "Over", cancelled: "Called off" };
+const BATTLE_STATUS: Record<Match["status"], string> = { waiting: msg("Waiting"), ready: msg("Ready"), live: msg("Live"), done: msg("Over"), cancelled: msg("Called off") };
 
 function Battles({ g }: { g: Group }) {
   return (
@@ -502,7 +512,7 @@ function BattleRow({ b }: { b: Match }) {
           {b.score.sets[0]}–{b.score.sets[1]}
         </span>
       )}
-      <Badge variant={b.status === "live" ? "default" : "secondary"}>{b.status === "done" && winner ? tr("{0} won", { 0: winner.username }) : BATTLE_STATUS[b.status]}</Badge>
+      <Badge variant={b.status === "live" ? "default" : "secondary"}>{b.status === "done" && winner ? tr("{0} won", { 0: winner.username }) : said(BATTLE_STATUS[b.status])}</Badge>
       <span className="flex shrink-0 items-center gap-1">
         {challenged && (
           <Button size="sm" onClick={() => void community.acceptBattle(b)}>
@@ -520,7 +530,7 @@ function BattleRow({ b }: { b: Match }) {
             {tr("Details")}</Button>
         )}
         {seat !== null && (b.status === "waiting" || b.status === "ready") && (
-          <Confirm title={seat === 0 ? tr("Call off the battle?") : tr("Decline the battle?")} text={tr("It is cancelled for both of you.")} action={seat === 0 ? "Call off" : "Decline"} destructive onConfirm={() => community.cancelBattle(b)}>
+          <Confirm title={seat === 0 ? tr("Call off the battle?") : tr("Decline the battle?")} text={tr("It is cancelled for both of you.")} action={seat === 0 ? "Call off" : "Decline"} destructive size="sm" onConfirm={() => community.cancelBattle(b)}>
             {seat === 0 ? tr("Call off") : tr("Decline")}
           </Confirm>
         )}

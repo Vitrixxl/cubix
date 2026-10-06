@@ -1,7 +1,7 @@
 /** The profile's one building block: a card with a heading row (title, muted meta, a link to its page) and a body. */
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { InHead, NUMERIC, type Props, run, usePhone } from "../ui";
+import { InHead, NUMERIC, type Props, run, Tip, usePhone } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,15 +88,17 @@ export function Stats({ children, className, columns }: { columns?: number } & P
 export function SubPageHead({ title, meta, children, back = true }: { title: React.ReactNode; meta?: React.ReactNode; back?: boolean } & Props) {
   return (
     <InHead.Provider value={true}>
-      <header className="flex min-h-10 shrink-0 items-center gap-x-4">
-        <div className="flex min-w-0 items-center gap-2">
+      <header className="flex min-h-10 shrink-0 items-center gap-x-2 md:gap-x-6">
+        <div className="flex min-w-0 items-center gap-2 md:gap-3">
           {back && (
-            <Button variant="ghost" size="icon" aria-label={tr("Back to the profile")} data-action="profileMode:overview" onClick={run("profileMode:overview")} className="size-8 max-md:size-10">
-              <ChevronLeft />
-            </Button>
+            <Tip content={tr("Back to the profile")}>
+              <Button variant="outline" size="icon" aria-label={tr("Back to the profile")} data-action="profileMode:overview" onClick={run("profileMode:overview")} className="size-8 max-md:size-10">
+                <ChevronLeft />
+              </Button>
+            </Tip>
           )}
-          <h1 className="truncate text-xl font-semibold tracking-tight">{said(title)}</h1>
-          {meta != null && <span className="truncate pl-1 text-sm text-muted-foreground">{said(meta)}</span>}
+          <h1 className="truncate text-xl font-semibold tracking-tight md:text-2xl">{said(title)}</h1>
+          {meta != null && <span className="truncate text-xs text-muted-foreground md:text-sm">{said(meta)}</span>}
         </div>
         {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
       </header>

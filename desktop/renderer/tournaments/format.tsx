@@ -17,10 +17,13 @@ export interface Format {
   points: number;
   sets: number;
 }
-/** "First to 3 solves · best of 3 sets", or "First to 5 solves" for a single set. */
+/**
+ * "First to 3 solves · best of 3 sets", or "First to 5 solves" for a single set. The dot holds to the words before it,
+ * so a line never starts with it.
+ */
 export const formatText = (f: { points: number; sets: number }) => {
   const values = { 0: f.points, 1: 2 * f.sets - 1 };
-  if (f.sets > 1) return f.points > 1 ? tr("First to {0} solves · best of {1} sets", values) : tr("First to 1 solve · best of {1} sets", values);
+  if (f.sets > 1) return (f.points > 1 ? tr("First to {0} solves · best of {1} sets", values) : tr("First to 1 solve · best of {1} sets", values)).replace(" · ", "\u00a0· ");
   return f.points > 1 ? tr("First to {0} solves", values) : tr("First to 1 solve");
 };
 export const eventName = (id: string) => said(eventInfo(id)?.label ?? id);

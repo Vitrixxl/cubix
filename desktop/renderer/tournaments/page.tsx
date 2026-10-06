@@ -4,12 +4,12 @@
  * bracket, the player's own match a click away.
  */
 import { useEffect } from "react";
-import { CalendarClock, Check, ChevronLeft, Play, Trophy, Users, X } from "lucide-react";
+import { CalendarClock, Check, Play, Trophy, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { Icon } from "../base";
-import { Avatar, Empty, NUMERIC, PAGE, PageHead } from "../ui";
-import { day, Figures, Nothing, PANEL, PANEL_HEAD, relative, time } from "../coaching/parts";
+import { Avatar, Empty, NUMERIC, PAGE, PageHead, SectionHead } from "../ui";
+import { Back, day, Figures, Nothing, PANEL, PANEL_HEAD, relative, time } from "../coaching/parts";
 import { community, communityUrl, eventName, formatText, matchUrl, tournamentUrl, type Tournament, type TournamentDetail } from "../community/client";
 import { Bracket, roundName } from "./bracket";
 import { STATUS_TEXT } from "./format";
@@ -94,8 +94,8 @@ function TournamentList() {
           sections.map(
             ([title, items]) =>
               items.length > 0 && (
-                <section key={title} className="flex flex-col gap-3" aria-label={tr(title)}>
-                  <h2 className="text-sm font-medium text-muted-foreground">{tr(title)}</h2>
+                <section key={title} className="flex flex-col gap-2" aria-label={tr(title)}>
+                  <SectionHead title={title} meta={items.length} />
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4">
                     {items.map((t) => (
                       <TournamentCard key={t.id} t={t} />
@@ -121,7 +121,7 @@ export function TournamentCard({ t }: { t: Tournament }) {
           <button type="button" onClick={() => go(tournamentUrl(t.id))} className="truncate text-left text-base font-semibold tracking-tight outline-none hover:text-primary focus-visible:text-primary">
             {t.name}
           </button>
-          <span className="truncate text-xs text-muted-foreground">
+          <span className="line-clamp-2 text-xs text-muted-foreground">
             {eventName(t.event)} · {formatText(t)}
           </span>
         </div>
@@ -166,11 +166,7 @@ function TournamentView({ id }: { id: number }) {
   }, [id]);
   const t = community.details.get(id);
   const back = t?.groupId ? communityUrl(`groups/${t.groupId}/tournaments`) : tournamentUrl();
-  const lead = (
-    <Button variant="outline" size="icon" aria-label={tr("Back")} className="size-8" onClick={() => go(back)}>
-      <ChevronLeft />
-    </Button>
-  );
+  const lead = <Back to={back} />;
   if (!t)
     return (
       <div className={PAGE}>
@@ -182,7 +178,7 @@ function TournamentView({ id }: { id: number }) {
     over = round.filter((m) => m.status === "done" || m.status === "cancelled").length;
   return (
     <div className={PAGE}>
-      <PageHead title={t.name} lead={lead} sub={t.group ? tr("{0} · group tournament", { 0: t.group }) : tr("Open tournament")}>
+      <PageHead title={<>{t.name}</>} lead={lead} sub={t.group ? tr("{0} · group tournament", { 0: t.group }) : tr("Open tournament")}>
         <StatusBadge t={t} />
         <RegisterButton t={t} />
         {t.myMatch && (
@@ -260,10 +256,10 @@ function Entrants({ t }: { t: TournamentDetail }) {
 }
 
 /** A button asking to confirm before it acts. */
-export function Confirm({ title, text, action, destructive = false, onConfirm, children }: { title: string; text: string; action: string; destructive?: boolean; onConfirm: () => unknown; children: React.ReactNode }) {
+export function Confirm({ title, text, action, destructive = false, size = "default", onConfirm, children }: { title: string; text: string; action: string; destructive?: boolean; size?: "default" | "sm"; onConfirm: () => unknown; children: React.ReactNode }) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={<Button variant="outline" className={destructive ? "text-muted-foreground hover:text-destructive" : undefined} />}>{children}</AlertDialogTrigger>
+      <AlertDialogTrigger render={<Button variant="outline" size={size} className={destructive ? "text-muted-foreground hover:text-destructive" : undefined} />}>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

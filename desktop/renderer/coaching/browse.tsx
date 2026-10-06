@@ -163,7 +163,7 @@ export function CoachPage({ id }: { id: string }) {
   };
   return (
     <div className={PAGE}>
-      <PageHead lead={<Back to={url(own ? "profile" : "coaches")} label={own ? tr("Your coach profile") : tr("Every coach")} />} title={c?.username ?? <Skeleton className="h-7 w-40" />}>
+      <PageHead lead={<Back to={url(own ? "profile" : "coaches")} label={own ? tr("Your coach profile") : tr("Every coach")} />} title={c ? <>{c.username}</> : <Skeleton className="h-7 w-40" />}>
         {!own && c && booked && (
           <UiButton variant="outline" onClick={message} data-action="coaching:message">
             <MessageSquare />

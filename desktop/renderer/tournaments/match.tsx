@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Ban, ChevronLeft, Crown, Flag, Plus, Swords, Undo2 } from "lucide-react";
+import { Crown, Flag, Swords, Undo2 } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { PracticeTimer, timerHint, type TimerSnapshot } from "../../../src/client/lib/practiceTimer";
@@ -16,6 +16,7 @@ import { Side } from "../duel";
 import { Cube } from "../Cube";
 import { useSquare } from "../practice";
 import { Alg, FADE, LABEL, NUMERIC, PAGE, PageHead } from "../ui";
+import { Back } from "../coaching/parts";
 import { communityUrl, eventName, formatText, tournamentUrl, type Match } from "../community/client";
 import { live, resultTime, type Phase } from "./matchClient";
 import { shownSolve } from "../../../src/client/lib/duel";
@@ -100,13 +101,7 @@ export function MatchPage() {
 
 /** Back to where the match belongs: its tournament, or its group's battles. */
 const home = (m: Match | null) => (m?.tournamentId ? tournamentUrl(m.tournamentId) : m?.groupId ? communityUrl(`groups/${m.groupId}/battles`) : tournamentUrl());
-function BackButton() {
-  return (
-    <Button variant="outline" size="icon" aria-label={tr("Back")} className="size-8" onClick={() => go(home(live.match))}>
-      <ChevronLeft />
-    </Button>
-  );
-}
+const BackButton = () => <Back to={home(live.match)} />;
 
 function Race({ m }: { m: Match }) {
   const timer = useMatchTimer(),
@@ -143,7 +138,7 @@ function Race({ m }: { m: Match }) {
     <div className={cn(PAGE, "match-race")}>
       <PageHead
         lead={<BackButton />}
-        title={m.tournament ?? tr("Battle")}
+        title={m.tournament ? <>{m.tournament}</> : tr("Battle")}
         sub={[m.tournament ? `Round ${m.round}` : m.group, eventName(m.event), formatText(m)].filter(Boolean).join(" · ")}
       >
         {playing && !live.over && <Forfeit />}
@@ -246,11 +241,10 @@ function Solves({ m, left, actions }: { m: Match; left: number; actions: boolean
       </div>
       {actions && (
         <div className="flex shrink-0 items-center gap-1" data-no-timer>
-          <Toggle size="sm" variant="outline" pressed={mine?.penalty === "+2"} disabled={!mine} onPressedChange={() => live.penalty("+2")} className="aria-pressed:text-warning">
-            <Plus />2
+          <Toggle size="sm" pressed={mine?.penalty === "+2"} disabled={!mine} onPressedChange={() => live.penalty("+2")} className="aria-pressed:text-warning">
+            +2
           </Toggle>
-          <Toggle size="sm" variant="outline" pressed={mine?.penalty === "dnf"} disabled={!mine} onPressedChange={() => live.penalty("dnf")} className="aria-pressed:text-destructive">
-            <Ban />
+          <Toggle size="sm" pressed={mine?.penalty === "dnf"} disabled={!mine} onPressedChange={() => live.penalty("dnf")} className="aria-pressed:text-destructive">
             {tr("DNF")}</Toggle>
           <Button size="sm" variant="ghost" disabled={!live.canCancel} onClick={() => live.cancel()} className="text-muted-foreground">
             <Undo2 />

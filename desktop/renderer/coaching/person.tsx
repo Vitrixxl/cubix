@@ -154,7 +154,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
           <Figures
-            className="max-lg:grid-cols-3! [&>div]:bg-transparent"
+            className="bg-transparent max-lg:grid-cols-3!"
             items={[
               ["Sessions", done.length],
               ["Coming", booked.length - done.length],

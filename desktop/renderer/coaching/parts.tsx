@@ -130,14 +130,17 @@ export function Nothing({ children, className }: { children: React.ReactNode; cl
   return <div className={cn("flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-sm text-muted-foreground", className)}>{children}</div>;
 }
 
-/** Figures as a row of small cards of equal width; `columns` caps how many share a line. */
+/**
+ * Figures as one band of equal columns, like the profile's and the timer's; `columns` caps how many share a line. A
+ * value in words wraps rather than being cut.
+ */
 export function Figures({ items, columns = items.length, className }: { items: [label: string, value: React.ReactNode, tone?: string][]; columns?: number; className?: string }) {
   return (
-    <div className={cn("grid shrink-0 gap-3", className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+    <div className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl border bg-card px-5 py-3.5 text-card-foreground", className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {items.map(([label, value, tone]) => (
-        <div key={label} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-card-foreground">
+        <div key={label} className="flex min-w-0 flex-col gap-1">
           <span className="truncate text-xs text-muted-foreground">{said(label)}</span>
-          <span className={cn(NUMERIC, "truncate text-xl font-medium tracking-tight", tone)}>{value}</span>
+          <span className={cn(NUMERIC, "line-clamp-2 text-xl leading-tight font-medium tracking-tight text-balance break-words", tone)}>{value}</span>
         </div>
       ))}
     </div>
