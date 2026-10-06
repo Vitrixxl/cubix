@@ -17,6 +17,8 @@ import { coaching } from "./client";
 import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 /** How the notes read: Tailwind on the editor's own elements, there being no typography plugin. */
 const PROSE = cn(
@@ -99,10 +101,10 @@ export function PrivateNotes({ conversation, note, className }: { conversation: 
   }, [editor, note]);
   useEffect(() => () => clearTimeout(timer.current), []);
   return (
-    <section className={cn("flex min-h-0 flex-col overflow-hidden rounded-xl border text-sm", className)} aria-label="Private notes" data-slot="private-notes">
+    <section className={cn("flex min-h-0 flex-col overflow-hidden rounded-xl border text-sm", className)} aria-label={tr("Private notes")} data-slot="private-notes">
       <div className="flex min-h-11 shrink-0 items-center justify-between gap-2 px-4 pt-1">
-        <h3 className="font-medium">Private notes</h3>
-        <span className="text-xs text-muted-foreground">{state === "saving" ? "Saving…" : state === "unsaved" ? "Unsaved" : "Only you see them"}</span>
+        <h3 className="font-medium">{tr("Private notes")}</h3>
+        <span className="text-xs text-muted-foreground">{state === "saving" ? tr("Saving…") : state === "unsaved" ? tr("Unsaved") : tr("Only you see them")}</span>
       </div>
       {editor && <Toolbar editor={editor} />}
       <EditorContent editor={editor} className={cn(PROSE, "min-h-0 flex-1 cursor-text overflow-y-auto")} onClick={() => editor?.isFocused || editor?.commands.focus("end")} />
@@ -114,7 +116,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   const active = useEditorState({ editor, selector: ({ editor }) => TOOLS.flat().map(([, , , is]) => is(editor)) });
   let i = 0;
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-0.5 border-y px-2 py-1" role="toolbar" aria-label="Formatting">
+    <div className="flex shrink-0 flex-wrap items-center gap-0.5 border-y px-2 py-1" role="toolbar" aria-label={tr("Formatting")}>
       {TOOLS.map((group, g) => (
         <div key={g} className="flex items-center gap-0.5">
           {g > 0 && <Separator orientation="vertical" className="mx-1 h-4!" />}
@@ -122,7 +124,7 @@ function Toolbar({ editor }: { editor: Editor }) {
             const on = active[i++];
             return (
               <Tip key={label} content={`${label} · ${keys}`}>
-                <Toggle size="sm" className="px-1.5" pressed={on} onMouseDown={(e) => e.preventDefault()} onPressedChange={() => run(editor)} aria-label={label} data-action={"note:" + label.toLowerCase().replace(/ /g, "-")}>
+                <Toggle size="sm" className="px-1.5" pressed={on} onMouseDown={(e) => e.preventDefault()} onPressedChange={() => run(editor)} aria-label={said(label)} data-action={"note:" + label.toLowerCase().replace(/ /g, "-")}>
                   <I />
                 </Toggle>
               </Tip>

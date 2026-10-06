@@ -6,6 +6,7 @@ mod api;
 mod catalog;
 mod coaching;
 mod db;
+mod desktop;
 mod duel;
 mod error;
 mod live;
@@ -14,8 +15,10 @@ mod practice;
 mod release;
 #[cfg(feature = "seed")]
 mod seed;
+mod social;
 mod stats;
 mod sync;
+mod tournament;
 mod traffic;
 mod web;
 
@@ -40,6 +43,7 @@ pub struct AppState {
     hub: Arc<live::Hub>,
     duel: Arc<duel::Arena>,
     coaching: Arc<coaching::Rooms>,
+    matches: Arc<tournament::Live>,
     attempts: Arc<Mutex<HashMap<String, (u32, i64)>>>,
     passwords: Arc<Semaphore>,
     admin: Arc<admin::Admin>,
@@ -140,6 +144,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(s) => println!("Seeded {} accounts and {} solves.", s.users, s.solves),
             None => println!("The database already has accounts: not seeded."),
         }
+        if db.call(seed::social).await.map_err(|e| e.message)? {
+            println!("Seeded the community: friends, groups, battles and tournaments.");
+        }
         println!(
             "Sign in as dev (or coach, lena_speed, alex_cubes…) with the password {}; admin token: {}",
             seed::PASSWORD,
@@ -188,9 +195,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         hub: Arc::new(live::Hub::default()),
         duel: duel.clone(),
         coaching: Arc::new(coaching::Rooms::default()),
+        matches: Arc::new(tournament::Live::default()),
         attempts: Arc::new(Mutex::new(HashMap::new())),
         passwords: Arc::new(Semaphore::new(4)),
     };
+    // Tournaments start at their date.
+    tokio::spawn(tournament::run(state.clone()));
     let admin_api = Router::new()
         .route("/api/admin/live", get(admin::upgrade))
         .route("/api/admin/{*path}", any(admin::dispatch))
@@ -204,6 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/live", get(live::upgrade))
         .route("/api/duel", get(duel::upgrade))
         .route("/api/coaching/live", get(coaching::upgrade))
+        .route("/api/matches/live", get(tournament::upgrade))
         // Pictures and videos in coaching conversations travel raw, above the JSON limit below.
         .route(
             "/api/coaching/conversations/{id}/media",
@@ -221,6 +232,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(release::apk)
                 .put(release::upload)
                 .layer(DefaultBodyLimit::max(256 * 1024 * 1024)),
+        )
+        // The desktop packages the landing page's install commands download.
+        .route("/api/desktop", get(desktop::info))
+        .route(
+            "/api/desktop/{name}",
+            get(desktop::download)
+                .put(desktop::upload)
+                .layer(DefaultBodyLimit::max(512 * 1024 * 1024)),
         )
         // Over-the-air JavaScript updates: the bundle weighs a few megabytes.
         .route(

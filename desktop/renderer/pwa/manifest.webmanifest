@@ -3,7 +3,7 @@
   "name": "Qbix",
   "short_name": "Qbix",
   "description": "Speedcubing timer and algorithm trainer.",
-  "start_url": "/",
+  "start_url": "/timer",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0b0b0e",

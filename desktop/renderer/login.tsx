@@ -17,6 +17,9 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
+import { legalPath } from "./legal/paths";
 
 type Mode = "login" | "register";
 
@@ -70,7 +73,7 @@ export function LoginPage() {
   const fields = (
     <FieldGroup className="gap-4 max-md:gap-5">
       <Field data-invalid={error?.field === "username" || undefined}>
-        <FieldLabel htmlFor="login-username">Username</FieldLabel>
+        <FieldLabel htmlFor="login-username">{tr("Username")}</FieldLabel>
         <Input
           ref={user}
           id="login-username"
@@ -86,13 +89,13 @@ export function LoginPage() {
           className="max-md:h-12 max-md:text-base"
         />
         {error?.field === "username" ? (
-          <FieldError>{error.message}</FieldError>
+          <FieldError>{said(error.message)}</FieldError>
         ) : (
-          register && <FieldDescription>3–24 letters, digits or underscores.</FieldDescription>
+          register && <FieldDescription>{tr("3–24 letters, digits or underscores.")}</FieldDescription>
         )}
       </Field>
       <Field data-invalid={error?.field === "password" || undefined}>
-        <FieldLabel htmlFor="login-password">Password</FieldLabel>
+        <FieldLabel htmlFor="login-password">{tr("Password")}</FieldLabel>
         <InputGroup className="max-md:h-12">
           <InputGroupInput
             ref={secret}
@@ -109,7 +112,7 @@ export function LoginPage() {
           <InputGroupAddon align="inline-end">
             <InputGroupButton
               size={phone ? "icon-sm" : "icon-xs"}
-              aria-label={shown ? "Hide password" : "Show password"}
+              aria-label={shown ? tr("Hide password") : tr("Show password")}
               aria-pressed={shown}
               data-action="login:reveal"
               onClick={() => setShown(!shown)}
@@ -119,37 +122,35 @@ export function LoginPage() {
           </InputGroupAddon>
         </InputGroup>
         {error?.field === "password" ? (
-          <FieldError>{error.message}</FieldError>
+          <FieldError>{said(error.message)}</FieldError>
         ) : (
-          register && <FieldDescription>10 characters or more.</FieldDescription>
+          register && <FieldDescription>{tr("10 characters or more.")}</FieldDescription>
         )}
       </Field>
-      {error && !error.field && <FieldError>{error.message}</FieldError>}
+      {error && !error.field && <FieldError>{said(error.message)}</FieldError>}
     </FieldGroup>
   );
   const actions = (
     <div className="flex flex-col gap-4">
       <Button type="submit" size="lg" disabled={pending} data-action="login:submit" className="w-full max-md:h-12 max-md:text-base">
-        {pending ? (register ? "Creating account…" : "Signing in…") : register ? "Create account" : "Sign in"}
+        {pending ? (register ? tr("Creating account…") : tr("Signing in…")) : register ? tr("Create account") : tr("Sign in")}
       </Button>
-      <FieldSeparator className="md:[&_[data-slot=field-separator-content]]:bg-card">or</FieldSeparator>
+      {register && <Consent />}
+      <FieldSeparator className="md:[&_[data-slot=field-separator-content]]:bg-card">{tr("or")}</FieldSeparator>
       <Tooltip>
         <TooltipTrigger render={<span className="flex w-full" tabIndex={0} />}>
           <Button type="button" variant="outline" size="lg" disabled aria-describedby="google-soon" className="w-full max-md:h-12 max-md:text-base">
             <GoogleMark />
-            Continue with Google
-            <Badge id="google-soon" variant="secondary" className="ml-1 rounded-sm">
-              Soon
-            </Badge>
+            {tr("Continue with Google")}<Badge id="google-soon" variant="secondary" className="ml-1 rounded-sm">
+              {tr("Soon")}</Badge>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Coming soon</TooltipContent>
+        <TooltipContent>{tr("Coming soon")}</TooltipContent>
       </Tooltip>
       {s.localData && (
         <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground" data-slot="login-kept">
           <HardDrive className="size-3.5" />
-          Your times on this device will be kept.
-        </p>
+          {tr("Your times on this device will be kept.")}</p>
       )}
     </div>
   );
@@ -159,8 +160,8 @@ export function LoginPage() {
         <Logo size={phone ? 24 : 22} />
         <Wordmark className="text-2xl md:text-xl" />
       </div>
-      <h1 className="text-2xl font-semibold tracking-tight md:text-xl">{register ? "Create your account" : "Welcome back"}</h1>
-      <p className="text-sm text-muted-foreground">Time your solves, learn algorithms, race in duels.</p>
+      <h1 className="text-2xl font-semibold tracking-tight md:text-xl">{register ? tr("Create your account") : tr("Welcome back")}</h1>
+      <p className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</p>
     </div>
   );
   const tabs = (
@@ -173,18 +174,15 @@ export function LoginPage() {
     >
       <TabsList className="w-full max-md:h-11!">
         <TabsTrigger value="login" data-action="login:mode:login">
-          Sign in
-        </TabsTrigger>
+          {tr("Sign in")}</TabsTrigger>
         <TabsTrigger value="register" data-action="login:mode:register">
-          Create account
-        </TabsTrigger>
+          {tr("Create account")}</TabsTrigger>
       </TabsList>
     </Tabs>
   );
   const notice = expired && (
     <p role="status" data-slot="login-expired" className="rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
-      Your session has ended. Sign in again.
-    </p>
+      {tr("Your session has ended. Sign in again.")}</p>
   );
 
   if (phone)
@@ -215,5 +213,26 @@ export function LoginPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+/** Creating an account accepts the terms of use; the privacy policy says what is kept. One sentence, its links in place. */
+function Consent() {
+  const links: Record<string, [string, string]> = { terms: [legalPath("terms"), tr("terms of use")], privacy: [legalPath("privacy"), tr("privacy policy")] };
+  return (
+    <p className="text-center text-xs text-muted-foreground" data-slot="consent">
+      {tr("By creating an account, you accept the {terms} and the {privacy}.")
+        .split(/(\{terms\}|\{privacy\})/)
+        .map((part, i) => {
+          const link = links[part.slice(1, -1)];
+          return link ? (
+            <a key={i} href={link[0]} target="_blank" rel="noreferrer" className="text-foreground underline underline-offset-4">
+              {link[1]}
+            </a>
+          ) : (
+            part
+          );
+        })}
+    </p>
   );
 }

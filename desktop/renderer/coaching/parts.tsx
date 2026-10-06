@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { tr, localFormat, perLanguage } from "../../../src/client/i18n";
+import { said } from "../base";
 
 /** A card of the coaching pages: each holds one thing, set apart from the next by space rather than lines. */
 export const PANEL = "flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card text-sm text-card-foreground";
@@ -18,8 +20,8 @@ export const ROWS = "flex flex-col gap-0.5 p-1.5";
 
 export const url = (view = "") => "/coaching" + (view ? "/" + view : "");
 
-const dayFormat = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
-const timeFormat = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });
+const dayFormat = localFormat({ weekday: "short", day: "numeric", month: "short" });
+const timeFormat = localFormat({ hour: "2-digit", minute: "2-digit" });
 export const day = (ms: number) => dayFormat.format(ms);
 export const time = (ms: number) => timeFormat.format(ms);
 /** "Tue 7 Oct · 18:00–19:00" */
@@ -29,12 +31,16 @@ export function dayKey(ms: number | Date) {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-/** "in 3 h", "in 2 days", "now", "2 days ago" */
+const relativeFormat = perLanguage((l) => new Intl.RelativeTimeFormat(l, { numeric: "auto" }));
+/** "in 3 hours", "in 2 days", "now", "2 days ago", in the current language. */
 export function relative(ms: number, now = Date.now()) {
   const minutes = Math.round((ms - now) / 60_000),
-    abs = Math.abs(minutes);
-  const text = abs < 1 ? "now" : abs < 60 ? `${abs} min` : abs < 48 * 60 ? `${Math.round(abs / 60)} h` : `${Math.round(abs / 1440)} days`;
-  return text === "now" ? text : minutes > 0 ? "in " + text : text + " ago";
+    abs = Math.abs(minutes),
+    format = relativeFormat();
+  if (abs < 1) return tr("now");
+  if (abs < 60) return format.format(minutes, "minute");
+  if (abs < 48 * 60) return format.format(Math.round(minutes / 60), "hour");
+  return format.format(Math.round(minutes / 1440), "day");
 }
 export const clockTime = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
@@ -42,13 +48,13 @@ export const clockTime = (minutes: number) => `${String(Math.floor(minutes / 60)
 export function Stars({ rating, size = 14, className, figure = true }: { rating: number | null; size?: number; className?: string; figure?: boolean }) {
   const filled = Math.round(rating ?? 0);
   return (
-    <span className={cn("inline-flex items-center gap-1", className)} aria-label={rating == null ? "Not rated yet" : `Rated ${rating.toFixed(1)} out of 5`}>
+    <span className={cn("inline-flex items-center gap-1", className)} aria-label={rating == null ? tr("Not rated yet") : tr("Rated {0} out of 5", { 0: rating.toFixed(1) })}>
       <span className="flex" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((i) => (
           <Star key={i} style={{ width: size, height: size }} className={cn(i <= filled ? "fill-warning text-warning" : "text-muted-foreground/40")} />
         ))}
       </span>
-      {figure && <span className={cn(NUMERIC, "text-muted-foreground")}>{rating == null ? "New" : rating.toFixed(1)}</span>}
+      {figure && <span className={cn(NUMERIC, "text-muted-foreground")}>{rating == null ? tr("New") : rating.toFixed(1)}</span>}
     </span>
   );
 }
@@ -72,7 +78,7 @@ export function Events({ events, size = 16, className }: { events: string[]; siz
 export function Back({ to, label = "Back" }: { to: string; label?: string }) {
   return (
     <Tip content={label}>
-      <UiButton variant="outline" size="icon" aria-label={label} data-action="coaching:back" className="size-8 max-md:size-10" onClick={() => go(to)}>
+      <UiButton variant="outline" size="icon" aria-label={said(label)} data-action="coaching:back" className="size-8 max-md:size-10" onClick={() => go(to)}>
         <ChevronLeft />
       </UiButton>
     </Tip>
@@ -105,7 +111,7 @@ export function Count({ n, tone = "primary" }: { n: number; tone?: "primary" | "
 /** Rows on their way, shaped like a list of people. */
 export function RowsSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div aria-busy="true" aria-label="Loading" className={ROWS}>
+    <div aria-busy="true" aria-label={tr("Loading")} className={ROWS}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex items-center gap-3 px-2.5 py-2.5">
           <Skeleton className="size-8 rounded-full" />
@@ -130,7 +136,7 @@ export function Figures({ items, columns = items.length, className }: { items: [
     <div className={cn("grid shrink-0 gap-3", className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
       {items.map(([label, value, tone]) => (
         <div key={label} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-card-foreground">
-          <span className="truncate text-xs text-muted-foreground">{label}</span>
+          <span className="truncate text-xs text-muted-foreground">{said(label)}</span>
           <span className={cn(NUMERIC, "truncate text-xl font-medium tracking-tight", tone)}>{value}</span>
         </div>
       ))}
@@ -141,10 +147,10 @@ export function Figures({ items, columns = items.length, className }: { items: [
 /** The events taught, picked among every WCA event: icon cells, chosen ones tinted. */
 export function EventPicker({ value, onChange, className }: { value: string[]; onChange: (events: string[]) => void; className?: string }) {
   return (
-    <ToggleGroup multiple variant="outline" spacing={1} value={value} onValueChange={(v: string[]) => onChange(EVENTS.filter((e) => v.includes(e.id)).map((e) => e.id))} aria-label="Events" className={cn("flex-wrap justify-start", className)}>
+    <ToggleGroup multiple variant="outline" spacing={1} value={value} onValueChange={(v: string[]) => onChange(EVENTS.filter((e) => v.includes(e.id)).map((e) => e.id))} aria-label={tr("Events")} className={cn("flex-wrap justify-start", className)}>
       {EVENTS.map((e) => (
         <Tip key={e.id} content={e.label}>
-          <ToggleGroupItem value={e.id} aria-label={e.label} data-event={e.id} className="size-10 p-0 data-[pressed]:border-primary/60 data-[pressed]:bg-primary/12 data-[pressed]:text-primary">
+          <ToggleGroupItem value={e.id} aria-label={said(e.label)} data-event={e.id} className="size-10 p-0 data-[pressed]:border-primary/60 data-[pressed]:bg-primary/12 data-[pressed]:text-primary">
             <Icon name={"Puzzle" + e.id} size={20} />
           </ToggleGroupItem>
         </Tip>

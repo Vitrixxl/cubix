@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { cubingScrambleEngine } from "../../src/client/lib/cubingScrambleEngine";
+import { tr } from "../../src/client/i18n";
 
 /** What the Electron shell adds to the web app (desktop/electron/preload.ts). */
 export interface DesktopBridge {
@@ -39,7 +40,7 @@ let terminate: (() => void) | undefined;
 function elsewhere() {
   terminate?.();
   stop(new Error("Cubix is open in another tab."));
-  toast("Cubix is open in another tab", { id: "other-tab", duration: Infinity, action: { label: "Use here", onClick: () => location.reload() } });
+  toast(tr("Cubix is open in another tab"), { id: "other-tab", duration: Infinity, action: { label: tr("Use here"), onClick: () => location.reload() } });
 }
 /** The engine is gone (replaced, taken by another tab, crashed): every request in flight fails with `error`. */
 function stop(error: Error) {

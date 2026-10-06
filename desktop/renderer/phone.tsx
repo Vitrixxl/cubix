@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button as UiButton } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 /** Touch targets: at least 44px each way. */
 export const TOUCH = "min-h-11 min-w-11";
@@ -124,7 +126,7 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
     >
       <Icon name={"Puzzle" + e.id} size={16} />
       <span className="truncate">
-        {e.label}
+        {said(e.label)}
         {scramble && s.scrambleType !== "normal" && <span className="text-muted-foreground"> · {s.label("scrambles", s.scrambleType)}</span>}
       </span>
       <ChevronDown className="text-muted-foreground" />
@@ -142,9 +144,9 @@ function SheetChoice({ label, value, options, onChange, columns = 3 }: {
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-xs font-medium text-muted-foreground">{label}</h3>
+      <h3 className="text-xs font-medium text-muted-foreground">{said(label)}</h3>
       <ToggleGroup
-        aria-label={label}
+        aria-label={said(label)}
         value={[value]}
         spacing={1}
         onValueChange={(next: string[]) => next[0] && next[0] !== value && onChange(next[0])}
@@ -168,10 +170,10 @@ export function SessionSheet() {
     close = s.closeOverlay;
   const current = s.event().id;
   return (
-    <PhoneSheet open={open} onOpenChange={(next) => !next && open && close()} title={scramble ? "Puzzle and scramble" : "Puzzle"} tall={scramble}>
+    <PhoneSheet open={open} onOpenChange={(next) => !next && open && close()} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} tall={scramble}>
       <section className="flex flex-col gap-2">
-        <h3 className="text-xs font-medium text-muted-foreground">Puzzle</h3>
-        <div role="listbox" aria-label="Puzzle" className="grid grid-cols-4 gap-1">
+        <h3 className="text-xs font-medium text-muted-foreground">{tr("Puzzle")}</h3>
+        <div role="listbox" aria-label={tr("Puzzle")} className="grid grid-cols-4 gap-1">
           {EVENTS.map((v) => (
             <button
               key={v.id}
@@ -189,7 +191,7 @@ export function SessionSheet() {
               )}
             >
               <Icon name={"Puzzle" + v.id} size={24} />
-              <span className="line-clamp-2 max-w-full text-center">{v.label}</span>
+              <span className="line-clamp-2 max-w-full text-center">{said(v.label)}</span>
             </button>
           ))}
         </div>
@@ -197,7 +199,7 @@ export function SessionSheet() {
       {scramble && (
         <>
           <SheetChoice
-            label="Scramble"
+            label={tr("Scramble")}
             value={s.scrambleType}
             columns={2}
             options={s.scrambleOptions()}
@@ -207,7 +209,7 @@ export function SessionSheet() {
             })}
           />
           <SheetChoice
-            label="Entry"
+            label={tr("Entry")}
             value={s.entry}
             options={TIME_ENTRIES}
             onChange={(id) => {

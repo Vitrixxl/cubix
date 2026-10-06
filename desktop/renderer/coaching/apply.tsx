@@ -10,6 +10,8 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export function Apply() {
   const me = coaching.me,
@@ -17,7 +19,7 @@ export function Apply() {
   const [again, setAgain] = useState(false);
   if (!me)
     return (
-      <div className={cn(PANEL, "mx-auto w-full max-w-xl gap-4 p-6")} aria-busy="true" aria-label="Loading">
+      <div className={cn(PANEL, "mx-auto w-full max-w-xl gap-4 p-6")} aria-busy="true" aria-label={tr("Loading")}>
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-10" />
         <Skeleton className="h-24" />
@@ -29,16 +31,15 @@ export function Apply() {
         <span className={cn("flex size-12 items-center justify-center rounded-xl", application.status === "pending" ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground")}>
           {application.status === "pending" ? <Clock className="size-6" /> : <XCircle className="size-6" />}
         </span>
-        <h2 className="text-lg font-semibold tracking-tight">{application.status === "pending" ? "Your application is being reviewed" : "Your application was not accepted"}</h2>
+        <h2 className="text-lg font-semibold tracking-tight">{application.status === "pending" ? tr("Your application is being reviewed") : tr("Your application was not accepted")}</h2>
         <p className="text-muted-foreground">
           {application.status === "pending"
-            ? `Sent on ${day(application.createdAt)}. We will write to ${application.email}.`
-            : `Answered on ${day(application.decidedAt ?? application.createdAt)}. You can apply again.`}
+            ? tr("Sent on {0}. We will write to {1}.", { 0: day(application.createdAt), 1: application.email })
+            : tr("Answered on {0}. You can apply again.", { 0: day(application.decidedAt ?? application.createdAt) })}
         </p>
         {application.status === "rejected" && (
           <UiButton variant="outline" onClick={() => setAgain(true)} data-action="coaching:apply:again">
-            Apply again
-          </UiButton>
+            {tr("Apply again")}</UiButton>
         )}
       </div>
     );
@@ -62,7 +63,7 @@ function Form() {
     setPending(true);
     try {
       await coaching.apply({ email: email.trim(), events, experience: experience.trim(), message: message.trim() });
-      toast.success("Application sent");
+      toast.success(tr("Application sent"));
     } catch (reason) {
       setError({ field: "form", text: (reason as Error).message });
     } finally {
@@ -73,33 +74,33 @@ function Form() {
     <form onSubmit={submit} noValidate className={cn(PANEL, "mx-auto w-full max-w-2xl")} data-slot="apply">
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold tracking-tight">Become a coach</h2>
-          <p className="text-muted-foreground">The team reads every application and answers by e-mail.</p>
+          <h2 className="text-lg font-semibold tracking-tight">{tr("Become a coach")}</h2>
+          <p className="text-muted-foreground">{tr("The team reads every application and answers by e-mail.")}</p>
         </div>
         <Field data-invalid={error?.field === "email" || undefined}>
-          <FieldLabel htmlFor="apply-email">E-mail address</FieldLabel>
-          <Input id="apply-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" aria-invalid={error?.field === "email" || undefined} data-action="apply:email" />
-          {error?.field === "email" && <FieldError>{error.text}</FieldError>}
+          <FieldLabel htmlFor="apply-email">{tr("E-mail address")}</FieldLabel>
+          <Input id="apply-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tr("you@example.com")} aria-invalid={error?.field === "email" || undefined} data-action="apply:email" />
+          {error?.field === "email" && <FieldError>{said(error.text)}</FieldError>}
         </Field>
         <Field>
-          <FieldLabel>Events you would coach</FieldLabel>
+          <FieldLabel>{tr("Events you would coach")}</FieldLabel>
           <EventPicker value={events} onChange={setEvents} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="apply-experience">Your level</FieldLabel>
-          <Input id="apply-experience" value={experience} onChange={(e) => setExperience(e.target.value)} maxLength={1000} placeholder="Averages, competitions, WCA ID…" data-action="apply:experience" />
+          <FieldLabel htmlFor="apply-experience">{tr("Your level")}</FieldLabel>
+          <Input id="apply-experience" value={experience} onChange={(e) => setExperience(e.target.value)} maxLength={1000} placeholder={tr("Averages, competitions, WCA ID…")} data-action="apply:experience" />
         </Field>
         <Field data-invalid={error?.field === "message" || undefined}>
-          <FieldLabel htmlFor="apply-message">How would you coach?</FieldLabel>
+          <FieldLabel htmlFor="apply-message">{tr("How would you coach?")}</FieldLabel>
           <Textarea id="apply-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={2000} rows={5} className="resize-none" aria-invalid={error?.field === "message" || undefined} data-action="apply:message" />
-          {error?.field === "message" && <FieldError>{error.text}</FieldError>}
+          {error?.field === "message" && <FieldError>{said(error.text)}</FieldError>}
         </Field>
-        {error?.field === "form" && <p className="text-sm text-destructive">{error.text}</p>}
+        {error?.field === "form" && <p className="text-sm text-destructive">{said(error.text)}</p>}
       </div>
       <div className="shrink-0 p-4 pt-0">
         <UiButton type="submit" size="lg" className="h-10 w-full" disabled={pending} data-action="coaching:apply:send">
           <Send />
-          {pending ? "Sending…" : "Send my application"}
+          {pending ? tr("Sending…") : tr("Send my application")}
         </UiButton>
       </div>
     </form>

@@ -170,6 +170,10 @@ fn same_origin(headers: &HeaderMap) -> Result<()> {
     }
     Ok(())
 }
+/// A number in the address.
+fn int(text: &str) -> Result<i64> {
+    text.parse().map_err(|_| ApiError::validation())
+}
 pub async fn dispatch(
     State(state): State<AppState>,
     OriginalUri(uri): OriginalUri,
@@ -257,6 +261,39 @@ pub async fn dispatch(
             let id = admin_data::user_id(id)?;
             let active = *change == "enable";
             state.db.call(move |db| crate::coaching::set_active(db, &id, active)).await?
+        }
+        // Tournaments open to every account: the administration creates and runs them.
+        ("GET", ["tournaments"]) => state.db.call(|db| crate::tournament::admin_list(db)).await?,
+        ("GET", ["tournaments", id]) => {
+            let id = int(id)?;
+            state.db.call(move |db| crate::tournament::detail(db, id, None)).await?
+        }
+        ("POST", ["tournaments"]) => {
+            let body: Value = serde_json::from_slice(&bytes).map_err(|_| ApiError::validation())?;
+            let copy = state.clone();
+            state.db.call(move |db| crate::tournament::create(db, &copy, &body, None, None)).await?
+        }
+        ("POST", ["tournaments", id, action @ ("start" | "cancel")]) => {
+            let id = int(id)?;
+            let (copy, start) = (state.clone(), *action == "start");
+            state
+                .db
+                .call(move |db| {
+                    if start { crate::tournament::start(db, &copy, id)? } else { crate::tournament::cancel(db, &copy, id)? }
+                    crate::tournament::detail(db, id, None)
+                })
+                .await?
+        }
+        ("DELETE", ["tournaments", id]) => {
+            let id = int(id)?;
+            let copy = state.clone();
+            state.db.call(move |db| crate::tournament::delete(db, &copy, id)).await?
+        }
+        ("POST", ["matches", id, "award"]) => {
+            let id = int(id)?;
+            let body: Value = serde_json::from_slice(&bytes).map_err(|_| ApiError::validation())?;
+            let copy = state.clone();
+            state.db.call(move |db| crate::tournament::award(db, &copy, id, crate::api::string(&body, "winner", 1, 64)?)).await?
         }
         ("POST", ["users", id, "revoke"]) | ("DELETE", ["users", id]) => {
             let id = admin_data::user_id(id)?;

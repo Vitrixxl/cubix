@@ -158,6 +158,13 @@ test("two devices exchange changes and deletions; cached account work never move
   expect((await b.api.solves("training"))[0].comment).toBe("second");
   await a.api.setComment(solve.id,null); await a.local.sync(); await b.local.sync();
   expect((await b.api.solves("training"))[0].comment).toBeNull();
+  // The solution travels with the solve too; one that cannot be read is left out, the time is saved all the same.
+  const free = await a.api.createSession("playground",[]);
+  const turned = await a.api.addSolve({sessionId:free.id,timeMs:9000,scramble:"R U",solution:" U'@0 R'@420 "});
+  expect(turned.solution).toBe("U'@0 R'@420");
+  expect(await a.api.addSolve({sessionId:free.id,timeMs:9100,scramble:"R U",solution:"not turns"})).not.toHaveProperty("solution");
+  await a.local.sync(); await b.local.sync();
+  for (const rows of [await b.api.solves("playground"), await remote(auth.token).solves("playground")]) expect(rows.map(s => s.solution)).toEqual([null,"U'@0 R'@420"]);
   await b.api.deleteSolve(copied.id); await b.local.sync();
   await a.api.setPenalty(solve.id,"+2"); await a.local.sync();
   expect(await a.api.solves("training")).toEqual([]);

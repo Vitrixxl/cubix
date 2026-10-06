@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Activity, AppWindow, Globe, Headset, KeyRound, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
+import { Activity, AppWindow, Globe, Headset, KeyRound, Trophy, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
 import { applyTheme } from "../theme";
 import { DEFAULT_THEME } from "../../../src/client/lib/theme";
 import { Logo, usePhone, WindowSidebar } from "../base";
@@ -19,6 +19,7 @@ import { Requests } from "./requests";
 import { Ips } from "./ips";
 import { Server } from "./server";
 import { Coaching } from "./coaching";
+import { Tournaments } from "./tournaments";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +48,7 @@ const VIEWS: [id: string, label: string, icon: LucideIcon][] = [
   ["requests", "Requests", Activity],
   ["ips", "IP addresses", Globe],
   ["coaching", "Coaching", Headset],
+  ["tournaments", "Tournaments", Trophy],
   ["server", "Server", ServerIcon],
 ];
 const COMMAND = "cubix-api admin-token";
@@ -241,6 +243,8 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
       <Ips phone={phone} />
     ) : view === "coaching" ? (
       <Coaching phone={phone} />
+    ) : view === "tournaments" ? (
+      <Tournaments key={id ?? ""} id={id} />
     ) : view === "server" ? (
       <Server />
     ) : (
@@ -269,7 +273,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
           <SidebarFooter className="pb-4">
             <SidebarMenu className="gap-0.5">
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Open the app" className="h-9 text-muted-foreground" render={<a href="/" />}>
+                <SidebarMenuButton tooltip="Open the app" className="h-9 text-muted-foreground" render={<a href="/timer" />}>
                   <AppWindow />
                   <span>Open the app</span>
                 </SidebarMenuButton>

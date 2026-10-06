@@ -1,6 +1,7 @@
 import type { Penalty } from "../../shared/types";
 import { averageOf, best, bestAverage, effective, fmtTime, mean, median, rollingAverages, worstAverage } from "./format";
 import type { Tone } from "./tone";
+import { msg } from "../i18n/msg";
 
 /** Solves must be oldest first; rolling averages include DNF attempts. */
 export function practiceSummary(solves: readonly { time_ms: number; penalty: Penalty }[]) {
@@ -39,14 +40,14 @@ export function sessionMetrics(solves: readonly { time_ms: number; penalty: Pena
   const summary = practiceSummary(solves), times = summary.times;
   const worst = !times.length ? fmtTime(null) : times.includes(null) ? "DNF" : fmtTime(Math.max(...(times as number[])));
   return [
-    ["Best", fmtTime(summary.best), "good"],
-    ["Worst", worst, "bad"],
-    ["Mean", fmtTime(summary.mean), ""],
+    [msg("Best"), fmtTime(summary.best), "good"],
+    [msg("Worst"), worst, "bad"],
+    [msg("Mean"), fmtTime(summary.mean), ""],
     ["Ao5", fmtTime(summary.ao5), "accent"],
-    ["Best Ao5", fmtTime(bestAverage(times, 5)), "good"],
+    [msg("Best Ao5"), fmtTime(bestAverage(times, 5)), "good"],
     ["Ao12", fmtTime(summary.ao12), "accent"],
-    ["Best Ao12", fmtTime(bestAverage(times, 12)), "good"],
-    ["Solves", String(summary.count), ""],
+    [msg("Best Ao12"), fmtTime(bestAverage(times, 12)), "good"],
+    [msg("Solves"), String(summary.count), ""],
   ];
 }
 
@@ -59,7 +60,7 @@ export const FIGURE_LIMIT = 12;
 /** Averages from 3 (a mean of three trimmed to one) to 1000 times. */
 export const AVERAGE_SIZES = { min: 3, max: 1000 };
 const SINGLES: Record<string, [string, Tone]> = {
-  best: ["Best", "good"], worst: ["Worst", "bad"], mean: ["Mean", ""], median: ["Median", ""], count: ["Solves", ""],
+  best: [msg("Best"), "good"], worst: [msg("Worst"), "bad"], mean: [msg("Mean"), ""], median: [msg("Median"), ""], count: [msg("Solves"), ""],
 };
 export type Figure = { id: string; size?: number; which?: "current" | "best" | "worst" };
 export function parseFigure(id: string): Figure | null {
@@ -107,13 +108,13 @@ export function timerFigures(summary: {
   best: number | null; bestAo5: number | null; bestAo12: number | null; ao5: number | null; ao12: number | null; mean: number | null; count: number;
 }): Metric[] {
   return [
-    ["Best single", fmtTime(summary.best), "good"],
-    ["Best Ao5", fmtTime(summary.bestAo5), ""],
-    ["Best Ao12", fmtTime(summary.bestAo12), ""],
-    ["Current Ao5", fmtTime(summary.ao5), "accent"],
-    ["Current Ao12", fmtTime(summary.ao12), "accent"],
-    ["Mean", fmtTime(summary.mean), ""],
-    ["Solves", summary.count.toLocaleString(), ""],
+    [msg("Best single"), fmtTime(summary.best), "good"],
+    [msg("Best Ao5"), fmtTime(summary.bestAo5), ""],
+    [msg("Best Ao12"), fmtTime(summary.bestAo12), ""],
+    [msg("Current Ao5"), fmtTime(summary.ao5), "accent"],
+    [msg("Current Ao12"), fmtTime(summary.ao12), "accent"],
+    [msg("Mean"), fmtTime(summary.mean), ""],
+    [msg("Solves"), summary.count.toLocaleString(), ""],
   ];
 }
 

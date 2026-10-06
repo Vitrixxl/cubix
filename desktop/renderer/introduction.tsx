@@ -17,12 +17,16 @@ import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { PROFILE_KEY, TOUR_STEPS, journeyProfile } from "../../src/client/lib/journey";
 import { METHODS } from "../../src/shared/methods";
 import { go, goPage, pageUrl } from "./navigation";
+import { ImportTimes } from "./ImportTimes";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 /* ------------------------------------------------------------------ Onboarding */
 
 const STEPS = [
   { label: "Welcome", title: "Welcome to Cubix", sub: "A few seconds to set the app up for you" },
   { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
+  { label: "Times", title: "Bring your times", sub: "Your history from another timer, if you have one" },
 ] as const;
 const LAST = STEPS.length - 1;
 
@@ -40,7 +44,7 @@ function StepHead({ title, sub }: { title: string; sub: string }) {
       <h1 ref={ref} tabIndex={-1} id="journey-title" className="shrink-0 truncate text-xl font-semibold tracking-tight outline-none md:text-2xl">
         {title}
       </h1>
-      <p className="min-w-0 truncate text-sm text-muted-foreground max-sm:hidden">{sub}</p>
+      <p className="min-w-0 truncate text-sm text-muted-foreground max-sm:hidden">{said(sub)}</p>
     </header>
   );
 }
@@ -61,9 +65,9 @@ function Welcome() {
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-medium">
               <span className="mr-1.5 text-muted-foreground tabular-nums">{i + 1}</span>
-              {r.title}
+              {said(r.title)}
             </span>
-            <span className="truncate text-xs text-muted-foreground">{r.text}</span>
+            <span className="truncate text-xs text-muted-foreground">{said(r.text)}</span>
           </span>
         </li>
       ))}
@@ -76,7 +80,7 @@ function Tile({ label, checked, glyph, onClick }: { label: string; checked: bool
   return (
     <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} className={cn(CARD, "min-w-0 flex-col items-center justify-center gap-1.5 px-1 py-2.5 sm:gap-2 sm:py-4")}>
       <span className={cn("text-muted-foreground transition-colors", checked && "text-primary")}>{glyph}</span>
-      <span className="max-w-full truncate text-[11px] font-medium tracking-tight sm:text-sm sm:tracking-normal">{label}</span>
+      <span className="max-w-full truncate text-[11px] font-medium tracking-tight sm:text-sm sm:tracking-normal">{said(label)}</span>
       {checked && <Check className="absolute top-1.5 right-1.5 size-3.5 text-primary" strokeWidth={3} aria-hidden="true" />}
     </button>
   );
@@ -97,16 +101,15 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest 
   const phone = usePhone();
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-6">
-      <div role="group" aria-label="Puzzles you can solve" className="grid shrink-0 grid-cols-4 gap-1.5 sm:grid-cols-6 sm:gap-2.5">
-        <Tile label="None yet" checked={!value.length} onClick={onNone} glyph={<Ban className="size-6 sm:size-[30px]" strokeWidth={1.5} />} />
+      <div role="group" aria-label={tr("Puzzles you can solve")} className="grid shrink-0 grid-cols-4 gap-1.5 sm:grid-cols-6 sm:gap-2.5">
+        <Tile label={tr("None yet")} checked={!value.length} onClick={onNone} glyph={<Ban className="size-6 sm:size-[30px]" strokeWidth={1.5} />} />
         {PUZZLES.map((p) => (
-          <Tile key={p.id} label={p.label} checked={value.includes(p.id)} onClick={() => onToggle(p.id)} glyph={<Icon name={"Puzzle" + p.id} size={phone ? 24 : 30} />} />
+          <Tile key={p.id} label={said(p.label)} checked={value.includes(p.id)} onClick={() => onToggle(p.id)} glyph={<Icon name={"Puzzle" + p.id} size={phone ? 24 : 30} />} />
         ))}
       </div>
-      <section aria-label="Methods" className="flex min-h-0 flex-1 flex-col gap-1">
+      <section aria-label={tr("Methods")} className="flex min-h-0 flex-1 flex-col gap-1">
         <h2 className={cn(SECTION_LABEL, "flex justify-between")}>
-          Methods you know
-          {!!value.length && <span className="max-sm:hidden">Your best single, if you know it</span>}
+          {tr("Methods you know")}{!!value.length && <span className="max-sm:hidden">{tr("Your best single, if you know it")}</span>}
         </h2>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {value.length ? (
@@ -116,9 +119,9 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest 
                 <div key={id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b py-2.5 last:border-b-0">
                   <span className="flex w-36 shrink-0 items-center gap-2 text-sm font-medium">
                     <Icon name={"Puzzle" + id} size={18} className="text-muted-foreground" />
-                    {p.label}
+                    {said(p.label)}
                   </span>
-                  <div role="group" aria-label={`${p.label} methods`} className="flex flex-wrap gap-1.5">
+                  <div role="group" aria-label={tr("{0} methods", { 0: p.label })} className="flex flex-wrap gap-1.5">
                     {METHODS[id].map((m) => {
                       const on = methods[id]?.includes(m.id) ?? false;
                       return (
@@ -128,12 +131,12 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest 
                           role="checkbox"
                           aria-checked={on}
                           aria-label={`${p.label} ${m.name}`}
-                          title={m.summary}
+                          title={said(m.summary)}
                           onClick={() => onMethod(id, m.id)}
                           className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/10 aria-checked:text-foreground"
                         >
                           {on ? <Check className="size-3.5 text-primary" strokeWidth={3} /> : <Plus className="size-3.5" />}
-                          {m.name}
+                          {said(m.name)}
                         </button>
                       );
                     })}
@@ -143,7 +146,7 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest 
               );
             })
           ) : (
-            <p className="py-2.5 text-sm text-muted-foreground">Nothing yet? Cubix starts you on the 3×3 course.</p>
+            <p className="py-2.5 text-sm text-muted-foreground">{tr("Nothing yet? Cubix starts you on the 3×3 course.")}</p>
           )}
         </div>
       </section>
@@ -156,13 +159,13 @@ function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; o
   const invalid = !!value.trim() && parseTypedTime(value) === null;
   return (
     <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-      <span className="sm:hidden">PB</span>
+      <span className="sm:hidden">{tr("PB")}</span>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         inputMode="decimal"
-        placeholder="PB · 12.34"
-        aria-label={`Your best ${puzzle} single`}
+        placeholder={tr("PB · 12.34")}
+        aria-label={tr("Your best {0} single", { 0: puzzle })}
         aria-invalid={invalid || undefined}
         data-action={"journey:best:" + puzzle}
         className={cn(NUMERIC, "h-8 w-28 text-right text-sm")}
@@ -220,6 +223,8 @@ export function Onboarding() {
   const content = [
     <Welcome />,
     <PuzzleStep value={known} methods={knownMethods} bests={bests} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }} onMethod={method} onBest={(p, text) => setBests((v) => ({ ...v, [p]: text }))} />,
+    // Imported puzzles are solved ones: they join the known puzzles.
+    <ImportTimes onImported={(puzzles) => setKnown((v) => [...v, ...puzzles.filter((p) => !v.includes(p))])} />,
   ][step];
   const slide = reduced ? 0 : 56;
   return (
@@ -233,8 +238,7 @@ export function Onboarding() {
           <span className="flex-1" />
           {existing ? (
             <Button variant="ghost" size="sm" disabled={saving} onClick={() => (history.length > 1 ? go(-1) : goPage("playground"))}>
-              Cancel
-            </Button>
+              {tr("Cancel")}</Button>
           ) : (
             <span className="w-[54px] max-sm:hidden" aria-hidden="true" />
           )}
@@ -254,9 +258,9 @@ export function Onboarding() {
               transition={{ x: { type: "spring", stiffness: 520, damping: 42 }, opacity: { duration: 0.14 } }}
               className={cn("flex min-h-0 flex-1 flex-col gap-4 pt-2 pb-4 md:flex-initial md:gap-6 md:pt-6 md:pb-6", step === 0 && "max-md:justify-center max-md:pb-[8vh]")}
             >
-              <StepHead title={STEPS[step].title} sub={STEPS[step].sub} />
+              <StepHead title={said(STEPS[step].title)} sub={said(STEPS[step].sub)} />
               {content}
-              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+              {error && <p role="alert" className="text-sm text-destructive">{said(error)}</p>}
             </motion.section>
           </AnimatePresence>
         </div>
@@ -264,17 +268,16 @@ export function Onboarding() {
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 md:px-8">
             <Button variant="ghost" disabled={saving || step === 0} onClick={() => goTo(step - 1)} className={cn(step === 0 && "invisible")}>
               <ArrowLeft />
-              Back
-            </Button>
+              {tr("Back")}</Button>
             <div className="flex items-center gap-2">
               {step === LAST && !existing && (
                 <Button variant="outline" disabled={saving} onClick={() => void finish(false)}>
-                  <span className="max-sm:hidden">Skip the tour</span>
-                  <span className="sm:hidden">Skip</span>
+                  <span className="max-sm:hidden">{tr("Skip the tour")}</span>
+                  <span className="sm:hidden">{tr("Skip")}</span>
                 </Button>
               )}
               <Button disabled={saving} onClick={advance}>
-                {saving ? "Saving…" : step === 0 ? "Get started" : step === LAST ? (existing ? "Save" : "Start the tour") : "Continue"}
+                {saving ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? (existing ? tr("Save") : tr("Start the tour")) : tr("Continue")}
                 {!saving && <ArrowRight />}
                 {!saving && (
                   <Kbd aria-hidden="true" className="ml-1 bg-primary-foreground/15 text-primary-foreground max-md:hidden">
@@ -501,23 +504,23 @@ function Tour() {
               <span key={i} className={cn("h-1.5 rounded-[2px] transition-all", i === shownStep ? "w-4 bg-primary" : i < shownStep ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/25")} />
             ))}
           </span>
-          <span className="text-xs text-muted-foreground tabular-nums" aria-label={`Step ${shownStep + 1} of ${TOUR_STEPS.length}`}>
+          <span className="text-xs text-muted-foreground tabular-nums" aria-label={tr("Step {0} of {1}", { 0: shownStep + 1, 1: TOUR_STEPS.length })}>
             {shownStep + 1} / {TOUR_STEPS.length}
           </span>
-          <Button size="icon-sm" variant="ghost" aria-label="End tour" className="-my-1 -mr-2 ml-auto text-muted-foreground" onClick={end}>
+          <Button size="icon-sm" variant="ghost" aria-label={tr("End tour")} className="-my-1 -mr-2 ml-auto text-muted-foreground" onClick={end}>
             <X />
           </Button>
         </header>
         <motion.div key={shownStep} className="flex flex-col gap-1.5" initial={reduced ? false : { opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
-          <h2 id="tour-title" className="text-lg font-semibold tracking-tight">{current.title}</h2>
+          <h2 id="tour-title" className="text-lg font-semibold tracking-tight">{said(current.title)}</h2>
           <p id="tour-body" className="text-sm leading-relaxed text-muted-foreground">{current.body}</p>
         </motion.div>
         <footer className="flex items-center justify-between gap-3">
           <Button variant="ghost" className="-ml-2.5" onClick={back}>
-            {step ? <><ArrowLeft />Back</> : "Skip tour"}
+            {step ? <><ArrowLeft />{tr("Back")}</> : tr("Skip tour")}
           </Button>
           <Button onClick={next}>
-            {step === last ? "Done" : "Next"}
+            {step === last ? tr("Done") : tr("Next")}
             {step === last ? <Check /> : <ArrowRight />}
           </Button>
         </footer>

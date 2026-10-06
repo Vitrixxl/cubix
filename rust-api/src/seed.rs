@@ -611,6 +611,92 @@ fn traffic(tx: &Transaction, rng: &mut StdRng, players: &[Player], at: i64) -> R
     Ok(())
 }
 
+/// The community of the development accounts: friends, conversations, two groups, battles and tournaments. Some
+/// tournaments start a few minutes after the server, so their brackets can be played. Seeds a database whose accounts
+/// are seeded and whose community is empty, so an existing development database gets it too. Returns whether it did.
+pub fn social(db: &mut Connection) -> Result<bool> {
+    let groups = all(db, "SELECT count(*) n FROM social_groups", [])?[0]["n"].as_i64().unwrap_or(0);
+    let ids: std::collections::HashMap<String, String> = all(db, "SELECT id,username FROM users WHERE password_hash IS NOT NULL", [])?
+        .into_iter()
+        .filter_map(|r| Some((r["username"].as_str()?.to_owned(), r["id"].as_str()?.to_owned())))
+        .collect();
+    if groups > 0 || !ids.contains_key("dev") {
+        return Ok(false);
+    }
+    let id = |name: &str| ids.get(name).cloned().unwrap_or_default();
+    let at = now();
+    let tx = db.transaction()?;
+    let friend = |a: &str, b: &str, accepted: bool, days: i64| {
+        tx.execute(
+            "INSERT INTO friends(user_id,friend_id,status,created_at,accepted_at) VALUES(?,?,?,?,?)",
+            params![id(a), id(b), if accepted { "accepted" } else { "pending" }, at - days * DAY_MS, accepted.then_some(at - days * DAY_MS + HOUR_MS)],
+        )
+    };
+    for (other, days) in [("lena_speed", 40), ("alex_cubes", 25), ("coach", 60), ("kenji_cfop", 9)] {
+        friend("dev", other, true, days)?;
+    }
+    friend("ben_tps", "dev", false, 1)?;
+    friend("dev", "chloe_f2l", false, 2)?;
+    // A conversation between friends.
+    let (a, b) = if id("dev") < id("lena_speed") { (id("dev"), id("lena_speed")) } else { (id("lena_speed"), id("dev")) };
+    tx.execute("INSERT INTO social_conversations(user_a,user_b,updated_at) VALUES(?,?,?)", params![a, b, at - HOUR_MS])?;
+    let direct = tx.last_insert_rowid();
+    let say = |conversation: i64, who: &str, body: &str, ago: i64| {
+        tx.execute("INSERT INTO social_messages(conversation_id,sender_id,body,created_at) VALUES(?,?,?,?)", params![conversation, id(who), body, at - ago])
+    };
+    say(direct, "lena_speed", "Your Ao12 went down a lot this week!", 3 * HOUR_MS)?;
+    say(direct, "dev", "Thanks, the F2L drills helped. Club cup this weekend?", 2 * HOUR_MS)?;
+    say(direct, "lena_speed", "Already registered. See you in the bracket 😄", HOUR_MS)?;
+    // Two groups: the dev account runs the first, and is invited to the second.
+    let group = |name: &str, description: &str, owner: &str, members: &[(&str, &str)]| -> Result<(i64, i64)> {
+        tx.execute("INSERT INTO social_groups(name,description,owner_id,created_at) VALUES(?,?,?,?)", params![name, description, id(owner), at - 30 * DAY_MS])?;
+        let g = tx.last_insert_rowid();
+        tx.execute("INSERT INTO group_members(group_id,user_id,role,joined_at) VALUES(?,?,'owner',?)", params![g, id(owner), at - 30 * DAY_MS])?;
+        for (k, (member, role)) in members.iter().enumerate() {
+            tx.execute(
+                "INSERT INTO group_members(group_id,user_id,role,invited_by,joined_at) VALUES(?,?,?,?,?)",
+                params![g, id(member), role, id(owner), at - (20 - k as i64) * DAY_MS],
+            )?;
+        }
+        tx.execute("INSERT INTO social_conversations(group_id,updated_at) VALUES(?,?)", params![g, at - 30 * MINUTE_MS])?;
+        Ok((g, tx.last_insert_rowid()))
+    };
+    let club_members = [("lena_speed", "admin"), ("alex_cubes", "member"), ("coach", "member"), ("ben_tps", "member"), ("chloe_f2l", "member"), ("hugo_sub10", "member"), ("kenji_cfop", "member"), ("emma_pll", "invited")];
+    let (club, club_chat) = group("Cubix Club", "Weekly races and a cup every month. Be nice, turn fast.", "dev", &club_members)?;
+    group("Big cubes", "4×4 and up, reduction and Yau.", "lena_speed", &[("quentin_4x4", "member"), ("dev", "invited")])?;
+    say(club_chat, "dev", "Welcome everyone! The Club cup opens on Saturday.", 26 * HOUR_MS)?;
+    say(club_chat, "alex_cubes", "Can we do 2×2 battles in between?", 25 * HOUR_MS)?;
+    say(club_chat, "lena_speed", "Sure, launch one from the Battles tab.", 24 * HOUR_MS)?;
+    say(club_chat, "hugo_sub10", "Friday sprint starts in a few minutes, register!", 40 * MINUTE_MS)?;
+    // Tournaments: the group's and the administration's; the "sprint" ones start a few minutes from now.
+    let tournament = |name: &str, event: &str, group: Option<i64>, by: Option<String>, starts: i64, points: i64, sets: i64, players: &[&str]| -> Result<i64> {
+        tx.execute(
+            "INSERT INTO tournaments(name,description,event,group_id,created_by,starts_at,points,sets,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            params![name, "", event, group, by, starts, points, sets, at - 3 * DAY_MS],
+        )?;
+        let t = tx.last_insert_rowid();
+        for (k, player) in players.iter().enumerate() {
+            tx.execute("INSERT INTO tournament_players(tournament_id,user_id,registered_at) VALUES(?,?,?)", params![t, id(player), at - DAY_MS + k as i64 * MINUTE_MS])?;
+        }
+        Ok(t)
+    };
+    let club_players = ["dev", "lena_speed", "alex_cubes", "coach", "ben_tps", "chloe_f2l", "hugo_sub10"];
+    tournament("Club cup", "333", Some(club), Some(id("dev")), at + 2 * DAY_MS, 3, 2, &club_players)?;
+    tournament("Friday sprint", "222", Some(club), Some(id("lena_speed")), at + 3 * MINUTE_MS, 2, 1, &["dev", "lena_speed", "alex_cubes", "kenji_cfop", "hugo_sub10"])?;
+    let open = ["lena_speed", "alex_cubes", "kenji_cfop", "emma_pll", "felix_roux", "gaia_zz", "ines_bld", "tess_cll", "vera_zbll"];
+    tournament("Qbix Autumn Open", "333", None, None, at + 3 * DAY_MS, 3, 2, &open)?;
+    tournament("Weekly 2×2 sprint", "222", None, None, at + 5 * MINUTE_MS, 2, 1, &["dev", "alex_cubes", "kenji_cfop"])?;
+    // Battles waiting in the club: one open to all, one aimed at the dev account.
+    for (from, to, event) in [("alex_cubes", None, "222"), ("lena_speed", Some("dev"), "333")] {
+        tx.execute(
+            "INSERT INTO matches(group_id,event,points,sets,player_a,player_b,status,created_by,created_at) VALUES(?,?,3,2,?,?,'waiting',?,?)",
+            params![club, event, id(from), to.map(id), id(from), at - 20 * MINUTE_MS],
+        )?;
+    }
+    tx.commit()?;
+    Ok(true)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

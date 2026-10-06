@@ -1,4 +1,5 @@
 import { PUZZLES } from "../../src/shared/puzzles";
+import { tr } from "../../src/client/i18n";
 
 /** A sticker: a rounded square (x, y, width, height, radius) or a path. */
 type Part = { rect: number[]; accent: boolean } | { d: string; accent: boolean };
@@ -160,7 +161,7 @@ export function markSvg(puzzle: string, accent: string) {
 /** The app's name: Qbix, its Q bold. */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={"tracking-tight " + (className ?? "")} aria-label="Qbix">
+    <span className={"tracking-tight " + (className ?? "")} aria-label={tr("Qbix")}>
       <span className="font-extrabold">Q</span>
       <span className="font-medium">bix</span>
     </span>

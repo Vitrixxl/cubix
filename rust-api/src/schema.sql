@@ -13,6 +13,7 @@
       penalty TEXT NOT NULL DEFAULT 'none',
       scramble TEXT,
       comment TEXT,
+      solution TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
     CREATE INDEX IF NOT EXISTS idx_solves_case ON solves(case_id, created_at);
@@ -149,3 +150,127 @@ CREATE TABLE IF NOT EXISTS coach_messages (
  media_name TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_coach_messages_conversation ON coach_messages(conversation_id, id);
+
+-- Community (social.rs). Every time is milliseconds since the Unix epoch. The former `friendships` and
+-- `chat_messages` tables are dropped at start-up (db.rs): these names are new.
+-- A friend request from `user_id` to `friend_id`, then the friendship once accepted (one row per pair).
+CREATE TABLE IF NOT EXISTS friends (
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ friend_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted')),
+ created_at INTEGER NOT NULL,
+ accepted_at INTEGER,
+ PRIMARY KEY(user_id, friend_id)
+);
+CREATE INDEX IF NOT EXISTS idx_friends_friend ON friends(friend_id);
+CREATE TABLE IF NOT EXISTS social_groups (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL,
+ description TEXT NOT NULL DEFAULT '',
+ owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ created_at INTEGER NOT NULL
+);
+-- `invited`: asked to join, not in yet. Owners and admins run the group: invite, remove, organise tournaments.
+CREATE TABLE IF NOT EXISTS group_members (
+ group_id INTEGER NOT NULL REFERENCES social_groups(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ role TEXT NOT NULL CHECK(role IN ('owner','admin','member','invited')),
+ invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+ joined_at INTEGER NOT NULL,
+ PRIMARY KEY(group_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
+-- A conversation between two friends (`user_a` < `user_b`), or a group's.
+CREATE TABLE IF NOT EXISTS social_conversations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ group_id INTEGER REFERENCES social_groups(id) ON DELETE CASCADE,
+ user_a TEXT REFERENCES users(id) ON DELETE CASCADE,
+ user_b TEXT REFERENCES users(id) ON DELETE CASCADE,
+ updated_at INTEGER NOT NULL,
+ UNIQUE(user_a, user_b),
+ UNIQUE(group_id)
+);
+CREATE INDEX IF NOT EXISTS idx_social_conversations_b ON social_conversations(user_b);
+CREATE TABLE IF NOT EXISTS social_messages (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ conversation_id INTEGER NOT NULL REFERENCES social_conversations(id) ON DELETE CASCADE,
+ sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ body TEXT NOT NULL,
+ created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_social_messages_conversation ON social_messages(conversation_id, id);
+-- The last message each member has read in a conversation.
+CREATE TABLE IF NOT EXISTS social_reads (
+ conversation_id INTEGER NOT NULL REFERENCES social_conversations(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ message_id INTEGER NOT NULL DEFAULT 0,
+ PRIMARY KEY(conversation_id, user_id)
+);
+
+-- Tournaments and matches (tournament.rs). A tournament without a group is open to every account and created by the
+-- administration; a group's is created by its owner or admins for its members. Matches are races of sets on the same
+-- scrambles: `points` solves won take a set, `sets` sets won take the match.
+CREATE TABLE IF NOT EXISTS tournaments (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL,
+ description TEXT NOT NULL DEFAULT '',
+ event TEXT NOT NULL,
+ group_id INTEGER REFERENCES social_groups(id) ON DELETE CASCADE,
+ created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+ starts_at INTEGER NOT NULL,
+ points INTEGER NOT NULL CHECK(points BETWEEN 1 AND 15),
+ sets INTEGER NOT NULL CHECK(sets BETWEEN 1 AND 9),
+ max_players INTEGER CHECK(max_players BETWEEN 2 AND 256),
+ status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','running','finished','cancelled')),
+ round INTEGER NOT NULL DEFAULT 0,
+ rounds INTEGER NOT NULL DEFAULT 0,
+ winner_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+ created_at INTEGER NOT NULL,
+ started_at INTEGER,
+ finished_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_tournaments_group ON tournaments(group_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_tournaments_due ON tournaments(starts_at) WHERE status='open';
+CREATE TABLE IF NOT EXISTS tournament_players (
+ tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ seed INTEGER,
+ registered_at INTEGER NOT NULL,
+ PRIMARY KEY(tournament_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_tournament_players_user ON tournament_players(user_id);
+-- A match of a tournament (its `round`, from 1, and `slot` in that round), or a battle launched in a group.
+-- `waiting`: its players are not both known yet; `ready`: they are, nothing played; `live`: under way.
+CREATE TABLE IF NOT EXISTS matches (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ tournament_id INTEGER REFERENCES tournaments(id) ON DELETE CASCADE,
+ group_id INTEGER REFERENCES social_groups(id) ON DELETE CASCADE,
+ round INTEGER NOT NULL DEFAULT 1,
+ slot INTEGER NOT NULL DEFAULT 0,
+ event TEXT NOT NULL,
+ points INTEGER NOT NULL,
+ sets INTEGER NOT NULL,
+ player_a TEXT REFERENCES users(id) ON DELETE SET NULL,
+ player_b TEXT REFERENCES users(id) ON DELETE SET NULL,
+ status TEXT NOT NULL DEFAULT 'waiting' CHECK(status IN ('waiting','ready','live','done','cancelled')),
+ winner TEXT REFERENCES users(id) ON DELETE SET NULL,
+ forfeit INTEGER NOT NULL DEFAULT 0,
+ created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+ created_at INTEGER NOT NULL,
+ started_at INTEGER,
+ finished_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_matches_tournament ON matches(tournament_id, round, slot);
+CREATE INDEX IF NOT EXISTS idx_matches_group ON matches(group_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_matches_players ON matches(player_a, player_b);
+-- Each solve of a match: its scramble, then each player's time once they solved it.
+CREATE TABLE IF NOT EXISTS match_solves (
+ match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+ number INTEGER NOT NULL,
+ scramble TEXT NOT NULL,
+ a_ms INTEGER,
+ a_penalty TEXT,
+ b_ms INTEGER,
+ b_penalty TEXT,
+ PRIMARY KEY(match_id, number)
+);

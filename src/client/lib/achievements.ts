@@ -2,6 +2,7 @@ import { PUZZLES, puzzleOf, scrambleTypeOf, solveModeOf, type PuzzleId } from ".
 import type { AchievementDto, AchievementSummaryDto, SolveDto } from "../../shared/types";
 import { effective, fmtTime, rollingAverages } from "./format";
 import { cases, sets } from "../local/catalog";
+import { msg } from "../i18n/msg";
 
 /** Single-time goals in seconds, per puzzle, from casual to expert. */
 const SINGLE_GOALS: Record<PuzzleId, number[]> = {
@@ -51,7 +52,7 @@ function timeGoal(id: string, title: string, description: string, category: Achi
   const unlocked = !!unlockedAt;
   const ratio = best === null ? 0 : unlocked ? 1 : Math.max(0, Math.min(1, target / best));
   return { id, title, description, category, group, ...(puzzle ? { puzzle } : {}), progress: best ?? 0, target, ratio,
-    detail: best === null ? `No solve yet · goal ${fmtTime(target)}` : `Best ${fmtTime(best)} · goal ${fmtTime(target)}`, unlocked, ...(unlockedAt ? { unlockedAt } : {}) };
+    detail: best === null ? msg("No solve yet · goal {0}", { 0: fmtTime(target) }) : msg("Best {0} · goal {1}", { 0: fmtTime(best), 1: fmtTime(target) }), unlocked, ...(unlockedAt ? { unlockedAt } : {}) };
 }
 
 /** Every achievement with its progress. Learning goals come from marks, the rest from solves. */
@@ -66,42 +67,42 @@ export function achievements(rows: SolveDto[], learned: readonly string[]): Achi
     const series = (mode: string) => own.filter(s => fullScramble(s) && solveModeOf(s) === mode).map(s => ({ at: s.created_at, value: effective(s.time_ms, s.penalty) }));
     const standard = series("standard");
     for (const goal of SINGLE_GOALS[puzzle])
-      out.push(timeGoal(`${puzzle}:single:${goal}`, `Sub-${seconds(goal)}`, `Solve ${group} in under ${seconds(goal)} seconds on a full scramble.`, "speed", group, goal, standard, puzzle));
+      out.push(timeGoal(msg("{0}:single:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0}", { 0: seconds(goal) }), msg("Solve {0} in under {1} seconds on a full scramble.", { 0: group, 1: seconds(goal) }), "speed", group, goal, standard, puzzle));
     const ao5 = rollingAverages(standard.map(p => p.value), 5), averages = standard.map((point, i) => ({ at: point.at, value: ao5[i] }));
     for (const goal of AVERAGE_GOALS[puzzle])
-      out.push(timeGoal(`${puzzle}:ao5:${goal}`, `Sub-${seconds(goal)} average`, `Average of 5 under ${seconds(goal)} seconds on ${group}.`, "average", group, goal, averages, puzzle));
+      out.push(timeGoal(msg("{0}:ao5:{1}", { 0: puzzle, 1: goal }), msg("Sub-{0} average", { 0: seconds(goal) }), msg("Average of 5 under {0} seconds on {1}.", { 0: seconds(goal), 1: group }), "average", group, goal, averages, puzzle));
     if (puzzle === "333") {
       const oneHanded = series("one-handed");
       for (const goal of ONE_HANDED_GOALS)
-        out.push(timeGoal(`333:oh:${goal}`, `Sub-${seconds(goal)} one-handed`, `Solve 3×3 one-handed in under ${seconds(goal)} seconds.`, "speed", group, goal, oneHanded, puzzle));
+        out.push(timeGoal(`333:oh:${goal}`, msg("Sub-{0} one-handed", { 0: seconds(goal) }), msg("Solve 3×3 one-handed in under {0} seconds.", { 0: seconds(goal) }), "speed", group, goal, oneHanded, puzzle));
       const blind = series("blindfolded");
       const successes = blind.filter(p => p.value !== null).map(p => p.at);
-      out.push(counter("333:bld:first", "Blindfolded success", "Complete a 3×3 blindfolded solve without a DNF.", "speed", group, "solve", 1, successes, puzzle));
+      out.push(counter("333:bld:first", msg("Blindfolded success"), msg("Complete a 3×3 blindfolded solve without a DNF."), "speed", group, "solve", 1, successes, puzzle));
       for (const goal of BLINDFOLDED_GOALS)
-        out.push(timeGoal(`333:bld:${goal}`, `Sub-${seconds(goal)} blindfolded`, `Solve 3×3 blindfolded, memorisation included, in under ${seconds(goal)} seconds.`, "speed", group, goal, blind, puzzle));
+        out.push(timeGoal(`333:bld:${goal}`, msg("Sub-{0} blindfolded", { 0: seconds(goal) }), msg("Solve 3×3 blindfolded, memorisation included, in under {0} seconds.", { 0: seconds(goal) }), "speed", group, goal, blind, puzzle));
     }
     for (const goal of VOLUME_GOALS)
-      out.push(counter(`${puzzle}:solves:${goal}`, goal === 1 ? "First solve" : `${goal.toLocaleString()} solves`, goal === 1 ? `Record a first ${group} time.` : `Record ${goal.toLocaleString()} ${group} times.`, "volume", group, "solves", goal, timed.map(s => s.created_at), puzzle));
+      out.push(counter(msg("{0}:solves:{1}", { 0: puzzle, 1: goal }), goal === 1 ? msg("First solve") : msg("{0} solves", { 0: goal.toLocaleString() }), goal === 1 ? msg("Record a first {0} time.", { 0: group }) : msg("Record {0} {1} times.", { 0: goal.toLocaleString(), 1: group }), "volume", group, "solves", goal, timed.map(s => s.created_at), puzzle));
     // Reduced big cubes reuse the 3×3 sets, so their learning goals live under 3×3 only.
     for (const set of sets.filter(set => puzzleOf(set) === puzzle && !/^\dx\d-(f2l|oll|pll|2look)/.test(set.id))) {
       const ids = cases.filter(c => c.set === set.id).map(c => c.id);
       const known = ids.filter(id => learnedSet.has(id)).length;
-      out.push({ id: `learn:${set.id}`, title: `${set.label} master`, description: `Mark every ${set.label} case of ${group} as learned.`, category: "knowledge", group, puzzle,
-        progress: known, target: ids.length, ratio: ids.length ? known / ids.length : 0, detail: `${known} / ${ids.length} cases`, unlocked: ids.length > 0 && known === ids.length });
+      out.push({ id: `learn:${set.id}`, title: msg("{0} master", { 0: set.label }), description: msg("Mark every {0} case of {1} as learned.", { 0: set.label, 1: group }), category: "knowledge", group, puzzle,
+        progress: known, target: ids.length, ratio: ids.length ? known / ids.length : 0, detail: msg("{0} / {1} cases", { 0: known, 1: ids.length }), unlocked: ids.length > 0 && known === ids.length });
     }
   }
-  const general = "General";
+  const general = msg("General");
   const learnedCount = cases.filter(c => learnedSet.has(c.id)).length;
   for (const goal of LEARNED_GOALS)
-    out.push({ id: `learn:total:${goal}`, title: goal === 1 ? "First algorithm" : `${goal} algorithms`, description: goal === 1 ? "Mark a first case as learned." : `Mark ${goal} cases as learned across all puzzles.`, category: "knowledge", group: general,
-      progress: Math.min(learnedCount, goal), target: goal, ratio: Math.min(1, learnedCount / goal), detail: `${learnedCount} / ${goal} cases`, unlocked: learnedCount >= goal });
+    out.push({ id: `learn:total:${goal}`, title: goal === 1 ? msg("First algorithm") : msg("{0} algorithms", { 0: goal }), description: goal === 1 ? msg("Mark a first case as learned.") : msg("Mark {0} cases as learned across all puzzles.", { 0: goal }), category: "knowledge", group: general,
+      progress: Math.min(learnedCount, goal), target: goal, ratio: Math.min(1, learnedCount / goal), detail: msg("{0} / {1} cases", { 0: learnedCount, 1: goal }), unlocked: learnedCount >= goal });
   for (const goal of TOTAL_GOALS)
-    out.push(counter(`total:${goal}`, `${goal.toLocaleString()} times`, `Record ${goal.toLocaleString()} times across every puzzle and mode.`, "volume", general, "times", goal, solves.map(s => s.created_at)));
+    out.push(counter(`total:${goal}`, msg("{0} times", { 0: goal.toLocaleString() }), msg("Record {0} times across every puzzle and mode.", { 0: goal.toLocaleString() }), "volume", general, "times", goal, solves.map(s => s.created_at)));
   for (const goal of TRAINING_GOALS)
-    out.push(counter(`training:${goal}`, `${goal.toLocaleString()} drills`, `Complete ${goal.toLocaleString()} algorithm training attempts.`, "volume", general, "drills", goal, solves.filter(s => s.case_id).map(s => s.created_at)));
+    out.push(counter(`training:${goal}`, msg("{0} drills", { 0: goal.toLocaleString() }), msg("Complete {0} algorithm training attempts.", { 0: goal.toLocaleString() }), "volume", general, "drills", goal, solves.filter(s => s.case_id).map(s => s.created_at)));
   const days = [...new Map(solves.map(s => [s.created_at.slice(0, 10), s.created_at])).values()];
   for (const goal of DAY_GOALS)
-    out.push(counter(`days:${goal}`, `${goal} active days`, `Practise on ${goal} different days.`, "dedication", general, "days", goal, days));
+    out.push(counter(`days:${goal}`, msg("{0} active days", { 0: goal }), msg("Practise on {0} different days.", { 0: goal }), "dedication", general, "days", goal, days));
   // Longest run of consecutive calendar days, with the date each goal was first reached.
   const streakDates: (string | undefined)[] = STREAK_GOALS.map(() => undefined);
   let longest = 0, run = 0, previous: number | null = null;
@@ -111,11 +112,11 @@ export function achievements(rows: SolveDto[], learned: readonly string[]): Achi
     previous = day; longest = Math.max(longest, run);
     STREAK_GOALS.forEach((goal, i) => { if (run >= goal && !streakDates[i]) streakDates[i] = at; });
   }
-  STREAK_GOALS.forEach((goal, i) => out.push({ id: `streak:${goal}`, title: `${goal}-day streak`, description: `Practise ${goal} days in a row.`, category: "dedication", group: general,
-    progress: Math.min(longest, goal), target: goal, ratio: Math.min(1, longest / goal), detail: `${longest} / ${goal} days`, unlocked: longest >= goal, ...(streakDates[i] ? { unlockedAt: streakDates[i] } : {}) }));
+  STREAK_GOALS.forEach((goal, i) => out.push({ id: `streak:${goal}`, title: msg("{0}-day streak", { 0: goal }), description: msg("Practise {0} days in a row.", { 0: goal }), category: "dedication", group: general,
+    progress: Math.min(longest, goal), target: goal, ratio: Math.min(1, longest / goal), detail: msg("{0} / {1} days", { 0: longest, 1: goal }), unlocked: longest >= goal, ...(streakDates[i] ? { unlockedAt: streakDates[i] } : {}) }));
   return { unlocked: out.filter(a => a.unlocked).length, total: out.length, achievements: out };
 }
 
 /** Group order for display: puzzles in registry order, then general goals. */
-export const ACHIEVEMENT_GROUPS = [...PUZZLES.map(p => p.label), "General"];
+export const ACHIEVEMENT_GROUPS = [...PUZZLES.map(p => p.label), msg("General")];
 export const achievementPuzzle = (group: string): PuzzleId | undefined => PUZZLES.find(p => p.label === group)?.id;

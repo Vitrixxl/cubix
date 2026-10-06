@@ -139,7 +139,7 @@ try {
     const context = await browser.newContext({ viewport: { width: width!, height: height! } });
     const page = await context.newPage();
     page.on("pageerror", (e) => console.log("page error:", e.message));
-    await page.goto(origin);
+    await page.goto(origin + "/timer");
     // Nothing without an account: the login page first, then a fresh account per size.
     await page.waitForSelector("#login-username");
     await settle(page);
@@ -185,7 +185,7 @@ try {
     await check(page, "duel-lobby");
     // A race: a second tab of the same browser is the opponent.
     const other = await context.newPage();
-    await other.goto(origin);
+    await other.goto(origin + "/timer");
     // Another account in the same browser would replace this one: the opponent tab signs in as the same player, the
     // server pairs the two tabs as different connections.
     await other.waitForSelector('[data-action="nav:duel"]', { timeout: 60000 });

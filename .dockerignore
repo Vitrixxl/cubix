@@ -26,3 +26,5 @@ desktop/*
 !desktop/guides/
 !desktop/renderer/
 !desktop/assets/
+# The desktop installers the landing page gives (copied into the web build).
+!desktop/install/

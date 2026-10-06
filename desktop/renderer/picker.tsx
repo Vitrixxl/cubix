@@ -6,13 +6,14 @@ import { Children } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import { Bar, run, type Props } from "./ui";
 import { cn } from "@/lib/utils";
+import { said } from "./base";
 
 /** The cards, centred on the page: two or four in a 2×2 square, three in a row; `foot` (a start) right under them. */
 export function Picker({ label, tour, foot, children }: { label: string; tour?: string; foot?: React.ReactNode } & Props) {
   const count = Children.toArray(children).length;
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto py-4 md:justify-center md:py-8">
-      <nav aria-label={label} data-tour={tour} className={cn("grid w-full gap-3 md:gap-4", count === 3 ? "max-w-4xl md:grid-cols-3" : "max-w-3xl md:grid-cols-2")}>
+      <nav aria-label={said(label)} data-tour={tour} className={cn("grid w-full gap-3 md:gap-4", count === 3 ? "max-w-4xl md:grid-cols-3" : "max-w-3xl md:grid-cols-2")}>
         {children}
       </nav>
       {foot}
@@ -80,7 +81,7 @@ export function PickerCard({
       {(meta || badge || progress !== undefined) && (
         <span className="mt-auto flex flex-col gap-2">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            {badge && <span className="rounded-full bg-primary/12 px-2 py-0.5 font-medium text-primary">{badge}</span>}
+            {badge && <span className="rounded-full bg-primary/12 px-2 py-0.5 font-medium text-primary">{said(badge)}</span>}
             {meta}
           </span>
           {progress !== undefined && <Bar ratio={progress} className="max-w-56" />}

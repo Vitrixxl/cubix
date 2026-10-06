@@ -2,9 +2,9 @@
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
-import { fmtSolve, fmtTime, plural, shortDate } from "../../../src/client/lib/format";
+import { fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
-import { Bar, Choice, Diagram, Empty, Figure, Icon, NUMERIC, PuzzleButton, SelectMenu, run } from "../ui";
+import { Bar, Choice, Diagram, Empty, Figure, Icon, NUMERIC, PuzzleButton, SelectMenu, run, plural } from "../ui";
 import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PageCard, Stats, SubPageHead } from "./card";
 import { Badge, NoBattles, ResultMark } from "./sections";
 import { battles } from "./data";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export function TrainingPage({ phone }: { phone: boolean }) {
   const p = s.profile,
@@ -21,7 +23,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
     trained = p.cases?.length ?? 0;
   return (
     <>
-      <SubPageHead title="Training" meta={`${trained} of ${cases.length} trained · ${learned} learned`} back={!phone}>
+      <SubPageHead title={tr("Training")} meta={tr("{0} of {1} trained · {2} learned", { 0: trained, 1: cases.length, 2: learned })} back={!phone}>
         {!phone && <PuzzleButton profile />}
       </SubPageHead>
       <PageCard
@@ -29,14 +31,14 @@ export function TrainingPage({ phone }: { phone: boolean }) {
           <>
             <Choice
               prefix="profileStage:"
-              label="Stage"
+              label={tr("Stage")}
               value={s.profileStage}
               options={["all", ...new Set<string>(cases.map((c) => c.stage).filter(Boolean))].map((stage) => ({ id: stage, label: stage === "all" ? "All" : stage }))}
             />
             <InputGroup className="ml-auto w-60 max-md:ml-0 max-md:w-full">
               <InputGroupInput
-                placeholder="Search cases…"
-                aria-label="Search cases"
+                placeholder={tr("Search cases…")}
+                aria-label={tr("Search cases")}
                 value={s.query}
                 onChange={(e) => {
                   s.query = e.target.value;
@@ -67,8 +69,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
                 {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                 {set.label}
                 <span className={cn(NUMERIC, "text-xs font-normal text-muted-foreground")}>
-                  {done} / {chosen.length} trained
-                </span>
+                  {done} / {chosen.length} {" "}{tr("trained")}</span>
               </button>
               {!closed && (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-1 pt-1">
@@ -114,7 +115,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
   let shown = 0;
   return (
     <>
-      <SubPageHead title="Achievements" meta={`${unlocked} of ${total} unlocked`} back={!phone} />
+      <SubPageHead title={tr("Achievements")} meta={tr("{0} of {1} unlocked", { 0: unlocked, 1: total })} back={!phone} />
       <PageCard
         toolbar={
           <>
@@ -127,9 +128,9 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
             />
             <Choice
               prefix="achievementFilter:"
-              label="Filter"
+              label={tr("Filter")}
               value={s.achievementFilter}
-              options={["all", "unlocked", "locked"].map((f) => ({ id: f, label: f[0]!.toUpperCase() + f.slice(1) }))}
+              options={[{ id: "all", label: tr("All") }, { id: "unlocked", label: tr("Unlocked") }, { id: "locked", label: tr("Locked") }]}
             />
             <div className="ml-auto flex w-48 items-center gap-3 max-md:hidden">
               <Bar ratio={total ? unlocked / total : 0} className="h-1.5 flex-1" />
@@ -160,10 +161,10 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
                       <Badge a={a} />
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <div className="flex items-baseline justify-between gap-3">
-                          <span className={cn("truncate text-sm font-medium", !a.unlocked && "text-foreground/80")}>{a.title}</span>
-                          <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{a.unlockedAt ? shortDate(a.unlockedAt) : a.detail}</span>
+                          <span className={cn("truncate text-sm font-medium", !a.unlocked && "text-foreground/80")}>{said(a.title)}</span>
+                          <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{a.unlockedAt ? shortDate(a.unlockedAt) : said(a.detail)}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{a.description}</p>
+                        <p className="text-xs text-muted-foreground">{said(a.description)}</p>
                         {!a.unlocked && (
                           <Bar ratio={a.ratio} fill="bg-primary/70" className="mt-1" />
                         )}
@@ -174,7 +175,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
               </section>
             );
           })}
-        {!shown && <Empty>{s.achievementFilter === "unlocked" ? "Nothing unlocked here yet. Keep practising!" : "Everything here is unlocked."}</Empty>}
+        {!shown && <Empty>{s.achievementFilter === "unlocked" ? tr("Nothing unlocked here yet. Keep practising!") : tr("Everything here is unlocked.")}</Empty>}
       </PageCard>
     </>
   );
@@ -191,7 +192,7 @@ export function BattlesPage({ phone }: { phone: boolean }) {
     averages = list.map((b) => b.ao5[0]).filter((v): v is number => v != null);
   return (
     <>
-      <SubPageHead title="Battles" meta={list.length ? plural(list.length, "battle") : undefined} back={!phone} />
+      <SubPageHead title={tr("Battles")} meta={list.length ? plural(list.length, "battle") : undefined} back={!phone} />
       {!list.length ? (
         <PageCard scroll={false}>
           <NoBattles />
@@ -200,11 +201,11 @@ export function BattlesPage({ phone }: { phone: boolean }) {
         <>
           <Card className="shrink-0 gap-0 px-5 py-4">
             <Stats columns={5}>
-              <Figure caption="plain" size="xl" label="Played" value={String(list.length)} />
-              <Figure caption="plain" size="xl" label="Won" value={String(count("win"))} tone="good" />
-              <Figure caption="plain" size="xl" label="Lost" value={String(count("loss"))} />
-              <Figure caption="plain" size="xl" label="Win rate" value={Math.round((count("win") / Math.max(1, count("win") + count("loss"))) * 100) + "%"} />
-              <Figure caption="plain" size="xl" label="Best Ao5" value={averages.length ? fmtTime(Math.min(...averages)) : "–"} tone="accent" />
+              <Figure caption="plain" size="xl" label={tr("Played")} value={String(list.length)} />
+              <Figure caption="plain" size="xl" label={tr("Won")} value={String(count("win"))} tone="good" />
+              <Figure caption="plain" size="xl" label={tr("Lost")} value={String(count("loss"))} />
+              <Figure caption="plain" size="xl" label={tr("Win rate")} value={Math.round((count("win") / Math.max(1, count("win") + count("loss"))) * 100) + "%"} />
+              <Figure caption="plain" size="xl" label={tr("Best Ao5")} value={averages.length ? fmtTime(Math.min(...averages)) : "–"} tone="accent" />
             </Stats>
           </Card>
           <PageCard>
@@ -212,11 +213,11 @@ export function BattlesPage({ phone }: { phone: boolean }) {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-10 text-muted-foreground" />
-                  <TableHead className="text-xs text-muted-foreground">Opponent</TableHead>
-                  <TableHead className="text-xs text-muted-foreground">You</TableHead>
-                  <TableHead className="text-xs text-muted-foreground">Them</TableHead>
-                  {!phone && <TableHead className="text-xs text-muted-foreground">Rounds</TableHead>}
-                  {!phone && <TableHead className="text-right text-xs text-muted-foreground">Date</TableHead>}
+                  <TableHead className="text-xs text-muted-foreground">{tr("Opponent")}</TableHead>
+                  <TableHead className="text-xs text-muted-foreground">{tr("You")}</TableHead>
+                  <TableHead className="text-xs text-muted-foreground">{tr("Them")}</TableHead>
+                  {!phone && <TableHead className="text-xs text-muted-foreground">{tr("Rounds")}</TableHead>}
+                  {!phone && <TableHead className="text-right text-xs text-muted-foreground">{tr("Date")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>

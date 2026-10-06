@@ -1,6 +1,7 @@
 //! The web application built by `desktop/web.ts`, which the desktop app loads too.
 //! Only files that exist are served, and the administration's pages (`/admin`, `/admin/…`), which
-//! the same single-page app draws from `index.html`.
+//! the same single-page app draws from `index.html`. The site's root is the landing page
+//! (`landing.html`): the app lives under its own paths, `/timer` first.
 use axum::{
     Router,
     extract::Request,
@@ -23,9 +24,16 @@ pub fn router(dir: PathBuf) -> Router {
     let index = ServeFile::new(dir.join("index.html"))
         .precompressed_br()
         .precompressed_gzip();
+    // A build from before the landing page keeps the app at the root.
+    let landing = if dir.join("landing.html").is_file() { "landing.html" } else { "index.html" };
     Router::new()
+        .route_service("/", ServeFile::new(dir.join(landing)).precompressed_br().precompressed_gzip())
         .route_service("/admin", index.clone())
         .route_service("/admin/{*page}", index)
+        // The legal notice, the privacy policy and the terms of use, pages of their own.
+        .route_service("/legal", ServeFile::new(dir.join("legal.html")).precompressed_br().precompressed_gzip())
+        .route_service("/privacy", ServeFile::new(dir.join("privacy.html")).precompressed_br().precompressed_gzip())
+        .route_service("/terms", ServeFile::new(dir.join("terms.html")).precompressed_br().precompressed_gzip())
         .route_service("/onboarding", ServeFile::new(dir.join("index.html")))
         .route_service("/timer", ServeFile::new(dir.join("index.html")))
         .route_service("/algorithms", ServeFile::new(dir.join("index.html")))
@@ -37,6 +45,11 @@ pub fn router(dir: PathBuf) -> Router {
         .route_service("/learn/{*method}", ServeFile::new(dir.join("index.html")))
         .route_service("/coaching", ServeFile::new(dir.join("index.html")))
         .route_service("/coaching/{*page}", ServeFile::new(dir.join("index.html")))
+        .route_service("/community", ServeFile::new(dir.join("index.html")))
+        .route_service("/community/{*page}", ServeFile::new(dir.join("index.html")))
+        .route_service("/tournaments", ServeFile::new(dir.join("index.html")))
+        .route_service("/tournaments/{*page}", ServeFile::new(dir.join("index.html")))
+        .route_service("/match/{*page}", ServeFile::new(dir.join("index.html")))
         .route_service("/profile", ServeFile::new(dir.join("index.html")))
         .route_service("/profile/{*page}", ServeFile::new(dir.join("index.html")))
         .fallback_service(

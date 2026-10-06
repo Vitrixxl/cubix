@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 /** A player for `alg` on a cube of `size`, or null where it cannot be played (other puzzles, unknown moves). */
 export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string } = {}) {
@@ -93,7 +95,7 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
       <canvas
         ref={canvas}
         role="img"
-        aria-label="3D cube"
+        aria-label={tr("3D cube")}
         data-player-cube
         className={cn("shrink-0 cursor-grab touch-none active:cursor-grabbing", className)}
         style={{ width: size, height: size }}
@@ -125,13 +127,11 @@ export function ViewButtons({ player, className }: { player: AlgPlayer; classNam
     <div className={cn("flex items-center gap-2", className)}>
       <Button variant="secondary" size="lg" onClick={player.showFront} className="gap-2 shadow-md">
         <Focus />
-        Show front
-      </Button>
+        {tr("Show front")}</Button>
       {turned && (
         <Button variant="secondary" size="lg" onClick={player.resetView} className="gap-2 shadow-md">
           <Rotate3d />
-          Reset view
-        </Button>
+          {tr("Reset view")}</Button>
       )}
     </div>
   );
@@ -145,7 +145,7 @@ export function PlayerAlg({ player, text, size = 18, className }: { player?: Alg
   const words = useMemo(() => readAlg(text).words, [text]);
   return (
     <div className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)} style={{ fontSize: size }}>
-      {player ? <LitWords player={player} words={words} /> : words.map((word, i) => <span key={i}>{word.map((part, j) => <span key={j} className={cn(part.move === undefined && "text-muted-foreground")}>{part.text}</span>)}</span>)}
+      {player ? <LitWords player={player} words={words} /> : words.map((word, i) => <span key={i}>{word.map((part, j) => <span key={j} className={cn(part.move === undefined && "text-muted-foreground")}>{said(part.text)}</span>)}</span>)}
     </div>
   );
 }
@@ -157,7 +157,7 @@ function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<type
       {word.map((part, j) =>
         part.move === undefined ? (
           <span key={j} className="text-muted-foreground">
-            {part.text}
+            {said(part.text)}
           </span>
         ) : (
           <button
@@ -168,7 +168,7 @@ function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<type
             onClick={() => player.playSource(part.move!)}
             className="-mx-[0.12em] rounded-[0.2em] px-[0.12em] outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 aria-[current=step]:bg-primary/15 aria-[current=step]:text-primary"
           >
-            {part.text}
+            {said(part.text)}
           </button>
         ),
       )}
@@ -212,7 +212,7 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
       <Button
         variant={primary ? "default" : "ghost"}
         size={icon}
-        aria-label={tip}
+        aria-label={said(tip)}
         disabled={disabled}
         onClick={onClick}
         className={cn(!primary && "text-muted-foreground hover:text-foreground", touch && "size-11")}
@@ -231,12 +231,12 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
         {button("Next move (→)", StepForward, player.stepForward, p.target >= total)}
         {compact || touch ? (
           <Tip content="Speed">
-            <Button variant="ghost" size={touch ? "lg" : "sm"} onClick={player.cycleSpeed} aria-label={`Speed ${speedLabel(p.speed)}`} className={cn(NUMERIC, "min-w-11 text-muted-foreground hover:text-foreground", touch && "h-11")}>
+            <Button variant="ghost" size={touch ? "lg" : "sm"} onClick={player.cycleSpeed} aria-label={tr("Speed {0}", { 0: speedLabel(p.speed) })} className={cn(NUMERIC, "min-w-11 text-muted-foreground hover:text-foreground", touch && "h-11")}>
               {speedLabel(p.speed)}
             </Button>
           </Tip>
         ) : (
-          <ToggleGroup aria-label="Speed" size="sm" spacing={1} value={[String(p.speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className="ml-auto">
+          <ToggleGroup aria-label={tr("Speed")} size="sm" spacing={1} value={[String(p.speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className="ml-auto">
             {PLAYER_SPEEDS.map((speed) => (
               <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground")}>
                 {speedLabel(speed)}
@@ -247,7 +247,7 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
       </div>
       <div className="flex items-center gap-3">
         <Slider
-          aria-label="Moves played"
+          aria-label={tr("Moves played")}
           min={0}
           max={total}
           step={0.01}

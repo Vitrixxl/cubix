@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, MotionConfig } from "motion/react";
 import { store as s, TIMES_OPEN_WIDTH } from "./store";
+import { onLanguage, start } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
 import { Toasts } from "./Toasts";
@@ -14,8 +15,12 @@ import { Algorithms } from "./algorithms";
 import { Profile } from "./profile";
 import { DuelPage } from "./duel";
 import { CoachingPage } from "./coaching/page";
+import { CommunityPage } from "./community/page";
+import { TournamentsPage } from "./tournaments/page";
+import { MatchPage } from "./tournaments/match";
 import { CoachingSidebar } from "./coaching/rail";
 import { coaching } from "./coaching/client";
+import { community } from "./community/client";
 import { FloatingCall } from "./coaching/floating";
 import { Learn } from "./learn";
 import { Overlays } from "./overlays";
@@ -26,6 +31,7 @@ import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router"
 import { bindNavigation, go, pageUrl, readRoute } from "./navigation";
 import type { PuzzleId } from "../../src/shared/puzzles";
 import { journeyProfile } from "../../src/client/lib/journey";
+import { said } from "./base";
 /** Kept on this device so a relaunch draws the right screen before the engine answers. */
 const SIGNED_IN_KEY = "cubix.signedIn";
 const Introduction = lazy(() => import("./introduction").then(m => ({ default: m.Introduction })));
@@ -71,6 +77,8 @@ function App() {
             Digit4: "nav:training",
             Digit5: "nav:duel",
             Digit6: "nav:coaching",
+            Digit7: "nav:tournaments",
+            Digit8: "nav:community",
             KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
@@ -123,6 +131,7 @@ function App() {
   useLayoutEffect(() => applyTheme(s.themeName, s.light), [s.themeName, s.light]);
   // Coaching keeps its socket open while an account is signed in: messages and calls reach every page.
   useEffect(() => coaching.attach(s.ready && s.signedIn ? s.user.id : null), [s.ready, s.signedIn, s.user.id]);
+  useEffect(() => community.attach(s.ready && s.signedIn && !s.user.isGuest ? s.user.id : null), [s.ready, s.signedIn, s.user.id]);
   useLayoutEffect(() => faviconPuzzle(s.event().id), [s.puzzle, s.solveMode]);
   useEffect(() => {
     if (!s.ready) return;
@@ -139,7 +148,10 @@ function App() {
         (s.page === "training" ? ":" + s.trainingStep : "") +
         (s.page === "learn" ? ":" + (s.learnMethod || s.learnSection || "home") : "") +
         // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
-        (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "");
+        (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "") +
+        // The community's sections each slide in; a conversation or a group within one stays in place.
+        (s.page === "community" ? ":" + s.view.split("/")[0] : "") +
+        (s.page === "tournaments" || s.page === "match" ? ":" + s.view.split("/")[0] : "");
   const slide = { direction: s.direction, axis: s.axis };
   // Until the engine answers, the last launch decides; a first visit opens on the login page.
   const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) === "1";
@@ -155,7 +167,7 @@ function App() {
   if (!route) return <Navigate to="/timer" replace />;
   // A puzzle that cannot be solved yet keeps to its course; the tour still shows every section.
   if (s.ready && s.overlay !== "tour" && s.lockedPage(route.page, route.puzzle)) return <Navigate to={pageUrl("learn", { puzzle: route.puzzle ?? (s.puzzle as PuzzleId) })} replace />;
-  if (route.page === "onboarding") return <TooltipProvider><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={s.error} /></TooltipProvider>;
+  if (route.page === "onboarding") return <TooltipProvider><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
   return (
     <TooltipProvider delay={400}>
       <MotionConfig reducedMotion="user">
@@ -191,6 +203,12 @@ function App() {
                     <DuelPage />
                   ) : s.page === "coaching" ? (
                     <CoachingPage />
+                  ) : s.page === "community" ? (
+                    <CommunityPage />
+                  ) : s.page === "tournaments" ? (
+                    <TournamentsPage />
+                  ) : s.page === "match" ? (
+                    <MatchPage />
                   ) : (
                     <Profile />
                   )}
@@ -203,11 +221,13 @@ function App() {
         <FloatingCall />
         <Toasts light={s.light} />
         <Overlays />
-        <ErrorNotification message={s.error} />
+        <ErrorNotification message={said(s.error)} />
         {s.overlay === "tour" && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}
       </MotionConfig>
     </TooltipProvider>
   );
 }
 
-createRoot(document.getElementById("root")!).render(<BrowserRouter><App /></BrowserRouter>);
+// The app opens in the language of the device, its texts loaded; a change of language draws everything again.
+onLanguage(() => s.emit());
+void start().finally(() => createRoot(document.getElementById("root")!).render(<BrowserRouter><App /></BrowserRouter>));

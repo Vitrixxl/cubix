@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { applyAlg, faceOfSlot, parseMove, parseScramble, solved } from "../src/shared/cube";
-import { canonicalTurn, compose, slerp, faceletsToState, heldTurn, isSolved, rotate, rotation, SmartCube, stateToFacelets, type SmartCubeDriver, type SmartCubeEvent } from "../src/client/lib/smartCube";
+import { canonicalTurn, compose, slerp, stopPenalty, faceletsToState, heldTurn, isSolved, rotate, rotation, SmartCube, stateToFacelets, type SmartCubeDriver, type SmartCubeEvent } from "../src/client/lib/smartCube";
 
 const SOLVED = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
 const colours = (state: ArrayLike<number>) => Array.from(state, (origin) => faceOfSlot(origin));
@@ -52,6 +52,15 @@ describe("smart cube state", () => {
     listen({ type: "disconnected", reason: "Gone" });
     expect(cube.snapshot).toMatchObject({ status: "off", error: "Gone" });
     expect(seen[0]).toBe("connecting");
+  });
+});
+
+describe("a smart cube solve stopped by a key", () => {
+  test("solved: no penalty; one face turn away: +2; further: DNF", () => {
+    expect(stopPenalty(solved(3))).toBe("none");
+    expect(stopPenalty(applyAlg(solved(3), "U'"))).toBe("+2");
+    expect(stopPenalty(applyAlg(solved(3), "R2"))).toBe("+2");
+    expect(stopPenalty(applyAlg(solved(3), "R U"))).toBe("dnf");
   });
 });
 

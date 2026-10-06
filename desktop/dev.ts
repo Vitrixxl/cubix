@@ -40,8 +40,11 @@ const server = Bun.serve<Socket>({
     }
     // The administration is drawn by the same page (see rust-api/src/web.rs).
     const admin = url.pathname === "/admin" || url.pathname.startsWith("/admin/");
-    const app = /^\/(onboarding|timer|algorithms|training|duel|learn|coaching|profile)(\/|$)/.test(url.pathname);
-    const path = decodeURIComponent(url.pathname === "/" || admin || app ? "/index.html" : url.pathname === "/dev/cube" ? "/dev-cube.html" : url.pathname);
+    const app = /^\/(onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile)(\/|$)/.test(url.pathname);
+    // The root is the landing page (desktop/renderer/landing); the app lives under its own paths.
+    // The legal pages are pages of their own (desktop/renderer/legal), like the landing page.
+    const legal = ["/legal", "/privacy", "/terms"].includes(url.pathname) ? url.pathname + ".html" : "";
+    const path = legal || decodeURIComponent(url.pathname === "/" ? "/landing.html" : admin || app ? "/index.html" : url.pathname === "/dev/cube" ? "/dev-cube.html" : url.pathname);
     if (path.split("/").includes("..")) return new Response("Invalid path", { status: 400 });
     const file = Bun.file(WEB + path);
     return (await file.exists()) ? new Response(file, { headers: { "cache-control": "no-cache" } }) : new Response("Not found", { status: 404 });

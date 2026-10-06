@@ -2,7 +2,7 @@
  * The store-free half of the visual primitives: class names, figures, bars, headings and the viewport hooks. The app
  * reaches them through ui.tsx; the administration (admin/*), which has no store, imports them from here.
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import { isPhone } from "../../src/client/lib/viewport";
 import { TONE_TEXT, type Tone } from "../../src/client/lib/tone";
 import { Play } from "lucide-react";
@@ -11,6 +11,31 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { LANGUAGES, language, onLanguage, setLanguage, tr, type Language } from "../../src/client/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+/** The language in use: a component reading it is drawn again when it changes. */
+export const useLanguage = () => useSyncExternalStore(onLanguage, language, () => "en" as Language);
+/** The languages, each under its own name: the choice is kept on this device. */
+export function LanguagePicker({ className }: { className?: string }) {
+  const current = useLanguage(),
+    items = LANGUAGES.map((l) => ({ value: l.id, label: l.name }));
+  return (
+    <Select items={items} value={current} onValueChange={(v) => void setLanguage(v as Language)}>
+      <SelectTrigger aria-label={tr("Language")} data-action="language" className={className}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((o) => (
+          <SelectItem key={o.value} value={o.value} lang={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+/** A text passed to a component, in the current language; elements pass through. */
+export const said = <T,>(x: T): T => (typeof x === "string" ? (tr(x) as T) : x);
 
 export { Logo, Wordmark } from "./logo";
 export type { Tone } from "../../src/client/lib/tone";
@@ -119,7 +144,7 @@ export function Alg({ text, size = 18, className }: { text: string; size?: numbe
     >
       {text?.split(/\s+/).map((word, i) => (
         <span key={i} className={cn(/[()\[\]]/.test(word) && "text-muted-foreground")}>
-          {word}
+          {said(word)}
         </span>
       ))}
     </div>
@@ -150,7 +175,7 @@ export function Surface({ children, className, ...rest }: Props & React.HTMLAttr
 /** A secondary group of figures (level 2): a quiet muted band, no outline. */
 export function Strip({ children, className, label }: Props & { label?: string }) {
   return (
-    <section aria-label={label} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl border bg-muted/45 px-4 py-3", FADE, className)}>
+    <section aria-label={said(label)} className={cn("grid shrink-0 gap-x-6 gap-y-3 rounded-xl border bg-muted/45 px-4 py-3", FADE, className)}>
       {children}
     </section>
   );
@@ -182,7 +207,7 @@ export function PlayBadge({ compact = false }: { compact?: boolean }) {
 /** A whole page on its way: its header, the main surface and the side list, shaped like the timer. */
 export function PageSkeleton({ side = true }: { side?: boolean }) {
   return (
-    <div className={PAGE} aria-busy="true" aria-label="Loading">
+    <div className={PAGE} aria-busy="true" aria-label={tr("Loading")}>
       <header className="flex min-h-10 items-center justify-between">
         <Skeleton className="h-7 w-40" />
         <div className="flex gap-2">
@@ -282,7 +307,7 @@ export function Figure({
   );
   return (
     <div className={cn("flex min-w-0", inline ? "flex-row items-baseline justify-between gap-3" : cn("flex-col", gap), className)}>
-      <span className={cn(labelClass, inline ? "shrink-0 whitespace-nowrap" : "truncate")}>{label}</span>
+      <span className={cn(labelClass, inline ? "shrink-0 whitespace-nowrap" : "truncate")}>{said(label)}</span>
       {aside != null ? (
         <span className="flex min-w-0 items-baseline gap-2">
           {shown}
@@ -291,7 +316,7 @@ export function Figure({
       ) : (
         shown
       )}
-      {sub && <span className="min-w-0 truncate text-xs text-muted-foreground">{sub}</span>}
+      {sub && <span className="min-w-0 truncate text-xs text-muted-foreground">{said(sub)}</span>}
     </div>
   );
 }
@@ -306,7 +331,7 @@ export function Bar({ ratio, done = true, fill, className, label, text }: { rati
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(value * 100)}
-      aria-label={label}
+      aria-label={said(label)}
       aria-valuetext={text}
     >
       <div className={cn("h-full rounded-full", fill ?? (done ? "bg-primary" : "bg-muted-foreground/60"))} style={{ width: value * 100 + "%" }} />
@@ -319,7 +344,7 @@ export function Bar({ ratio, done = true, fill, className, label, text }: { rati
 export function SectionHead({ title, meta, children, className, rule = false }: { title: React.ReactNode; meta?: React.ReactNode; rule?: boolean } & Props) {
   return (
     <div className={cn("flex min-h-8 shrink-0 items-center gap-2", rule && "border-b pb-2", className)}>
-      <h2 className="text-sm font-medium">{title}</h2>
+      <h2 className="text-sm font-medium">{said(title)}</h2>
       {meta != null && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{meta}</span>}
       {children && <div className="ml-auto flex items-center gap-1">{children}</div>}
     </div>

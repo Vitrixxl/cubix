@@ -19,8 +19,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button as UiButton } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { tr, localFormat, locale } from "../../../src/client/i18n";
+import { said } from "../base";
 
-const sinceFormat = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" });
+const sinceFormat = localFormat({ month: "long", year: "numeric" });
 const since = (iso: string) => sinceFormat.format(new Date(iso));
 
 function usePerson(id: string) {
@@ -40,7 +42,7 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
         <Avatar name={b.with.username} src={b.with.avatar} size={40} />
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-semibold">{b.with.username}</span>
-          <span className="text-xs text-muted-foreground">{p ? `${b.role === "coach" ? "Student" : "Coach"} · on Qbix since ${since(p.since)}` : <Skeleton className="mt-1 h-3 w-36" />}</span>
+          <span className="text-xs text-muted-foreground">{p ? tr("{0} · on Qbix since {1}", { 0: b.role === "coach" ? "Student" : "Coach", 1: since(p.since) }) : <Skeleton className="mt-1 h-3 w-36" />}</span>
         </div>
       </div>
       <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
@@ -58,7 +60,7 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
         ).map(([label, value]) => (
           <span key={label} className="flex flex-col gap-0.5 rounded-lg border px-2 py-1.5">
             <span className={cn(NUMERIC, "text-base font-medium text-foreground")}>{value ?? "–"}</span>
-            {label}
+            {said(label)}
           </span>
         ))}
       </div>
@@ -66,13 +68,11 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
         {b.conversationId && (
           <UiButton variant="outline" size="sm" className="flex-1" onClick={() => go(url(b.role === "coach" ? "students/" + b.studentId : "messages/" + b.conversationId))}>
             <MessageSquare />
-            Message
-          </UiButton>
+            {tr("Message")}</UiButton>
         )}
         <UiButton size="sm" className="flex-1" onClick={onProfile} data-action="person:profile">
           <UserRound />
-          View profile
-        </UiButton>
+          {tr("View profile")}</UiButton>
       </div>
       {b.role === "coach" && b.status === "booked" && b.endsAt > Date.now() && (
         <>
@@ -126,7 +126,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
                   `on Qbix since ${since(p.since)}`,
                   p.practice.lastAt ? `last solve ${relative(new Date(p.practice.lastAt).getTime(), now)}` : "no solve yet",
                 ].join(" · ")
-              : "Loading…"}
+              : tr("Loading…")}
           </DialogDescription>
         </div>
         {p && !inChat && (
@@ -140,12 +140,11 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
             }}
           >
             <MessageSquare />
-            Message
-          </UiButton>
+            {tr("Message")}</UiButton>
         )}
       </DialogHeader>
       {!p ? (
-        <div className="flex flex-col gap-4 p-6" aria-busy="true" aria-label="Loading">
+        <div className="flex flex-col gap-4 p-6" aria-busy="true" aria-label={tr("Loading")}>
           <Skeleton className="h-[4.5rem] rounded-xl" />
           <div className="grid gap-4 lg:grid-cols-[1fr_23rem]">
             <Skeleton className="h-72 rounded-xl" />
@@ -159,7 +158,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
             items={[
               ["Sessions", done.length],
               ["Coming", booked.length - done.length],
-              ["Together", minutes ? `${(minutes / 60).toLocaleString("en-US", { maximumFractionDigits: 1 })} h` : "–"],
+              ["Together", minutes ? `${(minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h` : "–"],
               ["Rating", rated.length ? <Stars rating={rated.reduce((sum, b) => sum + b.review!.rating, 0) / rated.length} size={11} figure={false} /> : "–"],
               ["Solves", p.practice.solves],
               ["Active days · 30", p.practice.activeDays],
@@ -168,10 +167,10 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
             <div className="flex min-w-0 flex-col gap-4">
               <Activity days={p.history.days} now={now} />
-              <section className={SECTION} aria-label="Puzzles">
-                <h3 className={SECTION_HEAD}>Puzzles</h3>
+              <section className={SECTION} aria-label={tr("Puzzles")}>
+                <h3 className={SECTION_HEAD}>{tr("Puzzles")}</h3>
                 {!p.practice.puzzles.length ? (
-                  <p className="text-sm text-muted-foreground">No timed solve yet.</p>
+                  <p className="text-sm text-muted-foreground">{tr("No timed solve yet.")}</p>
                 ) : (
                   <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
                     {p.practice.puzzles.map((x) => (
@@ -184,12 +183,12 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
             </div>
             <div className="flex min-w-0 flex-col gap-4">
               {p.note !== null && <PrivateNotes conversation={p.conversationId} note={p.note} className="h-96" />}
-              <section className={SECTION} aria-label="Sessions together">
+              <section className={SECTION} aria-label={tr("Sessions together")}>
                 <h3 className={SECTION_HEAD}>
-                  Sessions together <span className={cn(NUMERIC, "text-muted-foreground")}>{p.sessions.length || ""}</span>
+                  {tr("Sessions together")}{" "}<span className={cn(NUMERIC, "text-muted-foreground")}>{p.sessions.length || ""}</span>
                 </h3>
                 {!p.sessions.length ? (
-                  <p className="text-sm text-muted-foreground">No session yet.</p>
+                  <p className="text-sm text-muted-foreground">{tr("No session yet.")}</p>
                 ) : (
                   <ul className="-mx-2 flex flex-col gap-0.5" data-slot="person-sessions">
                     {p.sessions.map((b) => (
@@ -198,9 +197,9 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
                           <span className={cn(NUMERIC, "text-sm")}>{span(b.startsAt)}</span>
                           <span className="ml-auto">
                             {b.status === "cancelled" ? (
-                              <Badge variant="secondary">Cancelled</Badge>
+                              <Badge variant="secondary">{tr("Cancelled")}</Badge>
                             ) : b.endsAt > now ? (
-                              <Badge variant="secondary">{day(b.startsAt) === day(now) ? "Today" : "Coming"}</Badge>
+                              <Badge variant="secondary">{day(b.startsAt) === day(now) ? tr("Today") : tr("Coming")}</Badge>
                             ) : (
                               b.review && <Stars rating={b.review.rating} size={11} figure={false} />
                             )}
@@ -240,9 +239,9 @@ export function Activity({ days, now, className }: { days: History["days"]; now:
   }, [days, now]);
   const tone = (n: number) => (n === 0 ? "bg-muted" : n / most > 0.66 ? "bg-primary" : n / most > 0.33 ? "bg-primary/65" : "bg-primary/35");
   return (
-    <section className={cn(SECTION, className)} aria-label="Activity">
+    <section className={cn(SECTION, className)} aria-label={tr("Activity")}>
       <h3 className={SECTION_HEAD}>
-        Activity <span className="text-xs font-normal text-muted-foreground">{plural(total, "solve")} in the last year</span>
+        {tr("Activity")}{" "}<span className="text-xs font-normal text-muted-foreground">{plural(total, "solve")} {" "}{tr("in the last year")}</span>
       </h3>
       <div className="grid grid-flow-col grid-rows-7 gap-[3px]" style={{ gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 1fr))` }} data-slot="person-activity">
         {weeks.flat().map((c) => (
@@ -262,7 +261,7 @@ export function Activity({ days, now, className }: { days: History["days"]; now:
     </section>
   );
 }
-const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
+const monthLabel = localFormat({ month: "short", timeZone: "UTC" });
 
 /** One puzzle: its best, Ao5 and Ao12, and the last solves as a line, with how much faster the recent half went. */
 /** `grow`: the line takes the height the card is given. */
@@ -280,7 +279,7 @@ export function PuzzleCard({ x, history, grow = false }: { x: PersonProfile["pra
           <span className="text-xs text-muted-foreground">{plural(x.solves, "solve")}</span>
         </div>
         {change != null && Math.abs(change) >= 10 && (
-          <span className={cn(NUMERIC, "flex items-center gap-1 text-xs font-medium", change < 0 ? "text-success" : "text-destructive")} title="Last solves against the ones before">
+          <span className={cn(NUMERIC, "flex items-center gap-1 text-xs font-medium", change < 0 ? "text-success" : "text-destructive")} title={tr("Last solves against the ones before")}>
             {change < 0 ? <TrendingDown className="size-3.5" /> : <TrendingUp className="size-3.5" />}
             {change < 0 ? "−" : "+"}
             {fmtTime(Math.abs(change))}
@@ -297,7 +296,7 @@ export function PuzzleCard({ x, history, grow = false }: { x: PersonProfile["pra
           ] as const
         ).map(([label, value]) => (
           <span key={label}>
-            {label} <span className="font-medium text-foreground">{value == null ? "–" : fmtTime(value)}</span>
+            {said(label)} <span className="font-medium text-foreground">{value == null ? "–" : fmtTime(value)}</span>
           </span>
         ))}
       </div>
@@ -325,7 +324,7 @@ function Sparkline({ times, detailed = false }: { times: number[]; detailed?: bo
   );
   if (!detailed) return svg;
   return (
-    <div className="flex min-h-16 flex-1 gap-2" title="The last solves, faint, under their running Ao5">
+    <div className="flex min-h-16 flex-1 gap-2" title={tr("The last solves, faint, under their running Ao5")}>
       <span className={cn(NUMERIC, "flex flex-col justify-between text-[10px] text-muted-foreground")}>
         <span>{fmtTime(low)}</span>
         <span>{fmtTime(high)}</span>
@@ -347,18 +346,18 @@ export function Learned({ ids, className }: { ids: string[]; className?: string 
     return (catalog.sets as { id: string; label: string; count: number }[]).filter((set) => counts.has(set.id)).map((set) => ({ ...set, learned: counts.get(set.id)! }));
   }, [ids]);
   return (
-    <section className={cn(SECTION, className)} aria-label="Cases learned">
+    <section className={cn(SECTION, className)} aria-label={tr("Cases learned")}>
       <h3 className={SECTION_HEAD}>
-        Cases learned <span className={cn(NUMERIC, "text-muted-foreground")}>{ids.length || ""}</span>
+        {tr("Cases learned")}{" "}<span className={cn(NUMERIC, "text-muted-foreground")}>{ids.length || ""}</span>
       </h3>
       {!sets.length ? (
-        <p className="text-sm text-muted-foreground">No case learned yet.</p>
+        <p className="text-sm text-muted-foreground">{tr("No case learned yet.")}</p>
       ) : (
         <ul className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2" data-slot="person-learned">
           {sets.map((set) => (
             <li key={set.id} className="flex flex-col gap-1">
               <span className="flex items-baseline justify-between gap-2 text-xs">
-                <span className="truncate font-medium">{set.label}</span>
+                <span className="truncate font-medium">{said(set.label)}</span>
                 <span className={cn(NUMERIC, "text-muted-foreground")}>
                   {set.learned} / {set.count}
                 </span>

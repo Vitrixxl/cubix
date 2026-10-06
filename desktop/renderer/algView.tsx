@@ -9,6 +9,8 @@ import { Choice, NUMERIC, Tip, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer, usePlayerKeys } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 export function AlgView() {
   const view = s.algView,
@@ -23,7 +25,7 @@ export function AlgView() {
   const stepper = count > 1 && (
     <div className="flex shrink-0 items-center gap-1">
       <Tip content="Previous algorithm">
-        <Button variant="ghost" size={phone ? "icon-lg" : "icon-sm"} aria-label="Previous algorithm" data-action="algView:previous" disabled={view.index === 0} onClick={run("algView:previous")} className={cn(phone && "size-11")}>
+        <Button variant="ghost" size={phone ? "icon-lg" : "icon-sm"} aria-label={tr("Previous algorithm")} data-action="algView:previous" disabled={view.index === 0} onClick={run("algView:previous")} className={cn(phone && "size-11")}>
           <ChevronLeft />
         </Button>
       </Tip>
@@ -31,7 +33,7 @@ export function AlgView() {
         {view.index + 1} / {count}
       </span>
       <Tip content="Next algorithm">
-        <Button variant="ghost" size={phone ? "icon-lg" : "icon-sm"} aria-label="Next algorithm" data-action="algView:next" disabled={view.index === count - 1} onClick={run("algView:next")} className={cn(phone && "size-11")}>
+        <Button variant="ghost" size={phone ? "icon-lg" : "icon-sm"} aria-label={tr("Next algorithm")} data-action="algView:next" disabled={view.index === count - 1} onClick={run("algView:next")} className={cn(phone && "size-11")}>
           <ChevronRight />
         </Button>
       </Tip>
@@ -40,7 +42,7 @@ export function AlgView() {
   const choices = item.algs.length > 1 && (
     <Choice
       prefix="algChoice:"
-      label="Algorithm"
+      label={tr("Algorithm")}
       value={String(view.choice)}
       options={item.algs.map((_, i) => ({ id: String(i), label: i ? `Alternative ${i}` : "Main" }))}
       className="flex-wrap"
@@ -57,7 +59,7 @@ export function AlgView() {
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span className="min-w-0 truncate font-sans text-lg font-semibold tracking-tight">{item.name}</span>
+            <span className="min-w-0 truncate font-sans text-lg font-semibold tracking-tight">{said(item.name)}</span>
             <span className="min-w-0 truncate text-xs text-muted-foreground">{item.detail ?? item.context}</span>
           </div>
           {stepper}
@@ -78,7 +80,7 @@ export function AlgView() {
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-6 pt-5">
         <header className="flex items-center gap-4 pr-8">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <h2 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{item.name}</h2>
+            <h2 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{said(item.name)}</h2>
             <p className="min-w-0 truncate text-sm text-muted-foreground">{item.detail ?? item.context}</p>
           </div>
           {stepper}

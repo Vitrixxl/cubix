@@ -1,4 +1,5 @@
 import type { Penalty } from "../../shared/types";
+import { msg } from "../i18n/msg";
 
 /** Times read to the millisecond: 12345 → "12.345", 61234 → "1:01.234" */
 export function fmtTime(ms: number | null | undefined, opts: { blank?: string } = {}): string {
@@ -13,9 +14,9 @@ export function fmtTime(ms: number | null | undefined, opts: { blank?: string } 
 /** How a time reaches the timer page: the built-in timer, a time typed from an external timer, or a timer that records nothing. */
 export type TimeEntry = "timer" | "typing" | "casual";
 export const TIME_ENTRIES: { id: TimeEntry; label: string }[] = [
-  { id: "timer", label: "Timer" },
-  { id: "typing", label: "Typing" },
-  { id: "casual", label: "Casual" },
+  { id: "timer", label: msg("Timer") },
+  { id: "typing", label: msg("Typing") },
+  { id: "casual", label: msg("Casual") },
 ];
 
 /** Longest time accepted from the keyboard: ten hours. */

@@ -551,12 +551,18 @@ pub async fn delete(state: &AppState, id: String) -> Result<Value> {
         .db
         .call(move |db| {
             let tx = db.transaction()?;
-            let account = required(&tx, "SELECT username FROM users WHERE id=?", [&user], UNKNOWN)?;
+            let account = required(&tx, "SELECT username,avatar FROM users WHERE id=?", [&user], UNKNOWN)?;
             let (solves, sessions) = purge(&tx, &user)?;
             tx.commit()?;
-            Ok(json!({"ok":true,"username":account["username"],"solves":solves,"sessions":sessions}))
+            // Pictures and videos of its coaching conversations went with it.
+            crate::coaching::sweep_media(db)?;
+            Ok((account["avatar"].as_str().map(str::to_owned), json!({"ok":true,"username":account["username"],"solves":solves,"sessions":sessions})))
         })
         .await?;
+    let (avatar, deleted) = deleted;
+    if let Some(file) = avatar {
+        crate::coaching::forget_avatar(&file).await;
+    }
     state.hub.notify_sync(&id, 0);
     Ok(deleted)
 }

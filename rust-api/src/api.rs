@@ -45,6 +45,13 @@ fn comment(body: &Value) -> Result<Option<Option<String>>> {
         }
     }
 }
+/// The turns of a solve: absent, or trimmed text of at most 10000 characters (blank is absent).
+fn solution(body: &Value) -> Result<Option<&str>> {
+    match body.get("solution") {
+        None | Some(Value::Null) => Ok(None),
+        Some(_) => Ok(Some(string(body, "solution", 0, 10000)?.trim()).filter(|t| !t.is_empty())),
+    }
+}
 fn enum_string<'a>(body: &'a Value, key: &str, allowed: &[&str]) -> Result<&'a str> {
     let s = string(body, key, 0, 32)?;
     if allowed.contains(&s) {
@@ -246,6 +253,22 @@ async fn respond(
     if method == Method::POST && ["auth/register", "auth/login"].contains(&path.as_str()) {
         return auth_request(state, &path, body, token).await;
     }
+    // The account deleted by its owner, with its password: everything it holds goes at once (admin_data::purge).
+    if method == Method::POST && path == "account/delete" {
+        let secret = string(&body, "password", 1, 128)?.to_owned();
+        let user = state
+            .db
+            .call(move |db| accounts::auth(db, &token)?.ok_or_else(|| ApiError::new(401, "Please sign in again.")))
+            .await?;
+        let id = user["id"].as_str().unwrap_or_default().to_owned();
+        limited(state, format!("delete:{id}"))?;
+        let hash = user["password_hash"].as_str().map(str::to_owned);
+        if hash.is_none() || password(state, secret, hash).await.is_err() {
+            return Err(ApiError::new(401, "Incorrect password."));
+        }
+        crate::admin_data::delete(state, id).await?;
+        return Ok(json!({"ok": true}));
+    }
     if method == Method::GET {
         match path.as_str() {
             "health" => return Ok(json!({"ok":true})),
@@ -280,15 +303,20 @@ async fn respond(
         .call(move |db| {
             // Looked up before the route runs, so a sign-out still names its account.
             let caller = Caller::new(db, &token)?;
+            // Other devices of the same account learn about committed practice changes immediately: whenever the
+            // request moved the account's change feed.
+            let before = match caller.id() {
+                Some(uid) if method != Method::GET => Some(crate::sync::cursor(db, uid)?),
+                _ => None,
+            };
             let value = route(db, &copy, method.as_str(), &path, &query, &body, &caller);
-            // Other devices of the same account learn about committed practice changes immediately.
             if value.is_ok()
-                && method != Method::GET
-                && !path.starts_with("auth/")
-                && !path.starts_with("coaching/")
-                && let Some(uid) = caller.id()
+                && let (Some(uid), Some(before)) = (caller.id(), before)
             {
-                copy.hub.notify_sync(uid, crate::sync::cursor(db, uid)?);
+                let after = crate::sync::cursor(db, uid)?;
+                if after != before {
+                    copy.hub.notify_sync(uid, after);
+                }
             }
             Ok((caller, value))
         })
@@ -384,6 +412,12 @@ pub(crate) fn route(
     let parts: Vec<_> = path.split('/').collect();
     if parts[0] == "coaching" {
         return crate::coaching::route(db, state, method, &parts[1..], query, body, user);
+    }
+    if parts[0] == "social" {
+        return crate::social::route(db, state, method, &parts[1..], query, body, user);
+    }
+    if parts[0] == "tournaments" || parts[0] == "matches" {
+        return crate::tournament::route(db, state, method, &parts, body, user);
     }
     match (method, parts.as_slice()) {
         ("GET", ["auth", "me"]) => Ok(accounts::public(user)),
@@ -507,6 +541,7 @@ pub(crate) fn route(
             };
             let scramble = optional_string(body, "scramble")?;
             let comment = comment(body)?.flatten();
+            let solution = solution(body)?;
             let selected_session = sid.map(|id| session(db, id, uid)).transpose()?;
             let selected_case = case.and_then(|id| state.catalog.by_id.get(id));
             let context = practice::Context::from_body(
@@ -534,7 +569,7 @@ pub(crate) fn route(
             }
             required(
                 db,
-                "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?) RETURNING *",
+                "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *",
                 params![
                     sid,
                     case,
@@ -542,6 +577,7 @@ pub(crate) fn route(
                     penalty,
                     scramble,
                     comment,
+                    solution,
                     uid,
                     context.cube_size(),
                     context.puzzle,

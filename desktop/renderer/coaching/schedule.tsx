@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 /** Weekly hours repeated on some weekdays (0 = Monday), between two dates or for good. */
 interface Rule {
@@ -90,7 +92,7 @@ export function Schedule() {
   }, []);
   if (!coach?.windows)
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-3" aria-busy="true" aria-label="Loading">
+      <div className="flex min-h-0 flex-1 flex-col gap-3" aria-busy="true" aria-label={tr("Loading")}>
         <Skeleton className="h-9 w-80" />
         <Skeleton className="flex-1 rounded-xl" />
       </div>
@@ -148,7 +150,7 @@ function ScheduleForm() {
     setPending(true);
     try {
       await coaching.saveAvailability({ timezone: next.zone, sessionMinutes: next.minutes, windows: windowsOf(next.rules), daysOff: [...new Set(next.off)].sort(), overrides: next.changes });
-      toast.success("Availability saved");
+      toast.success(tr("Availability saved"));
       return true;
     } catch (e) {
       toast.error((e as Error).message);
@@ -178,24 +180,21 @@ function ScheduleForm() {
     setAnchor(day);
   }
   return (
-    <section aria-label="Schedule" className="flex min-h-0 flex-1 flex-col gap-3">
+    <section aria-label={tr("Schedule")} className="flex min-h-0 flex-1 flex-col gap-3">
       <MonthHeader month={month} today={today} onMonth={setMonth}>
         {picking ? (
           <span className="ml-auto flex items-center gap-2" data-slot="schedule-picking">
-            <span className="text-sm text-muted-foreground max-sm:hidden">{selected.length ? `${plural(selected.length, "day")} picked` : picking === "open" ? "Pick the days to open" : "Pick the days to cancel"}</span>
+            <span className="text-sm text-muted-foreground max-sm:hidden">{selected.length ? tr("{0} picked", { 0: plural(selected.length, "day") }) : picking === "open" ? tr("Pick the days to open") : tr("Pick the days to cancel")}</span>
             <UiButton variant="ghost" onClick={stopPicking} data-action="schedule:stop">
-              Cancel
-            </UiButton>
+              {tr("Cancel")}</UiButton>
             <UiButton disabled={!selected.length} onClick={() => setStep({ kind: picking, days: selected })} data-action="schedule:continue">
-              Continue
-              <ChevronRight />
+              {tr("Continue")}<ChevronRight />
             </UiButton>
           </span>
         ) : (
           <UiButton className="ml-auto" onClick={() => setStep({ kind: "menu" })} data-action="schedule:edit">
             <CalendarCog />
-            Edit availability
-          </UiButton>
+            {tr("Edit availability")}</UiButton>
         )}
       </MonthHeader>
       <div className="flex min-h-0 flex-1 max-lg:overflow-y-auto">
@@ -212,9 +211,9 @@ function ScheduleForm() {
               className: cn(dayOff && !past && "bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--color-muted)_6px_8px)]"),
               corner: (
                 <>
-                  {(dayOff || changes.some((c) => c.date === day)) && !past && <span className="size-1.5 rounded-full bg-warning" aria-label="Changed this day" />}
+                  {(dayOff || changes.some((c) => c.date === day)) && !past && <span className="size-1.5 rounded-full bg-warning" aria-label={tr("Changed this day")} />}
                   {dayOff ? (
-                    <span className="ml-auto text-[11px] text-muted-foreground">Off</span>
+                    <span className="ml-auto text-[11px] text-muted-foreground">{tr("Off")}</span>
                   ) : (
                     !!hours.length && (
                       <span title={hours.map(rangeText).join(", ")} className={cn(NUMERIC, "ml-auto truncate text-[11px] text-primary/90 @max-[5.5rem]:hidden", past && "text-muted-foreground/60")}>
@@ -299,17 +298,17 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Edit availability</DialogTitle>
-        <DialogDescription>What do you want to change?</DialogDescription>
+        <DialogTitle>{tr("Edit availability")}</DialogTitle>
+        <DialogDescription>{tr("What do you want to change?")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">
-        <Choice icon={<CalendarPlus />} title="Add a date" text="Open hours on days you pick" onClick={() => choose("open")} action="schedule:add-date" />
-        <Choice icon={<CalendarX />} title="Cancel a date" text="A day off, or a few hours away" onClick={() => choose("close")} action="schedule:cancel-date" />
-        <Choice icon={<Repeat />} title="Add weekly hours" text="The same hours every week" onClick={() => choose("rule")} action="schedule:rule" />
+        <Choice icon={<CalendarPlus />} title={tr("Add a date")} text={tr("Open hours on days you pick")} onClick={() => choose("open")} action="schedule:add-date" />
+        <Choice icon={<CalendarX />} title={tr("Cancel a date")} text={tr("A day off, or a few hours away")} onClick={() => choose("close")} action="schedule:cancel-date" />
+        <Choice icon={<Repeat />} title={tr("Add weekly hours")} text={tr("The same hours every week")} onClick={() => choose("rule")} action="schedule:rule" />
       </div>
       {!!saved.rules.length && (
         <div className="flex flex-col gap-1.5" data-slot="rules">
-          <span className="text-xs font-medium text-muted-foreground">Weekly hours</span>
+          <span className="text-xs font-medium text-muted-foreground">{tr("Weekly hours")}</span>
           <ul className="flex max-h-44 flex-col gap-1 overflow-y-auto">
             {saved.rules.map((r, i) => (
               <li key={i} data-rule={i}>
@@ -325,25 +324,25 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
       )}
       <div className="grid grid-cols-2 gap-2">
         <Select items={lengths(coaching.me?.lengths)} value={String(saved.minutes)} onValueChange={(v) => void commit({ minutes: Number(v) })} disabled={pending}>
-          <SelectTrigger aria-label="Session length" data-action="schedule:length" className="w-full">
+          <SelectTrigger aria-label={tr("Session length")} data-action="schedule:length" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {lengths(coaching.me?.lengths).map((o) => (
               <SelectItem key={o.value} value={o.value}>
-                {o.label}
+                {said(o.label)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select items={ZONES} value={saved.zone} onValueChange={(v) => void commit({ zone: String(v) })} disabled={pending}>
-          <SelectTrigger aria-label="Time zone" data-action="schedule:zone" className="w-full">
+          <SelectTrigger aria-label={tr("Time zone")} data-action="schedule:zone" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {ZONES.map((o) => (
               <SelectItem key={o.value} value={o.value}>
-                {o.label}
+                {said(o.label)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -376,43 +375,39 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{rule ? "Weekly hours" : "Add weekly hours"}</DialogTitle>
-        <DialogDescription>{days.length ? `${weekdaysText(days)} · ${rangeText([start, end])}` : "Pick at least one day."}</DialogDescription>
+        <DialogTitle>{rule ? tr("Weekly hours") : tr("Add weekly hours")}</DialogTitle>
+        <DialogDescription>{days.length ? `${weekdaysText(days)} · ${rangeText([start, end])}` : tr("Pick at least one day.")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4">
         <Field>
-          <FieldLabel>Days</FieldLabel>
-          <ToggleGroup multiple variant="outline" spacing={0} value={days.map(String)} onValueChange={(v: string[]) => setDays(v.map(Number).sort())} aria-label="Days" className="w-full">
+          <FieldLabel>{tr("Days")}</FieldLabel>
+          <ToggleGroup multiple variant="outline" spacing={0} value={days.map(String)} onValueChange={(v: string[]) => setDays(v.map(Number).sort())} aria-label={tr("Days")} className="w-full">
             {WEEKDAYS.map((w, d) => (
-              <ToggleGroupItem key={w} value={String(d)} aria-label={w} className="flex-1 px-0 text-xs data-[pressed]:bg-primary/15 data-[pressed]:text-primary">
+              <ToggleGroupItem key={w} value={String(d)} aria-label={said(w)} className="flex-1 px-0 text-xs data-[pressed]:bg-primary/15 data-[pressed]:text-primary">
                 {w.slice(0, 2)}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
         </Field>
         <Field>
-          <FieldLabel>Hours</FieldLabel>
+          <FieldLabel>{tr("Hours")}</FieldLabel>
           <Hours start={start} end={end} setStart={setStart} setEnd={setEnd} />
         </Field>
         <Field>
-          <FieldLabel>Repeat</FieldLabel>
-          <ToggleGroup variant="outline" spacing={0} value={[dated ? "dated" : "always"]} onValueChange={(v: string[]) => v[0] && setDated(v[0] === "dated")} aria-label="Repeat" className="w-full">
+          <FieldLabel>{tr("Repeat")}</FieldLabel>
+          <ToggleGroup variant="outline" spacing={0} value={[dated ? "dated" : "always"]} onValueChange={(v: string[]) => v[0] && setDated(v[0] === "dated")} aria-label={tr("Repeat")} className="w-full">
             <ToggleGroupItem value="always" className="flex-1" data-action="schedule:always">
-              For good
-            </ToggleGroupItem>
+              {tr("For good")}</ToggleGroupItem>
             <ToggleGroupItem value="dated" className="flex-1" data-action="schedule:dated">
-              Between two dates
-            </ToggleGroupItem>
+              {tr("Between two dates")}</ToggleGroupItem>
           </ToggleGroup>
           {dated && (
             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
               <label className="flex flex-col gap-1">
-                Starting
-                <Input type="date" value={from} min={today} onChange={(e) => setFrom(e.target.value)} className={NUMERIC} />
+                {tr("Starting")}<Input type="date" value={from} min={today} onChange={(e) => setFrom(e.target.value)} className={NUMERIC} />
               </label>
               <label className="flex flex-col gap-1">
-                Until
-                <Input type="date" value={until} min={from || today} onChange={(e) => setUntil(e.target.value)} className={NUMERIC} />
+                {tr("Until")}<Input type="date" value={until} min={from || today} onChange={(e) => setUntil(e.target.value)} className={NUMERIC} />
               </label>
             </div>
           )}
@@ -422,16 +417,14 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
         {rule ? (
           <UiButton variant="ghost" className="mr-auto hover:text-destructive" disabled={pending} onClick={remove} data-action="schedule:remove-rule">
             <Trash2 />
-            Remove
-          </UiButton>
+            {tr("Remove")}</UiButton>
         ) : (
           <UiButton variant="ghost" className="mr-auto" onClick={back}>
             <ChevronLeft />
-            Back
-          </UiButton>
+            {tr("Back")}</UiButton>
         )}
         <UiButton disabled={!days.length || pending} onClick={() => save({ days, start, end, from: (dated && from) || null, until: (dated && until) || null })} data-action="schedule:save-rule">
-          {pending ? "Saving…" : rule ? "Save" : "Add"}
+          {pending ? tr("Saving…") : rule ? tr("Save") : tr("Add")}
         </UiButton>
       </DialogFooter>
     </>
@@ -449,13 +442,13 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
     <>
       <DialogHeader>
         <DialogTitle>{longDay.format(toDate(day))}</DialogTitle>
-        <DialogDescription>{dayOff ? "Day off: no one can book you." : hours.length ? `${hours.map(rangeText).join(", ")} · ${plural(slots, "slot")}` : "Closed: no hours this day."}</DialogDescription>
+        <DialogDescription>{dayOff ? tr("Day off: no one can book you.") : hours.length ? `${hours.map(rangeText).join(", ")} · ${plural(slots, "slot")}` : tr("Closed: no hours this day.")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4" data-slot="day-panel">
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Weekly hours</span>
+          <span className="text-xs font-medium text-muted-foreground">{tr("Weekly hours")}</span>
           {!weekly.length ? (
-            <span className="text-muted-foreground">None this day.</span>
+            <span className="text-muted-foreground">{tr("None this day.")}</span>
           ) : (
             weekly.map((r, i) => (
               <span key={i} className={cn(NUMERIC, "flex items-center gap-2")}>
@@ -467,22 +460,21 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
         </div>
         {(dayOff || !!own.length) && (
           <div className="flex flex-col gap-1" data-slot="day-changes">
-            <span className="text-xs font-medium text-muted-foreground">Only this day</span>
+            <span className="text-xs font-medium text-muted-foreground">{tr("Only this day")}</span>
             {dayOff && (
               <span className="flex items-center gap-2" data-change="off">
                 <CalendarOff className="size-3.5 text-warning" />
-                <span className="flex-1">Day off</span>
+                <span className="flex-1">{tr("Day off")}</span>
                 <UiButton variant="ghost" size="sm" disabled={pending} onClick={() => commit({ off: saved.off.filter((d) => d !== day) })} data-action="schedule:reopen">
-                  Reopen
-                </UiButton>
+                  {tr("Reopen")}</UiButton>
               </span>
             )}
             {own.map(([c, i]) => (
               <span key={i} className="flex items-center gap-2" data-change={c.open ? "open" : "closed"}>
-                <span className={cn("w-12 shrink-0 text-xs font-medium", c.open ? "text-primary" : "text-warning")}>{c.open ? "Extra" : "Away"}</span>
+                <span className={cn("w-12 shrink-0 text-xs font-medium", c.open ? "text-primary" : "text-warning")}>{c.open ? tr("Extra") : tr("Away")}</span>
                 <span className={cn(NUMERIC, "flex-1")}>{rangeText([c.start, c.end])}</span>
                 <Tip content="Remove">
-                  <UiButton variant="ghost" size="icon-sm" aria-label="Remove" disabled={pending} onClick={() => commit({ changes: saved.changes.filter((_, j) => j !== i) })}>
+                  <UiButton variant="ghost" size="icon-sm" aria-label={tr("Remove")} disabled={pending} onClick={() => commit({ changes: saved.changes.filter((_, j) => j !== i) })}>
                     <Trash2 />
                   </UiButton>
                 </Tip>
@@ -492,11 +484,11 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
         )}
         {!!sessions.length && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">Sessions</span>
+            <span className="text-xs font-medium text-muted-foreground">{tr("Sessions")}</span>
             {sessions.map((b) => (
               <span key={b.id} className="flex items-center gap-2">
                 <span className={NUMERIC}>{time(b.startsAt)}</span>
-                <span className="truncate text-muted-foreground">with {b.with.username}</span>
+                <span className="truncate text-muted-foreground">{tr("with")}{" "}{b.with.username}</span>
               </span>
             ))}
           </div>
@@ -505,12 +497,10 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
       <DialogFooter>
         <UiButton variant="outline" onClick={() => go("close")} disabled={dayOff} data-action="schedule:day-close">
           <CalendarX />
-          Cancel hours
-        </UiButton>
+          {tr("Cancel hours")}</UiButton>
         <UiButton variant="outline" onClick={() => go("open")} data-action="schedule:day-open">
           <CalendarPlus />
-          Add hours
-        </UiButton>
+          {tr("Add hours")}</UiButton>
       </DialogFooter>
     </>
   );
@@ -526,7 +516,7 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{kind === "open" ? "Add a date" : "Cancel a date"}</DialogTitle>
+        <DialogTitle>{kind === "open" ? tr("Add a date") : tr("Cancel a date")}</DialogTitle>
         <DialogDescription>
           {daysText(days)}
           {one && ` · ${off.has(one) ? "day off" : hours.length ? hours.map(rangeText).join(", ") : "closed"}`}
@@ -534,27 +524,25 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
       </DialogHeader>
       <div className="flex flex-col gap-4">
         {kind === "close" && (
-          <ToggleGroup variant="outline" spacing={0} value={[wholeDay ? "day" : "hours"]} onValueChange={(v: string[]) => v[0] && setWholeDay(v[0] === "day")} aria-label="What to cancel" className="w-full">
+          <ToggleGroup variant="outline" spacing={0} value={[wholeDay ? "day" : "hours"]} onValueChange={(v: string[]) => v[0] && setWholeDay(v[0] === "day")} aria-label={tr("What to cancel")} className="w-full">
             <ToggleGroupItem value="day" className="flex-1" data-action="schedule:off">
               <CalendarOff />
-              Whole day
-            </ToggleGroupItem>
+              {tr("Whole day")}</ToggleGroupItem>
             <ToggleGroupItem value="hours" className="flex-1" data-action="schedule:away">
-              Some hours
-            </ToggleGroupItem>
+              {tr("Some hours")}</ToggleGroupItem>
           </ToggleGroup>
         )}
         {(kind === "open" || !wholeDay) && (
           <Field>
-            <FieldLabel>{kind === "open" ? "Open" : "Away"}</FieldLabel>
+            <FieldLabel>{kind === "open" ? tr("Open") : tr("Away")}</FieldLabel>
             <Hours start={start} end={end} setStart={setStart} setEnd={setEnd} />
           </Field>
         )}
-        {kind === "close" && !!booked && <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">{plural(booked, "session")} already booked stay booked: cancel them from Sessions if you need to.</p>}
+        {kind === "close" && !!booked && <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">{plural(booked, "session")} {" "}{tr("already booked stay booked: cancel them from Sessions if you need to.")}</p>}
       </div>
       <DialogFooter>
         <UiButton disabled={pending} onClick={() => apply(start, end, kind === "close" && wholeDay)} data-action={kind === "open" ? "schedule:extra" : "schedule:confirm"}>
-          {pending ? "Saving…" : kind === "open" ? "Add hours" : wholeDay ? `Take ${days.length > 1 ? "these days" : "the day"} off` : "Take these hours off"}
+          {pending ? tr("Saving…") : kind === "open" ? tr("Add hours") : wholeDay ? days.length > 1 ? tr("Take these days off") : tr("Take the day off") : tr("Take these hours off")}
         </UiButton>
       </DialogFooter>
     </>
@@ -565,9 +553,9 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
 function Hours({ start, end, setStart, setEnd }: { start: number; end: number; setStart: (minutes: number) => void; setEnd: (minutes: number) => void }) {
   return (
     <div className="flex items-center gap-2">
-      <TimeSelect value={start} options={TIMES.filter((t) => t < 1440)} onChange={(v) => (setStart(v), setEnd(Math.max(end, v + 30)))} label="From" />
+      <TimeSelect value={start} options={TIMES.filter((t) => t < 1440)} onChange={(v) => (setStart(v), setEnd(Math.max(end, v + 30)))} label={tr("From")} />
       <span className="text-muted-foreground">–</span>
-      <TimeSelect value={end} options={TIMES.filter((t) => t > start)} onChange={setEnd} label="To" />
+      <TimeSelect value={end} options={TIMES.filter((t) => t > start)} onChange={setEnd} label={tr("To")} />
     </div>
   );
 }
@@ -610,13 +598,13 @@ function TimeSelect({ value, options, onChange, label }: { value: number; option
   const items = options.map((t) => ({ value: String(t), label: clockTime(t) }));
   return (
     <Select items={items} value={String(value)} onValueChange={(v) => onChange(Number(v))}>
-      <SelectTrigger aria-label={label} className={cn(NUMERIC, "flex-1")}>
+      <SelectTrigger aria-label={said(label)} className={cn(NUMERIC, "flex-1")}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {items.map((o) => (
           <SelectItem key={o.value} value={o.value}>
-            {o.label}
+            {said(o.label)}
           </SelectItem>
         ))}
       </SelectContent>

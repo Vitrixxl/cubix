@@ -32,7 +32,7 @@ async function fits(page: Page, label: string) {
 }
 
 try {
-  await page.goto(origin);
+  await page.goto(origin + "/timer");
   // Its own account each run, the Docker stack keeping its database.
   await signIn(page, "profile_ui_" + Date.now().toString(36).slice(-5));
   await page.evaluate(async () => {
@@ -100,7 +100,7 @@ try {
   // A fresh account: compact empty states, still inside the window.
   const fresh = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();
   fresh.on("pageerror", e => errors.push(e.message));
-  await fresh.goto(origin);
+  await fresh.goto(origin + "/timer");
   await signIn(fresh, "profile_empty");
   await fresh.goto(origin + "/profile?puzzle=333");
   await fresh.locator('[data-tour="profile-overview"]').waitFor();

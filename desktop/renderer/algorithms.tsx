@@ -13,6 +13,8 @@ import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 function useScrollPosition(key: string) {
   const ref = useRef<HTMLDivElement>(null);
@@ -37,16 +39,16 @@ export function Algorithms() {
   if (mobile && s.caseId) return <Detail />;
   return (
     <div className={PAGE}>
-      <PageHead title="Algorithms" puzzle sub={`${learned} of ${total} learned`} more={mobile && <MenuAction action="methods" icon={BookOpen}>Solving methods</MenuAction>}>
+      <PageHead title={tr("Algorithms")} puzzle sub={tr("{0} of {1} learned", { 0: learned, 1: total })} more={mobile && <MenuAction action="methods" icon={BookOpen}>{tr("Solving methods")}</MenuAction>}>
         {!mobile && (
           <>
             <Button action="search" variant="outline" className="w-56 justify-start gap-2 text-muted-foreground max-lg:w-auto">
               <Search />
-              <span className="max-lg:hidden">Search cases</span>
-              <Kbd className="ml-auto max-lg:hidden">Ctrl K</Kbd>
+              <span className="max-lg:hidden">{tr("Search cases")}</span>
+              <Kbd className="ml-auto max-lg:hidden">{tr("Ctrl K")}</Kbd>
             </Button>
             <Button action="methods" icon={BookOpen}>
-              {w > 1000 && "Methods"}
+              {w > 1000 && tr("Methods")}
             </Button>
           </>
         )}
@@ -89,13 +91,13 @@ function CaseList({ wide }: { wide: boolean }) {
     <div data-tour="algorithms" className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] overflow-hidden rounded-xl border bg-card px-3 pt-3")}>
       {wide && (
         <InputGroup className="h-10 shrink-0">
-          <InputGroupInput placeholder="Search cases: oll 21, pll t…" aria-label="Search cases" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <InputGroupInput placeholder={tr("Search cases: oll 21, pll t…")} aria-label={tr("Search cases")} value={query} onChange={(e) => setQuery(e.target.value)} />
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
           {query && (
             <InputGroupAddon align="inline-end">
-              <InputGroupButton size="icon-xs" aria-label="Clear the search" onClick={() => setQuery("")}>
+              <InputGroupButton size="icon-xs" aria-label={tr("Clear the search")} onClick={() => setQuery("")}>
                 <X />
               </InputGroupButton>
             </InputGroupAddon>
@@ -104,7 +106,7 @@ function CaseList({ wide }: { wide: boolean }) {
       )}
       {found ? (
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
-          {!found.length && <Empty>No case matches.</Empty>}
+          {!found.length && <Empty>{tr("No case matches.")}</Empty>}
           <div className={TILES}>
             {found.map((c: any) => <CaseTile key={c.id} c={c} touch detail={`${c.setLabel} · ${c.group}`} />)}
           </div>
@@ -116,7 +118,7 @@ function CaseList({ wide }: { wide: boolean }) {
           <TabsList variant="line" className="h-8 gap-4 px-0">
             {stages.map((st) => (
               <TabsTrigger key={st} value={st} data-action={"stage:" + st} className="flex-none px-0 text-sm">
-                {st}
+                {said(st)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -126,7 +128,7 @@ function CaseList({ wide }: { wide: boolean }) {
         {section && section.variants.length > 1 && (
           <Choice
             prefix="set:"
-            label="Set"
+            label={tr("Set")}
             value={section.active.id}
             options={section.variants.map((v: any) => ({
               id: v.id,
@@ -137,7 +139,7 @@ function CaseList({ wide }: { wide: boolean }) {
         )}
         <Choice
           prefix="learningFilter:"
-          label="Filter"
+          label={tr("Filter")}
           value={s.learningFilter}
           options={[
             { id: "all", label: "All", count: setTotal },
@@ -148,7 +150,7 @@ function CaseList({ wide }: { wide: boolean }) {
       </div>
       <div ref={scroll} className="-mx-2 -mt-2 min-h-0 flex-1 overflow-y-auto px-2 pt-1">
         {section && !section.groups.length && (
-          <Empty>{s.learningFilter === "learned" ? "No learned cases in this set yet." : "Every case of this set is learned."}</Empty>
+          <Empty>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
         )}
         {section?.groups.map(([group, members]: [string, any[]]) => {
           const key = section.active.id + ":" + group,
@@ -168,8 +170,7 @@ function CaseList({ wide }: { wide: boolean }) {
                   <span className={cn(NUMERIC, "text-xs font-normal text-muted-foreground")}>{members.length}</span>
                 </button>
                 <Button action={"train:" + key} icon={Timer} size="xs" className={cn("text-muted-foreground", !wide && "opacity-0 group-hover/head:opacity-100 focus-visible:opacity-100")}>
-                  Train
-                </Button>
+                  {tr("Train")}</Button>
               </div>
               {!closed && (
                 <div className={TILES}>
@@ -231,7 +232,7 @@ export function CaseTile({ c, touch = false, detail, action = "case:" + c.id, se
 /** Right pane before a case is chosen: where the chosen set stands, group by group, each ready to train. */
 function SetSummary() {
   const { stage, all } = currentSection();
-  if (!all) return <Empty>No cases for this puzzle.</Empty>;
+  if (!all) return <Empty>{tr("No cases for this puzzle.")}</Empty>;
   const trained = all.all.filter((c: any) => s.stats.some((v) => v.caseId === c.id)).length;
   const figures: [string, number][] = [
     ["Cases", all.all.length],
@@ -243,21 +244,20 @@ function SetSummary() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 items-start justify-between gap-6 px-1 pt-1 pb-5">
         <div className="flex max-w-xl flex-col gap-1.5">
-          <span className={LABEL}>{stage}</span>
+          <span className={LABEL}>{said(stage)}</span>
           <h2 className="text-2xl font-semibold tracking-tight">{all.active.label}</h2>
           {all.active.description && <p className="text-sm text-muted-foreground">{all.active.description}</p>}
         </div>
         <Button action={"train:" + all.active.id} icon={Timer} variant="default">
-          Train all
-        </Button>
+          {tr("Train all")}</Button>
       </header>
       <div className="grid shrink-0 grid-cols-4 gap-6 rounded-xl bg-muted/45 px-5 py-4">
         {figures.map(([label, value]) => (
-          <Figure key={label} label={label} value={value} size="2xl" />
+          <Figure key={label} label={said(label)} value={value} size="2xl" />
         ))}
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1 px-1 pt-5">
-        <SectionHead title="Groups" meta={all.groups.length} />
+        <SectionHead title={tr("Groups")} meta={all.groups.length} />
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
           {all.groups.map(([group, members]: [string, any[]]) => {
             const learned = members.filter((c: any) => s.learned.has(c.id)).length;
@@ -276,8 +276,7 @@ function SetSummary() {
                   </span>
                 </button>
                 <Button action={"train:" + all.active.id + ":" + group} icon={Timer} size="xs" className="text-muted-foreground opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100">
-                  Train
-                </Button>
+                  {tr("Train")}</Button>
               </div>
             );
           })}
@@ -293,11 +292,11 @@ const SOURCES: Record<string, string> = { speedcubedb: "SpeedCubeDB", jperm: "J 
 function CaseStepper({ index, count, touch = false }: { index: number; count: number; touch?: boolean }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
-      <Button action="caseStep:previous" icon={ChevronLeft} size="icon-sm" disabled={index === 0} tip="Previous case (←)" className={touch ? "size-10" : undefined} />
+      <Button action="caseStep:previous" icon={ChevronLeft} size="icon-sm" disabled={index === 0} tip={tr("Previous case (←)")} className={touch ? "size-10" : undefined} />
       <span className={cn(NUMERIC, "text-center text-xs text-muted-foreground", touch ? "min-w-10" : "min-w-12")}>
         {index + 1} / {count}
       </span>
-      <Button action="caseStep:next" icon={ChevronRight} size="icon-sm" disabled={index === count - 1} tip="Next case (→)" className={touch ? "size-10" : undefined} />
+      <Button action="caseStep:next" icon={ChevronRight} size="icon-sm" disabled={index === count - 1} tip={tr("Next case (→)")} className={touch ? "size-10" : undefined} />
     </div>
   );
 }
@@ -331,7 +330,7 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
       <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:items-start md:gap-8 md:px-1 md:pt-1 md:pb-5">
         <div className="shrink-0 self-center">
-          {c.cube ? <button type="button" data-play={c.id} aria-label={`Play ${c.id} in 3D`} onClick={openPlayer}
+          {c.cube ? <button type="button" data-play={c.id} aria-label={tr("Play {0} in 3D", { 0: c.id })} onClick={openPlayer}
             className="group/play relative rounded-md outline-none hover:ring-2 focus-visible:ring-2 ring-ring/50">
             <Diagram c={c} size={phone ? 104 : 152} />
             <PlayBadge />
@@ -349,44 +348,63 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
             </div>
           )}
           <div className="flex gap-6 md:gap-10">
-            <Figure label="Best" value={st ? fmtTime(st.best) : "–"} tone="good" />
-            <Figure label="Mean" value={st ? fmtTime(st.mean) : "–"} />
-            <Figure label="Attempts" value={st?.count ?? 0} />
+            <Figure label={tr("Best")} value={st ? fmtTime(st.best) : "–"} tone="good" />
+            <Figure label={tr("Mean")} value={st ? fmtTime(st.mean) : "–"} />
+            <Figure label={tr("Attempts")} value={st?.count ?? 0} />
           </div>
           {/* Phones have these at the bottom, under the thumb (Detail). */}
           <div className={cn("flex flex-wrap items-center gap-1.5", mobile && "hidden")}>
             <Button action="train" icon={Timer} variant="default">
-              Train
-            </Button>
+              {tr("Train")}</Button>
             <ActionToggle action={"learn:" + c.id} pressed={learned} icon={Check} className="aria-pressed:bg-success/15 aria-pressed:text-success">
-              {learned ? "Learned" : "Mark learned"}
+              {learned ? tr("Learned") : tr("Mark learned")}
             </ActionToggle>
           </div>
         </div>
       </div>
       <section className={block}>
-        <h3 className={LABEL}>Setup</h3>
+        <h3 className={LABEL}>{tr("Setup")}</h3>
         <Alg text={c.setup} size={17} />
         {c.notes && <p className="text-sm text-muted-foreground">{c.notes}</p>}
       </section>
       <section className={cn(block, "gap-1")}>
-        <h3 className={cn(LABEL, "pb-1")}>Algorithms</h3>
+        <h3 className={cn(LABEL, "pb-1")}>{tr("Algorithms")}</h3>
         {c.algorithms.map((a: any, i: number) => (
           <div key={i} className="-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1">
             <span className={cn(NUMERIC, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
             <Alg text={displayAlg(a)} size={16} className="min-w-0 flex-1" />
             <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
-              {i === 0 && <Badge variant="secondary" className="rounded-md text-primary">Primary</Badge>}
-              {a.stm != null && <span className={NUMERIC}>{a.stm} STM</span>}
+              {i === 0 && <Badge variant="secondary" className="rounded-md text-primary">{tr("Primary")}</Badge>}
+              {a.stm != null && <span className={NUMERIC}>{a.stm} {" "}{tr("STM")}</span>}
               <span>{SOURCES[a.source] ?? a.source}</span>
-              {a.youtube && <Button action={"url:" + a.youtube} icon={PlayCircle} size="icon-xs" tip="Watch the video" />}
+              {a.youtube && <Button action={"url:" + a.youtube} icon={PlayCircle} size="icon-xs" tip={tr("Watch the video")} />}
             </span>
           </div>
         ))}
       </section>
       <section className={cn(block, !!s.caseHistory?.summary?.count && "min-h-[26rem]")}>
-        <h3 className={LABEL}>Statistics</h3>
-        <TimerStats compact data={s.caseHistory} empty="No attempts on this case yet." />
+        <div className="flex min-h-7 items-center gap-3">
+          <h3 className={LABEL}>{tr("Statistics")}</h3>
+          {/* A 3×3 case is also timed when a smart cube solve goes through it. */}
+          {s.puzzle === "333" && (
+            <Choice
+              prefix="caseSource:"
+              label={tr("Times")}
+              value={s.caseSource}
+              className="ml-auto"
+              options={[
+                { id: "all", label: "All", tip: "Training and smart cube solves" },
+                { id: "solves", label: "In solves", tip: "Done during solves on a connected cube" },
+                { id: "training", label: "Training", tip: "Trained on its own" },
+              ]}
+            />
+          )}
+        </div>
+        <TimerStats
+          compact
+          data={s.caseHistory}
+          empty={s.caseSource === "solves" ? tr("Not met in a smart cube solve yet.") : tr("No attempts on this case yet.")}
+        />
       </section>
     </div>
   );
@@ -399,12 +417,12 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
 function Detail() {
   const c = s.find(s.caseId),
     swipe = useRef<{ x: number; y: number } | null>(null);
-  if (!c) return <Empty>Case unavailable.</Empty>;
+  if (!c) return <Empty>{tr("Case unavailable.")}</Empty>;
   const { index, count } = caseSteps(c),
     learned = s.learned.has(c.id);
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="back" icon={ChevronLeft} tip="Back · Alt+B" className="size-8 max-md:size-10" />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
+      <PageHead lead={<Button action="back" icon={ChevronLeft} tip={tr("Back · Alt+B")} className="size-8 max-md:size-10" />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
         <CaseStepper index={index} count={count} touch />
       </PageHead>
       <Surface
@@ -422,8 +440,8 @@ function Detail() {
       >
         <CaseDetail />
         <TouchBar className="shrink-0 border-t bg-muted/30 px-2 py-2">
-          <TouchAction action="train" icon={Timer} label="Train" primary />
-          <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? "Learned" : "Mark learned"} pressed={learned} tone="good" />
+          <TouchAction action="train" icon={Timer} label={tr("Train")} primary />
+          <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? tr("Learned") : tr("Mark learned")} pressed={learned} tone="good" />
         </TouchBar>
       </Surface>
     </div>

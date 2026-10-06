@@ -15,15 +15,18 @@ function summary(caseId: string, solves: SolveDto[], times: (number | null)[], a
     ao5: ao5.at(-1) ?? null, ao12: ao12.at(-1) ?? null, bestAo5: best(ao5), bestAo12: best(ao12), last: times.at(-1) ?? null, lastAt: solves.at(-1)?.created_at ?? null };
 }
 
-function orderedHistory(caseId: string, solves: SolveDto[]): CaseHistoryDto {
+/** A case attempt made during a smart cube solve (smartDigests.ts): `solveId` names the solve. */
+type Attempt = SolveDto & { solveId?: number };
+function orderedHistory(caseId: string, solves: Attempt[]): CaseHistoryDto {
   const times = solves.map(s => effective(s.time_ms, s.penalty));
   const ao5 = rollingAverages(times, 5), ao12 = rollingAverages(times, 12);
   let minimum: number | null = null;
   return { summary: summary(caseId, solves, times, ao5, ao12),
     history: solves.map((s,i) => { const time = times[i]; if (time !== null) minimum = minimum === null ? time : Math.min(minimum,time);
-      return { id:s.id, time, timeMs:s.time_ms, penalty:s.penalty, comment:s.comment ?? null, at:s.created_at, best:minimum, sessionId:s.session_id }; }), ao5, ao12 };
+      return { id:s.id, time, timeMs:s.time_ms, penalty:s.penalty, comment:s.comment ?? null, at:s.created_at, best:minimum, sessionId:s.session_id,
+        ...(s.solution || s.solveId !== undefined ? { smart:true } : {}), ...(s.solveId !== undefined ? { solveId:s.solveId } : {}) }; }), ao5, ao12 };
 }
-export function history(caseId: string, rows: SolveDto[]): CaseHistoryDto {
+export function history(caseId: string, rows: Attempt[]): CaseHistoryDto {
   return orderedHistory(caseId, [...rows].sort(chronological));
 }
 

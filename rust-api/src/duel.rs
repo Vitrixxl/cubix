@@ -27,8 +27,8 @@ const RANGE_PER_SECOND: f64 = 0.03;
 const ANYONE_AFTER: Duration = Duration::from_secs(30);
 /// Players without a level meet each other at once, and anyone else after this long.
 const UNKNOWN_AFTER: Duration = Duration::from_secs(10);
-const PHASES: [&str; 4] = ["idle", "holding", "ready", "running"];
-const PENALTIES: [&str; 3] = ["none", "+2", "dnf"];
+pub const PHASES: [&str; 4] = ["idle", "holding", "ready", "running"];
+pub const PENALTIES: [&str; 3] = ["none", "+2", "dnf"];
 
 type Outbox = mpsc::UnboundedSender<Value>;
 

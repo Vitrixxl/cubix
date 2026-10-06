@@ -1,6 +1,8 @@
 /** Builds the web app into dist/web: the Rust API serves it, the desktop app loads it from there.
  *
- *   /                      index.html (never cached by HTTP, network-first in the service worker)
+ *   /                      landing.html: the landing page, rendered here (desktop/renderer/landing)
+ *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker)
+ *   /install.sh, .ps1      the desktop installers (desktop/install); robots.txt, sitemap.xml, llms.txt
  *   /build/*               bundles with a content hash in their name, immutable
  *   /vendor/cubing-<v>/*   cubing.js modules for the scramblers, immutable per version
  *   /assets/*              icons and case diagrams
@@ -67,6 +69,8 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
     .replace("<!-- styles -->", styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    "))
     .replace("<!-- scripts -->", scripts.map((src) => `<script type="module" src="${src}"></script>`).join("\n    "));
   await writeFile(join(out, "index.html"), html);
+  await landing(out, bundle);
+  await legal(out, bundle);
   if (devTools) {
     // Outside the precache: the page is only served by the development server (desktop/dev.ts).
     const page = await bundle("desktop/renderer/dev/virtualCube.tsx");
@@ -80,16 +84,65 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // service worker controls a first visit. Case diagrams are kept once shown.
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
   // The administration is never used offline.
-  const precache = ["/", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, ...app.filter((path) => !basename(path).startsWith("admin-")), ...icons, ...vendorFiles];
+  const precache = ["/timer", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, ...app.filter((path) => !basename(path).startsWith("admin-")), ...icons, ...vendorFiles];
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
-  for (const url of precache) hasher.update(url).update(await readFile(join(out, url === "/" ? "index.html" : url)));
+  for (const url of precache) hasher.update(url).update(await readFile(join(out, url === "/timer" ? "index.html" : url)));
   const version = hasher.digest("hex").slice(0, 16);
   const sw = await Bun.build({ entrypoints: ["desktop/renderer/sw.ts"], target: "browser", minify: true, define: { CUBIX_VERSION: JSON.stringify(version), CUBIX_PRECACHE: JSON.stringify(precache) } });
   if (!sw.success) throw new AggregateError(sw.logs, "Build failed: service worker");
   await writeFile(join(out, "sw.js"), await sw.outputs[0].text());
   await compress(out);
   return { version };
+}
+
+/**
+ * The landing page at the root, rendered to HTML here so it reads whole without JavaScript, then hydrated; the files
+ * search engines and language models look for beside it; the desktop installers it gives; its screenshots and its
+ * social image.
+ */
+async function landing(out: string, bundle: (entry: string) => Promise<string[]>) {
+  const { createElement } = await import("react");
+  const { renderToString } = await import("react-dom/server");
+  const { Landing } = await import("./renderer/landing/Landing");
+  const { landingDocument, llms, llmsFull, robots, sitemap } = await import("./renderer/landing/document");
+  const { DEFAULT_THEME, themeTokens } = await import("../src/client/lib/theme");
+  const outputs = await bundle("desktop/renderer/landing/main.tsx");
+  await writeFile(join(out, "landing.html"), landingDocument({
+    body: renderToString(createElement(Landing)),
+    theme: themeTokens(DEFAULT_THEME, "dark"),
+    styles: outputs.filter((path) => path.endsWith(".css")),
+    scripts: outputs.filter((path) => path.endsWith(".js") && basename(path).startsWith("main-")),
+  }));
+  await writeFile(join(out, "robots.txt"), robots());
+  await writeFile(join(out, "sitemap.xml"), sitemap(new Date().toISOString().slice(0, 10)));
+  await writeFile(join(out, "llms.txt"), llms());
+  await writeFile(join(out, "llms-full.txt"), llmsFull());
+  for (const name of ["install.sh", "install.ps1"]) await cp(join("desktop/install", name), join(out, name));
+  // Screenshots and the social image, taken by desktop/scripts/landing-shots.ts (the image build has no sharp).
+  await cp("desktop/assets/landing", join(out, "assets/landing"), { recursive: true });
+  await cp("desktop/assets/landing/og.png", join(out, "og.png"));
+}
+
+/** The legal notice, the privacy policy and the terms of use, each written to HTML in French, then hydrated. */
+async function legal(out: string, bundle: (entry: string) => Promise<string[]>) {
+  const { createElement } = await import("react");
+  const { renderToString } = await import("react-dom/server");
+  const { LegalPage } = await import("./renderer/legal/LegalPage");
+  const { LEGAL_DOCUMENTS } = await import("./renderer/legal/paths");
+  const { DOCUMENTS } = await import("./renderer/legal/documents");
+  const { legalDocument } = await import("./renderer/legal/document");
+  const { DEFAULT_THEME, themeTokens } = await import("../src/client/lib/theme");
+  const outputs = await bundle("desktop/renderer/legal/main.tsx");
+  for (const { id, path } of LEGAL_DOCUMENTS)
+    await writeFile(join(out, path.slice(1) + ".html"), legalDocument({
+      title: DOCUMENTS[id].fr.title,
+      path,
+      body: renderToString(createElement(LegalPage, { id })),
+      theme: themeTokens(DEFAULT_THEME, "dark"),
+      styles: outputs.filter((file) => file.endsWith(".css")),
+      scripts: outputs.filter((file) => file.endsWith(".js") && basename(file).startsWith("main-")),
+    }));
 }
 
 /** Precompressed copies the API serves when the browser accepts them; the Pi never compresses on the fly. */

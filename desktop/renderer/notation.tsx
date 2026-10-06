@@ -13,6 +13,8 @@ import { PlayerCube, useAlgPlayer, usePlayback } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { AlgPlayer } from "../../src/client/lib/algPlayer";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 /** The puzzles with a notation of their own; the cubes share one, shown on the cube in use. */
 function families(): { id: PuzzleId; label: string }[] {
@@ -28,7 +30,7 @@ export function NotationContent({ guide = false }: { guide?: boolean }) {
     chosen = list.find((f) => f.id === puzzle) ? puzzle : size ? list[0]!.id : puzzle;
   return (
     <div className={cn("flex min-h-0 flex-col gap-5", !guide && "flex-1")}>
-      <Choice prefix="notationPuzzle:" label="Puzzle" value={chosen} options={list} className="flex-wrap" />
+      <Choice prefix="notationPuzzle:" label={tr("Puzzle")} value={chosen} options={list} className="flex-wrap" />
       {size && isCubeNotation(puzzle) ? (
         <div className={cn("flex min-h-0 flex-1 gap-6", phone ? "flex-col" : "flex-row")}>
           {phone && (
@@ -38,9 +40,9 @@ export function NotationContent({ guide = false }: { guide?: boolean }) {
           )}
           <div className={cn("flex min-w-0 flex-1 flex-col gap-6", !guide && !phone && "overflow-y-auto pr-2")}>
             {cubeNotation(size).map((group) => (
-              <section key={group.title} className="flex flex-col gap-2" aria-label={group.title}>
-                <h3 className={LABEL}>{group.title}</h3>
-                <p className="text-sm text-muted-foreground">{group.lead}</p>
+              <section key={group.title} className="flex flex-col gap-2" aria-label={said(group.title)}>
+                <h3 className={LABEL}>{said(group.title)}</h3>
+                <p className="text-sm text-muted-foreground">{said(group.lead)}</p>
                 <div className={cn("grid gap-x-6 gap-y-4 pt-1", phone || guide ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2")}>
                   {group.blocks.map((b) => (
                     <MoveBlock key={b.move} block={b} />
@@ -48,12 +50,12 @@ export function NotationContent({ guide = false }: { guide?: boolean }) {
                 </div>
               </section>
             ))}
-            <section className="flex flex-col gap-3" aria-label="Reading an algorithm">
-              <h3 className={LABEL}>Reading an algorithm</h3>
+            <section className="flex flex-col gap-3" aria-label={tr("Reading an algorithm")}>
+              <h3 className={LABEL}>{tr("Reading an algorithm")}</h3>
               {CUBE_READING.map((r) => (
                 <div key={r.title} className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">{r.title}</span>
-                  <p className="text-sm text-muted-foreground">{r.text}</p>
+                  <span className="text-sm font-medium">{said(r.title)}</span>
+                  <p className="text-sm text-muted-foreground">{said(r.text)}</p>
                   {r.examples && (
                     <div className="flex flex-wrap gap-1">
                       {r.examples.map((example) => (
@@ -74,14 +76,14 @@ export function NotationContent({ guide = false }: { guide?: boolean }) {
       ) : (
         <div className={cn("flex max-w-2xl flex-col gap-5", !guide && "overflow-y-auto")}>
           {(PUZZLE_NOTATION[puzzle] ?? []).map((section) => (
-            <section key={section.title} className="flex flex-col gap-1.5" aria-label={section.title}>
-              <h3 className={LABEL}>{section.title}</h3>
-              <p className="text-sm text-muted-foreground">{section.text}</p>
+            <section key={section.title} className="flex flex-col gap-1.5" aria-label={said(section.title)}>
+              <h3 className={LABEL}>{said(section.title)}</h3>
+              <p className="text-sm text-muted-foreground">{said(section.text)}</p>
               {section.examples && (
                 <div className="flex flex-wrap gap-x-5 gap-y-1">
                   {section.examples.map((example) => (
                     <span key={example} className={cn(NUMERIC, "text-base font-medium")}>
-                      {example}
+                      {said(example)}
                     </span>
                   ))}
                 </div>
@@ -99,7 +101,7 @@ function MoveBlock({ block }: { block: NotationBlock }) {
   return (
     <div className="flex flex-col gap-1.5" data-notation-block={block.move}>
       <div className="flex min-w-0 items-baseline gap-2">
-        <span className={cn(NUMERIC, "text-sm font-semibold")}>{block.move}</span>
+        <span className={cn(NUMERIC, "text-sm font-semibold")}>{said(block.move)}</span>
         <span className="min-w-0 text-sm leading-snug text-muted-foreground">{block.name === block.move ? block.text : `${block.name}: ${block.text}`}</span>
       </div>
       <div className="grid grid-cols-3 gap-1">
@@ -129,7 +131,7 @@ function MoveTile({ move }: { move: string }) {
         on && "border-primary/50 bg-primary/10 text-primary hover:bg-primary/10",
       )}
     >
-      {move}
+      {said(move)}
     </button>
   );
 }
@@ -143,7 +145,7 @@ function MovePlayer({ move, size, phone = false }: { move: string; size: number;
     <div className={cn("flex items-center gap-4", phone ? "flex-row" : "flex-col")} data-notation-player>
       <PlayerCube player={player} size={phone ? 132 : 240} />
       <div className={cn("flex min-w-0 flex-col gap-2", phone ? "flex-1" : "items-center text-center")}>
-        <span className={cn(NUMERIC, "font-semibold tracking-tight", move.length > 6 ? "text-lg" : "text-4xl")}>{move}</span>
+        <span className={cn(NUMERIC, "font-semibold tracking-tight", move.length > 6 ? "text-lg" : "text-4xl")}>{said(move)}</span>
         {text && <p className="text-sm text-muted-foreground">{text}</p>}
         <LoopControls player={player} />
       </div>
@@ -157,7 +159,7 @@ function LoopControls({ player }: { player: AlgPlayer }) {
   return (
     <div className="flex items-center gap-1">
       <Tip content={player.active ? "Pause" : "Play"}>
-        <Button variant="ghost" size={phone ? "icon-lg" : "icon"} aria-label={player.active ? "Pause" : "Play"} onClick={player.toggle} className={cn("text-muted-foreground hover:text-foreground", phone && "size-11")}>
+        <Button variant="ghost" size={phone ? "icon-lg" : "icon"} aria-label={player.active ? tr("Pause") : tr("Play")} onClick={player.toggle} className={cn("text-muted-foreground hover:text-foreground", phone && "size-11")}>
           {player.active ? <Pause /> : <Play />}
         </Button>
       </Tip>

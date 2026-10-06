@@ -17,6 +17,9 @@ import { go, goPage, readRoute, type AppRoute } from "./navigation";
 import { smartCube } from "../../src/client/lib/smartCube";
 import "./dev/devTools";
 import { toast } from "sonner";
+import { tr } from "../../src/client/i18n";
+import { msg } from "../../src/client/i18n/msg";
+import { isCaseSource, type CaseSource } from "../../src/client/lib/smartStats";
 export const catalog = catalogData as any;
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
@@ -29,7 +32,7 @@ export const matches = (c: any, q: string) => {
     .split(/\s+/)
     .every((word) => words.some((w) => w.startsWith(word)));
 };
-const PAGE_ORDER = ["playground", "algorithms", "learn", "training", "duel", "coaching", "profile"];
+const PAGE_ORDER = ["playground", "algorithms", "learn", "training", "duel", "tournaments", "match", "community", "coaching", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
@@ -62,7 +65,7 @@ export class Store {
   entry = "timer";
   themeName: string = DEFAULT_THEME;
   light = false;
-  user: any = { isGuest: true, username: "Guest" };
+  user: any = { isGuest: true, username: msg("Guest") };
   learned = new Set<string>();
   journey: Journey = {};
   /** Where the player was before picking a puzzle they cannot solve yet, for "Not now". */
@@ -123,6 +126,10 @@ export class Store {
   achievementFilter = "all";
   /** Whether solve statistics show the progress chart or the solves table. */
   statsView = "chart";
+  /** Where a 3×3 case's times come from: its training, the smart cube solves it was done in, or both. */
+  caseSource: CaseSource = "all";
+  /** The analysis of the smart cube solves, while the profile shows it. */
+  smartAnalysis: any = null;
   sessions = new LaunchSessions();
   lastSolve = 0;
   notice = "";
@@ -155,6 +162,8 @@ export class Store {
   learnSection = "";
   /** The coaching view and its argument, as in /coaching/<view>/<id>. */
   coachingView = "";
+  /** The view under the community, tournaments and match pages, as in /community/groups/<id>. */
+  view = "";
   /** Method highlighted in the list of methods, before it is opened. */
   learnPick = "";
   /** The set shown by each step that teaches several, by `puzzle:method:step`. */
@@ -302,7 +311,7 @@ export class Store {
   async init() {
     try {
       const v = await call("init");
-      if (v.protocol !== 2) throw Error("Incompatible data engine");
+      if (v.protocol !== 2) throw Error(msg("Incompatible data engine"));
       this.user = v.user;
       this.journey = v.journey ?? {};
       this.localData = !!v.localData;
@@ -322,6 +331,7 @@ export class Store {
       this.entry = this.prefs["cubix.timer.entry"] ?? "timer";
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
+      this.caseSource = isCaseSource(this.prefs["cubix.algs.caseSource"]) ? this.prefs["cubix.algs.caseSource"] : "all";
       this.trainingKind = this.prefs["cubix.training.kind"] === "cross1" ? "cross1" : "cases";
       this.crossMoves = CROSS_PLUS_ONE_MOVES.includes(this.prefs["cubix.training.crossMoves"]) ? this.prefs["cubix.training.crossMoves"] : 4;
       this.learned = new Set(v.learned);
@@ -430,6 +440,8 @@ export class Store {
           scrambleType: this.profileScramble,
         },
         advance: false,
+        caseSource: this.caseSource,
+        analysis: this.page === "profile" && this.profileMode === "analysis",
         selected: [...this.practiceSelected],
         randomAuf: this.randomAuf,
         // Figures held already are not sent again while unchanged.
@@ -449,6 +461,7 @@ export class Store {
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
       if (v.caseHistory) this.caseHistory = v.caseHistory;
+      this.smartAnalysis = v.analysis ?? (this.page === "profile" ? this.smartAnalysis : null);
       this.known = {
         ...(this.profile && v.tokens?.profile ? { profile: v.tokens.profile } : {}),
         ...(this.achievements && v.tokens?.achievements ? { achievements: v.tokens.achievements } : {}),
@@ -458,7 +471,7 @@ export class Store {
         this.goal.size &&
         [...this.goal].every((id) => this.learned.has(id))
       ) {
-        this.announce("Well done! Every selected case is learned.");
+        this.announce(tr("Well done! Every selected case is learned."));
         this.goal.clear();
       }
       this.emit();
@@ -537,7 +550,11 @@ export class Store {
       }
     }, 5000);
   }
-  async save(ms: number) {
+  /**
+   * `penalty`: given with the time, as a smart cube solve stopped before the cube is solved. `solution`: the turns
+   * made, when a smart cube recorded them.
+   */
+  async save(ms: number, penalty?: "none" | "+2" | "dnf", solution?: string | null) {
     if (this.saving || this.generating || this.pendingSolve) return;
     if (this.page === "playground" && this.entry === "casual") {
       this.lastSolve = 0;
@@ -552,6 +569,8 @@ export class Store {
       body: {
         ...this.context(),
         timeMs: Math.round(ms),
+        ...(penalty && penalty !== "none" ? { penalty } : {}),
+        ...(solution ? { solution } : {}),
         scramble: page === "training" ? this.training?.setup : this.scramble,
         caseId: page === "training" ? this.training?.id : null,
       },
@@ -605,10 +624,17 @@ export class Store {
     };
   }
   /** Applies a URL supplied by React Router; this never changes browser history. */
+  /** Makes `puzzle` the active puzzle, with its own selection and scrambles. */
+  usePuzzle(puzzle: PuzzleId) {
+    if (puzzle === this.puzzle) return;
+    this.puzzle = puzzle;
+    this.pref("cubix.puzzle", puzzle);
+    this.loadContext();
+  }
   applyRoute(route: AppRoute) {
     if (route.page === "onboarding") return;
     const { page } = route;
-    if (route.puzzle && route.puzzle !== this.puzzle) { this.puzzle = route.puzzle; this.pref("cubix.puzzle", this.puzzle); this.loadContext(); }
+    if (route.puzzle) this.usePuzzle(route.puzzle);
     const caseId = route.caseId && this.find(route.caseId) ? route.caseId : "";
     const method = methodOf(this.puzzle as PuzzleId, route.learnMethod) ? route.learnMethod : "";
     this.axis = page === this.page ? "x" : "y";
@@ -622,6 +648,9 @@ export class Store {
     // Deeper into coaching (a coach, a call) pushes forward; back to a list comes back.
     if (page === this.page && page === "coaching") this.direction = (route.coaching ?? "").split("/").length >= this.coachingView.split("/").length ? 1 : -1;
     this.coachingView = route.coaching ?? "";
+    // Deeper into the community or a tournament pushes forward too.
+    if (page === this.page && ["community", "tournaments"].includes(page)) this.direction = (route.view ?? "").split("/").filter(Boolean).length >= this.view.split("/").filter(Boolean).length ? 1 : -1;
+    this.view = route.view ?? "";
     if (page === "profile" && this.page !== "profile") {
       this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
@@ -811,10 +840,16 @@ export class Store {
         case "selectSet":
         case "selectGroup":
         case "clear":
+        case "trainCases":
         case "train": {
-          if (kind === "train" && this.learningMode !== "practice") this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: "practice" });
-          const ids =
-            kind === "select"
+          // Cases picked elsewhere, by their ids: the analysis of the smart cube solves, whose cases are 3×3 ones.
+          const picked = kind === "trainCases" ? arg.split(",") : null,
+            train = kind === "train" || !!picked;
+          if (picked) this.usePuzzle("333");
+          if (train && this.learningMode !== "practice") this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode: "practice" });
+          const ids = picked
+            ? picked.filter((id) => this.find(id))
+            : kind === "select"
               ? [arg]
               : kind === "train" && !arg
                 ? [this.caseDialog || this.caseId]
@@ -826,20 +861,20 @@ export class Store {
                     )
                     .map((c: any) => c.id);
           if (kind === "clear") this.selected.clear();
-          else if (kind === "train") this.selected = new Set(ids);
+          else if (train) this.selected = new Set(ids);
           else this.selected = toggleSelection(this.selected, ids);
           this.per("cubix.training.selectionByCube", [...this.selected]);
           this.goal = new Set(
             [...this.selected].filter((id) => !this.learned.has(id)),
           );
-          if (kind === "train") {
+          if (train) {
             this.caseDialog = "";
             // Training a group or a case from the catalogue skips the setup screen.
             this.trainingKind = "cases";
             this.pref("cubix.training.kind", "cases");
             goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
           }
-          if (kind === "train" || !this.selected.has(this.training?.id))
+          if (train || !this.selected.has(this.training?.id))
             await this.nextCase();
           break;
         }
@@ -963,9 +998,11 @@ export class Store {
         case "settings":
           this.overlay = this.overlay === "settings" ? "" : "settings";
           break;
+        // The account was deleted (Settings): this device goes back to a guest, as after signing out.
+        case "accountDeleted":
         case "logout":
-          await call("logout");
-          this.user = { isGuest: true, username: "Guest" };
+          if (kind === "logout") await call("logout");
+          this.user = { isGuest: true, username: msg("Guest") };
           this.expired = false;
           this.overlay = "";
           this.sessions.clear();
@@ -1004,6 +1041,20 @@ export class Store {
         case "statsView":
           this.statsView = arg;
           this.pref("cubix.profile.statsView", arg);
+          break;
+        // A training the analysis of the smart cube solves suggests: on the 3×3, whatever the puzzle shown.
+        case "smartTrain":
+          this.usePuzzle("333");
+          await this.action(arg);
+          return;
+        case "caseSource":
+          if (!isCaseSource(arg) || arg === this.caseSource) break;
+          this.caseSource = arg;
+          this.pref("cubix.algs.caseSource", arg);
+          // Another source's history: the one held is not it.
+          this.caseHistory = null;
+          this.known = {};
+          await this.refresh();
           break;
         case "caseStep": {
           const current = this.caseDialog || this.caseId,
@@ -1080,7 +1131,9 @@ export class Store {
                   scrambleType: this.caseId ? "case" : this.profileScramble,
                 },
               )
-            ).find((v: any) => v.id === Number(arg));
+            ).find((v: any) => v.id === Number(arg)) ??
+            // A smart cube solve opened from a case it went through, or from its analysis.
+            (await call("solveById", Number(arg)));
           this.overlay = "solve";
           break;
         case "close":
@@ -1189,7 +1242,7 @@ export class Store {
           if (this.page === "learn") this.guidePuzzle = isPuzzle(this.puzzle) ? this.puzzle : "333";
           if (this.page === "learn") this.guideMethod = this.learnMethod || this.learnPick || (recommendedMethod(this.guidePuzzle) ?? "");
           this.guidePage =
-            this.page === "learn" ? "methodsGuide" : this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "coaching" ? "coachingGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
+            this.page === "learn" ? "methodsGuide" : this.page === "training" ? "trainingGuide" : this.page === "duel" ? "duelGuide" : this.page === "coaching" ? "coachingGuide" : ["community", "tournaments", "match"].includes(this.page) ? "communityGuide" : this.page === "algorithms" ? "algorithmsGuide" : this.page === "playground" ? "timerGuide" : "overviewGuide";
           this.overlay = "guides";
           break;
         case "guidePage":
@@ -1218,7 +1271,7 @@ export class Store {
   /** Session figures under the timer: label, value and the tone it is drawn in; a training keeps three. */
   metrics(): Metric[] {
     const all = sessionMetrics(this.solves);
-    if (this.practicePage() === "training") return all.filter(([label]) => ["Best", "Mean", "Solves"].includes(label));
+    if (this.practicePage() === "training") return all.filter(([label]) => [msg("Best"), msg("Mean"), msg("Solves")].includes(label));
     return all;
   }
   /** The scramble types the timer offers for the puzzle (cross + 1 has its own page). */

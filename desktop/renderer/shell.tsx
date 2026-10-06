@@ -1,9 +1,10 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, Headset, LogOut, Settings, Swords, Timer, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, Headset, LogOut, Settings, Swords, Timer, Trophy, Users, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
+import { community } from "./community/client";
 import { Avatar, FADE, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 /** The sections: a mortarboard for the method courses, a cube library for the algorithms, a dumbbell for the drills. */
 const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string][] = [
   ["playground", "Timer", Timer, "Alt 1"],
@@ -33,7 +36,29 @@ const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string
   ["training", "Training", Dumbbell, "Alt 4"],
   ["duel", "Duel", Swords, "Alt 5"],
   ["coaching", "Coaching", Headset, "Alt 6"],
+  ["tournaments", "Tournaments", Trophy, "Alt 7"],
+  ["community", "Community", Users, "Alt 8"],
 ];
+
+/** What waits in a section: unread coaching messages; in the community, unread messages, friend requests and group
+ * invitations. */
+const waiting: Record<string, () => number> = {
+  coaching: () => coaching.me?.unread ?? 0,
+  community: () => (community.me ? community.me.unread + community.me.incoming.length + community.me.invitations.length : 0),
+};
+/** A section's count beside its name; folded to its icons, the sidebar keeps a dot on the icon. */
+function UnreadBadge({ page }: { page: string }) {
+  const count = waiting[page]?.() ?? 0;
+  if (!count) return null;
+  return (
+    <>
+      <SidebarMenuBadge data-slot={page + "-unread"} className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0 peer-data-[size=default]/menu-button:top-2">
+        {count}
+      </SidebarMenuBadge>
+      <span data-slot={page + "-unread"} aria-label={tr("{0} unread", { 0: count })} className="pointer-events-none absolute top-1.5 left-6 hidden size-2 rounded-full bg-primary ring-2 ring-sidebar group-data-[collapsible=icon]:block" />
+    </>
+  );
+}
 
 /** The player's face: the account's initials. */
 function Me({ size = 32 }: { size?: number }) {
@@ -68,7 +93,7 @@ export function Rail() {
                   render={
                     <button
                       type="button"
-                      aria-label={"Puzzle: " + e.label}
+                      aria-label={tr("Puzzle: {0}", { 0: e.label })}
                       className="flex size-8 shrink-0 items-center justify-center rounded-md outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/50 aria-expanded:bg-sidebar-accent"
                     />
                   }
@@ -77,7 +102,7 @@ export function Rail() {
                 </TooltipTrigger>
               }
             />
-            <TooltipContent side="right">Puzzle · {e.label}</TooltipContent>
+            <TooltipContent side="right">{tr("Puzzle ·")}{" "}{said(e.label)}</TooltipContent>
           </Tooltip>
           <Wordmark className="min-w-0 flex-1 text-xl group-data-[collapsible=icon]:hidden" />
           {foldable && (
@@ -88,7 +113,7 @@ export function Rail() {
                     variant="ghost"
                     size="icon"
                     data-action="sidebar:toggle"
-                    aria-label={open ? "Collapse the sidebar" : "Expand the sidebar"}
+                    aria-label={open ? tr("Collapse the sidebar") : tr("Expand the sidebar")}
                     onClick={toggleSidebar}
                     className="shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8"
                   />
@@ -96,14 +121,14 @@ export function Rail() {
               >
                 {open ? <PanelLeftClose /> : <PanelLeftOpen />}
               </TooltipTrigger>
-              <TooltipContent side="right">{open ? "Collapse" : "Expand"} · Ctrl+B</TooltipContent>
+              <TooltipContent side="right">{open ? tr("Collapse") : tr("Expand")} {" "}{tr("· Ctrl+B")}</TooltipContent>
             </Tooltip>
           )}
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarMenu className="gap-0.5" aria-label="Sections">
+          <SidebarMenu className="gap-0.5" aria-label={tr("Sections")}>
             {SECTIONS.map(([page, label, I, shortcut]) => {
               // Greyed while the puzzle's course comes first; a click offers to skip it.
               const locked = s.lockedPage(page);
@@ -119,19 +144,11 @@ export function Rail() {
                   className={cn("h-9 text-muted-foreground data-active:text-foreground", locked && "opacity-45 hover:opacity-70")}
                 >
                   <I />
-                  <span>{label}</span>
+                  <span>{said(label)}</span>
                 </SidebarMenuButton>
-                {page === "coaching" && !!coaching.me?.unread && (
-                  <>
-                    <SidebarMenuBadge data-slot="coaching-unread" className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0 peer-data-[size=default]/menu-button:top-2">
-                      {coaching.me.unread}
-                    </SidebarMenuBadge>
-                    {/* Folded to its icons, the sidebar keeps a dot on the headset. */}
-                    <span data-slot="coaching-unread" aria-label={`${coaching.me.unread} unread`} className="pointer-events-none absolute top-1.5 left-6 hidden size-2 rounded-full bg-primary ring-2 ring-sidebar group-data-[collapsible=icon]:block" />
-                  </>
-                )}
+                <UnreadBadge page={page} />
                 <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
-                  {shortcut}
+                  {said(shortcut)}
                 </Kbd>
               </SidebarMenuItem>
               );
@@ -144,23 +161,22 @@ export function Rail() {
           <SidebarMenuItem>
             <SidebarMenuButton data-action="notation" tooltip="Notation" onClick={run("notation")} className="h-9 text-muted-foreground">
               <BookA />
-              <span>Notation</span>
+              <span>{tr("Notation")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton data-action="help" tooltip="Guides" onClick={run("help")} className="h-9 text-muted-foreground">
               <BookOpen />
-              <span>Guides</span>
+              <span>{tr("Guides")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton data-action="settings" tooltip="Settings · Alt+S" onClick={run("settings")} className="h-9 text-muted-foreground">
               <Settings />
-              <span>Settings</span>
+              <span>{tr("Settings")}</span>
             </SidebarMenuButton>
             <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
-              Alt S
-            </Kbd>
+              {tr("Alt S")}</Kbd>
           </SidebarMenuItem>
           {/* Support for the app, above the account. */}
           <SidebarMenuItem>
@@ -170,7 +186,7 @@ export function Rail() {
               className="h-9 text-muted-foreground"
             >
               <Coffee className="text-primary" />
-              <span>Buy me a coffee</span>
+              <span>{tr("Buy me a coffee")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           {/* The account: the profile link, and beside it on the right its own sign-out icon button. */}
@@ -188,12 +204,12 @@ export function Rail() {
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <UiButton variant="ghost" size="icon" data-action="logout" aria-label="Log out" onClick={run("logout")} className="size-9 shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8 hover:text-destructive" />
+                  <UiButton variant="ghost" size="icon" data-action="logout" aria-label={tr("Log out")} onClick={run("logout")} className="size-9 shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8 hover:text-destructive" />
                 }
               >
                 <LogOut />
               </TooltipTrigger>
-              <TooltipContent side="right">Log out</TooltipContent>
+              <TooltipContent side="right">{tr("Log out")}</TooltipContent>
             </Tooltip>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -220,7 +236,7 @@ export function TabBar() {
   return (
     <nav
       className={cn("tabbar grid shrink-0 grid-cols-7 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
-      aria-label="Sections"
+      aria-label={tr("Sections")}
     >
       {MOBILE_TABS.map(([page, label, I]) => {
         const here = s.page === page,
@@ -234,9 +250,9 @@ export function TabBar() {
             <>
               <span className={cn("relative flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
                 {I ? <I className="size-5" /> : <Me size={22} />}
-                {page === "coaching" && !!coaching.me?.unread && <span className="absolute top-0.5 right-2 size-2 rounded-full bg-primary" aria-label="Unread messages" />}
+                {page === "coaching" && !!coaching.me?.unread && <span className="absolute top-0.5 right-2 size-2 rounded-full bg-primary" aria-label={tr("Unread messages")} />}
               </span>
-              <span className="max-w-full truncate">{label}</span>
+              <span className="max-w-full truncate">{said(label)}</span>
             </>
           );
         // Greyed while the puzzle's course comes first; a tap offers to skip it.

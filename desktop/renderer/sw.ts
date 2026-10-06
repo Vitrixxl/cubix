@@ -22,15 +22,17 @@ worker.addEventListener("activate", (event) => {
     await worker.clients.claim();
   })());
 });
+/** The app's page, the shell every path of the app opens offline; the site's root is the landing page. */
+const APP = "/timer";
 async function page(request: Request) {
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), 4000);
   try {
     const response = await fetch(request, { cache: "no-cache", signal: timeout.signal });
     if (response.ok) return response;
-    return (await caches.match("/", { cacheName: SHELL })) ?? response;
+    return (await caches.match(APP, { cacheName: SHELL })) ?? response;
   } catch (error) {
-    const cached = await caches.match("/", { cacheName: SHELL }) ?? await caches.match("/");
+    const cached = await caches.match(APP, { cacheName: SHELL }) ?? await caches.match(APP);
     if (cached) return cached;
     throw error;
   } finally {

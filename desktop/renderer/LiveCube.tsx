@@ -4,6 +4,7 @@ import { HELD_HEX } from "../../src/shared/cubeAppearance";
 import { CUBE_PITCH, CUBE_YAW, cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, turnCube, type CubeOrientation, type CubeScene } from "../../src/shared/cubeScene";
 import { rotate, type Quaternion, type SmartCube } from "../../src/client/lib/smartCube";
 import { paintShapes } from "./paint";
+import { tr } from "../../src/client/i18n";
 
 /** How long a turn takes on screen: quick enough to keep up with a fast solve. */
 const TURN_MS = 90;
@@ -65,7 +66,7 @@ export function LiveCube({ cube, size, onDrag }: { cube: SmartCube; size: number
   return (
     <canvas
       ref={canvas}
-      aria-label="Connected cube"
+      aria-label={tr("Connected cube")}
       style={{ width: size, height: size, flexShrink: 0, touchAction: "none" }}
       onPointerDown={(e) => {
         drag.current = [e.clientX, e.clientY];

@@ -1,3 +1,4 @@
+import { msg } from "../i18n/msg";
 export type TimerPhase = "idle" | "holding" | "ready" | "running" | "stopped";
 export const HOLD_DELAY_MS = 300;
 export interface TimerSnapshot { phase: TimerPhase; elapsed: number; startedAt: number }
@@ -64,12 +65,12 @@ export class PracticeTimer {
 export function timerHint(phase: TimerPhase, { disabled, unsaved = false, keyboard = false }: { disabled?: string | false; unsaved?: boolean; keyboard?: boolean } = {}) {
   if (disabled) return disabled;
   switch (phase) {
-    case "holding": return "Keep holding…";
-    case "ready": return "Release to start";
-    case "running": return keyboard ? "Any key to stop" : "Tap to stop";
+    case "holding": return msg("Keep holding…");
+    case "ready": return msg("Release to start");
+    case "running": return keyboard ? msg("Any key to stop") : msg("Tap to stop");
     default: {
-      const idle = keyboard ? "Hold Space, release to start" : "Hold, then release to start";
-      return unsaved ? `Not saved · ${idle}` : idle;
+      const idle = keyboard ? msg("Hold Space, release to start") : msg("Hold, then release to start");
+      return unsaved ? msg("Not saved · {0}", { 0: idle }) : idle;
     }
   }
 }

@@ -2,6 +2,7 @@ import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../sh
 import { eventOf, puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
 import { crossPlusOneMoves, crossPlusOnePattern, type PatternData } from "../../shared/crossPlusOne";
+import { msg } from "../i18n/msg";
 
 /** Random-state generation needs cubing.js; each platform supplies its own runtime for it. */
 export interface ScrambleEngine {
@@ -46,7 +47,7 @@ export function evenPermutation(pieces: number[]) {
 }
 export const competitionEvent = ({ puzzle, solveMode }: PracticeContext) => eventOf(puzzle, solveMode)?.id ?? puzzle;
 export async function generatePracticeScramble(context: PracticeContext, engine: ScrambleEngine): Promise<string> {
-  if (!validContext(context)) throw new Error("Unsupported puzzle or scramble type.");
+  if (!validContext(context)) throw new Error(msg("Unsupported puzzle or scramble type."));
   const { puzzle, scrambleType: type } = context;
   const size = puzzleInfo(puzzle).cubeSize;
   if (type === "normal") return engine.randomScrambleForEvent(competitionEvent(context));
@@ -58,5 +59,5 @@ export async function generatePracticeScramble(context: PracticeContext, engine:
   if (crossMoves) return engine.patternScramble(crossPlusOnePattern(crossMoves));
   if (type === "last-layer") return `${caseSetup("oll")} ${caseSetup("pll")} ${randomAuf()}`.trim();
   if (["oll", "pll", "f2l"].includes(type)) return `${caseSetup(type)} ${randomAuf()}`.trim();
-  throw new Error("This scramble generator is unavailable.");
+  throw new Error(msg("This scramble generator is unavailable."));
 }

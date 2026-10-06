@@ -68,6 +68,8 @@ export interface SolveDto {
   scramble: string | null;
   /** Free-text note; absent in data saved before notes existed. */
   comment?: string | null;
+  /** The turns that were made, when they are known (a smart cube records them); see `lib/solution`. */
+  solution?: string | null;
   created_at: string;
 }
 
@@ -115,6 +117,10 @@ export interface HistoryPoint {
   /** best time so far (running minimum) */
   best: number | null;
   sessionId: number | null;
+  /** Turned on a smart cube: its turns were recorded. */
+  smart?: boolean;
+  /** A case done during a smart cube solve rather than trained on its own: the solve it was part of. */
+  solveId?: number;
 }
 
 export interface CaseHistoryDto {

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Reorder } from "motion/react";
 import { GripVertical } from "lucide-react";
 import { store as s } from "./store";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 export function LearningGroups() {
   const [groups, setGroups] = useState(() => s.learningGroups);
@@ -21,7 +23,7 @@ export function LearningGroups() {
   const save = (group: string) => {
     dragging.current = false;
     void s.reorderLearningGroups(current.current).catch(s.fail);
-    announce(`${group}, position ${current.current.indexOf(group) + 1} of ${current.current.length}`);
+    announce(tr("{0}, position {1} of {2}", { 0: group, 1: current.current.indexOf(group) + 1, 2: current.current.length }));
   };
   const move = (group: string, key: string) => {
     const next = [...current.current];
@@ -34,10 +36,10 @@ export function LearningGroups() {
     save(group);
   };
   return <>
-    <Reorder.Group as="ol" axis="y" layoutScroll className="-mx-2 flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto px-2" aria-label="Learning group order" values={groups} onReorder={reorder}>
+    <Reorder.Group as="ol" axis="y" layoutScroll className="-mx-2 flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto px-2" aria-label={tr("Learning group order")} values={groups} onReorder={reorder}>
       {groups.map((group, index) => <GroupItem key={group} group={group} index={index} count={groups.length} start={() => { dragging.current = true; }} save={save} move={move} />)}
     </Reorder.Group>
-    <span className="sr-only" role="status">{announcement}</span>
+    <span className="sr-only" role="status">{said(announcement)}</span>
   </>;
 }
 
@@ -50,7 +52,7 @@ function GroupItem({ group, index, count, start, save, move }: {
   return <Reorder.Item value={group} className="flex h-10 items-center gap-3 rounded-lg bg-popover pr-1 pl-3 hover:bg-muted/50" onDragStart={start} onDragEnd={() => save(group)} whileDrag={{ boxShadow: "0 8px 24px rgb(0 0 0 / 0.25)" }}>
     <span className="w-6 font-sans text-xs text-muted-foreground tabular-nums" aria-hidden="true">{index + 1}.</span>
     <span className="flex-1 truncate text-sm">{group}</span>
-    <button type="button" className="flex size-8 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing" aria-label={`Move ${group}`} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Drag to reorder · ↑ / ↓" onKeyDown={event => {
+    <button type="button" className="flex size-8 cursor-grab items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing" aria-label={tr("Move {0}", { 0: group })} aria-description={`Position ${index + 1} of ${count}. Drag or use the arrow keys, Home and End to reorder.`} aria-keyshortcuts="ArrowUp ArrowDown Home End" title={tr("Drag to reorder · ↑ / ↓")} onKeyDown={event => {
       if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
       event.preventDefault();
       event.stopPropagation();

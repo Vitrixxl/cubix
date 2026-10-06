@@ -11,6 +11,7 @@ import {
 } from "../../src/shared/cubeScene";
 import { isPolyPuzzle, polyOrientation, polyScene, polySceneDuration, polyShapes } from "../../src/shared/puzzleScene";
 import { paintShapes } from "./paint";
+import { tr } from "../../src/client/i18n";
 export { paintShapes };
 function paintCube(
   ctx: CanvasRenderingContext2D,
@@ -99,7 +100,7 @@ export function Cube({
   return (
     <canvas
       ref={canvas}
-      aria-label="Cube preview"
+      aria-label={tr("Cube preview")}
       style={{ width: size, height: size, flexShrink: 0, touchAction: "none" }}
       onPointerDown={(e) => {
         if (!animated) return;

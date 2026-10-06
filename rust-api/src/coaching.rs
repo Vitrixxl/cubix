@@ -954,6 +954,12 @@ async fn replace_avatar(state: AppState, remove: bool, headers: HeaderMap, bytes
     }
     Ok(json!({"avatar": avatar_url(&json!(file))}))
 }
+/// Removes an account's picture file (the account is going).
+pub(crate) async fn forget_avatar(file: &str) {
+    if !file.contains(['/', '\\']) {
+        let _ = tokio::fs::remove_file(avatar_dir().join(file)).await;
+    }
+}
 /// `GET /api/avatars/{file}`: a picture of an account, for anyone signed in or not, like its username.
 pub async fn avatar(Path(file): Path<String>) -> Response {
     let found = async {
@@ -1117,7 +1123,7 @@ fn clash(db: &Connection, booking: &Value, start: i64, end: i64) -> Result<()> {
     }
 }
 /// Where an account's picture is fetched from, or null without one.
-fn avatar_url(file: &Value) -> Value {
+pub(crate) fn avatar_url(file: &Value) -> Value {
     file.as_str().map_or(Value::Null, |f| json!(format!("/api/avatars/{f}")))
 }
 

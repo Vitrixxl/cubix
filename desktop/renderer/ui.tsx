@@ -33,9 +33,13 @@ import {
 } from "@/components/ui/context-menu";
 import { EVENTS } from "../../src/shared/puzzles";
 import { fmtSolve } from "../../src/client/lib/format";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
+import { tn } from "../../src/client/i18n";
 
 export * from "./base";
-export { plural } from "../../src/client/lib/format";
+/** A count and its noun in the current language: plural(3, "solve") is "3 solves", or "3 résolutions". */
+export const plural = (count: number, noun: string) => tn(count, `{n} ${noun}`);
 export { run } from "./store";
 
 type Size = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
@@ -68,7 +72,7 @@ export function Button({
       data-action={action}
       variant={variant}
       size={size ?? (iconOnly ? "icon" : "default")}
-      aria-label={label ?? (iconOnly && typeof tip === "string" ? tip : undefined)}
+      aria-label={said(label ?? (iconOnly && typeof tip === "string" ? tip : undefined))}
       className={className}
       disabled={disabled}
       onClick={run(action)}
@@ -100,7 +104,7 @@ export function ActionToggle({
       pressed={pressed}
       size={size}
       disabled={disabled}
-      aria-label={!children && typeof tip === "string" ? tip : undefined}
+      aria-label={!children && typeof tip === "string" ? said(tip) : undefined}
       className={cn("aria-pressed:text-foreground", className)}
       onClick={run(action)}
     >
@@ -130,7 +134,7 @@ export function Choice({
   const head = React.useContext(InHead);
   return (
     <ToggleGroup
-      aria-label={label}
+      aria-label={said(label)}
       variant={head ? "outline" : "default"}
       size={size}
       spacing={1}
@@ -145,10 +149,10 @@ export function Choice({
           key={o.id}
           value={o.id}
           data-action={prefix + o.id}
-          title={o.tip}
+          title={said(o.tip)}
           className="px-2.5 text-muted-foreground aria-pressed:text-foreground"
         >
-          {o.label}
+          {said(o.label)}
           {o.count != null && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{o.count}</span>}
         </ToggleGroupItem>
       ))}
@@ -185,8 +189,8 @@ export function SelectMenu({
         render={<UiButton variant={variant} data-action={"menu:" + action} className={cn("gap-1.5", className)} />}
       >
         {icon}
-        {caption && <span className="text-muted-foreground">{caption}</span>}
-        <span className="truncate">{current?.label ?? value}</span>
+        {caption && <span className="text-muted-foreground">{said(caption)}</span>}
+        <span className="truncate">{said(current?.label ?? value)}</span>
         <ChevronDown className="text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-auto min-w-44">
@@ -194,7 +198,7 @@ export function SelectMenu({
           {options.map((o) => (
             <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
               {o.icon}
-              {o.label}
+              {said(o.label)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
@@ -224,7 +228,7 @@ export function PuzzlePicker({ profile = false, trigger, align = "start", side =
       <PopoverContent align={align} side={side} className="w-auto p-1.5" initialFocus={chosen}>
         <div
           role="listbox"
-          aria-label="Puzzle"
+          aria-label={tr("Puzzle")}
           className="grid grid-cols-4 gap-0.5"
           onKeyDown={(e) => {
             const step = { ArrowDown: PUZZLE_COLUMNS, ArrowUp: -PUZZLE_COLUMNS, ArrowRight: 1, ArrowLeft: -1 }[e.key];
@@ -252,7 +256,7 @@ export function PuzzlePicker({ profile = false, trigger, align = "start", side =
               }}
             >
               <Icon name={"Puzzle" + v.id} size={26} />
-              <span className="max-w-full truncate">{v.label}</span>
+              <span className="max-w-full truncate">{said(v.label)}</span>
             </button>
           ))}
         </div>
@@ -272,7 +276,7 @@ export function PuzzleButton({ profile = false }: { profile?: boolean }) {
       trigger={
         <UiButton variant={variant} className="gap-2">
           <Icon name={"Puzzle" + e.id} size={16} />
-          {e.label}
+          {said(e.label)}
           <ChevronDown className="text-muted-foreground" />
         </UiButton>
       }
@@ -310,29 +314,24 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
         )}
         <ContextMenuRadioGroup value={penalty} onValueChange={(v: string) => void s.action(`penalty:${id}:${v}`)}>
           <ContextMenuRadioItem value="none" closeOnClick>
-            No penalty
-          </ContextMenuRadioItem>
+            {tr("No penalty")}</ContextMenuRadioItem>
           <ContextMenuRadioItem value="+2" closeOnClick>
             +2
           </ContextMenuRadioItem>
           <ContextMenuRadioItem value="dnf" closeOnClick>
-            DNF
-          </ContextMenuRadioItem>
+            {tr("DNF")}</ContextMenuRadioItem>
         </ContextMenuRadioGroup>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => void s.action("comment:" + id)}>
           <MessageSquare />
-          Comment…
-        </ContextMenuItem>
+          {tr("Comment…")}</ContextMenuItem>
         <ContextMenuItem onClick={() => void s.action("solve:" + id)}>
           <Info />
-          Details
-        </ContextMenuItem>
+          {tr("Details")}</ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem variant="destructive" onClick={() => void s.action("delete:" + id)}>
           <Trash2 />
-          Delete
-        </ContextMenuItem>
+          {tr("Delete")}</ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );
@@ -349,12 +348,11 @@ export function SolveActions({ solve, comment = false, className }: { solve: { i
         +2
       </ActionToggle>
       <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
-        DNF
-      </ActionToggle>
+        {tr("DNF")}</ActionToggle>
       {comment && (
-        <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? "Edit comment" : "Add comment"} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
+        <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
       )}
-      <Button action={"delete:" + solve.id} icon={Trash2} size="icon-xs" label="Delete solve" className="text-muted-foreground hover:text-destructive" />
+      <Button action={"delete:" + solve.id} icon={Trash2} size="icon-xs" label={tr("Delete solve")} className="text-muted-foreground hover:text-destructive" />
     </span>
   );
 }
@@ -372,7 +370,7 @@ export function LearnedMark({ id, learned, touch = false, action = "learn:" + id
         type="button"
         data-action={action}
         aria-pressed={learned}
-        aria-label={label}
+        aria-label={said(label)}
         onClick={(e) => {
           e.stopPropagation();
           run(action)(e);
@@ -425,8 +423,8 @@ export function PageHead({
         {lead}
         {/* One line: the title, then its subtitle on the same baseline, cut short where the row runs out. */}
         <div className="flex min-w-0 items-baseline gap-2 md:gap-3">
-          <h1 className="max-w-full min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
-          {sub && <p className="min-w-0 truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
+          <h1 className="max-w-full min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight md:text-2xl">{said(title)}</h1>
+          {sub && <p className="min-w-0 truncate text-xs text-muted-foreground md:text-sm">{said(sub)}</p>}
         </div>
       </div>
       <div className="flex shrink-0 items-center justify-end gap-1 md:justify-start">
@@ -444,7 +442,7 @@ export function MoreMenu({ children }: Props) {
   const variant = useQuiet();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<UiButton variant={variant} size="icon" aria-label="More" data-action="menu:more" />}>
+      <DropdownMenuTrigger render={<UiButton variant={variant} size="icon" aria-label={tr("More")} data-action="menu:more" />}>
         <Ellipsis />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-52">
@@ -468,11 +466,11 @@ export function MenuAction({ action, icon: I, children, disabled }: { action: st
 export function MenuChoice({ label, action, value, options }: { label: string; action: string; value: string; options: { id: string; label: string }[] }) {
   return (
     <DropdownMenuGroup>
-      <DropdownMenuLabel>{label}</DropdownMenuLabel>
+      <DropdownMenuLabel>{said(label)}</DropdownMenuLabel>
       <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => void s.action(action + ":" + v)}>
         {options.map((o) => (
           <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
-            {o.label}
+            {said(o.label)}
           </DropdownMenuRadioItem>
         ))}
       </DropdownMenuRadioGroup>

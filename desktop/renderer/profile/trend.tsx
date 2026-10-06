@@ -4,6 +4,7 @@ import { fmtTime, shortDate } from "../../../src/client/lib/format";
 import { trendScale } from "../../../src/client/lib/profile";
 import { NUMERIC } from "../ui";
 import { cn } from "@/lib/utils";
+import { tr } from "../../../src/client/i18n";
 
 const W = 800,
   H = 200;
@@ -12,7 +13,7 @@ export function Trend({ history, averages, count = 100, className }: { history: 
   const plot = useRef<HTMLDivElement>(null),
     [hover, setHover] = useState<number | null>(null);
   const scale = trendScale(history, averages, count, H);
-  if (!scale) return <div className={cn("flex items-center justify-center text-sm text-muted-foreground", className)}>Your curve appears after two timed solves.</div>;
+  if (!scale) return <div className={cn("flex items-center justify-center text-sm text-muted-foreground", className)}>{tr("Your curve appears after two timed solves.")}</div>;
   const { from, shown, ao5, y, ticks, finite } = scale,
     x = (i: number) => (shown.length === 1 ? W / 2 : (i / (shown.length - 1)) * W),
     line = (points: (number | null)[]) => scale.line(points, x),
@@ -30,7 +31,7 @@ export function Trend({ history, averages, count = 100, className }: { history: 
         ref={plot}
         className="relative min-h-0"
         role="img"
-        aria-label={`Last ${shown.length} solves and their average of five`}
+        aria-label={tr("Last {0} solves and their average of five", { 0: shown.length })}
         onPointerMove={(e) => {
           const r = plot.current!.getBoundingClientRect();
           setHover(Math.max(0, Math.min(shown.length - 1, Math.round(((e.clientX - r.left) / r.width) * (shown.length - 1)))));
@@ -55,7 +56,7 @@ export function Trend({ history, averages, count = 100, className }: { history: 
               style={{ left: (x(hover!) / W) * 100 + "%" }}
             >
               <strong className={cn(NUMERIC, "font-medium")}>{fmtTime(point.time, { blank: "DNF" })}</strong>
-              {finite(ao5[hover!]) && <span className={cn(NUMERIC, "text-background/70")}>Ao5 {fmtTime(ao5[hover!])}</span>}
+              {finite(ao5[hover!]) && <span className={cn(NUMERIC, "text-background/70")}>{tr("Ao5")}{" "}{fmtTime(ao5[hover!])}</span>}
               <span className="text-background/70">
                 #{from + hover! + 1} · {point.displayDate}
               </span>
@@ -77,12 +78,10 @@ export function TrendLegend() {
     <span className="flex items-center gap-4 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <span className="h-0.5 w-3 rounded-full bg-chart-1" />
-        Single
-      </span>
+        {tr("Single")}</span>
       <span className="flex items-center gap-1.5">
         <span className="h-0.5 w-3 rounded-full bg-chart-2" />
-        Ao5
-      </span>
+        {tr("Ao5")}</span>
     </span>
   );
 }

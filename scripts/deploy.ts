@@ -1,7 +1,8 @@
 /**
  * Deploy the current `main` commit: push, rebuild the server on the Raspberry Pi through
- * pihost (the image also builds the web app, which the desktop app loads: nothing else ships
- * for desktop), then ship the phone build. Two things can reach phones:
+ * pihost (the image also builds the web app, which the desktop app loads), upload the desktop
+ * packages when the Electron shell changed (desktop/package-release.ts: the landing page's
+ * install commands download them), then ship the phone build. Two things can reach phones:
  *
  *   - an over-the-air update: the JavaScript bundle exported by `expo export`, which
  *     installed applications fetch by themselves at their next launch. Published every time.
@@ -14,6 +15,7 @@
  *   bun scripts/deploy.ts --apk        also rebuild the APK when the runtime version did not change
  *   bun scripts/deploy.ts --apk-only   rebuild and upload the APK for the deployed commit
  *   bun scripts/deploy.ts --update-only  export and publish the over-the-air update only
+ *   bun scripts/deploy.ts --skip-desktop   leave the desktop packages as the server has them
  *
  * The APK is not built on the Pi: Gradle needs more memory than the board has and Google
  * ships no ARM64 Linux NDK, so the phone build always happens on the developer's machine.
@@ -35,6 +37,7 @@ const skipApk = process.argv.includes("--skip-apk");
 const forceApk = process.argv.includes("--apk");
 const apkOnly = process.argv.includes("--apk-only");
 const updateOnly = process.argv.includes("--update-only");
+const skipDesktop = process.argv.includes("--skip-desktop");
 const APK = resolve(root, "mobile/build/cubix-android-arm64.apk");
 const UPDATE_DIR = resolve(root, "mobile/build/updates");
 
@@ -110,6 +113,24 @@ if (!apkOnly) {
     }
     const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, readFileSync(resolve(UPDATE_DIR, "update.json")));
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
+  }
+}
+// --- Desktop packages: the Electron shell for Linux and Windows, only when it changed (its version digests it). ---
+if (!apkOnly && !updateOnly && !skipDesktop) {
+  const { desktopVersion, OUT, PACKAGES } = await import("../desktop/package-release");
+  const version = await desktopVersion();
+  const served = (await fetch(`${ORIGIN}/api/desktop`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as Record<string, { version?: string }>;
+  const stale = Object.values(PACKAGES).filter((name) => served[name]?.version !== version);
+  if (!stale.length) console.log(`The server already serves desktop ${version}.`);
+  else {
+    // Low CPU priority, as the APK below.
+    run("nice", ["-n", "19", "bun", "desktop/package-release.ts"]);
+    for (const name of stale) {
+      const bytes = readFileSync(resolve(OUT, name));
+      console.log(`Uploading ${name} (${(bytes.length / 1048576).toFixed(1)} MiB)`);
+      await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, new Blob([bytes]));
+    }
+    console.log(`Desktop ${version} is now served by ${ORIGIN}/api/desktop`);
   }
 }
 if (updateOnly || skipApk) process.exit(0);

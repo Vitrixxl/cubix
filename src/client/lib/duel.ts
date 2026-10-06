@@ -6,6 +6,7 @@
 import { averageOf, effective, fmtSolve, fmtTime } from "./format";
 import { eventInfo, type PracticeContext, type ScrambleType } from "../../shared/puzzles";
 import type { Penalty } from "../../shared/types";
+import { msg } from "../i18n/msg";
 
 export const ROUNDS = 5;
 export type DuelSolve = { ms: number; penalty: Penalty } | null;
@@ -51,7 +52,7 @@ export function keepRecord(list: DuelRecord[], record: DuelRecord): DuelRecord[]
 /** "3 won · 2 lost", with the draws when there are some. */
 export function battleRecord(list: DuelRecord[]) {
   const count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length;
-  return `${count("win")} won · ${count("loss")} lost` + (count("draw") ? ` · ${count("draw")} drawn` : "");
+  return msg("{0} won · {1} lost", { 0: count("win"), 1: count("loss") }) + (count("draw") ? ` · ${count("draw")} drawn` : "");
 }
 
 /** A battle's result as its letter. */
@@ -69,12 +70,12 @@ export function clock(ms: number) {
 }
 /** What the opponent is doing, in a word or two. */
 export function opponentStatus(d: Pick<DuelClient, "opponentHere" | "over" | "opponentPhase" | "them" | "round" | "scrambles">) {
-  if (!d.opponentHere) return "Left";
-  if (d.over) return "Finished";
-  if (d.opponentPhase === "running") return "Solving";
-  if (d.opponentPhase !== "idle") return "Ready";
-  if (d.them[d.round]) return "Done";
-  return d.scrambles.length ? `Round ${d.round + 1}` : "Waiting";
+  if (!d.opponentHere) return msg("Left");
+  if (d.over) return msg("Finished");
+  if (d.opponentPhase === "running") return msg("Solving");
+  if (d.opponentPhase !== "idle") return msg("Ready");
+  if (d.them[d.round]) return msg("Done");
+  return d.scrambles.length ? msg("Round {0}", { 0: d.round + 1 }) : msg("Waiting");
 }
 
 /** What a platform gives the duel: its API, scrambles, the player's level and token, and where battles go. */
@@ -186,7 +187,7 @@ export class DuelClient {
 
   private connect() {
     return new Promise<WebSocket>((resolve, reject) => {
-      const unreachable = () => reject(Error("The duel server cannot be reached."));
+      const unreachable = () => reject(Error(msg("The duel server cannot be reached.")));
       if (this.socket && this.socket.readyState <= WebSocket.OPEN) {
         if (this.socket.readyState === WebSocket.OPEN) return resolve(this.socket);
         this.socket.addEventListener("open", () => resolve(this.socket!), { once: true });
@@ -209,7 +210,7 @@ export class DuelClient {
         clearInterval(this.ping);
         if (this.status !== "off") {
           this.status = "off";
-          this.notice = "Connection lost.";
+          this.notice = msg("Connection lost.");
           this.changed();
         }
       };

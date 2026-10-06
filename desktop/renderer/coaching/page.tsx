@@ -21,6 +21,8 @@ import { CallView } from "./callView";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export function CoachingPage() {
   const [view = "", arg = "", sub = ""] = s.coachingView.split("/");
@@ -64,7 +66,7 @@ function Shell({ view, arg }: { view: string; arg: string }) {
     ) : null;
   return (
     <div className={PAGE}>
-      <PageHead title={menu ? "Coaching" : (current?.[1] ?? "Coaching")}>
+      <PageHead title={menu ? tr("Coaching") : (current?.[1] ?? tr("Coaching"))}>
         {menu && <SectionMenu view={view} />}
       </PageHead>
       <main className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</main>
@@ -79,19 +81,19 @@ function SectionMenu({ view }: { view: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger render={<UiButton variant="outline" data-action="coaching:sections" className="gap-1.5" />}>
         {I && <I />}
-        {current?.[1] ?? "Sections"}
-        {!!coaching.me?.unread && <span className="size-2 rounded-full bg-primary" aria-label="Unread messages" />}
+        {current?.[1] ?? tr("Sections")}
+        {!!coaching.me?.unread && <span className="size-2 rounded-full bg-primary" aria-label={tr("Unread messages")} />}
         <ChevronDown className="text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-52">
         {sections().map((group, i) => (
           <DropdownMenuGroup key={i}>
             {i > 0 && <DropdownMenuSeparator />}
-            {coaching.isCoach && <DropdownMenuLabel>{i === 0 ? "Your coaching" : "Get coached"}</DropdownMenuLabel>}
+            {coaching.isCoach && <DropdownMenuLabel>{i === 0 ? tr("Your coaching") : tr("Get coached")}</DropdownMenuLabel>}
             {group.map(([id, label, I]) => (
               <DropdownMenuItem key={id} data-action={"coaching:" + id} onClick={() => go(url(id))} className={cn(view === id && "bg-muted")}>
                 <I />
-                {label}
+                {said(label)}
                 <Count n={badge(id)} />
               </DropdownMenuItem>
             ))}

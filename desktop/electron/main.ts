@@ -8,6 +8,8 @@ import { electronLaunchOptions } from "../platform";
 
 const root = app.getAppPath();
 const origin = new URL(process.env.CUBIX_WEB_ORIGIN ?? process.env.CUBIX_API_ORIGIN ?? "https://cubix.vitrixxl.fr").origin;
+/** The app itself: the site's root is its landing page. */
+const start = origin + "/timer";
 const data = desktopDataDirectory();
 // Browser storage (the web app's IndexedDB and offline cache) lives with the rest of Cubix's data.
 app.setPath("userData", join(data, "electron"));
@@ -40,7 +42,7 @@ function offline() {
       if (!response.ok || !retry) return;
       clearInterval(retry);
       retry = undefined;
-      void window.loadURL(origin);
+      void window.loadURL(start);
     }).catch(() => {});
   }, 5000);
 }
@@ -104,7 +106,7 @@ else {
             window.webContents.send("desktop:event", { event: command });
         });
       window.once("ready-to-show", () => window.show());
-      await window.loadURL(origin).catch(() => {});
+      await window.loadURL(start).catch(() => {});
     })
     .catch((error) => {
       console.error(error);

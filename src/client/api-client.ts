@@ -5,7 +5,7 @@ import type { JourneyEntryDto } from "./lib/journey";
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null; comment?: string | null }
+export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scrambleType?: ScrambleType; cubeSize?: CubeSize; sessionId?: number | null; caseId?: string | null; timeMs: number; penalty?: Penalty; scramble?: string | null; comment?: string | null; solution?: string | null }
 export interface SyncPage { changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders" | "personal_entries"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[]; cursor: number; more: boolean }
 export interface SyncOperation { id: string; method: string; path: string; body: unknown; createdAt?: string }
 export interface SyncResult { results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[] }
@@ -40,6 +40,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     syncPush: (operations: SyncOperation[]) => request<SyncResult>("/sync", "POST", { operations }),
     setLearningGroupOrder: (track: LearningGroupOrderDto["track"], groups: string[]) => request<LearningGroupOrderDto>("/learning-group-order", "PUT", { track, groups }),
     learnedCases: () => request<string[]>("/learned"),
+    /** The account and everything it holds, for good; the password confirms it (a wrong one is a 401, not an expiry). */
+    deleteAccount: (password: string) => request<{ ok: true }>("/account/delete", "POST", { password }, undefined, true),
     setLearned: (caseId: string, learned: boolean) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned }),
     /** Incremental account sync; durable uploads can fall back to HTTP after disconnection. */
     connectLive: () => {

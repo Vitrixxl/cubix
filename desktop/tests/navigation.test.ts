@@ -12,6 +12,14 @@ test("URLs cover every page and encode case IDs, methods, puzzle and course step
   expect(readRoute("/timer", "?puzzle=nope")).toBeNull();
   expect(readRoute("/learn/cfop", "?step=-1")).toBeNull();
 });
+test("the community, tournaments and matches keep their view in the address", () => {
+  expect(pageUrl("community", { view: "groups/3/battles" })).toBe("/community/groups/3/battles");
+  expect(pageUrl("tournaments")).toBe("/tournaments");
+  expect(readRoute("/community/messages/12", "")).toMatchObject({ page: "community", view: "messages/12" });
+  expect(readRoute("/tournaments/7", "")).toMatchObject({ page: "tournaments", view: "7" });
+  expect(readRoute("/match/42", "")).toMatchObject({ page: "match", view: "42" });
+  for (const path of ["/match", "/match/nope", "/community/a/b/c/d"]) expect(readRoute(path, "")).toBeNull();
+});
 test("navigation delegates pushes, replacements and history traversal to React Router", () => {
   const calls: unknown[][] = [];
   const unbind = bindNavigation(((...args: unknown[]) => { calls.push(args); }) as any);

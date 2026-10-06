@@ -18,6 +18,8 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } fro
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export function Messages({ id }: { id: number | null }) {
   useEffect(() => {
@@ -37,10 +39,8 @@ export function Messages({ id }: { id: number | null }) {
             <RowsSkeleton />
           ) : !list.length ? (
             <Nothing>
-              No conversation yet.
-              <UiButton variant="outline" onClick={() => go(url("coaches"))}>
-                Find a coach
-              </UiButton>
+              {tr("No conversation yet.")}<UiButton variant="outline" onClick={() => go(url("coaches"))}>
+                {tr("Find a coach")}</UiButton>
             </Nothing>
           ) : (
             <ul className={ROWS} data-slot="conversations">
@@ -58,9 +58,9 @@ export function Messages({ id }: { id: number | null }) {
           {current ? (
             <Chat conversation={current} back={phone ? url("messages") : undefined} />
           ) : list && id ? (
-            <Nothing>This conversation does not exist.</Nothing>
+            <Nothing>{tr("This conversation does not exist.")}</Nothing>
           ) : (
-            <Nothing className="max-md:hidden">{list?.length ? "Pick a conversation." : ""}</Nothing>
+            <Nothing className="max-md:hidden">{list?.length ? tr("Pick a conversation.") : ""}</Nothing>
           )}
         </div>
       )}
@@ -75,12 +75,12 @@ function ConversationRow({ c, active }: { c: Conversation; active: boolean }) {
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-baseline gap-2">
           <span className={cn("truncate", c.unread ? "font-semibold" : "font-medium")}>{c.with.username}</span>
-          <span className="shrink-0 text-[11px] text-muted-foreground">{c.role === "student" ? "coach" : "student"}</span>
+          <span className="shrink-0 text-[11px] text-muted-foreground">{c.role === "student" ? tr("coach") : tr("student")}</span>
           {c.lastMessage && <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{relative(c.lastMessage.at)}</span>}
         </span>
         <span className="flex items-center gap-2">
           <span className={cn("truncate text-xs", c.unread ? "text-foreground" : "text-muted-foreground")}>
-            {c.lastMessage ? (c.lastMessage.mine ? "You: " : "") + gist(c.lastMessage.body, c.lastMessage.media) : "No message yet"}
+            {c.lastMessage ? (c.lastMessage.mine ? "You: " : "") + gist(c.lastMessage.body, c.lastMessage.media) : tr("No message yet")}
           </span>
           <Count n={c.unread} />
         </span>
@@ -178,13 +178,13 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
       {dragging && (
         <div className="pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/60 bg-background/80 text-sm font-medium">
           <ImageUp className="size-6 text-primary" />
-          Drop to send to {c.with.username}
+          {tr("Drop to send to")}{" "}{c.with.username}
         </div>
       )}
       {head && (
         <div className="flex min-h-14 shrink-0 items-center gap-3 px-4 pt-1">
           {back && (
-            <UiButton variant="ghost" size="icon-sm" aria-label="Every conversation" onClick={() => go(back)}>
+            <UiButton variant="ghost" size="icon-sm" aria-label={tr("Every conversation")} onClick={() => go(back)}>
               <ChevronLeft />
             </UiButton>
           )}
@@ -198,7 +198,7 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
               <Avatar name={c.with.username} src={c.with.avatar} size={32} />
               <span className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">{c.with.username}</span>
-                <span className="text-xs text-muted-foreground">{c.role === "student" ? "Your coach" : "Your student"}</span>
+                <span className="text-xs text-muted-foreground">{c.role === "student" ? tr("Your coach") : tr("Your student")}</span>
               </span>
             </button>
           </Tip>
@@ -207,13 +207,13 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
       )}
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 py-3" aria-live="polite" data-slot="messages">
         {!messages ? (
-          <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading">
+          <div className="flex flex-col gap-3" aria-busy="true" aria-label={tr("Loading")}>
             <Skeleton className="h-9 w-2/3 rounded-xl" />
             <Skeleton className="ml-auto h-9 w-1/2 rounded-xl" />
             <Skeleton className="h-9 w-3/5 rounded-xl" />
           </div>
         ) : !messages.length && !uploads.length ? (
-          <Nothing className="h-full">Say hello to {c.with.username}.</Nothing>
+          <Nothing className="h-full">{tr("Say hello to")}{" "}{c.with.username}.</Nothing>
         ) : (
           <div className="flex flex-col gap-1.5">
             {messages.map((m) => {
@@ -223,7 +223,7 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
               lastDay = today;
               return (
                 <div key={m.id} className="flex flex-col gap-1.5">
-                  {divider && <span className="py-2 text-center text-[11px] font-medium text-muted-foreground">{today}</span>}
+                  {divider && <span className="py-2 text-center text-[11px] font-medium text-muted-foreground">{said(today)}</span>}
                   <div className={cn("flex max-w-[78%] flex-col gap-0.5", mine ? "items-end self-end" : "items-start self-start")} data-mine={mine || undefined}>
                     {m.media && <MediaView media={m.media} onSize={stick} />}
                     {m.body && <p className={cn("rounded-xl px-3 py-2 break-words whitespace-pre-wrap", mine ? "bg-primary text-primary-foreground" : "bg-muted")}>{m.body}</p>}
@@ -235,7 +235,7 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
             {uploads.map((u) => (
               <div key={u.key} className="flex max-w-[78%] items-center gap-2 self-end rounded-xl bg-primary/15 px-3 py-2 text-xs text-muted-foreground" data-slot="upload">
                 <LoaderCircle className="size-3.5 shrink-0 animate-spin text-primary" />
-                <span className="truncate">Sending {u.name}</span>
+                <span className="truncate">{tr("Sending")}{" "}{said(u.name)}</span>
               </div>
             ))}
           </div>
@@ -245,12 +245,11 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
       {c.open === false ? (
         // Messages open once a session is booked: before that, the way to book.
         <div className="flex shrink-0 items-center gap-3 m-3 mt-1 rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground" data-slot="chat-closed">
-          <span className="flex-1">{c.role === "student" ? `Book a session with ${c.with.username} to write to them.` : `${c.with.username} can write once they book a session.`}</span>
+          <span className="flex-1">{c.role === "student" ? tr("Book a session with {0} to write to them.", { 0: c.with.username }) : tr("{0} can write once they book a session.", { 0: c.with.username })}</span>
           {c.role === "student" && (
             <UiButton size="sm" onClick={book} data-action="chat:book">
               <CalendarPlus />
-              Book
-            </UiButton>
+              {tr("Book")}</UiButton>
           )}
         </div>
       ) : (
@@ -273,7 +272,7 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
             {/* Both buttons sit the same 8px from the edges of the box. */}
             <InputGroupAddon align="inline-start" className="ml-0! self-end py-2 pl-2">
               <Tip content="Send a picture or a video">
-                <InputGroupButton type="button" size="icon-sm" className="size-8 text-muted-foreground hover:text-foreground" aria-label="Send a picture or a video" onClick={() => picker.current?.click()} data-action="chat:attach">
+                <InputGroupButton type="button" size="icon-sm" className="size-8 text-muted-foreground hover:text-foreground" aria-label={tr("Send a picture or a video")} onClick={() => picker.current?.click()} data-action="chat:attach">
                   <Paperclip />
                 </InputGroupButton>
               </Tip>
@@ -295,13 +294,13 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
               }}
               maxLength={2000}
               rows={1}
-              placeholder={"Message " + c.with.username}
-              aria-label={"Message " + c.with.username}
+              placeholder={tr("Message {0}", { 0: c.with.username })}
+              aria-label={tr("Message {0}", { 0: c.with.username })}
               data-action="chat:input"
               className="max-h-32 min-h-12 resize-none py-3.5 text-sm placeholder:text-muted-foreground"
             />
             <InputGroupAddon align="inline-end" className="mr-0! self-end py-2 pr-2">
-              <InputGroupButton type="submit" variant="default" size="icon-sm" className="size-8 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100" disabled={!text.trim() || sending} aria-label="Send" data-action="chat:send">
+              <InputGroupButton type="submit" variant="default" size="icon-sm" className="size-8 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100" disabled={!text.trim() || sending} aria-label={tr("Send")} data-action="chat:send">
                 <Send />
               </InputGroupButton>
             </InputGroupAddon>
@@ -309,8 +308,7 @@ export function Chat({ conversation: c, back, head = true, className }: { conver
           {head && c.role === "student" && (
             <UiButton type="button" variant="outline" className="h-12 rounded-xl" onClick={book} data-action="chat:book">
               <CalendarPlus />
-              Book
-            </UiButton>
+              {tr("Book")}</UiButton>
           )}
         </form>
       )}
@@ -335,18 +333,18 @@ function MediaView({ media, onSize }: { media: Media; onSize: () => void }) {
   }, [media.id]);
   const video = media.type.startsWith("video/"),
     label = media.name || (video ? "Video" : "Photo");
-  if (failed) return <span className="rounded-xl bg-muted px-3 py-2 text-muted-foreground">{label} is unavailable</span>;
-  if (!src) return <Skeleton className="h-48 w-64 rounded-xl" aria-label={"Loading " + label} />;
-  if (video) return <video src={src} controls preload="metadata" onLoadedMetadata={onSize} className="max-h-72 max-w-full rounded-xl bg-black" aria-label={label} data-slot="message-video" />;
+  if (failed) return <span className="rounded-xl bg-muted px-3 py-2 text-muted-foreground">{said(label)} {" "}{tr("is unavailable")}</span>;
+  if (!src) return <Skeleton className="h-48 w-64 rounded-xl" aria-label={tr("Loading {0}", { 0: label })} />;
+  if (video) return <video src={src} controls preload="metadata" onLoadedMetadata={onSize} className="max-h-72 max-w-full rounded-xl bg-black" aria-label={said(label)} data-slot="message-video" />;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label={"Open " + label} className="overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-        <img src={src} alt={label} onLoad={onSize} className="max-h-72 max-w-full object-contain" data-slot="message-image" />
+      <button type="button" onClick={() => setOpen(true)} aria-label={tr("Open {0}", { 0: label })} className="overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+        <img src={src} alt={said(label)} onLoad={onSize} className="max-h-72 max-w-full object-contain" data-slot="message-image" />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-auto max-w-[92vw] p-2 sm:max-w-[92vw]">
-          <DialogTitle className="sr-only">{label}</DialogTitle>
-          <img src={src} alt={label} className="max-h-[86vh] max-w-full rounded-lg object-contain" />
+          <DialogTitle className="sr-only">{said(label)}</DialogTitle>
+          <img src={src} alt={said(label)} className="max-h-[86vh] max-w-full rounded-lg object-contain" />
         </DialogContent>
       </Dialog>
     </>

@@ -8,6 +8,7 @@ import { invertAlg } from "../../shared/cube";
 import { puzzleOf, type PuzzleId } from "../../shared/puzzles";
 import type { CaseDto, SetDto } from "../../shared/types";
 import { groupCases } from "./practiceCatalog";
+import { msg } from "../i18n/msg";
 
 export interface CourseEntry {
   /** Index of the step shown. */
@@ -27,7 +28,7 @@ export const EMPTY_COURSE_PROGRESS: CourseProgress = { methods: {}, courses: {} 
 /** The preference holding an account's progress, beside its learning plan (`cubix.learning.v1:<id>`). */
 export const courseStorageKey = (userId: string) => `cubix.course.v1:${userId}`;
 
-export const LEVEL_LABEL: Record<MethodLevel, string> = { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" };
+export const LEVEL_LABEL: Record<MethodLevel, string> = { beginner: msg("Beginner"), intermediate: msg("Intermediate"), advanced: msg("Advanced") };
 
 const strings = (value: unknown): string[] => (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : []);
 /** Whatever was stored, as a well-formed progress. */

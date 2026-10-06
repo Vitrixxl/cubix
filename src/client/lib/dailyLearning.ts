@@ -1,5 +1,6 @@
 import type { CaseDto } from "../../shared/types";
 import { puzzleOf } from "../../shared/puzzles";
+import { msg } from "../i18n/msg";
 
 export const LEARNING_TRACKS = ["F2L", "OLL", "PLL"] as const;
 export type LearningTrack = typeof LEARNING_TRACKS[number];
@@ -30,8 +31,8 @@ export function dailyAssignment(previous: DailyAssignment | undefined, cases: re
 }
 export function learningStatus(cases: readonly CaseDto[], learned: ReadonlySet<string>): string {
   const count = cases.filter(c => learned.has(c.id)).length;
-  const status = count === cases.length && cases.length > 0 ? "Track complete" : "Algorithm to learn";
-  return `${status} · ${count}/${cases.length} learned`;
+  const status = count === cases.length && cases.length > 0 ? msg("Track complete") : msg("Algorithm to learn");
+  return msg("{0} · {1}/{2} learned", { 0: status, 1: count, 2: cases.length });
 }
 
 export function reviewTrack(mode: unknown): LearningTrack | undefined {
@@ -51,7 +52,7 @@ export function puzzleStages(cases: readonly CaseDto[], puzzle: string): string[
 }
 export function reviewStatus(mode: LearningMode, count: number): string {
   const track = reviewTrack(mode);
-  return `Review learned${track ? " " + track : ""} · ${count} cases`;
+  return msg("Review learned{0} · {1} cases", { 0: track ? " " + track : "", 1: count });
 }
 export function learningModeForPuzzle(mode: unknown, puzzle: string): LearningMode {
   if (mode === "review") return "review";
@@ -59,7 +60,7 @@ export function learningModeForPuzzle(mode: unknown, puzzle: string): LearningMo
   return puzzle === "333" && track ? mode as LearningMode : "practice";
 }
 export function trainingModeOptions(puzzle: string): { value: LearningMode; label: string }[] {
-  return [{ value: "practice", label: "Free practice" }, { value: "review", label: "Review learned" }, ...(puzzle === "333" ? LEARNING_TRACKS.map(value => ({ value, label: `Learn ${value}` })) : [])];
+  return [{ value: "practice", label: msg("Free practice") }, { value: "review", label: msg("Review learned") }, ...(puzzle === "333" ? LEARNING_TRACKS.map(value => ({ value, label: msg("Learn {0}", { 0: value }) })) : [])];
 }
 
 /** Keep every catalogue group exactly once, appending new groups after saved preferences. */

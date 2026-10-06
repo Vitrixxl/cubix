@@ -15,13 +15,17 @@ import { SubPageHead } from "./profile/card";
 import { Heatmap } from "./profile/heatmap";
 import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
 import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
+import { AnalysisPage } from "./profile/analysis";
 import { useProfileData, type ProfileData } from "./profile/data";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 const SECTIONS: Record<string, string> = {
   playground: "Timer",
   training: "Training",
   achievements: "Achievements",
   duels: "Battles",
+  analysis: "Analysis",
 };
 
 /** The reading column: centred and capped like GitHub's, the page's padding around it. */
@@ -45,35 +49,32 @@ function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h1 className="truncate text-xl font-semibold tracking-tight">{user?.username}</h1>
           <p className="truncate text-sm text-muted-foreground">
-            {user?.joined ? `Joined ${user.joined}` : null}
+            {user?.joined ? tr("Joined {0}", { 0: user.joined }) : null}
           </p>
         </div>
         {phone && (
           <InHead.Provider value={true}>
             <MoreMenu>
               <MenuAction action="notation" icon={BookA}>
-                Notation
-              </MenuAction>
+                {tr("Notation")}</MenuAction>
               <MenuAction action="help" icon={BookOpen}>
-                Guides
-              </MenuAction>
+                {tr("Guides")}</MenuAction>
               <MenuAction action="settings" icon={Settings}>
-                Settings
-              </MenuAction>
+                {tr("Settings")}</MenuAction>
             </MoreMenu>
           </InHead.Provider>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-x-3 gap-y-3" aria-label="Summary">
+      <div className="grid grid-cols-3 gap-x-3 gap-y-3" aria-label={tr("Summary")}>
         {facts.map(([I, label, value, tone, sub]) => (
           <div key={label} className="flex min-w-0 flex-col gap-1">
             <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
               <I className="size-3.5 shrink-0" />
-              {label}
+              {said(label)}
             </span>
             <span className="flex items-baseline gap-1.5">
               <span className={cn(NUMERIC, "text-xl font-medium tracking-tight", value === "0" ? "text-muted-foreground/60" : tone)}>{value}</span>
-              {sub && <span className="truncate text-xs text-muted-foreground">{sub}</span>}
+              {sub && <span className="truncate text-xs text-muted-foreground">{said(sub)}</span>}
             </span>
           </div>
         ))}
@@ -122,8 +123,7 @@ function PhoneOverview() {
       <div className="flex justify-center pb-2">
         <UiButton variant="ghost" data-action="logout" onClick={() => void s.action("logout")} className="text-muted-foreground hover:text-destructive">
           <LogOut />
-          Log out
-        </UiButton>
+          {tr("Log out")}</UiButton>
       </div>
     </div>
   );
@@ -134,7 +134,7 @@ function TimerPage({ phone }: { phone: boolean }) {
     count = p.playground?.summary?.count ?? 0;
   return (
     <>
-      <SubPageHead title="Timer" meta={count ? plural(count, "solve") : undefined} back={!phone}>
+      <SubPageHead title={tr("Timer")} meta={count ? plural(count, "solve") : undefined} back={!phone}>
         {!phone && <PuzzleButton profile />}
         <SelectMenu
           action="profileScramble"
@@ -147,10 +147,9 @@ function TimerPage({ phone }: { phone: boolean }) {
         data={p.playground}
         empty={
           <>
-            <span>No times in this selection yet.</span>
+            <span>{tr("No times in this selection yet.")}</span>
             <Button action="nav:playground" variant="outline">
-              Open the timer
-            </Button>
+              {tr("Open the timer")}</Button>
           </>
         }
       />
@@ -165,6 +164,8 @@ function SubPage({ mode, phone }: { mode: string; phone: boolean }) {
     <TrainingPage phone={phone} />
   ) : mode === "achievements" ? (
     <AchievementsPage phone={phone} />
+  ) : mode === "analysis" ? (
+    <AnalysisPage phone={phone} />
   ) : (
     <BattlesPage phone={phone} />
   );
@@ -173,13 +174,13 @@ function SubPage({ mode, phone }: { mode: string; phone: boolean }) {
 /** The page on its way, shaped like it: who they are beside the activity, the records beside the curve, three cards under them. */
 function ProfileSkeleton({ phone }: { phone: boolean }) {
   return phone ? (
-    <div className="flex flex-col gap-3 px-4 pt-1" aria-busy="true" aria-label="Loading">
+    <div className="flex flex-col gap-3 px-4 pt-1" aria-busy="true" aria-label={tr("Loading")}>
       <Skeleton className="h-36 rounded-xl" />
       <Skeleton className="h-48 rounded-xl" />
       <Skeleton className="h-72 rounded-xl" />
     </div>
   ) : (
-    <div className={cn(COLUMN, "flex h-full flex-col gap-4 py-5")} aria-busy="true" aria-label="Loading">
+    <div className={cn(COLUMN, "flex h-full flex-col gap-4 py-5")} aria-busy="true" aria-label={tr("Loading")}>
       <div className="grid shrink-0 grid-cols-[20rem_minmax(0,1fr)] gap-4 2xl:grid-cols-[22rem_minmax(0,1fr)]">
         <Skeleton className="h-48 rounded-xl" />
         <Skeleton className="h-48 rounded-xl" />
@@ -205,11 +206,11 @@ export function Profile() {
   if (phone) return <PhoneProfile mode={mode} />;
   if (!p) return <ProfileSkeleton phone={false} />;
   return mode === "overview" ? (
-    <section className={cn(COLUMN, "h-full min-h-0 overflow-x-hidden overflow-y-auto py-5")} aria-label="Profile">
+    <section className={cn(COLUMN, "h-full min-h-0 overflow-x-hidden overflow-y-auto py-5")} aria-label={tr("Profile")}>
       <Overview />
     </section>
   ) : (
-    <section className={cn(COLUMN, "profile-main flex h-full min-h-0 flex-col gap-4 py-5")} aria-label={SECTIONS[mode]}>
+    <section className={cn(COLUMN, "profile-main flex h-full min-h-0 flex-col gap-4 py-5")} aria-label={said(SECTIONS[mode])}>
       <SubPage mode={mode} phone={false} />
     </section>
   );
@@ -226,9 +227,9 @@ function PhoneProfile({ mode }: { mode: string }) {
       <div className="shrink-0 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3">
         <Tabs value={mode} onValueChange={(v: string) => void s.action("profileMode:" + v)}>
           <TabsList className="h-10! w-full">
-            {Object.entries({ overview: "Overview", ...SECTIONS, achievements: "Awards" }).map(([id, label]) => (
+            {Object.entries({ overview: "Overview", ...SECTIONS, achievements: "Awards" }).filter(([id]) => id !== "analysis").map(([id, label]) => (
               <TabsTrigger key={id} value={id} data-action={"profileMode:" + id} className="px-1 text-[13px]">
-                {label}
+                {said(label)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -237,11 +238,11 @@ function PhoneProfile({ mode }: { mode: string }) {
       {!p ? (
         <ProfileSkeleton phone />
       ) : mode === "overview" ? (
-        <section className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-1 pb-4" aria-label="Profile">
+        <section className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-1 pb-4" aria-label={tr("Profile")}>
           <PhoneOverview />
         </section>
       ) : (
-        <section className="profile-main flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3" aria-label={SECTIONS[mode]}>
+        <section className="profile-main flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3" aria-label={said(SECTIONS[mode])}>
           <SubPage mode={mode} phone />
         </section>
       )}

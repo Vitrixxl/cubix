@@ -8,15 +8,17 @@ import { NUMERIC } from "../base";
 import { PANEL } from "./parts";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
+import { tr, localFormat } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export const toDate = (key: string) => new Date(key + "T00:00:00Z");
 export const keyOf = (d: Date) => d.toISOString().slice(0, 10);
 export const addDays = (key: string, n: number) => keyOf(new Date(toDate(key).getTime() + n * 86_400_000));
 export const weekdayOf = (key: string) => (toDate(key).getUTCDay() + 6) % 7;
-export const longDay = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-export const shortDay = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-const monthName = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+export const longDay = localFormat({ weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+export const shortDay = localFormat({ day: "numeric", month: "short", timeZone: "UTC" });
+const monthName = localFormat({ month: "long", year: "numeric", timeZone: "UTC" });
 /** The month ("2026-10") some months away. */
 function shiftMonth(month: string, n: number) {
   const d = toDate(month + "-01");
@@ -34,15 +36,14 @@ export function MonthHeader({ month, today, onMonth, children }: { month: string
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
       <h2 className="min-w-44 text-xl font-semibold tracking-tight first-letter:uppercase">{monthName.format(toDate(month + "-01"))}</h2>
-      <UiButton variant="outline" size="icon-sm" aria-label="Previous month" onClick={() => onMonth(shiftMonth(month, -1))} data-action="calendar:previous">
+      <UiButton variant="outline" size="icon-sm" aria-label={tr("Previous month")} onClick={() => onMonth(shiftMonth(month, -1))} data-action="calendar:previous">
         <ChevronLeft />
       </UiButton>
-      <UiButton variant="outline" size="icon-sm" aria-label="Next month" onClick={() => onMonth(shiftMonth(month, 1))} data-action="calendar:next">
+      <UiButton variant="outline" size="icon-sm" aria-label={tr("Next month")} onClick={() => onMonth(shiftMonth(month, 1))} data-action="calendar:next">
         <ChevronRight />
       </UiButton>
       <UiButton variant="ghost" size="sm" onClick={() => onMonth(today.slice(0, 7))}>
-        Today
-      </UiButton>
+        {tr("Today")}</UiButton>
       {children}
     </div>
   );
@@ -80,11 +81,11 @@ export function Month({
   const start = addDays(first, -weekdayOf(first));
   const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
   return (
-    <div className={cn(PANEL, "min-w-0 flex-1 max-lg:min-h-[36rem] max-lg:flex-none", className)} role="grid" aria-label="Calendar" data-slot="calendar">
+    <div className={cn(PANEL, "min-w-0 flex-1 max-lg:min-h-[36rem] max-lg:flex-none", className)} role="grid" aria-label={tr("Calendar")} data-slot="calendar">
       <div className="grid shrink-0 grid-cols-7 border-b" role="row">
         {WEEKDAYS.map((w) => (
           <span key={w} role="columnheader" className="px-2.5 py-2 text-xs font-medium text-muted-foreground">
-            {w}
+            {said(w)}
           </span>
         ))}
       </div>
@@ -145,7 +146,7 @@ export function DayBoxes<T>({ items, children, className }: { items: T[]; childr
     <div className={cn("grid min-h-0 flex-1 grid-rows-[repeat(3,minmax(0,2.5rem))] gap-1", paired && "grid-cols-2", className)} data-slot="day-boxes">
       {shown.map((item) => children(item, paired))}
       {shown.length < items.length && (
-        <button type="button" aria-label={`${items.length - shown.length} more`} data-action="calendar:more" className={cn(BOX, "px-0.5 bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground")}>
+        <button type="button" aria-label={tr("{0} more", { 0: items.length - shown.length })} data-action="calendar:more" className={cn(BOX, "px-0.5 bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground")}>
           +{items.length - shown.length}
         </button>
       )}

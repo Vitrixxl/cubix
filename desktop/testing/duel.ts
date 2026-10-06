@@ -19,7 +19,7 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 900 
 async function open() {
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto(origin);
+  await page.goto(origin + "/timer");
   await page.waitForSelector(".rail, .tabbar");
   await page.locator('[data-action="nav:duel"]').first().click();
   await page.waitForSelector(".duel-lobby");

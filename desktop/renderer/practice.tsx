@@ -7,12 +7,13 @@ import { practiceSummary, sessionExtremes, solveTone, trainingSessionRows, type 
 import { PracticeTimer, timerHint, type TimerPhase, type TimerSnapshot } from "../../src/client/lib/practiceTimer";
 import { TONE_TEXT } from "../../src/client/lib/tone";
 import { shortId, maskForStage } from "../../src/client/lib/caseState";
-import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { smartCube } from "../../src/client/lib/smartCube";
 import "./dev/devTools";
 import { LiveCube } from "./LiveCube";
-import { ScrambleStatus, SmartScramble, useScrambleProgress } from "./SmartScramble";
-import { useLatestAnalysis, useSmartSolve } from "./smartSolve";
+import { CaseStatus, ScrambleStatus, SmartScramble, useScrambleProgress } from "./SmartScramble";
+import { useLatestAnalysis, useSmartCase, useSmartSolve } from "./smartSolve";
+import { caseGoal, caseMatcher, goalReached, setupTurns } from "../../src/client/lib/smartTraining";
 import { SolveStrip } from "./SolveAnalysis";
 import { balancedColumns, cellLines, FiguresBand, useWidth } from "./FiguresEditor";
 import {
@@ -32,6 +33,7 @@ import {
   MessageSquare,
   PlayCircle,
   Plus,
+  Rotate3d,
   RotateCcw,
   Shuffle,
   Trash2,
@@ -70,6 +72,8 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 /** Keys typed into a field, a menu or a dialog never reach the timer. */
 const typingInto = (e: KeyboardEvent) =>
@@ -83,12 +87,17 @@ const typingInto = (e: KeyboardEvent) =>
 function useTimer(enabled: boolean, manual = true) {
   const [snapshot, setSnapshot] = useState<TimerSnapshot>({ phase: "idle", elapsed: 0, startedAt: 0 });
   const enabledRef = useRef(enabled),
-    manualRef = useRef(manual);
+    manualRef = useRef(manual),
+    /** What a smart cube knows of a solve stopped now: its turns, and its penalty when the cube is not solved yet. */
+    smartRef = useRef<() => { penalty?: "none" | "+2" | "dnf"; solution: string | null } | undefined>(() => undefined);
   enabledRef.current = enabled;
   manualRef.current = manual;
   const [timer] = useState(() => new PracticeTimer({
     canStart: () => enabledRef.current,
-    onStop: ms => { void s.save(ms); },
+    onStop: ms => {
+      const smart = smartRef.current();
+      void s.save(ms, smart?.penalty, smart?.solution);
+    },
     onChange: snapshot => {
       setSnapshot(snapshot);
       s.running = snapshot.phase === "running";
@@ -138,7 +147,7 @@ function useTimer(enabled: boolean, manual = true) {
   }, []);
   // A stopped timer rests like an idle one.
   const phase: Exclude<TimerPhase, "stopped"> = snapshot.phase === "stopped" ? "idle" : snapshot.phase;
-  return { phase, elapsed: snapshot.elapsed, startedAt: snapshot.startedAt, press, release, begin: timer.begin, finish: timer.finish };
+  return { phase, elapsed: snapshot.elapsed, startedAt: snapshot.startedAt, press, release, begin: timer.begin, finish: timer.finish, smart: smartRef };
 }
 
 /** The side of the largest square inside an element's padding box, kept up to date as it resizes. */
@@ -179,7 +188,7 @@ export function Digits({ text, phase, className, digitsRef, "data-tour": tour }:
     >
       {text.split("").map((ch, i) => (
         <span key={i} className={text.includes(".") && i > text.indexOf(".") ? cn("text-[0.62em] tracking-[-0.03em]", !armed && "text-[color:color-mix(in_oklch,var(--muted-foreground)_78%,var(--primary))]") : undefined}>
-          {ch}
+          {said(ch)}
         </span>
       ))}
     </div>
@@ -228,16 +237,20 @@ export function Practice() {
     compact = w <= 900 || h <= 760;
   const Stage = mobile ? Surface : "div";
   const cubeLink = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status),
-    connectable = typeof CUBIX_DEV !== "undefined" && CUBIX_DEV && !mobile && !training && s.puzzle === "333",
+    connectable = typeof CUBIX_DEV !== "undefined" && CUBIX_DEV && !mobile && s.puzzle === "333",
     // A connected cube stands in the middle of the 3×3 timer, as it is in hand; the scramble follows it turn by turn,
     // and its preview stays at the top as the state to reach. The cube starts the timer itself, once scrambled.
-    live = connectable && cubeLink === "on";
+    live = connectable && cubeLink === "on",
+    // A training follows the cube on the cases it can see set up and solved (F2L, OLL, PLL, ZBLL).
+    trainee = training ? s.find(s.training?.id) : null,
+    goal = trainee ? caseGoal(trainee) : null,
+    liveCase = live && training && !!goal;
   const enabled =
       !s.saving &&
       !s.generating &&
       !s.error &&
       (!training || (!!s.practiceSelected.size && s.practiceSelected.has(s.training?.id))),
-    timer = useTimer(enabled, !live),
+    timer = useTimer(enabled, !(live && (!training || liveCase))),
     typing = s.page === "playground" && s.entry === "typing";
   const [typed, setTyped] = useState("");
   const typedRef = useRef<HTMLInputElement>(null);
@@ -268,14 +281,26 @@ export function Practice() {
     cubePane = ready && (hasCube || training),
     cubeShown = cubePane && s.showCube,
     previewSize = mobile ? (h < 760 ? 0 : 84) : Math.round(Math.max(116, Math.min(196, h * 0.19))),
-    progress = useScrambleProgress(s.scramble, live && !s.generating),
+    // A case's setup as the cube can follow it: face turns only, its rotations folded in.
+    setup = useMemo(() => (liveCase && s.training?.setup ? setupTurns(s.training.setup) : null), [liveCase, s.training?.setup]),
+    progress = useScrambleProgress(training ? (setup?.canonical ?? "") : s.scramble, training ? !!setup : live && !s.generating),
+    caseChecks = useMemo(
+      () => (liveCase && goal && s.training?.setup ? { matches: caseMatcher(s.training.setup, goal), solved: (state: Parameters<typeof goalReached>[0]) => goalReached(state, goal) } : null),
+      [liveCase, goal, s.training?.setup],
+    ),
     [liveBox, setLiveBox] = useState<HTMLDivElement | null>(null),
     liveSide = useSquare(live ? liveBox : null),
     analysis = useLatestAnalysis();
   // The cube times its own solves: its first turn once scrambled starts the timer, the solved cube stops it.
-  useSmartSolve({ active: live, scrambled: !!progress?.scrambled, begin: timer.begin, finish: timer.finish });
+  // A solve stopped by a key before the cube is solved is saved with its penalty (+2 or DNF). Its turns are saved
+  // with it either way.
+  const solveStop = useSmartSolve({ active: live && !training, scrambled: !!progress?.scrambled, begin: timer.begin, finish: timer.finish }),
+    trainedCase = useSmartCase({ active: liveCase, matches: caseChecks?.matches ?? null, solved: caseChecks?.solved ?? null, begin: timer.begin, finish: timer.finish });
+  timer.smart.current = training ? trainedCase.stop : solveStop;
   const hint =
-    live && timer.phase === "idle" && progress && !s.notice
+    liveCase && timer.phase === "idle" && !s.notice && enabled
+      ? <CaseStatus set={trainedCase.set} progress={progress} />
+      : live && !training && timer.phase === "idle" && progress && !s.notice
       ? <ScrambleStatus progress={progress} />
       : timerHint(timer.phase, {
           disabled: !enabled && (training ? "Select cases to begin" : "One moment…"),
@@ -305,16 +330,16 @@ export function Practice() {
     ) : null
   );
   const showCube = !mobile && !live && cubePane && !cubeShown && (
-    <Button action="cube" icon={Box} size="icon-sm" tip="Show the cube" className="text-muted-foreground" />
+    <Button action="cube" icon={Box} size="icon-sm" tip={tr("Show the cube")} className="text-muted-foreground" />
   );
   const solutionToggle = (
-    <Button action="solution" icon={s.revealed ? EyeOff : Eye} size="sm" tip="Alt+H" className="-ml-2.5 text-muted-foreground">
-      {s.revealed ? "Hide solution" : "Show solution"}
+    <Button action="solution" icon={s.revealed ? EyeOff : Eye} size="sm" tip={tr("Alt+H")} className="-ml-2.5 text-muted-foreground">
+      {s.revealed ? tr("Hide solution") : tr("Show solution")}
     </Button>
   );
   const learnedToggle = training && c && (
     <ActionToggle action={"learn:" + c.id} pressed={s.learned.has(c.id)} size="sm" icon={s.learned.has(c.id) ? Check : undefined} className="aria-pressed:bg-success/15 aria-pressed:text-success">
-      {s.learned.has(c.id) ? "Learned" : "Mark learned"}
+      {s.learned.has(c.id) ? tr("Learned") : tr("Mark learned")}
     </ActionToggle>
   );
   const prompt = (
@@ -343,12 +368,22 @@ export function Practice() {
                 )}
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className={LABEL}>Setup</span>
-                <Alg text={s.training.setup} size={promptFont} />
+                <span className={LABEL}>{tr("Setup")}</span>
+                {/* On a connected cube, the turns to make on it, coloured as they are made from a solved cube; all done
+                    once the case is there, however it was set up. */}
+                {setup && progress && (trainedCase.set || !progress.lost) ? (
+                  <SmartScramble
+                    text={said(setup.held)}
+                    progress={trainedCase.set ? { ...progress, lost: false, turns: progress.turns.map(() => "done") } : progress}
+                    size={promptFont}
+                  />
+                ) : (
+                  <Alg text={setup?.held ?? s.training.setup} size={promptFont} />
+                )}
               </div>
               {s.revealed && (
                 <div className="flex flex-col gap-1.5">
-                  <span className={LABEL}>Algorithm</span>
+                  <span className={LABEL}>{tr("Algorithm")}</span>
                   <Alg text={s.training.algorithm} size={Math.max(15, promptFont - 5)} className="text-foreground/85" />
                 </div>
               )}
@@ -356,7 +391,7 @@ export function Practice() {
                 {solutionToggle}
                 {c.algorithms[0]?.youtube && (
                   <Button action={"url:" + c.algorithms[0].youtube} icon={PlayCircle} size="sm" className="text-muted-foreground">
-                    {mobile ? "Video" : "Watch video"}
+                    {mobile ? tr("Video") : tr("Watch video")}
                   </Button>
                 )}
                 {mobile && learnedToggle}
@@ -364,12 +399,12 @@ export function Practice() {
             </>
           ) : (
             <div className="flex flex-col items-start gap-2 py-4" data-no-timer>
-              <strong className="text-lg font-semibold tracking-tight">{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</strong>
-              <span className="text-sm text-muted-foreground">{learning ? s.dailyStatus : "Select the cases you want to practise."}</span>
+              <strong className="text-lg font-semibold tracking-tight">{reviewing ? tr("No learned cases yet") : learning ? tr("Track complete") : tr("Choose your cases")}</strong>
+              <span className="text-sm text-muted-foreground">{learning ? s.dailyStatus : tr("Select the cases you want to practise.")}</span>
               <div className="mt-2 flex gap-2">
-                {!learning && <Button action="trainingSetup" variant="default">Choose cases</Button>}
+                {!learning && <Button action="trainingSetup" variant="default">{tr("Choose cases")}</Button>}
                 {track && !reviewing && s.trackLearnedCount > 0 && (
-                  <Button action={"learningMode:review:" + track} variant="default">Train learned</Button>
+                  <Button action={"learningMode:review:" + track} variant="default">{tr("Train learned")}</Button>
                 )}
               </div>
             </div>
@@ -379,7 +414,7 @@ export function Practice() {
             <div className="flex items-start gap-3">
               <div className="scramble max-h-[30vh] min-w-0 flex-1 overflow-y-auto" data-tour="scramble">
                 {s.generating && !s.scramble ? (
-                  <span className="flex flex-col gap-2" aria-label="Generating a scramble">
+                  <span className="flex flex-col gap-2" aria-label={tr("Generating a scramble")}>
                     <Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} />
                     <Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} />
                   </span>
@@ -407,20 +442,20 @@ export function Practice() {
   const desktopCube = !mobile && !live && cubeShown && previewSize > 0 && (
     <div className={cn("group/cube relative shrink-0", FADE)} style={{ width: previewSize, height: previewSize }}>
       {visual}
-      <Button action="cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute -top-1 -right-1 text-muted-foreground opacity-0 transition-opacity group-hover/cube:opacity-100 focus-visible:opacity-100" />
+      <Button action="cube" icon={X} size="icon-xs" tip={tr("Hide the cube")} className="absolute -top-1 -right-1 text-muted-foreground opacity-0 transition-opacity group-hover/cube:opacity-100 focus-visible:opacity-100" />
     </div>
   );
   const timesToggle = !timesAlways && !mobile && (
-    <ActionToggle action="times" pressed={s.showTimes} icon={ListOrdered} tip="Alt+T">
-      {training ? "Session" : "Times"}
+    <ActionToggle action="times" pressed={s.showTimes} icon={ListOrdered} tip={tr("Alt+T")}>
+      {training ? tr("Session") : tr("Times")}
     </ActionToggle>
   );
-  const replay = hasCube && ready && !mobile && !live && <Button action="replayCube" icon={RotateCcw} tip="Replay the scramble on the cube" />;
+  const replay = hasCube && ready && !mobile && !live && <Button action="replayCube" icon={RotateCcw} tip={tr("Replay the scramble on the cube")} />;
   const connect = connectable && (
     <Button
       action="smartCube"
       icon={cubeLink === "on" ? BluetoothConnected : cubeLink === "connecting" ? BluetoothSearching : Bluetooth}
-      tip={cubeLink === "on" ? `${smartCube.snapshot.name} connected · disconnect` : cubeLink === "connecting" ? "Connecting… · cancel" : "Connect the virtual cube (development)"}
+      tip={cubeLink === "on" ? tr("{0} connected · disconnect", { 0: smartCube.snapshot.name }) : cubeLink === "connecting" ? tr("Connecting… · cancel") : tr("Connect the virtual cube (development)")}
       className={cn(cubeLink === "on" && "text-primary")}
     />
   );
@@ -442,13 +477,13 @@ export function Practice() {
     // Each figure on one line on the desktop, label left and value right, in as few rows as fit, shared evenly.
     <div ref={setBand} className="shrink-0" data-tour="session" style={{ "--columns": columns } as React.CSSProperties}>
       <Strip
-        label="Statistics"
+        label={tr("Statistics")}
         className={cn(mobile ? "grid-cols-4 px-3" : "grid-cols-[repeat(var(--columns),minmax(0,1fr))] gap-0 px-0 py-2.5")}
       >
         {metrics.slice(0, mobile ? 4 : undefined).map(([label, value, tone], i) => (
           <Figure
             key={label}
-            label={label}
+            label={said(label)}
             value={value}
             tone={tone}
             size={mobile ? "sm" : "lg"}
@@ -462,20 +497,20 @@ export function Practice() {
   const head = (
     cross ? (
         <PageHead
-          title="Cross + 1"
+          title={tr("Cross + 1")}
           puzzle={!mobile}
           lead={<ChangeTraining />}
-          sub={mobile ? `${s.crossMoves}-move first block` : "Training"}
+          sub={mobile ? tr("{0}-move first block", { 0: s.crossMoves }) : tr("Training")}
           more={
             mobile && (
-              <MenuChoice label="First block" action="crossMoves" value={String(s.crossMoves)} options={CROSS_PLUS_ONE_MOVES.map((n) => ({ id: String(n), label: `${n} moves` }))} />
+              <MenuChoice label={tr("First block")} action="crossMoves" value={String(s.crossMoves)} options={CROSS_PLUS_ONE_MOVES.map((n) => ({ id: String(n), label: `${n} moves` }))} />
             )
           }
         >
           {!mobile && (
             <Choice
               prefix="crossMoves:"
-              label="Moves"
+              label={tr("Moves")}
               value={String(s.crossMoves)}
               options={CROSS_PLUS_ONE_MOVES.map((n) => ({ id: String(n), label: `${n} moves` }))}
             />
@@ -485,20 +520,20 @@ export function Practice() {
         </PageHead>
       ) : training ? (
         <PageHead
-          title={track ? `Learn ${track}` : reviewing ? "Review" : "Free practice"}
+          title={track ? tr("Learn {0}", { 0: track }) : reviewing ? tr("Review") : tr("Free practice")}
           lead={<ChangeTraining />}
-          sub={track ? "Training · one new case a day" : reviewing ? "Training · every learned case" : "Training · " + plural(s.practiceSelected.size, "case")}
+          sub={track ? tr("Training · one new case a day") : reviewing ? tr("Training · every learned case") : tr("Training · {0}", { 0: plural(s.practiceSelected.size, "case") })}
           more={
             mobile && (
               <>
-                {learning && !reviewing && <MenuAction action="menu:learningGroups" icon={LayoutList}>Group order</MenuAction>}
+                {learning && !reviewing && <MenuAction action="menu:learningGroups" icon={LayoutList}>{tr("Group order")}</MenuAction>}
                 {track && (
                   <MenuAction action={"learningMode:" + (reviewing ? track : "review:" + track)} icon={Check} disabled={!reviewing && !s.trackLearnedCount}>
-                    {reviewing ? `Learn ${track}` : "Train learned"}
+                    {reviewing ? tr("Learn {0}", { 0: track }) : tr("Train learned")}
                   </MenuAction>
                 )}
                 <MenuAction action="auf" icon={Shuffle}>
-                  Random AUF {s.randomAuf ? "· on" : "· off"}
+                  {tr("Random AUF")}{" "}{s.randomAuf ? tr("· on") : tr("· off")}
                 </MenuAction>
               </>
             )
@@ -506,31 +541,30 @@ export function Practice() {
         >
           {!mobile && learning && !reviewing && (
             <Button action="menu:learningGroups" icon={LayoutList}>
-              Groups
-            </Button>
+              {tr("Groups")}</Button>
           )}
           {!mobile && track && (
             <ActionToggle
               action={"learningMode:" + (reviewing ? track : "review:" + track)}
               pressed={reviewing}
               disabled={!reviewing && !s.trackLearnedCount}
-              tip={`Train every learned ${track} case`}
+              tip={tr("Train every learned {0} case", { 0: track })}
             >
-              Train learned
-            </ActionToggle>
+              {tr("Train learned")}</ActionToggle>
           )}
           {!mobile && (
-            <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip="Random AUF · Alt+A">
-              {!compact && "Random AUF"}
+            <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
+              {!compact && tr("Random AUF")}
             </ActionToggle>
           )}
+          {connect}
           {replay}
-          <Button action="previous" icon={ChevronLeft} disabled={!s.training?.canPrevious} tip="Previous case · Alt+P" />
-          {!mobile && (!learning || reviewing) && <Button action="next" icon={ChevronRight} tip="Next case · Alt+N" />}
+          <Button action="previous" icon={ChevronLeft} disabled={!s.training?.canPrevious} tip={tr("Previous case · Alt+P")} />
+          {!mobile && (!learning || reviewing) && <Button action="next" icon={ChevronRight} tip={tr("Next case · Alt+N")} />}
           {timesToggle}
         </PageHead>
       ) : (
-        <PageHead title="Timer" puzzle="scramble">
+        <PageHead title={tr("Timer")} puzzle="scramble">
           {!mobile && (
             <>
               <SelectMenu action="scrambleType" caption={compact ? undefined : "Scramble"} value={s.scrambleType} options={s.scrambleOptions()} />
@@ -585,7 +619,7 @@ export function Practice() {
                   <input
                     ref={typedRef}
                     className={cn(NUMERIC, "w-[min(100%,9ch)] border-b-2 border-border bg-transparent pb-2 text-center text-[clamp(48px,20cqh,120px)] leading-none font-medium tracking-tight outline-none placeholder:text-muted-foreground/40 focus:border-primary")}
-                    aria-label="Time"
+                    aria-label={tr("Time")}
                     data-tour="timer"
                     placeholder="0.000"
                     inputMode="decimal"
@@ -615,32 +649,29 @@ export function Practice() {
                   {s.notice ? (
                     <>
                       {training ? <Check className="size-4" /> : <Trophy className="size-4" />}
-                      {s.notice}
+                      {said(s.notice)}
                     </>
                   ) : typing
                     ? typed
                       ? parseTypedTime(typed)
-                        ? `${fmtTime(parseTypedTime(typed))} · Enter to save`
-                        : "Not a time"
-                      : "Type your time, then Enter: 1234 is 12.34"
-                    : hint}
+                        ? tr("{0} · Enter to save", { 0: fmtTime(parseTypedTime(typed)) })
+                        : tr("Not a time")
+                      : tr("Type your time, then Enter: 1234 is 12.34")
+                    : said(hint)}
                 </div>
                 {s.practicePage() === "playground" && <AverageWindow mobile={mobile} />}
                 {/* The last solve's actions, there before the first solve too (disabled) so the timer never moves. */}
                 {!mobile && (
-                  <div className={cn("mt-3 flex shrink-0 flex-wrap items-center justify-center gap-1.5", FADE)} aria-label="Last solve" data-no-timer>
+                  <div className={cn("mt-3 flex shrink-0 flex-wrap items-center justify-center gap-1.5", FADE)} aria-label={tr("Last solve")} data-no-timer>
                     <ActionToggle action={"penalty:" + last?.id + ":+2"} pressed={last?.penalty === "+2"} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground aria-pressed:text-warning">
                       +2
                     </ActionToggle>
                     <ActionToggle action={"penalty:" + last?.id + ":dnf"} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground aria-pressed:text-destructive">
-                      DNF
-                    </ActionToggle>
+                      {tr("DNF")}</ActionToggle>
                     <Button action={"comment:" + last?.id} icon={MessageSquare} disabled={!last || s.saving} size="sm" variant="outline" className={cn("text-muted-foreground", last?.comment && "text-primary")}>
-                      Comment
-                    </Button>
+                      {tr("Comment")}</Button>
                     <Button action={"delete:" + last?.id} icon={Trash2} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground hover:text-destructive">
-                      Delete
-                    </Button>
+                      {tr("Delete")}</Button>
                   </div>
                 )}
               </section>
@@ -649,22 +680,22 @@ export function Practice() {
             {mobile && (
               <TouchBar className={cn("shrink-0 border-t px-2 py-1.5", FADE)}>
                 <TouchAction action={"penalty:" + last?.id + ":+2"} label="+2" icon={Plus} pressed={last?.penalty === "+2"} disabled={!last || s.saving} tone="warning" />
-                <TouchAction action={"penalty:" + last?.id + ":dnf"} label="DNF" icon={Ban} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} tone="bad" />
-                <TouchAction action={"comment:" + last?.id} label="Comment" icon={MessageSquare} disabled={!last || s.saving} />
-                <TouchAction action={"delete:" + last?.id} label="Delete" icon={Trash2} disabled={!last || s.saving} />
+                <TouchAction action={"penalty:" + last?.id + ":dnf"} label={tr("DNF")} icon={Ban} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} tone="bad" />
+                <TouchAction action={"comment:" + last?.id} label={tr("Comment")} icon={MessageSquare} disabled={!last || s.saving} />
+                <TouchAction action={"delete:" + last?.id} label={tr("Delete")} icon={Trash2} disabled={!last || s.saving} />
                 {training ? (
-                  (!learning || reviewing) && <TouchAction action="next" label="Next case" icon={ChevronRight} />
+                  (!learning || reviewing) && <TouchAction action="next" label={tr("Next case")} icon={ChevronRight} />
                 ) : (
-                  <TouchAction action="next" label="Scramble" icon={Shuffle} />
+                  <TouchAction action="next" label={tr("Scramble")} icon={Shuffle} />
                 )}
               </TouchBar>
             )}
           </Stage>
-          {!mobile && live && analysis && !running && <SolveStrip analysis={analysis} />}
+          {!mobile && live && !training && analysis && !running && <SolveStrip analysis={analysis} />}
           {mobile ? <SessionPeek training={training} /> : statistics}
         </div>
         {timesColumn && (
-          <aside aria-label="Session times" data-tour="session" className={cn("flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border bg-card xl:w-68", FADE)}>
+          <aside aria-label={tr("Session times")} data-tour="session" className={cn("flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border bg-card xl:w-68", FADE)}>
             <Times closable={!timesAlways} />
           </aside>
         )}
@@ -679,16 +710,16 @@ export function Practice() {
           }}
           title={
             <>
-              {training ? "Session" : "Times"} <span className={cn(NUMERIC, "font-normal text-muted-foreground")}>{s.solves.length}</span>
+              {training ? tr("Session") : tr("Times")} <span className={cn(NUMERIC, "font-normal text-muted-foreground")}>{s.solves.length}</span>
             </>
           }
-          description="Tap a time for its details · hold it for +2, DNF or delete"
+          description={tr("Tap a time for its details · hold it for +2, DNF or delete")}
           snapPoints={[0.5, 1]}
           className="gap-3"
         >
           <div className="grid shrink-0 grid-cols-4 gap-x-4 gap-y-3 rounded-xl bg-muted/45 px-3 py-3">
             {s.metrics().map(([label, value, tone]) => (
-              <Figure key={label} label={label} value={value} tone={tone} size="sm" />
+              <Figure key={label} label={said(label)} value={value} tone={tone} size="sm" />
             ))}
           </div>
           <Times closable={false} bare touch />
@@ -710,11 +741,11 @@ function SessionPeek({ training }: { training: boolean }) {
       data-action="times"
       onClick={run("times")}
       className={cn("flex h-14 shrink-0 items-center gap-4 rounded-xl bg-muted/45 px-4 text-left outline-none active:bg-muted/70", FADE)}
-      aria-label="Session times"
+      aria-label={tr("Session times")}
       data-tour="session"
     >
       {figures.map(([label, value, tone]) => (
-        <Figure key={label} label={label} value={value} tone={tone} caption="small" size="base" className="flex-1" />
+        <Figure key={label} label={said(label)} value={value} tone={tone} caption="small" size="base" className="flex-1" />
       ))}
       <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
         <span className={NUMERIC}>{plural(s.solves.length, training ? "attempt" : "solve")}</span>
@@ -731,13 +762,13 @@ function CrossSolution({ font, toggle }: { font: number; toggle: React.ReactNode
     <>
       {s.revealed && (
         <div className="flex flex-col gap-2">
-          <span className={LABEL}>Solution · z2, white on the bottom</span>
+          <span className={LABEL}>{tr("Solution · z2, white on the bottom")}</span>
           {solutions ? (
             <div className="flex flex-col gap-1.5">
               {solutions.map((v) => (
                 <div key={v.moves + v.slot} className="flex items-baseline gap-4">
                   <Alg text={heldMoves(v.moves)} size={font} />
-                  <span className="text-xs text-muted-foreground">{v.slot} block</span>
+                  <span className="text-xs text-muted-foreground">{said(v.slot)} {" "}{tr("block")}</span>
                 </div>
               ))}
             </div>
@@ -753,7 +784,7 @@ function CrossSolution({ font, toggle }: { font: number; toggle: React.ReactNode
 
 /** Back to the training setup, from the header of a running training. */
 function ChangeTraining() {
-  return <Button action="trainingSetup" icon={ChevronLeft} tip="Change what to train" className="size-8 max-md:size-10" />;
+  return <Button action="trainingSetup" icon={ChevronLeft} tip={tr("Change what to train")} className="size-8 max-md:size-10" />;
 }
 
 /** An empty session: in the middle of the column, what will appear here (how to start is under the timer). */
@@ -764,8 +795,8 @@ function NoTimes() {
         <ListOrdered className="size-5" />
       </span>
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium">No times yet</span>
-        <span className="text-xs text-muted-foreground">Every solve of this session lands here.</span>
+        <span className="text-sm font-medium">{tr("No times yet")}</span>
+        <span className="text-xs text-muted-foreground">{tr("Every solve of this session lands here.")}</span>
       </div>
     </div>
   );
@@ -780,17 +811,16 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
       {/* The column's heading: its name and count, its actions on the right, a line under it across the panel. */}
       {!bare && (
         <header className="flex h-11 shrink-0 items-center gap-2 border-b pr-2 pl-4">
-          <h2 className="text-sm font-medium">{training ? "Session" : "Times"}</h2>
+          <h2 className="text-sm font-medium">{training ? tr("Session") : tr("Times")}</h2>
           <Badge variant="secondary" className={cn(NUMERIC, "min-w-5 px-1.5 text-muted-foreground")}>
             {s.solves.length}
           </Badge>
           <div className="ml-auto flex items-center gap-1">
             {training && !!s.solves.length && (
               <Button action="undo" icon={Undo2} size="xs" className="text-muted-foreground">
-                Undo
-              </Button>
+                {tr("Undo")}</Button>
             )}
-            {closable && <Button action="times" icon={X} size="icon-xs" tip="Close" />}
+            {closable && <Button action="times" icon={X} size="icon-xs" tip={tr("Close")} />}
           </div>
         </header>
       )}
@@ -807,10 +837,10 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
                 {!solves.length ? (
-                  <span className="text-sm text-muted-foreground/60">No attempt yet</span>
+                  <span className="text-sm text-muted-foreground/60">{tr("No attempt yet")}</span>
                 ) : (
                   <>
-                    {validCount > 1 && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>mean {fmtTime(average)}</span>}
+                    {validCount > 1 && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{tr("mean")}{" "}{fmtTime(average)}</span>}
                     <div className="flex flex-wrap gap-1">
                       {[...solves].reverse().map((v) => (
                         <SolveMenu key={v.id} solve={v}>
@@ -827,6 +857,7 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                           >
                             {fmtSolve(v.time_ms, v.penalty)}
                             {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
+                            {v.solution && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
                           </button>
                         </SolveMenu>
                       ))}
@@ -852,6 +883,7 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                   <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-xs text-muted-foreground")}>{s.solves.length - i}</span>
                   <span className={cn(NUMERIC, touch ? "text-base" : "text-sm", TONE_TEXT[solveTone(v, extremes)])}>{fmtSolve(v.time_ms, v.penalty)}</span>
                   {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
+                  {v.solution && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
                 </button>
                 <SolveActions solve={v} className={cn(touch && "hidden")} />
               </div>
@@ -876,8 +908,8 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
     ao5 = practiceSummary(s.solves).ao5;
   const chip = cn("flex h-7 items-center justify-center rounded-md", mobile ? "min-w-0 flex-1 px-1 text-xs" : "min-w-18 px-2");
   return (
-    <div className={cn(NUMERIC, "average-window mt-6 flex w-full shrink-0 items-center justify-center gap-1.5 text-sm md:mt-8", mobile && "gap-1", FADE)} aria-label="Current average of 5" data-no-timer>
-      {!mobile && <span className={cn(LABEL, "mr-1.5")}>Ao5</span>}
+    <div className={cn(NUMERIC, "average-window mt-6 flex w-full shrink-0 items-center justify-center gap-1.5 text-sm md:mt-8", mobile && "gap-1", FADE)} aria-label={tr("Current average of 5")} data-no-timer>
+      {!mobile && <span className={cn(LABEL, "mr-1.5")}>{tr("Ao5")}</span>}
       {Array.from({ length: 5 }, (_, i) => {
         const v = last[i - (5 - last.length)];
         if (!v)

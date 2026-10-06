@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 /** Redraws every half minute, so calls open and sessions end on time. */
 export function useMinute() {
@@ -65,17 +67,17 @@ export function Sessions() {
           ))}
         </TabsList>
       </Tabs>
-      <section aria-label="Sessions" className="flex min-h-0 flex-1 flex-col gap-3">
+      <section aria-label={tr("Sessions")} className="flex min-h-0 flex-1 flex-col gap-3">
         <MonthHeader month={shown} today={today} onMonth={setMonth} />
         {!list ? (
-          <Skeleton className="min-h-0 flex-1 rounded-xl" aria-label="Loading sessions" />
+          <Skeleton className="min-h-0 flex-1 rounded-xl" aria-label={tr("Loading sessions")} />
         ) : (
           <>
             {!hasSessions && (
               <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm text-muted-foreground" role="status">
-                <span>{tab === "upcoming" ? "No upcoming session this month." : tab === "past" ? "No past session this month." : "No cancelled session this month."}</span>
+                <span>{tab === "upcoming" ? tr("No upcoming session this month.") : tab === "past" ? tr("No past session this month.") : tr("No cancelled session this month.")}</span>
                 {tab === "upcoming" && !list.length && (
-                  <UiButton variant="outline" size="sm" onClick={() => go(url("coaches"))} data-action="coaching:find">Find a coach</UiButton>
+                  <UiButton variant="outline" size="sm" onClick={() => go(url("coaches"))} data-action="coaching:find">{tr("Find a coach")}</UiButton>
                 )}
               </div>
             )}
@@ -112,14 +114,14 @@ export function Sessions() {
       <Dialog open={!!picked} onOpenChange={(open) => !open && setPicked("")}>
         <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-3xl" data-slot="sessions-day">
           <DialogHeader>
-            <DialogTitle>{picked ? longDay.format(toDate(picked)) : "Sessions"}</DialogTitle>
-            <DialogDescription className="capitalize">{tab} · {sessions.length} {sessions.length === 1 ? "session" : "sessions"}</DialogDescription>
+            <DialogTitle>{picked ? longDay.format(toDate(picked)) : tr("Sessions")}</DialogTitle>
+            <DialogDescription className="capitalize">{said(tab)} · {sessions.length} {sessions.length === 1 ? tr("session") : tr("sessions")}</DialogDescription>
           </DialogHeader>
           {sessions.length ? (
             <ul className={cn(ROWS, "min-h-0 overflow-y-auto")} data-slot="sessions">
               {sessions.map((b) => <SessionRow key={b.id} b={b} now={now} />)}
             </ul>
-          ) : <Nothing>No session for this filter on this day.</Nothing>}
+          ) : <Nothing>{tr("No session for this filter on this day.")}</Nothing>}
         </DialogContent>
       </Dialog>
     </div>
@@ -146,14 +148,14 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
             <span className="flex items-center gap-2 truncate font-medium">
               {b.with.username}
               <Badge variant="secondary" className="font-normal">
-                {b.role === "student" ? "Your coach" : "Your student"}
+                {b.role === "student" ? tr("Your coach") : tr("Your student")}
               </Badge>
             </span>
             <span className="truncate text-xs text-muted-foreground">
               {b.status === "cancelled"
-                ? `Cancelled by ${b.cancelledByMe ? "you" : b.with.username}`
+                ? b.cancelledByMe ? tr("Cancelled by you") : tr("Cancelled by {0}", { 0: b.with.username })
                 : over
-                  ? b.note || "Session over"
+                  ? b.note || tr("Session over")
                   : `${relative(b.startsAt, now)}${b.note ? " · " + b.note : ""}`}
             </span>
           </div>
@@ -163,14 +165,14 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
           {open && (
             <UiButton size="sm" onClick={() => go(url("call/" + b.id))} data-action="coaching:join" className={cn(waiting && "animate-pulse")}>
               <Video />
-              {waiting ? `${b.with.username} is waiting` : "Join call"}
+              {waiting ? tr("{0} is waiting", { 0: b.with.username }) : tr("Join call")}
             </UiButton>
           )}
           {over && b.status === "booked" && b.role === "student" && <ReviewButton b={b} />}
           {over && b.role === "coach" && b.review && <Stars rating={b.review.rating} size={12} figure={false} />}
           {b.conversationId && (
             <Tip content={"Message " + b.with.username}>
-              <UiButton variant="ghost" size="icon-sm" aria-label={"Message " + b.with.username} onClick={() => go(url("messages/" + b.conversationId))}>
+              <UiButton variant="ghost" size="icon-sm" aria-label={tr("Message {0}", { 0: b.with.username })} onClick={() => go(url("messages/" + b.conversationId))}>
                 <MessageSquare />
               </UiButton>
             </Tip>
@@ -181,7 +183,7 @@ export function SessionRow({ b, now, compact = false }: { b: Booking; now: numbe
       </div>
       {b.status === "booked" && !over && (
         <p className="text-xs text-muted-foreground" data-slot="cancellation-deadline">
-          {cancellationOpen(b.startsAt, now) ? `Cancellation allowed before ${span(b.startsAt - CANCELLATION_NOTICE)}.` : "Cancellation closed: this session starts within 24 hours."}
+          {cancellationOpen(b.startsAt, now) ? tr("Cancellation allowed before {0}.", { 0: span(b.startsAt - CANCELLATION_NOTICE) }) : tr("Cancellation closed: this session starts within 24 hours.")}
         </p>
       )}
       {b.proposal && b.status === "booked" && !over && <Offer b={b} />}
@@ -207,24 +209,21 @@ export function Offer({ b }: { b: Booking }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-warning/10 px-3 py-2 text-sm" data-slot="offer">
       <CalendarClock className="size-4 shrink-0 text-warning" />
       <span className="min-w-0 flex-1">
-        {b.role === "student" ? `${b.with.username} offers to move it to ` : "You offered "}
+        {b.role === "student" ? tr("{0} offers to move it to ", { 0: b.with.username }) : tr("You offered ")}
         <span className={cn(NUMERIC, "font-medium")}>{span(b.proposal!.start, b.proposal!.end)}</span>
-        {b.role === "coach" && <span className="text-muted-foreground"> · waiting for {b.with.username}</span>}
+        {b.role === "coach" && <span className="text-muted-foreground"> {" "}{tr("· waiting for")}{" "}{b.with.username}</span>}
       </span>
       {b.role === "student" ? (
         <span className="flex gap-1.5">
           <UiButton size="sm" variant="outline" disabled={pending} onClick={() => act(() => coaching.answer(b.id, false), "Session kept where it was")} data-action="offer:decline">
-            Keep the time
-          </UiButton>
+            {tr("Keep the time")}</UiButton>
           <UiButton size="sm" disabled={pending} onClick={() => act(() => coaching.answer(b.id, true), "Session moved")} data-action="offer:accept">
             <Check />
-            Move it
-          </UiButton>
+            {tr("Move it")}</UiButton>
         </span>
       ) : (
         <UiButton size="sm" variant="ghost" disabled={pending} onClick={() => act(() => coaching.propose(b.id, null), "Offer taken back")} data-action="offer:withdraw">
-          Take back
-        </UiButton>
+          {tr("Take back")}</UiButton>
       )}
     </div>
   );
@@ -238,11 +237,10 @@ export function MoveButton({ b, label = false }: { b: Booking; label?: boolean }
       {label ? (
         <UiButton variant="outline" size="sm" className="flex-1" onClick={() => setOpen(true)} data-action="coaching:move">
           <CalendarClock />
-          Move
-        </UiButton>
+          {tr("Move")}</UiButton>
       ) : (
         <Tip content="Offer another time">
-          <UiButton variant="ghost" size="icon-sm" aria-label="Offer another time" onClick={() => setOpen(true)} data-action="coaching:move">
+          <UiButton variant="ghost" size="icon-sm" aria-label={tr("Offer another time")} onClick={() => setOpen(true)} data-action="coaching:move">
             <CalendarClock />
           </UiButton>
         </Tip>
@@ -276,7 +274,7 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
     setPending(true);
     try {
       await coaching.propose(b.id, start);
-      toast.success(`Offer sent to ${b.with.username}`);
+      toast.success(tr("Offer sent to {0}", { 0: b.with.username }));
       close();
     } catch (e) {
       toast.error((e as Error).message);
@@ -287,25 +285,24 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Offer another time</DialogTitle>
+        <DialogTitle>{tr("Offer another time")}</DialogTitle>
         <DialogDescription>
-          Now {span(b.startsAt, b.endsAt)} with {b.with.username}. The session stays where it is until they accept.
-        </DialogDescription>
+          {tr("Now")}{" "}{span(b.startsAt, b.endsAt)} {" "}{tr("with")}{" "}{b.with.username}{tr(". The session stays where it is until they accept.")}</DialogDescription>
       </DialogHeader>
       {!data ? (
         <Skeleton className="h-32 rounded-lg" />
       ) : !days.size ? (
-        <p className="rounded-lg bg-muted/50 px-3 py-6 text-center text-sm text-muted-foreground">No free slot in the next four weeks: open more hours in your schedule.</p>
+        <p className="rounded-lg bg-muted/50 px-3 py-6 text-center text-sm text-muted-foreground">{tr("No free slot in the next four weeks: open more hours in your schedule.")}</p>
       ) : (
         <div className="flex flex-col gap-3">
           <Select items={items} value={shown} onValueChange={(v: string | null) => (setPicked(v ?? ""), setStart(null))}>
-            <SelectTrigger aria-label="Day" className="w-full">
+            <SelectTrigger aria-label={tr("Day")} className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {items.map((o) => (
                 <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+                  {said(o.label)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -321,7 +318,7 @@ function MoveForm({ b, close }: { b: Booking; close: () => void }) {
       )}
       <DialogFooter>
         <UiButton disabled={start == null || pending} onClick={send} data-action="coaching:move:send">
-          {pending ? "Sending…" : "Send the offer"}
+          {pending ? tr("Sending…") : tr("Send the offer")}
         </UiButton>
       </DialogFooter>
     </>
@@ -338,26 +335,25 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
       {label ? (
         <AlertDialogTrigger render={<UiButton variant="outline" size="sm" className="flex-1 hover:text-destructive" data-action="coaching:cancel" />}>
           <X />
-          Cancel
-        </AlertDialogTrigger>
+          {tr("Cancel")}</AlertDialogTrigger>
       ) : (
         <Tip content="Cancel the session">
-          <AlertDialogTrigger render={<UiButton variant="ghost" size="icon-sm" aria-label="Cancel the session" data-action="coaching:cancel" className="hover:text-destructive" />}>
+          <AlertDialogTrigger render={<UiButton variant="ghost" size="icon-sm" aria-label={tr("Cancel the session")} data-action="coaching:cancel" className="hover:text-destructive" />}>
             <X />
           </AlertDialogTrigger>
         </Tip>
       )}
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{allowed ? "Cancel this session?" : "Cancellation is closed"}</AlertDialogTitle>
+          <AlertDialogTitle>{allowed ? tr("Cancel this session?") : tr("Cancellation is closed")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {day(b.startsAt)} at {time(b.startsAt)} with {b.with.username}.
-            {allowed ? " They are told at once and the slot opens again." : " Sessions cannot be cancelled in the final 24 hours before they start."}
+            {day(b.startsAt)} {" "}{tr("at")}{" "}{time(b.startsAt)} {" "}{tr("with")}{" "}{b.with.username}.
+            {allowed ? tr(" They are told at once and the slot opens again.") : tr(" Sessions cannot be cancelled in the final 24 hours before they start.")}
           </AlertDialogDescription>
-          <p className="text-sm text-muted-foreground">Cancellation deadline: {span(b.startsAt - CANCELLATION_NOTICE)}. Cancellations must be made before this time.</p>
+          <p className="text-sm text-muted-foreground">{tr("Cancellation deadline:")}{" "}{span(b.startsAt - CANCELLATION_NOTICE)}{tr(". Cancellations must be made before this time.")}</p>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{allowed ? "Keep it" : "Close"}</AlertDialogCancel>
+          <AlertDialogCancel>{allowed ? tr("Keep it") : tr("Close")}</AlertDialogCancel>
           {allowed && <AlertDialogAction
             variant="destructive"
             disabled={pending}
@@ -367,7 +363,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
               try {
                 await coaching.cancel(b.id);
                 setOpen(false);
-                toast.success("Session cancelled");
+                toast.success(tr("Session cancelled"));
               } catch (e) {
                 toast.error((e as Error).message);
               } finally {
@@ -375,8 +371,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
               }
             }}
           >
-            Cancel the session
-          </AlertDialogAction>}
+            {tr("Cancel the session")}</AlertDialogAction>}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -393,7 +388,7 @@ function ReviewButton({ b }: { b: Booking }) {
     setPending(true);
     try {
       await coaching.review(b.id, rating, comment.trim());
-      toast.success("Thanks for your review");
+      toast.success(tr("Thanks for your review"));
       setOpen(false);
     } catch (e) {
       toast.error((e as Error).message);
@@ -404,32 +399,31 @@ function ReviewButton({ b }: { b: Booking }) {
   return (
     <>
       {b.review ? (
-        <button type="button" onClick={() => setOpen(true)} aria-label="Edit your review" className="rounded-md px-1 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50">
+        <button type="button" onClick={() => setOpen(true)} aria-label={tr("Edit your review")} className="rounded-md px-1 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50">
           <Stars rating={b.review.rating} size={12} figure={false} />
         </button>
       ) : (
         <UiButton size="sm" variant="outline" onClick={() => setOpen(true)} data-action="coaching:review">
           <Star />
-          Review
-        </UiButton>
+          {tr("Review")}</UiButton>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Your session with {b.with.username}</DialogTitle>
-            <DialogDescription>{day(b.startsAt)} · other players read your review on the coach's page.</DialogDescription>
+            <DialogTitle>{tr("Your session with")}{" "}{b.with.username}</DialogTitle>
+            <DialogDescription>{day(b.startsAt)} {" "}{tr("· other players read your review on the coach's page.")}</DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center gap-1" role="radiogroup" aria-label="Rating">
+          <div className="flex justify-center gap-1" role="radiogroup" aria-label={tr("Rating")}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} out of 5`} data-rating={n} onClick={() => setRating(n)} className="rounded-md p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+              <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={tr("{0} out of 5", { 0: n })} data-rating={n} onClick={() => setRating(n)} className="rounded-md p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
                 <Star className={cn("size-8", n <= rating ? "fill-warning text-warning" : "text-muted-foreground/40")} />
               </button>
             ))}
           </div>
-          <Textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} rows={4} placeholder="What helped you most?" aria-label="Comment" className="resize-none" />
+          <Textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} rows={4} placeholder={tr("What helped you most?")} aria-label={tr("Comment")} className="resize-none" />
           <DialogFooter>
             <UiButton disabled={!rating || pending} onClick={save} data-action="coaching:review:save">
-              {pending ? "Saving…" : "Save review"}
+              {pending ? tr("Saving…") : tr("Save review")}
             </UiButton>
           </DialogFooter>
         </DialogContent>

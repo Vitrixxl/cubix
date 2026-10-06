@@ -5,6 +5,8 @@ import { InHead, NUMERIC, type Props, run, usePhone } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 /** A quiet link at the end of a heading row: "View all ›". */
 export function MoreLink({ actions, children, className }: { actions: string[] } & Props) {
@@ -45,13 +47,13 @@ export function Section({
 } & Props) {
   pane = React.useContext(Joined) || pane;
   return (
-    <Card className={cn("gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label={label}>
+    <Card className={cn("gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label={said(label)}>
       <div className="flex min-h-13 shrink-0 items-center gap-3 px-5 pt-2">
-        <h2 className="shrink-0 text-base font-semibold tracking-tight">{title}</h2>
-        {meta != null && <span className="min-w-0 truncate text-sm text-muted-foreground">{meta}</span>}
+        <h2 className="shrink-0 text-base font-semibold tracking-tight">{said(title)}</h2>
+        {meta != null && <span className="min-w-0 truncate text-sm text-muted-foreground">{said(meta)}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           {aside}
-          {open && <MoreLink actions={["profileMode:" + open]}>{more}</MoreLink>}
+          {open && <MoreLink actions={["profileMode:" + open]}>{said(more)}</MoreLink>}
         </div>
       </div>
       <div className={cn("flex min-h-0 flex-col gap-5 px-5 pt-3 pb-5", body)}>{children}</div>
@@ -63,7 +65,7 @@ export function Section({
 export function SubHead({ title, children }: { title: React.ReactNode } & Props) {
   return (
     <div className="flex h-8 items-center gap-2">
-      <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      <h3 className="text-sm font-medium text-muted-foreground">{said(title)}</h3>
       {children && <div className="ml-auto flex items-center">{children}</div>}
     </div>
   );
@@ -89,12 +91,12 @@ export function SubPageHead({ title, meta, children, back = true }: { title: Rea
       <header className="flex min-h-10 shrink-0 items-center gap-x-4">
         <div className="flex min-w-0 items-center gap-2">
           {back && (
-            <Button variant="ghost" size="icon" aria-label="Back to the profile" data-action="profileMode:overview" onClick={run("profileMode:overview")} className="size-8 max-md:size-10">
+            <Button variant="ghost" size="icon" aria-label={tr("Back to the profile")} data-action="profileMode:overview" onClick={run("profileMode:overview")} className="size-8 max-md:size-10">
               <ChevronLeft />
             </Button>
           )}
-          <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
-          {meta != null && <span className="truncate pl-1 text-sm text-muted-foreground">{meta}</span>}
+          <h1 className="truncate text-xl font-semibold tracking-tight">{said(title)}</h1>
+          {meta != null && <span className="truncate pl-1 text-sm text-muted-foreground">{said(meta)}</span>}
         </div>
         {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
       </header>

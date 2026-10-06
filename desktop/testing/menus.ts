@@ -35,7 +35,7 @@ try {
   const context = await browser.newContext({ viewport: { width: width!, height: height! } });
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("page error:", e.message));
-  await page.goto(origin);
+  await page.goto(origin + "/timer");
   await signIn(page, "menus_user");
   await page.waitForSelector(".timer");
   await page.waitForFunction(() => !!document.querySelector(".scramble .alg"), undefined, { timeout: 60000 });

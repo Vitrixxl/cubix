@@ -9,6 +9,8 @@ import { Button, Diagram, NUMERIC, PAGE, PageHead, Surface, type Props, plural, 
 import { Picker, PickerCard } from "./picker";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 type SetupMode = { id: string; label: string; summary: string; detail: string; icon: LucideIcon };
 
@@ -43,10 +45,10 @@ export function TrainingSetup() {
   if (!chosen)
     return (
       <div className={PAGE}>
-        <PageHead title="Training" puzzle sub="Pick a way to practise" />
-        <Picker label="Training modes" tour="training">
+        <PageHead title={tr("Training")} puzzle sub={tr("Pick a way to practise")} />
+        <Picker label={tr("Training modes")} tour="training">
           {modes.map((m) => (
-            <PickerCard key={m.id} action={"setupMode:" + m.id} icon={<m.icon />} title={m.label} detail={m.summary} meta={m.detail} marked={m.id === last} badge={m.id === last ? "Last trained" : undefined} />
+            <PickerCard key={m.id} action={"setupMode:" + m.id} icon={<m.icon />} title={said(m.label)} detail={said(m.summary)} meta={said(m.detail)} marked={m.id === last} badge={m.id === last ? "Last trained" : undefined} />
           ))}
         </Picker>
       </div>
@@ -54,7 +56,7 @@ export function TrainingSetup() {
   const body = chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <ReviewSetup />;
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip="Every way to practise" className="size-8 max-md:size-10" />} title={chosen.label} sub={chosen.detail} puzzle />
+      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip={tr("Every way to practise")} className="size-8 max-md:size-10" />} title={said(chosen.label)} sub={said(chosen.detail)} puzzle />
       {phone && chosen.id === "practice" ? (
         <Surface className="flex-1" key={chosen.id}>
           {body}
@@ -83,8 +85,7 @@ function SetupFoot({ action, disabled = false, children }: { action: string; dis
     <footer className="flex shrink-0 items-center justify-between gap-4 border-t bg-muted/30 px-4 py-3">
       <span className="min-w-0 truncate text-sm text-muted-foreground">{children}</span>
       <Start action={action} disabled={disabled}>
-        Start
-      </Start>
+        {tr("Start")}</Start>
     </footer>
   );
 }
@@ -101,8 +102,8 @@ function Centred({ text, children }: { text: string } & Props) {
 
 function CrossSetup() {
   return (
-    <Centred text="Scrambles whose back block takes exactly the chosen number of moves.">
-      <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label="Moves">
+    <Centred text={tr("Scrambles whose back block takes exactly the chosen number of moves.")}>
+      <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label={tr("Moves")}>
         {CROSS_PLUS_ONE_MOVES.map((n) => (
           <button
             key={n}
@@ -117,11 +118,11 @@ function CrossSetup() {
             )}
           >
             <span className={cn(NUMERIC, "text-4xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
-            <span className="text-xs text-muted-foreground">moves</span>
+            <span className="text-xs text-muted-foreground">{tr("moves")}</span>
           </button>
         ))}
       </div>
-      <Start action="trainingStart:cross1">Start · {s.crossMoves} moves</Start>
+      <Start action="trainingStart:cross1">{tr("Start ·")}{" "}{s.crossMoves} {" "}{tr("moves")}</Start>
     </Centred>
   );
 }
@@ -136,12 +137,12 @@ function ReviewSetup() {
   const pool = stages.filter((st) => s.reviewStages.has(st.stage)).reduce((n, st) => n + st.learned.length, 0);
   return (
     <Picker
-      label="Stages to review"
+      label={tr("Stages to review")}
       foot={
         <div className="flex h-11 shrink-0 items-center justify-center pt-6 md:pt-8 box-content">
           {pool > 0 && (
             <Start action="trainingStart:cases:review">
-              Start · {plural(pool, "case")}
+              {tr("Start ·")}{" "}{plural(pool, "case")}
             </Start>
           )}
         </div>
@@ -152,9 +153,9 @@ function ReviewSetup() {
           key={st.stage}
           action={"reviewStage:" + st.stage}
           icon={<Diagram c={st.learned[0] ?? st.cases[0]} size={32} />}
-          title={st.stage}
+          title={said(st.stage)}
           detail={st.sets.join(", ")}
-          meta={`${st.learned.length} / ${st.cases.length} learned`}
+          meta={tr("{0} / {1} learned", { 0: st.learned.length, 1: st.cases.length })}
           pressed={s.reviewStages.has(st.stage) && st.learned.length > 0}
           disabled={!st.learned.length}
         />
@@ -171,8 +172,8 @@ function CasesSetup() {
   const search = (
     <InputGroup className="w-56 max-md:w-full">
       <InputGroupInput
-        placeholder="Search cases…"
-        aria-label="Search cases"
+        placeholder={tr("Search cases…")}
+        aria-label={tr("Search cases")}
         value={s.query}
         onChange={(e) => {
           s.query = e.target.value;
@@ -187,16 +188,14 @@ function CasesSetup() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 pt-4 md:px-1 md:pt-1">
-        {!phone && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{summary}</span>}
+        {!phone && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{said(summary)}</span>}
         <div className="flex items-center gap-2 max-md:w-full">
           {search}
           <Button action="clear" disabled={!s.selected.size}>
-            Clear
-          </Button>
+            {tr("Clear")}</Button>
           {!phone && (
             <Start action="trainingStart:cases:practice" disabled={!s.selected.size}>
-              Start
-            </Start>
+              {tr("Start")}</Start>
           )}
         </div>
       </header>
@@ -225,7 +224,7 @@ function CasesSetup() {
                   </span>
                 </button>
                 <Button action={"selectSet:" + set.id} size="xs" className="text-muted-foreground">
-                  {count === chosen.length ? "Unselect all" : "Select all"}
+                  {count === chosen.length ? tr("Unselect all") : tr("Select all")}
                 </Button>
               </div>
               {open &&
@@ -282,7 +281,7 @@ function CasesSetup() {
       </div>
       {phone && (
         <SetupFoot action="trainingStart:cases:practice" disabled={!s.selected.size}>
-          {summary}
+          {said(summary)}
         </SetupFoot>
       )}
     </div>

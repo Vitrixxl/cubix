@@ -228,3 +228,8 @@ pub fn migrate(db: &Connection) -> Result<()> {
     }
     result
 }
+
+/// Whether an event of the registry (`333`, `333oh`…) has this id.
+pub fn is_event(id: &str) -> bool {
+    registry()["events"].as_array().is_some_and(|events| events.iter().any(|e| e["id"] == id))
+}

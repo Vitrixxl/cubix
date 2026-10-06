@@ -83,7 +83,7 @@ async function tour(name: string, { desktop }: { desktop: boolean }) {
 }
 
 try {
-  await page.goto(origin); await signIn(page, "introduction_ui", "a-long-test-password", true);
+  await page.goto(origin + "/timer"); await signIn(page, "introduction_ui", "a-long-test-password", true);
   await heading("Welcome to Cubix");
   assert.equal(new URL(page.url()).pathname, "/onboarding");
   for (const name of ["Later", "Close", "Cancel"]) assert.equal(await page.getByRole("button", { name, exact: true }).count(), 0, `no ${name} on a first onboarding`);
@@ -108,6 +108,18 @@ try {
   await fits(SIZES, "known");
   await page.setViewportSize({ width: 360, height: 640 }); await shot("setup-mobile");
   await page.setViewportSize({ width: 1280, height: 800 });
+  // Last, the times of another timer, read on the device: optional.
+  await page.getByRole("button", { name: "Continue", exact: true }).click(); await heading("Bring your times");
+  await fits(SIZES, "import");
+  const csTimer = JSON.stringify({
+    session1: [[[0, 10512], "R U2 F'", "", 1696500000], [[2000, 12345], "D2 B", "pop", 1696500060]],
+    session2: [[[0, 5200], "U R' L", "", 1696600000]],
+    properties: { sessionData: JSON.stringify({ 1: { name: "main", opt: {} }, 2: { name: "pyra", opt: { scrType: "pyrso" } } }) },
+  });
+  await page.locator('input[type="file"]').setInputFiles({ name: "cstimer_20231005_120000.txt", mimeType: "text/plain", buffer: Buffer.from(csTimer) });
+  await page.getByText("3×3 2 · Pyraminx 1", { exact: false }).waitFor();
+  await page.getByRole("button", { name: "Import 3 solves", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "3 solves imported" }).waitFor();
   await page.getByRole("button", { name: "Start the tour", exact: true }).click();
   await page.locator(".journey-setup").waitFor({ state: "detached" });
   await tour("desktop", { desktop: true });
@@ -202,6 +214,7 @@ try {
   await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
   for (const name of ["3×3", "3×3 CFOP", "3×3 Roux", "4×4", "2×2", "5×5", "5×5 Reduction"]) assert.equal(await checked(name), true, `${name} is known`);
   await checkbox("2×2").click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click(); await heading("Bring your times");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.locator(".journey-setup").waitFor({ state: "detached" });
   await page.reload(); await page.locator(".rail").waitFor();

@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { tr } from "../../../src/client/i18n";
+import { said } from "../base";
 
 export function CallView({ id }: { id: string }) {
   useEffect(() => {
@@ -27,10 +29,10 @@ export function CallView({ id }: { id: string }) {
   }, []);
   const now = useMinute();
   const b = coaching.bookings?.find((b) => b.id === id);
-  const head = (sub?: React.ReactNode) => <PageHead lead={<Back to={url("sessions")} label="Every session" />} title={b ? `Session with ${b.with.username}` : "Session"} sub={sub} />;
+  const head = (sub?: React.ReactNode) => <PageHead lead={<Back to={url("sessions")} label={tr("Every session")} />} title={b ? tr("Session with {0}", { 0: b.with.username }) : tr("Session")} sub={sub} />;
   if (!coaching.bookings)
     return (
-      <div className={PAGE} aria-busy="true" aria-label="Loading">
+      <div className={PAGE} aria-busy="true" aria-label={tr("Loading")}>
         {head()}
         <Skeleton className="flex-1 rounded-xl" />
       </div>
@@ -42,15 +44,14 @@ export function CallView({ id }: { id: string }) {
         <div className={cn(PANEL, "flex-1")}>
           <Nothing>
             {!b
-              ? "This session does not exist."
+              ? tr("This session does not exist.")
               : b.status === "cancelled"
-                ? "This session was cancelled."
+                ? tr("This session was cancelled.")
                 : b.startsAt > now
-                  ? `The call opens 15 minutes before the session, ${relative(b.startsAt - 15 * 60_000, now)}.`
-                  : "This session is over."}
+                  ? tr("The call opens 15 minutes before the session, {0}.", { 0: relative(b.startsAt - 15 * 60_000, now) })
+                  : tr("This session is over.")}
             <UiButton variant="outline" onClick={() => go(url("sessions"))}>
-              Every session
-            </UiButton>
+              {tr("Every session")}</UiButton>
           </Nothing>
         </div>
       </div>
@@ -89,13 +90,12 @@ function Room({ b, now }: { b: Booking; now: number }) {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pb-16 text-sm text-neutral-300">
               <Avatar name={b.with.username} src={b.with.avatar} size={72} className={cn(call.phase === "waiting" && "animate-pulse")} />
               <span data-slot="call-status" data-trouble={call.trouble || undefined} className="font-medium text-neutral-100">
-                {status?.title ?? `${b.with.username}'s camera is off`}
+                {status?.title ?? tr("{0}'s camera is off", { 0: b.with.username })}
               </span>
-              {status?.detail && <p className="-mt-1.5 max-w-sm px-6 text-center text-xs text-neutral-400">{status.detail}</p>}
+              {status?.detail && <p className="-mt-1.5 max-w-sm px-6 text-center text-xs text-neutral-400">{said(status.detail)}</p>}
               {status?.retry && (
                 <UiButton variant="outline" size="sm" data-action="call:retry" onClick={() => call.retry()}>
-                  Try again
-                </UiButton>
+                  {tr("Try again")}</UiButton>
               )}
             </div>
           )}
@@ -104,32 +104,32 @@ function Room({ b, now }: { b: Booking; now: number }) {
             <div className="flex min-w-0 flex-col gap-0.5 pl-1" data-slot="call-info">
               <span className="flex items-center gap-1.5 truncate text-sm font-medium">
                 {b.with.username}
-                {call.phase !== "ended" && !call.peerMic && (call.phase === "connected" || call.phase === "connecting") && <MicOff className="size-3.5 text-neutral-300" aria-label="Muted" />}
+                {call.phase !== "ended" && !call.peerMic && (call.phase === "connected" || call.phase === "connecting") && <MicOff className="size-3.5 text-neutral-300" aria-label={tr("Muted")} />}
               </span>
-              <span className="truncate text-xs text-neutral-300">{now < b.endsAt ? `${span(b.startsAt, b.endsAt)} · ends ${relative(b.endsAt, now)}` : `${span(b.startsAt, b.endsAt)} · over`}</span>
+              <span className="truncate text-xs text-neutral-300">{now < b.endsAt ? tr("{0} · ends {1}", { 0: span(b.startsAt, b.endsAt), 1: relative(b.endsAt, now) }) : tr("{0} · over", { 0: span(b.startsAt, b.endsAt) })}</span>
             </div>
             <div className="pointer-events-auto">
-              <Control className="h-9 w-11" onClick={toggleFull} tip={full ? "Leave full screen" : "Full screen"} action="call:fullscreen">
+              <Control className="h-9 w-11" onClick={toggleFull} tip={full ? tr("Leave full screen") : tr("Full screen")} action="call:fullscreen">
                 {full ? <Minimize /> : <Maximize />}
               </Control>
             </div>
           </div>
           {call.phase !== "ended" && <SelfView call={call} />}
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-linear-to-t from-black/70 to-transparent px-3 pt-10 pb-4">
-            {call.notice && call.phase !== "ended" && <p className="text-center text-xs text-neutral-300">{call.notice}</p>}
+            {call.notice && call.phase !== "ended" && <p className="text-center text-xs text-neutral-300">{said(call.notice)}</p>}
             <div className="flex items-center justify-center gap-2" data-slot="call-controls">
-              <Control off={!call.mic} disabled={!call.devices.audio} onClick={() => call.toggleMic()} tip={call.mic ? "Mute" : "Unmute"} action="call:mic">
+              <Control off={!call.mic} disabled={!call.devices.audio} onClick={() => call.toggleMic()} tip={call.mic ? tr("Mute") : tr("Unmute")} action="call:mic">
                 {call.mic ? <Mic /> : <MicOff />}
               </Control>
-              <Control off={!call.camera} disabled={!call.devices.video} onClick={() => call.toggleCamera()} tip={call.camera ? "Turn the camera off" : "Turn the camera on"} action="call:camera">
+              <Control off={!call.camera} disabled={!call.devices.video} onClick={() => call.toggleCamera()} tip={call.camera ? tr("Turn the camera off") : tr("Turn the camera on")} action="call:camera">
                 {call.camera ? <Video /> : <VideoOff />}
               </Control>
               {!phone && (
-                <Control active={call.sharing} onClick={() => void call.toggleScreen()} tip={call.sharing ? "Stop sharing" : "Share your screen"} action="call:screen">
+                <Control active={call.sharing} onClick={() => void call.toggleScreen()} tip={call.sharing ? tr("Stop sharing") : tr("Share your screen")} action="call:screen">
                   <MonitorUp />
                 </Control>
               )}
-              <Control active={chat} onClick={() => setChat(!chat)} tip={chat ? "Hide the chat" : "Show the chat"} action="call:chat">
+              <Control active={chat} onClick={() => setChat(!chat)} tip={chat ? tr("Hide the chat") : tr("Show the chat")} action="call:chat">
                 <MessageSquare />
               </Control>
               {call.phase !== "ended" && (
@@ -140,7 +140,7 @@ function Room({ b, now }: { b: Booking; now: number }) {
                     if ((history.state?.idx ?? 0) > 0) go(-1);
                     else go(url("sessions"));
                   }}
-                  tip="Keep the call in a corner and browse the app"
+                  tip={tr("Keep the call in a corner and browse the app")}
                   action="call:minimize"
                 >
                   <PictureInPicture2 />
@@ -158,13 +158,12 @@ function Room({ b, now }: { b: Booking; now: number }) {
                 }}
               >
                 <PhoneOff />
-                Leave
-              </UiButton>
+                {tr("Leave")}</UiButton>
             </div>
           </div>
         </div>
         {chat && conversation && (
-          <aside className={cn(PANEL, "shrink-0 md:w-80 max-md:h-[45%]")} aria-label="Chat">
+          <aside className={cn(PANEL, "shrink-0 md:w-80 max-md:h-[45%]")} aria-label={tr("Chat")}>
             <Chat conversation={conversation} head={false} />
           </aside>
         )}
@@ -230,7 +229,7 @@ function SelfView({ call }: { call: Call }) {
         className={cn("max-w-[70%] min-w-32", !selfAt.w && "w-[min(30%,14rem)]")}
         frame="overflow-hidden rounded-lg bg-neutral-800 shadow-lg ring-1 ring-white/15"
         data-slot="self-view"
-        title="Drag to move your picture, or its edges to resize it"
+        title={tr("Drag to move your picture, or its edges to resize it")}
       >
         {(at) => (
           <>
@@ -238,7 +237,7 @@ function SelfView({ call }: { call: Call }) {
             {!shown && (
               <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs text-neutral-400">
                 <VideoOff className="size-5" />
-                {call.devices.video ? "Camera off" : "No camera"}
+                {call.devices.video ? tr("Camera off") : tr("No camera")}
               </span>
             )}
             {call.sharing && (
@@ -250,8 +249,7 @@ function SelfView({ call }: { call: Call }) {
                 className={cn("absolute flex h-6 cursor-pointer items-center gap-1 rounded-md bg-black/70 px-1.5 text-xs whitespace-nowrap text-white transition-colors hover:bg-destructive", at.y > 0.5 ? "top-1.5" : "bottom-1.5", at.x > 0.5 ? "left-1.5" : "right-1.5")}
               >
                 <ScreenShareOff className="size-3.5" />
-                Stop sharing
-              </button>
+                {tr("Stop sharing")}</button>
             )}
           </>
         )}
@@ -259,14 +257,13 @@ function SelfView({ call }: { call: Call }) {
       <AlertDialog open={stopping && call.sharing} onOpenChange={setStopping}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Stop sharing your screen?</AlertDialogTitle>
-            <AlertDialogDescription>{call.booking.with.username} sees your camera again.</AlertDialogDescription>
+            <AlertDialogTitle>{tr("Stop sharing your screen?")}</AlertDialogTitle>
+            <AlertDialogDescription>{call.booking.with.username} {" "}{tr("sees your camera again.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep sharing</AlertDialogCancel>
+            <AlertDialogCancel>{tr("Keep sharing")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" data-action="call:stop-sharing-confirm" onClick={() => void call.toggleScreen()}>
-              Stop sharing
-            </AlertDialogAction>
+              {tr("Stop sharing")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -284,7 +281,7 @@ export function Control({ off = false, active = false, disabled, onClick, tip, a
       <UiButton
         variant="outline"
         size="icon-lg"
-        aria-label={tip}
+        aria-label={said(tip)}
         aria-pressed={off || active}
         disabled={disabled}
         onClick={onClick}

@@ -23,6 +23,8 @@ import { CaseDetail, CaseTile, TILES } from "./algorithms";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 export function Learn() {
   const course = s.learning;
@@ -39,23 +41,23 @@ function LearnHome() {
     label = puzzleInfo(puzzle).label;
   return (
     <div className={PAGE}>
-      <PageHead title="Learn" sub="Choose what to learn" puzzle>
+      <PageHead title={tr("Learn")} sub={tr("Choose what to learn")} puzzle>
         {!usePhone() && <PuzzleButton />}
       </PageHead>
-      <Picker label="What to learn" tour="learn">
+      <Picker label={tr("What to learn")} tour="learn">
         <PickerCard
           action="learnMethods"
           icon={<GraduationCap />}
-          title="Methods"
-          detail={`A whole way to solve the ${label}, step by step, with what to know at each step.`}
+          title={tr("Methods")}
+          detail={tr("A whole way to solve the {0}, step by step, with what to know at each step.", { 0: label })}
           meta={plural(rows.length, "method") + (started ? ` · ${started} started` : "")}
           marked={started > 0}
         />
         <PickerCard
           action="nav:algorithms"
           icon={<BookA />}
-          title="Algorithms"
-          detail="Every algorithm set of the puzzle, case by case, to look up and mark as learned."
+          title={tr("Algorithms")}
+          detail={tr("Every algorithm set of the puzzle, case by case, to look up and mark as learned.")}
           meta={plural(s.cases().length, "case")}
         />
       </Picker>
@@ -70,7 +72,7 @@ function LearnHome() {
 function StepMark({ done, current = false, className }: { done: boolean; current?: boolean; className?: string }) {
   const label = done ? "Done" : current ? "Current step" : "To do";
   return (
-    <span className={cn("flex size-5 shrink-0 items-center justify-center", done ? "text-success" : current ? "text-primary" : "text-muted-foreground/50", className)} aria-label={label} role="img">
+    <span className={cn("flex size-5 shrink-0 items-center justify-center", done ? "text-success" : current ? "text-primary" : "text-muted-foreground/50", className)} aria-label={said(label)} role="img">
       {done ? (
         <span className="flex size-3.5 items-center justify-center rounded-full bg-current">
           <Check className="size-2.5 text-background" strokeWidth={3.5} />
@@ -90,7 +92,7 @@ function StepMark({ done, current = false, className }: { done: boolean; current
 function LevelBars({ level }: { level: MethodLevel }) {
   const lit = { beginner: 1, intermediate: 2, advanced: 3 }[level];
   return (
-    <span className="flex h-3.5 items-end gap-[3px]" role="img" aria-label={LEVEL_LABEL[level]}>
+    <span className="flex h-3.5 items-end gap-[3px]" role="img" aria-label={said(LEVEL_LABEL[level])}>
       {["h-1.5", "h-2.5", "h-3.5"].map((height, i) => (
         <span key={height} className={cn("w-[3px] rounded-[1px] bg-current", height, i >= lit && "opacity-25")} />
       ))}
@@ -121,23 +123,23 @@ function Methods() {
   return (
     <div className={PAGE}>
       <PageHead
-        lead={!s.locked && <Button action="learnHome" icon={ChevronLeft} tip="Methods or algorithms" className="size-8 max-md:size-10" />}
-        title="Methods"
-        sub={s.locked ? `Finish a course to open the ${label} everywhere` : `Choose a ${label} method, then follow it step by step`}
+        lead={!s.locked && <Button action="learnHome" icon={ChevronLeft} tip={tr("Methods or algorithms")} className="size-8 max-md:size-10" />}
+        title={tr("Methods")}
+        sub={s.locked ? tr("Finish a course to open the {0} everywhere", { 0: label }) : tr("Choose a {0} method, then follow it step by step", { 0: label })}
         puzzle
       >
         {!usePhone() && <PuzzleButton />}
       </PageHead>
-      <Picker label="Methods" tour={s.locked ? "learn" : undefined}>
+      <Picker label={tr("Methods")} tour={s.locked ? "learn" : undefined}>
         {rows.map((row) => (
           <PickerCard
             key={row.method.id}
             action={"learnMethod:" + row.method.id}
             icon={<LevelBars level={row.method.level} />}
-            title={row.method.name}
+            title={said(row.method.name)}
             badge={row.progress.started ? "In progress" : row.recommended ? "Recommended" : undefined}
             marked={row.recommended || row.progress.started}
-            detail={row.method.summary}
+            detail={said(row.method.summary)}
             meta={`${methodDetail(row)} · ${plural(row.facts.algorithms, "algorithm")}`}
             progress={row.progress.started ? row.progress.done / row.progress.total : undefined}
           />
@@ -187,7 +189,7 @@ export function LearnToggle({ action, learned, touch = false }: { action: string
       variant="outline"
       className={cn("text-muted-foreground aria-pressed:border-success/40 aria-pressed:bg-success/15 aria-pressed:text-success", touch && "h-11 px-3")}
     >
-      {learned ? "Learned" : "Mark learned"}
+      {learned ? tr("Learned") : tr("Mark learned")}
     </ActionToggle>
   );
 }
@@ -201,7 +203,7 @@ function PlayDiagram({ item, items }: { item: Item; items: Item[] }) {
       <button
         type="button"
         data-play={item.key}
-        aria-label={`Play ${item.name} in 3D`}
+        aria-label={tr("Play {0} in 3D", { 0: item.name })}
         onClick={() => s.openAlg(playable.map((i) => i.play!), playable.indexOf(item))}
         className="group/play relative shrink-0 cursor-pointer self-center rounded-md outline-none ring-ring/50 ring-offset-2 ring-offset-background transition-shadow hover:ring-2 focus-visible:ring-2"
       >
@@ -216,8 +218,8 @@ function PlayDiagram({ item, items }: { item: Item; items: Item[] }) {
 function AlgName({ item }: { item: Item }) {
   return (
     <div className="flex min-w-0 items-baseline gap-2">
-      <span className="truncate font-sans text-sm font-medium">{item.name}</span>
-      {item.detail && <span className="truncate text-xs text-muted-foreground">{item.detail}</span>}
+      <span className="truncate font-sans text-sm font-medium">{said(item.name)}</span>
+      {item.detail && <span className="truncate text-xs text-muted-foreground">{said(item.detail)}</span>}
     </div>
   );
 }
@@ -237,7 +239,7 @@ function Alternatives({ item, touch = false }: { item: Item; touch?: boolean }) 
         {open ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
         {plural(item.alternatives.length, "alternative")}
       </button>
-      {open && item.alternatives.map((alt, i) => <Alg key={i} text={alt} size={14} className="text-muted-foreground" />)}
+      {open && item.alternatives.map((alt, i) => <Alg key={i} text={said(alt)} size={14} className="text-muted-foreground" />)}
     </div>
   );
 }
@@ -284,15 +286,15 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
     <>
       {/* Without algorithms, the explanation alone may need the scroll. */}
       <div className={cn("flex max-w-2xl flex-col gap-4", fill && (count.total > 0 ? "shrink-0" : "min-h-0 overflow-y-auto pb-6"))}>
-        <p className="text-[15px] leading-relaxed text-foreground/85">{step.text}</p>
+        <p className="text-[15px] leading-relaxed text-foreground/85">{said(step.text)}</p>
         {!!step.tips?.length && (
-          <section className="flex flex-col gap-1.5" aria-label="Tips">
-            <h3 className={LABEL}>Tips</h3>
+          <section className="flex flex-col gap-1.5" aria-label={tr("Tips")}>
+            <h3 className={LABEL}>{tr("Tips")}</h3>
             <ul className="flex flex-col gap-1.5">
               {step.tips.map((tip) => (
                 <li key={tip} className="flex gap-2.5 text-sm text-muted-foreground">
                   <span className="mt-2 size-1 shrink-0 rounded-full bg-muted-foreground/60" aria-hidden="true" />
-                  {tip}
+                  {said(tip)}
                 </li>
               ))}
             </ul>
@@ -301,15 +303,15 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
         {step.missing && (
           <p className="flex gap-2 text-sm text-muted-foreground">
             <Info className="mt-0.5 size-4 shrink-0" />
-            {step.missing}
+            {said(step.missing)}
           </p>
         )}
       </div>
       {count.total > 0 && (
-        <section className={cn("flex max-w-4xl flex-col", fill && "min-h-0 flex-1")} aria-label="Algorithms">
+        <section className={cn("flex max-w-4xl flex-col", fill && "min-h-0 flex-1")} aria-label={tr("Algorithms")}>
           <div className="flex min-h-8 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 pb-1">
             <h3 className={LABEL}>
-              Algorithms <span className="font-normal">{count.learned} / {count.total} learned</span>
+              {tr("Algorithms")}{" "}<span className="font-normal">{count.learned} / {count.total} {" "}{tr("learned")}</span>
             </h3>
             <button
               type="button"
@@ -318,12 +320,11 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
               className={cn("-mx-1 flex items-center gap-1 rounded-md px-1 text-xs text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50", touch && "min-h-9")}
             >
               <BookA className="size-3.5" />
-              Notation
-            </button>
+              {tr("Notation")}</button>
             {sets.length > 1 && (
               <Choice
                 prefix="learnSet:"
-                label="Set"
+                label={tr("Set")}
                 value={chosen.id}
                 options={sets.map((set) => ({ id: set.id, label: set.label, count: set.count }))}
                 className="flex-wrap"
@@ -385,10 +386,10 @@ function StepRows({ method, entry, touch = false, onPick, onJump }: { method: So
         <StepMark done={entry.done.includes(stepId(st))} current={here} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className={cn("truncate font-medium", touch ? "text-[15px]" : "text-sm")}>
-            <span className="text-muted-foreground">{i + 1}</span> {st.title}
+            <span className="text-muted-foreground">{i + 1}</span> {said(st.title)}
           </span>
           <span className="truncate text-xs text-muted-foreground">
-            {learned.total ? `${learned.learned} / ${plural(learned.total, "alg")} learned` : st.missing ? "Algorithms to come" : "Intuitive"}
+            {learned.total ? tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") }) : st.missing ? tr("Algorithms to come") : tr("Intuitive")}
           </span>
         </span>
       </button>
@@ -397,7 +398,7 @@ function StepRows({ method, entry, touch = false, onPick, onJump }: { method: So
 }
 
 /** Step titles as a sentence: "Cross, F2L and OLL". */
-const names = (steps: MethodStep[]) => (steps.length > 1 ? `${steps.slice(0, -1).map((st) => st.title).join(", ")} and ${steps.at(-1)!.title}` : (steps[0]?.title ?? ""));
+const names = (steps: MethodStep[]) => (steps.length > 1 ? tr("{0} and {1}", { 0: steps.slice(0, -1).map((st) => tr(st.title)).join(", "), 1: tr(steps.at(-1)!.title) }) : tr(steps[0]?.title ?? ""));
 
 /** Asked before showing a step whose earlier steps are not all done: were they finished? Either way the step opens. */
 function JumpDialog({ method, entry, step, onClose }: { method: SolvingMethod; entry: CourseEntry; step: number | null; onClose: () => void }) {
@@ -412,19 +413,18 @@ function JumpDialog({ method, entry, step, onClose }: { method: SolvingMethod; e
     <AlertDialog open={open} onOpenChange={(next) => !next && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Have you finished the steps before?</AlertDialogTitle>
+          <AlertDialogTitle>{tr("Have you finished the steps before?")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {names(left)} {left.length === 1 ? "is" : "are"} not marked done yet. Mark {left.length === 1 ? "it" : "them"} done, or just open{" "}
-            {target?.title}.
+            {left.length === 1
+              ? tr("{0} is not marked done yet. Mark it done, or just open {1}.", { 0: names(left), 1: tr(target?.title ?? "") })
+              : tr("{0} are not marked done yet. Mark them done, or just open {1}.", { 0: names(left), 1: tr(target?.title ?? "") })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={go("open")} data-action="learnJump:open">
-            No, just open it
-          </AlertDialogCancel>
+            {tr("No, just open it")}</AlertDialogCancel>
           <AlertDialogAction onClick={go("done")} data-action="learnJump:done">
-            Yes, mark them done
-          </AlertDialogAction>
+            {tr("Yes, mark them done")}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -437,15 +437,13 @@ function StepNav({ method, entry }: { method: SolvingMethod; entry: CourseEntry 
     next = method.steps[entry.step + 1];
   return (
     <div className="flex shrink-0 items-center gap-2" data-no-timer>
-      <Button action="previous" icon={ChevronLeft} variant="outline" size="lg" tip="Previous step" disabled={entry.step === 0} label="Previous step" className="size-10" />
+      <Button action="previous" icon={ChevronLeft} variant="outline" size="lg" tip={tr("Previous step")} disabled={entry.step === 0} label={tr("Previous step")} className="size-10" />
       {last ? (
         <Button action="learnFinish" icon={Flag} variant="default" size="lg" className="px-4">
-          Finish
-        </Button>
+          {tr("Finish")}</Button>
       ) : (
-        <Button action="learnNext" variant="default" size="lg" tip={`Done · next: ${next!.title}`} className="px-4">
-          Next step
-          <ChevronRight />
+        <Button action="learnNext" variant="default" size="lg" tip={tr("Done · next: {0}", { 0: next!.title })} className="px-4">
+          {tr("Next step")}<ChevronRight />
         </Button>
       )}
     </div>
@@ -462,22 +460,20 @@ function StepFooter({ method, entry, train, touch = true }: { method: SolvingMet
   return (
     <footer className={cn("flex shrink-0 items-center gap-2", touch ? "border-t bg-muted/30 px-2 py-2" : "border-t px-1 pt-3")} data-no-timer>
       <Button action="previous" icon={ChevronLeft} variant="ghost" size={touch ? "lg" : "default"} disabled={entry.step === 0} className={cn("text-muted-foreground", touch && "h-11")}>
-        Previous
-      </Button>
-      {touch && train && <Button action={train} icon={Timer} variant="ghost" size="lg" className="h-11 text-muted-foreground">Train</Button>}
+        {tr("Previous")}</Button>
+      {touch && train && <Button action={train} icon={Timer} variant="ghost" size="lg" className="h-11 text-muted-foreground">{tr("Train")}</Button>}
       {last ? (
         <Button action="learnFinish" icon={Flag} variant="default" size="lg" className={cn("ml-auto px-4", touch && "h-12 flex-1")}>
-          Finish
-        </Button>
+          {tr("Finish")}</Button>
       ) : touch ? (
         <Button action="learnNext" variant="default" size="lg" className="ml-auto h-12 min-w-0 flex-1 justify-between gap-2 px-3 text-left">
-          <span className="truncate">Next · {next!.title}</span>
+          <span className="truncate">{tr("Next ·")}{" "}{said(next!.title)}</span>
           <ChevronRight />
         </Button>
       ) : (
         <Button action="learnNext" variant="default" size="lg" className="ml-auto max-w-[min(100%,28rem)] min-w-0 px-4">
-          <span className="opacity-75">Next ·</span>
-          <span className="truncate">{next!.title}</span>
+          <span className="opacity-75">{tr("Next ·")}</span>
+          <span className="truncate">{said(next!.title)}</span>
           <ChevronRight />
         </Button>
       )}
@@ -498,24 +494,21 @@ function Finished({ puzzle, method, touch = false }: { puzzle: PuzzleId; method:
       </span>
       <div className="flex flex-col gap-2">
         <span className={LABEL}>
-          {puzzleInfo(puzzle).label} · {LEVEL_LABEL[method.level]}
+          {said(puzzleInfo(puzzle).label)} · {said(LEVEL_LABEL[method.level])}
         </span>
-        <h2 className="text-2xl font-semibold tracking-tight">{method.name} done</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">{said(method.name)} {" "}{tr("done")}</h2>
         <p className="text-[15px] leading-relaxed text-muted-foreground">
-          You have been through every step of {method.name}. Solve with it on the timer until it flows, then try a faster method.
-        </p>
+          {tr("You have been through every step of")}{" "}{said(method.name)}{tr(". Solve with it on the timer until it flows, then try a faster method.")}</p>
       </div>
       <div className="flex gap-10">
-        <Figure label="Steps" value={`${method.steps.length} / ${method.steps.length}`} size="2xl" tone="good" />
-        {total > 0 && <Figure label="Algorithms learned" value={`${learned} / ${total}`} size="2xl" />}
+        <Figure label={tr("Steps")} value={`${method.steps.length} / ${method.steps.length}`} size="2xl" tone="good" />
+        {total > 0 && <Figure label={tr("Algorithms learned")} value={`${learned} / ${total}`} size="2xl" />}
       </div>
       <div className={cn("flex gap-2", touch ? "flex-col" : "flex-wrap")}>
         <Button action="nav:playground" icon={Timer} variant="default" size="lg" className={cn("px-4", touch && "h-11")}>
-          Practise with the timer
-        </Button>
+          {tr("Practise with the timer")}</Button>
         <Button action="learnMethods" icon={GraduationCap} variant="outline" size="lg" className={cn("px-4", touch && "h-11")}>
-          Learn another method
-        </Button>
+          {tr("Learn another method")}</Button>
       </div>
     </div>
   );
@@ -547,7 +540,7 @@ export function CaseDialog() {
           void s.action("caseStep:" + (e.key === "ArrowLeft" ? "previous" : "next"));
         }}
       >
-        <DialogTitle className="sr-only">{s.caseDialog}</DialogTitle>
+        <DialogTitle className="sr-only">{said(s.caseDialog)}</DialogTitle>
         {open && <CaseDetail key={s.caseDialog} id={s.caseDialog} dialog />}
       </DialogContent>
     </Dialog>
@@ -562,16 +555,16 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
   return (
     <div className={PAGE}>
       <PageHead
-        lead={<Button action="learnMethods" icon={ChevronLeft} tip="Every method" className="size-8 max-md:size-10" />}
-        title={method.name}
-        sub={`${puzzleInfo(puzzle).label} · ${LEVEL_LABEL[method.level]} · ${progress.done} of ${progress.total} steps done`}
+        lead={<Button action="learnMethods" icon={ChevronLeft} tip={tr("Every method")} className="size-8 max-md:size-10" />}
+        title={said(method.name)}
+        sub={tr("{0} · {1} · {2} of {3} steps done", { 0: puzzleInfo(puzzle).label, 1: LEVEL_LABEL[method.level], 2: progress.done, 3: progress.total })}
       />
       <div className="flex min-h-0 flex-1 items-start gap-6 xl:gap-8">
         {/* The box holds its steps and no more; long methods scroll within the page's height. */}
-        <nav aria-label="Steps" className="flex max-h-full w-72 shrink-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-2 pt-3">
+        <nav aria-label={tr("Steps")} className="flex max-h-full w-72 shrink-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-2 pt-3">
           <div className="flex flex-col gap-2 px-2.5">
             <div className="flex items-baseline justify-between">
-              <span className={LABEL}>Steps</span>
+              <span className={LABEL}>{tr("Steps")}</span>
               <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                 {progress.done} / {progress.total}
               </span>
@@ -592,15 +585,14 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
             <div className="flex min-h-0 flex-1 flex-col gap-6 px-2 pt-1">
               <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <div className="flex min-w-0 flex-1 items-baseline gap-3">
-                  <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{step.title}</h2>
+                  <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{said(step.title)}</h2>
                   <span className={cn(LABEL, "shrink-0")}>
                     {entry.step + 1} / {method.steps.length}
                   </span>
                 </div>
                 {train && (
                   <Button action={train} icon={Timer} variant="outline" size="lg">
-                    Train this step
-                  </Button>
+                    {tr("Train this step")}</Button>
                 )}
                 <StepNav method={method} entry={entry} />
               </header>
@@ -627,9 +619,9 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
   return (
     <div className={PAGE}>
       <PageHead
-        lead={<Button action="learnMethods" icon={ChevronLeft} tip="Every method" className="size-8 max-md:size-10" />}
-        title={method.name}
-        sub={`${puzzleInfo(puzzle).label} · ${progress.done} of ${progress.total} steps done`}
+        lead={<Button action="learnMethods" icon={ChevronLeft} tip={tr("Every method")} className="size-8 max-md:size-10" />}
+        title={said(method.name)}
+        sub={tr("{0} · {1} of {2} steps done", { 0: puzzleInfo(puzzle).label, 1: progress.done, 2: progress.total })}
       />
       <Surface className="flex-1">
         <button
@@ -641,7 +633,7 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
         >
           <StepMark done={s.learnFinished || done} current={!s.learnFinished && !done} />
           <span className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span className="truncate text-[15px] font-medium">{s.learnFinished ? `${method.name} done` : step.title}</span>
+            <span className="truncate text-[15px] font-medium">{s.learnFinished ? tr("{0} done", { 0: method.name }) : step.title}</span>
             <span className="shrink-0 text-xs text-muted-foreground">{s.learnFinished ? method.steps.length : entry.step + 1} / {method.steps.length}</span>
           </span>
           <ChevronsUpDown className="size-4 text-muted-foreground" />
@@ -657,7 +649,7 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
           </>
         )}
       </Surface>
-      <PhoneSheet open={steps} onOpenChange={setSteps} title="Steps" description={`${progress.done} of ${progress.total} done`} className="gap-0 px-2">
+      <PhoneSheet open={steps} onOpenChange={setSteps} title={tr("Steps")} description={tr("{0} of {1} done", { 0: progress.done, 1: progress.total })} className="gap-0 px-2">
         <StepRows method={method} entry={entry} touch onPick={() => setSteps(false)} onJump={setJump} />
       </PhoneSheet>
       <JumpDialog method={method} entry={entry} step={jump} onClose={() => setJump(null)} />

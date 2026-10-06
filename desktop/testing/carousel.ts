@@ -30,7 +30,7 @@ try {
   for (const [width, height] of [[1280, 800], [390, 844]] as const) {
     const page = await (await browser.newContext({ viewport: { width, height }, serviceWorkers: "block" })).newPage();
     page.on("pageerror", e => errors.push(e.message));
-    await page.goto(origin);
+    await page.goto(origin + "/timer");
     await signIn(page, "carousel_ui");
     await page.goto(origin + "/timer");
     await page.waitForSelector(".rail, .tabbar");

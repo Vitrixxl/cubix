@@ -28,7 +28,7 @@ async function open(width = 1440, height = 900) {
   await context.grantPermissions(["camera", "microphone"], { origin });
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.stack ?? e.message));
-  await page.goto(origin);
+  await page.goto(origin + "/timer");
   return page;
 }
 const settle = (page: Page) => page.waitForSelector("[data-exiting]", { state: "detached" });

@@ -133,6 +133,16 @@ export const rotate = ([w, x, y, z]: Quaternion, v: readonly number[]): number[]
 export const isSolved = (state: CubeState) =>
   FACES.every((_, f) => Array.from({ length: 9 }, (_, i) => faceOfSlot(state[f * 9 + i]!)).every((face, _, all) => face === all[0]));
 
+/**
+ * The penalty of a solve stopped on this state (WCA 10e): none when solved, +2 when one face turn away from solved,
+ * DNF otherwise.
+ */
+export function stopPenalty(state: CubeState): "none" | "+2" | "dnf" {
+  if (isSolved(state)) return "none";
+  const oneTurn = FACES.some((face) => ["", "2", "'"].some((suffix) => isSolved(applyMove(state, parseMove(face + suffix)!))));
+  return oneTurn ? "+2" : "dnf";
+}
+
 export type SmartCubeStatus = "off" | "connecting" | "on";
 export interface SmartCubeSnapshot {
   status: SmartCubeStatus;

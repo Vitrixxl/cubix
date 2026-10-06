@@ -10,6 +10,7 @@
  */
 import { applyAlg, applyMove, compensateAuf, expandAlg, FACES, faceOfSlot, movePermutation, parseAlg, parseMove, slotsFor, solved, type CubeState, type Face } from "../../shared/cube";
 import { canonicalTurn, heldTurn, rotate, type Quaternion } from "./smartCube";
+import { msg } from "../i18n/msg";
 
 export interface RecordedSolve {
   /** The scrambled cube, before the first turn. */
@@ -127,7 +128,7 @@ export function faceMap(frame: readonly string[]): Record<Face, Face> {
 const moved = (p: readonly number[], frame: readonly string[]) =>
   SLOTS[frame.reduce((slot, token) => movePermutation(parseMove(token)!)[slot]!, PIECES.get(key(p))![0]!)]!.p;
 /** The rotation that puts each face on the bottom. */
-const DOWN: Record<Face, string[]> = { D: [], U: ["x2"], F: ["x'"], B: ["x"], R: ["z"], L: ["z'"] };
+export const DOWN: Record<Face, string[]> = { D: [], U: ["x2"], F: ["x'"], B: ["x"], R: ["z"], L: ["z'"] };
 
 /** Quarter turns of a face turn, 1 to 3. */
 const quarters = (turn: string) => (/2'?$/.test(turn) ? 2 : turn.endsWith("'") ? 3 : 1);
@@ -461,7 +462,7 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
     const from = k ? ends[k - 1]! : 0,
       to = ends[k]!,
       // A cross made with pairs already in place: XCross, XXCross…
-      label = id === "cross" ? "X".repeat(pairsDone(seen[to]!).length) + "Cross" : id.startsWith("f2l") ? `F2L ${id.slice(3)}` : id.toUpperCase(),
+      label = id === "cross" ? "X".repeat(pairsDone(seen[to]!).length) + msg("Cross") : id.startsWith("f2l") ? `F2L ${id.slice(3)}` : id.toUpperCase(),
       { part, state, c, check, suggest } = segment(label, from, to, k === 0),
       phase: Phase = { ...part, id };
     const finish = () => Object.assign(phase, part, { id, label: phase.label });
@@ -496,8 +497,8 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
         const mid = edgesOriented(c) ? -1 : pause(from, to, (x) => f2lDone(x) && edgesOriented(x) && !topDone(x));
         if (mid > 0) {
           phase.label = "2-look OLL";
-          const edges = segment("Edges", from, mid),
-            corners = segment("Corners", mid, to);
+          const edges = segment(msg("Edges"), from, mid),
+            corners = segment(msg("Corners"), mid, to);
           edges.suggest(known.eo.get(eoKey(edges.c)), "", (x) => f2lDone(x) && edgesOriented(x));
           corners.suggest(known.co.get(ollKey(corners.c)) ?? known.oll.get(ollKey(corners.c)), "", ollDone);
           phase.looks = [edges.part, corners.part];
@@ -509,8 +510,8 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
       const mid = cornersPermuted(c) ? -1 : pause(from, to, (x, i) => ollDone(x) && cornersPermuted(x) && !allDone(x) && !topAway(i));
       if (mid > 0) {
         phase.label = "2-look PLL";
-        const corners = segment("Corners", from, mid),
-          edges = segment("Edges", mid, to);
+        const corners = segment(msg("Corners"), from, mid),
+          edges = segment(msg("Edges"), mid, to);
         corners.suggest(known.cp.get(cpKey(corners.c)), "", (x) => ollDone(x) && cornersPermuted(x));
         edges.suggest(known.ep.get(pllKey(edges.c)) ?? known.pll.get(pllKey(edges.c)), "", allDone, true);
         phase.looks = [corners.part, edges.part];

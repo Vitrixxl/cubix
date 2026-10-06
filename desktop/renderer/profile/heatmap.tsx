@@ -3,13 +3,15 @@ import { useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Joined } from "./card";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
-import { fmtTime, best, bestAverage, plural, shortDate } from "../../../src/client/lib/format";
+import { fmtTime, best, bestAverage, shortDate } from "../../../src/client/lib/format";
 import { HEAT_LEVELS, heatDays, heatmap, heatYears, type ActivitySolve, type HeatCell, type HeatDay } from "../../../src/client/lib/profile";
-import { NUMERIC } from "../ui";
+import { NUMERIC, plural } from "../ui";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { tr, locale } from "../../../src/client/i18n";
+import { said } from "../base";
 
 const GAP = 3,
   LABEL = 30;
@@ -47,21 +49,20 @@ export function Heatmap({ solves, latest, phone, pane = false, className }: { so
     if (phone && scroller.current) scroller.current.scrollLeft = scroller.current.scrollWidth;
   }, [phone, year, weeks]);
   return (
-    <Card className={cn("shrink-0 gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label="Activity">
+    <Card className={cn("shrink-0 gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label={tr("Activity")}>
       <div className="flex min-h-13 items-center gap-3 px-5 pt-2">
         <h2 className="text-base font-semibold tracking-tight">
-          {plural(total, "solve")} {phone ? "" : year == null ? "in the last year" : `in ${year}`}
+          {plural(total, "solve")} {phone ? "" : year == null ? tr("in the last year") : tr("in {0}", { 0: year })}
         </h2>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="sm" data-action="menu:heatmapYear" className="-mr-2 ml-auto gap-1 text-muted-foreground" />}>
-            {year ?? "Last 12 months"}
+            {year ?? tr("Last 12 months")}
             <ChevronDown />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-auto min-w-40">
             <DropdownMenuRadioGroup value={String(year)} onValueChange={(v: string) => setYear(v === "null" ? null : Number(v))}>
               <DropdownMenuRadioItem value="null" closeOnClick>
-                Last 12 months
-              </DropdownMenuRadioItem>
+                {tr("Last 12 months")}</DropdownMenuRadioItem>
               {years.map((y) => (
                 <DropdownMenuRadioItem key={y} value={String(y)} closeOnClick>
                   {y}
@@ -78,7 +79,7 @@ export function Heatmap({ solves, latest, phone, pane = false, className }: { so
             <span className="invisible pb-1 text-xs leading-none">M</span>
             {["Mon", "", "Wed", "", "Fri", "", ""].map((d, i) => (
               <span key={i} className="self-center text-xs leading-none text-muted-foreground">
-                {d}
+                {said(d)}
               </span>
             ))}
           </div>
@@ -93,7 +94,7 @@ export function Heatmap({ solves, latest, phone, pane = false, className }: { so
               {/* A month starting in the last weeks would stick out past the grid. */}
               {months.filter((m) => phone || m.week < weeks - 2).map((m) => (
                 <span key={m.week} className="pb-1 text-xs leading-none whitespace-nowrap text-muted-foreground" style={{ gridRow: 1, gridColumn: m.week + 1 }}>
-                  {m.label}
+                  {said(m.label)}
                 </span>
               ))}
               {cells.map((c, i) =>
@@ -111,14 +112,12 @@ export function Heatmap({ solves, latest, phone, pane = false, className }: { so
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between gap-4 text-xs text-muted-foreground" style={phone ? undefined : { width: Math.min(gridWidth, width), marginInline: "auto" }}>
-          <span className="truncate">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</span>
+          <span className="truncate">{latest ? tr("Last practice {0}", { 0: shortDate(latest) }) : tr("No practice yet")}</span>
           <span className="flex shrink-0 items-center gap-1">
-            Less
-            {HEAT_LEVELS.map((c) => (
+            {tr("Less")}{HEAT_LEVELS.map((c) => (
               <span key={c} className={cn("size-2.5 rounded-[2px]", c)} />
             ))}
-            More
-          </span>
+            {tr("More")}</span>
         </div>
       </div>
       {hover && <HeatTip hover={hover} day={days.get(hover.cell.key)} />}
@@ -141,13 +140,13 @@ function HeatTip({ hover, day }: { hover: Hover; day: HeatDay | undefined }) {
       style={{ left: rect.left + (edge === "start" ? 0 : edge === "end" ? rect.width : rect.width / 2), top: rect.top - 6 }}
     >
       <span>
-        <strong className="font-medium">{cell.count ? plural(cell.count, "solve") : "No solves"}</strong> on{" "}
-        {cell.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+        <strong className="font-medium">{cell.count ? plural(cell.count, "solve") : tr("No solves")}</strong> {" "}{tr("on")}{" "}
+        {cell.date.toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "short" })}
       </span>
       {times.some((t) => t != null) && (
         <span className={cn(NUMERIC, "text-background/70")}>
-          Best {fmtTime(best(times))}
-          {times.length >= 5 && ` · Ao5 ${fmtTime(bestAverage(times, 5))}`}
+          {tr("Best")}{" "}{fmtTime(best(times))}
+          {times.length >= 5 && tr(" · Ao5 {0}", { 0: fmtTime(bestAverage(times, 5)) })}
         </span>
       )}
     </div>,

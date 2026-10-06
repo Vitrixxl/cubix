@@ -43,6 +43,8 @@ impl Db {
         }
         // Free-text notes on a solve arrived after the first accounts.
         add_column_if_missing(&db, "solves", "comment", "TEXT")?;
+        // The turns of a solve, as a smart cube records them, arrived with smart cubes.
+        add_column_if_missing(&db, "solves", "solution", "TEXT")?;
         // One day's extra hours or hours taken back arrived after the weekly hours.
         add_column_if_missing(&db, "coaches", "overrides", "TEXT NOT NULL DEFAULT '[]'")?;
         // Coaches may keep to the students they have; accounts may show a picture.

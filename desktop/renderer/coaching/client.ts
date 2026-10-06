@@ -8,6 +8,8 @@ import { store as s } from "../store";
 import { call } from "../bridge";
 import { go } from "../navigation";
 import { CANCELLATION_POLICY } from "./policy";
+import { community } from "../community/client";
+import { tr, locale } from "../../../src/client/i18n";
 
 export interface Coach {
   id: string;
@@ -227,9 +229,9 @@ export class CoachingError extends Error {
 /** The call opens a quarter of an hour before the session and stays open half an hour after it. */
 export const callOpen = (b: Booking, now = Date.now()) => b.status === "booked" && now >= b.startsAt - 15 * 60_000 && now <= b.endsAt + 30 * 60_000;
 /** An amount in euros: "€25", "€12.50". */
-export const euros = (cents: number) => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "EUR", minimumFractionDigits: cents % 100 ? 2 : 0 });
+export const euros = (cents: number) => (cents / 100).toLocaleString(locale(), { style: "currency", currency: "EUR", minimumFractionDigits: cents % 100 ? 2 : 0 });
 /** The price of a session, "Free" when there is none. */
-export const price = (cents: number) => (cents ? euros(cents) : "Free");
+export const price = (cents: number) => (cents ? euros(cents) : tr("Free"));
 
 class Coaching {
   /** The account this state belongs to; null while signed out. */
@@ -306,7 +308,7 @@ class Coaching {
       throw new CoachingError(0, "The server cannot be reached.");
     }
     const value = await response.json().catch(() => null);
-    if (!response.ok) throw new CoachingError(response.status, typeof value?.error === "string" ? value.error : `The server answered ${response.status}.`);
+    if (!response.ok) throw new CoachingError(response.status, tr(typeof value?.error === "string" ? value.error : "The server answered {0}.", { 0: response.status }));
     return value as T;
   }
 
@@ -365,7 +367,7 @@ class Coaching {
       throw new CoachingError(0, "The server cannot be reached.");
     });
     const value = await response.json().catch(() => null);
-    if (!response.ok) throw new CoachingError(response.status, typeof value?.error === "string" ? value.error : `The server answered ${response.status}.`);
+    if (!response.ok) throw new CoachingError(response.status, tr(typeof value?.error === "string" ? value.error : "The server answered {0}.", { 0: response.status }));
     if (this.me?.coach) this.me = { ...this.me, coach: { ...this.me.coach, avatar: value.avatar } };
     this.profiles.clear();
     this.coaches = undefined;
@@ -439,7 +441,7 @@ class Coaching {
       throw new CoachingError(0, "The server cannot be reached.");
     }
     const value = await response.json().catch(() => null);
-    if (!response.ok) throw new CoachingError(response.status, typeof value?.error === "string" ? value.error : `The server answered ${response.status}.`);
+    if (!response.ok) throw new CoachingError(response.status, tr(typeof value?.error === "string" ? value.error : "The server answered {0}.", { 0: response.status }));
     this.received(conversation, value as Message);
   }
   /** A picture or a video of a conversation as a local URL: only its two parties may fetch it, with their token. */
@@ -449,7 +451,7 @@ class Coaching {
       url = call("apiToken")
         .then((token) => fetch(`${location.origin}/api/coaching/media/${id}`, { headers: { authorization: "Bearer " + token } }))
         .then(async (response) => {
-          if (!response.ok) throw new CoachingError(response.status, "This picture or video is unavailable.");
+          if (!response.ok) throw new CoachingError(response.status, tr("This picture or video is unavailable."));
           return URL.createObjectURL(await response.blob());
         });
       url.catch(() => this.media.delete(id));
@@ -497,10 +499,10 @@ class Coaching {
       if (this.me) this.me = { ...this.me, unread: this.me.unread + 1 };
       if (this.dashboard) this.dashboard = { ...this.dashboard, students: this.dashboard.students.map((st) => (st.conversationId === conversation ? { ...st, unread: st.unread + 1 } : st)) };
       const text = gist(message.body, message.media?.type);
-      toast(from ?? "New message", {
+      toast(from ?? tr("New message"), {
         id: "coaching-message-" + conversation,
         description: text.length > 120 ? text.slice(0, 120) + "…" : text,
-        action: { label: "Open", onClick: () => go("/coaching/messages/" + conversation) },
+        action: { label: tr("Open"), onClick: () => go("/coaching/messages/" + conversation) },
       });
     }
     if (!mine && shown) this.read(conversation);
@@ -555,7 +557,12 @@ class Coaching {
         if (this.conversations) void this.load("conversations");
         if (this.dashboard) void this.load("dashboard");
         this.callListener?.({ type: "ready" });
+        community.reconnected();
         s.emit();
+        break;
+      // The community's events share this socket (community/client.ts).
+      case "social":
+        community.event(event);
         break;
       case "message":
         this.received(event.conversation, event.message, event.from);
@@ -573,10 +580,10 @@ class Coaching {
         if (event.inCall) {
           this.waiting.add(event.booking);
           if (this.inCall !== event.booking && !location.pathname.startsWith("/coaching/call/"))
-            toast(`${event.user} is waiting in your session`, {
+            toast(tr("{0} is waiting in your session", { 0: event.user }), {
               id: "coaching-call-" + event.booking,
               duration: 30_000,
-              action: { label: "Join", onClick: () => go("/coaching/call/" + event.booking) },
+              action: { label: tr("Join"), onClick: () => go("/coaching/call/" + event.booking) },
             });
         } else this.waiting.delete(event.booking);
         s.emit();

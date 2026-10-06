@@ -17,6 +17,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 const ROUND_LIST = [...Array(ROUNDS).keys()];
 
@@ -100,30 +102,30 @@ function Lobby() {
   }, [searching]);
   return (
     <div className={cn(PAGE, "duel-lobby")}>
-      <PageHead title="Duel" puzzle />
+      <PageHead title={tr("Duel")} puzzle />
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center pb-[6vh] max-md:justify-end max-md:pb-0">
         <Surface className="w-full max-w-lg" data-tour="duel">
           <div className="flex flex-col items-center gap-3 px-6 pt-8 pb-7 text-center">
             <span className={cn("flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground", searching && "animate-pulse bg-primary/15 text-primary")}>
               <Swords className="size-6" />
             </span>
-            <h2 className="text-2xl font-semibold tracking-tight">{searching ? "Looking for an opponent" : "Race an Ao5"}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">{searching ? tr("Looking for an opponent") : tr("Race an Ao5")}</h2>
             <p className={cn("max-w-sm text-sm", duel.notice ? "text-destructive" : "text-muted-foreground")}>
-              {duel.notice || `The same five ${s.event().label} scrambles for both of you, against a player near your level.`}
+              {duel.notice || tr("The same five {0} scrambles for both of you, against a player near your level.", { 0: s.event().label })}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-4 border-y bg-muted/30 px-6 py-4">
             <Figure
-              label="Your level"
+              label={tr("Your level")}
               size="2xl"
               value={duel.level === undefined ? <Skeleton className="h-6 w-20" /> : duel.level === null ? "New" : fmtTime(duel.level)}
             />
-            <Figure label="Searching" size="2xl" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
-            <Figure label="Also searching" size="2xl" value={searching ? String(duel.searching) : "–"} />
+            <Figure label={tr("Searching")} size="2xl" value={searching ? clock(Date.now() - duel.searchSince) : "–"} />
+            <Figure label={tr("Also searching")} size="2xl" value={searching ? String(duel.searching) : "–"} />
           </div>
           <div className="p-5">
             <Button action={searching ? "duel:leave" : "duel:search"} variant={searching ? "outline" : "default"} size="lg" icon={searching ? X : Swords} className="h-10 w-full">
-              {searching ? "Cancel" : "Find an opponent"}
+              {searching ? tr("Cancel") : tr("Find an opponent")}
             </Button>
           </div>
         </Surface>
@@ -134,7 +136,7 @@ function Lobby() {
 
 /** One side of the race: the player, the level, what they are doing, and the digits (`rest` at rest, running from
  * `startedAt`). */
-function Side({ name, level, tag, rest, startedAt, phase, hint, mine, className, ...handlers }: {
+export function Side({ name, level, tag, rest, startedAt, phase, hint, mine, className, ...handlers }: {
   name?: string;
   level?: number | null;
   tag: string;
@@ -150,10 +152,10 @@ function Side({ name, level, tag, rest, startedAt, phase, hint, mine, className,
       <header className={cn("flex items-center gap-2 text-sm", FADE)}>
         <strong className="font-medium">{name}</strong>
         {level ? <span className={cn(NUMERIC, "text-muted-foreground")}>{fmtTime(level)}</span> : null}
-        <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium", mine ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>{tag}</span>
+        <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium", mine ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}>{said(tag)}</span>
       </header>
-      <LiveDigits text={rest} startedAt={startedAt} phase={phase} className={cn("text-[clamp(40px,min(calc(170cqw/var(--chars)),40cqh),168px)]", !mine && phase === "idle" && "text-foreground/70")} />
-      <div className={cn("timer-hint min-h-5 text-sm text-muted-foreground", FADE)}>{hint}</div>
+      <LiveDigits text={said(rest)} startedAt={startedAt} phase={phase} className={cn("text-[clamp(40px,min(calc(170cqw/var(--chars)),40cqh),168px)]", !mine && phase === "idle" && "text-foreground/70")} />
+      <div className={cn("timer-hint min-h-5 text-sm text-muted-foreground", FADE)}>{said(hint)}</div>
     </section>
   );
 }
@@ -201,7 +203,7 @@ function Race() {
       rest={myRest}
       startedAt={timer.startedAt}
       phase={timer.phase}
-      hint={myHint}
+      hint={said(myHint)}
       mine
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest("button")) return;
@@ -225,42 +227,38 @@ function Race() {
   return (
     <div className={cn(PAGE, "duel-race")}>
       <PageHead
-        title="Duel"
-        sub={`vs ${opponent.name} · ${event ? eventLabel(event.puzzle, event.solveMode) : duel.event}`}
+        title={tr("Duel")}
+        sub={tr("vs {0} · {1}", { 0: opponent.name, 1: event ? eventLabel(event.puzzle, event.solveMode) : duel.event })}
         more={
           mobile && (
             <>
-              {duel.over && duel.dismissed === duel.game && <MenuAction action="duel:result" icon={Trophy}>Result</MenuAction>}
-              {!duel.opponentHere && <MenuAction action="duel:next" icon={Swords}>New opponent</MenuAction>}
-              <MenuAction action="duel:leave" icon={X}>Leave the race</MenuAction>
+              {duel.over && duel.dismissed === duel.game && <MenuAction action="duel:result" icon={Trophy}>{tr("Result")}</MenuAction>}
+              {!duel.opponentHere && <MenuAction action="duel:next" icon={Swords}>{tr("New opponent")}</MenuAction>}
+              <MenuAction action="duel:leave" icon={X}>{tr("Leave the race")}</MenuAction>
             </>
           )
         }
       >
         {!mobile && duel.over && duel.dismissed === duel.game && (
           <Button action="duel:result" icon={Trophy}>
-            Result
-          </Button>
+            {tr("Result")}</Button>
         )}
         {!mobile && !duel.opponentHere && (
           <Button action="duel:next" icon={Swords}>
-            New opponent
-          </Button>
+            {tr("New opponent")}</Button>
         )}
         {!mobile && previewed && (
-          <ActionToggle action="duel:cube" pressed={duel.showCube} icon={Box} tip="Show or hide the cube">
-            Cube
-          </ActionToggle>
+          <ActionToggle action="duel:cube" pressed={duel.showCube} icon={Box} tip={tr("Show or hide the cube")}>
+            {tr("Cube")}</ActionToggle>
         )}
         {!chatDocked && (
-          <ActionToggle action="duel:chat" pressed={duel.chatOpen} icon={MessageSquare} tip="Chat">
-            {mobile ? (duel.unread ? String(duel.unread) : null) : duel.unread ? `Chat · ${duel.unread}` : "Chat"}
+          <ActionToggle action="duel:chat" pressed={duel.chatOpen} icon={MessageSquare} tip={tr("Chat")}>
+            {mobile ? (duel.unread ? String(duel.unread) : null) : duel.unread ? tr("Chat · {0}", { 0: duel.unread }) : tr("Chat")}
           </ActionToggle>
         )}
         {!mobile && (
           <Button action="duel:leave" icon={X}>
-            Leave
-          </Button>
+            {tr("Leave")}</Button>
         )}
       </PageHead>
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
@@ -269,7 +267,7 @@ function Race() {
           <section className={cn("duel-scramble flex shrink-0 flex-col gap-2 px-4 pt-4 md:px-0 md:pt-1", FADE)}>
             <div className="scramble max-h-[24vh] overflow-y-auto">
               {duel.over ? (
-                <span className="text-sm text-muted-foreground">Five rounds raced.</span>
+                <span className="text-sm text-muted-foreground">{tr("Five rounds raced.")}</span>
               ) : scramble ? (
                 <Alg text={scramble} size={promptFont} />
               ) : (
@@ -290,7 +288,7 @@ function Race() {
                   {cubeSide > 0 && scramble && !duel.over && (
                     <Cube setup={scramble} cubeSize={cubeSize} puzzle={event?.puzzle} size={Math.round(Math.min(cubeSide * 0.85, 220))} held={heldScramble("normal")} />
                   )}
-                  <Button action="duel:cube" icon={X} size="icon-xs" tip="Hide the cube" className="absolute top-0 right-0 text-muted-foreground opacity-0 group-hover/cube:opacity-100" />
+                  <Button action="duel:cube" icon={X} size="icon-xs" tip={tr("Hide the cube")} className="absolute top-0 right-0 text-muted-foreground opacity-0 group-hover/cube:opacity-100" />
                 </div>
               )}
               {theirSide}
@@ -301,8 +299,8 @@ function Race() {
             {mobile && (
               <TouchBar className="pt-1">
                 <TouchAction action="duel:+2" icon={Plus} label="+2" pressed={myLast?.penalty === "+2"} disabled={!myLast} tone="warning" />
-                <TouchAction action="duel:dnf" icon={Ban} label="DNF" pressed={myLast?.penalty === "dnf"} disabled={!myLast} tone="bad" />
-                <TouchAction action="duel:cancel" icon={Undo2} label="Redo" disabled={!duel.canCancel} />
+                <TouchAction action="duel:dnf" icon={Ban} label={tr("DNF")} pressed={myLast?.penalty === "dnf"} disabled={!myLast} tone="bad" />
+                <TouchAction action="duel:cancel" icon={Undo2} label={tr("Redo")} disabled={!duel.canCancel} />
               </TouchBar>
             )}
           </div>
@@ -314,7 +312,7 @@ function Race() {
         )}
       </div>
       {mobile && (
-        <PhoneSheet open={duel.chatOpen} onOpenChange={(open) => open !== duel.chatOpen && void s.action("duel:chat")} title="Chat" tall>
+        <PhoneSheet open={duel.chatOpen} onOpenChange={(open) => open !== duel.chatOpen && void s.action("duel:chat")} title={tr("Chat")} tall>
           <Chat bare />
         </PhoneSheet>
       )}
@@ -322,7 +320,7 @@ function Race() {
         <Sheet open={duel.chatOpen} onOpenChange={(open: boolean) => open !== duel.chatOpen && void s.action("duel:chat")}>
           <SheetContent side="right" className="gap-2 p-4">
             <SheetHeader className="p-0">
-              <SheetTitle>Chat</SheetTitle>
+              <SheetTitle>{tr("Chat")}</SheetTitle>
             </SheetHeader>
             <Chat bare />
           </SheetContent>
@@ -344,7 +342,7 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
         : "grid-cols-[minmax(5rem,8rem)_repeat(6,minmax(max-content,1fr))]",
     row = "col-span-full grid grid-cols-subgrid items-center px-2";
   return (
-    <div className={cn("duel-board grid shrink-0 gap-x-2 gap-y-1", columns, compact && "gap-y-0.5 [&_.duel-board-row]:min-h-8 [&_[role=row]>span]:text-xs", actions && FADE)} role="table" aria-label="Rounds">
+    <div className={cn("duel-board grid shrink-0 gap-x-2 gap-y-1", columns, compact && "gap-y-0.5 [&_.duel-board-row]:min-h-8 [&_[role=row]>span]:text-xs", actions && FADE)} role="table" aria-label={tr("Rounds")}>
       <div className={cn(row, "text-xs text-muted-foreground")} role="row">
         <span />
         {ROUND_LIST.map((r) => (
@@ -352,7 +350,7 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
             {r + 1}
           </span>
         ))}
-        <span className="text-center">Ao5</span>
+        <span className="text-center">{tr("Ao5")}</span>
         {actions && <span />}
       </div>
       {[duel.seat, 1 - duel.seat].map((seat) => {
@@ -364,8 +362,8 @@ function Board({ actions = false, compact = false }: { actions?: boolean; compac
         return (
           <div key={seat} className={cn("duel-board-row min-h-10 rounded-lg", row, mine && "mine")} role="row">
             <span className="flex min-w-0 items-baseline gap-2">
-              <strong className="truncate text-sm font-medium">{duel.players[seat]?.name}</strong>
-              {mine && <small className="text-xs text-muted-foreground">you</small>}
+              <strong className="truncate text-sm font-medium">{said(duel.players[seat]?.name)}</strong>
+              {mine && <small className="text-xs text-muted-foreground">{tr("you")}</small>}
             </span>
             {ROUND_LIST.map((r) => {
               const v = solves[r],
@@ -413,11 +411,9 @@ function SolveActions() {
         +2
       </ActionToggle>
       <ActionToggle action="duel:dnf" pressed={last?.penalty === "dnf"} disabled={!last} size="sm" className="aria-pressed:text-destructive">
-        DNF
-      </ActionToggle>
-      <Button action="duel:cancel" icon={Undo2} size="sm" disabled={!duel.canCancel} tip="Take the solve back and redo it" className="text-muted-foreground">
-        Cancel
-      </Button>
+        {tr("DNF")}</ActionToggle>
+      <Button action="duel:cancel" icon={Undo2} size="sm" disabled={!duel.canCancel} tip={tr("Take the solve back and redo it")} className="text-muted-foreground">
+        {tr("Cancel")}</Button>
     </>
   );
 }
@@ -432,14 +428,14 @@ function Chat({ bare = false }: { bare?: boolean }) {
   return (
     <div className="duel-chat flex min-h-0 flex-1 flex-col gap-2">
       {!bare && (
-        <SectionHead title="Chat" meta={duel.chat.length} rule />
+        <SectionHead title={tr("Chat")} meta={duel.chat.length} rule />
       )}
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto" ref={list}>
-        {!duel.chat.length && <div className="py-2 text-sm text-muted-foreground">No messages yet.</div>}
+        {!duel.chat.length && <div className="py-2 text-sm text-muted-foreground">{tr("No messages yet.")}</div>}
         {duel.chat.map((m, i) => (
           <div key={i} className={cn("duel-chat-line flex flex-col gap-0.5", m.seat === duel.seat && "mine")}>
-            <span className={cn("text-xs font-medium", m.seat === duel.seat ? "text-primary" : "text-muted-foreground")}>{duel.players[m.seat]?.name}</span>
-            <span className="text-sm break-words">{m.text}</span>
+            <span className={cn("text-xs font-medium", m.seat === duel.seat ? "text-primary" : "text-muted-foreground")}>{said(duel.players[m.seat]?.name)}</span>
+            <span className="text-sm break-words">{said(m.text)}</span>
           </div>
         ))}
       </div>
@@ -457,16 +453,16 @@ function Chat({ bare = false }: { bare?: boolean }) {
           <InputGroupInput
             value={text}
             maxLength={300}
-            placeholder={duel.opponentHere ? "Message" : `${duel.opponent.name} left`}
+            placeholder={duel.opponentHere ? tr("Message") : tr("{0} left", { 0: duel.opponent.name })}
             disabled={!duel.opponentHere}
-            aria-label="Message"
+            aria-label={tr("Message")}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Escape") e.currentTarget.blur();
             }}
           />
           <InputGroupAddon align="inline-end">
-            <InputGroupButton type="submit" size="icon-xs" disabled={!text.trim() || !duel.opponentHere} aria-label="Send">
+            <InputGroupButton type="submit" size="icon-xs" disabled={!text.trim() || !duel.opponentHere} aria-label={tr("Send")}>
               <Send />
             </InputGroupButton>
           </InputGroupAddon>
@@ -490,8 +486,8 @@ function Result() {
     <Dialog open={open} onOpenChange={(next: boolean) => !next && open && void s.action("duel:dismiss")}>
       <DialogContent className="duel-result gap-6 p-6 sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold tracking-tight">{result === "win" ? "You win" : result === "loss" ? `${opponent} wins` : "Draw"}</DialogTitle>
-          <DialogDescription>Average of five, best and worst dropped.</DialogDescription>
+          <DialogTitle className="text-2xl font-semibold tracking-tight">{result === "win" ? tr("You win") : result === "loss" ? tr("{0} wins", { 0: opponent }) : tr("Draw")}</DialogTitle>
+          <DialogDescription>{tr("Average of five, best and worst dropped.")}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-6">
           {[
@@ -499,7 +495,7 @@ function Result() {
             [opponent, rival, result === "loss"],
           ].map(([name, value, won], i) => (
             <div key={i} className="flex flex-col gap-1">
-              <span className={LABEL}>{name as string}</span>
+              <span className={LABEL}>{said(name as string)}</span>
               <span className={cn(NUMERIC, "text-4xl font-medium tracking-tight", won ? "text-success" : "text-foreground/80")}>{raceAverage(value as number | null) || "–"}</span>
             </div>
           ))}
@@ -507,12 +503,11 @@ function Result() {
         <Board />
         {note && <p className="text-sm text-muted-foreground">{note}</p>}
         <div className="flex flex-wrap justify-end gap-2">
-          <Button action="duel:leave">Leave</Button>
+          <Button action="duel:leave">{tr("Leave")}</Button>
           <Button action="duel:next" variant="outline">
-            New opponent
-          </Button>
+            {tr("New opponent")}</Button>
           <Button action="duel:rematch" variant="default" disabled={!duel.opponentHere || asked}>
-            {offered && !asked ? "Accept rematch" : "Rematch"}
+            {offered && !asked ? tr("Accept rematch") : tr("Rematch")}
           </Button>
         </div>
       </DialogContent>

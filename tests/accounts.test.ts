@@ -52,7 +52,7 @@ describe("Accounts", () => {
     expect(db.db.query<any, [string]>("SELECT * FROM auth_tokens WHERE token_hash = ?").get(alice.token)).toBeNull();
   });
 
-  test("statistics are private to each account and the retired social routes are gone", async () => {
+  test("statistics are private to each account and the retired profile routes are gone", async () => {
     const { call, register } = setup();
     const alice = await register("alice"); const bob = await register("bob");
     const session = (await call("/sessions", "POST", { mode: "playground" }, alice.token)).body;
@@ -69,7 +69,7 @@ describe("Accounts", () => {
     for (const path of ["/users", "/users/alice", "/social/friends", "/social/messages/bob"])
       expect((await call(path, "GET", undefined, bob.token)).status).toBe(404);
     expect((await call("/account", "PATCH", { bio: "Road to sub-10" }, alice.token)).status).toBe(404);
-    expect((await call("/social/friends", "POST", { username: "alice" }, bob.token)).status).toBe(404);
+    // The community came back under /social with routes of its own (tests/community.test.ts).
   });
 
   test("removing legacy profile and social tables preserves unique usernames, tokens and solve history across reopenings", async () => {

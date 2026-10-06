@@ -36,6 +36,16 @@ test("Native client preserves authentication, dates and parameterized solve/hist
   expect(noted.penalty).toBe("+2");
   expect((await api.setPenalty(solve.id, "none")).comment).toBe("lockup on the last F2L pair");
   expect((await api.setComment(solve.id, "")).comment).toBeNull();
+  // The turns of a solve are kept as given, trimmed; a penalty or a note leaves them alone.
+  expect(solve.solution).toBeNull();
+  const turned = await api.addSolve({ sessionId: session.id, caseId: c.id, timeMs: 1300, solution: "  R@0 U@120 R'@260  " });
+  expect(turned.solution).toBe("R@0 U@120 R'@260");
+  expect((await api.setPenalty(turned.id, "+2")).solution).toBe("R@0 U@120 R'@260");
+  const blank = await api.addSolve({ sessionId: session.id, caseId: c.id, timeMs: 1300, solution: " " });
+  expect(blank.solution).toBeNull();
+  await api.deleteSolve(blank.id);
+  await expect(api.addSolve({ sessionId: session.id, caseId: c.id, timeMs: 1300, solution: "R ".repeat(5001) })).rejects.toBeInstanceOf(ApiError);
+  await api.deleteSolve(turned.id);
   expect(account.user).not.toHaveProperty("bio");
   expect((await api.stats())[0].caseId).toBe(c.id);
   await api.deleteSolve(solve.id);

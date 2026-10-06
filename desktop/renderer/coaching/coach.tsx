@@ -16,6 +16,8 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { tr, locale } from "../../../src/client/i18n";
+import { said } from "../base";
 
 function useDashboard() {
   useEffect(() => {
@@ -31,7 +33,7 @@ export function Dashboard() {
     now = useMinute();
   if (!d)
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true" aria-label="Loading">
+      <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true" aria-label={tr("Loading")}>
         <Skeleton className="h-[4.5rem] rounded-xl" />
         <div className="flex flex-1 gap-4">
           <Skeleton className="h-full w-80 rounded-xl" />
@@ -55,16 +57,16 @@ export function Dashboard() {
           <TriangleAlert className="size-4 shrink-0 text-warning" />
           <span className="flex-1">{text}</span>
           <UiButton size="sm" variant="outline" onClick={() => go(url(view))}>
-            {action}
+            {said(action)}
           </UiButton>
         </div>
       ))}
-      <section aria-label="Dashboard" className="flex min-h-0 flex-1 flex-col gap-4">
+      <section aria-label={tr("Dashboard")} className="flex min-h-0 flex-1 flex-col gap-4">
         <Figures
           className="max-xl:grid-cols-3!"
           items={[
             ["Sessions · 7 days", week.sessions],
-            ["Booked · 7 days", `${(week.minutes / 60).toLocaleString("en-US", { maximumFractionDigits: 1 })} h`],
+            ["Booked · 7 days", `${(week.minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h`],
             ["Expected · 4 weeks", euros(month), "text-primary"],
             ["Free slots · 7 days", week.openSlots],
             ["Students", d.students.length],
@@ -72,13 +74,13 @@ export function Dashboard() {
           ]}
         />
         <div className="flex min-h-0 flex-1 gap-4 max-lg:flex-col">
-          <div className={cn(PANEL, "shrink-0 lg:w-80")} aria-label="Forecast">
-            <h3 className={PANEL_HEAD}>Forecast</h3>
+          <div className={cn(PANEL, "shrink-0 lg:w-80")} aria-label={tr("Forecast")}>
+            <h3 className={PANEL_HEAD}>{tr("Forecast")}</h3>
             <ul className="flex flex-col gap-4 px-4 pt-2 pb-4">
               {d.weeks.map((w, i) => (
                 <li key={w.from} className="flex flex-col gap-1.5" data-week={i}>
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium">{WEEK_NAMES[i]}</span>
+                    <span className="font-medium">{said(WEEK_NAMES[i])}</span>
                     <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                       {day(w.from)} – {day(w.to - 1)}
                     </span>
@@ -99,10 +101,10 @@ export function Dashboard() {
           </div>
           <div className={cn(PANEL, "min-w-0 flex-1")}>
             <h3 className={PANEL_HEAD}>
-              Next sessions <span className={cn(NUMERIC, "text-muted-foreground")}>{d.upcoming.length}</span>
+              {tr("Next sessions")}{" "}<span className={cn(NUMERIC, "text-muted-foreground")}>{d.upcoming.length}</span>
             </h3>
             {!d.upcoming.length ? (
-              <Nothing>No session booked yet.</Nothing>
+              <Nothing>{tr("No session booked yet.")}</Nothing>
             ) : (
               <ul className={cn(ROWS, "min-h-0 flex-1 overflow-y-auto")} data-slot="upcoming">
                 {d.upcoming.map((b) => (
@@ -135,7 +137,7 @@ export function StudentsView({ id }: { id: string }) {
           {!d ? (
             <RowsSkeleton />
           ) : !d.students.length ? (
-            <Nothing>Players who book you or write to you appear here.</Nothing>
+            <Nothing>{tr("Players who book you or write to you appear here.")}</Nothing>
           ) : (
             <ul className={cn(ROWS, "min-h-0 flex-1 overflow-y-auto")} data-slot="students">
               {d.students.map((st) => (
@@ -146,7 +148,7 @@ export function StudentsView({ id }: { id: string }) {
                       <span className="truncate font-medium">{st.username}</span>
                       <span className="truncate text-xs text-muted-foreground">
                         {plural(st.done, "session")}
-                        {st.nextAt ? ` · next ${span(st.nextAt)}` : ""}
+                        {st.nextAt ? tr(" · next {0}", { 0: span(st.nextAt) }) : ""}
                       </span>
                     </span>
                     <Count n={st.unread} />
@@ -162,7 +164,7 @@ export function StudentsView({ id }: { id: string }) {
           <div className="flex min-h-0 min-w-0 flex-1 flex-col text-sm">{conversation ? <Chat conversation={conversation} back={phone ? url("students") : undefined} /> : <div className="flex-1" />}</div>
         ) : (
           <div className={cn(PANEL, "flex-1 max-md:hidden")}>
-            {d && id ? <Nothing>This student is not among yours.</Nothing> : <Nothing>{d?.students.length ? "Pick a student." : ""}</Nothing>}
+            {d && id ? <Nothing>{tr("This student is not among yours.")}</Nothing> : <Nothing>{d?.students.length ? tr("Pick a student.") : ""}</Nothing>}
           </div>
         ))}
     </div>
@@ -174,7 +176,7 @@ export function CoachProfile() {
   const coach = coaching.me?.coach;
   if (!coach)
     return (
-      <div className={cn(PANEL, "mx-auto w-full max-w-2xl gap-4 p-6")} aria-busy="true" aria-label="Loading">
+      <div className={cn(PANEL, "mx-auto w-full max-w-2xl gap-4 p-6")} aria-busy="true" aria-label={tr("Loading")}>
         <Skeleton className="h-10" />
         <Skeleton className="h-32" />
         <Skeleton className="h-10" />
@@ -212,7 +214,7 @@ function ProfileForm() {
         accepting,
         newStudents,
       });
-      toast.success("Profile saved");
+      toast.success(tr("Profile saved"));
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -225,64 +227,59 @@ function ProfileForm() {
         <Picture />
         <div className="grid gap-5 sm:grid-cols-2">
           <Field>
-            <FieldLabel>Bookings</FieldLabel>
-            <ToggleGroup variant="outline" spacing={0} value={[accepting ? "open" : "paused"]} onValueChange={(v: string[]) => v[0] && setAccepting(v[0] === "open")} aria-label="Bookings">
+            <FieldLabel>{tr("Bookings")}</FieldLabel>
+            <ToggleGroup variant="outline" spacing={0} value={[accepting ? "open" : "paused"]} onValueChange={(v: string[]) => v[0] && setAccepting(v[0] === "open")} aria-label={tr("Bookings")}>
               <ToggleGroupItem value="open" data-action="profile:open" className="px-4">
-                Open
-              </ToggleGroupItem>
+                {tr("Open")}</ToggleGroupItem>
               <ToggleGroupItem value="paused" data-action="profile:paused" className="px-4">
-                Paused
-              </ToggleGroupItem>
+                {tr("Paused")}</ToggleGroupItem>
             </ToggleGroup>
           </Field>
           <Field>
-            <FieldLabel>New students</FieldLabel>
-            <ToggleGroup variant="outline" spacing={0} value={[newStudents ? "open" : "closed"]} onValueChange={(v: string[]) => v[0] && setNewStudents(v[0] === "open")} aria-label="New students">
+            <FieldLabel>{tr("New students")}</FieldLabel>
+            <ToggleGroup variant="outline" spacing={0} value={[newStudents ? "open" : "closed"]} onValueChange={(v: string[]) => v[0] && setNewStudents(v[0] === "open")} aria-label={tr("New students")}>
               <ToggleGroupItem value="open" data-action="profile:newcomers" className="px-4">
-                Welcome
-              </ToggleGroupItem>
+                {tr("Welcome")}</ToggleGroupItem>
               <ToggleGroupItem value="closed" data-action="profile:regulars" className="px-4">
-                My students only
-              </ToggleGroupItem>
+                {tr("My students only")}</ToggleGroupItem>
             </ToggleGroup>
-            <FieldDescription>{newStudents ? "Anyone can book your free slots." : "Only players you already coached see your slots."}</FieldDescription>
+            <FieldDescription>{newStudents ? tr("Anyone can book your free slots.") : tr("Only players you already coached see your slots.")}</FieldDescription>
           </Field>
         </div>
         <Field>
-          <FieldLabel htmlFor="coach-headline">Headline</FieldLabel>
-          <Input id="coach-headline" value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={80} placeholder="Sub-10 CFOP coach, F2L and lookahead" />
+          <FieldLabel htmlFor="coach-headline">{tr("Headline")}</FieldLabel>
+          <Input id="coach-headline" value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={80} placeholder={tr("Sub-10 CFOP coach, F2L and lookahead")} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="coach-bio">About you</FieldLabel>
-          <Textarea id="coach-bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={2000} rows={6} className="resize-none" placeholder="Your results, how a session goes, who you help best…" />
+          <FieldLabel htmlFor="coach-bio">{tr("About you")}</FieldLabel>
+          <Textarea id="coach-bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={2000} rows={6} className="resize-none" placeholder={tr("Your results, how a session goes, who you help best…")} />
         </Field>
         <Field>
-          <FieldLabel>Events</FieldLabel>
+          <FieldLabel>{tr("Events")}</FieldLabel>
           <EventPicker value={events} onChange={setEvents} />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field>
-            <FieldLabel htmlFor="coach-languages">Languages</FieldLabel>
-            <Input id="coach-languages" value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="English, French" />
+            <FieldLabel htmlFor="coach-languages">{tr("Languages")}</FieldLabel>
+            <Input id="coach-languages" value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder={tr("English, French")} />
           </Field>
           <Field data-invalid={!valid || undefined}>
-            <FieldLabel htmlFor="coach-price">Price per session</FieldLabel>
+            <FieldLabel htmlFor="coach-price">{tr("Price per session")}</FieldLabel>
             <InputGroup>
               <InputGroupInput id="coach-price" inputMode="decimal" value={euros} onChange={(e) => setEuros(e.target.value)} placeholder="0" className={NUMERIC} aria-invalid={!valid || undefined} />
-              <InputGroupAddon align="inline-end">€ · {coach.sessionMinutes} min</InputGroupAddon>
+              <InputGroupAddon align="inline-end">€ · {coach.sessionMinutes} {" "}{tr("min")}</InputGroupAddon>
             </InputGroup>
-            <FieldDescription>{cents ? price(cents) : "Free"} · payment comes later</FieldDescription>
+            <FieldDescription>{cents ? price(cents) : tr("Free")} {" "}{tr("· payment comes later")}</FieldDescription>
           </Field>
         </div>
       </div>
       <div className="flex shrink-0 gap-2 p-4 pt-0">
         <UiButton type="button" variant="outline" onClick={() => go(url("coach/" + coach.id))} data-action="profile:preview">
           <ExternalLink />
-          Public page
-        </UiButton>
+          {tr("Public page")}</UiButton>
         <UiButton type="submit" className="flex-1" disabled={!valid || pending} data-action="profile:save">
           <Save />
-          {pending ? "Saving…" : "Save"}
+          {pending ? tr("Saving…") : tr("Save")}
         </UiButton>
       </div>
     </form>
@@ -298,7 +295,7 @@ function Picture() {
     setPending(true);
     try {
       await coaching.setAvatar(file && (await square(file)));
-      toast.success(file ? "Picture saved" : "Picture removed");
+      toast.success(file ? tr("Picture saved") : tr("Picture removed"));
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -307,7 +304,7 @@ function Picture() {
   }
   return (
     <Field>
-      <FieldLabel>Picture</FieldLabel>
+      <FieldLabel>{tr("Picture")}</FieldLabel>
       <div className="flex items-center gap-4">
         <Avatar name={coach.username} src={coach.avatar} size={72} />
         <input
@@ -326,15 +323,14 @@ function Picture() {
           <div className="flex gap-2">
             <UiButton type="button" variant="outline" size="sm" disabled={pending} onClick={() => input.current?.click()} data-action="profile:picture">
               <ImageUp />
-              {coach.avatar ? "Change" : "Add a picture"}
+              {coach.avatar ? tr("Change") : tr("Add a picture")}
             </UiButton>
             {coach.avatar && (
               <UiButton type="button" variant="ghost" size="sm" disabled={pending} onClick={() => set(null)}>
-                Remove
-              </UiButton>
+                {tr("Remove")}</UiButton>
             )}
           </div>
-          <FieldDescription>Players see it beside your name. A face works best.</FieldDescription>
+          <FieldDescription>{tr("Players see it beside your name. A face works best.")}</FieldDescription>
         </div>
       </div>
     </Field>

@@ -52,7 +52,7 @@ try {
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(origin);
+    await page.goto(origin + "/timer");
     await signIn(page, `learn3d_${width}${before ? "b" : ""}`);
     await page.waitForSelector("[data-phase]", { timeout: 60000 });
     await act(page, "nav:learn");

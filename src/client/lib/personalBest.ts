@@ -1,5 +1,6 @@
 import type { SolveDto } from "../../shared/types";
 import { best, effective, rollingAverages } from "./format";
+import { msg } from "../i18n/msg";
 
 /**
  * A solve beats a personal best when its single, or the average of 5 or 12 it closes, is strictly
@@ -32,5 +33,5 @@ const LABELS: Record<RecordKind, string> = { single: "single", ao5: "Ao5", ao12:
 export function recordMessage(kinds: readonly RecordKind[]): string | null {
   if (!kinds.length) return null;
   const labels = kinds.map(kind => LABELS[kind]);
-  return `New personal best: ${labels.length > 1 ? `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}` : labels[0]}!`;
+  return msg("New personal best: {0}!", { 0: labels.length > 1 ? `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}` : labels[0] });
 }

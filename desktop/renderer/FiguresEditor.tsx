@@ -1,19 +1,22 @@
 /**
  * The timer's band of figures, chosen by the player and edited where it stands: "Edit" (shown on hover) turns every
- * figure into a box to change or remove, and adds a box to add one; a box being changed picks its kind (and an
- * average its size, current, best or worst) in place. No dialog: the band itself is the editor.
+ * figure into a box to move, change or remove, and adds a box to add one; "change" opens a popover on the box to pick
+ * its kind (and an average its size, current, best or worst).
  */
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
 import { averageFigure, AVERAGE_SIZES, FIGURE_LIMIT, figureLabel, parseFigure } from "../../src/client/lib/practiceSummary";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { store as s } from "./store";
-import { Figure, NUMERIC, Strip } from "./ui";
+import { FADE, Figure, NUMERIC, Strip } from "./ui";
+import { tr } from "../../src/client/i18n";
+import { said } from "./base";
 
 /** An element's width, kept up to date as it resizes. */
 export function useWidth(element: HTMLElement | null) {
@@ -62,6 +65,9 @@ export function FiguresBand() {
     /** The order while a figure is dragged: the others make room as it goes. */
     [order, setOrder] = useState<string[] | null>(null),
     [band, setBand] = useState<HTMLDivElement | null>(null),
+    /** A key per box that follows its figure through changes of kind, so its popover stays open. */
+    keys = useRef(new Map<string, number>()),
+    serial = useRef(0),
     width = useWidth(band),
     metrics = s.figuresShown(),
     byId = new Map(s.figures.map((id, i) => [id, metrics[i]!])),
@@ -74,12 +80,17 @@ export function FiguresBand() {
     setEditing(false);
     setOpen(null);
   };
+  // A solve starting closes the editor: the band is the timer's again.
   useEffect(() => {
-    if (!editing) return;
+    if (s.running) finish();
+  }, [s.running]);
+  // Escape closes a box's popover first, then the editor.
+  useEffect(() => {
+    if (!editing || open) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && finish();
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
-  }, [editing]);
+  }, [editing, open]);
   /** The dragged figure goes where the pointer is, over another figure. */
   const dragOver = (id: string, x: number, y: number) => {
     const over = document
@@ -98,17 +109,22 @@ export function FiguresBand() {
   };
   return (
     <div ref={setBand} className="group/stats relative shrink-0" data-tour="session" data-no-timer={editing || undefined} style={{ "--columns": columns } as React.CSSProperties}>
-      <Strip label="Statistics" className="grid-cols-[repeat(var(--columns),minmax(0,1fr))] gap-0 px-0 py-2.5">
+      <Strip label={tr("Statistics")} className="grid-cols-[repeat(var(--columns),minmax(0,1fr))] gap-0 px-0 py-2.5">
         {ids.map((id, i) => {
           const [label, value, tone] = byId.get(id) ?? [figureLabel(id), "", ""];
+          if (!keys.current.has(id)) keys.current.set(id, ++serial.current);
           return editing ? (
             <FigureBox
-              key={id}
+              key={keys.current.get(id)}
               id={id}
               index={s.figures.indexOf(id)}
-              label={label}
+              label={said(label)}
               open={open === id}
               onOpen={(next) => setOpen(next)}
+              onChange={(next) => {
+                keys.current.set(next, keys.current.get(id)!);
+                setOpen(next);
+              }}
               onDragStart={() => {
                 setOpen(null);
                 setOrder(s.figures);
@@ -121,7 +137,7 @@ export function FiguresBand() {
               className={cellLines(i, columns, rows)}
             />
           ) : (
-            <Figure key={id} label={label} value={value} tone={tone} size="lg" inline className={cellLines(i, columns, rows)} />
+            <Figure key={id} label={said(label)} value={value} tone={tone} size="lg" inline className={cellLines(i, columns, rows)} />
           );
         })}
         {adding && (
@@ -141,34 +157,35 @@ export function FiguresBand() {
               }}
             >
               <Plus data-icon="inline-start" />
-              Add
-            </Button>
+              {tr("Add")}</Button>
           </div>
         )}
       </Strip>
       <Button
         size="xs"
         onClick={() => (editing ? finish() : setEditing(true))}
-        className={cn("absolute -top-3.5 right-3 transition-opacity", editing ? "opacity-100" : "opacity-0 group-hover/stats:opacity-100 focus-visible:opacity-100")}
+        className={cn("absolute -top-3.5 right-3 transition-opacity", editing ? "opacity-100" : "opacity-0 group-hover/stats:opacity-100 focus-visible:opacity-100", FADE)}
       >
         {editing ? <Check data-icon="inline-start" /> : <Pencil data-icon="inline-start" />}
-        {editing ? "Done" : "Edit"}
+        {editing ? tr("Done") : tr("Edit")}
       </Button>
     </div>
   );
 }
 
 /**
- * A figure of the band while editing: a handle to drag it elsewhere, its name with "change" and "remove", or, being
- * changed, its kind in place. It slides to its new place when the order changes (motion's layout animation).
+ * A figure of the band while editing: a handle to drag it elsewhere, its name, "change" (a popover to pick its kind)
+ * and "remove". It slides to its new place when the order changes (motion's layout animation).
  */
-function FigureBox({ id, index, label, open, onOpen, onDragStart, onDrag, onDragEnd, className }: {
+function FigureBox({ id, index, label, open, onOpen, onChange, onDragStart, onDrag, onDragEnd, className }: {
   id: string;
   index: number;
   label: string;
   open: boolean;
-  /** Opens this figure (its new id once changed), or closes it with null. */
+  /** Opens this figure's popover, or closes it with null. */
   onOpen: (id: string | null) => void;
+  /** The figure became another one (its new id). */
+  onChange: (id: string) => void;
   onDragStart: () => void;
   onDrag: (x: number, y: number) => void;
   onDragEnd: () => void;
@@ -179,7 +196,7 @@ function FigureBox({ id, index, label, open, onOpen, onDragStart, onDrag, onDrag
     [size, setSize] = useState(String(figure.size ?? 50)),
     set = (next: string) => {
       act(`set:${index}:${next}`);
-      onOpen(next);
+      onChange(next);
     };
   const which = figure.which ?? "current",
     // The kinds not shown elsewhere in the band, and averages.
@@ -204,83 +221,78 @@ function FigureBox({ id, index, label, open, onOpen, onDragStart, onDrag, onDrag
       // Lifted while dragged: above the others, on the popover's colour, with a shadow.
       whileDrag={{ zIndex: 10, scale: 1.03, backgroundColor: "var(--popover)", borderRadius: 8, boxShadow: "0 8px 24px rgb(0 0 0 / 0.3)" }}
       transition={{ type: "spring", stiffness: 500, damping: 40 }}
-      className={cn(className, "relative flex flex-col gap-1.5")}
+      className={cn(className, "relative flex min-h-7 items-center gap-1")}
     >
-      <div className="flex min-h-7 items-center gap-1">
-        <button
-          type="button"
-          aria-label={`Move ${label}`}
-          onPointerDown={(e) => controls.start(e)}
-          className="-ml-2 flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
-        >
-          <GripVertical className="size-4" />
-        </button>
-        {open ? (
+      <button
+        type="button"
+        aria-label={tr("Move {0}", { 0: label })}
+        onPointerDown={(e) => controls.start(e)}
+        className="-ml-2 flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+      >
+        <GripVertical className="size-4" />
+      </button>
+      <span className="min-w-0 flex-1 truncate text-sm">{said(label)}</span>
+      <Popover open={open} onOpenChange={(next) => onOpen(next ? id : null)}>
+        <PopoverTrigger
+          render={
+            <Button variant="ghost" size="icon-xs" aria-label={tr("Change {0}", { 0: label })}>
+              <Pencil />
+            </Button>
+          }
+        />
+        <PopoverContent side="top" align="end" className="flex w-64 flex-col gap-2 p-3">
           <Select
             items={kinds}
             value={figure.size ? "average" : id}
             onValueChange={(value) => set(value === "average" ? averageFigure(Number(size) || 50, which) : String(value))}
           >
-            <SelectTrigger size="sm" aria-label="Figure" className="min-w-0 flex-1">
+            <SelectTrigger size="sm" aria-label={tr("Figure")} className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {kinds.map((kind) => (
                 <SelectItem key={kind.value} value={kind.value}>
-                  {kind.label}
+                  {said(kind.label)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        ) : (
-          <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
-        )}
-        {open ? (
-          <Button variant="ghost" size="icon-xs" aria-label="Done" onClick={() => onOpen(null)}>
-            <Check />
-          </Button>
-        ) : (
-          <span className="flex shrink-0 gap-0.5">
-            <Button variant="ghost" size="icon-xs" aria-label={`Change ${label}`} onClick={() => onOpen(id)}>
-              <Pencil />
-            </Button>
-            <Button variant="ghost" size="icon-xs" aria-label={`Remove ${label}`} className="hover:text-destructive" onClick={() => act("remove:" + id)}>
-              <Trash2 />
-            </Button>
-          </span>
-        )}
-      </div>
-      {open && figure.size && (
-        <div className="flex items-center gap-1 pl-3">
-          <InputGroup className="h-7 w-20 shrink-0">
-            <InputGroupAddon>Ao</InputGroupAddon>
-            <InputGroupInput
-              aria-label="Average size"
-              inputMode="numeric"
-              value={size}
-              onChange={(e) => setSize(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              onBlur={applySize}
-              onKeyDown={(e) => e.key === "Enter" && applySize()}
-              className={NUMERIC}
-            />
-          </InputGroup>
-          <ToggleGroup
-            aria-label="Which average"
-            size="sm"
-            spacing={0}
-            variant="outline"
-            value={[which]}
-            onValueChange={(next: string[]) => next[0] && set(averageFigure(figure.size!, next[0] as (typeof WHICH)[number]["id"]))}
-            className="min-w-0 flex-1"
-          >
-            {WHICH.map((option) => (
-              <ToggleGroupItem key={option.id} value={option.id} className="flex-1 px-1 text-xs">
-                {option.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-      )}
+          {figure.size && (
+            <>
+              <InputGroup className="h-7">
+                <InputGroupAddon>{tr("Average of")}</InputGroupAddon>
+                <InputGroupInput
+                  aria-label={tr("Average size")}
+                  inputMode="numeric"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onBlur={applySize}
+                  onKeyDown={(e) => e.key === "Enter" && applySize()}
+                  className={NUMERIC}
+                />
+              </InputGroup>
+              <ToggleGroup
+                aria-label={tr("Which average")}
+                size="sm"
+                spacing={0}
+                variant="outline"
+                value={[which]}
+                onValueChange={(next: string[]) => next[0] && set(averageFigure(figure.size!, next[0] as (typeof WHICH)[number]["id"]))}
+                className="w-full"
+              >
+                {WHICH.map((option) => (
+                  <ToggleGroupItem key={option.id} value={option.id} className="flex-1 text-xs">
+                    {said(option.label)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </>
+          )}
+        </PopoverContent>
+      </Popover>
+      <Button variant="ghost" size="icon-xs" aria-label={tr("Remove {0}", { 0: label })} className="hover:text-destructive" onClick={() => act("remove:" + id)}>
+        <Trash2 />
+      </Button>
     </motion.div>
   );
 }

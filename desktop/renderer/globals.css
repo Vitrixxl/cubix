@@ -159,3 +159,91 @@
     scrollbar-color: var(--border) transparent;
   }
 }
+
+/* The landing page (the site's root) scrolls, unlike the app's screens. */
+html.landing,
+html.landing body,
+html.landing #root {
+    height: auto;
+    overflow: visible;
+}
+html.landing {
+    scroll-behavior: smooth;
+}
+/* What the browser draws on it takes the theme's accent too: selected text, the ring of a link reached by keyboard. */
+html.landing ::selection {
+    background: color-mix(in oklch, var(--primary) 55%, transparent);
+    color: var(--foreground);
+}
+html.landing a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+}
+/*
+ * The landing page's words. A feature's parts come in one after the other as it scrolls into view: --t is how far in
+ * it is (0 to 1), --n how many parts it has, --i the place of each; --o is how far it has left by the top. The page's
+ * script sets --t and --o (landing/SolveStage.tsx); without it, everything is simply there.
+ */
+html.landing [data-chapter],
+html.landing [data-top] {
+    --t: 1;
+    --o: 0;
+}
+html.landing .landing-part {
+    --p: clamp(0, calc((var(--t) * (var(--n) + 4) - var(--i)) / 4), 1);
+    opacity: var(--p);
+    transform: translateY(calc((1 - var(--p)) * 0.6em));
+    filter: blur(calc((1 - var(--p)) * 10px));
+}
+html.landing .landing-leave,
+html.landing .landing-title {
+    opacity: calc(1 - var(--o));
+    transform: translateY(calc(var(--o) * -3rem));
+    filter: blur(calc(var(--o) * 8px));
+}
+/*
+ * Once the script runs (data-live), a feature's words leave the scroll: they are held in the window, at their place
+ * across the page (--x, --w, in pixels), --d pixels from its middle. The script alone moves them, so they brake
+ * about the middle without the scroll pulling them the other way.
+ */
+html.landing [data-live] .landing-title {
+    position: fixed;
+    top: 50%;
+    left: calc(var(--x, 0) * 1px);
+    width: calc(var(--w, 0) * 1px);
+    transform: translateY(calc(-50% + var(--d, 0) * 1px + var(--o) * -3rem));
+    will-change: transform;
+}
+/* Words over the tiles the pointer lights: the page's own colour gathers around the letters, so they stay read. */
+html.landing .landing-ink {
+    text-shadow:
+        0 0 0.12em var(--background),
+        0 0 0.4em var(--background),
+        0 0 1em var(--background),
+        0 0.04em 0.08em rgb(0 0 0 / 0.55);
+}
+/* The arrow that says the page goes on. */
+@media (prefers-reduced-motion: no-preference) {
+    html.landing .landing-nudge {
+        animation: landing-nudge 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    }
+}
+@keyframes landing-nudge {
+    50% {
+        transform: translateY(3px);
+    }
+}
+/* The top of the page comes in by itself as the page opens, as the cube's pieces do. */
+@media (prefers-reduced-motion: no-preference) {
+    html.landing .landing-in {
+        animation: landing-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation-delay: calc(var(--i) * 60ms + 150ms);
+    }
+}
+@keyframes landing-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5em);
+        filter: blur(12px);
+    }
+}

@@ -1,5 +1,7 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
-import { puzzleOf, puzzleId, puzzleInfo, contextOf, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import { puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import type { ImportedSolve } from "../lib/timerImport";
+import { readSolution } from "../lib/solution";
 import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto, LearningGroupOrder, LearningGroupOrderDto } from "../../shared/types";
 import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGroups, type LearningTrack } from "../lib/dailyLearning";
@@ -194,7 +196,7 @@ export function createLocalClient(options: {
       }
       for (const solve of liveSolves(guest)) if (!account.solves[solve.id]) {
         account.solves[solve.id] = { ...solve, serverId:undefined };
-        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...contextOf(solve) },solve.created_at);
+        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...(solve.solution ? { solution:solve.solution } : {}), ...contextOf(solve) },solve.created_at);
       }
       for (const caseId of learnedIds(guest)) if (!account.learned[caseId]) {
         account.learned[caseId] = true;
@@ -276,9 +278,31 @@ export function createLocalClient(options: {
         if (verified.id !== user.id || verified.isGuest) throw new ApiError(401,"Sign in to synchronize this account.");
         if (!stillCurrent()) return;
         write("user",verified);
+        // New solves go up a hundred at a time (an import of thousands); a batch the server refuses is retried one by
+        // one, so the operation at fault is the only one marked.
+        let batching = true;
         while (stillCurrent()) {
           const workspace = data(id), op = workspace.outbox.find(op => !op.error);
           if (!op) break;
+          if (batching && op.kind === "solve") {
+            const batch = workspace.outbox.filter(o => !o.error && o.kind === "solve" && sessionServerId(workspace,o.body.sessionId) !== undefined).slice(0,100);
+            if (batch.length > 1 && batch[0] === op) {
+              const pushed = batch.map(o => ({ id:o.id, method:"POST", path:"solves", body:{ ...o.body, sessionId:sessionServerId(workspace,o.body.sessionId) }, createdAt:o.createdAt }));
+              let results: { value: any }[];
+              try {
+                results = (await (socket?.connection ?? remote).syncPush(pushed)).results;
+              } catch (error) {
+                if (error instanceof ApiError && error.status < 500 && error.status !== 429 && error.status !== 401) { batching = false; continue; }
+                throw error;
+              }
+              await edit(id, latest => {
+                batch.forEach((o,i) => { if (latest.solves[o.localId]) latest.solves[o.localId].serverId = results[i]!.value.id; });
+                const done = new Set(batch.map(o => o.id));
+                latest.outbox = latest.outbox.filter(item => !done.has(item.id));
+              });
+              continue;
+            }
+          }
           activeOperation = op.id;
           let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : op.kind === "learning-order" ? "learning-group-order" : op.kind === "journey" ? "journey" : "solves";
           const body = { ...op.body };
@@ -402,6 +426,8 @@ export function createLocalClient(options: {
     profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("profile" + args(puzzleId(cubeSize), filter.solveMode, filter.scrambleType, current()), () =>
       profile(current(),ordered(),cubeSize,filter,journeyProfile(data().journey)?.bests)),
     achievements: () => derived("achievements", () => achievements(ordered(),learnedIds())),
+    /** A solve of any session, by its id. */
+    solve: (id: number) => { const solve = data().solves[id]; return solve && !solve.deleted ? solve : null; },
   };
 
   const api = {
@@ -419,6 +445,28 @@ export function createLocalClient(options: {
     sets: async (cubeSize: PuzzleInput = 3) => reads.catalog(cubeSize).sets,
     register: async (username: string,password: string) => authenticate(await options.remote(null).register(username,password)),
     login: async (username: string,password: string) => authenticate(await options.remote(null).login(username,password)),
+    /** The account's data, as a file for its owner (GDPR portability): what this device holds, which the server mirrors. */
+    exportData: async () => {
+      const user = current(), workspace = data();
+      const live = (rows: Record<number, object>) => Object.values(rows).filter((row: any) => !row.deleted).map(({ deleted, serverId, ...row }: any) => row);
+      return {
+        app: "Qbix", exportedAt: new Date().toISOString(),
+        account: user.isGuest ? null : { username: user.username, createdAt: user.createdAt },
+        solves: live(workspace.solves), sessions: live(workspace.sessions),
+        learnedCases: Object.entries(workspace.learned).filter(([, learned]) => learned).map(([id]) => id),
+        learningGroupOrder: workspace.groupOrder ?? {}, profile: workspace.journey ?? {},
+      };
+    },
+    /** The account deleted on the server with its password, then forgotten on this device, which goes back to a guest. */
+    deleteAccount: async (password: string) => {
+      const id = owner(), token = options.getToken();
+      if (id === "guest" || !token) throw new Error("Sign in first.");
+      await options.remote(token).deleteAccount(password);
+      for (const key of ["workspace:" + id, "revision:" + id]) storage.removeItem(PREFIX + key);
+      cached = undefined; generation++;
+      write("user",GUEST); options.clearToken(); report("local"); notify();
+      return { ok:true };
+    },
     logout: async () => {
       const token = options.getToken();
       write("user",GUEST); options.clearToken(); report("local"); notify();
@@ -434,6 +482,36 @@ export function createLocalClient(options: {
       workspace.sessions[session.id] = session;
       operation(workspace,id,"session",session.id,{mode,caseIds,...context},session.created_at); return session;
     }),
+    /**
+     * Solves from another timer (timerImport.ts), written at once with their own dates: one session per event and
+     * session of the other timer, solves already here (same event, date and time) left out. They reach the server in
+     * pushes of a hundred (see `synchronize`).
+     */
+    importSolves: async (solves: ImportedSolve[]) => localMutation((workspace,id) => {
+      const key = (puzzle: string, mode: string, at: string, time: number) => `${puzzle}|${mode}|${at}|${time}`;
+      const known = new Set(liveSolves(workspace).map(s => key(s.puzzle_id ?? "", s.solve_mode ?? "standard", s.created_at, s.time_ms)));
+      const sessions = new Map<string, Session>();
+      let imported = 0, duplicates = 0;
+      for (const solve of [...solves].sort((a,b) => a.at - b.at)) {
+        const info = eventInfo(solve.event);
+        if (!info || !Number.isFinite(solve.at) || !Number.isFinite(solve.timeMs) || solve.timeMs < 0) continue;
+        const { puzzle, solveMode } = info, at = new Date(solve.at).toISOString(), timeMs = Math.round(solve.timeMs);
+        if (known.has(key(puzzle,solveMode,at,timeMs))) { duplicates++; continue; }
+        known.add(key(puzzle,solveMode,at,timeMs));
+        const context = { puzzle, solveMode, scrambleType: "normal" as const }, group = `${solve.event}|${solve.session ?? ""}`;
+        let session = sessions.get(group);
+        if (!session) {
+          session = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", mode:"playground", case_ids:[], created_at:at };
+          workspace.sessions[session.id] = session; sessions.set(group,session);
+          operation(workspace,id,"session",session.id,{ mode:"playground", caseIds:[], ...context },at);
+        }
+        const row: Solve = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", session_id:session.id, case_id:null, time_ms:timeMs, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment?.slice(0,500) || null, created_at:at };
+        workspace.solves[row.id] = row;
+        operation(workspace,id,"solve",row.id,{ sessionId:session.id, caseId:null, timeMs, penalty:row.penalty, scramble:row.scramble, comment:row.comment, ...context },at);
+        imported++;
+      }
+      return { imported, duplicates };
+    }),
     addSolve: async (body: AddSolveBody) => localMutation((workspace,id) => {
       const session = body.sessionId == null ? null : workspace.sessions[body.sessionId];
       if (body.sessionId != null && !session) throw new Error("Unknown local session.");
@@ -448,9 +526,11 @@ export function createLocalClient(options: {
       // Preserve insertion order even for imports/tests producing several solves in one millisecond.
       const latest = Date.parse(derived("latest", () => Object.values(workspace.solves).reduce((at,s) => s.created_at > at ? s.created_at : at,""))) || 0;
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
-      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,created_at:createdAt };
+      // A solution that cannot be read is left out: it never keeps the time from being saved.
+      const solution = readSolution(body.solution) ? body.solution!.trim() : undefined;
+      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),created_at:createdAt };
       workspace.solves[solve.id] = solve;
-      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms},solve.created_at); return solve;
+      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution},solve.created_at); return solve;
     }),
     solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
       const newest = derived("solves" + args(mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {
