@@ -107,13 +107,22 @@ async function landing(out: string, bundle: (entry: string) => Promise<string[]>
   const { Landing } = await import("./renderer/landing/Landing");
   const { landingDocument, llms, llmsFull, robots, sitemap } = await import("./renderer/landing/document");
   const { DEFAULT_THEME, themeTokens } = await import("../src/client/lib/theme");
+  const { LANGUAGES, setLanguage } = await import("../src/client/i18n");
   const outputs = await bundle("desktop/renderer/landing/main.tsx");
-  await writeFile(join(out, "landing.html"), landingDocument({
-    body: renderToString(createElement(Landing)),
-    theme: themeTokens(DEFAULT_THEME, "dark"),
-    styles: outputs.filter((path) => path.endsWith(".css")),
-    scripts: outputs.filter((path) => path.endsWith(".js") && basename(path).startsWith("main-")),
-  }));
+  // One page per language, English at the root (landing.html), the others at /fr/, /es/…, served as directories.
+  for (const { id } of LANGUAGES) {
+    await setLanguage(id, false);
+    const file = join(out, id === "en" ? "landing.html" : `${id}/index.html`);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, landingDocument({
+      language: id,
+      body: renderToString(createElement(Landing)),
+      theme: themeTokens(DEFAULT_THEME, "dark"),
+      styles: outputs.filter((path) => path.endsWith(".css")),
+      scripts: outputs.filter((path) => path.endsWith(".js") && basename(path).startsWith("main-")),
+    }));
+  }
+  await setLanguage("en", false);
   await writeFile(join(out, "robots.txt"), robots());
   await writeFile(join(out, "sitemap.xml"), sitemap(new Date().toISOString().slice(0, 10)));
   await writeFile(join(out, "llms.txt"), llms());

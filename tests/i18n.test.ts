@@ -30,6 +30,8 @@ describe("languages", () => {
     await setLanguage("en", false);
     expect(tn(0, "{n} solve")).toBe("0 solves");
     expect(t("Ready")).toBe("Ready");
+    // The real French back, for the tests that run after this one in the same process.
+    provide("fr", JSON.parse(readFileSync("src/client/i18n/fr.json", "utf8")));
   });
 
   test("the wrapping of texts runs again without changing anything", () => {

@@ -53,7 +53,9 @@ describe("smart cube statistics", () => {
     const digests = [solve(1, [...F2L, OLL, PLL]), solve(2, [...F2L, OLL, PLL], 1500), solve(3, [...F2L, "F R U R' U' F'", "R U R' U R U2 R'", PLL])];
     const result = smartAnalysis(digests);
     expect(result.count).toBe(3);
-    expect(result.methods.map((m) => m.id)).toEqual(["all", "cfop", "cfop-2look"]);
+    // Every method the analysis reads, the used ones first; one never used is there, empty.
+    expect(result.methods.map((m) => [m.id, m.count])).toEqual([["all", 3], ["cfop", 2], ["cfop-2look", 1], ["zb", 0]]);
+    expect(result.methods[0]!.xcross).toBe(0);
     const all = result.methods[0]!;
     expect(all.steps.map((s) => s.id)).toEqual(["cross", "f2l", "oll", "pll"]);
     expect(all.steps.reduce((sum, s) => sum + s.share, 0)).toBeCloseTo(1, 5);

@@ -54,6 +54,8 @@ export interface SolveDigest {
   steps: Record<StepId, StepTiming>;
   /** The cases the solve went through, in order: each pair, then each look of the last layer. */
   cases: CaseTiming[];
+  /** F2L pairs solved along with the cross: 1 for an XCross, 2 for an XXCross… Absent in digests made before. */
+  xcross?: number;
 }
 
 const timing = (part: Segment): Timing => ({ duration: part.end - part.start, recognition: part.recognition, execution: part.execution, turns: part.turns.length });
@@ -88,6 +90,7 @@ export function digest(analysis: SolveAnalysis, solve: { id: number; created_at:
     turns: analysis.turns,
     duration: analysis.time,
     steps: { cross: step([phase("cross")]), f2l: step(pairs), oll: step([oll]), pll: step([pll]) },
+    xcross: /^X*/.exec(phase("cross").label)![0].length,
     cases: [...pairs.flatMap((p) => casesOf(p, "f2l")), ...casesOf(oll, oll.label === "ZBLL" ? "zbll" : "oll"), ...casesOf(pll, "pll")],
   };
 }
@@ -121,6 +124,8 @@ export interface MethodStats {
   tps: number;
   steps: StepStats[];
   cases: CaseStats[];
+  /** Solves whose cross came with at least one F2L pair (XCross or more). */
+  xcross: number;
 }
 export interface TrainingSuggestion {
   id: string;
@@ -184,6 +189,7 @@ function gather(id: MethodId | "all", label: string, digests: SolveDigest[]): Me
     tps: duration > 0 ? turns / (duration / 1000) : 0,
     steps,
     cases,
+    xcross: digests.filter((d) => (d.xcross ?? 0) > 0).length,
   };
 }
 
@@ -258,13 +264,13 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
 export function smartAnalysis(digests: SolveDigest[]): SmartAnalysisDto {
   const all = gather("all", msg("All solves"), digests),
     methods = (Object.keys(METHOD_LABELS) as MethodId[])
+      // Every method the analysis reads, used or not yet: the most used first.
       .map((id) => gather(id, METHOD_LABELS[id], digests.filter((d) => d.method === id)))
-      .filter((m) => m.count)
       .sort((a, b) => b.count - a.count);
   return {
     count: digests.length,
     methods: digests.length ? [all, ...methods] : [],
-    suggestions: digests.length ? suggest(all, methods) : [],
+    suggestions: digests.length ? suggest(all, methods.filter((m) => m.count)) : [],
     latest: [...digests]
       .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : b.id - a.id))
       .slice(0, 50)

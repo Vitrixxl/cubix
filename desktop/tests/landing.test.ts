@@ -10,6 +10,7 @@ import { solveCfop } from "../../src/client/lib/cfopSolver";
 import { applyAlg, type CubeState } from "../../src/shared/cube";
 import { SCRAMBLE, SOLUTION, STEP_TURNS, TURNS, solveScene } from "../renderer/landing/solve";
 import catalog from "../assets/catalog.json";
+import { setLanguage } from "../../src/client/i18n";
 
 describe("the landing page", () => {
   test("knows the visitor's platform from the user agent", () => {
@@ -51,6 +52,20 @@ describe("the landing page", () => {
     expect(llms()).toMatch(/^# Qbix\n\n> /);
     expect(llms()).toContain(`(${SITE}/llms-full.txt)`);
     for (const feature of FEATURES) expect(llmsFull()).toContain(`## ${feature.title}`);
+  });
+
+  test("has a page of its own in each language, each naming the others", async () => {
+    await setLanguage("fr", false);
+    try {
+      const page = landingDocument({ language: "fr", body: "", theme: {}, styles: [], scripts: [] });
+      expect(page).toContain('<html lang="fr"');
+      expect(page).toContain(`<link rel="canonical" href="${SITE}/fr/" />`);
+      expect(page).toContain(`<link rel="alternate" hreflang="x-default" href="${SITE}/" />`);
+      expect(page).toContain("<title>Qbix : le chrono de speedcubing");
+      expect(sitemap("2026-10-06")).toContain(`<loc>${SITE}/de/</loc>`);
+    } finally {
+      await setLanguage("en", false);
+    }
   });
 
   test("the cube solved under the scroll plays the app's own CFOP solution of its scramble", () => {

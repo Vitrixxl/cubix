@@ -416,7 +416,7 @@ pub(crate) fn route(
     if parts[0] == "social" {
         return crate::social::route(db, state, method, &parts[1..], query, body, user);
     }
-    if parts[0] == "tournaments" || parts[0] == "matches" {
+    if parts[0] == "tournaments" || parts[0] == "matches" || parts[0] == "competition" {
         return crate::tournament::route(db, state, method, &parts, body, user);
     }
     match (method, parts.as_slice()) {

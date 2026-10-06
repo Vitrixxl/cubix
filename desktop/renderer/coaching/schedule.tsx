@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { tr } from "../../../src/client/i18n";
+import { ask } from "../confirm";
 import { said } from "../base";
 
 /** Weekly hours repeated on some weekdays (0 = Monday), between two dates or for good. */
@@ -415,7 +416,7 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
       </div>
       <DialogFooter>
         {rule ? (
-          <UiButton variant="ghost" className="mr-auto hover:text-destructive" disabled={pending} onClick={remove} data-action="schedule:remove-rule">
+          <UiButton variant="ghost" className="mr-auto hover:text-destructive" disabled={pending} onClick={async () => (await ask({ title: tr("Remove these weekly hours?"), text: tr("Their free slots close; sessions already booked stay."), action: tr("Remove") })) && remove()} data-action="schedule:remove-rule">
             <Trash2 />
             {tr("Remove")}</UiButton>
         ) : (
@@ -474,7 +475,7 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
                 <span className={cn("w-12 shrink-0 text-xs font-medium", c.open ? "text-primary" : "text-warning")}>{c.open ? tr("Extra") : tr("Away")}</span>
                 <span className={cn(NUMERIC, "flex-1")}>{rangeText([c.start, c.end])}</span>
                 <Tip content="Remove">
-                  <UiButton variant="ghost" size="icon-sm" aria-label={tr("Remove")} disabled={pending} onClick={() => commit({ changes: saved.changes.filter((_, j) => j !== i) })}>
+                  <UiButton variant="ghost" size="icon-sm" aria-label={tr("Remove")} disabled={pending} onClick={async () => (await ask({ title: c.open ? tr("Remove these extra hours?") : tr("Remove this time off?"), action: tr("Remove") })) && commit({ changes: saved.changes.filter((_, j) => j !== i) })}>
                     <Trash2 />
                   </UiButton>
                 </Tip>

@@ -62,6 +62,9 @@ test("friends, messages and groups", async () => {
   const [alice, bob, carol] = await Promise.all(["alice", "bob_cubes", "carol"].map((n) => account(origin, n)));
   const bobLive = await live(origin, bob.token);
   expect((await alice.get("social/users?q=bo")).map((u: any) => [u.username, u.relation])).toEqual([["bob_cubes", "none"]]);
+  // An underscore in a name is the name's, not a wildcard.
+  expect((await alice.get("social/users?q=bob_c")).map((u: any) => u.username)).toEqual(["bob_cubes"]);
+  expect(await alice.get("social/users?q=bob%25")).toEqual([]);
   expect((await alice.call("POST", "social/friends", { username: "BOB_CUBES" })).value.relation).toBe("outgoing");
   expect((await bobLive.next((m) => m.type === "social" && m.kind === "request")).from.username).toBe("alice");
   expect((await bob.get("social/me")).incoming.map((p: any) => p.username)).toEqual(["alice"]);
@@ -191,6 +194,85 @@ test("battles in a group, and tournaments the administration opens to everyone",
   for (let i = 0; i < 40 && (await alice.get(`tournaments/${soon.id}`)).status === "open"; i++) await Bun.sleep(250);
   expect((await alice.get(`tournaments/${soon.id}`)).status).toBe("cancelled");
 }, 20000);
+
+test("battles and tournaments show in their conversations as cards; two friends battle in theirs", async () => {
+  const { origin } = setup();
+  const [alice, bob, carol] = await Promise.all(["alice", "bob_cubes", "carol"].map((n) => account(origin, n)));
+  for (const p of [bob, carol]) {
+    await alice.call("POST", "social/friends", { username: p.name });
+    await p.call("POST", `social/friends/${alice.id}/accept`);
+  }
+  const bobLive = await live(origin, bob.token);
+  // A group made with friends picked at once: they are invited.
+  const group = (await alice.call("POST", "social/groups", { name: "Club", invite: [bob.id, "not-a-friend"] })).value;
+  expect(group.members.map((m: any) => [m.username, m.role])).toEqual([["alice", "owner"], ["bob_cubes", "invited"]]);
+  expect((await bobLive.next((m) => m.kind === "invitation")).name).toBe("Club");
+  await bob.call("POST", `social/groups/${group.id}/join`);
+  // An invitation by account, among the friends.
+  expect((await alice.call("POST", `social/groups/${group.id}/invite`, { userId: carol.id })).value.members.map((m: any) => m.username)).toContain("carol");
+
+  // A battle launched from the friends' conversation: against the other, its card in the conversation.
+  const talk = (await alice.call("POST", "social/conversations", { userId: bob.id })).value;
+  const duel = (await alice.call("POST", "matches", { conversationId: talk.id, event: "333", points: 2, sets: 1 })).value;
+  expect(duel).toMatchObject({ status: "waiting", groupId: null, conversationId: talk.id, players: [{ username: "alice" }, { username: "bob_cubes" }] });
+  const heard = await bobLive.next((m) => m.kind === "message" && m.conversation === talk.id);
+  expect(heard.message).toMatchObject({ body: "", match: { id: duel.id, status: "waiting" } });
+  expect((await bobLive.next((m) => m.kind === "battle")).conversation).toBe(talk.id);
+  expect((await bob.get("social/conversations")).find((c: any) => c.id === talk.id).lastMessage.card).toBe("match");
+  // Only the two see it; accepted, its card says so the next time it is read.
+  expect((await carol.call("GET", `matches/${duel.id}`)).status).toBe(404);
+  expect((await carol.call("POST", "matches", { conversationId: talk.id, event: "333", points: 1, sets: 1 })).status).toBe(404);
+  expect((await bob.call("POST", `matches/${duel.id}/accept`)).value.status).toBe("ready");
+  expect((await bobLive.next((m) => m.kind === "match" && m.match === duel.id)).players).toEqual([alice.id, bob.id]);
+  const messages = await bob.get(`social/conversations/${talk.id}/messages`);
+  expect(messages.at(-1).match).toMatchObject({ id: duel.id, status: "ready" });
+
+  // A group's tournament and battles: cards in its conversation, its members told as its matches change.
+  const cup = (await alice.call("POST", "tournaments", { groupId: group.id, name: "Club cup", event: "222", startsAt: Date.now() + 3600_000, points: 1, sets: 1 })).value;
+  const card = await bobLive.next((m) => m.kind === "message" && m.conversation === group.conversationId);
+  expect(card.message.tournament).toMatchObject({ id: cup.id, name: "Club cup" });
+  await bob.call("POST", `tournaments/${cup.id}/register`);
+  const read = await bob.get(`social/conversations/${group.conversationId}/messages`);
+  expect(read.at(-1).tournament).toMatchObject({ id: cup.id, registered: true, players: 1 });
+  const open = (await bob.call("POST", "matches", { conversationId: group.conversationId, event: "222", points: 1, sets: 1 })).value;
+  expect(open).toMatchObject({ groupId: group.id, players: [{ username: "bob_cubes" }, null] });
+  await alice.call("POST", `matches/${open.id}/accept`);
+  expect((await bobLive.next((m) => m.kind === "match" && m.match === open.id)).status).toBe("ready");
+  // Every account sees the open tournaments and those of its groups.
+  expect((await bob.get("tournaments")).map((t: any) => t.name)).toEqual(["Club cup"]);
+  expect(await (await account(origin, "dave")).get("tournaments")).toEqual([]);
+});
+
+test("the competition an account is in, and giving up a tournament under way", async () => {
+  const { origin } = setup();
+  const [alice, bob, dave, eve] = await Promise.all(["alice", "bob_cubes", "dave", "eve"].map((n) => account(origin, n)));
+  const group = (await alice.call("POST", "social/groups", { name: "Club" })).value;
+  for (const p of [bob, dave, eve]) {
+    await alice.call("POST", `social/groups/${group.id}/invite`, { username: p.name });
+    await p.call("POST", `social/groups/${group.id}/join`);
+  }
+  expect(await alice.get("competition")).toEqual({ match: null, tournament: null });
+  const cup = (await alice.call("POST", "tournaments", { groupId: group.id, name: "Cup", event: "222", startsAt: Date.now() + 3600_000, points: 1, sets: 1 })).value;
+  for (const p of [alice, bob, dave, eve]) await p.call("POST", `tournaments/${cup.id}/register`);
+  // Registered but not started: free to go anywhere.
+  expect((await bob.get("competition")).tournament).toBeNull();
+  const started = (await alice.call("POST", `tournaments/${cup.id}/start`)).value;
+  for (const p of [alice, bob, dave, eve]) expect((await p.get("competition")).tournament).toBe(cup.id);
+  // Bob gives up: his match goes to his opponent, who stays in; he is free.
+  const his = started.matches.find((m: any) => m.round === 1 && m.players.some((x: any) => x?.id === bob.id));
+  const opponent = [alice, dave, eve].find((p) => his.players.some((x: any) => x?.id === p.id))!;
+  const after = (await bob.call("POST", `tournaments/${cup.id}/withdraw`)).value;
+  expect(after.matches.find((m: any) => m.id === his.id)).toMatchObject({ status: "done", winner: opponent.id, forfeit: true });
+  expect(after.entrants.find((p: any) => p.id === bob.id).withdrawn).toBe(true);
+  expect((await bob.get("competition")).tournament).toBeNull();
+  expect((await opponent.get("competition")).tournament).toBe(cup.id);
+  expect((await bob.call("POST", `tournaments/${cup.id}/withdraw`)).status).toBe(200);
+  // A battle accepted holds both players until it is over.
+  const talk = (await alice.call("POST", "matches", { conversationId: group.conversationId, event: "333", points: 1, sets: 1, opponentId: dave.id })).value;
+  expect((await dave.get("competition")).match).toBeNull();
+  await dave.call("POST", `matches/${talk.id}/accept`);
+  expect((await dave.get("competition")).match).toBe(talk.id);
+});
 
 test("an account deleted by its owner takes its practice and its community with it", async () => {
   const { origin } = setup();

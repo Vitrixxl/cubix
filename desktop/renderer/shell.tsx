@@ -1,7 +1,7 @@
 /** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
 import { useEffect, useState } from "react";
 import { motion, useIsPresent } from "motion/react";
-import { BookA, BookOpen, Boxes, Coffee, Dumbbell, GraduationCap, Headset, LogOut, Settings, Swords, Timer, Trophy, Users, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, Boxes, ChartColumn, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
@@ -19,6 +19,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
@@ -28,16 +29,43 @@ import {
 } from "@/components/ui/sidebar";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
-/** The sections: a mortarboard for the method courses, a cube library for the algorithms, a dumbbell for the drills. */
-const SECTIONS: [page: string, label: string, icon: LucideIcon, shortcut: string][] = [
-  ["playground", "Timer", Timer, "Alt 1"],
-  ["algorithms", "Algorithms", Boxes, "Alt 2"],
-  ["learn", "Learn", GraduationCap, "Alt 3"],
-  ["training", "Training", Dumbbell, "Alt 4"],
-  ["duel", "Duel", Swords, "Alt 5"],
-  ["coaching", "Coaching", Headset, "Alt 6"],
-  ["tournaments", "Tournaments", Trophy, "Alt 7"],
-  ["community", "Community", Users, "Alt 8"],
+type Section = [page: string, label: string, icon: LucideIcon, shortcut: string];
+/**
+ * The sections, in groups: the timer on its own, then studying (a cube library for the algorithms, a mortarboard for
+ * the method courses, a dumbbell for the drills), competing, and the others (messages, coaching). Their shortcuts
+ * follow this order.
+ */
+const SECTIONS: [group: string | null, sections: Section[]][] = [
+  [
+    null,
+    [
+      ["playground", "Timer", Timer, "Alt 1"],
+      // The profile's analysis of the smart cube solves, a section of its own.
+      ["analysis", "Analysis", ChartColumn, "Alt 9"],
+    ],
+  ],
+  [
+    "Study",
+    [
+      ["algorithms", "Algorithms", Boxes, "Alt 2"],
+      ["learn", "Learn", GraduationCap, "Alt 3"],
+      ["training", "Training", Dumbbell, "Alt 4"],
+    ],
+  ],
+  [
+    "Compete",
+    [
+      ["duel", "Duel", Swords, "Alt 5"],
+      ["tournaments", "Tournaments", Trophy, "Alt 6"],
+    ],
+  ],
+  [
+    "Together",
+    [
+      ["community", "Messages", MessagesSquare, "Alt 7"],
+      ["coaching", "Coaching", Headset, "Alt 8"],
+    ],
+  ],
 ];
 
 /** What waits in a section: unread coaching messages; in the community, unread messages, friend requests and group
@@ -72,7 +100,7 @@ function Me({ size = 32 }: { size?: number }) {
  */
 export function Rail() {
   const e = s.event(),
-    profile = s.page === "profile",
+    profile = s.page === "profile" && s.profileMode !== "analysis",
     { open, toggleSidebar } = useSidebar(),
     // Below this width the sidebar always keeps to its icons.
     foldable = useViewport().w > SIDEBAR_WIDE;
@@ -126,35 +154,41 @@ export function Rail() {
           )}
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu className="gap-0.5" aria-label={tr("Sections")}>
-            {SECTIONS.map(([page, label, I, shortcut]) => {
-              // Greyed while the puzzle's course comes first; a click offers to skip it.
-              const locked = s.lockedPage(page);
-              return (
-              <SidebarMenuItem key={page}>
-                <SidebarMenuButton
-                  data-action={"nav:" + page}
-                  data-locked={locked || undefined}
-                  isActive={s.page === page}
-                  aria-current={s.page === page ? "page" : undefined}
-                  tooltip={locked ? `${label} · learn the ${puzzleInfo(s.puzzle as PuzzleId).label} first` : `${label} · ${shortcut.replace(" ", "+")}`}
-                  {...(locked ? { onClick: run("nav:" + page) } : { render: <Link to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} /> })}
-                  className={cn("h-9 text-muted-foreground data-active:text-foreground", locked && "opacity-45 hover:opacity-70")}
-                >
-                  <I />
-                  <span>{said(label)}</span>
-                </SidebarMenuButton>
-                <UnreadBadge page={page} />
-                <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
-                  {said(shortcut)}
-                </Kbd>
-              </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+      <SidebarContent className="gap-0">
+        {SECTIONS.map(([group, sections]) => (
+          <SidebarGroup key={group ?? "timer"} className="py-1 first:pt-2">
+            {group && <SidebarGroupLabel>{said(group)}</SidebarGroupLabel>}
+            <SidebarMenu className="gap-0.5" aria-label={group ? said(group) : tr("Sections")}>
+              {sections.map(([page, label, I, shortcut]) => {
+                // Greyed while the puzzle's course comes first; a click offers to skip it.
+                const locked = s.lockedPage(page),
+                  // The analysis is the profile's, opened as a section.
+                  here = page === "analysis" ? s.page === "profile" && s.profileMode === "analysis" : s.page === page,
+                  to = page === "analysis" ? pageUrl("profile", { profileMode: "analysis", puzzle: s.puzzle as PuzzleId }) : pageUrl(page, { puzzle: s.puzzle as PuzzleId });
+                return (
+                  <SidebarMenuItem key={page}>
+                    <SidebarMenuButton
+                      data-action={"nav:" + page}
+                      data-locked={locked || undefined}
+                      isActive={here}
+                      aria-current={here ? "page" : undefined}
+                      tooltip={locked ? `${label} · learn the ${puzzleInfo(s.puzzle as PuzzleId).label} first` : `${label} · ${shortcut.replace(" ", "+")}`}
+                      {...(locked ? { onClick: run("nav:" + page) } : { render: <Link to={to} /> })}
+                      className={cn("h-9 text-muted-foreground data-active:text-foreground", locked && "opacity-45 hover:opacity-70")}
+                    >
+                      <I />
+                      <span>{said(label)}</span>
+                    </SidebarMenuButton>
+                    <UnreadBadge page={page} />
+                    <Kbd className="pointer-events-none absolute top-2 right-2 bg-transparent opacity-0 transition-opacity group-hover/menu-item:opacity-100 group-data-[collapsible=icon]:hidden">
+                      {said(shortcut)}
+                    </Kbd>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="pb-4">
         <SidebarMenu className="gap-0.5">

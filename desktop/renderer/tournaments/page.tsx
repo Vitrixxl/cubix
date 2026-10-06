@@ -1,10 +1,10 @@
 /**
- * Tournaments: the ones open to every player (the administration creates them), to register for until they start,
- * then followed round by round; and one tournament's page, a group's too: where it stands, its players and its
- * bracket, the player's own match a click away.
+ * Tournaments: the ones open to every player (the administration creates them) and those of the account's groups, to
+ * register for until they start, then followed round by round; and one tournament's page: where it stands, its players
+ * and its bracket, the player's own match a click away.
  */
 import { useEffect } from "react";
-import { CalendarClock, Check, Play, Trophy, Users, X } from "lucide-react";
+import { CalendarClock, Check, Flag, Play, Trophy, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { Icon } from "../base";
@@ -68,7 +68,7 @@ function TournamentList() {
     ];
   return (
     <div className={PAGE}>
-      <PageHead title={tr("Tournaments")} sub={tr("Open to every player")} />
+      <PageHead title={tr("Tournaments")} sub={tr("Open to every player, and your groups'")} />
       {mine.map((t) => (
         <div key={t.id} className="flex shrink-0 items-center gap-4 rounded-xl border border-primary/40 bg-primary/10 px-5 py-3" data-slot="my-match">
           <Trophy className="size-5 text-primary" />
@@ -122,6 +122,7 @@ export function TournamentCard({ t }: { t: Tournament }) {
             {t.name}
           </button>
           <span className="line-clamp-2 text-xs text-muted-foreground">
+            {t.group && <span className="font-medium text-foreground/80">{t.group} · </span>}
             {eventName(t.event)} · {formatText(t)}
           </span>
         </div>
@@ -165,8 +166,11 @@ function TournamentView({ id }: { id: number }) {
     void community.load(`tournament:${id}`);
   }, [id]);
   const t = community.details.get(id);
-  const back = t?.groupId ? communityUrl(`groups/${t.groupId}/tournaments`) : tournamentUrl();
-  const lead = <Back to={back} />;
+  // A group's tournament goes back to the group's conversation, where its card is.
+  const back = t?.groupId ? communityUrl(`groups/${t.groupId}`) : tournamentUrl();
+  // Still in it while it runs: the tournament is the whole app, left only by giving up.
+  const held = community.competition?.tournament === id;
+  const lead = held ? <Trophy className="size-6 text-warning" /> : <Back to={back} />;
   if (!t)
     return (
       <div className={PAGE}>
@@ -181,10 +185,15 @@ function TournamentView({ id }: { id: number }) {
       <PageHead title={<>{t.name}</>} lead={lead} sub={t.group ? tr("{0} · group tournament", { 0: t.group }) : tr("Open tournament")}>
         <StatusBadge t={t} />
         <RegisterButton t={t} />
-        {t.myMatch && (
+        {t.myMatch && !held && (
           <Button onClick={() => go(matchUrl(t.myMatch!))}>
             <Play />
             {tr("Play your match")}</Button>
+        )}
+        {held && (
+          <Button variant="outline" className="text-muted-foreground hover:text-destructive" onClick={() => void community.withdraw(t)} data-action="tournament:withdraw">
+            <Flag />
+            {tr("Give up")}</Button>
         )}
         {t.canManage && t.status === "open" && (
           <Confirm title={tr("Start the tournament now?")} text={tr("The {0} registered players are drawn into the bracket and registration closes.", { 0: t.players })} action="Start now" onConfirm={() => community.manage(t.id, "start")}>
@@ -195,6 +204,7 @@ function TournamentView({ id }: { id: number }) {
             {tr("Cancel")}</Confirm>
         )}
       </PageHead>
+      {held && <Standing t={t} />}
       <Figures
         items={[
           [tr("Event"), eventName(t.event)],
@@ -230,6 +240,39 @@ function TournamentView({ id }: { id: number }) {
         <Entrants t={t} />
       </div>
     </div>
+  );
+}
+
+/** Where the account stands in the tournament it is in: its match to play now, or the round it waits for. */
+function Standing({ t }: { t: TournamentDetail }) {
+  const mine = t.matches.find((m) => m.id === t.myMatch),
+    opponent = mine?.players.find((p) => p && p.id !== s.user.id),
+    round = t.matches.filter((m) => m.round === t.round),
+    over = round.filter((m) => m.status === "done" || m.status === "cancelled").length;
+  return mine ? (
+    <section className="flex shrink-0 items-center gap-5 rounded-2xl border border-primary/50 bg-primary/10 px-6 py-5" data-slot="standing">
+      <span className="relative flex size-3 shrink-0">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
+        <span className="relative inline-flex size-3 rounded-full bg-primary" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-xl font-semibold tracking-tight">{tr("{0}: your match is ready", { 0: said(roundName(mine.round, t.rounds)) })}</span>
+        <span className="text-sm text-muted-foreground">{opponent ? tr("Against {0}. Both of you on the match page and it starts.", { 0: opponent.username }) : tr("It starts once both players are on its page.")}</span>
+      </div>
+      <Button size="lg" onClick={() => go(matchUrl(mine.id))} data-action="tournament:play">
+        <Play />
+        {tr("Play your match")}</Button>
+    </section>
+  ) : (
+    <section className="flex shrink-0 items-center gap-5 rounded-2xl border bg-card px-6 py-5" data-slot="standing">
+      <Check className="size-6 shrink-0 text-success" />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-xl font-semibold tracking-tight">{tr("You are still in")}</span>
+        <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>
+          {tr("Waiting for the rest of the {0}: {1} of {2} matches over. Your next match opens here by itself.", { 0: said(roundName(t.round, t.rounds)), 1: over, 2: round.length })}
+        </span>
+      </div>
+    </section>
   );
 }
 

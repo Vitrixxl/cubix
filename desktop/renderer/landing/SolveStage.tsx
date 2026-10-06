@@ -358,7 +358,7 @@ export function SolveStage({ children, finish }: { children: React.ReactNode; fi
           )}
         >
           <span className="justify-self-end">{finish?.[0]}</span>
-          <a href="#tour" aria-label={tr("Keep scrolling")} className="flex h-10 items-center gap-2 rounded-full border bg-card px-3 text-sm font-medium transition-colors hover:bg-accent sm:pr-4 sm:pl-3.5">
+          <a href="#details" aria-label={tr("Keep scrolling")} className="flex h-10 items-center gap-2 rounded-full border bg-card px-3 text-sm font-medium transition-colors hover:bg-accent sm:pr-4 sm:pl-3.5">
             <ArrowDown className="landing-nudge size-4 text-primary" />
             <span className="max-sm:hidden">{tr("Keep scrolling")}</span>
           </a>

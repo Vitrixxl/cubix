@@ -29,7 +29,8 @@ async function page(request: Request) {
   const timer = setTimeout(() => timeout.abort(), 4000);
   try {
     const response = await fetch(request, { cache: "no-cache", signal: timeout.signal });
-    if (response.ok) return response;
+    // A redirection (/fr to /fr/) is the browser's to follow.
+    if (response.ok || response.type === "opaqueredirect") return response;
     return (await caches.match(APP, { cacheName: SHELL })) ?? response;
   } catch (error) {
     const cached = await caches.match(APP, { cacheName: SHELL }) ?? await caches.match(APP);

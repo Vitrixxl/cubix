@@ -18,6 +18,7 @@ import { smartCube } from "../../src/client/lib/smartCube";
 import "./dev/devTools";
 import { toast } from "sonner";
 import { tr } from "../../src/client/i18n";
+import { ask } from "./confirm";
 import { msg } from "../../src/client/i18n/msg";
 import { isCaseSource, type CaseSource } from "../../src/client/lib/smartStats";
 export const catalog = catalogData as any;
@@ -709,7 +710,9 @@ export class Store {
             this.overlay = "skipLearning";
             break;
           }
-          goPage(arg, { puzzle: this.puzzle as PuzzleId });
+          // The analysis is a section of the profile.
+          if (arg === "analysis") goPage("profile", { profileMode: "analysis", puzzle: this.puzzle as PuzzleId });
+          else goPage(arg, { puzzle: this.puzzle as PuzzleId });
           break;
         case "learnPuzzle": {
           // The answer to "Learn to solve this puzzle?": start a course, skip it, or go back to the previous puzzle.
@@ -998,6 +1001,39 @@ export class Store {
         case "settings":
           this.overlay = this.overlay === "settings" ? "" : "settings";
           break;
+        // Times from another timer, or from a Qbix export.
+        case "importTimes":
+          this.overlay = "importTimes";
+          break;
+        // The account's data as a file to keep, which Import reads back (timerImport.ts); or only the solves, as a
+        // table for a spreadsheet.
+        case "exportData":
+        case "exportSolves": {
+          const data = await call("exportData"),
+            date = new Date().toISOString().slice(0, 10);
+          const cell = (v: unknown) => (v == null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v));
+          const csv = () =>
+            [
+              // The columns stay in English: the file is data, for any spreadsheet.
+              "Date,Event,Time (s),Penalty,Case,Scramble,Comment".split(","),
+              ...data.solves.map((x: any) => [
+                x.created_at,
+                eventOf(x.puzzle_id ?? "333", x.solve_mode ?? "standard")?.id ?? x.puzzle_id,
+                (x.time_ms / 1000).toFixed(3),
+                x.penalty,
+                x.case_id,
+                x.scramble,
+                x.comment,
+              ]),
+            ]
+              .map((row) => row.map(cell).join(","))
+              .join("\n");
+          const [body, type, name] = kind === "exportSolves" ? [csv(), "text/csv", `qbix-${this.user.username}-solves-${date}.csv`] : [JSON.stringify(data, null, 2), "application/json", `qbix-${this.user.username}-${date}.json`];
+          const url = URL.createObjectURL(new Blob([body], { type }));
+          Object.assign(document.createElement("a"), { href: url, download: name }).click();
+          setTimeout(() => URL.revokeObjectURL(url), 10_000);
+          break;
+        }
         // The account was deleted (Settings): this device goes back to a guest, as after signing out.
         case "accountDeleted":
         case "logout":
@@ -1103,12 +1139,13 @@ export class Store {
           break;
         }
         case "delete":
+          if (!(await ask({ title: tr("Delete this solve?"), text: tr("It goes from your times and your statistics, on every device."), action: tr("Delete") }))) break;
           await call("deleteSolve", Number(arg));
           if (this.overlay !== "profileCase") this.overlay = "";
           await this.refresh();
           break;
         case "undo":
-          if (this.solves.length) {
+          if (this.solves.length && (await ask({ title: tr("Delete your last solve?"), text: tr("It goes from your times and your statistics, on every device."), action: tr("Delete") }))) {
             await call("deleteSolve", this.solves.at(-1).id);
             await this.refresh();
           }

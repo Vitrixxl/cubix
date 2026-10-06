@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { tr } from "../../../src/client/i18n";
-import { said } from "../base";
+import { Avatar, said } from "../base";
 
 const NUMERIC = "font-sans tabular-nums";
-import { roundName } from "./format";
+import { roundName, scoreOf } from "./format";
 export { roundName };
 const over = (m: Match) => m.status === "done" || m.status === "cancelled";
 
@@ -36,28 +36,33 @@ export function Bracket({
   return (
     <div className="min-h-0 flex-1 overflow-auto" data-slot="bracket">
       {/* Every column as tall as the first round needs, so a match sits level with the middle of the two before it. */}
-      <div className="flex h-full min-w-max gap-10 px-1 pb-2" style={{ minHeight: `${first * 4.75 + 3}rem` }}>
+      <div className="flex h-full min-w-max gap-8 pb-1" style={{ minHeight: `${first * 7 + 4}rem` }}>
         {rounds.map((matches, i) => {
           const round = i + 1,
             done = matches.filter(over).length,
             current = t.status === "running" && round === t.round;
           return (
-            <section key={round} className="flex w-60 shrink-0 flex-col" aria-label={roundName(round, t.rounds)} data-round={round}>
-              <header className="flex h-12 shrink-0 flex-col justify-center">
+            <section
+              key={round}
+              className={cn("flex min-w-64 flex-1 flex-col rounded-xl border bg-muted/20 p-3", current && "border-primary/40 bg-primary/5")}
+              aria-label={roundName(round, t.rounds)}
+              data-round={round}
+            >
+              <header className="flex shrink-0 items-center justify-between gap-2 border-b pb-2.5">
                 <span className={cn("text-sm font-semibold tracking-tight", current && "text-primary")}>{roundName(round, t.rounds)}</span>
-                <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-                  {round > t.round && t.status === "running" ? tr("Waiting for the round before") : tr("{0} of {1} over", { 0: done, 1: matches.length })}
+                <span className={cn(NUMERIC, "rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground", current && "bg-primary/15 text-primary")}>
+                  {round > t.round && t.status === "running" ? tr("Next") : tr("{0} of {1} over", { 0: done, 1: matches.length })}
                 </span>
               </header>
               <div className="flex min-h-0 flex-1 flex-col">
                 {pairs(matches).map((pair, k) => (
-                  <div key={k} className="relative flex flex-1 flex-col justify-around">
+                  <div key={k} className="relative flex flex-1 flex-col justify-around gap-3 py-2">
                     {pair.map((m) => (
                       <MatchCard key={m.id} match={m} me={me} joined={round > 1} onOpen={onOpen} onAward={onAward} />
                     ))}
-                    {/* The line from the pair to the match their winners meet in. */}
+                    {/* The line from the pair to the match their winners meet in, across the gap between the columns. */}
                     {round < t.rounds && pair.length === 2 && (
-                      <span aria-hidden className="pointer-events-none absolute top-1/4 -right-5 bottom-1/4 w-5 rounded-r-md border-y border-r border-border" />
+                      <span aria-hidden className="pointer-events-none absolute top-1/4 -right-7 bottom-1/4 w-7 rounded-r-lg border-y-2 border-r-2 border-foreground/20" />
                     )}
                   </div>
                 ))}
@@ -66,13 +71,12 @@ export function Bracket({
           );
         })}
         {t.status === "finished" && t.winner && (
-          <section className="flex w-48 shrink-0 flex-col" aria-label={tr("Champion")}>
-            <header className="flex h-12 shrink-0 items-center text-sm font-semibold tracking-tight">{tr("Champion")}</header>
-            <div className="flex flex-1 items-center">
-              <div className="flex w-full items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
-                <Trophy className="size-5 shrink-0 text-warning" />
-                <span className="truncate font-semibold">{t.winner.username}</span>
-              </div>
+          <section className="flex w-56 shrink-0 flex-col rounded-xl border border-warning/40 bg-warning/5 p-3" aria-label={tr("Champion")}>
+            <header className="shrink-0 border-b border-warning/30 pb-2.5 text-sm font-semibold tracking-tight">{tr("Champion")}</header>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+              <Trophy className="size-10 text-warning" />
+              <Avatar name={t.winner.username} src={t.winner.avatar} size={48} />
+              <span className="truncate text-lg font-semibold">{t.winner.username}</span>
             </div>
           </section>
         )}
@@ -87,73 +91,72 @@ function pairs<T>(list: T[]): T[][] {
   return out;
 }
 
-const STATUS: Record<Match["status"], string> = { waiting: "", ready: "Ready", live: "Live", done: "", cancelled: "Cancelled" };
+const STATUS: Record<Match["status"], string> = { waiting: "Waiting", ready: "Ready", live: "Live", done: "Over", cancelled: "Cancelled" };
 
-/** A match: its two players with the sets they won, the winner in full colour; the account's own outlined. */
+/**
+ * A match: a head with its number and state (and the organiser's way to decide it), then its two players with their
+ * score, the winner in full colour; the account's own outlined.
+ */
 function MatchCard({ match: m, me, joined, onOpen, onAward }: { match: Match; me?: string; joined: boolean; onOpen?: (m: Match) => void; onAward?: (m: Match, winner: Person) => void }) {
   const mine = !!me && m.players.some((p) => p?.id === me),
     bye = m.status === "done" && m.players.filter(Boolean).length === 1,
     open = !!onOpen && m.status !== "waiting" && !bye,
     decidable = !!onAward && (m.status === "ready" || m.status === "live") && m.players.every(Boolean);
-  const body = (
-    <>
-      {[0, 1].map((seat) => {
-        const p = m.players[seat],
-          won = !!p && m.winner === p.id;
-        return (
-          <span key={seat} className={cn("flex h-7 items-center gap-2 px-3", seat === 0 && "border-b border-border/60")}>
-            {won && <Crown className="size-3.5 shrink-0 text-warning" />}
-            <span className={cn("min-w-0 flex-1 truncate text-sm", !p ? "text-muted-foreground/60 italic" : won ? "font-semibold" : m.winner ? "text-muted-foreground" : "", p?.id === me && "text-primary")}>
-              {p ? p.username : bye ? tr("Bye") : tr("To be decided")}
-            </span>
-            {p && m.status !== "waiting" && !bye && (
-              <span className={cn(NUMERIC, "text-sm", won ? "font-semibold" : "text-muted-foreground")}>{m.score.sets[seat]}</span>
-            )}
-          </span>
-        );
-      })}
-    </>
-  );
+  const rows = [0, 1].map((seat) => {
+    const p = m.players[seat],
+      won = !!p && m.winner === p.id;
+    return (
+      <span key={seat} className={cn("flex h-11 items-center gap-2.5 px-3", seat === 0 ? "border-b" : "rounded-b-xl", won && "bg-warning/8")}>
+        {p ? <Avatar name={p.username} src={p.avatar} size={24} /> : <span className="size-6 shrink-0 rounded-full border border-dashed" />}
+        <span className={cn("min-w-0 flex-1 truncate text-sm", !p ? "text-muted-foreground/60 italic" : won ? "font-semibold" : m.winner ? "text-muted-foreground" : "font-medium", p?.id === me && "text-primary")}>
+          {p ? p.username : bye ? tr("Bye") : tr("To be decided")}
+        </span>
+        {won && <Crown className="size-4 shrink-0 text-warning" />}
+        {p && m.status !== "waiting" && !bye && <span className={cn(NUMERIC, "w-5 text-right text-base", won ? "font-semibold" : "text-muted-foreground")}>{scoreOf(m)[seat]}</span>}
+      </span>
+    );
+  });
   return (
     <div
       className={cn(
-        "relative rounded-lg border bg-card",
-        mine && "ring-1 ring-primary/70",
-        m.status === "live" && "border-primary/50",
+        "relative overflow-visible rounded-xl border bg-card shadow-xs",
+        mine && "border-primary/60 ring-1 ring-primary/40",
+        m.status === "live" && "border-primary/60",
+        bye && "opacity-60",
         // The line coming from the pair before.
-        joined && "before:pointer-events-none before:absolute before:top-1/2 before:right-full before:w-5 before:border-t before:border-border",
+        joined && "before:pointer-events-none before:absolute before:top-1/2 before:right-full before:w-7 before:border-t-2 before:border-foreground/20",
       )}
       data-match={m.id}
       data-status={m.status}
     >
-      {STATUS[m.status] && (
-        <span className={cn("absolute -top-2 right-2 flex items-center gap-1 rounded-full border bg-background px-1.5 text-[10px] font-medium", m.status === "live" ? "text-primary" : "text-muted-foreground")}>
+      <div className="flex h-8 items-center gap-2 border-b bg-muted/40 px-3 text-[11px] text-muted-foreground first:rounded-t-xl">
+        <span className={NUMERIC}>{tr("Match {0}", { 0: m.slot + 1 })}</span>
+        <span className={cn("ml-auto flex items-center gap-1 font-medium", m.status === "live" && "text-primary", m.status === "ready" && "text-success")}>
           {m.status === "live" && <span className="size-1.5 animate-pulse rounded-full bg-primary" />}
-          {said(STATUS[m.status])}
+          {bye ? tr("Bye") : said(STATUS[m.status])}
           {m.forfeit && tr(" · given")}
         </span>
-      )}
+        {decidable && (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={tr("Decide the match")} className="-mr-1.5 size-6 text-muted-foreground" />}>
+              <MoreHorizontal />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{tr("Give the match to")}</DropdownMenuLabel>
+                {m.players.map((p) => p && <DropdownMenuItem key={p.id} onClick={() => onAward!(m, p)}>{p.username}</DropdownMenuItem>)}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
       {open ? (
-        <button type="button" onClick={() => onOpen!(m)} className="flex w-full flex-col rounded-lg text-left outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50" aria-label={tr("Open the match {0}", { 0: m.players.map((p) => p?.username ?? "?").join(" against ") })}>
-          {body}
+        <button type="button" onClick={() => onOpen!(m)} className="flex w-full flex-col rounded-b-xl text-left outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/50" aria-label={tr("Open the match {0}", { 0: m.players.map((p) => p?.username ?? "?").join(" against ") })}>
+          {rows}
         </button>
       ) : (
-        <div className="flex flex-col">{body}</div>
+        <div className="flex flex-col">{rows}</div>
       )}
-      {decidable && (
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="icon-xs" aria-label={tr("Decide the match")} className="absolute -top-2.5 left-2 size-5 rounded-full bg-background text-muted-foreground" />}>
-            <MoreHorizontal />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-auto">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>{tr("Give the match to")}</DropdownMenuLabel>
-              {m.players.map((p) => p && <DropdownMenuItem key={p.id} onClick={() => onAward!(m, p)}>{p.username}</DropdownMenuItem>)}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-      {m.forfeit && !STATUS[m.status] && <span className="absolute -top-2 right-2 rounded-full border bg-background px-1.5 text-[10px] text-muted-foreground">{tr("Given")}</span>}
     </div>
   );
 }

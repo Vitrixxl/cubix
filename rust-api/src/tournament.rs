@@ -5,7 +5,8 @@
 //! starts it); they are then drawn at random, byes going to the first drawn when they are not a power of two. A round
 //! opens once every match of the one before is over: everyone waits for everyone. A tournament without a group is open
 //! to every account and run by the administration; a group's is run by its owner and admins, for its members. A battle
-//! is a single match launched in a group, against one member or whoever accepts it.
+//! is a single match launched in a conversation: in a group, against one member or whoever accepts it; between two
+//! friends, against the other. Battles and a group's tournaments show in their conversation as cards.
 //!
 //! The HTTP routes live under /api/tournaments and /api/matches (`route`, on the database thread). Matches are played
 //! on the socket /api/matches/live (`upgrade`): the players' solves, their timers' phases, and whoever watches.
@@ -113,7 +114,8 @@ fn playing(row: &Value) -> bool {
 // Matches.
 
 const MATCH_SQL: &str = "SELECT m.*,a.username a_name,a.avatar a_avatar,b.username b_name,b.avatar b_avatar,t.name tournament_name,
-  g.name group_name,c.username creator_name FROM matches m
+  g.name group_name,c.username creator_name,(SELECT conversation_id FROM social_messages x WHERE x.match_id=m.id LIMIT 1) conversation_id
+ FROM matches m
  LEFT JOIN users a ON a.id=m.player_a LEFT JOIN users b ON b.id=m.player_b LEFT JOIN users c ON c.id=m.created_by
  LEFT JOIN tournaments t ON t.id=m.tournament_id LEFT JOIN social_groups g ON g.id=m.group_id";
 fn match_row(db: &Connection, id: i64) -> Result<Value> {
@@ -163,12 +165,15 @@ fn match_value(row: &Value, rows: &[Value], full: bool) -> Value {
     let id = row["id"].as_i64().unwrap();
     let s = match_score(row, rows);
     let player = |id: &Value, name: &Value, avatar: &Value| if id.is_null() { Value::Null } else { person(id, name, avatar) };
+    let won = [0, 1].map(|seat| s.solves.iter().filter(|w| **w == Some(seat)).count());
     let mut value = json!({
         "id": id,
         "tournamentId": row["tournament_id"],
         "tournament": row["tournament_name"],
         "groupId": row["group_id"],
         "group": row["group_name"],
+        // The conversation whose card shows the battle.
+        "conversationId": row["conversation_id"],
         "round": row["round"],
         "slot": row["slot"],
         "event": row["event"],
@@ -178,7 +183,8 @@ fn match_value(row: &Value, rows: &[Value], full: bool) -> Value {
         "winner": row["winner"],
         "forfeit": row["forfeit"] == 1,
         "players": [player(&row["player_a"], &row["a_name"], &row["a_avatar"]), player(&row["player_b"], &row["b_name"], &row["b_avatar"])],
-        "score": {"sets": s.sets, "points": s.points},
+        // Sets won, solves won in the set under way, and solves won in all.
+        "score": {"sets": s.sets, "points": s.points, "solves": won},
         "solved": rows.len(),
         "createdBy": row["created_by"],
         "creator": row["creator_name"],
@@ -194,12 +200,40 @@ fn match_value(row: &Value, rows: &[Value], full: bool) -> Value {
     }
     value
 }
-/// Whether the account may see the match: a group's for its members, any other for everyone signed in.
+/// Whether the account may see the match: a group's for its members, a battle between two friends for them, an open
+/// tournament's for everyone signed in.
 fn visible(db: &Connection, row: &Value, uid: &str) -> Result<()> {
     if let Some(group) = row["group_id"].as_i64() {
         social::member(db, group, uid, false).map_err(|_| ApiError::new(404, UNKNOWN_MATCH))?;
+    } else if row["tournament_id"].is_null() && seat_of(row, uid).is_none() {
+        return Err(ApiError::new(404, UNKNOWN_MATCH));
     }
     Ok(())
+}
+/// Tells the players of a match, and the members of its group (whose conversation shows it), where it now stands.
+fn announce(db: &Connection, state: &AppState, row: &Value, status: &str) -> Result<()> {
+    let players = players_of(row);
+    let mut users = players.clone();
+    if let Some(group) = row["group_id"].as_i64() {
+        users.extend(social::members(db, group)?);
+        users.sort();
+        users.dedup();
+    }
+    notify(
+        state,
+        &users,
+        "match",
+        json!({"match": row["id"], "status": status, "players": players, "tournament": row["tournament_name"], "round": row["round"], "group": row["group_name"], "groupId": row["group_id"]}),
+    );
+    Ok(())
+}
+/// A battle as its card in a conversation shows it.
+pub fn match_card(db: &Connection, id: i64) -> Result<Value> {
+    match_dto(db, &match_row(db, id)?, false)
+}
+/// A tournament as its card in a conversation shows it, for the account `uid` when known.
+pub fn tournament_card(db: &Connection, id: i64, uid: Option<&str>) -> Result<Value> {
+    tournament_dto(db, &tournament_row(db, id)?, uid)
 }
 /// Closes a match: its winner (a seat), whether it was given rather than raced; a tournament's goes on.
 fn finish(db: &Connection, state: &AppState, row: &Value, winner: usize, forfeit: bool) -> Result<()> {
@@ -209,7 +243,7 @@ fn finish(db: &Connection, state: &AppState, row: &Value, winner: usize, forfeit
         "UPDATE matches SET status='done',winner=?,forfeit=?,finished_at=? WHERE id=? AND status IN ('ready','live')",
         params![user.as_str(), forfeit as i64, now(), id],
     )?;
-    notify(state, &players_of(row), "match", json!({"match": id, "status": "done"}));
+    announce(db, state, row, "done")?;
     if let Some(tournament) = row["tournament_id"].as_i64() {
         advance(db, state, tournament)?;
         changed(db, state, &tournament_row(db, tournament)?)?;
@@ -255,6 +289,7 @@ fn play(db: &Connection, state: &AppState, id: i64, seat: usize, body: &Value) -
             db.execute("INSERT OR IGNORE INTO match_solves(match_id,number,scramble) VALUES(?,?,?)", params![id, number, text])?;
             if row["status"] == "ready" {
                 db.execute("UPDATE matches SET status='live',started_at=? WHERE id=?", params![now(), id])?;
+                announce(db, state, &row, "live")?;
             }
             publish(db, state, id)
         }
@@ -354,9 +389,11 @@ pub fn list(db: &Connection, group: Option<i64>, uid: &str) -> Result<Value> {
     // Whether the account is registered, and its match to play, read with each tournament.
     let mine = ",EXISTS(SELECT 1 FROM tournament_players p WHERE p.tournament_id=t.id AND p.user_id=?2) registered,
       (SELECT id FROM matches m WHERE m.tournament_id=t.id AND m.status IN ('ready','live') AND (m.player_a=?2 OR m.player_b=?2)) my_match";
+    // Every account's tournaments come with those of the account's groups.
+    let scope = if group.is_some() { "t.group_id IS ?1" } else { "(t.group_id IS NULL OR t.group_id IN (SELECT group_id FROM group_members WHERE user_id=?2 AND role!='invited'))" };
     let rows = all(
         db,
-        &format!("{} WHERE t.group_id IS ?1 ORDER BY CASE WHEN t.status IN ('open','running') THEN 0 ELSE 1 END,
+        &format!("{} WHERE {scope} ORDER BY CASE WHEN t.status IN ('open','running') THEN 0 ELSE 1 END,
           CASE WHEN t.status IN ('open','running') THEN t.starts_at ELSE -t.starts_at END LIMIT 100", tournament_sql(mine)),
         params![group, uid],
     )?;
@@ -374,7 +411,7 @@ pub fn detail(db: &Connection, id: i64, uid: Option<&str>) -> Result<Value> {
     let mut value = tournament_dto(db, &t, uid)?;
     let players = all(
         db,
-        "SELECT p.seed,p.registered_at,u.id,u.username,u.avatar FROM tournament_players p JOIN users u ON u.id=p.user_id
+        "SELECT p.seed,p.registered_at,p.withdrawn,u.id,u.username,u.avatar FROM tournament_players p JOIN users u ON u.id=p.user_id
          WHERE p.tournament_id=? ORDER BY p.seed IS NULL,p.seed,p.registered_at",
         [id],
     )?;
@@ -382,6 +419,7 @@ pub fn detail(db: &Connection, id: i64, uid: Option<&str>) -> Result<Value> {
         let mut v = person(&p["id"], &p["username"], &p["avatar"]);
         v["seed"] = p["seed"].clone();
         v["registeredAt"] = p["registered_at"].clone();
+        v["withdrawn"] = json!(p["withdrawn"] == 1);
         v
     }).collect::<Vec<_>>());
     value["matches"] = json!(match_list(db, "WHERE m.tournament_id=? ORDER BY m.round,m.slot", [id])?);
@@ -416,6 +454,11 @@ pub fn create(db: &Connection, state: &AppState, body: &Value, group: Option<i64
     let id = db.last_insert_rowid();
     if let Some(group) = group {
         notify(state, &social::members(db, group)?, "tournament", json!({"tournament": id, "group": group, "created": true}));
+        // Its card in the group's conversation, from its organiser.
+        if let Some(by) = by {
+            let author = required(db, "SELECT id,username,avatar FROM users WHERE id=?", [by], UNKNOWN_TOURNAMENT)?;
+            social::post(db, state, &social::group_conversation(db, group)?, &author, "", social::Card { tournament_id: Some(id), ..Default::default() })?;
+        }
     }
     detail(db, id, by)
 }
@@ -492,7 +535,7 @@ pub fn start(db: &mut Connection, state: &AppState, id: i64) -> Result<()> {
 /// Tells the players of a round's matches that theirs can be played.
 fn ready(db: &Connection, state: &AppState, id: i64, round: i64) -> Result<()> {
     for m in all(db, &format!("{MATCH_SQL} WHERE m.tournament_id=? AND m.round=? AND m.status='ready'"), params![id, round])? {
-        notify(state, &players_of(&m), "match", json!({"match": m["id"], "status": "ready", "tournament": m["tournament_name"], "round": round}));
+        announce(db, state, &m, "ready")?;
     }
     Ok(())
 }
@@ -514,13 +557,24 @@ pub fn advance(db: &Connection, state: &AppState, id: i64) -> Result<()> {
             db.execute("UPDATE tournaments SET status='finished',winner_id=?,finished_at=? WHERE id=?", params![winner.as_str(), now(), id])?;
             return Ok(());
         }
+        let gone = social::user_ids(db, "SELECT user_id FROM tournament_players WHERE tournament_id=? AND withdrawn=1", [id])?;
+        let gone = |p: &Option<String>| p.as_ref().is_some_and(|u| gone.contains(u));
         for pair in matches.chunks(2) {
             let slot = pair[0]["slot"].as_i64().unwrap_or(0) / 2;
             let [a, b] = [pair.first(), pair.get(1)].map(|m| m.and_then(|m| m["winner"].as_str().map(str::to_owned)));
-            let (status, winner) = outcome(&a, &b, "cancelled");
+            // A player who gave up stays in the bracket, the match given to the other.
+            let (status, winner, forfeit) = match (gone(&a), gone(&b)) {
+                (true, false) if b.is_some() => ("done", b.clone(), true),
+                (false, true) if a.is_some() => ("done", a.clone(), true),
+                (true, _) | (_, true) => ("cancelled", None, false),
+                _ => {
+                    let (status, winner) = outcome(&a, &b, "cancelled");
+                    (status, winner, false)
+                }
+            };
             db.execute(
-                "UPDATE matches SET player_a=?,player_b=?,status=?,winner=?,finished_at=? WHERE tournament_id=? AND round=? AND slot=?",
-                params![a, b, status, winner, (status != "ready").then_some(now()), id, round + 1, slot],
+                "UPDATE matches SET player_a=?,player_b=?,status=?,winner=?,forfeit=?,finished_at=? WHERE tournament_id=? AND round=? AND slot=?",
+                params![a, b, status, winner, forfeit as i64, (status != "ready").then_some(now()), id, round + 1, slot],
             )?;
         }
         db.execute("UPDATE tournaments SET round=? WHERE id=?", params![round + 1, id])?;
@@ -528,6 +582,47 @@ pub fn advance(db: &Connection, state: &AppState, id: i64) -> Result<()> {
     }
 }
 /// Cancels a tournament that has not finished: its matches stop where they are.
+/// A player gives up: before the start, their registration goes; once under way, their match under way goes to their
+/// opponent and every later one too.
+fn withdraw(db: &Connection, state: &AppState, id: i64, uid: &str) -> Result<Value> {
+    let t = tournament_row(db, id)?;
+    if one(db, "SELECT 1 FROM tournament_players WHERE tournament_id=? AND user_id=?", params![id, uid])?.is_none() {
+        return Err(ApiError::new(404, UNKNOWN_TOURNAMENT));
+    }
+    match t["status"].as_str().unwrap_or("") {
+        "open" => return register(db, state, id, uid, false),
+        "running" => {}
+        _ => return Err(ApiError::new(409, "This tournament is over.")),
+    }
+    db.execute("UPDATE tournament_players SET withdrawn=1 WHERE tournament_id=? AND user_id=?", params![id, uid])?;
+    let playing = one(db, "SELECT id FROM matches WHERE tournament_id=?1 AND status IN ('ready','live') AND (player_a=?2 OR player_b=?2)", params![id, uid])?;
+    if let Some(m) = playing.and_then(|r| r["id"].as_i64()) {
+        let row = match_row(db, m)?;
+        finish(db, state, &row, 1 - seat_of(&row, uid).unwrap_or(0), true)?;
+        publish(db, state, m)?;
+    } else {
+        changed(db, state, &t)?;
+    }
+    detail(db, id, Some(uid))
+}
+/// What the account is in the middle of, which the app keeps it in until it is over or given up: a battle ready or
+/// under way, else a tournament under way it is still in.
+pub fn current(db: &Connection, uid: &str) -> Result<Value> {
+    let battle = one(
+        db,
+        "SELECT id FROM matches WHERE tournament_id IS NULL AND status IN ('ready','live') AND (player_a=?1 OR player_b=?1) ORDER BY id DESC LIMIT 1",
+        [uid],
+    )?;
+    let tournament = one(
+        db,
+        "SELECT t.id FROM tournaments t JOIN tournament_players p ON p.tournament_id=t.id AND p.user_id=?1
+         WHERE t.status='running' AND p.withdrawn=0 AND NOT EXISTS (SELECT 1 FROM matches m WHERE m.tournament_id=t.id
+           AND m.status IN ('done','cancelled') AND (m.player_a=?1 OR m.player_b=?1) AND (m.winner IS NULL OR m.winner!=?1))
+         ORDER BY t.started_at LIMIT 1",
+        [uid],
+    )?;
+    Ok(json!({"match": battle.map(|r| r["id"].clone()), "tournament": tournament.map(|r| r["id"].clone())}))
+}
 pub fn cancel(db: &Connection, state: &AppState, id: i64) -> Result<()> {
     let t = tournament_row(db, id)?;
     if !["open", "running"].contains(&t["status"].as_str().unwrap_or("")) {
@@ -585,18 +680,36 @@ pub fn battles(db: &Connection, group: i64) -> Result<Value> {
         [group],
     )?))
 }
-fn battle(db: &Connection, state: &AppState, uid: &str, body: &Value) -> Result<Value> {
-    let group = number(body, "groupId", 1, i64::MAX)?;
-    social::member(db, group, uid, false)?;
+/// A new battle, waiting for its opponent; its card goes to the conversation it was launched from.
+fn battle(db: &Connection, state: &AppState, user: &Value, body: &Value) -> Result<Value> {
+    let uid = user["id"].as_str().unwrap();
+    // Where it is launched: a conversation, a group's or two friends', or a group by its id.
+    let conversation = match body.get("conversationId") {
+        Some(_) => social::conversation(db, number(body, "conversationId", 1, i64::MAX)?, uid)?,
+        None => {
+            let group = number(body, "groupId", 1, i64::MAX)?;
+            social::member(db, group, uid, false)?;
+            social::group_conversation(db, group)?
+        }
+    };
+    let group = conversation["group_id"].as_i64();
     let (event, points, sets) = format(body)?;
-    let opponent = match body.get("opponentId") {
-        None | Some(Value::Null) => None,
-        Some(_) => {
-            let other = string(body, "opponentId", 1, 64)?;
-            if other == uid || social::member(db, group, other, false).is_err() {
-                return Err(ApiError::new(422, "Pick a member of the group."));
+    let opponent = match group {
+        Some(group) => match body.get("opponentId") {
+            None | Some(Value::Null) => None,
+            Some(_) => {
+                let other = string(body, "opponentId", 1, 64)?;
+                if other == uid || social::member(db, group, other, false).is_err() {
+                    return Err(ApiError::new(422, "Pick a member of the group."));
+                }
+                Some(other.to_owned())
             }
-            Some(other.to_owned())
+        },
+        // Between two friends, against the other.
+        None => {
+            let other = [&conversation["user_a"], &conversation["user_b"]].into_iter().filter_map(Value::as_str).find(|u| *u != uid).unwrap_or_default().to_owned();
+            social::require_friend(db, uid, &other)?;
+            Some(other)
         }
     };
     db.execute(
@@ -604,11 +717,23 @@ fn battle(db: &Connection, state: &AppState, uid: &str, body: &Value) -> Result<
         params![group, event, points, sets, uid, opponent, uid, now()],
     )?;
     let id = db.last_insert_rowid();
+    social::post(db, state, &conversation, user, "", social::Card { match_id: Some(id), ..Default::default() })?;
     let row = match_row(db, id)?;
-    let challenged = opponent.map_or_else(|| social::members(db, group).unwrap_or_default(), |o| vec![o]);
+    let challenged = match (&opponent, group) {
+        (Some(o), _) => vec![o.clone()],
+        (None, Some(group)) => social::members(db, group).unwrap_or_default(),
+        (None, None) => vec![],
+    };
     let others: Vec<String> = challenged.into_iter().filter(|u| u != uid).collect();
-    notify(state, &others, "battle", json!({"match": id, "group": group, "groupName": row["group_name"], "from": row["creator_name"], "open": row["player_b"].is_null()}));
-    social::changed(db, state, group, false)?;
+    notify(
+        state,
+        &others,
+        "battle",
+        json!({"match": id, "group": group, "groupName": row["group_name"], "conversation": conversation["id"], "from": row["creator_name"], "open": row["player_b"].is_null()}),
+    );
+    if let Some(group) = group {
+        social::changed(db, state, group, false)?;
+    }
     match_dto(db, &row, false)
 }
 
@@ -636,6 +761,8 @@ pub fn route(
         ("GET", ["tournaments", t]) => detail(db, id(t)?, Some(uid)),
         ("POST", ["tournaments", t, "register"]) => register(db, state, id(t)?, uid, true),
         ("DELETE", ["tournaments", t, "register"]) => register(db, state, id(t)?, uid, false),
+        ("POST", ["tournaments", t, "withdraw"]) => withdraw(db, state, id(t)?, uid),
+        ("GET", ["competition"]) => current(db, uid),
         ("POST", ["tournaments", t, action @ ("start" | "cancel")]) => {
             let t_id = id(t)?;
             if !organises(db, &tournament_row(db, t_id)?, uid) {
@@ -644,7 +771,7 @@ pub fn route(
             if *action == "start" { start(db, state, t_id)? } else { cancel(db, state, t_id)? }
             detail(db, t_id, Some(uid))
         }
-        ("POST", ["matches"]) => battle(db, state, uid, body),
+        ("POST", ["matches"]) => battle(db, state, user, body),
         ("GET", ["matches", m]) => {
             let row = match_row(db, id(m)?)?;
             visible(db, &row, uid)?;
@@ -659,7 +786,7 @@ pub fn route(
             }
             db.execute("UPDATE matches SET player_b=?,status='ready' WHERE id=?", params![uid, row["id"].as_i64()])?;
             let row = match_row(db, row["id"].as_i64().unwrap())?;
-            notify(state, &players_of(&row), "match", json!({"match": row["id"], "status": "ready", "group": row["group_name"]}));
+            announce(db, state, &row, "ready")?;
             if let Some(group) = row["group_id"].as_i64() {
                 social::changed(db, state, group, false)?;
             }
@@ -672,7 +799,7 @@ pub fn route(
                 return Err(ApiError::new(409, "This battle cannot be called off."));
             }
             db.execute("UPDATE matches SET status='cancelled',finished_at=? WHERE id=?", params![now(), row["id"].as_i64()])?;
-            notify(state, &players_of(&row), "match", json!({"match": row["id"], "status": "cancelled"}));
+            announce(db, state, &row, "cancelled")?;
             if let Some(group) = row["group_id"].as_i64() {
                 social::changed(db, state, group, false)?;
             }

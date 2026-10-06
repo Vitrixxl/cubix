@@ -199,6 +199,12 @@ export function Onboarding() {
       const puzzle = known.includes(s.puzzle as PuzzleId) ? (s.puzzle as PuzzleId) : known[0] ?? (s.puzzle as PuzzleId);
       if (puzzle !== s.puzzle) { s.pref("cubix.puzzle", puzzle); s.puzzle = puzzle; s.loadContext(); }
       s.overlay = "";
+      // An address opened before the introduction (a friend's link) comes next, without the tour.
+      const next = new URLSearchParams(location.search).get("next");
+      if (next?.startsWith("/") && !next.startsWith("//")) {
+        go(next, true);
+        return s.emit();
+      }
       goPage(known.includes(puzzle) ? "playground" : "learn", { puzzle }, true);
       s.overlay = tour ? "tour" : ""; s.emit();
     } catch (e) { setError((e as Error).message); } finally { setSaving(false); }

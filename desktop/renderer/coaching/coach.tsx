@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { tr, locale } from "../../../src/client/i18n";
+import { ask } from "../confirm";
 import { said } from "../base";
 
 function useDashboard() {
@@ -326,7 +327,7 @@ function Picture() {
               {coach.avatar ? tr("Change") : tr("Add a picture")}
             </UiButton>
             {coach.avatar && (
-              <UiButton type="button" variant="ghost" size="sm" disabled={pending} onClick={() => set(null)}>
+              <UiButton type="button" variant="ghost" size="sm" disabled={pending} onClick={async () => (await ask({ title: tr("Remove your picture?"), action: tr("Remove") })) && set(null)}>
                 {tr("Remove")}</UiButton>
             )}
           </div>

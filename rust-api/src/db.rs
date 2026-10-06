@@ -56,6 +56,12 @@ impl Db {
         // The policy and acceptance time are recorded only for bookings made with explicit consent.
         add_column_if_missing(&db, "coach_bookings", "cancellation_policy", "TEXT")?;
         add_column_if_missing(&db, "coach_bookings", "cancellation_policy_accepted_at", "INTEGER")?;
+        // Battles and tournaments shown as cards in the community's conversations.
+        add_column_if_missing(&db, "social_messages", "match_id", "INTEGER REFERENCES matches(id) ON DELETE CASCADE")?;
+        add_column_if_missing(&db, "social_messages", "tournament_id", "INTEGER REFERENCES tournaments(id) ON DELETE CASCADE")?;
+        // Giving up a tournament under way arrived with the tournament's own screen.
+        add_column_if_missing(&db, "tournament_players", "withdrawn", "INTEGER NOT NULL DEFAULT 0")?;
+        db.execute_batch("CREATE INDEX IF NOT EXISTS idx_social_messages_match ON social_messages(match_id) WHERE match_id IS NOT NULL")?;
         // Pictures and videos in coaching conversations arrived after the first messages.
         for (column, definition) in [("media_id", "TEXT"), ("media_type", "TEXT"), ("media_size", "INTEGER"), ("media_name", "TEXT")] {
             add_column_if_missing(&db, "coach_messages", column, definition)?;

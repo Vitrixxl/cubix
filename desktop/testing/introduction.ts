@@ -178,7 +178,7 @@ try {
   await skipDialog.getByRole("button", { name: "Keep learning", exact: true }).click();
   await skipDialog.waitFor({ state: "detached" });
   assert.equal(new URL(page.url()).pathname, "/learn/reduction");
-  await page.keyboard.press("Alt+3"); await skipDialog.waitFor();
+  await page.keyboard.press("Alt+2"); await skipDialog.waitFor();
   await page.keyboard.press("Escape"); await skipDialog.waitFor({ state: "detached" });
   await page.goto(origin + "/timer?puzzle=444");
   await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "444");
@@ -228,13 +228,13 @@ try {
   assert.notEqual(new URL(page.url()).pathname, "/onboarding");
 
   // Routing: shortcuts, deep links, reload and history.
-  assert.deepEqual(await page.locator('[aria-label="Sections"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:algorithms", "nav:training", "nav:duel", "nav:learn", "nav:coaching"]);
+  // The sections in their groups, in the order of their shortcuts.
+  assert.deepEqual(await page.locator('.rail [data-sidebar="content"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:analysis", "nav:algorithms", "nav:learn", "nav:training", "nav:duel", "nav:tournaments", "nav:community", "nav:coaching"]);
   await page.locator('[data-action="nav:profile"]').first().click(); await page.waitForURL("**/profile*");
-  for (const [key, pathname] of [["1", "/timer"], ["2", "/algorithms"], ["3", "/training"], ["4", "/duel"], ["5", "/learn"], ["6", "/coaching"]]) {
+  for (const [key, pathname] of [["1", "/timer"], ["2", "/algorithms"], ["3", "/learn"], ["4", "/training"], ["5", "/duel"], ["6", "/tournaments"], ["7", "/community"], ["8", "/coaching"], ["9", "/profile/analysis"]]) {
     await page.keyboard.press("Alt+" + key);
     await page.waitForURL(url => url.pathname.startsWith(pathname));
   }
-  await page.keyboard.press("Alt+7"); assert.ok(new URL(page.url()).pathname.startsWith("/coaching"));
   await page.locator('[data-action="nav:profile"]').first().click();
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await page.goBack(); await page.waitForURL("**/profile?*");

@@ -644,9 +644,6 @@ pub fn social(db: &mut Connection) -> Result<bool> {
     let say = |conversation: i64, who: &str, body: &str, ago: i64| {
         tx.execute("INSERT INTO social_messages(conversation_id,sender_id,body,created_at) VALUES(?,?,?,?)", params![conversation, id(who), body, at - ago])
     };
-    say(direct, "lena_speed", "Your Ao12 went down a lot this week!", 3 * HOUR_MS)?;
-    say(direct, "dev", "Thanks, the F2L drills helped. Club cup this weekend?", 2 * HOUR_MS)?;
-    say(direct, "lena_speed", "Already registered. See you in the bracket 😄", HOUR_MS)?;
     // Two groups: the dev account runs the first, and is invited to the second.
     let group = |name: &str, description: &str, owner: &str, members: &[(&str, &str)]| -> Result<(i64, i64)> {
         tx.execute("INSERT INTO social_groups(name,description,owner_id,created_at) VALUES(?,?,?,?)", params![name, description, id(owner), at - 30 * DAY_MS])?;
@@ -664,10 +661,13 @@ pub fn social(db: &mut Connection) -> Result<bool> {
     let club_members = [("lena_speed", "admin"), ("alex_cubes", "member"), ("coach", "member"), ("ben_tps", "member"), ("chloe_f2l", "member"), ("hugo_sub10", "member"), ("kenji_cfop", "member"), ("emma_pll", "invited")];
     let (club, club_chat) = group("Cubix Club", "Weekly races and a cup every month. Be nice, turn fast.", "dev", &club_members)?;
     group("Big cubes", "4×4 and up, reduction and Yau.", "lena_speed", &[("quentin_4x4", "member"), ("dev", "invited")])?;
-    say(club_chat, "dev", "Welcome everyone! The Club cup opens on Saturday.", 26 * HOUR_MS)?;
-    say(club_chat, "alex_cubes", "Can we do 2×2 battles in between?", 25 * HOUR_MS)?;
-    say(club_chat, "lena_speed", "Sure, launch one from the Battles tab.", 24 * HOUR_MS)?;
-    say(club_chat, "hugo_sub10", "Friday sprint starts in a few minutes, register!", 40 * MINUTE_MS)?;
+    // A card in a conversation: a battle (`m`) or a tournament (`t`) as its message.
+    let card = |conversation: i64, who: &str, m: Option<i64>, t: Option<i64>, ago: i64| {
+        tx.execute(
+            "INSERT INTO social_messages(conversation_id,sender_id,body,created_at,match_id,tournament_id) VALUES(?,?,'',?,?,?)",
+            params![conversation, id(who), at - ago, m, t],
+        )
+    };
     // Tournaments: the group's and the administration's; the "sprint" ones start a few minutes from now.
     let tournament = |name: &str, event: &str, group: Option<i64>, by: Option<String>, starts: i64, points: i64, sets: i64, players: &[&str]| -> Result<i64> {
         tx.execute(
@@ -681,18 +681,54 @@ pub fn social(db: &mut Connection) -> Result<bool> {
         Ok(t)
     };
     let club_players = ["dev", "lena_speed", "alex_cubes", "coach", "ben_tps", "chloe_f2l", "hugo_sub10"];
-    tournament("Club cup", "333", Some(club), Some(id("dev")), at + 2 * DAY_MS, 3, 2, &club_players)?;
-    tournament("Friday sprint", "222", Some(club), Some(id("lena_speed")), at + 3 * MINUTE_MS, 2, 1, &["dev", "lena_speed", "alex_cubes", "kenji_cfop", "hugo_sub10"])?;
+    let cup = tournament("Club cup", "333", Some(club), Some(id("dev")), at + 2 * DAY_MS, 3, 2, &club_players)?;
+    let sprint = tournament("Friday sprint", "222", Some(club), Some(id("lena_speed")), at + 3 * MINUTE_MS, 2, 1, &["dev", "lena_speed", "alex_cubes", "kenji_cfop", "hugo_sub10"])?;
     let open = ["lena_speed", "alex_cubes", "kenji_cfop", "emma_pll", "felix_roux", "gaia_zz", "ines_bld", "tess_cll", "vera_zbll"];
     tournament("Qbix Autumn Open", "333", None, None, at + 3 * DAY_MS, 3, 2, &open)?;
     tournament("Weekly 2×2 sprint", "222", None, None, at + 5 * MINUTE_MS, 2, 1, &["dev", "alex_cubes", "kenji_cfop"])?;
     // Battles waiting in the club: one open to all, one aimed at the dev account.
+    let mut battles = vec![];
     for (from, to, event) in [("alex_cubes", None, "222"), ("lena_speed", Some("dev"), "333")] {
         tx.execute(
             "INSERT INTO matches(group_id,event,points,sets,player_a,player_b,status,created_by,created_at) VALUES(?,?,3,2,?,?,'waiting',?,?)",
             params![club, event, id(from), to.map(id), id(from), at - 20 * MINUTE_MS],
         )?;
+        battles.push((from, tx.last_insert_rowid()));
     }
+    // The club's conversation, in order, its cards among the words.
+    say(club_chat, "dev", "Welcome everyone! The Club cup opens on Saturday.", 26 * HOUR_MS)?;
+    card(club_chat, "dev", None, Some(cup), 26 * HOUR_MS - MINUTE_MS)?;
+    say(club_chat, "alex_cubes", "Can we do 2×2 battles in between?", 25 * HOUR_MS)?;
+    say(club_chat, "lena_speed", "Sure, launch one from the swords at the top of the chat.", 24 * HOUR_MS)?;
+    card(club_chat, "lena_speed", None, Some(sprint), 45 * MINUTE_MS)?;
+    say(club_chat, "hugo_sub10", "Friday sprint starts in a few minutes, register!", 40 * MINUTE_MS)?;
+    for (from, battle) in battles {
+        card(club_chat, from, Some(battle), None, 20 * MINUTE_MS)?;
+    }
+    // Between friends: words, then a battle raced and won, solve by solve.
+    say(direct, "lena_speed", "Your Ao12 went down a lot this week!", 3 * HOUR_MS)?;
+    say(direct, "dev", "Thanks, the F2L drills helped. Club cup this weekend?", 2 * HOUR_MS + 30 * MINUTE_MS)?;
+    say(direct, "lena_speed", "Already registered. Quick warm-up battle?", 2 * HOUR_MS + 20 * MINUTE_MS)?;
+    tx.execute(
+        "INSERT INTO matches(event,points,sets,player_a,player_b,status,winner,created_by,created_at,started_at,finished_at) VALUES('333',3,1,?,?,'done',?,?,?,?,?)",
+        params![id("lena_speed"), id("dev"), id("dev"), id("lena_speed"), at - 2 * HOUR_MS - 15 * MINUTE_MS, at - 2 * HOUR_MS - 10 * MINUTE_MS, at - 2 * HOUR_MS],
+    )?;
+    let warm_up = tx.last_insert_rowid();
+    let race = [
+        ("R2 U' F2 D' L2 U R2 B2 U' F2 R' B' L' D2 F U' L2 B' R D'", 9_870, "none", 10_420, "none"),
+        ("F' L2 D R2 U' B2 D' L2 F2 U2 R2 B U' L' F' R D' F' U2 L'", 11_350, "none", 10_930, "none"),
+        ("U2 L' B2 R' D2 L F2 D2 R' U2 B' U L2 F' D B R' U' F2 U'", 10_010, "+2", 10_880, "none"),
+        ("B2 D' R2 F2 U L2 D B2 R2 U2 F' L' B' U R' F2 D L' B U2", 9_640, "none", 11_200, "none"),
+        ("L2 F' U2 R2 D' B2 U L2 D2 F2 R' D' B L U' F R2 U B' L", 10_120, "none", 10_760, "none"),
+    ];
+    for (n, (scramble, dev_ms, dev_penalty, lena_ms, lena_penalty)) in race.iter().enumerate() {
+        tx.execute(
+            "INSERT INTO match_solves(match_id,number,scramble,a_ms,a_penalty,b_ms,b_penalty) VALUES(?,?,?,?,?,?,?)",
+            params![warm_up, n as i64 + 1, scramble, lena_ms, lena_penalty, dev_ms, dev_penalty],
+        )?;
+    }
+    card(direct, "lena_speed", Some(warm_up), None, 2 * HOUR_MS + 15 * MINUTE_MS)?;
+    say(direct, "lena_speed", "GG, that last one was fast 😄 See you in the bracket.", HOUR_MS)?;
     tx.commit()?;
     Ok(true)
 }

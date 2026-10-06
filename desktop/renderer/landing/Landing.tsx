@@ -20,8 +20,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Logo, Wordmark } from "../logo";
-import { DESCRIPTION, FAQ, FEATURES, IMPORTS, NAME, PUZZLES, SITE, SOURCE, TAGLINE, type Feature } from "./content";
+import { DESCRIPTION, FAQ, FEATURES, IMPORTS, NAME, SITE, SOURCE, TAGLINE, type Feature } from "./content";
 import { CubeStill, SolveStage, solveByItself } from "./SolveStage";
+import { Features } from "./Features";
+import { EVENTS } from "../../../src/shared/puzzles";
 import { tr } from "../../../src/client/i18n";
 import { LanguagePicker, said, useLanguage } from "../base";
 import { preferred, setLanguage } from "../../../src/client/i18n";
@@ -37,13 +39,6 @@ export function detectPlatform(agent: string, touch = 0): Platform {
   return "web";
 }
 
-/** The screens shown in "Look inside" (desktop/assets/landing, taken by desktop/scripts/landing-shots.ts). */
-const SHOTS = [
-  { id: "timer", label: "Timer", alt: "The Qbix timer: a 3×3 scramble, the time and the session's averages" },
-  { id: "algorithms", label: "Algorithms", alt: "The Qbix algorithm library: F2L cases with their diagrams, what you learned and your times" },
-  { id: "learn", label: "Courses", alt: "A Qbix course: a step of the CFOP method with its algorithms on a 3D cube" },
-  { id: "profile", label: "Profile", alt: "A Qbix profile: bests, averages, the practice calendar and a chart of every solve" },
-];
 /** What the first button says once the visitor's platform is known, where there is something to install. */
 const GET: Partial<Record<Platform, string>> = { windows: "Download for Windows", linux: "Install on Linux", macos: "Get it for macOS", android: "Download for Android" };
 
@@ -187,7 +182,7 @@ function Names({ label, names }: { label: string; names: string[] }) {
   return (
     <ul aria-label={said(label)} className="flex flex-wrap gap-x-6 gap-y-1.5 text-lg font-medium text-foreground">
       {names.map((name) => (
-        <li key={name}>{name}</li>
+        <li key={name}>{said(name)}</li>
       ))}
     </ul>
   );
@@ -222,9 +217,11 @@ function Chapter({ feature, right }: { feature: Feature; right: boolean }) {
 }
 
 export function Landing() {
-  // The page arrives in English for every visitor; once React has taken it over, it takes the device's language.
+  // The root arrives in English for every visitor; once React has taken it over, it takes the device's language. A
+  // page of its own language (/fr/…) keeps it: that is the page a search engine shows for it.
   useLanguage();
   useEffect(() => {
+    if (location.pathname !== "/") return;
     const chosen = preferred();
     if (chosen !== "en") void setLanguage(chosen, false);
   }, []);
@@ -284,45 +281,7 @@ export function Landing() {
           </div>
         </SolveStage>
 
-        <Section id="tour" className="flex flex-col gap-10">
-          <Tabs defaultValue="timer" className="gap-8">
-            <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
-              <h2 className="text-4xl leading-none font-semibold tracking-tight md:text-6xl">{tr("Look inside")}</h2>
-              <TabsList>
-                {SHOTS.map((shot) => (
-                  <TabsTrigger key={shot.id} value={shot.id} className="px-3.5">
-                    {said(shot.label)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-            {SHOTS.map((shot) => (
-              <TabsContent keepMounted key={shot.id} value={shot.id}>
-                <img
-                  src={`/assets/landing/${shot.id}.webp`}
-                  alt={said(shot.alt)}
-                  width={1280}
-                  height={800}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full rounded-2xl border shadow-[0_40px_80px_-30px_rgb(0_0_0/0.7)]"
-                />
-              </TabsContent>
-            ))}
-          </Tabs>
-        </Section>
-
-        <Section id="details" className="flex flex-col gap-10 md:gap-14">
-          <h2 className="text-4xl leading-none font-semibold tracking-tight md:text-6xl">{tr("Everything it does")}</h2>
-          <div className="grid gap-x-10 border-b sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map((feature) => (
-              <article key={feature.id} id={feature.id} className="flex scroll-mt-8 flex-col gap-2 border-t py-6">
-                <h3 className="text-lg font-semibold tracking-tight text-balance">{said(feature.title)}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{said(feature.summary)}</p>
-              </article>
-            ))}
-          </div>
-        </Section>
+        <Features />
 
         <Section id="free" className="flex flex-col gap-12 md:gap-16">
           <h2 className="text-[clamp(3.5rem,11vw,6rem)] leading-[0.9] font-semibold tracking-[-0.04em]">
@@ -337,7 +296,13 @@ export function Landing() {
               <p>{tr("The timer, the algorithms, the training, the courses, the duels and the statistics share your times and what you learned: a case you drill is a case you see improve.")}</p>
             </Fact>
             <Fact id="puzzles" title={tr("Every WCA event")}>
-              <Names label={tr("Puzzles")} names={PUZZLES} />
+              <ul aria-label={tr("Puzzles")} className="flex flex-wrap gap-2">
+                {EVENTS.map((e) => (
+                  <li key={e.id} title={said(e.label)} aria-label={said(e.label)} className="flex size-11 items-center justify-center rounded-xl border bg-card transition-colors hover:border-primary/60">
+                    <Logo size={24} puzzle={e.id} />
+                  </li>
+                ))}
+              </ul>
             </Fact>
             <Fact id="import" title={tr("Switch from your timer in a minute")}>
               <p>
@@ -370,7 +335,7 @@ export function Landing() {
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex gap-3">
                   <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
-                  {text}
+                  {said(text)}
                 </li>
               ))}
             </ul>

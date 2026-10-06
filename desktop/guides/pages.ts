@@ -6,7 +6,7 @@ export const GUIDES = {
   timerGuide: { name: 'Timer', path: '/guides/how-to-use-a-cube-timer/', heading: 'Using the cube timer' },
   smartCubeGuide: { name: 'Connected cube', path: '/guides/smart-cube/', heading: 'Solving and training on a connected cube' },
   duelGuide: { name: 'Duel', path: '/guides/cube-duel/', heading: 'Racing another cuber' },
-  communityGuide: { name: 'Community and tournaments', path: '/guides/community-tournaments/', heading: 'Friends, groups and tournaments' },
+  communityGuide: { name: 'Messages and tournaments', path: '/guides/community-tournaments/', heading: 'Friends, groups, battles and tournaments' },
   coachingGuide: { name: 'Coaching', path: '/guides/cubing-coaching/', heading: 'Getting coached, and coaching' },
   methodsGuide: { name: 'Solving methods', path: '/guides/solving-methods/', heading: 'Solving methods' },
   notationGuide: { name: 'Notation', path: '/guides/cube-notation/', heading: 'Reading move notation' },

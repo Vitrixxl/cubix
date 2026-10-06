@@ -2,7 +2,7 @@
  * The account page: who they are beside their year of practice, the chosen event's figures and curve,
  * then training, achievements and battles, the whole overview inside the window. Each section opens its own page.
  */
-import { Activity, BookA, BookOpen, CalendarDays, Dumbbell, Flame, Layers, LogOut, Medal, Settings, type LucideIcon } from "lucide-react";
+import { Activity, BookA, BookOpen, CalendarDays, Download, Dumbbell, FileJson, Flame, Layers, LogOut, Medal, Settings, Sheet, Upload, type LucideIcon } from "lucide-react";
 import { store as s } from "./store";
 import { Avatar, Button, InHead, MenuAction, MoreMenu, NUMERIC, PuzzleButton, SelectMenu, plural, usePhone } from "./ui";
 import { TimerStats } from "./stats";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button as UiButton } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SubPageHead } from "./profile/card";
 import { Heatmap } from "./profile/heatmap";
 import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
@@ -18,7 +19,7 @@ import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
 import { AnalysisPage } from "./profile/analysis";
 import { useProfileData, type ProfileData } from "./profile/data";
 import { tr } from "../../src/client/i18n";
-import { said } from "./base";
+import { said, Tip } from "./base";
 
 const SECTIONS: Record<string, string> = {
   playground: "Timer",
@@ -30,6 +31,32 @@ const SECTIONS: Record<string, string> = {
 
 /** The reading column: centred and capped like GitHub's, the page's padding around it. */
 const COLUMN = "mx-auto w-full max-w-7xl px-6 xl:px-8";
+
+/** Bringing times from another timer (or a Qbix export), and taking all of them away as a file. */
+function DataButtons() {
+  return (
+    <div className="flex shrink-0 gap-1">
+      <Tip content={tr("Import times")}>
+        <UiButton variant="ghost" size="icon" aria-label={tr("Import times")} onClick={() => void s.action("importTimes")} data-action="importTimes" className="text-muted-foreground">
+          <Upload />
+        </UiButton>
+      </Tip>
+      <DropdownMenu>
+        <Tip content={tr("Export")}>
+          <DropdownMenuTrigger render={<UiButton variant="ghost" size="icon" aria-label={tr("Export")} data-action="menu:export" className="text-muted-foreground" />}>
+            <Download />
+          </DropdownMenuTrigger>
+        </Tip>
+        <DropdownMenuContent align="end" className="w-auto">
+          <MenuAction action="exportSolves" icon={Sheet}>
+            {tr("My solves, as a table (CSV)")}</MenuAction>
+          <MenuAction action="exportData" icon={FileJson}>
+            {tr("All my profile's data (JSON)")}</MenuAction>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
 
 /** Who they are and how much they practise, every event together: the avatar and name, then three figures. */
 function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
@@ -52,9 +79,16 @@ function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
             {user?.joined ? tr("Joined {0}", { 0: user.joined }) : null}
           </p>
         </div>
+        {!phone && <DataButtons />}
         {phone && (
           <InHead.Provider value={true}>
             <MoreMenu>
+              <MenuAction action="importTimes" icon={Upload}>
+                {tr("Import times")}</MenuAction>
+              <MenuAction action="exportSolves" icon={Sheet}>
+                {tr("Export my solves (CSV)")}</MenuAction>
+              <MenuAction action="exportData" icon={FileJson}>
+                {tr("Export all my data (JSON)")}</MenuAction>
               <MenuAction action="notation" icon={BookA}>
                 {tr("Notation")}</MenuAction>
               <MenuAction action="help" icon={BookOpen}>

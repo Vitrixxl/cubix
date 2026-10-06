@@ -196,7 +196,10 @@ CREATE TABLE IF NOT EXISTS social_messages (
  conversation_id INTEGER NOT NULL REFERENCES social_conversations(id) ON DELETE CASCADE,
  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
  body TEXT NOT NULL,
- created_at INTEGER NOT NULL
+ created_at INTEGER NOT NULL,
+ -- A battle or a tournament shown in the conversation as a card (body empty).
+ match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
+ tournament_id INTEGER REFERENCES tournaments(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_social_messages_conversation ON social_messages(conversation_id, id);
 -- The last message each member has read in a conversation.
@@ -236,6 +239,8 @@ CREATE TABLE IF NOT EXISTS tournament_players (
  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
  seed INTEGER,
  registered_at INTEGER NOT NULL,
+ -- Gave up once the tournament had started: their matches from then on go to their opponents.
+ withdrawn INTEGER NOT NULL DEFAULT 0,
  PRIMARY KEY(tournament_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_tournament_players_user ON tournament_players(user_id);

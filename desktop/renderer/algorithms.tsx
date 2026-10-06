@@ -42,6 +42,7 @@ export function Algorithms() {
       <PageHead title={tr("Algorithms")} puzzle sub={tr("{0} of {1} learned", { 0: learned, 1: total })} more={mobile && <MenuAction action="methods" icon={BookOpen}>{tr("Solving methods")}</MenuAction>}>
         {!mobile && (
           <>
+            <StageTabs />
             <Button action="search" variant="outline" className="w-56 justify-start gap-2 text-muted-foreground max-lg:w-auto">
               <Search />
               <span className="max-lg:hidden">{tr("Search cases")}</span>
@@ -79,9 +80,26 @@ function currentSection() {
   };
 }
 
+/** The method's steps (F2L, OLL, PLL…) as tabs: over the page on a wide window, over the list on a phone. */
+function StageTabs() {
+  const { stages, stage } = currentSection();
+  if (stages.length < 2) return null;
+  return (
+    <Tabs value={stage} onValueChange={(v: string) => void s.action("stage:" + v)} className="shrink-0">
+      <TabsList aria-label={tr("Step")}>
+        {stages.map((st) => (
+          <TabsTrigger key={st} value={st} data-action={"stage:" + st} className="px-3.5">
+            {said(st)}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
+}
+
 function CaseList({ wide }: { wide: boolean }) {
   const scroll = useScrollPosition(`catalog:${s.puzzle}:${s.catalogStage}`);
-  const { stages, stage, section, all } = currentSection();
+  const { stage, section, all } = currentSection();
   const setLearned = all ? all.learnedCount : 0,
     setTotal = all ? all.all.length : 0;
   // Phones search in place: the list gives way to the matching cases of every set.
@@ -113,17 +131,7 @@ function CaseList({ wide }: { wide: boolean }) {
         </div>
       ) : (
       <>
-      {stages.length > 1 && (
-        <Tabs value={stage} onValueChange={(v: string) => void s.action("stage:" + v)}>
-          <TabsList variant="line" className="h-8 gap-4 px-0">
-            {stages.map((st) => (
-              <TabsTrigger key={st} value={st} data-action={"stage:" + st} className="flex-none px-0 text-sm">
-                {said(st)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      )}
+      {wide && <StageTabs />}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b pb-3">
         {section && section.variants.length > 1 && (
           <Choice

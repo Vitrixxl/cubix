@@ -8,7 +8,7 @@
  * Dates are when the solve was done, in milliseconds. Events outside the WCA ones Cubix practises, trainers and
  * custom puzzles are left out and counted.
  */
-import { EVENTS, type EventId } from "../../shared/puzzles";
+import { EVENTS, eventOf, type EventId } from "../../shared/puzzles";
 import { msg } from "../i18n/msg";
 
 export type Penalty = "none" | "+2" | "dnf";
@@ -215,6 +215,26 @@ function cubeTimeCsv(source: string, fallback: EventId): TimerImport {
 }
 
 /** CubeDesk's and ZKT Timer's exports: seconds, the penalty in flags; trainer solves are left out. */
+/** Qbix's own export (Settings › Download my data, or the profile's Export): its timer solves, by session. */
+function qbix(data: any): TimerImport {
+  const skipped: Record<string, number> = {},
+    solves: ImportedSolve[] = [];
+  for (const solve of data.solves) {
+    if (solve.case_id) {
+      skip(skipped, "training solves");
+      continue;
+    }
+    const event = eventOf(solve.puzzle_id ?? "333", solve.solve_mode ?? "standard")?.id,
+      at = Date.parse(solve.created_at);
+    if (!event || !Number.isFinite(solve.time_ms) || !Number.isFinite(at)) {
+      skip(skipped, "unreadable solves");
+      continue;
+    }
+    solves.push({ event, timeMs: solve.time_ms, penalty: solve.penalty ?? "none", scramble: text(solve.scramble), comment: text(solve.comment), at, session: solve.session_id == null ? undefined : String(solve.session_id) });
+  }
+  return { app: "Qbix", solves, skipped, needsEvent: false };
+}
+
 function cubedesk(data: any, app: string): TimerImport {
   const skipped: Record<string, number> = {},
     solves: ImportedSolve[] = [],
@@ -327,6 +347,7 @@ export function readTimerExport(source: string, fallback: EventId = "333"): Time
       if (/"timerStart"/.test(first)) return stif(body);
       throw new Error(msg("This file could not be read."));
     }
+    if (data.app === "Qbix" && Array.isArray(data.solves)) return qbix(data);
     if (Object.keys(data).some((key) => /^session\d+$/.test(key))) return cstimer(data);
     if (Array.isArray(data.solves)) return cubedesk(data, data.solves.some((s: any) => "scramble_subset" in s || "is_virtual_cube" in s) ? "ZKT Timer" : "CubeDesk");
     if (data.timerStart != null) return stif(body);

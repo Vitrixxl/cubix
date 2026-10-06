@@ -44,7 +44,7 @@ const server = Bun.serve<Socket>({
     // The root is the landing page (desktop/renderer/landing); the app lives under its own paths.
     // The legal pages are pages of their own (desktop/renderer/legal), like the landing page.
     const legal = ["/legal", "/privacy", "/terms"].includes(url.pathname) ? url.pathname + ".html" : "";
-    const path = legal || decodeURIComponent(url.pathname === "/" ? "/landing.html" : admin || app ? "/index.html" : url.pathname === "/dev/cube" ? "/dev-cube.html" : url.pathname);
+    const path = legal || decodeURIComponent(url.pathname === "/" ? "/landing.html" : admin || app ? "/index.html" : url.pathname === "/dev/cube" ? "/dev-cube.html" : url.pathname.replace(/\/$/, "/index.html"));
     if (path.split("/").includes("..")) return new Response("Invalid path", { status: 400 });
     const file = Bun.file(WEB + path);
     return (await file.exists()) ? new Response(file, { headers: { "cache-control": "no-cache" } }) : new Response("Not found", { status: 404 });

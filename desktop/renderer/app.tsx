@@ -6,6 +6,7 @@ import { onLanguage, start } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
 import { Toasts } from "./Toasts";
+import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
 import { Frame, Rail, TabBar } from "./shell";
@@ -76,9 +77,10 @@ function App() {
             Digit3: "nav:learn",
             Digit4: "nav:training",
             Digit5: "nav:duel",
-            Digit6: "nav:coaching",
-            Digit7: "nav:tournaments",
-            Digit8: "nav:community",
+            Digit6: "nav:tournaments",
+            Digit7: "nav:community",
+            Digit8: "nav:coaching",
+            Digit9: "nav:analysis",
             KeyS: "settings",
             KeyN: "next",
             KeyP: "previous",
@@ -149,8 +151,7 @@ function App() {
         (s.page === "learn" ? ":" + (s.learnMethod || s.learnSection || "home") : "") +
         // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
         (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "") +
-        // The community's sections each slide in; a conversation or a group within one stays in place.
-        (s.page === "community" ? ":" + s.view.split("/")[0] : "") +
+        // The community is one page, a conversation opening in place; a tournament or a match is a page of its own.
         (s.page === "tournaments" || s.page === "match" ? ":" + s.view.split("/")[0] : "");
   const slide = { direction: s.direction, axis: s.axis };
   // Until the engine answers, the last launch decides; a first visit opens on the login page.
@@ -163,8 +164,15 @@ function App() {
       </TooltipProvider>
     );
   if (s.ready && !s.introductionReady) return <PageSkeleton />;
-  if (s.ready && !journeyProfile(s.journey) && route?.page !== "onboarding") return <Navigate to="/onboarding" replace />;
+  // A link to someone or something (a friend's link, a tournament, a match) waits for the end of the introduction.
+  if (s.ready && !journeyProfile(s.journey) && route?.page !== "onboarding")
+    return <Navigate to={"/onboarding" + (route && ["community", "tournaments", "match"].includes(route.page) ? "?next=" + encodeURIComponent(location.pathname + location.search) : "")} replace />;
   if (!route) return <Navigate to="/timer" replace />;
+  // A battle or a tournament under way holds the whole app until it is over or given up.
+  const held = community.competition,
+    arena = held?.match ? "/match/" + held.match : held?.tournament ? "/tournaments/" + held.tournament : null,
+    inArena = !!arena && (location.pathname === arena || (!held?.match && location.pathname.startsWith("/match/")));
+  if (arena && !inArena && route.page !== "onboarding") return <Navigate to={arena} replace />;
   // A puzzle that cannot be solved yet keeps to its course; the tour still shows every section.
   if (s.ready && s.overlay !== "tour" && s.lockedPage(route.page, route.puzzle)) return <Navigate to={pageUrl("learn", { puzzle: route.puzzle ?? (s.puzzle as PuzzleId) })} replace />;
   if (route.page === "onboarding") return <TooltipProvider><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
@@ -172,14 +180,15 @@ function App() {
     <TooltipProvider delay={400}>
       <MotionConfig reducedMotion="user">
         <WindowSidebar
-          compact={s.page === "coaching"}
+          // Coaching has its own sidebar beside; a match takes the whole window.
+          compact={s.page === "coaching" || s.page === "match"}
           data-app-shell=""
           data-running={s.running ? "" : undefined}
           className="group/app h-svh min-h-0 overflow-hidden bg-background max-md:flex-col"
           style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "calc(3rem + 1px)" } as React.CSSProperties}
         >
           {/* The coaching sidebar pushes out of the app's, side by side with it. */}
-          {!mobile && (
+          {!mobile && !arena && (
             <div className="flex shrink-0">
               <Rail />
               <CoachingSidebar open={s.page === "coaching"} />
@@ -216,10 +225,11 @@ function App() {
               </AnimatePresence>
             )}
           </SidebarInset>
-          {mobile && <TabBar />}
+          {mobile && !arena && <TabBar />}
         </WindowSidebar>
         <FloatingCall />
         <Toasts light={s.light} />
+        <Confirmations />
         <Overlays />
         <ErrorNotification message={said(s.error)} />
         {s.overlay === "tour" && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}

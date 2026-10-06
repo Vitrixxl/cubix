@@ -40,7 +40,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
   return (
     <>
       <SubPageHead title={tr("Analysis")} meta={said(meta)} back={!phone}>
-        {a && a.methods.length > 2 && (
+        {a && a.methods.length > 1 && (
           <ToggleGroup
             aria-label={tr("Method")}
             variant="outline"
@@ -65,9 +65,18 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
       ) : (
         <div className={cn("grid min-h-0 flex-1 gap-4", phone ? "grid-cols-1 overflow-y-auto" : "grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]")}>
           <div className="flex min-h-0 min-w-0 flex-col gap-4">
-            <Summary method={method} />
-            <Steps steps={method.steps} />
-            <Cases cases={method.cases} phone={phone} />
+            {method.count ? (
+              <>
+                <Summary method={method} />
+                <Steps steps={method.steps} />
+                <Cases cases={method.cases} phone={phone} />
+              </>
+            ) : (
+              <Card className="min-h-0 flex-1 items-center justify-center gap-2 p-8 text-center">
+                <span className="text-base font-medium">{tr("No smart cube solve with {0} yet", { 0: said(method.label) })}</span>
+                <span className="max-w-[46ch] text-sm text-muted-foreground">{tr("Solve with this method on a connected cube: its steps, cases and times show here as soon as one is analysed.")}</span>
+              </Card>
+            )}
           </div>
           <div className="flex min-h-0 min-w-0 flex-col gap-4">
             <Suggestions suggestions={a.suggestions} />
@@ -111,6 +120,7 @@ function Summary({ method }: { method: MethodStats }) {
     ["Best", fmtTime(method.best)],
     ["Turns", method.turns.toFixed(1)],
     ["TPS", method.tps.toFixed(2)],
+    ["XCross", method.count ? `${method.xcross} · ${Math.round((method.xcross / method.count) * 100)}%` : "–"],
   ];
   return (
     <Card className="shrink-0 gap-4 px-5 py-4" aria-label={tr("Summary")}>

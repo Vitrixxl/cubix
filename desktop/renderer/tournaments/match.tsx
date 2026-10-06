@@ -15,9 +15,9 @@ import { isPolyPuzzle } from "../../../src/shared/puzzleScene";
 import { Side } from "../duel";
 import { Cube } from "../Cube";
 import { useSquare } from "../practice";
-import { Alg, FADE, LABEL, NUMERIC, PAGE, PageHead } from "../ui";
+import { Alg, Avatar, FADE, LABEL, NUMERIC, PAGE, PageHead } from "../ui";
 import { Back } from "../coaching/parts";
-import { communityUrl, eventName, formatText, tournamentUrl, type Match } from "../community/client";
+import { community, communityUrl, eventName, formatText, scoreOf, tournamentUrl, type Match, type MatchSolve } from "../community/client";
 import { live, resultTime, type Phase } from "./matchClient";
 import { shownSolve } from "../../../src/client/lib/duel";
 import { cn } from "@/lib/utils";
@@ -99,9 +99,11 @@ export function MatchPage() {
   return <Race m={m} />;
 }
 
-/** Back to where the match belongs: its tournament, or its group's battles. */
-const home = (m: Match | null) => (m?.tournamentId ? tournamentUrl(m.tournamentId) : m?.groupId ? communityUrl(`groups/${m.groupId}/battles`) : tournamentUrl());
-const BackButton = () => <Back to={home(live.match)} />;
+/** Back to where the match belongs: its tournament, or the conversation whose card shows the battle. */
+const home = (m: Match | null) =>
+  m?.tournamentId ? tournamentUrl(m.tournamentId) : m?.conversationId ? communityUrl("messages/" + m.conversationId) : m?.groupId ? communityUrl(`groups/${m.groupId}`) : tournamentUrl();
+/** Back where the match belongs; a battle under way has no way back but its end or forfeit. */
+const BackButton = () => (live.match && community.competition?.match === live.match.id ? null : <Back to={home(live.match)} />);
 
 function Race({ m }: { m: Match }) {
   const timer = useMatchTimer(),
@@ -134,8 +136,11 @@ function Race({ m }: { m: Match }) {
   });
   const scramble = current?.scramble ?? "";
   const setNumber = m.score.sets[0] + m.score.sets[1] + 1;
+  // Until both players are here, the race waits: no timers, only who is here and who is awaited.
+  if (!live.over && waiting) return <Waiting m={m} seat={seat} />;
   return (
-    <div className={cn(PAGE, "match-race")}>
+    <div className={cn(PAGE, "match-race relative")}>
+      <SetFlash m={m} />
       <PageHead
         lead={<BackButton />}
         title={m.tournament ? <>{m.tournament}</> : tr("Battle")}
@@ -143,14 +148,14 @@ function Race({ m }: { m: Match }) {
       >
         {playing && !live.over && <Forfeit />}
       </PageHead>
-      {/* The score: sets won, then the solves of the set under way. */}
+      {/* The score: sets won (solves won in a single set), then the solves of the set under way. */}
       <section className={cn("grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-6 rounded-xl bg-muted/45 px-6 py-4", FADE)} aria-label={tr("Score")}>
         {[left, right].map((seatShown, i) => {
           const p = m.players[seatShown],
             won = m.winner && m.winner === p?.id;
           const cell = (
             <div key={seatShown} className={cn("flex min-w-0 items-center gap-4", i === 1 && "flex-row-reverse text-right")}>
-              <span className={cn(NUMERIC, "text-5xl font-semibold tracking-tight", won && "text-success")}>{m.score.sets[seatShown]}</span>
+              <span className={cn(NUMERIC, "text-5xl font-semibold tracking-tight", won && "text-success")}>{scoreOf(m)[seatShown]}</span>
               <span className="flex min-w-0 flex-col gap-1">
                 <span className="flex items-center gap-1.5 truncate text-lg font-semibold">
                   {won && <Crown className="size-4 text-warning" />}
@@ -175,6 +180,7 @@ function Race({ m }: { m: Match }) {
           );
         })}
       </section>
+      <Outcome m={m} left={left} />
       <section className={cn("flex shrink-0 flex-col gap-2", FADE)}>
         <span className={LABEL}>{current ? tr("Solve {0}", { 0: current.number }) : tr("Scramble")}</span>
         <div className="scramble max-h-[18vh] min-h-9 overflow-y-auto">
@@ -213,6 +219,132 @@ function Race({ m }: { m: Match }) {
       </div>
       <Solves m={m} left={left} actions={playing && !live.over} />
       <Result m={m} />
+    </div>
+  );
+}
+
+/** What the solves so far tell: the latest one decided, its set, and the seat that took the set with it. */
+function lastOutcome(m: Match) {
+  const wins = [0, 0];
+  let set = 1,
+    out: { solve: MatchSolve; set: number; setWon: number | null } | null = null;
+  for (const solve of m.solves ?? []) {
+    if (!solve.results[0] || !solve.results[1]) break;
+    let setWon: number | null = null;
+    if (solve.winner !== null && ++wins[solve.winner]! >= m.points) {
+      setWon = solve.winner;
+      wins[0] = wins[1] = 0;
+    }
+    out = { solve, set, setWon };
+    if (setWon !== null) set++;
+  }
+  return out;
+}
+const nameOf = (m: Match, seat: number) => (m.players[seat]?.id === s.user.id ? tr("You") : (m.players[seat]?.username ?? "–"));
+
+/** The latest solve decided, in words: who took it and by how much, and the set it closed. */
+function Outcome({ m, left }: { m: Match; left: number }) {
+  const out = lastOutcome(m);
+  if (!out) return <p className={cn("shrink-0 text-center text-sm text-muted-foreground", FADE)}>{tr("The first solve decides the first point.")}</p>;
+  const { solve, set, setWon } = out,
+    w = solve.winner,
+    times = [left, 1 - left].map((seat) => solve.results[seat]),
+    a = resultTime(solve.results[0]),
+    b = resultTime(solve.results[1]),
+    gap = a !== null && b !== null ? Math.abs(a - b) : null,
+    mine = w !== null && m.players[w]?.id === s.user.id;
+  return (
+    <section
+      aria-live="polite"
+      data-outcome={solve.number}
+      className={cn(
+        "flex shrink-0 items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm",
+        w === null ? "bg-muted/40" : mine ? "border-success/40 bg-success/10" : "border-destructive/30 bg-destructive/8",
+        FADE,
+      )}
+    >
+      <span className={cn(LABEL, "shrink-0")}>{tr("Solve {0}", { 0: solve.number })}</span>
+      <span className="font-medium">
+        {w === null ? tr("A tie: no point.") : setWon !== null && !live.over ? tr("{0} took it and won set {1}!", { 0: nameOf(m, w), 1: set }) : tr("{0} took it", { 0: nameOf(m, w) })}
+      </span>
+      <span className={cn(NUMERIC, "text-muted-foreground")}>
+        {times.map((r) => (r ? fmtSolve(r.ms, r.penalty) : "–")).join(" · ")}
+        {gap !== null && w !== null ? ` · ${tr("by {0}", { 0: fmtTime(gap) })}` : ""}
+      </span>
+    </section>
+  );
+}
+
+/** A set won: said large over the race for a moment. */
+function SetFlash({ m }: { m: Match }) {
+  const out = lastOutcome(m),
+    key = out?.setWon != null ? out.solve.number : 0,
+    [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (!key || live.over) return;
+    setShown(key);
+    const t = setTimeout(() => setShown(0), 2600);
+    return () => clearTimeout(t);
+  }, [key]);
+  if (!shown || !out || out.setWon === null) return null;
+  const mine = m.players[out.setWon]?.id === s.user.id;
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" data-slot="set-won">
+      <div className="flex animate-in flex-col items-center gap-2 rounded-2xl border bg-popover/95 px-10 py-7 shadow-2xl backdrop-blur fade-in zoom-in-95">
+        <Crown className={cn("size-8", mine ? "text-warning" : "text-muted-foreground")} />
+        <span className="text-3xl font-semibold tracking-tight">{mine ? tr("You win set {0}", { 0: out.set }) : tr("{0} wins set {1}", { 0: nameOf(m, out.setWon), 1: out.set })}</span>
+        <span className={cn(NUMERIC, "text-lg text-muted-foreground")}>
+          {tr("Sets")} {m.score.sets[0]} – {m.score.sets[1]}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Before the race: who is here, who is awaited, and what will be raced. */
+function Waiting({ m, seat }: { m: Match; seat: number | null }) {
+  const other = seat === null ? null : m.players[1 - seat],
+    started = (m.solves?.length ?? 0) > 0;
+  return (
+    <div className={PAGE}>
+      <PageHead lead={<BackButton />} title={m.tournament ? <>{m.tournament}</> : tr("Battle")} sub={[m.tournament ? tr("Round {0}", { 0: m.round }) : m.group, eventName(m.event), formatText(m)].filter(Boolean).join(" · ")}>
+        {seat !== null && <Forfeit />}
+      </PageHead>
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="flex w-[min(100%,34rem)] flex-col items-center gap-8 rounded-2xl border bg-card px-8 py-10 text-center" data-slot="match-waiting">
+          <div className="flex flex-col items-center gap-2">
+            <span className="relative flex size-3">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
+              <span className="relative inline-flex size-3 rounded-full bg-primary" />
+            </span>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {other ? (started ? tr("Waiting for {0} to come back", { 0: other.username }) : tr("Waiting for {0}", { 0: other.username })) : tr("Waiting for the players")}
+            </h2>
+            <p className="max-w-[40ch] text-sm text-muted-foreground">
+              {seat !== null ? tr("The race starts by itself once you are both on this page. Keep it open: {0} has been told.", { 0: other?.username ?? "" }) : tr("The race shows here once both players are on its page.")}
+            </p>
+          </div>
+          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
+            {[0, 1].map((k) => {
+              const p = m.players[k],
+                here = !!m.present?.[k];
+              const cell = (
+                <div key={k} className="flex flex-col items-center gap-2">
+                  <Avatar name={p?.username} src={p?.avatar} size={56} className={cn(!here && "opacity-40")} />
+                  <span className="max-w-full truncate font-medium">{p ? nameOf(m, k) : tr("Anyone")}</span>
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs", here ? "bg-success/15 text-success" : "bg-muted text-muted-foreground")}>{here ? tr("Here") : tr("Not here yet")}</span>
+                </div>
+              );
+              return k === 0 ? [cell, <span key="vs" className="text-sm text-muted-foreground">{tr("vs")}</span>] : cell;
+            })}
+          </div>
+          {started && (
+            <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>
+              {tr("Score so far")} · {scoreOf(m).join(" – ")}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -293,14 +425,14 @@ function Result({ m }: { m: Match }) {
             {mine ? tr("You win") : tr("{0} wins", { 0: winner?.username ?? "Nobody" })}
           </DialogTitle>
           <DialogDescription>
-            {m.forfeit ? tr("The match was given.") : tr("{0}–{1} in sets.", { 0: m.score.sets[seat], 1: m.score.sets[1 - seat] })}
+            {m.forfeit ? tr("The match was given.") : m.sets > 1 ? tr("{0}–{1} in sets.", { 0: m.score.sets[seat], 1: m.score.sets[1 - seat] }) : tr("{0}–{1} in solves.", { 0: scoreOf(m)[seat], 1: scoreOf(m)[1 - seat] })}
             {fastest.length ? tr(" Fastest solve {0}.", { 0: fmtTime(Math.min(...fastest)) }) : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setClosed(m.id)}>
             {tr("Stay")}</Button>
-          <Button onClick={() => go(home(m))}>{m.tournamentId ? tr("Back to the tournament") : tr("Back to the group")}</Button>
+          <Button onClick={() => go(home(m))}>{m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")}</Button>
         </div>
       </DialogContent>
     </Dialog>

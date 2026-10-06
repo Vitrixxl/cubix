@@ -1,5 +1,6 @@
 //! The community: friends (a request, then a friendship once accepted), conversations between two friends or within a
-//! group, and groups, which their owner and admins run. Groups also hold tournaments and battles (tournament.rs).
+//! group, and groups, which their owner and admins run. Groups also hold tournaments, and any conversation battles
+//! (tournament.rs): each shows in its conversation as a card, a message that carries it.
 //!
 //! The HTTP routes live under /api/social (`route`, run on the database thread). What changes reaches the open apps
 //! of the accounts concerned on their coaching socket, as `{"type": "social", "kind": …}` events: the app keeps one
@@ -139,14 +140,14 @@ fn participants(db: &Connection, conversation: &Value) -> Result<Vec<String>> {
     Ok([&conversation["user_a"], &conversation["user_b"]].iter().filter_map(|v| v.as_str().map(str::to_owned)).collect())
 }
 /// Fails unless the two accounts are friends: only friends write to each other.
-fn require_friend(db: &Connection, uid: &str, other: &str) -> Result<()> {
+pub fn require_friend(db: &Connection, uid: &str, other: &str) -> Result<()> {
     if relation(db, uid, other)? != "friend" {
         return Err(ApiError::new(403, "You can write to your friends only."));
     }
     Ok(())
 }
 /// A conversation the account belongs to.
-fn conversation(db: &Connection, id: i64, uid: &str) -> Result<Value> {
+pub fn conversation(db: &Connection, id: i64, uid: &str) -> Result<Value> {
     let row = required(db, "SELECT * FROM social_conversations WHERE id=?", [id], UNKNOWN_CONVERSATION)?;
     if !participants(db, &row)?.iter().any(|p| p == uid) {
         return Err(ApiError::new(404, UNKNOWN_CONVERSATION));
@@ -154,7 +155,7 @@ fn conversation(db: &Connection, id: i64, uid: &str) -> Result<Value> {
     Ok(row)
 }
 /// The conversation of two friends, created on first need.
-fn direct(db: &Connection, a: &str, b: &str) -> Result<i64> {
+pub fn direct(db: &Connection, a: &str, b: &str) -> Result<i64> {
     let (a, b) = if a < b { (a, b) } else { (b, a) };
     db.execute("INSERT OR IGNORE INTO social_conversations(user_a,user_b,updated_at) VALUES(?,?,?)", params![a, b, now()])?;
     Ok(required(db, "SELECT id FROM social_conversations WHERE user_a=? AND user_b=?", params![a, b], UNKNOWN_CONVERSATION)?["id"].as_i64().unwrap())
@@ -162,6 +163,7 @@ fn direct(db: &Connection, a: &str, b: &str) -> Result<i64> {
 const CONVERSATIONS_SQL: &str = "SELECT c.id,c.group_id,c.user_a,c.user_b,c.updated_at,g.name group_name,
   u.id other_id,u.username other_name,u.avatar other_avatar,
   lm.body last_body,lm.sender_id last_sender,lm.created_at last_at,ls.username last_sender_name,
+  lm.match_id last_match,lm.tournament_id last_tournament,
   (SELECT count(*) FROM social_messages x WHERE x.conversation_id=c.id AND x.sender_id!=?1
     AND x.id>COALESCE((SELECT message_id FROM social_reads r WHERE r.conversation_id=c.id AND r.user_id=?1),0)) unread,
   f.user_id IS NOT NULL friends
@@ -182,7 +184,8 @@ fn conversation_dto(row: &Value, uid: &str) -> Value {
         "with": if group.is_none() { person(&row["other_id"], &row["other_name"], &row["other_avatar"]) } else { Value::Null },
         "group": group.map(|g| json!({"id": g, "name": row["group_name"]})),
         "lastMessage": if row["last_body"].is_null() { Value::Null } else {
-            json!({"body": row["last_body"], "at": row["last_at"], "mine": row["last_sender"] == uid, "from": row["last_sender_name"]})
+            json!({"body": row["last_body"], "at": row["last_at"], "mine": row["last_sender"] == uid, "from": row["last_sender_name"],
+              "card": attachment(&row["last_match"], &row["last_tournament"])})
         },
         "unread": row["unread"],
         "updatedAt": row["updated_at"],
@@ -210,18 +213,40 @@ fn unread(db: &Connection, uid: &str) -> Result<i64> {
     .and_then(|r| r["n"].as_i64())
     .unwrap_or(0))
 }
-const MESSAGE_SQL: &str = "SELECT m.id,m.sender_id,m.body,m.created_at,u.username,u.avatar FROM social_messages m JOIN users u ON u.id=m.sender_id";
-fn message_dto(row: &Value) -> Value {
-    json!({"id": row["id"], "senderId": row["sender_id"], "sender": person(&row["sender_id"], &row["username"], &row["avatar"]), "body": row["body"], "createdAt": row["created_at"]})
+const MESSAGE_SQL: &str = "SELECT m.id,m.sender_id,m.body,m.created_at,m.match_id,m.tournament_id,u.username,u.avatar
+ FROM social_messages m JOIN users u ON u.id=m.sender_id";
+/// What a message carries besides its words: a battle (`match`), a tournament, or nothing.
+fn attachment(match_id: &Value, tournament_id: &Value) -> Value {
+    if !match_id.is_null() { json!("match") } else if !tournament_id.is_null() { json!("tournament") } else { Value::Null }
+}
+/// A message, with its card as it stands now when it carries one (the tournament as the account `uid` sees it).
+fn message_dto(db: &Connection, row: &Value, uid: Option<&str>) -> Result<Value> {
+    let mut value = json!({"id": row["id"], "senderId": row["sender_id"], "sender": person(&row["sender_id"], &row["username"], &row["avatar"]), "body": row["body"], "createdAt": row["created_at"]});
+    if let Some(m) = row["match_id"].as_i64() {
+        value["match"] = crate::tournament::match_card(db, m)?;
+    }
+    if let Some(t) = row["tournament_id"].as_i64() {
+        value["tournament"] = crate::tournament::tournament_card(db, t, uid)?;
+    }
+    Ok(value)
+}
+/// What a message holds: words, or a card (`card`) whose words may be empty.
+#[derive(Default, Clone, Copy)]
+pub struct Card {
+    pub match_id: Option<i64>,
+    pub tournament_id: Option<i64>,
 }
 /// Writes in a conversation and brings the message to the open apps of its members.
-pub fn post(db: &Connection, state: &AppState, conversation: &Value, user: &Value, body: &str) -> Result<Value> {
+pub fn post(db: &Connection, state: &AppState, conversation: &Value, user: &Value, body: &str, card: Card) -> Result<Value> {
     let (id, uid, at) = (conversation["id"].as_i64().unwrap(), user["id"].as_str().unwrap(), now());
-    db.execute("INSERT INTO social_messages(conversation_id,sender_id,body,created_at) VALUES(?,?,?,?)", params![id, uid, body, at])?;
+    db.execute(
+        "INSERT INTO social_messages(conversation_id,sender_id,body,created_at,match_id,tournament_id) VALUES(?,?,?,?,?,?)",
+        params![id, uid, body, at, card.match_id, card.tournament_id],
+    )?;
     let message_id = db.last_insert_rowid();
     db.execute("UPDATE social_conversations SET updated_at=? WHERE id=?", params![at, id])?;
     read(db, id, uid, message_id)?;
-    let message = message_dto(&required(db, &format!("{MESSAGE_SQL} WHERE m.id=?"), [message_id], UNKNOWN_CONVERSATION)?);
+    let message = message_dto(db, &required(db, &format!("{MESSAGE_SQL} WHERE m.id=?"), [message_id], UNKNOWN_CONVERSATION)?, None)?;
     let group = conversation["group_id"].as_i64();
     let title = match group {
         Some(g) => one(db, "SELECT name FROM social_groups WHERE id=?", [g])?.map(|r| r["name"].clone()).unwrap_or(Value::Null),
@@ -323,7 +348,30 @@ fn create_group(db: &mut Connection, state: &AppState, uid: &str, body: &Value) 
     tx.execute("INSERT INTO social_conversations(group_id,updated_at) VALUES(?,?)", params![id, at])?;
     tx.commit()?;
     notify(state, &[uid.to_owned()], "groups", json!({}));
+    // The friends picked as it was made are invited at once.
+    for other in body["invite"].as_array().into_iter().flatten().filter_map(Value::as_str).take(50) {
+        if relation(db, uid, other)? == "friend" {
+            invite(db, state, id, uid, &user_name(db, uid)?, other)?;
+        }
+    }
     group(db, id, uid)
+}
+fn user_name(db: &Connection, id: &str) -> Result<Value> {
+    Ok(account_by_id(db, id)?["username"].clone())
+}
+/// Invites an account to a group, unless it is in it or invited already.
+fn invite(db: &Connection, state: &AppState, group: i64, by: &str, by_name: &Value, other: &str) -> Result<()> {
+    if one(db, "SELECT 1 FROM group_members WHERE group_id=? AND user_id=?", params![group, other])?.is_some() {
+        return Err(ApiError::new(409, "This player is already in the group, or invited."));
+    }
+    db.execute("INSERT INTO group_members(group_id,user_id,role,invited_by,joined_at) VALUES(?,?,'invited',?,?)", params![group, other, by, now()])?;
+    let name = required(db, "SELECT name FROM social_groups WHERE id=?", [group], UNKNOWN_GROUP)?["name"].clone();
+    notify(state, &[other.to_owned()], "invitation", json!({"group": group, "name": name, "from": by_name}));
+    Ok(())
+}
+/// The conversation of a group.
+pub fn group_conversation(db: &Connection, group: i64) -> Result<Value> {
+    required(db, "SELECT * FROM social_conversations WHERE group_id=?", [group], UNKNOWN_CONVERSATION)
 }
 /// Tells the group's members (and the invited, with `invited`) that it changed.
 pub fn changed(db: &Connection, state: &AppState, id: i64, invited: bool) -> Result<()> {
@@ -361,10 +409,11 @@ pub fn route(
             if q.is_empty() || q.chars().count() > 24 {
                 return Ok(json!([]));
             }
-            let pattern = format!("{}%", q.replace(['%', '_', '\\'], ""));
+            // The name's own characters, LIKE's wildcards among them, then anything after.
+            let pattern = format!("{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
             let rows = all(
                 db,
-                "SELECT id,username,avatar FROM users WHERE password_hash IS NOT NULL AND id!=? AND username LIKE ? ORDER BY length(username),username LIMIT 12",
+                "SELECT id,username,avatar FROM users WHERE password_hash IS NOT NULL AND id!=? AND username LIKE ? ESCAPE '\\' ORDER BY length(username),username LIMIT 12",
                 params![uid, pattern],
             )?;
             Ok(json!(rows.iter().map(|r| {
@@ -406,7 +455,7 @@ pub fn route(
             let before = query.get("before").map(|b| number(b)).transpose()?.unwrap_or(i64::MAX);
             let mut rows = all(db, &format!("{MESSAGE_SQL} WHERE m.conversation_id=? AND m.id<? ORDER BY m.id DESC LIMIT ?"), params![id, before, PAGE])?;
             rows.reverse();
-            Ok(json!(rows.iter().map(message_dto).collect::<Vec<_>>()))
+            Ok(json!(rows.iter().map(|r| message_dto(db, r, Some(uid))).collect::<Result<Vec<_>>>()?))
         }
         ("POST", ["conversations", id, "messages"]) => {
             let row = conversation(db, number(id)?, uid)?;
@@ -414,7 +463,7 @@ pub fn route(
                 require_friend(db, uid, if a == uid { b } else { a })?;
             }
             let text = trimmed(body, "body", 1, 1000)?;
-            post(db, state, &row, user, &text)
+            post(db, state, &row, user, &text, Card::default())
         }
         ("POST", ["conversations", id, "read"]) => {
             let id = number(id)?;
@@ -447,14 +496,12 @@ pub fn route(
         ("POST", ["groups", id, "invite"]) => {
             let id = number(id)?;
             member(db, id, uid, true)?;
-            let other = account(db, string(body, "username", 1, 24)?)?;
-            let oid = other["id"].as_str().unwrap();
-            if one(db, "SELECT 1 FROM group_members WHERE group_id=? AND user_id=?", params![id, oid])?.is_some() {
-                return Err(ApiError::new(409, "This player is already in the group, or invited."));
-            }
-            db.execute("INSERT INTO group_members(group_id,user_id,role,invited_by,joined_at) VALUES(?,?,'invited',?,?)", params![id, oid, uid, now()])?;
-            let name = required(db, "SELECT name FROM social_groups WHERE id=?", [id], UNKNOWN_GROUP)?["name"].clone();
-            notify(state, &[oid.to_owned()], "invitation", json!({"group": id, "name": name, "from": user["username"]}));
+            // By username, or by account (`userId`) when picked among friends.
+            let other = match body.get("userId") {
+                Some(Value::String(other)) => account_by_id(db, other)?,
+                _ => account(db, string(body, "username", 1, 24)?)?,
+            };
+            invite(db, state, id, uid, &user["username"], other["id"].as_str().unwrap())?;
             changed(db, state, id, false)?;
             group(db, id, uid)
         }

@@ -4,6 +4,7 @@ import { Check, Compass, Download, GraduationCap, MessageSquare, RotateCcw, Tras
 import { toast } from "sonner";
 import { store as s, matches } from "./store";
 import { call, openExternal } from "./bridge";
+import { ImportTimes } from "./ImportTimes";
 import { accents } from "./theme";
 import { LearningGroups } from "./LearningGroups";
 import { fmtSolve } from "../../src/client/lib/format";
@@ -154,17 +155,6 @@ function AccountData() {
   const [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  async function download() {
-    try {
-      const data = await call("exportData");
-      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-      const a = Object.assign(document.createElement("a"), { href: url, download: `qbix-${s.user.username}-${new Date().toISOString().slice(0, 10)}.json` });
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    } catch (e) {
-      s.fail(e);
-    }
-  }
   async function remove(e: React.FormEvent) {
     e.preventDefault();
     if (!password || busy) return;
@@ -184,7 +174,7 @@ function AccountData() {
     <section className="flex flex-col gap-2" aria-label={tr("Your data")}>
       <h3 className={LABEL}>{tr("Your data")}</h3>
       <div className="flex flex-wrap gap-2">
-        <UiButton variant="outline" size="sm" onClick={() => void download()} data-action="exportData">
+        <UiButton variant="outline" size="sm" onClick={() => void s.action("exportData")} data-action="exportData">
           <Download />
           {tr("Download my data")}
         </UiButton>
@@ -237,7 +227,7 @@ function GuidesDialog() {
           <Button
             key={id}
             action={"guidePage:" + id}
-            className={cn("justify-start font-normal text-muted-foreground", id === page && "bg-muted font-medium text-foreground")}
+            className={cn("h-auto min-h-8 justify-start py-1.5 text-left font-normal whitespace-normal text-muted-foreground max-md:whitespace-nowrap", id === page && "bg-muted font-medium text-foreground")}
           >
             {said(GUIDES[id].name)}
           </Button>
@@ -458,6 +448,9 @@ export function Overlays() {
     <>
       <Modal id="settings" title={tr("Settings")} className="sm:max-w-md" tall>
         <Settings />
+      </Modal>
+      <Modal id="importTimes" title={tr("Import times")} description={tr("From another timer, or a file exported from Qbix. The file is read on this device.")} className="sm:max-w-lg">
+        <ImportTimes />
       </Modal>
       <GuidesDialog />
       <SessionSheet />

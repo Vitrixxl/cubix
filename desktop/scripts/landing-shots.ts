@@ -1,6 +1,6 @@
 /**
- * The landing page's screenshots and social image (desktop/assets/landing), taken headless from a development server signed in as the
- * seeded `dev` account: the timer after a few typed times, the algorithms, a course step and the profile.
+ * The landing page's social image (desktop/assets/landing), taken headless from a development server signed in as the
+ * seeded `dev` account: the timer after a few typed times.
  *
  *   bun desktop/scripts/landing-shots.ts [origin]   (default http://127.0.0.1:5181, see `bun run dev:docker`)
  */
@@ -10,7 +10,8 @@ import sharp from "sharp";
 
 const origin = process.argv[2] ?? "http://127.0.0.1:5181";
 const out = resolve(import.meta.dir, "../assets/landing");
-const browser = await chromium.launch({ headless: true });
+// CHROMIUM: a browser of the system, when Playwright has not downloaded its own.
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM });
 // Twice as sharp as they are shown: a screen of any density draws them crisp.
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
 const save = async (name: string) => {
@@ -57,12 +58,6 @@ for (const time of ["1184", "1047", "1312", "998", "1121", "1076", "1235", "1009
 await entry(/^Timer/);
 await page.waitForTimeout(800);
 await save("timer");
-await go("/algorithms?puzzle=333", (p) => p.waitForTimeout(1500));
-await save("algorithms");
-await go("/learn/cfop?puzzle=333&step=1", (p) => p.waitForTimeout(2000));
-await save("learn");
-await go("/profile?puzzle=333", (p) => p.waitForTimeout(2500));
-await save("profile");
 // The social image: the timer, as large as link previews draw it.
 await sharp(`${out}/timer.webp`).resize(1200, 630, { fit: "cover", position: "top" }).png({ compressionLevel: 9 }).toFile(`${out}/og.png`);
 console.log("og.png");

@@ -107,3 +107,18 @@ describe("reading other timers' exports", () => {
     expect(parseDelimited('a;"b;c";"d\ne"\n1;2;3', ";")).toEqual([["a", "b;c", "d\ne"], ["1", "2", "3"]]);
   });
 });
+
+test("Qbix's own export: its timer solves come back by session, its training solves stay out", () => {
+  const file = JSON.stringify({
+    app: "Qbix",
+    solves: [
+      { id: 1, session_id: 7, case_id: null, time_ms: 9870, penalty: "+2", scramble: "R U", comment: "pb", created_at: "2026-10-01T10:00:00.000Z", puzzle_id: "333", solve_mode: "one-handed" },
+      { id: 2, session_id: 8, case_id: "pll-t", time_ms: 1500, penalty: "none", scramble: null, created_at: "2026-10-01T10:01:00.000Z" },
+    ],
+    sessions: [],
+  });
+  const read = readTimerExport(file);
+  expect(read.app).toBe("Qbix");
+  expect(read.solves).toEqual([{ event: "333oh", timeMs: 9870, penalty: "+2", scramble: "R U", comment: "pb", at: Date.parse("2026-10-01T10:00:00.000Z"), session: "7" }]);
+  expect(read.skipped).toEqual({ "training solves": 1 });
+});

@@ -2,5 +2,10 @@
  * administration never starts the app's data engine. */
 import "./globals.css";
 
+// The app's own menus only: the browser's (reload, inspect, save image…) stays out, except where text is typed.
+addEventListener("contextmenu", (e) => {
+  if (!(e.target as HTMLElement).closest?.("input, textarea, [contenteditable=true]")) e.preventDefault();
+});
+
 if (/^\/admin(\/|$)/.test(location.pathname)) void import("./admin/admin");
 else void import("./app");
