@@ -1,7 +1,8 @@
 /** The algorithms page: the case list and the case detail. */
 import { catalogSections } from "../../src/client/lib/practiceCatalog";
 import { displayAlg, shortId, maskForStage } from "../../src/client/lib/caseState";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { call } from "./bridge";
 import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, Search, Timer, X } from "lucide-react";
 import { store as s, matches } from "./store";
 import { TouchAction, TouchBar } from "./phone";
@@ -327,7 +328,16 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
     mobile = phone && !dialog;
   const { index, count } = caseSteps(c),
     st = s.stats.find((v) => v.caseId === c.id),
-    learned = s.learned.has(c.id);
+    learned = s.learned.has(c.id),
+    chosen = learned ? s.learnedAlg[c.id] : undefined;
+  // How many players learned the case with each algorithm; nothing for a guest or offline.
+  const [choices, setChoices] = useState<{ total: number; algs: Record<string, number> } | null>(null);
+  useEffect(() => {
+    let live = true;
+    setChoices(null);
+    void call("algorithmChoices", [c.id]).then((v: any) => live && setChoices(v?.[c.id] ?? null), () => {});
+    return () => { live = false; };
+  }, [c.id, chosen]);
   const openPlayer = () => s.openAlg([{
     key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined,
     context: `${c.setLabel} · ${c.group}`, algs: c.algorithms.map(displayAlg),
@@ -377,8 +387,11 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
       </section>
       <section className={cn(block, "gap-1")}>
         <h3 className={cn(LABEL, "pb-1")}>{tr("Algorithms")}</h3>
-        {c.algorithms.map((a: any, i: number) => (
-          <div key={i} className="-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1">
+        {c.algorithms.map((a: any, i: number) => {
+          const mine = chosen === a.alg,
+            share = choices?.total ? (choices.algs[a.alg] ?? 0) / choices.total : null;
+          return (
+          <div key={i} className={cn("-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1", mine && "bg-success/10")}>
             <span className={cn(NUMERIC, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
             <Alg text={displayAlg(a)} size={16} className="min-w-0 flex-1" />
             <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
@@ -386,9 +399,19 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
               {a.stm != null && <span className={NUMERIC}>{a.stm} {" "}{tr("STM")}</span>}
               <span>{SOURCES[a.source] ?? a.source}</span>
               {a.youtube && <Button action={"url:" + a.youtube} icon={PlayCircle} size="icon-xs" tip={tr("Watch the video")} />}
+              {share !== null && (
+                <span className="flex items-center gap-1.5" title={tr("{0} of {1} players learned this case with it", { 0: choices!.algs[a.alg] ?? 0, 1: choices!.total })}>
+                  <Bar ratio={share} className="w-12" label={tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })} />
+                  <span className={NUMERIC}>{tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })}</span>
+                </span>
+              )}
+              <ActionToggle action={`learnAlg:${c.id}:${i}`} pressed={mine} icon={Check} size="sm" className="aria-pressed:bg-success/15 aria-pressed:text-success">
+                {mine ? tr("Learned") : tr("Learn this one")}
+              </ActionToggle>
             </span>
           </div>
-        ))}
+          );
+        })}
       </section>
       <section className={cn(block, !!s.caseHistory?.summary?.count && "min-h-[26rem]")}>
         <div className="flex min-h-7 items-center gap-3">

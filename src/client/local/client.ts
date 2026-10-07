@@ -1,7 +1,7 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
 import { puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { ImportedSolve } from "../lib/timerImport";
-import { readSolution } from "../lib/solution";
+import { readSolution, SOLUTION_MAX } from "../lib/solution";
 import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
 import type { AuthDto, UserDto, SessionDto, SolveDto, SessionMode, Penalty, LearnedCaseDto, LearningGroupOrder, LearningGroupOrderDto } from "../../shared/types";
 import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGroups, type LearningTrack } from "../lib/dailyLearning";
@@ -13,8 +13,8 @@ import { PROFILE_KEY, journeyProfile, validJourneyEntry, type Journey, type Jour
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
+type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "solution" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
+interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithm each learned case was learned with, when one was chosen. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
@@ -237,6 +237,8 @@ export function createLocalClient(options: {
           const row = change.value as LearnedCaseDto | null;
           if (!row || dirty.has(`learned:${row.case_id}`)) continue;
           if (row.learned) workspace.learned[row.case_id] = true; else delete workspace.learned[row.case_id];
+          workspace.learnedAlg ??= {};
+          if (row.learned && row.alg) workspace.learnedAlg[row.case_id] = row.alg; else delete workspace.learnedAlg[row.case_id];
         } else if (change.kind === "sessions") {
           const localId = sessionIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
@@ -247,7 +249,7 @@ export function createLocalClient(options: {
           // A remote deletion wins even over an edit queued locally but not uploaded yet.
           if (!change.value) {
             delete workspace.solves[localId]; solveIds.delete(change.id);
-            workspace.outbox = workspace.outbox.filter(op => !(op.localId === localId && ["penalty", "comment", "delete"].includes(op.kind)));
+            workspace.outbox = workspace.outbox.filter(op => !(op.localId === localId && ["penalty", "comment", "solution", "delete"].includes(op.kind)));
           }
           else {
             if (dirty.has(`solves:${localId}`)) continue;
@@ -311,12 +313,12 @@ export function createLocalClient(options: {
             if (sid === undefined) throw new Error("The session is waiting to synchronize.");
             body.sessionId = sid;
           }
-          if (op.kind === "penalty" || op.kind === "comment" || op.kind === "delete") {
+          if (op.kind === "penalty" || op.kind === "comment" || op.kind === "solution" || op.kind === "delete") {
             const serverId = solveServerId(workspace,op.localId);
             if (!serverId) throw new Error("The solve is waiting to synchronize.");
             path += "/" + serverId;
           }
-          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" || op.kind === "journey" ? "PUT" : op.kind === "penalty" || op.kind === "comment" ? "PATCH" : "POST";
+          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" || op.kind === "journey" ? "PUT" : op.kind === "penalty" || op.kind === "comment" || op.kind === "solution" ? "PATCH" : "POST";
           const result: any = (await (socket?.connection ?? remote).syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
@@ -552,6 +554,23 @@ export function createLocalClient(options: {
       workspace.outbox = workspace.outbox.filter(op => !(op.kind === "comment" && !op.error && op.localId === solveId));
       operation(workspace,id,"comment",solveId,{comment:text}); return solve;
     }),
+    /** The turns written by hand for a solve (see `lib/solution`); null clears them. Only the latest needs uploading. */
+    setSolution: async (solveId: number, solution: string | null) => localMutation((workspace,id) => {
+      const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
+      const text = solution?.trim() || null;
+      if ((text ?? "").length > SOLUTION_MAX) throw new Error("The solution is too long.");
+      solve.solution = text;
+      workspace.outbox = workspace.outbox.filter(op => !(op.kind === "solution" && !op.error && op.localId === solveId));
+      operation(workspace,id,"solution",solveId,{solution:text}); return solve;
+    }),
+    /** The link's token for a solve, once it reached the server. */
+    shareSolve: async (solveId: number) => {
+      const token = options.getToken();
+      if (current().isGuest || !token) throw new Error("Sign in to share a solve.");
+      const serverId = solveServerId(data(),solveId);
+      if (!serverId) throw new Error("The solve is waiting to synchronize.");
+      return (await options.remote(token).shareSolve(serverId)).token;
+    },
     deleteSolve: async (solveId: number) => localMutation((workspace,id) => {
       const solve = workspace.solves[solveId]; if (!solve || solve.deleted) throw new Error("Unknown local solve.");
       solve.deleted = true; operation(workspace,id,"delete",solveId,{}); return solve;
@@ -564,12 +583,23 @@ export function createLocalClient(options: {
       return order;
     }),
     learnedCases: async () => learnedIds(),
-    setLearned: async (caseId: string, learned: boolean) => localMutation((workspace,id) => {
-      if (!cases.some(c => c.id === caseId)) throw new Error("Unknown case.");
+    /** Learned or not; learned with `alg`, one of the case's algorithms, records the choice. */
+    setLearned: async (caseId: string, learned: boolean, alg?: string | null) => localMutation((workspace,id) => {
+      const known = cases.find(c => c.id === caseId);
+      if (!known) throw new Error("Unknown case.");
+      if (alg && !known.algorithms.some((a: { alg: string }) => a.alg === alg)) throw new Error("Unknown algorithm.");
+      workspace.learnedAlg ??= {};
       if (learned) workspace.learned[caseId] = true; else delete workspace.learned[caseId];
-      operation(workspace,id,"learned",0,{ caseId, learned });
-      return { caseId, learned };
+      if (learned && alg) workspace.learnedAlg[caseId] = alg; else delete workspace.learnedAlg[caseId];
+      operation(workspace,id,"learned",0,{ caseId, learned, ...(learned && alg ? { alg } : {}) });
+      return { caseId, learned, alg: learned && alg ? alg : null };
     }),
+    /** Per case, how many players learned it and with which algorithm; nothing for a guest or offline. */
+    algorithmChoices: async (caseIds: string[]): Promise<Record<string, { total: number; algs: Record<string, number> }>> => {
+      const token = options.getToken();
+      if (current().isGuest || !token || !caseIds.length) return {};
+      try { return await options.remote(token).algorithmChoices(caseIds); } catch { return {}; }
+    },
     stats: async (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => reads.stats(cubeSize,filter),
     caseHistory: async (caseId: string, filter: PracticeFilter = {}) => reads.caseHistory(caseId,filter),
     /** Only the signed-in account's own statistics exist; the username is kept for API parity. */
@@ -600,6 +630,7 @@ export function createLocalClient(options: {
     liveCursor: () => data().cursor,
     disconnected: (connection: Connection) => { if (live?.connection === connection) live = undefined; },
     learned: () => learnedIds(),
+    learnedAlg: () => ({ ...data().learnedAlg }),
     learningGroupOrder: () => data().groupOrder,
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: cursorChanged,

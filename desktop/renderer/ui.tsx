@@ -1,5 +1,5 @@
 /** Visual primitives and page building blocks shared by every screen, composed from the shadcn components. */
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { Check, ChevronDown, Circle, Ellipsis, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { Cube } from "./Cube";
@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -207,72 +206,33 @@ export function SelectMenu({
   );
 }
 
-const PUZZLE_COLUMNS = 4;
-
-/**
- * The WCA events as a grid of icons in a popover. `profile` picks the profile's event instead of the app's.
- * Arrows move by cell and row.
- */
-export function PuzzlePicker({ profile = false, trigger, align = "start", side = "bottom" }: {
-  profile?: boolean;
-  trigger: React.ReactElement;
-  align?: "start" | "end" | "center";
-  side?: "bottom" | "right";
-}) {
-  const [open, setOpen] = useState(false),
-    current = profile ? s.event(s.profilePuzzle, s.profileSolveMode).id : s.event().id,
-    chosen = useRef<HTMLButtonElement>(null);
+/** The WCA events as a select: each with its icon, the chosen one checked. `profile` picks the profile's event instead of the app's. */
+export function PuzzlePicker({ profile = false, trigger, align = "start" }: { profile?: boolean; trigger: React.ReactElement; align?: "start" | "end" | "center" }) {
+  const current = profile ? s.event(s.profilePuzzle, s.profileSolveMode).id : s.event().id;
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={trigger} data-action={"menu:" + (profile ? "profilePuzzles" : "puzzles")} />
-      <PopoverContent align={align} side={side} className="w-auto p-1.5" initialFocus={chosen}>
-        <div
-          role="listbox"
-          aria-label={tr("Puzzle")}
-          className="grid grid-cols-4 gap-0.5"
-          onKeyDown={(e) => {
-            const step = { ArrowDown: PUZZLE_COLUMNS, ArrowUp: -PUZZLE_COLUMNS, ArrowRight: 1, ArrowLeft: -1 }[e.key];
-            if (!step) return;
-            e.preventDefault();
-            const cells = [...e.currentTarget.querySelectorAll("button")],
-              at = cells.indexOf(document.activeElement as HTMLButtonElement);
-            cells[Math.max(0, Math.min(cells.length - 1, at + step))]?.focus();
-          }}
-        >
+    <DropdownMenu>
+      <DropdownMenuTrigger render={trigger} data-action={"menu:" + (profile ? "profilePuzzles" : "puzzles")} />
+      <DropdownMenuContent align={align} className="max-h-[min(32rem,var(--available-height))] w-auto min-w-52">
+        <DropdownMenuRadioGroup value={current} onValueChange={(v: string) => void s.action((profile ? "profilePuzzle:" : "puzzle:") + v)}>
           {EVENTS.map((v) => (
-            <button
-              key={v.id}
-              ref={v.id === current ? chosen : undefined}
-              type="button"
-              role="option"
-              aria-selected={v.id === current}
-              className={cn(
-                "flex w-21 flex-col items-center gap-2 rounded-md px-1 pt-3 pb-2.5 text-xs text-muted-foreground outline-none hover:bg-foreground/5 hover:text-foreground focus-visible:bg-foreground/5 focus-visible:text-foreground",
-                v.id === current && "bg-foreground/8 text-foreground",
-              )}
-              onClick={() => {
-                setOpen(false);
-                void s.action((profile ? "profilePuzzle:" : "puzzle:") + v.id);
-              }}
-            >
-              <Icon name={"Puzzle" + v.id} size={26} />
-              <span className="max-w-full truncate">{said(v.label)}</span>
-            </button>
+            <DropdownMenuRadioItem key={v.id} value={v.id} closeOnClick>
+              <Icon name={"Puzzle" + v.id} size={16} />
+              {said(v.label)}
+            </DropdownMenuRadioItem>
           ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
-/** The puzzle as a header button, on phones where there is no sidebar and in the profile's filters. */
+/** The puzzle as a select in a page's header: the profile's. */
 export function PuzzleButton({ profile = false }: { profile?: boolean }) {
   const e = profile ? s.event(s.profilePuzzle, s.profileSolveMode) : s.event();
   const variant = useQuiet();
   return (
     <PuzzlePicker
       profile={profile}
-      align="end"
       trigger={
         <UiButton variant={variant} className="gap-2">
           <Icon name={"Puzzle" + e.id} size={16} />

@@ -1,6 +1,6 @@
 /**
  * The Learn section's logic, shared by the web app and Android: which method of a puzzle is being learnt, the step it
- * stands on, the steps marked done and the learned state of the algorithms the catalogue does not hold. Catalogue cases
+ * stands on and the learned state of the algorithms the catalogue does not hold. Catalogue cases
  * keep their own learned marks (synchronised with the account); everything here is a device preference of the account.
  */
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../shared/methods";
@@ -13,8 +13,6 @@ import { msg } from "../i18n/msg";
 export interface CourseEntry {
   /** Index of the step shown. */
   step: number;
-  /** Steps marked done, by `stepId`. */
-  done: string[];
   /** Inline algorithms marked learned, by `algId`. */
   learned: string[];
 }
@@ -40,7 +38,7 @@ export function readCourseProgress(raw: unknown): CourseProgress {
   const courses: CourseProgress["courses"] = {};
   for (const [key, entry] of Object.entries(value.courses ?? {})) {
     if (!entry || typeof entry !== "object") continue;
-    courses[key] = { step: Number.isInteger(entry.step) && entry.step >= 0 ? entry.step : 0, done: strings(entry.done), learned: strings(entry.learned) };
+    courses[key] = { step: Number.isInteger(entry.step) && entry.step >= 0 ? entry.step : 0, learned: strings(entry.learned) };
   }
   return { methods, courses };
 }
@@ -58,7 +56,7 @@ export const recommendedMethod = (puzzle: PuzzleId) => METHODS[puzzle].find(m =>
 export function courseEntry(progress: CourseProgress, puzzle: PuzzleId, method: string): CourseEntry {
   const entry = progress.courses[courseKey(puzzle, method)];
   const steps = methodOf(puzzle, method)?.steps.length ?? 1;
-  return entry ? { ...entry, step: Math.min(entry.step, steps - 1) } : { step: 0, done: [], learned: [] };
+  return entry ? { ...entry, step: Math.min(entry.step, steps - 1) } : { step: 0, learned: [] };
 }
 function update(progress: CourseProgress, puzzle: PuzzleId, method: string, change: (entry: CourseEntry) => CourseEntry): CourseProgress {
   return { methods: { ...progress.methods, [puzzle]: method }, courses: { ...progress.courses, [courseKey(puzzle, method)]: change(courseEntry(progress, puzzle, method)) } };
@@ -72,35 +70,6 @@ export function goToStep(progress: CourseProgress, puzzle: PuzzleId, method: str
   if (!steps) return progress;
   return update(progress, puzzle, method, entry => ({ ...entry, step: Math.max(0, Math.min(steps - 1, index)) }));
 }
-export function toggleStepDone(progress: CourseProgress, puzzle: PuzzleId, method: string, index: number): CourseProgress {
-  const step = methodOf(puzzle, method)?.steps[index];
-  return step ? update(progress, puzzle, method, entry => ({ ...entry, done: toggle(entry.done, stepId(step)) })) : progress;
-}
-/** Next step: the step shown is done, the following one is shown. */
-export function completeStep(progress: CourseProgress, puzzle: PuzzleId, method: string, index: number): CourseProgress {
-  const steps = methodOf(puzzle, method)?.steps ?? [], step = steps[index];
-  if (!step) return progress;
-  return update(progress, puzzle, method, entry => ({
-    ...entry,
-    done: entry.done.includes(stepId(step)) ? entry.done : [...entry.done, stepId(step)],
-    step: Math.min(steps.length - 1, index + 1),
-  }));
-}
-/** Jumping ahead: the steps before `index` done, as the player said they finished them. */
-export function completeStepsBefore(progress: CourseProgress, puzzle: PuzzleId, method: string, index: number): CourseProgress {
-  const before = (methodOf(puzzle, method)?.steps ?? []).slice(0, Math.max(0, index)).map(stepId);
-  return before.length ? update(progress, puzzle, method, entry => ({ ...entry, done: [...new Set([...entry.done, ...before])] })) : progress;
-}
-/** Finish: every step of the method done, the last one still shown. */
-export function finishCourse(progress: CourseProgress, puzzle: PuzzleId, method: string): CourseProgress {
-  const steps = methodOf(puzzle, method)?.steps ?? [];
-  return steps.length ? update(progress, puzzle, method, entry => ({ ...entry, done: steps.map(stepId) })) : progress;
-}
-/** Whether every step of a course is done. */
-export const courseDone = (progress: CourseProgress, puzzle: PuzzleId, method: SolvingMethod) => {
-  const entry = courseEntry(progress, puzzle, method.id);
-  return method.steps.every(step => entry.done.includes(stepId(step)));
-};
 export const toggleAlgLearned = (progress: CourseProgress, puzzle: PuzzleId, method: string, id: string) =>
   update(progress, puzzle, method, entry => ({ ...entry, learned: toggle(entry.learned, id) }));
 
@@ -122,12 +91,20 @@ export function methodFacts(method: SolvingMethod, cases: readonly Pick<CaseDto,
   const inline = method.steps.reduce((sum, step) => sum + (step.algs?.length ?? 0), 0);
   return { steps: method.steps.length, algorithms: inline + cases.filter(c => sets.has(c.set)).length };
 }
-/** Where a course stands: whether it was opened, its steps done and the step shown. */
-export function methodProgress(progress: CourseProgress, puzzle: PuzzleId, method: SolvingMethod) {
+/**
+ * Where a course stands: whether it was opened, the step shown, and its steps done out of those with algorithms. A step
+ * is done once all its algorithms are learned; a step without any (intuitive) is never counted.
+ */
+export function methodProgress(progress: CourseProgress, puzzle: PuzzleId, method: SolvingMethod, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>) {
   const started = !!progress.courses[courseKey(puzzle, method.id)];
   const entry = courseEntry(progress, puzzle, method.id);
-  const done = method.steps.filter(step => entry.done.includes(stepId(step))).length;
-  return { started, done, total: method.steps.length, step: entry.step };
+  const counts = method.steps.map(step => stepLearned(step, cases, learned, entry)).filter(c => c.total > 0);
+  return { started, done: counts.filter(c => c.learned === c.total).length, total: counts.length, step: entry.step };
+}
+/** A step is done once every algorithm it teaches is learned; a step without algorithms never is. */
+export function stepDone(step: MethodStep, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry) {
+  const count = stepLearned(step, cases, learned, entry);
+  return count.total > 0 && count.learned === count.total;
 }
 
 /** The set a step opens on: the first one with cases still to learn, the first otherwise. */

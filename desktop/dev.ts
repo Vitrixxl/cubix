@@ -40,7 +40,7 @@ const server = Bun.serve<Socket>({
     }
     // The administration is drawn by the same page (see rust-api/src/web.rs).
     const admin = url.pathname === "/admin" || url.pathname.startsWith("/admin/");
-    const app = /^\/(onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile)(\/|$)/.test(url.pathname);
+    const app = /^\/(onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile|solve)(\/|$)/.test(url.pathname);
     // The root is the landing page (desktop/renderer/landing); the app lives under its own paths.
     // The legal pages are pages of their own (desktop/renderer/legal), like the landing page.
     const legal = ["/legal", "/privacy", "/terms"].includes(url.pathname) ? url.pathname + ".html" : "";

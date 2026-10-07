@@ -24,9 +24,7 @@ export type Journey = Record<string, JourneyEntry | null>;
 export interface JourneyEntryDto { id: number; key: string; value: JourneyEntry | null; updated_at: string }
 export const PROFILE_KEY = "profile";
 export const journeyProfile = (journey: Journey): JourneyProfile | undefined => journey.profile?.kind === "profile" ? journey.profile : undefined;
-/** The sections a puzzle opens once it can be solved; until then only Learn (and the account) are open on it. */
-export const LOCKED_PAGES = ["playground", "algorithms", "training", "duel"] as const;
-/** A puzzle is locked while the profile does not list it as solved: its course comes first. */
+/** Whether the profile does not list a puzzle as one the player can solve yet. */
 export const puzzleLocked = (profile: JourneyProfile | undefined, puzzle: PuzzleId) => !!profile && !profile.knownPuzzles.includes(puzzle);
 /** The profile once `puzzle` can be solved, with the method that was learnt (or the tutorial skipped). */
 export function withKnownPuzzle(profile: JourneyProfile, puzzle: PuzzleId, method?: string): JourneyProfile {

@@ -10,13 +10,13 @@ import { LearningGroups } from "./LearningGroups";
 import { fmtSolve } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
-import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
+import { PUZZLES, puzzleInfo, puzzleOf, type PuzzleId } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
 import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, NUMERIC, run, usePhone } from "./ui";
 import { PhoneSheet, SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
 import { AlgView } from "./algView";
-import { SolveSolution } from "./SolveAnalysis";
+import { SolveView } from "./SolveView";
 import { NotationContent } from "./notation";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
@@ -379,69 +379,11 @@ function CommentForm() {
 
 function SolveDetails() {
   const solve = s.overlaySolve;
-  if (!solve) return null;
-  return (
-    <>
-      <div className="flex flex-col gap-1">
-        <span className={cn(NUMERIC, "text-5xl font-medium tracking-tight", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
-          {fmtSolve(solve.time_ms, solve.penalty)}
-        </span>
-        <span className="text-sm text-muted-foreground">{solve.displayDate}</span>
-      </div>
-      {solve.scramble && <Alg text={solve.scramble} size={15} className="text-foreground/90" />}
-      {solve.solution && <SolveSolution key={solve.id} solve={solve} />}
-      {solve.comment && <p className="text-sm text-muted-foreground">{solve.comment}</p>}
-      <div className="flex flex-wrap items-center gap-1">
-        <ActionToggle action={"penalty:" + solve.id + ":+2"} pressed={solve.penalty === "+2"}>
-          +2
-        </ActionToggle>
-        <ActionToggle action={"penalty:" + solve.id + ":dnf"} pressed={solve.penalty === "dnf"}>
-          {tr("DNF")}</ActionToggle>
-        <Button action={"comment:" + solve.id} icon={MessageSquare}>
-          {tr("Comment")}</Button>
-        <Button action={"delete:" + solve.id} icon={Trash2} variant="destructive" className="ml-auto">
-          {tr("Delete")}</Button>
-      </div>
-    </>
-  );
+  return solve ? <SolveView key={solve.id} solve={solve} owner /> : null;
 }
 
 /** Every dialog of the app, each open while the app overlay names it. */
-/** Picking a puzzle the player cannot solve yet: learn it, say it is already known, or go back to the previous one. */
-function LearnPuzzle() {
-  const puzzle = puzzleInfo(s.puzzle as PuzzleId).label;
-  const phone = usePhone();
-  return (
-    <Modal id="learnPuzzle" title={tr("Learn to solve the {0}?", { 0: puzzle })} description={tr("Learn it step by step, and the timer, algorithms, training and duels open on the {0} once you finish. Already know it? Unlock everything now.", { 0: puzzle })} className="sm:max-w-md">
-      <div className={cn("flex gap-2", phone ? "flex-col-reverse" : "items-center justify-end")}>
-        {s.lockedFrom && (
-          <Button action="learnPuzzle:cancel" variant="ghost" className={cn(!phone && "mr-auto")}>
-            {tr("Not now")}</Button>
-        )}
-        <Button action="learnPuzzle:skip" variant="outline">
-          {tr("Unlock everything")}</Button>
-        <Button action="learnPuzzle:start" variant="default" icon={GraduationCap}>
-          {tr("Start learning")}</Button>
-      </div>
-    </Modal>
-  );
-}
 
-/** A greyed section while the puzzle's course comes first: keep learning, or skip the tutorial and open everything. */
-function SkipLearning() {
-  const puzzle = puzzleInfo(s.puzzle as PuzzleId).label;
-  const phone = usePhone();
-  return (
-    <Modal id="skipLearning" title={tr("Skip the tutorial?")} description={tr("This section opens once you can solve the {0}. Skip the tutorial if you already know how.", { 0: puzzle })} className="sm:max-w-md">
-      <div className={cn("flex gap-2", phone ? "flex-col-reverse" : "justify-end")}>
-        <UiButton variant="ghost" onClick={close}>
-          {tr("Keep learning")}</UiButton>
-        <Button action="skipLearning" variant="default">
-          {tr("Skip the tutorial")}</Button>
-      </div>
-    </Modal>
-  );
-}
 
 export function Overlays() {
   return (
@@ -456,8 +398,6 @@ export function Overlays() {
       <SessionSheet />
       <MethodsDialog />
       <SearchDialog />
-      <LearnPuzzle />
-      <SkipLearning />
       <Modal id="algPlayer" title={s.algView?.items[s.algView.index]?.name ?? tr("Algorithm")} description={tr("The algorithm played on the cube")} hideHeader tall className="flex h-[min(86vh,560px)] gap-0 overflow-hidden p-0 sm:max-w-4xl" sheetClassName="pb-6">
         <AlgView />
       </Modal>
@@ -470,7 +410,7 @@ export function Overlays() {
       <Modal id="comment" title={tr("Comment")} className="sm:max-w-md">
         <CommentForm key={s.overlaySolve?.id} />
       </Modal>
-      <Modal id="solve" title={tr("Solve")} hideHeader className="sm:max-w-lg">
+      <Modal id="solve" title={tr("Solve")} hideHeader className={s.overlaySolve?.scramble && puzzleInfo(puzzleOf(s.overlaySolve)).cubeSize ? "sm:max-w-4xl" : "sm:max-w-lg"}>
         <SolveDetails />
       </Modal>
       <Modal id="profileCase" title={said(s.caseId)} className="flex h-[min(88vh,760px)] flex-col sm:max-w-4xl" tall>

@@ -50,6 +50,27 @@ rustTest("Rust exposes the complete catalogue and verified training histories", 
   expect((await call("/auth/login","POST",{username:"records",password:"a-long-test-password"})).status).toBe(200);
 });
 
+rustTest("a solve's turns are written by hand, and the solve shared by a link anyone can open", async () => {
+  const call = client(createRustApi(fixture()));
+  const member = (await call("/auth/register", "POST", {username:"sharer",password:"a-long-test-password"})).body;
+  const session = (await call("/sessions", "POST", {mode:"playground"},member.token)).body;
+  const solve = (await call("/solves","POST",{sessionId:session.id,timeMs:9000,penalty:"none",scramble:"R U"},member.token)).body;
+  const written = await call(`/solves/${solve.id}`,"PATCH",{solution:"hold:yellow/green x2 R U r' M2"},member.token);
+  expect(written.body.solution).toBe("hold:yellow/green x2 R U r' M2");
+  const link = (await call(`/solves/${solve.id}/share`,"POST",undefined,member.token)).body.token;
+  // The same link ever after.
+  expect((await call(`/solves/${solve.id}/share`,"POST",undefined,member.token)).body.token).toBe(link);
+  const shared = await call(`/shared/${link}`);
+  expect(shared.status).toBe(200);
+  expect(shared.body).toMatchObject({time_ms:9000,scramble:"R U",solution:"hold:yellow/green x2 R U r' M2",username:"sharer"});
+  expect(shared.body.comment).toBeUndefined();
+  expect((await call("/shared/nothing")).status).toBe(404);
+  // Only its owner shares it, and clearing the turns leaves none.
+  const other = (await call("/auth/register", "POST", {username:"stranger",password:"a-long-test-password"})).body;
+  expect((await call(`/solves/${solve.id}/share`,"POST",undefined,other.token)).status).toBe(404);
+  expect((await call(`/solves/${solve.id}`,"PATCH",{solution:null},member.token)).body.solution).toBeNull();
+});
+
 rustTest(
   "Rust itself migrates pre-account SQLite and retires legacy profile fields without losing history",
   async () => {
@@ -148,6 +169,29 @@ rustTest("learning marks are validated, upserted per account and journaled for s
   expect((await call("/sync", "POST", { operations: [{ ...op, id: crypto.randomUUID(), method: "POST" }] }, alice.token)).status).toBe(422);
   const db = new Database(path); cleanups.unshift(() => db.close());
   expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
+});
+
+rustTest("a case is learned with one of its algorithms, and players see which ones are chosen", async () => {
+  const app = createRustApi(fixture());
+  cleanups.push(() => app.server.stop());
+  const call = client(app);
+  const [alice, bob, carol] = await Promise.all(["alg_alice", "alg_bob", "alg_carol"].map(async (username) => (await call("/auth/register", "POST", { username, password: "a-long-test-password" })).body));
+  const algs = CASES.find((c: any) => c.id === "PLL Aa")!.algorithms.map((a: any) => a.alg);
+  expect(algs.length).toBeGreaterThan(1);
+  const learned = await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: algs[1] }, alice.token);
+  expect([learned.status, learned.body.alg]).toEqual([200, algs[1]]);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: "R U R'" }, bob.token)).status).toBe(400);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: algs[1] }, bob.token)).status).toBe(200);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: algs[0] }, carol.token)).status).toBe(200);
+  expect((await call("/learned", "PUT", { caseId: "OLL 1", learned: true }, carol.token)).body.alg).toBeNull();
+  const choices = (cases: string, token = alice.token) => call(`/algorithm-choices?cases=${encodeURIComponent(cases)}`, "GET", undefined, token);
+  expect((await choices("PLL Aa,OLL 1")).body).toEqual({ "PLL Aa": { total: 3, algs: { [algs[0]]: 1, [algs[1]]: 2 } } });
+  // Unlearning forgets the algorithm; learning again with another moves the count.
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: false, alg: algs[1] }, bob.token)).body.alg).toBeNull();
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: algs[0] }, alice.token)).body.alg).toBe(algs[0]);
+  expect((await choices("PLL Aa")).body).toEqual({ "PLL Aa": { total: 2, algs: { [algs[0]]: 2 } } });
+  expect((await choices("")).status).toBe(422);
+  expect((await call("/algorithm-choices?cases=PLL%20Aa")).status).toBe(401);
 });
 
 rustTest("learning order validates tracks and groups, isolates accounts, and replays uploads idempotently", async () => {

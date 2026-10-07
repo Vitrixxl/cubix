@@ -3,8 +3,8 @@ import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, F
 import { memo, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import {
-  LEVEL_LABEL, algId, algSetup, completeStep, courseEntry, finishCourse, firstOpenSet, goToStep, methodFacts, methodOf, methodProgress, openCourse,
-  recommendedMethod, setGroups, stepId, stepLearned, stepSets, toggleAlgLearned, type CourseEntry,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, goToStep, methodFacts, methodOf, methodProgress, openCourse,
+  recommendedMethod, setGroups, stepDone, stepLearned, stepSets, toggleAlgLearned, type CourseEntry,
 } from "../../../src/client/lib/course";
 import { plural } from "../../../src/client/lib/format";
 import { applyAlg, solved } from "../../../src/shared/cube";
@@ -65,6 +65,8 @@ function StatusMark({ done, current = false }: { done: boolean; current?: boolea
 
 function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const cases = useAtomValue(casesAtom);
+  const learnedIds = useAtomValue(learnedCaseIdsAtom);
+  const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const setRoute = useSetAtom(routeAtom);
   const recommended = recommendedMethod(puzzle), locked = useAtomValue(puzzleLockedAtom);
@@ -76,7 +78,7 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
       {locked ? <Text className="px-1 text-[13px] leading-[18px] text-muted-foreground">Finish a course to open the {puzzleInfo(puzzle).label} everywhere.</Text> : null}
       <ListGroup {...list}>
         {METHODS[puzzle].map((method, i) => {
-          const facts = methodFacts(method, cases), state = methodProgress(progress, puzzle, method), isRecommended = method.id === recommended, lit = isRecommended || state.started;
+          const facts = methodFacts(method, cases), state = methodProgress(progress, puzzle, method, cases, learned), isRecommended = method.id === recommended, lit = isRecommended || state.started;
           return <ListRow key={method.id} first={i === 0} accessibilityLabel={`${state.started ? "Continue" : "Start"} ${method.name}`} onPress={() => open(method.id)}
             iconNode={<View className={cn("size-10 items-center justify-center rounded-xl", lit ? "bg-primary/15" : "bg-muted")}><LevelBars level={method.level} on={lit} /></View>}
             title={<View className="flex-row items-baseline gap-2">
@@ -84,9 +86,9 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
               <Text className={cn("text-xs", isRecommended ? "font-medium text-primary" : "text-muted-foreground")}>{isRecommended ? "Recommended" : LEVEL_LABEL[method.level]}</Text>
             </View>}
             detail={method.summary}
-            trailing={<Text className={cn("text-[13px] font-semibold", lit ? "text-primary" : "text-muted-foreground")}>{state.started ? state.done === state.total ? "Done" : "Continue" : "Start"}</Text>}>
-            <Text numberOfLines={1} className="text-xs text-muted-foreground/80">{plural(facts.steps, "step")} · {plural(facts.algorithms, "alg")}{state.started ? ` · ${state.done} / ${state.total} done` : ""}</Text>
-            {state.started && <Bar ratio={state.done / state.total} className="mt-1.5 max-w-40" />}
+            trailing={<Text className={cn("text-[13px] font-semibold", lit ? "text-primary" : "text-muted-foreground")}>{state.started ? state.total && state.done === state.total ? "Done" : "Continue" : "Start"}</Text>}>
+            <Text numberOfLines={1} className="text-xs text-muted-foreground/80">{plural(facts.steps, "step")} · {plural(facts.algorithms, "alg")}{state.started ? ` · ${state.done} / ${state.total} learned` : ""}</Text>
+            {state.started && state.total > 0 && <Bar ratio={state.done / state.total} className="mt-1.5 max-w-40" />}
           </ListRow>;
         })}
       </ListGroup>
@@ -172,8 +174,8 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   const [playing, setPlaying] = useState<number | null>(null);
   const entry: CourseEntry = courseEntry(progress, puzzle, method.id);
   const step = method.steps[entry.step]!;
-  const done = entry.done.includes(stepId(step));
-  const state = methodProgress(progress, puzzle, method);
+  const done = stepDone(step, cases, learned, entry);
+  const state = methodProgress(progress, puzzle, method, cases, learned);
   const own = stepSets(step, sets, puzzle);
   const chosen = own.find(s => s.id === chosenSets[entry.step]) ?? firstOpenSet(own, cases, learned);
   const count = stepLearned(step, cases, learned, entry);
@@ -240,7 +242,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
     </View>}
   </View>;
   return <Page className="pb-0">
-    <PageHead lead={<BackButton label="Every method" onPress={back} />} title={method.name} sub={`${state.done} of ${state.total} steps done`} />
+    <PageHead lead={<BackButton label="Every method" onPress={back} />} title={method.name} sub={`${state.done} of ${state.total} steps learned`} />
     <View className="-mx-4 min-h-0 flex-1">
       <Pressable accessibilityRole="button" accessibilityLabel={finished ? `${method.name} done. Every step` : `Step ${entry.step + 1} of ${method.steps.length}: ${step.title}. Every step`} onPress={() => setStepsOpen(true)}
         className="mx-4 min-h-14 gap-2 rounded-2xl border border-border bg-card px-4 py-3 active:bg-muted/60">
@@ -253,7 +255,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
           <Icon as={ChevronsUpDown} size={16} className="text-muted-foreground" />
         </View>
         <View className="flex-row gap-1" importantForAccessibility="no-hide-descendants">
-          {method.steps.map((st, i) => <View key={st.title} className={cn("h-1 flex-1 rounded-full", entry.done.includes(stepId(st)) || finished ? "bg-primary" : i === entry.step ? "bg-primary/40" : "bg-muted")} />)}
+          {method.steps.map((st, i) => <View key={st.title} className={cn("h-1 flex-1 rounded-full", stepDone(st, cases, learned, entry) || finished ? "bg-primary" : i === entry.step ? "bg-primary/40" : "bg-muted")} />)}
         </View>
       </Pressable>
       {finished ? <Finished puzzle={puzzle} method={method} onTimer={() => setRoute({ page: "playground" })} onMethods={back} /> : <>
@@ -274,12 +276,12 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
             <Text className="text-sm font-medium text-muted-foreground">Train</Text>
           </Pressable>}
           {last
-            ? <Pressable accessibilityRole="button" accessibilityLabel="Finish" onPress={() => { setProgress(finishCourse(progress, puzzle, method.id)); void unlock(method.id); setFinished(true); }}
+            ? <Pressable accessibilityRole="button" accessibilityLabel="Finish" onPress={() => { void unlock(method.id); setFinished(true); }}
               className="h-12 min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary px-3 active:bg-primary/85">
               <Icon as={Flag} size={17} className="text-primary-foreground" />
               <Text className="text-[15px] font-semibold text-primary-foreground">Finish</Text>
             </Pressable>
-            : <Pressable accessibilityRole="button" accessibilityLabel={`Next step: ${next!.title}`} onPress={() => setProgress(completeStep(progress, puzzle, method.id, entry.step))}
+            : <Pressable accessibilityRole="button" accessibilityLabel={`Next step: ${next!.title}`} onPress={() => go(entry.step + 1)}
               className="h-12 min-w-0 flex-1 flex-row items-center gap-2 rounded-xl bg-primary pr-2 pl-3.5 active:bg-primary/85">
               <Text numberOfLines={1} className="min-w-0 flex-1 font-sans text-sm font-semibold text-primary-foreground">Next · {next!.title}</Text>
               <Icon as={ChevronRight} size={18} className="text-primary-foreground" />
@@ -287,12 +289,12 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
         </View>
       </>}
     </View>
-    <Sheet open={stepsOpen} onClose={() => setStepsOpen(false)} title="Steps" description={`${state.done} of ${state.total} done`} scroll contentClassName="gap-0 px-2">
+    <Sheet open={stepsOpen} onClose={() => setStepsOpen(false)} title="Steps" description={`${state.done} of ${state.total} steps learned`} scroll contentClassName="gap-0 px-2">
         {method.steps.map((st, i) => {
           const learnedHere = stepLearned(st, cases, learned, entry), here = i === entry.step && !finished;
           return <Pressable key={st.title} accessibilityRole="button" accessibilityState={{ selected: here }} onPress={() => { setStepsOpen(false); go(i); }}
             className={cn("min-h-14 flex-row items-center gap-3 rounded-lg px-3 active:bg-muted/50", here && "bg-muted")}>
-            <StatusMark done={entry.done.includes(stepId(st))} current={here} />
+            <StatusMark done={!!learnedHere.total && learnedHere.learned === learnedHere.total} current={here} />
             <View className="min-w-0 flex-1">
               <Text numberOfLines={1} className="text-[15px] font-medium"><Text className="text-muted-foreground">{i + 1}</Text> {st.title}</Text>
               <Text numberOfLines={1} className="text-xs text-muted-foreground">

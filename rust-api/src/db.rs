@@ -45,11 +45,16 @@ impl Db {
         add_column_if_missing(&db, "solves", "comment", "TEXT")?;
         // The turns of a solve, as a smart cube records them, arrived with smart cubes.
         add_column_if_missing(&db, "solves", "solution", "TEXT")?;
+        // A solve shared by a link carries the link's token.
+        add_column_if_missing(&db, "solves", "share_token", "TEXT")?;
+        db.execute_batch("CREATE UNIQUE INDEX IF NOT EXISTS idx_solves_share ON solves(share_token) WHERE share_token IS NOT NULL")?;
         // One day's extra hours or hours taken back arrived after the weekly hours.
         add_column_if_missing(&db, "coaches", "overrides", "TEXT NOT NULL DEFAULT '[]'")?;
         // Coaches may keep to the students they have; accounts may show a picture.
         add_column_if_missing(&db, "coaches", "new_students", "INTEGER NOT NULL DEFAULT 1")?;
         add_column_if_missing(&db, "users", "avatar", "TEXT")?;
+        // The algorithm a case was learned with arrived after learned cases.
+        add_column_if_missing(&db, "learned_cases", "alg", "TEXT")?;
         // A coach may offer to move a session.
         add_column_if_missing(&db, "coach_bookings", "proposed_start", "INTEGER")?;
         add_column_if_missing(&db, "coach_bookings", "proposed_end", "INTEGER")?;

@@ -52,6 +52,14 @@ fn solution(body: &Value) -> Result<Option<&str>> {
         Some(_) => Ok(Some(string(body, "solution", 0, 10000)?.trim()).filter(|t| !t.is_empty())),
     }
 }
+/// The turns of a solve as edited: absent, cleared (`null` or blank) or trimmed text of at most 10000 characters.
+fn solution_edit(body: &Value) -> Result<Option<Option<String>>> {
+    match body.get("solution") {
+        None => Ok(None),
+        Some(Value::Null) => Ok(Some(None)),
+        Some(_) => Ok(Some(Some(string(body, "solution", 0, 10000)?.trim().to_owned()).filter(|t| !t.is_empty()))),
+    }
+}
 fn enum_string<'a>(body: &'a Value, key: &str, allowed: &[&str]) -> Result<&'a str> {
     let s = string(body, key, 0, 32)?;
     if allowed.contains(&s) {
@@ -287,6 +295,21 @@ async fn respond(
                 ));
             }
             _ => {}
+        }
+        // A solve shared by its link: what it was, by whom, for anyone holding the link.
+        if let Some(token) = path.strip_prefix("shared/").filter(|s| !s.is_empty() && !s.contains('/')) {
+            let token = token.to_owned();
+            return state
+                .db
+                .call(move |db| {
+                    required(
+                        db,
+                        "SELECT s.time_ms,s.penalty,s.scramble,s.solution,s.puzzle_id,s.cube_size,s.solve_mode,s.scramble_type,s.created_at,u.username FROM solves s JOIN users u ON u.id=s.user_id WHERE s.share_token=?",
+                        params![token],
+                        "Unknown solve",
+                    )
+                })
+                .await;
         }
         if let Some(id) = path.strip_prefix("cases/").filter(|s| !s.contains('/')) {
             return state
@@ -595,16 +618,24 @@ pub(crate) fn route(
                 None
             };
             let comment = comment(body)?;
-            if penalty.is_none() && comment.is_none() {
+            let solution = solution_edit(body)?;
+            if penalty.is_none() && comment.is_none() && solution.is_none() {
                 return Err(ApiError::validation());
             }
             required(
                 db,
-                "UPDATE solves SET penalty=COALESCE(?,penalty),comment=CASE WHEN ? THEN ? ELSE comment END WHERE id=? AND user_id=? RETURNING *",
-                params![penalty, comment.is_some(), comment.flatten(), id, uid],
+                "UPDATE solves SET penalty=COALESCE(?,penalty),comment=CASE WHEN ? THEN ? ELSE comment END,solution=CASE WHEN ? THEN ? ELSE solution END WHERE id=? AND user_id=? RETURNING *",
+                params![penalty, comment.is_some(), comment.flatten(), solution.is_some(), solution.flatten(), id, uid],
                 "Unknown solve",
             )
         }
+        // The link that shares a solve: made once, the same ever after.
+        ("POST", ["solves", id, "share"]) => required(
+            db,
+            "UPDATE solves SET share_token=COALESCE(share_token,?) WHERE id=? AND user_id=? RETURNING share_token AS token",
+            params![crate::accounts::random_token()[..24].to_owned(), id, uid],
+            "Unknown solve",
+        ),
         ("DELETE", ["solves", id]) => required(
             db,
             "DELETE FROM solves WHERE id=? AND user_id=? RETURNING *",
@@ -649,25 +680,51 @@ pub(crate) fn route(
             .map(|r| r["case_id"].clone())
             .collect::<Vec<_>>()
         )),
+        // How many players learned each case, and with which of its algorithms.
+        ("GET", ["algorithm-choices"]) => {
+            let cases: Vec<&str> = query.get("cases").map(|c| c.split(',').filter(|id| !id.is_empty()).collect()).unwrap_or_default();
+            if cases.is_empty() || cases.len() > 500 {
+                return Err(ApiError::validation());
+            }
+            let mut out = serde_json::Map::new();
+            for row in all(
+                db,
+                "SELECT case_id,alg,count(*) n FROM learned_cases WHERE learned=1 AND alg IS NOT NULL AND case_id IN (SELECT value FROM json_each(?)) GROUP BY case_id,alg",
+                [json!(cases).to_string()],
+            )? {
+                let entry = out.entry(row["case_id"].as_str().unwrap().to_owned()).or_insert_with(|| json!({"total":0,"algs":{}}));
+                let n = row["n"].as_i64().unwrap_or(0);
+                entry["total"] = json!(entry["total"].as_i64().unwrap_or(0) + n);
+                entry["algs"][row["alg"].as_str().unwrap()] = json!(n);
+            }
+            Ok(Value::Object(out))
+        }
         ("PUT", ["learned"]) => {
             let case = string(body, "caseId", 1, 100)?;
             let learned = body
                 .get("learned")
                 .and_then(Value::as_bool)
                 .ok_or_else(ApiError::validation)?;
-            if !state.catalog.by_id.contains_key(case) {
+            let Some(entry) = state.catalog.by_id.get(case) else {
                 return Err(ApiError::new(400, "Unknown case"));
+            };
+            // The algorithm the case was learned with, one of the catalogue's; unlearning forgets it.
+            let alg = optional_string(body, "alg")?.filter(|_| learned);
+            if let Some(alg) = alg
+                && !entry["algorithms"].as_array().is_some_and(|algs| algs.iter().any(|a| a["alg"] == alg))
+            {
+                return Err(ApiError::new(400, "Unknown algorithm"));
             }
             // Two statements rather than UPSERT: an UPSERT's conflict clause would override the
             // INSERT OR REPLACE inside the sync journal trigger.
             let updated = db.execute(
-                "UPDATE learned_cases SET learned=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?",
-                params![learned as i64, uid, case],
+                "UPDATE learned_cases SET learned=?,alg=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?",
+                params![learned as i64, alg, uid, case],
             )?;
             if updated == 0 {
                 db.execute(
-                    "INSERT INTO learned_cases(user_id,case_id,learned) VALUES(?,?,?)",
-                    params![uid, case, learned as i64],
+                    "INSERT INTO learned_cases(user_id,case_id,learned,alg) VALUES(?,?,?,?)",
+                    params![uid, case, learned as i64, alg],
                 )?;
             }
             required(

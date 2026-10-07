@@ -72,10 +72,10 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
                 <Cases cases={method.cases} phone={phone} />
               </>
             ) : (
-              <Card className="min-h-0 flex-1 items-center justify-center gap-2 p-8 text-center">
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
                 <span className="text-base font-medium">{tr("No smart cube solve with {0} yet", { 0: said(method.label) })}</span>
                 <span className="max-w-[46ch] text-sm text-muted-foreground">{tr("Solve with this method on a connected cube: its steps, cases and times show here as soon as one is analysed.")}</span>
-              </Card>
+              </div>
             )}
           </div>
           <div className="flex min-h-0 min-w-0 flex-col gap-4">
@@ -92,7 +92,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
 /** Nothing to analyse yet: the analysis needs solves turned on a connected cube. */
 function NoSmartSolves({ pending }: { pending: number }) {
   return (
-    <Card className="min-h-0 flex-1 gap-0 py-0">
+    <div className="flex min-h-0 flex-1 items-center justify-center">
       <Empty>
         <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <Bluetooth className="size-5" />
@@ -108,7 +108,7 @@ function NoSmartSolves({ pending }: { pending: number }) {
           </>
         )}
       </Empty>
-    </Card>
+    </div>
   );
 }
 

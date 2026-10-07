@@ -13,7 +13,7 @@ declare const CUBIX_VENDOR: string;
 const scope = self as unknown as WorkerGlobalScope & typeof globalThis;
 const shared = "onconnect" in scope;
 /** Requests that change data: the other tabs refresh once they are done. */
-const MUTATIONS = new Set(["deleteAccount", "addSolve", "importSolves", "deleteSolve", "setPenalty", "setComment", "setLearned", "setLearningGroupOrder", "createSession", "duelRecord", "login", "register", "logout"]);
+const MUTATIONS = new Set(["deleteAccount", "addSolve", "importSolves", "deleteSolve", "setPenalty", "setComment", "setSolution", "setLearned", "setLearningGroupOrder", "createSession", "duelRecord", "login", "register", "logout"]);
 const ports = new Set<Port>();
 /** Requests in flight: the engine numbers them itself, each tab gets its answer under its own number. */
 const owners = new Map<number, { port: Port; id: number; method: string }>();

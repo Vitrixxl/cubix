@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Pause, Play, RotateCcw } from "lucide-react";
 import { SmartCube, stateToFacelets } from "../../src/client/lib/smartCube";
 import { COLOUR_NAMES, mergeTurns, type Phase, type PhaseId, type Segment, type SolveAnalysis } from "../../src/client/lib/solveAnalysis";
-import { heldAlg, readSolution, recordedSolve } from "../../src/client/lib/solution";
+import { recordedSolve, type SolutionTurn } from "../../src/client/lib/solution";
 import { trackable } from "../../src/client/lib/scrambleTracker";
 import { fmtSolve } from "../../src/client/lib/format";
 import { call } from "./bridge";
@@ -26,7 +26,7 @@ const seconds = (ms: number) => (ms / 1000).toFixed(2);
 const tps = (phase: Phase) => (phase.execution > 0 ? (phase.turns.length / (phase.execution / 1000)).toFixed(1) : "–");
 const capitalised = (text: string) => text[0]!.toUpperCase() + text.slice(1);
 /** A colour of the cube, and the cross of that colour, in the current language. */
-const colourLabel = (colour: string) => ({ yellow: tr("yellow"), white: tr("white"), green: tr("green"), blue: tr("blue"), orange: tr("orange"), red: tr("red") })[colour] ?? colour;
+export const colourLabel = (colour: string) => ({ yellow: tr("yellow"), white: tr("white"), green: tr("green"), blue: tr("blue"), orange: tr("orange"), red: tr("red") })[colour] ?? colour;
 const crossName = (colour: string) =>
   ({ yellow: tr("Yellow cross"), white: tr("White cross"), green: tr("Green cross"), blue: tr("Blue cross"), orange: tr("Orange cross"), red: tr("Red cross") })[colour] ?? colour;
 
@@ -114,19 +114,14 @@ export function SolveStrip({ analysis }: { analysis: SolveAnalysis }) {
   );
 }
 
-/**
- * The solution kept with a saved solve: its turns as the cube Cubix shows turns them (turned over, hence the z2),
- * played in 3D from the scramble, and its analysis when it is a timed solve of a 3×3 scramble (wide screens).
- */
-export function SolveSolution({ solve }: { solve: { id: number; time_ms: number; penalty: string; scramble?: string | null; solution?: string | null; displayDate?: string } }) {
+/** A recorded solution's analysis, opened in its dialog: on wide screens, for a timed 3×3 solve. */
+export function SolveAnalysisButton({ solve, turns }: { solve: { scramble?: string | null }; turns: SolutionTurn[] }) {
   const phone = usePhone(),
-    turns = useMemo(() => readSolution(solve.solution), [solve.solution]),
-    held = turns && heldAlg(turns.map((turn) => turn.move)),
     [analysis, setAnalysis] = useState<SolveAnalysis | null>(null),
     [open, setOpen] = useState<PhaseId | null>(null);
   useEffect(() => {
     setAnalysis(null);
-    const recording = !phone && turns && recordedSolve(solve.scramble, turns);
+    const recording = !phone && recordedSolve(solve.scramble, turns);
     if (!recording) return;
     let current = true;
     call("analyseSolve", recording)
@@ -134,38 +129,14 @@ export function SolveSolution({ solve }: { solve: { id: number; time_ms: number;
       .catch(() => {});
     return () => void (current = false);
   }, [turns, solve.scramble, phone]);
-  if (!turns || !held) return null;
-  // The analysis counts the turns step by step: its figures when there is one, as under the timer.
-  const count = analysis?.turns ?? mergeTurns(turns.map((turn) => turn.move)).length,
-    ms = turns.at(-1)!.at,
-    // Without its scramble, the solution is played from the cube it solves.
-    setup = solve.scramble && trackable(solve.scramble) ? (heldAlg(solve.scramble.trim().split(/\s+/)) ?? undefined) : undefined;
+  if (!analysis) return null;
   return (
-    <div className="flex flex-col gap-2" data-solution>
-      <div className="flex min-h-7 items-center gap-3">
-        <span className={LABEL}>{tr("Solution")}</span>
-        <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-          {count} {" "}{tr("turns")}{ms ? tr(" · {0} TPS", { 0: (count / (ms / 1000)).toFixed(2) }) : ""}
-        </span>
-        <div className="ml-auto flex items-center gap-1">
-          {analysis && (
-            <Button variant="outline" size="xs" onClick={() => setOpen(analysis.phases[0]!.id)}>
-              {tr("Analysis")}</Button>
-          )}
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() =>
-              s.openAlg([{ key: "solve:" + solve.id, name: fmtSolve(solve.time_ms, solve.penalty as any), detail: ["Solution", solve.displayDate].filter(Boolean).join(" · "), algs: [held], size: 3, mask: "full", setup }], 0)
-            }
-          >
-            <Play />
-            {tr("Replay")}</Button>
-        </div>
-      </div>
-      <Alg text={"z2 " + held} size={13} className="max-h-24 overflow-y-auto text-muted-foreground" />
-      {analysis && <SolveDialog analysis={analysis} phase={open} onPhase={setOpen} />}
-    </div>
+    <>
+      <Button variant="outline" size="xs" onClick={() => setOpen(analysis.phases[0]!.id)}>
+        {tr("Analysis")}
+      </Button>
+      <SolveDialog analysis={analysis} phase={open} onPhase={setOpen} />
+    </>
   );
 }
 

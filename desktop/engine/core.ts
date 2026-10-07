@@ -164,7 +164,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   async function run(req: EngineRequest): Promise<unknown> {
     // The reserve of scrambles fills from the launch, once the page has had a moment to draw.
     if (req.method === 'init') setTimeout(() => void reserve.fill(), 1500);
-    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
+    if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), learnedAlg: local.learnedAlg(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
       const trainingMode = q.page === 'training';
@@ -207,7 +207,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       const kept = new Set(['stats', 'profile', 'achievements', 'caseHistory']), tokens: Record<string, number> = {};
       const values = await Promise.all(Object.entries(jobs).map(async ([key, promise]) => [key, await promise] as const));
       const figures = Object.fromEntries(values.filter(([key]) => kept.has(key) && key !== 'stats').flatMap(([key, v]: readonly [string, any]) => { tokens[key] = v.token; return 'value' in v ? [[key, v.value]] : []; }));
-      return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
+      return new Shown({ ...display({ revision: q.revision, duels: JSON.parse(storage.getItem(DUELS_KEY) ?? '[]'), learned: local.learned(), learnedAlg: local.learnedAlg(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey(), ...Object.fromEntries(values.filter(([key]) => !kept.has(key))) }), stats: values.find(([key]) => key === 'stats')![1], ...figures, tokens });
     }
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);

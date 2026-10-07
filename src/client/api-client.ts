@@ -42,7 +42,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     learnedCases: () => request<string[]>("/learned"),
     /** The account and everything it holds, for good; the password confirms it (a wrong one is a 401, not an expiry). */
     deleteAccount: (password: string) => request<{ ok: true }>("/account/delete", "POST", { password }, undefined, true),
-    setLearned: (caseId: string, learned: boolean) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned }),
+    setLearned: (caseId: string, learned: boolean, alg?: string) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(alg ? { alg } : {}) }),
+    algorithmChoices: (caseIds: string[]) => request<Record<string, { total: number; algs: Record<string, number> }>>(`/algorithm-choices?cases=${caseIds.map(encodeURIComponent).join(",")}`),
     /** Incremental account sync; durable uploads can fall back to HTTP after disconnection. */
     connectLive: () => {
       const ws = new WebSocket(base.replace(/^http/, "ws") + "/live");
@@ -99,5 +100,9 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     setPenalty: (id: number, penalty: Penalty) => request<SolveDto>(`/solves/${id}`, "PATCH", { penalty }),
     /** An empty or null comment clears the note. */
     setComment: (id: number, comment: string | null) => request<SolveDto>(`/solves/${id}`, "PATCH", { comment }),
+    /** The turns of a solve, as written by hand (see `lib/solution`); null clears them. */
+    setSolution: (id: number, solution: string | null) => request<SolveDto>(`/solves/${id}`, "PATCH", { solution }),
+    /** The token of the link that shares a solve, made on the first call. */
+    shareSolve: (id: number) => request<{ token: string }>(`/solves/${id}/share`, "POST"),
   };
 }

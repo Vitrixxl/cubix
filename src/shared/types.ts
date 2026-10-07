@@ -89,6 +89,8 @@ export interface LearnedCaseDto {
   id: number;
   case_id: string;
   learned: 0 | 1;
+  /** The catalogue algorithm the case was learned with, if one was chosen. */
+  alg?: string | null;
   updated_at: string;
 }
 

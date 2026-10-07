@@ -4,7 +4,7 @@ import { canonicalTurn } from "../src/client/lib/smartCube";
 import { faceMap, playable, type CatalogCase } from "../src/client/lib/solveAnalysis";
 import { writeSolution } from "../src/client/lib/solution";
 import { setupTurns } from "../src/client/lib/smartTraining";
-import { createSmartDigests } from "../desktop/engine/smartDigests";
+import { createSmartDigests, SMART_DIGESTS_KEY } from "../desktop/engine/smartDigests";
 import type { CaseStatsDto, SolveDto } from "../src/shared/types";
 import catalog from "../desktop/assets/catalog.json";
 
@@ -64,7 +64,7 @@ describe("smart cube digests", () => {
     const storage = memory();
     (() => { const d = createSmartDigests({ storage, cases, changed: () => {} }); d.analysis(d.digests([smartSolve(1)], "standard"), "standard"); })();
     await new Promise((resolve) => setTimeout(resolve, 2100));
-    expect(Object.keys(JSON.parse(storage.getItem("cubix.smart.digests.v1")!))).toEqual(["1"]);
+    expect(Object.keys(JSON.parse(storage.getItem(SMART_DIGESTS_KEY)!))).toEqual(["1"]);
     // Another engine reads them back without analysing again: a solution it could not read is still known.
     expect((() => { const d = createSmartDigests({ storage, cases, changed: () => {} }); return d.analysis(d.digests([smartSolve(1)], "standard"), "standard").count; })()).toBe(1);
   });

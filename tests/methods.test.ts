@@ -6,8 +6,8 @@ import { METHODS } from "../src/shared/methods";
 import { PUZZLES, puzzleOf, type PuzzleId } from "../src/shared/puzzles";
 import { applyAlg, colorOf, faceOfSlot, invertAlg, slotsFor, solved } from "../src/shared/cube";
 import {
-  EMPTY_COURSE_PROGRESS, algId, algSetup, completeStep, courseDone, finishCourse, courseEntry, goToStep, methodFacts, methodProgress, openCourse, readCourseProgress, recommendedMethod,
-  stepAlgorithmCount, stepId, stepLearned, stepSets, toggleAlgLearned, toggleStepDone,
+  EMPTY_COURSE_PROGRESS, algId, algSetup, courseEntry, goToStep, methodFacts, methodProgress, openCourse, readCourseProgress, recommendedMethod,
+  stepAlgorithmCount, stepDone, stepId, stepLearned, stepSets, toggleAlgLearned,
 } from "../src/client/lib/course";
 
 const every = PUZZLES.flatMap(p => METHODS[p.id].map(method => ({ puzzle: p.id, method })));
@@ -202,37 +202,34 @@ test("cubing.js agrees: the cross cases end with every edge oriented, the Sune c
   }
 });
 
-test("Next step marks the step done and moves on; Finish completes the method", () => {
+test("a step is done once all its algorithms are learned; a step without algorithms never is", () => {
   const puzzle: PuzzleId = "333", beginner = METHODS[puzzle][0]!;
-  let progress = completeStep(openCourse(EMPTY_COURSE_PROGRESS, puzzle, "beginner"), puzzle, "beginner", 0);
-  expect(courseEntry(progress, puzzle, "beginner")).toMatchObject({ step: 1, done: ["white-cross"] });
-  progress = completeStep(progress, puzzle, "beginner", 0);
-  expect(courseEntry(progress, puzzle, "beginner").done).toEqual(["white-cross"]);
-  expect(courseDone(progress, puzzle, beginner)).toBe(false);
-  progress = finishCourse(goToStep(progress, puzzle, "beginner", 5), puzzle, "beginner");
-  expect(courseDone(progress, puzzle, beginner)).toBe(true);
-  expect(courseEntry(progress, puzzle, "beginner").step).toBe(5);
-  // The last step stays shown.
-  expect(courseEntry(completeStep(progress, puzzle, "beginner", 5), puzzle, "beginner").step).toBe(5);
+  const withAlgs = beginner.steps.filter(st => stepLearned(st, cases, new Set(), courseEntry(EMPTY_COURSE_PROGRESS, puzzle, "beginner")).total > 0);
+  let progress = openCourse(EMPTY_COURSE_PROGRESS, puzzle, "beginner");
+  expect(methodProgress(progress, puzzle, beginner, cases, new Set())).toEqual({ started: true, done: 0, total: withAlgs.length, step: 0 });
+  const step = beginner.steps[1]!;
+  expect(stepDone(step, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(false);
+  for (const a of step.algs!) progress = toggleAlgLearned(progress, puzzle, "beginner", algId(step, a));
+  expect(stepDone(step, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(true);
+  expect(methodProgress(progress, puzzle, beginner, cases, new Set()).done).toBe(1);
+  const intuitive = beginner.steps.find(st => !withAlgs.includes(st));
+  if (intuitive) expect(stepDone(intuitive, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(false);
 });
 
-test("a course remembers its method, its step, the steps done and its own learned algorithms", () => {
+test("a course remembers its method, its step and its own learned algorithms", () => {
   const puzzle: PuzzleId = "333";
   const beginner = METHODS[puzzle][0]!;
   let progress = openCourse(EMPTY_COURSE_PROGRESS, puzzle, "beginner");
   expect(progress.methods[puzzle]).toBe("beginner");
-  expect(methodProgress(progress, puzzle, beginner)).toEqual({ started: true, done: 0, total: 6, step: 0 });
   progress = goToStep(progress, puzzle, "beginner", 99);
   expect(courseEntry(progress, puzzle, "beginner").step).toBe(5);
-  progress = toggleStepDone(goToStep(progress, puzzle, "beginner", 1), puzzle, "beginner", 1);
-  expect(methodProgress(progress, puzzle, beginner).done).toBe(1);
   const step = beginner.steps[1]!, id = algId(step, step.algs![0]!);
   progress = toggleAlgLearned(progress, puzzle, "beginner", id);
   expect(stepLearned(step, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toEqual({ learned: 1, total: 1 });
   expect(toggleAlgLearned(progress, puzzle, "beginner", id).courses["333:beginner"]!.learned).toEqual([]);
   // A stored value read back, and junk ignored.
   expect(readCourseProgress(JSON.parse(JSON.stringify(progress)))).toEqual(progress);
-  expect(readCourseProgress({ methods: { "333": 4 }, courses: { x: { step: -1, done: "a" } } })).toEqual({ methods: {}, courses: { x: { step: 0, done: [], learned: [] } } });
+  expect(readCourseProgress({ methods: { "333": 4 }, courses: { x: { step: -1, done: "a" } } })).toEqual({ methods: {}, courses: { x: { step: 0, learned: [] } } });
   expect(readCourseProgress(null)).toEqual(EMPTY_COURSE_PROGRESS);
   // CFOP's OLL step teaches 2-look OLL and full OLL.
   const oll = METHODS[puzzle].find(m => m.id === "cfop")!.steps.find(s => s.title === "OLL")!;

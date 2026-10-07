@@ -142,7 +142,8 @@ export function algScene(alg: string, size: number, mask: CubeMask = "full", set
   if (!Number.isInteger(size) || size < 2 || size > 7) return null;
   const moves = playableMoves(alg, size),
     from = setup === undefined ? null : playableMoves(setup, size);
-  if (!moves?.length || (setup !== undefined && !from)) return null;
+  // No turns at all shows the cube where the setup leaves it.
+  if (!moves || (!moves.length && setup === undefined) || (setup !== undefined && !from)) return null;
   let state = solved(size);
   if (from) for (const move of from) state = applyMove(state, move);
   else for (const move of [...moves].reverse()) state = applyMove(state, { ...move, q: (4 - move.q) % 4 });

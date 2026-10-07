@@ -124,7 +124,6 @@ try {
   await page.locator(".journey-setup").waitFor({ state: "detached" });
   await tour("desktop", { desktop: true });
   assert.equal(new URL(page.url()).searchParams.get("puzzle") ?? "333", "333");
-  assert.equal(await page.locator("[data-locked]").count(), 0, "a puzzle that can be solved opens every section");
 
   // The profile keeps the figures and the practice: no journey or goal panel any more.
   await page.locator('[data-action="nav:profile"]').first().click();
@@ -150,70 +149,28 @@ try {
   await tour("phone", { desktop: false });
   await page.setViewportSize({ width: 1280, height: 800 });
 
-  // A puzzle that cannot be solved yet: picking it asks to learn it, and only Learn stays open on it.
+  // Every section is open on every puzzle, whatever its course: a puzzle picked opens on its timer, wherever the player was.
   const puzzlePick = async (label: string) => {
     await page.locator('.rail [data-action="menu:puzzles"]').click();
-    await page.getByRole("option", { name: label, exact: true }).click();
+    await page.getByRole("menuitemradio", { name: label, exact: true }).click();
   };
-  const learnDialog = (name: string) => page.getByRole("dialog", { name: `Learn to solve the ${name}?`, exact: true });
-  const skipDialog = page.getByRole("dialog", { name: "Skip the tutorial?", exact: true });
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await puzzlePick("4×4");
-  await learnDialog("4×4").waitFor();
-  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "444");
-  assert.deepEqual(await page.locator('.rail [data-locked]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:algorithms", "nav:training", "nav:duel"]);
-  await shot("learn-puzzle-dialog");
-  // Not now: back to the 3×3 and the page it was on.
-  await learnDialog("4×4").getByRole("button", { name: "Not now", exact: true }).click();
-  await page.waitForURL(url => url.pathname === "/algorithms" && url.searchParams.get("puzzle") === "333");
-  assert.equal(await page.locator("[data-locked]").count(), 0);
-  // Start learning opens the recommended course.
-  await puzzlePick("4×4");
-  await learnDialog("4×4").getByRole("button", { name: "Start learning", exact: true }).click();
-  await page.waitForURL(url => url.pathname === "/learn/reduction" && url.searchParams.get("puzzle") === "444");
-  assert.equal(await page.locator('[data-action^="train:"]').count(), 0, "no training from a course while the puzzle is locked");
-  // A greyed section offers to skip the tutorial: from a click, a shortcut or a link.
-  await page.locator('.rail [data-action="nav:playground"]').click();
-  await skipDialog.waitFor(); await shot("skip-tutorial-dialog");
-  await skipDialog.getByRole("button", { name: "Keep learning", exact: true }).click();
-  await skipDialog.waitFor({ state: "detached" });
-  assert.equal(new URL(page.url()).pathname, "/learn/reduction");
-  await page.keyboard.press("Alt+2"); await skipDialog.waitFor();
-  await page.keyboard.press("Escape"); await skipDialog.waitFor({ state: "detached" });
-  await page.goto(origin + "/timer?puzzle=444");
-  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "444");
-  await page.locator('.rail [data-action="nav:training"]').click();
-  await skipDialog.getByRole("button", { name: "Skip the tutorial", exact: true }).click();
-  await page.waitForURL(url => url.pathname === "/training" && url.searchParams.get("puzzle") === "444");
-  assert.equal(await page.locator("[data-locked]").count(), 0, "skipping the tutorial opens every section");
-  // "Unlock everything" opens every section of the puzzle, on its timer.
-  await puzzlePick("2×2");
-  await learnDialog("2×2").getByRole("button", { name: "Unlock everything", exact: true }).click();
-  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "222");
-  assert.equal(await page.locator("[data-locked]").count(), 0);
-  // A puzzle the player can solve opens on its timer, wherever they were.
-  await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
-  await puzzlePick("3×3");
-  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "333");
+  await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "444");
   await page.locator('[data-action="nav:training"]').first().click(); await page.waitForURL("**/training?*");
   await puzzlePick("2×2");
   await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "222");
-  // Finishing a course opens the puzzle.
-  await puzzlePick("5×5");
-  await learnDialog("5×5").getByRole("button", { name: "Start learning", exact: true }).click();
-  await page.waitForURL(url => url.pathname === "/learn/reduction" && url.searchParams.get("puzzle") === "555");
+  // Finishing a course makes its puzzle a known one.
   await page.goto(origin + "/learn/reduction?puzzle=555&step=3");
   await page.locator('[data-action="learnFinish"]').click();
   await page.locator("[data-finished]").waitFor();
-  await page.waitForFunction(() => !document.querySelector("[data-locked]"));
   await page.locator('[data-finished] [data-action="nav:playground"]').click();
   await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "555");
 
-  // Edit the setup from the guides: the saved answers come back, with the puzzles unlocked since.
+  // Edit the setup from the guides: the saved answers come back, with the puzzle finished since.
   await page.locator('[data-action="help"]').first().click();
   await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
-  for (const name of ["3×3", "3×3 CFOP", "3×3 Roux", "4×4", "2×2", "5×5", "5×5 Reduction"]) assert.equal(await checked(name), true, `${name} is known`);
-  await checkbox("2×2").click();
+  for (const name of ["3×3", "3×3 CFOP", "3×3 Roux", "5×5", "5×5 Reduction"]) assert.equal(await checked(name), true, `${name} is known`);
   await page.getByRole("button", { name: "Continue", exact: true }).click(); await heading("Bring your times");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.locator(".journey-setup").waitFor({ state: "detached" });
@@ -239,7 +196,7 @@ try {
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await page.goBack(); await page.waitForURL("**/profile?*");
   await page.goForward(); await page.waitForURL("**/algorithms?*");
-  // The 2×2 is no longer known: its course is still open.
+  // A course opens by its link, and keeps its step on reload.
   await page.goto(origin + "/learn/ortega?puzzle=222");
   await page.waitForSelector('[data-action="learnMethods"]');
   await page.reload(); await page.waitForSelector('[data-action="learnMethods"]');
@@ -248,7 +205,7 @@ try {
   await page.waitForSelector('[data-action="learnMethods"]');
   assert.equal(new URL(page.url()).searchParams.get("step"), "1");
   await page.goto(origin + "/algorithms?puzzle=222");
-  await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("puzzle") === "222");
+  await page.waitForURL(url => url.pathname === "/algorithms" && url.searchParams.get("puzzle") === "222");
   await page.goto(origin + "/profile/playground?puzzle=333");
   await page.waitForSelector('[data-action="profileMode:overview"]');
   assert.equal(new URL(page.url()).pathname, "/profile/playground");

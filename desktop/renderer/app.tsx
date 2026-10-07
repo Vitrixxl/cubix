@@ -6,6 +6,7 @@ import { onLanguage, start } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
 import { Toasts } from "./Toasts";
+import { SharedSolve } from "./SolveView";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
@@ -173,7 +174,6 @@ function App() {
     inArena = !!arena && (location.pathname === arena || (!held?.match && location.pathname.startsWith("/match/")));
   if (arena && !inArena && route.page !== "onboarding") return <Navigate to={arena} replace />;
   // A puzzle that cannot be solved yet keeps to its course; the tour still shows every section.
-  if (s.ready && s.overlay !== "tour" && s.lockedPage(route.page, route.puzzle)) return <Navigate to={pageUrl("learn", { puzzle: route.puzzle ?? (s.puzzle as PuzzleId) })} replace />;
   if (route.page === "onboarding") return <TooltipProvider><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
   return (
     <TooltipProvider delay={400}>
@@ -237,4 +237,16 @@ function App() {
 
 // The app opens in the language of the device, its texts loaded; a change of language draws everything again.
 onLanguage(() => s.emit());
-void start().finally(() => createRoot(document.getElementById("root")!).render(<BrowserRouter><App /></BrowserRouter>));
+/** A solve shared by its link opens on its own, signed in or not; anything else is the app. */
+function Root() {
+  const shared = /^\/solve\/([\w-]+)$/.exec(useLocation().pathname)?.[1];
+  return shared ? (
+    <TooltipProvider>
+      <SharedSolve token={shared} />
+      <Toasts light={s.light} />
+    </TooltipProvider>
+  ) : (
+    <App />
+  );
+}
+void start().finally(() => createRoot(document.getElementById("root")!).render(<BrowserRouter><Root /></BrowserRouter>));

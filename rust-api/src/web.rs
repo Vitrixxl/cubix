@@ -52,6 +52,8 @@ pub fn router(dir: PathBuf) -> Router {
         .route_service("/match/{*page}", ServeFile::new(dir.join("index.html")))
         .route_service("/profile", ServeFile::new(dir.join("index.html")))
         .route_service("/profile/{*page}", ServeFile::new(dir.join("index.html")))
+        // A solve shared by its link, open to anyone.
+        .route_service("/solve/{*token}", ServeFile::new(dir.join("index.html")))
         .fallback_service(
             ServeDir::new(dir)
                 .precompressed_br()

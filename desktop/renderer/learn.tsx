@@ -5,16 +5,17 @@
  * Phones get the course with its steps in a sheet and its actions under the thumb.
  */
 import { useState } from "react";
-import { Reorder, motion, useDragControls } from "motion/react";
-import { ReorderHandle, useReorder } from "./LearningGroups";
+import { createPortal } from "react-dom";
+import { motion } from "motion/react";
+import { Toggle } from "@/components/ui/toggle";
 import { orderedGroups } from "../../src/client/lib/dailyLearning";
-import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, Flag, GraduationCap, GripVertical, Info, Timer } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, EyeOff, Flag, GraduationCap, Info, Timer } from "lucide-react";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, recommendedMethod, setGroups, stepId, stepLearned, stepSets,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, recommendedMethod, setGroups, stepDone, stepLearned, stepSets,
   type CourseEntry,
 } from "../../src/client/lib/course";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
@@ -25,9 +26,11 @@ import { Picker, PickerCard } from "./picker";
 import { CaseDetail, CaseTile, TILES } from "./algorithms";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+
+/** Whether a step's learned algorithms are hidden, the same on every step. */
+const HIDE_LEARNED = "cubix.learn.hideLearned";
 
 export function Learn() {
   const course = s.learning;
@@ -36,11 +39,11 @@ export function Learn() {
 }
 
 /**
- * Where a step stands, as a passive mark: a green disc with a check once done, a ring around a dot for the step
- * shown, a quiet dashed circle before.
+ * Where a step stands, as a passive mark: a green disc with a check once all its algorithms are learned, a ring around
+ * a dot for the step shown, a small dot for a step without algorithms, a quiet dashed circle otherwise.
  */
-function StepMark({ done, current = false, className }: { done: boolean; current?: boolean; className?: string }) {
-  const label = done ? "Done" : current ? "Current step" : "To do";
+function StepMark({ done, current = false, neutral = false, className }: { done: boolean; current?: boolean; neutral?: boolean; className?: string }) {
+  const label = done ? "Done" : current ? "Current step" : neutral ? "Intuitive" : "To do";
   return (
     <span className={cn("flex size-5 shrink-0 items-center justify-center", done ? "text-success" : current ? "text-primary" : "text-muted-foreground/50", className)} aria-label={said(label)} role="img">
       {done ? (
@@ -51,6 +54,8 @@ function StepMark({ done, current = false, className }: { done: boolean; current
         <span className="flex size-3.5 items-center justify-center rounded-full border-[1.5px] border-current">
           <span className="size-1.5 rounded-full bg-current" />
         </span>
+      ) : neutral ? (
+        <span className="size-1.5 rounded-full bg-current" />
       ) : (
         <Circle className="size-4" strokeDasharray="3.5 3" />
       )}
@@ -77,14 +82,14 @@ function methodRows(puzzle: PuzzleId) {
     method,
     facts: methodFacts(method, cases),
     learned: methodLearned(method, cases, s.learned, courseEntry(progress, puzzle, method.id)),
-    progress: methodProgress(progress, puzzle, method),
+    progress: methodProgress(progress, puzzle, method, cases, s.learned),
     recommended: method.id === recommended,
   }));
 }
 type MethodRow = ReturnType<typeof methodRows>[number];
 
 const methodDetail = (row: MethodRow) =>
-  `${LEVEL_LABEL[row.method.level]} · ${plural(row.facts.steps, "step")}` + (row.progress.started ? ` · ${row.progress.done} / ${row.progress.total} done` : "");
+  `${LEVEL_LABEL[row.method.level]} · ${plural(row.facts.steps, "step")}` + (row.progress.started ? ` · ${row.progress.done} / ${row.progress.total} learned` : "");
 /** The share of a method's algorithms known, from 0 to 1. */
 const knownShare = (row: MethodRow) => (row.facts.algorithms ? row.learned / row.facts.algorithms : 0);
 
@@ -97,11 +102,9 @@ function Methods() {
     <div className={PAGE}>
       <PageHead
         title={tr("Learn")}
-        sub={s.locked ? tr("Finish a course to open the {0} everywhere", { 0: label }) : tr("Choose a {0} method, then follow it step by step", { 0: label })}
+        sub={tr("Choose a {0} method, then follow it step by step", { 0: label })}
         puzzle
-      >
-        {!usePhone() && <PuzzleButton />}
-      </PageHead>
+      />
       <Picker label={tr("Methods")} tour="learn">
         {rows.map((row) => (
           <PickerCard
@@ -245,16 +248,47 @@ function AlgRow({ item, items, touch = false }: { item: Item; items: Item[]; tou
  * The step's content: its explanation and tips, its sets, then every algorithm it teaches. On the desktop it fills the
  * page's height and only the algorithms scroll; on a phone the whole step scrolls.
  */
-function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean }) {
+function StepBody({ puzzle, method, entry, touch = false, tools }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; touch?: boolean; tools?: HTMLDivElement | null }) {
   const step = method.steps[entry.step]!,
     cases = s.cases(),
     sets = stepSets(step, s.allSets(), puzzle) as any[];
-  const chosen = sets.find((set) => set.id === s.learnSets[`${puzzle}:${method.id}:${entry.step}`]) ?? firstOpenSet(sets, cases, s.learned),
+  const chosen = shownSet(puzzle, method, entry, sets),
     byGroup = new Map(chosen ? setGroups(cases, chosen.id) : []),
     groups = chosen ? orderedGroups(cases.filter((c: any) => c.set === chosen.id), s.groupOrder(chosen.id)).map((group): [string, any[]] => [group, byGroup.get(group)!]) : [],
     inline = (step.algs ?? []).map((a) => inlineItem(puzzle, step, a, entry)),
-    count = stepLearned(step, cases, s.learned, entry);
+    count = stepLearned(step, cases, s.learned, entry),
+    [hide, setHide] = useState(() => !!s.prefs[HIDE_LEARNED]);
   const fill = !touch;
+  const toolbar = (
+    <>
+            <h3 className={LABEL}>
+              {tr("Algorithms")}{" "}<span className="font-normal">{count.learned} / {count.total} {" "}{tr("learned")}</span>
+            </h3>
+            {count.learned > 0 && (
+              <Toggle
+                size="sm"
+                pressed={hide}
+                onPressedChange={(next) => {
+                  setHide(next);
+                  s.pref(HIDE_LEARNED, next);
+                }}
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground aria-pressed:text-foreground"
+              >
+                <EyeOff className="size-3.5" />
+                {tr("Hide learned")}
+              </Toggle>
+            )}
+            {sets.length > 1 && (
+              <Choice
+                prefix="learnSet:"
+                label={tr("Set")}
+                value={chosen.id}
+                options={sets.map((set) => ({ id: set.id, label: set.label, count: set.count }))}
+                className="flex-wrap"
+              />
+            )}
+    </>
+  );
   return (
     <>
       {/* Without algorithms, the explanation alone may need the scroll. */}
@@ -282,32 +316,11 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
       </div>
       {count.total > 0 && (
         <section className={cn("flex flex-col", fill && "min-h-0 flex-1")} aria-label={tr("Algorithms")}>
-          <div className="flex min-h-8 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 pb-1">
-            <h3 className={LABEL}>
-              {tr("Algorithms")}{" "}<span className="font-normal">{count.learned} / {count.total} {" "}{tr("learned")}</span>
-            </h3>
-            <button
-              type="button"
-              data-action="notation"
-              onClick={run("notation")}
-              className={cn("-mx-1 flex items-center gap-1 rounded-md px-1 text-xs text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50", touch && "min-h-9")}
-            >
-              <BookA className="size-3.5" />
-              {tr("Notation")}</button>
-            {sets.length > 1 && (
-              <Choice
-                prefix="learnSet:"
-                label={tr("Set")}
-                value={chosen.id}
-                options={sets.map((set) => ({ id: set.id, label: set.label, count: set.count }))}
-                className="flex-wrap"
-              />
-            )}
-          </div>
+          {tools ? createPortal(toolbar, tools) : <div className="flex min-h-8 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 pb-1">{toolbar}</div>}
           {/* The rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
           <motion.div layoutScroll className={cn("flex flex-col", fill && "-mx-2 min-h-0 flex-1 overflow-y-auto px-2 pb-6")}>
-            {inline.map((item) => <AlgRow key={item.key} item={item} items={inline} touch={touch} />)}
-            {chosen && groups.length > 0 && <GroupBoxes key={chosen.id} setId={chosen.id} label={chosen.label} groups={groups} touch={touch} />}
+            {inline.filter((item) => !hide || !item.learned).map((item) => <AlgRow key={item.key} item={item} items={inline} touch={touch} />)}
+            {chosen && groups.length > 0 && <GroupBoxes key={chosen.id} label={chosen.label} groups={groups} hide={hide} touch={touch} />}
           </motion.div>
         </section>
       )}
@@ -317,34 +330,38 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
 
 /**
  * The catalogue's cases of a set, group by group, each group a box of tiles like the algorithms page (a tile opens its
- * case in a dialog). The boxes are put in order by their handle, dragged or with the arrow keys: for F2L, OLL and PLL
- * the order is the one the daily training learns them in.
+ * case in a dialog), the boxes side by side as wide as their tiles, in the saved order of the groups. With the learned
+ * cases hidden, a group all learned goes too.
  */
-function GroupBoxes({ setId, label, groups, touch }: { setId: string; label: string; groups: [string, any[]][]; touch: boolean }) {
-  const members = new Map(groups),
-    { order, reorder, save, move, start, status } = useReorder(groups.map(([group]) => group), (next) => void s.reorderGroups(setId, next).catch(s.fail));
+function GroupBoxes({ label, groups, hide, touch }: { label: string; groups: [string, any[]][]; hide: boolean; touch: boolean }) {
+  const shown = groups.flatMap(([group, members]): [string, any[], any[]][] => {
+    const left = hide ? members.filter((c) => !s.learned.has(c.id)) : members;
+    return left.length ? [[group, left, members]] : [];
+  });
+  if (!shown.length) return <p className="pt-2 text-sm text-muted-foreground">{tr("Every case of this set is learned.")}</p>;
   return (
-    <>
-      <Reorder.Group as="div" axis="y" values={order} onReorder={reorder} className="flex flex-col gap-3 pt-2">
-        {order.map((group, index) => (
-          <GroupBox key={group} name={groups.length > 1 ? group : label} members={members.get(group) ?? []} position={groups.length > 1 ? { index, count: order.length } : undefined} touch={touch} start={start} save={() => save(group)} move={(key) => move(group, key)} />
-        ))}
-      </Reorder.Group>
-      {status}
-    </>
+    <div className="flex flex-wrap items-start gap-3 pt-2">
+      {shown.map(([group, members, total]) => (
+        <GroupBox key={group} name={groups.length > 1 ? group : label} members={members} total={total} touch={touch} />
+      ))}
+    </div>
   );
 }
 
-function GroupBox({ name, members, position, touch, start, save, move }: { name: string; members: any[]; position?: { index: number; count: number }; touch: boolean; start: () => void; save: () => void; move: (key: string) => void }) {
-  const controls = useDragControls(),
-    learned = members.filter((c) => s.learned.has(c.id)).length;
+function GroupBox({ name, members, total, touch }: {
+  name: string;
+  members: any[];
+  /** Every case of the group, the learned ones too. */
+  total: any[];
+  touch: boolean;
+}) {
+  const learned = total.filter((c) => s.learned.has(c.id)).length;
   return (
-    <Reorder.Item as="section" value={name} dragListener={false} dragControls={controls} onDragStart={start} onDragEnd={save} whileDrag={{ zIndex: 10, boxShadow: "0 18px 40px -16px rgb(0 0 0 / 0.6)" }} className="relative flex w-fit max-w-full min-w-72 flex-col gap-3 rounded-xl border bg-card p-3" aria-label={said(name)}>
+    <section className="relative flex max-w-full min-w-72 flex-col gap-3 rounded-xl border bg-card p-3" aria-label={said(name)}>
       <header className="flex min-h-7 items-center gap-2">
-        {position && <ReorderHandle name={name} index={position.index} count={position.count} move={move} onPointerDown={(e) => controls.start(e)} className="-ml-1 size-7" />}
         <h4 className="min-w-0 flex-1 truncate text-sm font-medium">{said(name)}</h4>
-        <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground", learned === members.length && "text-success")}>
-          {learned} / {members.length}
+        <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground", learned === total.length && "text-success")}>
+          {learned} / {total.length}
         </span>
       </header>
       {/* As wide as its tiles, up to the page's width, where they wrap. */}
@@ -355,22 +372,121 @@ function GroupBox({ name, members, position, touch, start, save, move }: { name:
           </div>
         ))}
       </div>
-    </Reorder.Item>
+    </section>
   );
+}
+
+/**
+ * The set a step shows: the one picked, else the first with cases still to learn when the step is first shown, kept
+ * from then on so learning its last case does not switch to another set.
+ */
+function shownSet(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry, sets: any[]) {
+  const key = `${puzzle}:${method.id}:${entry.step}`,
+    chosen = sets.find((set) => set.id === s.learnSets[key]) ?? firstOpenSet(sets, s.cases(), s.learned);
+  if (chosen) s.learnSets[key] = chosen.id;
+  return chosen;
 }
 
 /** The set Train this step starts on: the one shown. */
 function trainAction(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry) {
-  // Training opens with the puzzle, once its course is done.
-  if (s.locked) return "";
   const sets = stepSets(method.steps[entry.step]!, s.allSets(), puzzle) as any[];
-  const chosen = sets.find((set) => set.id === s.learnSets[`${puzzle}:${method.id}:${entry.step}`]) ?? firstOpenSet(sets, s.cases(), s.learned);
+  const chosen = shownSet(puzzle, method, entry, sets);
   return chosen ? "train:" + chosen.id : "";
 }
 
-/** The steps of a course as rows: their mark, number, title and algorithms; a click shows the step, after `onJump`
- * asked about the steps before it when some are not done. */
-function StepRows({ method, entry, touch = false, onPick, onJump }: { method: SolvingMethod; entry: CourseEntry; touch?: boolean; onPick?: () => void; onJump: (step: number) => void }) {
+/** A step's mark: a check once all its algorithms are learned, a small dot without algorithms, else a ring filled as far as they are learned. */
+function StepRing({ done, share, current, neutral }: { done: boolean; share: number; current: boolean; neutral: boolean }) {
+  if (neutral)
+    return (
+      <span className={cn("flex size-4 shrink-0 items-center justify-center", current ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
+        <span className="size-1.5 rounded-full bg-current" />
+      </span>
+    );
+  if (done)
+    return (
+      <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary">
+        <Check className="size-2.5 text-primary-foreground" strokeWidth={3.5} />
+      </span>
+    );
+  const r = 6.5,
+    length = 2 * Math.PI * r;
+  return (
+    <svg viewBox="0 0 16 16" className={cn("size-4 shrink-0 -rotate-90", current || share > 0 ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
+      <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth="2.5" />
+      <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${share * length} ${length}`} />
+    </svg>
+  );
+}
+
+/**
+ * The course on one line: the step's title between Previous and Next, every step as a chip with its mark (a click
+ * opens it), then Train and Next step. A step is done once all its algorithms are learned.
+ */
+function StepBar({ puzzle, method, entry, tools }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; tools: (element: HTMLDivElement | null) => void }) {
+  const cases = s.cases(),
+    step = method.steps[entry.step]!,
+    train = trainAction(puzzle, method, entry),
+    last = entry.step === method.steps.length - 1;
+  return (
+    <div className="flex shrink-0 flex-col rounded-xl border bg-card">
+    <nav aria-label={tr("Steps")} className="flex h-14 items-center gap-2 px-2">
+      <Button action="previous" icon={ChevronLeft} variant="ghost" tip={tr("Previous step")} disabled={entry.step === 0 || s.learnFinished} className="text-muted-foreground" />
+      <h2 className="w-36 min-w-0 truncate text-center text-lg font-semibold tracking-tight">{s.learnFinished ? tr("Finished") : said(step.title)}</h2>
+      <Button action={"learnStep:" + (entry.step + 1)} icon={ChevronRight} variant="ghost" tip={tr("Next step")} disabled={last || s.learnFinished} className="text-muted-foreground" />
+      <span className="mx-1 h-7 w-px shrink-0 bg-border" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+        {method.steps.map((st, i) => {
+          const learned = stepLearned(st, cases, s.learned, entry),
+            done = learned.total > 0 && learned.learned === learned.total,
+            share = learned.total ? learned.learned / learned.total : 0,
+            here = i === entry.step && !s.learnFinished;
+          return (
+            <button
+              key={st.title}
+              type="button"
+              data-action={"learnStep:" + i}
+              aria-current={here ? "step" : undefined}
+              title={learned.total ? tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") }) : undefined}
+              onClick={run("learnStep:" + i)}
+              className={cn(
+                "flex h-9 shrink-0 items-center gap-2 rounded-lg px-2.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+                here && "bg-primary/12 text-foreground hover:bg-primary/15",
+              )}
+            >
+              <StepRing done={done} share={share} current={here} neutral={!learned.total} />
+              {said(st.title)}
+            </button>
+          );
+        })}
+      </div>
+      {!s.learnFinished && (
+        <div className="flex shrink-0 items-center gap-2">
+          {train && (
+            <Button action={train} icon={Timer} variant="outline">
+              {tr("Train")}
+            </Button>
+          )}
+          {last ? (
+            <Button action="learnFinish" icon={Flag} variant="default" className="px-4">
+              {tr("Finish")}
+            </Button>
+          ) : (
+            <Button action={"learnStep:" + (entry.step + 1)} variant="default" className="px-4">
+              {tr("Next step")}
+              <ChevronRight />
+            </Button>
+          )}
+        </div>
+      )}
+    </nav>
+    {/* The step's algorithms: how many are learned, the notation, hiding the learned ones and the set (StepBody). */}
+    <div ref={tools} className="flex min-h-11 flex-wrap items-center gap-x-4 gap-y-2 border-t px-4 py-1.5 empty:hidden" />
+    </div>
+  );
+}
+
+/** The steps of a course as rows (phones): their mark, number, title and algorithms; a click shows the step. */
+function StepRows({ method, entry, touch = false, onPick }: { method: SolvingMethod; entry: CourseEntry; touch?: boolean; onPick?: () => void }) {
   const cases = s.cases();
   return method.steps.map((st, i) => {
     const learned = stepLearned(st, cases, s.learned, entry),
@@ -383,8 +499,7 @@ function StepRows({ method, entry, touch = false, onPick, onJump }: { method: So
         aria-current={here ? "step" : undefined}
         onClick={(e) => {
           onPick?.();
-          if (i !== entry.step && method.steps.slice(0, i).some((before) => !entry.done.includes(stepId(before)))) onJump(i);
-          else run("learnStep:" + i)(e);
+          run("learnStep:" + i)(e);
         }}
         className={cn(
           "flex shrink-0 items-center gap-3 rounded-lg text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50",
@@ -392,7 +507,7 @@ function StepRows({ method, entry, touch = false, onPick, onJump }: { method: So
           here && "bg-muted hover:bg-muted",
         )}
       >
-        <StepMark done={entry.done.includes(stepId(st))} current={here} />
+        <StepMark done={learned.total > 0 && learned.learned === learned.total} current={here} neutral={!learned.total} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className={cn("truncate font-medium", touch ? "text-[15px]" : "text-sm")}>
             <span className="text-muted-foreground">{i + 1}</span> {said(st.title)}
@@ -406,62 +521,9 @@ function StepRows({ method, entry, touch = false, onPick, onJump }: { method: So
   });
 }
 
-/** Step titles as a sentence: "Cross, F2L and OLL". */
-const names = (steps: MethodStep[]) => (steps.length > 1 ? tr("{0} and {1}", { 0: steps.slice(0, -1).map((st) => tr(st.title)).join(", "), 1: tr(steps.at(-1)!.title) }) : tr(steps[0]?.title ?? ""));
-
-/** Asked before showing a step whose earlier steps are not all done: were they finished? Either way the step opens. */
-function JumpDialog({ method, entry, step, onClose }: { method: SolvingMethod; entry: CourseEntry; step: number | null; onClose: () => void }) {
-  const open = step !== null,
-    target = open ? method.steps[step] : undefined,
-    left = open ? method.steps.slice(0, step).filter((st) => !entry.done.includes(stepId(st))) : [];
-  const go = (answer: string) => (e: React.MouseEvent<HTMLElement>) => {
-    onClose();
-    run(`learnJump:${step}:${answer}`)(e);
-  };
-  return (
-    <AlertDialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{tr("Have you finished the steps before?")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {left.length === 1
-              ? tr("{0} is not marked done yet. Mark it done, or just open {1}.", { 0: names(left), 1: tr(target?.title ?? "") })
-              : tr("{0} are not marked done yet. Mark them done, or just open {1}.", { 0: names(left), 1: tr(target?.title ?? "") })}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={go("open")} data-action="learnJump:open">
-            {tr("No, just open it")}</AlertDialogCancel>
-          <AlertDialogAction onClick={go("done")} data-action="learnJump:done">
-            {tr("Yes, mark them done")}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-/** Previous and Next beside a step's title (desktop): Next marks the step done, Finish on the last completes the method. */
-function StepNav({ method, entry }: { method: SolvingMethod; entry: CourseEntry }) {
-  const last = entry.step === method.steps.length - 1,
-    next = method.steps[entry.step + 1];
-  return (
-    <div className="flex shrink-0 items-center gap-2" data-no-timer>
-      <Button action="previous" icon={ChevronLeft} variant="outline" size="lg" tip={tr("Previous step")} disabled={entry.step === 0} label={tr("Previous step")} className="size-10" />
-      {last ? (
-        <Button action="learnFinish" icon={Flag} variant="default" size="lg" className="px-4">
-          {tr("Finish")}</Button>
-      ) : (
-        <Button action="learnNext" variant="default" size="lg" tip={tr("Done · next: {0}", { 0: next!.title })} className="px-4">
-          {tr("Next step")}<ChevronRight />
-        </Button>
-      )}
-    </div>
-  );
-}
 
 /**
- * Phones: where a step leaves you, under the thumb. Previous quietly on the left; Next step on the right, which marks this step done and
- * shows the next; Finish on the last step, which completes the method.
+ * Phones: where a step leaves you, under the thumb. Previous quietly on the left; Next step on the right, which shows the next; Finish on the last step, which completes the method.
  */
 function StepFooter({ method, entry, train, touch = true }: { method: SolvingMethod; entry: CourseEntry; train?: string; touch?: boolean }) {
   const last = entry.step === method.steps.length - 1,
@@ -475,12 +537,12 @@ function StepFooter({ method, entry, train, touch = true }: { method: SolvingMet
         <Button action="learnFinish" icon={Flag} variant="default" size="lg" className={cn("ml-auto px-4", touch && "h-12 flex-1")}>
           {tr("Finish")}</Button>
       ) : touch ? (
-        <Button action="learnNext" variant="default" size="lg" className="ml-auto h-12 min-w-0 flex-1 justify-between gap-2 px-3 text-left">
+        <Button action={"learnStep:" + (entry.step + 1)} variant="default" size="lg" className="ml-auto h-12 min-w-0 flex-1 justify-between gap-2 px-3 text-left">
           <span className="truncate">{tr("Next ·")}{" "}{said(next!.title)}</span>
           <ChevronRight />
         </Button>
       ) : (
-        <Button action="learnNext" variant="default" size="lg" className="ml-auto max-w-[min(100%,28rem)] min-w-0 px-4">
+        <Button action={"learnStep:" + (entry.step + 1)} variant="default" size="lg" className="ml-auto max-w-[min(100%,28rem)] min-w-0 px-4">
           <span className="opacity-75">{tr("Next ·")}</span>
           <span className="truncate">{said(next!.title)}</span>
           <ChevronRight />
@@ -557,50 +619,23 @@ export function CaseDialog() {
 }
 
 function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
-  const [jump, setJump] = useState<number | null>(null);
-  const progress = methodProgress(s.course, puzzle, method),
-    step = method.steps[entry.step]!,
-    train = trainAction(puzzle, method, entry);
+  // The step's tools go in the box of the steps, under them (see StepBody).
+  const [tools, setTools] = useState<HTMLDivElement | null>(null);
+  const progress = methodProgress(s.course, puzzle, method, s.cases(), s.learned);
   return (
     <div className={PAGE}>
       <PageHead
         lead={<Button action="learnMethods" icon={ChevronLeft} tip={tr("Every method")} className="size-8 max-md:size-10" />}
         title={said(method.name)}
-        sub={tr("{0} · {1} · {2} of {3} steps done", { 0: puzzleInfo(puzzle).label, 1: LEVEL_LABEL[method.level], 2: progress.done, 3: progress.total })}
+        sub={tr("{0} · {1} · {2} of {3} steps learned", { 0: puzzleInfo(puzzle).label, 1: LEVEL_LABEL[method.level], 2: progress.done, 3: progress.total })}
       />
-      {/* The steps across the page, with what moves between them: Train, Previous and Next. */}
-      <nav aria-label={tr("Steps")} className="flex shrink-0 flex-col gap-3 rounded-xl border bg-card p-3">
-        <div className="flex items-center gap-4 px-1">
-          <span className={LABEL}>{tr("Steps")}</span>
-          <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-            {progress.done} / {progress.total}
-          </span>
-          <Bar ratio={progress.done / progress.total} className="max-w-64 flex-1" />
-          <div className="ml-auto flex items-center gap-3">
-            {train && !s.learnFinished && (
-              <Button action={train} icon={Timer} variant="outline" size="lg">
-                {tr("Train this step")}</Button>
-            )}
-            {!s.learnFinished && <StepNav method={method} entry={entry} />}
-          </div>
-        </div>
-        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${method.steps.length}, minmax(0, 1fr))` }}>
-          <StepRows method={method} entry={entry} onJump={setJump} />
-        </div>
-      </nav>
-      <JumpDialog method={method} entry={entry} step={jump} onClose={() => setJump(null)} />
+      <StepBar puzzle={puzzle} method={method} entry={entry} tools={setTools} />
       {s.learnFinished ? (
         <Finished puzzle={puzzle} method={method} />
       ) : (
         // The step holds the page's height: its title and explanation stay, its algorithms scroll (StepBody).
         <div key={entry.step} className="flex min-h-0 flex-1 flex-col gap-5 pt-1">
-          <header className="flex min-w-0 items-baseline gap-3">
-            <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{said(step.title)}</h2>
-            <span className={cn(LABEL, "shrink-0")}>
-              {entry.step + 1} / {method.steps.length}
-            </span>
-          </header>
-          <StepBody puzzle={puzzle} method={method} entry={entry} />
+          <StepBody puzzle={puzzle} method={method} entry={entry} tools={tools} />
         </div>
       )}
     </div>
@@ -613,17 +648,16 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
  */
 function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
   const [steps, setSteps] = useState(false),
-    [jump, setJump] = useState<number | null>(null),
-    progress = methodProgress(s.course, puzzle, method),
+    progress = methodProgress(s.course, puzzle, method, s.cases(), s.learned),
     step = method.steps[entry.step]!,
-    done = entry.done.includes(stepId(step)),
+    done = stepDone(step, s.cases(), s.learned, entry),
     train = trainAction(puzzle, method, entry);
   return (
     <div className={PAGE}>
       <PageHead
         lead={<Button action="learnMethods" icon={ChevronLeft} tip={tr("Every method")} className="size-8 max-md:size-10" />}
         title={said(method.name)}
-        sub={tr("{0} · {1} of {2} steps done", { 0: puzzleInfo(puzzle).label, 1: progress.done, 2: progress.total })}
+        sub={tr("{0} · {1} of {2} steps learned", { 0: puzzleInfo(puzzle).label, 1: progress.done, 2: progress.total })}
       />
       <Surface className="flex-1">
         <button
@@ -651,10 +685,9 @@ function PhoneCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: Solv
           </>
         )}
       </Surface>
-      <PhoneSheet open={steps} onOpenChange={setSteps} title={tr("Steps")} description={tr("{0} of {1} done", { 0: progress.done, 1: progress.total })} className="gap-0 px-2">
-        <StepRows method={method} entry={entry} touch onPick={() => setSteps(false)} onJump={setJump} />
+      <PhoneSheet open={steps} onOpenChange={setSteps} title={tr("Steps")} description={tr("{0} of {1} steps learned", { 0: progress.done, 1: progress.total })} className="gap-0 px-2">
+        <StepRows method={method} entry={entry} touch onPick={() => setSteps(false)} />
       </PhoneSheet>
-      <JumpDialog method={method} entry={entry} step={jump} onClose={() => setJump(null)} />
     </div>
   );
 }

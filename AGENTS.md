@@ -38,6 +38,14 @@ Tous les tests doivent être exécutés en headless, sans ouvrir de fenêtre sur
 bureau utilisateur. Pour Electron sous Linux, utiliser `xvfb-run -a`; pour
 l’émulateur Android, utiliser `-no-window` avec des données de test isolées.
 
-Limiter la charge CPU locale : une seule tâche coûteuse à la fois, priorité basse
-et plafond CPU. Ne pas lancer de compilation ou d’émulateur non limité en
-arrière-plan sur le PC utilisateur. Privilégier les vérifications légères.
+Le PC de l’utilisateur peut être utilisé à pleine puissance : pas de `nice`
+ni de priorité basse, et les tâches lourdes indépendantes peuvent tourner en
+parallèle.
+
+## Façon de travailler
+
+L’utilisateur envoie souvent plusieurs demandes d’un coup. Lancer un sous-agent
+par tâche, en parallèle (avec un worktree isolé quand deux tâches touchent les
+mêmes fichiers). Les sous-agents ne relisent pas leur propre travail et ne
+commitent pas : la relecture, les tests, les captures et le rapport se font une
+seule fois, à la fin, sur l’ensemble.

@@ -23,6 +23,7 @@
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       case_id TEXT NOT NULL,
       learned INTEGER NOT NULL DEFAULT 1 CHECK(learned IN (0, 1)),
+      alg TEXT,
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       UNIQUE(user_id, case_id)
     );

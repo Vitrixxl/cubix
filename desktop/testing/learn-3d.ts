@@ -34,8 +34,6 @@ async function openMethod(page: Page, id: string) {
 async function learnStep(page: Page, index: number) {
   if (!(await page.locator(`[data-action="learnStep:${index}"]:visible`).count())) await act(page, "learnSteps");
   await act(page, "learnStep:" + index);
-  // Ahead of steps not done, it asks whether they were finished: just open the step.
-  if (await page.locator('[data-action="learnJump:open"]:visible').count()) await act(page, "learnJump:open");
 }
 const shot = async (page: Page, name: string) => {
   await settle(page);

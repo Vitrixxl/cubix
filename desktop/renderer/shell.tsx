@@ -1,10 +1,10 @@
 /** The frame around the pages: the sidebar or the phone tab bar. */
 import { useEffect, useState } from "react";
-import { BookA, BookOpen, Boxes, ChartColumn, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { BookA, BookOpen, Boxes, ChartColumn, ChevronDown, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
-import { Avatar, FADE, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
+import { Avatar, FADE, Icon, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
@@ -108,28 +108,12 @@ export function Rail() {
     <TooltipProvider delay={open ? 400 : 80} closeDelay={0}>
     <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
       <SidebarHeader className="pt-4">
-        {/* The puzzle's mark, which picks the puzzle every page works on, the name, and the button folding the sidebar to
-            its icons; folded, the mark and that button stand one above the other. */}
+        {/* The puzzle's mark, drawn as the puzzle every page works on (picked just under it), the name, and the
+            button folding the sidebar to its icons; folded, the mark and that button stand one above the other. */}
         <div data-brand="" className="flex h-9 items-center gap-1.5 pl-1 group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1 group-data-[collapsible=icon]:pl-0">
-          <Tooltip>
-            <PuzzlePicker
-              side={open ? "bottom" : "right"}
-              trigger={
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      aria-label={tr("Puzzle: {0}", { 0: e.label })}
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/50 aria-expanded:bg-sidebar-accent"
-                    />
-                  }
-                >
-                  <Logo size={22} puzzle={e.id} />
-                </TooltipTrigger>
-              }
-            />
-            <TooltipContent side="right">{tr("Puzzle ·")}{" "}{said(e.label)}</TooltipContent>
-          </Tooltip>
+          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center">
+            <Logo size={22} puzzle={e.id} />
+          </span>
           <Wordmark className="min-w-0 flex-1 text-xl group-data-[collapsible=icon]:hidden" />
           {foldable && (
             <Tooltip>
@@ -153,26 +137,39 @@ export function Rail() {
         </div>
       </SidebarHeader>
       <SidebarContent className="gap-0">
+        {/* The puzzle every page works on, above the sections; folded, its icon alone. */}
+        <SidebarGroup className="pt-2 pb-1">
+          <PuzzlePicker
+            trigger={
+              <button
+                type="button"
+                aria-label={tr("Puzzle: {0}", { 0: e.label })}
+                className="flex h-9 w-full items-center gap-2 rounded-md border bg-sidebar px-2 text-sm font-medium outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/50 aria-expanded:bg-sidebar-accent group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              >
+                <Icon name={"Puzzle" + e.id} size={16} className="shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">{said(e.label)}</span>
+                <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+              </button>
+            }
+          />
+        </SidebarGroup>
         {SECTIONS.map(([group, sections]) => (
           <SidebarGroup key={group ?? "timer"} className="py-1 first:pt-2">
             {group && <SidebarGroupLabel>{said(group)}</SidebarGroupLabel>}
             <SidebarMenu className="gap-0.5" aria-label={group ? said(group) : tr("Sections")}>
               {sections.map(([page, label, I, shortcut]) => {
-                // Greyed while the puzzle's course comes first; a click offers to skip it.
-                const locked = s.lockedPage(page),
-                  // The analysis is the profile's, opened as a section.
-                  here = page === "analysis" ? s.page === "profile" && s.profileMode === "analysis" : s.page === page,
+                // The analysis is the profile's, opened as a section.
+                const here = page === "analysis" ? s.page === "profile" && s.profileMode === "analysis" : s.page === page,
                   to = page === "analysis" ? pageUrl("profile", { profileMode: "analysis", puzzle: s.puzzle as PuzzleId }) : pageUrl(page, { puzzle: s.puzzle as PuzzleId });
                 return (
                   <SidebarMenuItem key={page}>
                     <SidebarMenuButton
                       data-action={"nav:" + page}
-                      data-locked={locked || undefined}
                       isActive={here}
                       aria-current={here ? "page" : undefined}
-                      tooltip={locked ? `${label} · learn the ${puzzleInfo(s.puzzle as PuzzleId).label} first` : `${label} · ${shortcut.replace(" ", "+")}`}
-                      {...(locked ? { onClick: run("nav:" + page) } : { render: <Link to={to} /> })}
-                      className={cn("h-9 text-muted-foreground data-active:text-foreground", locked && "opacity-45 hover:opacity-70")}
+                      tooltip={`${label} · ${shortcut.replace(" ", "+")}`}
+                      render={<Link to={to} />}
+                      className="h-9 text-muted-foreground data-active:text-foreground"
                     >
                       <I />
                       <span>{said(label)}</span>
@@ -272,29 +269,17 @@ export function TabBar() {
     >
       {MOBILE_TABS.map(([page, label, I]) => {
         const here = s.page === page,
-          locked = s.lockedPage(page),
           className = cn(
             "flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 text-[10px] font-medium tracking-tight text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
             here && "text-foreground",
-            locked && "opacity-45",
-          ),
-          body = (
-            <>
+          );
+        return (
+          <Link key={page} data-action={"nav:" + page} aria-current={here ? "page" : undefined} to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} className={className}>
               <span className={cn("relative flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
                 {I ? <I className="size-5" /> : <Me size={22} />}
                 {page === "coaching" && !!coaching.me?.unread && <span className="absolute top-0.5 right-2 size-2 rounded-full bg-primary" aria-label={tr("Unread messages")} />}
               </span>
               <span className="max-w-full truncate">{said(label)}</span>
-            </>
-          );
-        // Greyed while the puzzle's course comes first; a tap offers to skip it.
-        return locked ? (
-          <button key={page} type="button" data-action={"nav:" + page} data-locked="" onClick={run("nav:" + page)} className={className}>
-            {body}
-          </button>
-        ) : (
-          <Link key={page} data-action={"nav:" + page} aria-current={here ? "page" : undefined} to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} className={className}>
-            {body}
           </Link>
         );
       })}

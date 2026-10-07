@@ -100,8 +100,6 @@ async function openMethod(page: Page, id: string) {
 async function learnStep(page: Page, index: number) {
   if (!(await page.locator(`[data-action="learnStep:${index}"]:visible`).count())) await act(page, "learnSteps");
   await act(page, "learnStep:" + index);
-  // Ahead of steps not done, it asks whether they were finished: just open the step.
-  if (await page.locator('[data-action="learnJump:open"]:visible').count()) await act(page, "learnJump:open");
 }
 const results: [string, string[]][] = [];
 async function check(page: Page, screen: string) {
@@ -163,7 +161,7 @@ try {
     await act(page, "nav:learn");
     await check(page, "learn-methods");
     await openMethod(page, "beginner");
-    await act(page, "learnNext");
+    await act(page, "learnStep:1");
     await learnStep(page, 5);
     await check(page, "learn-inline");
     if (width <= 700) {

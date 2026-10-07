@@ -3,7 +3,7 @@
  * reports them and as scrambles are written (white on top, green in front), so the scramble then the solution is the
  * whole attempt. A turn may carry its time, in milliseconds since the first one: `R@0 U'@142 F2@310`.
  */
-import { applyMove, parseScramble, solved } from "../../shared/cube";
+import { applyMove, FACES, movePermutation, parseAlg, parseScramble, solved, type Face } from "../../shared/cube";
 import { trackable } from "./scrambleTracker";
 import { canonicalTurn } from "./smartCube";
 import type { RecordedSolve } from "./solveAnalysis";
@@ -59,4 +59,56 @@ export function recordedSolve(scramble: string | null | undefined, turns: readon
     moves: turns.map(({ move, at }) => ({ move, at: at! })),
     orientations: [],
   };
+}
+
+/**
+ * A solution written by hand: how the cube was held (the colours on top and in front) then its turns in any notation,
+ * rotations, wide and slice turns included. Kept in the same field as a recorded one, as `hold:yellow/green R U x' M2`.
+ */
+export const COLOURS = ["white", "yellow", "green", "blue", "red", "orange"] as const;
+export type Colour = (typeof COLOURS)[number];
+export interface Annotation {
+  top: Colour;
+  front: Colour;
+  moves: string;
+}
+const OPPOSITE: Record<Colour, Colour> = { white: "yellow", yellow: "white", green: "blue", blue: "green", red: "orange", orange: "red" };
+/** The colours that can be in front with `top` on top. */
+export const frontsOf = (top: Colour) => COLOURS.filter((c) => c !== top && c !== OPPOSITE[top]);
+const ANNOTATION = /^hold:([a-z]+)\/([a-z]+)(?:\s+([\s\S]*))?$/;
+
+export function readAnnotation(text: string | null | undefined): Annotation | null {
+  const match = ANNOTATION.exec(text?.trim() ?? "");
+  if (!match) return null;
+  const [, top, front, moves = ""] = match as unknown as [string, Colour, Colour, string?];
+  return COLOURS.includes(top) && frontsOf(top).includes(front) ? { top, front, moves: moves.trim() } : null;
+}
+/** The text kept for an annotation; null when its turns cannot be read or it is too long. */
+export function writeAnnotation({ top, front, moves }: Annotation): string | null {
+  const text = `hold:${top}/${front} ${moves.trim().replace(/\s+/g, " ")}`.trim();
+  if (!frontsOf(top).includes(front) || text.length > SOLUTION_MAX) return null;
+  try {
+    parseAlg(moves);
+  } catch {
+    return null;
+  }
+  return text;
+}
+
+/** The colours of the cube Cubix shows a scramble on: yellow on top, green in front, orange on the right. */
+const SHOWN: Record<string, Colour> = { U: "yellow", D: "white", F: "green", B: "blue", R: "orange", L: "red" };
+/** The whole-cube rotations, the shortest first. */
+const TURNS = ["", "x", "x2", "x'", "z", "z'", "z2"]
+  .flatMap((a) => ["", "y", "y2", "y'"].map((b) => [a, b].filter(Boolean).join(" ")))
+  .sort((a, b) => a.split(" ").length - b.split(" ").length);
+/**
+ * The annotation as the 3D player plays it on the cube Cubix shows: the rotation that brings the annotation's colours
+ * on top and in front, then its turns.
+ */
+export function annotationAlg({ top, front, moves }: Annotation): string {
+  // Where a rotation takes the centre of `face`, then the face whose centre it brings to `face`.
+  const goes = (turn: string, face: Face) => FACES[Math.floor(parseAlg(turn).reduce((slot, m) => movePermutation(m)[slot]!, FACES.indexOf(face) * 9 + 4) / 9)]!,
+    onto = (turn: string, face: Face) => FACES.find((from) => goes(turn, from) === face)!,
+    rotation = TURNS.find((turn) => SHOWN[onto(turn, "U")] === top && SHOWN[onto(turn, "F")] === front)!;
+  return [rotation, moves].filter(Boolean).join(" ");
 }
