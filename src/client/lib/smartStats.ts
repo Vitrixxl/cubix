@@ -7,7 +7,7 @@
  * training's own times.
  */
 import type { Face } from "../../shared/cube";
-import { PHASE_LABELS, type Phase, type Segment, type SolveAnalysis } from "./solveAnalysis";
+import { PHASE_LABELS, type Phase, type PhaseId, type Segment, type SolveAnalysis } from "./solveAnalysis";
 import { msg } from "../i18n/msg";
 
 /** Where the times of a 3×3 case come from: its training and the solves it was done in, or one of them. */
@@ -89,24 +89,39 @@ function casesOf(phase: Phase, step: CaseStep): CaseTiming[] {
   return parts.flatMap((part) => (part.case ? [{ ...timing(part), id: part.case.id, name: part.case.name, step }] : []));
 }
 
+/** The phases of a solve each step gathers: ZZ's F2L is its two blocks, CFOP's its four pairs. */
+const STEP_PHASES: Record<StepId, PhaseId[]> = {
+  cross: ["cross"],
+  eoline: ["eoline"],
+  fb: ["fb"],
+  sb: ["sb"],
+  f2l: ["f2l1", "f2l2", "f2l3", "f2l4", "fb", "sb"],
+  cmll: ["cmll"],
+  oll: ["oll"],
+  pll: ["pll"],
+  lse: ["lse"],
+};
+
 export function digest(analysis: SolveAnalysis, solve: { id: number; created_at: string; time: number | null }): SolveDigest {
-  const phase = (id: Phase["id"]) => analysis.phases.find((p) => p.id === id)!;
-  const step = (parts: Phase[]): StepTiming => ({ ...sum(parts.filter((p) => !p.skip).map(timing)), skip: parts.every((p) => p.skip) }),
-    base = { id: solve.id, at: solve.created_at, time: solve.time, cross: analysis.cross, turns: analysis.turns, duration: analysis.time };
-  if (analysis.method === "roux")
-    return { ...base, method: "roux", steps: { fb: step([phase("fb")]), sb: step([phase("sb")]), cmll: step([phase("cmll")]), lse: step([phase("lse")]) }, cases: [] };
-  const oll = phase("oll"),
-    pll = phase("pll"),
-    ll = [...casesOf(oll, oll.label === "ZBLL" ? "zbll" : "oll"), ...casesOf(pll, "pll")];
-  if (analysis.method === "zz")
-    return { ...base, method: "zz", steps: { eoline: step([phase("eoline")]), f2l: step([phase("fb"), phase("sb")]), oll: step([oll]), pll: step([pll]) }, cases: ll };
-  const pairs = analysis.phases.filter((p) => p.id.startsWith("f2l"));
+  const { phases } = analysis,
+    oll = phases.find((p) => p.id === "oll"),
+    pll = phases.find((p) => p.id === "pll"),
+    method: MethodId =
+      analysis.method !== "cfop" ? analysis.method : oll?.label === "ZBLL" ? "zb" : oll?.looks || pll?.looks ? "cfop-2look" : "cfop",
+    step = (parts: Phase[]): StepTiming => ({ ...sum(parts.filter((p) => !p.skip).map(timing)), skip: parts.every((p) => p.skip) }),
+    cross = phases.find((p) => p.id === "cross");
   return {
-    ...base,
-    method: oll.label === "ZBLL" ? "zb" : oll.looks || pll.looks ? "cfop-2look" : "cfop",
-    steps: { cross: step([phase("cross")]), f2l: step(pairs), oll: step([oll]), pll: step([pll]) },
-    xcross: /^X*/.exec(phase("cross").label)![0].length,
-    cases: [...pairs.flatMap((p) => casesOf(p, "f2l")), ...ll],
+    id: solve.id,
+    at: solve.created_at,
+    time: solve.time,
+    method,
+    cross: analysis.cross,
+    turns: analysis.turns,
+    duration: analysis.time,
+    steps: Object.fromEntries(METHOD_STEPS[method].map((id) => [id, step(phases.filter((p) => STEP_PHASES[id].includes(p.id)))])),
+    ...(cross && { xcross: /^X*/.exec(cross.label)![0].length }),
+    // The cases of the catalogue: each pair, then each look of the last layer.
+    cases: phases.flatMap((p) => (p.id.startsWith("f2l") ? casesOf(p, "f2l") : p.id === "oll" ? casesOf(p, p.label === "ZBLL" ? "zbll" : "oll") : p.id === "pll" ? casesOf(p, "pll") : [])),
   };
 }
 
