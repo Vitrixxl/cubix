@@ -24,9 +24,15 @@ if (process.platform === "darwin") {
   await cp("desktop/NOTICE", join(base, "NOTICE"));
   await cp("desktop/licenses", join(base, "licenses"), { recursive: true });
   // Resolves its own location, so it also works through the ~/.local/bin/cubix symlink.
+  // Without unprivileged user namespaces (Ubuntu 24.04's AppArmor, hardened kernels), Chromium falls back to
+  // chrome-sandbox, which must be setuid root: an install without sudo can't, so start without the sandbox there.
   await Bun.write(join(base, "cubix"), `#!/bin/sh
 here=$(dirname "$(readlink -f "$0")")
-exec "$here/runtime/electron" "$here/app" "$@"
+sandbox=
+if [ ! -u "$here/runtime/chrome-sandbox" ] && command -v unshare >/dev/null 2>&1 && ! unshare -Ur true >/dev/null 2>&1; then
+  sandbox=--no-sandbox
+fi
+exec "$here/runtime/electron" $sandbox "$here/app" "$@"
 `);
   await chmod(join(base, "cubix"), 0o755);
   console.log(`Electron application: ${base}`);
