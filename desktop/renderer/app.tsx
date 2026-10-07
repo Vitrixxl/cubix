@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
-import { AnimatePresence, MotionConfig } from "motion/react";
+import { MotionConfig } from "motion/react";
 import { store as s, TIMES_OPEN_WIDTH } from "./store";
 import { onLanguage, start } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
@@ -9,7 +9,7 @@ import { Toasts } from "./Toasts";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
-import { Frame, Rail, TabBar } from "./shell";
+import { Rail, TabBar } from "./shell";
 import { Practice } from "./practice";
 import { TrainingSetup } from "./setup";
 import { Algorithms } from "./algorithms";
@@ -148,12 +148,11 @@ function App() {
         (s.caseId && (mobile || s.page !== "algorithms") ? ":case" : "") +
         (s.page === "profile" ? ":" + s.profileMode : "") +
         (s.page === "training" ? ":" + s.trainingStep : "") +
-        (s.page === "learn" ? ":" + (s.learnMethod || s.learnSection || "home") : "") +
+        (s.page === "learn" ? ":" + (s.learnMethod || "home") : "") +
         // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
         (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "") +
         // The community is one page, a conversation opening in place; a tournament or a match is a page of its own.
         (s.page === "tournaments" || s.page === "match" ? ":" + s.view.split("/")[0] : "");
-  const slide = { direction: s.direction, axis: s.axis };
   // Until the engine answers, the last launch decides; a first visit opens on the login page.
   const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) === "1";
   if (!signedIn)
@@ -198,8 +197,7 @@ function App() {
             {!s.ready ? (
               <PageSkeleton side={!mobile} />
             ) : (
-              <AnimatePresence initial={false} custom={slide}>
-                <Frame key={frameKey} slide={slide}>
+              <div key={frameKey} className="absolute inset-0 flex min-h-0 flex-col bg-background">
                   {s.page === "training" && s.trainingStep === "setup" ? (
                     <TrainingSetup />
                   ) : ["playground", "training"].includes(s.page) ? (
@@ -221,8 +219,7 @@ function App() {
                   ) : (
                     <Profile />
                   )}
-                </Frame>
-              </AnimatePresence>
+              </div>
             )}
           </SidebarInset>
           {mobile && !arena && <TabBar />}

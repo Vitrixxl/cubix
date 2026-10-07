@@ -12,7 +12,7 @@ import { solveModeOf, type SolveMode } from '../../src/shared/puzzles';
 import type { CaseHistoryDto, CaseStatsDto, SolveDto } from '../../src/shared/types';
 import type { EngineStorage } from './core';
 
-export const SMART_DIGESTS_KEY = 'cubix.smart.digests.v1';
+export const SMART_DIGESTS_KEY = 'cubix.smart.digests.v2';
 /** What one request may spend analysing solves, in milliseconds. */
 const BUDGET = 40;
 

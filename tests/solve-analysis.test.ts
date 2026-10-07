@@ -144,4 +144,22 @@ describe("solve analysis", () => {
   test("an unfinished solve is not analysed", () => {
     expect(analyseSolve({ start: solved(3), moves: [{ move: "R", at: 0 }], orientations: [] }, cases)).toBeNull();
   });
+
+  test("tells CFOP, ZZ and Roux apart, each in its steps", () => {
+    expect(analyseSolve(record(STEPS), cases)!.method).toBe("cfop");
+    // ZZ: the EOLine, then blocks of R, L and U turns only, which keep the edges oriented, then the last layer.
+    const zz = analyseSolve(record(["F R D2 L' B", "L2 U L U' L'", "R2 U R' U' R", STEPS[5]!, STEPS[6]!]), cases)!;
+    expect(zz.method).toBe("zz");
+    expect(zz.phases.map((p) => p.id)).toEqual(["eoline", "fb", "sb", "oll", "pll"]);
+    expect(zz.phases.map((p) => p.turns.length)).toEqual([5, 5, 5, 7, 14]);
+    expect(zz.phases[4]!.case?.name).toBe("T Perm");
+    // Roux: the first block, the second of R, r, M and U turns, CMLL, then the six edges in three parts.
+    const roux = analyseSolve(record(["F R D2 L' B U", "R U r' U2 M R'", STEPS[5]!, "M U M'", "U M2 U'", "M' U2 M2 U2 M'"]), cases)!;
+    expect(roux.method).toBe("roux");
+    expect(roux.phases.map((p) => p.id)).toEqual(["fb", "sb", "cmll", "lse"]);
+    expect(roux.phases.map((p) => p.end - p.start > 0)).toEqual([true, true, true, true]);
+    expect(roux.phases[2]!.turns.length).toBe(7);
+    expect(roux.phases[3]!.looks?.map((l) => l.label)).toEqual(["EO", "UL/UR", "EP"]);
+    expect(roux.phases[3]!.looks?.map((l) => l.skip)).toEqual([false, false, false]);
+  });
 });

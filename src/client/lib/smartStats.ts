@@ -7,7 +7,7 @@
  * training's own times.
  */
 import type { Face } from "../../shared/cube";
-import type { Phase, Segment, SolveAnalysis } from "./solveAnalysis";
+import { PHASE_LABELS, type Phase, type Segment, type SolveAnalysis } from "./solveAnalysis";
 import { msg } from "../i18n/msg";
 
 /** Where the times of a 3×3 case come from: its training and the solves it was done in, or one of them. */
@@ -15,11 +15,25 @@ export const CASE_SOURCES = ["all", "solves", "training"] as const;
 export type CaseSource = (typeof CASE_SOURCES)[number];
 export const isCaseSource = (value: unknown): value is CaseSource => CASE_SOURCES.includes(value as CaseSource);
 
-/** How the last layer was solved: the whole OLL then the whole PLL, each in two looks, or the ZBLL. */
-export type MethodId = "cfop" | "cfop-2look" | "zb";
-export const METHOD_LABELS: Record<MethodId, string> = { cfop: "CFOP", "cfop-2look": "CFOP, 2-look last layer", zb: "CFOP with ZBLL" };
-export type StepId = "cross" | "f2l" | "oll" | "pll";
-export const STEP_LABELS: Record<StepId, string> = { cross: msg("Cross"), f2l: "F2L", oll: "OLL", pll: "PLL" };
+/** The method; for CFOP, how the last layer was solved: the whole OLL then the whole PLL, each in two looks, or the ZBLL. */
+export type MethodId = "cfop" | "cfop-2look" | "zb" | "zz" | "roux";
+export const METHOD_LABELS: Record<MethodId, string> = { cfop: "CFOP", "cfop-2look": "CFOP, 2-look last layer", zb: "CFOP with ZBLL", zz: "ZZ", roux: "Roux" };
+export type StepId = "cross" | "eoline" | "fb" | "sb" | "f2l" | "cmll" | "oll" | "pll" | "lse";
+/** In the order of a solve, the steps of every method together. */
+export const STEP_LABELS: Record<StepId, string> = {
+  cross: msg("Cross"),
+  eoline: PHASE_LABELS.eoline,
+  fb: PHASE_LABELS.fb,
+  sb: PHASE_LABELS.sb,
+  f2l: "F2L",
+  cmll: PHASE_LABELS.cmll,
+  oll: "OLL",
+  pll: "PLL",
+  lse: PHASE_LABELS.lse,
+};
+/** The steps of each method, in order: ZZ's two blocks make its F2L. */
+const CFOP_STEPS: StepId[] = ["cross", "f2l", "oll", "pll"];
+export const METHOD_STEPS: Record<MethodId, StepId[]> = { cfop: CFOP_STEPS, "cfop-2look": CFOP_STEPS, zb: CFOP_STEPS, zz: ["eoline", "f2l", "oll", "pll"], roux: ["fb", "sb", "cmll", "lse"] };
 /** The catalogue's stage of a case of each step. */
 export type CaseStep = "f2l" | "oll" | "pll" | "zbll";
 
@@ -46,12 +60,13 @@ export interface SolveDigest {
   /** The solve's time as saved, penalty included; null for a DNF. */
   time: number | null;
   method: MethodId;
-  /** The cross colour, as a held face. */
+  /** The cross colour (Roux: the blocks' bottom colour), as a held face. */
   cross: Face;
   turns: number;
   /** First turn to last, by the cube's clock. */
   duration: number;
-  steps: Record<StepId, StepTiming>;
+  /** The steps of its method (`METHOD_STEPS`). */
+  steps: Partial<Record<StepId, StepTiming>>;
   /** The cases the solve went through, in order: each pair, then each look of the last layer. */
   cases: CaseTiming[];
   /** F2L pairs solved along with the cross: 1 for an XCross, 2 for an XXCross… Absent in digests made before. */
@@ -76,22 +91,22 @@ function casesOf(phase: Phase, step: CaseStep): CaseTiming[] {
 
 export function digest(analysis: SolveAnalysis, solve: { id: number; created_at: string; time: number | null }): SolveDigest {
   const phase = (id: Phase["id"]) => analysis.phases.find((p) => p.id === id)!;
-  const pairs = analysis.phases.filter((p) => p.id.startsWith("f2l")),
-    oll = phase("oll"),
+  const step = (parts: Phase[]): StepTiming => ({ ...sum(parts.filter((p) => !p.skip).map(timing)), skip: parts.every((p) => p.skip) }),
+    base = { id: solve.id, at: solve.created_at, time: solve.time, cross: analysis.cross, turns: analysis.turns, duration: analysis.time };
+  if (analysis.method === "roux")
+    return { ...base, method: "roux", steps: { fb: step([phase("fb")]), sb: step([phase("sb")]), cmll: step([phase("cmll")]), lse: step([phase("lse")]) }, cases: [] };
+  const oll = phase("oll"),
     pll = phase("pll"),
-    step = (parts: Phase[]): StepTiming => ({ ...sum(parts.filter((p) => !p.skip).map(timing)), skip: parts.every((p) => p.skip) });
-  const method: MethodId = oll.label === "ZBLL" ? "zb" : oll.looks || pll.looks ? "cfop-2look" : "cfop";
+    ll = [...casesOf(oll, oll.label === "ZBLL" ? "zbll" : "oll"), ...casesOf(pll, "pll")];
+  if (analysis.method === "zz")
+    return { ...base, method: "zz", steps: { eoline: step([phase("eoline")]), f2l: step([phase("fb"), phase("sb")]), oll: step([oll]), pll: step([pll]) }, cases: ll };
+  const pairs = analysis.phases.filter((p) => p.id.startsWith("f2l"));
   return {
-    id: solve.id,
-    at: solve.created_at,
-    time: solve.time,
-    method,
-    cross: analysis.cross,
-    turns: analysis.turns,
-    duration: analysis.time,
+    ...base,
+    method: oll.label === "ZBLL" ? "zb" : oll.looks || pll.looks ? "cfop-2look" : "cfop",
     steps: { cross: step([phase("cross")]), f2l: step(pairs), oll: step([oll]), pll: step([pll]) },
     xcross: /^X*/.exec(phase("cross").label)![0].length,
-    cases: [...pairs.flatMap((p) => casesOf(p, "f2l")), ...casesOf(oll, oll.label === "ZBLL" ? "zbll" : "oll"), ...casesOf(pll, "pll")],
+    cases: [...pairs.flatMap((p) => casesOf(p, "f2l")), ...ll],
   };
 }
 
@@ -140,7 +155,7 @@ export interface SmartAnalysisDto {
   methods: MethodStats[];
   suggestions: TrainingSuggestion[];
   /** The latest analysed solves, newest first. */
-  latest: { id: number; at: string; time: number | null; method: MethodId; duration: number; turns: number; steps: Record<StepId, number> }[];
+  latest: { id: number; at: string; time: number | null; method: MethodId; duration: number; turns: number; steps: Partial<Record<StepId, number>> }[];
 }
 
 /** Adds `value` to the list kept under `key`. */
@@ -159,18 +174,22 @@ const meanTiming = (parts: Timing[]): Timing => {
 function gather(id: MethodId | "all", label: string, digests: SolveDigest[]): MethodStats {
   const times = digests.map((d) => d.time).filter((t): t is number => t !== null),
     duration = average(digests.map((d) => d.duration));
-  const steps = (Object.keys(STEP_LABELS) as StepId[]).map((step): StepStats => {
-    const done = digests.map((d) => d.steps[step]).filter((t) => !t.skip),
+  // A method's own steps; every solve together, the steps of the methods used, in the order of a solve.
+  const used = id === "all" ? new Set(digests.flatMap((d) => METHOD_STEPS[d.method])) : new Set(METHOD_STEPS[id]),
+    ids = (Object.keys(STEP_LABELS) as StepId[]).filter((step) => used.has(step));
+  const steps = (id === "all" && !digests.length ? CFOP_STEPS : ids).map((step): StepStats => {
+    const having = digests.flatMap((d) => d.steps[step] ?? []),
+      done = having.filter((t) => !t.skip),
       mean = meanTiming(done);
     return {
       id: step,
       label: STEP_LABELS[step],
       ...mean,
       count: done.length,
-      skips: digests.length - done.length,
+      skips: having.length - done.length,
       tps: mean.execution > 0 ? mean.turns / (mean.execution / 1000) : 0,
       // Skipped steps count as nothing: the shares of a method's steps add up to its whole solve.
-      share: duration > 0 ? average(digests.map((d) => d.steps[step].duration)) / duration : 0,
+      share: duration > 0 ? average(digests.map((d) => d.steps[step]?.duration ?? 0)) / duration : 0,
     };
   });
   const byCase = new Map<string, CaseTiming[]>();
@@ -210,10 +229,10 @@ const names = (cases: CaseStats[]) => cases.map((c) => c.name).join(", ");
 /** What to train next, from where the solves lose time. */
 export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSuggestion[] {
   const out: TrainingSuggestion[] = [];
-  const step = (id: StepId) => all.steps.find((s) => s.id === id)!;
+  const step = (id: StepId) => all.steps.find((s) => s.id === id);
   // The step that takes the largest part of the solve compared with a usual CFOP solve.
-  const USUAL: Record<StepId, number> = { cross: 0.15, f2l: 0.5, oll: 0.15, pll: 0.2 };
-  const heaviest = [...all.steps].sort((a, b) => b.share / USUAL[b.id] - a.share / USUAL[a.id])[0];
+  const USUAL: Partial<Record<StepId, number>> = { cross: 0.15, f2l: 0.5, oll: 0.15, pll: 0.2 };
+  const heaviest = all.steps.filter((s) => USUAL[s.id]).sort((a, b) => b.share / USUAL[b.id]! - a.share / USUAL[a.id]!)[0];
   for (const id of ["f2l", "oll", "pll", "zbll"] as CaseStep[]) {
     const cases = slowest(all, id, "duration");
     if (!cases.length) continue;
@@ -225,7 +244,7 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
     });
   }
   // A long pause before the last layer's algorithms: recognising them is what to train.
-  const ll = [step("oll"), step("pll")].filter((s) => s.count),
+  const ll = [step("oll"), step("pll")].filter((s) => s?.count) as StepStats[],
     pause = ll.length ? average(ll.map((s) => s.recognition)) : 0;
   if (pause >= 600) {
     const cases = [...slowest(all, "oll", "recognition", 3), ...slowest(all, "pll", "recognition", 3)];
@@ -239,7 +258,7 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
   }
   // A cross of many turns: planning it during inspection, with Cross + 1.
   const cross = step("cross");
-  if (cross.count && (cross.turns > 8 || heaviest?.id === "cross"))
+  if (cross?.count && (cross.turns > 8 || heaviest?.id === "cross"))
     out.push({
       id: "cross",
       title: msg("Plan the whole cross"),
@@ -281,7 +300,7 @@ export function smartAnalysis(digests: SolveDigest[]): SmartAnalysisDto {
         method: d.method,
         duration: d.duration,
         turns: d.turns,
-        steps: Object.fromEntries(Object.entries(d.steps).map(([id, t]) => [id, t.duration])) as Record<StepId, number>,
+        steps: Object.fromEntries(Object.entries(d.steps).map(([id, t]) => [id, t.duration])) as Partial<Record<StepId, number>>,
       })),
   };
 }

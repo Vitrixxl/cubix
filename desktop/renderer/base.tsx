@@ -136,7 +136,21 @@ export function Empty({ children, className }: Props) {
 }
 
 /** Moves in notation; brackets and parentheses muted. */
+/** A megaminx scramble (its R++ and D-- turns), shown in rows of eleven turns. */
+export const isMinxScramble = (text: string) => /\+\+|--/.test(text);
 export function Alg({ text, size = 18, className }: { text: string; size?: number; className?: string }) {
+  // A megaminx scramble in its usual rows, each ended by its U turn, the turns lined up in columns.
+  if (isMinxScramble(text))
+    return (
+      <div
+        className={cn("alg grid min-w-0 gap-x-[0.6em] gap-y-[0.25em] font-sans leading-snug font-medium tracking-tight tabular-nums", className)}
+        style={{ fontSize: size, gridTemplateColumns: "repeat(11, max-content)" }}
+      >
+        {text.trim().split(/\s+/).map((word, i) => (
+          <span key={i}>{word}</span>
+        ))}
+      </div>
+    );
   return (
     <div
       className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)}

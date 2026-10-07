@@ -1,6 +1,5 @@
-/** The frame around the pages: the sidebar or the phone tab bar, and the page transition. */
+/** The frame around the pages: the sidebar or the phone tab bar. */
 import { useEffect, useState } from "react";
-import { motion, useIsPresent } from "motion/react";
 import { BookA, BookOpen, Boxes, ChartColumn, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
@@ -107,8 +106,7 @@ export function Rail() {
   return (
     // Folded, the icons are named by their tooltips: these come almost at once, and move from icon to icon instantly.
     <TooltipProvider delay={open ? 400 : 80} closeDelay={0}>
-    {/* The fade must not drop the width transition: the sidebar would fold at once, ahead of the room it leaves. */}
-    <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE, "transition-[width,opacity]")}>
+    <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
       <SidebarHeader className="pt-4">
         {/* The puzzle's mark, which picks the puzzle every page works on, the name, and the button folding the sidebar to
             its icons; folded, the mark and that button stand one above the other. */}
@@ -304,44 +302,3 @@ export function TabBar() {
   );
 }
 
-/**
- * Page frame. Switching sections is a vertical carousel: the new page slides in over the full height from below when
- * it comes later in the navigation order (from above otherwise) while the old one leaves the other way. Going deeper
- * into a page is the same carousel sideways: the deeper page comes in from the right, the shallower from the left.
- */
-export interface Slide {
-  direction: number;
-  axis: "x" | "y";
-}
-const CAROUSEL = { duration: 0.42, ease: [0.32, 0.72, 0, 1] } as const;
-const offset = (axis: Slide["axis"], shift: number) => (axis === "y" ? { x: "0%", y: `${shift * 100}%` } : { x: `${shift * 100}%`, y: "0%" });
-const variants = {
-  enter: ({ direction, axis }: Slide) => offset(axis, direction),
-  center: { x: "0%", y: "0%" },
-  exit: ({ direction, axis }: Slide) => ({ ...offset(axis, -direction), transition: CAROUSEL }),
-};
-
-export function Frame({ children, slide }: { slide: Slide } & Props) {
-  const present = useIsPresent();
-  // Commit the empty frame first so the transition starts immediately; the page mounts one frame later.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  return (
-    <motion.div
-      className="absolute inset-0 flex min-h-0 flex-col bg-background"
-      data-exiting={present ? undefined : ""}
-      inert={!present}
-      custom={slide}
-      variants={variants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={CAROUSEL}
-    >
-      {mounted && children}
-    </motion.div>
-  );
-}

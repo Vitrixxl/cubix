@@ -21,8 +21,8 @@ import { PageCard, Stats, SubPageHead } from "./card";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
-/** Each step in the colour it has under the timer; the F2L takes its pairs' middle colour. */
-const COLOUR: Record<StepId, PhaseId> = { cross: "cross", f2l: "f2l2", oll: "oll", pll: "pll" };
+/** Each step in the colour it has under the timer, in the order of a solve; the F2L takes its pairs' middle colour. */
+const COLOUR: Record<StepId, PhaseId> = { cross: "cross", eoline: "eoline", fb: "fb", sb: "sb", f2l: "f2l2", cmll: "cmll", oll: "oll", pll: "pll", lse: "lse" };
 const seconds = (ms: number) => (ms / 1000).toFixed(2);
 const CASE_STEPS = [
   { id: "all", label: "All" },
@@ -120,7 +120,8 @@ function Summary({ method }: { method: MethodStats }) {
     ["Best", fmtTime(method.best)],
     ["Turns", method.turns.toFixed(1)],
     ["TPS", method.tps.toFixed(2)],
-    ["XCross", method.count ? `${method.xcross} · ${Math.round((method.xcross / method.count) * 100)}%` : "–"],
+    // ZZ and Roux make no cross.
+    ...(method.steps.some((step) => step.id === "cross") ? [["XCross", method.count ? `${method.xcross} · ${Math.round((method.xcross / method.count) * 100)}%` : "–"] as [string, string]] : []),
   ];
   return (
     <Card className="shrink-0 gap-4 px-5 py-4" aria-label={tr("Summary")}>
@@ -314,9 +315,9 @@ function Latest({ latest }: { latest: (SmartAnalysisDto["latest"][number] & { di
             </span>
             <span className="flex h-1.5 w-full gap-0.5" aria-hidden>
               {(Object.keys(COLOUR) as StepId[])
-                .filter((id) => solve.steps[id] > 0)
+                .filter((id) => (solve.steps[id] ?? 0) > 0)
                 .map((id) => (
-                  <span key={id} className="h-full min-w-0.5 rounded-full" style={{ flexGrow: solve.steps[id], flexBasis: 0, background: stepColour(COLOUR[id]) }} />
+                  <span key={id} className="h-full min-w-0.5 rounded-full" style={{ flexGrow: solve.steps[id]!, flexBasis: 0, background: stepColour(COLOUR[id]) }} />
                 ))}
             </span>
           </button>

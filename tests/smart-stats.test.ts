@@ -37,7 +37,7 @@ describe("smart cube statistics", () => {
     const d = solve(1, [...F2L, OLL, PLL]);
     expect(d.method).toBe("cfop");
     expect(d.steps.cross).toMatchObject({ turns: 4, recognition: 0, skip: false });
-    expect(d.steps.f2l.turns).toBe(16);
+    expect(d.steps.f2l!.turns).toBe(16);
     expect(d.steps.pll).toMatchObject({ turns: 14, recognition: 600 });
     expect(d.cases.map((c) => c.step)).toEqual(["f2l", "f2l", "f2l", "f2l", "oll", "pll"]);
     expect(d.cases.at(-1)).toMatchObject({ name: "T Perm", duration: 600 + 1300, turns: 14 });
@@ -54,7 +54,7 @@ describe("smart cube statistics", () => {
     const result = smartAnalysis(digests);
     expect(result.count).toBe(3);
     // Every method the analysis reads, the used ones first; one never used is there, empty.
-    expect(result.methods.map((m) => [m.id, m.count])).toEqual([["all", 3], ["cfop", 2], ["cfop-2look", 1], ["zb", 0]]);
+    expect(result.methods.map((m) => [m.id, m.count])).toEqual([["all", 3], ["cfop", 2], ["cfop-2look", 1], ["zb", 0], ["zz", 0], ["roux", 0]]);
     expect(result.methods[0]!.xcross).toBe(0);
     const all = result.methods[0]!;
     expect(all.steps.map((s) => s.id)).toEqual(["cross", "f2l", "oll", "pll"]);
@@ -75,5 +75,22 @@ describe("smart cube statistics", () => {
       { solveId: 1, at: "2026-10-01T10:00:00.000Z", time: 1900 },
       { solveId: 2, at: "2026-10-02T10:00:00.000Z", time: 2900 },
     ]);
+  });
+
+  test("ZZ and Roux solves are gathered under their own steps", () => {
+    const zz = solve(4, ["F R D2 L' B", "L2 U L U' L'", "R2 U R' U' R", OLL, PLL]),
+      roux = solve(5, ["F R D2 L' B U", "R U r' U2 M R'", OLL, "M U M'", "U M2 U'", "M' U2 M2 U2 M'"]);
+    expect(zz.method).toBe("zz");
+    expect(Object.keys(zz.steps)).toEqual(["eoline", "f2l", "oll", "pll"]);
+    expect(zz.cases.map((c) => c.step)).toEqual(["oll", "pll"]);
+    expect(roux.method).toBe("roux");
+    expect(Object.keys(roux.steps)).toEqual(["fb", "sb", "cmll", "lse"]);
+    const result = smartAnalysis([solve(1, [...F2L, OLL, PLL]), zz, roux]);
+    expect(result.methods.find((m) => m.id === "roux")!.steps.map((s) => s.id)).toEqual(["fb", "sb", "cmll", "lse"]);
+    // Every solve together: the steps of the three methods, in the order of a solve.
+    const all = result.methods[0]!;
+    expect(all.steps.map((s) => s.id)).toEqual(["cross", "eoline", "fb", "sb", "f2l", "cmll", "oll", "pll", "lse"]);
+    expect(all.steps.find((s) => s.id === "f2l")!.count).toBe(2);
+    expect(all.steps.reduce((sum, s) => sum + s.share, 0)).toBeCloseTo(1, 5);
   });
 });

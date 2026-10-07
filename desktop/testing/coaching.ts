@@ -31,13 +31,11 @@ async function open(width = 1440, height = 900) {
   await page.goto(origin + "/timer");
   return page;
 }
-const settle = (page: Page) => page.waitForSelector("[data-exiting]", { state: "detached" });
 async function go(page: Page, path: string) {
   await page.evaluate((path) => {
     history.pushState(null, "", path);
     dispatchEvent(new PopStateEvent("popstate"));
   }, path);
-  await settle(page);
 }
 /** The screen keeps to the window's height. */
 const fits = async (page: Page) => {
@@ -142,12 +140,10 @@ try {
   assert.ok(await fits(player), "the coaches fit");
   await player.screenshot({ path: `${SHOTS}/coaches.png` });
   await player.locator('[data-coach="coach_anna"]').click();
-  await settle(player);
   await player.waitForSelector('[data-slot="coach-about"]');
   assert.ok(await fits(player), "the coach page fits");
   await player.screenshot({ path: `${SHOTS}/coach-about.png` });
   await player.locator('[data-action="coaching:open-booking"]').click();
-  await settle(player);
   await player.waitForSelector('[data-slot="slots"] button');
   assert.ok(await fits(player), "the booking page fits");
   await player.locator('[data-slot="slots"] button').first().click();

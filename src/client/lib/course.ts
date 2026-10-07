@@ -144,5 +144,12 @@ export function stepLearned(step: MethodStep, cases: readonly Pick<CaseDto, "id"
   };
 }
 
+/** Learned algorithms of a whole method, a set shared by two steps counted once (out of `methodFacts`' algorithms). */
+export function methodLearned(method: SolvingMethod, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry) {
+  const sets = new Set(method.steps.flatMap(step => step.sets ?? []));
+  const own = method.steps.flatMap(step => (step.algs ?? []).map(a => algId(step, a)));
+  return cases.filter(c => sets.has(c.set) && learned.has(c.id)).length + own.filter(id => entry.learned.includes(id)).length;
+}
+
 /** The case an inline algorithm is shown on: its own setup, or the algorithm undone from a solved cube, rotations and brackets included. */
 export const algSetup = (alg: Pick<MethodAlgorithm, "alg" | "setup">) => alg.setup ?? invertAlg(alg.alg);

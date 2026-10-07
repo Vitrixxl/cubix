@@ -18,7 +18,7 @@ export function CoachingSidebar({ open }: { open: boolean }) {
     // In step with the app's sidebar, which folds to its icons on this page.
     <div
       inert={!open}
-      className={cn("relative h-svh shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-linear", open ? "w-56 border-r border-sidebar-border" : "w-0")}
+      className={cn("relative h-svh shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground", open ? "w-56 border-r border-sidebar-border" : "w-0")}
     >
       <nav aria-label={tr("Coaching")} data-slot="coaching-nav" className="absolute inset-y-0 right-0 flex w-56 flex-col gap-2 pt-4 pb-4">
         {/* Level with the sidebar's own header. */}

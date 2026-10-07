@@ -2,23 +2,28 @@ import { CUBE_BODY, cubeOrientation, type CubeOrientation, type CubeShape } from
 import { FACE_HEX } from './cubeAppearance';
 
 /**
- * The pyraminx and the megaminx of the timer, drawn like the 3D cube (`cubeScene`): a dark body under rounded stickers,
- * turned by the same drag. Each sticker is a polygon of the solved puzzle; a move turns the stickers lying beyond a
- * plane about its normal, so a scramble only composes rotations and the stickers keep their colours.
+ * The pyraminx, the megaminx, the skewb and the square-1 of the timer, drawn like the 3D cube (`cubeScene`): a dark
+ * body under rounded stickers, turned by the same drag. Each sticker is a polygon of the solved puzzle; a move turns
+ * the stickers lying beyond a plane, so a scramble only composes rotations and the stickers keep their colours.
  */
-export type PolyPuzzle = 'pyram' | 'minx';
-export const isPolyPuzzle = (puzzle: unknown): puzzle is PolyPuzzle => puzzle === 'pyram' || puzzle === 'minx';
+export type PolyPuzzle = 'pyram' | 'minx' | 'skewb' | 'sq1';
+export const isPolyPuzzle = (puzzle: unknown): puzzle is PolyPuzzle => typeof puzzle === 'string' && Object.hasOwn(BUILD, puzzle);
 
 type V = readonly number[];
 /** A rotation, 3×3 row-major. */
 type M = readonly number[];
-interface Sticker { points: V[]; cell: V[]; center: V; normal: V; color: number }
+interface Sticker { points: V[]; cell: V[]; center: V; normal: V; color: number; piece?: number }
 interface Turn { axis: V; angle: number; moving: Set<number> }
 interface Geometry {
   stickers: Sticker[];
-  /** A move by its letter: the axis, the depth beyond which stickers turn, and a quarter of a whole turn's angle. */
+  /** A move by its letter: the axis, the depth beyond which stickers turn, and the angle of one turn. */
   move: (name: string) => { axis: V; depth: number; step: number } | undefined;
   radius: number;
+  /**
+   * The corners of each piece, for a puzzle that changes shape (the square-1): no longer convex, it is painted piece by
+   * piece, each convex, rather than as one body.
+   */
+  pieces?: V[][];
 }
 export interface PolyScene {
   puzzle: PolyPuzzle;
@@ -27,6 +32,7 @@ export interface PolyScene {
   states: M[][];
   turns: Turn[];
   radius: number;
+  pieces?: V[][];
 }
 
 const add = (a: V, b: V) => a.map((v, i) => v + b[i]!),
@@ -205,15 +211,114 @@ function megaminx(): Geometry {
   };
 }
 
-const GEOMETRY: Partial<Record<PolyPuzzle, Geometry>> = {};
-const geometry = (puzzle: PolyPuzzle) => (GEOMETRY[puzzle] ??= puzzle === 'pyram' ? pyraminx() : megaminx());
+/**
+ * Cube with its faces one unit from the centre, white on top and green in front. A skewb turn turns the half beyond the
+ * plane through the centre across one corner's diagonal: each face a centre square and four corners.
+ */
+function skewb(): Geometry {
+  const faces: [V, V, V, number][] = [
+    [[0, 1, 0], [1, 0, 0], [0, 0, 1], FACE_HEX.D],
+    [[0, -1, 0], [1, 0, 0], [0, 0, 1], FACE_HEX.U],
+    [[0, 0, 1], [1, 0, 0], [0, 1, 0], FACE_HEX.B],
+    [[0, 0, -1], [1, 0, 0], [0, 1, 0], FACE_HEX.F],
+    [[1, 0, 0], [0, 1, 0], [0, 0, 1], FACE_HEX.R],
+    [[-1, 0, 0], [0, 1, 0], [0, 0, 1], FACE_HEX.L],
+  ];
+  const stickers = faces.flatMap(([n, u, v, color]) => {
+    const face = plane(n, n, add(n, u)),
+      at = (a: number, b: number) => face.flat(add(n, add(scale(u, a), scale(v, b)))),
+      cells = [[at(1, 0), at(0, 1), at(-1, 0), at(0, -1)], ...[[1, 1], [-1, 1], [-1, -1], [1, -1]].map(([a, b]) => [at(a!, b!), at(a!, 0), at(0, b!)])];
+    return cells.map((cell) => makeSticker(face, cell, n, color, 0.035, 0.08));
+  });
+  // WCA notation: R, U, L and B turn the corners DRB, ULB, DLF and DLB, clockwise seen from the corner.
+  const corners: Record<string, V> = { R: unit([1, -1, -1]), U: unit([-1, 1, -1]), L: unit([-1, -1, 1]), B: unit([-1, -1, -1]) };
+  return { stickers, move: (name) => corners[name] && { axis: corners[name]!, depth: 0, step: (Math.PI * 2) / 3 }, radius: 1.9 };
+}
+
+/**
+ * The square-1 in its cube shape, white on top and green in front, its three layers a third of its height each. Seen
+ * from above, each outer layer alternates edges of 30° (one at the front) and corners of 60°; the slice cuts the
+ * front between the edge and the left corner, through the centre, and `/` turns the right half over: the front edge,
+ * the right corners and edge, as WCA scrambles expect.
+ */
+const SQ1_CUT = (-15 * Math.PI) / 180,
+  /** The slice's axis, square to the cut, toward the half it turns. */
+  SQ1_SLICE: V = [Math.cos(SQ1_CUT), 0, -Math.sin(SQ1_CUT)];
+function square1(): Geometry {
+  const ray = (deg: number) => {
+      const a = (deg * Math.PI) / 180,
+        d = [Math.sin(a), Math.cos(a)];
+      return scale(d, 1 / Math.max(Math.abs(d[0]!), Math.abs(d[1]!)));
+    },
+    sides: [number, number, number][] = [
+      [0, 1, FACE_HEX.B],
+      [1, 0, FACE_HEX.R],
+      [0, -1, FACE_HEX.F],
+      [-1, 0, FACE_HEX.L],
+    ];
+  const stickers: Sticker[] = [],
+    pieces: V[][] = [];
+  // A piece: a convex polygon seen from above (x, z), from height `low` to `high`, a sticker on each outer face.
+  const piece = (outline: V[], low: number, high: number) => {
+    const index = pieces.length,
+      at = (p: V, y: number) => [p[0]!, y, p[1]!],
+      push = (n: V, corners: V[], color: number) => {
+        const face = plane(mean(corners), n, corners[0]!);
+        stickers.push({ ...makeSticker(face, corners.map(face.flat), n, color, 0.03, 0.06), piece: index });
+      };
+    pieces.push([...outline.map((p) => at(p, low)), ...outline.map((p) => at(p, high))]);
+    if (high === 1) push([0, 1, 0], outline.map((p) => at(p, 1)), FACE_HEX.D);
+    if (low === -1) push([0, -1, 0], outline.map((p) => at(p, -1)), FACE_HEX.U);
+    outline.forEach((p, i) => {
+      const q = outline[(i + 1) % outline.length]!,
+        side = sides.find(([x, z]) => (x ? p[0]! * x > 0.999 && q[0]! * x > 0.999 : p[1]! * z > 0.999 && q[1]! * z > 0.999));
+      if (side) push([side[0], 0, side[1]], [at(p, low), at(q, low), at(q, high), at(p, high)], side[2]);
+    });
+  };
+  for (const [low, high] of [[1 / 3, 1], [-1, -1 / 3]] as const)
+    for (let k = 0; k < 4; k++) {
+      const a = k * 90;
+      piece([[0, 0], ray(a - 15), ray(a + 15)], low, high);
+      piece([[0, 0], ray(a + 15), ray(a + 45), ray(a + 75)], low, high);
+    }
+  // The middle layer: the square cut in two along the slice.
+  const square: V[] = [[1, 1], [1, -1], [-1, -1], [-1, 1]],
+    across = [SQ1_SLICE[0]!, SQ1_SLICE[2]!];
+  for (const sign of [1, -1]) piece(clip(square, (p) => sign * dot(p, across)), -1 / 3, 1 / 3);
+  return {
+    stickers,
+    pieces,
+    // U and D stand for the outer layers, turned a twelfth at a time; the slice is read by `parse`.
+    move: (name) => (name === 'U' ? { axis: [0, 1, 0], depth: 0.2, step: Math.PI / 6 } : name === 'D' ? { axis: [0, -1, 0], depth: 0.2, step: Math.PI / 6 } : undefined),
+    radius: 1.95,
+  };
+}
+
+const GEOMETRY: Partial<Record<PolyPuzzle, Geometry>> = {},
+  BUILD: Record<PolyPuzzle, () => Geometry> = { pyram: pyraminx, minx: megaminx, skewb, sq1: square1 };
+const geometry = (puzzle: PolyPuzzle) => (GEOMETRY[puzzle] ??= BUILD[puzzle]());
 
 /**
  * A WCA scramble as turns. Pyraminx: U L R B turn a corner's layer, u l r b its tip, clockwise seen from that corner.
  * Megaminx: R++ and D++ turn all but the layer opposite R or D two fifths clockwise seen from R or D, U a fifth.
+ * Skewb: R U L B (see `skewb`). Square-1: (x, y) turns the top x twelfths and the bottom y, each clockwise seen from
+ * that face; / turns the right half over.
  */
-function parse(puzzle: PolyPuzzle, scramble: string) {
+function parse(puzzle: PolyPuzzle, scramble: string): { axis: V; depth: number; angle: number }[] {
   const { move } = geometry(puzzle);
+  if (puzzle === 'sq1')
+    return [...scramble.matchAll(/\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)|\//g)].flatMap(([token, top, bottom]) => {
+      if (token === '/') return [{ axis: SQ1_SLICE, depth: 0, angle: Math.PI }];
+      return (
+        [
+          ['U', Number(top)],
+          ['D', Number(bottom)],
+        ] as const
+      ).flatMap(([name, turns]) => {
+        const m = move(name)!;
+        return turns ? [{ axis: m.axis, depth: m.depth, angle: -turns * m.step }] : [];
+      });
+    });
   return scramble.split(/\s+/).flatMap((token) => {
     const [, name, suffix = ''] = /^([A-Za-z]+)(\+\+|--|'|2'?)?$/.exec(token) ?? [];
     const m = name && move(name);
@@ -225,7 +330,7 @@ function parse(puzzle: PolyPuzzle, scramble: string) {
 }
 
 export function polyScene(puzzle: PolyPuzzle, scramble: string, animated = true): PolyScene {
-  const { stickers, radius } = geometry(puzzle);
+  const { stickers, radius, pieces } = geometry(puzzle);
   let state: M[] = stickers.map(() => IDENTITY);
   const states = [state],
     turns: Turn[] = [];
@@ -238,12 +343,13 @@ export function polyScene(puzzle: PolyPuzzle, scramble: string, animated = true)
       turns.push({ axis, angle, moving });
     }
   }
-  return { puzzle, stickers, states: animated ? states : [state], turns, radius };
+  return { puzzle, stickers, states: animated ? states : [state], turns, radius, pieces };
 }
-/** Seconds a scene takes to play its scramble. */
-export const polySceneDuration = (scene: PolyScene) => (scene.puzzle === 'minx' ? 4 : 3);
+/** Seconds a scene takes to play its scramble: a tenth of a second a turn, so the megaminx's 77 can be followed. */
+export const polySceneDuration = (scene: PolyScene) => Math.max(3, scene.turns.length * 0.1);
 /** The resting view: the front face toward the viewer, turned a little to show a side and seen from above. */
-export const polyOrientation = (puzzle: PolyPuzzle): CubeOrientation => (puzzle === 'pyram' ? cubeOrientation(0.75, 0.35) : cubeOrientation(0.3, 0.6));
+export const polyOrientation = (puzzle: PolyPuzzle): CubeOrientation =>
+  puzzle === 'pyram' ? cubeOrientation(0.75, 0.35) : puzzle === 'minx' ? cubeOrientation(0.3, 0.6) : cubeOrientation();
 
 function hull(points: V[]) {
   const sorted = [...points].sort((a, b) => a[0]! - b[0]! || a[1]! - b[1]!);
@@ -273,6 +379,10 @@ export function polyShapes(scene: PolyScene, seconds: number, orientation: CubeO
   // The half nearer the viewer is painted last: each half is convex, so its own front faces never overlap.
   if (turn && camera(turn.axis)[2]! < 0) groups.reverse();
   const shapes: CubeShape[] = [];
+  if (scene.pieces) {
+    for (const moving of groups) paintPieces(scene, shapes, state, moving ? partial : IDENTITY, (i) => (turn?.moving.has(i) ?? false) === moving, camera);
+    return shapes;
+  }
   for (const moving of groups) {
     const members = scene.stickers.flatMap((s, i) => ((turn?.moving.has(i) ?? false) === moving ? [i] : [])),
       pose = (i: number) => {
@@ -288,4 +398,31 @@ export function polyShapes(scene: PolyScene, seconds: number, orientation: CubeO
     }
   }
   return shapes;
+}
+
+/**
+ * The square-1's pieces of one half, back to front: its layers from the one away from the viewer, and in each layer
+ * the pieces by depth. Each piece is convex: its body, then its stickers facing the viewer.
+ */
+function paintPieces(scene: PolyScene, shapes: CubeShape[], state: M[], partial: M, member: (sticker: number) => boolean, camera: (v: V) => V) {
+  const pieces = scene.pieces!,
+    owned = pieces.map(() => [] as number[]);
+  scene.stickers.forEach((s, i) => member(i) && owned[s.piece!]!.push(i));
+  const up = camera(apply(partial, [0, 1, 0]))[2]! >= 0 ? 1 : -1,
+    placed = owned.flatMap((stickers, p) => {
+      if (!stickers.length) return [];
+      const m = state[stickers[0]!]!,
+        middle = apply(m, mean(pieces[p]!));
+      return [{ p, stickers, m, layer: Math.round(middle[1]! * 1.5) * up, depth: camera(apply(partial, middle))[2]! }];
+    });
+  placed.sort((a, b) => a.layer - b.layer || a.depth - b.depth);
+  for (const { p, stickers, m } of placed) {
+    const place = (v: V) => camera(apply(partial, apply(m, v)));
+    shapes.push({ points: hull(pieces[p]!.map(place)).map((v) => v.slice(0, 2)), color: CUBE_BODY, line: false });
+    for (const i of stickers) {
+      const s = scene.stickers[i]!;
+      if (place(s.normal)[2]! <= 1e-4) continue;
+      shapes.push({ points: s.points.map((v) => place(v).slice(0, 2)), color: s.color, line: false });
+    }
+  }
 }

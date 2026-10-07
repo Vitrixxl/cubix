@@ -49,7 +49,7 @@ async function tour(name: string, { desktop }: { desktop: boolean }) {
     await heading(st.title);
     // Settled: every visible inner element lies inside a cut-out (no inner element: the tab alone).
     await page.waitForFunction(inner => {
-      const els = [...document.querySelectorAll(`[data-tour="${inner}"]`)].filter(e => e.getClientRects().length && e.closest("[data-app-shell]") && !e.closest("[data-exiting]"));
+      const els = [...document.querySelectorAll(`[data-tour="${inner}"]`)].filter(e => e.getClientRects().length && e.closest("[data-app-shell]"));
       const holes = [...document.querySelectorAll('[data-spotlight="inner"]')].map(h => h.getBoundingClientRect());
       if (!document.querySelector('[data-spotlight="nav"]')) return false;
       if (!els.length) return holes.length === 0;

@@ -2027,5 +2027,7 @@
  "Your turns": "Deine Züge",
  "Your two networks cannot reach each other: a firewall, a VPN or the browser may block calls. Try again, or join from another network or browser.": "Eure beiden Netzwerke erreichen sich nicht: Eine Firewall, ein VPN oder der Browser blockiert eventuell Anrufe. Versuch es erneut oder tritt über ein anderes Netzwerk oder einen anderen Browser bei.",
  "ZBLL": "ZBLL",
- "ZZ": "ZZ"
+ "ZZ": "ZZ",
+ "In {0} parts": "In {0} Teilen",
+ "{0} / {1} algorithms known · {2}%": "{0} / {1} Algorithmen bekannt · {2} %"
 }

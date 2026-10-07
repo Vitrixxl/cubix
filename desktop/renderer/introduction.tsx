@@ -357,7 +357,7 @@ function merge(boxes: Box[]): Box[] {
     }
   return out;
 }
-const shown = (e: Element) => e.getClientRects().length > 0 && !!e.closest("[data-app-shell]") && !e.closest("[data-exiting]");
+const shown = (e: Element) => e.getClientRects().length > 0 && !!e.closest("[data-app-shell]");
 /** Brings an element hidden in a scrolled pane into view, without scrolling the window itself. */
 function reveal(element: HTMLElement) {
   const r = element.getBoundingClientRect();
@@ -433,7 +433,7 @@ function Tour() {
     const tick = () => {
       frame = 0;
       const now = read(step), key = round(now);
-      const moving = !!document.querySelector("[data-exiting]") || location.pathname !== pageUrl(st.page) || s.page !== st.page;
+      const moving = location.pathname !== pageUrl(st.page) || s.page !== st.page;
       if ((!moving && key === previous) || performance.now() - since > 2500) {
         setSpot((old) => (old && round(old) === key ? old : now));
         document.querySelectorAll(`[data-tour="${st.inner}"]`).forEach((e) => observer.observe(e));

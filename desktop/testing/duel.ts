@@ -23,7 +23,6 @@ async function open() {
   await page.waitForSelector(".rail, .tabbar");
   await page.locator('[data-action="nav:duel"]').first().click();
   await page.waitForSelector(".duel-lobby");
-  await page.waitForSelector("[data-exiting]", { state: "detached" });
   return page;
 }
 /** Nothing sticks out of the window: the screen stays at its height. */
@@ -115,12 +114,10 @@ try {
   await b.waitForSelector(".duel-side.theirs.gone");
   await a.locator('[data-action="nav:profile"]').first().click();
   await a.waitForSelector(".ov-battles .ov-battle");
-  await a.waitForSelector("[data-exiting]", { state: "detached" });
   assert.ok(await fits(a), "the overview fits the window");
   await a.screenshot({ path: `${SHOTS}/profile.png` });
   await a.locator('[data-action="profileMode:duels"]').click();
   await a.waitForSelector(".battles .battle-row .battle-mark.win");
-  await a.waitForSelector("[data-exiting]", { state: "detached" });
   await a.screenshot({ path: `${SHOTS}/battles.png` });
   // Each tab kept its side of the race in the shared storage.
   await a.waitForFunction(() => document.querySelectorAll(".battles .battle-row:not(.battle-head)").length === 2);

@@ -33,23 +33,13 @@ export const matches = (c: any, q: string) => {
     .split(/\s+/)
     .every((word) => words.some((w) => w.startsWith(word)));
 };
-const PAGE_ORDER = ["playground", "algorithms", "learn", "training", "duel", "tournaments", "match", "community", "coaching", "profile"];
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
+/** The order of the groups of the sets that are no learning track, set by set (see `groupOrder`). */
+const GROUP_ORDER_KEY = "cubix.learn.groupOrder";
 const timesOpenAtStart = (page: string) => page === "training" && innerWidth >= TIMES_OPEN_WIDTH;
 /** Whether a window this wide keeps the session's times beside the stage, with no button to fold them away. */
 export const timesAlwaysShown = (width: number, training: boolean) => !isPhone(width) && width >= (training ? 1200 : 980);
-/** Tabs slide toward their position in the bar; opening a case or a guide pushes forward. */
-function slideDirection(
-  from: { page: string; caseId: string },
-  to: { page: string; caseId: string },
-): 1 | -1 {
-  if (from.page === to.page) return to.caseId && !from.caseId ? 1 : !to.caseId && from.caseId ? -1 : 1;
-  const a = PAGE_ORDER.indexOf(from.page), b = PAGE_ORDER.indexOf(to.page);
-  if (b < 0) return 1;
-  if (a < 0) return -1;
-  return b > a ? 1 : -1;
-}
 export class Store {
   listeners = new Set<() => void>();
   version = 0;
@@ -138,13 +128,6 @@ export class Store {
   timerEpoch = 0;
   running = false;
   learningFrozen = false;
-  /** Slide direction of the next page transition: 1 pushes in from the right (or below), -1 from the left (or above). */
-  direction = 1;
-  /**
-   * Axis of the next transition on the desktop: pages of the rail slide vertically, going deeper into a page
-   * (a profile section, training started from its setup, a case) slides sideways.
-   */
-  axis: "x" | "y" = "y";
   revision = 0;
   request = 0;
   goal = new Set<string>();
@@ -157,10 +140,8 @@ export class Store {
   crossSolutions: { scramble: string; list: { moves: string; slot: string }[] | null } | null = null;
   /** Mode highlighted on the training setup screen, before it starts. */
   setupMode = "";
-  /** The method whose course the Learn page shows; empty, the list of methods or the choice above it. */
+  /** The method whose course the Learn page shows; empty, the list of methods. */
   learnMethod = "";
-  /** Without a method: "methods" for their list (/learn/methods), empty for the choice between methods and algorithms. */
-  learnSection = "";
   /** The coaching view and its argument, as in /coaching/<view>/<id>. */
   coachingView = "";
   /** The view under the community, tournaments and match pages, as in /community/groups/<id>. */
@@ -252,7 +233,6 @@ export class Store {
     const course = this.learning;
     this.learnFinished = false;
     if (!course) return;
-    this.direction = index < course.entry.step ? -1 : 1;
     goPage("learn", { puzzle: course.puzzle, learnMethod: course.method.id, learnStep: Math.max(0, Math.min(course.method.steps.length - 1, index)) });
   }
   /** Opens the 3D player on one of a list of algorithms. */
@@ -274,12 +254,23 @@ export class Store {
   };
   get learningPlan(): LearningPlan { return { ...(this.prefs[learningKey(this.user.id ?? "guest")] ?? EMPTY_LEARNING_PLAN), groupOrder: this.learningGroupOrder }; }
   get learningMode() { return learningModeForPuzzle(this.learningPlan.mode, this.puzzle); }
-  get learningGroups() { const mode = this.learningMode; return isLearningTrack(mode) ? orderedGroups(learningCases(catalog.cases, mode), this.learningPlan.groupOrder?.[mode]) : []; }
-  async reorderLearningGroups(groups: string[]) {
-    const mode = this.learningMode;
+  groupsOf(mode: string) { return isLearningTrack(mode) ? orderedGroups(learningCases(catalog.cases, mode), this.learningPlan.groupOrder?.[mode]) : []; }
+  get learningGroups() { return this.groupsOf(this.learningMode); }
+  /** The order of a set's groups on Learn: a learning track's is its training's priority, any other set's a preference. */
+  groupOrder(setId: string): string[] | undefined {
+    const track = setId.toUpperCase();
+    return isLearningTrack(track) ? this.learningPlan.groupOrder?.[track] : this.prefs[GROUP_ORDER_KEY]?.[setId];
+  }
+  async reorderGroups(setId: string, groups: string[]) {
+    const track = setId.toUpperCase();
+    if (isLearningTrack(track)) return this.reorderLearningGroups(groups, track);
+    this.pref(GROUP_ORDER_KEY, { ...this.prefs[GROUP_ORDER_KEY], [setId]: groups });
+    this.emit();
+  }
+  async reorderLearningGroups(groups: string[], mode = this.learningMode) {
     if (this.running || this.learningFrozen || this.saving || this.pendingSolve || !isLearningTrack(mode)) return;
     const order = orderedGroups(learningCases(catalog.cases, mode), groups);
-    const previousOrder = this.learningGroups;
+    const previousOrder = this.groupsOf(mode);
     if (order.every((group, index) => group === previousOrder[index])) return;
     await call("setLearningGroupOrder", mode, order);
     this.learningGroupOrder = { ...this.learningGroupOrder, [mode]: order };
@@ -638,25 +629,13 @@ export class Store {
     if (route.puzzle) this.usePuzzle(route.puzzle);
     const caseId = route.caseId && this.find(route.caseId) ? route.caseId : "";
     const method = methodOf(this.puzzle as PuzzleId, route.learnMethod) ? route.learnMethod : "";
-    this.axis = page === this.page ? "x" : "y";
-    this.direction = slideDirection(this.location(), { page, caseId });
-    const section = !method && route.learnMethod === "methods" ? "methods" : "";
-    // Learn goes deeper from the choice to the methods, then to a course; within a course, with its steps.
-    const depth = (m: string, sec: string) => (m ? 2 : sec ? 1 : 0);
-    if (page === this.page && page === "learn")
-      this.direction = method && method === this.learnMethod && route.learnStep !== undefined ? Math.sign(route.learnStep - (this.learning?.entry.step ?? 0)) || 1 : Math.sign(depth(method, section) - depth(this.learnMethod, this.learnSection)) || 1;
-    if (page === this.page && page === "profile") this.direction = route.profileMode === "overview" ? -1 : 1;
-    // Deeper into coaching (a coach, a call) pushes forward; back to a list comes back.
-    if (page === this.page && page === "coaching") this.direction = (route.coaching ?? "").split("/").length >= this.coachingView.split("/").length ? 1 : -1;
     this.coachingView = route.coaching ?? "";
-    // Deeper into the community or a tournament pushes forward too.
-    if (page === this.page && ["community", "tournaments"].includes(page)) this.direction = (route.view ?? "").split("/").filter(Boolean).length >= this.view.split("/").filter(Boolean).length ? 1 : -1;
     this.view = route.view ?? "";
     if (page === "profile" && this.page !== "profile") {
       this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
     this.page = page; this.caseId = caseId; this.caseDialog = ""; this.profileMode = route.profileMode;
-    this.trainingStep = route.trainingStep; this.learnMethod = method; this.learnSection = section;
+    this.trainingStep = route.trainingStep; this.learnMethod = method;
     if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
     if (method) this.learnPick = method;
     this.learnFinished = false;
@@ -764,8 +743,6 @@ export class Store {
           break;
         case "trainingSetup":
           this.setupMode = "";
-          this.direction = -1;
-          this.axis = "x";
           goPage("training", { puzzle: this.puzzle as PuzzleId });
           this.timerEpoch++;
           break;
@@ -779,8 +756,6 @@ export class Store {
               this.pref(learningKey(this.user.id ?? "guest"), { ...this.learningPlan, mode });
           }
           goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
-          this.direction = 1;
-          this.axis = "x";
           this.timerEpoch++;
           this.emit();
           if (this.trainingKind === "cross1") await this.syncScramble();
@@ -1186,9 +1161,6 @@ export class Store {
           break;
         }
         case "learnMethods":
-          goPage("learn", { puzzle: this.puzzle as PuzzleId, learnMethod: "methods" });
-          break;
-        case "learnHome":
           goPage("learn", { puzzle: this.puzzle as PuzzleId });
           break;
         case "learnFrom": {
@@ -1214,7 +1186,6 @@ export class Store {
           this.saveCourse(completeStep(this.course, course.puzzle, course.method.id, course.entry.step));
           goPage("learn", { puzzle: course.puzzle, learnMethod: course.method.id, learnStep: courseEntry(this.course, course.puzzle, course.method.id).step });
           this.learnFinished = false;
-          this.direction = 1;
           break;
         }
         case "learnFinish": {
@@ -1223,7 +1194,6 @@ export class Store {
           this.saveCourse(finishCourse(this.course, course.puzzle, course.method.id));
           await this.unlockPuzzle(course.method.id);
           this.learnFinished = true;
-          this.direction = 1;
           break;
         }
         case "learnDone": {

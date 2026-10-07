@@ -13,7 +13,7 @@ const dir = await mkdtemp(join(tmpdir(), "cubix-menus-"));
 const { origin, server } = await startServer(join(dir, "server"), { CUBIX_RATE_LIMIT: "100000" });
 const browser = await chromium.launch({ executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium", headless: true });
 
-const settle = (page: Page) => page.waitForSelector("[data-exiting]", { state: "detached" }).then(() => page.waitForTimeout(300));
+const settle = (page: Page) => page.waitForTimeout(300);
 const act = async (page: Page, action: string) => {
   await page.locator(`[data-action="${action}"]`).first().click();
   await settle(page);

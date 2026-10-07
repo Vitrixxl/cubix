@@ -1,17 +1,20 @@
 /**
- * Learn: first the choice between a whole method and the algorithms, as large cards in the middle of the page; then the
- * methods of the puzzle, the same way; then the chosen one as a course: its steps in a box on the left, the current
- * step on the page with its explanation, its tips and every algorithm it teaches, Previous and Next beside its title.
+ * Learn: the methods of the puzzle as large cards in the middle of the page, each with the share of its algorithms
+ * known; then the chosen one as a course: its steps in a band across the top with Train, Previous and Next, the
+ * current step under it with its explanation, its tips and every algorithm it teaches.
  * Phones get the course with its steps in a sheet and its actions under the thumb.
  */
 import { useState } from "react";
-import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, Flag, GraduationCap, Info, Timer } from "lucide-react";
+import { Reorder, motion, useDragControls } from "motion/react";
+import { ReorderHandle, useReorder } from "./LearningGroups";
+import { orderedGroups } from "../../src/client/lib/dailyLearning";
+import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Circle, Flag, GraduationCap, GripVertical, Info, Timer } from "lucide-react";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodProgress, recommendedMethod, setGroups, stepId, stepLearned, stepSets,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, recommendedMethod, setGroups, stepId, stepLearned, stepSets,
   type CourseEntry,
 } from "../../src/client/lib/course";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
@@ -29,40 +32,7 @@ import { said } from "./base";
 export function Learn() {
   const course = s.learning;
   if (course) return <Course method={course.method} entry={course.entry} puzzle={course.puzzle} />;
-  // A puzzle that cannot be solved yet has its methods only: its algorithms open with it.
-  return s.learnSection === "methods" || s.locked ? <Methods /> : <LearnHome />;
-}
-
-/** What to learn: a whole method step by step, or the algorithms case by case. */
-function LearnHome() {
-  const puzzle = s.puzzle as PuzzleId,
-    rows = methodRows(puzzle),
-    started = rows.filter((r) => r.progress.started).length,
-    label = puzzleInfo(puzzle).label;
-  return (
-    <div className={PAGE}>
-      <PageHead title={tr("Learn")} sub={tr("Choose what to learn")} puzzle>
-        {!usePhone() && <PuzzleButton />}
-      </PageHead>
-      <Picker label={tr("What to learn")} tour="learn">
-        <PickerCard
-          action="learnMethods"
-          icon={<GraduationCap />}
-          title={tr("Methods")}
-          detail={tr("A whole way to solve the {0}, step by step, with what to know at each step.", { 0: label })}
-          meta={plural(rows.length, "method") + (started ? ` · ${started} started` : "")}
-          marked={started > 0}
-        />
-        <PickerCard
-          action="nav:algorithms"
-          icon={<BookA />}
-          title={tr("Algorithms")}
-          detail={tr("Every algorithm set of the puzzle, case by case, to look up and mark as learned.")}
-          meta={plural(s.cases().length, "case")}
-        />
-      </Picker>
-    </div>
-  );
+  return <Methods />;
 }
 
 /**
@@ -106,6 +76,7 @@ function methodRows(puzzle: PuzzleId) {
   return METHODS[puzzle].map((method) => ({
     method,
     facts: methodFacts(method, cases),
+    learned: methodLearned(method, cases, s.learned, courseEntry(progress, puzzle, method.id)),
     progress: methodProgress(progress, puzzle, method),
     recommended: method.id === recommended,
   }));
@@ -114,6 +85,8 @@ type MethodRow = ReturnType<typeof methodRows>[number];
 
 const methodDetail = (row: MethodRow) =>
   `${LEVEL_LABEL[row.method.level]} · ${plural(row.facts.steps, "step")}` + (row.progress.started ? ` · ${row.progress.done} / ${row.progress.total} done` : "");
+/** The share of a method's algorithms known, from 0 to 1. */
+const knownShare = (row: MethodRow) => (row.facts.algorithms ? row.learned / row.facts.algorithms : 0);
 
 /** The methods of the puzzle as large cards; a card opens its course where it was left. */
 function Methods() {
@@ -123,14 +96,13 @@ function Methods() {
   return (
     <div className={PAGE}>
       <PageHead
-        lead={!s.locked && <Button action="learnHome" icon={ChevronLeft} tip={tr("Methods or algorithms")} className="size-8 max-md:size-10" />}
-        title={tr("Methods")}
+        title={tr("Learn")}
         sub={s.locked ? tr("Finish a course to open the {0} everywhere", { 0: label }) : tr("Choose a {0} method, then follow it step by step", { 0: label })}
         puzzle
       >
         {!usePhone() && <PuzzleButton />}
       </PageHead>
-      <Picker label={tr("Methods")} tour={s.locked ? "learn" : undefined}>
+      <Picker label={tr("Methods")} tour="learn">
         {rows.map((row) => (
           <PickerCard
             key={row.method.id}
@@ -140,8 +112,8 @@ function Methods() {
             badge={row.progress.started ? "In progress" : row.recommended ? "Recommended" : undefined}
             marked={row.recommended || row.progress.started}
             detail={said(row.method.summary)}
-            meta={`${methodDetail(row)} · ${plural(row.facts.algorithms, "algorithm")}`}
-            progress={row.progress.started ? row.progress.done / row.progress.total : undefined}
+            meta={`${methodDetail(row)} · ${tr("{0} / {1} algorithms known · {2}%", { 0: row.learned, 1: row.facts.algorithms, 2: Math.round(knownShare(row) * 100) })}`}
+            progress={knownShare(row)}
           />
         ))}
       </Picker>
@@ -278,7 +250,8 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
     cases = s.cases(),
     sets = stepSets(step, s.allSets(), puzzle) as any[];
   const chosen = sets.find((set) => set.id === s.learnSets[`${puzzle}:${method.id}:${entry.step}`]) ?? firstOpenSet(sets, cases, s.learned),
-    groups = chosen ? setGroups(cases, chosen.id) : [],
+    byGroup = new Map(chosen ? setGroups(cases, chosen.id) : []),
+    groups = chosen ? orderedGroups(cases.filter((c: any) => c.set === chosen.id), s.groupOrder(chosen.id)).map((group): [string, any[]] => [group, byGroup.get(group)!]) : [],
     inline = (step.algs ?? []).map((a) => inlineItem(puzzle, step, a, entry)),
     count = stepLearned(step, cases, s.learned, entry);
   const fill = !touch;
@@ -308,7 +281,7 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
         )}
       </div>
       {count.total > 0 && (
-        <section className={cn("flex max-w-4xl flex-col", fill && "min-h-0 flex-1")} aria-label={tr("Algorithms")}>
+        <section className={cn("flex flex-col", fill && "min-h-0 flex-1")} aria-label={tr("Algorithms")}>
           <div className="flex min-h-8 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 pb-1">
             <h3 className={LABEL}>
               {tr("Algorithms")}{" "}<span className="font-normal">{count.learned} / {count.total} {" "}{tr("learned")}</span>
@@ -332,21 +305,57 @@ function StepBody({ puzzle, method, entry, touch = false }: { puzzle: PuzzleId; 
             )}
           </div>
           {/* The rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
-          <div className={cn("flex flex-col", fill && "-mx-2 min-h-0 flex-1 overflow-y-auto px-2 pb-6")}>
+          <motion.div layoutScroll className={cn("flex flex-col", fill && "-mx-2 min-h-0 flex-1 overflow-y-auto px-2 pb-6")}>
             {inline.map((item) => <AlgRow key={item.key} item={item} items={inline} touch={touch} />)}
-            {/* The catalogue's cases as tiles, like the algorithms page; a tile opens its case in a dialog. */}
-            {groups.map(([group, members]) => (
-              <div key={group} className="flex flex-col gap-1.5 pt-2">
-                {(groups.length > 1 || sets.length === 1) && <h4 className={cn(LABEL, "py-1")}>{groups.length > 1 ? group : chosen.label}</h4>}
-                <div className={TILES}>
-                  {members.map((c: any) => <CaseTile key={c.id} c={c} touch={touch} action={"caseDialog:" + c.id} selected={s.caseDialog === c.id} />)}
-                </div>
-              </div>
-            ))}
-          </div>
+            {chosen && groups.length > 0 && <GroupBoxes key={chosen.id} setId={chosen.id} label={chosen.label} groups={groups} touch={touch} />}
+          </motion.div>
         </section>
       )}
     </>
+  );
+}
+
+/**
+ * The catalogue's cases of a set, group by group, each group a box of tiles like the algorithms page (a tile opens its
+ * case in a dialog). The boxes are put in order by their handle, dragged or with the arrow keys: for F2L, OLL and PLL
+ * the order is the one the daily training learns them in.
+ */
+function GroupBoxes({ setId, label, groups, touch }: { setId: string; label: string; groups: [string, any[]][]; touch: boolean }) {
+  const members = new Map(groups),
+    { order, reorder, save, move, start, status } = useReorder(groups.map(([group]) => group), (next) => void s.reorderGroups(setId, next).catch(s.fail));
+  return (
+    <>
+      <Reorder.Group as="div" axis="y" values={order} onReorder={reorder} className="flex flex-col gap-3 pt-2">
+        {order.map((group, index) => (
+          <GroupBox key={group} name={groups.length > 1 ? group : label} members={members.get(group) ?? []} position={groups.length > 1 ? { index, count: order.length } : undefined} touch={touch} start={start} save={() => save(group)} move={(key) => move(group, key)} />
+        ))}
+      </Reorder.Group>
+      {status}
+    </>
+  );
+}
+
+function GroupBox({ name, members, position, touch, start, save, move }: { name: string; members: any[]; position?: { index: number; count: number }; touch: boolean; start: () => void; save: () => void; move: (key: string) => void }) {
+  const controls = useDragControls(),
+    learned = members.filter((c) => s.learned.has(c.id)).length;
+  return (
+    <Reorder.Item as="section" value={name} dragListener={false} dragControls={controls} onDragStart={start} onDragEnd={save} whileDrag={{ zIndex: 10, boxShadow: "0 18px 40px -16px rgb(0 0 0 / 0.6)" }} className="relative flex w-fit max-w-full min-w-72 flex-col gap-3 rounded-xl border bg-card p-3" aria-label={said(name)}>
+      <header className="flex min-h-7 items-center gap-2">
+        {position && <ReorderHandle name={name} index={position.index} count={position.count} move={move} onPointerDown={(e) => controls.start(e)} className="-ml-1 size-7" />}
+        <h4 className="min-w-0 flex-1 truncate text-sm font-medium">{said(name)}</h4>
+        <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground", learned === members.length && "text-success")}>
+          {learned} / {members.length}
+        </span>
+      </header>
+      {/* As wide as its tiles, up to the page's width, where they wrap. */}
+      <div className="flex flex-wrap gap-1.5">
+        {members.map((c) => (
+          <div key={c.id} className="w-28">
+            <CaseTile c={c} touch={touch} action={"caseDialog:" + c.id} selected={s.caseDialog === c.id} />
+          </div>
+        ))}
+      </div>
+    </Reorder.Item>
   );
 }
 
@@ -559,48 +568,41 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
         title={said(method.name)}
         sub={tr("{0} · {1} · {2} of {3} steps done", { 0: puzzleInfo(puzzle).label, 1: LEVEL_LABEL[method.level], 2: progress.done, 3: progress.total })}
       />
-      <div className="flex min-h-0 flex-1 items-start gap-6 xl:gap-8">
-        {/* The box holds its steps and no more; long methods scroll within the page's height. */}
-        <nav aria-label={tr("Steps")} className="flex max-h-full w-72 shrink-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-2 pt-3">
-          <div className="flex flex-col gap-2 px-2.5">
-            <div className="flex items-baseline justify-between">
-              <span className={LABEL}>{tr("Steps")}</span>
-              <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-                {progress.done} / {progress.total}
-              </span>
-            </div>
-            <Bar ratio={progress.done / progress.total} />
+      {/* The steps across the page, with what moves between them: Train, Previous and Next. */}
+      <nav aria-label={tr("Steps")} className="flex shrink-0 flex-col gap-3 rounded-xl border bg-card p-3">
+        <div className="flex items-center gap-4 px-1">
+          <span className={LABEL}>{tr("Steps")}</span>
+          <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
+            {progress.done} / {progress.total}
+          </span>
+          <Bar ratio={progress.done / progress.total} className="max-w-64 flex-1" />
+          <div className="ml-auto flex items-center gap-3">
+            {train && !s.learnFinished && (
+              <Button action={train} icon={Timer} variant="outline" size="lg">
+                {tr("Train this step")}</Button>
+            )}
+            {!s.learnFinished && <StepNav method={method} entry={entry} />}
           </div>
-          <div className="-mx-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2">
-            <StepRows method={method} entry={entry} onJump={setJump} />
-          </div>
-        </nav>
-        <JumpDialog method={method} entry={entry} step={jump} onClose={() => setJump(null)} />
-        {/* The steps are the box; the current one sits on the page. */}
-        {s.learnFinished ? (
-          <Finished puzzle={puzzle} method={method} />
-        ) : (
-          <div key={entry.step} className="flex min-h-0 min-w-0 flex-1 flex-col self-stretch">
-            {/* The step holds the page's height: its title and explanation stay, its algorithms scroll (StepBody). */}
-            <div className="flex min-h-0 flex-1 flex-col gap-6 px-2 pt-1">
-              <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <div className="flex min-w-0 flex-1 items-baseline gap-3">
-                  <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{said(step.title)}</h2>
-                  <span className={cn(LABEL, "shrink-0")}>
-                    {entry.step + 1} / {method.steps.length}
-                  </span>
-                </div>
-                {train && (
-                  <Button action={train} icon={Timer} variant="outline" size="lg">
-                    {tr("Train this step")}</Button>
-                )}
-                <StepNav method={method} entry={entry} />
-              </header>
-              <StepBody puzzle={puzzle} method={method} entry={entry} />
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${method.steps.length}, minmax(0, 1fr))` }}>
+          <StepRows method={method} entry={entry} onJump={setJump} />
+        </div>
+      </nav>
+      <JumpDialog method={method} entry={entry} step={jump} onClose={() => setJump(null)} />
+      {s.learnFinished ? (
+        <Finished puzzle={puzzle} method={method} />
+      ) : (
+        // The step holds the page's height: its title and explanation stay, its algorithms scroll (StepBody).
+        <div key={entry.step} className="flex min-h-0 flex-1 flex-col gap-5 pt-1">
+          <header className="flex min-w-0 items-baseline gap-3">
+            <h2 className="min-w-0 truncate font-sans text-xl font-semibold tracking-tight">{said(step.title)}</h2>
+            <span className={cn(LABEL, "shrink-0")}>
+              {entry.step + 1} / {method.steps.length}
+            </span>
+          </header>
+          <StepBody puzzle={puzzle} method={method} entry={entry} />
+        </div>
+      )}
     </div>
   );
 }

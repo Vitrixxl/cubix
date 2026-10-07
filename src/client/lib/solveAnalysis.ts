@@ -1,6 +1,7 @@
 /**
- * Analysis of a 3×3 solve recorded on a smart cube, step by step as a CFOP solver goes: the cross, the four F2L pairs,
- * OLL and PLL. Each step gets its times (recognition, the pause before its first turn, then execution), its turns, the
+ * Analysis of a 3×3 solve recorded on a smart cube, step by step, by the method it was solved with. CFOP: the cross,
+ * the four F2L pairs, OLL and PLL. ZZ: the EOLine (every edge oriented, the front and back bottom edges placed), the
+ * two blocks of the F2L, then the same last layer. Roux: the first and second blocks, CMLL, and the last six edges. Each step gets its times (recognition, the pause before its first turn, then execution), its turns, the
  * case it started from when the catalogue knows it (F2L, OLL, PLL), and the catalogue's algorithms for that case,
  * checked on the very state of the solve. The cross gets its optimal solution.
  *
@@ -32,7 +33,10 @@ export interface CatalogCase {
   algorithms: { alg: string }[];
 }
 
-export type PhaseId = "cross" | "f2l1" | "f2l2" | "f2l3" | "f2l4" | "oll" | "pll";
+export type SolveMethod = "cfop" | "zz" | "roux";
+/** The names of the ZZ and Roux steps (CFOP's are made of their cross and pairs). */
+export const PHASE_LABELS = { eoline: "EOLine", fb: msg("First block"), sb: msg("Second block"), cmll: "CMLL", lse: "LSE" } as const;
+export type PhaseId = "cross" | "f2l1" | "f2l2" | "f2l3" | "f2l4" | "oll" | "pll" | "eoline" | "fb" | "sb" | "cmll" | "lse";
 export interface Suggestion {
   alg: string;
   turns: number;
@@ -62,14 +66,18 @@ export interface Phase extends Segment {
   id: PhaseId;
   /** F2L: the colours of the pair, as held faces (see `COLOUR_NAMES`). */
   pair?: [Face, Face];
-  /** A last-layer step done in two looks (edges then corners for OLL, corners then edges for PLL). */
+  /**
+   * A last-layer step done in two looks (edges then corners for OLL, corners then edges for PLL); Roux's last six
+   * edges in their three parts (orientation, UL and UR, the rest).
+   */
   looks?: Segment[];
 }
 export interface SolveAnalysis {
+  method: SolveMethod;
   time: number;
   turns: number;
   tps: number;
-  /** The cross colour, as a held face. */
+  /** The cross colour (Roux: the blocks' bottom colour), as a held face. */
   cross: Face;
   phases: Phase[];
   /** The cube after each number of turns. */
@@ -111,6 +119,61 @@ export const pairsDone = (c: Face[]) => Object.keys(SLOT_PIECES).filter((slot) =
 export const f2lDone = (c: Face[]) => crossDone(c) && pairsDone(c).length === 4;
 export const topDone = (c: Face[]) => TOP.filter((slot) => SLOTS[slot]!.face === "U").every((slot) => fits(c, slot));
 export const allDone = (c: Face[]) => c.every((_, slot) => fits(c, slot));
+
+const EDGES = [...PIECES.values()].filter((slots) => slots.length === 2);
+/**
+ * ZZ's edge orientation: every edge can be solved with R, L, U and D turns. Its top or bottom colour, else its front
+ * or back colour, shows on the top or the bottom in those layers, in front or behind in the middle one.
+ */
+export function edgesOrientedFB(c: Face[]) {
+  const ud = [centre(c, "U"), centre(c, "D")],
+    fb = [centre(c, "F"), centre(c, "B")];
+  return EDGES.every((slots) => {
+    const slot = slots.find((slot) => ud.includes(c[slot]!)) ?? slots.find((slot) => fb.includes(c[slot]!))!,
+      { face, p } = SLOTS[slot]!;
+    return p[1] ? face === "U" || face === "D" : face === "F" || face === "B";
+  });
+}
+/** ZZ's first step: the edges oriented, the bottom edges in front and behind in place. */
+export const eoLine = (c: Face[]) => edgesOrientedFB(c) && solvedAt(c, [0, -1, 1]) && solvedAt(c, [0, -1, -1]);
+
+/**
+ * Roux. Its M turns are told by the cube as R and L' with the centres still: the blocks on the left and the right
+ * then turn about the M slice's centres. They are read against the colours the centres would have with the slice
+ * turned `k` quarters (`RING`, in the order M takes them), the left and right centres as they are.
+ */
+const RING: Face[] = ["U", "F", "D", "B"];
+const expected = (c: Face[], k: number) => (face: Face) => {
+  const i = RING.indexOf(face);
+  return i < 0 ? centre(c, face) : centre(c, RING[(i + k) % 4]!);
+};
+const matches = (c: Face[], k: number, pieces: number[][]) => {
+  const want = expected(c, k);
+  return pieces.every((p) => PIECES.get(key(p))!.every((slot) => c[slot] === want(SLOTS[slot]!.face)));
+};
+/** The 1×2×3 blocks at the bottom left (x = -1) and right (x = 1). */
+const BLOCK = (x: number) => [[x, -1, 1], [x, -1, -1], [x, -1, 0], [x, 0, 1], [x, 0, -1]];
+const TOP_CORNERS = [[1, 1, 1], [-1, 1, 1], [1, 1, -1], [-1, 1, -1]];
+const LSE_EDGES = [[0, 1, 1], [0, 1, -1], [-1, 1, 0], [1, 1, 0], [0, -1, 1], [0, -1, -1]];
+const BLOCKS = [...BLOCK(-1), ...BLOCK(1)];
+/** The slice's turn under which both blocks are solved, or -1. */
+export const blocksTurn = (c: Face[]) => [0, 1, 2, 3].find((k) => matches(c, k, BLOCKS)) ?? -1;
+/** One of the blocks solved, the slice turned `k` quarters. */
+const oneBlock = (c: Face[], k = 0) => matches(c, k, BLOCK(-1)) || matches(c, k, BLOCK(1));
+/**
+ * The six edges left oriented, as Roux reads it: the top or bottom colour of each on the top or the bottom; with the
+ * centres a quarter off, those of the M slice the other way.
+ */
+function lseOriented(c: Face[], k: number) {
+  const want = expected(c, k),
+    ud = [want("U"), want("D")];
+  return LSE_EDGES.every((p) => {
+    const slot = PIECES.get(key(p))!.find((slot) => ud.includes(c[slot]!));
+    if (slot === undefined) return false;
+    const onTop = ["U", "D"].includes(SLOTS[slot]!.face);
+    return k % 2 && p[0] === 0 ? !onTop : onTop;
+  });
+}
 
 export const colours = (state: CubeState): Face[] => Array.from(state, (origin) => faceOfSlot(origin));
 export const turnWhole = (state: CubeState, frame: readonly string[]) => frame.reduce((s, token) => applyMove(s, parseMove(token)!), state);
@@ -370,24 +433,78 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
   for (const { move } of moves) states.push(applyMove(states.at(-1)!, heldTurn(move)));
   if (!allDone(colours(states.at(-1)!))) return null;
 
+  const viewed = (frame: string[], count = states.length) => states.slice(0, count).map((state) => colours(turnWhole(state, frame)));
   // The cross colour: the one whose first two layers are done first.
   const byFace = FACES.map((face) => {
-    const seen = states.map((state) => colours(turnWhole(state, DOWN[face])));
+    const seen = viewed(DOWN[face]);
     return { face, seen, f2l: seen.findIndex(f2lDone), cross: seen.findIndex(crossDone) };
   }).sort((a, b) => a.f2l - b.f2l || a.cross - b.cross);
-  const { face: down, seen } = byFace[0]!;
-  const cross = centre(colours(recording.start), down);
+  const { face: cfopDown, seen: cfopSeen } = byFace[0]!;
 
   // Where each step ends, in turns: the first state where it is done, after the one before.
+  const last = states.length - 1,
+    first = (seen: Face[][], from: number, done: (c: Face[], i: number) => boolean) => {
+      const i = seen.findIndex((c, i) => i >= from && done(c, i));
+      return i < 0 ? last : i;
+    };
   const ends: number[] = [];
-  const after = (from: number, done: (c: Face[]) => boolean) => {
-    const i = seen.findIndex((c, i) => i >= from && done(c));
-    return i < 0 ? states.length - 1 : i;
-  };
-  ends.push(after(0, crossDone));
-  for (let k = 1; k <= 4; k++) ends.push(after(ends.at(-1)!, (c) => crossDone(c) && pairsDone(c).length >= k));
-  ends.push(after(ends.at(-1)!, (c) => f2lDone(c) && topDone(c)));
-  ends.push(states.length - 1);
+  ends.push(first(cfopSeen, 0, crossDone));
+  for (let k = 1; k <= 4; k++) ends.push(first(cfopSeen, ends.at(-1)!, (c) => crossDone(c) && pairsDone(c).length >= k));
+  const f2lEnd = ends[4]!;
+
+  /**
+   * The method. Roux: both blocks done, the M slice not, before a CFOP F2L would be. ZZ: every edge oriented with the
+   * line, a whole block done before the cross is (its last edge comes with the second block), the edges kept
+   * oriented through the F2L, which only R, L and U turns do.
+   * ponytail: an EOCross (the cross and the orientation at once) reads as CFOP, its later steps the same.
+   */
+  // Only the turns before the CFOP F2L is done are read to tell: the whole solve is seen in the frame found.
+  const rouxFound = FACES.map((left) => {
+      const frame = Y.flatMap((y) => FACES.map((d) => [...DOWN[d], ...(y ? [y] : [])])).find((f) => faceMap(f)[left] === "L")!;
+      return { frame, sb: viewed(frame, f2lEnd).findIndex((c) => blocksTurn(c) >= 0) };
+    })
+      .filter((r) => r.sb >= 0)
+      .sort((a, b) => a.sb - b.sb)[0],
+    roux = rouxFound && { ...rouxFound, seen: viewed(rouxFound.frame) },
+    zz = roux
+      ? undefined
+      : ["", "y"]
+          .map((y) => {
+            const frame = [...DOWN[cfopDown], ...(y ? [y] : [])],
+              seen = y ? viewed(frame) : cfopSeen,
+              line = seen.findIndex(eoLine);
+            return { frame, seen, line };
+          })
+          .find((z) => z.line >= 0 && z.line < ends[0]! && z.seen.slice(z.line, ends[0]!).some((c) => oneBlock(c)) && z.seen.slice(z.line, f2lEnd + 1).every(edgesOrientedFB));
+  /** Roux, from turn `i`: the blocks and the top corners solved, a turn of the top away, and whatever else `more` asks. */
+  const rouxTop = (i: number, more: (c: Face[], k: number) => boolean = () => true) =>
+    AUF.some((u) => {
+      const c = colours(turnWhole(states[i]!, [...roux!.frame, ...(u ? [u] : [])])),
+        k = blocksTurn(c);
+      return k >= 0 && matches(c, k, TOP_CORNERS) && more(c, k);
+    });
+  const method: SolveMethod = roux ? "roux" : zz ? "zz" : "cfop";
+
+  // Each step and the turn it ends on.
+  let plan: [PhaseId, number][];
+  let seen = cfopSeen,
+    down = cfopDown;
+  if (roux) {
+    seen = roux.seen;
+    const fb = first(seen, 0, (c) => [0, 1, 2, 3].some((k) => oneBlock(c, k))),
+      cmll = first(seen, roux.sb, (_, i) => rouxTop(i));
+    plan = [["fb", Math.min(fb, roux.sb)], ["sb", roux.sb], ["cmll", cmll], ["lse", last]];
+    // The blocks' bottom colour is the bottom of the frame.
+    const c = seen[roux.sb]!,
+      bottom = expected(c, blocksTurn(c))("D");
+    down = FACES.find((face) => centre(colours(recording.start), face) === bottom)!;
+  } else if (zz) {
+    seen = zz.seen;
+    const blocks = first(seen, zz.line, (c) => f2lDone(c) || oneBlock(c));
+    plan = [["eoline", zz.line], ["fb", blocks], ["sb", f2lEnd]];
+  } else plan = (["cross", "f2l1", "f2l2", "f2l3", "f2l4"] as PhaseId[]).map((id, k) => [id, ends[k]!]);
+  if (!roux) plan.push(["oll", first(seen, f2lEnd, (c) => f2lDone(c) && topDone(c))], ["pll", last]);
+  const cross = centre(colours(recording.start), down);
 
   const t0 = moves[0]!.at,
     time = (i: number) => (i === 0 ? 0 : moves[i - 1]!.at - t0),
@@ -457,12 +574,10 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
   const topAway = (i: number) => AUF.some((u) => u && allDone(colours(applyAlg(turnWhole(states[i]!, DOWN[down]), u))));
   const ollDone = (c: Face[]) => f2lDone(c) && topDone(c);
 
-  const ids: PhaseId[] = ["cross", "f2l1", "f2l2", "f2l3", "f2l4", "oll", "pll"];
-  const phases = ids.map((id, k): Phase => {
-    const from = k ? ends[k - 1]! : 0,
-      to = ends[k]!,
+  const phases = plan.map(([id, to], k): Phase => {
+    const from = k ? plan[k - 1]![1] : 0,
       // A cross made with pairs already in place: XCross, XXCross…
-      label = id === "cross" ? "X".repeat(pairsDone(seen[to]!).length) + msg("Cross") : id.startsWith("f2l") ? `F2L ${id.slice(3)}` : id.toUpperCase(),
+      label = id === "cross" ? "X".repeat(pairsDone(seen[to]!).length) + msg("Cross") : id.startsWith("f2l") ? `F2L ${id.slice(3)}` : ((PHASE_LABELS as Partial<Record<PhaseId, string>>)[id] ?? id.toUpperCase()),
       { part, state, c, check, suggest } = segment(label, from, to, k === 0),
       phase: Phase = { ...part, id };
     const finish = () => Object.assign(phase, part, { id, label: phase.label });
@@ -481,12 +596,12 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
         phase.pair = [centre(turned, "F"), centre(turned, "R")];
         const insertions = suggest(known.f2l.get(pairKey(turned)), y, (after) => crossDone(after) && pairsDone(after).length > before.length);
         // ZBLS: the last pair went in with the top edges oriented, which none of the catalogue's insertions would do.
-        if (to === ends[4] && insertions.length && edgesOriented(crossDown(states[to]!, cross)) && !insertions.some((alg) => check(alg, edgesOriented)))
+        if (to === f2lEnd && insertions.length && edgesOriented(crossDown(states[to]!, cross)) && !insertions.some((alg) => check(alg, edgesOriented)))
           phase.label = "ZBLS";
       }
     } else if (id === "oll" && !part.skip) {
       // ZBLL: the whole last layer in one step, from oriented edges.
-      const zbll = ends[5] === ends[6] && edgesOriented(c) ? zbllCase(state, cases) : undefined;
+      const zbll = to === last && edgesOriented(c) ? zbllCase(state, cases) : undefined;
       if (zbll) {
         phase.label = "ZBLL";
         suggest(zbll, "", allDone, true);
@@ -516,10 +631,16 @@ export function analyseSolve(recording: RecordedSolve, cases: CatalogCase[]): So
         edges.suggest(known.ep.get(pllKey(edges.c)) ?? known.pll.get(pllKey(edges.c)), "", allDone, true);
         phase.looks = [corners.part, edges.part];
       }
+    } else if (id === "lse" && !part.skip) {
+      // Roux's last six edges: oriented, then UL and UR placed, then the M slice.
+      const done = (i: number, more: (c: Face[], k: number) => boolean) => rouxTop(i, (c, k) => lseOriented(c, k) && more(c, k));
+      const eo = Math.max(from, first(seen, from, (_, i) => done(i, () => true))),
+        sides = Math.max(eo, first(seen, eo, (_, i) => done(i, (c, k) => matches(c, k, [[-1, 1, 0], [1, 1, 0]]))));
+      phase.looks = [segment("EO", from, eo).part, segment("UL/UR", eo, sides).part, segment("EP", sides, to).part];
     }
     return finish();
   });
   const turns = phases.reduce((sum, phase) => sum + phase.turns.length, 0),
     total = time(states.length - 1);
-  return { time: total, turns, tps: total ? turns / (total / 1000) : 0, cross, phases, states, recording };
+  return { method, time: total, turns, tps: total ? turns / (total / 1000) : 0, cross, phases, states, recording };
 }

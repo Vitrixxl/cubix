@@ -54,7 +54,6 @@ export async function resize(page: Page, width: number, height: number) {
 /** Clicks the first button with this data-action and waits for the page transition to end. */
 export async function act(page: Page, action: string) {
   await page.locator(`[data-action="${action}"]`).first().click();
-  await page.waitForSelector("[data-exiting]", { state: "detached" });
 }
 
 /** Waits for a scramble on the practice page. */

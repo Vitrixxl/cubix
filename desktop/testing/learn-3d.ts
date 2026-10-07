@@ -16,7 +16,7 @@ const dir = await mkdtemp(join(tmpdir(), "cubix-learn3d-"));
 const { server, origin } = await startServer(join(dir, "server"), { CUBIX_RATE_LIMIT: "100000" });
 const browser = await chromium.launch({ executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium", headless: true });
 
-const settle = (page: Page) => page.waitForSelector("[data-exiting]", { state: "detached" }).then(() => page.waitForTimeout(300));
+const settle = (page: Page) => page.waitForTimeout(300);
 async function act(page: Page, action: string) {
   const target = page.locator(`[data-action="${action}"]:visible`);
   if (!(await target.count()) && (await page.locator('[data-action="menu:more"]:visible').count())) {

@@ -105,7 +105,7 @@ export function SolveStrip({ analysis }: { analysis: SolveAnalysis }) {
         <span className={cn(NUMERIC, "shrink-0 text-sm text-muted-foreground")}>
           {analysis.turns} {" "}{tr("turns ·")}{" "}{analysis.tps.toFixed(2)} {" "}{tr("TPS")}{skips.length ? tr(" · {0} skip", { 0: skips.join(", ") }) : ""}
         </span>
-        <Button variant="outline" size="xs" onClick={() => setOpen("cross")}>
+        <Button variant="outline" size="xs" onClick={() => setOpen(analysis.phases[0]!.id)}>
           {tr("Analysis")}</Button>
       </div>
       <SolveBar analysis={analysis} onSelect={setOpen} legend={false} />
@@ -149,7 +149,7 @@ export function SolveSolution({ solve }: { solve: { id: number; time_ms: number;
         </span>
         <div className="ml-auto flex items-center gap-1">
           {analysis && (
-            <Button variant="outline" size="xs" onClick={() => setOpen("cross")}>
+            <Button variant="outline" size="xs" onClick={() => setOpen(analysis.phases[0]!.id)}>
               {tr("Analysis")}</Button>
           )}
           <Button
@@ -349,7 +349,7 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
                 </div>
               ))}
             </div>
-            {phase.id !== "cross" && (
+            {/^(f2l|oll|pll)/.test(phase.id) && (
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-muted-foreground">{phase.looks ? tr("Case in one look") : tr("Case")}</span>
                 {phase.case ? <CaseButton id={phase.case.id} name={phase.case.name} size={120} /> : <span className="text-lg">{tr("Not in the catalogue")}</span>}
@@ -361,7 +361,7 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
             </div>
             {phase.looks && (
               <div className="flex flex-col gap-3">
-                <span className="text-sm font-medium text-muted-foreground">{tr("Two looks")}</span>
+                <span className="text-sm font-medium text-muted-foreground">{phase.looks.length === 2 ? tr("Two looks") : tr("In {0} parts", { 0: phase.looks.length })}</span>
                 {phase.looks.map((look) => (
                   <Look key={look.label} look={look} />
                 ))}

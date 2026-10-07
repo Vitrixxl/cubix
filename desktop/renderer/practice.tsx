@@ -73,7 +73,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
 import { tr } from "../../src/client/i18n";
-import { said } from "./base";
+import { isMinxScramble, said } from "./base";
 
 /** Keys typed into a field, a menu or a dialog never reach the timer. */
 const typingInto = (e: KeyboardEvent) =>
@@ -275,7 +275,9 @@ export function Practice() {
     poly = !training && isPolyPuzzle(s.puzzle),
     hasCube = training ? !!c && !c.flat && !c.diagram : !!cubeSize || poly,
     text = (training ? s.training?.setup : s.scramble) ?? "",
-    promptFont = mobile
+    promptFont = isMinxScramble(text)
+      ? mobile ? 12 : compact ? 18 : 22
+      : mobile
       ? text.length > 90 ? 15 : 18
       : text.length > 220 ? 15 : text.length > 120 ? (compact ? 17 : 19) : compact ? 21 : 26,
     cubePane = ready && (hasCube || training),

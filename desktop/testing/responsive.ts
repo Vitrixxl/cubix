@@ -71,7 +71,6 @@ const failures: string[] = [];
 async function check(name: string) {
   for (const [width, height] of SIZES) {
     await resize(page, width, height);
-    await page.waitForSelector("[data-exiting]", { state: "detached" });
     await page.waitForTimeout(250);
     // Phones may show the session times in a sheet over the practice: close it to check the practice itself.
     const sheet = page.locator('[data-slot="drawer-popup"]');

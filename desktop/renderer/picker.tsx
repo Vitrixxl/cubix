@@ -7,6 +7,7 @@ import { Check, ChevronRight } from "lucide-react";
 import { Bar, run, type Props } from "./ui";
 import { cn } from "@/lib/utils";
 import { said } from "./base";
+import { tr } from "../../src/client/i18n";
 
 /** The cards, centred on the page: two or four in a 2×2 square, three in a row; `foot` (a start) right under them. */
 export function Picker({ label, tour, foot, children }: { label: string; tour?: string; foot?: React.ReactNode } & Props) {
@@ -81,10 +82,17 @@ export function PickerCard({
       {(meta || badge || progress !== undefined) && (
         <span className="mt-auto flex flex-col gap-2">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            {/* All of it learned: said with a check, and the bar in green. */}
+            {progress === 1 && (
+              <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-medium text-success">
+                <Check className="size-3" strokeWidth={3} />
+                {tr("Learned")}
+              </span>
+            )}
             {badge && <span className="rounded-full bg-primary/12 px-2 py-0.5 font-medium text-primary">{said(badge)}</span>}
             {meta}
           </span>
-          {progress !== undefined && <Bar ratio={progress} className="max-w-56" />}
+          {progress !== undefined && <Bar ratio={progress} fill={progress === 1 ? "bg-success" : undefined} />}
         </span>
       )}
     </button>

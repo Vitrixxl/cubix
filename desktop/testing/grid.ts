@@ -34,7 +34,7 @@ function nearMisses(): string[] {
   for (const e of (dialog ?? document.body).querySelectorAll("*")) {
     const r = e.getBoundingClientRect();
     if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue;
-    if (e.closest('[data-exiting], [data-slot="tooltip-content"], [data-sonner-toaster], [data-slot$="-overlay"]')) continue;
+    if (e.closest('[data-slot="tooltip-content"], [data-sonner-toaster], [data-slot$="-overlay"]')) continue;
     const s = getComputedStyle(e);
     const drawn = (side: string) => parseFloat(s.getPropertyValue(`border-${side}-width`)) > 0 && s.getPropertyValue(`border-${side}-style`) !== "none" && !/rgba\(.*, 0\)|transparent/.test(s.getPropertyValue(`border-${side}-color`));
     const sides = ["top", "bottom", "left", "right"].filter(drawn);
@@ -79,7 +79,7 @@ function nearMisses(): string[] {
   return [...found];
 }
 
-const settle = (page: Page) => page.waitForSelector("[data-exiting]", { state: "detached" }).then(() => page.waitForTimeout(250));
+const settle = (page: Page) => page.waitForTimeout(250);
 /** Clicks the first visible control of an action; on phones a header's "…" menu is opened for it when needed. */
 const act = async (page: Page, action: string) => {
   const target = page.locator(`[data-action="${action}"]:visible`);
