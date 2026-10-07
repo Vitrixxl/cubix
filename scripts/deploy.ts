@@ -90,8 +90,10 @@ const adminPassword = () => {
   if (!password) { console.error("No admin password: set CUBIX_DEPLOY_PASSWORD or configure CUBIX_ADMIN_PASSWORD on the server."); process.exit(1); }
   return password;
 };
-const send = async (path: string, headers: Record<string, string>, body: BodyInit) => {
-  const response = await fetch(`${ORIGIN}${path}`, { method: "PUT", headers: { Authorization: `Bearer ${adminPassword()}`, ...headers }, body, signal: AbortSignal.timeout(10 * 60 * 1000) });
+const send = async (path: string, headers: Record<string, string>, body: Blob) => {
+  // Ten minutes, or as long as the file takes at 64 KiB/s: the desktop packages weigh over 100 MiB.
+  const timeout = Math.max(10 * 60 * 1000, (body.size / (64 * 1024)) * 1000);
+  const response = await fetch(`${ORIGIN}${path}`, { method: "PUT", headers: { Authorization: `Bearer ${adminPassword()}`, ...headers }, body, signal: AbortSignal.timeout(timeout) });
   const answer = await response.text();
   if (!response.ok) { console.error(`${path} failed (${response.status}): ${answer}`); process.exit(1); }
   return JSON.parse(answer) as Record<string, any>;
@@ -111,7 +113,7 @@ if (!apkOnly) {
       console.log(`Uploading ${asset.path} (${(bytes.length / 1024).toFixed(0)} KiB)`);
       await send(`/api/mobile/updates/assets/${asset.hash}`, { "Content-Type": "application/octet-stream" }, new Blob([bytes]));
     }
-    const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, readFileSync(resolve(UPDATE_DIR, "update.json")));
+    const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, new Blob([readFileSync(resolve(UPDATE_DIR, "update.json"))]));
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
   }
 }
