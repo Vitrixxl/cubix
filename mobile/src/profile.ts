@@ -24,8 +24,8 @@ const afterPaint = () => new Promise<void>(resolve => requestAnimationFrame(() =
 const superseded = new Promise<never>(() => {});
 
 /**
- * The profile and everything drawn from its histories (activity, streak, the contribution graph's days and default
- * year), prepared once per change of the workspace and kept while pages come and go. It is worked out after a frame
+ * The profile and everything drawn from its histories (every event's activity, streaks, the solves of the week, the
+ * contribution graph's days and default year), prepared once per change of the workspace and kept while pages come and go. It is worked out after a frame
  * is painted, never during the render of the page asking for it: until then the last prepared one stays on screen
  * (`null` the very first time), so opening the profile never waits for it.
  */
@@ -36,8 +36,12 @@ const preparedProfileAtom = atom(async (get, { signal }) => {
   await afterPaint();
   if (signal.aborted) return superseded;
   const profile = local.read.profile(cube, filter);
-  const activity = activityOf(profile), days = heatDays(activity);
-  return { key, profile, days, years: heatYears(days), heat: heatmap(days, null), latest: latestOf(activity), streak: streaks(activity).current };
+  // Every event's solves, as the web's: the figures, the streak and the graph count all of them.
+  const activity = profile.activity ?? activityOf(profile), days = heatDays(activity), weekAgo = Date.now() - 7 * 86_400_000;
+  return {
+    key, profile, activity, days, years: heatYears(days), heat: heatmap(days, null), latest: latestOf(activity), streak: streaks(activity),
+    week: activity.filter(v => new Date(v.at).getTime() > weekAgo).length,
+  };
 });
 export type PreparedProfile = Awaited<ReturnType<(typeof preparedProfileAtom)["read"]>>;
 export const profileDataAtom = unwrap(preparedProfileAtom, previous => previous ?? null);

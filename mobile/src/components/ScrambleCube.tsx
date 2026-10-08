@@ -5,6 +5,7 @@ import { cubeOrientation, cubeScene, cubeSceneDuration, cubeShapes, cubeViewRadi
 import { isPolyPuzzle, polyOrientation, polyScene, polySceneDuration, polyShapes } from "../../../src/shared/puzzleScene";
 import type { PuzzleId } from "../../../src/shared/puzzles";
 import { useReducedMotion } from "../hooks/useReducedMotion";
+import { tr } from "../../../src/client/i18n";
 
 /** A drag shorter than this (dp) is a tap: it plays the scramble again. */
 const TAP_SLOP = 6;
@@ -26,7 +27,7 @@ function sceneOf(puzzle: PuzzleId, cubeSize: number | null, scramble: string, he
 }
 
 /** One path per run of shapes sharing a colour and a kind, in painting order: far fewer native views than shapes. */
-function pathsOf(shapes: CubeShape[]) {
+export function pathsOf(shapes: CubeShape[]) {
   const paths: { d: string; color: string; line: boolean }[] = [];
   for (const { points, color, line } of shapes) {
     // An invalid number in `d` is a native crash (react-native-svg's PathParser), never just a missing shape.
@@ -78,7 +79,7 @@ export const ScrambleCube = memo(function ScrambleCube({ puzzle, cubeSize, scram
   const radius = scene?.radius ?? 1;
   const paths = useMemo(() => pathsOf(shapes), [shapes]);
   if (!scene) return null;
-  return <View accessible accessibilityRole="button" accessibilityLabel="The scramble on the cube: tap to play it again, drag to turn it"
+  return <View accessible accessibilityRole="button" accessibilityLabel={tr("The scramble on the cube: tap to play it again, drag to turn it")}
     style={{ width: size, height: size }}
     onStartShouldSetResponder={() => true} onResponderTerminationRequest={() => false}
     onResponderGrant={event => { drag.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY, moved: 0 }; }}

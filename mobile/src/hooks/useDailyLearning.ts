@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
 import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningMode, type LearningPlan } from "../../../src/client/lib/dailyLearning";
-import { casesAtom, cubeSwitchLockedAtom, learnedCaseIdsAtom, puzzleAtom, userAtom } from "../state";
+import { casesAtom, cubeSwitchLockedAtom, learnedCaseIdsAtom, puzzleAtom, reviewStagesAtom, userAtom } from "../state";
 import { storage } from "../platform/storage";
 import { api, local, localChanged } from "../api";
 
@@ -35,7 +35,8 @@ export function useDailyLearning() {
     return () => { clearInterval(interval); listener.remove(); };
   }, [locked]);
   const mode = learningModeForPuzzle(plan.mode, puzzle);
-  const reviewPool = useMemo(() => reviewCases(cases, learned, puzzle, reviewTrack(mode)).map(c => c.id), [cases, learned, puzzle, mode]);
+  const reviewStages = useAtomValue(reviewStagesAtom);
+  const reviewPool = useMemo(() => reviewCases(cases, learned, puzzle, reviewTrack(mode), mode === "review" ? new Set(reviewStages) : undefined).map(c => c.id), [cases, learned, puzzle, mode, reviewStages]);
   const [reviewIds, setReviewIds] = useState(reviewPool);
   useEffect(() => { if (!locked) setReviewIds(previous => previous.join("\n") === reviewPool.join("\n") ? previous : reviewPool); }, [locked, reviewPool]);
   const pool = useMemo(() => isLearningTrack(mode) ? learningCases(cases, mode, plan.groupOrder?.[mode]) : [], [cases, mode, plan.groupOrder]);

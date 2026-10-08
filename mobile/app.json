@@ -15,7 +15,45 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "cubix.vitrixxl.fr",
+              "pathPrefix": "/community"
+            },
+            {
+              "scheme": "https",
+              "host": "cubix.vitrixxl.fr",
+              "pathPrefix": "/tournaments"
+            },
+            {
+              "scheme": "https",
+              "host": "cubix.vitrixxl.fr",
+              "pathPrefix": "/match"
+            },
+            {
+              "scheme": "https",
+              "host": "cubix.vitrixxl.fr",
+              "pathPrefix": "/coaching"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       [

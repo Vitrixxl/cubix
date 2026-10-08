@@ -4,10 +4,9 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronUp, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BackHandler, Pressable, TextInput, View, type GestureResponderEvent } from "react-native";
-import { effective, fmtSolve, fmtTime, parseTypedTime } from "../../../src/client/lib/format";
+import { effective, fmtSolve, fmtTime, parseTypedTime, plural } from "../../../src/client/lib/format";
 import type { Metric } from "../../../src/client/lib/practiceSummary";
 import { timerHint as sharedTimerHint } from "../../../src/client/lib/practiceTimer";
-import { TONE_TEXT } from "../../../src/client/lib/tone";
 import { applyAlg, parseAlg, parseScramble, solved } from "../../../src/shared/cube";
 import type { CubeMask, DiagramView } from "../../../src/shared/cubeDiagram";
 import type { PracticeContext } from "../../../src/shared/puzzles";
@@ -15,6 +14,7 @@ import type { SessionMode, SolveDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { api, localChanged } from "../api";
 import type { TimerApi } from "../hooks/useTimer";
@@ -22,9 +22,10 @@ import { launchSessionId } from "../lib/launchSession";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { cubeSwitchLockedAtom, deletedSolveIdAtom, timerRunningAtom, updatedSolveAtom } from "../state";
 import { useColors } from "../theme";
-import { Fade, Numeric } from "./layout";
+import { Fade, Figure, Numeric } from "./layout";
 import { SolveMenu, useSolveMenu } from "./SolveMenus";
 import { StaticCubeSvg } from "./StaticCubeSvg";
+import { said, tr } from "../../../src/client/i18n";
 
 /**
  * The pieces shared by the practice screens (timer, case training, cross + 1, duel), after the web phone layout: a
@@ -198,13 +199,13 @@ export const LiveDigits = memo(function LiveDigits({ startedAt, size, color }: {
   return <Digits text={text} phase="running" size={size} color={color} />;
 });
 
-/** The hint under the digits, or the praise of a new record in its place. */
+/** The hint under the digits (translated), or the praise of a new record in its place. */
 export function Hint({ children, notice, hidden }: { children: ReactNode; notice?: { message: string; icon: LucideIcon } | null; hidden?: boolean }) {
   return <View className={cn("mt-3 min-h-5 flex-row items-center justify-center gap-1.5 px-3", hidden && "opacity-0")}>
     {notice ? <>
       <Icon as={notice.icon} size={16} className="text-success" />
-      <Text numberOfLines={1} className="text-sm font-medium text-success">{notice.message}</Text>
-    </> : <Text numberOfLines={1} className="text-center text-sm text-muted-foreground">{children}</Text>}
+      <Text numberOfLines={1} className="text-sm font-medium text-success">{said(notice.message)}</Text>
+    </> : <Text numberOfLines={1} className="text-center text-sm text-muted-foreground">{said(children)}</Text>}
   </View>;
 }
 
@@ -228,27 +229,22 @@ export function TypedTime({ size, disabled, error, onRetry, onSubmit }: { size: 
   const [text, setText] = useState("");
   const ms = parseTypedTime(text);
   const submit = () => { if (ms === null || disabled) return; setText(""); onSubmit(ms); };
-  const hint = !text ? "Type your time, then Enter: 1234 is 12.34" : ms === null ? "Not a time" : `${fmtTime(ms)} · Enter to save`;
+  const hint = !text ? tr("Type your time, then Enter: 1234 is 12.34") : ms === null ? tr("Not a time") : tr("{0} · Enter to save", { 0: fmtTime(ms) });
   return <View className="w-full items-center">
     <TextInput value={text} onChangeText={value => setText(value.replace(/[^\d.,:]/g, ""))} onSubmitEditing={submit} submitBehavior="submit"
       keyboardType="decimal-pad" returnKeyType="done" maxLength={11} placeholder="0.000" placeholderTextColor={colors.mutedForeground + "66"}
-      cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel="Time" editable={!disabled}
+      cursorColor={colors.primary} selectionColor={colors.primary + "55"} accessibilityLabel={tr("Time")} editable={!disabled}
       className={cn("w-[80%] border-b-2 border-border pb-2 text-center font-sans font-medium", text && ms === null ? "text-destructive" : "text-timer")}
       style={{ fontSize: size * 0.8, includeFontPadding: false }} />
-    {error ? <View className="mt-3 flex-row items-center gap-2">
-      <Text className="text-sm text-destructive">{error}</Text>
-      <Button size="sm" variant="outline" onPress={onRetry}><Text>Retry</Text></Button>
-    </View> : <Hint>{hint}</Hint>}
+    {error ? <Alert variant="destructive" className="mt-3 max-w-md" action={<Button size="sm" variant="outline" onPress={onRetry}><Text>{tr("Retry")}</Text></Button>}>{error}</Alert>
+      : <Hint>{hint}</Hint>}
   </View>;
 }
 
 /** A failed save under the time, with its retry. */
 export function SaveError({ timer }: { timer: TimerApi }) {
   if (!timer.saveError) return null;
-  return <View className="mt-3 flex-row flex-wrap items-center justify-center gap-2 px-3">
-    <Text className="text-sm text-destructive">{timer.saveError}</Text>
-    <Button size="sm" variant="outline" onPress={timer.retrySave}><Text>Retry</Text></Button>
-  </View>;
+  return <Alert variant="destructive" className="mt-3 max-w-md" action={<Button size="sm" variant="outline" onPress={timer.retrySave}><Text>{tr("Retry")}</Text></Button>}>{timer.saveError}</Alert>;
 }
 
 /**
@@ -265,9 +261,9 @@ export function AverageWindow({ solves, hidden }: { solves: SolveDto[]; hidden?:
       const index = i - (5 - last.length), v = last[index];
       if (!v) return <View key={i} className="h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border"><Numeric className="text-xs text-muted-foreground/40">–</Numeric></View>;
       const dropped = index === fastest || index === slowest, time = fmtSolve(v.time_ms, v.penalty);
-      return <SolveMenu key={v.id} solve={v} accessibilityLabel={`Solve ${time}`} rootClassName="min-w-0 flex-1"
+      return <SolveMenu key={v.id} solve={v} accessibilityLabel={tr("Solve {0}", { 0: time })} rootClassName="min-w-0 flex-1"
         className={cn("h-9 items-center justify-center rounded-lg bg-muted active:bg-muted/70", index === last.length - 1 && "border border-foreground/25")}>
-        <Numeric numberOfLines={1} className={cn("text-[13px]", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
+        <Numeric numberOfLines={1} className={cn("text-sm", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
       </SolveMenu>;
     })}
   </Fade>;
@@ -276,14 +272,11 @@ export function AverageWindow({ solves, hidden }: { solves: SolveDto[]; hidden?:
 /** At the foot of a practice page: the session's main figures, one tap (or a swipe of the sheet) from its times. */
 export function SessionPeek({ figures, count, noun, onPress, hidden }: { figures: Metric[]; count: number; noun: string; onPress: () => void; hidden?: boolean }) {
   return <Fade hidden={!!hidden}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Session times, ${count} ${noun}${count === 1 ? "" : "s"}`} onPress={onPress}
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times, {0}", { 0: plural(count, noun) })} onPress={onPress}
       className="-mx-4 h-16 flex-row items-center gap-4 border-t border-border px-5 active:bg-muted/50">
-      {figures.map(([label, value, tone]) => <View key={label} className="min-w-0 flex-1 gap-0.5">
-        <Text className="text-xs text-muted-foreground">{label}</Text>
-        <Numeric numberOfLines={1} className={cn("text-[17px] font-semibold", value === "–" ? "text-muted-foreground/50" : TONE_TEXT[tone])}>{value}</Numeric>
-      </View>)}
+      {figures.map(([label, value, tone]) => <Figure key={label} label={label} value={value} tone={tone} className="flex-1 gap-0.5" />)}
       <View className="h-9 flex-row items-center gap-1 rounded-lg bg-muted px-2.5">
-        <Numeric className="text-[13px] font-medium">{count}</Numeric>
+        <Numeric className="text-sm font-medium">{count}</Numeric>
         <Icon as={ChevronUp} size={15} className="text-muted-foreground" />
       </View>
     </Pressable>

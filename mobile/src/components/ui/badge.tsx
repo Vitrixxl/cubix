@@ -27,6 +27,10 @@ const badgeVariants = cva(
           Platform.select({ web: '[a&]:hover:bg-destructive/90' })
         ),
         outline: Platform.select({ web: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground' }),
+        // Soft tints, as the web's badge (desktop/renderer/components/ui/badge.tsx).
+        success: 'bg-success/15 border-transparent',
+        warning: 'bg-warning/15 border-transparent',
+        accent: 'bg-primary/15 border-transparent',
       },
     },
     defaultVariants: {
@@ -42,6 +46,9 @@ const badgeTextVariants = cva('text-xs font-medium', {
       secondary: 'text-secondary-foreground',
       destructive: 'text-white',
       outline: 'text-foreground',
+      success: 'text-success',
+      warning: 'text-warning',
+      accent: 'text-primary',
     },
   },
   defaultVariants: {

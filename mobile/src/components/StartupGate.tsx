@@ -7,6 +7,7 @@ import { storage } from "../platform/storage";
 import { fetchRelease } from "../release";
 import { Launcher } from "./Launcher";
 import { toastAtom } from "./Toast";
+import { tr } from "../../../src/client/i18n";
 
 // The native splash stays up while updates are checked: the cube screen only appears for a download.
 void SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -78,9 +79,9 @@ export function StartupGate({ children, fontsReady }: { children: ReactNode; fon
     if (connected === false && loaded && !visible) setToast(OFFLINE_TOAST);
   }, [connected, loaded, visible, setToast]);
   const percent = typeof downloadProgress === "number" ? Math.floor(Math.max(0, Math.min(1, downloadProgress)) * 100) : undefined;
-  const message = loaded ? "Opening Qbix…"
-    : currentPhase === "restarting" ? "Opening the new version…"
-    : `Downloading the update…${percent === undefined ? "" : ` ${percent}%`}`;
+  const message = loaded ? tr("Opening Qbix…")
+    : currentPhase === "restarting" ? tr("Opening the new version…")
+    : tr("Downloading the update…") + (percent === undefined ? "" : ` ${percent}%`);
   return <>
     {loaded && children}
     {visible && <Launcher message={message} progress={loaded ? undefined : percent} finish={loaded} onHidden={() => setHidden(true)} />}

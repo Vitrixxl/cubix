@@ -1,10 +1,10 @@
 /**
- * Native setup and tour. The setup walks through a welcome and the puzzles the player can solve (methods inline under
- * each chosen one); any other puzzle opens on its course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
+ * Native setup and tour. The setup walks through a welcome, the puzzles the player can solve (methods inline under
+ * each chosen one) and the times of another timer; any other puzzle opens on its course. It saves with `api.updateJourney` like the web. The tour opens each step's page once the page stack has stopped sliding, then
  * dims everything but the step's tab and the view it points at inside the page (`useTourTarget`).
  */
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { GraduationCap, Layers, Timer, X } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, Ban, Check, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react-native";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -12,7 +12,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { fmtTime, parseTypedTime } from "../../../src/client/lib/format";
 import { PROFILE_KEY, TOUR_STEPS, journeyProfile, type Journey } from "../../../src/client/lib/journey";
 import { METHODS } from "../../../src/shared/methods";
@@ -22,7 +24,12 @@ import { useReducedMotion } from "../hooks/useReducedMotion";
 import { introductionAtom, journeyAtom } from "../journey";
 import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom, userAtom, type Page } from "../state";
 import { alpha, useColors } from "../theme";
+import { ImportTimes } from "./ImportTimes";
+import { IconTile, Label } from "./layout";
+import { Logo } from "./Logo";
+import { PuzzleIcon } from "./PuzzlePicker";
 import { measureTourTarget, settledPageAtom, tourTargetsVersionAtom, type Rect } from "../tour";
+import { tr } from "../../../src/client/i18n";
 
 /** A step's content slides in a little from the side it comes from (forward: from the right) and fades in. */
 function StepTransition({ children, identity, direction = 1 }: { children: ReactNode; identity: string | number; direction?: number }) {
@@ -38,63 +45,95 @@ function StepTransition({ children, identity, direction = 1 }: { children: React
   return <Animated.View style={{ opacity: progress, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [direction * 24, 0] }) }] }}>{children}</Animated.View>;
 }
 
-/** The puzzles as a grid of tiles; under it, each chosen puzzle with its methods to pick and its best single (optional),
- * so nothing hides a level down. */
-function PuzzleChooser({ value, methods, bests, onToggle, onMethod, onBest, methodsLabel }: {
-  value: PuzzleId[]; methods: Partial<Record<PuzzleId, string[]>>; bests: Partial<Record<PuzzleId, string>>; onToggle: (id: PuzzleId) => void; onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void; methodsLabel: string;
+/** A puzzle tile: its WCA glyph and name, ticked when chosen. */
+function Tile({ label, checked, glyph, onPress }: { label: string; checked: boolean; glyph: ReactNode; onPress: () => void }) {
+  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={label} onPress={onPress}
+    className={cn("h-18 w-[23.5%] items-center justify-center gap-1.5 rounded-lg border px-1 active:bg-muted/50", checked ? "border-primary/50 bg-primary/10" : "border-border bg-card")}>
+    {glyph}
+    <Text numberOfLines={1} className="text-xs font-medium tracking-tight">{label}</Text>
+    {checked ? <Icon as={Check} size={14} strokeWidth={3} className="absolute top-1.5 right-1.5 text-primary" /> : null}
+  </Pressable>;
+}
+
+type MethodMap = Partial<Record<PuzzleId, string[]>>;
+
+/** Puzzles as tiles, then the methods and the best single of each chosen one, in the order they were picked. */
+function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest }: {
+  value: PuzzleId[]; methods: MethodMap; bests: Partial<Record<PuzzleId, string>>; onToggle: (id: PuzzleId) => void; onNone: () => void;
+  onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void;
 }) {
   const colors = useColors();
-  return <View style={{ gap: 16 }}>
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityLabel="Puzzles">
+  return <View className="gap-4">
+    <View className="flex-row flex-wrap justify-between gap-y-1.5" accessibilityLabel={tr("Puzzles you can solve")}>
+      <Tile label={tr("None yet")} checked={!value.length} onPress={onNone} glyph={<Icon as={Ban} size={24} strokeWidth={1.5} className={!value.length ? "text-primary" : "text-muted-foreground"} />} />
       {PUZZLES.map(p => {
         const on = value.includes(p.id);
-        return <Pressable key={p.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => onToggle(p.id)}
-          style={{ width: "31.5%", minHeight: 56, borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? alpha(colors.primary, 10) : colors.card, borderRadius: 12, alignItems: "center", justifyContent: "center", padding: 8, gap: 2 }}>
-          <Text className="text-[15px] font-semibold">{p.label}</Text>
-        </Pressable>;
+        return <Tile key={p.id} label={tr(p.label)} checked={on} onPress={() => onToggle(p.id)} glyph={<PuzzleIcon puzzle={p.id} size={24} color={on ? colors.primary : colors.mutedForeground} />} />;
       })}
     </View>
-    {value.map(p => <View key={p} style={{ gap: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }}>
-      <Text className="text-sm font-medium">{puzzleInfo(p).label}{METHODS[p].length ? <Text className="text-sm text-muted-foreground"> {methodsLabel}</Text> : null}</Text>
-      {METHODS[p].length ? <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {METHODS[p].map(m => {
-          const on = methods[p]?.includes(m.id) ?? false;
-          return <Pressable key={m.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => onMethod(p, m.id)}
-            style={{ borderWidth: 1, borderColor: on ? colors.primary : colors.border, backgroundColor: on ? alpha(colors.primary, 10) : "transparent", borderRadius: 8, paddingHorizontal: 12, minHeight: 36, justifyContent: "center" }}>
-            <Text className="text-sm">{m.name}</Text>
-          </Pressable>;
-        })}
-      </View> : null}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text className="flex-1 text-sm text-muted-foreground">Best single, if you know it</Text>
-        <Input value={bests[p] ?? ""} onChangeText={text => onBest(p, text)} keyboardType="decimal-pad" placeholder="12.34" accessibilityLabel={`Your best ${puzzleInfo(p).label} single`}
-          aria-invalid={!!bests[p]?.trim() && parseTypedTime(bests[p]!) === null} className="w-28 text-right tabular-nums" />
-      </View>
-    </View>)}
+    <View className="gap-1" accessibilityLabel={tr("Methods")}>
+      <Label>{tr("Methods you know")}</Label>
+      {value.length ? value.map(id => <View key={id} className="gap-2 border-b border-border py-2.5 last:border-b-0">
+        <View className="flex-row items-center gap-2">
+          <PuzzleIcon puzzle={id} size={18} color={colors.mutedForeground} />
+          <Text className="min-w-0 flex-1 text-sm font-medium">{tr(puzzleInfo(id).label)}</Text>
+          <PbInput puzzle={tr(puzzleInfo(id).label)} value={bests[id] ?? ""} onChange={text => onBest(id, text)} />
+        </View>
+        {METHODS[id].length ? <View className="flex-row flex-wrap gap-1.5" accessibilityLabel={tr("{0} methods", { 0: tr(puzzleInfo(id).label) })}>
+          {METHODS[id].map(m => {
+            const on = methods[id]?.includes(m.id) ?? false;
+            return <Pressable key={m.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${tr(puzzleInfo(id).label)} ${tr(m.name)}`} onPress={() => onMethod(id, m.id)}
+              className={cn("h-11 flex-row items-center gap-1.5 rounded-lg border px-3 active:bg-muted/50", on ? "border-primary/50 bg-primary/10" : "border-border")}>
+              <Icon as={on ? Check : Plus} size={14} strokeWidth={on ? 3 : 2} className={on ? "text-primary" : "text-muted-foreground"} />
+              <Text className={cn("text-sm", on ? "text-foreground" : "text-muted-foreground")}>{tr(m.name)}</Text>
+            </Pressable>;
+          })}
+        </View> : null}
+      </View>) : <Text className="py-2.5 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</Text>}
+    </View>
   </View>;
 }
 
-const STEPS = ["welcome", "known"] as const;
-const STEP_TITLES: Record<typeof STEPS[number], [string, string]> = {
-  welcome: ["Welcome to Qbix", "A few seconds to set up"],
-  known: ["What can you solve?", "Skip if none yet"],
-};
+/** The best single on a puzzle, typed as 12.34 or 1:05.21; optional, and flagged while it does not read as a time. */
+function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; onChange: (text: string) => void }) {
+  const invalid = !!value.trim() && parseTypedTime(value) === null;
+  return <View className="flex-row items-center gap-2">
+    <Text className="text-xs text-muted-foreground">{tr("PB")}</Text>
+    <Input value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder={tr("PB · 12.34")} accessibilityLabel={tr("Your best {0} single", { 0: puzzle })}
+      aria-invalid={invalid} className={cn("h-11 w-28 text-right tabular-nums", invalid && "border-destructive")} />
+  </View>;
+}
+
+const STEPS = [
+  { label: "Welcome", title: "Welcome to Qbix", sub: "A few seconds to set the app up for you" },
+  { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
+  { label: "Times", title: "Bring your times", sub: "Your history from another timer, if you have one" },
+] as const;
+const LAST = STEPS.length - 1;
+const WELCOME = [
+  { icon: Shapes, title: "Your puzzles and methods", text: "What you can solve today" },
+  { icon: GraduationCap, title: "Learn the others", text: "A new puzzle starts with its course" },
+  { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
+];
 const toggle = <T,>(list: T[], item: T) => list.includes(item) ? list.filter(i => i !== item) : [...list, item];
 const withoutKey = <T,>(record: Partial<Record<PuzzleId, T>>, key: PuzzleId) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== key)) as Partial<Record<PuzzleId, T>>;
 
+/**
+ * The introduction, as the web's on a phone: Welcome, the puzzles (methods and best single inline under each chosen
+ * one), then the times of another timer. Opened again on a saved profile, it starts on the puzzles and can be cancelled.
+ */
 function Editor() {
-  const colors = useColors(), insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
   const journey = useAtomValue(journeyAtom), existing = journeyProfile(journey), owner = useAtomValue(userAtom)?.id;
   const setIntro = useSetAtom(introductionAtom), setEvent = useSetAtom(eventAtom), setScramble = useSetAtom(scrambleTypeAtom), replace = useSetAtom(replaceRouteAtom);
   const current = useAtomValue(puzzleAtom);
   // Editing a saved setup skips the welcome.
   const [step, setStep] = useState(existing ? 1 : 0), [direction, setDirection] = useState(1);
-  const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState(existing?.knownMethods ?? {});
+  const [known, setKnown] = useState<PuzzleId[]>(existing?.knownPuzzles ?? []), [knownMethods, setKnownMethods] = useState<MethodMap>(existing?.knownMethods ?? {});
   const [bests, setBests] = useState<Partial<Record<PuzzleId, string>>>(() => Object.fromEntries(Object.entries(existing?.bests ?? {}).map(([p, ms]) => [p, fmtTime(ms)])));
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
-  const name = STEPS[step]!;
-  const go = (next: number) => { setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
-  const close = () => { if (!busy) setIntro(null); };
+  const go = (next: number) => { if (next < 0 || next > LAST) return; setDirection(next > step ? 1 : -1); setStep(next); setError(""); };
+  const cancel = () => { if (!busy) setIntro(null); };
   const save = async (changes: Journey, tour = false) => {
     if (busy) return;
     setBusy(true); setError("");
@@ -112,56 +151,60 @@ function Editor() {
   const finish = (tour: boolean) => {
     const typed = known.filter(p => bests[p]?.trim()).map(p => [p, parseTypedTime(bests[p]!)] as const);
     const wrong = typed.find(([, ms]) => ms === null);
-    if (wrong) return setError(`${puzzleInfo(wrong[0]).label}: type your best like 12.34 or 1:05.21, or leave it empty.`);
+    if (wrong) return setError(tr("{0}: type your best like 12.34 or 1:05.21, or leave it empty.", { 0: tr(puzzleInfo(wrong[0]).label) }));
     void save({
       [PROFILE_KEY]: { kind: "profile", knownPuzzles: known, knownMethods, priority: null, ...(typed.length ? { bests: Object.fromEntries(typed) } : {}), completedAt: existing?.completedAt ?? new Date().toISOString() },
     }, tour);
   };
+  const advance = () => step < LAST ? go(step + 1) : finish(!existing);
+  const { title, sub } = STEPS[step]!;
 
-  const [title, sub] = STEP_TITLES[name];
-  const last = step === STEPS.length - 1;
-
-  return <View style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.background }}>
+  return <View className="absolute inset-0 bg-background">
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View accessibilityViewIsModal style={{ flex: 1, width: "100%", maxWidth: 640, alignSelf: "center" }}>
-        <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40 }}>
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-              <Text accessibilityRole="header" numberOfLines={1} className="shrink-0 text-xl font-semibold tracking-tight">{title}</Text>
-              <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{sub}</Text>
-            </View>
-            <Text className="text-xs text-muted-foreground">{step + 1} / {STEPS.length}</Text>
-            {existing ? <Button variant="ghost" size="icon" disabled={busy} onPress={close} accessibilityLabel="Close"><Icon as={X} size={18} /></Button> : null}
-          </View>
-          <View style={{ flexDirection: "row", gap: 4 }} importantForAccessibility="no-hide-descendants">
-            {STEPS.map((s, i) => <View key={s} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i <= step ? colors.primary : colors.muted }} />)}
-          </View>
+      <View accessibilityViewIsModal className="w-full max-w-[640px] flex-1 self-center">
+        <View className="h-14 flex-row items-center gap-2.5 px-4">
+          <Logo size={20} />
+          <View className="flex-1" />
+          {existing ? <Button variant="ghost" className="h-11" disabled={busy} onPress={cancel}><Text>{tr("Cancel")}</Text></Button> : null}
         </View>
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 16 }}>
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pt-2 pb-4" contentContainerStyle={step === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}>
           <StepTransition identity={step} direction={direction}>
-            <View style={{ gap: 12 }}>
-              {name === "welcome" && <>
-                <Text className="text-base leading-[24px]">A timer, an algorithm library and a trainer for every WCA puzzle. Tell Qbix what you can solve and it sets things up for you.</Text>
-                {([[Layers, "Your puzzles and methods", "What you can solve today."], [GraduationCap, "Learn the others", "A new puzzle starts with its course."], [Timer, "Then time and train", "Everything opens once it is solved."]] as const).map(([I, head, line]) =>
-                  <View key={head} style={{ flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, backgroundColor: colors.card }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: colors.muted }}><Icon as={I} size={18} className="text-muted-foreground" /></View>
-                    <View style={{ flex: 1 }}><Text className="text-[15px] font-medium">{head}</Text><Text className="text-sm text-muted-foreground">{line}</Text></View>
-                  </View>)}
-              </>}
-              {name === "known" && <PuzzleChooser value={known} methods={knownMethods} bests={bests} methodsLabel="methods you use"
+            <View className="gap-4">
+              <View className="gap-1">
+                <Text accessibilityRole="header" className="font-sans text-2xl font-semibold tracking-tight">{tr(title)}</Text>
+                <Text className="text-sm text-muted-foreground">{tr(sub)}</Text>
+              </View>
+              {step === 0 && <View className="gap-2">
+                {WELCOME.map((r, i) => <View key={r.title} className="flex-row items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                  <IconTile icon={r.icon} />
+                  <View className="min-w-0 flex-1">
+                    <Text numberOfLines={1} className="text-sm font-medium"><Text className="text-sm text-muted-foreground">{i + 1}  </Text>{tr(r.title)}</Text>
+                    <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(r.text)}</Text>
+                  </View>
+                </View>)}
+              </View>}
+              {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests}
+                onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }}
                 onBest={(p, text) => setBests(v => ({ ...v, [p]: text }))}
-                onToggle={p => { setKnown(v => toggle(v, p)); if (known.includes(p)) { setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); } }}
+                onToggle={p => { setKnown(v => toggle(v, p)); setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); }}
                 onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
+              {/* Imported puzzles are solved ones: they join the known puzzles. */}
+              {step === 2 && <ImportTimes onImported={puzzles => setKnown(v => [...v, ...puzzles.filter(p => !v.includes(p))])} />}
             </View>
           </StepTransition>
-          {!!error && <Text accessibilityRole="alert" className="text-destructive">{error}</Text>}
+          {!!error && <Alert variant="destructive">{error}</Alert>}
         </ScrollView>
-        <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderColor: colors.border }}>
-          {step > 0 ? <Button variant="ghost" disabled={busy} onPress={() => go(step - 1)}><Text>Back</Text></Button> : null}
-          {last ? existing ? <Button className="flex-1" disabled={busy} onPress={() => finish(false)}><Text>{busy ? "Saving…" : "Save"}</Text></Button> : <>
-            <Button variant="outline" className="flex-1" disabled={busy} onPress={() => finish(false)}><Text>Skip the tour</Text></Button>
-            <Button className="flex-1" disabled={busy} onPress={() => finish(true)}><Text>{busy ? "Saving…" : "Start the tour"}</Text></Button>
-          </> : <Button className="flex-1" disabled={busy} onPress={() => go(step + 1)}><Text>{step === 0 ? "Get started" : "Continue"}</Text></Button>}
+        <View className="flex-row items-center justify-between gap-2 border-t border-border px-4 py-3">
+          <Button variant="ghost" className={cn("h-11", step === 0 && "opacity-0")} disabled={busy || step === 0} onPress={() => go(step - 1)}>
+            <Icon as={ArrowLeft} size={16} /><Text>{tr("Back")}</Text>
+          </Button>
+          <View className="flex-row items-center gap-2">
+            {step === LAST && !existing && <Button variant="outline" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip")}</Text></Button>}
+            <Button className="h-11" disabled={busy} onPress={advance}>
+              <Text>{busy ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? existing ? tr("Save") : tr("Start the tour") : tr("Continue")}</Text>
+              {!busy && <Icon as={ArrowRight} size={16} className="text-primary-foreground" />}
+            </Button>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -228,7 +271,7 @@ function Tour() {
     // Training shows its ways to practise, not a session left open.
     if (current.page === "training") { resetTraining("setup"); resetSetup(""); }
     replace({ page: current.page });
-    AccessibilityInfo.announceForAccessibility?.(`${current.title}. ${current.body}`);
+    AccessibilityInfo.announceForAccessibility?.(`${tr(current.title)}. ${tr(current.body)}`);
   }, [step]);
   // Measure once the step's page has stopped sliding, and again whenever a tagged view comes or goes.
   useEffect(() => {
@@ -269,17 +312,17 @@ function Tour() {
           {TOUR.map((_, i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: i === step ? colors.primary : i < step ? alpha(colors.primary, 45) : colors.muted }} />)}
         </View>
         <Text className="text-xs text-muted-foreground">{step + 1} / {TOUR.length}</Text>
-        <Button variant="ghost" size="icon" className="-mr-2 size-9" onPress={end} accessibilityLabel="End tour"><Icon as={X} size={17} /></Button>
+        <Button variant="ghost" size="icon" className="-mr-2 size-9" onPress={end} accessibilityLabel={tr("End tour")}><Icon as={X} size={17} /></Button>
       </View>
       <StepTransition identity={step} direction={direction}>
         <View style={{ gap: 6 }}>
-          <Text accessibilityRole="header" className="text-lg font-semibold">{current.title}</Text>
-          <Text className="text-[15px] leading-[24px] text-muted-foreground">{current.body}</Text>
+          <Text accessibilityRole="header" className="text-lg font-semibold">{tr(current.title)}</Text>
+          <Text className="text-base text-muted-foreground">{tr(current.body)}</Text>
         </View>
       </StepTransition>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-        <Button variant="ghost" onPress={() => step ? go(step - 1) : end()}><Text>{step ? "Back" : "Skip tour"}</Text></Button>
-        <Button onPress={() => last ? end() : go(step + 1)}><Text>{last ? "Done" : "Next"}</Text></Button>
+        <Button variant="ghost" onPress={() => step ? go(step - 1) : end()}><Text>{step ? tr("Back") : tr("Skip tour")}</Text></Button>
+        <Button onPress={() => last ? end() : go(step + 1)}><Text>{last ? tr("Done") : tr("Next")}</Text></Button>
       </View>
     </View>
   </View>;

@@ -1,6 +1,6 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ChevronDown } from "lucide-react-native";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import { TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { EVENTS, eventInfo, puzzleInfo, scrambleLabel, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
@@ -10,8 +10,10 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, timeEntryAtom } from "../state";
 import { useColors } from "../theme";
-import { learnPromptAtom, pickEventAtom } from "../journey";
+import { pickEventAtom } from "../journey";
 import { Sheet } from "./Sheet";
+import { Label } from "./layout";
+import { said, tr } from "../../../src/client/i18n";
 
 /** Official WCA event glyphs from the @cubing/icons font (MIT). */
 const CODEPOINT: Record<EventId, number> = {
@@ -28,19 +30,20 @@ export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: EventId; size
 /** Cross + 1 scrambles belong to training; the timer's scramble choice leaves them out. */
 export const timerScrambles = (types: readonly ScrambleType[]) => types.filter(type => !type.startsWith("cross1-"));
 
-/** Choices laid out as large cells in a sheet. */
+/** Choices laid out as large cells in a sheet; `prefix` goes before a label (a colour swatch). */
 export function SheetChoice<T extends string>({ label, value, options, onChange, columns = 3, disabled }: {
-  label: string; value: T; options: { id: T; label: string }[]; onChange: (id: T) => void; columns?: number; disabled?: boolean;
+  label: string; value: T; options: { id: T; label: string; prefix?: ReactNode }[]; onChange: (id: T) => void; columns?: number; disabled?: boolean;
 }) {
-  return <View className="gap-2" accessibilityLabel={label}>
-    <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
+  return <View className="gap-2" accessibilityLabel={said(label)}>
+    <Label>{said(label)}</Label>
     <View className="flex-row flex-wrap" style={{ marginHorizontal: -2 }}>
       {options.map(o => {
         const on = o.id === value;
         return <View key={o.id} style={{ width: `${100 / columns}%`, padding: 2 }}>
           <Pressable accessibilityRole="radio" accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => { if (!on) onChange(o.id); }}
-            className={cn("h-11 items-center justify-center rounded-lg px-2 active:bg-muted", on ? "bg-primary/15" : "bg-muted/40", disabled && "opacity-50")}>
-            <Text numberOfLines={1} className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
+            className={cn("h-11 flex-row items-center justify-center gap-1.5 rounded-lg px-2 active:bg-muted", on ? "bg-primary/15" : "bg-muted/40", disabled && "opacity-50")}>
+            {o.prefix}
+            <Text numberOfLines={1} className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{said(o.label)}</Text>
           </Pressable>
         </View>;
       })}
@@ -51,14 +54,14 @@ export function SheetChoice<T extends string>({ label, value, options, onChange,
 /** The fifteen WCA events as a grid of glyph cells, the current one lit. */
 export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onChange: (event: EventId) => void; disabled?: boolean }) {
   const colors = useColors();
-  return <View className="flex-row flex-wrap" style={{ marginHorizontal: -2 }} accessibilityRole="radiogroup" accessibilityLabel="Puzzle">
+  return <View className="flex-row flex-wrap" style={{ marginHorizontal: -2 }} accessibilityRole="radiogroup" accessibilityLabel={tr("Puzzle")}>
     {EVENTS.map(e => {
       const on = e.id === value;
       return <View key={e.id} style={{ width: "25%", padding: 2 }}>
-        <Pressable accessibilityRole="radio" accessibilityLabel={e.label} accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => onChange(e.id)}
+        <Pressable accessibilityRole="radio" accessibilityLabel={tr(e.label)} accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => onChange(e.id)}
           className={cn("h-20 items-center justify-center gap-1.5 rounded-lg px-1 active:bg-muted", on && "bg-primary/15", disabled && "opacity-50")}>
           <PuzzleIcon puzzle={e.id} size={24} color={on ? colors.foreground : colors.mutedForeground} />
-          <Text numberOfLines={2} className={cn("text-center text-[11px] leading-tight", on ? "text-foreground" : "text-muted-foreground")}>{e.label}</Text>
+          <Text numberOfLines={2} className={cn("text-center text-xs leading-tight", on ? "text-foreground" : "text-muted-foreground")}>{tr(e.label)}</Text>
         </Pressable>
       </View>;
     })}
@@ -67,9 +70,9 @@ export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onCh
 
 /** A header button showing the current event (and a non-normal scramble), opening a sheet to change it. */
 export function SessionTrigger({ event, detail, onPress, disabled }: { event: EventId; detail?: string; onPress: () => void; disabled?: boolean }) {
-  const label = eventInfo(event)?.label ?? event;
-  return <Pressable disabled={disabled} onPress={onPress} accessibilityRole="button" accessibilityLabel={`Puzzle: ${label}${detail ? `, ${detail}` : ""}`} accessibilityHint="Choose a puzzle"
-    className={cn("h-10 max-w-52 shrink flex-row items-center gap-2 rounded-xl bg-muted pr-2.5 pl-3 active:bg-muted/70", disabled && "opacity-50")}>
+  const label = tr(eventInfo(event)?.label ?? event);
+  return <Pressable disabled={disabled} onPress={onPress} accessibilityRole="button" accessibilityLabel={tr("Puzzle: {0}", { 0: label + (detail ? `, ${detail}` : "") })} accessibilityHint={tr("Choose a puzzle")}
+    className={cn("h-11 max-w-52 shrink flex-row items-center gap-2 rounded-xl bg-muted pr-2.5 pl-3 active:bg-muted/70", disabled && "opacity-50")}>
     <PuzzleIcon puzzle={event} size={17} />
     <Text numberOfLines={1} className="shrink text-sm font-semibold">
       {label}{detail ? <Text className="text-sm font-normal text-muted-foreground"> · {detail}</Text> : null}
@@ -92,7 +95,7 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
   const scrambleType = useAtomValue(scrambleTypeAtom);
   const entry = useAtomValue(timeEntryAtom);
   return <SessionTrigger event={event} disabled={locked} onPress={() => open(scramble ? "timer" : "puzzle")}
-    detail={scramble ? [scrambleType !== "normal" && scrambleLabel(scrambleType), entry !== "timer" && TIME_ENTRIES.find(e => e.id === entry)?.label].filter(Boolean).join(" · ") || undefined : undefined} />;
+    detail={scramble ? [scrambleType !== "normal" && tr(scrambleLabel(scrambleType)), entry !== "timer" && said(TIME_ENTRIES.find(e => e.id === entry)?.label)].filter(Boolean).join(" · ") || undefined : undefined} />;
 }
 
 /**
@@ -108,18 +111,15 @@ export function SessionSheet() {
   const [entry, setEntry] = useAtom(timeEntryAtom);
   const puzzle = useAtomValue(puzzleAtom);
   const close = () => setMode(null);
-  // A puzzle still to learn asks first (LearnGate): the sheet makes way for the question.
-  const prompted = useAtomValue(learnPromptAtom);
-  useEffect(() => { if (prompted) close(); }, [prompted]);
-  return <Sheet open={!!mode} onClose={close} title={scramble ? "Puzzle and scramble" : "Puzzle"} scroll={scramble}>
+  return <Sheet open={!!mode} onClose={close} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} scroll={scramble}>
     <View className="gap-2">
-      {scramble && <Text className="text-xs font-medium text-muted-foreground">Puzzle</Text>}
+      {scramble && <Label>{tr("Puzzle")}</Label>}
       <PuzzleGrid value={event} disabled={locked} onChange={id => { if (!scramble) close(); setEvent(id); }} />
     </View>
     {scramble && <>
-      <SheetChoice label="Scramble" columns={2} value={scrambleType} disabled={locked}
+      <SheetChoice label={tr("Scramble")} columns={2} value={scrambleType} disabled={locked}
         options={timerScrambles(puzzleInfo(puzzle).scrambles).map(id => ({ id, label: scrambleLabel(id) }))} onChange={setScrambleType} />
-      <SheetChoice<TimeEntry> label="Entry" value={entry} disabled={locked} options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label }))} onChange={setEntry} />
+      <SheetChoice<TimeEntry> label={tr("Entry")} value={entry} disabled={locked} options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label }))} onChange={setEntry} />
     </>}
   </Sheet>;
 }
@@ -129,7 +129,7 @@ export function EventPicker({ value, onChange }: { value: EventId; onChange: (ev
   const [open, setOpen] = useState(false);
   return <>
     <SessionTrigger event={value} onPress={() => setOpen(true)} />
-    <Sheet open={open} onClose={() => setOpen(false)} title="Puzzle" description="Statistics of this puzzle only">
+    <Sheet open={open} onClose={() => setOpen(false)} title={tr("Puzzle")} description={tr("Statistics of this puzzle only")}>
       <PuzzleGrid value={value} onChange={id => { setOpen(false); onChange(id); }} />
     </Sheet>
   </>;
@@ -142,14 +142,14 @@ export function ChoiceButton<T extends string>({ label, value, options, onChange
   variant?: "outline" | "ghost";
 }) {
   const [open, setOpen] = useState(false);
-  const current = options.find(o => o.id === value)?.label ?? value;
+  const current = said(options.find(o => o.id === value)?.label ?? value);
   return <>
-    <Button variant={variant} size="sm" className={cn("h-9 gap-1.5 px-3", className)} onPress={() => setOpen(true)} accessibilityLabel={`${label}: ${current}`}>
+    <Button variant={variant} size="sm" className={cn("h-11 gap-1.5 rounded-lg px-3", className)} onPress={() => setOpen(true)} accessibilityLabel={`${said(label)}: ${current}`}>
       {prefix}
       <Text numberOfLines={1} className={cn("shrink text-sm", variant === "ghost" && "text-muted-foreground")}>{current}</Text>
       <Icon as={ChevronDown} size={14} className="text-muted-foreground" />
     </Button>
-    <Sheet open={open} onClose={() => setOpen(false)} title={label} scroll={options.length > 8}>
+    <Sheet open={open} onClose={() => setOpen(false)} title={said(label)} scroll={options.length > 8}>
       <SheetChoice label={label} columns={options.length > 6 ? 2 : 1} value={value} options={options} onChange={id => { setOpen(false); onChange(id); }} />
     </Sheet>
   </>;

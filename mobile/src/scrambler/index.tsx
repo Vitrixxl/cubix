@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import type { ScrambleEngine } from "../../../src/client/lib/practiceScrambleCore";
 import { SCRAMBLER_HTML } from "./scrambler-html";
+import { msg } from "../../../src/client/i18n/msg";
 
 /**
  * cubing.js runs in a hidden WebView (Hermes has neither WebAssembly nor module workers).
@@ -19,7 +20,7 @@ const queue = new Map<number, string>();
 function send(kind: string, payload: unknown, timeoutMs = 30000): Promise<string> {
   return new Promise((resolve, reject) => {
     const id = nextId++;
-    const timer = setTimeout(() => { pending.delete(id); queue.delete(id); reject(new Error("The scramble generator did not respond. Please try again.")); }, timeoutMs);
+    const timer = setTimeout(() => { pending.delete(id); queue.delete(id); reject(new Error(msg("The scramble generator did not respond. Please try again."))); }, timeoutMs);
     pending.set(id, { resolve, reject, timer });
     const message = JSON.stringify({ id, kind, payload });
     if (ready && post) post(message); else queue.set(id, message);
@@ -44,7 +45,7 @@ function receive(raw: string) {
   const entry = pending.get(data.id);
   if (!entry) return;
   pending.delete(data.id); clearTimeout(entry.timer);
-  if (typeof data.value === "string") entry.resolve(data.value); else entry.reject(new Error(data.error || "The scramble generator failed."));
+  if (typeof data.value === "string") entry.resolve(data.value); else entry.reject(new Error(data.error || msg("The scramble generator failed.")));
 }
 
 /** Mount once at the root. A crashed page restarts and exposes a retryable error. */
@@ -57,7 +58,7 @@ export const ScramblerHost = memo(function ScramblerHost() {
   }, [key]);
   const restart = () => {
     ready = false; queue.clear();
-    for (const [id, entry] of pending) { clearTimeout(entry.timer); pending.delete(id); entry.reject(new Error("The scramble generator restarted. Please try again.")); }
+    for (const [id, entry] of pending) { clearTimeout(entry.timer); pending.delete(id); entry.reject(new Error(msg("The scramble generator restarted. Please try again."))); }
     setKey(k => k + 1);
   };
   return <View style={styles.host} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

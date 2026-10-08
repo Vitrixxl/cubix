@@ -2,7 +2,8 @@ import { appearanceFromStorage, systemLight, type ColorMode } from "../appearanc
 import { DEFAULT_THEME } from "../../src/client/lib/theme";
 import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
-import { toggleSelection } from "../../src/client/lib/practiceCatalog";
+import { exportFile } from "../../src/client/lib/exportData";
+import { matches, toggleSelection } from "../../src/client/lib/practiceCatalog";
 import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigures, sessionMetrics, type Metric } from "../../src/client/lib/practiceSummary";
 import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
@@ -37,22 +38,8 @@ const caseById = new Map<string, any>(catalog.cases.map((c: any) => [c.id, c]));
 const casesByPuzzle = new Map<string, any[]>();
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
-/** The words of each case a search reads, worked out once; and the words of the last query. */
-const caseWords = new WeakMap<object, string[]>();
-let lastQuery = "",
-  queryWords = [""];
-function wordsOf(c: any) {
-  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase(),
-    words = [...new Set([...text.split(/\s+/), ...text.split(/[^a-z0-9]+/)])];
-  caseWords.set(c, words);
-  return words;
-}
-/** Whether every word typed starts a word of the case, so "g perm" finds the G perms and not every case with a "g" somewhere. */
-export const matches = (c: any, q: string) => {
-  const words = caseWords.get(c) ?? wordsOf(c);
-  if (q !== lastQuery) queryWords = (lastQuery = q).toLowerCase().split(/\s+/);
-  return queryWords.every((word) => words.some((w) => w.startsWith(word)));
-};
+/** Whether every word typed starts a word of the case (shared with the phone app). */
+export { matches };
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
 /** The order of the groups of the sets that are no learning track, set by set (see `groupOrder`). */
@@ -1021,26 +1008,7 @@ export class Store {
         // table for a spreadsheet.
         case "exportData":
         case "exportSolves": {
-          const data = await call("exportData"),
-            date = new Date().toISOString().slice(0, 10);
-          const cell = (v: unknown) => (v == null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v));
-          const csv = () =>
-            [
-              // The columns stay in English: the file is data, for any spreadsheet.
-              "Date,Event,Time (s),Penalty,Case,Scramble,Comment".split(","),
-              ...data.solves.map((x: any) => [
-                x.created_at,
-                eventOf(x.puzzle_id ?? "333", x.solve_mode ?? "standard")?.id ?? x.puzzle_id,
-                (x.time_ms / 1000).toFixed(3),
-                x.penalty,
-                x.case_id,
-                x.scramble,
-                x.comment,
-              ]),
-            ]
-              .map((row) => row.map(cell).join(","))
-              .join("\n");
-          const [body, type, name] = kind === "exportSolves" ? [csv(), "text/csv", `qbix-${this.user.username}-solves-${date}.csv`] : [JSON.stringify(data, null, 2), "application/json", `qbix-${this.user.username}-${date}.json`];
+          const { body, type, name } = exportFile(kind === "exportSolves" ? "csv" : "json", await call("exportData"), this.user.username);
           const url = URL.createObjectURL(new Blob([body], { type }));
           Object.assign(document.createElement("a"), { href: url, download: name }).click();
           setTimeout(() => URL.revokeObjectURL(url), 10_000);

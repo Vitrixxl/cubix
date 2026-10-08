@@ -67,6 +67,7 @@ const run = (command: string, args: string[], cwd = root) => {
 };
 run("bun", ["scripts/build-scrambler.ts"]);
 run("bun", ["scripts/build-cases.ts"]);
+run("bun", ["scripts/build-scan.ts"]);
 // Expo regenerates Android from configuration; avoid discarding Gradle's native build cache
 // when only JavaScript has changed. App config, dependencies and assets invalidate this stamp.
 const fingerprint = createHash("sha256");

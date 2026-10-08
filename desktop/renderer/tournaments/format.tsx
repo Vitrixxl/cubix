@@ -1,17 +1,16 @@
 /**
- * How tournaments and battles are described, set up and drawn, free of the app's store so the administration shares it:
- * the format in words, a round's name, a tournament's and a match's status as badges, the start date's field value, the
- * fields choosing the event and how a match is won, and the pieces every match is drawn with (a player's line, the
- * solves as a move list, the live dot).
+ * How tournaments and battles are drawn and set up, free of the app's store so the administration shares it: a
+ * tournament's and a match's status as badges, the start date's field value, the fields choosing the event and how a
+ * match is won, and the pieces every match is drawn with (a player's line, the solves as a move list, the live dot). The
+ * words (the format, a round's name, the statuses) are shared with the Android app (src/client/lib/community.ts).
  */
 import { useEffect, useRef } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { EVENTS, eventInfo } from "../../../src/shared/puzzles";
+import { EVENTS } from "../../../src/shared/puzzles";
 import { fmtTime } from "../../../src/client/lib/format";
-import { msg } from "../../../src/client/i18n/msg";
 import { tr } from "../../../src/client/i18n";
 import { Avatar, FOCUS, Icon, NUMERIC, Tip, said } from "../base";
-import type { MatchStatus, Person, TournamentStatus } from "../community/client";
+import { MATCH_STATUS, STATUS_TEXT, eventName, formatText, roundName, type Format, type MatchStatus, type Person, type TournamentStatus } from "../../../src/client/lib/community";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,32 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-/** A match's format and event, as chosen when it is created. */
-export interface Format {
-  event: string;
-  points: number;
-  sets: number;
-}
-/**
- * "First to 3 solves · best of 3 sets", or "First to 5 solves" for a single set. The dot holds to the words before it,
- * so a line never starts with it.
- */
-export const formatText = (f: { points: number; sets: number }) => {
-  const values = { 0: f.points, 1: 2 * f.sets - 1 };
-  if (f.sets > 1) return (f.points > 1 ? tr("First to {0} solves · best of {1} sets", values) : tr("First to 1 solve · best of {1} sets", values)).replace(" · ", " · ");
-  return f.points > 1 ? tr("First to {0} solves", values) : tr("First to 1 solve");
-};
-/** A match's score as it reads best: sets when it has several, solves won otherwise. */
-export const scoreOf = (m: { sets: number; score: { sets: [number, number]; solves?: [number, number] } }): [number, number] => (m.sets > 1 ? m.score.sets : (m.score.solves ?? m.score.sets));
-export const eventName = (id: string) => said(eventInfo(id)?.label ?? id);
-/** The name of a round, counted from the final. */
-export function roundName(round: number, rounds: number) {
-  const fromFinal = rounds - round;
-  return fromFinal === 0 ? tr("Final") : fromFinal === 1 ? tr("Semi-finals") : fromFinal === 2 ? tr("Quarter-finals") : tr("Round {0}", { 0: round });
-}
-export const STATUS_TEXT = { open: msg("Registration open"), running: msg("Under way"), finished: msg("Finished"), cancelled: msg("Cancelled") } as const;
-/** Where a match stands, in a word: the same words on a card, in a list and in the bracket. */
-export const MATCH_STATUS: Record<MatchStatus, string> = { waiting: msg("Waiting"), ready: msg("Ready"), live: msg("Live"), done: msg("Finished"), cancelled: msg("Cancelled") };
+export { MATCH_STATUS, STATUS_TEXT, eventName, formatText, roundName, scoreOf, type Format } from "../../../src/client/lib/community";
 /** The date of `ms` as a `datetime-local` input wants it, on this device's clock. */
 export const localInput = (ms: number) => new Date(ms - new Date(ms).getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 

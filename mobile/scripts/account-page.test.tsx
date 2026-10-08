@@ -1,6 +1,6 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
-import { createStore, Provider, useAtomValue } from "jotai";
+import { atom, createStore, Provider, useAtomValue } from "jotai";
 import { mockLucide } from "../tests/lucide-mock";
 
 // The account page with its cards, dialogs and native drawing replaced by host nodes: what is checked
@@ -27,6 +27,7 @@ const achievements = { unlocked: 1, total: 3, achievements: [
 ] };
 const profileCalls: unknown[] = [];
 const logout = mock(async () => ({ ok: true }));
+const exportData = mock(async (_kind: string) => {});
 mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "token" }, local: {
   current: () => null, learned: () => ["OLL 1"],
   read: {
@@ -34,12 +35,13 @@ mock.module("../src/api", () => ({ api: { logout }, authToken: { get: () => "tok
     catalog: () => ({ cases, sets }),
     profile: (cube: string, filter: unknown) => {
       profileCalls.push({ cube, filter });
-      return { user: account, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 0, activeDays: 1 };
+      return { user: account, playground: { summary: summary(timerCount), history: history(), ao5: [], ao12: [] }, cases: [], totalSolves: timerCount, trainingSolves: 2, activeDays: 1 };
     },
     achievements: () => achievements,
   },
 } }));
 mock.module("../src/lib/duel", () => ({ battles: () => [], battleRecord: () => "", useDuel: () => ({}), ROUNDS: 5, RESULT_MARK: {}, ao5Text: String }));
+mock.module("../src/lib/files", () => ({ exportData }));
 mock.module("../src/hooks/usePreservedScroll", () => ({ usePreservedScroll: () => ({ ref: { current: null }, onScroll() {}, onContentSizeChange() {} }) }));
 mockLucide();
 mock.module("../src/components/ProfileProgress", () => ({
@@ -48,17 +50,21 @@ mock.module("../src/components/ProfileProgress", () => ({
 }));
 mock.module("../src/components/ProfileCard", () => Object.fromEntries(["EmptyLine", "MoreLink", "Section", "SubHead", "Tag"].map(name => [name, name])));
 mock.module("../src/components/Achievements", () => ({ AchievementList: "AchievementList", AchievementTotal: "AchievementTotal" }));
+mock.module("../src/components/ImportTimes", () => ({ ImportTimes: "ImportTimes" }));
+mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet" }));
+mock.module("../src/components/Toast", () => ({ toastAtom: atom(null) }));
 mock.module("../src/components/TimesChart", () => ({ TimerStats: "TimerStats" }));
 mock.module("../src/components/PuzzlePicker", () => ({ EventPicker: "EventPicker", ChoiceButton: "ChoiceButton" }));
 mock.module("../src/components/UserAvatar", () => ({ UserAvatar: "UserAvatar" }));
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
+mock.module("../src/components/ui/skeleton", () => ({ Skeleton: "Skeleton" }));
 mock.module("../src/components/ui/tabs", () => ({ Tabs: "Tabs", TabsList: "TabsList", TabsTrigger: "TabsTrigger" }));
-mock.module("../src/components/layout", () => Object.fromEntries(["BackButton", "Empty", "HeadButton", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead"].map(name => [name, name])));
+mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "ListGroup", "ListRow", "ListSkeleton", "MenuItem", "MoreMenu", "Numeric", "Page", "PageHead", "SectionHead", "Surface"].map(name => [name, name])));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
 const { ProfilePage } = await import("../src/pages/AccountPage");
-const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
+const { routeAtom, userAtom, profileFiltersAtom, settingsOpenAtom, guidesAtom, notationAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
 const { profileDataAtom, profileAchievementsAtom } = await import("../src/profile");
 const { settledPageAtom } = await import("../src/tour");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -85,26 +91,29 @@ async function mount() {
 }
 const all = (type: string) => renderer.root.findAllByType(type as any);
 const head = () => all("PageHead")[0]!;
-const card = (title: string) => all("Section").find(node => node.props.title === title)!;
+const card = (label: string) => all("Section").find(node => node.props.label === label)!;
 const texts = () => all("Text").map(node => [node.props.children].flat().join(""));
-const headButton = (label: string) => all("HeadButton").find(node => node.props.label === label)!;
-const button = (label: string) => all("Button").find(node => node.props.accessibilityLabel === label || node.findAllByType("Text" as any).some(t => [t.props.children].flat().join("") === label))!;
+const item = (label: string) => all("MenuItem").find(node => node.props.children === label)!;
+const row = (title: string) => all("ListRow").find(node => node.props.title === title)!;
+const picker = () => card("Timer").props.title;
 
 test("the overview shows the account, its activity, timer, training, awards and battles, with the profile's puzzle", async () => {
   await mount();
   expect(texts()).toContain("vitrix");
   expect(texts().some(text => text.startsWith("Joined "))).toBe(true);
-  // No page head on the overview: the user is its header, with the puzzle and the settings.
+  // The sections as tabs on top, as on the web's phone; no page head on the overview.
+  expect(all("TabsTrigger").map(node => node.props.value)).toEqual(["overview", "playground", "training", "achievements", "duels"]);
+  expect(all("Tabs")[0]!.props.value).toBe("overview");
   expect(all("PageHead")).toHaveLength(0);
-  expect(headButton("Settings")).toBeDefined();
   expect(all("Heatmap")).toHaveLength(1);
-  expect(card("Timer").props.meta).toBe("3 solves");
+  // The timer card's title picks its event.
+  expect(picker().type).toBe("EventPicker");
+  expect(card("Timer").props.onMore).toBeDefined();
   expect(all("Trend")).toHaveLength(1);
   expect(all("LatestSolves")).toHaveLength(1);
   expect(card("Training").props.meta).toBe("1 of 2 learned");
   expect(card("Achievements").props.meta).toBe("1 of 3 unlocked");
   expect(card("Battles")).toBeDefined();
-  expect(all("EventPicker")).toHaveLength(1);
   // The scramble type only on the timer section.
   expect(all("ChoiceButton")).toHaveLength(0);
 });
@@ -119,61 +128,81 @@ test("opening the profile never works it out during its render: placeholders fir
   expect(profileCalls).toHaveLength(0);
   expect(texts()).toContain("vitrix");
   expect(all("Heatmap")).toHaveLength(0);
-  expect(all("Section").map(node => [node.props.title, node.props.meta])).toEqual(expect.arrayContaining([["Timer", undefined], ["Achievements", undefined]]));
+  expect(all("Section").map(node => [node.props.label, node.props.meta])).toEqual(expect.arrayContaining([["Timer", undefined], ["Achievements", undefined]]));
   await prepared();
   expect(profileCalls).toHaveLength(1);
   expect(all("Heatmap")).toHaveLength(1);
-  expect(card("Timer").props.meta).toBe("3 solves");
   expect(card("Achievements").props.meta).toBe("1 of 3 unlocked");
 });
 
-test("the gear opens the settings; signing out lives there, not on the overview", async () => {
+test("the identity's menu: import, exports, notation, guides and settings; signing out closes the overview", async () => {
   const store = await mount();
-  await act(() => headButton("Settings").props.onPress());
+  expect(all("MenuItem").map(node => node.props.children)).toEqual(["Import times", "Export my solves (CSV)", "Export all my data (JSON)", "Notation", "Guides", "Settings"]);
+  await act(() => item("Settings").props.onPress());
   expect(store.get(settingsOpenAtom)).toBe(true);
-  expect(all("MenuItem")).toHaveLength(0);
-  expect(texts()).not.toContain("Log out");
-  expect(logout).not.toHaveBeenCalled();
+  await act(() => item("Guides").props.onPress());
+  expect(store.get(guidesAtom)).toBe("about");
+  await act(() => item("Notation").props.onPress());
+  expect(store.get(notationAtom)).toBe(true);
+  await act(() => item("Export my solves (CSV)").props.onPress());
+  await act(() => item("Export all my data (JSON)").props.onPress());
+  expect(exportData.mock.calls.map(call => call[0])).toEqual(["csv", "json"]);
+  const importSheet = () => all("Sheet").find(node => node.props.title === "Import times")!;
+  expect(importSheet().props.open).toBe(false);
+  await act(() => item("Import times").props.onPress());
+  expect(importSheet().props.open).toBe(true);
+  const logOut = all("Button").find(node => node.findAllByType("Text" as any).some(t => t.props.children === "Log out"))!;
+  await act(async () => { logOut.props.onPress(); await Promise.resolve(); });
+  expect(logout).toHaveBeenCalled();
 });
 
-test("the overview reads as identity, figures, activity, then the sections", async () => {
+test("messages and tournaments open from the account page", async () => {
+  const store = await mount();
+  await act(() => row("Messages").props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "community" });
+  await act(() => store.set(routeAtom, { page: "profile" }));
+  await act(() => row("Tournaments").props.onPress());
+  expect(store.get(routeAtom)).toEqual({ page: "tournaments" });
+});
+
+test("the identity's figures are the web's, every event together, two by two", async () => {
   await mount();
-  const titles = all("Section").map(node => node.props.title);
-  expect(titles).toEqual(["Timer", "Training", "Achievements", "Battles"]);
-  // The figures as an even grid of labelled cells, not a sentence.
-  const figures = ["Solves", "Active day", "Day streak", "Cases learned", "Best single"];
-  for (const label of figures) expect(texts()).toContain(label);
-  expect(all("Numeric").map(node => node.props.children)).toEqual(expect.arrayContaining(["3", "1", "9.980"]));
+  const cells = all("Figure");
+  expect(cells.map(node => node.props.label)).toEqual(expect.arrayContaining(["Solves", "Active days", "Streak", "Best streak", "This week", "Trained"]));
+  const value = (label: string) => cells.find(node => node.props.label === label)!.props.value;
+  expect([value("Solves"), value("Active days"), value("Trained")]).toEqual(["3", "3", "2"]);
 });
 
-test("a card opens its section as a page over the overview, and its back arrow returns to it", async () => {
+test("a card opens its section's tab, and the tabs switch the section in place", async () => {
   const store = await mount();
   await act(() => card("Timer").props.onMore());
   expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "playground" });
+  expect(all("Tabs")[0]!.props.value).toBe("playground");
   expect(head().props.title).toBe("Timer");
   expect(all("ChoiceButton").map(node => node.props.label)).toEqual(["Scramble type"]);
   expect(all("TimerStats")[0]!.props.fill).toBe(true);
-  await act(() => head().props.lead.props.onPress());
+  await act(() => all("Tabs")[0]!.props.onValueChange("overview"));
   expect(store.get(routeAtom)).toEqual({ page: "profile" });
   await act(() => card("Training").props.onMore());
   expect(all("TrainingProgress")).toHaveLength(1);
-  await act(() => head().props.lead.props.onPress());
-  await act(() => card("Achievements").props.onMore());
+  await act(() => all("Tabs")[0]!.props.onValueChange("achievements"));
+  expect(store.get(routeAtom)).toEqual({ page: "profile", mode: "achievements" });
   expect(head().props.title).toBe("Achievements");
   expect(all("AchievementTotal")).toHaveLength(1);
   expect(all("AchievementList")).toHaveLength(1);
-  await act(() => head().props.lead.props.onPress());
-  expect(store.get(routeAtom)).toEqual({ page: "profile" });
+  await act(() => all("Tabs")[0]!.props.onValueChange("duels"));
+  expect(head().props.title).toBe("Battles");
+  expect(all("Empty").some(node => node.props.title === "No battles yet")).toBe(true);
 });
 
 test("the profile's puzzle changes the profile's own selection", async () => {
   const store = await mount();
   profileCalls.length = 0;
-  await act(() => all("EventPicker")[0]!.props.onChange("222"));
+  await act(() => picker().props.onChange("222"));
   await prepared();
   expect(store.get(profileFiltersAtom).cube).toBe("222");
   expect(profileCalls.at(-1)).toMatchObject({ cube: "222" });
-  await act(() => all("EventPicker")[0]!.props.onChange("333oh"));
+  await act(() => picker().props.onChange("333oh"));
   await prepared();
   expect(store.get(profileFiltersAtom)).toMatchObject({ cube: "333", solveMode: "one-handed" });
   expect(profileCalls.at(-1)).toMatchObject({ cube: "333", filter: { solveMode: "one-handed" } });
@@ -199,25 +228,26 @@ test("prepared profile data survives page changes and unmounts without rebuildin
   expect(store.get(profileDataAtom)).toBe(data);
   expect(store.get(profileAchievementsAtom)).toBe(awards);
   expect(profileCalls).toHaveLength(0);
-  expect(card("Timer").props.meta).toBe("3 solves");
+  expect(all("Figure").find(node => node.props.label === "Solves")!.props.value).toBe("3");
 });
 
 test("cached profile updates after sync, deletion and account changes, including while unmounted", async () => {
   const store = await mount();
+  const solves = () => all("Figure").find(node => node.props.label === "Solves")!.props.value;
   await act(() => store.set(routeAtom, { page: "playground" }));
   timerCount = 4;
   await act(() => store.set(statsVersionAtom, v => v + 1));
   await act(() => store.set(routeAtom, { page: "profile" }));
   await prepared();
-  expect(card("Timer").props.meta).toBe("4 solves");
+  expect(solves()).toBe("4");
   timerCount = 2;
   await act(() => store.set(deletedSolveIdAtom, 3));
   await prepared();
-  expect(card("Timer").props.meta).toBe("2 solves");
+  expect(solves()).toBe("2");
   timerCount = 1;
   await act(() => store.set(userAtom, { ...account, id: "u2", username: "other" }));
   await prepared();
-  expect(card("Timer").props.meta).toBe("1 solve");
+  expect(solves()).toBe("1");
   expect(texts()).toContain("other");
 });
 

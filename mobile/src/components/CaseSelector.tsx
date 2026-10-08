@@ -1,7 +1,7 @@
-import { Check, ChevronDown, ChevronRight } from "lucide-react-native";
+import { Check } from "lucide-react-native";
 import { memo, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
-import { groupCases, toggleSelection } from "../../../src/client/lib/practiceCatalog";
+import { groupCases, matches, toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import type { CaseDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -10,16 +10,11 @@ import { cn } from "@/lib/utils";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { shortId } from "../lib/caseState";
 import { CaseDiagram } from "./CaseDiagram";
-import { Numeric } from "./layout";
+import { Empty, GroupToggle, Numeric } from "./layout";
+import { tr } from "../../../src/client/i18n";
 
 /** Open sets survive leaving the setup screen, per catalogue. */
 const selectorExpansion = new Map<string, Record<string, boolean>>();
-
-/** Every word of the search appears in the case's id, name, set, stage or group (web `matches`). */
-function matchesCase(c: CaseDto, query: string) {
-  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase();
-  return query.toLowerCase().split(/\s+/).every(word => text.includes(word));
-}
 
 const TILE_MIN = 84, TILE_GAP = 4;
 type Row = { key: string } & (
@@ -47,7 +42,7 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
   const rows = useMemo(() => {
     const result: Row[] = [];
     for (const set of sets) {
-      const chosen = cases.filter(c => c.set === set.id && (!q || matchesCase(c, q)));
+      const chosen = cases.filter(c => c.set === set.id && (!q || matches(c, q)));
       if (!chosen.length) continue;
       const ids = chosen.map(c => c.id), count = ids.filter(id => sel.has(id)).length;
       const expanded = open[set.id] ?? (count > 0 || !!q);
@@ -68,23 +63,19 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
     {width > 0 && <FlatList key={`${selectorKey}:${q}:${columns}`} {...scroll} data={rows} keyExtractor={row => row.key}
       initialNumToRender={12} maxToRenderPerBatch={8} windowSize={7} scrollEventThrottle={64} keyboardShouldPersistTaps="handled"
       className="flex-1" contentContainerClassName="px-3 pt-1 pb-4"
-      ListEmptyComponent={<Text className="p-4 text-center text-sm text-muted-foreground">No cases match.</Text>}
+      ListEmptyComponent={<Empty>{tr("No cases match.")}</Empty>}
       renderItem={({ item: row }) => {
         if (row.kind === "set") {
           const all = row.count === row.ids.length;
-          return <View className="-mx-1 mt-1 flex-row items-center gap-1">
-            <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} accessibilityLabel={`${row.set.label}, ${row.count} of ${row.ids.length} selected`}
-              onPress={() => setOpen({ ...open, [row.set.id]: !row.open })} className="h-12 min-w-0 flex-1 flex-row items-center gap-2.5 rounded-lg px-2 active:bg-muted/50">
-              <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
-              <Text numberOfLines={1} className="shrink text-[15px] font-medium">{row.set.label}</Text>
-              <Numeric className={cn("text-xs", row.count ? "font-medium text-primary" : "text-muted-foreground")}>{row.count} / {row.ids.length}</Numeric>
-            </Pressable>
-            <Button variant="ghost" size="sm" className="h-10 px-2.5" onPress={() => all ? onChange(selected.filter(id => !row.ids.includes(id))) : toggle(row.ids.filter(id => !sel.has(id)))}>
-              <Text className="text-xs text-muted-foreground">{all ? "Unselect all" : "Select all"}</Text>
+          return <GroupToggle className="mt-1" title={row.set.label} open={row.open} onPress={() => setOpen({ ...open, [row.set.id]: !row.open })}
+            accessibilityLabel={tr("{0}, {1} of {2} selected", { 0: row.set.label, 1: row.count, 2: row.ids.length })}
+            meta={<Numeric className={cn("text-xs", row.count ? "font-medium text-primary" : "text-muted-foreground")}>{row.count} / {row.ids.length}</Numeric>}>
+            <Button variant="ghost" size="sm" className="h-11 px-2.5" onPress={() => all ? onChange(selected.filter(id => !row.ids.includes(id))) : toggle(row.ids.filter(id => !sel.has(id)))}>
+              <Text className="text-sm text-muted-foreground">{all ? tr("Unselect all") : tr("Select all")}</Text>
             </Button>
-          </View>;
+          </GroupToggle>;
         }
-        if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={`Select the ${row.group} cases`} onPress={() => toggle(row.ids)}
+        if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={tr("Select the {0} cases", { 0: row.group })} onPress={() => toggle(row.ids)}
           className="mt-2 h-8 flex-row items-center gap-2 self-start rounded-md px-1 active:bg-muted/50">
           <Text numberOfLines={1} className="text-xs font-medium text-muted-foreground">{row.group}</Text>
           <Numeric className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Numeric>

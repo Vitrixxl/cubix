@@ -6,23 +6,24 @@ import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { said } from "../../../src/client/i18n";
 
 /**
  * The profile's card system: every block of the overview is a `Section` (same radius, padding and heading row), empty
  * states are one muted line with at most one action (`EmptyLine`), and short facts are small rounded tags (`Tag`).
  */
 
-/** A profile card: a heading row (title, muted meta beside it, controls or a link on the right) over its body. */
+/** A profile card: a heading row (title, or a control in its place; muted meta beside it, controls or a link on the right) over its body. */
 export function Section({ title, meta, more = "Details", onMore, aside, children, className, bodyClassName, label }: {
   title: ReactNode; meta?: ReactNode; more?: string; onMore?: () => void; aside?: ReactNode; children?: ReactNode; className?: string; bodyClassName?: string; label?: string;
 }) {
   return <Card className={cn("gap-0 rounded-2xl py-0 shadow-none", className)} accessibilityLabel={label}>
     <View className="min-h-12 flex-row items-center gap-2 pt-1 pr-2 pl-4">
-      <Text accessibilityRole="header" numberOfLines={1} className="shrink-0 text-base font-semibold tracking-tight">{title}</Text>
+      {typeof title === "string" ? <Text accessibilityRole="header" numberOfLines={1} className="shrink-0 text-base font-semibold tracking-tight">{said(title)}</Text> : title}
       {meta != null ? <Text numberOfLines={1} className="min-w-0 shrink text-sm text-muted-foreground">{meta}</Text> : null}
       <View className="ml-auto shrink-0 flex-row items-center gap-1">
         {aside}
-        {onMore ? <MoreLink onPress={onMore}>{more}</MoreLink> : null}
+        {onMore ? <MoreLink onPress={onMore}>{said(more)}</MoreLink> : null}
       </View>
     </View>
     {children != null ? <View className={cn("gap-4 px-4 pt-1 pb-4", bodyClassName)}>{children}</View> : null}
@@ -35,14 +36,6 @@ export function MoreLink({ onPress, children }: { onPress: () => void; children:
     <Text className="text-sm text-muted-foreground">{children}</Text>
     <Icon as={ChevronRight} size={15} className="text-muted-foreground" />
   </Button>;
-}
-
-/** A small heading inside a section, with an optional control on the right. */
-export function SubHead({ title, children }: { title: ReactNode; children?: ReactNode }) {
-  return <View className="h-8 flex-row items-center gap-2">
-    <Text className="text-sm font-medium text-muted-foreground">{title}</Text>
-    {children ? <View className="ml-auto flex-row items-center">{children}</View> : null}
-  </View>;
 }
 
 /** A compact empty state: one muted line, and its action on the right. */

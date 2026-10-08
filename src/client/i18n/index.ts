@@ -5,7 +5,7 @@
  * by the value of that name.
  *
  * The language is the one chosen in the settings (or on the landing page), kept on the device; until one is chosen,
- * the browser's own.
+ * the browser's own. The Android app gives its own storage and languages (`setDevice`, mobile/src/i18n.ts).
  */
 import { fill } from "./msg";
 
@@ -21,18 +21,28 @@ export const LANGUAGES: { id: Language; name: string; locale: string }[] = [
 export const LANGUAGE_KEY = "cubix.language";
 
 export const isLanguage = (value: unknown): value is Language => LANGUAGES.some((l) => l.id === value);
-/** The first of the browser's languages the app speaks, English otherwise. */
-export function detect(preferred: readonly string[] = typeof navigator === "undefined" ? [] : navigator.languages ?? [navigator.language]): Language {
+/** Where the choice is kept and which languages the device prefers: the browser's, unless another device is given. */
+export interface Device {
+  storage: { getItem(key: string): string | null; setItem(key: string, value: string): void };
+  languages(): readonly string[];
+}
+let device: Device = {
+  storage: { getItem: (key) => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
+  languages: () => (typeof navigator === "undefined" ? [] : (navigator.languages ?? [navigator.language])),
+};
+export const setDevice = (next: Device) => void (device = next);
+/** The first of the device's languages the app speaks, English otherwise. */
+export function detect(preferred: readonly string[] = device.languages()): Language {
   for (const tag of preferred) {
     const id = tag.toLowerCase().split("-")[0];
     if (isLanguage(id)) return id;
   }
   return "en";
 }
-/** The language chosen on this device, or the browser's. */
+/** The language chosen on this device, or the device's own. */
 export function preferred(): Language {
   try {
-    const stored = localStorage.getItem(LANGUAGE_KEY);
+    const stored = device.storage.getItem(LANGUAGE_KEY);
     if (isLanguage(stored)) return stored;
   } catch {}
   return detect();
@@ -59,7 +69,7 @@ export async function setLanguage(language: Language, remember = true) {
   current = language;
   if (remember)
     try {
-      localStorage.setItem(LANGUAGE_KEY, language);
+      device.storage.setItem(LANGUAGE_KEY, language);
     } catch {}
   if (typeof document !== "undefined") document.documentElement.lang = language;
   for (const listener of listeners) listener();
@@ -139,8 +149,8 @@ export function t(text: string, values?: Record<string, string | number | null |
  * A count with its noun: `one` for one (the `{n}` in it is the count), `other` otherwise ("{n} solves" by default,
  * from "{n} solve"), each translated, the language's own rule choosing the form (French says "0 résolution").
  */
-/** The English plural of a text's last word: "{n} solve" gives "{n} solves" ("match", "matches"; "reply", "replies"). */
-export const pluralOf = (one: string) => one.replace(/(\w+)$/, (word) => (/(s|x|ch|sh)$/.test(word) ? word + "es" : word.replace(/y$/, "ie") + "s"));
+/** The English plural of a text's last word: "{n} solve" gives "{n} solves" ("match", "matches"; "reply", "replies"; "day", "days"). */
+export const pluralOf = (one: string) => one.replace(/(\w+)$/, (word) => (/(s|x|ch|sh)$/.test(word) ? word + "es" : word.replace(/([^aeiou])y$/, "$1ie") + "s"));
 /** One value built per language and kept: formatters cost far more to build than to use. */
 export function perLanguage<T>(build: (locale: string) => T): () => T {
   const built = new Map<string, T>();
@@ -150,7 +160,13 @@ export function perLanguage<T>(build: (locale: string) => T): () => T {
     return value;
   };
 }
-const plurals = perLanguage((l) => new Intl.PluralRules(l));
+/**
+ * The plural form of a count. Where the engine has no `Intl.PluralRules` (Hermes, on Android), the rule of the app's
+ * languages: French says "0 résolution" and "1 résolution", the others only "1 solve" in the singular.
+ */
+const plurals = perLanguage((l) =>
+  typeof Intl.PluralRules === "function" ? new Intl.PluralRules(l) : { select: (n: number) => ((l.startsWith("fr") ? n < 2 : n === 1) ? "one" : "other") },
+);
 const numbers = perLanguage((l) => new Intl.NumberFormat(l));
 export function tn(count: number, one: string, other = pluralOf(one)) {
   const form = plurals().select(count) === "one" ? one : other;
@@ -158,6 +174,8 @@ export function tn(count: number, one: string, other = pluralOf(one)) {
 }
 /** `t` under a name no component uses for its own variables (`t` is often a tournament or a time). */
 export const tr = t;
+/** A prop that may be a text (translated) or anything else (left as it is). */
+export const said = <T,>(x: T): T => (typeof x === "string" ? (t(x) as T) : x);
 /**
  * A date formatter in the current language: `options` as for `Intl.DateTimeFormat`, a formatter built once per
  * language, so module-level formatters follow a change of language.

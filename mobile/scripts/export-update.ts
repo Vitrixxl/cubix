@@ -22,6 +22,8 @@ const run = (args: string[], capture = false) => {
   if (result.status !== 0) process.exit(result.status ?? 1);
   return result.stdout ?? "";
 };
+// The camera page of the assisted solve is generated (scripts/build-scan.ts): never ship a missing or stale one.
+if (spawnSync("bun", ["scripts/build-scan.ts"], { cwd: root, env, stdio: "inherit" }).status !== 0) process.exit(1);
 // Do not reuse transforms from a development/test export with another API origin.
 run(["expo", "export", "--clear", "--platform", "android", "--output-dir", out]);
 // What the application reads through Constants.expoConfig when it runs this update.

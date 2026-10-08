@@ -11,6 +11,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { Choice, Numeric } from "./layout";
 import { Sheet } from "./Sheet";
+import { said, tr } from "../../../src/client/i18n";
 
 /**
  * The 3D algorithm player, as the web app's (desktop/renderer/AlgPlayer.tsx): the case on the cube, the algorithm
@@ -60,7 +61,7 @@ export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }
   }), [player]);
   const unit = 60 / cubeViewRadius(player.scene);
   const points = (list: number[][]) => list.map(([x, y]) => `${(60 + x! * unit).toFixed(2)},${(60 - y! * unit).toFixed(2)}`).join(" ");
-  return <View {...responder.panHandlers} accessibilityRole="image" accessibilityLabel="3D cube: drag to turn it, double-tap to reset" style={{ width: size, height: size }}>
+  return <View {...responder.panHandlers} accessibilityRole="image" accessibilityLabel={tr("3D cube: drag to turn it, double-tap to reset")} style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox="0 0 120 120">
       {player.shapes().map((shape, i) => shape.line
         ? <Polyline key={i} points={points(shape.points)} fill="none" stroke={hex(shape.color)} strokeWidth={120 / size} />
@@ -93,16 +94,16 @@ function Pulse({ player, unit }: { player: AlgPlayer; unit: number }) {
 }
 
 /** Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been turned. */
-function ViewButtons({ player }: { player: AlgPlayer }) {
+export function ViewButtons({ player }: { player: AlgPlayer }) {
   const turned = useSyncExternalStore(player.subscribe, player.turned);
   return <View className="flex-row justify-center gap-2">
     <Button variant="secondary" size="lg" onPress={player.showFront} className="gap-2">
       <Icon as={Focus} size={18} className="text-secondary-foreground" />
-      <Text>Show front</Text>
+      <Text>{tr("Show front")}</Text>
     </Button>
     {turned && <Button variant="secondary" size="lg" onPress={player.resetView} className="gap-2">
       <Icon as={Rotate3d} size={18} className="text-secondary-foreground" />
-      <Text>Reset view</Text>
+      <Text>{tr("Reset view")}</Text>
     </Button>}
   </View>;
 }
@@ -122,7 +123,7 @@ function Words({ words, size, current, onMove }: { words: ReturnType<typeof read
     {words.map((word, i) => <View key={i} className="flex-row">
       {word.map((part, j) => part.move === undefined
         ? <Text key={j} className="font-sans font-medium text-muted-foreground" style={style}>{part.text}</Text>
-        : <Pressable key={j} disabled={!onMove} onPress={() => onMove?.(part.move!)} accessibilityRole="button" accessibilityLabel={`Move ${part.text}`}
+        : <Pressable key={j} disabled={!onMove} onPress={() => onMove?.(part.move!)} accessibilityRole="button" accessibilityLabel={tr("Move {0}", { 0: part.text })}
           accessibilityState={{ selected: part.move === current }} hitSlop={4}
           className={cn("rounded-[4px] px-[2px]", part.move === current && "bg-primary/15")}>
           <Text className={cn("font-sans font-medium tracking-tight", part.move === current && "text-primary")} style={style}>{part.text}</Text>
@@ -136,17 +137,17 @@ export function PlayerControls({ player }: { player: AlgPlayer }) {
   const p = usePlayback(player), total = player.total;
   const button = (label: string, icon: typeof Play, onPress: () => void, disabled = false, primary = false) =>
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
-      className={cn("size-11 items-center justify-center rounded-lg", primary ? "bg-primary active:bg-primary/85" : "active:bg-muted/60", disabled && "opacity-40")}>
+      className={cn("size-11 items-center justify-center rounded-lg", primary ? "bg-primary active:bg-primary/85" : "active:bg-muted/50", disabled && "opacity-40")}>
       <Icon as={icon} size={19} className={primary ? "text-primary-foreground" : "text-muted-foreground"} />
     </Pressable>;
   const ended = p.position >= total;
   return <View className="gap-1">
     <View className="flex-row items-center justify-between">
-      {button("Restart", ChevronFirst, player.restart, p.position === 0 && !p.playing)}
-      {button("Previous move", StepBack, player.stepBack, p.target === 0)}
-      {button(p.playing ? "Pause" : ended ? "Play again" : "Play", p.playing ? Pause : ended ? RotateCcw : Play, player.toggle, false, true)}
-      {button("Next move", StepForward, player.stepForward, p.target >= total)}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Speed ${speedLabel(p.speed)}`} onPress={player.cycleSpeed} className="h-11 min-w-11 items-center justify-center rounded-lg px-2 active:bg-muted/60">
+      {button(tr("Restart"), ChevronFirst, player.restart, p.position === 0 && !p.playing)}
+      {button(tr("Previous move"), StepBack, player.stepBack, p.target === 0)}
+      {button(p.playing ? tr("Pause") : ended ? tr("Play again") : tr("Play"), p.playing ? Pause : ended ? RotateCcw : Play, player.toggle, false, true)}
+      {button(tr("Next move"), StepForward, player.stepForward, p.target >= total)}
+      <Pressable accessibilityRole="button" accessibilityLabel={tr("Speed {0}", { 0: speedLabel(p.speed) })} onPress={player.cycleSpeed} className="h-11 min-w-11 items-center justify-center rounded-lg px-2 active:bg-muted/50">
         <Numeric className="text-sm text-muted-foreground">{speedLabel(p.speed)}</Numeric>
       </Pressable>
     </View>
@@ -173,7 +174,7 @@ function Scrubber({ value, total, onSeek }: { value: number; total: number; onSe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [width, total]);
   const ratio = total ? value / total : 0;
-  return <View {...responder.panHandlers} onLayout={event => setWidth(event.nativeEvent.layout.width)} accessibilityRole="adjustable" accessibilityLabel="Moves played"
+  return <View {...responder.panHandlers} onLayout={event => setWidth(event.nativeEvent.layout.width)} accessibilityRole="adjustable" accessibilityLabel={tr("Moves played")}
     accessibilityValue={{ min: 0, max: total, now: Math.round(value) }} className="h-11 flex-1 justify-center">
     <View pointerEvents="none" className="h-1 overflow-hidden rounded-full bg-muted">
       <View className="h-full bg-primary" style={{ width: `${ratio * 100}%` }} />
@@ -200,7 +201,7 @@ export function AlgPlayerSheet({ items, index, onIndex, onClose, choice: initial
   if (index !== null && (index !== shown || !open)) { setShown(index); setChoice(open && index !== shown ? 0 : initial); setOpen(true); }
   if (index === null && open) setOpen(false);
   const item = items[shown];
-  return <Sheet open={index !== null} onClose={onClose} title={item?.name ?? "Algorithm"} hideTitle scroll contentPanning={false} contentClassName="gap-3">
+  return <Sheet open={index !== null} onClose={onClose} title={said(item?.name) ?? tr("Algorithm")} hideTitle scroll contentPanning={false} contentClassName="gap-3">
     {item ? <PlayerBody key={`${item.key}:${choice}`} item={item} choice={choice} onChoice={setChoice} count={items.length} index={shown} onIndex={i => { setChoice(0); onIndex(i); }} /> : null}
   </Sheet>;
 }
@@ -210,27 +211,27 @@ function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: P
   const player = useAlgPlayer(alg, item.size, item.mask, { setup: item.setup });
   const step = (label: string, icon: typeof Play, target: number) =>
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={target < 0 || target >= count} onPress={() => onIndex(target)}
-      className={cn("size-11 items-center justify-center rounded-lg active:bg-muted/60", (target < 0 || target >= count) && "opacity-40")}>
+      className={cn("size-11 items-center justify-center rounded-lg active:bg-muted/50", (target < 0 || target >= count) && "opacity-40")}>
       <Icon as={icon} size={18} className="text-muted-foreground" />
     </Pressable>;
   return <>
     <View className="flex-row items-center gap-1">
       <View className="min-w-0 flex-1 flex-row items-baseline gap-2">
-        <Text numberOfLines={1} accessibilityRole="header" className="shrink font-sans text-lg font-semibold tracking-tight">{item.name}</Text>
-        <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{item.detail ?? item.context}</Text>
+        <Text numberOfLines={1} accessibilityRole="header" className="shrink font-sans text-lg font-semibold tracking-tight">{said(item.name)}</Text>
+        <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{said(item.detail ?? item.context)}</Text>
       </View>
       {count > 1 && <>
-        {step("Previous algorithm", ChevronLeft, index - 1)}
+        {step(tr("Previous algorithm"), ChevronLeft, index - 1)}
         <Numeric className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {count}</Numeric>
-        {step("Next algorithm", ChevronRight, index + 1)}
+        {step(tr("Next algorithm"), ChevronRight, index + 1)}
       </>}
     </View>
     {player && <View className="items-center"><PlayerCube player={player} size={250} /></View>}
     {player && <ViewButtons player={player} />}
     {player && <PlayerControls player={player} />}
-    {item.algs.length > 1 && <Choice label="Algorithm" value={String(choice)} onChange={id => onChoice(Number(id))}
-      options={item.algs.map((_, i) => ({ id: String(i), label: i ? `Alternative ${i}` : "Main" }))} />}
+    {item.algs.length > 1 && <Choice label={tr("Algorithm")} value={String(choice)} onChange={id => onChoice(Number(id))}
+      options={item.algs.map((_, i) => ({ id: String(i), label: i ? tr("Alternative {0}", { 0: i }) : tr("Main") }))} />}
     <PlayerAlg player={player} text={alg} size={19} />
-    {item.note ? <Text className="text-sm leading-[20px] text-muted-foreground">{item.note}</Text> : null}
+    {item.note ? <Text className="text-sm text-muted-foreground">{said(item.note)}</Text> : null}
   </>;
 }

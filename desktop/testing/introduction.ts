@@ -84,11 +84,11 @@ async function tour(name: string, { desktop }: { desktop: boolean }) {
 
 try {
   await page.goto(origin + "/timer"); await signIn(page, "introduction_ui", "a-long-test-password", true);
-  await heading("Welcome to Cubix");
+  await heading("Welcome to Qbix");
   assert.equal(new URL(page.url()).pathname, "/onboarding");
   for (const name of ["Later", "Close", "Cancel"]) assert.equal(await page.getByRole("button", { name, exact: true }).count(), 0, `no ${name} on a first onboarding`);
-  await page.keyboard.press("Escape"); await heading("Welcome to Cubix");
-  await page.goto(origin + "/duel"); await heading("Welcome to Cubix");
+  await page.keyboard.press("Escape"); await heading("Welcome to Qbix");
+  await page.goto(origin + "/duel"); await heading("Welcome to Qbix");
   assert.equal(new URL(page.url()).pathname, "/onboarding");
   await fits(SIZES, "welcome");
   // Enter continues from the page; no level is asked, only what can be solved.

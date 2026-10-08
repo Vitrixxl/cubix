@@ -8,8 +8,9 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { useColors } from "../theme";
-import { Bar, Choice, Empty, Numeric } from "./layout";
+import { Bar, Choice, Empty, IconTile, Numeric } from "./layout";
 import { ChoiceButton, PuzzleIcon } from "./PuzzlePicker";
+import { locale, tr } from "../../../src/client/i18n";
 
 /**
  * The web app's achievements: a group filter and All / Unlocked / Locked, then every group (a puzzle or "General")
@@ -19,27 +20,25 @@ import { ChoiceButton, PuzzleIcon } from "./PuzzlePicker";
 
 /** "17 / 210" and a bar. */
 export function AchievementTotal({ summary }: { summary: AchievementSummaryDto }) {
-  return <View className="flex-row items-center gap-2.5" accessibilityLabel={`${summary.unlocked} of ${summary.total} achievements unlocked`}>
-    <Numeric className="text-[13px] text-muted-foreground">{summary.unlocked} / {summary.total}</Numeric>
+  return <View className="flex-row items-center gap-2.5" accessibilityLabel={tr("{0} of {1} achievements unlocked", { 0: summary.unlocked, 1: summary.total })}>
+    <Numeric className="text-sm text-muted-foreground">{summary.unlocked} / {summary.total}</Numeric>
     <Bar ratio={summary.total ? summary.unlocked / summary.total : 0} className="w-16" />
   </View>;
 }
 
-const unlockedDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+const unlockedDate = (iso: string) => new Date(iso).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" });
 
 const AchievementRow = memo(function AchievementRow({ achievement: a }: { achievement: AchievementDto }) {
-  const note = a.unlockedAt ? unlockedDate(a.unlockedAt) : a.detail;
-  return <View accessibilityLabel={`${a.title}: ${a.description}. ${a.unlocked ? "Unlocked" : `${Math.round(a.ratio * 100)} percent`}, ${note}`}
+  const note = a.unlockedAt ? unlockedDate(a.unlockedAt) : tr(a.detail);
+  return <View accessibilityLabel={`${tr(a.title)}: ${tr(a.description)}. ${a.unlocked ? tr("Unlocked") : tr("{0} percent", { 0: Math.round(a.ratio * 100) })}, ${note}`}
     className={cn("mb-2 flex-row items-start gap-3 rounded-xl border border-border bg-card p-3.5", !a.unlocked && "opacity-75")}>
-    <View className={cn("size-9 items-center justify-center rounded-lg", a.unlocked ? "bg-primary/15" : "bg-muted")}>
-      <Icon as={a.unlocked ? Trophy : Lock} size={17} className={a.unlocked ? "text-primary" : "text-muted-foreground"} />
-    </View>
+    <IconTile icon={a.unlocked ? Trophy : Lock} tone={a.unlocked ? "primary" : "muted"} />
     <View className="min-w-0 flex-1 gap-1">
       <View className="flex-row items-start justify-between gap-2.5">
-        <Text className="shrink text-sm font-semibold">{a.title}</Text>
+        <Text className="shrink text-sm font-semibold">{tr(a.title)}</Text>
         <Numeric className="shrink text-right text-xs text-muted-foreground">{note}</Numeric>
       </View>
-      <Text className="text-xs leading-[17px] text-muted-foreground">{a.description}</Text>
+      <Text className="text-xs text-muted-foreground">{tr(a.description)}</Text>
       <Bar ratio={a.ratio} done={a.unlocked} className="mt-1" />
     </View>
   </View>;
@@ -70,19 +69,19 @@ export function AchievementList({ summary, initialGroup, scrollKey }: { summary:
   const scroll = usePreservedList<Row>(key);
   return <View className="min-h-0 flex-1 gap-2">
     <View className="flex-row flex-wrap items-center gap-2">
-      <ChoiceButton label="Achievement group" value={group} options={[{ id: "all", label: "All puzzles" }, ...groups.map(name => ({ id: name, label: name }))]} onChange={setGroup} />
-      <Choice label="Completion" value={filter} onChange={setFilter} options={[{ id: "all", label: "All" }, { id: "unlocked", label: "Unlocked" }, { id: "locked", label: "Locked" }]} />
+      <ChoiceButton label={tr("Achievement group")} value={group} options={[{ id: "all", label: tr("All puzzles") }, ...groups.map(name => ({ id: name, label: tr(name) }))]} onChange={setGroup} />
+      <Choice label={tr("Completion")} value={filter} onChange={setFilter} options={[{ id: "all", label: tr("All") }, { id: "unlocked", label: tr("Unlocked") }, { id: "locked", label: tr("Locked") }]} />
     </View>
     <FlatList key={key} {...scroll} data={rows} keyExtractor={row => row.key}
       initialNumToRender={12} maxToRenderPerBatch={10} windowSize={7} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
       className="flex-1" contentContainerClassName="pb-4"
-      ListEmptyComponent={<Empty>{filter === "unlocked" ? "Nothing unlocked here yet. Keep practising!" : "Everything here is unlocked."}</Empty>}
+      ListEmptyComponent={<Empty icon={Trophy}>{filter === "unlocked" ? tr("Nothing unlocked here yet. Keep practising!") : tr("Everything here is unlocked.")}</Empty>}
       renderItem={({ item: row }) => {
         if (row.kind === "item") return <AchievementRow achievement={row.achievement} />;
         const puzzle = achievementPuzzle(row.group);
         return <View className="min-h-10 flex-row items-center gap-3 pt-2.5 pb-1">
           {puzzle ? <PuzzleIcon puzzle={puzzle} size={18} color={colors.foreground} /> : <Icon as={Trophy} size={18} />}
-          <Text className="flex-1 text-sm font-semibold">{row.group}</Text>
+          <Text className="flex-1 text-sm font-semibold">{tr(row.group)}</Text>
           <Numeric className="text-xs text-muted-foreground">{row.unlocked} / {row.total}</Numeric>
         </View>;
       }} />

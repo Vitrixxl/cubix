@@ -35,6 +35,10 @@ mock.module("../src/components/ProfileCard", () => ({
   Section: ({ aside, children }: { aside?: ReactNode; children?: ReactNode }) => <>{aside}{children}</>,
   EmptyLine: "EmptyLine", Tag: "Tag",
 }));
+mock.module("../src/components/ImportTimes", () => ({ ImportTimes: "ImportTimes" }));
+mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: "PuzzleIcon" }));
+mock.module("../src/components/Logo", () => ({ Logo: "Logo" }));
+mock.module("../src/components/layout", () => ({ IconTile: "IconTile", Label: "Label" }));
 mockLucide();
 const { Introduction, dockSide, roundedRect } = await import("../src/components/Introduction");
 const { introductionAtom } = await import("../src/journey");
@@ -46,18 +50,19 @@ const button = (text: string) => nodes("Button").find(n => n.props.accessibility
 const choice = (text: string) => nodes("Pressable").find(n => label(n).includes(text))!;
 const header = () => nodes("Text").find(n => n.props.accessibilityRole === "header")!.props.children;
 
-test("native onboarding: welcome, then the puzzles and methods the player can solve, then the tour", async () => {
+test("native onboarding: welcome, the puzzles and methods the player can solve, the times of another timer, then the tour", async () => {
   try {
     await act(async () => { renderer = create(<Provider store={store}><Introduction /></Provider>); });
     expect(store.get(introductionAtom)).toBe("setup");
     expect(nodes("Modal")).toHaveLength(0);
     // A first setup cannot be dismissed.
-    expect(button("Close")).toBeUndefined();
+    expect(button("Cancel")).toBeUndefined();
     expect(header()).toBe("Welcome to Qbix");
     await act(() => button("Get started").props.onPress());
 
     // No level any more: only what can be solved.
     expect(header()).toBe("What can you solve?");
+    expect(choice("None yet").props.accessibilityState.checked).toBe(true);
     expect(choice("Ortega")).toBeUndefined();
     await act(() => choice("4×4").props.onPress());
     await act(() => choice("Yau").props.onPress());
@@ -68,6 +73,11 @@ test("native onboarding: welcome, then the puzzles and methods the player can so
     // The methods of a chosen puzzle show under the tiles right away.
     await act(() => choice("Ortega").props.onPress());
     expect(choice("Ortega").props.accessibilityState.checked).toBe(true);
+    expect(choice("None yet").props.accessibilityState.checked).toBe(false);
+    await act(() => button("Continue").props.onPress());
+    // Then the times of another timer; the puzzles it brings join the known ones.
+    expect(header()).toBe("Bring your times");
+    expect(nodes("ImportTimes")).toHaveLength(1);
     await act(async () => button("Start the tour").props.onPress());
     expect(journeyProfile(saved)).toEqual({ kind: "profile", knownPuzzles: ["222"], knownMethods: { "222": ["ortega"] }, priority: null, completedAt: expect.any(String) });
     // The 3×3 cannot be solved yet: the app switches to the 2×2, which can.
@@ -90,12 +100,13 @@ test("native onboarding: welcome, then the puzzles and methods the player can so
     await act(async () => { renderer = create(<Provider store={store}><Introduction /></Provider>); });
     expect(store.get(introductionAtom)).toBeNull();
 
-    // Opened again from the guides, the setup opens on the puzzles, can be closed, and saves without the tour.
+    // Opened again from the guides, the setup opens on the puzzles, can be cancelled, and saves without the tour.
     await act(() => store.set(introductionAtom, "setup"));
-    expect(button("Close")).toBeDefined();
+    expect(button("Cancel")).toBeDefined();
     expect(header()).toBe("What can you solve?");
     expect(choice("2×2").props.accessibilityState.checked).toBe(true);
     await act(() => choice("3×3").props.onPress());
+    await act(() => button("Continue").props.onPress());
     expect(button("Start the tour")).toBeUndefined();
     await act(async () => button("Save").props.onPress());
     expect(journeyProfile(saved)).toMatchObject({ knownPuzzles: ["222", "333"], knownMethods: { "222": ["ortega"] } });

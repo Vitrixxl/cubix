@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useColors } from "../theme";
+import { said } from "../../../src/client/i18n";
 
 /**
  * A sheet from the bottom (the web's `PhoneSheet`, a Base UI drawer there): a handle to swipe it away, its title,
@@ -61,14 +62,15 @@ export function Sheet({ open, onClose, title, description, right, hideTitle = fa
   const max = height - insets.top - 48;
   const head = !hideTitle && <View className="flex-row items-center gap-2 px-5 pt-1 pb-2">
     <View className="min-w-0 flex-1 gap-0.5">
-      {typeof title === "string" ? <Text accessibilityRole="header" className="text-base font-semibold">{title}</Text> : title}
-      {description ? <Text className="text-xs text-muted-foreground">{description}</Text> : null}
+      {typeof title === "string" ? <Text accessibilityRole="header" className="text-base font-semibold">{said(title)}</Text> : title}
+      {description ? <Text className="text-xs text-muted-foreground">{said(description)}</Text> : null}
     </View>
     {right}
   </View>;
   const body = cn("gap-4 px-5 pt-2", contentClassName);
+  // A sheet opened from another (a choice in the settings, a confirmation over a solve) goes over it, the first kept.
   return <BottomSheetModal ref={ref} onDismiss={() => { presented.current = false; latestClose.current(); }} backdropComponent={backdrop}
-    enableDynamicSizing maxDynamicContentSize={max}
+    stackBehavior="push" enableDynamicSizing maxDynamicContentSize={max}
     enableContentPanningGesture={contentPanning}
     keyboardBehavior="interactive" keyboardBlurBehavior="restore" android_keyboardInputMode="adjustPan" enableBlurKeyboardOnGesture
     backgroundStyle={{ backgroundColor: colors.popover, borderTopLeftRadius: 18, borderTopRightRadius: 18 }}

@@ -1,11 +1,11 @@
 import { useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChevronDown, ChevronRight, Gauge, Layers, MessageSquare, Timer, Trophy, type LucideIcon } from "lucide-react-native";
+import { BookOpen, CalendarDays, Gauge, Layers, MessageSquare, Timer, Trophy, type LucideIcon } from "lucide-react-native";
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FlatList, Pressable, ScrollView, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { best, bestAverage, fmtTime, plural, shortDate, solvedAt } from "../../../src/client/lib/format";
 import { HEAT_LEVELS, heatmap, trendScale, type HeatCell, type HeatDay } from "../../../src/client/lib/profile";
-import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
+import type { Tone } from "../../../src/client/lib/tone";
 import { puzzleOf } from "../../../src/shared/puzzles";
 import type { AchievementDto, CaseDto, CaseHistoryDto, HistoryPoint, ProfileDto, SetDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,13 @@ import { shortId } from "../lib/caseState";
 import { puzzleAtom, routeAtom, selectedCaseIdsAtom } from "../state";
 import { useColors } from "../theme";
 import { CaseDiagram } from "./CaseDiagram";
-import { Choice, Empty, Label, Numeric, SearchField } from "./layout";
+import { Bar, Choice, Empty, Figure, GroupToggle, IconTile, Label, Numeric, SearchField } from "./layout";
 import { Section } from "./ProfileCard";
 import { ChoiceButton } from "./PuzzlePicker";
 import { Sheet, SheetScrollView } from "./Sheet";
 import { SolveMenu } from "./SolveMenus";
 import { TimerStats } from "./TimesChart";
+import { locale, tr } from "../../../src/client/i18n";
 
 /**
  * The account's building blocks, after the web app's GitHub-style profile (desktop/renderer/profile/*): the `Section`
@@ -33,17 +34,11 @@ import { TimerStats } from "./TimesChart";
  * (`TrainingProgress`) and the statistics sheet of one case (`ProfileCaseDialog`).
  */
 
-const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+export { EmptyLine, MoreLink, Section, Tag } from "./ProfileCard";
 
-export { EmptyLine, MoreLink, Section, SubHead, Tag } from "./ProfileCard";
-
-/** A figure: its label over the value in Geist; an empty one is a faded dash. */
+/** A figure of a section, three to a row: its label over the value; an empty one is a faded dash. */
 export function Stat({ label, value, tone = "" }: { label: string; value: string | null | undefined; tone?: Tone }) {
-  const empty = value == null || value === "–" || value === "-";
-  return <View className="w-1/3 min-w-0 gap-1.5 pr-3">
-    <Text numberOfLines={1} className="text-xs text-muted-foreground">{label}</Text>
-    <Numeric numberOfLines={1} className={cn("text-xl font-medium tracking-tight", empty ? "text-muted-foreground/60" : TONE_TEXT[tone])}>{empty ? "–" : value}</Numeric>
-  </View>;
+  return <Figure label={label} value={value} tone={tone} className="w-1/3 pr-3" />;
 }
 
 /** Figures three to a row. */
@@ -76,21 +71,21 @@ export const Heatmap = memo(function Heatmap({ days, years, heat, latest }: { da
     const levels = [{ backgroundColor: colors.muted }, ...[0.35, 0.6, 0.85, 1].map(opacity => ({ backgroundColor: colors.primary, opacity }))];
     return (level: number) => levels[level]!;
   }, [colors]);
-  return <Section label="Activity" title="Activity" meta={plural(total, "solve")} bodyClassName="gap-0"
-    aside={<ChoiceButton label="Period" variant="ghost" value={String(year)} className="px-2"
-      options={[{ id: "null", label: "Last 12 months" }, ...years.map(y => ({ id: String(y), label: String(y) }))]}
+  return <Section label={tr("Activity")} title={tr("Activity")} meta={plural(total, "solve")} bodyClassName="gap-0"
+    aside={<ChoiceButton label={tr("Period")} variant="ghost" value={String(year)} className="px-2"
+      options={[{ id: "null", label: tr("Last 12 months") }, ...years.map(y => ({ id: String(y), label: String(y) }))]}
       onChange={v => setYear(v === "null" ? null : Number(v))} />}>
       <View className="flex-row">
         <View style={{ width: HEAT_LABEL, paddingTop: MONTH_ROW + HEAT_GAP, gap: HEAT_GAP }} importantForAccessibility="no-hide-descendants">
           {["Mon", "", "Wed", "", "Fri", "", ""].map((d, i) => <View key={i} className="justify-center" style={{ height: HEAT_CELL }}>
-            <Text className="text-[11px] leading-[13px] text-muted-foreground">{d}</Text>
+            <Text className="text-xs leading-none text-muted-foreground">{tr(d)}</Text>
           </View>)}
         </View>
         <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} className="-mr-4 min-w-0 flex-1" contentContainerClassName="pr-4"
           onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: false })}>
-          {!ready ? <Skeleton accessibilityLabel="Loading the activity" style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }} /> : <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? "over the last 12 months" : `in ${year}`}`}
+          {!ready ? <Skeleton accessibilityLabel={tr("Loading the activity")} style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }} /> : <View accessibilityRole="image" accessibilityLabel={`${plural(total, "solve")} ${year == null ? tr("in the last year") : tr("in {0}", { 0: year })}`}
             style={{ width: weeks * step - HEAT_GAP, height: MONTH_ROW + HEAT_GAP + 7 * step - HEAT_GAP }}>
-            {months.map(m => <Text key={m.week} className="absolute top-0 text-[11px] leading-[13px] text-muted-foreground" style={{ left: m.week * step }}>{m.label}</Text>)}
+            {months.map(m => <Text key={m.week} className="absolute top-0 text-xs leading-none text-muted-foreground" style={{ left: m.week * step }}>{m.label}</Text>)}
             {/* A year is some 370 days: plain squares coloured by style, and one touch target finding the day under the
               finger, render many times faster than a Pressable with NativeWind classes per day. */}
             <Pressable style={{ position: "absolute", left: 0, top: MONTH_ROW + HEAT_GAP, width: weeks * step - HEAT_GAP, height: 7 * step - HEAT_GAP }}
@@ -110,16 +105,16 @@ export const Heatmap = memo(function Heatmap({ days, years, heat, latest }: { da
       </View>
       {picked ? <View className="mt-3 h-4 flex-row items-center gap-2">
         <Text numberOfLines={1} className="shrink text-xs">
-          <Text className="text-xs font-medium">{picked.count ? plural(picked.count, "solve") : "No solves"}</Text>
-          <Text className="text-xs text-muted-foreground"> on {picked.date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</Text>
+          <Text className="text-xs font-medium">{picked.count ? plural(picked.count, "solve") : tr("No solves")}</Text>
+          <Text className="text-xs text-muted-foreground">{" "}{tr("on")}{" "}{picked.date.toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "short" })}</Text>
         </Text>
-        {finite.length ? <Numeric numberOfLines={1} className="ml-auto text-xs text-muted-foreground">Best {fmtTime(best(times))}{times.length >= 5 ? ` · Ao5 ${fmtTime(bestAverage(times, 5))}` : ""}</Numeric> : null}
+        {finite.length ? <Numeric numberOfLines={1} className="ml-auto text-xs text-muted-foreground">{tr("Best {0}", { 0: fmtTime(best(times)) })}{times.length >= 5 ? ` · Ao5 ${fmtTime(bestAverage(times, 5))}` : ""}</Numeric> : null}
       </View> : <View className="mt-3 h-4 flex-row items-center justify-between gap-4">
-        <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{latest ? `Last practice ${shortDate(latest)}` : "No practice yet"}</Text>
+        <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{latest ? tr("Last practice {0}", { 0: shortDate(latest) }) : tr("No practice yet")}</Text>
         <View className="shrink-0 flex-row items-center gap-1">
-          <Text className="text-xs text-muted-foreground">Less</Text>
+          <Text className="text-xs text-muted-foreground">{tr("Less")}</Text>
           {HEAT_LEVELS.map(c => <View key={c} className={cn("size-2.5 rounded-[2px]", c)} />)}
-          <Text className="text-xs text-muted-foreground">More</Text>
+          <Text className="text-xs text-muted-foreground">{tr("More")}</Text>
         </View>
       </View>}
   </Section>;
@@ -128,7 +123,7 @@ export const Heatmap = memo(function Heatmap({ days, years, heat, latest }: { da
 /** The latest solves and their Ao5 as two lines over three quiet ticks, the first and last dates under it. */
 export function Trend({ history, averages, count = 100, height = 160 }: { history: HistoryPoint[]; averages: (number | null)[]; count?: number; height?: number }) {
   // Drawn a frame after the page, over a placeholder of its size.
-  if (!useAfterPaint()) return <Skeleton accessibilityLabel="Loading the curve" style={{ height }} />;
+  if (!useAfterPaint()) return <Skeleton accessibilityLabel={tr("Loading the curve")} style={{ height }} />;
   return <TrendChart history={history} averages={averages} count={count} height={height} />;
 }
 
@@ -136,14 +131,14 @@ function TrendChart({ history, averages, count, height }: { history: HistoryPoin
   const colors = useColors();
   const [width, setWidth] = useState(0);
   const h = height - 22, scale = trendScale(history, averages, count, h);
-  if (!scale) return <View className="items-center justify-center" style={{ height }}><Text className="text-sm text-muted-foreground">Your curve appears after two timed solves.</Text></View>;
+  if (!scale) return <View className="items-center justify-center" style={{ height }}><Text className="text-sm text-muted-foreground">{tr("Your curve appears after two timed solves.")}</Text></View>;
   const { shown, ao5, y, ticks } = scale;
   const x = (i: number) => shown.length === 1 ? width / 2 : (i / (shown.length - 1)) * width;
   const line = (points: (number | null)[]) => scale.line(points, x, n => n.toFixed(1));
-  return <View style={{ height }} accessibilityRole="image" accessibilityLabel={`Last ${shown.length} solves and their average of five`}>
+  return <View style={{ height }} accessibilityRole="image" accessibilityLabel={tr("Last {0} solves and their average of five", { 0: shown.length })}>
     <View className="flex-1 flex-row gap-3">
       <View className="w-12" importantForAccessibility="no-hide-descendants">
-        {ticks.map(t => <Numeric key={t} className="absolute right-0 text-[11px] leading-[13px] text-muted-foreground" style={{ top: y(t) - 6.5 }}>{fmtTime(t)}</Numeric>)}
+        {ticks.map(t => <Numeric key={t} className="absolute right-0 text-xs leading-none text-muted-foreground" style={{ top: y(t) - 6 }}>{fmtTime(t)}</Numeric>)}
       </View>
       <View className="flex-1" onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && <Svg width={width} height={h}>
@@ -163,8 +158,8 @@ function TrendChart({ history, averages, count, height }: { history: HistoryPoin
 /** The two series named beside the chart. */
 export function TrendLegend() {
   return <View className="flex-row items-center gap-4">
-    <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-primary" /><Text className="text-xs text-muted-foreground">Single</Text></View>
-    <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-chart-2" /><Text className="text-xs text-muted-foreground">Ao5</Text></View>
+    <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-primary" /><Text className="text-xs text-muted-foreground">{tr("Single")}</Text></View>
+    <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-chart-2" /><Text className="text-xs text-muted-foreground">{tr("Ao5")}</Text></View>
   </View>;
 }
 
@@ -177,12 +172,12 @@ export function LatestSolves({ history, count = 5 }: { history: HistoryPoint[]; 
       const previous = history[index - 1];
       const pb = v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time);
       return <SolveMenu key={v.id} solve={{ id: v.id, time_ms: v.timeMs, penalty: v.penalty, comment: v.comment, created_at: v.at }}
-        className="h-10 flex-row items-center gap-3 rounded-md px-2 active:bg-muted/60">
+        className="h-10 flex-row items-center gap-3 rounded-md px-2 active:bg-muted/50">
         <Numeric className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Numeric>
         <View className="w-24 flex-row items-center gap-1.5">
           <Numeric className={cn("text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Numeric>
           {v.penalty === "+2" ? <Numeric className="text-xs text-warning">+2</Numeric> : null}
-          {pb ? <Text className="text-xs font-medium text-success">PB</Text> : null}
+          {pb ? <Text className="text-xs font-medium text-success">{tr("PB")}</Text> : null}
         </View>
         <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
           {v.comment ? <><Icon as={MessageSquare} size={13} className="text-muted-foreground" /><Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{v.comment}</Text></> : null}
@@ -193,22 +188,11 @@ export function LatestSolves({ history, count = 5 }: { history: HistoryPoint[]; 
   </View>;
 }
 
-/** Two tones on one bar: the cases trained, and over them the ones learned. */
-export function TwoTone({ trained, learned, total }: { trained: number; learned: number; total: number }) {
-  const pct = (n: number) => `${total ? (n / total) * 100 : 0}%` as const;
-  return <View className="h-1.5 min-w-12 flex-1 overflow-hidden rounded-full bg-muted" accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: learned }}>
-    <View className="absolute inset-y-0 left-0 rounded-full bg-primary/35" style={{ width: pct(Math.max(trained, learned)) }} />
-    <View className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: pct(learned) }} />
-  </View>;
-}
-
 const CATEGORY_ICON: Record<string, LucideIcon> = { knowledge: BookOpen, speed: Timer, average: Gauge, volume: Layers, dedication: CalendarDays };
 
 /** An achievement's mark: its category's icon on a square, in the accent once unlocked. */
-export function AchievementBadge({ a, large = false }: { a: AchievementDto; large?: boolean }) {
-  return <View className={cn("shrink-0 items-center justify-center rounded-lg", large ? "size-10" : "size-9", a.unlocked ? "bg-primary/15" : "bg-muted")}>
-    <Icon as={CATEGORY_ICON[a.category] ?? Trophy} size={large ? 20 : 16} className={a.unlocked ? "text-primary" : "text-muted-foreground"} />
-  </View>;
+export function AchievementBadge({ a }: { a: AchievementDto }) {
+  return <IconTile icon={CATEGORY_ICON[a.category] ?? Trophy} tone={a.unlocked ? "primary" : "muted"} />;
 }
 
 /** A goal on its way: its mark, title, percentage and a bar. */
@@ -217,12 +201,10 @@ export function Goal({ a }: { a: AchievementDto }) {
     <AchievementBadge a={a} />
     <View className="min-w-0 flex-1 gap-1.5">
       <View className="flex-row items-baseline justify-between gap-3">
-        <Text numberOfLines={1} className="shrink text-sm font-medium">{a.title}</Text>
+        <Text numberOfLines={1} className="shrink text-sm font-medium">{tr(a.title)}</Text>
         <Numeric className="shrink-0 text-xs text-muted-foreground">{Math.round(a.ratio * 100)}%</Numeric>
       </View>
-      <View className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <View className="h-full rounded-full bg-primary/70" style={{ width: `${clamp01(a.ratio) * 100}%` }} />
-      </View>
+      <Bar ratio={a.ratio} className="h-1.5" />
     </View>
   </View>;
 }
@@ -230,11 +212,11 @@ export function Goal({ a }: { a: AchievementDto }) {
 /** A case of the progress grid: picture, short name and best time; untrained cases are faded. */
 const CaseTile = memo(function CaseTile({ c, stats, width, onOpen }: { c: CaseDto; stats?: CaseHistoryDto; width: number; onOpen: (id: string) => void }) {
   const trained = !!stats?.summary.count;
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${c.id}, ${trained ? `best ${fmtTime(stats!.summary.best)}, ${stats!.summary.count} solves` : "not trained"}`} onPress={() => onOpen(c.id)}
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${c.id}, ${trained ? tr("best {0}, {1}", { 0: fmtTime(stats!.summary.best), 1: plural(stats!.summary.count, "solve") }) : tr("not trained")}`} onPress={() => onOpen(c.id)}
     className="items-center gap-1 rounded-lg px-1 pt-2.5 pb-2 active:bg-muted/50" style={{ width, opacity: trained ? 1 : 0.5 }}>
     <CaseDiagram c={c} size={Math.min(64, width - 12)} />
     <Text numberOfLines={1} className="text-xs font-medium">{shortId(c)}</Text>
-    <Numeric numberOfLines={1} className="text-[11px] text-muted-foreground">{trained ? fmtTime(stats!.summary.best) : "–"}</Numeric>
+    <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{trained ? fmtTime(stats!.summary.best) : "–"}</Numeric>
   </Pressable>;
 });
 
@@ -276,24 +258,19 @@ export function TrainingProgress({ cases, sets, profile, learned, onOpen, scroll
     if (filter !== previousFilter.current) scroll.ref.current?.scrollToOffset({ offset: 0, animated: false });
     previousFilter.current = filter;
   }, [stage, q]);
-  const learnedCount = cases.filter(c => learned.has(c.id)).length;
-  const stages = ["all", ...new Set(cases.map(c => c.stage))];
+  const learnedCount = useMemo(() => cases.filter(c => learned.has(c.id)).length, [cases, learned]);
+  const stages = useMemo(() => ["all", ...new Set(cases.map(c => c.stage))], [cases]);
   return <View className="min-h-0 flex-1 gap-2">
-    <Choice label="Stage" value={stage} onChange={setStage} options={stages.map(value => ({ id: value, label: value === "all" ? "All" : value }))} />
-    <SearchField value={query} onChangeText={setQuery} placeholder="Search cases…" />
-    <Text className="text-xs text-muted-foreground">{profile.cases.length} / {cases.length} trained · {learnedCount} learned</Text>
+    <Choice label={tr("Stage")} value={stage} onChange={setStage} options={stages.map(value => ({ id: value, label: value === "all" ? tr("All") : value }))} />
+    <SearchField value={query} onChangeText={setQuery} placeholder={tr("Search cases…")} />
+    <Text className="text-xs text-muted-foreground">{tr("{0} / {1} trained · {2} learned", { 0: profile.cases.length, 1: cases.length, 2: learnedCount })}</Text>
     <View className="min-h-0 flex-1" onLayout={e => setWidth(e.nativeEvent.layout.width)}>
       {width > 0 && <FlatList key={key} {...scroll} data={rows} keyExtractor={row => row.key}
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={5} scrollEventThrottle={64} showsVerticalScrollIndicator={false}
         className="flex-1" contentContainerClassName="pb-4" keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={<Empty>No cases match.</Empty>}
+        ListEmptyComponent={<Empty>{tr("No cases match.")}</Empty>}
         renderItem={({ item: row }) => row.kind === "set"
-          ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: row.open }} onPress={() => setClosed({ ...closed, [row.set.id]: row.open })}
-            className="mt-1 h-10 flex-row items-center gap-2 rounded-lg px-1 active:bg-muted/50">
-            <Icon as={row.open ? ChevronDown : ChevronRight} size={16} className="text-muted-foreground" />
-            <Text className="text-sm font-medium">{row.set.label}</Text>
-            <Numeric className="text-xs text-muted-foreground">{row.trained} / {row.count}</Numeric>
-          </Pressable>
+          ? <GroupToggle className="mx-0 mt-1" title={row.set.label} meta={`${row.trained} / ${row.count}`} open={row.open} onPress={() => setClosed({ ...closed, [row.set.id]: row.open })} />
           : <View className="flex-row gap-1">{row.cases.map(c => <CaseTile key={c.id} c={c} stats={byCase.get(c.id)} width={tileWidth} onOpen={onOpen} />)}</View>} />}
     </View>
   </View>;
@@ -309,8 +286,8 @@ export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined
   if (c) last.current = c;
   const shown = c ?? last.current;
   const train = () => { if (!shown) return; onClose(); setPuzzle(puzzleOf(shown)); setSelection([shown.id]); setRoute({ page: "training", autostart: true }); };
-  return <Sheet open={!!c} onClose={onClose} title={shown?.id ?? "Case"} description={shown ? (shown.name !== shown.id ? shown.name : shown.group) : undefined} contentClassName="px-0"
-    right={shown && <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={train}><Icon as={Timer} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Train</Text></Button>}>
+  return <Sheet open={!!c} onClose={onClose} title={shown?.id ?? tr("Case")} description={shown ? (shown.name !== shown.id ? shown.name : shown.group) : undefined} contentClassName="px-0"
+    right={shown && <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={train}><Icon as={Timer} size={15} className="text-muted-foreground" /><Text className="text-sm text-muted-foreground">{tr("Train")}</Text></Button>}>
     {shown && <SheetScrollView contentContainerClassName="gap-4 px-5 pb-8">
       <View className="flex-row items-center gap-3">
         <CaseDiagram c={shown} size={56} />
@@ -319,7 +296,7 @@ export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined
           <Label>{plural(data?.summary.count ?? 0, "solve")}</Label>
         </View>
       </View>
-      <TimerStats compact data={data} empty="No attempts on this case yet." />
+      <TimerStats compact data={data} empty={tr("No attempts on this case yet.")} />
     </SheetScrollView>}
   </Sheet>;
 }

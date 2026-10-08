@@ -37,3 +37,19 @@ export function toggleSelection(selected: ReadonlySet<string>, ids: readonly str
   for (const id of ids) { if (all) next.delete(id); else next.add(id); }
   return next;
 }
+
+/** The words of each case a search reads, worked out once; and the words of the last query. */
+const caseWords = new WeakMap<object, string[]>();
+let lastQuery = "", queryWords = [""];
+function wordsOf(c: Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group" | "subgroup">) {
+  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase(),
+    words = [...new Set([...text.split(/\s+/), ...text.split(/[^a-z0-9]+/)])];
+  caseWords.set(c, words);
+  return words;
+}
+/** Whether every word typed starts a word of the case, so "g perm" finds the G perms and not every case with a "g" somewhere. */
+export function matches(c: Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group" | "subgroup">, q: string) {
+  const words = caseWords.get(c) ?? wordsOf(c);
+  if (q !== lastQuery) queryWords = (lastQuery = q).toLowerCase().split(/\s+/);
+  return queryWords.every(word => words.some(w => w.startsWith(word)));
+}

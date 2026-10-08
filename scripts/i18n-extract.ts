@@ -1,5 +1,5 @@
 /**
- * Every English text the app, the landing page and the API show, for the dictionaries (src/client/i18n/<code>.json):
+ * Every English text the app (web and Android), the landing page and the API show, for the dictionaries (src/client/i18n/<code>.json):
  * the texts put through `tr`, `t`, `tn`, `plural` and `msg` in the code, the texts of the data the pages draw (the
  * solving methods, the landing page, the guides' names, the puzzles and events), and the API's error messages.
  * Writes them, sorted, to src/client/i18n/keys.json; tests/i18n.test.ts checks each dictionary has them all.
@@ -28,7 +28,7 @@ function strings(e: ts.Expression | undefined): string[] {
   return [];
 }
 
-for (const file of [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("desktop/guides/*.tsx"), ...globSync("src/client/**/*.ts"), ...globSync("src/shared/**/*.ts")]) {
+for (const file of [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("desktop/guides/*.tsx"), ...globSync("src/client/**/*.ts"), ...globSync("src/shared/**/*.ts"), "mobile/App.tsx", ...globSync("mobile/src/**/*.{ts,tsx}")]) {
   if (/components\/ui\/|\/admin\/|\/dev\/|\/legal\/|\.d\.ts$/.test(file)) continue;
   const sf = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const visit = (n: ts.Node) => {
@@ -46,8 +46,8 @@ for (const file of [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("
       if (name === "plural" && second) for (const noun of strings(second)) (add(`{n} ${noun}`), add(`{n} ${pluralOf(noun)}`));
     }
     // Labels written in the interface's own data: `{ label: "Dark" }`, `["Best", value]`.
-    if (/desktop\/(renderer|guides)\//.test(file)) {
-      if (ts.isPropertyAssignment(n) && LABELS.has(n.name.getText()) && (ts.isStringLiteral(n.initializer) || ts.isNoSubstitutionTemplateLiteral(n.initializer))) add(n.initializer.text);
+    if (/desktop\/(renderer|guides)\/|mobile\//.test(file)) {
+      if (ts.isPropertyAssignment(n) && LABELS.has(n.name.getText()) && !(file.startsWith("mobile/") && n.name.getText() === "name") && (ts.isStringLiteral(n.initializer) || ts.isNoSubstitutionTemplateLiteral(n.initializer))) add(n.initializer.text);
       if (ts.isArrayLiteralExpression(n)) for (const e of n.elements) if (ts.isStringLiteral(e) && /^[A-Z][a-z]/.test(e.text)) add(e.text);
       // The landing page's sentences, wherever they are kept.
       if (file.includes("/landing/") && ts.isStringLiteral(n) && /^[A-Z][a-z]* [a-z]/.test(n.text)) add(n.text);

@@ -15,6 +15,7 @@ import { useColors } from "../theme";
 import { Empty, Figure, Numeric } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
 import { SolveMenu, useSolveMenu, type SolveSummary } from "./SolveMenus";
+import { tr } from "../../../src/client/i18n";
 
 /**
  * The solve statistics of a selection (the web's `TimerStats`): a strip of figures, then a panel showing the solves
@@ -73,9 +74,9 @@ function StatsPanel({ history, ao5, compact, fill, table }: { history: HistoryPo
     {([["chart", "Chart", ChartLine], ["table", "Table", Table]] as const).map(([id, label, I]) => {
       const on = view === id;
       return <Pressable key={id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => changeView(id)}
-        className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-2.5 active:bg-muted/50", on && "bg-muted")}>
+        className={cn("h-11 flex-row items-center gap-1.5 rounded-lg px-2.5 active:bg-muted/50", on && "bg-muted")}>
         <Icon as={I} size={15} className={on ? "text-foreground" : "text-muted-foreground"} />
-        <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
+        <Text className={cn("text-sm font-medium", on ? "text-foreground" : "text-muted-foreground")}>{tr(label)}</Text>
       </Pressable>;
     })}
   </View>;
@@ -84,8 +85,8 @@ function StatsPanel({ history, ao5, compact, fill, table }: { history: HistoryPo
       <View className="flex-row items-center justify-between gap-2">
         {toggle}
         <View className="flex-row items-center gap-3">
-          <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-chart-1" /><Text className="text-xs text-muted-foreground">Single</Text></View>
-          <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full" style={{ backgroundColor: colors.chart2 }} /><Text className="text-xs text-muted-foreground">Ao5</Text></View>
+          <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full bg-chart-1" /><Text className="text-xs text-muted-foreground">{tr("Single")}</Text></View>
+          <View className="flex-row items-center gap-1.5"><View className="h-0.5 w-3 rounded-full" style={{ backgroundColor: colors.chart2 }} /><Text className="text-xs text-muted-foreground">{tr("Ao5")}</Text></View>
         </View>
       </View>
       <HistoryChart history={history} averages={ao5} range={range} onRange={setRange} height={fill ? undefined : 200} />
@@ -167,12 +168,12 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
   return <View className={cn("gap-1", height === undefined && "min-h-40 flex-1")}>
     <View className={cn("flex-row gap-2.5", height === undefined && "min-h-0 flex-1")} style={height !== undefined ? { height } : undefined}>
       <View className="w-12" pointerEvents="none">
-        {H > 0 && [0, 1, 2, 3].map(i => <Numeric key={i} className="absolute right-0 text-[11px] text-muted-foreground" style={{ top: (12 + i / 3 * 202) / 240 * H - 7 }}>{fmtTime(scale.lo + scale.height * (1 - i / 3))}</Numeric>)}
+        {H > 0 && [0, 1, 2, 3].map(i => <Numeric key={i} className="absolute right-0 text-xs text-muted-foreground" style={{ top: (12 + i / 3 * 202) / 240 * H - 8 }}>{fmtTime(scale.lo + scale.height * (1 - i / 3))}</Numeric>)}
       </View>
       <View className="min-w-0 flex-1" onLayout={onLayout}
         onStartShouldSetResponder={() => true} onMoveShouldSetResponder={() => true} onResponderTerminationRequest={() => !gesture.current?.moved}
         onResponderGrant={onGrant} onResponderMove={onMove} onResponderRelease={onRelease} onResponderTerminate={cancel}
-        accessibilityLabel="Solve times: tap a point to read it, drag across the chart to zoom into a period">
+        accessibilityLabel={tr("Solve times: tap a point to read it, drag across the chart to zoom into a period")}>
         {W > 0 && H > 0 && <Svg width={W} height={H}>
           {[0, 1, 2, 3].map(i => <Line key={i} x1={0} x2={W} y1={(12 + i / 3 * 202) / 240 * H} y2={(12 + i / 3 * 202) / 240 * H} stroke={colors.border} strokeWidth={1} />)}
           <Path d={paths.average} fill="none" stroke={colors.chart2} strokeWidth={1.6} strokeLinejoin="round" />
@@ -183,18 +184,18 @@ const HistoryChart = memo(function HistoryChart({ history, averages, range, onRa
           {hover != null && value != null && <Circle cx={x(hover)} cy={y(value)} r={4.5} fill={colors.primary} stroke={colors.card} strokeWidth={2} />}
           {selection && <Rect x={x(selection[0]!)} y={0} width={Math.max(1, x(selection[1]!) - x(selection[0]!))} height={H} fill={colors.primary} fillOpacity={0.12} stroke={colors.primary} strokeWidth={1} />}
         </Svg>}
-        {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">Reset zoom</Text></Button>}
-        {selection && <View pointerEvents="none" className="absolute bottom-1 self-center rounded-md bg-popover px-2 py-1"><Text className="text-[11px]">{fmtDate(history[selection[0]!]!.at)} — {fmtDate(history[selection[1]!]!.at)}</Text></View>}
+        {zoomed && <Button size="sm" variant="secondary" className="absolute top-1 right-1 h-8" onPress={() => { setHover(null); onRange([0, end]); }}><Text className="text-xs">{tr("Reset zoom")}</Text></Button>}
+        {selection && <View pointerEvents="none" className="absolute bottom-1 self-center rounded-md bg-popover px-2 py-1"><Text className="text-xs">{fmtDate(history[selection[0]!]!.at)} — {fmtDate(history[selection[1]!]!.at)}</Text></View>}
         {point && <View pointerEvents="none" className="absolute top-2 gap-0.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-lg" style={x(hover!) > W / 2 ? { right: W - x(hover!) + 10 } : { left: x(hover!) + 10 }}>
-          <Numeric className="text-[15px] font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Numeric>
-          {averages[hover!] != null && <Numeric className="text-xs" style={{ color: colors.chart2 }}>Ao5 {fmtTime(averages[hover!])}</Numeric>}
-          <Text className="text-[11px] text-muted-foreground">#{hover! + 1} · {fmtDate(point.at)}</Text>
+          <Numeric className="text-base font-semibold">{fmtTime(point.time, { blank: "DNF" })}</Numeric>
+          {averages[hover!] != null && <Numeric className="text-xs" style={{ color: colors.chart2 }}>{tr("Ao5 {0}", { 0: fmtTime(averages[hover!]) })}</Numeric>}
+          <Text className="text-xs text-muted-foreground">#{hover! + 1} · {fmtDate(point.at)}</Text>
         </View>}
       </View>
     </View>
-    <View className="ml-[58px] flex-row justify-between gap-3">
-      <Text numberOfLines={1} className="shrink text-[11px] text-muted-foreground">{history[first] ? fmtDate(history[first]!.at) : ""}</Text>
-      <Text numberOfLines={1} className="shrink text-[11px] text-muted-foreground">{last !== first && history[last] ? fmtDate(history[last]!.at) : ""}</Text>
+    <View className="ml-14.5 flex-row justify-between gap-3">
+      <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{history[first] ? fmtDate(history[first]!.at) : ""}</Text>
+      <Text numberOfLines={1} className="shrink text-xs text-muted-foreground">{last !== first && history[last] ? fmtDate(history[last]!.at) : ""}</Text>
     </View>
   </View>;
 });
@@ -224,26 +225,26 @@ function SolvesTable({ history, range, toggle, fill, sort, setSort, commented, s
   type Row = (typeof rows)[number];
   const renderRow = ({ item: { v, index, pb } }: { item: Row }) => {
     const solve: SolveSummary = { id: v.id, time_ms: v.timeMs, penalty: v.penalty, created_at: v.at, comment: v.comment };
-    return <SolveMenu solve={solve} accessibilityLabel={`Solve ${index + 1}: ${fmtTime(v.time, { blank: "DNF" })}`} className="min-h-11 justify-center border-b border-border px-1 py-1.5 active:bg-muted/50">
+    return <SolveMenu solve={solve} accessibilityLabel={tr("Solve {0}: {1}", { 0: index + 1, 1: fmtTime(v.time, { blank: "DNF" }) })} className="min-h-11 justify-center border-b border-border px-1 py-1.5 active:bg-muted/50">
       <View className="flex-row items-center gap-3">
         <Numeric className="w-9 text-right text-xs text-muted-foreground">{index + 1}</Numeric>
         <Numeric className={cn("text-base", v.time == null ? "text-destructive" : pb ? "text-primary" : v.penalty === "+2" ? "text-warning" : "")}>{fmtTime(v.time, { blank: "DNF" })}</Numeric>
-        {pb && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px] text-primary">PB</Text></Badge>}
-        {v.penalty === "+2" && <Badge variant="secondary" className="px-1.5"><Text className="text-[10px]">+2</Text></Badge>}
+        {pb && <Badge variant="accent" className="px-1.5"><Text>{tr("PB")}</Text></Badge>}
+        {v.penalty === "+2" && <Badge variant="warning" className="px-1.5"><Text>+2</Text></Badge>}
         <Text numberOfLines={1} className="ml-auto text-xs text-muted-foreground">{fmtDate(v.at)}</Text>
       </View>
-      {v.comment ? <Text className="pt-0.5 pl-12 text-[13px] leading-[18px]">{v.comment}</Text> : null}
+      {v.comment ? <Text className="pt-0.5 pl-12 text-sm">{v.comment}</Text> : null}
     </SolveMenu>;
   };
-  const more = rows.length > shown ? <Button variant="outline" className="mt-2 self-center" onPress={() => setShown(shown + PAGE)}><Text>Show more ({rows.length - shown} left)</Text></Button> : null;
-  const empty = <Empty>{commented ? "No commented solve yet. Hold a time to add a comment." : "No solves match."}</Empty>;
+  const more = rows.length > shown ? <Button variant="outline" className="mt-2 self-center" onPress={() => setShown(shown + PAGE)}><Text>{tr("Show more ({0} left)", { 0: rows.length - shown })}</Text></Button> : null;
+  const empty = <Empty>{commented ? tr("No commented solve yet. Hold a time to add a comment.") : tr("No solves match.")}</Empty>;
   return <>
     <View className="flex-row items-center justify-between gap-2">
       {toggle}
       <View className="shrink flex-row items-center gap-1">
-        <ChoiceButton label="Sort solves" value={sort} options={SORTS} onChange={setSort} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Show only commented solves" accessibilityState={{ selected: commented }} onPress={() => setCommented(!commented)}
-          className={cn("h-9 flex-row items-center gap-1 rounded-lg px-2 active:bg-muted/50", commented && "bg-muted")}>
+        <ChoiceButton label={tr("Sort solves")} value={sort} options={SORTS} onChange={setSort} />
+        <Pressable accessibilityRole="button" accessibilityLabel={tr("Show only commented solves")} accessibilityState={{ selected: commented }} onPress={() => setCommented(!commented)}
+          className={cn("h-11 flex-row items-center gap-1 rounded-lg px-2.5 active:bg-muted/50", commented && "bg-muted")}>
           <Icon as={MessageSquare} size={15} className={commented ? "text-foreground" : "text-muted-foreground"} />
           <Numeric className="text-xs text-muted-foreground">{commentCount}</Numeric>
         </Pressable>

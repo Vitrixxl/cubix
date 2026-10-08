@@ -6,6 +6,7 @@ import type { SyncStatus } from "../../../src/client/local/client";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { local, syncStatusChanged } from "../api";
+import { tr } from "../../../src/client/i18n";
 
 /**
  * A change that could not reach the server: a pill over the tab bar, a tap retries. (An expired session needs no
@@ -17,10 +18,10 @@ export function SyncIndicator({ hidden }: { hidden: boolean }) {
   useEffect(() => syncStatusChanged.on(setStatus), []);
   if (hidden || status.state !== "error") return null;
   return <View pointerEvents="box-none" className="absolute right-0 left-0 items-center" style={{ bottom: Math.max(insets.bottom, 8) + 72 }}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Couldn't save. Retry" onPress={() => void local.retry()}
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Couldn't save. Retry")} onPress={() => void local.retry()}
       className="flex-row items-center gap-2 rounded-full bg-destructive px-4 py-2.5 shadow-lg active:opacity-80">
       <Icon as={CloudAlert} size={16} className="text-white" />
-      <Text className="text-sm font-semibold text-white">Couldn't save · Retry</Text>
+      <Text className="text-sm font-semibold text-white">{tr("Couldn't save · Retry")}</Text>
     </Pressable>
   </View>;
 }

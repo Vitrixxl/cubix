@@ -9,7 +9,7 @@ mock.module("react-native", () => ({
   Animated: { View: "Animated.View", Value: class { interpolate() { return this; } } },
   Easing: { bezier: () => (t: number) => t },
   AppState: { addEventListener: () => ({ remove() {} }) },
-  View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView",
+  View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Linking: { openURL() {} },
   FlatList: ({ renderItem, data, ListHeaderComponent, ...props }: any) => createElement("FlatList", { ...props, data }, ListHeaderComponent,
     data.map((item: any, index: number) => createElement("Row", { key: item.key }, renderItem({ item, index })))),
   StyleSheet: { create: (styles: unknown) => styles, absoluteFill: { position: "absolute", inset: 0 } },
@@ -31,19 +31,26 @@ const sets = [{ id: "2look-oll", stage: "OLL", label: "2-Look OLL", count: 2 }, 
 const solver = { kind: "profile", knownPuzzles: ["333"], priority: null, completedAt: "2026-10-01T10:00:00.000Z" };
 let journey: Record<string, any> = { profile: solver };
 const journeyUpdates: any[] = [];
-mock.module("../src/api", () => ({ api: { setLearned: async () => {}, updateJourney: async (changes: any) => { journeyUpdates.push(changes); } }, authToken: { get: () => "token" }, local: {
-  current: () => ({ id: "u1", username: "u1", isGuest: false, createdAt: "" }), learned: () => ["2L-OLL I-Shape"], read: { catalog: () => ({ cases, sets }), stats: () => [], journey: () => journey },
+mock.module("../src/api", () => ({ api: { setLearned: async () => {}, updateJourney: async (changes: any) => { journeyUpdates.push(changes); }, algorithmChoices: async () => ({}) }, authToken: { get: () => "token" }, local: {
+  current: () => ({ id: "u1", username: "u1", isGuest: false, createdAt: "" }), learned: () => ["2L-OLL I-Shape"], learnedAlg: () => ({}), learningGroupOrder: () => ({}), read: { catalog: () => ({ cases, sets }), stats: () => [], journey: () => journey, caseHistory: () => ({ summary: { count: 0 } }) },
 } }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
-mock.module("../src/components/Sheet", () => ({ Sheet: ({ open, children }: any) => open ? createElement("Sheet", {}, children) : null }));
+mock.module("../src/components/Sheet", () => ({ Sheet: ({ open, children }: any) => open ? createElement("Sheet", {}, children) : null, SheetScrollView: "SheetScrollView" }));
+mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
+mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) => source }));
+mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
+mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
+mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
+mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
 mock.module("../src/components/AlgPlayer", () => ({ AlgPlayerSheet: "AlgPlayerSheet" }));
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "HeadButton", "Label", "ListGroup", "ListRow", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "GroupToggle", "HeadButton", "IconTile", "Label", "LearnToggle", "ListGroup", "ListRow", "ListSkeleton", "SectionHead", "StatusMark", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { LearnPage } = await import("../src/pages/LearnPage");
 const { routeAtom, learnMethodAtom, selectedCaseIdsAtom, courseProgressAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -75,10 +82,12 @@ const tap = async (label: string) => {
   await act(() => node.props.onPress());
 };
 const rows = () => renderer.root.findAllByType("FlatList" as any)[0]!.props.data;
+/** The catalogue's cases the step shows, group box by group box. */
+const tiles = () => rows().flatMap((row: any) => row.kind === "box" ? row.members.map((c: any) => c.id) : []);
 
 test("the methods of the puzzle open as courses, remembered per account", async () => {
   const store = await mount();
-  const buttons = renderer.root.findAllByType("ListRow" as any).filter((n: any) => /^Start /.test(n.props.accessibilityLabel ?? ""));
+  const buttons = renderer.root.findAll((n: any) => n.type === "Pressable" && /^Start /.test(n.props.accessibilityLabel ?? ""));
   expect(buttons.map(b => b.props.accessibilityLabel)).toEqual(["Start Beginner", "Start CFOP", "Start Roux", "Start ZZ"]);
   await press("Start CFOP");
   expect(store.get(routeAtom)).toEqual({ page: "learn", method: "cfop" });
@@ -89,22 +98,31 @@ test("the methods of the puzzle open as courses, remembered per account", async 
   expect(rows()).toEqual([]);
 });
 
-test("a step lists its sets' cases, trains the shown set, and Next step marks it done", async () => {
+test("a step lists its sets' cases, trains the shown set, and Next step only moves on", async () => {
   const store = await mount();
   await press("Start CFOP");
-  // Next step: the step is done and the next one shown.
+  // Next step shows the next one; a step is checked by its learned algorithms, not by moving on.
   await tap("Next step: F2L");
-  expect(store.get(courseProgressAtom).courses["333:cfop"]).toMatchObject({ step: 1, done: ["cross"] });
+  expect(store.get(courseProgressAtom).courses["333:cfop"]).toEqual({ step: 1, learned: [] });
   await tap("Next step: OLL");
   expect(store.get(courseProgressAtom).courses["333:cfop"]!.step).toBe(2);
-  // 2-Look OLL first, since some of its cases are still to learn.
-  expect(rows().filter((row: any) => row.kind === "alg").map((row: any) => row.key)).toEqual(["2L-OLL I-Shape", "2L-OLL Sune"]);
-  expect(rows().find((row: any) => row.key === "2L-OLL I-Shape").item.learned).toBe(true);
-  await act(() => renderer.root.findAllByType("Choice" as any)[0]!.props.onChange("oll"));
-  expect(rows().filter((row: any) => row.kind === "alg").map((row: any) => row.key)).toEqual(["OLL 1"]);
+  // 2-Look OLL first, since some of its cases are still to learn; each group in a box with its learned count.
+  expect(tiles()).toEqual(["2L-OLL I-Shape", "2L-OLL Sune"]);
+  expect(rows().map((row: any) => row.name)).toEqual(["1: Edges", "2: Corners"]);
+  // The learned filter hides the learned ones inside the step.
+  const choice = (label: string) => renderer.root.findAllByType("Choice" as any).find((n: any) => n.props.label === label)!;
+  await act(() => choice("Filter").props.onChange("not-learned"));
+  expect(tiles()).toEqual(["2L-OLL Sune"]);
+  await act(() => choice("Filter").props.onChange("all"));
+  // A tile opens its case over the course.
+  await tap("2L-OLL Sune");
+  expect(renderer.root.findAll((n: any) => n.type === "Sheet").length).toBe(1);
+  await act(() => choice("Set").props.onChange("oll"));
+  expect(tiles()).toEqual(["OLL 1"]);
+  // The set picked stays for the session, even after leaving the step.
   await tap("Previous step");
-  expect(store.get(courseProgressAtom).courses["333:cfop"]!.step).toBe(1);
   await tap("Next step: OLL");
+  expect(tiles()).toEqual(["OLL 1"]);
   await tap("Train OLL");
   expect(store.get(selectedCaseIdsAtom)).toEqual(["OLL 1"]);
   expect(store.get(routeAtom)).toEqual({ page: "training", autostart: true });
@@ -135,7 +153,7 @@ test("a beginner step teaches its own algorithms, plays them in 3D and keeps the
 });
 
 test("the yellow cross and yellow face cases play from their own setups; Finish completes the method", async () => {
-  // A player who cannot solve the 3×3 yet: no Train while learning, and Finish unlocks the puzzle.
+  // A player who cannot solve the 3×3 yet: Finish records the puzzle as one they solve.
   journey = { profile: { ...solver, knownPuzzles: [] } };
   const store = await mount();
   await press("Start Beginner");
@@ -146,27 +164,26 @@ test("the yellow cross and yellow face cases play from their own setups; Finish 
   await tap("Next step: Yellow face");
   expect(sheet().props.items.map((item: any) => item.detail)).toEqual(["Sunes needed: 1", "Sunes needed: 2", "Sunes needed: 2", "Sunes needed: 2", "Sunes needed: 3", "Sunes needed: 3", "Sunes needed: 3"]);
   await tap("Next step: Last layer permutation");
-  // The last step finishes the course: every step done, the page says so and offers what next.
+  // The last step finishes the course: the page says so and offers what next.
   expect(control("Next step")).toBeUndefined();
   expect(control("Train")).toBeUndefined();
   await tap("Finish");
   expect(journeyUpdates.at(-1)).toEqual({ profile: { ...solver, knownPuzzles: ["333"], knownMethods: { "333": ["beginner"] } } });
   journey = { profile: solver };
-  expect(store.get(courseProgressAtom).courses["333:beginner"]!.done).toHaveLength(6);
-  expect(renderer.root.findAll((n: any) => n.type === "Text" && n.props.children?.join?.("") === "Beginner done").length).toBeGreaterThan(0);
+  // Finishing marks nothing learned: the steps stay as their algorithms' marks say.
+  expect(store.get(courseProgressAtom).courses["333:beginner"]).toEqual({ step: 5, learned: [] });
+  expect(renderer.root.findAll((n: any) => n.type === "Text" && [n.props.children].flat().join("") === "Beginner done").length).toBeGreaterThan(0);
   await tap("Beginner done");
 });
 
-test("picking a puzzle opens its timer; one that cannot be solved yet opens Learn with the question", async () => {
-  const { pickEventAtom, learnPromptAtom } = await import("../src/journey");
+test("picking a puzzle opens its timer, even one the player cannot solve yet", async () => {
+  const { pickEventAtom } = await import("../src/journey");
   const store = createStore();
   journey = { profile: solver };
   store.set(routeAtom, { page: "algorithms" });
   store.set(pickEventAtom, "444");
-  expect(store.get(routeAtom)).toEqual({ page: "learn" });
-  expect(store.get(learnPromptAtom)).toEqual({ event: "333", page: "algorithms" });
-  store.set(learnPromptAtom, null);
+  expect(store.get(routeAtom)).toEqual({ page: "playground" });
+  store.set(routeAtom, { page: "learn" });
   store.set(pickEventAtom, "333");
   expect(store.get(routeAtom)).toEqual({ page: "playground" });
-  expect(store.get(learnPromptAtom)).toBeNull();
 });

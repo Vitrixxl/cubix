@@ -36,14 +36,21 @@ afterEach(async () => { if (renderer) await act(() => renderer.unmount()); timin
 
 test("tab presses navigate synchronously, including consecutive taps", async () => {
   const navigate = mock();
-  await act(() => { renderer = create(<Provider><TabBar active="timer" locked={() => false} onNavigate={navigate} /></Provider>); });
+  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ coaching: 2 }} onNavigate={navigate} /></Provider>); });
   const press = (label: string) => renderer.root.findAllByType("Pressable" as any).find(n => n.props.accessibilityLabel === label)!.props.onPress();
   await act(() => {
-    press("Profile");
+    press("Account");
     expect(navigate.mock.calls).toEqual([["profile"]]);
-    press("Learn");
-    expect(navigate.mock.calls).toEqual([["profile"], ["learn"]]);
+    press("Algs");
+    expect(navigate.mock.calls).toEqual([["profile"], ["algorithms"]]);
   });
+});
+
+test("the web phone's seven tabs, named under their icons, with a dot where something waits", async () => {
+  await act(() => { renderer = create(<Provider><TabBar active="timer" waiting={{ coaching: 2 }} onNavigate={() => {}} /></Provider>); });
+  const tabs = renderer.root.findAllByType("Pressable" as any);
+  expect(tabs.map(n => n.props.accessibilityLabel)).toEqual(["Timer", "Algs", "Learn", "Train", "Duel", "Coach", "Account"]);
+  expect(tabs.map(n => n.props.accessibilityValue?.text ?? null)).toEqual([null, null, null, null, null, "2 unread", null]);
 });
 
 test("switching tabs shows only the destination immediately and settles the guided tour", async () => {
@@ -62,7 +69,7 @@ test("a tab press interrupts a detail transition without leaving the old screen 
   const store = createStore();
   const page = (route: Route) => <Provider store={store}><PageStack route={route} render={r => createElement("screen", { name: r.page })} /></Provider>;
   await act(() => { renderer = create(page({ page: "profile" })); });
-  await act(() => renderer.update(page({ page: "profile", mode: "training" })));
+  await act(() => renderer.update(page({ page: "community" })));
   expect(timing).toHaveBeenCalledTimes(1);
   expect(renderer.root.findAllByType("screen" as any)).toHaveLength(2);
   await act(() => renderer.update(page({ page: "learn" })));

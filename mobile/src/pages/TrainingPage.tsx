@@ -6,7 +6,7 @@ import { effective, fmtSolve, fmtTime, plural } from "../../../src/client/lib/fo
 import { isReviewMode, learningModeForPuzzle, learningTrackOf, type LearningMode } from "../../../src/client/lib/dailyLearning";
 import { learningGoalMet, pendingCases } from "../../../src/client/lib/learningGoal";
 import { practiceSummary, trainingSessionRows } from "../../../src/client/lib/practiceSummary";
-import { EMPTY_TRAINING_HISTORY, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
+import { EMPTY_TRAINING_HISTORY, previousIndex, trainingHistoryReducer } from "../../../src/client/lib/trainingHistory";
 import { combineAuf, compensateAuf, randomAuf } from "../../../src/shared/cube";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
 import { puzzleInfo, type PracticeContext } from "../../../src/shared/puzzles";
@@ -18,14 +18,15 @@ import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { CrossPractice } from "../components/CrossPractice";
-import { Alg, BackButton, Fade, HeadButton, Label, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
+import { Alg, BackButton, Fade, HeadButton, Label, LearnToggle, MenuItem, Numeric, MoreMenu, Page, PageHead } from "../components/layout";
 import { LearningGroups } from "../components/LearningGroups";
 import {
   CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock, useSessionSolves,
   useShownSolves, useTimerChrome, type Metric,
 } from "../components/Practice";
 import { Sheet, SheetScrollView } from "../components/Sheet";
-import { LastSolveBar, SolveMenu } from "../components/SolveMenus";
+import { LastSolveBar, SolveAction, SolveMenu } from "../components/SolveMenus";
+import { ask } from "../components/Confirm";
 import { SetupPage, TrainHome, useSetupModes, type DailyLearning } from "../components/TrainingSetup";
 import { SlideSwitch } from "../components/SlideSwitch";
 import { useDailyLearning } from "../hooks/useDailyLearning";
@@ -37,6 +38,7 @@ import {
   casesAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, solveModeAtom,
   statsVersionAtom, trainingKindAtom, trainingSetupModeAtom, trainingStepAtom, userAtom,
 } from "../state";
+import { tr } from "../../../src/client/i18n";
 
 export function TrainingPage() {
   const user = useAtomValue(userAtom);
@@ -44,10 +46,10 @@ export function TrainingPage() {
   return <TrainingRoot key={user?.id ?? "guest"} />;
 }
 
-/** The mode trained last (web `defaultSetupMode`), marked in the list. */
+/** The mode trained last (web `lastSetupMode`), marked in the list. */
 function lastMode(kind: string, puzzle: string, mode: LearningMode) {
   if (kind === "cross1" && puzzle === "333") return "cross1";
-  return isReviewMode(mode) ? "review" : learningTrackOf(mode) ?? "practice";
+  return isReviewMode(mode) ? "review" : "practice";
 }
 
 /**
@@ -101,7 +103,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const supportsAuf = !!cube;
   const solveMode = useAtomValue(solveModeAtom);
   const cases = useAtomValue(casesAtom);
-  const [freeSelected, setSelected] = useAtom(selectedCaseIdsAtom);
+  const freeSelected = useAtomValue(selectedCaseIdsAtom);
   const [showGroups, setShowGroups] = useState(false);
   const [showTimes, setShowTimes] = useState(false);
   const learning = daily.mode !== "practice";
@@ -138,7 +140,7 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const store = useStore();
   useEffect(() => {
     const previous = store.get(learningGoalAtom);
-    if (previous?.puzzle === puzzle && learningGoalMet(previous.pending, selected, learned)) showNotice("Well done! Every selected case is learned.", Check);
+    if (previous?.puzzle === puzzle && learningGoalMet(previous.pending, selected, learned)) showNotice(tr("Well done! Every selected case is learned."), Check);
     store.set(learningGoalAtom, { puzzle, pending: pendingCases(selected, learned) });
   }, [store, puzzle, selected, learned]);
 
@@ -160,20 +162,25 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
   const { busy, running, locked } = usePracticeLock(timer, saving);
   useBackTo(onBack, !busy);
 
-  const undoLast = () => { const last = solves.at(-1); if (last) void api.deleteSolve(last.id).then(() => { setSolves(s => s.filter(x => x.id !== last.id)); bumpStats(v => v + 1); }); };
+  const undoLast = async () => {
+    const last = solves.at(-1);
+    if (!last || !await ask({ title: tr("Delete your last solve?"), text: tr("It goes from your times and your statistics, on every device."), action: tr("Delete") })) return;
+    await api.deleteSolve(last.id);
+    setSolves(s => s.filter(x => x.id !== last.id)); bumpStats(v => v + 1);
+  };
   const lastSolve = lastSolveId === null ? null : shown.find(solve => solve.id === lastSolveId) ?? null;
   const primary = current?.c.algorithms[0];
   const shownSetup = current ? (cube ? combineAuf(current.c.setup, current.auf) : current.c.setup) : "";
   const shownAlgorithm = primary && current ? (cube ? compensateAuf(executableAlg(primary), current.auf) : executableAlg(primary)) : "";
+  // Back through the cases drawn this session, those still in the pool only (as on the web).
+  const canPrevious = previousIndex(caseHistory, selectedCases) !== -1;
   const previousCase = () => {
-    const previous = caseHistory.entries[caseHistory.index - 1];
-    if (busy || learning || !previous) return;
-    setSelected(ids => ids.includes(previous.c.id) ? ids : [...ids, previous.c.id]);
-    navigateCase({ type: "previous" }); setRevealed(false); timer.reset();
+    if (busy || !canPrevious) return;
+    navigateCase({ type: "previous", pool: selectedCases }); setRevealed(false); timer.reset();
   };
   const nextCase = () => { if (!busy) { pick(selectedCases); timer.reset(); } };
   const setMode = (mode: LearningMode) => { if (!busy && !timer.saveError) { daily.setMode(mode); timer.reset(); } };
-  const summary = practiceSummary(shown);
+  const summary = useMemo(() => practiceSummary(shown), [shown]);
   const currentLearned = !!current && learned.has(current.c.id);
   const view = current ? viewForStage(current.c.stage) : "top";
   const hasCube = !!cube && !!current && !current.c.diagram;
@@ -182,43 +189,40 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
 
   const prompt = current ? <>
     <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-      <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityRole="button" accessibilityLabel={`Open ${current.c.name}`}>
+      <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityRole="button" accessibilityLabel={tr("Open {0}", { 0: current.c.name })}>
         <Text className="text-lg font-semibold tracking-tight">{current.c.name}</Text>
       </Pressable>
-      <Text numberOfLines={1} className="shrink text-sm text-muted-foreground">{learning ? daily.status : current.c.setLabel + (current.c.group && current.c.group !== current.c.setLabel ? " · " + current.c.group : "")}</Text>
+      <Text numberOfLines={1} className="shrink text-sm text-muted-foreground">{learning ? tr(daily.status) : tr(current.c.setLabel) + (current.c.group && current.c.group !== current.c.setLabel ? " · " + tr(current.c.group) : "")}</Text>
     </View>
     <View className="gap-1.5">
-      <Label>Setup</Label>
+      <Label>{tr("Setup")}</Label>
       <Alg text={shownSetup} size={promptFont} />
     </View>
     {revealed && primary && <View className="gap-1.5">
-      <Label>Algorithm</Label>
+      <Label>{tr("Algorithm")}</Label>
       <Alg text={shownAlgorithm} size={Math.max(15, promptFont - 3)} className="opacity-85" />
     </View>}
     <View className="-ml-2.5 flex-row flex-wrap items-center gap-1">
-      {primary && <Button variant="ghost" size="sm" className="h-9 gap-1.5" disabled={busy} onPress={() => setRevealed(v => !v)}>
-        <Icon as={revealed ? EyeOff : Eye} size={15} className="text-muted-foreground" />
-        <Text className="text-[13px] text-muted-foreground">{revealed ? "Hide solution" : "Show solution"}</Text>
+      {primary && <Button variant="ghost" size="sm" className="h-11 gap-1.5 rounded-lg" disabled={busy} onPress={() => setRevealed(v => !v)}>
+        <Icon as={revealed ? EyeOff : Eye} size={16} className="text-muted-foreground" />
+        <Text className="text-sm text-muted-foreground">{revealed ? tr("Hide solution") : tr("Show solution")}</Text>
       </Button>}
-      {primary?.youtube && <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={() => void Linking.openURL(primary.youtube!)}>
-        <Icon as={CirclePlay} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Video</Text>
+      {primary?.youtube && <Button variant="ghost" size="sm" className="h-11 gap-1.5 rounded-lg" onPress={() => void Linking.openURL(primary.youtube!)}>
+        <Icon as={CirclePlay} size={16} className="text-muted-foreground" /><Text className="text-sm text-muted-foreground">{tr("Video")}</Text>
       </Button>}
-      <Button variant="ghost" size="sm" className={cn("h-9 gap-1.5", currentLearned && "bg-success/15")} disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityState={{ selected: currentLearned }}>
-        <Icon as={Check} size={15} className={currentLearned ? "text-success" : "text-muted-foreground"} />
-        <Text className={cn("text-[13px]", currentLearned ? "text-success" : "text-muted-foreground")}>{currentLearned ? "Learned" : "Mark learned"}</Text>
-      </Button>
+      <LearnToggle learned={currentLearned} disabled={busy} onPress={() => toggleLearned(current.c.id)} accessibilityLabel={currentLearned ? tr("{0} learned", { 0: current.c.name }) : tr("Mark {0} learned", { 0: current.c.name })} className="border-transparent px-3" />
     </View>
   </> : <View className="items-start gap-2 py-4">
-    <Text className="text-lg font-semibold tracking-tight">{reviewing ? "No learned cases yet" : learning ? "Track complete" : "Choose your cases"}</Text>
-    <Text className="text-sm text-muted-foreground">{learning ? daily.status : "Select the cases you want to practise."}</Text>
+    <Text className="text-lg font-semibold tracking-tight">{reviewing ? tr("No learned cases yet") : learning ? tr("Track complete") : tr("Choose your cases")}</Text>
+    <Text className="text-sm text-muted-foreground">{learning ? tr(daily.status) : tr("Select the cases you want to practise.")}</Text>
     <View className="mt-2 flex-row gap-2">
-      {!learning && <Button onPress={onBack}><Text>Choose cases</Text></Button>}
-      {track && !reviewing && daily.trackLearned > 0 && <Button disabled={locked} onPress={() => setMode(`review:${track}`)}><Text>Train learned</Text></Button>}
+      {!learning && <Button onPress={onBack}><Text>{tr("Choose cases")}</Text></Button>}
+      {track && !reviewing && daily.trackLearned > 0 && <Button disabled={locked} onPress={() => setMode(`review:${track}`)}><Text>{tr("Train learned")}</Text></Button>}
     </View>
   </View>;
 
   const visual = current && previewSize > 0 ? (hasCube
-    ? <Pressable accessibilityRole="button" accessibilityLabel="Replay the setup on the cube" onPress={() => setReplay(n => n + 1)}>
+    ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Replay the setup on the cube")} onPress={() => setReplay(n => n + 1)}>
       <CubePreview alg={shownSetup} cube={cube!} size={previewSize} mask={maskForStage(current.c.stage)} view={view} replay={replay} />
     </Pressable>
     : <CaseDiagram c={current.c} size={previewSize} />) : null;
@@ -226,29 +230,29 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
 
   return <Page className="pb-0">
     <Fade hidden={running}>
-      <PageHead lead={<BackButton label="Change what to train" onPress={onBack} />}
-        title={track ? `Learn ${track}` : reviewing ? "Review" : "Free practice"}
-        sub={track ? "one new case a day" : reviewing ? "every learned case" : plural(selected.length, "case")}>
-        {!learning && <HeadButton icon={ChevronLeft} label="Previous case" disabled={busy || caseHistory.index <= 0} onPress={previousCase} />}
-        {(!learning || reviewing) && <HeadButton icon={ChevronRight} label="Next case" disabled={busy || !current} onPress={nextCase} />}
+      <PageHead lead={<BackButton label={tr("Change what to train")} onPress={onBack} />}
+        title={track ? tr("Learn {0}", { 0: track }) : reviewing ? tr("Review") : tr("Free practice")}
+        sub={track ? tr("Training · one new case a day") : reviewing ? tr("Training · every learned case") : tr("Training · {0}", { 0: plural(selected.length, "case") })}>
+        <HeadButton icon={ChevronLeft} label={tr("Previous case")} disabled={busy || !canPrevious} onPress={previousCase} />
         <MoreMenu>
-          {learning && !reviewing && <MenuItem icon={LayoutList} disabled={locked} onPress={() => setShowGroups(true)}>Group order</MenuItem>}
-          {track && <MenuItem icon={Check} disabled={locked || !reviewing && !daily.trackLearned} onPress={() => setMode(reviewing ? track : `review:${track}`)}>{reviewing ? `Learn ${track}` : "Train learned"}</MenuItem>}
-          {supportsAuf && <MenuItem icon={Shuffle} disabled={busy} onPress={() => setUseAuf(v => !v)}>{`Random AUF · ${useAuf ? "on" : "off"}`}</MenuItem>}
-          <MenuItem icon={Undo2} disabled={busy || !solves.length} onPress={undoLast}>Undo the last time</MenuItem>
+          {learning && !reviewing && <MenuItem icon={LayoutList} disabled={locked} onPress={() => setShowGroups(true)}>{tr("Group order")}</MenuItem>}
+          {track && <MenuItem icon={Check} disabled={locked || !reviewing && !daily.trackLearned} onPress={() => setMode(reviewing ? track : `review:${track}`)}>{reviewing ? tr("Learn {0}", { 0: track }) : tr("Train learned")}</MenuItem>}
+          {supportsAuf && <MenuItem icon={Shuffle} disabled={busy} onPress={() => setUseAuf(v => !v)}>{tr("Random AUF") + " " + (useAuf ? tr("· on") : tr("· off"))}</MenuItem>}
+          <MenuItem icon={Undo2} disabled={busy || !solves.length} onPress={() => void undoLast()}>{tr("Undo the last time")}</MenuItem>
         </MoreMenu>
       </PageHead>
     </Fade>
     <Stage timer={timer} disabled={!current || saving || !!timer.saveError} running={running} prompt={prompt} visual={visual}
       readout={area => <>
         <TimerDigits timer={timer} area={area} />
-        <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !current && "Select cases to begin" })}</Hint>
+        <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !current && tr("Select cases to begin") })}</Hint>
         <SaveError timer={timer} />
       </>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
+      bar={<LastSolveBar solve={saving ? null : lastSolve}
+        extra={!learning || reviewing ? <SolveAction icon={ChevronRight} label={tr("Next case")} disabled={busy || !current} onPress={nextCase} /> : undefined} />} />
     <SessionPeek figures={peek} count={shown.length} noun="attempt" onPress={() => setShowTimes(true)} hidden={running} />
-    <SessionSheet open={showTimes} onClose={() => setShowTimes(false)} selectedCases={selectedCases} solves={shown} onUndo={solves.length ? undoLast : undefined} />
-    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title="Group order" description={`Learn ${track ?? ""}: drag the families into the order you want to learn them`} contentPanning={false}>
+    <SessionSheet open={showTimes} onClose={() => setShowTimes(false)} selectedCases={selectedCases} solves={shown} onUndo={solves.length ? () => void undoLast() : undefined} />
+    <Sheet open={showGroups} onClose={() => setShowGroups(false)} title={tr("Group order")} description={tr("Learn {0}: drag the families into the order you want to learn them", { 0: track ?? "" })} contentPanning={false}>
       {showGroups && <LearningGroups key={daily.mode} groups={daily.groups} disabled={locked} onReorder={daily.reorderGroups} />}
     </Sheet>
     <StopSurface timer={timer} />
@@ -266,18 +270,18 @@ function SessionSheet({ open, onClose, selectedCases, solves, onUndo }: { open: 
     return trainingSessionRows(cases.filter(c => ids.has(c.id)), solves);
   }, [cases, selectedCases, solves]);
   return <Sheet open={open} onClose={onClose} contentClassName="px-0"
-    title={<Text accessibilityRole="header" className="text-base font-semibold">Session <Numeric className="text-base font-normal text-muted-foreground">{solves.length}</Numeric></Text>}
-    description="Tap a time for its details · hold it for +2, DNF or delete"
-    right={onUndo ? <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={onUndo}><Icon as={Undo2} size={15} className="text-muted-foreground" /><Text className="text-[13px] text-muted-foreground">Undo</Text></Button> : null}>
+    title={<Text accessibilityRole="header" className="text-base font-semibold">{tr("Session")}{" "}<Numeric className="text-base font-normal text-muted-foreground">{solves.length}</Numeric></Text>}
+    description={tr("Tap a time for its details · hold it for +2, DNF or delete")}
+    right={onUndo ? <Button variant="ghost" size="sm" className="h-9 gap-1.5" onPress={onUndo}><Icon as={Undo2} size={15} className="text-muted-foreground" /><Text className="text-sm text-muted-foreground">{tr("Undo")}</Text></Button> : null}>
     <SheetScrollView contentContainerClassName="gap-1 px-3 pb-4">
       {rows.map(({ c, solves: list, best: fastest, mean: average, validCount }) => <View key={c.id} className="flex-row items-start gap-3 rounded-lg px-2 py-2">
         <View className="w-11 items-center gap-1">
           <CaseDiagram c={c} size={40} />
-          <Text numberOfLines={1} className="text-[11px] text-muted-foreground">{shortId(c)}</Text>
+          <Text numberOfLines={1} className="text-xs text-muted-foreground">{shortId(c)}</Text>
         </View>
         <View className="min-w-0 flex-1 gap-1.5 pt-0.5">
-          {!list.length ? <Text className="text-sm text-muted-foreground/60">No attempt yet</Text> : <>
-            {validCount > 1 && <Numeric className="text-xs text-muted-foreground">mean {fmtTime(average)}</Numeric>}
+          {!list.length ? <Text className="text-sm text-muted-foreground/60">{tr("No attempt yet")}</Text> : <>
+            {validCount > 1 && <Numeric className="text-xs text-muted-foreground">{tr("mean {0}", { 0: fmtTime(average) })}</Numeric>}
             <View className="flex-row flex-wrap gap-1.5">
               {[...list].reverse().map(v => <SolveMenu key={v.id} solve={v} className="h-9 justify-center rounded-md bg-muted px-2.5 active:bg-muted/70">
                 <Numeric className={cn("text-sm", v.penalty === "dnf" ? "text-destructive" : effective(v.time_ms, v.penalty) === fastest ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>{fmtSolve(v.time_ms, v.penalty)}</Numeric>

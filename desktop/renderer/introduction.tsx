@@ -26,7 +26,7 @@ import { said } from "./base";
 /* ------------------------------------------------------------------ Onboarding */
 
 const STEPS = [
-  { label: "Welcome", title: "Welcome to Cubix", sub: "A few seconds to set the app up for you" },
+  { label: "Welcome", title: "Welcome to Qbix", sub: "A few seconds to set the app up for you" },
   { label: "Puzzles", title: "What can you solve?", sub: "The puzzles you already solve, then the methods you use" },
   { label: "Times", title: "Bring your times", sub: "Your history from another timer, if you have one" },
 ] as const;
@@ -154,7 +154,7 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethods, onBest
               );
             })
           ) : (
-            <p className="py-2.5 text-sm text-muted-foreground">{tr("Nothing yet? Cubix starts you on the 3×3 course.")}</p>
+            <p className="py-2.5 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</p>
           )}
         </div>
       </section>

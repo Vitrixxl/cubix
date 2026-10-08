@@ -1,6 +1,6 @@
 import { useAtom, useAtomValue } from "jotai";
 import { Shuffle } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { practiceSummary } from "../../../src/client/lib/practiceSummary";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
@@ -9,11 +9,12 @@ import { contextKey, heldScramble, puzzleInfo, type PracticeContext } from "../.
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
+import { Alert } from "@/components/ui/alert";
 import { api } from "../api";
 import { useTimer } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import { playgroundScrambleAtom, practiceContextAtom, timeEntryAtom } from "../state";
-import { Alg, Fade, HeadButton, Page } from "../components/layout";
+import { Alg, Fade, Page, PageHead, TouchAction } from "../components/layout";
 import {
   AverageWindow, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, TypedTime, digitsSize, timerHint,
   useNotice, usePracticeLock, useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
@@ -24,6 +25,7 @@ import { LastSolveBar } from "../components/SolveMenus";
 import { ScrambleCube } from "../components/ScrambleCube";
 import { useLayout } from "../hooks/useLayout";
 import { useTourTarget } from "../tour";
+import { tr } from "../../../src/client/i18n";
 
 /** The timer: a new puzzle, mode or scramble type starts a fresh attempt and session. */
 export function PlaygroundPage() {
@@ -74,11 +76,11 @@ function TimerSession({ context }: { context: PracticeContext }) {
 
   // The scramble played on its 3D puzzle.
   const held = heldScramble(context.scrambleType);
-  const previewSize = height < 640 ? 0 : height < 760 ? 84 : 104;
-  // Long scrambles (6×6, 7×7, Megaminx) get smaller moves so they fit the prompt without scrolling.
-  const promptFont = scramble.length > 300 ? 12.5 : scramble.length > 160 ? 14 : scramble.length > 90 ? 16 : 19;
+  const previewSize = height < 760 ? 0 : 84;
+  // As the web phone: long scrambles get smaller moves, Megaminx ones (R++ D--) the smallest.
+  const promptFont = /\+\+|--/.test(scramble) ? 12 : scramble.length > 90 ? 15 : 18;
 
-  const summary = practiceSummary(shown);
+  const summary = useMemo(() => practiceSummary(shown), [shown]);
   const peek: Metric[] = [["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Best", fmtTime(summary.best), "good"]];
   const loading = generating && (slow || !scramble) || !scramble && !generationError;
   // What the guided tour points at on this page.
@@ -86,17 +88,14 @@ function TimerSession({ context }: { context: PracticeContext }) {
 
   const prompt = <View {...scrambleTarget} style={{ maxHeight: Math.round(height * 0.3) }}>
     {loading
-      ? <View accessibilityLabel="Generating a scramble" className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
-      : generationError ? <View className="items-start gap-2"><Text className="text-sm text-destructive">{generationError}</Text><Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>Retry</Text></Button></View>
+      ? <View accessibilityLabel={tr("Generating a scramble")} className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
+      : generationError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>{tr("Retry")}</Text></Button>}>{generationError}</Alert>
       : <Alg text={scramble} size={promptFont} />}
   </View>;
   const visual = previewSize > 0 && scramble && !loading ? <ScrambleCube puzzle={context.puzzle} cubeSize={info.cubeSize} scramble={scramble} held={held} size={previewSize} still={busy} /> : null;
 
   return <Page className="pb-0">
-    <Fade hidden={running} className="min-h-12 flex-row items-center justify-between gap-2">
-      <SessionButton scramble />
-      <HeadButton icon={Shuffle} label="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
-    </Fade>
+    <Fade hidden={running}><PageHead title={tr("Timer")}><SessionButton scramble /></PageHead></Fade>
     <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
       readout={area => <View {...timerTarget} className="w-full items-center">
         {typing
@@ -104,14 +103,15 @@ function TimerSession({ context }: { context: PracticeContext }) {
             onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} />
           : <>
             <TimerDigits timer={timer} area={area} />
-            <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { unsaved: entry === "casual", disabled: !scramble || generating ? "One moment…" : false })}</Hint>
+            <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { unsaved: entry === "casual", disabled: !scramble || generating ? tr("One moment…") : false })}</Hint>
             <SaveError timer={timer} />
           </>}
         <AverageWindow solves={shown} hidden={running} />
       </View>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
+      bar={<LastSolveBar solve={saving ? null : lastSolve}
+        extra={<TouchAction icon={Shuffle} label={tr("Scramble")} accessibilityLabel={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
     <View {...sessionTarget}><SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} /></View>
-    <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title="Times" />
+    <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title={tr("Times")} />
     <StopSurface timer={timer} />
   </Page>;
 }

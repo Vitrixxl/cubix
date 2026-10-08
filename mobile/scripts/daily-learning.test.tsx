@@ -21,7 +21,7 @@ mock.module("../src/platform/storage", () => ({ storage: { getItem: (k: string) 
 let resume: (state: string) => void;
 mock.module("react-native", () => ({ AppState: { addEventListener: (_: string, cb: typeof resume) => { resume = cb; return { remove() {} }; } } }));
 const userAtom = atom({ id: "alice" }), puzzleAtom = atom("333"), learnedCaseIdsAtom = atom<string[]>([]), cubeSwitchLockedAtom = atom(false);
-mock.module("../src/state", () => ({ userAtom, puzzleAtom, learnedCaseIdsAtom, cubeSwitchLockedAtom, casesAtom: atom(cases) }));
+mock.module("../src/state", () => ({ userAtom, puzzleAtom, learnedCaseIdsAtom, cubeSwitchLockedAtom, casesAtom: atom(cases), reviewStagesAtom: atom<string[]>([]) }));
 const { useDailyLearning } = await import("../src/hooks/useDailyLearning");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;

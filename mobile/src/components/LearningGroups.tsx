@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, PanResponder, ScrollView, Text, View } from "react-native";
+import { tr } from "../../../src/client/i18n";
 
 const ROW_HEIGHT = 64;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -43,7 +44,7 @@ export function LearningGroups({ groups, disabled = false, onReorder }: {
     const [group] = next.splice(current.from, 1);
     next.splice(current.to, 0, group!);
     onReorder(next);
-    AccessibilityInfo.announceForAccessibility(`${group}, position ${current.to + 1} of ${next.length}`);
+    AccessibilityInfo.announceForAccessibility(tr("{0}, position {1} of {2}", { 0: group, 1: current.to + 1, 2: next.length }));
   };
   const start = (from: number, pointerY: number) => {
     if (disabled || drag.current) return;
@@ -90,7 +91,7 @@ export function LearningGroups({ groups, disabled = false, onReorder }: {
     next.splice(to, 0, group!);
     onReorder(next);
     scroll.current?.scrollTo({ y: Math.max(0, to * ROW_HEIGHT - geometry.current.height / 2), animated: true });
-    AccessibilityInfo.announceForAccessibility(`${group}, position ${to + 1} of ${next.length}`);
+    AccessibilityInfo.announceForAccessibility(tr("{0}, position {1} of {2}", { 0: group, 1: to + 1, 2: next.length }));
   };
 
   return <View ref={viewport} collapsable={false} className="min-h-0 shrink" onLayout={measure}>
@@ -106,7 +107,7 @@ export function LearningGroups({ groups, disabled = false, onReorder }: {
           transform: [{ translateY: active ? translateY : shift * ROW_HEIGHT }],
         }}>
           <View className={active ? "flex-1 flex-row items-center gap-2.5 rounded-lg border border-primary bg-accent pl-3.5 pr-1.5" : "flex-1 flex-row items-center gap-2.5 rounded-lg border border-transparent bg-muted/50 pl-3.5 pr-1.5"}>
-            <Text className="w-7 font-sans text-[13px] text-muted-foreground">{position + 1}.</Text>
+            <Text className="w-7 font-sans text-sm text-muted-foreground">{position + 1}.</Text>
             <Text numberOfLines={2} className="flex-1 font-sans text-sm text-foreground">{group}</Text>
             <GroupHandle group={group} position={position} count={groups.length} disabled={disabled}
               start={y => start(index, y)} move={move} finish={finish} adjust={direction => accessibleMove(index, direction)} />
@@ -130,10 +131,10 @@ function GroupHandle(props: {
     onPanResponderTerminate: () => latest.current.finish(false),
     onPanResponderTerminationRequest: () => false,
   }), []);
-  return <View {...responder.panHandlers} accessible accessibilityRole="adjustable" accessibilityLabel={`Move ${props.group}`}
-    accessibilityHint="Drag up or down to reorder" accessibilityState={{ disabled: props.disabled }}
-    accessibilityValue={{ min: 1, max: props.count, now: props.position + 1, text: `Position ${props.position + 1} of ${props.count}` }}
-    accessibilityActions={[{ name: "decrement", label: "Move up" }, { name: "increment", label: "Move down" }]}
+  return <View {...responder.panHandlers} accessible accessibilityRole="adjustable" accessibilityLabel={tr("Move {0}", { 0: props.group })}
+    accessibilityHint={tr("Drag up or down to reorder")} accessibilityState={{ disabled: props.disabled }}
+    accessibilityValue={{ min: 1, max: props.count, now: props.position + 1, text: tr("Position {0} of {1}", { 0: props.position + 1, 1: props.count }) }}
+    accessibilityActions={[{ name: "decrement", label: tr("Move up") }, { name: "increment", label: tr("Move down") }]}
     onAccessibilityAction={event => { if (event.nativeEvent.actionName === "decrement") props.adjust(-1); else if (event.nativeEvent.actionName === "increment") props.adjust(1); }}
     className={props.disabled ? "size-11 items-center justify-center opacity-35" : "size-11 items-center justify-center"}>
     <View className="w-3 flex-row flex-wrap gap-1" pointerEvents="none">

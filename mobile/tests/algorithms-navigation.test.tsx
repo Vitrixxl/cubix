@@ -33,8 +33,8 @@ const cases = [
   { id: "PLL Aa", set: "pll", group: "Corners" },
 ].map(c => ({ ...c, setup: "R U R' U'", setups_alt: [], stage: c.set.toUpperCase(), name: c.id, setLabel: c.set.toUpperCase(), algorithms: [{ alg: "R U R' U'", source: "jperm" }] }));
 const sets = [{ id: "oll", stage: "OLL", label: "OLL" }, { id: "pll", stage: "PLL", label: "PLL" }];
-mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: {
-  current: () => null, learned: () => ["OLL 4"], read: { catalog: () => ({ cases, sets }), stats: () => [], caseHistory: () => ({ summary: { count: 0 } }) },
+mock.module("../src/api", () => ({ api: { algorithmChoices: async () => ({}) }, authToken: { get: () => "token" }, local: {
+  current: () => null, learned: () => ["OLL 4"], learnedAlg: () => ({}), read: { catalog: () => ({ cases, sets }), stats: () => [], caseHistory: () => ({ summary: { count: 0 } }) },
 } }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
@@ -42,16 +42,16 @@ mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
 mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) => source }));
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ SessionButton: () => null, PuzzleIcon: () => null }));
-mock.module("../src/components/LearnHeader", () => ({ LearnHeader: ({ children, part }: any) => createElement("LearnHeader", { part }, children) }));
 mock.module("../src/components/Practice", () => ({ CubePreview: () => null }));
 mock.module("../src/components/AlgPlayer", () => ({ AlgPlayerSheet: "AlgPlayerSheet" }));
+mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet", SheetScrollView: "SheetScrollView" }));
 mockLucide();
 mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/ui/badge", () => ({ Badge: "Badge" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "HeadButton", "Label", "ListGroup", "ListRow", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
+  ["Alg", "BackButton", "Bar", "Choice", "Empty", "Figure", "GroupToggle", "HeadButton", "IconTile", "Label", "LearnToggle", "ListGroup", "ListRow", "ListSkeleton", "SectionHead", "StatusMark", "MenuItem", "Numeric", "MoreMenu", "Page", "PageHead", "SearchField", "Segmented", "Surface", "TouchAction", "TouchBar"].map(name => [name, name])));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
 const { routeAtom, goBackAtom, previousRouteAtom, learningFilterAtom, collapsedAlgorithmGroupsAtom, stageAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -72,6 +72,8 @@ async function mount() {
   return store;
 }
 const browser = () => renderer.root.findAllByType("FlatList" as any).find(node => !node.props.horizontal)!;
+/** The cases of the list's tiles, in order. */
+const tileIds = () => browser().props.data.flatMap((row: any) => row.kind === "tiles" ? row.cases.map((c: any) => c.id) : []);
 const texts = (node: any) => node.findAllByType("Text" as any).map((text: any) => text.props.children);
 /** The stage tab of this name. */
 const tab = (stage: string) => renderer.root.findAll((node: any) => node.props.accessibilityRole === "tab" && texts(node).includes(stage))[0]!;
@@ -91,7 +93,7 @@ async function swipe(index: number) {
 
 test("the stage tabs display only their stage, including when the learning filter has no matches", async () => {
   await mount();
-  const visibleIds = () => browser().props.data.flatMap((row: any) => row.kind === "case" ? [row.c.id] : []);
+  const visibleIds = () => tileIds();
   expect(visibleIds()).toEqual(["OLL 1", "OLL 3", "OLL 2", "OLL 4"]);
   await act(() => tab("PLL").props.onPress());
   expect(visibleIds()).toEqual(["PLL Aa"]);
@@ -106,14 +108,15 @@ test("the stage tabs display only their stage, including when the learning filte
   expect(filter().props.options.map((option: any) => option.count)).toEqual([4, 1, 3]);
 });
 
-test("the library sits under Learn's head, its search counts every case, and a group folds under its title", async () => {
+test("the page heads its own title with the learned count, and a group folds under its title", async () => {
   const store = await mount();
-  expect(renderer.root.findAllByType("LearnHeader" as any)[0]!.props.part).toBe("algorithms");
-  expect(renderer.root.findAllByType("SearchField" as any)[0]!.props.placeholder).toContain("5 cases");
-  const dots = renderer.root.findAllByType("Pressable" as any).find(node => node.props.accessibilityState?.expanded !== undefined && node.findAllByType("Text" as any).some(text => text.props.children === "Dots"))!;
+  const head = renderer.root.findAllByType("PageHead" as any)[0]!;
+  expect([head.props.title, head.props.sub]).toEqual(["Algorithms", "1 of 5 learned"]);
+  expect(renderer.root.findAllByType("SearchField" as any)[0]!.props.placeholder).toBe("Search cases: oll 21, pll t…");
+  const dots = renderer.root.findAllByType("GroupToggle" as any).find(node => node.props.title === "Dots")!;
   await act(() => dots.props.onPress());
   expect(store.get(collapsedAlgorithmGroupsAtom)).toEqual({ "oll:Dots": true });
-  expect(browser().props.data.flatMap((row: any) => row.kind === "case" ? [row.c.id] : [])).toEqual(["OLL 2", "OLL 4"]);
+  expect(tileIds()).toEqual(["OLL 2", "OLL 4"]);
 });
 
 test("opening and swiping keep the scrolled list mounted; hardware back returns directly to it", async () => {

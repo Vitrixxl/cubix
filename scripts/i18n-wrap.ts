@@ -26,7 +26,18 @@ function rendered(raw: string) {
   return out;
 }
 
+/** The phone app's own read attributes (React Native's accessibility labels, its primitives' texts). */
+const MOBILE_READ = new Set(["accessibilityLabel", "accessibilityHint", "backLabel", "openLabel", "help", "status", "summary", "action", "cancel", "held"]);
+/** On the phone, the fields of objects written in a component that people read: `toast({ title: "Saved" })`, `options={[{ label: "Dark" }]}`. */
+const MOBILE_FIELDS = new Set([...MOBILE_READ, "title", "text", "description", "label", "sub", "detail", "hint", "message", "placeholder", "heading"]);
+
 export function wrap(file: string, source: string) {
+  const mobile = /(^|\/)mobile\//.test(file);
+  const read = (name: string) => READ.has(name) || (mobile && MOBILE_READ.has(name));
+  const inFunction = (n: ts.Node) => {
+    for (let p = n.parent; p; p = p.parent) if (ts.isFunctionLike(p)) return true;
+    return false;
+  };
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const edits: Edit[] = [];
   const translated = (n: ts.Node) => {
@@ -72,7 +83,49 @@ export function wrap(file: string, source: string) {
   };
   /** Notices and announcements: their text, and the description and action label of their options. */
   const NOTICE = /^(toast(\.(error|success|info|warning|message))?|(this|s|store)\.announce|announce)$/;
+  /** Children already put in a sentence with the values beside them. */
+  const merged = new Set<ts.Node>();
+  /** A value shown inside a sentence: no element and no text of its own to translate. */
+  const value = (e: ts.Expression) => {
+    let plain = true;
+    const look = (x: ts.Node) => {
+      if (ts.isJsxElement(x) || ts.isJsxSelfClosingElement(x) || ts.isJsxFragment(x) || ((ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x) || ts.isTemplateHead(x)) && words(x.text))) plain = false;
+      else ts.forEachChild(x, look);
+    };
+    look(e);
+    return plain;
+  };
+  /** On the phone, `{a} of {b}` in an element becomes one sentence, `tr("{0} of {1}", { 0: a, 1: b })`. */
+  const sentences = (children: ts.NodeArray<ts.JsxChild>) => {
+    let run: ts.JsxChild[] = [];
+    const flush = () => {
+      const texts = run.filter((c) => ts.isJsxText(c) && words(rendered(c.text)));
+      if (texts.length && run.some((c) => ts.isJsxExpression(c))) {
+        let key = "";
+        const values: string[] = [];
+        for (const c of run) {
+          if (ts.isJsxText(c)) key += rendered(c.text);
+          else {
+            key += `{${values.length}}`;
+            values.push(`${values.length}: ${(c as ts.JsxExpression).expression!.getText()}`);
+          }
+          merged.add(c);
+        }
+        const lead = /^\s/.test(key) ? '{" "}' : "",
+          tail = /\s$/.test(key) ? '{" "}' : "";
+        edits.push({ start: run[0]!.pos, end: run.at(-1)!.getEnd(), text: `${lead}{tr(${quote(key.trim())}, { ${values.join(", ")} })}${tail}` });
+      }
+      run = [];
+    };
+    for (const c of children) {
+      if (ts.isJsxText(c) || (ts.isJsxExpression(c) && c.expression && value(c.expression))) run.push(c);
+      else flush();
+    }
+    flush();
+  };
   const visit = (n: ts.Node) => {
+    if (merged.has(n)) return;
+    if (mobile && (ts.isJsxElement(n) || ts.isJsxFragment(n)) && !translated(n)) sentences(n.children);
     if (ts.isCallExpression(n) && NOTICE.test(n.expression.getText()) && !translated(n)) {
       const [first, options] = n.arguments;
       if (first) choices(first);
@@ -89,9 +142,12 @@ export function wrap(file: string, source: string) {
       if (text.trim() && words(text)) {
         const lead = text.startsWith(" ") ? '{" "}' : "",
           tail = text.endsWith(" ") ? '{" "}' : "";
-        edits.push({ start: n.getStart(), end: n.getEnd(), text: `${lead}{tr(${quote(text.trim())})}${tail}` });
+        edits.push({ start: n.pos, end: n.getEnd(), text: `${lead}{tr(${quote(text.trim())})}${tail}` });
       }
-    } else if (ts.isJsxAttribute(n) && READ.has(n.name.getText()) && n.initializer) {
+    } else if (mobile && ts.isPropertyAssignment(n) && MOBILE_FIELDS.has(n.name.getText()) && inFunction(n)) {
+      // Data written at the top of a module is read before a language is chosen: it is translated where it is drawn.
+      choices(n.initializer);
+    } else if (ts.isJsxAttribute(n) && read(n.name.getText()) && n.initializer) {
       if (ts.isStringLiteral(n.initializer) && words(n.initializer.text)) edits.push({ start: n.initializer.getStart(), end: n.initializer.getEnd(), text: `{tr(${quote(n.initializer.text)})}` });
       else if (ts.isJsxExpression(n.initializer) && n.initializer.expression) choices(n.initializer.expression);
     } else if (ts.isJsxExpression(n) && n.expression && (ts.isJsxElement(n.parent) || ts.isJsxFragment(n.parent))) choices(n.expression);
@@ -105,7 +161,7 @@ export function wrap(file: string, source: string) {
 if (import.meta.main) {
   const files = process.argv.slice(2).length
     ? process.argv.slice(2)
-    : [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("desktop/guides/*.tsx")].filter((f) => !/components\/ui\/|\/dev\/|\/admin\/|\.d\.ts$|worker\.ts$|sw\.ts$/.test(f));
+    : [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("desktop/guides/*.tsx"), "mobile/App.tsx", ...globSync("mobile/src/**/*.{ts,tsx}")].filter((f) => !/components\/ui\/|\/dev\/|\/admin\/|\.d\.ts$|worker\.ts$|sw\.ts$/.test(f));
   let changed = 0;
   for (const file of files) {
     const before = readFileSync(file, "utf8"), after = wrap(file, before);

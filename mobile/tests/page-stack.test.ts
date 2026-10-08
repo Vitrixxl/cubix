@@ -6,25 +6,52 @@ mock.module("../src/platform/storage", () => ({ storage: { getItem: () => null, 
 mock.module("../src/api", () => ({ api: {}, authToken: { get: () => "token" }, local: { current: () => null } }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390 }) }));
 const { slideOf } = await import("../src/components/PageStack");
-const { TABS, goBackAtom, openTabAtom, routeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom } = await import("../src/state");
+const { TABS, goBackAtom, openTabAtom, routeAtom, routeOfUrl, tabOf, trainingSetupModeAtom, trainingStepAtom, urlOfRoute } = await import("../src/state");
+import type { Route } from "../src/state";
 
-test("five tabs: the timer, practice, the duel, learning and the profile", () => {
-  expect(TABS).toEqual(["timer", "train", "battle", "learn", "profile"]);
-  expect(tabOf("algorithms")).toBe("learn");
-  expect(tabOf("duel")).toBe("battle");
+test("the web phone's seven tabs; the account holds the community, tournaments and matches", () => {
+  expect(TABS).toEqual(["timer", "algorithms", "learn", "train", "duel", "coaching", "profile"]);
+  expect(tabOf("algorithms")).toBe("algorithms");
+  expect(tabOf("duel")).toBe("duel");
   expect(tabOf("playground")).toBe("timer");
+  expect(tabOf("match")).toBe("profile");
+});
+
+test("web addresses read as routes and back", () => {
+  const cases: [string, Route][] = [
+    ["/community/messages/4", { page: "community", view: "messages/4" }],
+    ["/community/add/l%C3%A9na", { page: "community", view: "add/léna" }],
+    ["/tournaments", { page: "tournaments" }],
+    ["/match/9", { page: "match", id: 9 }],
+    ["/coaching/call/abc", { page: "coaching", view: "call/abc" }],
+    ["/coaching", { page: "coaching" }],
+    ["/algorithms/OLL%201", { page: "algorithms", caseId: "OLL 1" }],
+    ["/profile/achievements", { page: "profile", mode: "achievements" }],
+    ["/timer", { page: "playground" }],
+  ];
+  for (const [url, route] of cases) {
+    expect(routeOfUrl("https://cubix.vitrixxl.fr" + url)?.route).toEqual(route);
+    expect(urlOfRoute(route)).toBe(url);
+  }
+  expect(routeOfUrl("/learn/cfop?puzzle=222&step=2")).toEqual({ route: { page: "learn", method: "cfop" }, puzzle: "222" });
+  expect(routeOfUrl("/profile/analysis")?.route).toEqual({ page: "profile" });
+  expect(routeOfUrl("/solve/abc")).toBeNull();
+  expect(routeOfUrl("/match/x")).toBeNull();
 });
 
 test("another tab opens immediately; a page opened inside a tab slides in from the right and back from the left", () => {
   expect(slideOf({ page: "playground" }, { page: "profile" }, "push")).toEqual({ kind: "none" });
   expect(slideOf({ page: "learn" }, { page: "learn", method: "cfop" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "learn", method: "cfop" }, { page: "learn" }, "pop")).toEqual({ kind: "slide", direction: -1 });
-  expect(slideOf({ page: "profile" }, { page: "profile", mode: "training" }, "push")).toEqual({ kind: "slide", direction: 1 });
+  // The account's sections are tabs of its page; Messages opens over it.
+  expect(slideOf({ page: "profile" }, { page: "profile", mode: "training" }, "push")).toEqual({ kind: "none" });
+  expect(slideOf({ page: "profile" }, { page: "community" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "training" }, { page: "duel" }, "push")).toEqual({ kind: "none" });
 });
 
-test("Learn's two parts fade into each other; a case of the library slides itself", () => {
-  expect(slideOf({ page: "learn" }, { page: "algorithms" }, "replace")).toEqual({ kind: "fade" });
+test("a case of the library slides itself; a conversation slides over Messages", () => {
+  expect(slideOf({ page: "learn" }, { page: "algorithms" }, "replace")).toEqual({ kind: "none" });
+  expect(slideOf({ page: "community" }, { page: "community", view: "messages/4" }, "push")).toEqual({ kind: "slide", direction: 1 });
   expect(slideOf({ page: "algorithms" }, { page: "algorithms", caseId: "OLL 1" }, "push")).toEqual({ kind: "none" });
 });
 
@@ -57,7 +84,7 @@ test("the library's tab button closes the case shown, and stays in the library",
   const store = createStore();
   store.set(routeAtom, { page: "algorithms" });
   store.set(routeAtom, { page: "algorithms", caseId: "OLL 1" });
-  store.set(openTabAtom, "learn");
+  store.set(openTabAtom, "algorithms");
   expect(store.get(routeAtom)).toEqual({ page: "algorithms" });
 });
 
@@ -70,7 +97,7 @@ test("tapping Train again leaves a session for the ways to practise", () => {
   expect(store.get(trainingStepAtom)).toBe("setup");
   expect(store.get(trainingSetupModeAtom)).toBe("");
   // The duel has a tab of its own; Train comes back to the list from it.
-  store.set(openTabAtom, "battle");
+  store.set(openTabAtom, "duel");
   expect(store.get(routeAtom)).toEqual({ page: "duel" });
   store.set(openTabAtom, "train");
   expect(store.get(routeAtom)).toEqual({ page: "training" });

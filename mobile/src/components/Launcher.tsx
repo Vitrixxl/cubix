@@ -3,6 +3,7 @@ import { Animated, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useColors } from "../theme";
 import { LauncherCube } from "./LauncherCube";
+import { tr } from "../../../src/client/i18n";
 
 /**
  * The startup screen, same as the desktop launcher window: the cube, the name, one status line and a
@@ -28,8 +29,8 @@ export function Launcher({ message, progress, finish, onHidden }: { message: str
   return <Animated.View style={[StyleSheet.absoluteFill, styles.screen, { backgroundColor: colors.background, opacity }]} accessibilityViewIsModal>
     <LauncherCube size={size} finish={finish} onSettled={settled} />
     <View style={styles.title}>
-      <Text accessibilityLabel="Qbix" className="text-2xl tracking-tight"><Text className="text-2xl font-extrabold">Q</Text><Text className="text-2xl font-medium">bix</Text></Text>
-      <Text accessibilityRole="progressbar" accessibilityLiveRegion="polite" className="min-h-5 text-center text-[13px] leading-[20px] text-muted-foreground">{message}</Text>
+      <Text accessibilityLabel={tr("Qbix")} className="text-2xl tracking-tight"><Text className="text-2xl font-extrabold">Q</Text><Text className="text-2xl font-medium">bix</Text></Text>
+      <Text accessibilityRole="progressbar" accessibilityLiveRegion="polite" className="min-h-5 text-center text-sm text-muted-foreground">{message}</Text>
     </View>
     <View style={[styles.bar, { backgroundColor: colors.muted, opacity: progress === undefined ? 0 : 1 }]}>
       <View style={{ width: `${Math.max(0, Math.min(100, progress ?? 0))}%`, height: "100%", backgroundColor: colors.primary, borderRadius: 2 }} />

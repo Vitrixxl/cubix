@@ -1,6 +1,6 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Box, Eye, EyeOff, Shuffle } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { Eye, EyeOff, Shuffle } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
+import { Alert } from "@/components/ui/alert";
 import { api } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
@@ -18,12 +19,14 @@ import { ensureLaunchSession } from "../lib/launchSession";
 import { TimesSheet } from "./TimesSheet";
 import { crossSolutions, type CrossSolution } from "../scrambler";
 import { crossContextAtom, crossMovesAtom, crossScrambleAtom, statsVersionAtom } from "../state";
-import { Alg, BackButton, Fade, HeadButton, Label, MenuItem, MoreMenu, Page, PageHead } from "./layout";
+import { DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import { Alg, BackButton, Fade, Label, MoreMenu, Page, PageHead } from "./layout";
 import {
   AverageWindow, CubePreview, Hint, SaveError, SessionPeek, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock,
   useScrambleGeneration, useSessionSolves, useShownSolves, useTimerChrome, type Metric,
 } from "./Practice";
-import { LastSolveBar } from "./SolveMenus";
+import { LastSolveBar, SolveAction } from "./SolveMenus";
+import { tr } from "../../../src/client/i18n";
 
 /**
  * First-block training on the 3×3 (web `crossTraining`): timer solves on scrambles whose white cross and one back pair
@@ -92,55 +95,60 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
   const previewSize = height < 760 ? 0 : 84;
   const solutionFont = Math.max(15, promptFont - 3);
   const list = revealed && solutions?.scramble === scramble ? solutions.list : undefined;
-  const summary = practiceSummary(shown);
+  const summary = useMemo(() => practiceSummary(shown), [shown]);
   const peek: Metric[] = [["Ao5", fmtTime(summary.ao5), "accent"], ["Ao12", fmtTime(summary.ao12), "accent"], ["Best", fmtTime(summary.best), "good"]];
 
   const prompt = <>
-    {generationError ? <View className="items-start gap-2"><Text className="text-sm text-destructive">{generationError}</Text><Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>Retry</Text></Button></View>
-      : generating && (slow || !scramble) ? <View accessibilityLabel="Generating a scramble" className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
+    {generationError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>{tr("Retry")}</Text></Button>}>{generationError}</Alert>
+      : generating && (slow || !scramble) ? <View accessibilityLabel={tr("Generating a scramble")} className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
       : <Alg text={scramble} size={promptFont} />}
     {revealed && <View className="gap-2">
-      <Label>Solution · z2, white on the bottom</Label>
+      <Label>{tr("Solution · z2, white on the bottom")}</Label>
       {list ? <View className="gap-1.5">
         {list.map(v => <View key={v.moves + v.slot} className="flex-row items-center gap-4">
           <Alg text={heldMoves(v.moves)} size={solutionFont} className="flex-1" />
-          <Text className="text-xs text-muted-foreground">{v.slot} block</Text>
+          <Text className="text-xs text-muted-foreground">{tr("{0} block", { 0: v.slot })}</Text>
         </View>)}
-        {!list.length && <Text className="text-sm text-muted-foreground">No solution within 6 moves.</Text>}
-      </View> : solutionError ? <View className="flex-row items-center gap-2"><Text className="text-sm text-destructive">{solutionError}</Text>
-        <Button size="sm" variant="outline" onPress={() => { setRevealed(false); setTimeout(() => setRevealed(true)); }}><Text>Retry</Text></Button></View>
-        : <Skeleton accessibilityLabel="Searching the solutions" style={{ height: solutionFont * 1.4, width: solutionFont * 9 }} />}
+        {!list.length && <Text className="text-sm text-muted-foreground">{tr("No solution within 6 moves.")}</Text>}
+      </View> : solutionError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => { setRevealed(false); setTimeout(() => setRevealed(true)); }}><Text>{tr("Retry")}</Text></Button>}>{solutionError}</Alert>
+        : <Skeleton accessibilityLabel={tr("Searching the solutions")} style={{ height: solutionFont * 1.4, width: solutionFont * 9 }} />}
     </View>}
     <View className="-ml-2.5 flex-row">
-      <Button variant="ghost" size="sm" className="h-9 gap-1.5" disabled={busy || !scramble || generating} onPress={() => setRevealed(v => !v)}>
-        <Icon as={revealed ? EyeOff : Eye} size={15} className="text-muted-foreground" />
-        <Text className="text-[13px] text-muted-foreground">{revealed ? "Hide solution" : "Show solution"}</Text>
+      <Button variant="ghost" size="sm" className="h-11 gap-1.5 rounded-lg" disabled={busy || !scramble || generating} onPress={() => setRevealed(v => !v)}>
+        <Icon as={revealed ? EyeOff : Eye} size={16} className="text-muted-foreground" />
+        <Text className="text-sm text-muted-foreground">{revealed ? tr("Hide solution") : tr("Show solution")}</Text>
       </Button>
     </View>
   </>;
   const visual = previewSize > 0 ? (scramble && !(generating && slow)
-    ? <Pressable accessibilityRole="button" accessibilityLabel="Replay the scramble on the cube" onPress={() => setReplay(n => n + 1)}><CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /></Pressable>
+    ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Replay the scramble on the cube")} onPress={() => setReplay(n => n + 1)}><CubePreview alg={scramble} size={previewSize} view="iso" replay={replay} held /></Pressable>
     : <View style={{ width: previewSize, height: previewSize }} />) : null;
 
   return <Page className="pb-0">
     <Fade hidden={running}>
-      <PageHead lead={<BackButton label="Change what to train" onPress={onBack} />} title="Cross + 1" sub={`${moves}-move first block`}>
-        <HeadButton icon={Shuffle} label="New scramble" disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />
+      <PageHead lead={<BackButton label={tr("Change what to train")} onPress={onBack} />} title={tr("Cross + 1")} sub={tr("{0}-move first block", { 0: moves })}>
         <MoreMenu>
-          {CROSS_PLUS_ONE_MOVES.map(n => <MenuItem key={n} icon={Box} disabled={locked || n === moves} onPress={() => setMoves(n)}>{`${n}-move first block${n === moves ? " ✓" : ""}`}</MenuItem>)}
+          {/* The web phone's MenuChoice: the number of moves as radio items under their label. */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{tr("First block")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={String(moves)} onValueChange={value => { if (!locked) setMoves(Number(value)); }}>
+              {CROSS_PLUS_ONE_MOVES.map(n => <DropdownMenuRadioItem key={n} value={String(n)} disabled={locked} className="min-h-11"><Text className="text-base">{tr("{0} moves", { 0: n })}</Text></DropdownMenuRadioItem>)}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
         </MoreMenu>
       </PageHead>
     </Fade>
     <Stage timer={timer} disabled={!!timer.saveError} running={running} prompt={prompt} visual={visual}
       readout={area => <>
         <TimerDigits timer={timer} area={area} />
-        <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !scramble || generating ? "One moment…" : false })}</Hint>
+        <Hint notice={running ? null : notice} hidden={running}>{timerHint(timer, { disabled: !scramble || generating ? tr("One moment…") : false })}</Hint>
         <SaveError timer={timer} />
         <AverageWindow solves={shown} hidden={running} />
       </>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve} />} />
+      bar={<LastSolveBar solve={saving ? null : lastSolve}
+        extra={<SolveAction icon={Shuffle} label={tr("Scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
     <SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} />
-    <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title="Times" />
+    <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title={tr("Times")} />
     <StopSurface timer={timer} />
   </Page>;
 }

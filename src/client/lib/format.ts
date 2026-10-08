@@ -1,5 +1,6 @@
 import type { Penalty } from "../../shared/types";
 import { msg } from "../i18n/msg";
+import { tn } from "../i18n";
 
 /** Times read to the millisecond: 12345 → "12.345", 61234 → "1:01.234" */
 export function fmtTime(ms: number | null | undefined, opts: { blank?: string } = {}): string {
@@ -148,8 +149,8 @@ export function median(times: readonly (number | null)[]): number | null {
   return sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
 }
 
-/** "1 solve", "1,204 solves". */
-export const plural = (count: number, noun: string) => `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+/** "1 solve", "1,204 solves", in the current language (`tn`). */
+export const plural = (count: number, noun: string) => tn(count, `{n} ${noun}`);
 
 /** A day as "12 Mar". */
 export const shortDate = (iso: string) => DAY.format(new Date(iso));

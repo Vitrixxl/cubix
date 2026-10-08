@@ -1,9 +1,10 @@
+import { useLanguage } from "./src/i18n";
 import "./global.css";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PortalHost } from "@rn-primitives/portal";
-import { Provider, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
-import { Suspense, useCallback, useEffect } from "react";
-import { AppState, BackHandler, Keyboard, View } from "react-native";
+import { Provider, getDefaultStore, useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
+import { Suspense, useEffect } from "react";
+import { AppState, BackHandler, Keyboard, Linking, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardAvoidingView, KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,15 +22,16 @@ import { SolveMenuProvider } from "./src/components/SolveMenus";
 import { StartupGate } from "./src/components/StartupGate";
 import { SyncIndicator } from "./src/components/SyncIndicator";
 import { TabBar } from "./src/components/TabBar";
+import { attachSocial, coaching, community, openUrl, useSocial } from "./src/lib/social";
 import { Introduction } from "./src/components/Introduction";
-import { introductionAtom, isLockedPage, journeyAtom, puzzleLockedAtom, skipLearningAtom } from "./src/journey";
-import { LearnGate } from "./src/components/LearnGate";
+import { introductionAtom, journeyAtom } from "./src/journey";
 import { journeyProfile } from "../src/client/lib/journey";
 import { ThemeProvider } from "./src/components/ThemeProvider";
 import { Toast } from "./src/components/Toast";
 import { ProfilePage } from "./src/pages/AccountPage";
 import { profileAchievementsAtom, profileDataAtom } from "./src/profile";
 import { AlgorithmsPage } from "./src/pages/AlgorithmsPage";
+import { AssistedPage } from "./src/pages/AssistedPage";
 import { AuthScreen } from "./src/pages/AuthScreen";
 import { DuelPage } from "./src/pages/DuelPage";
 import { LearnPage } from "./src/pages/LearnPage";
@@ -63,6 +65,12 @@ function renderPage(route: Route) {
     case "playground": return <PlaygroundPage />;
     case "duel": return <DuelPage />;
     case "profile": return <ProfilePage mode={route.mode} group={route.group} />;
+    case "assisted": return <AssistedPage />;
+    // The social pages load on first use: none of them is on the way to the timer.
+    case "community": { const { CommunityPage } = require("./src/pages/CommunityPage") as typeof import("./src/pages/CommunityPage"); return <CommunityPage view={route.view} />; }
+    case "tournaments": { const { TournamentsPage } = require("./src/pages/TournamentsPage") as typeof import("./src/pages/TournamentsPage"); return <TournamentsPage view={route.view} />; }
+    case "match": { const { MatchPage } = require("./src/pages/MatchPage") as typeof import("./src/pages/MatchPage"); return <MatchPage id={route.id} />; }
+    case "coaching": { const { CoachingPage } = require("./src/pages/CoachingPage") as typeof import("./src/pages/CoachingPage"); return <CoachingPage view={route.view} />; }
   }
 }
 
@@ -70,7 +78,8 @@ export function App() {
   return <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <KeyboardProvider>
-        <Provider>
+        {/* The default store, so the social clients (src/lib/social.ts) reach the route and the toast from outside React. */}
+        <Provider store={getDefaultStore()}>
           <ThemeProvider>
             <BottomSheetModalProvider>
               <StartupGate fontsReady><Session /></StartupGate>
@@ -83,8 +92,12 @@ export function App() {
   </GestureHandlerRootView>;
 }
 
-/** The account on this device, kept in step with the local workspace; without a signed-in account, the sign-in screen. */
+/**
+ * The account on this device, kept in step with the local workspace; without a signed-in account, the sign-in screen.
+ * A change of language draws everything again.
+ */
 function Session() {
+  useLanguage();
   const [user, setUser] = useAtom(userAtom);
   const setHasToken = useSetAtom(hasTokenAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
@@ -102,6 +115,9 @@ function Session() {
     return () => { unsubscribe(); unsubscribeStatus(); appState.remove(); clearInterval(retry); };
   }, [setUser, setHasToken, bumpStats]);
   useReleaseCheck(true);
+  // The community and the coaching follow the account signed in, and leave with it.
+  const account = signedIn ? user : null;
+  useEffect(() => attachSocial(account), [account?.id, account?.isGuest]);
   if (!signedIn) return <AuthScreen key={user?.id ?? "none"} initialUsername={user && !user.isGuest ? user.username : ""} />;
   return <Shell />;
 }
@@ -135,6 +151,8 @@ function Shell() {
     return () => { stop(); cancel(); };
   }, [cases]);
   const route = useAtomValue(routeAtom);
+  // The pages are built again in a new language: their lists and remembered labels follow it.
+  const language = useLanguage();
   const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom);
   // The hardware back button walks the in-app history, like the browser's back button.
   useEffect(() => {
@@ -151,14 +169,9 @@ function Shell() {
     });
     return () => subscription.remove();
   }, [goBack, running, introduction, closeIntroduction, store, replaceRoute]);
-  // A tab opens on the page it showed last; a tab waiting for the puzzle's course asks to skip it.
-  const setSkip = useSetAtom(skipLearningAtom), openTab = useSetAtom(openTabAtom);
-  const locked = useAtomValue(puzzleLockedAtom);
-  const tabLocked = useCallback((tab: Tab) => isLockedPage(locked, TAB_ROOT[tab].page), [locked]);
-  const navigate = useCallback((tab: Tab) => {
-    if (tabLocked(tab)) setSkip(TAB_ROOT[tab].page);
-    else openTab(tab);
-  }, [tabLocked, setSkip, openTab]);
+  useLinks();
+  // A tab opens on the page it showed last; every tab opens on every puzzle (as on the web).
+  const openTab = useSetAtom(openTabAtom);
   const active = route.page;
   // New solves or a sync make the profile stale: compute it again in the background, so opening it later costs
   // nothing. Never on the timer pages, where a busy JS thread would delay the next start and skew its time.
@@ -181,17 +194,48 @@ function Shell() {
       <View className="min-h-0 flex-1" style={{ paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }}>
         {/* Nothing suspends; the boundary only guards against a future async atom. */}
         <Suspense fallback={<View className="flex-1" />}>
-          <PageStack route={route} render={renderPage} />
+          <PageStack key={language} route={route} render={renderPage} />
         </Suspense>
       </View>
     </KeyboardAvoidingView>
-    {!keyboardVisible && <Fade hidden={running}><TabBar active={tabOf(active)} locked={tabLocked} onNavigate={navigate} /></Fade>}
+    {!keyboardVisible && active !== "assisted" && <Fade hidden={running}><Tabs active={active} onNavigate={openTab} /></Fade>}
+    <FloatingCall />
     <SettingsSheet />
     <SessionSheet />
     <GuidesSheet />
     <NotationSheet />
-    <LearnGate />
     <SyncIndicator hidden={running} />
     <Toast />
     </View><Introduction /></View></BottomSheetModalProvider></SolveMenuProvider>;
+}
+
+/** The call under way, floating over the app away from its page; its module (and WebRTC) loads with the first call. */
+function FloatingCall() {
+  const inCall = useSocial(() => coaching.inCall);
+  if (!inCall) return null;
+  const { FloatingCall: Floating } = require("./src/components/coaching/call/Floating") as typeof import("./src/components/coaching/call/Floating");
+  return <Floating />;
+}
+
+/** The tab bar, with a dot where something waits: unread coaching messages; unread messages, friend requests and group
+ * invitations on the account, which holds the community (as on the web). */
+function Tabs({ active, onNavigate }: { active: Route["page"]; onNavigate: (tab: Tab) => void }) {
+  const coach = useSocial(() => coaching.me?.unread ?? 0);
+  const account = useSocial(() => (community.me ? community.me.unread + community.me.incoming.length + community.me.invitations.length : 0));
+  return <TabBar active={tabOf(active)} waiting={{ coaching: coach, profile: account }} onNavigate={onNavigate} />;
+}
+
+/** Whether the link the app was opened with was followed, so signing in again does not follow it twice. */
+let initialLinkFollowed = false;
+/**
+ * Web links of the app (https://cubix.vitrixxl.fr/community/…, a notification's /match/9) and cubix:// ones open their
+ * page; an address the app has no page for is left alone.
+ */
+function useLinks() {
+  useEffect(() => {
+    const follow = (url: string | null) => { if (url) openUrl(url.replace(/^cubix:\/\//, "/")); };
+    if (!initialLinkFollowed) { initialLinkFollowed = true; void Linking.getInitialURL().then(follow, () => {}); }
+    const subscription = Linking.addEventListener("url", ({ url }) => follow(url));
+    return () => subscription.remove();
+  }, []);
 }

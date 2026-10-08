@@ -6,20 +6,33 @@ import type { CaseDto, CaseStatsDto, SolveDto, Stage, UserDto } from "../../src/
 import type { TimeEntry } from "../../src/client/lib/format";
 import { sets as catalogSets } from "../../src/client/local/catalog";
 import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type CourseProgress } from "../../src/client/lib/course";
+import { pageUrl, readRoute } from "../../src/client/lib/route";
 import { api, authToken, local } from "./api";
 import { storage } from "./platform/storage";
 
 // ---------------------------------------------------------------------------
 // Routing: one atom plus a bounded history so the Android back button behaves like the browser.
 // ---------------------------------------------------------------------------
-export type GuideId = "about" | "timer" | "algorithms" | "training" | "duel" | "methods" | "notation" | "averages";
+export type GuideId = "about" | "algorithms" | "training" | "timer" | "smartCube" | "duel" | "community" | "coaching" | "methods" | "notation" | "averages";
 export type Route =
   | { page: "learn"; method?: string }
   | { page: "algorithms"; caseId?: string; caseIds?: string[] }
   | { page: "training"; autostart?: boolean }
   | { page: "playground" }
   | { page: "duel" }
-  | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string };
+  | { page: "profile"; mode?: ProfileMode; caseId?: string; group?: string }
+  /** The beginner course's assisted solve (AssistedPage), over the course. */
+  | { page: "assisted" }
+  /**
+   * The community (messages, friends, groups) and tournaments, opened from the account page or a link; `view` is the
+   * address under the page, as on the web ("messages/4", "groups/2", "add/<username>", a tournament's id).
+   */
+  | { page: "community"; view?: string }
+  | { page: "tournaments"; view?: string }
+  /** A battle or a tournament match, live. */
+  | { page: "match"; id: number }
+  /** Coaching: its section and argument, as on the web ("dashboard", "coach/<id>", "messages/<id>", "call/<id>"); none opens the account's default. */
+  | { page: "coaching"; view?: string };
 /** A profile detail view; no mode shows the overview tiles. */
 export type ProfileMode = "playground" | "training" | "achievements" | "duels";
 /** The account's sections, as its tabs show them. */
@@ -29,21 +42,63 @@ export const PROFILE_SECTIONS: { id: ProfileMode | "overview"; label: string }[]
 ];
 export type Page = Route["page"];
 /**
- * The five tabs of the bottom bar. Each holds pages of its own: Learn shows the courses and the algorithm library,
- * Train the ways to practise, Battle the duel.
+ * The seven tabs of the bottom bar, as on the web phone. Each holds pages of its own; the account also holds the
+ * community, tournaments and matches.
  */
-export type Tab = "timer" | "train" | "battle" | "learn" | "profile";
-export const TABS: readonly Tab[] = ["timer", "train", "battle", "learn", "profile"];
-const TAB_OF: Record<Page, Tab> = { playground: "timer", training: "train", duel: "battle", learn: "learn", algorithms: "learn", profile: "profile" };
+export type Tab = "timer" | "algorithms" | "learn" | "train" | "duel" | "coaching" | "profile";
+export const TABS: readonly Tab[] = ["timer", "algorithms", "learn", "train", "duel", "coaching", "profile"];
+const TAB_OF: Record<Page, Tab> = {
+  playground: "timer", algorithms: "algorithms", learn: "learn", assisted: "learn", training: "train", duel: "duel", coaching: "coaching",
+  profile: "profile", community: "profile", tournaments: "profile", match: "profile",
+};
 export const tabOf = (page: Page): Tab => TAB_OF[page];
 /** The page a tab opens on the first time, and goes back to when its button is tapped again. */
-export const TAB_ROOT: Record<Tab, Route> = { timer: { page: "playground" }, train: { page: "training" }, battle: { page: "duel" }, learn: { page: "learn" }, profile: { page: "profile" } };
+export const TAB_ROOT: Record<Tab, Route> = {
+  timer: { page: "playground" }, algorithms: { page: "algorithms" }, learn: { page: "learn" }, train: { page: "training" },
+  duel: { page: "duel" }, coaching: { page: "coaching" }, profile: { page: "profile" },
+};
 /** How deep a route sits in its tab: its first page is 0, a page opened from it 1. */
 export function routeDepth(route: Route) {
   switch (route.page) {
     case "learn": return route.method ? 1 : 0;
-    case "profile": return route.mode ? 1 : 0;
+    case "assisted": return 2;
+    case "community": case "tournaments": return route.view ? 2 : 1;
+    case "match": return 3;
+    // A section is the tab's own level; what it opens (a coach, a conversation, a call) goes one deeper.
+    case "coaching": return route.view?.includes("/") ? 1 : 0;
     default: return 0;
+  }
+}
+/**
+ * A web address of the app (a link, a notification's "/community/messages/4") as a route of this app, with the puzzle
+ * it names; null for an address the app has no page for.
+ */
+export function routeOfUrl(url: string): { route: Route; puzzle?: PuzzleId } | null {
+  const [path = "", search = ""] = url.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, "").split("#")[0]!.split("?");
+  const r = readRoute(path, search);
+  if (!r) return null;
+  const route: Route | null =
+    r.page === "playground" || r.page === "training" || r.page === "duel" ? { page: r.page }
+    : r.page === "algorithms" ? (r.caseId ? { page: "algorithms", caseId: r.caseId } : { page: "algorithms" })
+    : r.page === "learn" ? (r.learnMethod ? { page: "learn", method: r.learnMethod } : { page: "learn" })
+    : r.page === "profile" ? (PROFILE_SECTIONS.some(s => s.id === r.profileMode && s.id !== "overview") ? { page: "profile", mode: r.profileMode as ProfileMode } : { page: "profile" })
+    : r.page === "community" || r.page === "tournaments" ? (r.view ? { page: r.page, view: r.view } : { page: r.page })
+    : r.page === "match" ? { page: "match", id: Number(r.view!.split("/")[0]) }
+    : r.page === "coaching" ? (r.coaching ? { page: "coaching", view: r.coaching } : { page: "coaching" })
+    : null;
+  return route && { route, ...(r.puzzle ? { puzzle: r.puzzle } : {}) };
+}
+/** The web address of a route, as `routeOfUrl` reads it back. */
+export function urlOfRoute(route: Route) {
+  switch (route.page) {
+    case "algorithms": return pageUrl("algorithms", { caseId: route.caseId });
+    case "learn": return pageUrl("learn", { learnMethod: route.method });
+    case "assisted": return pageUrl("learn");
+    case "profile": return pageUrl("profile", { profileMode: route.mode ?? "overview" });
+    case "community": case "tournaments": return pageUrl(route.page, { view: route.view });
+    case "match": return pageUrl("match", { view: String(route.id) });
+    case "coaching": return pageUrl("coaching", { coaching: route.view });
+    default: return pageUrl(route.page);
   }
 }
 /** The guide shown by the guides dialog (App.tsx), `null` while it is closed. Settings opens it on "about". */
@@ -55,7 +110,7 @@ const LAST_TAB_KEY = "cubix.ui.lastTab";
 function initialRoute(): Route {
   try {
     const saved = JSON.parse(storage.getItem(LAST_TAB_KEY) ?? "null");
-    if (saved && ["playground", "learn", "algorithms", "training", "duel", "profile"].includes(saved.page)) return { page: saved.page };
+    if (saved && ["playground", "learn", "algorithms", "training", "duel", "coaching", "profile"].includes(saved.page)) return { page: saved.page };
   } catch { /* Open the default tab. */ }
   return { page: "playground" };
 }
@@ -102,8 +157,7 @@ export const openTabAtom = atom(null, (get, set, tab: Tab) => {
   }
   // Training keeps its steps (setup, a way to practise, the session) in state rather than in routes.
   if (current.page === "training") { set(trainingStepAtom, "setup"); set(trainingSetupModeAtom, ""); }
-  // Learn's root is the part shown: the courses or the algorithm library.
-  const root = current.page === "algorithms" ? { page: "algorithms" } as Route : TAB_ROOT[tab];
+  const root = TAB_ROOT[tab];
   if (JSON.stringify(current) === JSON.stringify(root)) return;
   let kept = history.length;
   while (kept > 1 && history[kept - 1]!.page === current.page && JSON.stringify(history[kept - 1]) !== JSON.stringify(root)) kept--;
@@ -183,6 +237,8 @@ export const statsAtom = atom(get => {
 // Training preferences
 // ---------------------------------------------------------------------------
 export const selectedCaseIdsAtom = perPuzzleAtom<string[]>("cubix.training.selectionByCube", []);
+/** The stages Review draws from, per puzzle (as on the web); none picked reviews every stage. */
+export const reviewStagesAtom = perPuzzleAtom<string[]>("cubix.training.reviewStages", []);
 export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true);
 /** Selected cases still to learn, as the training page last saw them for a puzzle. Kept outside the
  * page so marking the last one learned from its details and coming back still celebrates. */
@@ -202,7 +258,11 @@ export const trainingSetupModeAtom = atom("");
 
 export type { ThemeId } from "../../src/client/lib/theme";
 export const themeAtom = persisted<ThemeId>("cubix.ui.theme", DEFAULT_THEME);
-export const colorModeAtom = persisted<"light" | "dark">("cubix.ui.colorMode", "dark");
+/** Dark, light, or whichever the system asks for; anything else stored reads as dark. */
+export type ColorMode = "dark" | "light" | "system";
+const storedColorModeAtom = persisted<ColorMode>("cubix.ui.colorMode", "dark");
+export const colorModeAtom = atom(get => { const mode = get(storedColorModeAtom); return mode === "light" || mode === "system" ? mode : "dark"; },
+  (_get, set, mode: ColorMode) => set(storedColorModeAtom, mode));
 
 // ---------------------------------------------------------------------------
 // Playground
