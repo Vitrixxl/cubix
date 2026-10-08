@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { LOCKED_PAGES, PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle } from "../../src/client/lib/journey";
+import { PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle } from "../../src/client/lib/journey";
 import { puzzleInfo, type EventId, type PuzzleId } from "../../src/shared/puzzles";
 import { api, local } from "./api";
 import { eventAtom, puzzleAtom, replaceRouteAtom, routeAtom, statsVersionAtom, userAtom, type Page } from "./state";
@@ -9,8 +9,8 @@ export const journeyAtom = atom(get => { get(statsVersionAtom); get(userAtom); r
 
 /** The current puzzle cannot be solved yet: only Learn and the account are open on it (as on the web). */
 export const puzzleLockedAtom = atom(get => puzzleLocked(journeyProfile(get(journeyAtom)), get(puzzleAtom)));
-/** Whether a section waits for the current puzzle's course. */
-export const isLockedPage = (locked: boolean, page: Page) => locked && (LOCKED_PAGES as readonly string[]).includes(page);
+/** Whether a section waits for the current puzzle's course: none any more, every section opens on every puzzle (as on the web). */
+export const isLockedPage = (_locked: boolean, _page: Page) => false;
 /** "Learn to solve this puzzle?", after picking one that cannot be solved yet: the event and section it came from. */
 export const learnPromptAtom = atom<{ event: EventId; page: Page } | null>(null);
 /** The greyed section a tap tried to open, while "Skip the tutorial?" is asked. */
