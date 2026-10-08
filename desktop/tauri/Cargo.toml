@@ -1,0 +1,22 @@
+[package]
+name = "cubix"
+version = "0.1.0"
+description = "Qbix, the desktop app of https://cubix.vitrixxl.fr, on the system's webview"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+
+# Small rather than fast to build: the shell does little work of its own.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

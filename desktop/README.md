@@ -85,6 +85,38 @@ seule fois, puis renommé `storage.imported.json`.
   sur les PC hybrides Intel/AMD + NVIDIA, la fenêtre utilise le GPU intégré et évite
   le scan Vulkan qui réveille la carte dédiée. L’accélération OpenGL reste active.
 
+## Tauri
+
+`tauri/` est une seconde fenêtre, au choix de l'utilisateur sur la page d'accueil :
+la même chose qu'`electron/`, mais sur le moteur web du système (WebKitGTK 4.1,
+WebView2, WKWebView) au lieu d'un Chromium embarqué. `src/main.rs` ouvre la même
+origine (`CUBIX_WEB_ORIGIN`…), à la même taille, avec les mêmes données
+(`~/.local/share/cubix-desktop`, profil du moteur web dans `tauri/`), une seule
+instance, les liens externes dans le navigateur. `src/bridge.js` donne à la page le
+même `window.cubixDesktop` que `preload.ts`, sur des commandes Tauri autorisées
+pour cette seule origine. Au tout premier lancement, `offline/index.html` attend
+le serveur ; ensuite le service worker sert l'application hors ligne.
+
+Le build se fait dans Docker (Ubuntu 22.04 : glibc 2.35, WebKitGTK 4.1), sans
+paquet système sur la machine ; caches dans `tauri/target`.
+
+```sh
+bun desktop/tauri/package.ts   # artifacts/tauri : cubix-tauri-linux-x64.tar.gz, cubix-tauri-windows-x64.zip
+bun desktop/tauri/check.ts     # lance le build Linux sous Xvfb dans le conteneur : pont, liens, captures
+```
+
+Le .deb et l'installeur NSIS restent dans `tauri/target/**/bundle`, non servis.
+`install.sh --tauri` et `CUBIX_SHELL=tauri` pour `install.ps1` installent Tauri à
+la place d'Electron (chacun remplace l'autre). `scripts/deploy.ts` n'envoie les
+paquets que si leur version (empreinte des sources, `desktopVersion()`) a changé.
+
+Sur macOS, avec Rust (rustup) :
+
+```sh
+cd desktop/tauri && cargo install tauri-cli --version "^2" --locked
+cargo tauri build --bundles app   # target/release/bundle/macos/Qbix.app
+```
+
 ## Validation
 
 Les tests d'interface lancent Electron sans fenêtre sur le bureau (backend Ozone

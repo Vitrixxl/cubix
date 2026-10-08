@@ -176,6 +176,7 @@ ${NAME} reads the exports of ${IMPORTS.join(", ")}, on the device, with each sol
 - Windows 10 and 11 (64-bit): in PowerShell, \`irm ${SITE}/install.ps1 | iex\`. Installs for the current user with a Start menu shortcut, no administrator rights.
 - Linux (x64): \`curl -fsSL ${SITE}/install.sh | sh\`. Installs for the current user, with a menu entry and the \`cubix\` command, no sudo.
 - macOS: built from source with Bun: \`git clone ${SOURCE}.git && cd cubix && bun install --frozen-lockfile && bun run build:desktop\`, then copy Cubix.app to /Applications.
+- Lighter desktop app (Tauri): the same app drawn by the system's webview (WebView2, WebKitGTK 4.1, WebKit) instead of its own Chromium. Windows: \`$env:CUBIX_SHELL='tauri'; irm ${SITE}/install.ps1 | iex\`. Linux: \`curl -fsSL ${SITE}/install.sh | sh -s -- --tauri\`. macOS: built from source with Rust: \`cd cubix/desktop/tauri && cargo install tauri-cli --version "^2" --locked && cargo tauri build --bundles app\`. Each desktop app replaces the other.
 - Android (64-bit ARM): download ${SITE}/api/mobile/apk and open it. The app updates itself.
 - iPhone and iPad: no app yet; use ${NAME} in Safari and add it to the Home Screen.
 

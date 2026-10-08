@@ -1,8 +1,8 @@
 /**
  * Deploy the current `main` commit: push, rebuild the server on the Raspberry Pi through
  * pihost (the image also builds the web app, which the desktop app loads), upload the desktop
- * packages when the Electron shell changed (desktop/package-release.ts: the landing page's
- * install commands download them), then ship the phone build. Two things can reach phones:
+ * packages when the Electron or Tauri shell changed (desktop/package-release.ts, desktop/tauri/package.ts:
+ * the landing page's install commands download them), then ship the phone build. Two things can reach phones:
  *
  *   - an over-the-air update: the JavaScript bundle exported by `expo export`, which
  *     installed applications fetch by themselves at their next launch. Published every time.
@@ -117,22 +117,21 @@ if (!apkOnly) {
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
   }
 }
-// --- Desktop packages: the Electron shell for Linux and Windows, only when it changed (its version digests it). ---
+// --- Desktop packages: the Electron and Tauri shells for Linux and Windows, each only when it changed (its version digests it). ---
 if (!apkOnly && !updateOnly && !skipDesktop) {
-  const { desktopVersion, OUT, PACKAGES } = await import("../desktop/package-release");
-  const version = await desktopVersion();
   const served = (await fetch(`${ORIGIN}/api/desktop`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as Record<string, { version?: string }>;
-  const stale = Object.values(PACKAGES).filter((name) => served[name]?.version !== version);
-  if (!stale.length) console.log(`The server already serves desktop ${version}.`);
-  else {
-    // Low CPU priority, as the APK below.
-    run("nice", ["-n", "19", "bun", "desktop/package-release.ts"]);
+  for (const script of ["desktop/package-release.ts", "desktop/tauri/package.ts"]) {
+    const { desktopVersion, OUT, PACKAGES } = await import(`../${script}`);
+    const version = await desktopVersion();
+    const stale = (Object.values(PACKAGES) as string[]).filter((name) => served[name]?.version !== version);
+    if (!stale.length) { console.log(`The server already serves ${script}'s ${version}.`); continue; }
+    run("bun", [script]);
     for (const name of stale) {
       const bytes = readFileSync(resolve(OUT, name));
       console.log(`Uploading ${name} (${(bytes.length / 1048576).toFixed(1)} MiB)`);
       await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, new Blob([bytes]));
     }
-    console.log(`Desktop ${version} is now served by ${ORIGIN}/api/desktop`);
+    console.log(`${script}'s ${version} is now served by ${ORIGIN}/api/desktop`);
   }
 }
 if (updateOnly || skipApk) process.exit(0);

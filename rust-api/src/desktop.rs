@@ -1,5 +1,5 @@
-//! Desktop downloads: the Electron shell packaged for Linux and Windows, which the landing page's
-//! install commands fetch (`/install.sh`, `/install.ps1`).
+//! Desktop downloads: the Electron shell packaged for Linux and Windows, and the lighter Tauri shell
+//! (desktop/tauri) beside it, which the landing page's install commands fetch (`/install.sh`, `/install.ps1`).
 //!
 //! The shell only opens the web app this server serves, so it changes rarely: `scripts/deploy.ts`
 //! builds it on the developer's machine, as it does the APK, and uploads it here with the admin
@@ -22,9 +22,11 @@ use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 
 /// The packages served: file name, content type and the first bytes every such file starts with.
-const FILES: [(&str, &str, &[u8]); 2] = [
+const FILES: [(&str, &str, &[u8]); 4] = [
     ("cubix-linux-x64.tar.gz", "application/gzip", b"\x1f\x8b"),
     ("cubix-windows-x64.zip", "application/zip", b"PK\x03\x04"),
+    ("cubix-tauri-linux-x64.tar.gz", "application/gzip", b"\x1f\x8b"),
+    ("cubix-tauri-windows-x64.zip", "application/zip", b"PK\x03\x04"),
 ];
 pub const PATH: &str = "/api/desktop";
 

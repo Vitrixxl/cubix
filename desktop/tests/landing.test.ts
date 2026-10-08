@@ -34,6 +34,7 @@ describe("the landing page", () => {
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));
     expect(html).toContain('href="/timer"');
     expect(html).toContain("install.ps1");
+    expect(html).toContain("Tauri");
     expect(html).toContain("/api/mobile/apk");
     expect(html).not.toContain("smartCube");
   });

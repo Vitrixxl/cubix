@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src http: https:" />
+    <title>Qbix</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { display: grid; place-items: center; background: #0b0b0e; color: #ececf1; font: 15px/1.5 system-ui, sans-serif; }
+      main { max-width: 360px; text-align: center; visibility: hidden; }
+      h1 { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+      p { margin: 0; color: #9a9aa6; }
+      @media (prefers-color-scheme: light) { body { background: #f6f6f8; color: #16161a; } p { color: #5c5c66; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Cubix needs a connection once</h1>
+      <p>The first launch downloads the app. It opens as soon as the server answers, then works offline.</p>
+    </main>
+    <script>
+      // The first launch only (src/main.rs): open the app as soon as its server answers, say why until then.
+      const start = window.cubixStart;
+      const attempt = () =>
+        fetch(start, { mode: "no-cors", cache: "no-store" }).then(
+          () => location.replace(start),
+          () => { document.querySelector("main").style.visibility = "visible"; setTimeout(attempt, 5000); },
+        );
+      attempt();
+    </script>
+  </body>
+</html>
