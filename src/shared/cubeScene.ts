@@ -41,30 +41,45 @@ export const cubeSceneDuration = (scene: CubeScene) => Math.max(scene.size, 3);
 export const cubeViewRadius = (scene: CubeScene) => scene.size * 0.975;
 
 type V = readonly number[];
-const add = (a: V, b: V) => a.map((v, i) => v + b[i]),
-  scale = (a: V, f: number) => a.map((v) => v * f);
-function rotate(v: V, axis: number, angle: number) {
-  const w = [...v],
+// Fixed-size arithmetic, in the very order of operations of the drawing's maths: no spread, no map, no rounding change.
+const add = (a: V, b: V) => [a[0]! + b[0]!, a[1]! + b[1]!, a[2]! + b[2]!],
+  scale = (a: V, f: number) => [a[0]! * f, a[1]! * f, a[2]! * f];
+/** `v` turned about `axis` by the angle of sine `s` and cosine `c`. */
+function spin(v: V, axis: number, s: number, c: number) {
+  const w = [v[0]!, v[1]!, v[2]!],
     a = (axis + 1) % 3,
-    b = (axis + 2) % 3,
-    s = Math.sin(angle),
-    c = Math.cos(angle);
-  w[a] = c * v[a] - s * v[b];
-  w[b] = s * v[a] + c * v[b];
+    b = (axis + 2) % 3;
+  w[a] = c * v[a]! - s * v[b]!;
+  w[b] = s * v[a]! + c * v[b]!;
   return w;
 }
+const rotate = (v: V, axis: number, angle: number) => spin(v, axis, Math.sin(angle), Math.cos(angle));
 function tipCurve(v: V, k: number) {
-  const sign = v.map(Math.sign),
-    start = [...v],
-    control = [...v];
-  start[k] -= sign[k] * 0.12;
-  control[k] -= sign[k] * 3 * 0.024;
-  const tip = add(v, scale(sign, -0.024));
-  return Array.from({ length: 7 }, (_, i) => {
-    const t = i / 6;
-    return add(add(scale(start, (1 - t) ** 2), scale(control, 2 * t * (1 - t))), scale(tip, t * t));
-  });
+  const sign = [Math.sign(v[0]!), Math.sign(v[1]!), Math.sign(v[2]!)],
+    start = [v[0]!, v[1]!, v[2]!],
+    control = [v[0]!, v[1]!, v[2]!];
+  start[k] -= sign[k]! * 0.12;
+  control[k] -= sign[k]! * 3 * 0.024;
+  const tip = [v[0]! + sign[0]! * -0.024, v[1]! + sign[1]! * -0.024, v[2]! + sign[2]! * -0.024],
+    out: number[][] = [];
+  for (let i = 0; i < 7; i++) {
+    const t = i / 6,
+      p = (1 - t) ** 2,
+      q = 2 * t * (1 - t),
+      r = t * t;
+    out.push([start[0]! * p + control[0]! * q + tip[0]! * r, start[1]! * p + control[1]! * q + tip[1]! * r, start[2]! * p + control[2]! * q + tip[2]! * r]);
+  }
+  return out;
 }
+/** A sticker's four corners in turn, and the cosine and sine along each corner's rounded arc. */
+const CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const,
+  ARCS = CORNERS.map(([sa, sb]) => {
+    const from = Math.atan2(sb, sa) - Math.PI / 4;
+    return Array.from({ length: 7 }, (_, step) => {
+      const angle = from + ((Math.PI / 2) * step) / 6;
+      return [Math.cos(angle), Math.sin(angle)] as const;
+    });
+  });
 function hull(points: number[][]) {
   const sorted = points
     .sort((a, b) => a[0] - b[0] || a[1] - b[1])
@@ -108,7 +123,10 @@ export function turnCube(m: CubeOrientation, across: number, down = 0): CubeOrie
 export function cubeFace(size: number, normal: V, orientation: CubeOrientation) {
   const turn = (v: V) => add(add(scale(orientation[0]!, v[0]!), scale(orientation[1]!, v[1]!)), scale(orientation[2]!, v[2]!)),
     eye = CUBE_EYE * size,
-    project = (v: V) => scale(v.slice(0, 2), eye / (eye - v[2]!)),
+    project = (v: V) => {
+      const f = eye / (eye - v[2]!);
+      return [v[0]! * f, v[1]! * f];
+    },
     k = normal.findIndex((v) => v !== 0),
     centre = turn(scale(normal, size / 2)),
     n = turn(normal);
@@ -131,12 +149,23 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
     axis = move?.axis ?? 0,
     moving = (l: number) => move?.layers.includes(l - h) ?? false,
     angle = move ? ((fraction * Math.PI) / 2) * (move.q === 3 ? -1 : move.q) : 0;
-  const camera = orientation
-      ? (v: V) => add(add(scale(orientation[0]!, v[0]!), scale(orientation[1]!, v[1]!)), scale(orientation[2]!, v[2]!))
-      : (v: V) => rotate(rotate(v, 1, -yaw), 0, pitch),
-    pose = (v: V, turn: boolean) => camera(turn ? rotate(v, axis, angle) : v),
+  const [x, y, z] = orientation ?? [],
+    sinYaw = Math.sin(-yaw),
+    cosYaw = Math.cos(-yaw),
+    sinPitch = Math.sin(pitch),
+    cosPitch = Math.cos(pitch),
+    sinTurn = Math.sin(angle),
+    cosTurn = Math.cos(angle);
+  const camera =
+      x && y && z
+        ? (v: V) => [x[0]! * v[0]! + y[0]! * v[1]! + z[0]! * v[2]!, x[1]! * v[0]! + y[1]! * v[1]! + z[1]! * v[2]!, x[2]! * v[0]! + y[2]! * v[1]! + z[2]! * v[2]!]
+        : (v: V) => spin(spin(v, 1, sinYaw, cosYaw), 0, sinPitch, cosPitch),
+    pose = (v: V, turn: boolean) => camera(turn ? spin(v, axis, sinTurn, cosTurn) : v),
     eye = CUBE_EYE * scene.size,
-    project = (v: V) => scale(v.slice(0, 2), eye / (eye - v[2])),
+    project = (v: V) => {
+      const f = eye / (eye - v[2]!);
+      return [v[0]! * f, v[1]! * f];
+    },
     // A face is seen when the eye is in front of its plane: its normal points toward the eye from a point of it.
     seen = (n: V, at: V, turn: boolean) => {
       const normal = pose(n, turn), point = pose(at, turn);
@@ -183,31 +212,29 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
         b = (normal + 2) % 3,
         isCorner = [[a, -1], [a, 1], [b, -1], [b, 1]].filter(([k, s]) => outside(k, s)).length >= 2;
       const points: V[] = [];
-      for (const [sa, sb] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      CORNERS.forEach(([sa, sb], corner) => {
         const tip = add(extent(a, sa), extent(b, sb));
         if (outside(a, sa) && outside(b, sb)) {
           const [first, last] = sa * sb > 0 ? [b, a] : [a, b],
             vertex = add(center, tip);
           points.push(...[...tipCurve(vertex, first), ...tipCurve(vertex, last).reverse().slice(1)].map((v) => pose(v, turn)));
-          continue;
+          return;
         }
         if (outside(a, sa) || outside(b, sb)) {
           points.push(pose(add(center, tip), turn));
-          continue;
+          return;
         }
         const radius = isCorner ? 0.12 : 0.26,
-          arc = [...tip];
+          arc = tip;
         arc[a] -= sa * radius;
         arc[b] -= sb * radius;
-        const from = Math.atan2(sb, sa) - Math.PI / 4;
-        for (let step = 0; step <= 6; step++) {
-          const v = [...arc],
-            angle = from + ((Math.PI / 2) * step) / 6;
-          v[a] += Math.cos(angle) * radius;
-          v[b] += Math.sin(angle) * radius;
+        for (const [cos, sin] of ARCS[corner]!) {
+          const v = [arc[0]!, arc[1]!, arc[2]!];
+          v[a] += cos * radius;
+          v[b] += sin * radius;
           points.push(pose(add(center, v), turn));
         }
-      }
+      });
       paint(points, scene.colors[origin]);
       for (const [k, along] of [[a, b], [b, a]])
         for (const sign of [-1, 1]) {

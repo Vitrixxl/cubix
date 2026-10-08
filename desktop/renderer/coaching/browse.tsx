@@ -1,6 +1,6 @@
 /** Finding a coach: every coach as a card, then a coach's page: the slots to book first, their reviews beside. */
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCheck, Check, Clock, Languages, MessageSquare, Search } from "lucide-react";
+import { CalendarCheck, CalendarX, Check, Clock, Languages, MessageSquare, SearchX, Star, Timer, UserRoundX, Users } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { toast } from "sonner";
 import { store as s } from "../store";
@@ -9,12 +9,14 @@ import { go } from "../navigation";
 import { EVENTS, eventInfo } from "../../../src/shared/puzzles";
 import { coaching, price, type Coach } from "./client";
 import { fmtTime } from "../../../src/client/lib/format";
-import { Back, Events, Nothing, PANEL, PANEL_HEAD, Stars, dayKey, day, relative, span, time, url } from "./parts";
+import { Back, dayKey, day, relative, span, time, url } from "./parts";
+import { Bar, Empty, Events, Figure, SearchField, SectionHead, Stars, Strip, Surface, TILE } from "../base";
 import { Activity, Learned, PuzzleCard } from "./person";
-import { BOX, DayBoxes, Month, MonthHeader, NARROW_BAR } from "./calendar";
+import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, NARROW_BAR } from "./calendar";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,12 +45,7 @@ export function CoachList() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <InputGroup className="w-full sm:w-72">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Name, language, method…")} aria-label={tr("Search coaches")} data-action="coaching:search" />
-        </InputGroup>
+        <SearchField value={query} onChange={setQuery} placeholder="Name, language, method…" label="Search coaches" action="coaching:search" className="w-full sm:w-72" />
         <Select items={options} value={event} onValueChange={(v) => setEvent(String(v))}>
           <SelectTrigger aria-label={tr("Event")} data-action="coaching:event" className="w-44">
             <SelectValue />
@@ -67,17 +64,18 @@ export function CoachList() {
         {!shown ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3" aria-busy="true" aria-label={tr("Loading")}>
             {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} className="h-44 rounded-xl" />
+              <CoachCardSkeleton key={i} />
             ))}
           </div>
         ) : !shown.length ? (
-          <Nothing className="h-full">
+          <Empty icon={list?.length ? SearchX : Users} className="h-full">
             {list?.length ? tr("No coach matches your search.") : tr("No coach has opened their page yet.")}
             {!coaching.isCoach && !list?.length && (
               <UiButton variant="outline" onClick={() => go(url("apply"))} data-action="coaching:apply">
-                {tr("Become the first coach")}</UiButton>
+                {tr("Become the first coach")}
+              </UiButton>
             )}
-          </Nothing>
+          </Empty>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3" data-slot="coach-list">
             {shown.map((c) => (
@@ -90,13 +88,32 @@ export function CoachList() {
   );
 }
 
+/** A coach's card on its way: the face, the name and lines, the band of figures. */
+function CoachCardSkeleton() {
+  return (
+    <div className="flex h-56 flex-col gap-3 rounded-xl p-4 ring-1 ring-foreground/10">
+      <div className="flex items-center gap-3.5">
+        <Skeleton className="size-16 rounded-full" />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-3 w-2/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      </div>
+      <Skeleton className="h-4 w-4/5" />
+      <Skeleton className="h-9 rounded-xl" />
+      <Skeleton className="mt-auto h-4 w-2/3" />
+    </div>
+  );
+}
+
 function CoachCard({ c }: { c: Coach }) {
   const top = c.practice?.puzzles[0];
   return (
     <Link
       to={url("coach/" + c.id)}
       data-coach={c.username}
-      className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-sm outline-none hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-ring/50"
+      className={cn(TILE, "flex flex-col gap-3 p-4 text-sm")}
     >
       <div className="flex items-center gap-3.5">
         <Avatar name={c.username} src={c.avatar} size={64} />
@@ -117,18 +134,20 @@ function CoachCard({ c }: { c: Coach }) {
       </div>
       <p className="line-clamp-2 min-h-10 text-muted-foreground">{c.headline || tr("Speedcubing coach")}</p>
       {top && (
-        <div className="flex items-center gap-2.5 rounded-lg bg-muted/50 px-3 py-2" data-slot="coach-stats">
-          <Icon name={"Puzzle" + top.puzzle} size={18} />
-          <span className="text-xs text-muted-foreground">{eventInfo(top.puzzle)?.label ?? top.puzzle}</span>
-          <span className={cn(NUMERIC, "ml-auto text-xs text-muted-foreground")}>
-            {tr("PB")}{" "}<span className="font-medium text-foreground">{fmtTime(top.best)}</span>
+        <Strip className="flex items-center gap-x-2.5 px-3 py-2">
+          <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground" data-slot="coach-stats">
+            <Icon name={"Puzzle" + top.puzzle} size={18} className="text-foreground" />
+            <span className="truncate">{said(eventInfo(top.puzzle)?.label ?? top.puzzle)}</span>
+          </span>
+          <span className={cn(NUMERIC, "ml-auto shrink-0 text-xs text-muted-foreground")}>
+            {tr("PB")} <span className="font-medium text-foreground">{fmtTime(top.best)}</span>
           </span>
           {top.ao5 != null && (
-            <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-              {tr("Ao5")}{" "}<span className="font-medium text-foreground">{fmtTime(top.ao5)}</span>
+            <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>
+              {tr("Ao5")} <span className="font-medium text-foreground">{fmtTime(top.ao5)}</span>
             </span>
           )}
-        </div>
+        </Strip>
       )}
       <div className="mt-auto flex items-center justify-between gap-2 pt-1">
         <Events events={c.events} />
@@ -177,24 +196,16 @@ export function CoachPage({ id }: { id: string }) {
           <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:overflow-y-auto">
             <About c={c} own={own} />
             <div className="grid shrink-0 gap-4 xl:grid-cols-2">
-              <FigureCard
-                title={tr("As a coach")}
-                sub={tr("since {0}", { 0: month(c.since) })}
-                items={[
-                  ["Rating", c.rating == null ? "New" : c.rating.toFixed(1), "text-warning"],
-                  ["Sessions given", c.sessions],
-                  ["Students", c.students],
-                ]}
-              />
-              <FigureCard
-                title={tr("As a cuber")}
-                sub={c.practice?.lastAt ? tr("last solve {0}", { 0: relative(new Date(c.practice.lastAt).getTime()) }) : tr("no solve yet")}
-                items={[
-                  ["Solves", (c.practice?.solves ?? 0).toLocaleString(locale())],
-                  ["Active days · 30 d", c.practice?.activeDays ?? 0],
-                  ["Cases learned", c.practice?.learned ?? 0],
-                ]}
-              />
+              <FigureCard title="As a coach" sub={tr("since {0}", { 0: month(c.since) })}>
+                <Figure label="Rating" value={c.rating == null ? tr("New") : c.rating.toFixed(1)} tone="warning" size="xl" />
+                <Figure label="Sessions given" value={c.sessions} size="xl" />
+                <Figure label="Students" value={c.students} size="xl" />
+              </FigureCard>
+              <FigureCard title="As a cuber" sub={c.practice?.lastAt ? tr("last solve {0}", { 0: relative(new Date(c.practice.lastAt).getTime()) }) : tr("no solve yet")}>
+                <Figure label="Solves" value={(c.practice?.solves ?? 0).toLocaleString(locale())} size="xl" />
+                <Figure label="Active days · 30 d" value={c.practice?.activeDays ?? 0} size="xl" />
+                <Figure label="Cases learned" value={c.practice?.learned ?? 0} size="xl" />
+              </FigureCard>
             </div>
             <Progress c={c} />
             <Times c={c} />
@@ -214,7 +225,7 @@ function About({ c, own }: { c: Coach; own: boolean }) {
   const slots = coaching.slots.get(c.id),
     next = slots?.slots[0]?.start ?? c.nextSlot;
   return (
-    <div className={cn(PANEL, "shrink-0")} data-slot="coach-about">
+    <Surface className="shrink-0" data-slot="coach-about">
       <div className="flex flex-wrap items-stretch gap-5 p-5">
         <Avatar name={c.username} src={c.avatar} size={80} className="self-start" />
         <div className="flex min-w-60 flex-1 flex-col gap-2">
@@ -237,10 +248,10 @@ function About({ c, own }: { c: Coach; own: boolean }) {
           {!!c.events.length && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {c.events.map((e) => (
-                <span key={e} className="flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs">
+                <Badge key={e} variant="secondary">
                   <Icon name={"Puzzle" + e} size={14} />
-                  {eventInfo(e)?.label ?? e}
-                </span>
+                  {said(eventInfo(e)?.label ?? e)}
+                </Badge>
               ))}
             </div>
           )}
@@ -258,32 +269,23 @@ function About({ c, own }: { c: Coach; own: boolean }) {
             <UiButton variant="outline" size="lg" onClick={() => go(url("schedule"))}>
               {tr("Edit your schedule")}</UiButton>
           ) : (
-            <UiButton size="lg" className="h-11" onClick={() => go(url(`coach/${c.id}/book`))} data-action="coaching:open-booking">
+            <UiButton size="lg" className="max-md:h-11" onClick={() => go(url(`coach/${c.id}/book`))} data-action="coaching:open-booking">
               <CalendarCheck />
               {tr("Book a session")}</UiButton>
           )}
         </div>
       </div>
-    </div>
+    </Surface>
   );
 }
 
 /** Three figures under a title, one card. */
-function FigureCard({ title, sub, items }: { title: string; sub: string; items: [label: string, value: React.ReactNode, tone?: string][] }) {
+function FigureCard({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className={cn(PANEL, "gap-2 px-4 py-3")} data-slot="coach-figures">
-      <h3 className="flex items-baseline gap-2 font-medium">
-        {title} <span className="truncate text-xs font-normal text-muted-foreground">{said(sub)}</span>
-      </h3>
-      <div className="grid grid-cols-3 gap-3">
-        {items.map(([label, value, tone]) => (
-          <div key={label} className="flex min-w-0 flex-col gap-0.5">
-            <span className={cn(NUMERIC, "truncate text-xl font-medium tracking-tight", tone)}>{value}</span>
-            <span className="truncate text-xs text-muted-foreground">{said(label)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Surface className="gap-2 px-4 pt-2 pb-4" data-slot="coach-figures">
+      <SectionHead title={title} meta={<span className="truncate text-xs">{said(sub)}</span>} />
+      <div className="grid grid-cols-3 gap-3">{children}</div>
+    </Surface>
   );
 }
 
@@ -291,8 +293,8 @@ function FigureCard({ title, sub, items }: { title: string; sub: string; items: 
 function Progress({ c }: { c: Coach }) {
   return (
     <div className="grid shrink-0 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]" data-slot="coach-practice">
-      <Activity days={c.history?.days ?? []} now={Date.now()} className="bg-card" />
-      <Learned ids={c.history?.learned ?? []} className="bg-card" />
+      <Activity days={c.history?.days ?? []} />
+      <Learned ids={c.history?.learned ?? []} />
     </div>
   );
 }
@@ -301,12 +303,10 @@ function Progress({ c }: { c: Coach }) {
 function Times({ c }: { c: Coach }) {
   const puzzles = c.practice?.puzzles ?? [];
   return (
-    <section className={cn(PANEL, "min-h-56 flex-1 max-lg:flex-none")} aria-label={tr("Puzzles")}>
-      <h3 className={PANEL_HEAD}>
-        {tr("Times per puzzle")}{" "}<span className="text-xs font-normal text-muted-foreground">{tr("most solved first")}</span>
-      </h3>
+    <Surface className="min-h-56 flex-1 max-lg:flex-none" aria-label={tr("Puzzles")}>
+      <SectionHead title="Times per puzzle" meta={<span className="text-xs">{tr("most solved first")}</span>} className="px-4 pt-2" />
       {!puzzles.length ? (
-        <Nothing>{tr("No timed solve yet.")}</Nothing>
+        <Empty icon={Timer}>{tr("No timed solve yet.")}</Empty>
       ) : (
         <div className="grid min-h-0 flex-1 auto-rows-[minmax(8.5rem,1fr)] gap-2 overflow-y-auto px-3 pb-3 sm:grid-cols-2 2xl:grid-cols-3">
           {puzzles.map((x) => (
@@ -314,7 +314,7 @@ function Times({ c }: { c: Coach }) {
           ))}
         </div>
       )}
-    </section>
+    </Surface>
   );
 }
 
@@ -323,12 +323,10 @@ function Reviews({ c }: { c: Coach }) {
   const counts = c.ratingCounts ?? [0, 0, 0, 0, 0],
     most = Math.max(1, ...counts);
   return (
-    <div className={cn(PANEL, "min-h-40 max-lg:flex-none")}>
-      <h3 className={PANEL_HEAD}>
-        {tr("Reviews")}{" "}<span className={cn(NUMERIC, "text-muted-foreground")}>{c.reviews || ""}</span>
-      </h3>
+    <Surface className="min-h-40 max-lg:flex-none">
+      <SectionHead title="Reviews" meta={c.reviews || undefined} className="px-4 pt-2" />
       {!c.reviewList?.length ? (
-        <Nothing className="py-8">{tr("No review yet.")}</Nothing>
+        <Empty icon={Star}>{tr("No review yet.")}</Empty>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex shrink-0 items-center gap-5 px-4 pt-1 pb-4" aria-label={tr("Ratings")}>
@@ -341,9 +339,7 @@ function Reviews({ c }: { c: Coach }) {
               {[5, 4, 3, 2, 1].map((n) => (
                 <div key={n} className="flex items-center gap-2 text-xs">
                   <span className={cn(NUMERIC, "w-3 text-muted-foreground")}>{n}</span>
-                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <span className="block h-full rounded-full bg-warning" style={{ width: `${(counts[n - 1]! / most) * 100}%` }} />
-                  </span>
+                  <Bar ratio={counts[n - 1]! / most} fill="bg-warning" className="h-1.5 flex-1" />
                   <span className={cn(NUMERIC, "w-6 text-right text-muted-foreground")}>{counts[n - 1]}</span>
                 </div>
               ))}
@@ -351,7 +347,7 @@ function Reviews({ c }: { c: Coach }) {
           </div>
           <ul className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 pb-3" data-slot="reviews">
             {c.reviewList.map((r, i) => (
-              <li key={i} className="flex flex-col gap-2.5 rounded-lg border bg-muted/30 p-3.5">
+              <li key={i} className="flex flex-col gap-2.5 rounded-lg bg-muted/40 p-3.5">
                 <span className="flex items-center gap-2.5">
                   <Avatar name={r.username} size={32} />
                   <span className="flex min-w-0 flex-1 flex-col">
@@ -366,7 +362,7 @@ function Reviews({ c }: { c: Coach }) {
           </ul>
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 
@@ -395,24 +391,52 @@ export function BookPage({ id }: { id: string }) {
         }
       />
       <section aria-label={tr("Book a session")} className="flex min-h-0 min-w-0 flex-1 flex-col max-lg:overflow-y-auto">
-        {id === s.user.id ? <Nothing className={cn(PANEL, "flex-1")}>{tr("Players book you here.")}</Nothing> : <Booking id={id} />}
+        {id === s.user.id ? (
+          <Surface className="flex-1">
+            <Empty icon={CalendarCheck}>{tr("Players book you here.")}</Empty>
+          </Surface>
+        ) : (
+          <Booking id={id} />
+        )}
       </section>
     </div>
   );
 }
 
+/** A coach's page on its way: the card about them with its face, the two cards of figures, their times; the reviews beside. */
 function ProfileSkeleton() {
+  const card = "rounded-xl ring-1 ring-foreground/10";
   return (
     <div aria-busy="true" aria-label={tr("Loading")} className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-48 rounded-xl" />
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
+        <div className={cn(card, "flex gap-5 p-5")}>
+          <Skeleton className="size-20 rounded-full" />
+          <div className="flex flex-1 flex-col gap-2.5">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-3 w-1/3" />
+            <Skeleton className="h-3 w-4/5" />
+            <Skeleton className="h-3 w-3/5" />
+          </div>
         </div>
-        <Skeleton className="flex-1 rounded-xl" />
+        <div className="grid gap-4 xl:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className={cn(card, "flex flex-col gap-3 p-4")}>
+              <Skeleton className="h-4 w-1/3" />
+              <div className="grid grid-cols-3 gap-3">
+                {[0, 1, 2].map((j) => (
+                  <Skeleton key={j} className="h-10" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className={cn(card, "flex-1")} />
       </div>
-      <Skeleton className="rounded-xl" />
+      <div className={cn(card, "flex flex-col gap-3 p-4")}>
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-20" />
+        <Skeleton className="h-24" />
+      </div>
     </div>
   );
 }
@@ -424,7 +448,7 @@ function Step({ n, state, id, children }: { n: number; state: "done" | "now" | "
       <span
         className={cn(
           NUMERIC,
-          "flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+          "flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
           state === "done" ? "bg-primary/15 text-primary" : state === "now" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
         )}
       >
@@ -474,18 +498,31 @@ function Booking({ id }: { id: string }) {
   }
   if (!data)
     return (
-      <div aria-busy="true" aria-label={tr("Loading")} className="flex flex-1 flex-col gap-3">
-        <Skeleton className="h-7 w-72" />
-        <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
-          <Skeleton className="rounded-xl" />
-          <Skeleton className="rounded-xl" />
+      <div aria-busy="true" aria-label={tr("Loading")} className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex min-h-0 flex-col gap-3">
+          <Skeleton className="h-8 w-72" />
+          <CalendarSkeleton />
+        </div>
+        <div className="flex flex-col gap-3 self-start rounded-xl p-5 ring-1 ring-foreground/10">
+          <Skeleton className="h-5 w-32" />
+          <div className="grid grid-cols-3 gap-2">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-8" />
+            ))}
+          </div>
+          <Skeleton className="h-20" />
+          <Skeleton className="h-10" />
         </div>
       </div>
     );
   return (
     <>
       {!data.accepting || !data.slots.length ? (
-        <Nothing className={cn(PANEL, "flex-1")}>{!data.welcome ? tr("{0} is not taking new students right now. Write to them to ask.", { 0: c?.username ?? "This coach" }) : data.accepting ? tr("{0} has no open slot in the next four weeks.", { 0: c?.username ?? "This coach" }) : tr("This coach is not taking bookings right now.")}</Nothing>
+        <Surface className="flex-1">
+          <Empty icon={!data.welcome ? UserRoundX : CalendarX}>
+            {!data.welcome ? tr("{0} is not taking new students right now. Write to them to ask.", { 0: c?.username ?? tr("This coach") }) : data.accepting ? tr("{0} has no open slot in the next four weeks.", { 0: c?.username ?? tr("This coach") }) : tr("This coach is not taking bookings right now.")}
+          </Empty>
+        </Surface>
       ) : (
         <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-h-0 min-w-0 flex-col gap-3">
@@ -514,18 +551,18 @@ function Booking({ id }: { id: string }) {
                       <span className={cn(NARROW_BAR, "@max-[5.5rem]:hidden @max-[3.5rem]:block")} aria-hidden="true" />
                       <DayBoxes items={free} className="@max-[3.5rem]:hidden">
                         {(t, paired) => (
-                          <button
+                          <DayChip
                             key={t.start}
-                            type="button"
+                            tone={t.start === slot ? "chosen" : "free"}
+                            paired={paired}
                             onClick={(e) => {
                               e.stopPropagation();
                               setPicked(d);
                               setSlot(t.start);
                             }}
-                            className={cn(BOX, paired && "px-0.5", t.start === slot ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary hover:bg-primary/25")}
                           >
                             {time(t.start)}
-                          </button>
+                          </DayChip>
                         )}
                       </DayBoxes>
                     </>
@@ -534,7 +571,7 @@ function Booking({ id }: { id: string }) {
               }}
             />
           </div>
-          <div className={cn(PANEL, "max-h-full self-start")} data-slot="booking-details">
+          <Surface className="max-h-full self-start" data-slot="booking-details">
             <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-5">
               <div className="flex flex-col gap-3">
                 <Step n={1} state={chosen ? "done" : "now"}>
@@ -556,7 +593,11 @@ function Booking({ id }: { id: string }) {
               <div className="flex flex-col gap-3 text-xs" data-slot="cancellation-policy">
                 <h3 className="text-sm font-medium">{tr("Cancellation policy")}</h3>
                 <p id="cancellation-terms" className="text-muted-foreground">{said(CANCELLATION_TERMS)}</p>
-                {chosen && !cancellationOpen(chosen.start) && <p className="font-medium text-warning">{tr("This session starts within 24 hours and cannot be cancelled once booked.")}</p>}
+                {chosen && !cancellationOpen(chosen.start) && (
+                  <Alert variant="warning">
+                    <AlertDescription className="text-xs text-warning">{tr("This session starts within 24 hours and cannot be cancelled once booked.")}</AlertDescription>
+                  </Alert>
+                )}
                 <label className="flex items-start gap-2" htmlFor="accept-cancellation-policy">
                   <Checkbox id="accept-cancellation-policy" checked={accepted} onCheckedChange={setAccepted} aria-describedby="cancellation-terms" />
                   <span>{tr("I have read and accept the cancellation policy.")}</span>
@@ -564,13 +605,13 @@ function Booking({ id }: { id: string }) {
               </div>
             </div>
             <div className="flex shrink-0 flex-col gap-1.5 p-4 pt-0">
-              <UiButton size="lg" className="h-11 w-full" disabled={!chosen || !accepted || pending} onClick={book} data-action="coaching:book">
+              <UiButton size="lg" className="w-full max-md:h-11" disabled={!chosen || !accepted || pending} onClick={book} data-action="coaching:book">
                 <CalendarCheck />
                 {chosen ? tr("Book {0}", { 0: span(chosen.start, chosen.end) }) : tr("Pick a time to book")}
               </UiButton>
               <span className="text-center text-xs text-muted-foreground">{tr("Confirmed at once · payment comes later")}</span>
             </div>
-          </div>
+          </Surface>
         </div>
       )}
     </>

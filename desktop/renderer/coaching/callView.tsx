@@ -4,9 +4,9 @@
  * screen. Leaving the page keeps the call going in a floating window (floating.tsx).
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Maximize, MessageSquare, Mic, MicOff, Minimize, MonitorUp, PhoneOff, PictureInPicture2, ScreenShareOff, Video, VideoOff } from "lucide-react";
+import { CalendarX, Maximize, MessageSquare, Mic, MicOff, Minimize, MonitorUp, PhoneOff, PictureInPicture2, ScreenShareOff, Video, VideoOff } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, PAGE, PageHead, Tip, usePhone } from "../ui";
+import { Avatar, Empty, PAGE, PageHead, Surface, Tip, usePhone } from "../ui";
 import { go } from "../navigation";
 import { callOpen, coaching, type Booking } from "./client";
 import { store as s } from "../store";
@@ -14,11 +14,13 @@ import { enterCall, type Call } from "./call";
 import { Chat } from "./chat";
 import { Movable, type Place } from "./movable";
 import { useMinute } from "./sessions";
-import { Back, Nothing, PANEL, relative, span, url } from "./parts";
+import { Back, relative, span, url } from "./parts";
+import { ChatPanel } from "../chat";
+import { ask } from "../confirm";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Toggle } from "@/components/ui/toggle";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
@@ -41,8 +43,8 @@ export function CallView({ id }: { id: string }) {
     return (
       <div className={PAGE}>
         {head(b && span(b.startsAt, b.endsAt))}
-        <div className={cn(PANEL, "flex-1")}>
-          <Nothing>
+        <Surface className="flex-1">
+          <Empty icon={CalendarX}>
             {!b
               ? tr("This session does not exist.")
               : b.status === "cancelled"
@@ -51,9 +53,10 @@ export function CallView({ id }: { id: string }) {
                   ? tr("The call opens 15 minutes before the session, {0}.", { 0: relative(b.startsAt - 15 * 60_000, now) })
                   : tr("This session is over.")}
             <UiButton variant="outline" onClick={() => go(url("sessions"))}>
-              {tr("Every session")}</UiButton>
-          </Nothing>
-        </div>
+              {tr("Every session")}
+            </UiButton>
+          </Empty>
+        </Surface>
       </div>
     );
   return <Room key={b.id} b={b} now={now} />;
@@ -84,15 +87,16 @@ function Room({ b, now }: { b: Booking; now: number }) {
   return (
     <div className={PAGE}>
       <div ref={room} className={cn("flex min-h-0 flex-1 gap-4 max-md:flex-col", full && "bg-background p-4")} data-slot="call-room">
-        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl bg-neutral-950" data-slot="stage" data-phase={call.phase}>
+        {/* The picture's room stays dark whatever the theme, its words light over it. */}
+        <div className="dark relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl bg-background text-foreground" data-slot="stage" data-phase={call.phase}>
           <Stream stream={call.remote} className={cn("size-full object-contain", !peerVideo && "invisible")} />
           {(!peerVideo || status) && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pb-16 text-sm text-neutral-300">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pb-16 text-sm text-muted-foreground">
               <Avatar name={b.with.username} src={b.with.avatar} size={72} className={cn(call.phase === "waiting" && "animate-pulse")} />
-              <span data-slot="call-status" data-trouble={call.trouble || undefined} className="font-medium text-neutral-100">
+              <span data-slot="call-status" data-trouble={call.trouble || undefined} className="font-medium text-foreground">
                 {status?.title ?? tr("{0}'s camera is off", { 0: b.with.username })}
               </span>
-              {status?.detail && <p className="-mt-1.5 max-w-sm px-6 text-center text-xs text-neutral-400">{said(status.detail)}</p>}
+              {status?.detail && <p className="-mt-1.5 max-w-sm px-6 text-center text-xs text-muted-foreground">{said(status.detail)}</p>}
               {status?.retry && (
                 <UiButton variant="outline" size="sm" data-action="call:retry" onClick={() => call.retry()}>
                   {tr("Try again")}</UiButton>
@@ -100,23 +104,23 @@ function Room({ b, now }: { b: Booking; now: number }) {
             </div>
           )}
           {/* Who the call is with and until when, over the picture: the page holds nothing but the call. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-linear-to-b from-black/60 to-transparent p-3 pb-8 text-white">
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-linear-to-b from-black/60 to-transparent p-3 pb-8">
             <div className="flex min-w-0 flex-col gap-0.5 pl-1" data-slot="call-info">
               <span className="flex items-center gap-1.5 truncate text-sm font-medium">
                 {b.with.username}
-                {call.phase !== "ended" && !call.peerMic && (call.phase === "connected" || call.phase === "connecting") && <MicOff className="size-3.5 text-neutral-300" aria-label={tr("Muted")} />}
+                {call.phase !== "ended" && !call.peerMic && (call.phase === "connected" || call.phase === "connecting") && <MicOff className="size-3.5 text-muted-foreground" aria-label={tr("Muted")} />}
               </span>
-              <span className="truncate text-xs text-neutral-300">{now < b.endsAt ? tr("{0} · ends {1}", { 0: span(b.startsAt, b.endsAt), 1: relative(b.endsAt, now) }) : tr("{0} · over", { 0: span(b.startsAt, b.endsAt) })}</span>
+              <span className="truncate text-xs text-muted-foreground">{now < b.endsAt ? tr("{0} · ends {1}", { 0: span(b.startsAt, b.endsAt), 1: relative(b.endsAt, now) }) : tr("{0} · over", { 0: span(b.startsAt, b.endsAt) })}</span>
             </div>
             <div className="pointer-events-auto">
-              <Control className="h-9 w-11" onClick={toggleFull} tip={full ? tr("Leave full screen") : tr("Full screen")} action="call:fullscreen">
+              <Control onClick={toggleFull} tip={full ? tr("Leave full screen") : tr("Full screen")} action="call:fullscreen">
                 {full ? <Minimize /> : <Maximize />}
               </Control>
             </div>
           </div>
           {call.phase !== "ended" && <SelfView call={call} />}
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-linear-to-t from-black/70 to-transparent px-3 pt-10 pb-4">
-            {call.notice && call.phase !== "ended" && <p className="text-center text-xs text-neutral-300">{said(call.notice)}</p>}
+            {call.notice && call.phase !== "ended" && <p className="text-center text-xs text-muted-foreground">{said(call.notice)}</p>}
             <div className="flex items-center justify-center gap-2" data-slot="call-controls">
               <Control off={!call.mic} disabled={!call.devices.audio} onClick={() => call.toggleMic()} tip={call.mic ? tr("Mute") : tr("Unmute")} action="call:mic">
                 {call.mic ? <Mic /> : <MicOff />}
@@ -149,7 +153,7 @@ function Room({ b, now }: { b: Booking; now: number }) {
               <UiButton
                 variant="destructive"
                 size="lg"
-                className="h-11 px-5"
+                className="max-md:h-11"
                 data-action="call:leave"
                 onClick={() => {
                   if (document.fullscreenElement) void document.exitFullscreen();
@@ -163,9 +167,11 @@ function Room({ b, now }: { b: Booking; now: number }) {
           </div>
         </div>
         {chat && conversation && (
-          <aside className={cn(PANEL, "shrink-0 md:w-80 max-md:h-[45%]")} aria-label={tr("Chat")}>
-            <Chat conversation={conversation} head={false} />
-          </aside>
+          <ChatPanel className="flex-none shrink-0 md:w-80 max-md:h-[45%]">
+            <aside className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label={tr("Chat")}>
+              <Chat conversation={conversation} head={false} />
+            </aside>
+          </ChatPanel>
         )}
       </div>
     </div>
@@ -218,7 +224,9 @@ function SelfView({ call }: { call: Call }) {
   // The shared screen's width over its height, so no bars frame it; the camera fills a 16:9 tile.
   const [screenRatio, setScreenRatio] = useState(16 / 9);
   const ratio = call.sharing ? screenRatio : 16 / 9;
-  const [stopping, setStopping] = useState(false);
+  const stop = async () => {
+    if (await ask({ title: tr("Stop sharing your screen?"), text: tr("{0} sees your camera again.", { 0: call.booking.with.username }), action: tr("Stop sharing"), cancel: tr("Keep sharing") })) if (call.sharing) void call.toggleScreen();
+  };
   return (
     // Clear of the bar of controls at the bottom and of the one at the top.
     <div className="pointer-events-none absolute inset-x-3 top-16 bottom-20">
@@ -227,7 +235,7 @@ function SelfView({ call }: { call: Call }) {
         ratio={ratio}
         min={128}
         className={cn("max-w-[70%] min-w-32", !selfAt.w && "w-[min(30%,14rem)]")}
-        frame="overflow-hidden rounded-lg bg-neutral-800 shadow-lg ring-1 ring-white/15"
+        frame="overflow-hidden rounded-lg bg-muted shadow-lg ring-1 ring-foreground/15"
         data-slot="self-view"
         title={tr("Drag to move your picture, or its edges to resize it")}
       >
@@ -235,63 +243,56 @@ function SelfView({ call }: { call: Call }) {
           <>
             {stream && <Stream stream={stream} muted onRatio={call.sharing ? setScreenRatio : undefined} className={cn("pointer-events-none size-full", call.sharing ? "object-contain" : "-scale-x-100 object-cover", !shown && "invisible")} />}
             {!shown && (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs text-neutral-400">
+              <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
                 <VideoOff className="size-5" />
                 {call.devices.video ? tr("Camera off") : tr("No camera")}
               </span>
             )}
             {call.sharing && (
-              <button
-                type="button"
+              <UiButton
+                variant="secondary"
+                size="xs"
                 data-action="call:stop-sharing"
-                onClick={() => setStopping(true)}
+                onClick={stop}
                 // On the corner facing the middle of the room, so it never hides against an edge.
-                className={cn("absolute flex h-6 cursor-pointer items-center gap-1 rounded-md bg-black/70 px-1.5 text-xs whitespace-nowrap text-white transition-colors hover:bg-destructive", at.y > 0.5 ? "top-1.5" : "bottom-1.5", at.x > 0.5 ? "left-1.5" : "right-1.5")}
+                className={cn("absolute shadow-sm hover:text-destructive", at.y > 0.5 ? "top-1.5" : "bottom-1.5", at.x > 0.5 ? "left-1.5" : "right-1.5")}
               >
-                <ScreenShareOff className="size-3.5" />
-                {tr("Stop sharing")}</button>
+                <ScreenShareOff />
+                {tr("Stop sharing")}
+              </UiButton>
             )}
           </>
         )}
       </Movable>
-      <AlertDialog open={stopping && call.sharing} onOpenChange={setStopping}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{tr("Stop sharing your screen?")}</AlertDialogTitle>
-            <AlertDialogDescription>{call.booking.with.username} {" "}{tr("sees your camera again.")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tr("Keep sharing")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" data-action="call:stop-sharing-confirm" onClick={() => void call.toggleScreen()}>
-              {tr("Stop sharing")}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
 
+/** A device of the call turned off: in red. */
+const OFF = "aria-pressed:border-destructive/40 aria-pressed:bg-destructive/15 aria-pressed:text-destructive aria-pressed:hover:bg-destructive/25 aria-pressed:hover:text-destructive";
+/** A panel or the screen shown: in the accent. */
+const ACTIVE = "aria-pressed:border-primary/40 aria-pressed:bg-primary/15 aria-pressed:text-primary aria-pressed:hover:bg-primary/25 aria-pressed:hover:text-primary";
+
 /**
- * A toggle of the call, a little wider than tall: a device turned off goes red, a panel or the screen shown takes the
- * accent. `className` resizes it (the floating window's are smaller).
+ * A toggle of the call, a little wider than tall, on a dark glass over the picture: a device turned off goes red, a
+ * panel or the screen shown takes the accent. `className` resizes it.
  */
 export function Control({ off = false, active = false, disabled, onClick, tip, action, className, children }: { off?: boolean; active?: boolean; disabled?: boolean; onClick: () => void; tip: string; action: string; className?: string; children: React.ReactNode }) {
   return (
     <Tip content={tip}>
-      <UiButton
-        variant="outline"
-        size="icon-lg"
+      <Toggle
+        size="lg"
         aria-label={said(tip)}
-        aria-pressed={off || active}
+        pressed={off || active}
         disabled={disabled}
         onClick={onClick}
         // Clicked, it keeps no focus: Space goes on starting the timer rather than pressing it again.
         onMouseDown={(e) => e.preventDefault()}
         data-action={action}
-        className={cn("h-11 w-14", className, off && "border-destructive/40 bg-destructive/15 text-destructive hover:bg-destructive/25 dark:border-destructive/40 dark:bg-destructive/15 dark:hover:bg-destructive/25", active && "border-primary/40 bg-primary/12 text-primary hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/12 dark:hover:bg-primary/20")}
+        className={cn("w-12 border border-foreground/15 bg-background/60 backdrop-blur-sm max-md:h-11 max-md:w-14", off ? OFF : ACTIVE, className)}
       >
         {children}
-      </UiButton>
+      </Toggle>
     </Tip>
   );
 }

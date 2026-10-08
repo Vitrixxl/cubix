@@ -1,10 +1,11 @@
 /** The addresses the app was used from over a period: counts, first and last seen, the accounts seen from each; a row
  * opens its requests. */
 import { navigate, useAdmin, useRoute, withParams, type Ips as Data } from "./api";
-import { ago, Failure, FilterInput, Kpi, NUMERIC, Nothing, num, Pager, RowsSkeleton, SortHead, useNow, UserLink, ViewHead, when, ipPath } from "./parts";
+import { Globe } from "lucide-react";
+import { ago, Failure, FiguresSkeleton, Kpi, NUMERIC, num, Pager, TableSkeleton, SortHead, useNow, UserLink, VIEW, when, ipPath } from "./parts";
+import { Empty, PageHead, ROW, SearchField, Segmented, Strip, Tip } from "../base";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const LIMIT = 50;
 
@@ -21,40 +22,44 @@ export function Ips({ phone }: { phone: boolean }) {
   const now = useNow();
   const head = (id: string, label: string, className = "text-right") => <SortHead id={id} label={label} sort={sort} order={order} params={params} className={className} />;
   return (
-    <div className="flex flex-col gap-5">
-      <ViewHead title="IP addresses" sub={d ? `Since ${d.since} · UTC days` : "Where the app is used from"}>
-        <ToggleGroup
-          variant="outline"
-          value={[days]}
-          onValueChange={(v: string[]) => v[0] && navigate(withParams(params, { days: v[0] === "7" ? null : v[0], page: null }), true)}
-          aria-label="Period"
-        >
-          {["1", "7", "30", "90"].map((n) => (
-            <ToggleGroupItem key={n} value={n} data-action={"ips:days:" + n} className="px-3">
-              {n} d
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </ViewHead>
-      <section aria-label="Totals" className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl bg-muted/45 px-5 py-4 sm:grid-cols-4">
-        <Kpi label="Addresses" value={d ? num(d.totals.ips) : "–"} />
-        <Kpi label="Requests" value={d ? num(d.totals.requests) : "–"} />
-        <Kpi label="Errors" value={d ? num(d.totals.errors) : "–"} />
-        <Kpi label="Rate-limited" value={d ? num(d.totals.limited) : "–"} />
-      </section>
-      <FilterInput value={q} onCommit={(v) => navigate(withParams(params, { q: v, page: null }), true)} placeholder="Filter addresses" numeric action="ips:search" className="w-full sm:w-72" />
+    <div className={VIEW}>
+      <PageHead title="IP addresses" sub={d ? `Since ${d.since} · UTC days` : "Where the app is used from"} />
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField value={q} onChange={(v) => navigate(withParams(params, { q: v, page: null }), true)} delay={300} placeholder="Filter addresses" numeric action="ips:search" className="w-full sm:w-72" />
+        <Segmented
+          label="Period"
+          action="ips:days:"
+          value={days}
+          onChange={(n) => navigate(withParams(params, { days: n === "7" ? null : n, page: null }), true)}
+          options={["1", "7", "30", "90"].map((n) => ({ id: n, label: `${n} d` }))}
+        />
+      </div>
+      {d ? (
+        <Strip label="Totals" className="grid-cols-2 sm:grid-cols-4">
+          <Kpi label="Addresses" value={num(d.totals.ips)} />
+          <Kpi label="Requests" value={num(d.totals.requests)} />
+          <Kpi label="Errors" value={num(d.totals.errors)} />
+          <Kpi label="Rate-limited" value={num(d.totals.limited)} />
+        </Strip>
+      ) : (
+        !ips.error && (
+          <Strip>
+            <FiguresSkeleton count={4} className="grid-cols-2 sm:grid-cols-4" />
+          </Strip>
+        )
+      )}
       <div className={cn("min-w-0", ips.loading && d && "opacity-70 transition-opacity")}>
         {ips.error && !d ? (
           <Failure error={ips.error} retry={ips.reload} className="my-2" />
         ) : !d ? (
-          <RowsSkeleton cols={phone ? 2 : 9} rows={12} />
+          <TableSkeleton cols={phone ? 2 : 9} rows={12} />
         ) : !d.rows.length ? (
-          <Nothing>No address in this period.</Nothing>
+          <Empty icon={Globe} title="No address in this period." />
         ) : phone ? (
-          <ul className="flex flex-col" data-slot="ips-list">
+          <ul className="flex flex-col gap-0.5" data-slot="ips-list">
             {d.rows.map((r) => (
               <li key={r.ip}>
-                <button type="button" onClick={() => navigate(ipPath(r.ip))} className="flex w-full flex-col gap-1 border-b py-2.5 text-left last:border-0">
+                <button type="button" onClick={() => navigate(ipPath(r.ip))} className={cn(ROW, "flex w-full flex-col gap-1 px-2 py-2.5")}>
                   <span className="flex items-center gap-2">
                     <span className={cn(NUMERIC, "min-w-0 flex-1 truncate text-sm")}>{r.ip}</span>
                     <span className={cn(NUMERIC, "text-sm")}>{num(r.requests)}</span>
@@ -90,11 +95,15 @@ export function Ips({ phone }: { phone: boolean }) {
                   <TableCell className={cn(NUMERIC, "text-right", r.serverErrors ? "text-destructive" : "text-muted-foreground")}>{num(r.serverErrors)}</TableCell>
                   <TableCell className={cn(NUMERIC, "text-right", r.limited ? "text-warning" : "text-muted-foreground")}>{num(r.limited)}</TableCell>
                   <TableCell className={cn(NUMERIC, "text-right text-muted-foreground")}>{num(r.activeDays)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground" title={when(r.firstSeenAt)}>
-                    {ago(r.firstSeenAt, now)}
+                  <TableCell className="text-right text-muted-foreground">
+                    <Tip content={when(r.firstSeenAt)}>
+                      <span>{ago(r.firstSeenAt, now)}</span>
+                    </Tip>
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground" title={when(r.lastSeenAt)}>
-                    {ago(r.lastSeenAt, now)}
+                  <TableCell className="text-right text-muted-foreground">
+                    <Tip content={when(r.lastSeenAt)}>
+                      <span>{ago(r.lastSeenAt, now)}</span>
+                    </Tip>
                   </TableCell>
                   <TableCell className="max-w-56">
                     <span className="flex min-w-0 items-center gap-x-2 overflow-hidden" onClick={(e) => e.stopPropagation()}>

@@ -13,6 +13,8 @@ interface Question {
   action: string;
   /** Whether it destroys something (the button in red); true unless said otherwise. */
   destructive?: boolean;
+  /** The button that keeps things as they are ("Cancel" unless said, "Keep sharing"). */
+  cancel?: string;
 }
 let pending: (Question & { answer: (yes: boolean) => void }) | null = null;
 const listeners = new Set<() => void>();
@@ -47,7 +49,7 @@ export function Confirmations() {
           {q?.text && <AlertDialogDescription>{q.text}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{tr("Cancel")}</AlertDialogCancel>
+          <AlertDialogCancel>{q?.cancel ?? tr("Cancel")}</AlertDialogCancel>
           <AlertDialogAction variant={q?.destructive === false ? "default" : "destructive"} onClick={() => close(true)} data-action="confirm">
             {q?.action}
           </AlertDialogAction>

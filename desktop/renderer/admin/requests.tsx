@@ -1,10 +1,11 @@
 /** The request log, newest first: filters in the address (important, kind, status, method, IP, path, account, period),
  * live while the socket brings traffic, older rows loaded with the `before` cursor. */
 import { useEffect, useMemo, useState } from "react";
-import { Flag, Radio, Search } from "lucide-react";
+import { Flag, ListX, Radio } from "lucide-react";
 import { navigate, useAdmin, useLiveState, useRoute, withParams, type LogRow, type Requests as Data } from "./api";
 import { admin } from "./api";
-import { Choose, Failure, FilterInput, IpLink, Kind, NUMERIC, Nothing, num, RowsSkeleton, Status, UserLink, ViewHead, when } from "./parts";
+import { Choose, Failure, IpLink, Kind, NUMERIC, num, TableSkeleton, Status, UserLink, VIEW, when } from "./parts";
+import { Empty, FOCUS, PageHead, SearchField, Tip } from "../base";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -53,8 +54,8 @@ export function Requests({ phone }: { phone: boolean }) {
   const done = older.done || (d ? !d.totalCapped && rows.length >= d.total : false),
     total = d ? num(d.total) + (d.totalCapped ? "+" : "") : "";
   return (
-    <div className="flex flex-col gap-5">
-      <ViewHead title="Requests" sub={d ? `${total} ${any ? "matching" : "logged"} · newest first` : "The request log, newest first"}>
+    <div className={VIEW}>
+      <PageHead title="Requests" sub={d ? `${total} ${any ? "matching" : "logged"} · newest first` : "The request log, newest first"}>
         <Toggle
           variant="outline"
           pressed={following}
@@ -66,7 +67,7 @@ export function Requests({ phone }: { phone: boolean }) {
           <Radio className={cn(following && live.connected ? "text-success" : "text-muted-foreground")} />
           Live
         </Toggle>
-      </ViewHead>
+      </PageHead>
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filters">
         <Toggle
           variant="outline"
@@ -122,9 +123,9 @@ export function Requests({ phone }: { phone: boolean }) {
             { value: "30d", label: "Last 30 days" },
           ]}
         />
-        <FilterInput value={value("ip")} onCommit={(v) => set({ ip: v || null })} placeholder="IP" numeric action="requests:ip" className="w-full sm:w-40" />
-        <FilterInput value={value("path")} onCommit={(v) => set({ path: v || null })} placeholder="Path" icon={<Search />} numeric action="requests:path" className="w-full sm:w-48" />
-        <FilterInput value={value("user")} onCommit={(v) => set({ user: v || null })} placeholder="Account" action="requests:user" className="w-full sm:w-40" />
+        <SearchField value={value("ip")} onChange={(v) => set({ ip: v || null })} delay={300} placeholder="IP" numeric action="requests:ip" className="w-full sm:w-40" />
+        <SearchField value={value("path")} onChange={(v) => set({ path: v || null })} delay={300} placeholder="Path" numeric action="requests:path" className="w-full sm:w-48" />
+        <SearchField value={value("user")} onChange={(v) => set({ user: v || null })} delay={300} placeholder="Account" action="requests:user" className="w-full sm:w-40" />
         {any && (
           <Button variant="outline" onClick={() => navigate("/admin/requests", true)} data-action="requests:reset">
             Reset
@@ -135,9 +136,9 @@ export function Requests({ phone }: { phone: boolean }) {
         {first.error && !d ? (
           <Failure error={first.error} retry={first.reload} className="my-2" />
         ) : !d ? (
-          <RowsSkeleton cols={phone ? 2 : 7} rows={14} />
+          <TableSkeleton cols={phone ? 2 : 7} rows={14} />
         ) : !rows.length ? (
-          <Nothing>{any ? "No request matches these filters." : "No request logged yet."}</Nothing>
+          <Empty icon={ListX} title={any ? "No request matches these filters." : "No request logged yet."} />
         ) : phone ? (
           <ul className="flex flex-col" data-slot="requests-list">
             {rows.map((r) => (
@@ -170,16 +171,24 @@ export function Requests({ phone }: { phone: boolean }) {
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.id} title={r.userAgent ?? undefined}>
-                  <TableCell className={cn(NUMERIC, "text-xs text-muted-foreground")} title={new Date(r.at).toLocaleString()}>
-                    {when(r.at, true)}
+                <TableRow key={r.id}>
+                  <TableCell className={cn(NUMERIC, "text-xs text-muted-foreground")}>
+                    <Tip content={new Date(r.at).toLocaleString()}>
+                      <span>{when(r.at, true)}</span>
+                    </Tip>
                   </TableCell>
                   <TableCell>
                     <Status status={r.status} />
                   </TableCell>
                   <TableCell className="max-w-0 truncate">
                     <span className={cn(NUMERIC, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
-                    <span className={NUMERIC}>{r.path}</span>
+                    {r.userAgent ? (
+                      <Tip content={r.userAgent}>
+                        <span className={NUMERIC}>{r.path}</span>
+                      </Tip>
+                    ) : (
+                      <span className={NUMERIC}>{r.path}</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Kind kind={r.kind} important={r.important} />
@@ -189,9 +198,11 @@ export function Requests({ phone }: { phone: boolean }) {
                     <UserLink id={r.userId} name={r.username} />
                   </TableCell>
                   <TableCell className="max-w-36 truncate">
-                    <button type="button" className={cn(NUMERIC, "truncate text-left outline-none transition-colors hover:text-primary focus-visible:text-primary")} onClick={() => set({ ip: r.ip })} title={`Only ${r.ip}`}>
-                      {r.ip}
-                    </button>
+                    <Tip content={`Only ${r.ip}`}>
+                      <button type="button" className={cn(NUMERIC, FOCUS, "max-w-full truncate rounded-sm text-left transition-colors hover:text-primary")} onClick={() => set({ ip: r.ip })}>
+                        {r.ip}
+                      </button>
+                    </Tip>
                   </TableCell>
                 </TableRow>
               ))}

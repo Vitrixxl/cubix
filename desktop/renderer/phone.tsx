@@ -8,7 +8,7 @@ import { ChevronDown, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { EVENTS } from "../../src/shared/puzzles";
 import { TIME_ENTRIES } from "../../src/client/lib/format";
-import { Icon, type Props, type Tone } from "./base";
+import { Icon, LABEL, type Props, type Tone } from "./base";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button as UiButton } from "@/components/ui/button";
@@ -99,12 +99,12 @@ export function TouchAction({
       disabled={disabled}
       onClick={run(action)}
       className={cn(
-        "h-12 flex-col gap-0.5 px-1 text-[11px] font-medium",
+        "h-12 flex-col gap-0.5 px-1 text-xs font-medium",
         !primary && "text-muted-foreground aria-pressed:bg-muted aria-pressed:text-foreground",
         pressed && PRESSED_TONE[tone],
       )}
     >
-      {I ? <I className="size-[18px]" /> : null}
+      {I ? <I className="size-5" /> : null}
       {label}
     </UiButton>
   );
@@ -134,28 +134,35 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
   );
 }
 
-/** Choices laid out as large cells in a sheet. */
-function SheetChoice({ label, value, options, onChange, columns = 3 }: {
+/** A cell of a sheet's choice: quiet, tinted with the accent once chosen. */
+const CELL = "h-11 w-full bg-muted/40 px-2 text-muted-foreground aria-pressed:bg-primary/15 aria-pressed:text-foreground";
+
+/**
+ * Choices laid out as large cells in a sheet. Each cell's `onClick` acts when it is tapped, even chosen already;
+ * otherwise `onChange` follows the choice.
+ */
+function SheetChoice({ label, value, options, onChange, columns = 3, className }: {
   label: string;
   value: string;
-  options: { id: string; label: React.ReactNode }[];
-  onChange: (id: string) => void;
+  options: { id: string; label: React.ReactNode; action?: string; onClick?: () => void }[];
+  onChange?: (id: string) => void;
   columns?: number;
+  className?: string;
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-xs font-medium text-muted-foreground">{said(label)}</h3>
+      <h3 className={LABEL}>{said(label)}</h3>
       <ToggleGroup
         aria-label={said(label)}
         value={[value]}
         spacing={1}
-        onValueChange={(next: string[]) => next[0] && next[0] !== value && onChange(next[0])}
+        onValueChange={(next: string[]) => next[0] && next[0] !== value && onChange?.(next[0])}
         className="grid w-full gap-1"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {options.map((o) => (
-          <ToggleGroupItem key={o.id} value={o.id} className="h-11 w-full bg-muted/40 px-2 text-muted-foreground aria-pressed:bg-primary/12 aria-pressed:text-foreground">
-            {o.label}
+          <ToggleGroupItem key={o.id} value={o.id} data-action={o.action} onClick={o.onClick} className={cn(CELL, className)}>
+            {said(o.label)}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
@@ -171,31 +178,27 @@ export function SessionSheet() {
   const current = s.event().id;
   return (
     <PhoneSheet open={open} onOpenChange={(next) => !next && open && close()} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} tall={scramble}>
-      <section className="flex flex-col gap-2">
-        <h3 className="text-xs font-medium text-muted-foreground">{tr("Puzzle")}</h3>
-        <div role="listbox" aria-label={tr("Puzzle")} className="grid grid-cols-4 gap-1">
-          {EVENTS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="option"
-              aria-selected={v.id === current}
-              data-action={"puzzle:" + v.id}
-              onClick={() => {
-                if (!scramble) close();
-                void s.action("puzzle:" + v.id);
-              }}
-              className={cn(
-                "flex h-20 flex-col items-center justify-center gap-1.5 rounded-lg px-1 text-[11px] leading-tight text-muted-foreground outline-none active:bg-muted",
-                v.id === current && "bg-primary/12 text-foreground",
-              )}
-            >
+      <SheetChoice
+        label={tr("Puzzle")}
+        value={current}
+        columns={4}
+        className="h-20 flex-col gap-1.5 px-1 text-xs leading-tight whitespace-normal"
+        options={EVENTS.map((v) => ({
+          id: v.id,
+          action: "puzzle:" + v.id,
+          // A tap closes the sheet of the puzzle alone, even on the puzzle already chosen.
+          onClick: () => {
+            if (!scramble) close();
+            void s.action("puzzle:" + v.id);
+          },
+          label: (
+            <>
               <Icon name={"Puzzle" + v.id} size={24} />
               <span className="line-clamp-2 max-w-full text-center">{said(v.label)}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+            </>
+          ),
+        }))}
+      />
       {scramble && (
         <>
           <SheetChoice

@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router";
 import { ChevronDown, Maximize2, Mic, MicOff, PhoneOff, Video, VideoOff, X } from "lucide-react";
 import { store as s } from "../store";
-import { Avatar, Tip } from "../ui";
+import { Avatar, FOCUS, Tip } from "../ui";
 import { go } from "../navigation";
 import { live } from "./call";
 import { callStatus, Control, seesPeer, Stream } from "./callView";
@@ -43,17 +43,17 @@ export function FloatingCall() {
       <Sound stream={call.remote} />
       {live.hidden ? (
         <UiButton size="lg" className="h-11 gap-2.5 rounded-full pr-3 pl-4 shadow-lg" onClick={() => fold(false)} onMouseDown={(e) => e.preventDefault()} data-action="call:show">
-          <span className={cn("size-2 rounded-full", call.phase === "connected" ? "bg-emerald-400" : "animate-pulse bg-amber-300")} />
+          <span className={cn("size-2 rounded-full ring-2 ring-primary-foreground/30", call.phase === "connected" ? "bg-success" : "animate-pulse bg-warning")} />
           {tr("Call with")}{" "}{b.with.username}
           <Maximize2 />
         </UiButton>
       ) : (
-        <Movable place={floatingAt} ratio={16 / 9} min={224} className={cn("max-w-full", !floatingAt.w && "w-80 max-sm:w-64")} frame="overflow-hidden rounded-xl bg-neutral-950 text-white shadow-2xl ring-1 ring-white/15">
+        <Movable place={floatingAt} ratio={16 / 9} min={224} className={cn("max-w-full", !floatingAt.w && "w-80 max-sm:w-64")} frame="dark overflow-hidden rounded-xl bg-background text-foreground shadow-2xl ring-1 ring-foreground/15">
           {() => (
             <>
               <Stream stream={call.remote} muted className={cn("size-full object-cover", !peerVideo && "invisible")} />
               {(!peerVideo || status) && (
-                <button type="button" className={cn("absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 pt-6 text-center text-xs text-neutral-300", !ended && "pb-14")} onClick={open}>
+                <button type="button" className={cn("absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 pt-6 text-center text-xs text-muted-foreground", FOCUS, !ended && "pb-14")} onClick={open}>
                   <Avatar name={b.with.username} src={b.with.avatar} size={44} className={cn(call.phase === "waiting" && "animate-pulse")} />
                   <span data-slot="call-status">{status?.title ?? tr("{0}'s camera is off", { 0: b.with.username })}</span>
                 </button>
@@ -61,7 +61,7 @@ export function FloatingCall() {
               <div className="absolute inset-x-0 top-0 flex items-center gap-1 bg-linear-to-b from-black/70 to-transparent py-1.5 pr-1.5 pl-3">
                 <span className="min-w-0 flex-1 truncate text-xs font-medium">
                   {b.with.username}
-                  {!ended && !call.peerMic && <MicOff className="ml-1.5 inline size-3 text-neutral-400" />}
+                  {!ended && !call.peerMic && <MicOff className="ml-1.5 inline size-3 text-muted-foreground" />}
                 </span>
                 <Small tip={tr("Open the call")} onClick={open} action="call:open">
                   <Maximize2 />
@@ -72,14 +72,14 @@ export function FloatingCall() {
               </div>
               {!ended && (
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-linear-to-t from-black/80 to-transparent pt-8 pb-3">
-                  <Control className="h-9 w-11" off={!call.mic} disabled={!call.devices.audio} onClick={() => call.toggleMic()} tip={call.mic ? tr("Mute") : tr("Unmute")} action="call:mic">
+                  <Control className="w-11" off={!call.mic} disabled={!call.devices.audio} onClick={() => call.toggleMic()} tip={call.mic ? tr("Mute") : tr("Unmute")} action="call:mic">
                     {call.mic ? <Mic /> : <MicOff />}
                   </Control>
-                  <Control className="h-9 w-11" off={!call.camera} disabled={!call.devices.video} onClick={() => call.toggleCamera()} tip={call.camera ? tr("Turn the camera off") : tr("Turn the camera on")} action="call:camera">
+                  <Control className="w-11" off={!call.camera} disabled={!call.devices.video} onClick={() => call.toggleCamera()} tip={call.camera ? tr("Turn the camera off") : tr("Turn the camera on")} action="call:camera">
                     {call.camera ? <Video /> : <VideoOff />}
                   </Control>
-                  <Tip content="Leave the call">
-                    <UiButton variant="destructive" size="icon-lg" aria-label={tr("Leave the call")} onClick={() => call.close()} onMouseDown={(e) => e.preventDefault()} data-action="call:leave" className="w-14">
+                  <Tip content={tr("Leave the call")}>
+                    <UiButton variant="destructive" size="icon-lg" aria-label={tr("Leave the call")} onClick={() => call.close()} onMouseDown={(e) => e.preventDefault()} data-action="call:leave" className="w-11">
                       <PhoneOff />
                     </UiButton>
                   </Tip>
@@ -106,7 +106,7 @@ function Small({ tip, onClick, action, children }: { tip: string; onClick: () =>
         // Clicked, it keeps no focus: Space goes on starting the timer rather than pressing it again.
         onMouseDown={(e) => e.preventDefault()}
         data-action={action}
-        className="bg-white/10 text-white hover:bg-white/20 hover:text-white"
+        className="bg-foreground/10 text-foreground hover:bg-foreground/20"
       >
         {children}
       </UiButton>

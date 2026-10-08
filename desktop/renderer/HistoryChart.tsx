@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fmtTime } from "../../src/client/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { tr } from "../../src/client/i18n";
+import { NUMERIC } from "./base";
 
 export type ChartRange = [number, number];
 type Entry = { time: number | null; displayDate: string };
 type Drag = { pointer: number; start: number; end: number; range: ChartRange; pan: boolean };
+/** The chart's own tooltips (the selected period, the point under the pointer), drawn like the app's tooltips. */
+const TIP = "pointer-events-none absolute rounded-md bg-foreground px-3 py-1.5 text-xs text-background shadow-md";
 const clamp = (n: number, low: number, high: number) => Math.max(low, Math.min(high, n));
 
 /** Inclusive solve bounds; retain the requested width when reaching either edge. */
@@ -29,13 +32,18 @@ export function HistoryChart({ history, averages, range, onRange }: {
   const [first, last] = range, end = history.length - 1;
   const zoomed = first > 0 || last < end;
   const span = Math.max(1, last - first);
-  const visible = history.slice(first, last + 1);
-  const all = [...visible.map(v => v.time), ...averages.slice(first, last + 1)]
-    .filter((v): v is number => v != null && Number.isFinite(v));
-  const low = all.length ? Math.min(...all) : 0;
-  const high = Math.max(low + 1, all.length ? Math.max(...all) : 1);
-  const lo = Math.max(0, low - (high - low) * 0.12);
-  const height = high + (high - low) * 0.12 - lo;
+  // The bounds of the visible times, by a loop: a spread of a long history would overflow the stack.
+  const [lo, height] = useMemo(() => {
+    let low = Infinity, top = -Infinity;
+    for (const series of [history.map(v => v.time), averages])
+      for (let i = first; i <= last && i < series.length; i++) {
+        const v = series[i];
+        if (v != null && Number.isFinite(v)) { low = Math.min(low, v); top = Math.max(top, v); }
+      }
+    if (low === Infinity) { low = 0; top = 1; }
+    const high = Math.max(low + 1, top), lo = Math.max(0, low - (high - low) * 0.12);
+    return [lo, high + (high - low) * 0.12 - lo];
+  }, [history, averages, first, last]);
   const x = (i: number) => history.length === 1 ? 400 : 6 + (i - first) / span * 788;
   const y = (v: number) => 12 + (1 - (v - lo) / height) * 202;
   const fraction = (clientX: number) => {
@@ -76,6 +84,21 @@ export function HistoryChart({ history, averages, range, onRange }: {
       return command;
     }).join(" ");
   };
+  // The lines and dots of the times, built again only when the times or the period change, never as the pointer moves.
+  const plotted = useMemo(() => {
+    const visible = history.slice(first, last + 1);
+    return (
+      <>
+        {[0, 1, 2, 3].map(i => <path key={i} d={`M0 ${12 + i / 3 * 202} H800`} stroke="var(--border)" vectorEffect="non-scaling-stroke" />)}
+        <path d={path(history.map(v => v.time))} fill="none" stroke="var(--chart-1)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+        <path d={path(averages)} fill="none" stroke="var(--chart-2)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+        {visible.map((v, i) => v.time != null && (visible.length < 40 || (history[first + i - 1]?.time == null && history[first + i + 1]?.time == null))
+          ? <path key={i} d={`M${x(first + i)} ${y(v.time)}h0.01`} stroke="var(--chart-1)" strokeWidth="4.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" /> : null)}
+      </>
+    );
+    // `path`, `x` and `y` follow from these.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history, averages, first, last, lo, height]);
   const cancelDrag = () => { dragRef.current = null; setDrag(null); };
   const point = hover != null ? history[hover] : null;
   const value = point ? point.time ?? averages[hover!] : null;
@@ -83,7 +106,7 @@ export function HistoryChart({ history, averages, range, onRange }: {
   return (
     <div className="grid min-h-40 flex-1 grid-cols-[auto_1fr] grid-rows-[1fr_auto] gap-x-3 gap-y-1.5">
       <div className="relative w-12" aria-hidden="true">
-        {[0, 1, 2, 3].map(i => <span key={i} className="absolute right-0 -translate-y-1/2 font-sans text-[11px] text-muted-foreground tabular-nums" style={{ top: (12 + i / 3 * 202) / 240 * 100 + "%" }}>{fmtTime(lo + height * (1 - i / 3))}</span>)}
+        {[0, 1, 2, 3].map(i => <span key={i} className={cn(NUMERIC, "absolute right-0 -translate-y-1/2 text-xs text-muted-foreground")} style={{ top: (12 + i / 3 * 202) / 240 * 100 + "%" }}>{fmtTime(lo + height * (1 - i / 3))}</span>)}
       </div>
       <div
         ref={plot}
@@ -140,22 +163,23 @@ export function HistoryChart({ history, averages, range, onRange }: {
         onPointerLeave={() => setHover(null)}
       >
         <svg className="absolute inset-0 size-full overflow-visible" viewBox="0 0 800 240" preserveAspectRatio="none" role="img" aria-label={tr("Single times and rolling average of five")}>
-          {[0, 1, 2, 3].map(i => <path key={i} d={`M0 ${12 + i / 3 * 202} H800`} stroke="var(--border)" vectorEffect="non-scaling-stroke" />)}
-          <path d={path(history.map(v => v.time))} fill="none" stroke="var(--chart-1)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
-          <path d={path(averages)} fill="none" stroke="var(--chart-2)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
-          {visible.map((v, i) => v.time != null && (visible.length < 40 || (history[first + i - 1]?.time == null && history[first + i + 1]?.time == null))
-            ? <path key={i} d={`M${x(first + i)} ${y(v.time)}h0.01`} stroke="var(--chart-1)" strokeWidth="4.5" strokeLinecap="round" vectorEffect="non-scaling-stroke" /> : null)}
+          {plotted}
           {hover != null && <line x1={x(hover)} x2={x(hover)} y1={0} y2={240} stroke="var(--muted-foreground)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
           {selection && <rect x={x(selection[0])} y={0} width={Math.max(1, x(selection[1]) - x(selection[0]))} height={240} fill="color-mix(in oklch, var(--primary) 12%, transparent)" stroke="var(--primary)" vectorEffect="non-scaling-stroke" />}
         </svg>
         {zoomed && <Button variant="secondary" size="xs" className="absolute top-2 right-2" onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()} onClick={reset}>{tr("Reset zoom")}</Button>}
-        {selection && <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10">{history[selection[0]]?.displayDate} — {history[selection[1]]?.displayDate}</div>}
+        {selection && <div className={cn(TIP, "top-2 left-1/2 -translate-x-1/2")}>{history[selection[0]]?.displayDate} — {history[selection[1]]?.displayDate}</div>}
         {point && <>
           {value != null && <div className="pointer-events-none absolute size-2.5 -translate-1/2 rounded-full bg-chart-1 ring-2 ring-background" style={{ left: x(hover!) / 8 + "%", top: y(value) / 240 * 100 + "%" }} />}
-          <div className={cn("pointer-events-none absolute top-1 flex min-w-32 flex-col gap-0.5 rounded-lg bg-popover px-2.5 py-2 text-popover-foreground shadow-md ring-1 ring-foreground/10", x(hover!) > 400 ? "-translate-x-[calc(100%+12px)]" : "translate-x-3")} style={{ left: x(hover!) / 8 + "%" }}>
-            <strong className="font-sans text-sm font-medium tabular-nums">{fmtTime(point.time, { blank: "DNF" })}</strong>
-            {averages[hover!] != null && <span className="font-sans text-xs text-chart-2 tabular-nums">{tr("Ao5")}{" "}{fmtTime(averages[hover!])}</span>}
-            <small className="text-xs text-muted-foreground">#{hover! + 1} · {point.displayDate}</small>
+          <div className={cn(TIP, "top-1 flex min-w-32 flex-col gap-0.5", x(hover!) > 400 ? "-translate-x-[calc(100%+12px)]" : "translate-x-3")} style={{ left: x(hover!) / 8 + "%" }}>
+            <strong className={cn(NUMERIC, "text-sm font-medium")}>{fmtTime(point.time, { blank: "DNF" })}</strong>
+            {averages[hover!] != null && (
+              <span className={cn(NUMERIC, "flex items-center gap-1.5 text-background/70")}>
+                <span className="h-0.5 w-3 rounded-full bg-chart-2" />
+                {tr("Ao5")}{" "}{fmtTime(averages[hover!])}
+              </span>
+            )}
+            <small className="text-xs text-background/70">#{hover! + 1} · {point.displayDate}</small>
           </div>
         </>}
       </div>

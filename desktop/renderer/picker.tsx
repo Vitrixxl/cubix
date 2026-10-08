@@ -1,20 +1,28 @@
 /**
- * A choice in the middle of the page, as large cards: what to train, what to learn, which method. Each card names the
+ * A choice at the top of the page, as large cards: what to train, what to learn, which method. Each card names the
  * choice, says what it holds and, for a course under way, how far it went.
  */
 import { Children } from "react";
 import { Check, ChevronRight } from "lucide-react";
-import { Bar, run, type Props } from "./ui";
+import { Bar, TILE, run, type Props } from "./ui";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { said } from "./base";
 import { tr } from "../../src/client/i18n";
 
-/** The cards, centred on the page: two or four in a 2×2 square, three in a row; `foot` (a start) right under them. */
+/**
+ * The cards under the page's header, across its width: two or four in a 2×2 square, three or more by three; `foot` (a
+ * start) right under them.
+ */
 export function Picker({ label, tour, foot, children }: { label: string; tour?: string; foot?: React.ReactNode } & Props) {
   const count = Children.toArray(children).length;
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto py-4 md:justify-center md:py-8">
-      <nav aria-label={said(label)} data-tour={tour} className={cn("grid w-full gap-3 md:gap-4", count === 3 ? "max-w-4xl md:grid-cols-3" : "max-w-3xl md:grid-cols-2")}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4">
+      <nav
+        aria-label={said(label)}
+        data-tour={tour}
+        className={cn("grid w-full auto-rows-fr gap-3 md:gap-4", count === 2 || count === 4 ? "max-w-5xl md:grid-cols-2" : "max-w-7xl md:grid-cols-2 lg:grid-cols-3")}
+      >
         {children}
       </nav>
       {foot}
@@ -55,21 +63,19 @@ export function PickerCard({
       disabled={disabled}
       aria-pressed={pressed}
       onClick={run(action)}
-      className={cn(
-        "group/card flex min-h-28 flex-col gap-3 rounded-2xl border bg-card p-4 text-left outline-none transition-colors hover:border-primary/40 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 md:min-h-44 md:p-6",
-        pressed && "border-primary/50 bg-primary/10 hover:border-primary/50 hover:bg-primary/10",
-      )}
+      className={cn(TILE, "group/card flex min-h-28 flex-col gap-3 p-4 md:min-h-44 md:p-5", pressed && "hover:border-primary/50 hover:bg-primary/10")}
     >
       <span className="flex items-center gap-3">
+        {/* The icon on a quiet square (base.tsx IconTile), lit with the accent on the card to pick. */}
         <span
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover/card:text-primary [&_svg:not([class*='size-'])]:size-5",
+            "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover/card:text-primary [&_svg:not([class*='size-'])]:size-5",
             (marked || pressed) && "bg-primary/15 text-primary",
           )}
         >
           {icon}
         </span>
-        <span className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{title}</span>
+        <span className="line-clamp-2 min-w-0 flex-1 text-base font-semibold tracking-tight text-balance md:text-lg">{said(title)}</span>
         {pressed === undefined ? (
           <ChevronRight className="size-5 shrink-0 text-muted-foreground transition-transform group-hover/card:translate-x-0.5 group-hover/card:text-foreground" />
         ) : (
@@ -78,18 +84,18 @@ export function PickerCard({
           </span>
         )}
       </span>
-      <span className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{detail}</span>
+      <span className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{said(detail)}</span>
       {(meta || badge || progress !== undefined) && (
         <span className="mt-auto flex flex-col gap-2">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {/* All of it learned: said with a check, and the bar in green. */}
             {progress === 1 && (
-              <span className="flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-medium text-success">
-                <Check className="size-3" strokeWidth={3} />
+              <Badge variant="success">
+                <Check strokeWidth={3} />
                 {tr("Learned")}
-              </span>
+              </Badge>
             )}
-            {badge && <span className="rounded-full bg-primary/12 px-2 py-0.5 font-medium text-primary">{said(badge)}</span>}
+            {badge && <Badge variant="accent">{said(badge)}</Badge>}
             {meta}
           </span>
           {progress !== undefined && <Bar ratio={progress} fill={progress === 1 ? "bg-success" : undefined} />}

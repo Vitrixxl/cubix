@@ -3,28 +3,30 @@
  * on a step opens the analysis on it, with the step replayed as it was turned (and held, with a gyroscope).
  * A saved solve shows the solution kept with it, played in 3D, and the same analysis worked out again from it.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Pause, Play, RotateCcw } from "lucide-react";
+import { PLAYER_SPEEDS, speedLabel } from "../../src/client/lib/algPlayer";
 import { SmartCube, stateToFacelets } from "../../src/client/lib/smartCube";
-import { COLOUR_NAMES, mergeTurns, type Phase, type PhaseId, type Segment, type SolveAnalysis } from "../../src/client/lib/solveAnalysis";
+import { COLOUR_NAMES, type Phase, type PhaseId, type Segment, type SolveAnalysis } from "../../src/client/lib/solveAnalysis";
 import { recordedSolve, type SolutionTurn } from "../../src/client/lib/solution";
-import { trackable } from "../../src/client/lib/scrambleTracker";
-import { fmtSolve } from "../../src/client/lib/format";
 import { call } from "./bridge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { LiveCube } from "./LiveCube";
-import { Alg, Diagram, LABEL, NUMERIC, usePhone, useViewport } from "./ui";
+import { Alg, Diagram, Figure, FOCUS, LABEL, Modal, NUMERIC, ROW, Strip, Tip, usePhone, useViewport } from "./ui";
 import { catalog, store as s } from "./store";
-import { CaseDialog } from "./learn";
 import { stepColour } from "./stepColour";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
+/** The case of a step, opened over the analysis: Learn's dialog, loaded with Learn when first needed. */
+const CaseDialog = lazy(() => import("./learn").then((module) => ({ default: module.CaseDialog })));
 const seconds = (ms: number) => (ms / 1000).toFixed(2);
 const tps = (phase: Phase) => (phase.execution > 0 ? (phase.turns.length / (phase.execution / 1000)).toFixed(1) : "–");
-const capitalised = (text: string) => text[0]!.toUpperCase() + text.slice(1);
+/** A text with its first letter in capitals. */
+export const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 /** A colour of the cube, and the cross of that colour, in the current language. */
 export const colourLabel = (colour: string) => ({ yellow: tr("yellow"), white: tr("white"), green: tr("green"), blue: tr("blue"), orange: tr("orange"), red: tr("red") })[colour] ?? colour;
 const crossName = (colour: string) =>
@@ -41,28 +43,29 @@ export function SolveBar({ analysis, selected, onSelect, large = false, legend =
       {/* As tall as a selected step, so growing moves nothing around it. */}
       <div className={cn("flex w-full items-center gap-1", large ? "h-6" : "h-5")} role="group" aria-label={tr("Solve steps")}>
         {shown.map((phase) => (
-          <button
-            key={phase.id}
-            type="button"
-            data-step={phase.id}
-            aria-label={`${phase.label}, ${seconds(phase.end - phase.start)} s`}
-            aria-pressed={selected === phase.id}
-            title={`${phase.label} · ${seconds(phase.end - phase.start)} s`}
-            onClick={() => onSelect(phase.id)}
-            style={{ flexGrow: Math.max(phase.end - phase.start, 1), flexBasis: 0, background: stepColour(phase.id) }}
-            className={cn(
-              "relative min-w-2 rounded-full outline-none transition-[height] duration-150 focus-visible:ring-2 focus-visible:ring-ring",
-              selected === phase.id ? (large ? "h-6" : "h-5") : large ? "h-3 hover:h-4" : "h-2.5 hover:h-3.5",
-            )}
-          >
-            {/* A step done in two looks: a notch where the first ends. */}
-            {phase.looks && (
-              <span
-                className="absolute inset-y-0 w-0.5 bg-background/70"
-                style={{ left: `${((phase.looks[0]!.end - phase.start) / Math.max(phase.end - phase.start, 1)) * 100}%` }}
-              />
-            )}
-          </button>
+          <Tip key={phase.id} content={`${said(phase.label)} · ${seconds(phase.end - phase.start)} s`}>
+            <button
+              type="button"
+              data-step={phase.id}
+              aria-label={`${said(phase.label)}, ${seconds(phase.end - phase.start)} s`}
+              aria-pressed={selected === phase.id}
+              onClick={() => onSelect(phase.id)}
+              style={{ flexGrow: Math.max(phase.end - phase.start, 1), flexBasis: 0, background: stepColour(phase.id) }}
+              className={cn(
+                "relative min-w-2 rounded-full transition-[height] duration-150",
+                FOCUS,
+                selected === phase.id ? (large ? "h-6" : "h-5") : large ? "h-3 hover:h-4" : "h-2.5 hover:h-3.5",
+              )}
+            >
+              {/* A step done in two looks: a notch where the first ends. */}
+              {phase.looks && (
+                <span
+                  className="absolute inset-y-0 w-0.5 bg-background/70"
+                  style={{ left: `${((phase.looks[0]!.end - phase.start) / Math.max(phase.end - phase.start, 1)) * 100}%` }}
+                />
+              )}
+            </button>
+          </Tip>
         ))}
       </div>
       {legend && <SolveLegend analysis={analysis} selected={selected} onSelect={onSelect} large={large} />}
@@ -80,7 +83,7 @@ export function SolveLegend({ analysis, selected, onSelect, large = false, class
           key={phase.id}
           type="button"
           onClick={() => onSelect(phase.id)}
-          className={cn("flex items-center gap-1.5 rounded outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring", selected === phase.id && "font-medium text-foreground")}
+          className={cn("flex items-center gap-1.5 rounded-md transition-colors hover:text-foreground", FOCUS, selected === phase.id && "font-medium text-foreground")}
         >
           <span className="size-2 rounded-full" style={{ background: stepColour(phase.id) }} />
           {said(phase.label)}
@@ -197,23 +200,28 @@ function useReplay(analysis: SolveAnalysis, phase: Phase) {
 function SolveDialog({ analysis, phase: id, onPhase }: { analysis: SolveAnalysis; phase: PhaseId | null; onPhase: (id: PhaseId | null) => void }) {
   return (
     <>
-      <Dialog open={!!id} onOpenChange={(open) => !open && onPhase(null)}>
-        <DialogContent className="flex h-[calc(100svh-3rem)] w-[calc(100vw-3rem)] max-w-[1400px] flex-col gap-6 p-8 sm:max-w-[1400px]">
-          <DialogHeader className="flex-row items-baseline gap-6">
-            <DialogTitle className="text-2xl font-semibold tracking-tight">{tr("Solve analysis")}</DialogTitle>
-            <DialogDescription className={cn(NUMERIC, "flex items-baseline gap-6 text-base")}>
-              <span className="text-3xl font-semibold text-foreground">{seconds(analysis.time)} s</span>
-              <span>{analysis.turns} {" "}{tr("turns")}</span>
-              <span>{analysis.tps.toFixed(2)} {" "}{tr("TPS")}</span>
-              <span>{crossName(COLOUR_NAMES[analysis.cross])}</span>
-            </DialogDescription>
-          </DialogHeader>
-          <SolveBar analysis={analysis} selected={id ?? undefined} onSelect={onPhase} large />
-          {id && <PhaseView key={id} analysis={analysis} phase={analysis.phases.find((p) => p.id === id)!} />}
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={!!id}
+        onOpenChange={(open) => !open && onPhase(null)}
+        title={tr("Solve analysis")}
+        tall
+        className="flex h-[calc(100svh-3rem)] w-[calc(100vw-3rem)] max-w-[1400px] flex-col gap-6 p-8 sm:max-w-[1400px]"
+      >
+        <div className="flex flex-wrap gap-x-10 gap-y-3">
+          <Figure label={tr("Time")} value={`${seconds(analysis.time)} s`} size="2xl" />
+          <Figure label={tr("Turns")} value={analysis.turns} size="2xl" />
+          <Figure label={tr("TPS")} value={analysis.tps.toFixed(2)} size="2xl" />
+          <Figure label={tr("Cross")} value={crossName(COLOUR_NAMES[analysis.cross])} size="2xl" />
+        </div>
+        <SolveBar analysis={analysis} selected={id ?? undefined} onSelect={onPhase} large />
+        {id && <PhaseView key={id} analysis={analysis} phase={analysis.phases.find((p) => p.id === id)!} />}
+      </Modal>
       {/* A case of the analysis opened as on Learn: the algorithms page's detail, over the analysis. */}
-      {id && <CaseDialog />}
+      {id && (
+        <Suspense fallback={null}>
+          <CaseDialog />
+        </Suspense>
+      )}
     </>
   );
 }
@@ -225,7 +233,7 @@ const openCase = (id: string) => void s.action("caseDialog:" + id);
 function CaseButton({ id, name, size }: { id: string; name: string; size: number }) {
   const known = catalog.cases.find((c: any) => c.id === id);
   return (
-    <button type="button" onClick={() => openCase(id)} className="group flex items-center gap-4 rounded-xl p-2 text-left outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring">
+    <button type="button" onClick={() => openCase(id)} className={cn(ROW, "group flex items-center gap-4 p-2")}>
       {known && <Diagram c={known} size={size} />}
       <span className="flex flex-col gap-1">
         <span className="text-xl font-semibold tracking-tight">{name}</span>
@@ -241,7 +249,7 @@ function CaseButton({ id, name, size }: { id: string; name: string; size: number
 function Look({ look }: { look: Segment }) {
   const best = look.suggestions[0];
   return (
-    <div className="flex items-start gap-4 rounded-xl bg-muted/40 p-4">
+    <Strip className="flex items-start gap-4 p-4">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-baseline gap-3">
           <span className="text-lg font-semibold">{said(look.label)}</span>
@@ -251,13 +259,13 @@ function Look({ look }: { look: Segment }) {
           {tr("Recognition")}{" "}{seconds(look.recognition)} {" "}{tr("s · Execution")}{" "}{seconds(look.execution)} s · {look.turns.length} {" "}{tr("turns")}</span>
         <Alg text={look.turns.join(" ")} size={20} />
         {best && (
-          <button type="button" onClick={() => openCase(look.case!.id)} className="flex items-baseline gap-3 rounded-md text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={() => openCase(look.case!.id)} className={cn("flex items-baseline gap-3 rounded-md text-left text-sm text-muted-foreground transition-colors hover:text-foreground", FOCUS)}>
             {tr("Catalogue")}{" "}<Alg text={best.alg} size={18} className="text-foreground" />
           </button>
         )}
       </div>
       {look.case ? <CaseButton id={look.case.id} name={look.case.name} size={84} /> : <span className="text-sm text-muted-foreground">{tr("Not in the catalogue")}</span>}
-    </div>
+    </Strip>
   );
 }
 
@@ -271,28 +279,41 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
     <div className="flex min-h-0 flex-1 gap-12">
       <section className="flex shrink-0 flex-col items-center justify-center gap-4">
         <LiveCube cube={replay.cube} size={side} />
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon-lg" aria-label={replay.playing ? tr("Pause") : tr("Play")} onClick={replay.toggle} disabled={phase.skip}>
-            {replay.playing ? <Pause /> : <Play />}
-          </Button>
-          <Button variant="outline" size="icon-lg" aria-label={tr("Replay the step")} onClick={() => replay.seek(phase.from)}>
-            <RotateCcw />
-          </Button>
-          <input
-            type="range"
-            aria-label={tr("Turn")}
-            className="w-56"
-            min={phase.from}
-            max={phase.to}
-            value={replay.index}
-            disabled={phase.skip}
-            onChange={(e) => replay.seek(Number(e.target.value))}
-          />
-          <Button variant="ghost" size="lg" className={NUMERIC} onClick={() => replay.setSpeed(replay.speed === 1 ? 0.5 : replay.speed === 0.5 ? 0.25 : 1)}>
-            {replay.speed}×
-          </Button>
+        {/* The transport, as the algorithm player's (AlgPlayer.tsx PlayerControls): replay, play or pause, the speed;
+            the scrubber with the turn count under it. */}
+        <div className="flex w-full max-w-sm flex-col gap-2">
+          <div className="flex items-center gap-1">
+            <Tip content={tr("Replay the step")}>
+              <Button variant="ghost" size="icon" aria-label={tr("Replay the step")} onClick={() => replay.seek(phase.from)} className="text-muted-foreground hover:text-foreground">
+                <RotateCcw />
+              </Button>
+            </Tip>
+            <Tip content={replay.playing ? tr("Pause") : tr("Play")}>
+              <Button size="icon" aria-label={replay.playing ? tr("Pause") : tr("Play")} onClick={replay.toggle} disabled={phase.skip}>
+                {replay.playing ? <Pause /> : <Play />}
+              </Button>
+            </Tip>
+            <ToggleGroup aria-label={tr("Speed")} size="sm" spacing={1} value={[String(replay.speed)]} onValueChange={(next: string[]) => next[0] && replay.setSpeed(Number(next[0]))} className="ml-auto">
+              {PLAYER_SPEEDS.map((speed) => (
+                <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground")}>
+                  {speedLabel(speed)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          <div className="flex items-center gap-3">
+            <Slider
+              aria-label={tr("Turn")}
+              min={phase.from}
+              max={phase.to}
+              value={[replay.index]}
+              disabled={phase.skip}
+              onValueChange={(value: number | readonly number[]) => replay.seek(Array.isArray(value) ? value[0]! : (value as number))}
+              className="flex-1"
+            />
+            <span className={cn(NUMERIC, "w-14 shrink-0 text-right text-xs text-muted-foreground")}>{phase.skip ? "–" : `${done} / ${total}`}</span>
+          </div>
         </div>
-        <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{phase.skip ? tr("Nothing to turn") : tr("Turn {0} of {1}", { 0: done, 1: total })}</span>
       </section>
       <section className="flex min-w-0 flex-1 flex-col gap-7 overflow-x-hidden overflow-y-auto pr-2">
         <div className="flex items-baseline gap-4">
@@ -314,25 +335,22 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
                 ["Turns", String(phase.turns.length)],
                 ["TPS", tps(phase)],
               ].map(([label, value]) => (
-                <div key={label} className="flex flex-col gap-1">
-                  <span className="text-sm font-medium text-muted-foreground">{said(label)}</span>
-                  <span className={cn(NUMERIC, "text-2xl font-semibold")}>{value}</span>
-                </div>
+                <Figure key={label} label={said(label)} value={value} size="2xl" />
               ))}
             </div>
             {/^(f2l|oll|pll)/.test(phase.id) && (
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-muted-foreground">{phase.looks ? tr("Case in one look") : tr("Case")}</span>
+                <span className={LABEL}>{phase.looks ? tr("Case in one look") : tr("Case")}</span>
                 {phase.case ? <CaseButton id={phase.case.id} name={phase.case.name} size={120} /> : <span className="text-lg">{tr("Not in the catalogue")}</span>}
               </div>
             )}
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-muted-foreground">{tr("Your turns")}</span>
+              <span className={LABEL}>{tr("Your turns")}</span>
               <Alg text={phase.turns.join(" ")} size={24} />
             </div>
             {phase.looks && (
               <div className="flex flex-col gap-3">
-                <span className="text-sm font-medium text-muted-foreground">{phase.looks.length === 2 ? tr("Two looks") : tr("In {0} parts", { 0: phase.looks.length })}</span>
+                <span className={LABEL}>{phase.looks.length === 2 ? tr("Two looks") : tr("In {0} parts", { 0: phase.looks.length })}</span>
                 {phase.looks.map((look) => (
                   <Look key={look.label} look={look} />
                 ))}
@@ -340,7 +358,7 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
             )}
             {phase.suggestions.length > 0 && (
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-muted-foreground">
+                <span className={LABEL}>
                   {phase.id === "cross" ? tr("Optimal cross") : phase.looks ? tr("In one look · {0}", { 0: phase.case?.name }) : tr("Algorithms for this case")}
                 </span>
                 {phase.suggestions.map((suggestion) => {
@@ -358,7 +376,7 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
                       key={suggestion.alg}
                       type="button"
                       onClick={() => openCase(phase.case!.id)}
-                      className="flex min-w-0 items-baseline gap-4 rounded-md py-2 text-left outline-none transition-colors hover:[&_.alg]:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                      className={cn("flex min-w-0 items-baseline gap-4 rounded-md py-2 text-left transition-colors hover:[&_.alg]:text-primary", FOCUS)}
                     >
                       {row}
                     </button>

@@ -2,18 +2,19 @@
  * What the community launches: a battle from a conversation, a group's tournament, a new group with the friends to
  * invite, and the people: finding players, the link that adds the account, the friends, and the requests waiting.
  */
-import { useEffect, useMemo, useState } from "react";
-import { Bell, Check, Copy, Link2, MessageSquare, MoreHorizontal, Search, Share2, Swords, Trophy, UserMinus, UserPlus, Users, X } from "lucide-react";
+import { cloneElement, useEffect, useMemo, useState } from "react";
+import { Bell, Check, Copy, MessageSquare, MoreHorizontal, Share2, Swords, Trophy, UserMinus, UserPlus, UserRoundX, Users, X } from "lucide-react";
 import { store as s } from "../store";
-import { Avatar, NUMERIC, plural } from "../ui";
-import { Tip } from "../base";
-import { Nothing, relative } from "../coaching/parts";
+import { Avatar, Modal, plural } from "../ui";
+import { Count, Empty, LABEL, ListSkeleton, NUMERIC, ROW, SearchField, SectionHead, Tip } from "../base";
+import { relative } from "../coaching/parts";
 import { community, type Conversation, type Format, type Group, type Person } from "./client";
+import { GroupMark } from "./messages";
 import { FormatFields, localInput } from "../tournaments/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -24,29 +25,56 @@ import { Textarea } from "@/components/ui/textarea";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
-/** A header button: its icon, and its words where the window has room. */
+/** A header button: its icon, and its words where the window has room; its name in a tooltip either way. */
 export function HeadButton({ icon: I, label, size = "sm", ...props }: { icon: typeof Swords; label: string } & React.ComponentProps<typeof Button>) {
   return (
-    <Button variant="outline" size={size} aria-label={label} {...props}>
-      <I />
-      <span className="max-lg:hidden">{label}</span>
-    </Button>
+    <Tip content={label}>
+      <Button variant="outline" size={size} aria-label={label} {...props}>
+        <I />
+        <span className="max-lg:hidden">{label}</span>
+      </Button>
+    </Tip>
   );
 }
 
-/** A player in a list: face, name, a line under it, and what can be done on the right. */
-export function PersonRow({ p, detail, children, className }: { p: Person; detail?: string; children?: React.ReactNode; className?: string }) {
+/**
+ * A player in a list, the same everywhere (friends, requests, members, a tournament's players): the face, the name, a
+ * line under it, and what can be done on the right. `face` stands in for the avatar (a group's mark), `lead` comes
+ * before it (a seed, a tick box); `as="label"` makes the whole row a choice.
+ */
+export function PersonRow({
+  p,
+  name,
+  face,
+  detail,
+  lead,
+  children,
+  className,
+  as: As = "li",
+  ...rest
+}: {
+  p?: Person;
+  name?: React.ReactNode;
+  face?: React.ReactNode;
+  detail?: React.ReactNode;
+  lead?: React.ReactNode;
+  as?: "li" | "label" | "div";
+} & React.HTMLAttributes<HTMLElement>) {
   return (
-    <li className={cn("flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-muted/40", className)} data-person={p.username}>
-      <Avatar name={p.username} src={p.avatar} size={32} />
+    <As className={cn("flex min-h-12 items-center gap-3 rounded-lg px-2 py-1.5", className)} data-person={p?.username} {...rest}>
+      {lead}
+      {face ?? <Avatar name={p?.username} src={p?.avatar} size={32} />}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-medium">{p.username}</span>
+        <span className="truncate text-sm font-medium">{name ?? p?.username}</span>
         {detail && <span className="truncate text-xs text-muted-foreground">{said(detail)}</span>}
       </span>
-      <span className="flex shrink-0 items-center gap-1">{children}</span>
-    </li>
+      {children && <span className="flex shrink-0 items-center gap-1">{children}</span>}
+    </As>
   );
 }
+
+/** The button opening a dialog: the one given, or the header button, opening it on a click. */
+const opener = (trigger: React.ReactElement<{ onClick?: () => void }>, open: () => void) => cloneElement(trigger, { onClick: open });
 
 /** A battle launched from a conversation: against the friend, or in a group against a member or whoever takes it. */
 export function BattleDialog({ conversation: c, group }: { conversation: Conversation; group?: Group }) {
@@ -57,9 +85,15 @@ export function BattleDialog({ conversation: c, group }: { conversation: Convers
   const others = group?.members.filter((m) => m.role !== "invited" && m.id !== s.user.id) ?? [],
     items = [{ value: "anyone", label: tr("Anyone in the group") }, ...others.map((m) => ({ value: m.id, label: m.username }))];
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<HeadButton icon={Swords} label={tr("Battle")} data-action="conversation:battle" />} />
-      <DialogContent className="sm:max-w-md">
+    <>
+      <HeadButton icon={Swords} label={tr("Battle")} data-action="conversation:battle" onClick={() => setOpen(true)} />
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title={c.kind === "direct" ? tr("Challenge {0}", { 0: c.with!.username }) : tr("New battle in {0}", { 0: c.group!.name })}
+        description={tr("It shows in the conversation, and starts once your opponent accepts it.")}
+        className="sm:max-w-md"
+      >
         <form
           className="flex flex-col gap-6"
           onSubmit={async (e) => {
@@ -70,10 +104,6 @@ export function BattleDialog({ conversation: c, group }: { conversation: Convers
             if (done) setOpen(false);
           }}
         >
-          <DialogHeader>
-            <DialogTitle>{c.kind === "direct" ? tr("Challenge {0}", { 0: c.with!.username }) : tr("New battle in {0}", { 0: c.group!.name })}</DialogTitle>
-            <DialogDescription>{tr("It shows in the conversation, and starts once your opponent accepts it.")}</DialogDescription>
-          </DialogHeader>
           <FieldGroup>
             {c.kind === "group" && (
               <Field>
@@ -100,8 +130,8 @@ export function BattleDialog({ conversation: c, group }: { conversation: Convers
               {tr("Launch the battle")}</Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   );
 }
 
@@ -118,9 +148,15 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
     if (open) setStarts(localInput(Date.now() + 86_400_000));
   }, [open]);
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger ?? <HeadButton icon={Trophy} label={tr("Tournament")} data-action="conversation:tournament" />} />
-      <DialogContent className="sm:max-w-lg">
+    <>
+      {opener(trigger ?? <HeadButton icon={Trophy} label={tr("Tournament")} data-action="conversation:tournament" />, () => setOpen(true))}
+      <Modal
+        open={open}
+        onOpenChange={setOpen}
+        title={tr("New tournament in {0}", { 0: g.name })}
+        description={tr("Its card goes to the group's conversation. Members register until it starts; the bracket is drawn at its start.")}
+        className="sm:max-w-lg"
+      >
         <form
           className="flex flex-col gap-6"
           onSubmit={async (e) => {
@@ -135,10 +171,6 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
             }
           }}
         >
-          <DialogHeader>
-            <DialogTitle>{tr("New tournament in {0}", { 0: g.name })}</DialogTitle>
-            <DialogDescription>{tr("Its card goes to the group's conversation. Members register until it starts; the bracket is drawn at its start.")}</DialogDescription>
-          </DialogHeader>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="tournament-name">{tr("Name")}</FieldLabel>
@@ -166,8 +198,8 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
               {tr("Create the tournament")}</Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   );
 }
 
@@ -175,30 +207,35 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
 export function FriendPicker({ friends, value, onChange }: { friends: Person[]; value: string[]; onChange: (ids: string[]) => void }) {
   const [query, setQuery] = useState(""),
     shown = friends.filter((f) => f.username.toLowerCase().includes(query.trim().toLowerCase()));
-  if (!friends.length) return <p className="rounded-lg border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">{tr("Add friends first: you invite them from here.")}</p>;
+  if (!friends.length)
+    return (
+      <Empty icon={Users} className="rounded-lg border p-4">
+        {tr("Add friends first: you invite them from here.")}
+      </Empty>
+    );
   return (
     <div className="flex flex-col gap-2">
-      <InputGroup>
-        <InputGroupAddon>
-          <Search />
-        </InputGroupAddon>
-        <InputGroupInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Find a friend")} aria-label={tr("Find a friend")} />
-      </InputGroup>
-      <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1" aria-label={tr("Friends")}>
-        {!shown.length && <li className="px-2.5 py-2 text-sm text-muted-foreground">{tr("No friend by that name.")}</li>}
-        {shown.map((f) => {
-          const checked = value.includes(f.id);
-          return (
-            <li key={f.id}>
-              <label className={cn("flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-1.5 hover:bg-muted/50", checked && "bg-primary/8")} data-friend={f.username}>
-                <Checkbox checked={checked} onCheckedChange={(on) => onChange(on ? [...value, f.id] : value.filter((id) => id !== f.id))} />
-                <Avatar name={f.username} src={f.avatar} size={26} />
-                <span className="truncate text-sm">{f.username}</span>
-              </label>
-            </li>
-          );
-        })}
-      </ul>
+      <SearchField value={query} onChange={setQuery} placeholder="Find a friend" />
+      {!shown.length ? (
+        <Empty className="rounded-lg border p-4">{tr("No friend by that name.")}</Empty>
+      ) : (
+        <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1" aria-label={tr("Friends")}>
+          {shown.map((f) => {
+            const checked = value.includes(f.id);
+            return (
+              <li key={f.id}>
+                <PersonRow
+                  as="label"
+                  p={f}
+                  className={cn(ROW, "cursor-pointer", checked && "bg-primary/10 hover:bg-primary/15")}
+                  data-friend={f.username}
+                  lead={<Checkbox checked={checked} onCheckedChange={(on) => onChange(on ? [...value, f.id] : value.filter((id) => id !== f.id))} />}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {value.length > 0 && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{tr("{0} invited", { 0: value.length })}</span>}
     </div>
   );
@@ -219,9 +256,9 @@ export function NewGroupDialog({ trigger }: { trigger?: React.ReactElement }) {
     }
   }, [open]);
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger ?? <HeadButton icon={Users} label={tr("New group")} data-action="community:new-group" />} />
-      <DialogContent className="sm:max-w-md">
+    <>
+      {opener(trigger ?? <HeadButton icon={Users} label={tr("New group")} data-action="community:new-group" />, () => setOpen(true))}
+      <Modal open={open} onOpenChange={setOpen} title={tr("New group")} description={tr("A conversation for several friends, with its battles and tournaments. You run it.")} className="sm:max-w-md">
         <form
           className="flex flex-col gap-6"
           onSubmit={async (e) => {
@@ -232,10 +269,6 @@ export function NewGroupDialog({ trigger }: { trigger?: React.ReactElement }) {
             if (done) setOpen(false);
           }}
         >
-          <DialogHeader>
-            <DialogTitle>{tr("New group")}</DialogTitle>
-            <DialogDescription>{tr("A conversation for several friends, with its battles and tournaments. You run it.")}</DialogDescription>
-          </DialogHeader>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="group-name">{tr("Name")}</FieldLabel>
@@ -255,8 +288,8 @@ export function NewGroupDialog({ trigger }: { trigger?: React.ReactElement }) {
               {tr("Create the group")}</Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   );
 }
 
@@ -271,8 +304,7 @@ export function EditGroupDialog({ group: g, open, onOpenChange }: { group: Group
     }
   }, [open]);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Modal open={open} onOpenChange={onOpenChange} title={tr("Edit the group")} description={tr("Its members see the change at once.")} className="sm:max-w-md">
         <form
           className="flex flex-col gap-6"
           onSubmit={async (e) => {
@@ -280,10 +312,6 @@ export function EditGroupDialog({ group: g, open, onOpenChange }: { group: Group
             if (await community.updateGroup(g.id, name.trim(), description.trim())) onOpenChange(false);
           }}
         >
-          <DialogHeader>
-            <DialogTitle>{tr("Edit the group")}</DialogTitle>
-            <DialogDescription>{tr("Its members see the change at once.")}</DialogDescription>
-          </DialogHeader>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="group-edit-name">{tr("Name")}</FieldLabel>
@@ -299,8 +327,7 @@ export function EditGroupDialog({ group: g, open, onOpenChange }: { group: Group
               {tr("Save")}</Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -317,7 +344,7 @@ export function RelationAction({ p }: { p: Found }) {
       <Check />
       {tr("Accept")}</Button>
   ) : p.relation === "friend" ? (
-    <Button size="sm" variant="ghost" onClick={() => void community.message(p.id)}>
+    <Button size="sm" variant="outline" onClick={() => void community.message(p.id)}>
       <MessageSquare />
       {tr("Message")}</Button>
   ) : (
@@ -342,11 +369,11 @@ function ShareLink() {
   const link = community.shareLink(),
     [copied, setCopied] = useState(false);
   return (
-    <section className="flex flex-col gap-2" aria-label={tr("Your link")}>
-      <h3 className="flex items-center gap-2 text-sm font-medium">
-        <Link2 className="size-4 text-muted-foreground" />
-        {tr("Your link")}</h3>
-      <p className="text-xs text-muted-foreground">{tr("Whoever opens it is asked to add you as a friend.")}</p>
+    <section className="flex shrink-0 flex-col gap-2" aria-label={tr("Your link")}>
+      <div>
+        <SectionHead title="Your link" className="min-h-0" />
+        <p className="text-xs text-muted-foreground">{tr("Whoever opens it is asked to add you as a friend.")}</p>
+      </div>
       <InputGroup>
         <InputGroupInput value={link} readOnly aria-label={tr("Your link")} onFocus={(e) => e.target.select()} className="font-mono text-xs" />
         <InputGroupAddon align="inline-end">
@@ -363,9 +390,11 @@ function ShareLink() {
             {copied ? tr("Copied") : tr("Copy")}
           </InputGroupButton>
           {typeof navigator.share === "function" && (
-            <InputGroupButton size="icon-xs" aria-label={tr("Share")} onClick={() => void navigator.share({ title: "Qbix", text: tr("Add me on Qbix"), url: link }).catch(() => {})}>
-              <Share2 />
-            </InputGroupButton>
+            <Tip content={tr("Share")}>
+              <InputGroupButton size="icon-xs" aria-label={tr("Share")} onClick={() => void navigator.share({ title: "Qbix", text: tr("Add me on Qbix"), url: link }).catch(() => {})}>
+                <Share2 />
+              </InputGroupButton>
+            </Tip>
           )}
         </InputGroupAddon>
       </InputGroup>
@@ -382,40 +411,35 @@ export function FriendsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (!open) setQuery("");
   }, [open]);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(44rem,90svh)] flex-col gap-5 sm:max-w-lg" data-slot="friends-dialog">
-        <DialogHeader>
-          <DialogTitle>{tr("Friends")}</DialogTitle>
-          <DialogDescription>{tr("Find players by their username, or share your link.")}</DialogDescription>
-        </DialogHeader>
+    <Modal open={open} onOpenChange={onOpenChange} title={tr("Friends")} description={tr("Find players by their username, or share your link.")} tall className="flex max-h-[min(44rem,90svh)] flex-col sm:max-w-lg">
+      <div className="flex min-h-0 flex-1 flex-col gap-5" data-slot="friends-dialog">
         <section className="flex shrink-0 flex-col gap-2" aria-label={tr("Find players")}>
-          <InputGroup>
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Username")} aria-label={tr("Search players")} data-action="community:search" autoFocus />
-          </InputGroup>
-          {found && (
-            <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
-              {!found.length && <li className="px-2.5 py-2 text-sm text-muted-foreground">{tr("No player by that name.")}</li>}
-              {found.map((p) => (
-                <PersonRow key={p.id} p={p}>
-                  <RelationAction p={p} />
-                </PersonRow>
-              ))}
-            </ul>
-          )}
+          <SearchField value={query} onChange={setQuery} placeholder="Username" label="Search players" action="community:search" autoFocus />
+          {found &&
+            (!found.length ? (
+              <Empty icon={UserRoundX} className="p-4">
+                {tr("No player by that name.")}
+              </Empty>
+            ) : (
+              <ul className="-mx-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
+                {found.map((p) => (
+                  <PersonRow key={p.id} p={p}>
+                    <RelationAction p={p} />
+                  </PersonRow>
+                ))}
+              </ul>
+            ))}
         </section>
         {!found && <ShareLink />}
         {!found && (
           <section className="flex min-h-0 flex-1 flex-col gap-1" aria-label={tr("Your friends")}>
-            <h3 className="text-sm font-medium">
-              {tr("Your friends")} <span className={cn(NUMERIC, "text-muted-foreground")}>{friends.length || ""}</span>
-            </h3>
+            <SectionHead title="Your friends" meta={friends.length || undefined} />
             {!friends.length ? (
-              <Nothing className="p-4">{tr("No friend yet. Find players by their username, or share your link.")}</Nothing>
+              <Empty icon={Users} className="p-4">
+                {tr("No friend yet. Find players by their username, or share your link.")}
+              </Empty>
             ) : (
-              <ul className="-mx-2.5 flex min-h-0 flex-col gap-0.5 overflow-y-auto">
+              <ul className="-mx-2 flex min-h-0 flex-col gap-0.5 overflow-y-auto">
                 {friends.map((p) => (
                   <PersonRow key={p.id} p={p} detail={tr("Friends since {0}", { 0: relative(p.since) })}>
                     <Button
@@ -443,8 +467,8 @@ export function FriendsDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             )}
           </section>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 }
 
@@ -459,54 +483,46 @@ export function Requests() {
         <PopoverTrigger render={<Button variant="outline" size="icon" className="relative" aria-label={count ? tr("Requests, {0} waiting", { 0: count }) : tr("Requests")} data-action="community:requests" />}>
           <Bell />
           {count > 0 && (
-            <span data-slot="requests-count" className={cn(NUMERIC, "absolute -top-1.5 -right-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground ring-2 ring-background")}>
-              {count}
+            <span data-slot="requests-count" className="absolute -top-1.5 -right-1.5 flex">
+              <Count n={count} className="ml-0 h-4.5 min-w-4.5 px-1 ring-2 ring-background" />
             </span>
           )}
         </PopoverTrigger>
       </Tip>
-      <PopoverContent align="end" className="w-88 gap-3 p-3" data-slot="requests">
-        {empty && <p className="px-1 py-3 text-center text-sm text-muted-foreground">{tr("Nothing waiting. Requests and invitations show here.")}</p>}
+      <PopoverContent align="end" className="w-88 gap-3 p-2" data-slot="requests">
+        {empty && (
+          <Empty icon={Bell} className="p-4">
+            {tr("Nothing waiting. Requests and invitations show here.")}
+          </Empty>
+        )}
         {!!me?.incoming.length && (
-          <RequestSection title={tr("Friend requests")}>
+          <RequestSection title="Friend requests">
             {me.incoming.map((p) => (
-              <PersonRow key={p.id} p={p} detail={tr("Asked {0}", { 0: relative(p.at) })} className="px-1.5">
+              <PersonRow key={p.id} p={p} detail={tr("Asked {0}", { 0: relative(p.at) })}>
                 <Button size="sm" onClick={() => void community.acceptFriend(p.id)} data-action={"friend:accept:" + p.username}>
                   <Check />
                   {tr("Accept")}</Button>
-                <Button size="icon-sm" variant="ghost" aria-label={tr("Decline")} onClick={() => void community.removeFriend(p.id)}>
-                  <X />
-                </Button>
+                <Decline onClick={() => void community.removeFriend(p.id)} />
               </PersonRow>
             ))}
           </RequestSection>
         )}
         {!!me?.invitations.length && (
-          <RequestSection title={tr("Group invitations")}>
+          <RequestSection title="Group invitations">
             {me.invitations.map((g) => (
-              <li key={g.id} className="flex items-center gap-3 rounded-lg px-1.5 py-2 hover:bg-muted/40">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                  <Users className="size-4" />
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{g.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {tr("From {0}", { 0: g.invitedBy })} · {plural(g.members, "member")}
-                  </span>
-                </span>
+              <PersonRow key={g.id} face={<GroupMark size={32} />} name={g.name} detail={`${tr("From {0}", { 0: g.invitedBy })} · ${plural(g.members, "member")}`}>
                 <Button size="sm" onClick={() => void community.join(g.id)}>
+                  <Check />
                   {tr("Join")}</Button>
-                <Button size="icon-sm" variant="ghost" aria-label={tr("Decline")} onClick={() => void community.remove(g.id, s.user.id)}>
-                  <X />
-                </Button>
-              </li>
+                <Decline onClick={() => void community.remove(g.id, s.user.id)} />
+              </PersonRow>
             ))}
           </RequestSection>
         )}
         {!!me?.outgoing.length && (
-          <RequestSection title={tr("Sent")}>
+          <RequestSection title="Sent">
             {me.outgoing.map((p) => (
-              <PersonRow key={p.id} p={p} detail={tr("You asked {0}", { 0: relative(p.at) })} className="px-1.5">
+              <PersonRow key={p.id} p={p} detail={tr("You asked {0}", { 0: relative(p.at) })}>
                 <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => void community.removeFriend(p.id)}>
                   {tr("Cancel")}</Button>
               </PersonRow>
@@ -517,10 +533,19 @@ export function Requests() {
     </Popover>
   );
 }
+function Decline({ onClick }: { onClick: () => void }) {
+  return (
+    <Tip content={tr("Decline")}>
+      <Button size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" aria-label={tr("Decline")} onClick={onClick}>
+        <X />
+      </Button>
+    </Tip>
+  );
+}
 function RequestSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-0.5">
-      <h3 className="px-1.5 text-xs font-medium text-muted-foreground">{title}</h3>
+    <section className="flex flex-col gap-0.5" aria-label={said(title)}>
+      <h3 className={cn(LABEL, "px-2 pt-1")}>{said(title)}</h3>
       <ul className="flex max-h-60 flex-col gap-0.5 overflow-y-auto">{children}</ul>
     </section>
   );
@@ -534,25 +559,29 @@ export function LinkDialog({ username, onClose }: { username: string; onClose: (
   }, [username, community.me]);
   const self = username.toLowerCase() === s.user.username.toLowerCase();
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm" data-slot="link-dialog">
-        <DialogHeader>
-          <DialogTitle>{self ? tr("Your link") : tr("Add a friend")}</DialogTitle>
-          <DialogDescription>{self ? tr("This is the link others open to add you. Share it with your friends.") : tr("You opened a link to add this player.")}</DialogDescription>
-        </DialogHeader>
+    <Modal
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={self ? tr("Your link") : tr("Add a friend")}
+      description={self ? tr("This is the link others open to add you. Share it with your friends.") : tr("You opened a link to add this player.")}
+      className="sm:max-w-sm"
+    >
+      <div data-slot="link-dialog">
         {self ? null : player === undefined ? (
-          <div className="h-12 animate-pulse rounded-lg bg-muted" />
+          <ListSkeleton rows={1} className="p-0" />
         ) : !player ? (
-          <p className="text-sm text-muted-foreground">{tr("No player is called {0}.", { 0: username })}</p>
+          <Empty icon={UserRoundX} className="p-4">
+            {tr("No player is called {0}.", { 0: username })}
+          </Empty>
         ) : (
-          <ul>
+          <ul className="-mx-2">
             <PersonRow p={player} detail={player.relation === "friend" ? tr("Already your friend") : player.relation === "outgoing" ? tr("Request sent") : player.relation === "incoming" ? tr("Wants to be your friend") : undefined}>
               <RelationAction p={player} />
             </PersonRow>
           </ul>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 }
 

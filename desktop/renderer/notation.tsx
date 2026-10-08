@@ -6,12 +6,12 @@
 import { Pause, Play } from "lucide-react";
 import { CUBE_READING, PUZZLE_NOTATION, cubeNotation, describeMove, isCubeNotation, notationView, type NotationBlock } from "../../src/client/lib/notation";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
-import { PLAYER_SPEEDS, speedLabel } from "../../src/client/lib/algPlayer";
 import { store as s, run } from "./store";
 import { Choice, LABEL, NUMERIC, Tip, usePhone } from "./ui";
-import { PlayerCube, useAlgPlayer, usePlayback } from "./AlgPlayer";
+import { PlayerCube, SpeedChoice, useAlgPlayer, usePlayback } from "./AlgPlayer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import type { AlgPlayer } from "../../src/client/lib/algPlayer";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
@@ -118,21 +118,16 @@ function MoveTile({ move }: { move: string }) {
   const on = s.notationMove === move,
     phone = usePhone();
   return (
-    <button
-      type="button"
+    <Toggle
+      variant="outline"
       data-action={"notationMove:" + move}
-      aria-pressed={on}
+      pressed={on}
       aria-label={`${move}: ${describeMove(move, puzzleInfo(s.notationPuzzle).cubeSize ?? 3) || "play it"}`}
       onClick={run("notationMove:" + move)}
-      className={cn(
-        NUMERIC,
-        "flex items-center justify-center rounded-lg border px-3 text-base font-medium outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50",
-        phone ? "h-11" : "h-10",
-        on && "border-primary/50 bg-primary/10 text-primary hover:bg-primary/10",
-      )}
+      className={cn(NUMERIC, "px-3 text-base aria-pressed:border-primary/50 aria-pressed:bg-primary/10 aria-pressed:text-primary dark:aria-pressed:bg-primary/10", phone ? "h-11" : "h-10")}
     >
       {said(move)}
-    </button>
+    </Toggle>
   );
 }
 
@@ -154,27 +149,16 @@ function MovePlayer({ move, size, phone = false }: { move: string; size: number;
 }
 
 function LoopControls({ player }: { player: AlgPlayer }) {
-  const p = usePlayback(player),
-    phone = usePhone();
+  usePlayback(player);
+  const phone = usePhone();
   return (
     <div className="flex items-center gap-1">
-      <Tip content={player.active ? "Pause" : "Play"}>
+      <Tip content={player.active ? tr("Pause") : tr("Play")}>
         <Button variant="ghost" size={phone ? "icon-lg" : "icon"} aria-label={player.active ? tr("Pause") : tr("Play")} onClick={player.toggle} className={cn("text-muted-foreground hover:text-foreground", phone && "size-11")}>
           {player.active ? <Pause /> : <Play />}
         </Button>
       </Tip>
-      {PLAYER_SPEEDS.map((speed) => (
-        <Button
-          key={speed}
-          variant="ghost"
-          size="sm"
-          aria-pressed={p.speed === speed}
-          onClick={() => player.setSpeed(speed)}
-          className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:bg-muted aria-pressed:text-foreground", phone && "h-11")}
-        >
-          {speedLabel(speed)}
-        </Button>
-      ))}
+      <SpeedChoice player={player} touch={phone} />
     </div>
   );
 }

@@ -5,12 +5,13 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Delete, MessageSquare, PenLine, Share2, Trash2 } from "lucide-react";
+import { Delete, Link2Off, MessageSquare, PenLine, Share2, Trash2 } from "lucide-react";
 import { call } from "./bridge";
 import { store as s } from "./store";
-import { ActionToggle, Alg, Button, LABEL, NUMERIC, usePhone } from "./ui";
+import { Alg, Button, Empty, FOCUS, LABEL, NUMERIC, PenaltyToggles, Surface, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
-import { SolveAnalysisButton, colourLabel } from "./SolveAnalysis";
+import { SolveAnalysisButton, capitalised, colourLabel } from "./SolveAnalysis";
+import { FACE_COLORS } from "../../src/shared/cubeAppearance";
 import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../src/client/lib/solution";
 import { mergeTurns } from "../../src/client/lib/solveAnalysis";
 import { fmtSolve } from "../../src/client/lib/format";
@@ -18,6 +19,8 @@ import { puzzleInfo, puzzleOf, type StoredContext } from "../../src/shared/puzzl
 import { Button as UiButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
 import { Logo, Wordmark } from "./logo";
@@ -37,9 +40,9 @@ export type ViewedSolve = StoredContext & {
   username?: string;
 };
 
-const SWATCH: Record<Colour, string> = { white: "#ece8e2", yellow: "#ffe62a", green: "#1abe57", blue: "#3d7ce0", red: "#eb4242", orange: "#ff801f" };
+/** Each colour as the 3D cube draws it (its faces seen yellow on top, blue in front). */
+const SWATCH: Record<Colour, string> = { white: FACE_COLORS.D, yellow: FACE_COLORS.U, green: FACE_COLORS.B, blue: FACE_COLORS.F, red: FACE_COLORS.R, orange: FACE_COLORS.L };
 const colourName = (c: Colour) => capitalised(colourLabel(c));
-const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** How the solution plays on the cube Cubix shows the scramble on; null when there is none to play. */
 function played(solution: string | null | undefined) {
@@ -147,23 +150,19 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         {solution}
         {owner && solve.comment && <p className="text-sm text-muted-foreground">{solve.comment}</p>}
         {owner && solve.id !== undefined && !editing && (
-          <div className="mt-auto flex flex-wrap items-center gap-1">
-            <ActionToggle action={"penalty:" + solve.id + ":+2"} pressed={solve.penalty === "+2"}>
-              +2
-            </ActionToggle>
-            <ActionToggle action={"penalty:" + solve.id + ":dnf"} pressed={solve.penalty === "dnf"}>
-              {tr("DNF")}
-            </ActionToggle>
-            <Button action={"comment:" + solve.id} icon={MessageSquare}>
+          // The same actions as under the timer: the penalties, the comment, the link, then delete apart.
+          <div className="mt-auto flex flex-wrap items-center gap-1.5">
+            <PenaltyToggles penalty={solve.penalty} prefix={"penalty:" + solve.id + ":"} />
+            <Button action={"comment:" + solve.id} icon={MessageSquare} size="sm" variant="outline" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
               {tr("Comment")}
             </Button>
             {!s.user.isGuest && (
-              <UiButton variant="ghost" onClick={share} data-action="share">
+              <UiButton variant="outline" size="sm" onClick={share} data-action="share" className="text-muted-foreground">
                 <Share2 />
                 {tr("Share")}
               </UiButton>
             )}
-            <Button action={"delete:" + solve.id} icon={Trash2} variant="destructive" className="ml-auto">
+            <Button action={"delete:" + solve.id} icon={Trash2} size="sm" variant="outline" className="ml-auto text-muted-foreground hover:text-destructive">
               {tr("Delete")}
             </Button>
           </div>
@@ -190,8 +189,8 @@ const Swatch = ({ colour }: { colour: Colour }) => <span className="inline-block
 function ColourSelect({ label, value, options, onChange }: { label: string; value: Colour; options: readonly Colour[]; onChange: (c: Colour) => void }) {
   const items = options.map((c) => ({ value: c, label: colourName(c) }));
   return (
-    <label className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <span className={LABEL}>{label}</span>
+    <Field className="min-w-0 flex-1 gap-1.5">
+      <FieldLabel className={LABEL}>{label}</FieldLabel>
       <Select items={items} value={value} onValueChange={(v) => onChange(v as Colour)}>
         <SelectTrigger aria-label={label} className="w-full">
           <SelectValue />
@@ -205,7 +204,7 @@ function ColourSelect({ label, value, options, onChange }: { label: string; valu
           ))}
         </SelectContent>
       </Select>
-    </label>
+    </Field>
   );
 }
 
@@ -241,7 +240,7 @@ function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value:
         value={value.moves}
         onChange={(e) => onChange({ ...value, moves: e.target.value })}
       />
-      {!valid && <p className="text-xs text-destructive">{tr("A turn cannot be read: use the notation of the pad.")}</p>}
+      {!valid && <FieldError className="text-xs">{tr("A turn cannot be read: use the notation of the pad.")}</FieldError>}
       <div className="grid grid-cols-[repeat(6,minmax(0,1fr))_auto] gap-1">
         {PAD.map((row, r) => (
           <div key={r} className="contents">
@@ -292,7 +291,7 @@ export function SharedSolve({ token }: { token: string }) {
   return (
     <div className="flex min-h-svh flex-col items-center gap-8 bg-background px-4 py-6 md:py-10">
       <header className="flex w-full max-w-4xl items-center gap-3">
-        <a href="/" className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+        <a href="/" className={cn("flex items-center gap-2 rounded-md", FOCUS)}>
           <Logo size={24} />
           <Wordmark className="text-xl" />
         </a>
@@ -300,8 +299,24 @@ export function SharedSolve({ token }: { token: string }) {
           {tr("Open Qbix")}
         </UiButton>
       </header>
-      <main className="w-full max-w-4xl rounded-2xl border bg-card p-5 md:p-8">
-        {solve ? <SolveView solve={solve} /> : solve === null ? <p className="text-center text-muted-foreground">{tr("This solve is not shared, or no longer.")}</p> : <div className="h-80" aria-busy="true" />}
+      <main className="w-full max-w-4xl">
+        <Surface className="p-5 md:p-8">
+          {solve ? (
+            <SolveView solve={solve} />
+          ) : solve === null ? (
+            <Empty icon={Link2Off} title={tr("This solve is not shared, or no longer.")} />
+          ) : (
+            <div className="flex gap-6 max-md:flex-col" aria-busy="true" aria-label={tr("Loading")}>
+              <Skeleton className="size-60 shrink-0 rounded-xl md:size-80" />
+              <div className="flex flex-1 flex-col gap-3">
+                <Skeleton className="h-12 w-48" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="mt-4 h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            </div>
+          )}
+        </Surface>
       </main>
     </div>
   );

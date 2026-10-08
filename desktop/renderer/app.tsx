@@ -6,26 +6,15 @@ import { onLanguage, start } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
 import { Toasts } from "./Toasts";
-import { SharedSolve } from "./SolveView";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
-import { Rail, TabBar } from "./shell";
+import { Rail, TIP_DELAY, TabBar } from "./shell";
 import { Practice } from "./practice";
-import { TrainingSetup } from "./setup";
-import { Algorithms } from "./algorithms";
-import { Profile } from "./profile";
-import { DuelPage } from "./duel";
-import { CoachingPage } from "./coaching/page";
-import { CommunityPage } from "./community/page";
-import { TournamentsPage } from "./tournaments/page";
-import { MatchPage } from "./tournaments/match";
 import { CoachingSidebar } from "./coaching/rail";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
-import { FloatingCall } from "./coaching/floating";
-import { Learn } from "./learn";
-import { Overlays } from "./overlays";
+import { live } from "./coaching/call";
 import { LoginPage } from "./login";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,8 +25,38 @@ import { journeyProfile } from "../../src/client/lib/journey";
 import { said } from "./base";
 /** Kept on this device so a relaunch draws the right screen before the engine answers. */
 const SIGNED_IN_KEY = "cubix.signedIn";
-const Introduction = lazy(() => import("./introduction").then(m => ({ default: m.Introduction })));
-const Onboarding = lazy(() => import("./introduction").then(m => ({ default: m.Onboarding })));
+/** A part of the app loaded on first use: /timer opens without the code of the other pages. */
+/**
+ * A part of the app loaded on first use. A tab left open across a deploy may no longer find it on the server: the
+ * page loads again, once, to get the new version.
+ */
+const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentType<any>) =>
+  lazy(() =>
+    load().then(
+      (module) => (sessionStorage.removeItem(RELOADED), { default: pick(module) }),
+      (error) => {
+        if (sessionStorage.getItem(RELOADED)) throw error;
+        sessionStorage.setItem(RELOADED, "1");
+        location.reload();
+        return new Promise<never>(() => {});
+      },
+    ),
+  );
+const RELOADED = "cubix.reloadedForUpdate";
+const Introduction = later(() => import("./introduction"), (m) => m.Introduction);
+const Onboarding = later(() => import("./introduction"), (m) => m.Onboarding);
+const Algorithms = later(() => import("./algorithms"), (m) => m.Algorithms);
+const Profile = later(() => import("./profile"), (m) => m.Profile);
+const DuelPage = later(() => import("./duel"), (m) => m.DuelPage);
+const CoachingPage = later(() => import("./coaching/page"), (m) => m.CoachingPage);
+const CommunityPage = later(() => import("./community/page"), (m) => m.CommunityPage);
+const TournamentsPage = later(() => import("./tournaments/page"), (m) => m.TournamentsPage);
+const MatchPage = later(() => import("./tournaments/match"), (m) => m.MatchPage);
+const TrainingSetup = later(() => import("./setup"), (m) => m.TrainingSetup);
+const Learn = later(() => import("./learn"), (m) => m.Learn);
+const Overlays = later(() => import("./overlays"), (m) => m.Overlays);
+const FloatingCall = later(() => import("./coaching/floating"), (m) => m.FloatingCall);
+const SharedSolve = later(() => import("./SolveView"), (m) => m.SharedSolve);
 function App() {
   useSyncExternalStore(s.subscribe, () => s.version);
   const location = useLocation(), navigate = useNavigate();
@@ -104,7 +123,7 @@ function App() {
           s.showTimes = false;
           s.emit();
         }
-      } else if (!s.overlay && s.page === "learn" && s.learnMethod && ["ArrowLeft", "ArrowRight"].includes(e.key)) {
+      } else if (!s.overlay && !s.assisted && s.page === "learn" && s.learnMethod && ["ArrowLeft", "ArrowRight"].includes(e.key)) {
         void s.action(e.key === "ArrowLeft" ? "previous" : "next");
       } else if (
         !s.overlay &&
@@ -158,7 +177,7 @@ function App() {
   const signedIn = s.ready ? s.signedIn : localStorage.getItem(SIGNED_IN_KEY) === "1";
   if (!signedIn)
     return (
-      <TooltipProvider delay={200}>
+      <TooltipProvider delay={TIP_DELAY}>
         <LoginPage />
         <Toasts light={s.light} />
       </TooltipProvider>
@@ -174,9 +193,9 @@ function App() {
     inArena = !!arena && (location.pathname === arena || (!held?.match && location.pathname.startsWith("/match/")));
   if (arena && !inArena && route.page !== "onboarding") return <Navigate to={arena} replace />;
   // A puzzle that cannot be solved yet keeps to its course; the tour still shows every section.
-  if (route.page === "onboarding") return <TooltipProvider><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
+  if (route.page === "onboarding") return <TooltipProvider delay={TIP_DELAY}><Suspense fallback={<PageSkeleton />}><Onboarding key={s.user.id} /></Suspense><ErrorNotification message={said(s.error)} /></TooltipProvider>;
   return (
-    <TooltipProvider delay={400}>
+    <TooltipProvider delay={TIP_DELAY}>
       <MotionConfig reducedMotion="user">
         <WindowSidebar
           // Coaching has its own sidebar beside; a match takes the whole window.
@@ -198,6 +217,7 @@ function App() {
               <PageSkeleton side={!mobile} />
             ) : (
               <div key={frameKey} className="absolute inset-0 flex min-h-0 flex-col bg-background">
+                <Suspense fallback={<PageSkeleton side={!mobile} />}>
                   {s.page === "training" && s.trainingStep === "setup" ? (
                     <TrainingSetup />
                   ) : ["playground", "training"].includes(s.page) ? (
@@ -219,15 +239,16 @@ function App() {
                   ) : (
                     <Profile />
                   )}
+                </Suspense>
               </div>
             )}
           </SidebarInset>
           {mobile && !arena && <TabBar />}
         </WindowSidebar>
-        <FloatingCall />
+        {live.call && <Suspense fallback={null}><FloatingCall /></Suspense>}
         <Toasts light={s.light} />
         <Confirmations />
-        <Overlays />
+        <Suspense fallback={null}><Overlays /></Suspense>
         <ErrorNotification message={said(s.error)} />
         {s.overlay === "tour" && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}
       </MotionConfig>
@@ -241,8 +262,8 @@ onLanguage(() => s.emit());
 function Root() {
   const shared = /^\/solve\/([\w-]+)$/.exec(useLocation().pathname)?.[1];
   return shared ? (
-    <TooltipProvider>
-      <SharedSolve token={shared} />
+    <TooltipProvider delay={TIP_DELAY}>
+      <Suspense fallback={null}><SharedSolve token={shared} /></Suspense>
       <Toasts light={s.light} />
     </TooltipProvider>
   ) : (

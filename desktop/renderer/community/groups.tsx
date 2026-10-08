@@ -7,18 +7,17 @@ import { useState } from "react";
 import { Crown, LogOut, MessageSquare, MoreHorizontal, Pencil, Plus, Shield, Trash2, UserMinus, UserPlus, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
-import { Icon } from "../base";
-import { Avatar, NUMERIC, plural } from "../ui";
+import { Avatar, Empty, Figure, LABEL, Modal, NUMERIC, ROW, SectionHead, Strip, plural } from "../ui";
 import { day, relative } from "../coaching/parts";
 import { community, eventName, scoreOf, tournamentUrl, type Conversation, type Group, type Match } from "./client";
 import { GroupMark, organiser } from "./messages";
 import { MatchDialog } from "./cards";
-import { EditGroupDialog, FriendPicker, TournamentDialog, useFriendsOutside } from "./dialogs";
-import { StatusBadge } from "../tournaments/page";
+import { EditGroupDialog, FriendPicker, PersonRow, TournamentDialog, useFriendsOutside } from "./dialogs";
+import { EventTile, MatchStatusBadge, StatusBadge } from "../tournaments/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,15 +29,16 @@ import { said } from "../base";
 function Part({ title, count, action, children }: { title: string; count?: number; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-1.5 border-t px-4 py-4" aria-label={title}>
-      <h3 className="flex min-h-7 items-center gap-2 text-sm font-medium">
-        {title}
-        {!!count && <span className={cn(NUMERIC, "text-muted-foreground")}>{count}</span>}
-        <span className="ml-auto">{action}</span>
-      </h3>
+      <SectionHead title={title} meta={count || undefined}>
+        {action}
+      </SectionHead>
       {children}
     </section>
   );
 }
+
+/** A row of the details that opens what it shows: the event's icon, two lines, and where it stands. */
+const DETAIL_ROW = cn(ROW, "flex w-full items-center gap-3 px-2 py-2");
 
 /** The details of a conversation: its group's, or the friend's. */
 export function Details({ conversation: c }: { conversation: Conversation }) {
@@ -56,10 +56,11 @@ function GroupDetails({ id }: { id: number }) {
     [editing, setEditing] = useState(false);
   if (!g)
     return (
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col items-center gap-3 p-4 pt-6" aria-busy="true" aria-label={tr("Loading")}>
         <Skeleton className="size-14 rounded-full" />
         <Skeleton className="h-5 w-1/2" />
-        <Skeleton className="h-24" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="mt-4 h-24 w-full" />
       </div>
     );
   const run = organiser(g.role),
@@ -103,15 +104,13 @@ function GroupDetails({ id }: { id: number }) {
         }
       >
         {!g.tournaments.length ? (
-          <p className="text-xs text-muted-foreground">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</p>
+          <Empty className="p-3">{run ? tr("No tournament yet: organise the first one.") : tr("No tournament yet. The group's owner and admins organise them.")}</Empty>
         ) : (
           <ul className="-mx-2 flex flex-col gap-0.5">
             {g.tournaments.map((t) => (
               <li key={t.id}>
-                <button type="button" className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/50" onClick={() => go(tournamentUrl(t.id))} data-tournament-row={t.id}>
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Icon name={"Puzzle" + t.event} size={16} />
-                  </span>
+                <button type="button" className={DETAIL_ROW} onClick={() => go(tournamentUrl(t.id))} data-tournament-row={t.id}>
+                  <EventTile event={t.event} className="size-8" />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-medium">{t.name}</span>
                     <span className={cn(NUMERIC, "truncate text-xs text-muted-foreground")}>
@@ -148,12 +147,12 @@ function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
     manageable = removable || (g.role === "owner" && (m.role === "admin" || m.role === "member")),
     friend = community.me?.friends.some((f) => f.id === m.id);
   return (
-    <li className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted/40" data-member={m.username}>
-      <Avatar name={m.username} src={m.avatar} size={30} />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className={cn("truncate font-medium", m.role === "invited" && "text-muted-foreground")}>{m.id === s.user.id ? tr("You") : m.username}</span>
-        <span className="truncate text-xs text-muted-foreground">{m.role === "invited" ? tr("Invited {0}", { 0: relative(m.joinedAt) }) : tr("Joined {0}", { 0: relative(m.joinedAt) })}</span>
-      </span>
+    <PersonRow
+      p={m}
+      data-member={m.username}
+      name={<span className={cn(m.role === "invited" && "text-muted-foreground")}>{m.id === s.user.id ? tr("You") : m.username}</span>}
+      detail={m.role === "invited" ? tr("Invited {0}", { 0: relative(m.joinedAt) }) : tr("Joined {0}", { 0: relative(m.joinedAt) })}
+    >
       {ROLE_LABEL[m.role] && (
         <Badge variant="secondary" className="gap-1">
           {m.role === "owner" ? <Crown /> : m.role === "admin" ? <Shield /> : null}
@@ -194,7 +193,7 @@ function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-    </li>
+    </PersonRow>
   );
 }
 
@@ -206,24 +205,21 @@ function InviteDialog({ g }: { g: Group }) {
     [busy, setBusy] = useState(false),
     outside = useFriendsOutside(g);
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (next) {
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground"
+        data-action="group:invite"
+        onClick={() => {
           setPicked([]);
           setName("");
-        }
-      }}
-    >
-      <DialogTrigger render={<Button size="sm" variant="ghost" className="text-muted-foreground" data-action="group:invite" />}>
+          setOpen(true);
+        }}
+      >
         <UserPlus />
-        {tr("Invite")}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{tr("Invite to {0}", { 0: g.name })}</DialogTitle>
-          <DialogDescription>{tr("They join once they accept the invitation.")}</DialogDescription>
-        </DialogHeader>
+        {tr("Invite")}</Button>
+      <Modal open={open} onOpenChange={setOpen} title={tr("Invite to {0}", { 0: g.name })} description={tr("They join once they accept the invitation.")} className="sm:max-w-md">
         <FriendPicker friends={outside} value={picked} onChange={setPicked} />
         <form
           className="flex flex-col gap-1.5"
@@ -232,7 +228,7 @@ function InviteDialog({ g }: { g: Group }) {
             if (name.trim() && (await community.invite(g.id, name.trim()))) setName("");
           }}
         >
-          <span className="text-xs text-muted-foreground">{tr("Or a player who is not your friend, by username:")}</span>
+          <span className={LABEL}>{tr("Or a player who is not your friend, by username:")}</span>
           <InputGroup>
             <InputGroupInput value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Username")} aria-label={tr("Invite a player")} />
             <InputGroupAddon align="inline-end">
@@ -255,15 +251,15 @@ function InviteDialog({ g }: { g: Group }) {
             {picked.length ? tr("Invite {0}", { 0: picked.length }) : tr("Invite")}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   );
 }
 
 /** Battles as rows: who against whom, the score or where it stands; each opens its detail. */
 function Battles({ battles, empty }: { battles: Match[]; empty: string }) {
   const [shown, setShown] = useState<Match | null>(null);
-  if (!battles.length) return <p className="text-xs text-muted-foreground">{empty}</p>;
+  if (!battles.length) return <Empty className="p-3">{empty}</Empty>;
   return (
     <>
       <ul className="-mx-2 flex flex-col gap-0.5" data-slot="battles">
@@ -273,10 +269,8 @@ function Battles({ battles, empty }: { battles: Match[]; empty: string }) {
             mine = b.players.some((p) => p?.id === s.user.id);
           return (
             <li key={b.id}>
-              <button type="button" className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/50" onClick={() => setShown(b)} data-battle-row={b.id}>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  <Icon name={"Puzzle" + b.event} size={16} />
-                </span>
+              <button type="button" className={DETAIL_ROW} onClick={() => setShown(b)} data-battle-row={b.id}>
+                <EventTile event={b.event} className="size-8" />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate font-medium">
                     {b.players[0]?.username} <span className="font-normal text-muted-foreground">{tr("vs")}</span> {b.players[1]?.username ?? tr("anyone")}
@@ -290,9 +284,7 @@ function Battles({ battles, empty }: { battles: Match[]; empty: string }) {
                     {scoreOf(b).join("–")}
                   </span>
                 ) : (
-                  <Badge variant={b.status === "live" ? "default" : "secondary"} className="shrink-0">
-                    {b.status === "live" ? tr("Live") : b.status === "cancelled" ? tr("Called off") : b.status === "ready" ? tr("Ready") : tr("Waiting")}
-                  </Badge>
+                  <MatchStatusBadge status={b.status} />
                 )}
               </button>
             </li>
@@ -323,18 +315,11 @@ function FriendDetails({ c }: { c: Conversation }) {
       </header>
       <Part title={tr("Your battles")} count={battles.length}>
         {done.length > 0 && (
-          <div className="mb-1 grid grid-cols-3 gap-2 rounded-lg bg-muted/45 px-3 py-2 text-center">
-            {[
-              [tr("Won"), won, "text-success"],
-              [tr("Lost"), done.length - won, "text-destructive"],
-              [tr("Played"), done.length, ""],
-            ].map(([label, n, tone]) => (
-              <span key={String(label)} className="flex flex-col">
-                <span className={cn(NUMERIC, "text-lg font-semibold", String(tone))}>{n}</span>
-                <span className="text-[11px] text-muted-foreground">{label}</span>
-              </span>
-            ))}
-          </div>
+          <Strip className="mb-1 grid-cols-3">
+            <Figure label="Won" value={won} tone="good" />
+            <Figure label="Lost" value={done.length - won} tone="bad" />
+            <Figure label="Played" value={done.length} />
+          </Strip>
         )}
         <Battles battles={battles} empty={tr("No battle yet: challenge {0} from the top of the conversation.", { 0: other.username })} />
       </Part>

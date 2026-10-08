@@ -1,4 +1,11 @@
-import { evenPermutation, type ScrambleEngine } from "./practiceScrambleCore";
+import type { ScrambleEngine } from "./practiceScrambleCore";
+
+/** Swap two pieces when a permutation is odd, so a single orbit stays solvable on its own. */
+function evenPermutation(pieces: number[]) {
+  let inversions = 0;
+  pieces.forEach((a, i) => pieces.slice(i + 1).forEach(b => { if (a > b) inversions++; }));
+  if (inversions % 2) [pieces[0], pieces[1]] = [pieces[1], pieces[0]];
+}
 
 /** Scrambles from cubing.js loaded as separate modules (`scramble`, `search`, `kpuzzle`): keeping its worker
  * module graph intact lets competition scramblers start their own workers. */

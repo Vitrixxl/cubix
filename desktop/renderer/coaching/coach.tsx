@@ -1,14 +1,17 @@
 /** The coach's side: the dashboard with the weeks ahead, the students, the weekly schedule and the public profile. */
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, ImageUp, Save, TriangleAlert } from "lucide-react";
+import { CalendarDays, ExternalLink, ImageUp, Save, TriangleAlert, UserRoundX, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, NUMERIC, plural, usePhone } from "../ui";
 import { go } from "../navigation";
 import { coaching, euros, price } from "./client";
 import { Chat } from "./chat";
 import { SessionRow, useMinute } from "./sessions";
-import { Count, EventPicker, Figures, Nothing, PANEL, PANEL_HEAD, ROWS, RowLink, RowsSkeleton, day, span, url } from "./parts";
+import { day, span, url } from "./parts";
+import { Bar, Empty, EventPicker, Figure, ListSkeleton, SectionHead, Strip, Surface } from "../base";
+import { ChatPanel, ConversationList, ConversationRow, LIST } from "../chat";
 import { cn } from "@/lib/utils";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button as UiButton } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -35,10 +38,21 @@ export function Dashboard() {
   if (!d)
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true" aria-label={tr("Loading")}>
-        <Skeleton className="h-[4.5rem] rounded-xl" />
-        <div className="flex flex-1 gap-4">
-          <Skeleton className="h-full w-80 rounded-xl" />
-          <Skeleton className="h-full flex-1 rounded-xl" />
+        <Skeleton className="h-16 shrink-0 rounded-xl" />
+        <div className="flex min-h-0 flex-1 gap-4 max-lg:flex-col">
+          <div className="flex shrink-0 flex-col gap-5 rounded-xl p-4 ring-1 ring-foreground/10 lg:w-80">
+            <Skeleton className="h-4 w-24" />
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-1.5" />
+              </div>
+            ))}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-xl p-4 ring-1 ring-foreground/10">
+            <Skeleton className="h-4 w-32" />
+            <ListSkeleton rows={4} className="-mx-1.5" />
+          </div>
         </div>
       </div>
     );
@@ -54,29 +68,26 @@ export function Dashboard() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {todo.map(([text, view, action]) => (
-        <div key={view + text} className="flex shrink-0 items-center gap-3 rounded-xl border border-warning/40 bg-warning/8 px-4 py-2.5 text-sm" data-slot="todo">
-          <TriangleAlert className="size-4 shrink-0 text-warning" />
-          <span className="flex-1">{text}</span>
+        <Alert key={view + text} variant="warning" className="shrink-0 items-center has-[>svg]:grid-cols-[auto_1fr_auto] *:[svg]:row-span-1 *:[svg]:translate-y-0" data-slot="todo">
+          <TriangleAlert />
+          <AlertTitle className="font-normal">{said(text)}</AlertTitle>
           <UiButton size="sm" variant="outline" onClick={() => go(url(view))}>
             {said(action)}
           </UiButton>
-        </div>
+        </Alert>
       ))}
       <section aria-label={tr("Dashboard")} className="flex min-h-0 flex-1 flex-col gap-4">
-        <Figures
-          className="max-xl:grid-cols-3!"
-          items={[
-            ["Sessions · 7 days", week.sessions],
-            ["Booked · 7 days", `${(week.minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h`],
-            ["Expected · 4 weeks", euros(month), "text-primary"],
-            ["Free slots · 7 days", week.openSlots],
-            ["Students", d.students.length],
-            ["Rating", c.rating == null ? "–" : c.rating.toFixed(1), "text-warning"],
-          ]}
-        />
+        <Strip className="grid-cols-3 xl:grid-cols-6">
+          <Figure label="Sessions · 7 days" value={week.sessions} size="xl" />
+          <Figure label="Booked · 7 days" value={`${(week.minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h`} size="xl" />
+          <Figure label="Expected · 4 weeks" value={euros(month)} tone="accent" size="xl" />
+          <Figure label="Free slots · 7 days" value={week.openSlots} size="xl" />
+          <Figure label="Students" value={d.students.length} size="xl" />
+          <Figure label="Rating" value={c.rating == null ? "–" : c.rating.toFixed(1)} tone="warning" size="xl" />
+        </Strip>
         <div className="flex min-h-0 flex-1 gap-4 max-lg:flex-col">
-          <div className={cn(PANEL, "shrink-0 lg:w-80")} aria-label={tr("Forecast")}>
-            <h3 className={PANEL_HEAD}>{tr("Forecast")}</h3>
+          <Surface className="shrink-0 lg:w-80" aria-label={tr("Forecast")}>
+            <SectionHead title="Forecast" className="px-4 pt-2" />
             <ul className="flex flex-col gap-4 px-4 pt-2 pb-4">
               {d.weeks.map((w, i) => (
                 <li key={w.from} className="flex flex-col gap-1.5" data-week={i}>
@@ -86,10 +97,8 @@ export function Dashboard() {
                       {day(w.from)} – {day(w.to - 1)}
                     </span>
                   </span>
-                  <span className="flex h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                    <span className="bg-primary" style={{ width: `${(w.sessions / most) * 100}%` }} />
-                    <span className="bg-primary/25" style={{ width: `${(w.openSlots / most) * 100}%` }} />
-                  </span>
+                  {/* Booked in the accent, the free slots paler behind, the rest of the busiest week empty. */}
+                  <Bar ratio={w.sessions / most} behind={(w.sessions + w.openSlots) / most} className="h-1.5" label="Forecast" text={`${plural(w.sessions, "session")} · ${plural(w.openSlots, "free slot")}`} />
                   <span className={cn(NUMERIC, "flex justify-between text-xs text-muted-foreground")}>
                     <span>
                       <span className="font-medium text-foreground">{plural(w.sessions, "session")}</span> · {plural(w.openSlots, "free slot")}
@@ -99,21 +108,19 @@ export function Dashboard() {
                 </li>
               ))}
             </ul>
-          </div>
-          <div className={cn(PANEL, "min-w-0 flex-1")}>
-            <h3 className={PANEL_HEAD}>
-              {tr("Next sessions")}{" "}<span className={cn(NUMERIC, "text-muted-foreground")}>{d.upcoming.length}</span>
-            </h3>
+          </Surface>
+          <Surface className="min-w-0 flex-1">
+            <SectionHead title="Next sessions" meta={d.upcoming.length} className="px-4 pt-2" />
             {!d.upcoming.length ? (
-              <Nothing>{tr("No session booked yet.")}</Nothing>
+              <Empty icon={CalendarDays}>{tr("No session booked yet.")}</Empty>
             ) : (
-              <ul className={cn(ROWS, "min-h-0 flex-1 overflow-y-auto")} data-slot="upcoming">
+              <ul className={cn(LIST, "min-h-0 flex-1 overflow-y-auto")} data-slot="upcoming">
                 {d.upcoming.map((b) => (
                   <SessionRow key={b.id} b={b} now={now} compact />
                 ))}
               </ul>
             )}
-          </div>
+          </Surface>
         </div>
       </section>
     </div>
@@ -130,44 +137,41 @@ export function StudentsView({ id }: { id: string }) {
   }, []);
   const student = d?.students.find((st) => st.id === id),
     conversation = coaching.conversations?.find((c) => c.id === student?.conversationId);
-  const showList = !phone || !id;
   return (
     <div className="flex min-h-0 flex-1 gap-4">
-      {showList && (
-        <div className={cn(PANEL, "shrink-0", phone ? "flex-1" : "w-72")}>
+      {(!phone || !id) && (
+        <ConversationList>
           {!d ? (
-            <RowsSkeleton />
+            <ListSkeleton />
           ) : !d.students.length ? (
-            <Nothing>{tr("Players who book you or write to you appear here.")}</Nothing>
+            <Empty icon={Users}>{tr("Players who book you or write to you appear here.")}</Empty>
           ) : (
-            <ul className={cn(ROWS, "min-h-0 flex-1 overflow-y-auto")} data-slot="students">
+            <ul className={LIST} data-slot="students">
               {d.students.map((st) => (
                 <li key={st.id}>
-                  <RowLink to={url("students/" + st.id)} active={st.id === id}>
-                    <Avatar name={st.username} src={st.avatar} size={36} />
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate font-medium">{st.username}</span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {plural(st.done, "session")}
-                        {st.nextAt ? tr(" · next {0}", { 0: span(st.nextAt) }) : ""}
-                      </span>
-                    </span>
-                    <Count n={st.unread} />
-                  </RowLink>
+                  <ConversationRow
+                    to={url("students/" + st.id)}
+                    active={st.id === id}
+                    face={<Avatar name={st.username} src={st.avatar} size={40} />}
+                    name={st.username}
+                    preview={plural(st.done, "session") + (st.nextAt ? tr(" · next {0}", { 0: span(st.nextAt) }) : "")}
+                    unread={st.unread}
+                  />
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </ConversationList>
       )}
-      {(!phone || id) &&
-        (student ? (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col text-sm">{conversation ? <Chat conversation={conversation} back={phone ? url("students") : undefined} /> : <div className="flex-1" />}</div>
-        ) : (
-          <div className={cn(PANEL, "flex-1 max-md:hidden")}>
-            {d && id ? <Nothing>{tr("This student is not among yours.")}</Nothing> : <Nothing>{d?.students.length ? tr("Pick a student.") : ""}</Nothing>}
-          </div>
-        ))}
+      {(!phone || !!id) && (
+        <ChatPanel>
+          {student && conversation ? (
+            <Chat conversation={conversation} back={phone ? url("students") : undefined} />
+          ) : student ? null : (
+            <Empty icon={d && id ? UserRoundX : Users} title={d && id ? "This student is not among yours." : d?.students.length ? "Pick a student." : undefined} />
+          )}
+        </ChatPanel>
+      )}
     </div>
   );
 }
@@ -177,11 +181,18 @@ export function CoachProfile() {
   const coach = coaching.me?.coach;
   if (!coach)
     return (
-      <div className={cn(PANEL, "mx-auto w-full max-w-2xl gap-4 p-6")} aria-busy="true" aria-label={tr("Loading")}>
-        <Skeleton className="h-10" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-10" />
-      </div>
+      <Surface className="mx-auto w-full max-w-3xl gap-5 p-6" aria-busy="true" aria-label={tr("Loading")}>
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-18 rounded-full" />
+          <Skeleton className="h-8 w-40" />
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+        </div>
+        <Skeleton className="h-14" />
+        <Skeleton className="h-36" />
+      </Surface>
     );
   return <ProfileForm key={coach.id} />;
 }
@@ -223,7 +234,8 @@ function ProfileForm() {
     }
   }
   return (
-    <form onSubmit={save} className={cn(PANEL, "mx-auto w-full max-w-3xl")} data-slot="coach-profile">
+    <form onSubmit={save} className="mx-auto flex min-h-0 w-full max-w-3xl flex-col" data-slot="coach-profile">
+      <Surface className="flex-1">
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-6">
         <Picture />
         <div className="grid gap-5 sm:grid-cols-2">
@@ -257,7 +269,7 @@ function ProfileForm() {
         </Field>
         <Field>
           <FieldLabel>{tr("Events")}</FieldLabel>
-          <EventPicker value={events} onChange={setEvents} />
+          <EventPicker multiple value={events} onChange={setEvents} />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field>
@@ -274,15 +286,17 @@ function ProfileForm() {
           </Field>
         </div>
       </div>
-      <div className="flex shrink-0 gap-2 p-4 pt-0">
-        <UiButton type="button" variant="outline" onClick={() => go(url("coach/" + coach.id))} data-action="profile:preview">
+      <div className="flex shrink-0 gap-2 border-t p-4">
+        <UiButton type="button" variant="outline" size="lg" className="max-md:h-11" onClick={() => go(url("coach/" + coach.id))} data-action="profile:preview">
           <ExternalLink />
-          {tr("Public page")}</UiButton>
-        <UiButton type="submit" className="flex-1" disabled={!valid || pending} data-action="profile:save">
+          {tr("Public page")}
+        </UiButton>
+        <UiButton type="submit" size="lg" className="flex-1 max-md:h-11" disabled={!valid || pending} data-action="profile:save">
           <Save />
           {pending ? tr("Saving…") : tr("Save")}
         </UiButton>
       </div>
+      </Surface>
     </form>
   );
 }

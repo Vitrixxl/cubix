@@ -6,14 +6,16 @@
  * the slots it makes, less the sessions already booked.
  */
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCog, CalendarOff, CalendarPlus, CalendarX, ChevronLeft, ChevronRight, Repeat, Trash2 } from "lucide-react";
+import { CalendarCog, CalendarOff, CalendarPlus, CalendarX, ChevronLeft, ChevronRight, Repeat, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
-import { NUMERIC, Tip, plural } from "../ui";
+import { Empty, LABEL, NUMERIC, ROW, TILE, Tip, plural } from "../ui";
 import { coaching, type Booking, type Opening, type Override } from "./client";
-import { PANEL, clockTime, time } from "./parts";
+import { clockTime, time } from "./parts";
 import { PersonDialog, SessionCard } from "./person";
-import { BOX, DayBoxes, Month, MonthHeader, NARROW_BAR, WEEKDAYS, addDays, longDay, shortDay, toDate, weekdayOf } from "./calendar";
+import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, NARROW_BAR, WEEKDAYS, addDays, longDay, shortDay, toDate, weekdayOf } from "./calendar";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button as UiButton } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -94,8 +96,13 @@ export function Schedule() {
   if (!coach?.windows)
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-3" aria-busy="true" aria-label={tr("Loading")}>
-        <Skeleton className="h-9 w-80" />
-        <Skeleton className="flex-1 rounded-xl" />
+        <div className="flex shrink-0 items-center gap-2">
+          <Skeleton className="h-6 w-36" />
+          <Skeleton className="size-7" />
+          <Skeleton className="size-7" />
+          <Skeleton className="ml-auto h-8 w-36" />
+        </div>
+        <CalendarSkeleton />
       </div>
     );
   return <ScheduleForm key={coach.id} />;
@@ -214,10 +221,10 @@ function ScheduleForm() {
                 <>
                   {(dayOff || changes.some((c) => c.date === day)) && !past && <span className="size-1.5 rounded-full bg-warning" aria-label={tr("Changed this day")} />}
                   {dayOff ? (
-                    <span className="ml-auto text-[11px] text-muted-foreground">{tr("Off")}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{tr("Off")}</span>
                   ) : (
                     !!hours.length && (
-                      <span title={hours.map(rangeText).join(", ")} className={cn(NUMERIC, "ml-auto truncate text-[11px] text-primary/90 @max-[5.5rem]:hidden", past && "text-muted-foreground/60")}>
+                      <span aria-label={hours.map(rangeText).join(", ")} className={cn(NUMERIC, "ml-auto truncate text-xs text-primary/90 @max-[5.5rem]:hidden", past && "text-muted-foreground/60")}>
                         {rangeShort(hours[0]!)}
                         {hours.length > 1 && ` +${hours.length - 1}`}
                       </span>
@@ -279,7 +286,7 @@ function ScheduleForm() {
     </section>
   );
 }
-const lengths = (list = [30, 45, 60, 90, 120]) => list.map((m) => ({ value: String(m), label: `${m} min sessions` }));
+const lengths = (list = [30, 45, 60, 90, 120]) => list.map((m) => ({ value: String(m), label: tr("{0} min sessions", { 0: m }) }));
 const ZONES = zones.map((z) => ({ value: z, label: z.replaceAll("_", " ") }));
 /** "Mon–Fri", "Mon, Wed, Sat": the weekdays of a rule, runs of three or more shortened. */
 function weekdaysText(days: number[]) {
@@ -291,7 +298,8 @@ function weekdaysText(days: number[]) {
   }
   return runs.flatMap((r) => (r.length > 2 ? [`${WEEKDAYS[r[0]!]}–${WEEKDAYS[r[r.length - 1]!]}`] : r.map((d) => WEEKDAYS[d]!))).join(", ");
 }
-const periodText = (r: Pick<Rule, "from" | "until">) => (r.from || r.until ? `${r.from ? "from " + shortDay.format(toDate(r.from)) : ""}${r.from && r.until ? " " : ""}${r.until ? "until " + shortDay.format(toDate(r.until)) : ""}` : "every week");
+const periodText = (r: Pick<Rule, "from" | "until">) =>
+  r.from || r.until ? [r.from && tr("from {0}", { 0: shortDay.format(toDate(r.from)) }), r.until && tr("until {0}", { 0: shortDay.format(toDate(r.until)) })].filter(Boolean).join(" ") : tr("every week");
 const daysText = (days: string[]) => (days.length === 1 ? longDay.format(toDate(days[0]!)) : `${plural(days.length, "day")} · ${shortDay.format(toDate(days[0]!))} – ${shortDay.format(toDate(days[days.length - 1]!))}`);
 
 /** What to change: open a date, cancel a date, add weekly hours; then the weekly hours in force and the settings. */
@@ -303,17 +311,17 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
         <DialogDescription>{tr("What do you want to change?")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">
-        <Choice icon={<CalendarPlus />} title={tr("Add a date")} text={tr("Open hours on days you pick")} onClick={() => choose("open")} action="schedule:add-date" />
-        <Choice icon={<CalendarX />} title={tr("Cancel a date")} text={tr("A day off, or a few hours away")} onClick={() => choose("close")} action="schedule:cancel-date" />
-        <Choice icon={<Repeat />} title={tr("Add weekly hours")} text={tr("The same hours every week")} onClick={() => choose("rule")} action="schedule:rule" />
+        <ActionCard icon={<CalendarPlus />} title={tr("Add a date")} text={tr("Open hours on days you pick")} onClick={() => choose("open")} action="schedule:add-date" />
+        <ActionCard icon={<CalendarX />} title={tr("Cancel a date")} text={tr("A day off, or a few hours away")} onClick={() => choose("close")} action="schedule:cancel-date" />
+        <ActionCard icon={<Repeat />} title={tr("Add weekly hours")} text={tr("The same hours every week")} onClick={() => choose("rule")} action="schedule:rule" />
       </div>
       {!!saved.rules.length && (
         <div className="flex flex-col gap-1.5" data-slot="rules">
-          <span className="text-xs font-medium text-muted-foreground">{tr("Weekly hours")}</span>
-          <ul className="flex max-h-44 flex-col gap-1 overflow-y-auto">
+          <span className={LABEL}>{tr("Weekly hours")}</span>
+          <ul className="-mx-2.5 flex max-h-44 flex-col gap-0.5 overflow-y-auto">
             {saved.rules.map((r, i) => (
               <li key={i} data-rule={i}>
-                <button type="button" onClick={() => edit(i)} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50">
+                <button type="button" onClick={() => edit(i)} className={cn(ROW, "flex w-full items-center gap-2 px-2.5 py-2")}>
                   <span className="min-w-0 flex-1 truncate font-medium">{weekdaysText(r.days)}</span>
                   <span className={cn(NUMERIC, "shrink-0")}>{rangeText([r.start, r.end])}</span>
                   <span className="w-28 shrink-0 truncate text-right text-xs text-muted-foreground">{periodText(r)}</span>
@@ -352,10 +360,11 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
     </>
   );
 }
-function Choice({ icon, title, text, onClick, action }: { icon: React.ReactNode; title: string; text: string; onClick: () => void; action: string }) {
+/** One way to change the availability, as a card leading to its next step. */
+function ActionCard({ icon, title, text, onClick, action }: { icon: React.ReactNode; title: string; text: string; onClick: () => void; action: string }) {
   return (
-    <button type="button" onClick={onClick} data-action={action} className="flex items-center gap-3 rounded-lg border p-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary [&_svg]:size-4.5">{icon}</span>
+    <button type="button" onClick={onClick} data-action={action} className={cn(TILE, "flex items-center gap-3 p-3")}>
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4.5">{icon}</span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="font-medium">{title}</span>
         <span className="text-xs text-muted-foreground">{text}</span>
@@ -403,13 +412,15 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
               {tr("Between two dates")}</ToggleGroupItem>
           </ToggleGroup>
           {dated && (
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              <label className="flex flex-col gap-1">
-                {tr("Starting")}<Input type="date" value={from} min={today} onChange={(e) => setFrom(e.target.value)} className={NUMERIC} />
-              </label>
-              <label className="flex flex-col gap-1">
-                {tr("Until")}<Input type="date" value={until} min={from || today} onChange={(e) => setUntil(e.target.value)} className={NUMERIC} />
-              </label>
+            <div className="grid grid-cols-2 gap-2">
+              <Field>
+                <FieldLabel htmlFor="rule-from">{tr("Starting")}</FieldLabel>
+                <Input id="rule-from" type="date" value={from} min={today} onChange={(e) => setFrom(e.target.value)} className={NUMERIC} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="rule-until">{tr("Until")}</FieldLabel>
+                <Input id="rule-until" type="date" value={until} min={from || today} onChange={(e) => setUntil(e.target.value)} className={NUMERIC} />
+              </Field>
             </div>
           )}
         </Field>
@@ -447,9 +458,11 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
       </DialogHeader>
       <div className="flex flex-col gap-4" data-slot="day-panel">
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">{tr("Weekly hours")}</span>
+          <span className={LABEL}>{tr("Weekly hours")}</span>
           {!weekly.length ? (
-            <span className="text-muted-foreground">{tr("None this day.")}</span>
+            <Empty icon={Repeat} className="p-2">
+              {tr("None this day.")}
+            </Empty>
           ) : (
             weekly.map((r, i) => (
               <span key={i} className={cn(NUMERIC, "flex items-center gap-2")}>
@@ -461,7 +474,7 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
         </div>
         {(dayOff || !!own.length) && (
           <div className="flex flex-col gap-1" data-slot="day-changes">
-            <span className="text-xs font-medium text-muted-foreground">{tr("Only this day")}</span>
+            <span className={LABEL}>{tr("Only this day")}</span>
             {dayOff && (
               <span className="flex items-center gap-2" data-change="off">
                 <CalendarOff className="size-3.5 text-warning" />
@@ -472,9 +485,11 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
             )}
             {own.map(([c, i]) => (
               <span key={i} className="flex items-center gap-2" data-change={c.open ? "open" : "closed"}>
-                <span className={cn("w-12 shrink-0 text-xs font-medium", c.open ? "text-primary" : "text-warning")}>{c.open ? tr("Extra") : tr("Away")}</span>
+                <Badge variant={c.open ? "outline" : "warning"} className="w-14 shrink-0">
+                  {c.open ? tr("Extra") : tr("Away")}
+                </Badge>
                 <span className={cn(NUMERIC, "flex-1")}>{rangeText([c.start, c.end])}</span>
-                <Tip content="Remove">
+                <Tip content={tr("Remove")}>
                   <UiButton variant="ghost" size="icon-sm" aria-label={tr("Remove")} disabled={pending} onClick={async () => (await ask({ title: c.open ? tr("Remove these extra hours?") : tr("Remove this time off?"), action: tr("Remove") })) && commit({ changes: saved.changes.filter((_, j) => j !== i) })}>
                     <Trash2 />
                   </UiButton>
@@ -485,7 +500,7 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
         )}
         {!!sessions.length && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">{tr("Sessions")}</span>
+            <span className={LABEL}>{tr("Sessions")}</span>
             {sessions.map((b) => (
               <span key={b.id} className="flex items-center gap-2">
                 <span className={NUMERIC}>{time(b.startsAt)}</span>
@@ -520,7 +535,7 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
         <DialogTitle>{kind === "open" ? tr("Add a date") : tr("Cancel a date")}</DialogTitle>
         <DialogDescription>
           {daysText(days)}
-          {one && ` · ${off.has(one) ? "day off" : hours.length ? hours.map(rangeText).join(", ") : "closed"}`}
+          {one && ` · ${off.has(one) ? tr("day off") : hours.length ? hours.map(rangeText).join(", ") : tr("closed")}`}
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4">
@@ -539,7 +554,14 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
             <Hours start={start} end={end} setStart={setStart} setEnd={setEnd} />
           </Field>
         )}
-        {kind === "close" && !!booked && <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">{plural(booked, "session")} {" "}{tr("already booked stay booked: cancel them from Sessions if you need to.")}</p>}
+        {kind === "close" && !!booked && (
+          <Alert variant="warning">
+            <TriangleAlert />
+            <AlertDescription>
+              {plural(booked, "session")} {tr("already booked stay booked: cancel them from Sessions if you need to.")}
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
       <DialogFooter>
         <UiButton disabled={pending} onClick={() => apply(start, end, kind === "close" && wholeDay)} data-action={kind === "open" ? "schedule:extra" : "schedule:confirm"}>
@@ -569,14 +591,7 @@ function SessionChip({ b, paired, past, onProfile }: { b: Booking; paired: boole
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         onClick={(e) => e.stopPropagation()}
-        render={
-          <button
-            type="button"
-            data-booking={b.id}
-            aria-label={`${time(b.startsAt)} · ${b.with.username}`}
-            className={cn(BOX, paired && "px-0.5", past ? "bg-muted text-muted-foreground hover:bg-muted/80" : b.proposal ? "bg-warning/20 text-warning hover:bg-warning/30" : "bg-primary text-primary-foreground hover:bg-primary/85")}
-          />
-        }
+        render={<DayChip tone={past ? "past" : b.proposal ? "offered" : "chosen"} paired={paired} data-booking={b.id} aria-label={`${time(b.startsAt)} · ${b.with.username}`} />}
       >
         <span className="shrink-0">{time(b.startsAt)}</span>
         {!paired && <span className="truncate font-medium opacity-85 @max-[7rem]:hidden">{b.with.username}</span>}

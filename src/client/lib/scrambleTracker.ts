@@ -48,9 +48,10 @@ export class ScrambleTracker {
   /** Once scrambled, the next turns start the solve: the scramble stays done. */
   private finished = false;
 
-  constructor(scramble: string, state: CubeState) {
+  /** `start`: where the turns start from, a solved cube for a scramble. */
+  constructor(scramble: string, state: CubeState, start: CubeState = solved(3)) {
     this.turns = scramble.trim().split(/\s+/);
-    let cube = solved(3);
+    let cube = start;
     this.path = [looks(cube)];
     for (const turn of this.turns) {
       cube = applyMove(cube, heldTurn(turn));

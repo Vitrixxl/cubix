@@ -14,15 +14,23 @@ export class PracticeTimer {
     now?: () => number;
   }) {}
   private now = () => this.options.now?.() ?? performance.now();
+  /**
+   * When an input happened: the event's own time (`Event.timeStamp`, the clock of `performance.now`) when given, so a
+   * busy page cannot delay the start or the stop of a solve; now otherwise, or if it is not a time of this clock.
+   */
+  private at = (timeStamp?: unknown) => {
+    const now = this.now();
+    return typeof timeStamp === "number" && timeStamp > 0 && timeStamp <= now ? timeStamp : now;
+  };
   private update(patch: Partial<TimerSnapshot>) {
     this.snapshot = { ...this.snapshot, ...patch };
     this.options.onChange(this.snapshot);
   }
   dispose = () => { clearTimeout(this.hold); this.hold = undefined; };
-  press = () => {
+  press = (timeStamp?: number) => {
     const { phase, startedAt } = this.snapshot;
     if (phase === "running") {
-      const elapsed = this.now() - startedAt;
+      const elapsed = this.at(timeStamp) - startedAt;
       this.update({ phase: "stopped", elapsed });
       this.options.onStop(elapsed);
     } else if ((phase === "idle" || phase === "stopped") && this.options.canStart()) {
@@ -34,10 +42,10 @@ export class PracticeTimer {
       }, HOLD_DELAY_MS);
     }
   };
-  release = () => {
+  release = (timeStamp?: number) => {
     this.dispose();
     if (this.snapshot.phase === "holding") this.update({ phase: "idle" });
-    else if (this.snapshot.phase === "ready") this.update({ phase: "running", startedAt: this.now() });
+    else if (this.snapshot.phase === "ready") this.update({ phase: "running", startedAt: this.at(timeStamp) });
   };
   reset = () => { this.dispose(); this.update({ phase: "idle", elapsed: 0 }); };
   /** A solve started by something else than a key, such as a smart cube's first turn. */

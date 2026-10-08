@@ -1,7 +1,7 @@
 /** One account: its figures, 90 days of activity, puzzles, recent solves, sessions, IPs, duels and requests, and the
  * two actions an administrator has on it (sign out everywhere, delete). */
 import { useState } from "react";
-import { ArrowLeft, Headset, LogOut, Trash2 } from "lucide-react";
+import { Globe, Headset, Laptop, ListX, LogOut, Swords, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { admin, AdminError, listUrl, navigate, useAdmin, type UserDetail } from "./api";
 import { DailyChart } from "./charts";
@@ -17,21 +17,22 @@ import {
   Kind,
   Kpi,
   NUMERIC,
-  Nothing,
   num,
-  RowsSkeleton,
+  TableSkeleton,
   SectionHead,
   Status,
   useNow,
   UserLink,
-  ViewHead,
+  VIEW,
   when,
 } from "./parts";
+import { Back, Empty, PageHead, Strip } from "../base";
+import { ask } from "../confirm";
 import { fmtTime } from "../../../src/client/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -50,15 +51,11 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
   const detail = useAdmin<UserDetail>("/users/" + encodeURIComponent(id));
   const now = useNow();
   const d = detail.data;
-  const back = (
-    <Button variant="outline" size="icon" aria-label="All users" data-action="user:back" onClick={() => navigate(listUrl.users)}>
-      <ArrowLeft />
-    </Button>
-  );
+  const back = <Back onClick={() => navigate(listUrl.users)} label="All users" action="user:back" />;
   if (detail.error && !d)
     return (
-      <div className="flex flex-col gap-5">
-        <ViewHead title="Account" lead={back} />
+      <div className={VIEW}>
+        <PageHead title="Account" lead={back} />
         <Failure error={detail.error} retry={detail.reload} />
       </div>
     );
@@ -66,8 +63,8 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
   const u = d.user;
   const activeDays = d.activity.filter((a) => a.active || a.solves).length;
   return (
-    <div className="flex flex-col gap-5 md:gap-6" data-slot="user-detail">
-      <ViewHead
+    <div className={VIEW} data-slot="user-detail">
+      <PageHead
         lead={
           <>
             {back}
@@ -89,24 +86,24 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         <CoachToggle id={u.id} coach={u.coach} onDone={detail.reload} />
         <Revoke id={u.id} sessions={u.activeSessions} onDone={detail.reload} />
         <Delete id={u.id} username={u.username} />
-      </ViewHead>
-      <section aria-label="Key figures" className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl bg-muted/45 px-5 py-4 sm:grid-cols-3 xl:grid-cols-6">
+      </PageHead>
+      <Strip label="Key figures" className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Solves" value={num(u.solves)} sub={`${num(u.solves7d)} in 7 d`} />
         <Kpi label="Practice sessions" value={num(u.practiceSessions)} sub={`last solve ${ago(u.lastSolveAt, now)}`} />
         <Kpi label="Learned cases" value={num(u.learnedCases)} />
         <Kpi label="Duels" value={num(d.duels.played)} sub={`${num(d.duels.won)} won · ${num(d.duels.lost)} lost · ${num(d.duels.drawn)} drawn`} />
         <Kpi label="Signed-in devices" value={num(u.activeSessions)} />
         <Kpi label="Active days · 90 d" value={num(activeDays)} />
-      </section>
-      <section aria-label="Activity" className="grid gap-x-10 gap-y-7 lg:grid-cols-2">
+      </Strip>
+      <section aria-label="Activity" className="grid gap-6 lg:grid-cols-2">
         <DailyChart title="Solves · 90 d" data={d.activity} series={[{ key: "solves", label: "Solves", color: "var(--chart-1)" }]} height="h-32" />
         <DailyChart title="Requests · 90 d" data={d.activity} series={[{ key: "requests", label: "Requests", color: "var(--chart-1)" }]} height="h-32" />
       </section>
-      <div className="grid gap-x-8 gap-y-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <section className="flex min-w-0 flex-col" aria-label="Puzzles">
           <SectionHead rule title="Puzzles" meta={d.puzzles.length || undefined} />
           {!d.puzzles.length ? (
-            <Nothing>No solve yet.</Nothing>
+            <Empty icon={Timer} title="No solve yet." />
           ) : (
             <Table>
               <TableHeader>
@@ -139,7 +136,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         <section className="flex min-w-0 flex-col" aria-label="Recent solves">
           <SectionHead rule title="Recent solves" meta={d.recentSolves.length || undefined} />
           {!d.recentSolves.length ? (
-            <Nothing>No solve yet.</Nothing>
+            <Empty icon={Timer} title="No solve yet." />
           ) : (
             <Table>
               <TableHeader>
@@ -173,11 +170,11 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
           )}
         </section>
       </div>
-      <div className="grid gap-x-8 gap-y-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <section className="flex min-w-0 flex-col" aria-label="Signed-in devices">
           <SectionHead rule title="Signed-in devices" meta={d.sessions.length || undefined} />
           {!d.sessions.length ? (
-            <Nothing>Signed out everywhere.</Nothing>
+            <Empty icon={Laptop} title="Signed out everywhere." />
           ) : (
             <ul className="flex flex-col">
               {d.sessions.map((s) => (
@@ -193,7 +190,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         <section className="flex min-w-0 flex-col" aria-label="IP addresses">
           <SectionHead rule title="IP addresses" meta={d.ips.length || undefined} />
           {!d.ips.length ? (
-            <Nothing>No address recorded.</Nothing>
+            <Empty icon={Globe} title="No address recorded." />
           ) : (
             <ul className="flex flex-col">
               {d.ips.map((ip) => (
@@ -210,7 +207,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
         <section className="flex min-w-0 flex-col" aria-label="Duels">
           <SectionHead rule title="Duels" meta={d.duels.played || undefined} />
           {!d.duels.recent.length ? (
-            <Nothing>No duel yet.</Nothing>
+            <Empty icon={Swords} title="No duel yet." />
           ) : (
             <ul className="flex flex-col">
               {d.duels.recent.map((duel) => (
@@ -237,7 +234,7 @@ export function User({ id, phone }: { id: string; phone: boolean }) {
           </Button>
         </SectionHead>
         {!d.recentRequests.length ? (
-          <Nothing>No request logged.</Nothing>
+          <Empty icon={ListX} title="No request logged." />
         ) : (
           <Table>
             <TableBody>
@@ -277,6 +274,8 @@ function CoachToggle({ id, coach, onDone }: { id: string; coach: "active" | "dis
       disabled={pending}
       data-action={active ? "user:coach:off" : "user:coach:on"}
       onClick={async () => {
+        if (active && !(await ask({ title: "Remove this coach?", text: "The account leaves the list of coaches; players can no longer book it. Make it a coach again at any time.", action: "Remove coach" })))
+          return;
         setPending(true);
         try {
           await admin(`/coaching/coaches/${encodeURIComponent(id)}/${active ? "disable" : "enable"}`, { method: "POST" });
@@ -296,45 +295,34 @@ function CoachToggle({ id, coach, onDone }: { id: string; coach: "active" | "dis
 }
 
 function Revoke({ id, sessions, onDone }: { id: string; sessions: number; onDone: () => void }) {
-  const [pending, setPending] = useState(false),
-    [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger render={<Button variant="outline" data-action="user:revoke" disabled={!sessions} />}>
-        <LogOut />
-        Sign out everywhere
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Sign this account out everywhere?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Its {num(sessions)} signed-in {sessions === 1 ? "device" : "devices"} will have to sign in again. Times already on those devices stay there
-            and sync after signing in.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            disabled={pending}
-            onClick={async () => {
-              setPending(true);
-              try {
-                const result = await admin<{ revoked: number }>(`/users/${encodeURIComponent(id)}/revoke`, { method: "POST" });
-                toast.success(`Signed out of ${num(result.revoked)} ${result.revoked === 1 ? "device" : "devices"}`);
-                setOpen(false);
-                onDone();
-              } catch (error) {
-                toast.error((error as Error).message);
-              } finally {
-                setPending(false);
-              }
-            }}
-          >
-            {pending ? "Signing out…" : "Sign out everywhere"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Button
+      variant="outline"
+      data-action="user:revoke"
+      disabled={!sessions || pending}
+      onClick={async () => {
+        const yes = await ask({
+          title: "Sign this account out everywhere?",
+          text: `Its ${num(sessions)} signed-in ${sessions === 1 ? "device" : "devices"} will have to sign in again. Times already on those devices stay there and sync after signing in.`,
+          action: "Sign out everywhere",
+        });
+        if (!yes) return;
+        setPending(true);
+        try {
+          const result = await admin<{ revoked: number }>(`/users/${encodeURIComponent(id)}/revoke`, { method: "POST" });
+          toast.success(`Signed out of ${num(result.revoked)} ${result.revoked === 1 ? "device" : "devices"}`);
+          onDone();
+        } catch (error) {
+          toast.error((error as Error).message);
+        } finally {
+          setPending(false);
+        }
+      }}
+    >
+      <LogOut />
+      {pending ? "Signing out…" : "Sign out everywhere"}
+    </Button>
   );
 }
 
@@ -352,7 +340,7 @@ function Delete({ id, username }: { id: string; username: string }) {
         }
       }}
     >
-      <AlertDialogTrigger render={<Button variant="destructive" data-action="user:delete" />}>
+      <AlertDialogTrigger render={<Button variant="outline" className="hover:text-destructive" data-action="user:delete" />}>
         <Trash2 />
         Delete account
       </AlertDialogTrigger>
@@ -368,7 +356,7 @@ function Delete({ id, username }: { id: string; username: string }) {
             Type <span className={cn(NUMERIC, "font-semibold")}>{username}</span> to confirm
           </FieldLabel>
           <Input id="delete-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} data-action="user:delete:confirm" />
-          {error && <FieldDescription className="text-destructive">{error}</FieldDescription>}
+          {error && <FieldError>{error}</FieldError>}
         </Field>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -399,23 +387,24 @@ function Delete({ id, username }: { id: string; username: string }) {
 
 function UserSkeleton({ back, phone }: { back: React.ReactNode; phone: boolean }) {
   return (
-    <div className="flex flex-col gap-5 md:gap-6" aria-busy="true" aria-label="Loading">
-      <header className="flex min-h-10 items-center gap-3">
-        {back}
-        <Skeleton className="size-10 rounded-full" />
-        <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-3.5 w-64" />
-        </div>
-      </header>
-      <div className="rounded-xl bg-muted/45 px-5 py-4">
+    <div className={VIEW} aria-busy="true" aria-label="Loading">
+      <PageHead
+        lead={
+          <>
+            {back}
+            <Skeleton className="size-10 rounded-full" />
+          </>
+        }
+        title={<Skeleton className="h-6 w-40" />}
+      />
+      <Strip>
         <FiguresSkeleton count={phone ? 4 : 6} className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6" />
-      </div>
-      <div className="grid gap-10 lg:grid-cols-2">
+      </Strip>
+      <div className="grid gap-6 lg:grid-cols-2">
         <Skeleton className="h-36" />
         {!phone && <Skeleton className="h-36" />}
       </div>
-      <RowsSkeleton cols={phone ? 2 : 6} rows={6} />
+      <TableSkeleton cols={phone ? 2 : 6} rows={6} />
     </div>
   );
 }

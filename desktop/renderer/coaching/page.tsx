@@ -9,7 +9,8 @@ import { store as s } from "../store";
 import { PAGE, PageHead, usePhone } from "../ui";
 import { go } from "../navigation";
 import { coaching } from "./client";
-import { Count, url } from "./parts";
+import { url } from "./parts";
+import { Count } from "../base";
 import { COACH, badge, sections } from "./sections";
 import { BookPage, CoachList, CoachPage } from "./browse";
 import { Sessions } from "./sessions";
@@ -18,9 +19,8 @@ import { Apply } from "./apply";
 import { Dashboard, CoachProfile, StudentsView } from "./coach";
 import { Schedule } from "./schedule";
 import { CallView } from "./callView";
-import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
@@ -66,7 +66,7 @@ function Shell({ view, arg }: { view: string; arg: string }) {
     ) : null;
   return (
     <div className={PAGE}>
-      <PageHead title={menu ? tr("Coaching") : (current?.[1] ?? tr("Coaching"))}>
+      <PageHead title={menu ? tr("Coaching") : said(current?.[1] ?? "Coaching")}>
         {menu && <SectionMenu view={view} />}
       </PageHead>
       <main className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</main>
@@ -81,24 +81,26 @@ function SectionMenu({ view }: { view: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger render={<UiButton variant="outline" data-action="coaching:sections" className="gap-1.5" />}>
         {I && <I />}
-        {current?.[1] ?? tr("Sections")}
-        {!!coaching.me?.unread && <span className="size-2 rounded-full bg-primary" aria-label={tr("Unread messages")} />}
+        {said(current?.[1] ?? "Sections")}
+        <Count n={coaching.me?.unread ?? 0} />
         <ChevronDown className="text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-52">
-        {sections().map((group, i) => (
-          <DropdownMenuGroup key={i}>
-            {i > 0 && <DropdownMenuSeparator />}
-            {coaching.isCoach && <DropdownMenuLabel>{i === 0 ? tr("Your coaching") : tr("Get coached")}</DropdownMenuLabel>}
-            {group.map(([id, label, I]) => (
-              <DropdownMenuItem key={id} data-action={"coaching:" + id} onClick={() => go(url(id))} className={cn(view === id && "bg-muted")}>
-                <I />
-                {said(label)}
-                <Count n={badge(id)} />
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        ))}
+        <DropdownMenuRadioGroup value={view} onValueChange={(id: string) => go(url(id))}>
+          {sections().map((group, i) => (
+            <DropdownMenuGroup key={i}>
+              {i > 0 && <DropdownMenuSeparator />}
+              {coaching.isCoach && <DropdownMenuLabel>{i === 0 ? tr("Your coaching") : tr("Get coached")}</DropdownMenuLabel>}
+              {group.map(([id, label, I]) => (
+                <DropdownMenuRadioItem key={id} value={id} data-action={"coaching:" + id} closeOnClick>
+                  <I />
+                  {said(label)}
+                  <Count n={badge(id)} />
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuGroup>
+          ))}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

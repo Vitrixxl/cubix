@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { store as s } from "./store";
-import { FADE, Figure, NUMERIC, Strip } from "./ui";
+import { FADE, FOCUS, Figure, NUMERIC, Strip } from "./ui";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
@@ -227,7 +227,7 @@ function FigureBox({ id, index, label, open, onOpen, onChange, onDragStart, onDr
         type="button"
         aria-label={tr("Move {0}", { 0: label })}
         onPointerDown={(e) => controls.start(e)}
-        className="-ml-2 flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+        className={cn("-ml-2 flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground active:cursor-grabbing", FOCUS)}
       >
         <GripVertical className="size-4" />
       </button>

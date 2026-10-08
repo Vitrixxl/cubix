@@ -61,7 +61,7 @@ export function ScrambleStatus({ progress }: { progress: ScrambleProgress }) {
     );
   if (progress.undo.length)
     return (
-      <Badge variant="destructive" className="h-6 px-2.5 text-sm">
+      <Badge variant="destructive">
         <Undo2 data-icon="inline-start" />
         {tr("Undo")}{" "}{progress.undo.join(" ")}
       </Badge>
@@ -69,7 +69,7 @@ export function ScrambleStatus({ progress }: { progress: ScrambleProgress }) {
   if (progress.scrambled)
     return (
       <>
-        <Badge className="bg-success/15 text-success">
+        <Badge variant="success">
           <span className="size-1.5 rounded-full bg-success" />
           {tr("Ready")}</Badge>
         {tr("Your first turn starts the timer")}</>
@@ -91,14 +91,14 @@ export function CaseStatus({ set, progress }: { set: boolean; progress: Scramble
   if (set)
     return (
       <>
-        <Badge className="bg-success/15 text-success">
+        <Badge variant="success">
           <span className="size-1.5 rounded-full bg-success" />
           {tr("Ready")}</Badge>
         {tr("Your first turn starts the timer")}</>
     );
   if (progress && !progress.lost && progress.undo.length)
     return (
-      <Badge variant="destructive" className="h-6 px-2.5 text-sm">
+      <Badge variant="destructive">
         <Undo2 data-icon="inline-start" />
         {tr("Undo")}{" "}{progress.undo.join(" ")}
       </Badge>

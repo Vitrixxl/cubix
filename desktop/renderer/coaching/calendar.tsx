@@ -4,10 +4,10 @@
  * in UTC so the browser's own zone never shifts them.
  */
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { NUMERIC } from "../base";
-import { PANEL } from "./parts";
+import { FOCUS, NUMERIC, Surface, Tip } from "../base";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { tr, localFormat } from "../../../src/client/i18n";
 import { said } from "../base";
 
@@ -26,8 +26,6 @@ function shiftMonth(month: string, n: number) {
   return keyOf(d).slice(0, 7);
 }
 
-/** A small label inside a day: a session booked, a free slot. */
-export const CHIP = "flex w-full min-w-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-left text-[11px] font-medium tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 /** Shown when a day is too narrow for its hours as text: a line under the date. */
 export const NARROW_BAR = "hidden h-1 shrink-0 rounded-full bg-primary/50 @max-[5.5rem]:block";
 
@@ -35,17 +33,44 @@ export const NARROW_BAR = "hidden h-1 shrink-0 rounded-full bg-primary/50 @max-[
 export function MonthHeader({ month, today, onMonth, children }: { month: string; today: string; onMonth: (month: string) => void; children?: React.ReactNode }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
-      <h2 className="min-w-44 text-xl font-semibold tracking-tight first-letter:uppercase">{monthName.format(toDate(month + "-01"))}</h2>
-      <UiButton variant="outline" size="icon-sm" aria-label={tr("Previous month")} onClick={() => onMonth(shiftMonth(month, -1))} data-action="calendar:previous">
-        <ChevronLeft />
-      </UiButton>
-      <UiButton variant="outline" size="icon-sm" aria-label={tr("Next month")} onClick={() => onMonth(shiftMonth(month, 1))} data-action="calendar:next">
-        <ChevronRight />
-      </UiButton>
+      <h2 className="min-w-36 text-base font-semibold tracking-tight first-letter:uppercase">{monthName.format(toDate(month + "-01"))}</h2>
+      <Tip content={tr("Previous month")}>
+        <UiButton variant="outline" size="icon-sm" aria-label={tr("Previous month")} onClick={() => onMonth(shiftMonth(month, -1))} data-action="calendar:previous">
+          <ChevronLeft />
+        </UiButton>
+      </Tip>
+      <Tip content={tr("Next month")}>
+        <UiButton variant="outline" size="icon-sm" aria-label={tr("Next month")} onClick={() => onMonth(shiftMonth(month, 1))} data-action="calendar:next">
+          <ChevronRight />
+        </UiButton>
+      </Tip>
       <UiButton variant="ghost" size="sm" onClick={() => onMonth(today.slice(0, 7))}>
-        {tr("Today")}</UiButton>
+        {tr("Today")}
+      </UiButton>
       {children}
     </div>
+  );
+}
+
+/** The month on its way: the weekdays over six weeks of empty days. */
+export function CalendarSkeleton() {
+  return (
+    <Surface className="min-w-0 flex-1 max-lg:min-h-[36rem]" aria-busy="true" aria-label={tr("Loading")}>
+      <div className="grid shrink-0 grid-cols-7 border-b">
+        {WEEKDAYS.map((w) => (
+          <span key={w} className="px-2.5 py-2">
+            <Skeleton className="h-4 w-8" />
+          </span>
+        ))}
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
+        {Array.from({ length: 42 }, (_, i) => (
+          <span key={i} className={cn("p-1.5", i % 7 !== 6 && "border-r", i < 35 && "border-b")}>
+            <Skeleton className="size-6 rounded-full" />
+          </span>
+        ))}
+      </div>
+    </Surface>
   );
 }
 
@@ -81,7 +106,7 @@ export function Month({
   const start = addDays(first, -weekdayOf(first));
   const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
   return (
-    <div className={cn(PANEL, "min-w-0 flex-1 max-lg:min-h-[36rem] max-lg:flex-none", className)} role="grid" aria-label={tr("Calendar")} data-slot="calendar">
+    <Surface className={cn("min-w-0 flex-1 max-lg:min-h-[36rem] max-lg:flex-none", className)} role="grid" aria-label={tr("Calendar")} data-slot="calendar">
       <div className="grid shrink-0 grid-cols-7 border-b" role="row">
         {WEEKDAYS.map((w) => (
           <span key={w} role="columnheader" className="px-2.5 py-2 text-xs font-medium text-muted-foreground">
@@ -112,7 +137,7 @@ export function Month({
                 i % 7 !== 6 && "border-r",
                 i < 35 && "border-b",
                 outside && "bg-muted/25",
-                off ? "text-muted-foreground/60" : "cursor-pointer hover:bg-muted/40",
+                off ? "text-muted-foreground/60" : "cursor-pointer hover:bg-muted/50",
                 className,
                 chosen && "bg-primary/10 ring-2 ring-primary ring-inset hover:bg-primary/10",
               )}
@@ -126,12 +151,24 @@ export function Month({
           );
         })}
       </div>
-    </div>
+    </Surface>
   );
 }
 
-/** A box of a day's grid ({@link DayBoxes}): a time to book, a session booked. */
-export const BOX = cn(CHIP, "min-h-6 justify-center text-xs font-semibold");
+/** A box of a day's grid ({@link DayBoxes}): a time to book, a session booked, the count of the others. */
+const BOX = cn("flex min-h-6 w-full min-w-0 items-center justify-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums transition-colors", FOCUS);
+/** What a box holds: free (a slot to book, a session to come), chosen (the slot picked, a session in the coach's month), offered (another time offered), past. */
+const TONES = {
+  free: "bg-primary/15 text-primary hover:bg-primary/25",
+  chosen: "bg-primary text-primary-foreground hover:bg-primary/90",
+  offered: "bg-warning/15 text-warning hover:bg-warning/25",
+  past: "bg-muted text-muted-foreground hover:bg-muted/70",
+};
+
+/** A box of a day's grid, the same in every calendar: `paired` when it shares its line. */
+export function DayChip({ tone, paired = false, className, ...props }: { tone: keyof typeof TONES; paired?: boolean } & React.ComponentProps<"button">) {
+  return <button type="button" className={cn(BOX, paired && "px-0.5", TONES[tone], className)} {...props} />;
+}
 
 /**
  * A day's times as boxes filling its cell: one per line up to three, two per line beyond, and when six do not hold
@@ -146,9 +183,9 @@ export function DayBoxes<T>({ items, children, className }: { items: T[]; childr
     <div className={cn("grid min-h-0 flex-1 grid-rows-[repeat(3,minmax(0,2.5rem))] gap-1", paired && "grid-cols-2", className)} data-slot="day-boxes">
       {shown.map((item) => children(item, paired))}
       {shown.length < items.length && (
-        <button type="button" aria-label={tr("{0} more", { 0: items.length - shown.length })} data-action="calendar:more" className={cn(BOX, "px-0.5 bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground")}>
+        <DayChip tone="past" paired aria-label={tr("{0} more", { 0: items.length - shown.length })} data-action="calendar:more" className="hover:text-foreground">
           +{items.length - shown.length}
-        </button>
+        </DayChip>
       )}
     </div>
   );

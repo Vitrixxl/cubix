@@ -3,14 +3,11 @@
  * algorithm with the move being played lit, its alternatives and how to hold the cube on the right. Phones get it as
  * a sheet, the cube on top. The previous and next algorithms of the list are a click away.
  */
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { store as s, run } from "./store";
-import { Choice, NUMERIC, Tip, usePhone } from "./ui";
+import { store as s } from "./store";
+import { Choice, usePhone } from "./ui";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer, usePlayerKeys } from "./AlgPlayer";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { PaneHead, Stepper } from "./algorithms";
 import { tr } from "../../src/client/i18n";
-import { said } from "./base";
 
 export function AlgView() {
   const view = s.algView,
@@ -22,29 +19,13 @@ export function AlgView() {
   usePlayerKeys(s.overlay === "algPlayer" ? player : null);
   if (!view || !item) return null;
   const count = view.items.length;
-  const stepper = count > 1 && (
-    <div className="flex shrink-0 items-center gap-1">
-      <Tip content="Previous algorithm">
-        <Button variant="ghost" size={phone ? "icon-lg" : "icon-sm"} aria-label={tr("Previous algorithm")} data-action="algView:previous" disabled={view.index === 0} onClick={run("algView:previous")} className={cn(phone && "size-11")}>
-          <ChevronLeft />
-        </Button>
-      </Tip>
-      <span className={cn(NUMERIC, "min-w-12 text-center text-xs text-muted-foreground")}>
-        {view.index + 1} / {count}
-      </span>
-      <Tip content="Next algorithm">
-        <Button variant="ghost" size={phone ? "icon-lg" : "icon-sm"} aria-label={tr("Next algorithm")} data-action="algView:next" disabled={view.index === count - 1} onClick={run("algView:next")} className={cn(phone && "size-11")}>
-          <ChevronRight />
-        </Button>
-      </Tip>
-    </div>
-  );
+  const stepper = count > 1 && <Stepper action="algView" index={view.index} count={count} tips={[tr("Previous algorithm"), tr("Next algorithm")]} />;
   const choices = item.algs.length > 1 && (
     <Choice
       prefix="algChoice:"
       label={tr("Algorithm")}
       value={String(view.choice)}
-      options={item.algs.map((_, i) => ({ id: String(i), label: i ? `Alternative ${i}` : "Main" }))}
+      options={item.algs.map((_, i) => ({ id: String(i), label: i ? tr("Alternative {0}", { 0: i }) : "Main" }))}
       className="flex-wrap"
     />
   );
@@ -57,13 +38,9 @@ export function AlgView() {
   if (phone)
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span className="min-w-0 truncate font-sans text-lg font-semibold tracking-tight">{said(item.name)}</span>
-            <span className="min-w-0 truncate text-xs text-muted-foreground">{item.detail ?? item.context}</span>
-          </div>
+        <PaneHead title={item.name} sub={item.detail ?? item.context}>
           {stepper}
-        </div>
+        </PaneHead>
         {player && <PlayerCube key={alg} player={player} size={260} className="self-center" />}
         {player && <ViewButtons player={player} className="self-center" />}
         {player && <PlayerControls player={player} touch />}
@@ -73,18 +50,15 @@ export function AlgView() {
     );
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1">
-      <div className="relative flex w-[420px] shrink-0 items-center justify-center bg-muted/30">
+      <div className="relative flex w-105 shrink-0 items-center justify-center bg-muted/30">
         {player && <PlayerCube key={alg} player={player} size={360} />}
         {player && <ViewButtons player={player} className="absolute bottom-6 left-1/2 -translate-x-1/2" />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-5 p-6 pt-5">
-        <header className="flex items-center gap-4 pr-8">
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <h2 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{said(item.name)}</h2>
-            <p className="min-w-0 truncate text-sm text-muted-foreground">{item.detail ?? item.context}</p>
-          </div>
+        {/* Clear of the dialog's close button. */}
+        <PaneHead title={item.name} sub={item.detail ?? item.context} className="pr-8">
           {stepper}
-        </header>
+        </PaneHead>
         {choices}
         {/* Room for the lit move's background and focus ring, which the scrolling would clip. */}
         <div className="-m-1.5 min-h-0 flex-1 overflow-y-auto p-1.5">{text}</div>

@@ -1,20 +1,23 @@
 /** The administration's shared pieces: formats, figures, badges, links, sortable headers, pagination, skeletons and
  * inline errors. */
-import { ArrowDown, ArrowUp, ChevronsUpDown, RotateCw, TriangleAlert, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, RotateCw, TriangleAlert } from "lucide-react";
 import { eventLabel, type PuzzleId, type SolveMode } from "../../../src/shared/puzzles";
 import { AdminError, navigate, withParams } from "./api";
 import { cn } from "@/lib/utils";
+import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableHead } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useEffect, useState } from "react";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Figure, NUMERIC } from "../base";
+import { Figure, FOCUS, NUMERIC, PAGE, Tip } from "../base";
 
 export { Avatar, NUMERIC, SectionHead } from "../base";
+
+/** Every view's column: the app's page padding and gaps, growing with its content (the administration scrolls). */
+export const VIEW = cn(PAGE, "mx-auto h-auto min-h-full w-full max-w-(--breakpoint-2xl)");
 
 /* Formats. Every time is in ms since the epoch; days are UTC. */
 export const num = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("en-US"));
@@ -92,9 +95,11 @@ export function Kpi({ label, value, sub, delta, invert = false, className }: { l
       size="2xl"
       aside={
         delta != null && (
-          <span className="text-xs" title="Since yesterday">
-            <Delta value={delta} invert={invert} />
-          </span>
+          <Tip content="Since yesterday">
+            <span className="text-xs">
+              <Delta value={delta} invert={invert} />
+            </span>
+          </Tip>
         )
       }
       sub={sub}
@@ -118,14 +123,7 @@ export function Delta({ value, invert = false }: { value: number; invert?: boole
 /** HTTP status: 2xx and 3xx muted, 4xx amber, 5xx red. */
 export function Status({ status }: { status: number }) {
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        NUMERIC,
-        "rounded-sm border-transparent px-1.5",
-        status >= 500 ? "bg-destructive/15 text-destructive" : status >= 400 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground",
-      )}
-    >
+    <Badge variant={status >= 500 ? "destructive" : status >= 400 ? "warning" : "secondary"} className={cn(NUMERIC, "px-1.5")}>
       {status}
     </Badge>
   );
@@ -136,29 +134,33 @@ export function Kind({ kind, important }: { kind: string; important?: boolean })
 /** A guest account, beside its name. */
 export function GuestTag() {
   return (
-    <Badge variant="secondary" className="h-4.5 rounded-sm px-1 text-[10px] font-normal text-muted-foreground">
+    <Badge variant="secondary" className="font-normal text-muted-foreground">
       guest
     </Badge>
   );
 }
 
-/** In-app links: a real address (middle click opens a tab), followed without reloading. */
-export function Link({ to, children, className, title }: { to: string; children: React.ReactNode; className?: string; title?: string }) {
-  return (
+/** How every link of the administration reads: the accent under the pointer, the button's focus ring. */
+export const LINK = cn("min-w-0 truncate rounded-sm transition-colors hover:text-primary", FOCUS);
+
+/** In-app links: a real address (middle click opens a tab), followed without reloading; `tip` names where it leads. */
+export function Link({ to, children, className, tip, ...rest }: { to: string; tip?: string } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  const link = (
     <a
+      {...rest}
       href={to}
-      title={title}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();
         navigate(to);
       }}
-      className={cn("min-w-0 truncate rounded-sm outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50", className)}
+      className={cn(LINK, className)}
     >
       {children}
     </a>
   );
+  return tip ? <Tip content={tip}>{link}</Tip> : link;
 }
 export const userPath = (id: string) => `/admin/users/${encodeURIComponent(id)}`;
 export const ipPath = (ip: string) => `/admin/requests?ip=${encodeURIComponent(ip)}`;
@@ -173,7 +175,7 @@ export function UserLink({ id, name, guest }: { id: string | null; name: string 
 }
 export function IpLink({ ip, className }: { ip: string; className?: string }) {
   return (
-    <Link to={ipPath(ip)} title={`Requests from ${ip}`} className={cn(NUMERIC, className)}>
+    <Link to={ipPath(ip)} tip={`Requests from ${ip}`} className={cn(NUMERIC, className)}>
       {ip}
     </Link>
   );
@@ -207,8 +209,8 @@ export function SortHead({
         data-action={"sort:" + id}
         onClick={() => navigate(withParams(params, { sort: id, order: next, page: null }), true)}
         className={cn(
-          "-mx-1 inline-flex items-center gap-1 rounded-sm px-1 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
-          "text-foreground",
+          "-mx-1 inline-flex items-center gap-1 rounded-sm px-1 text-foreground transition-colors",
+          FOCUS,
           className?.includes("text-right") && "flex-row-reverse",
         )}
       >
@@ -256,19 +258,21 @@ export function Pager({ page, limit, total, params }: { page: number; limit: num
 /** A failed load, where the data would be: what went wrong and a retry. */
 export function Failure({ error, retry, className }: { error: AdminError | Error; retry: () => void; className?: string }) {
   return (
-    <div role="alert" className={cn("flex items-center gap-3 rounded-lg bg-destructive/8 px-3 py-2.5 text-sm", className)}>
-      <TriangleAlert className="size-4 shrink-0 text-destructive" />
-      <span className="min-w-0 flex-1">{error.message}</span>
-      <Button variant="outline" size="sm" onClick={retry} data-action="retry">
-        <RotateCw />
-        Retry
-      </Button>
-    </div>
+    <Alert variant="destructive" className={cn("items-center", className)}>
+      <TriangleAlert />
+      <AlertTitle className="font-normal">{error.message}</AlertTitle>
+      <AlertAction className="top-1/2 -translate-y-1/2">
+        <Button variant="outline" size="sm" onClick={retry} data-action="retry">
+          <RotateCw />
+          Retry
+        </Button>
+      </AlertAction>
+    </Alert>
   );
 }
 
 /** Rows of a table on their way, shaped like its columns. */
-export function RowsSkeleton({ rows = 10, cols = 6, className }: { rows?: number; cols?: number; className?: string }) {
+export function TableSkeleton({ rows = 10, cols = 6, className }: { rows?: number; cols?: number; className?: string }) {
   return (
     <div className={cn("flex flex-col", className)} aria-busy="true" aria-label="Loading">
       <div className="flex h-9 items-center gap-4 border-b">
@@ -286,6 +290,7 @@ export function RowsSkeleton({ rows = 10, cols = 6, className }: { rows?: number
     </div>
   );
 }
+/** Figures on their way, inside their strip. */
 export function FiguresSkeleton({ count = 6, className }: { count?: number; className?: string }) {
   return (
     <div className={cn("grid gap-6", className)} aria-hidden="true">
@@ -298,27 +303,6 @@ export function FiguresSkeleton({ count = 6, className }: { count?: number; clas
       ))}
     </div>
   );
-}
-
-/** The page's title row: the title, one line under it, the view's controls on the right. */
-export function ViewHead({ title, sub, lead, children }: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; children?: React.ReactNode }) {
-  return (
-    <header className="flex min-h-10 shrink-0 items-center justify-between gap-x-6">
-      <div className="flex min-w-0 items-center gap-3">
-        {lead}
-        <div className="flex min-w-0 items-baseline gap-2 md:gap-3">
-          <h1 className="max-w-full min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
-          {sub && <p className="min-w-0 truncate text-xs text-muted-foreground md:text-sm">{sub}</p>}
-        </div>
-      </div>
-      {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
-    </header>
-  );
-}
-
-/** An empty list, said plainly. */
-export function Nothing({ children }: { children: React.ReactNode }) {
-  return <p className="py-8 text-center text-sm text-muted-foreground">{children}</p>;
 }
 
 /** One choice among a few, in a select showing the chosen label. */
@@ -336,36 +320,5 @@ export function Choose({ value, options, onChange, label, action, className }: {
         ))}
       </SelectContent>
     </Select>
-  );
-}
-
-/** A text filter: applied a moment after typing stops, cleared with its ×. */
-export function FilterInput({ value, onCommit, placeholder, icon, className, action, numeric = false }: { value: string; onCommit: (value: string) => void; placeholder: string; icon?: React.ReactNode; className?: string; action?: string; numeric?: boolean }) {
-  const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
-  useEffect(() => {
-    if (text.trim() === value) return;
-    const id = setTimeout(() => onCommit(text.trim()), 300);
-    return () => clearTimeout(id);
-  }, [text]);
-  return (
-    <InputGroup className={className}>
-      {icon && <InputGroupAddon>{icon}</InputGroupAddon>}
-      <InputGroupInput value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label={placeholder} data-action={action} className={cn(numeric && text && NUMERIC)} spellCheck={false} />
-      {text && (
-        <InputGroupAddon align="inline-end">
-          <InputGroupButton
-            size="icon-xs"
-            aria-label={"Clear " + placeholder.toLowerCase()}
-            onClick={() => {
-              setText("");
-              onCommit("");
-            }}
-          >
-            <X />
-          </InputGroupButton>
-        </InputGroupAddon>
-      )}
-    </InputGroup>
   );
 }

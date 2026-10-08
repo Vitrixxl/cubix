@@ -6,10 +6,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@font-face { font-family: Geist; src: url("../assets/fonts/Geist-Regular.ttf"); font-weight: 400; }
-@font-face { font-family: Geist; src: url("../assets/fonts/Geist-Medium.ttf"); font-weight: 500; }
-@font-face { font-family: Geist; src: url("../assets/fonts/Geist-SemiBold.ttf"); font-weight: 600; }
-@font-face { font-family: Geist; src: url("../assets/fonts/Geist-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: Geist; src: url("../assets/fonts/Geist-Regular.woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: Geist; src: url("../assets/fonts/Geist-Medium.woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: Geist; src: url("../assets/fonts/Geist-SemiBold.woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: Geist; src: url("../assets/fonts/Geist-Bold.woff2"); font-weight: 700; font-display: swap; }
 
 @custom-variant dark (&:is(.dark *));
 

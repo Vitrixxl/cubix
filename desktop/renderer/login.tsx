@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, HardDrive } from "lucide-react";
 import { store as s } from "./store";
-import { usePhone } from "./ui";
+import { Tip, usePhone } from "./ui";
 import { credentialErrors } from "../../src/client/lib/credentials";
 import { Logo, Wordmark } from "./logo";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSepar
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { legalPath } from "./legal/paths";
@@ -137,16 +137,17 @@ export function LoginPage() {
       </Button>
       {register && <Consent />}
       <FieldSeparator className="md:[&_[data-slot=field-separator-content]]:bg-card">{tr("or")}</FieldSeparator>
-      <Tooltip>
-        <TooltipTrigger render={<span className="flex w-full" tabIndex={0} />}>
+      <Tip content={tr("Coming soon")}>
+        <span className="flex w-full" tabIndex={0}>
           <Button type="button" variant="outline" size="lg" disabled aria-describedby="google-soon" className="w-full max-md:h-12 max-md:text-base">
             <GoogleMark />
-            {tr("Continue with Google")}<Badge id="google-soon" variant="secondary" className="ml-1 rounded-sm">
-              {tr("Soon")}</Badge>
+            {tr("Continue with Google")}
+            <Badge id="google-soon" variant="secondary" className="ml-1">
+              {tr("Soon")}
+            </Badge>
           </Button>
-        </TooltipTrigger>
-        <TooltipContent>{tr("Coming soon")}</TooltipContent>
-      </Tooltip>
+        </span>
+      </Tip>
       {s.localData && (
         <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground" data-slot="login-kept">
           <HardDrive className="size-3.5" />
@@ -181,8 +182,9 @@ export function LoginPage() {
     </Tabs>
   );
   const notice = expired && (
-    <p role="status" data-slot="login-expired" className="rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
-      {tr("Your session has ended. Sign in again.")}</p>
+    <Alert role="status" data-slot="login-expired">
+      <AlertDescription>{tr("Your session has ended. Sign in again.")}</AlertDescription>
+    </Alert>
   );
 
   if (phone)

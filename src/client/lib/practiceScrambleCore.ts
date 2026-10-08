@@ -39,12 +39,6 @@ function caseSetup(stage: string) {
   }));
   return sample(setups.get(stage)!);
 }
-/** Swap two pieces when a permutation is odd, so a single orbit stays solvable on its own. */
-export function evenPermutation(pieces: number[]) {
-  let inversions = 0;
-  pieces.forEach((a, i) => pieces.slice(i + 1).forEach(b => { if (a > b) inversions++; }));
-  if (inversions % 2) [pieces[0], pieces[1]] = [pieces[1], pieces[0]];
-}
 export const competitionEvent = ({ puzzle, solveMode }: PracticeContext) => eventOf(puzzle, solveMode)?.id ?? puzzle;
 export async function generatePracticeScramble(context: PracticeContext, engine: ScrambleEngine): Promise<string> {
   if (!validContext(context)) throw new Error(msg("Unsupported puzzle or scramble type."));

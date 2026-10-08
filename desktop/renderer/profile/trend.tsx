@@ -2,9 +2,10 @@
 import { useRef, useState } from "react";
 import { fmtTime, shortDate } from "../../../src/client/lib/format";
 import { trendScale } from "../../../src/client/lib/profile";
-import { NUMERIC } from "../ui";
+import { NUMERIC, said } from "../ui";
 import { cn } from "@/lib/utils";
 import { tr } from "../../../src/client/i18n";
+import { TIP } from "./card";
 
 const W = 800,
   H = 200;
@@ -49,14 +50,18 @@ export function Trend({ history, averages, count = 100, className }: { history: 
         {point && (
           <>
             {finite(point.time) && (
-              <i className="pointer-events-none absolute size-2 -translate-1/2 rounded-full bg-chart-1 ring-2 ring-card" style={{ left: (x(hover!) / W) * 100 + "%", top: (y(point.time) / H) * 100 + "%" }} />
+              <i
+                className="pointer-events-none absolute size-2 -translate-1/2 rounded-full bg-chart-1 ring-2 ring-card"
+                style={{ left: (x(hover!) / W) * 100 + "%", top: (y(point.time) / H) * 100 + "%" }}
+              />
             )}
-            <div
-              className={cn("pointer-events-none absolute top-0 z-10 flex flex-col gap-0.5 rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background", x(hover!) > W / 2 ? "-translate-x-[calc(100%+10px)]" : "translate-x-2.5")}
-              style={{ left: (x(hover!) / W) * 100 + "%" }}
-            >
+            <div className={cn(TIP, "absolute top-0", x(hover!) > W / 2 ? "-translate-x-[calc(100%+10px)]" : "translate-x-2.5")} style={{ left: (x(hover!) / W) * 100 + "%" }}>
               <strong className={cn(NUMERIC, "font-medium")}>{fmtTime(point.time, { blank: "DNF" })}</strong>
-              {finite(ao5[hover!]) && <span className={cn(NUMERIC, "text-background/70")}>{tr("Ao5")}{" "}{fmtTime(ao5[hover!])}</span>}
+              {finite(ao5[hover!]) && (
+                <span className={cn(NUMERIC, "text-background/70")}>
+                  {tr("Ao5")} {fmtTime(ao5[hover!])}
+                </span>
+              )}
               <span className="text-background/70">
                 #{from + hover! + 1} · {point.displayDate}
               </span>
@@ -72,16 +77,26 @@ export function Trend({ history, averages, count = 100, className }: { history: 
   );
 }
 
-/** The two series named beside the chart. */
-export function TrendLegend() {
+/** The series of a chart named beside it, each after its swatch: a line's colour, or a bar's tone. */
+export function Legend({ series }: { series: [label: string, swatch: string][] }) {
   return (
     <span className="flex items-center gap-4 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1.5">
-        <span className="h-0.5 w-3 rounded-full bg-chart-1" />
-        {tr("Single")}</span>
-      <span className="flex items-center gap-1.5">
-        <span className="h-0.5 w-3 rounded-full bg-chart-2" />
-        {tr("Ao5")}</span>
+      {series.map(([label, swatch]) => (
+        <span key={label} className="flex items-center gap-1.5">
+          <span className={cn("rounded-full", swatch)} />
+          {said(label)}
+        </span>
+      ))}
     </span>
   );
 }
+
+/** The curve's two series: the singles and their Ao5. */
+export const TrendLegend = () => (
+  <Legend
+    series={[
+      ["Single", "h-0.5 w-3 bg-chart-1"],
+      ["Ao5", "h-0.5 w-3 bg-chart-2"],
+    ]}
+  />
+);

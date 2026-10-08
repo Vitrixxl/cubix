@@ -2,13 +2,12 @@
 import { isLearningTrack, isReviewMode, puzzleStages, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
 import { puzzleOf } from "../../src/shared/puzzles";
 import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
-import { shortId } from "../../src/client/lib/caseState";
-import { Box, Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Play, Search, type LucideIcon } from "lucide-react";
+import { Box, Check, ChevronDown, ChevronRight, LayoutGrid, Play, type LucideIcon } from "lucide-react";
 import { store as s, catalog, matches } from "./store";
-import { Button, Diagram, NUMERIC, PAGE, PageHead, Surface, type Props, plural, run, usePhone } from "./ui";
+import { Back, Button, Diagram, FOCUS, NUMERIC, PAGE, PageHead, ROW, SearchField, Surface, TILE, type Props, plural, run, usePhone } from "./ui";
 import { Picker, PickerCard } from "./picker";
+import { CaseTile, FootBar, TILES } from "./algorithms";
 import { cn } from "@/lib/utils";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
@@ -24,8 +23,8 @@ function setupModes(): SetupMode[] {
         id: value as string,
         label,
         icon: value === "practice" ? LayoutGrid : Check,
-        summary: value === "practice" ? "Pick the cases you want and drill them, one scramble after another." : "Every case you marked as learned, drawn at random, so none slips away.",
-        detail: value === "practice" ? plural(s.selected.size, "case") + " selected" : plural(reviewCases(catalog.cases, s.learned, s.puzzle).length, "learned case"),
+        summary: value === "practice" ? tr("Pick the cases you want and drill them, one scramble after another.") : tr("Every case you marked as learned, drawn at random, so none slips away."),
+        detail: value === "practice" ? tr("{0} selected", { 0: plural(s.selected.size, "case") }) : plural(reviewCases(catalog.cases, s.learned, s.puzzle).length, "learned case"),
       })),
   ];
 }
@@ -48,7 +47,7 @@ export function TrainingSetup() {
         <PageHead title={tr("Training")} puzzle sub={tr("Pick a way to practise")} />
         <Picker label={tr("Training modes")} tour="training">
           {modes.map((m) => (
-            <PickerCard key={m.id} action={"setupMode:" + m.id} icon={<m.icon />} title={said(m.label)} detail={said(m.summary)} meta={said(m.detail)} marked={m.id === last} badge={m.id === last ? "Last trained" : undefined} />
+            <PickerCard key={m.id} action={"setupMode:" + m.id} icon={<m.icon />} title={said(m.label)} detail={said(m.summary)} meta={said(m.detail)} marked={m.id === last} badge={m.id === last ? tr("Last trained") : undefined} />
           ))}
         </Picker>
       </div>
@@ -56,7 +55,7 @@ export function TrainingSetup() {
   const body = chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <ReviewSetup />;
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="setupMode:" icon={ChevronLeft} tip={tr("Every way to practise")} className="size-8 max-md:size-10" />} title={said(chosen.label)} sub={said(chosen.detail)} puzzle />
+      <PageHead lead={<Back action="setupMode:" label="Every way to practise" />} title={said(chosen.label)} sub={said(chosen.detail)} puzzle />
       {phone && chosen.id === "practice" ? (
         <Surface className="flex-1" key={chosen.id}>
           {body}
@@ -73,7 +72,7 @@ export function TrainingSetup() {
 /** The start of a mode, large. */
 function Start({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
   return (
-    <Button action={action} variant="default" size="lg" icon={Play} disabled={disabled} className="h-11 px-6">
+    <Button action={action} variant="default" size="lg" icon={Play} disabled={disabled} className="max-md:h-11">
       {children}
     </Button>
   );
@@ -82,11 +81,11 @@ function Start({ action, disabled = false, children }: { action: string; disable
 /** Phones: what the start will train and the start, at the bottom of a long list, under the thumb. */
 function SetupFoot({ action, disabled = false, children }: { action: string; disabled?: boolean } & Props) {
   return (
-    <footer className="flex shrink-0 items-center justify-between gap-4 border-t bg-muted/30 px-4 py-3">
-      <span className="min-w-0 truncate text-sm text-muted-foreground">{children}</span>
+    <FootBar className="justify-between gap-4">
+      <span className="min-w-0 truncate px-2 text-sm text-muted-foreground">{children}</span>
       <Start action={action} disabled={disabled}>
         {tr("Start")}</Start>
-    </footer>
+    </FootBar>
   );
 }
 
@@ -112,10 +111,7 @@ function CrossSetup() {
             aria-checked={s.crossMoves === n}
             data-action={"crossMoves:" + n}
             onClick={run("crossMoves:" + n)}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-1 rounded-xl border bg-card px-4 py-5 outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/50",
-              s.crossMoves === n && "border-primary/50 bg-primary/10 hover:border-primary/50",
-            )}
+            className={cn(TILE, "flex flex-1 flex-col items-center gap-1 px-4 py-5 aria-checked:border-primary/50 aria-checked:bg-primary/10")}
           >
             <span className={cn(NUMERIC, "text-4xl font-medium", s.crossMoves === n && "text-primary")}>{n}</span>
             <span className="text-xs text-muted-foreground">{tr("moves")}</span>
@@ -168,22 +164,18 @@ function ReviewSetup() {
 function CasesSetup() {
   const cases = s.cases(),
     phone = usePhone(),
-    summary = s.selected.size ? plural(s.selected.size, "case") + " selected" : "Select the cases to practise";
+    summary = s.selected.size ? tr("{0} selected", { 0: plural(s.selected.size, "case") }) : tr("Select the cases to practise");
   const search = (
-    <InputGroup className="w-56 max-md:w-full">
-      <InputGroupInput
-        placeholder={tr("Search cases…")}
-        aria-label={tr("Search cases")}
-        value={s.query}
-        onChange={(e) => {
-          s.query = e.target.value;
-          s.emit();
-        }}
-      />
-      <InputGroupAddon>
-        <Search />
-      </InputGroupAddon>
-    </InputGroup>
+    <SearchField
+      value={s.query}
+      onChange={(query) => {
+        s.query = query;
+        s.emit();
+      }}
+      placeholder="Search cases…"
+      label="Search cases"
+      className="w-56 max-md:w-full"
+    />
   );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -209,12 +201,12 @@ function CasesSetup() {
           const groups = [...new Set(chosen.map((c: any) => c.group))] as string[];
           return (
             <section key={set.id} className="flex flex-col pb-2">
-              <div className="-mx-2 flex items-center gap-2 rounded-lg pr-1 hover:bg-muted/40">
+              <div className={cn(ROW, "-mx-2 flex items-center gap-2 pr-1")}>
                 <button
                   type="button"
                   data-action={"selectorToggle:" + set.id}
                   onClick={run("selectorToggle:" + set.id)}
-                  className="flex h-10 min-w-0 flex-1 items-center gap-2.5 px-2 text-left outline-none"
+                  className={cn("flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left", FOCUS)}
                 >
                   {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
                   <span className="w-10 text-xs font-medium text-muted-foreground">{set.stage}</span>
@@ -237,7 +229,7 @@ function CasesSetup() {
                           type="button"
                           data-action={"selectGroup:" + set.id + ":" + group}
                           onClick={run("selectGroup:" + set.id + ":" + group)}
-                          className="flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground outline-none hover:text-foreground"
+                          className={cn("flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground", FOCUS)}
                         >
                           {group}
                           <span className={NUMERIC}>
@@ -245,32 +237,10 @@ function CasesSetup() {
                           </span>
                         </button>
                       )}
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))] gap-1">
-                        {members.map((c: any) => {
-                          const on = s.selected.has(c.id);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              data-action={"select:" + c.id}
-                              aria-pressed={on}
-                              title={c.name}
-                              onClick={run("select:" + c.id)}
-                              className={cn(
-                                "relative flex flex-col items-center gap-1.5 rounded-lg px-1 pt-2.5 pb-2 text-xs text-muted-foreground outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50",
-                                on && "bg-primary/10 text-foreground hover:bg-primary/15",
-                              )}
-                            >
-                              <Diagram c={c} size={56} />
-                              <span className="max-w-full truncate">{shortId(c)}</span>
-                              {on && (
-                                <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                  <Check className="size-3" />
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
+                      <div className={TILES}>
+                        {members.map((c: any) => (
+                          <CaseTile key={c.id} c={c} touch={phone} action={"select:" + c.id} pressed={s.selected.has(c.id)} />
+                        ))}
                       </div>
                     </div>
                   );

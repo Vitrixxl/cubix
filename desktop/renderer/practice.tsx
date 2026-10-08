@@ -28,6 +28,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  GraduationCap,
   LayoutList,
   ListOrdered,
   MessageSquare,
@@ -50,7 +51,9 @@ import {
   Button,
   Choice,
   Diagram,
+  Empty,
   FADE,
+  FOCUS,
   Figure,
   LABEL,
   NUMERIC,
@@ -58,6 +61,9 @@ import {
   MenuAction,
   MenuChoice,
   PageHead,
+  PenaltyToggles,
+  ROW,
+  SectionHead,
   SelectMenu,
   SolveActions,
   SolveMenu,
@@ -69,10 +75,9 @@ import {
   useViewport,
 } from "./ui";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PhoneSheet, TouchAction, TouchBar } from "./phone";
-import { tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
 import { isMinxScramble, said } from "./base";
 
 /** Keys typed into a field, a menu or a dialog never reach the timer. */
@@ -98,22 +103,23 @@ function useTimer(enabled: boolean, manual = true) {
       const smart = smartRef.current();
       void s.save(ms, smart?.penalty, smart?.solution);
     },
+    // Only this page draws the phase; the fade of the rest follows `s.running` (see the store), without drawing the app.
     onChange: snapshot => {
       setSnapshot(snapshot);
       s.running = snapshot.phase === "running";
       s.learningFrozen = ["holding", "ready", "running"].includes(snapshot.phase);
-      s.emit();
     },
   }));
   const { press, release } = timer;
-  const stop = () => { if (timer.snapshot.phase === "running") timer.press(); };
+  // Inputs are timed by their events' own time stamps (see `PracticeTimer`).
+  const stop = (timeStamp?: number) => { if (timer.snapshot.phase === "running") timer.press(timeStamp); };
   useEffect(() => { timer.reset(); }, [s.timerEpoch, timer]);
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (timer.snapshot.phase === "running") {
         e.preventDefault();
-        stop();
+        stop(e.timeStamp);
         return;
       }
       if (typingInto(e) || s.overlay || !manualRef.current || (s.entry === "typing" && s.page === "playground")) return;
@@ -125,12 +131,10 @@ function useTimer(enabled: boolean, manual = true) {
       }
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code === "Space") release();
+      if (e.code === "Space") release(e.timeStamp);
     };
     const blur = timer.cancelArming;
-    const pointer = () => {
-      if (timer.snapshot.phase === "running") stop();
-    };
+    const pointer = (e: PointerEvent) => stop(e.timeStamp);
     addEventListener("keydown", down);
     addEventListener("keyup", up);
     addEventListener("blur", blur);
@@ -169,11 +173,14 @@ export function useSquare(element: HTMLElement | null) {
   return side;
 }
 
+/** The class of a timer's milliseconds: smaller, and muted unless armed. */
+const fractionClass = (armed: boolean) => cn("text-[0.62em] tracking-[-0.03em]", !armed && "text-[color:color-mix(in_oklch,var(--muted-foreground)_78%,var(--primary))]");
+
 /**
  * The running digits: tinted with the accent, the milliseconds smaller in a muted version of it; red while holding,
- * green once ready.
+ * green once ready. `live`: the characters are written by the caller into this (a box without a box of its own).
  */
-export function Digits({ text, phase, className, digitsRef, "data-tour": tour }: { text: string; phase: string; className?: string; digitsRef?: React.Ref<HTMLDivElement>; "data-tour"?: string }) {
+export function Digits({ text, phase, className, digitsRef, live, "data-tour": tour }: { text: string; phase: string; className?: string; digitsRef?: React.Ref<HTMLDivElement>; live?: React.Ref<HTMLSpanElement>; "data-tour"?: string }) {
   const armed = phase === "holding" || phase === "ready";
   return (
     <div
@@ -186,33 +193,63 @@ export function Digits({ text, phase, className, digitsRef, "data-tour": tour }:
       )}
       style={{ "--chars": Math.max(6, text.length) } as React.CSSProperties}
     >
-      {text.split("").map((ch, i) => (
-        <span key={i} className={text.includes(".") && i > text.indexOf(".") ? cn("text-[0.62em] tracking-[-0.03em]", !armed && "text-[color:color-mix(in_oklch,var(--muted-foreground)_78%,var(--primary))]") : undefined}>
-          {said(ch)}
-        </span>
-      ))}
+      {live ? (
+        <span ref={live} className="contents" />
+      ) : (
+        text.split("").map((ch, i) => (
+          <span key={i} className={text.includes(".") && i > text.indexOf(".") ? fractionClass(armed) : undefined}>
+            {said(ch)}
+          </span>
+        ))
+      )}
     </div>
   );
 }
 
 /**
- * The digits of a timer: `text` at rest, the time since `startedAt` while `phase` is running. Only this component
- * re-renders on animation frames, never the page around it.
+ * The digits of a timer: `text` at rest, the time since `startedAt` while `phase` is running. While it runs, each frame
+ * writes the time into the digits itself, a span per character as React draws them: nothing is drawn again by React.
  */
-export const LiveDigits = memo(function LiveDigits({ startedAt, text, ...digits }: { startedAt: number } & React.ComponentProps<typeof Digits>) {
+export const LiveDigits = memo(function LiveDigits({ startedAt, text, digitsRef, ...digits }: { startedAt: number } & React.ComponentProps<typeof Digits>) {
   const running = digits.phase === "running",
-    [now, setNow] = useState(() => performance.now());
-  useEffect(() => {
+    box = useRef<HTMLDivElement | null>(null),
+    live = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
     if (!running) return;
+    const chars = live.current!,
+      fraction = fractionClass(false);
     let frame = 0;
     const tick = () => {
-      setNow(performance.now());
+      const time = fmtTime(performance.now() - startedAt),
+        point = time.indexOf(".");
+      if (chars.childElementCount !== time.length) {
+        while (chars.childElementCount > time.length) chars.lastElementChild!.remove();
+        while (chars.childElementCount < time.length) chars.append(document.createElement("span"));
+        box.current?.style.setProperty("--chars", String(Math.max(6, time.length)));
+      }
+      for (let i = 0; i < time.length; i++) {
+        const span = chars.children[i]!,
+          small = point >= 0 && i > point;
+        if (span.textContent !== time[i]) span.textContent = time[i]!;
+        if (small !== span.hasAttribute("class")) small ? (span.className = fraction) : span.removeAttribute("class");
+      }
       frame = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(frame);
   }, [running, startedAt]);
-  return <Digits {...digits} text={running ? fmtTime(now - startedAt) : text} />;
+  return (
+    <Digits
+      {...digits}
+      text={running ? fmtTime(performance.now() - startedAt) : text}
+      live={running ? live : undefined}
+      digitsRef={(element) => {
+        box.current = element;
+        if (typeof digitsRef === "function") digitsRef(element);
+        else if (digitsRef) digitsRef.current = element;
+      }}
+    />
+  );
 });
 
 export function Practice() {
@@ -335,7 +372,7 @@ export function Practice() {
     <Button action="cube" icon={Box} size="icon-sm" tip={tr("Show the cube")} className="text-muted-foreground" />
   );
   const solutionToggle = (
-    <Button action="solution" icon={s.revealed ? EyeOff : Eye} size="sm" tip={tr("Alt+H")} className="-ml-2.5 text-muted-foreground">
+    <Button action="solution" icon={s.revealed ? EyeOff : Eye} size="sm" tip={s.revealed ? tr("Hide solution · Alt+H") : tr("Show solution · Alt+H")} className="-ml-2.5 text-muted-foreground">
       {s.revealed ? tr("Hide solution") : tr("Show solution")}
     </Button>
   );
@@ -355,7 +392,7 @@ export function Practice() {
                   type="button"
                   data-action={"case:" + c.id}
                   onClick={run("case:" + c.id)}
-                  className="text-lg font-semibold tracking-tight outline-none hover:text-primary focus-visible:text-primary"
+                  className={cn("rounded-md text-lg font-semibold tracking-tight transition-colors hover:text-primary", FOCUS)}
                 >
                   {c.name}
                 </button>
@@ -400,15 +437,22 @@ export function Practice() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-start gap-2 py-4" data-no-timer>
-              <strong className="text-lg font-semibold tracking-tight">{reviewing ? tr("No learned cases yet") : learning ? tr("Track complete") : tr("Choose your cases")}</strong>
-              <span className="text-sm text-muted-foreground">{learning ? s.dailyStatus : tr("Select the cases you want to practise.")}</span>
-              <div className="mt-2 flex gap-2">
-                {!learning && <Button action="trainingSetup" variant="default">{tr("Choose cases")}</Button>}
-                {track && !reviewing && s.trackLearnedCount > 0 && (
-                  <Button action={"learningMode:review:" + track} variant="default">{tr("Train learned")}</Button>
+            <div data-no-timer>
+              <Empty
+                icon={reviewing ? GraduationCap : learning ? Trophy : LayoutList}
+                title={reviewing ? tr("No learned cases yet") : learning ? tr("Track complete") : tr("Choose your cases")}
+                className="py-8"
+              >
+                <p>{learning ? s.dailyStatus : tr("Select the cases you want to practise.")}</p>
+                {(!learning || (track && !reviewing && s.trackLearnedCount > 0)) && (
+                  <div className="flex gap-2">
+                    {!learning && <Button action="trainingSetup" variant="default">{tr("Choose cases")}</Button>}
+                    {track && !reviewing && s.trackLearnedCount > 0 && (
+                      <Button action={"learningMode:review:" + track} variant="default">{tr("Train learned")}</Button>
+                    )}
+                  </div>
                 )}
-              </div>
+              </Empty>
             </div>
           )
         ) : (
@@ -448,7 +492,7 @@ export function Practice() {
     </div>
   );
   const timesToggle = !timesAlways && !mobile && (
-    <ActionToggle action="times" pressed={s.showTimes} icon={ListOrdered} tip={tr("Alt+T")}>
+    <ActionToggle action="times" pressed={s.showTimes} icon={ListOrdered} tip={tr("Session times · Alt+T")}>
       {training ? tr("Session") : tr("Times")}
     </ActionToggle>
   );
@@ -590,9 +634,9 @@ export function Practice() {
             className={cn("stage flex-1", mobile ? "touch-manipulation select-none" : "flex min-h-0 flex-col pb-1")}
             onPointerDown={(e) => {
               if (e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest("button, a, [data-no-timer]")) return;
-              if (mobile || running) timer.press();
+              if (mobile || running) timer.press(e.timeStamp);
             }}
-            onPointerUp={timer.release}
+            onPointerUp={(e) => timer.release(e.timeStamp)}
           >
             <div className={cn("contents", mobile && "flex min-h-0 flex-1 flex-col px-4 pt-4")}>
               {mobile ? (
@@ -665,11 +709,7 @@ export function Practice() {
                 {/* The last solve's actions, there before the first solve too (disabled) so the timer never moves. */}
                 {!mobile && (
                   <div className={cn("mt-3 flex shrink-0 flex-wrap items-center justify-center gap-1.5", FADE)} aria-label={tr("Last solve")} data-no-timer>
-                    <ActionToggle action={"penalty:" + last?.id + ":+2"} pressed={last?.penalty === "+2"} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground aria-pressed:text-warning">
-                      +2
-                    </ActionToggle>
-                    <ActionToggle action={"penalty:" + last?.id + ":dnf"} pressed={last?.penalty === "dnf"} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground aria-pressed:text-destructive">
-                      {tr("DNF")}</ActionToggle>
+                    <PenaltyToggles penalty={last?.penalty} prefix={"penalty:" + last?.id + ":"} disabled={!last || s.saving} />
                     <Button action={"comment:" + last?.id} icon={MessageSquare} disabled={!last || s.saving} size="sm" variant="outline" className={cn("text-muted-foreground", last?.comment && "text-primary")}>
                       {tr("Comment")}</Button>
                     <Button action={"delete:" + last?.id} icon={Trash2} disabled={!last || s.saving} size="sm" variant="outline" className="text-muted-foreground hover:text-destructive">
@@ -697,9 +737,9 @@ export function Practice() {
           {mobile ? <SessionPeek training={training} /> : statistics}
         </div>
         {timesColumn && (
-          <aside aria-label={tr("Session times")} data-tour="session" className={cn("flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border bg-card xl:w-68", FADE)}>
+          <Surface role="complementary" aria-label={tr("Session times")} data-tour="session" className={cn("w-60 shrink-0 overflow-hidden xl:w-68", FADE)}>
             <Times closable={!timesAlways} />
-          </aside>
+          </Surface>
         )}
       </div>
       {mobile && (
@@ -711,19 +751,20 @@ export function Practice() {
             s.emit();
           }}
           title={
-            <>
-              {training ? tr("Session") : tr("Times")} <span className={cn(NUMERIC, "font-normal text-muted-foreground")}>{s.solves.length}</span>
-            </>
+            <span className="flex items-baseline gap-2">
+              {training ? tr("Session") : tr("Times")}
+              <span className={cn(NUMERIC, "text-sm font-normal text-muted-foreground")}>{s.solves.length}</span>
+            </span>
           }
           description={tr("Tap a time for its details · hold it for +2, DNF or delete")}
           snapPoints={[0.5, 1]}
           className="gap-3"
         >
-          <div className="grid shrink-0 grid-cols-4 gap-x-4 gap-y-3 rounded-xl bg-muted/45 px-3 py-3">
+          <Strip label={tr("Statistics")} className="grid-cols-4 gap-x-4 px-3">
             {s.metrics().map(([label, value, tone]) => (
               <Figure key={label} label={said(label)} value={value} tone={tone} size="sm" />
             ))}
-          </div>
+          </Strip>
           <Times closable={false} bare touch />
         </PhoneSheet>
       )}
@@ -742,7 +783,7 @@ function SessionPeek({ training }: { training: boolean }) {
       type="button"
       data-action="times"
       onClick={run("times")}
-      className={cn("flex h-14 shrink-0 items-center gap-4 rounded-xl bg-muted/45 px-4 text-left outline-none active:bg-muted/70", FADE)}
+      className={cn("flex h-14 shrink-0 items-center gap-4 rounded-xl border bg-muted/45 px-4 text-left transition-colors active:bg-muted/70", FOCUS, FADE)}
       aria-label={tr("Session times")}
       data-tour="session"
     >
@@ -792,50 +833,44 @@ function ChangeTraining() {
 /** An empty session: in the middle of the column, what will appear here (how to start is under the timer). */
 function NoTimes() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-      <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-        <ListOrdered className="size-5" />
-      </span>
-      <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium">{tr("No times yet")}</span>
-        <span className="text-xs text-muted-foreground">{tr("Every solve of this session lands here.")}</span>
-      </div>
-    </div>
+    <Empty icon={ListOrdered} title={tr("No times yet")} className="px-4 py-8">
+      <p className="text-xs">{tr("Every solve of this session lands here.")}</p>
+    </Empty>
   );
 }
+
+/** A solve as a small chip (a training's case, the average of five): tinted as the times list tints it. */
+const CHIP = cn(NUMERIC, "flex items-center gap-1 rounded-md border border-transparent bg-muted/60 select-none transition-colors hover:bg-muted", FOCUS);
 
 /** The session's times, newest first, as plain rows; right-click a row for its menu. */
 function Times({ closable = true, bare = false, touch = false }: { closable?: boolean; bare?: boolean; touch?: boolean }) {
   const training = s.practicePage() === "training",
-    extremes = sessionExtremes(s.solves);
+    extremes = sessionExtremes(s.solves),
+    selected = s.practiceSelected,
+    tried = new Set(s.solves.map((v) => v.case_id)),
+    lang = language();
   return (
     <>
       {/* The column's heading: its name and count, its actions on the right, a line under it across the panel. */}
       {!bare && (
-        <header className="flex h-11 shrink-0 items-center gap-2 border-b pr-2 pl-4">
-          <h2 className="text-sm font-medium">{training ? tr("Session") : tr("Times")}</h2>
-          <Badge variant="secondary" className={cn(NUMERIC, "min-w-5 px-1.5 text-muted-foreground")}>
-            {s.solves.length}
-          </Badge>
-          <div className="ml-auto flex items-center gap-1">
-            {training && !!s.solves.length && (
-              <Button action="undo" icon={Undo2} size="xs" className="text-muted-foreground">
-                {tr("Undo")}</Button>
-            )}
-            {closable && <Button action="times" icon={X} size="icon-xs" tip={tr("Close")} />}
-          </div>
-        </header>
+        <SectionHead title={training ? tr("Session") : tr("Times")} meta={s.solves.length} rule className="h-11 pr-2 pl-4 pb-0">
+          {training && !!s.solves.length && (
+            <Button action="undo" icon={Undo2} size="xs" className="text-muted-foreground">
+              {tr("Undo")}</Button>
+          )}
+          {closable && <Button action="times" icon={X} size="icon-xs" tip={tr("Close")} />}
+        </SectionHead>
       )}
       {training ? (
         <div className={cn("flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto", bare ? "-mx-2 mt-1" : "p-2")}>
           {trainingSessionRows<any, any>(
-            s.cases().filter((c: any) => s.practiceSelected.has(c.id) || s.solves.some((v) => v.case_id === c.id)),
+            s.cases().filter((c: any) => selected.has(c.id) || tried.has(c.id)),
             s.solves,
           ).map(({ c, solves, best: fastest, mean: average, validCount }) => (
-            <div key={c.id} className="flex items-start gap-3 rounded-lg px-2 py-2 hover:bg-muted/40">
+            <div key={c.id} className="flex items-start gap-3 rounded-lg px-2 py-2">
               <div className="flex w-10 shrink-0 flex-col items-center gap-1">
                 <Diagram c={c} size={36} />
-                <span className="max-w-full truncate text-[11px] text-muted-foreground">{shortId(c)}</span>
+                <span className="max-w-full truncate text-xs text-muted-foreground">{shortId(c)}</span>
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
                 {!solves.length ? (
@@ -850,12 +885,7 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                             type="button"
                             data-action={"solve:" + v.id}
                             onClick={run("solve:" + v.id)}
-                            className={cn(
-                              NUMERIC,
-                              "flex h-6 items-center gap-1 rounded-md bg-muted px-1.5 text-xs outline-none select-none hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50",
-                              touch && "h-9 px-2.5 text-sm",
-                              v.penalty === "dnf" ? "text-destructive" : effective(v.time_ms, v.penalty) === fastest ? "text-success" : v.penalty === "+2" ? "text-warning" : "",
-                            )}
+                            className={cn(CHIP, "h-6 px-1.5 text-xs", touch && "h-9 px-2.5 text-sm", TONE_TEXT[solveTone(v, { best: effective(v.time_ms, v.penalty) === fastest ? v.id : undefined })])}
                           >
                             {fmtSolve(v.time_ms, v.penalty)}
                             {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
@@ -874,28 +904,43 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
         <div className={cn("times-list flex min-h-0 flex-1 flex-col overflow-y-auto", bare ? "-mx-2 mt-1" : "p-2")}>
           {!s.solves.length && <NoTimes />}
           {[...s.solves].reverse().map((v, i) => (
-            <SolveMenu key={v.id} solve={v}>
-              <div className={cn("group/row flex h-8 shrink-0 items-center gap-2 rounded-md px-2 select-none hover:bg-muted/50", touch && "h-11 active:bg-muted/50")}>
-                <button
-                  type="button"
-                  data-action={"solve:" + v.id}
-                  onClick={run("solve:" + v.id)}
-                  className="flex min-w-0 flex-1 items-center gap-3 self-stretch text-left outline-none"
-                >
-                  <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-xs text-muted-foreground")}>{s.solves.length - i}</span>
-                  <span className={cn(NUMERIC, touch ? "text-base" : "text-sm", TONE_TEXT[solveTone(v, extremes)])}>{fmtSolve(v.time_ms, v.penalty)}</span>
-                  {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
-                  {v.solution && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
-                </button>
-                <SolveActions solve={v} className={cn(touch && "hidden")} />
-              </div>
-            </SolveMenu>
+            <TimeRow key={v.id} solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={touch} lang={lang} />
           ))}
         </div>
       )}
     </>
   );
 }
+
+/**
+ * A time of the session's list, drawn again only when what it shows changes: each snapshot brings every solve as a new
+ * object, the same times in them.
+ */
+const TimeRow = memo(
+  function TimeRow({ solve: v, number, tone, touch }: { solve: any; number: number; tone: ReturnType<typeof solveTone>; touch: boolean; lang: string }) {
+    return (
+      <SolveMenu solve={v}>
+        <div className={cn(ROW, "group/row flex h-8 shrink-0 items-center gap-2 px-2 select-none has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50", touch && "h-11 active:bg-muted/50")}>
+          <button
+            type="button"
+            data-action={"solve:" + v.id}
+            onClick={run("solve:" + v.id)}
+            className="flex min-w-0 flex-1 items-center gap-3 self-stretch text-left outline-none"
+          >
+            <span className={cn(NUMERIC, "w-7 shrink-0 text-right text-xs text-muted-foreground")}>{number}</span>
+            <span className={cn(NUMERIC, touch ? "text-base" : "text-sm", TONE_TEXT[tone])}>{fmtSolve(v.time_ms, v.penalty)}</span>
+            {v.comment && <MessageSquare className="size-3 text-muted-foreground" />}
+            {v.solution && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
+          </button>
+          <SolveActions solve={v} className={cn(touch && "hidden")} />
+        </div>
+      </SolveMenu>
+    );
+  },
+  (a, b) =>
+    a.number === b.number && a.tone === b.tone && a.touch === b.touch && a.lang === b.lang &&
+    (["id", "time_ms", "penalty", "comment", "solution", "scramble"] as const).every((k) => a.solve[k] === b.solve[k]),
+);
 
 /**
  * The current average of five as it is counted: the last five solves as small chips, the fastest and the slowest of
@@ -908,7 +953,7 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
     fastest = full ? times.indexOf(Math.min(...times)) : -1,
     slowest = full ? times.lastIndexOf(Math.max(...times)) : -1,
     ao5 = practiceSummary(s.solves).ao5;
-  const chip = cn("flex h-7 items-center justify-center rounded-md", mobile ? "min-w-0 flex-1 px-1 text-xs" : "min-w-18 px-2");
+  const chip = cn("h-7 justify-center", mobile ? "min-w-0 flex-1 px-1 text-xs" : "min-w-18 px-2");
   return (
     <div className={cn(NUMERIC, "average-window mt-6 flex w-full shrink-0 items-center justify-center gap-1.5 text-sm md:mt-8", mobile && "gap-1", FADE)} aria-label={tr("Current average of 5")} data-no-timer>
       {!mobile && <span className={cn(LABEL, "mr-1.5")}>{tr("Ao5")}</span>}
@@ -916,7 +961,7 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
         const v = last[i - (5 - last.length)];
         if (!v)
           return (
-            <span key={i} className={cn(chip, "border border-dashed bg-muted/30 text-muted-foreground/50")}>
+            <span key={i} className={cn(chip, "flex items-center rounded-md border border-dashed bg-muted/30 text-muted-foreground/50")}>
               –
             </span>
           );
@@ -930,11 +975,10 @@ function AverageWindow({ mobile }: { mobile: boolean }) {
               data-action={"solve:" + v.id}
               onClick={run("solve:" + v.id)}
               className={cn(
+                CHIP,
                 chip,
-                "border bg-muted/60 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50",
-                dropped && "text-muted-foreground",
-                !dropped && v.penalty === "+2" && "text-warning",
-                v.penalty === "dnf" && "text-destructive",
+                "border border-transparent",
+                dropped && v.penalty !== "dnf" ? "text-muted-foreground" : TONE_TEXT[solveTone(v, {})],
                 index === last.length - 1 && "border-foreground/40",
               )}
             >

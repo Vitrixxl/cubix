@@ -3,7 +3,7 @@
 import { Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-import { compact, dayLabel, NUMERIC, num } from "./parts";
+import { compact, dayLabel, NUMERIC, num, SectionHead } from "./parts";
 
 export type Series = { key: string; label: string; color: string; kind?: "bar" | "line" };
 
@@ -26,19 +26,19 @@ export function DailyChart({
   const config = Object.fromEntries(series.map((s) => [s.key, { label: s.label, color: s.color }])) satisfies ChartConfig;
   return (
     <figure className={cn("flex min-w-0 flex-col gap-2", className)} data-chart-title={title}>
-      <figcaption className="flex min-h-5 items-center gap-3">
-        <span className="text-sm font-medium">{title}</span>
-        {total != null && <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{total}</span>}
-        {series.length > 1 && (
-          <span className="ml-auto flex items-center gap-3">
-            {series.map((s) => (
-              <span key={s.key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={cn("shrink-0 rounded-[2px]", s.kind === "line" ? "h-0.5 w-3" : "size-2")} style={{ background: s.color }} />
-                {s.label}
-              </span>
-            ))}
-          </span>
-        )}
+      <figcaption>
+        <SectionHead title={title} meta={total}>
+          {series.length > 1 && (
+            <span className="flex items-center gap-3">
+              {series.map((s) => (
+                <span key={s.key} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className={cn("shrink-0 rounded-xs", s.kind === "line" ? "h-0.5 w-3" : "size-2")} style={{ background: s.color }} />
+                  {s.label}
+                </span>
+              ))}
+            </span>
+          )}
+        </SectionHead>
       </figcaption>
       <ChartContainer config={config} className={cn("aspect-auto w-full", height)}>
         <ComposedChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barCategoryGap="18%">
@@ -70,7 +70,7 @@ export function DailyChart({
 function TooltipRow({ value, label, color }: { value: number; label: React.ReactNode; color?: string }) {
   return (
     <div className="flex w-full items-center gap-2">
-      <span className="size-2 shrink-0 rounded-[2px]" style={{ background: color }} />
+      <span className="size-2 shrink-0 rounded-xs" style={{ background: color }} />
       <span className="text-muted-foreground">{label}</span>
       <span className={cn(NUMERIC, "ml-auto pl-3 font-medium text-foreground")}>{num(value)}</span>
     </div>

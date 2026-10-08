@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Clock, Send, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { coaching } from "./client";
-import { EventPicker, PANEL, day } from "./parts";
-import { cn } from "@/lib/utils";
+import { day } from "./parts";
+import { Empty, EventPicker, Surface } from "../base";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button as UiButton } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -19,29 +20,40 @@ export function Apply() {
   const [again, setAgain] = useState(false);
   if (!me)
     return (
-      <div className={cn(PANEL, "mx-auto w-full max-w-xl gap-4 p-6")} aria-busy="true" aria-label={tr("Loading")}>
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-10" />
-        <Skeleton className="h-24" />
-      </div>
+      <Surface className="mx-auto w-full max-w-2xl gap-5 p-6" aria-busy="true" aria-label={tr("Loading")}>
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-9" />
+          </div>
+        ))}
+        <Skeleton className="h-28" />
+      </Surface>
     );
   if (application?.status === "pending" || (application?.status === "rejected" && !again))
     return (
-      <div className={cn(PANEL, "mx-auto w-full max-w-xl items-center gap-3 p-8 text-center")} data-slot="application" data-status={application.status}>
-        <span className={cn("flex size-12 items-center justify-center rounded-xl", application.status === "pending" ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground")}>
-          {application.status === "pending" ? <Clock className="size-6" /> : <XCircle className="size-6" />}
-        </span>
-        <h2 className="text-lg font-semibold tracking-tight">{application.status === "pending" ? tr("Your application is being reviewed") : tr("Your application was not accepted")}</h2>
-        <p className="text-muted-foreground">
-          {application.status === "pending"
-            ? tr("Sent on {0}. We will write to {1}.", { 0: day(application.createdAt), 1: application.email })
-            : tr("Answered on {0}. You can apply again.", { 0: day(application.decidedAt ?? application.createdAt) })}
-        </p>
-        {application.status === "rejected" && (
-          <UiButton variant="outline" onClick={() => setAgain(true)} data-action="coaching:apply:again">
-            {tr("Apply again")}</UiButton>
-        )}
-      </div>
+      <Surface className="mx-auto w-full max-w-xl" data-slot="application" data-status={application.status}>
+        <Empty
+          icon={application.status === "pending" ? Clock : XCircle}
+          title={application.status === "pending" ? "Your application is being reviewed" : "Your application was not accepted"}
+          className="py-10"
+        >
+          <p>
+            {application.status === "pending"
+              ? tr("Sent on {0}. We will write to {1}.", { 0: day(application.createdAt), 1: application.email })
+              : tr("Answered on {0}. You can apply again.", { 0: day(application.decidedAt ?? application.createdAt) })}
+          </p>
+          {application.status === "rejected" && (
+            <UiButton variant="outline" onClick={() => setAgain(true)} data-action="coaching:apply:again">
+              {tr("Apply again")}
+            </UiButton>
+          )}
+        </Empty>
+      </Surface>
     );
   return <Form />;
 }
@@ -71,10 +83,11 @@ function Form() {
     }
   }
   return (
-    <form onSubmit={submit} noValidate className={cn(PANEL, "mx-auto w-full max-w-2xl")} data-slot="apply">
+    <form onSubmit={submit} noValidate className="mx-auto flex min-h-0 w-full max-w-2xl flex-col" data-slot="apply">
+      <Surface className="flex-1">
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold tracking-tight">{tr("Become a coach")}</h2>
+          <h2 className="text-base font-semibold tracking-tight">{tr("Become a coach")}</h2>
           <p className="text-muted-foreground">{tr("The team reads every application and answers by e-mail.")}</p>
         </div>
         <Field data-invalid={error?.field === "email" || undefined}>
@@ -84,7 +97,7 @@ function Form() {
         </Field>
         <Field>
           <FieldLabel>{tr("Events you would coach")}</FieldLabel>
-          <EventPicker value={events} onChange={setEvents} />
+          <EventPicker multiple value={events} onChange={setEvents} />
         </Field>
         <Field>
           <FieldLabel htmlFor="apply-experience">{tr("Your level")}</FieldLabel>
@@ -95,14 +108,19 @@ function Form() {
           <Textarea id="apply-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={2000} rows={5} className="resize-none" aria-invalid={error?.field === "message" || undefined} data-action="apply:message" />
           {error?.field === "message" && <FieldError>{said(error.text)}</FieldError>}
         </Field>
-        {error?.field === "form" && <p className="text-sm text-destructive">{said(error.text)}</p>}
+        {error?.field === "form" && (
+          <Alert variant="destructive">
+            <AlertDescription className="text-destructive">{said(error.text)}</AlertDescription>
+          </Alert>
+        )}
       </div>
-      <div className="shrink-0 p-4 pt-0">
-        <UiButton type="submit" size="lg" className="h-10 w-full" disabled={pending} data-action="coaching:apply:send">
+      <div className="shrink-0 border-t p-4">
+        <UiButton type="submit" size="lg" className="w-full max-md:h-11" disabled={pending} data-action="coaching:apply:send">
           <Send />
           {pending ? tr("Sending…") : tr("Send my application")}
         </UiButton>
       </div>
+      </Surface>
     </form>
   );
 }

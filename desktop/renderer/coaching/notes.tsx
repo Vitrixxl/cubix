@@ -12,7 +12,7 @@ import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import { Bold, Code, Heading, Italic, List, ListChecks, ListOrdered, Quote, Strikethrough, Underline, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Tip } from "../ui";
+import { SectionHead, Surface, Tip } from "../ui";
 import { coaching } from "./client";
 import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/toggle";
@@ -81,11 +81,11 @@ export function PrivateNotes({ conversation, note, className }: { conversation: 
       TaskList.configure({ HTMLAttributes: { class: "list-none! pl-0.5!" } }),
       TaskItem.configure({ nested: true, HTMLAttributes: { class: "task-item flex items-start gap-2" } }),
       Markdown,
-      Placeholder.configure({ placeholder: "Goals, weak points, homework…" }),
+      Placeholder.configure({ placeholder: tr("Goals, weak points, homework…") }),
     ],
     content: note,
     contentType: "markdown",
-    editorProps: { attributes: { "aria-label": "Private notes", "data-action": "student:note" } },
+    editorProps: { attributes: { "aria-label": tr("Private notes"), "data-action": "student:note" } },
     onUpdate: ({ editor }) => {
       setState("unsaved");
       clearTimeout(timer.current);
@@ -101,14 +101,13 @@ export function PrivateNotes({ conversation, note, className }: { conversation: 
   }, [editor, note]);
   useEffect(() => () => clearTimeout(timer.current), []);
   return (
-    <section className={cn("flex min-h-0 flex-col overflow-hidden rounded-xl border text-sm", className)} aria-label={tr("Private notes")} data-slot="private-notes">
-      <div className="flex min-h-11 shrink-0 items-center justify-between gap-2 px-4 pt-1">
-        <h3 className="font-medium">{tr("Private notes")}</h3>
+    <Surface className={className} aria-label={tr("Private notes")} data-slot="private-notes">
+      <SectionHead title="Private notes" className="px-4 pt-2">
         <span className="text-xs text-muted-foreground">{state === "saving" ? tr("Saving…") : state === "unsaved" ? tr("Unsaved") : tr("Only you see them")}</span>
-      </div>
+      </SectionHead>
       {editor && <Toolbar editor={editor} />}
       <EditorContent editor={editor} className={cn(PROSE, "min-h-0 flex-1 cursor-text overflow-y-auto")} onClick={() => editor?.isFocused || editor?.commands.focus("end")} />
-    </section>
+    </Surface>
   );
 }
 
@@ -123,7 +122,7 @@ function Toolbar({ editor }: { editor: Editor }) {
           {group.map(([label, keys, I, , run]) => {
             const on = active[i++];
             return (
-              <Tip key={label} content={`${label} · ${keys}`}>
+              <Tip key={label} content={`${said(label)} · ${keys}`}>
                 <Toggle size="sm" className="px-1.5" pressed={on} onMouseDown={(e) => e.preventDefault()} onPressedChange={() => run(editor)} aria-label={said(label)} data-action={"note:" + label.toLowerCase().replace(/ /g, "-")}>
                   <I />
                 </Toggle>

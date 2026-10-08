@@ -32,6 +32,8 @@ export function useAlgPlayer(alg: string, size: number | null | undefined, mask:
 
 /** The playback, re-rendering on each frame of it. */
 export const usePlayback = (player: AlgPlayer) => useSyncExternalStore(player.subscribe, player.getSnapshot);
+/** What a part of the player shows of the playback (a number, a string): drawn again only when that changes, not at every frame. */
+const usePlayed = <T,>(player: AlgPlayer, read: (p: AlgPlayer) => T) => useSyncExternalStore(player.subscribe, () => read(player));
 
 /** The glow of `AlgPlayer.showFront` on the painted cube: the front face lit, two waves spreading from its centre. */
 function paintPulse(ctx: CanvasRenderingContext2D, player: AlgPlayer, size: number) {
@@ -150,8 +152,7 @@ export function PlayerAlg({ player, text, size = 18, className }: { player?: Alg
   );
 }
 function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<typeof readAlg>["words"] }) {
-  usePlayback(player);
-  const current = player.current();
+  const current = usePlayed(player, (p) => p.current());
   return words.map((word, i) => (
     <span key={i} className="flex">
       {word.map((part, j) =>
@@ -202,10 +203,10 @@ export function usePlayerKeys(player: AlgPlayer | null) {
  * under it. `compact` cycles the speed on one button; `touch` makes every target 44 px.
  */
 export function PlayerControls({ player, compact = false, touch = false, className }: { player: AlgPlayer; compact?: boolean; touch?: boolean; className?: string }) {
-  const p = usePlayback(player),
-    total = player.total,
-    // While the thumb is held the scrubber shows the pointer; let go, the cube settles on the nearest move.
-    [held, setHeld] = useState(false),
+  const total = player.total;
+  // The buttons change with these only; the scrubber alone follows every frame.
+  usePlayed(player, ({ playback: p }) => [p.playing, p.position === 0, p.target === 0, p.target >= total, p.position >= total, p.speed].join());
+  const p = player.playback,
     icon = touch ? "icon-lg" : compact ? "icon-sm" : "icon";
   const button = (tip: string, I: React.ElementType, onClick: () => void, disabled = false, primary = false) => (
     <Tip content={tip}>
@@ -221,7 +222,6 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
       </Button>
     </Tip>
   );
-  const done = Math.round(p.position * 10) / 10;
   return (
     <div className={cn("flex min-w-0 flex-col gap-2", className)} data-player-controls>
       <div className={cn("flex items-center gap-1", touch && "justify-between")}>
@@ -236,36 +236,56 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
             </Button>
           </Tip>
         ) : (
-          <ToggleGroup aria-label={tr("Speed")} size="sm" spacing={1} value={[String(p.speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className="ml-auto">
-            {PLAYER_SPEEDS.map((speed) => (
-              <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground")}>
-                {speedLabel(speed)}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          <SpeedChoice player={player} className="ml-auto" />
         )}
       </div>
-      <div className="flex items-center gap-3">
-        <Slider
-          aria-label={tr("Moves played")}
-          min={0}
-          max={total}
-          step={0.01}
-          value={[p.position]}
-          onValueChange={(value: number | readonly number[]) => {
-            setHeld(true);
-            player.seek(Array.isArray(value) ? value[0]! : (value as number));
-          }}
-          onValueCommitted={(value: number | readonly number[]) => {
-            setHeld(false);
-            player.seek(Array.isArray(value) ? value[0]! : (value as number), true);
-          }}
-          className={cn("flex-1", touch && "py-3")}
-        />
-        <span className={cn(NUMERIC, "w-14 shrink-0 text-right text-xs text-muted-foreground")} aria-live={held ? "off" : "polite"}>
-          {Math.floor(done)} / {total}
-        </span>
-      </div>
+      <Scrubber player={player} touch={touch} />
     </div>
+  );
+}
+
+/** The scrubber and the moves played under it: the part of the controls drawn on every frame. */
+function Scrubber({ player, touch }: { player: AlgPlayer; touch: boolean }) {
+  const p = usePlayback(player),
+    total = player.total,
+    // While the thumb is held the scrubber shows the pointer; let go, the cube settles on the nearest move.
+    [held, setHeld] = useState(false),
+    done = Math.round(p.position * 10) / 10;
+  return (
+    <div className="flex items-center gap-3">
+      <Slider
+        aria-label={tr("Moves played")}
+        min={0}
+        max={total}
+        step={0.01}
+        value={[p.position]}
+        onValueChange={(value: number | readonly number[]) => {
+          setHeld(true);
+          player.seek(Array.isArray(value) ? value[0]! : (value as number));
+        }}
+        onValueCommitted={(value: number | readonly number[]) => {
+          setHeld(false);
+          player.seek(Array.isArray(value) ? value[0]! : (value as number), true);
+        }}
+        className={cn("flex-1", touch && "py-3")}
+      />
+      <span className={cn(NUMERIC, "w-14 shrink-0 text-right text-xs text-muted-foreground")} aria-live={held ? "off" : "polite"}>
+        {Math.floor(done)} / {total}
+      </span>
+    </div>
+  );
+}
+
+/** The speeds of a player side by side, the one in use pressed; `touch` makes them 44 px tall. */
+export function SpeedChoice({ player, touch = false, className }: { player: AlgPlayer; touch?: boolean; className?: string }) {
+  const speed = usePlayed(player, (p) => p.playback.speed);
+  return (
+    <ToggleGroup aria-label={tr("Speed")} size="sm" spacing={1} value={[String(speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className={className}>
+      {PLAYER_SPEEDS.map((speed) => (
+        <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground", touch && "h-11")}>
+          {speedLabel(speed)}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

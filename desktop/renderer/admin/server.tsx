@@ -1,6 +1,7 @@
 /** The server: how long it has been running, which build, the database and the request log's limits. */
 import { useAdmin, useLiveState, type Overview } from "./api";
-import { bytes, date, Failure, FiguresSkeleton, Kpi, NUMERIC, num, SectionHead, span, useNow, when, ViewHead } from "./parts";
+import { bytes, date, Failure, FiguresSkeleton, Kpi, NUMERIC, num, SectionHead, span, useNow, VIEW, when } from "./parts";
+import { PageHead, Strip } from "../base";
 import { cn } from "@/lib/utils";
 
 function Row({ label, value, hint }: { label: string; value: React.ReactNode; hint?: React.ReactNode }) {
@@ -19,23 +20,23 @@ export function Server() {
   const now = useNow();
   const d = overview.data?.server;
   return (
-    <div className="flex flex-col gap-5 md:gap-6">
-      <ViewHead title="Server" sub={d ? `Version ${d.version}${d.build ? ` · build ${d.build}` : ""}` : "The running API"} />
+    <div className={VIEW}>
+      <PageHead title="Server" sub={d ? `Version ${d.version}${d.build ? ` · build ${d.build}` : ""}` : "The running API"} />
       {overview.error && !d ? (
         <Failure error={overview.error} retry={overview.reload} />
       ) : !d ? (
-        <div className="rounded-xl bg-muted/45 px-5 py-4">
+        <Strip>
           <FiguresSkeleton count={4} className="grid-cols-2 sm:grid-cols-4" />
-        </div>
+        </Strip>
       ) : (
         <>
-          <section aria-label="Key figures" className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl bg-muted/45 px-5 py-4 sm:grid-cols-4">
+          <Strip label="Key figures" className="grid-cols-2 sm:grid-cols-4">
             <Kpi label="Uptime" value={span(d.uptimeMs + (now - d.now > 0 ? now - d.now : 0))} sub={`since ${when(d.startedAt)}`} />
             <Kpi label="Database" value={bytes(d.db.bytes)} sub={`${bytes(d.db.freeBytes)} free inside`} />
             <Kpi label="Log rows" value={num(d.db.logRows)} sub={`${num(d.db.importantLogRows)} important`} />
             <Kpi label="Dropped log rows" value={num(d.log.dropped)} sub="since start" />
-          </section>
-          <div className="grid gap-x-10 gap-y-7 lg:grid-cols-2">
+          </Strip>
+          <div className="grid gap-6 lg:grid-cols-2">
               <section aria-label="Build">
                 <SectionHead rule title="Build" />
                 <Row label="Version" value={d.version} />

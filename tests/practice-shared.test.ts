@@ -99,6 +99,27 @@ test("timer reset cancels delayed readiness and a stopped solve is saved only on
   } finally { timer.dispose(); }
 });
 
+test("a solve is timed by its inputs' own time stamps, a busy page delaying neither end", async () => {
+  let now = 0;
+  const saved: number[] = [];
+  const timer = new PracticeTimer({ canStart: () => true, now: () => now, onChange: () => {}, onStop: ms => saved.push(ms) });
+  try {
+    timer.press();
+    await Bun.sleep(HOLD_DELAY_MS + 20);
+    now = 1000;
+    timer.release(900);
+    expect(timer.snapshot.startedAt).toBe(900);
+    now = 5000;
+    timer.press(4200);
+    expect(saved).toEqual([3300]);
+    // A stamp of another clock (later than now, or none) falls back to now.
+    timer.press();
+    await Bun.sleep(HOLD_DELAY_MS + 20);
+    timer.release(Date.now());
+    expect(timer.snapshot.startedAt).toBe(5000);
+  } finally { timer.dispose(); }
+});
+
 test("the web and the phone app take every theme's colours from the same tokens", () => {
   for (const { id } of THEMES) for (const mode of ["light", "dark"] as const) {
     const css = themeTokens(id, mode), native = themeTokens(id, mode, "rgb"), palette = buildTheme(id, mode);

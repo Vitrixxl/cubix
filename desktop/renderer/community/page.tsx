@@ -9,14 +9,13 @@ import { useEffect, useState } from "react";
 import { MessagesSquare, UserPlus } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
-import { PAGE, PageHead, plural } from "../ui";
+import { Empty, PAGE, PageHead, Surface, plural } from "../ui";
 import { usePhone, useViewport } from "../base";
-import { Nothing, PANEL } from "../coaching/parts";
+import { PhoneSheet } from "../phone";
 import { community, communityUrl } from "./client";
 import { Chat, ConversationList } from "./messages";
 import { Details } from "./groups";
 import { FriendsDialog, HeadButton, LinkDialog, NewGroupDialog, Requests } from "./dialogs";
-import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { tr } from "../../../src/client/i18n";
 
@@ -65,7 +64,7 @@ export function CommunityPage() {
       <div className="flex min-h-0 flex-1 gap-4">
         {(!phone || !id) && <ConversationList id={id} className={phone ? "w-full" : undefined} />}
         {(!phone || id) && (
-          <div className={cn(PANEL, "min-w-0 flex-1 flex-row")}>
+          <Surface className="min-w-0 flex-1 flex-row">
             {current ? (
               <>
                 <Chat conversation={current} details={shown} onDetails={() => setDetails(!shown)} back={phone ? () => go(communityUrl()) : undefined} />
@@ -76,21 +75,20 @@ export function CommunityPage() {
                 )}
               </>
             ) : (
-              <Nothing>
-                <MessagesSquare className="size-6" />
-                {list && id ? tr("This conversation does not exist.") : tr("Your conversations open here.")}
-              </Nothing>
+              <Empty icon={MessagesSquare}>{list && id ? tr("This conversation does not exist.") : tr("Your conversations open here.")}</Empty>
             )}
-          </div>
+          </Surface>
         )}
       </div>
-      {!beside && current && (
+      {/* Narrower, the details come over the conversation: a sheet from the bottom on phones, from the side otherwise. */}
+      {!beside && current && phone && (
+        <PhoneSheet open={shown} onOpenChange={setDetails} title={tr("Details")} hideTitle tall className="p-0">
+          <Details conversation={current} />
+        </PhoneSheet>
+      )}
+      {!beside && current && !phone && (
         <Sheet open={shown} onOpenChange={setDetails}>
-          {/* A drawer floating beside the conversation, not a wall. */}
-          <SheetContent
-            side="right"
-            className="w-[min(24rem,calc(100vw-1.5rem))] gap-0 overflow-hidden rounded-2xl border p-0 data-[side=right]:inset-y-3 data-[side=right]:right-3 data-[side=right]:h-auto data-[side=right]:border"
-          >
+          <SheetContent side="right" className="w-80 gap-0 p-0">
             <SheetTitle className="sr-only">{tr("Details")}</SheetTitle>
             <Details conversation={current} />
           </SheetContent>

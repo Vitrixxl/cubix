@@ -1,18 +1,18 @@
 /** The frame around the pages: the sidebar or the phone tab bar. */
-import { useEffect, useState } from "react";
-import { BookA, BookOpen, Boxes, ChartColumn, ChevronDown, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { memo, useSyncExternalStore } from "react";
+import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, ChartColumn, ChevronDown, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
-import { Avatar, FADE, Icon, PuzzlePicker, SIDEBAR_WIDE, useViewport, type Props } from "./ui";
+import { Avatar, FADE, FOCUS, Icon, PuzzlePicker, SIDEBAR_WIDE, Tip, useViewport } from "./ui";
 import { Logo, Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import { Button as UiButton } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Link } from "react-router";
 import { pageUrl } from "./navigation";
-import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
+import type { PuzzleId } from "../../src/shared/puzzles";
 import {
   Sidebar,
   SidebarContent,
@@ -26,8 +26,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { smartCube } from "../../src/client/lib/smartCube";
+/** How long the pointer rests on something before its tooltip shows: the same in every part of the app. */
+export const TIP_DELAY = 400;
+
 type Section = [page: string, label: string, icon: LucideIcon, shortcut: string];
 /**
  * The sections, in groups: the timer on its own, then studying (a cube library for the algorithms, a mortarboard for
@@ -73,6 +77,13 @@ const waiting: Record<string, () => number> = {
   coaching: () => coaching.me?.unread ?? 0,
   community: () => (community.me ? community.me.unread + community.me.incoming.length + community.me.invitations.length : 0),
 };
+/**
+ * All the sidebar and the tab bar show of the app: the page, the puzzle, the account, what waits in each section and the
+ * language. They are drawn again when it changes, not at every change of the page beside them.
+ */
+const shellKey = () =>
+  [s.page, s.profileMode, s.puzzle, s.solveMode, s.user.username, waiting.coaching!(), waiting.community!(), language()].join("|");
+const useShell = () => useSyncExternalStore(s.subscribe, shellKey);
 /** A section's count beside its name; folded to its icons, the sidebar keeps a dot on the icon. */
 function UnreadBadge({ page }: { page: string }) {
   const count = waiting[page]?.() ?? 0;
@@ -82,9 +93,16 @@ function UnreadBadge({ page }: { page: string }) {
       <SidebarMenuBadge data-slot={page + "-unread"} className="right-2 bg-primary text-primary-foreground group-hover/menu-item:opacity-0 peer-data-[size=default]/menu-button:top-2">
         {count}
       </SidebarMenuBadge>
-      <span data-slot={page + "-unread"} aria-label={tr("{0} unread", { 0: count })} className="pointer-events-none absolute top-1.5 left-6 hidden size-2 rounded-full bg-primary ring-2 ring-sidebar group-data-[collapsible=icon]:block" />
+      <UnreadDot page={page} className="top-1.5 left-6 hidden ring-sidebar group-data-[collapsible=icon]:block" />
     </>
   );
+}
+
+/** The dot on a section's icon while something waits there; `className` places it and rings it in its ground. */
+function UnreadDot({ page, className }: { page: string; className: string }) {
+  const count = waiting[page]?.() ?? 0;
+  if (!count) return null;
+  return <span data-slot={page + "-unread"} aria-label={tr("{0} unread", { 0: count })} className={cn("pointer-events-none absolute size-2 rounded-full bg-primary ring-2", className)} />;
 }
 
 /** The player's face: the account's initials. */
@@ -92,12 +110,30 @@ function Me({ size = 32 }: { size?: number }) {
   return <Avatar name={s.user.username} size={size} />;
 }
 
+/** The connected cube, from any page: its state, and a click to connect it, cancel or disconnect. */
+function CubeLink() {
+  const { status, name, battery } = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot),
+    I = status === "on" ? BluetoothConnected : status === "connecting" ? BluetoothSearching : Bluetooth,
+    label = status === "on" ? name : status === "connecting" ? tr("Connecting…") : tr("Connect a cube"),
+    tip = status === "on" ? tr("{0} connected · disconnect", { 0: name }) : status === "connecting" ? tr("Connecting… · cancel") : tr("Connect a cube");
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton data-action="smartCube" data-status={status} tooltip={tip} onClick={run("smartCube")} className="h-9 text-muted-foreground">
+        <I className={cn(status === "on" && "text-success", status === "connecting" && "animate-pulse text-primary")} />
+        <span className="min-w-0 flex-1 truncate">{said(label)}</span>
+        {status === "on" && battery !== undefined && <span className="text-xs tabular-nums">{battery}%</span>}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 /**
  * Desktop navigation: a labelled column on the page background. The puzzle every page works on, as the app's mark
  * beside its name, the sections by name, then the guides, the settings, a coffee for the author and, last, the account:
  * the profile link with its own sign-out icon button on its right. Narrow windows keep the icons.
  */
-export function Rail() {
+export const Rail = memo(function Rail() {
+  useShell();
   const e = s.event(),
     profile = s.page === "profile" && s.profileMode !== "analysis",
     { open, toggleSidebar } = useSidebar(),
@@ -105,7 +141,7 @@ export function Rail() {
     foldable = useViewport().w > SIDEBAR_WIDE;
   return (
     // Folded, the icons are named by their tooltips: these come almost at once, and move from icon to icon instantly.
-    <TooltipProvider delay={open ? 400 : 80} closeDelay={0}>
+    <TooltipProvider delay={open ? TIP_DELAY : 80} closeDelay={0}>
     <Sidebar collapsible="icon" className={cn("rail border-sidebar-border", FADE)}>
       <SidebarHeader className="pt-4">
         {/* The puzzle's mark, drawn as the puzzle every page works on (picked just under it), the name, and the
@@ -116,23 +152,18 @@ export function Rail() {
           </span>
           <Wordmark className="min-w-0 flex-1 text-xl group-data-[collapsible=icon]:hidden" />
           {foldable && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <UiButton
-                    variant="ghost"
-                    size="icon"
-                    data-action="sidebar:toggle"
-                    aria-label={open ? tr("Collapse the sidebar") : tr("Expand the sidebar")}
-                    onClick={toggleSidebar}
-                    className="shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8"
-                  />
-                }
+            <Tip side="right" content={<>{open ? tr("Collapse") : tr("Expand")} {tr("· Ctrl+B")}</>}>
+              <UiButton
+                variant="ghost"
+                size="icon"
+                data-action="sidebar:toggle"
+                aria-label={open ? tr("Collapse the sidebar") : tr("Expand the sidebar")}
+                onClick={toggleSidebar}
+                className="shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8"
               >
                 {open ? <PanelLeftClose /> : <PanelLeftOpen />}
-              </TooltipTrigger>
-              <TooltipContent side="right">{open ? tr("Collapse") : tr("Expand")} {" "}{tr("· Ctrl+B")}</TooltipContent>
-            </Tooltip>
+              </UiButton>
+            </Tip>
           )}
         </div>
       </SidebarHeader>
@@ -141,15 +172,15 @@ export function Rail() {
         <SidebarGroup className="pt-2 pb-1">
           <PuzzlePicker
             trigger={
-              <button
-                type="button"
-                aria-label={tr("Puzzle: {0}", { 0: e.label })}
-                className="flex h-9 w-full items-center gap-2 rounded-md border bg-sidebar px-2 text-sm font-medium outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring/50 aria-expanded:bg-sidebar-accent group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              <UiButton
+                variant="outline"
+                aria-label={tr("Puzzle: {0}", { 0: said(e.label) })}
+                className="h-9 w-full justify-start gap-2 px-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               >
-                <Icon name={"Puzzle" + e.id} size={16} className="shrink-0" />
+                <Icon name={"Puzzle" + e.id} size={16} />
                 <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">{said(e.label)}</span>
-                <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-              </button>
+                <ChevronDown className="text-muted-foreground group-data-[collapsible=icon]:hidden" />
+              </UiButton>
             }
           />
         </SidebarGroup>
@@ -167,7 +198,7 @@ export function Rail() {
                       data-action={"nav:" + page}
                       isActive={here}
                       aria-current={here ? "page" : undefined}
-                      tooltip={`${label} · ${shortcut.replace(" ", "+")}`}
+                      tooltip={`${tr(label)} · ${shortcut.replace(" ", "+")}`}
                       render={<Link to={to} />}
                       className="h-9 text-muted-foreground data-active:text-foreground"
                     >
@@ -187,20 +218,21 @@ export function Rail() {
       </SidebarContent>
       <SidebarFooter className="pb-4">
         <SidebarMenu className="gap-0.5">
+          <CubeLink />
           <SidebarMenuItem>
-            <SidebarMenuButton data-action="notation" tooltip="Notation" onClick={run("notation")} className="h-9 text-muted-foreground">
+            <SidebarMenuButton data-action="notation" tooltip={tr("Notation")} onClick={run("notation")} className="h-9 text-muted-foreground">
               <BookA />
               <span>{tr("Notation")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton data-action="help" tooltip="Guides" onClick={run("help")} className="h-9 text-muted-foreground">
+            <SidebarMenuButton data-action="help" tooltip={tr("Guides")} onClick={run("help")} className="h-9 text-muted-foreground">
               <BookOpen />
               <span>{tr("Guides")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton data-action="settings" tooltip="Settings · Alt+S" onClick={run("settings")} className="h-9 text-muted-foreground">
+            <SidebarMenuButton data-action="settings" tooltip={tr("Settings · Alt+S")} onClick={run("settings")} className="h-9 text-muted-foreground">
               <Settings />
               <span>{tr("Settings")}</span>
             </SidebarMenuButton>
@@ -210,7 +242,7 @@ export function Rail() {
           {/* Support for the app, above the account. */}
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip="Buy me a coffee"
+              tooltip={tr("Buy me a coffee")}
               render={<a href="https://buymeacoffee.com/vitrixxl" target="_blank" rel="noreferrer" />}
               className="h-9 text-muted-foreground"
             >
@@ -223,67 +255,64 @@ export function Rail() {
             <SidebarMenuButton
               data-action="nav:profile"
               aria-current={profile ? "page" : undefined}
-              tooltip={s.user.username + " · Profile"}
+              tooltip={s.user.username + " · " + tr("Profile")}
               render={<Link to={pageUrl("profile", { puzzle: s.puzzle as PuzzleId })} />}
               className="h-9 min-w-0 flex-1 gap-2.5 group-data-[collapsible=icon]:p-1!"
             >
               <Me size={24} />
               <span className="truncate font-medium">{s.user.username}</span>
             </SidebarMenuButton>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <UiButton variant="ghost" size="icon" data-action="logout" aria-label={tr("Log out")} onClick={run("logout")} className="size-9 shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8 hover:text-destructive" />
-                }
-              >
+            <Tip side="right" content={tr("Log out")}>
+              <UiButton variant="ghost" size="icon" data-action="logout" aria-label={tr("Log out")} onClick={run("logout")} className="size-9 shrink-0 text-muted-foreground group-data-[collapsible=icon]:size-8 hover:text-destructive">
                 <LogOut />
-              </TooltipTrigger>
-              <TooltipContent side="right">{tr("Log out")}</TooltipContent>
-            </Tooltip>
+              </UiButton>
+            </Tip>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
     </TooltipProvider>
   );
-}
+});
 
 /**
- * Phone navigation follows the sidebar, the account last.
+ * Phone navigation follows the sidebar, the account last. Seven tabs share a phone's width: each takes a short name.
  */
 const MOBILE_TABS: [page: string, label: string, icon: LucideIcon | null][] = [
   ["playground", "Timer", Timer],
-  ["algorithms", "Algorithms", Boxes],
+  ["algorithms", "Algs", Boxes],
   ["learn", "Learn", GraduationCap],
-  ["training", "Training", Dumbbell],
+  ["training", "Train", Dumbbell],
   ["duel", "Duel", Swords],
   ["coaching", "Coach", Headset],
   ["profile", "Account", null],
 ];
 
-export function TabBar() {
+export const TabBar = memo(function TabBar() {
+  useShell();
   return (
     <nav
-      className={cn("tabbar grid shrink-0 grid-cols-7 border-t bg-background px-1 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
+      className={cn("tabbar grid shrink-0 grid-cols-7 border-t bg-background px-0.5 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)]", FADE)}
       aria-label={tr("Sections")}
     >
       {MOBILE_TABS.map(([page, label, I]) => {
         const here = s.page === page,
           className = cn(
-            "flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 text-[10px] font-medium tracking-tight text-muted-foreground transition-colors outline-none focus-visible:bg-muted",
+            "flex min-w-0 flex-col items-center gap-1 rounded-lg py-1 text-xs font-medium tracking-tighter text-muted-foreground transition-colors",
+            FOCUS,
             here && "text-foreground",
           );
         return (
           <Link key={page} data-action={"nav:" + page} aria-current={here ? "page" : undefined} to={pageUrl(page, { puzzle: s.puzzle as PuzzleId })} className={className}>
-              <span className={cn("relative flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/12 text-primary")}>
-                {I ? <I className="size-5" /> : <Me size={22} />}
-                {page === "coaching" && !!coaching.me?.unread && <span className="absolute top-0.5 right-2 size-2 rounded-full bg-primary" aria-label={tr("Unread messages")} />}
-              </span>
-              <span className="max-w-full truncate">{said(label)}</span>
+            <span className={cn("relative flex h-8 w-full max-w-14 items-center justify-center rounded-lg transition-colors", here && "bg-primary/15 text-primary")}>
+              {I ? <I className="size-5" /> : <Me size={22} />}
+              <UnreadDot page={page} className="top-1 left-1/2 ml-1.5 ring-background" />
+            </span>
+            <span className="max-w-full truncate">{said(label)}</span>
           </Link>
         );
       })}
     </nav>
   );
-}
+});
 

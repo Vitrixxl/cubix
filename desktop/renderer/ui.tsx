@@ -1,14 +1,14 @@
 /** Visual primitives and page building blocks shared by every screen, composed from the shadcn components. */
-import React, { useRef } from "react";
-import { Check, ChevronDown, Circle, Ellipsis, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
+import React, { useMemo, useRef } from "react";
+import { Check, ChevronDown, Circle, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { Cube } from "./Cube";
-import { SessionButton } from "./phone";
-import { FADE, Icon, InHead, NUMERIC, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
+import { PhoneSheet, SessionButton } from "./phone";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Back as BaseBack, Icon, InHead, NUMERIC, PageHead as BasePageHead, Segmented, Tip, useQuiet, usePhone, type Props, type Variant } from "./base";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,8 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { EVENTS } from "../../src/shared/puzzles";
+import { cubeScene } from "../../src/shared/cubeScene";
+import { maskForStage } from "../../src/client/lib/caseState";
 import { fmtSolve } from "../../src/client/lib/format";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
@@ -115,66 +117,32 @@ export function ActionToggle({
 }
 
 /** One choice among a few, each option dispatching `prefix + id`. */
-export function Choice({
-  prefix,
-  value,
-  options,
-  label,
-  size = "sm",
-  className,
-}: {
-  prefix: string;
-  value: string;
-  options: { id: string; label: React.ReactNode; count?: number; tip?: string }[];
-  label: string;
-  size?: "default" | "sm";
-  className?: string;
-}) {
-  const head = React.useContext(InHead);
-  return (
-    <ToggleGroup
-      aria-label={said(label)}
-      variant={head ? "outline" : "default"}
-      size={size}
-      spacing={1}
-      value={[value]}
-      onValueChange={(next: string[]) => {
-        if (next[0] && next[0] !== value) void s.action(prefix + next[0]);
-      }}
-      className={className}
-    >
-      {options.map((o) => (
-        <ToggleGroupItem
-          key={o.id}
-          value={o.id}
-          data-action={prefix + o.id}
-          title={said(o.tip)}
-          className="px-2.5 text-muted-foreground aria-pressed:text-foreground"
-        >
-          {said(o.label)}
-          {o.count != null && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{o.count}</span>}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
-  );
+export function Choice({ prefix, ...rest }: { prefix: string } & Omit<React.ComponentProps<typeof Segmented>, "onChange" | "action">) {
+  return <Segmented {...rest} action={prefix} onChange={(id) => void s.action(prefix + id)} />;
 }
 
 /** A header menu: the current value on a button (bordered in a header), the choices as radio items. */
 export function SelectMenu({
   action,
+  onChange,
   value,
   options,
   caption,
+  label,
   icon,
   align = "end",
   variant: chosen,
   className,
 }: {
+  /** The store action each choice dispatches, as `action:id`; or `onChange` for a choice kept by the page. */
   action: string;
+  onChange?: (id: string) => void;
   value: string;
   options: { id: string; label: string; icon?: React.ReactNode }[];
   /** Muted word before the value, e.g. "Scramble". */
   caption?: string;
+  /** The menu's name for screen readers, when no caption says it. */
+  label?: string;
   icon?: React.ReactNode;
   align?: "start" | "end" | "center";
   variant?: Variant;
@@ -185,7 +153,7 @@ export function SelectMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<UiButton variant={variant} data-action={"menu:" + action} className={cn("gap-1.5", className)} />}
+        render={<UiButton variant={variant} data-action={"menu:" + action} aria-label={said(label)} className={cn("gap-1.5", className)} />}
       >
         {icon}
         {caption && <span className="text-muted-foreground">{said(caption)}</span>}
@@ -193,7 +161,7 @@ export function SelectMenu({
         <ChevronDown className="text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-auto min-w-44">
-        <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => void s.action(action + ":" + v)}>
+        <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => (onChange ? onChange(v) : void s.action(action + ":" + v))}>
           {options.map((o) => (
             <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
               {o.icon}
@@ -304,10 +272,10 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
 export function SolveActions({ solve, comment = false, className }: { solve: { id: number; penalty?: string; comment?: string | null }; comment?: boolean; className?: string }) {
   return (
     <span className={cn("flex items-center opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100", className)}>
-      <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
+      <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground aria-pressed:text-warning">
         +2
       </ActionToggle>
-      <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground">
+      <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground aria-pressed:text-destructive">
         {tr("DNF")}</ActionToggle>
       {comment && (
         <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
@@ -341,75 +309,114 @@ export function LearnedMark({ id, learned, touch = false, action = "learn:" + id
           learned ? "text-success" : "text-muted-foreground/40 group-hover/row:text-muted-foreground/80 group-focus-within/row:text-muted-foreground/80 hover:text-foreground",
         )}
       >
-        {learned ? (
-          <span className="flex size-3.5 items-center justify-center rounded-full bg-current">
-            <Check className="size-2.5 text-background" strokeWidth={3.5} />
-          </span>
-        ) : (
-          <Circle className="size-4" strokeDasharray="3.5 3" />
-        )}
+        <StatusMark state={learned ? "done" : "todo"} />
       </button>
     </Tip>
   );
 }
 
+/**
+ * Where a thing stands, as a glyph in the current colour: a disc with a check once done, a ring around a dot for the
+ * current one, a small dot for one with nothing to do, a dashed circle otherwise. The caller colours it (success when
+ * done, the accent when current, muted otherwise).
+ */
+export function StatusMark({ state }: { state: "done" | "current" | "neutral" | "todo" }) {
+  if (state === "done")
+    return (
+      <span className="flex size-3.5 items-center justify-center rounded-full bg-current">
+        <Check className="size-2.5 text-background" strokeWidth={3.5} />
+      </span>
+    );
+  if (state === "current")
+    return (
+      <span className="flex size-3.5 items-center justify-center rounded-full border-[1.5px] border-current">
+        <span className="size-1.5 rounded-full bg-current" />
+      </span>
+    );
+  if (state === "neutral") return <span className="size-1.5 rounded-full bg-current" />;
+  return <Circle className="size-4" strokeDasharray="3.5 3" />;
+}
+
+/** Whether an algorithm or a case is learned, as a labelled toggle: "Mark learned", then "Learned" in green. */
+export function LearnToggle({ action, learned, touch = false, className }: { action: string; learned: boolean; touch?: boolean; className?: string }) {
+  return (
+    <ActionToggle
+      action={action}
+      pressed={learned}
+      icon={Check}
+      variant="outline"
+      className={cn("text-muted-foreground aria-pressed:border-success/40 aria-pressed:bg-success/15 aria-pressed:text-success", touch && "h-11 px-3", className)}
+    >
+      {learned ? tr("Learned") : tr("Mark learned")}
+    </ActionToggle>
+  );
+}
+
+/**
+ * +2 and DNF on a solve, as two toggles: +2 in the warning colour once on, DNF in red. Each dispatches `prefix + "+2"`
+ * or `prefix + "dnf"`, or calls `onToggle` when the page keeps the solve itself.
+ */
+export function PenaltyToggles({
+  penalty,
+  prefix,
+  onToggle,
+  disabled = false,
+  variant = "outline",
+}: {
+  penalty: string | undefined;
+  prefix?: string;
+  onToggle?: (penalty: "+2" | "dnf") => void;
+  disabled?: boolean;
+  variant?: "default" | "outline";
+}) {
+  return (
+    <>
+      {(["+2", "dnf"] as const).map((p) => {
+        const toggle = (
+          <Toggle
+            key={p}
+            variant={variant}
+            size="sm"
+            pressed={penalty === p}
+            disabled={disabled}
+            data-action={prefix != null ? prefix + p : undefined}
+            onClick={() => (onToggle ? onToggle(p) : void s.action(prefix + p))}
+            className={cn("text-muted-foreground", p === "+2" ? "aria-pressed:text-warning" : "aria-pressed:text-destructive")}
+          >
+            {p === "+2" ? "+2" : tr("DNF")}
+          </Toggle>
+        );
+        return toggle;
+      })}
+    </>
+  );
+}
+
 export function Diagram({ c, size = 96, className }: { c: any; size?: number; className?: string }) {
+  // Cases without a drawn diagram nor a view from above show on the 3D cube (desktop/scripts/export-assets.tsx).
+  const scene = useMemo(() => (c && !c.diagram && !c.flat ? cubeScene(c.setup, c.cube_size ?? 3, maskForStage(c.stage), false) : undefined), [c?.setup, c?.cube_size, c?.stage, c?.diagram, c?.flat]);
   if (!c) return null;
-  return c.cube ? (
-    <Cube scene={c.cube} size={size} animated={false} />
+  return scene ? (
+    <Cube scene={scene} size={size} animated={false} />
   ) : (
     <img className={cn("block shrink-0", className)} src={"/assets/" + c.asset} width={size} height={size} alt={c.id} />
   );
 }
 
-/**
- * Every page starts with the same header on the page background: the way back if any, the title and one short line
- * beside it on the same line on the left, the page's controls on the right. Phones keep one row: the puzzle, the
- * few controls a thumb needs, and the rest in the "…" menu (`more`).
- */
-export function PageHead({
-  title,
-  sub,
-  lead,
-  puzzle = false,
-  more,
-  children,
-}: { title: React.ReactNode; sub?: React.ReactNode; lead?: React.ReactNode; puzzle?: boolean | "scramble"; more?: React.ReactNode } & Props) {
+/** The page header (base.tsx), with the puzzle and its session on phones when the page has one (`puzzle`). */
+export function PageHead({ puzzle = false, children, ...rest }: { puzzle?: boolean | "scramble" } & React.ComponentProps<typeof BasePageHead>) {
   const phone = usePhone();
   return (
-    <InHead.Provider value={true}>
-    <header className={cn("flex min-h-10 shrink-0 items-center justify-between gap-x-2 md:justify-start md:gap-x-6", FADE)}>
-      <div className="flex min-w-0 items-center gap-2 md:gap-3">
-        {lead}
-        {/* One line: the title, then its subtitle on the same baseline, cut short where the row runs out. */}
-        <div className="flex min-w-0 items-baseline gap-2 md:gap-3">
-          <h1 className="max-w-full min-w-0 shrink-0 truncate text-xl font-semibold tracking-tight md:text-2xl">{said(title)}</h1>
-          {sub && <p className="min-w-0 truncate text-xs text-muted-foreground md:text-sm">{said(sub)}</p>}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center justify-end gap-1 md:justify-start">
-        {phone && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
-        {children}
-        {more && <MoreMenu>{more}</MoreMenu>}
-      </div>
-    </header>
-    </InHead.Provider>
+    <BasePageHead {...rest}>
+      {phone && puzzle && <SessionButton scramble={puzzle === "scramble"} />}
+      {children}
+    </BasePageHead>
   );
 }
 
-/** The "…" of a phone header: the page's other controls as menu items. */
-export function MoreMenu({ children }: Props) {
-  const variant = useQuiet();
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<UiButton variant={variant} size="icon" aria-label={tr("More")} data-action="menu:more" />}>
-        <Ellipsis />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-auto min-w-52">
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+/** The way back (base.tsx), dispatching a store action. */
+export function Back({ action, label }: { action: string; label?: string }) {
+  return <BaseBack action={action} label={label} onClick={() => void s.action(action)} />;
 }
 
 /** A menu item dispatching a store action. */
@@ -435,5 +442,62 @@ export function MenuChoice({ label, action, value, options }: { label: string; a
         ))}
       </DropdownMenuRadioGroup>
     </DropdownMenuGroup>
+  );
+}
+
+/** A `DialogFooter` reaches the dialog's edges, whatever its padding: the dialog's 6, the phone sheet's 5. */
+const DIALOG_FOOTER = "*:data-[slot=dialog-footer]:-mx-6 *:data-[slot=dialog-footer]:-mb-6 *:data-[slot=dialog-footer]:px-6",
+  SHEET_FOOTER = "*:data-[slot=dialog-footer]:-mx-5 *:data-[slot=dialog-footer]:-mb-5 *:data-[slot=dialog-footer]:rounded-none *:data-[slot=dialog-footer]:px-5";
+
+/**
+ * A dialog: centred on a desktop, a sheet from the bottom on phones (full height when `tall`). It is open while the app
+ * overlay is `id`, or as `open` says when the page keeps it. `className` styles the dialog, `sheetClassName` the sheet's
+ * body.
+ */
+export function Modal({
+  id,
+  open: shown,
+  onOpenChange: changed,
+  children,
+  className,
+  sheetClassName,
+  title,
+  description,
+  hideHeader = false,
+  tall = false,
+}: {
+  id?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  hideHeader?: boolean;
+  tall?: boolean;
+  className?: string;
+  sheetClassName?: string;
+  children: React.ReactNode;
+}) {
+  const phone = usePhone(),
+    open = id != null ? s.overlay === id : !!shown,
+    onOpenChange = (next: boolean) => {
+      if (id != null) return void (!next && s.overlay === id && s.closeOverlay());
+      changed?.(next);
+    };
+  if (phone)
+    return (
+      <PhoneSheet open={open} onOpenChange={onOpenChange} title={said(title)} description={said(description)} tall={tall} hideTitle={hideHeader} className={cn(SHEET_FOOTER, sheetClassName)}>
+        {children}
+      </PhoneSheet>
+    );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={cn("gap-5 p-6", DIALOG_FOOTER, className)}>
+        <DialogHeader className={hideHeader ? "sr-only" : undefined}>
+          <DialogTitle className="text-lg font-semibold tracking-tight">{said(title)}</DialogTitle>
+          {description && <DialogDescription>{said(description)}</DialogDescription>}
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 }

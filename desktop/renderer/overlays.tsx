@@ -1,73 +1,36 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
-import React, { useState } from "react";
-import { Check, Compass, Download, GraduationCap, MessageSquare, RotateCcw, Trash2 } from "lucide-react";
+import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
+import { Check, Compass, Download, GraduationCap, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s, matches } from "./store";
 import { call, openExternal } from "./bridge";
 import { ImportTimes } from "./ImportTimes";
 import { accents } from "./theme";
 import { LearningGroups } from "./LearningGroups";
-import { fmtSolve } from "../../src/client/lib/format";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
-import { PUZZLES, puzzleInfo, puzzleOf, type PuzzleId } from "../../src/shared/puzzles";
+import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { ActionToggle, Alg, Avatar, Button, Choice, Diagram, LABEL, NUMERIC, run, usePhone } from "./ui";
-import { PhoneSheet, SessionSheet } from "./phone";
+import { Avatar, Button, Choice, Diagram, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
+import { SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
 import { AlgView } from "./algView";
 import { SolveView } from "./SolveView";
 import { NotationContent } from "./notation";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList, Command } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { tr } from "../../src/client/i18n";
+import { language, tr } from "../../src/client/i18n";
 import { LanguagePicker, said } from "./base";
 import { LEGAL_DOCUMENTS } from "./legal/paths";
 
 const close = s.closeOverlay;
-
-/**
- * A dialog shown while the app overlay is `id`; phones get a sheet from the bottom, full height when `tall`.
- * `className` styles the dialog, `sheetClassName` the sheet's body.
- */
-function Modal({ id, children, className, sheetClassName, title, description, hideHeader = false, tall = false }: {
-  id: string;
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  hideHeader?: boolean;
-  tall?: boolean;
-  className?: string;
-  sheetClassName?: string;
-  children: React.ReactNode;
-}) {
-  const phone = usePhone(),
-    open = s.overlay === id,
-    onOpenChange = (next: boolean) => !next && s.overlay === id && close();
-  if (phone)
-    return (
-      <PhoneSheet open={open} onOpenChange={onOpenChange} title={title} description={description} tall={tall} hideTitle={hideHeader} className={sheetClassName}>
-        {children}
-      </PhoneSheet>
-    );
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("gap-5 p-6", className)}>
-        <DialogHeader className={hideHeader ? "sr-only" : undefined}>
-          <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 /** A settings row: its name on the left, its controls on the right. */
 function SettingRow({ label, children }: { label: string; children?: React.ReactNode }) {
@@ -110,31 +73,33 @@ function Settings() {
           <Choice
             prefix="light:"
             label={tr("Theme")}
-            value={s.light ? "light" : "dark"}
+            value={s.colorMode}
             options={[
               { id: "dark", label: "Dark" },
               { id: "light", label: "Light" },
+              { id: "system", label: "System" },
             ]}
           />
         </SettingRow>
         <SettingRow label={tr("Accent")}>
           {accents.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              data-action={"theme:" + a.id}
-              title={said(a.name)}
-              aria-label={said(a.name)}
-              aria-pressed={s.themeName === a.id}
-              onClick={run("theme:" + a.id)}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-md outline-none transition-shadow focus-visible:ring-3 focus-visible:ring-ring/50",
-                s.themeName === a.id && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-popover",
-              )}
-              style={{ background: a.color }}
-            >
-              {s.themeName === a.id && <Check className="size-3.5 text-white" />}
-            </button>
+            <Tip key={a.id} content={said(a.name)}>
+              <button
+                type="button"
+                data-action={"theme:" + a.id}
+                aria-label={said(a.name)}
+                aria-pressed={s.themeName === a.id}
+                onClick={run("theme:" + a.id)}
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-md transition-shadow",
+                  FOCUS,
+                  s.themeName === a.id && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-popover",
+                )}
+                style={{ background: a.color }}
+              >
+                {s.themeName === a.id && <Check className="size-3.5 text-white" />}
+              </button>
+            </Tip>
           ))}
         </SettingRow>
       </section>
@@ -210,7 +175,8 @@ function AccountData() {
 
 /** The guides: their list on the left, the chosen guide on the right; phones get a full-height sheet, the list on top. */
 function GuidesDialog() {
-  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide;
+  const page = (s.guidePage in GUIDES ? s.guidePage : "overviewGuide") as Guide,
+    phone = usePhone();
   return (
     <Modal
       id="guides"
@@ -223,15 +189,27 @@ function GuidesDialog() {
     >
       <nav aria-label={tr("Guides")} className="flex shrink-0 flex-col gap-0.5 p-3 md:w-52 md:border-r md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:border-b max-md:pr-12 max-md:[scrollbar-width:none]">
         <span className={cn(LABEL, "px-2.5 pb-2 max-md:hidden")}>{tr("Guides")}</span>
-        {(Object.keys(GUIDES) as Guide[]).map((id) => (
-          <Button
-            key={id}
-            action={"guidePage:" + id}
-            className={cn("h-auto min-h-8 justify-start py-1.5 text-left font-normal whitespace-normal text-muted-foreground max-md:whitespace-nowrap", id === page && "bg-muted font-medium text-foreground")}
-          >
-            {said(GUIDES[id].name)}
-          </Button>
-        ))}
+        {/* One guide among the others: the chosen one raised, as every choice of the app. Outside the article, so its
+            click handler never sees these actions. */}
+        <ToggleGroup
+          aria-label={tr("Guides")}
+          orientation={phone ? "horizontal" : "vertical"}
+          spacing={1}
+          value={[page]}
+          onValueChange={(next: string[]) => next[0] && next[0] !== page && void s.action("guidePage:" + next[0])}
+          className="w-full max-md:w-auto"
+        >
+          {(Object.keys(GUIDES) as Guide[]).map((id) => (
+            <ToggleGroupItem
+              key={id}
+              value={id}
+              data-action={"guidePage:" + id}
+              className="h-auto min-h-8 justify-start py-1.5 text-left font-normal whitespace-normal text-muted-foreground aria-pressed:font-medium aria-pressed:text-foreground max-md:whitespace-nowrap"
+            >
+              {said(GUIDES[id].name)}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
         {/* Replays: the app tour (the shared `tour` action) and the introduction, which leaves the guides behind. */}
         <div className="flex gap-0.5 md:mt-auto md:flex-col md:border-t md:pt-2 max-md:border-l max-md:pl-1">
           <Button action="tour" icon={Compass} className="justify-start font-normal text-muted-foreground">
@@ -306,10 +284,6 @@ function MethodsDialog() {
 }
 
 function SearchDialog() {
-  const results = s
-    .cases()
-    .filter((c: any) => matches(c, s.search))
-    .slice(0, 50);
   return (
     <CommandDialog
       open={s.overlay === "search"}
@@ -318,35 +292,36 @@ function SearchDialog() {
       description={tr("Find a case by its name, set or group")}
       className="sm:max-w-xl"
     >
-      <Command shouldFilter={false}>
-        <CommandInput
-          autoFocus
-          placeholder={tr("Search a case: oll fish, pll t, f2l 6…")}
-          value={s.search}
-          onValueChange={(v) => {
-            s.search = v;
-            s.emit();
-          }}
-        />
-        <CommandList className="max-h-[min(60vh,28rem)] p-1">
-          <CommandEmpty>{tr("No case matches.")}</CommandEmpty>
-          {results.map((c: any) => (
-            <CommandItem key={c.id} value={c.id} onSelect={() => void s.action("case:" + c.id)} className="gap-3 py-1.5">
-              <Diagram c={c} size={40} />
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate font-medium">
-                  {c.id}
-                  {c.name !== c.id && <span className="font-normal text-muted-foreground"> · {c.name}</span>}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {c.setLabel} · {c.group}
-                </span>
-              </div>
-            </CommandItem>
-          ))}
-        </CommandList>
-      </Command>
+      <SearchCases />
     </CommandDialog>
+  );
+}
+/** The search, there only while its dialog is open: typing draws its results again, never the page under it. */
+function SearchCases() {
+  const [query, setQuery] = useState(""),
+    typed = useDeferredValue(query),
+    results = useMemo(() => s.cases().filter((c: any) => matches(c, typed)).slice(0, 50), [typed, s.puzzle]);
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput autoFocus placeholder={tr("Search a case: oll fish, pll t, f2l 6…")} value={query} onValueChange={setQuery} />
+      <CommandList className="max-h-[min(60vh,28rem)] p-1">
+        <CommandEmpty>{tr("No case matches.")}</CommandEmpty>
+        {results.map((c: any) => (
+          <CommandItem key={c.id} value={c.id} onSelect={() => void s.action("case:" + c.id)} className="gap-3 py-1.5">
+            <Diagram c={c} size={40} />
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate font-medium">
+                {c.id}
+                {c.name !== c.id && <span className="font-normal text-muted-foreground"> · {c.name}</span>}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {c.setLabel} · {c.group}
+              </span>
+            </div>
+          </CommandItem>
+        ))}
+      </CommandList>
+    </Command>
   );
 }
 
@@ -367,7 +342,12 @@ function CommentForm() {
         }
       }}
     >
-      <Textarea autoFocus className="min-h-28" placeholder={tr("What happened on this solve?")} value={comment} onChange={(e) => setComment(e.target.value)} />
+      <Field>
+        <FieldLabel htmlFor="solve-comment" className="sr-only">
+          {tr("Comment")}
+        </FieldLabel>
+        <Textarea id="solve-comment" autoFocus className="min-h-28" placeholder={tr("What happened on this solve?")} value={comment} onChange={(e) => setComment(e.target.value)} />
+      </Field>
       <div className="flex justify-end gap-2">
         <UiButton type="button" variant="ghost" onClick={close}>
           {tr("Cancel")}</UiButton>
@@ -382,10 +362,14 @@ function SolveDetails() {
   return solve ? <SolveView key={solve.id} solve={solve} owner /> : null;
 }
 
+/**
+ * What the dialogs show of the app: with one open, anything (each change draws it again); with none, only which opens
+ * and the language. A solve's few changes then pass them by.
+ */
+const overlaysKey = () => (s.overlay ? s.overlay + ":" + s.version : "") + "|" + language();
 /** Every dialog of the app, each open while the app overlay names it. */
-
-
-export function Overlays() {
+export const Overlays = memo(function Overlays() {
+  useSyncExternalStore(s.subscribe, overlaysKey);
   return (
     <>
       <Modal id="settings" title={tr("Settings")} className="sm:max-w-md" tall>
@@ -418,4 +402,4 @@ export function Overlays() {
       </Modal>
     </>
   );
-}
+});

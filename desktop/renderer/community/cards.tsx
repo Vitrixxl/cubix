@@ -4,46 +4,22 @@
  * scramble; a tournament on its page.
  */
 import { useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Crown, Eye, Play, Swords, Trophy, Users } from "lucide-react";
+import { Check, ChevronRight, Eye, Play, Swords } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
-import { Icon } from "../base";
-import { Avatar, NUMERIC } from "../ui";
+import { Figure, Icon, IconTile, Modal, Strip, Surface } from "../ui";
 import { day, relative, time } from "../coaching/parts";
-import { community, eventName, formatText, matchUrl, scoreOf, seatIn, tournamentUrl, type Match, type MatchSolve, type Person, type Tournament } from "./client";
-import { RegisterButton, StatusBadge, when } from "../tournaments/page";
-import { fmtSolve } from "../../../src/client/lib/format";
+import { community, eventName, formatText, matchUrl, scoreOf, seatIn, type Match, type MatchSolve, type Tournament } from "./client";
+import { TournamentCard } from "../tournaments/page";
+import { CARD_LINK, MatchStatusBadge, MoveList, PlayerLine, apart, opens } from "../tournaments/format";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { tr } from "../../../src/client/i18n";
-import { msg } from "../../../src/client/i18n/msg";
-import { said } from "../base";
 
-/** A card's frame: the same width and face for battles and tournaments. */
-const CARD = "flex w-[min(100%,26rem)] flex-col gap-3 rounded-xl border bg-card p-3.5 text-card-foreground shadow-xs";
-
-const STATUS: Record<Match["status"], string> = { waiting: msg("Waiting"), ready: msg("Ready to play"), live: msg("Live"), done: msg("Over"), cancelled: msg("Called off") };
-
-/** A player of a battle, or the empty seat of an open one. */
-function Seat({ p, won, align = "start" }: { p: Person | null; won: boolean; align?: "start" | "end" }) {
-  return (
-    <span className={cn("flex min-w-0 flex-1 items-center gap-2", align === "end" && "flex-row-reverse text-right")}>
-      {p ? <Avatar name={p.username} src={p.avatar} size={28} /> : <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed text-muted-foreground">?</span>}
-      <span className={cn("flex min-w-0 flex-col", align === "end" && "items-end")}>
-        <span className={cn("max-w-full truncate text-sm", won ? "font-semibold" : "font-medium", !p && "text-muted-foreground")}>{p ? (p.id === s.user.id ? tr("You") : p.username) : tr("Anyone")}</span>
-        {won && (
-          <span className="flex items-center gap-1 text-[11px] text-warning">
-            <Crown className="size-3" />
-            {tr("Winner")}</span>
-        )}
-      </span>
-    </span>
-  );
-}
+/** The width of a card in a conversation: the same for battles and tournaments. */
+const CARD_WIDTH = "w-[min(100%,26rem)]";
 
 /** A battle in a conversation: its players and score, its state, and the next step for whoever reads it. */
 export function BattleCard({ match }: { match: Match }) {
@@ -53,49 +29,29 @@ export function BattleCard({ match }: { match: Match }) {
     // Aimed at the account, or open to anyone in the group but its author.
     challenged = m.status === "waiting" && (seat === 1 || (!m.players[1] && seat === null)),
     playing = m.status === "ready" || m.status === "live",
-    winner = m.winner ? (m.players[0]?.id === m.winner ? 0 : 1) : null,
     scored = m.status === "live" || m.status === "done";
   const cancellable = seat !== null && (m.status === "waiting" || m.status === "ready");
   return (
     <>
       {/* The card opens the battle's detail; its buttons act on their own. */}
-      <article
-        role="button"
-        tabIndex={0}
-        aria-label={tr("Battle details")}
-        className={cn(CARD, "cursor-pointer text-left transition-colors outline-none hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/50")}
-        data-battle={m.id}
-        data-status={m.status}
-        onClick={() => setOpen(true)}
-        onKeyDown={(e) => {
-          if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-            e.preventDefault();
-            setOpen(true);
-          }
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
-            <Swords className="size-4" />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="flex items-center gap-1.5 text-sm font-semibold">
-              {tr("Battle")}<Icon name={"Puzzle" + m.event} size={14} />
-              <span className="truncate font-normal text-muted-foreground">{eventName(m.event)}</span>
+      <Surface className={cn(CARD_WIDTH, CARD_LINK, "gap-3 p-4")} aria-label={tr("Battle details")} data-battle={m.id} data-status={m.status} {...opens(() => setOpen(true))}>
+        <div className="flex items-center gap-3">
+          <IconTile icon={Swords} />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="flex items-center gap-1.5 text-sm font-medium">
+              {tr("Battle")}
+              <span className="flex min-w-0 items-center gap-1.5 font-normal text-muted-foreground">
+                <Icon name={"Puzzle" + m.event} size={14} />
+                <span className="truncate">{eventName(m.event)}</span>
+              </span>
             </span>
             <span className="text-xs text-muted-foreground">{formatText(m)}</span>
           </span>
-          <BattleStatus m={m} />
+          <MatchStatusBadge status={m.status} className="self-start" />
         </div>
-        <div className="flex items-center gap-3">
-          <Seat p={m.players[0]} won={winner === 0} />
-          <span className={cn(NUMERIC, "shrink-0 text-lg font-semibold tabular-nums", !scored && "text-sm font-normal text-muted-foreground")}>
-            {scored ? scoreOf(m).join(" – ") : tr("vs")}
-          </span>
-          <Seat p={m.players[1]} won={winner === 1} align="end" />
-        </div>
+        <Players m={m} scored={scored} />
         {(challenged || playing || cancellable) && (
-          <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <div className="flex flex-wrap items-center gap-1.5" {...apart}>
             {challenged && (
               <Button size="sm" onClick={() => void community.acceptBattle(m)} data-action={"battle:accept:" + m.id}>
                 <Check />
@@ -114,23 +70,31 @@ export function BattleCard({ match }: { match: Match }) {
             )}
           </div>
         )}
-      </article>
+      </Surface>
       <MatchDialog match={m} open={open} onOpenChange={setOpen} />
     </>
   );
 }
 
-function BattleStatus({ m }: { m: Match }) {
-  if (m.status === "live")
-    return (
-      <Badge className="shrink-0 gap-1.5">
-        <span className="size-1.5 animate-pulse rounded-full bg-primary-foreground" />
-        {tr("Live")}</Badge>
-    );
+/** The two players of a battle, one per line with their score: the winner in bold with a check, the account's name. */
+function Players({ m, scored }: { m: Match; scored: boolean }) {
   return (
-    <Badge variant="secondary" className={cn("shrink-0", m.status === "ready" && "bg-success/15 text-success", m.status === "cancelled" && "text-muted-foreground")}>
-      {said(STATUS[m.status])}
-    </Badge>
+    <div className="flex flex-col gap-2">
+      {[0, 1].map((seat) => {
+        const p = m.players[seat];
+        return (
+          <PlayerLine
+            key={seat}
+            p={p}
+            name={!p ? tr("Anyone") : p.id === s.user.id ? tr("You") : undefined}
+            won={!!p && m.winner === p.id}
+            decided={!!m.winner}
+            me={p?.id === s.user.id}
+            score={scored ? scoreOf(m)[seat] : undefined}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -160,30 +124,35 @@ export function MatchDialog({ match, open, onOpenChange }: { match: Match; open:
     solves = m.solves,
     sets = solves ? setsOf(solves, m.points) : [],
     winner = m.winner ? (m.players[0]?.id === m.winner ? 0 : 1) : null,
-    names = m.players.map((p) => p?.username ?? tr("Anyone"));
+    names = m.players.map((p) => p?.username ?? tr("Anyone")) as [string, string],
+    score = scoreOf(m);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" data-slot="battle-detail">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Icon name={"Puzzle" + m.event} size={18} />
-            {names[0]} <span className="font-normal text-muted-foreground">{tr("vs")}</span> {names[1]}
-          </DialogTitle>
-          <DialogDescription>
-            {eventName(m.event)} · {formatText(m)} · {m.tournament ? `${m.tournament} · ` : m.group ? `${m.group} · ` : ""}
-            {day(m.startedAt ?? m.createdAt)} · {time(m.startedAt ?? m.createdAt)}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-xl bg-muted/45 px-4 py-3">
-          <Seat p={m.players[0]} won={winner === 0} />
-          <div className="flex flex-col items-center">
-            <span className={cn(NUMERIC, "text-2xl font-semibold")}>
-              {scoreOf(m).join(" – ")}
-            </span>
-            <span className="text-[11px] text-muted-foreground">{m.sets > 1 ? tr("sets") : tr("solves won")}</span>
-          </div>
-          <Seat p={m.players[1]} won={winner === 1} align="end" />
-        </div>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={
+        <span className="flex items-center gap-2">
+          <Icon name={"Puzzle" + m.event} size={18} />
+          {names[0]} <span className="font-normal text-muted-foreground">{tr("vs")}</span> {names[1]}
+        </span>
+      }
+      description={`${eventName(m.event)} · ${formatText(m)} · ${m.tournament ? `${m.tournament} · ` : m.group ? `${m.group} · ` : ""}${day(m.startedAt ?? m.createdAt)} · ${time(m.startedAt ?? m.createdAt)}`}
+      className="sm:max-w-xl"
+    >
+      <div className="flex min-h-0 flex-col gap-4" data-slot="battle-detail">
+        <Strip className="grid-cols-2">
+          {[0, 1].map((seat) => (
+            <Figure
+              key={seat}
+              label={names[seat]!}
+              value={score[seat]}
+              size="2xl"
+              tone={winner === seat ? "good" : ""}
+              sub={m.sets > 1 ? tr("sets") : tr("solves won")}
+              className={seat === 1 ? "items-end text-right" : undefined}
+            />
+          ))}
+        </Strip>
         <p className="text-sm text-muted-foreground">
           {m.status === "done"
             ? m.forfeit
@@ -200,109 +169,47 @@ export function MatchDialog({ match, open, onOpenChange }: { match: Match; open:
                   : tr("Under way: {0} solves so far.", { 0: m.solved })}
         </p>
         {!solves ? (
-          m.solved > 0 && <Skeleton className="h-40" />
-        ) : solves.length > 0 && (
-          <div className="max-h-[45svh] overflow-y-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">#</TableHead>
-                  {m.sets > 1 && <TableHead className="w-12">{tr("Set")}</TableHead>}
-                  <TableHead className="text-right">{names[0]}</TableHead>
-                  <TableHead className="text-right">{names[1]}</TableHead>
-                  <TableHead>{tr("Scramble")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {solves.map((solve, i) => (
-                  <TableRow key={solve.number} data-solve={solve.number}>
-                    <TableCell className={cn(NUMERIC, "text-muted-foreground")}>{solve.number}</TableCell>
-                    {m.sets > 1 && <TableCell className={cn(NUMERIC, "text-muted-foreground")}>{sets[i]}</TableCell>}
-                    {[0, 1].map((seat) => {
-                      const r = solve.results[seat];
-                      return (
-                        <TableCell key={seat} className={cn(NUMERIC, "text-right", !r ? "text-muted-foreground/50" : solve.winner === seat ? "font-semibold text-success" : r.penalty === "dnf" ? "text-destructive" : "text-muted-foreground")}>
-                          {r ? fmtSolve(r.ms, r.penalty) : "–"}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="max-w-48 truncate font-mono text-xs text-muted-foreground" title={solve.scramble}>
-                      {solve.scramble}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          m.solved > 0 && (
+            <div className="flex flex-col gap-2" aria-busy="true" aria-label={tr("Loading")}>
+              {Array.from({ length: Math.min(m.solved, 5) }, (_, i) => (
+                <Skeleton key={i} className="h-6" />
+              ))}
+            </div>
+          )
+        ) : (
+          solves.length > 0 && (
+            <div className="max-h-[45svh] overflow-y-auto rounded-lg border bg-card px-1 pb-1">
+              <MoveList
+                label="Solves"
+                names={names}
+                scrambles
+                rows={solves.map((solve, i) => ({
+                  key: solve.number,
+                  n: solve.number,
+                  results: solve.results,
+                  best: solve.winner,
+                  scramble: solve.scramble,
+                  section: m.sets > 1 && sets[i] !== sets[i - 1] ? tr("Set {0}", { 0: sets[i] }) : undefined,
+                  attrs: { "data-solve": solve.number },
+                }))}
+              />
+            </div>
+          )
         )}
-        {(m.status === "ready" || m.status === "live" || m.status === "done") && (
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => go(matchUrl(m.id))}>
-              {m.status === "done" ? tr("Open the match page") : seatIn(m, s.user.id) !== null ? tr("Play") : tr("Watch")}
-              <ChevronRight />
-            </Button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+      </div>
+      {(m.status === "ready" || m.status === "live" || m.status === "done") && (
+        <DialogFooter>
+          <Button variant="outline" onClick={() => go(matchUrl(m.id))}>
+            {m.status === "done" ? tr("Open the match page") : seatIn(m, s.user.id) !== null ? tr("Play") : tr("Watch")}
+            <ChevronRight />
+          </Button>
+        </DialogFooter>
+      )}
+    </Modal>
   );
 }
 
-/** A tournament in a conversation: its date, players and state, registration a click away, its page behind. */
+/** A tournament in a conversation: the tournaments page's card, at the width of a battle's. */
 export function TournamentChatCard({ tournament }: { tournament: Tournament }) {
-  const t = community.summary(tournament);
-  return (
-    // The card opens the tournament's page; its buttons act on their own.
-    <article
-      role="link"
-      tabIndex={0}
-      aria-label={tr("Open {0}", { 0: t.name })}
-      className={cn(CARD, "cursor-pointer text-left transition-colors outline-none hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/50")}
-      data-tournament={t.id}
-      data-status={t.status}
-      onClick={() => go(tournamentUrl(t.id))}
-      onKeyDown={(e) => e.target === e.currentTarget && e.key === "Enter" && go(tournamentUrl(t.id))}
-    >
-      <div className="flex items-center gap-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning">
-          <Trophy className="size-4" />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-semibold">{t.name}</span>
-          <span className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-            <Icon name={"Puzzle" + t.event} size={12} />
-            {eventName(t.event)} · {formatText(t)}
-          </span>
-        </span>
-        <StatusBadge t={t} />
-      </div>
-      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <CalendarClock className="size-3.5" />
-          {t.status === "open" ? tr("Starts {0}", { 0: when(t.startsAt) }) : t.status === "running" ? tr("Started {0}", { 0: relative(t.startedAt ?? t.startsAt) }) : day(t.finishedAt ?? t.startsAt)}
-        </span>
-        <span className="flex items-center gap-2">
-          <Users className="size-3.5" />
-          <span className={NUMERIC}>
-            {t.players}
-            {t.maxPlayers ? ` / ${t.maxPlayers}` : ""} {" "}{tr("players")}</span>
-        </span>
-        {t.winner && (
-          <span className="flex items-center gap-2 text-foreground">
-            <Crown className="size-3.5 text-warning" />
-            {tr("{0} won the tournament", { 0: t.winner.username })}</span>
-        )}
-      </div>
-      {(t.status === "open" || t.myMatch) && (
-        <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-          <RegisterButton t={t} size="sm" />
-          {t.myMatch && (
-            <Button size="sm" onClick={() => go(matchUrl(t.myMatch!))}>
-              <Play />
-              {tr("Play your match")}</Button>
-          )}
-        </div>
-      )}
-    </article>
-  );
+  return <TournamentCard t={community.summary(tournament)} className={CARD_WIDTH} />;
 }

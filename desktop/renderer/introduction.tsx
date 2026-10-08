@@ -7,9 +7,11 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Ban, Check, CornerDownLeft, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react";
 import { store as s } from "./store";
-import { Icon, Logo, NUMERIC, Wordmark, usePhone } from "./ui";
+import { Icon, IconTile, LABEL, Logo, NUMERIC, PageHead, Surface, TILE, Tip, Wordmark, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Kbd } from "@/components/ui/kbd";
 import { Input } from "@/components/ui/input";
 import { fmtTime, parseTypedTime } from "../../src/client/lib/format";
@@ -30,22 +32,24 @@ const STEPS = [
 ] as const;
 const LAST = STEPS.length - 1;
 
-/** A selectable card: one border, the primary tint once chosen, nothing else. */
-const CARD =
-  "relative flex cursor-pointer rounded-xl border bg-card text-left outline-none transition-colors hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/10 aria-pressed:border-primary aria-pressed:bg-primary/10";
-const SECTION_LABEL = "text-xs font-medium text-muted-foreground";
+/** The chosen state of a tile picked by a tick (role=checkbox): the tint of a pressed TILE. */
+const CHECKED = "aria-checked:border-primary/50 aria-checked:bg-primary/10";
 
-/** One line: the title, then its muted subtitle on the same baseline. */
+/** The page header, its title named as the page's and focused as each step comes in. */
 function StepHead({ title, sub }: { title: string; sub: string }) {
-  const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => ref.current?.focus({ preventScroll: true }), []);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h1 = ref.current?.querySelector("h1");
+    if (!h1) return;
+    h1.id = "journey-title";
+    h1.tabIndex = -1;
+    h1.classList.add("outline-none");
+    h1.focus({ preventScroll: true });
+  }, []);
   return (
-    <header className="flex min-w-0 shrink-0 items-baseline gap-3">
-      <h1 ref={ref} tabIndex={-1} id="journey-title" className="shrink-0 truncate text-xl font-semibold tracking-tight outline-none md:text-2xl">
-        {title}
-      </h1>
-      <p className="min-w-0 truncate text-sm text-muted-foreground max-sm:hidden">{said(sub)}</p>
-    </header>
+    <div ref={ref} className="contents">
+      <PageHead title={title} sub={sub} />
+    </div>
   );
 }
 
@@ -56,12 +60,10 @@ function Welcome() {
     { icon: Timer, title: "Then time and train", text: "Everything opens once it is solved" },
   ];
   return (
-    <ol className="grid gap-2 sm:grid-cols-3 sm:gap-3">
+    <ol className="grid gap-2 sm:grid-cols-3 sm:gap-3" role="list">
       {rows.map((r, i) => (
-        <li key={r.title} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 sm:flex-col sm:items-start sm:gap-4 sm:p-5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <r.icon className="size-[18px]" />
-          </span>
+        <Surface key={r.title} role="listitem" className="flex-row items-center gap-3 px-4 py-3 sm:flex-col sm:items-start sm:gap-4 sm:p-5">
+          <IconTile icon={r.icon} />
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-medium">
               <span className="mr-1.5 text-muted-foreground tabular-nums">{i + 1}</span>
@@ -69,7 +71,7 @@ function Welcome() {
             </span>
             <span className="truncate text-xs text-muted-foreground">{said(r.text)}</span>
           </span>
-        </li>
+        </Surface>
       ))}
     </ol>
   );
@@ -78,9 +80,9 @@ function Welcome() {
 /** A puzzle tile: its WCA glyph and name, ticked when chosen. */
 function Tile({ label, checked, glyph, onClick }: { label: string; checked: boolean; glyph: ReactNode; onClick: () => void }) {
   return (
-    <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} className={cn(CARD, "min-w-0 flex-col items-center justify-center gap-1.5 px-1 py-2.5 sm:gap-2 sm:py-4")}>
+    <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} className={cn(TILE, CHECKED, "relative flex min-w-0 cursor-pointer flex-col items-center justify-center gap-1.5 px-1 py-2.5 sm:gap-2 sm:py-4")}>
       <span className={cn("text-muted-foreground transition-colors", checked && "text-primary")}>{glyph}</span>
-      <span className="max-w-full truncate text-[11px] font-medium tracking-tight sm:text-sm sm:tracking-normal">{said(label)}</span>
+      <span className="max-w-full truncate text-xs font-medium tracking-tight sm:text-sm sm:tracking-normal">{said(label)}</span>
       {checked && <Check className="absolute top-1.5 right-1.5 size-3.5 text-primary" strokeWidth={3} aria-hidden="true" />}
     </button>
   );
@@ -89,26 +91,26 @@ function Tile({ label, checked, glyph, onClick }: { label: string; checked: bool
 type MethodMap = Partial<Record<PuzzleId, string[]>>;
 
 /** Puzzles as tiles, then the methods and the best single of each chosen one inline, in the order they were picked. */
-function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest }: {
+function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethods, onBest }: {
   value: PuzzleId[];
   methods: MethodMap;
   bests: Partial<Record<PuzzleId, string>>;
   onToggle: (puzzle: PuzzleId) => void;
   onNone: () => void;
-  onMethod: (puzzle: PuzzleId, method: string) => void;
+  onMethods: (puzzle: PuzzleId, methods: string[]) => void;
   onBest: (puzzle: PuzzleId, text: string) => void;
 }) {
   const phone = usePhone();
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-6">
       <div role="group" aria-label={tr("Puzzles you can solve")} className="grid shrink-0 grid-cols-4 gap-1.5 sm:grid-cols-6 sm:gap-2.5">
-        <Tile label={tr("None yet")} checked={!value.length} onClick={onNone} glyph={<Ban className="size-6 sm:size-[30px]" strokeWidth={1.5} />} />
+        <Tile label={tr("None yet")} checked={!value.length} onClick={onNone} glyph={<Ban className="size-6 sm:size-7.5" strokeWidth={1.5} />} />
         {PUZZLES.map((p) => (
           <Tile key={p.id} label={said(p.label)} checked={value.includes(p.id)} onClick={() => onToggle(p.id)} glyph={<Icon name={"Puzzle" + p.id} size={phone ? 24 : 30} />} />
         ))}
       </div>
       <section aria-label={tr("Methods")} className="flex min-h-0 flex-1 flex-col gap-1">
-        <h2 className={cn(SECTION_LABEL, "flex justify-between")}>
+        <h2 className={cn(LABEL, "flex justify-between")}>
           {tr("Methods you know")}{!!value.length && <span className="max-sm:hidden">{tr("Your best single, if you know it")}</span>}
         </h2>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -121,26 +123,32 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest 
                     <Icon name={"Puzzle" + id} size={18} className="text-muted-foreground" />
                     {said(p.label)}
                   </span>
-                  <div role="group" aria-label={tr("{0} methods", { 0: p.label })} className="flex flex-wrap gap-1.5">
+                  <ToggleGroup
+                    multiple
+                    variant="outline"
+                    size="sm"
+                    spacing={1}
+                    value={methods[id] ?? []}
+                    onValueChange={(next: string[]) => onMethods(id, next)}
+                    aria-label={tr("{0} methods", { 0: said(p.label) })}
+                    className="flex-wrap justify-start"
+                  >
                     {METHODS[id].map((m) => {
                       const on = methods[id]?.includes(m.id) ?? false;
                       return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          role="checkbox"
-                          aria-checked={on}
-                          aria-label={`${p.label} ${m.name}`}
-                          title={said(m.summary)}
-                          onClick={() => onMethod(id, m.id)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/10 aria-checked:text-foreground"
-                        >
-                          {on ? <Check className="size-3.5 text-primary" strokeWidth={3} /> : <Plus className="size-3.5" />}
-                          {said(m.name)}
-                        </button>
+                        <Tip key={m.id} content={said(m.summary)}>
+                          <ToggleGroupItem
+                            value={m.id}
+                            aria-label={`${said(p.label)} ${said(m.name)}`}
+                            className="text-muted-foreground aria-pressed:border-primary/50 aria-pressed:bg-primary/10 aria-pressed:text-foreground dark:aria-pressed:bg-primary/10"
+                          >
+                            {on ? <Check className="text-primary" strokeWidth={3} /> : <Plus />}
+                            {said(m.name)}
+                          </ToggleGroupItem>
+                        </Tip>
                       );
                     })}
-                  </div>
+                  </ToggleGroup>
                   <PbInput puzzle={p.label} value={bests[id] ?? ""} onChange={(text) => onBest(id, text)} />
                 </div>
               );
@@ -224,11 +232,10 @@ export function Onboarding() {
     setKnownMethods((v) => Object.fromEntries(Object.entries(v).filter(([id]) => id !== p)));
     setBests((v) => Object.fromEntries(Object.entries(v).filter(([id]) => id !== p)));
   };
-  const method = (p: PuzzleId, m: string) =>
-    setKnownMethods((v) => ({ ...v, [p]: v[p]?.includes(m) ? v[p]!.filter((id) => id !== m) : [...(v[p] ?? []), m] }));
+  const methods = (p: PuzzleId, next: string[]) => setKnownMethods((v) => ({ ...v, [p]: next }));
   const content = [
     <Welcome />,
-    <PuzzleStep value={known} methods={knownMethods} bests={bests} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }} onMethod={method} onBest={(p, text) => setBests((v) => ({ ...v, [p]: text }))} />,
+    <PuzzleStep value={known} methods={knownMethods} bests={bests} onToggle={toggle} onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }} onMethods={methods} onBest={(p, text) => setBests((v) => ({ ...v, [p]: text }))} />,
     // Imported puzzles are solved ones: they join the known puzzles.
     <ImportTimes onImported={(puzzles) => setKnown((v) => [...v, ...puzzles.filter((p) => !v.includes(p))])} />,
   ][step];
@@ -242,11 +249,9 @@ export function Onboarding() {
             <Wordmark className="text-lg max-sm:hidden" />
           </span>
           <span className="flex-1" />
-          {existing ? (
+          {existing && (
             <Button variant="ghost" size="sm" disabled={saving} onClick={() => (history.length > 1 ? go(-1) : goPage("playground"))}>
               {tr("Cancel")}</Button>
-          ) : (
-            <span className="w-[54px] max-sm:hidden" aria-hidden="true" />
           )}
         </header>
         {/* On a wide screen the step and its buttons sit together in the middle, a short way for the mouse; phones keep
@@ -266,23 +271,27 @@ export function Onboarding() {
             >
               <StepHead title={said(STEPS[step].title)} sub={said(STEPS[step].sub)} />
               {content}
-              {error && <p role="alert" className="text-sm text-destructive">{said(error)}</p>}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{said(error)}</AlertDescription>
+                </Alert>
+              )}
             </motion.section>
           </AnimatePresence>
         </div>
         <footer className="journey-footer shrink-0 max-md:border-t">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 md:px-8">
-            <Button variant="ghost" disabled={saving || step === 0} onClick={() => goTo(step - 1)} className={cn(step === 0 && "invisible")}>
+            <Button variant="ghost" size="lg" disabled={saving || step === 0} onClick={() => goTo(step - 1)} className={cn("max-md:h-11", step === 0 && "invisible")}>
               <ArrowLeft />
               {tr("Back")}</Button>
             <div className="flex items-center gap-2">
               {step === LAST && !existing && (
-                <Button variant="outline" disabled={saving} onClick={() => void finish(false)}>
+                <Button variant="outline" size="lg" disabled={saving} onClick={() => void finish(false)} className="max-md:h-11">
                   <span className="max-sm:hidden">{tr("Skip the tour")}</span>
                   <span className="sm:hidden">{tr("Skip")}</span>
                 </Button>
               )}
-              <Button disabled={saving} onClick={advance}>
+              <Button size="lg" disabled={saving} onClick={advance} className="max-md:h-11">
                 {saving ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? (existing ? tr("Save") : tr("Start the tour")) : tr("Continue")}
                 {!saving && <ArrowRight />}
                 {!saving && (
@@ -483,14 +492,14 @@ function Tour() {
             ))}
           </mask>
         </defs>
-        <rect width="100%" height="100%" fill="rgb(0 0 0 / 0.62)" mask={`url(#${mask})`} />
+        <rect width="100%" height="100%" className="fill-black/60" mask={`url(#${mask})`} />
       </svg>
       {holes.map((h) => (
         <motion.div
           key={h.key}
           data-spotlight={h.key === "nav" ? "nav" : "inner"}
           aria-hidden="true"
-          className={cn("pointer-events-none absolute top-0 left-0 rounded-[10px] border", h.key === "nav" ? "border-primary/50" : "border-2 border-primary")}
+          className={cn("pointer-events-none absolute top-0 left-0 rounded-lg border", h.key === "nav" ? "border-primary/50" : "border-2 border-primary")}
           initial={{ opacity: 0, x: h.box.x, y: h.box.y, width: h.box.width, height: h.box.height }}
           animate={{ opacity: 1, x: h.box.x, y: h.box.y, width: h.box.width, height: h.box.height }}
           transition={spring}
@@ -507,10 +516,10 @@ function Tour() {
         <header className="flex items-center gap-3">
           <span className="flex items-center gap-1" aria-hidden="true">
             {TOUR_STEPS.map((_, i) => (
-              <span key={i} className={cn("h-1.5 rounded-[2px] transition-all", i === shownStep ? "w-4 bg-primary" : i < shownStep ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/25")} />
+              <span key={i} className={cn("h-1.5 rounded-xs transition-all", i === shownStep ? "w-4 bg-primary" : i < shownStep ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/25")} />
             ))}
           </span>
-          <span className="text-xs text-muted-foreground tabular-nums" aria-label={tr("Step {0} of {1}", { 0: shownStep + 1, 1: TOUR_STEPS.length })}>
+          <span className={cn(NUMERIC, "text-xs text-muted-foreground")} aria-label={tr("Step {0} of {1}", { 0: shownStep + 1, 1: TOUR_STEPS.length })}>
             {shownStep + 1} / {TOUR_STEPS.length}
           </span>
           <Button size="icon-sm" variant="ghost" aria-label={tr("End tour")} className="-my-1 -mr-2 ml-auto text-muted-foreground" onClick={end}>

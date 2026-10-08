@@ -34,7 +34,6 @@ export const virtualSmartCube: SmartCubeDriver = {
           connected = false;
           socket.close();
           listen({ type: "disconnected", reason: "The virtual cube was closed" });
-          toast("The virtual cube was closed", { id: TOAST, duration: 4000 });
         } else if (message.type === "cube" && !message.online) {
           // Waits for its page: the connection completes as soon as it opens.
           toast("Waiting for the virtual cube", {

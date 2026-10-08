@@ -3,12 +3,11 @@ import { catalogSections } from "../../src/client/lib/practiceCatalog";
 import { displayAlg, shortId, maskForStage } from "../../src/client/lib/caseState";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { call } from "./bridge";
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, Search, Timer, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, Search, SearchX, Timer } from "lucide-react";
 import { store as s, matches } from "./store";
 import { TouchAction, TouchBar } from "./phone";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { fmtTime } from "../../src/client/lib/format";
-import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, Figure, LABEL, NUMERIC, MenuAction, PAGE, PageHead, PlayBadge, LearnedMark, SectionHead, Surface, isPhone, run, usePhone, useViewport } from "./ui";
+import { Alg, Back, Bar, Button, Choice, Diagram, Empty, FOCUS, Figure, LABEL, LearnToggle, NUMERIC, MenuAction, PAGE, PageHead, PlayBadge, LearnedMark, ROW, SearchField, SectionHead, Strip, Surface, Tip, isPhone, run, usePhone, useViewport, type Props } from "./ui";
 import { Badge } from "@/components/ui/badge";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
@@ -99,6 +98,8 @@ function StageTabs() {
 }
 
 function CaseList({ wide }: { wide: boolean }) {
+  // Phones list the cases on the page itself; a wide window keeps them in a card beside the set or the case.
+  const Box = wide ? "div" : Surface;
   const scroll = useScrollPosition(`catalog:${s.puzzle}:${s.catalogStage}`);
   const { stage, section, all } = currentSection();
   const setLearned = all ? all.learnedCount : 0,
@@ -107,25 +108,11 @@ function CaseList({ wide }: { wide: boolean }) {
   const [query, setQuery] = useState(""),
     found = wide && query.trim() ? s.cases().filter((c: any) => matches(c, query)).slice(0, 80) : null;
   return (
-    <div data-tour="algorithms" className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] overflow-hidden rounded-xl border bg-card px-3 pt-3")}>
-      {wide && (
-        <InputGroup className="h-10 shrink-0">
-          <InputGroupInput placeholder={tr("Search cases: oll 21, pll t…")} aria-label={tr("Search cases")} value={query} onChange={(e) => setQuery(e.target.value)} />
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          {query && (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton size="icon-xs" aria-label={tr("Clear the search")} onClick={() => setQuery("")}>
-                <X />
-              </InputGroupButton>
-            </InputGroupAddon>
-          )}
-        </InputGroup>
-      )}
+    <Box data-tour="algorithms" className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] px-3 pt-3")}>
+      {wide && <SearchField value={query} onChange={setQuery} placeholder="Search cases: oll 21, pll t…" label="Search cases" className="h-10 shrink-0" />}
       {found ? (
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
-          {!found.length && <Empty>{tr("No case matches.")}</Empty>}
+          {!found.length && <Empty icon={SearchX}>{tr("No case matches.")}</Empty>}
           <div className={TILES}>
             {found.map((c: any) => <CaseTile key={c.id} c={c} touch detail={`${c.setLabel} · ${c.group}`} />)}
           </div>
@@ -159,7 +146,7 @@ function CaseList({ wide }: { wide: boolean }) {
       </div>
       <div ref={scroll} className="-mx-2 -mt-2 min-h-0 flex-1 overflow-y-auto px-2 pt-1">
         {section && !section.groups.length && (
-          <Empty>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
+          <Empty icon={Check}>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
         )}
         {section?.groups.map(([group, members]: [string, any[]]) => {
           const key = section.active.id + ":" + group,
@@ -172,7 +159,7 @@ function CaseList({ wide }: { wide: boolean }) {
                   type="button"
                   data-action={"collapse:" + key}
                   onClick={run("collapse:" + key)}
-                  className="flex h-8 min-w-0 items-center gap-2 rounded-md px-2 text-left text-sm font-medium outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+                  className={cn(ROW, "flex h-8 min-w-0 items-center gap-2 px-2 text-sm font-medium")}
                 >
                   {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                   <span className="truncate">{group}</span>
@@ -192,7 +179,7 @@ function CaseList({ wide }: { wide: boolean }) {
       </div>
       </>
       )}
-    </div>
+    </Box>
   );
 }
 
@@ -201,46 +188,127 @@ export const TILES = "grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-
 
 /**
  * A case as a square tile: its diagram, then its name and best time on one line, the learned mark in the top right
- * corner. A click opens the case (`action`): on the algorithms page by default, in a dialog elsewhere.
+ * corner. A click opens the case (`action`): on the algorithms page by default, in a dialog elsewhere. With `pressed`
+ * it is one of several cases to pick (the training setup): a check takes the mark's place once picked.
  */
-export function CaseTile({ c, touch = false, detail, action = "case:" + c.id, selected = s.caseId === c.id }: { c: any; touch?: boolean; detail?: string; action?: string; selected?: boolean }) {
+export function CaseTile({
+  c,
+  touch = false,
+  detail,
+  action = "case:" + c.id,
+  selected = s.caseId === c.id,
+  pressed,
+}: {
+  c: any;
+  touch?: boolean;
+  detail?: string;
+  action?: string;
+  selected?: boolean;
+  pressed?: boolean;
+}) {
   const st = s.stats.find((v) => v.caseId === c.id),
-    learned = s.learned.has(c.id);
+    learned = s.learned.has(c.id),
+    on = pressed ?? (selected && !touch),
+    name = detail ?? (c.name !== c.id ? c.name : undefined);
+  const open = (
+    <button
+      type="button"
+      data-action={action}
+      aria-pressed={pressed}
+      onClick={run(action)}
+      className={cn("case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5", FOCUS)}
+    >
+      <span className="flex min-h-0 flex-1 items-center justify-center">
+        <Diagram c={c} size={70} />
+      </span>
+      {/* One line under the diagram: the name on the left, the best time on the right. */}
+      <span className="flex items-baseline justify-between gap-1.5">
+        <span className="min-w-0 truncate text-xs font-medium">{shortId(c)}</span>
+        <span className={cn(NUMERIC, "shrink-0 text-xs", st ? "text-muted-foreground" : "text-muted-foreground/60")}>{st ? fmtTime(st.best) : "–"}</span>
+      </span>
+    </button>
+  );
   return (
     <div
       className={cn(
         // Hover only where there is a pointer: on touch screens it would stick to the last tile tapped.
-        "group/row relative aspect-square min-w-0 rounded-lg bg-muted/45 transition-colors [@media(hover:hover)]:hover:bg-muted/80",
-        selected && !touch && "bg-muted ring-1 ring-primary/70 [@media(hover:hover)]:hover:bg-muted",
+        "group/row relative aspect-square min-w-0 rounded-lg border border-transparent bg-muted/45 transition-colors [@media(hover:hover)]:hover:bg-muted/80",
+        on && "border-primary/50 bg-primary/10 [@media(hover:hover)]:hover:bg-primary/15",
         touch && "active:bg-muted/80",
       )}
-      title={detail ?? (c.name !== c.id ? c.name : undefined)}
     >
+      {name ? <Tip content={said(name)}>{open}</Tip> : open}
+      {pressed === undefined ? (
+        <span className="absolute top-0.5 right-0.5">
+          <LearnedMark id={c.id} learned={learned} />
+        </span>
+      ) : (
+        pressed && (
+          <span className="pointer-events-none absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden="true">
+            <Check className="size-3" strokeWidth={3} />
+          </span>
+        )
+      )}
+    </div>
+  );
+}
+
+/** The title of the pane beside the list (a set, a case, an algorithm in 3D): its name, a muted line, its controls. */
+export function PaneHead({ title, sub, children, className }: { title: React.ReactNode; sub?: React.ReactNode } & Props) {
+  return (
+    <header className={cn("flex shrink-0 items-center gap-4", className)}>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <h2 className="truncate text-lg font-semibold tracking-tight md:text-xl">{said(title)}</h2>
+        {sub && <p className="line-clamp-2 text-sm text-muted-foreground">{said(sub)}</p>}
+      </div>
+      {children}
+    </header>
+  );
+}
+
+/** A case's diagram that plays it in 3D on a click, the play mark showing over it (PlayBadge). */
+export function PlayDiagram({ id, name, onPlay, compact = false, children }: { id: string; name: string; onPlay: () => void; compact?: boolean } & Props) {
+  return (
+    <Tip content={tr("Play in 3D")}>
       <button
         type="button"
-        data-action={action}
-        onClick={run(action)}
-        className="case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        data-play={id}
+        aria-label={tr("Play {0} in 3D", { 0: said(name) })}
+        onClick={onPlay}
+        className={cn("group/play relative shrink-0 cursor-pointer self-center rounded-lg transition-shadow hover:ring-2 hover:ring-ring/50", FOCUS)}
       >
-        <span className="flex min-h-0 flex-1 items-center justify-center">
-          <Diagram c={c} size={70} />
-        </span>
-        {/* One line under the diagram: the name on the left, the best time on the right. */}
-        <span className="flex items-baseline justify-between gap-1.5">
-          <span className="min-w-0 truncate text-xs font-medium">{shortId(c)}</span>
-          <span className={cn(NUMERIC, "shrink-0 text-[11px]", st ? "text-muted-foreground" : "text-muted-foreground/60")}>{st ? fmtTime(st.best) : "–"}</span>
-        </span>
+        {children}
+        <PlayBadge compact={compact} />
       </button>
-      <span className="absolute top-0.5 right-0.5">
-        <LearnedMark id={c.id} learned={learned} />
+    </Tip>
+  );
+}
+
+/** Phones: a page's actions in a band at its foot, under the thumb. */
+export function FootBar({ children, className }: Props) {
+  return (
+    <footer className={cn("flex shrink-0 items-center gap-2 border-t bg-muted/30 px-2 py-2", className)} data-no-timer>
+      {children}
+    </footer>
+  );
+}
+
+/** Previous and next of a list (`action:previous`, `action:next`), with where this one stands. */
+export function Stepper({ action, index, count, tips }: { action: string; index: number; count: number; tips: [string, string] }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <Button action={action + ":previous"} icon={ChevronLeft} size="icon-sm" disabled={index === 0} tip={tips[0]} className="max-md:size-11" />
+      <span className={cn(NUMERIC, "min-w-12 text-center text-xs text-muted-foreground")}>
+        {index + 1} / {count}
       </span>
+      <Button action={action + ":next"} icon={ChevronRight} size="icon-sm" disabled={index === count - 1} tip={tips[1]} className="max-md:size-11" />
     </div>
   );
 }
 
 /** Right pane before a case is chosen: where the chosen set stands, group by group, each ready to train. */
 function SetSummary() {
-  const { stage, all } = currentSection();
+  const { all } = currentSection();
   if (!all) return <Empty>{tr("No cases for this puzzle.")}</Empty>;
   const trained = all.all.filter((c: any) => s.stats.some((v) => v.caseId === c.id)).length;
   const figures: [string, number][] = [
@@ -251,32 +319,27 @@ function SetSummary() {
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 items-start justify-between gap-6 px-1 pt-1 pb-5">
-        <div className="flex max-w-xl flex-col gap-1.5">
-          <span className={LABEL}>{said(stage)}</span>
-          <h2 className="text-2xl font-semibold tracking-tight">{all.active.label}</h2>
-          {all.active.description && <p className="text-sm text-muted-foreground">{all.active.description}</p>}
-        </div>
+      <PaneHead title={all.active.label} sub={all.active.description} className="max-w-3xl px-1 pt-1 pb-5">
         <Button action={"train:" + all.active.id} icon={Timer} variant="default">
           {tr("Train all")}</Button>
-      </header>
-      <div className="grid shrink-0 grid-cols-4 gap-6 rounded-xl bg-muted/45 px-5 py-4">
+      </PaneHead>
+      <Strip className="grid-cols-4">
         {figures.map(([label, value]) => (
           <Figure key={label} label={said(label)} value={value} size="2xl" />
         ))}
-      </div>
+      </Strip>
       <div className="flex min-h-0 flex-1 flex-col gap-1 px-1 pt-5">
         <SectionHead title={tr("Groups")} meta={all.groups.length} />
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
           {all.groups.map(([group, members]: [string, any[]]) => {
             const learned = members.filter((c: any) => s.learned.has(c.id)).length;
             return (
-              <div key={group} className="group/row flex items-center gap-4 rounded-lg px-2 hover:bg-muted/50">
+              <div key={group} className={cn(ROW, "group/row flex items-center gap-4 px-2")}>
                 <button
                   type="button"
                   data-action={"case:" + members[0].id}
                   onClick={run("case:" + members[0].id)}
-                  className="flex h-10 min-w-0 flex-1 items-center gap-4 text-left outline-none"
+                  className={cn("flex h-10 min-w-0 flex-1 items-center gap-4 rounded-md text-left", FOCUS)}
                 >
                   <span className="w-40 truncate text-sm font-medium">{group}</span>
                   <Bar ratio={learned / members.length} className="max-w-48 flex-1" />
@@ -297,18 +360,8 @@ function SetSummary() {
 
 const SOURCES: Record<string, string> = { speedcubedb: "SpeedCubeDB", jperm: "J Perm", f2ltrainer: "F2L Trainer" };
 
-/** Previous and next case of the set, with where this one stands. */
-function CaseStepper({ index, count, touch = false }: { index: number; count: number; touch?: boolean }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1">
-      <Button action="caseStep:previous" icon={ChevronLeft} size="icon-sm" disabled={index === 0} tip={tr("Previous case (←)")} className={touch ? "size-10" : undefined} />
-      <span className={cn(NUMERIC, "text-center text-xs text-muted-foreground", touch ? "min-w-10" : "min-w-12")}>
-        {index + 1} / {count}
-      </span>
-      <Button action="caseStep:next" icon={ChevronRight} size="icon-sm" disabled={index === count - 1} tip={tr("Next case (→)")} className={touch ? "size-10" : undefined} />
-    </div>
-  );
-}
+/** The tips of the case stepper (Stepper). */
+const caseTips = (): [string, string] => [tr("Previous case (←)"), tr("Next case (→)")];
 
 const caseSteps = (c: any) => {
   const ids = s
@@ -348,22 +401,20 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
       <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:items-start md:gap-8 md:px-1 md:pt-1 md:pb-5">
         <div className="shrink-0 self-center">
-          {c.cube ? <button type="button" data-play={c.id} aria-label={tr("Play {0} in 3D", { 0: c.id })} onClick={openPlayer}
-            className="group/play relative rounded-md outline-none hover:ring-2 focus-visible:ring-2 ring-ring/50">
+          {!c.diagram && !c.flat ? (
+            <PlayDiagram id={c.id} name={c.id} onPlay={openPlayer}>
+              <Diagram c={c} size={phone ? 104 : 152} />
+            </PlayDiagram>
+          ) : (
             <Diagram c={c} size={phone ? 104 : 152} />
-            <PlayBadge />
-          </button> : <Diagram c={c} size={phone ? 104 : 152} />}
+          )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-4 md:gap-5">
           {!mobile && (
             // In a dialog, clear of its close button.
-            <div className={cn("flex items-center gap-4", dialog && "pr-8")}>
-              <div className="flex min-w-0 flex-1 items-baseline gap-3">
-                <h2 className="min-w-0 shrink-0 truncate text-2xl font-semibold tracking-tight">{c.id}</h2>
-                <p className="min-w-0 truncate text-sm text-muted-foreground">{c.name !== c.id ? c.name : `${c.setLabel} · ${c.group}`}</p>
-              </div>
-              <CaseStepper index={index} count={count} />
-            </div>
+            <PaneHead title={c.id} sub={c.name !== c.id ? c.name : `${c.setLabel} · ${c.group}`} className={cn(dialog && "pr-8")}>
+              <Stepper action="caseStep" index={index} count={count} tips={caseTips()} />
+            </PaneHead>
           )}
           <div className="flex gap-6 md:gap-10">
             <Figure label={tr("Best")} value={st ? fmtTime(st.best) : "–"} tone="good" />
@@ -374,9 +425,7 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
           <div className={cn("flex flex-wrap items-center gap-1.5", mobile && "hidden")}>
             <Button action="train" icon={Timer} variant="default">
               {tr("Train")}</Button>
-            <ActionToggle action={"learn:" + c.id} pressed={learned} icon={Check} className="aria-pressed:bg-success/15 aria-pressed:text-success">
-              {learned ? tr("Learned") : tr("Mark learned")}
-            </ActionToggle>
+            <LearnToggle action={"learn:" + c.id} learned={learned} />
           </div>
         </div>
       </div>
@@ -391,23 +440,23 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
           const mine = chosen === a.alg,
             share = choices?.total ? (choices.algs[a.alg] ?? 0) / choices.total : null;
           return (
-          <div key={i} className={cn("-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 hover:bg-muted/40 max-md:flex-wrap max-md:gap-y-1", mine && "bg-success/10")}>
+          <div key={i} className={cn("-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 max-md:flex-wrap max-md:gap-y-1", mine && "bg-success/10")}>
             <span className={cn(NUMERIC, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
             <Alg text={displayAlg(a)} size={16} className="min-w-0 flex-1" />
             <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
-              {i === 0 && <Badge variant="secondary" className="rounded-md text-primary">{tr("Primary")}</Badge>}
+              {i === 0 && <Badge variant="accent">{tr("Primary")}</Badge>}
               {a.stm != null && <span className={NUMERIC}>{a.stm} {" "}{tr("STM")}</span>}
               <span>{SOURCES[a.source] ?? a.source}</span>
               {a.youtube && <Button action={"url:" + a.youtube} icon={PlayCircle} size="icon-xs" tip={tr("Watch the video")} />}
               {share !== null && (
-                <span className="flex items-center gap-1.5" title={tr("{0} of {1} players learned this case with it", { 0: choices!.algs[a.alg] ?? 0, 1: choices!.total })}>
-                  <Bar ratio={share} className="w-12" label={tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })} />
-                  <span className={NUMERIC}>{tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })}</span>
-                </span>
+                <Tip content={tr("{0} of {1} players learned this case with it", { 0: choices!.algs[a.alg] ?? 0, 1: choices!.total })}>
+                  <span className="flex items-center gap-1.5">
+                    <Bar ratio={share} className="w-12" label={tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })} />
+                    <span className={NUMERIC}>{tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })}</span>
+                  </span>
+                </Tip>
               )}
-              <ActionToggle action={`learnAlg:${c.id}:${i}`} pressed={mine} icon={Check} size="sm" className="aria-pressed:bg-success/15 aria-pressed:text-success">
-                {mine ? tr("Learned") : tr("Learn this one")}
-              </ActionToggle>
+              <LearnToggle action={`learnAlg:${c.id}:${i}`} learned={mine} />
             </span>
           </div>
           );
@@ -448,13 +497,20 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
 function Detail() {
   const c = s.find(s.caseId),
     swipe = useRef<{ x: number; y: number } | null>(null);
-  if (!c) return <Empty>{tr("Case unavailable.")}</Empty>;
+  const back = <Back action="back" label="Back · Alt+B" />;
+  if (!c)
+    return (
+      <div className={PAGE}>
+        <PageHead lead={back} title={tr("Algorithms")} />
+        <Empty icon={SearchX}>{tr("Case unavailable.")}</Empty>
+      </div>
+    );
   const { index, count } = caseSteps(c),
     learned = s.learned.has(c.id);
   return (
     <div className={PAGE}>
-      <PageHead lead={<Button action="back" icon={ChevronLeft} tip={tr("Back · Alt+B")} className="size-8 max-md:size-10" />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
-        <CaseStepper index={index} count={count} touch />
+      <PageHead lead={back} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
+        <Stepper action="caseStep" index={index} count={count} tips={caseTips()} />
       </PageHead>
       <Surface
         className="flex-1"
@@ -470,10 +526,12 @@ function Detail() {
         }}
       >
         <CaseDetail />
-        <TouchBar className="shrink-0 border-t bg-muted/30 px-2 py-2">
-          <TouchAction action="train" icon={Timer} label={tr("Train")} primary />
-          <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? tr("Learned") : tr("Mark learned")} pressed={learned} tone="good" />
-        </TouchBar>
+        <FootBar>
+          <TouchBar className="flex-1">
+            <TouchAction action="train" icon={Timer} label={tr("Train")} primary />
+            <TouchAction action={"learn:" + c.id} icon={Check} label={learned ? tr("Learned") : tr("Mark learned")} pressed={learned} tone="good" />
+          </TouchBar>
+        </FootBar>
       </Surface>
     </div>
   );

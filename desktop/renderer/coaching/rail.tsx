@@ -8,9 +8,9 @@ import { coaching } from "./client";
 import { url } from "./parts";
 import { badge, sections } from "./sections";
 import { cn } from "@/lib/utils";
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { tr } from "../../../src/client/i18n";
-import { said } from "../base";
+import { Count, said } from "../base";
 
 export function CoachingSidebar({ open }: { open: boolean }) {
   const view = s.coachingView.split("/")[0];
@@ -38,8 +38,8 @@ export function CoachingSidebar({ open }: { open: boolean }) {
                   >
                     <I />
                     <span>{said(label)}</span>
+                    <Count n={badge(id)} />
                   </SidebarMenuButton>
-                  {!!badge(id) && <SidebarMenuBadge className="bg-primary text-primary-foreground peer-data-[size=default]/menu-button:top-2">{badge(id)}</SidebarMenuBadge>}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

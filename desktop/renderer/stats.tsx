@@ -1,44 +1,37 @@
 /** Solve statistics: the summary figures, the progress chart and the solves table. */
 import React, { useState } from "react";
-import { ArrowDownUp, ChartLine, ChevronDown, List, MessageSquare, Rotate3d } from "lucide-react";
+import { ArrowDownUp, ChartLine, List, MessageSquare, Rotate3d } from "lucide-react";
 import { store as s } from "./store";
 import { HistoryChart, type ChartRange } from "./HistoryChart";
 import { fmtTime } from "../../src/client/lib/format";
-import { timerFigures } from "../../src/client/lib/practiceSummary";
-import { Choice, Empty, Figure, NUMERIC, SolveActions, SolveMenu, plural, run } from "./ui";
-import { PageCard, Stats } from "./profile/card";
-import { Card } from "@/components/ui/card";
+import { solveTone, timerFigures } from "../../src/client/lib/practiceSummary";
+import { Choice, Empty, Figure, NUMERIC, ROW, SelectMenu, SolveActions, SolveMenu, Strip, Surface, Tip, plural, run } from "./ui";
+import { PageCard, Stats } from "./base";
+import { TONE_TEXT } from "../../src/client/lib/tone";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
-/** The summary figures: a card of their own on a page, plain figures inside a dialog (`compact`). */
+/** The summary figures as the timer's band: larger on a page, plain figures inside a dialog (`compact`). */
 function StatStrip({ summary, compact }: { summary: any; compact: boolean }) {
   const figures = timerFigures(summary);
   return compact ? (
-    <div className="grid shrink-0 grid-cols-4 gap-x-6 gap-y-4 lg:grid-cols-7">
+    <Stats columns={7} className="shrink-0">
       {figures.map(([label, value, tone]) => (
         <Figure key={label} label={said(label)} value={value} tone={tone} />
       ))}
-    </div>
+    </Stats>
   ) : (
-    <Card className="shrink-0 gap-0 px-5 py-4" aria-label={tr("Summary")}>
+    <Strip label={tr("Summary")}>
       <Stats columns={7}>
         {figures.map(([label, value, tone]) => (
-          <Figure key={label} label={said(label)} value={value} tone={tone} caption="plain" size="xl" />
+          <Figure key={label} label={said(label)} value={value} tone={tone} size="xl" />
         ))}
       </Stats>
-    </Card>
+    </Strip>
   );
 }
 
@@ -80,9 +73,9 @@ export function TimerStats({ data, empty, compact = false }: { data: any; empty:
     return compact ? (
       <Empty className="flex-none items-start p-0 py-1 text-left">{empty}</Empty>
     ) : (
-      <Card className="min-h-0 flex-1 gap-0 py-0">
+      <Surface className="flex-1">
         <Empty>{empty}</Empty>
-      </Card>
+      </Surface>
     );
   const history = data.history ?? [];
   return (
@@ -122,6 +115,7 @@ function TimerStatsView({ data, compact, table }: { data: any; compact: boolean;
             <>
               <StatsViewToggle />
               {total}
+              {/* The same legend as the profile's trend (profile/trend.tsx). */}
               <span className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <span className="h-0.5 w-3 rounded-full bg-chart-1" />
@@ -195,22 +189,7 @@ function SolvesTable({
           <StatsViewToggle />
           {total}
           <span className="ml-auto flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<UiButton variant="ghost" className="gap-1.5" aria-label={tr("Sort solves")} />}>
-                <ArrowDownUp className="text-muted-foreground" />
-                {said(SOLVE_SORTS.find((o) => o.id === sort)?.label)}
-                <ChevronDown className="text-muted-foreground" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-auto min-w-40">
-                <DropdownMenuRadioGroup value={sort} onValueChange={(v: SolveSort) => setSort(v)}>
-                  {SOLVE_SORTS.map((o) => (
-                    <DropdownMenuRadioItem key={o.id} value={o.id} closeOnClick>
-                      {said(o.label)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SelectMenu action="solveSort" label="Sort solves" onChange={(id) => setSort(id as SolveSort)} value={sort} options={SOLVE_SORTS} icon={<ArrowDownUp className="text-muted-foreground" />} />
             <Toggle pressed={commented} onPressedChange={setCommented} aria-label={tr("Show only commented solves")} className="aria-pressed:text-foreground">
               <MessageSquare />
               <span className="max-md:hidden">{tr("Commented")}</span>
@@ -235,7 +214,7 @@ function SolvesTable({
           // A case done during a smart cube solve opens that solve; its time is the case's, so it has no actions.
           const open = "solve:" + (v.solveId ?? v.id),
             row = (
-            <div className="history-row group/row rounded-md hover:bg-muted/60">
+            <div className={cn(ROW, "history-row group/row has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50")}>
               <div className={cn("grid items-center gap-4 px-2", COLUMNS)}>
                 <button
                   type="button"
@@ -245,15 +224,17 @@ function SolvesTable({
                 >
                   <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
                   <span className="flex items-center gap-2">
-                    <span className={cn(NUMERIC, "text-sm", v.time == null ? "text-destructive" : pb ? "text-success" : v.penalty === "+2" ? "text-warning" : "")}>
+                    <span className={cn(NUMERIC, "text-sm", TONE_TEXT[solveTone({ id: v.id, penalty: v.time == null ? "dnf" : v.penalty }, { best: pb ? v.id : undefined })])}>
                       {fmtTime(v.time, { blank: "DNF" })}
                     </span>
-                    {pb && <span className="rounded-md bg-success/15 px-1.5 py-px text-[11px] font-medium text-success">{tr("PB")}</span>}
-                    {v.penalty === "+2" && <span className="rounded-md bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">+2</span>}
+                    {pb && <Badge variant="success">{tr("PB")}</Badge>}
+                    {v.penalty === "+2" && <Badge variant="warning">+2</Badge>}
                     {v.solveId !== undefined ? (
-                      <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[11px] text-muted-foreground" title={tr("Done during a solve on a connected cube")}>
-                        <Rotate3d />
-                        {tr("In solve")}</Badge>
+                      <Tip content={tr("Done during a solve on a connected cube")}>
+                        <Badge variant="secondary" className="text-muted-foreground">
+                          <Rotate3d />
+                          {tr("In solve")}</Badge>
+                      </Tip>
                     ) : (
                       v.smart && <Rotate3d className="size-3 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />
                     )}

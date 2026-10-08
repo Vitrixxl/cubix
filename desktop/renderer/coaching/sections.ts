@@ -1,20 +1,21 @@
 /** The coaching sections: a second sidebar beside the app's (coaching/rail.tsx), a menu on phones (coaching/page.tsx). */
 import { CalendarClock, CalendarDays, IdCard, LayoutDashboard, MessagesSquare, Search, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { coaching } from "./client";
+import { msg } from "../../../src/client/i18n/msg";
 
 export type Section = [id: string, label: string, icon: LucideIcon];
 export const COACH: Section[] = [
-  ["dashboard", "Dashboard", LayoutDashboard],
-  ["students", "Students", Users],
-  ["schedule", "Schedule", CalendarClock],
-  ["profile", "Coach profile", IdCard],
+  ["dashboard", msg("Dashboard"), LayoutDashboard],
+  ["students", msg("Students"), Users],
+  ["schedule", msg("Schedule"), CalendarClock],
+  ["profile", msg("Coach profile"), IdCard],
 ];
 const PLAYER: Section[] = [
-  ["coaches", "Find a coach", Search],
-  ["sessions", "Sessions", CalendarDays],
-  ["messages", "Messages", MessagesSquare],
+  ["coaches", msg("Find a coach"), Search],
+  ["sessions", msg("Sessions"), CalendarDays],
+  ["messages", msg("Messages"), MessagesSquare],
 ];
-const APPLY: Section = ["apply", "Become a coach", Sparkles];
+const APPLY: Section = ["apply", msg("Become a coach"), Sparkles];
 
 /** A coach's own sections first, then those of a player; a player can apply to coach. */
 export function sections() {

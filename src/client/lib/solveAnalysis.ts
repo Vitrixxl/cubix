@@ -98,7 +98,9 @@ const PIECES = new Map<string, number[]>();
 SLOTS.forEach((slot, i) => PIECES.set(key(slot.p), [...(PIECES.get(key(slot.p)) ?? []), i]));
 const centre = (c: Face[], face: Face) => c[FACES.indexOf(face) * 9 + 4]!;
 const fits = (c: Face[], slot: number) => c[slot] === centre(c, SLOTS[slot]!.face);
-const solvedAt = (c: Face[], p: readonly number[]) => PIECES.get(key(p))!.every((slot) => fits(c, slot));
+export const solvedAt = (c: Face[], p: readonly number[]) => PIECES.get(key(p))!.every((slot) => fits(c, slot));
+/** The colours of the piece at `p`. */
+export const pieceColours = (c: Face[], p: readonly number[]) => PIECES.get(key(p))!.map((slot) => c[slot]!);
 
 const CROSS = [[0, -1, 1], [1, -1, 0], [0, -1, -1], [-1, -1, 0]];
 export const SLOT_PIECES: Record<string, number[][]> = {

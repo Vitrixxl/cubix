@@ -1,4 +1,4 @@
-import {appearanceFromStorage} from "../appearance";
+import { appearanceFromStorage, systemLight, type ColorMode } from "../appearance";
 import { DEFAULT_THEME } from "../../src/client/lib/theme";
 import { orderedGroups, reviewCases, reviewStatus, reviewTrack, isReviewMode, learningTrackOf, learningModeForPuzzle, dailyAssignment, EMPTY_LEARNING_PLAN, isLearningTrack, learningCases, learningKey, learningStatus, localDay, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
@@ -21,17 +21,37 @@ import { tr } from "../../src/client/i18n";
 import { ask } from "./confirm";
 import { msg } from "../../src/client/i18n/msg";
 import { isCaseSource, type CaseSource } from "../../src/client/lib/smartStats";
+
+// The connected cube coming and going, wherever the player is.
+let cubeLink = smartCube.snapshot.status;
+smartCube.subscribe(() => {
+  const { status, name, error } = smartCube.snapshot;
+  if (status === cubeLink) return;
+  if (status === "on") toast.success(tr("{0} connected", { 0: name }));
+  else if (status === "off" && cubeLink === "on") toast(tr("{0} disconnected", { 0: name }), { description: error ? tr(error) : undefined });
+  cubeLink = status;
+});
 export const catalog = catalogData as any;
+/** The catalogue never changes while the app runs: its cases by id, and by puzzle once asked for (never to be modified). */
+const caseById = new Map<string, any>(catalog.cases.map((c: any) => [c.id, c]));
+const casesByPuzzle = new Map<string, any[]>();
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
 export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
+/** The words of each case a search reads, worked out once; and the words of the last query. */
+const caseWords = new WeakMap<object, string[]>();
+let lastQuery = "",
+  queryWords = [""];
+function wordsOf(c: any) {
+  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase(),
+    words = [...new Set([...text.split(/\s+/), ...text.split(/[^a-z0-9]+/)])];
+  caseWords.set(c, words);
+  return words;
+}
 /** Whether every word typed starts a word of the case, so "g perm" finds the G perms and not every case with a "g" somewhere. */
 export const matches = (c: any, q: string) => {
-  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase(),
-    words = [...text.split(/\s+/), ...text.split(/[^a-z0-9]+/)];
-  return q
-    .toLowerCase()
-    .split(/\s+/)
-    .every((word) => words.some((w) => w.startsWith(word)));
+  const words = caseWords.get(c) ?? wordsOf(c);
+  if (q !== lastQuery) queryWords = (lastQuery = q).toLowerCase().split(/\s+/);
+  return queryWords.every((word) => words.some((w) => w.startsWith(word)));
 };
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
 export const TIMES_OPEN_WIDTH = 1024;
@@ -50,12 +70,16 @@ export class Store {
   caseId = "";
   /** A case opened in a dialog over its page (Learn's catalogue cases), without leaving it. */
   caseDialog = "";
+  /** The assisted solve of the beginner course is open (AssistedSolve). */
+  assisted = false;
   puzzle = "333";
   solveMode = "standard";
   scrambleType = "normal";
   entry = "timer";
   themeName: string = DEFAULT_THEME;
   light = false;
+  /** What the player chose: `light` follows it, the system's look when "system". */
+  colorMode: ColorMode = "dark";
   user: any = { isGuest: true, username: msg("Guest") };
   learned = new Set<string>();
   /** The algorithm each learned case was learned with, when one was chosen. */
@@ -96,7 +120,6 @@ export class Store {
   localData = false;
   overlay = "";
   overlaySolve: any = null;
-  search = "";
   query = "";
   learningFilter = "all";
   catalogStage = "";
@@ -123,7 +146,18 @@ export class Store {
   notice = "";
   replay = 0;
   timerEpoch = 0;
-  running = false;
+  #running = false;
+  /**
+   * A solve is running: everything but its digits fades out, by the `data-running` of the app's root (see `FADE`),
+   * set here at once rather than by drawing the whole app again.
+   */
+  get running() {
+    return this.#running;
+  }
+  set running(running: boolean) {
+    this.#running = running;
+    globalThis.document?.querySelector("[data-app-shell]")?.toggleAttribute("data-running", running);
+  }
   learningFrozen = false;
   revision = 0;
   request = 0;
@@ -179,11 +213,14 @@ export class Store {
   });
   contextKey = () =>
     `${this.page}:${this.puzzle}:${this.solveMode}:${this.context().scrambleType}`;
-  cases = (p = this.puzzle) =>
-    catalog.cases.filter((c: any) => puzzleOf(c) === p);
+  cases = (p = this.puzzle) => {
+    let cases = casesByPuzzle.get(p);
+    if (!cases) casesByPuzzle.set(p, (cases = catalog.cases.filter((c: any) => puzzleOf(c) === p)));
+    return cases!;
+  };
   allSets = (p = this.puzzle) =>
     catalog.sets.filter((c: any) => puzzleOf(c) === p);
-  find = (id: string) => catalog.cases.find((c: any) => c.id === id);
+  find = (id: string) => caseById.get(id);
   info = (p = this.puzzle) =>
     catalog.puzzles.puzzles.find((v: any) => v.id === p);
   label = (kind: string, id: string) =>
@@ -261,27 +298,36 @@ export class Store {
     // An explicit priority change also updates today's case; ordinary refreshes keep it pinned.
     const assignment = dailyAssignment(undefined, learningCases(catalog.cases, mode, order), this.learned, localDay()) ?? plan.tracks[mode];
     this.pref(learningKey(this.user.id ?? "guest"), { ...plan, groupOrder: { ...plan.groupOrder, [mode]: order }, tracks: { ...plan.tracks, [mode]: assignment } });
-    await this.refreshLearning();
+    await this.refreshLearning(true);
+    this.emit();
   }
   /** Learned cases of the track being learned or reviewed, the pool of "Train learned". */
   get trackLearnedCount() { const track = learningTrackOf(this.learningMode); return track ? learningCases(catalog.cases, track).filter(c => this.learned.has(c.id)).length : 0; }
   get daily() { const mode = this.learningMode; return isLearningTrack(mode) ? this.learningPlan.tracks[mode] : undefined; }
   get practiceSelected(): Set<string> { return this.learningMode === "practice" ? this.selected : new Set(isReviewMode(this.learningMode) ? this.reviewIds : this.daily ? [this.daily.caseId] : []); }
   get dailyStatus() { if (isReviewMode(this.learningMode)) return reviewStatus(this.learningMode, this.reviewIds.length); return isLearningTrack(this.learningMode) ? learningStatus(learningCases(catalog.cases, this.learningMode), this.learned) : ""; }
+  /** Today's case and the cases to review, as the day and the learned cases have them; whether anything changed. */
   reconcileLearning() {
     const mode = this.learningMode;
-    if (this.learningFrozen || this.pendingSolve) return;
-    this.reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle, reviewTrack(mode), mode === "review" ? this.reviewStages : undefined).map(c => c.id);
-    if (!isLearningTrack(mode)) return;
+    if (this.learningFrozen || this.pendingSolve) return false;
+    const reviewIds = reviewCases(catalog.cases, this.learned, this.puzzle, reviewTrack(mode), mode === "review" ? this.reviewStages : undefined).map(c => c.id);
+    let changed = reviewIds.join() !== this.reviewIds.join();
+    if (changed) this.reviewIds = reviewIds;
+    if (!isLearningTrack(mode)) return changed;
     const plan = this.learningPlan;
     const assignment = dailyAssignment(plan.tracks[mode], learningCases(catalog.cases, mode, plan.groupOrder?.[mode]), this.learned, localDay());
-    if (assignment !== plan.tracks[mode]) this.pref(learningKey(this.user.id ?? "guest"), { ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
+    if (assignment !== plan.tracks[mode]) {
+      this.pref(learningKey(this.user.id ?? "guest"), { ...plan, tracks: { ...plan.tracks, [mode]: assignment } });
+      changed = true;
+    }
+    return changed;
   }
-  async refreshLearning() {
+  /** Draws the app again only when the learning changed; `quiet`, never (the caller draws it). */
+  async refreshLearning(quiet = false) {
     if (this.learningFrozen || this.saving || this.pendingSolve) return;
-    this.reconcileLearning();
-    if (this.learningMode !== "practice" && !this.practiceSelected.has(this.training?.id) && (this.training || this.practiceSelected.size)) { this.timerEpoch++; await this.nextCase(); }
-    this.emit();
+    let changed = this.reconcileLearning();
+    if (this.learningMode !== "practice" && !this.practiceSelected.has(this.training?.id) && (this.training || this.practiceSelected.size)) { this.timerEpoch++; await this.nextCase(); changed = true; }
+    if (changed && !quiet) this.emit();
   }
   async init() {
     try {
@@ -298,6 +344,7 @@ export class Store {
       }
       const appearance = appearanceFromStorage(v.storage);
       this.themeName = appearance.themeName;
+      this.colorMode = appearance.mode;
       this.light = appearance.light;
       this.puzzle = this.prefs["cubix.puzzle"] ?? "333";
       this.randomAuf = this.prefs["cubix.training.randomAuf"] ?? true;
@@ -400,26 +447,57 @@ export class Store {
       [...this.selected].filter((id) => !this.learned.has(id)),
     );
   }
-  async refresh() {
+  /** What a snapshot asks the engine for, but the figures held and the request's number. */
+  snapshotQuery() {
+    return {
+      context: this.context(),
+      caseId: this.caseDialog || this.caseId,
+      page: this.practicePage(),
+      // Only this session's solves: the engine sends no others.
+      session: this.sessions.get(this.contextKey()) ?? null,
+      profilePuzzle: this.profilePuzzle,
+      profileFilter: {
+        solveMode: this.profileSolveMode,
+        scrambleType: this.profileScramble,
+      },
+      advance: false,
+      caseSource: this.caseSource,
+      analysis: this.page === "profile" && this.profileMode === "analysis",
+      selected: [...this.practiceSelected],
+      randomAuf: this.randomAuf,
+    };
+  }
+  /** The snapshot asked for and not answered yet, and the one asked for once it is (for every caller meanwhile). */
+  private loading: { query: string; done: Promise<void> } | null = null;
+  private queued: Promise<void> | null = null;
+  /**
+   * Reads the data shown again. One snapshot at a time: calls meanwhile share one more, asked once it is answered.
+   * The one under way is dropped if it asks for something else than now (another account, page, puzzle, case…).
+   */
+  refresh(): Promise<void> {
+    const query = this.snapshotQuery(),
+      key = JSON.stringify([this.user.id, query]);
+    if (!this.loading) {
+      const loading = { query: key, done: this.load(query) };
+      this.loading = loading;
+      void loading.done.then(() => {
+        if (this.loading === loading) this.loading = null;
+      });
+      return loading.done;
+    }
+    if (this.loading.query !== key) this.request++;
+    return (this.queued ??= this.loading.done.then(() => {
+      this.queued = null;
+      return this.refresh();
+    }));
+  }
+  private async load(query: ReturnType<Store["snapshotQuery"]>) {
     const request = ++this.request,
-      context = this.context(),
       key = this.contextKey();
     try {
       const v = await call("snapshot", {
+        ...query,
         revision: request,
-        context,
-        caseId: this.caseDialog || this.caseId,
-        page: this.practicePage(),
-        profilePuzzle: this.profilePuzzle,
-        profileFilter: {
-          solveMode: this.profileSolveMode,
-          scrambleType: this.profileScramble,
-        },
-        advance: false,
-        caseSource: this.caseSource,
-        analysis: this.page === "profile" && this.profileMode === "analysis",
-        selected: [...this.practiceSelected],
-        randomAuf: this.randomAuf,
         // Figures held already are not sent again while unchanged.
         known: this.known,
       });
@@ -434,7 +512,8 @@ export class Store {
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.journey = v.journey ?? {};
       this.checkIntroduction();
-      await this.refreshLearning();
+      // Drawn once, below.
+      await this.refreshLearning(true);
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
       if (v.caseHistory) this.caseHistory = v.caseHistory;
@@ -619,7 +698,7 @@ export class Store {
     if (page === "profile" && this.page !== "profile") {
       this.profilePuzzle = this.puzzle; this.profileSolveMode = this.solveMode; this.profileScramble = this.scrambleType;
     }
-    this.page = page; this.caseId = caseId; this.caseDialog = ""; this.profileMode = route.profileMode;
+    this.page = page; this.caseId = caseId; this.caseDialog = ""; this.assisted = false; this.profileMode = route.profileMode;
     this.trainingStep = route.trainingStep; this.learnMethod = method;
     if (method && route.learnStep !== undefined) this.saveCourse(goToStep(this.course, this.puzzle as PuzzleId, method, route.learnStep));
     if (method) this.learnPick = method;
@@ -847,7 +926,7 @@ export class Store {
             void smartCube.connect(virtualSmartCube).then(() => {
               if (smartCube.snapshot.error) toast.error(smartCube.snapshot.error);
             });
-          }
+          } else toast(tr("Cubix cannot connect a Bluetooth cube yet."));
           break;
         case "solution":
           this.revealed = !this.revealed;
@@ -927,8 +1006,9 @@ export class Store {
           this.pref("cubix.ui.theme", arg);
           break;
         case "light":
-          this.light = arg === "light";
-          this.pref("cubix.ui.colorMode", arg);
+          this.colorMode = arg === "light" || arg === "system" ? arg : "dark";
+          this.light = this.colorMode === "system" ? systemLight() : this.colorMode === "light";
+          this.pref("cubix.ui.colorMode", this.colorMode);
           break;
         case "settings":
           this.overlay = this.overlay === "settings" ? "" : "settings";
@@ -1130,6 +1210,9 @@ export class Store {
         case "learnStep":
           this.learnStep(Number(arg));
           break;
+        case "assisted":
+          this.assisted = arg !== "off";
+          break;
         case "learnFinish": {
           const course = this.learning;
           if (!course) break;
@@ -1195,7 +1278,6 @@ export class Store {
           document.querySelector(".guides-body")?.scrollTo({ top: 0 });
           break;
         case "search":
-          this.search = "";
           this.overlay = "search";
           break;
         case "url":
@@ -1222,6 +1304,13 @@ export class Store {
     this.info().scrambles.filter((id: string) => !id.startsWith("cross1-")).map((id: string) => ({ id, label: this.label("scrambles", id) }));
 }
 export const store = new Store();
+// The system's look, followed as it changes while the theme says "System".
+if (typeof matchMedia === "function")
+  matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
+    if (store.colorMode !== "system") return;
+    store.light = e.matches;
+    store.emit();
+  });
 
 /**
  * A click handler running store actions one after the other. The element pressed loses the focus: Space starts the

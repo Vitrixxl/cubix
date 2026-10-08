@@ -5,10 +5,11 @@
  */
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Activity, AppWindow, Globe, Headset, KeyRound, Trophy, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, type LucideIcon } from "lucide-react";
+import { Activity, AppWindow, Globe, Headset, Info, KeyRound, Trophy, LayoutDashboard, LogOut, RotateCw, Server as ServerIcon, Users as UsersIcon, WifiOff, type LucideIcon } from "lucide-react";
 import { applyTheme } from "../theme";
 import { DEFAULT_THEME } from "../../../src/client/lib/theme";
-import { Logo, usePhone, WindowSidebar, Wordmark } from "../base";
+import { Empty, Logo, Tip, usePhone, WindowSidebar, Wordmark } from "../base";
+import { Confirmations } from "../confirm";
 import { Toasts } from "../Toasts";
 import { admin, AdminError, LiveContext, navigate, onExpired, refreshAll, useLive, useRefreshed, useRoute } from "./api";
 import { NUMERIC } from "./parts";
@@ -21,6 +22,7 @@ import { Server } from "./server";
 import { Coaching } from "./coaching";
 import { Tournaments } from "./tournaments";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
@@ -87,14 +89,13 @@ function AdminApp() {
       ) : phase === "login" ? (
         <TokenScreen notice={notice} onIn={() => setPhase("in")} />
       ) : phase === "offline" ? (
-        <main className="flex h-svh items-center justify-center p-6">
-          <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-            <p className="text-sm text-muted-foreground">The server cannot be reached.</p>
-            <Button variant="outline" onClick={check}>
+        <main className="flex h-svh flex-col">
+          <Empty icon={WifiOff} title="The server cannot be reached.">
+            <Button variant="outline" onClick={check} data-action="admin:retry">
               <RotateCw />
               Try again
             </Button>
-          </div>
+          </Empty>
         </main>
       ) : (
         <main className="flex h-svh items-center justify-center p-6" aria-busy="true" aria-label="Loading">
@@ -102,6 +103,7 @@ function AdminApp() {
         </main>
       )}
       <Toasts light={false} />
+      <Confirmations />
     </TooltipProvider>
   );
 }
@@ -149,9 +151,10 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
         <p className="text-sm text-muted-foreground">How every account uses the app.</p>
       </div>
       {notice && (
-        <p role="status" className="rounded-lg bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
-          {notice}
-        </p>
+        <Alert role="status">
+          <Info />
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
       )}
       <Field data-invalid={!!error || undefined}>
         <FieldLabel htmlFor="admin-token">Admin token</FieldLabel>
@@ -260,7 +263,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
           <SidebarHeader className="pt-4">
             <div className="flex h-8 items-center gap-2.5 px-2">
               <Logo size={16} />
-              <span className="text-[15px] font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+              <span className="text-base font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
                 <Wordmark /> <span className="font-normal text-muted-foreground">admin</span>
               </span>
             </div>
@@ -304,9 +307,11 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
             <span className={cn(NUMERIC, "text-xs text-muted-foreground max-sm:hidden")} data-slot="refreshed">
               {refreshed ? "Updated " + new Date(refreshed).toLocaleTimeString("en-GB") : ""}
             </span>
-            <Button variant="outline" size="icon-sm" aria-label="Refresh" onClick={refreshAll} data-action="admin:refresh">
-              <RotateCw />
-            </Button>
+            <Tip content="Refresh">
+              <Button variant="outline" size="icon-sm" aria-label="Refresh" onClick={refreshAll} data-action="admin:refresh">
+                <RotateCw />
+              </Button>
+            </Tip>
             {!phone && (
               <Button variant="outline" size="sm" onClick={onSignOut} data-action="admin:logout:header">
                 <LogOut />
@@ -315,7 +320,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
             )}
           </header>
           <div data-admin-scroll className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-[1600px] px-4 pt-5 pb-10 md:px-6 xl:px-8">{body}</div>
+            {body}
           </div>
         </SidebarInset>
       </WindowSidebar>

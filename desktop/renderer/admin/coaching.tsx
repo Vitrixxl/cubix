@@ -1,32 +1,19 @@
 /** Coaching: the applications to become a coach (with the address to answer on), and every coach. */
 import { useState } from "react";
-import { Check, Mail, Pause, Play, X } from "lucide-react";
+import { Check, Headset, Inbox, Mail, Pause, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import { admin, useAdmin } from "./api";
-import { Avatar, date, Failure, NUMERIC, Nothing, num, RowsSkeleton, UserLink, ViewHead, when } from "./parts";
-import { Icon } from "../base";
-import { eventInfo } from "../../../src/shared/puzzles";
+import { Avatar, date, Failure, LINK, NUMERIC, num, SectionHead, TableSkeleton, UserLink, VIEW, when } from "./parts";
+import { Empty, Events, PageHead, Segmented, Surface, Tip } from "../base";
+import { ask } from "../confirm";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type Application = { id: number; userId: string; username: string; email: string; events: string[]; experience: string; message: string; status: "pending" | "approved" | "rejected"; createdAt: number; decidedAt: number | null };
 type Coach = { id: string; username: string; headline: string; events: string[]; priceCents: number; active: boolean; accepting: boolean; rating: number | null; reviews: number; sessions: number; students: number; upcoming: number; since: number };
 type Data = { applications: Application[]; coaches: Coach[]; pending: number };
-
-function Events({ events }: { events: string[] }) {
-  return (
-    <span className="flex flex-wrap gap-1.5 text-muted-foreground">
-      {events.map((e) => (
-        <span key={e} title={eventInfo(e)?.label ?? e}>
-          <Icon name={"Puzzle" + e} size={16} />
-        </span>
-      ))}
-    </span>
-  );
-}
 
 export function Coaching({ phone }: { phone: boolean }) {
   const data = useAdmin<Data>("/coaching");
@@ -46,78 +33,96 @@ export function Coaching({ phone }: { phone: boolean }) {
     }
   }
   const applications = d?.applications.filter((a) => filter === "all" || a.status === filter);
+  const active = d?.coaches.filter((c) => c.active).length ?? 0;
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-4">
-        <ViewHead title="Coach applications" sub={d ? `${num(d.pending)} waiting · ${num(d.applications.length)} in all` : "Players asking to coach"} />
-        <ToggleGroup variant="outline" value={[filter]} onValueChange={(v: string[]) => v[0] && setFilter(v[0])} aria-label="Applications">
-          {(["pending", "approved", "rejected", "all"] as const).map((id) => (
-            <ToggleGroupItem key={id} value={id} data-action={"coaching:filter:" + id} className="gap-1.5 px-3 capitalize">
-              {id}
-              {d && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{num(id === "all" ? d.applications.length : d.applications.filter((a) => a.status === id).length)}</span>}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+    <div className={VIEW}>
+      <PageHead title="Coaching" sub={d ? `${num(d.pending)} applications waiting · ${num(active)} active coaches` : "Players asking to coach, and every coach"} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Segmented
+          label="Applications"
+          action="coaching:filter:"
+          value={filter}
+          onChange={setFilter}
+          options={(["pending", "approved", "rejected", "all"] as const).map((id) => ({
+            id,
+            label: id === "pending" ? "Pending" : id === "approved" ? "Approved" : id === "rejected" ? "Rejected" : "All",
+            count: d ? (id === "all" ? d.applications : d.applications.filter((a) => a.status === id)).length : undefined,
+          }))}
+        />
+      </div>
+      <section className="flex flex-col gap-3" aria-label="Coach applications">
+        <SectionHead rule title="Coach applications" meta={applications?.length || undefined} />
         {data.error && !d ? (
           <Failure error={data.error} retry={data.reload} />
         ) : !applications ? (
-          <RowsSkeleton cols={phone ? 2 : 5} rows={4} />
+          <TableSkeleton cols={phone ? 2 : 5} rows={4} />
         ) : !applications.length ? (
-          <Nothing>{filter === "pending" ? "No application waiting." : "No application here."}</Nothing>
+          <Empty icon={Inbox} title={filter === "pending" ? "No application waiting." : "No application here."} />
         ) : (
           <ul className="flex flex-col gap-3" data-slot="applications">
             {applications.map((a) => (
-              <li key={a.id} className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-sm" data-application={a.id}>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Avatar name={a.username} size={32} />
-                  <span className="flex min-w-0 flex-col">
-                    <UserLink id={a.userId} name={a.username} />
-                    <span className="text-xs text-muted-foreground" title={when(a.createdAt)}>
-                      Applied {date(a.createdAt)}
+              <li key={a.id} data-application={a.id}>
+                <Surface className="gap-3 p-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Avatar name={a.username} size={32} />
+                    <span className="flex min-w-0 flex-col">
+                      <UserLink id={a.userId} name={a.username} />
+                      <Tip content={when(a.createdAt)}>
+                        <span className="w-fit text-xs text-muted-foreground">Applied {date(a.createdAt)}</span>
+                      </Tip>
                     </span>
-                  </span>
-                  <a href={`mailto:${a.email}?subject=${encodeURIComponent("Your Qbix coach application")}`} className="flex items-center gap-1.5 text-primary hover:underline" data-slot="email">
-                    <Mail className="size-4" />
-                    {a.email}
-                  </a>
-                  <Events events={a.events} />
-                  <span className="ml-auto flex items-center gap-2">
-                    {a.status === "pending" ? (
-                      <>
-                        <Button variant="outline" size="sm" disabled={!!busy} onClick={() => act("r" + a.id, `/coaching/applications/${a.id}/reject`, "Application rejected")} data-action="coaching:reject">
-                          <X />
-                          Reject
-                        </Button>
-                        <Button size="sm" disabled={!!busy} onClick={() => act("a" + a.id, `/coaching/applications/${a.id}/approve`, `${a.username} is now a coach`)} data-action="coaching:approve">
-                          <Check />
-                          Approve
-                        </Button>
-                      </>
-                    ) : (
-                      <Badge variant={a.status === "approved" ? "default" : "secondary"} className="capitalize">
-                        {a.status} {a.decidedAt ? date(a.decidedAt) : ""}
-                      </Badge>
-                    )}
-                  </span>
-                </div>
-                {a.experience && (
-                  <p>
-                    <span className="text-muted-foreground">Level · </span>
-                    {a.experience}
-                  </p>
-                )}
-                <p className="whitespace-pre-line">{a.message}</p>
+                    <a href={`mailto:${a.email}?subject=${encodeURIComponent("Your Qbix coach application")}`} className={cn(LINK, "flex items-center gap-1.5 text-muted-foreground")} data-slot="email">
+                      <Mail className="size-4" />
+                      {a.email}
+                    </a>
+                    <Events events={a.events} />
+                    <span className="ml-auto flex items-center gap-2">
+                      {a.status === "pending" ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!busy}
+                            onClick={async () =>
+                              (await ask({ title: `Reject ${a.username}'s application?`, text: "The application is closed; write to the player to say why.", action: "Reject" })) &&
+                              act("r" + a.id, `/coaching/applications/${a.id}/reject`, "Application rejected")
+                            }
+                            data-action="coaching:reject"
+                          >
+                            <X />
+                            Reject
+                          </Button>
+                          <Button size="sm" disabled={!!busy} onClick={() => act("a" + a.id, `/coaching/applications/${a.id}/approve`, `${a.username} is now a coach`)} data-action="coaching:approve">
+                            <Check />
+                            Approve
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant={a.status === "approved" ? "success" : "secondary"} className="capitalize">
+                          {a.status} {a.decidedAt ? date(a.decidedAt) : ""}
+                        </Badge>
+                      )}
+                    </span>
+                  </div>
+                  {a.experience && (
+                    <p>
+                      <span className="text-muted-foreground">Level · </span>
+                      {a.experience}
+                    </p>
+                  )}
+                  <p className="whitespace-pre-line">{a.message}</p>
+                </Surface>
               </li>
             ))}
           </ul>
         )}
       </section>
-      <section className="flex flex-col gap-4">
-        <ViewHead title="Coaches" sub={d ? `${num(d.coaches.filter((c) => c.active).length)} active` : "Every coach"} />
+      <section className="flex flex-col gap-3" aria-label="Coaches">
+        <SectionHead rule title="Coaches" meta={d?.coaches.length || undefined} />
         {!d ? (
-          <RowsSkeleton cols={phone ? 2 : 7} rows={4} />
+          <TableSkeleton cols={phone ? 2 : 7} rows={4} />
         ) : !d.coaches.length ? (
-          <Nothing>No coach yet.</Nothing>
+          <Empty icon={Headset} title="No coach yet." />
         ) : (
           <Table data-slot="coaches">
             <TableHeader>
@@ -157,7 +162,11 @@ export function Coaching({ phone }: { phone: boolean }) {
                       variant="outline"
                       size="sm"
                       disabled={!!busy}
-                      onClick={() => act("c" + c.id, `/coaching/coaches/${encodeURIComponent(c.id)}/${c.active ? "disable" : "enable"}`, c.active ? `${c.username} is no longer listed` : `${c.username} is a coach again`)}
+                      onClick={async () =>
+                        (!c.active ||
+                          (await ask({ title: `Take ${c.username} off the list of coaches?`, text: "Players can no longer find or book this coach until it is enabled again.", action: "Disable" }))) &&
+                        act("c" + c.id, `/coaching/coaches/${encodeURIComponent(c.id)}/${c.active ? "disable" : "enable"}`, c.active ? `${c.username} is no longer listed` : `${c.username} is a coach again`)
+                      }
                       data-action={c.active ? "coaching:disable" : "coaching:enable"}
                     >
                       {c.active ? <Pause /> : <Play />}

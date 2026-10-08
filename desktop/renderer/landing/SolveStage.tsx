@@ -148,6 +148,9 @@ export function SolveStage({ children, finish }: { children: React.ReactNode; fi
       // The pointer from the window's middle (-1 to 1), for the cube to lean to.
       pointer = [0, 0];
     let frame = 0, last = 0, born = 0, seen = true, moved = true, shown = NaN, mouse: [number, number] | null = null, steps = 0;
+    // The tiles are drawn again only while they change (`still` once they no longer do, until the pointer moves, a
+    // ring leaves or the canvas is sized again); the cube at rest, swaying alone, at half the frame rate.
+    let still = false, aimed: [number, number] | null = null, painted = 0;
     let to = { moves: 0, chapter: 0 }, solvedAt = -1e9, solved = false;
     let state: "ready" | "running" | "stopped" = "ready", began = 0;
     const set = (element: HTMLElement, name: string, value: number) => {
@@ -211,7 +214,7 @@ export function SolveStage({ children, finish }: { children: React.ReactNode; fi
      * The picture at `now`: the cube between two features' places, drawn as the app draws its cubes, over the grid.
      * As the page opens it turns in, growing; solved, it breathes out once.
      */
-    const draw = (now: number) => {
+    const draw = (now: number, rest: boolean) => {
       const large = wide.matches,
         places = large ? WIDE : NARROW,
         along = clamp(view.chapter, 0, places.length - 1),
@@ -238,11 +241,19 @@ export function SolveStage({ children, finish }: { children: React.ReactNode; fi
       const centre: [number, number] = large ? [width / 2 + (column / 2) * x, (height / 2) * (1 - up)] : [nook.left + nook.width / 2 - box.left, nook.top + nook.height / 2 - box.top],
         over: [number, number] | null = mouse && !calm ? [mouse[0] - box.left, mouse[1] - box.top] : null,
         done = STARTS.filter((start, k) => view.moves >= start + COUNTS[k]! - 0.001).length;
-      if (done > steps && !calm && now - born > 600) grid.ring(centre[0], centre[1], now, done === COUNTS.length ? 1 : 0.4, done === COUNTS.length ? Math.hypot(width, height) : Math.max(size * 1.6, 280));
+      if (done > steps && !calm && now - born > 600) {
+        grid.ring(centre[0], centre[1], now, done === COUNTS.length ? 1 : 0.4, done === COUNTS.length ? Math.hypot(width, height) : Math.max(size * 1.6, 280));
+        still = false;
+      }
       steps = done;
-      under.setTransform(ratio, 0, 0, ratio, 0, 0);
-      under.clearRect(0, 0, width, height);
-      grid.draw(under, now, over, here);
+      if (!still || here < 1 || over?.[0] !== aimed?.[0] || over?.[1] !== aimed?.[1]) {
+        under.setTransform(ratio, 0, 0, ratio, 0, 0);
+        under.clearRect(0, 0, width, height);
+        still = !grid.draw(under, now, over, here);
+        aimed = over;
+      }
+      if (rest && now - painted < 32) return;
+      painted = now;
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
       const sharp = small.width / Math.max(nook.width, 1), cube = large ? ctx : tiny;
@@ -274,7 +285,9 @@ export function SolveStage({ children, finish }: { children: React.ReactNode; fi
       if (view.moves > TOTAL - 0.001 && !solved) solvedAt = now;
       solved = view.moves > TOTAL - 0.001;
 
-      draw(now);
+      // At rest: everything where it goes, the pointer's lean included, the clock stopped, the solve's breath over.
+      const rest = settled && !calm && state !== "running" && now - solvedAt > 500 && now - born > 1600 && Math.abs(pointer[0]! - view.across) < 1e-4 && Math.abs(pointer[1]! - view.down) < 1e-4;
+      draw(now, rest);
       if (view.moves !== shown) {
         fills.current.forEach((fill, i) => fill && (fill.style.transform = `scaleX(${clamp((view.moves - STARTS[i]!) / COUNTS[i]!).toFixed(3)})`));
         setAt(view.moves < 0.01 ? -1 : Math.floor(view.moves + 0.0001));
@@ -302,6 +315,8 @@ export function SolveStage({ children, finish }: { children: React.ReactNode; fi
       ground.current!.height = target.height;
       small.width = small.height = Math.round(small.clientWidth * Math.min(devicePixelRatio, 3));
       grid.size(width, height, wide.matches ? 64 : 44);
+      still = false;
+      painted = 0;
       scroll();
     });
     sized.observe(target);

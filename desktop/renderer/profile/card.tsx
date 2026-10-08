@@ -1,12 +1,19 @@
 /** The profile's one building block: a card with a heading row (title, muted meta, a link to its page) and a body. */
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { InHead, NUMERIC, type Props, run, Tip, usePhone } from "../ui";
+import { ChevronRight } from "lucide-react";
+import { Surface, type Props, run } from "../ui";
 import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
+
+/** The title of a profile card: between the page's heading and a section's. */
+export const CARD_TITLE = "shrink-0 text-base font-semibold tracking-tight";
+
+/**
+ * The look of the profile's floating tooltips (the curve's crosshair, the heatmap's day), which follow the pointer
+ * instead of an element: the same as a `Tip`.
+ */
+export const TIP = "pointer-events-none z-50 flex flex-col gap-0.5 rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background";
 
 /** A quiet link at the end of a heading row: "View all ›". */
 export function MoreLink({ actions, children, className }: { actions: string[] } & Props) {
@@ -17,9 +24,6 @@ export function MoreLink({ actions, children, className }: { actions: string[] }
     </Button>
   );
 }
-
-/** Inside the overview's joined panel, sections are drawn flat and the panel's lines separate them. */
-export const Joined = React.createContext(false);
 
 /** A section of the profile: every one is built the same, heading row then body, same padding. */
 export function Section({
@@ -32,7 +36,6 @@ export function Section({
   className,
   body,
   label,
-  pane = false,
 }: {
   title: React.ReactNode;
   meta?: React.ReactNode;
@@ -42,14 +45,11 @@ export function Section({
   aside?: React.ReactNode;
   body?: string;
   label?: string;
-  /** Flat, inside a joined panel whose lines separate the sections, instead of a card of its own. */
-  pane?: boolean;
 } & Props) {
-  pane = React.useContext(Joined) || pane;
   return (
-    <Card className={cn("gap-0 py-0", pane && "rounded-none bg-transparent ring-0", className)} aria-label={said(label)}>
+    <Surface className={className} aria-label={said(label)}>
       <div className="flex min-h-13 shrink-0 items-center gap-3 px-5 pt-2">
-        <h2 className="shrink-0 text-base font-semibold tracking-tight">{said(title)}</h2>
+        <h2 className={CARD_TITLE}>{said(title)}</h2>
         {meta != null && <span className="min-w-0 truncate text-sm text-muted-foreground">{said(meta)}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           {aside}
@@ -57,64 +57,6 @@ export function Section({
         </div>
       </div>
       <div className={cn("flex min-h-0 flex-col gap-5 px-5 pt-3 pb-5", body)}>{children}</div>
-    </Card>
-  );
-}
-
-/** A small heading inside a section, with an optional link on the right. */
-export function SubHead({ title, children }: { title: React.ReactNode } & Props) {
-  return (
-    <div className="flex h-8 items-center gap-2">
-      <h3 className="text-sm font-medium text-muted-foreground">{said(title)}</h3>
-      {children && <div className="ml-auto flex items-center">{children}</div>}
-    </div>
-  );
-}
-
-/** A row of figures: `columns` of them on one line where there is room, as many as fit otherwise. */
-export function Stats({ children, className, columns }: { columns?: number } & Props) {
-  const wide = !usePhone();
-  return (
-    <div
-      className={cn("grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-x-6 gap-y-4", className)}
-      style={columns && wide ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** Sub-page heading: back to the overview, the title and its meta, the page's controls on the right (outlined). */
-export function SubPageHead({ title, meta, children, back = true }: { title: React.ReactNode; meta?: React.ReactNode; back?: boolean } & Props) {
-  return (
-    <InHead.Provider value={true}>
-      <header className="flex min-h-10 shrink-0 items-center gap-x-2 md:gap-x-6">
-        <div className="flex min-w-0 items-center gap-2 md:gap-3">
-          {back && (
-            <Tip content={tr("Back to the profile")}>
-              <Button variant="outline" size="icon" aria-label={tr("Back to the profile")} data-action="profileMode:overview" onClick={run("profileMode:overview")} className="size-8 max-md:size-10">
-                <ChevronLeft />
-              </Button>
-            </Tip>
-          )}
-          <h1 className="truncate text-xl font-semibold tracking-tight md:text-2xl">{said(title)}</h1>
-          {meta != null && <span className="truncate text-xs text-muted-foreground md:text-sm">{said(meta)}</span>}
-        </div>
-        {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
-      </header>
-    </InHead.Provider>
-  );
-}
-
-/** Where a count goes in a sentence: tabular digits, full colour. */
-export const Num = ({ children }: Props) => <span className={cn(NUMERIC, "font-medium text-foreground")}>{children}</span>;
-
-/** The body card of a page: its toolbar on top, then the rest, scrolling inside unless `scroll` is off. */
-export function PageCard({ toolbar, children, className, scroll = true }: { toolbar?: React.ReactNode; scroll?: boolean } & Props) {
-  return (
-    <Card className={cn("min-h-0 flex-1 gap-0 py-0", className)}>
-      {toolbar && <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pt-4 pb-3">{toolbar}</div>}
-      <div className={cn("min-h-0 flex-1 px-5 pb-5", scroll ? "overflow-y-auto" : "flex flex-col", !toolbar && "pt-4")}>{children}</div>
-    </Card>
+    </Surface>
   );
 }

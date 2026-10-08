@@ -177,7 +177,9 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
         local.api.solves('training', Infinity, '333', { solveMode: context.solveMode }),
       ]);
       const jobs: Record<string, Promise<unknown>> = {
-        solves: local.api.solves(trainingMode ? 'training' : 'playground', 1000, context.puzzle, context),
+        // The latest thousand solves, or only those of the session the client shows (`session`, null before its first).
+        solves: 'session' in q && q.session == null ? Promise.resolve([])
+          : local.api.solves(trainingMode ? 'training' : 'playground', 1000, context.puzzle, context).then(rows => 'session' in q ? rows.filter((row: any) => row.session_id === q.session) : rows),
         stats: inSolves && source !== 'training'
           ? inSolves.then(([digests, training]) => shownOf(smart.caseStats(source, digests, training, local.read.stats(context.puzzle, filter), context.solveMode)).value)
           : Promise.resolve(shownOf(local.read.stats(context.puzzle, filter)).value),

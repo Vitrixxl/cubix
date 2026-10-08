@@ -255,6 +255,8 @@ class Coaching {
   failure = "";
   private socket?: WebSocket;
   private retry = 0;
+  /** The socket was ready once for this account: a `ready` after it is a reconnection. */
+  private wasReady = false;
   private timer?: ReturnType<typeof setTimeout>;
   private ping?: ReturnType<typeof setInterval>;
   private loading = new Map<string, Promise<unknown>>();
@@ -281,6 +283,7 @@ class Coaching {
     }
     this.socket = undefined;
     this.connected = false;
+    this.wasReady = false;
     this.me = this.coaches = this.bookings = this.conversations = this.dashboard = undefined;
     this.profiles.clear();
     this.slots.clear();
@@ -551,13 +554,16 @@ class Coaching {
         this.retry = 0;
         clearInterval(this.ping);
         this.ping = setInterval(() => this.signal({ type: "ping" }), 25_000);
-        // Whatever changed while the socket was down.
-        void this.load("me");
-        if (this.bookings) void this.load("bookings");
-        if (this.conversations) void this.load("conversations");
-        if (this.dashboard) void this.load("dashboard");
+        // Whatever changed while the socket was down; the first opening follows the loads of `attach`.
+        if (this.wasReady) {
+          void this.load("me");
+          if (this.bookings) void this.load("bookings");
+          if (this.conversations) void this.load("conversations");
+          if (this.dashboard) void this.load("dashboard");
+          community.reconnected();
+        }
+        this.wasReady = true;
         this.callListener?.({ type: "ready" });
-        community.reconnected();
         s.emit();
         break;
       // The community's events share this socket (community/client.ts).
