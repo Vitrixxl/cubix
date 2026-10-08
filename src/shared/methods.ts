@@ -34,6 +34,8 @@ export interface MethodStep {
   tips?: string[];
   /** The step's algorithms Cubix does not have yet, said in one sentence. */
   missing?: string;
+  /** The training mode that practises an intuitive step (Training → Cross). */
+  train?: "cross";
 }
 
 /** A short, English walkthrough of one way to solve a puzzle: the solving methods guide and the Learn section. */
@@ -142,7 +144,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
       summary: "Layer by layer with a handful of short algorithms. Slow but reliable, and the base of every other method.",
       steps: [
         {
-          title: "White cross", text: "Place the four white edges around the white centre so their side colours match the side centres.",
+          title: "White cross", text: "Place the four white edges around the white centre so their side colours match the side centres.", train: "cross",
           tips: [
             "Start with a daisy: the four white edges around the yellow centre, white facing up.",
             "Turn the top until an edge's side colour matches the centre below it, then turn that face twice to bring it down.",
@@ -208,7 +210,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
       summary: "The most popular speed method: Cross, F2L, OLL and PLL. Most Cubix sets for the 3×3 follow it.",
       steps: [
         {
-          title: "Cross", text: "Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.",
+          title: "Cross", text: "Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.", train: "cross",
           tips: ["Build it on the bottom from the start, so the pairs stay in view.", "Place edges relative to each other first; the centres can be matched with one last turn.", "Most crosses take eight moves or fewer: if yours takes more, look for a shorter one."],
         },
         { title: "F2L", text: "Pair a corner with its edge and insert them together into their slot, four times. The 41 basic cases are learnt intuitively first.", sets: ["f2l"] },

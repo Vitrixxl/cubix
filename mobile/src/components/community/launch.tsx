@@ -1,7 +1,7 @@
 import { Swords, Trophy } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
-import { formatText, type Conversation, type Format, type Group } from "../../../../src/client/lib/community";
+import { DEFAULT_PLAYERS, MAX_PLAYERS, formatText, playersLimit, type Conversation, type Format, type Group } from "../../../../src/client/lib/community";
 import { EVENTS, type EventId } from "../../../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -75,7 +75,7 @@ const startOf = (text: string) => { const m = /^(\d{4})-(\d{1,2})-(\d{1,2})[ T](
 
 /** A group's tournament, organised by its owner or an admin; its card comes into the group's conversation. */
 export function TournamentSheet({ group: g, open, onClose }: { group: Group; open: boolean; onClose: () => void }) {
-  const [name, setName] = useState(""), [description, setDescription] = useState(""), [starts, setStarts] = useState(""), [cap, setCap] = useState(""),
+  const [name, setName] = useState(""), [description, setDescription] = useState(""), [starts, setStarts] = useState(""), [cap, setCap] = useState(String(DEFAULT_PLAYERS)),
     [format, setFormat] = useState<Format>({ event: "333", points: 3, sets: 2 }), [busy, setBusy] = useState(false);
   useEffect(() => { if (open) setStarts(startText(Date.now() + 86_400_000)); }, [open]);
   const startsAt = startOf(starts);
@@ -88,12 +88,12 @@ export function TournamentSheet({ group: g, open, onClose }: { group: Group; ope
       <View className="flex-[1.4]"><Field label={tr("Starts")}>
         <SheetInput value={starts} onChangeText={setStarts} accessibilityLabel={tr("Starts")} placeholder="2026-10-09 18:00" keyboardType="numbers-and-punctuation" className={Number.isNaN(startsAt) ? "border-destructive" : undefined} />
       </Field></View>
-      <View className="flex-1"><NumberField label={tr("Most players")} value={cap} min={2} max={256} placeholder={tr("No limit")} onChange={setCap} /></View>
+      <View className="flex-1"><NumberField label={tr("Most players")} value={cap} min={2} max={MAX_PLAYERS} onChange={setCap} /></View>
     </View>
     <Field label={tr("Description")}><SheetInput value={description} onChangeText={setDescription} maxLength={500} multiline accessibilityLabel={tr("Description")} className="min-h-16 py-2.5" textAlignVertical="top" /></Field>
     <Button disabled={busy || name.trim().length < 2 || Number.isNaN(startsAt)} className="h-11 rounded-lg" onPress={async () => {
       setBusy(true);
-      const done = await community.createTournament(g.id, { ...format, name: name.trim(), description: description.trim(), startsAt, maxPlayers: cap ? Math.max(2, Math.min(256, Number(cap))) : null });
+      const done = await community.createTournament(g.id, { ...format, name: name.trim(), description: description.trim(), startsAt, maxPlayers: playersLimit(cap) });
       setBusy(false);
       if (done) { onClose(); setName(""); setDescription(""); }
     }}>

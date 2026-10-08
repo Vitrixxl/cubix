@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from "./AlgPlayer";
 import { Alg, Label, Numeric } from "./layout";
 import { SheetChoice } from "./PuzzlePicker";
-import { SheetInput } from "./Sheet";
 import type { SolveSummary } from "./SolveMenus";
 import { locale, tr } from "../../../src/client/i18n";
 
@@ -40,7 +39,7 @@ function played(solution: string | null | undefined) {
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleString(locale(), { dateStyle: "medium", timeStyle: "short" });
 
-export function SolveDetail({ solve, onSave, children }: { solve: ViewedSolve; /** Saves the turns written (null clears them); resolves true once saved. */ onSave: (solution: string | null) => Promise<boolean>; children?: ReactNode }) {
+export function SolveDetail({ solve, onSave, comment, children }: { solve: ViewedSolve; /** Saves the turns written (null clears them); resolves true once saved. */ onSave: (solution: string | null) => Promise<boolean>; /** The comment's field, in place of its text while it is written. */ comment?: ReactNode; children?: ReactNode }) {
   const size = puzzleInfo(puzzleOf(solve)).cubeSize,
     // The scramble as the cube the app shows it; a scramble it cannot follow leaves no cube to play on.
     setup = useMemo(() => (solve.scramble ? heldAlg(solve.scramble.trim().split(/\s+/)) : null), [solve.scramble]),
@@ -89,7 +88,7 @@ export function SolveDetail({ solve, onSave, children }: { solve: ViewedSolve; /
           ? <PlayerAlg key={alg} player={player} text={recorded ? "z2 " + alg : annotation!.moves} size={16} />
           : <Text className="text-sm text-muted-foreground">{cube ? tr("No turns yet: write them to replay the solve.") : tr("No turns recorded for this solve.")}</Text>}
       </View>}
-    {solve.comment ? <Text selectable className="text-sm text-muted-foreground">{solve.comment}</Text> : null}
+    {comment ?? (solve.comment ? <Text selectable className="text-sm text-muted-foreground">{solve.comment}</Text> : null)}
     {!editing && children}
   </View>;
 }
@@ -107,17 +106,23 @@ const PAD = [
   ["M", "E", "S", "x", "y", "z"],
 ];
 
+/** A pad key: a face appends a turn, a modifier toggles on the last turn, ⌫ removes it. */
+function padPress(tokens: string[], key: string): string[] {
+  const last = tokens.at(-1);
+  if (key === "back") return tokens.slice(0, -1);
+  if (key !== "'" && key !== "2") return [...tokens, key];
+  if (!last) return tokens;
+  const base = last.replace(/(2'|2|')$/, ""), suffix = last.slice(base.length);
+  return [...tokens.slice(0, -1), base + (suffix === key ? "" : key)];
+}
+
 /**
- * The turns written by hand: how the cube was held (the colours on top and in front), then the turns, typed or put
- * in with the pad. A modifier changes the last turn (R, R', R2).
+ * The turns written by hand: how the cube was held (the colours on top and in front), then the turns, put in with the
+ * pad only, never typed freely. A modifier toggles on the last turn (R, R', R2).
  */
 function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value: Annotation; onChange: (a: Annotation) => void; valid: boolean; onCancel: () => void; onSave: () => void }) {
   const tokens = value.moves.trim().split(/\s+/).filter(Boolean),
-    set = (moves: string[]) => onChange({ ...value, moves: moves.join(" ") }),
-    modify = (suffix: "'" | "2") => {
-      const last = tokens.at(-1);
-      if (last) set([...tokens.slice(0, -1), last.replace(/(2'|2|')$/, "") + suffix]);
-    };
+    press = (k: string) => onChange({ ...value, moves: padPress(tokens, k).join(" ") });
   const colours = (list: readonly Colour[]) => list.map(c => ({ id: c, label: colourName(c), prefix: <Swatch colour={c} /> }));
   const key = (id: string, label: ReactNode, onPress: () => void, accessibilityLabel?: string) =>
     <Button key={id} variant="outline" size="sm" className="h-11 min-w-0 flex-1 px-0" onPress={onPress} accessibilityLabel={accessibilityLabel}>{label}</Button>;
@@ -125,15 +130,16 @@ function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value:
     <SheetChoice<Colour> label={tr("On top")} columns={3} value={value.top} options={colours(COLOURS)}
       onChange={top => onChange({ ...value, top, front: frontsOf(top).includes(value.front) ? value.front : frontsOf(top)[0]! })} />
     <SheetChoice<Colour> label={tr("In front")} columns={4} value={value.front} options={colours(frontsOf(value.top))} onChange={front => onChange({ ...value, front })} />
-    <SheetInput accessibilityLabel={tr("Turns")} placeholder="x2 y R U R' U' r M' …" value={value.moves} onChangeText={moves => onChange({ ...value, moves })}
-      multiline autoCapitalize="none" autoCorrect={false} className={cn("min-h-20 py-2.5 font-medium", !valid && "border-destructive")} textAlignVertical="top" />
-    {!valid && <Text className="text-xs text-destructive">{tr("A turn cannot be read: use the notation of the pad.")}</Text>}
+    <View accessibilityLabel={tr("Turns")} className="min-h-16 flex-row flex-wrap content-start gap-1 rounded-md border border-input bg-muted/30 p-2">
+      {tokens.length ? tokens.map((t, i) => <View key={i} className="rounded-sm bg-muted px-1.5 py-0.5"><Text className="font-mono text-sm font-medium">{t}</Text></View>)
+        : <Text className="self-center text-xs text-muted-foreground">x2 y R U R' U' r M' …</Text>}
+    </View>
     <View className="gap-1">
       {PAD.map((row, r) => <View key={r} className="flex-row gap-1">
-        {row.map(k => key(k, <Text className="font-medium">{k}</Text>, () => set([...tokens, k])))}
-        {r === 0 ? key("'", <Text>′</Text>, () => modify("'"), tr("Counter-clockwise"))
-          : r === 1 ? key("2", <Text>2</Text>, () => modify("2"), tr("Half turn"))
-          : key("back", <Icon as={Delete} size={17} />, () => set(tokens.slice(0, -1)), tr("Remove the last turn"))}
+        {row.map(k => key(k, <Text className="font-medium">{k}</Text>, () => press(k)))}
+        {r === 0 ? key("'", <Text>′</Text>, () => press("'"), tr("Counter-clockwise"))
+          : r === 1 ? key("2", <Text>2</Text>, () => press("2"), tr("Half turn"))
+          : key("back", <Icon as={Delete} size={17} />, () => press("back"), tr("Remove the last turn"))}
       </View>)}
     </View>
     <View className="flex-row justify-end gap-2">

@@ -32,7 +32,7 @@ const solver = { kind: "profile", knownPuzzles: ["333"], priority: null, complet
 let journey: Record<string, any> = { profile: solver };
 const journeyUpdates: any[] = [];
 mock.module("../src/api", () => ({ api: { setLearned: async () => {}, updateJourney: async (changes: any) => { journeyUpdates.push(changes); }, algorithmChoices: async () => ({}) }, authToken: { get: () => "token" }, local: {
-  current: () => ({ id: "u1", username: "u1", isGuest: false, createdAt: "" }), learned: () => ["2L-OLL I-Shape"], learnedAlg: () => ({}), learningGroupOrder: () => ({}), read: { catalog: () => ({ cases, sets }), stats: () => [], journey: () => journey, caseHistory: () => ({ summary: { count: 0 } }) },
+  current: () => ({ id: "u1", username: "u1", isGuest: false, createdAt: "" }), learned: () => ["2L-OLL I-Shape"], learnedAlgs: () => ({}), learningGroupOrder: () => ({}), read: { catalog: () => ({ cases, sets }), stats: () => [], journey: () => journey, caseHistory: () => ({ summary: { count: 0 } }) },
 } }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));

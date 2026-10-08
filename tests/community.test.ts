@@ -176,6 +176,8 @@ test("battles in a group, and tournaments the administration opens to everyone",
 
   const adm = await adminSession(origin, admin);
   expect((await alice.call("POST", "tournaments", { name: "Open", event: "333", startsAt: Date.now() + 1000, points: 1, sets: 1 })).status).toBe(422);
+  // A tournament takes from 2 to 100 players.
+  for (const maxPlayers of [1, 101]) expect((await adm("POST", "tournaments", { name: "Too many", event: "333", startsAt: Date.now() + 3600_000, points: 1, sets: 1, maxPlayers })).status).toBe(422);
   const open = (await adm("POST", "tournaments", { name: "Autumn open", event: "333", startsAt: Date.now() + 3600_000, points: 3, sets: 2, maxPlayers: 2 })).value;
   expect((await alice.get("tournaments")).map((t: any) => t.name)).toEqual(["Autumn open"]);
   await alice.call("POST", `tournaments/${open.id}/register`);
@@ -190,6 +192,7 @@ test("battles in a group, and tournaments the administration opens to everyone",
 
   // A tournament starts by itself at its date; one with fewer than two players is called off.
   const soon = (await adm("POST", "tournaments", { name: "Lonely", event: "333", startsAt: Date.now(), points: 1, sets: 1 })).value;
+  expect(soon.maxPlayers).toBe(100);
   await alice.call("POST", `tournaments/${soon.id}/register`);
   for (let i = 0; i < 40 && (await alice.get(`tournaments/${soon.id}`)).status === "open"; i++) await Bun.sleep(250);
   expect((await alice.get(`tournaments/${soon.id}`)).status).toBe("cancelled");

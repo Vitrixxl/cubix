@@ -1,6 +1,6 @@
 /** Visual primitives and page building blocks shared by every screen, composed from the shadcn components. */
 import React, { useMemo, useRef } from "react";
-import { Check, ChevronDown, Circle, Info, MessageSquare, Trash2, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, Circle, Info, MessageSquare, Share2, Trash2, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { Cube } from "./Cube";
 import { PhoneSheet, SessionButton } from "./phone";
@@ -267,9 +267,9 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
 
 /**
  * The actions of a solve row, shown while the row is hovered or focused (the row is a `group/row`): +2, DNF, the
- * comment when asked, and delete.
+ * comment, the link and the details when `full`, and delete.
  */
-export function SolveActions({ solve, comment = false, className }: { solve: { id: number; penalty?: string; comment?: string | null }; comment?: boolean; className?: string }) {
+export function SolveActions({ solve, full = false, className }: { solve: { id: number; penalty?: string; comment?: string | null }; full?: boolean; className?: string }) {
   return (
     <span className={cn("flex items-center opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100", className)}>
       <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground aria-pressed:text-warning">
@@ -277,8 +277,12 @@ export function SolveActions({ solve, comment = false, className }: { solve: { i
       </ActionToggle>
       <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground aria-pressed:text-destructive">
         {tr("DNF")}</ActionToggle>
-      {comment && (
-        <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
+      {full && (
+        <>
+          <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
+          {!s.user.isGuest && <Button action={"share:" + solve.id} icon={Share2} size="icon-xs" label={tr("Share")} className="text-muted-foreground" />}
+          <Button action={"solve:" + solve.id} icon={Info} size="icon-xs" label={tr("Details")} className="text-muted-foreground" />
+        </>
       )}
       <Button action={"delete:" + solve.id} icon={Trash2} size="icon-xs" label={tr("Delete solve")} className="text-muted-foreground hover:text-destructive" />
     </span>
@@ -337,8 +341,26 @@ export function StatusMark({ state }: { state: "done" | "current" | "neutral" | 
   return <Circle className="size-4" strokeDasharray="3.5 3" />;
 }
 
-/** Whether an algorithm or a case is learned, as a labelled toggle: "Mark learned", then "Learned" in green. */
-export function LearnToggle({ action, learned, touch = false, className }: { action: string; learned: boolean; touch?: boolean; className?: string }) {
+/** How far a step or set is learned: a check once all its algorithms are, a small dot without algorithms, else a ring filled as far as they are. */
+export function ProgressRing({ done, share, current, neutral }: { done: boolean; share: number; current?: boolean; neutral?: boolean }) {
+  if (done || neutral)
+    return (
+      <span className={cn("flex size-4 shrink-0 items-center justify-center", done ? "text-success" : current ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
+        <StatusMark state={done ? "done" : "neutral"} />
+      </span>
+    );
+  const r = 6.5,
+    length = 2 * Math.PI * r;
+  return (
+    <svg viewBox="0 0 16 16" className={cn("size-4 shrink-0 -rotate-90", current || share > 0 ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
+      <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth="2.5" />
+      {share > 0 && <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${share * length} ${length}`} />}
+    </svg>
+  );
+}
+
+/** Whether an algorithm or a case is learned, as a labelled toggle: "Mark learned", then "Learned" in green; an intuitive step says mastered. */
+export function LearnToggle({ action, learned, touch = false, mastery = false, className }: { action: string; learned: boolean; touch?: boolean; mastery?: boolean; className?: string }) {
   return (
     <ActionToggle
       action={action}
@@ -347,7 +369,7 @@ export function LearnToggle({ action, learned, touch = false, className }: { act
       variant="outline"
       className={cn("text-muted-foreground aria-pressed:border-success/40 aria-pressed:bg-success/15 aria-pressed:text-success", touch && "h-11 px-3", className)}
     >
-      {learned ? tr("Learned") : tr("Mark learned")}
+      {mastery ? (learned ? tr("Mastered") : tr("Mark as mastered")) : learned ? tr("Learned") : tr("Mark learned")}
     </ActionToggle>
   );
 }

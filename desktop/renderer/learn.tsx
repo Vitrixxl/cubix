@@ -1,5 +1,5 @@
 /**
- * Learn: the methods of the puzzle as large cards under the header, each with the share of its algorithms known; then
+ * Learn: the methods of the puzzle as large cards in the middle of the page, each with the share of its algorithms known; then
  * the chosen one as a course: its steps in a band across the top with Train, Previous and Next, the current step under
  * it, its explanation and tips in a card on the left, every algorithm it teaches beside them.
  * Phones get the course with its steps in a sheet and its actions under the thumb.
@@ -8,20 +8,20 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { orderedGroups } from "../../src/client/lib/dailyLearning";
-import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Flag, GraduationCap, Info, Lightbulb, Route, Timer } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Flag, GraduationCap, Info, Lightbulb, Route, Timer } from "lucide-react";
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, recommendedMethod, setGroups, stepDone, stepLearned, stepSets,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepSets,
   type CourseEntry,
 } from "../../src/client/lib/course";
 import { StaticCubeSvg } from "../../src/client/diagrams/StaticCubeSvg";
 import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
-import { Alg, Back, Button, Choice, Empty, Figure, Icon, LABEL, LearnToggle, Modal, PAGE, PageHead, ROW, SectionHead, StatusMark, Surface, Tip, plural, run, usePhone } from "./ui";
-import { PickerCard } from "./picker";
+import { Alg, Back, Button, Choice, Empty, Figure, Icon, LABEL, LearnToggle, Modal, PAGE, PageHead, ROW, SectionHead, ProgressRing, StatusMark, Surface, Tip, plural, run, usePhone } from "./ui";
+import { Picker, PickerCard } from "./picker";
 import { CaseDetail, CaseTile, FootBar, PlayDiagram } from "./algorithms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button as UiButton } from "@/components/ui/button";
@@ -70,6 +70,7 @@ function methodRows(puzzle: PuzzleId) {
     facts: methodFacts(method, cases),
     learned: methodLearned(method, cases, s.learned, courseEntry(progress, puzzle, method.id)),
     progress: methodProgress(progress, puzzle, method, cases, s.learned),
+    share: methodShare(method, cases, s.learned, progress, puzzle),
     recommended: method.id === recommended,
   }));
 }
@@ -81,7 +82,7 @@ const methodDetail = (row: MethodRow) =>
 /** The share of a method's algorithms known, from 0 to 1. */
 const knownShare = (row: MethodRow) => (row.facts.algorithms ? row.learned / row.facts.algorithms : 0);
 
-/** The methods of the puzzle as large cards under the header, as many side by side as fit; a card opens its course where it was left. */
+/** The methods of the puzzle as large cards in the middle of the page (Picker); a card opens its course where it was left. */
 function Methods() {
   const puzzle = s.puzzle as PuzzleId,
     rows = methodRows(puzzle),
@@ -93,11 +94,7 @@ function Methods() {
         sub={tr("Choose a {0} method, then follow it step by step", { 0: said(label) })}
         puzzle
       />
-      <nav
-        aria-label={tr("Methods")}
-        data-tour="learn"
-        className={cn("grid min-h-0 content-start gap-3 overflow-y-auto md:gap-4", rows.length === 3 ? "md:grid-cols-3" : rows.length > 3 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-2")}
-      >
+      <Picker label={tr("Methods")} tour="learn">
         {rows.map((row) => (
           <PickerCard
             key={row.method.id}
@@ -108,10 +105,10 @@ function Methods() {
             marked={row.recommended || row.progress.started}
             detail={said(row.method.summary)}
             meta={`${methodDetail(row)} · ${tr("{0} / {1} algorithms known · {2}%", { 0: row.learned, 1: row.facts.algorithms, 2: Math.round(knownShare(row) * 100) })}`}
-            progress={knownShare(row)}
+            progress={row.share}
           />
         ))}
-      </nav>
+      </Picker>
     </div>
   );
 }
@@ -139,7 +136,7 @@ function inlineItem(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, entr
     alternatives: a.alternatives ?? [],
     note: a.note,
     learned: entry.learned.includes(id),
-    action: "learnAlg:" + id,
+    action: "courseAlg:" + id,
     diagram: <InlineDiagram puzzle={puzzle} step={step} a={a} size={64} />,
     play: size ? { key: id, name: a.name, detail: a.detail, context: step.title, algs, note: a.note, size, mask: step.mask ?? "full", setup: a.setup } : undefined,
   };
@@ -275,6 +272,14 @@ function StepBody({ puzzle, method, entry, touch = false, tools }: { puzzle: Puz
       {missing}
     </div>
   );
+  // An intuitive step with its own training mode opens it (Training → Cross).
+  const train = step.train && puzzle === "333" && (
+    <Button action={"trainingSetup:" + step.train} icon={Dumbbell} variant="default">
+      {tr("Train the cross")}
+    </Button>
+  );
+  // An intuitive step has nothing to learn: the learner marks it mastered (undone by the same toggle).
+  const mastered = !step.missing && <LearnToggle action={"courseAlg:" + stepId(step)} learned={stepMastered(step, entry)} touch={touch} mastery />;
   const algorithms =
     count.total > 0 ? (
       <section className={cn("flex flex-col", !touch && "min-h-0 min-w-0 flex-1")} aria-label={tr("Algorithms")}>
@@ -292,21 +297,26 @@ function StepBody({ puzzle, method, entry, touch = false, tools }: { puzzle: Puz
     ) : (
       <Empty icon={Lightbulb} title={tr("An intuitive step")}>
         {tr("Nothing to memorise here: understand the idea, then practise it in your solves.")}
-        <Button action="nav:playground" icon={Timer} variant="outline">
-          {tr("Practise with the timer")}
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {mastered}
+          {train || (
+            <Button action="nav:playground" icon={Timer} variant="outline">
+              {tr("Practise with the timer")}
+            </Button>
+          )}
+        </div>
       </Empty>
     );
   if (touch)
     return (
       <>
         {intro}
-        {count.total > 0 && algorithms}
+        {count.total > 0 ? algorithms : (train || mastered) && <div className="flex flex-wrap gap-2">{mastered}{train}</div>}
       </>
     );
   return (
     <div className="flex min-h-0 flex-1 gap-6">
-      <Surface className="w-80 shrink-0 overflow-y-auto p-5 xl:w-96">{intro}</Surface>
+      <Surface className="max-h-full w-80 shrink-0 self-start overflow-y-auto p-5 xl:w-96">{intro}</Surface>
       {algorithms}
     </div>
   );
@@ -374,24 +384,6 @@ function trainAction(puzzle: PuzzleId, method: SolvingMethod, entry: CourseEntry
   return chosen ? "train:" + chosen.id : "";
 }
 
-/** A step's mark: a check once all its algorithms are learned, a small dot without algorithms, else a ring filled as far as they are learned. */
-function StepRing({ done, share, current, neutral }: { done: boolean; share: number; current: boolean; neutral: boolean }) {
-  if (done || neutral)
-    return (
-      <span className={cn("flex size-4 shrink-0 items-center justify-center", done ? "text-success" : current ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
-        <StatusMark state={done ? "done" : "neutral"} />
-      </span>
-    );
-  const r = 6.5,
-    length = 2 * Math.PI * r;
-  return (
-    <svg viewBox="0 0 16 16" className={cn("size-4 shrink-0 -rotate-90", current || share > 0 ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
-      <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth="2.5" />
-      <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${share * length} ${length}`} />
-    </svg>
-  );
-}
-
 /**
  * The course on one line: the step's title between Previous and Next, every step as a chip with its mark (a click
  * opens it), then Train and Next step. A step is done once all its algorithms are learned.
@@ -412,7 +404,7 @@ function StepBar({ puzzle, method, entry, tools }: { puzzle: PuzzleId; method: S
         <div className="-my-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto p-1">
           {method.steps.map((st, i) => {
             const learned = stepLearned(st, cases, s.learned, entry),
-              done = learned.total > 0 && learned.learned === learned.total,
+              done = stepDone(st, cases, s.learned, entry),
               share = learned.total ? learned.learned / learned.total : 0,
               here = i === entry.step && !s.learnFinished;
             const chip = (
@@ -424,7 +416,7 @@ function StepBar({ puzzle, method, entry, tools }: { puzzle: PuzzleId; method: S
                 onClick={run("learnStep:" + i)}
                 className={cn(STEP, "flex h-9 shrink-0 items-center gap-2 px-2.5 text-sm text-muted-foreground hover:text-foreground")}
               >
-                <StepRing done={done} share={share} current={here} neutral={!learned.total} />
+                <ProgressRing done={done} share={share} current={here} neutral={!learned.total} />
                 {said(st.title)}
               </button>
             );
@@ -481,13 +473,13 @@ function StepRows({ method, entry, touch = false, onPick }: { method: SolvingMet
         }}
         className={cn(STEP, "flex shrink-0 items-center gap-3", touch ? "min-h-14 px-3 active:bg-muted/50" : "px-2.5 py-2")}
       >
-        <StepMark done={learned.total > 0 && learned.learned === learned.total} current={here} neutral={!learned.total} />
+        <StepMark done={stepDone(st, cases, s.learned, entry)} current={here} neutral={!learned.total} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className={cn("truncate font-medium", touch ? "text-base" : "text-sm")}>
             <span className="text-muted-foreground">{i + 1}</span> {said(st.title)}
           </span>
           <span className="truncate text-xs text-muted-foreground">
-            {learned.total ? tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") }) : st.missing ? tr("Algorithms to come") : tr("Intuitive")}
+            {learned.total ? tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") }) : st.missing ? tr("Algorithms to come") : stepMastered(st, entry) ? tr("Mastered") : tr("Intuitive")}
           </span>
         </span>
       </button>

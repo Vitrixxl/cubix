@@ -6,7 +6,7 @@ import { METHODS } from "../src/shared/methods";
 import { PUZZLES, puzzleOf, type PuzzleId } from "../src/shared/puzzles";
 import { applyAlg, colorOf, faceOfSlot, invertAlg, slotsFor, solved } from "../src/shared/cube";
 import {
-  EMPTY_COURSE_PROGRESS, algId, algSetup, courseEntry, goToStep, methodFacts, methodProgress, openCourse, readCourseProgress, recommendedMethod,
+  EMPTY_COURSE_PROGRESS, algId, algSetup, courseEntry, goToStep, methodFacts, methodProgress, methodShare, openCourse, readCourseProgress, recommendedMethod,
   stepAlgorithmCount, stepDone, stepId, stepLearned, stepSets, toggleAlgLearned,
 } from "../src/client/lib/course";
 
@@ -202,18 +202,32 @@ test("cubing.js agrees: the cross cases end with every edge oriented, the Sune c
   }
 });
 
-test("a step is done once all its algorithms are learned; a step without algorithms never is", () => {
+test("a step is done once all its algorithms are learned; an intuitive one once marked mastered", () => {
   const puzzle: PuzzleId = "333", beginner = METHODS[puzzle][0]!;
   const withAlgs = beginner.steps.filter(st => stepLearned(st, cases, new Set(), courseEntry(EMPTY_COURSE_PROGRESS, puzzle, "beginner")).total > 0);
   let progress = openCourse(EMPTY_COURSE_PROGRESS, puzzle, "beginner");
-  expect(methodProgress(progress, puzzle, beginner, cases, new Set())).toEqual({ started: true, done: 0, total: withAlgs.length, step: 0 });
+  const counted = beginner.steps.filter(st => !st.missing || withAlgs.includes(st));
+  expect(methodProgress(progress, puzzle, beginner, cases, new Set())).toEqual({ started: true, done: 0, total: counted.length, step: 0, learned: false });
   const step = beginner.steps[1]!;
   expect(stepDone(step, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(false);
   for (const a of step.algs!) progress = toggleAlgLearned(progress, puzzle, "beginner", algId(step, a));
   expect(stepDone(step, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(true);
   expect(methodProgress(progress, puzzle, beginner, cases, new Set()).done).toBe(1);
   const intuitive = beginner.steps.find(st => !withAlgs.includes(st));
-  if (intuitive) expect(stepDone(intuitive, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(false);
+  expect(intuitive && !intuitive.missing).toBeTruthy();
+  expect(stepDone(intuitive!, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(false);
+  progress = toggleAlgLearned(progress, puzzle, "beginner", stepId(intuitive!));
+  expect(stepDone(intuitive!, cases, new Set(), courseEntry(progress, puzzle, "beginner"))).toBe(true);
+  expect(methodProgress(progress, puzzle, beginner, cases, new Set()).done).toBe(2);
+  // Every algorithm known is not the method learned while an intuitive step is not mastered.
+  const zz = METHODS[puzzle].find(m => m.id === "zz")!, all = new Set(cases.map(c => c.id));
+  let zzProgress = openCourse(EMPTY_COURSE_PROGRESS, puzzle, "zz");
+  for (const st of zz.steps) for (const a of st.algs ?? []) zzProgress = toggleAlgLearned(zzProgress, puzzle, "zz", algId(st, a));
+  expect(methodProgress(zzProgress, puzzle, zz, cases, all).learned).toBe(false);
+  expect(methodShare(zz, cases, all, zzProgress, puzzle)).toBeLessThan(1);
+  for (const st of zz.steps) if (!stepAlgorithmCount(st, cases) && !st.missing) zzProgress = toggleAlgLearned(zzProgress, puzzle, "zz", stepId(st));
+  expect(methodProgress(zzProgress, puzzle, zz, cases, all).learned).toBe(true);
+  expect(methodShare(zz, cases, all, zzProgress, puzzle)).toBe(1);
 });
 
 test("a course remembers its method, its step and its own learned algorithms", () => {

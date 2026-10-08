@@ -91,8 +91,8 @@ const adminPassword = () => {
   return password;
 };
 const send = async (path: string, headers: Record<string, string>, body: Blob) => {
-  // Ten minutes, or as long as the file takes at 64 KiB/s: the desktop packages weigh over 100 MiB.
-  const timeout = Math.max(10 * 60 * 1000, (body.size / (64 * 1024)) * 1000);
+  // Ten minutes, or as long as the file takes at 32 KiB/s: the desktop packages weigh over 100 MiB and the server's link can drop below 64 KiB/s.
+  const timeout = Math.max(10 * 60 * 1000, (body.size / (32 * 1024)) * 1000);
   const response = await fetch(`${ORIGIN}${path}`, { method: "PUT", headers: { Authorization: `Bearer ${adminPassword()}`, ...headers }, body, signal: AbortSignal.timeout(timeout) });
   const answer = await response.text();
   if (!response.ok) { console.error(`${path} failed (${response.status}): ${answer}`); process.exit(1); }

@@ -11,21 +11,24 @@ import { said } from "./base";
 import { tr } from "../../src/client/i18n";
 
 /**
- * The cards under the page's header, across its width: two or four in a 2×2 square, three or more by three; `foot` (a
- * start) right under them.
+ * The cards in the middle of the space under the page's header, both ways: two or four in a 2×2 square, three or more
+ * by three; `foot` (a start) right under them. Taller than the space, they scroll from the top (`my-auto`, not
+ * `justify-center`, so nothing is cut).
  */
 export function Picker({ label, tour, foot, children }: { label: string; tour?: string; foot?: React.ReactNode } & Props) {
   const count = Children.toArray(children).length;
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4">
-      <nav
-        aria-label={said(label)}
-        data-tour={tour}
-        className={cn("grid w-full auto-rows-fr gap-3 md:gap-4", count === 2 || count === 4 ? "max-w-5xl md:grid-cols-2" : "max-w-7xl md:grid-cols-2 lg:grid-cols-3")}
-      >
-        {children}
-      </nav>
-      {foot}
+      <div className="my-auto flex w-full flex-col items-center md:pb-[6vh]">
+        <nav
+          aria-label={said(label)}
+          data-tour={tour}
+          className={cn("grid w-full auto-rows-fr gap-3 md:gap-4", count === 2 || count === 4 ? "max-w-5xl md:grid-cols-2" : "max-w-7xl md:grid-cols-2 lg:grid-cols-3")}
+        >
+          {children}
+        </nav>
+        {foot}
+      </div>
     </div>
   );
 }

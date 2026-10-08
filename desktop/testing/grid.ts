@@ -176,9 +176,9 @@ try {
     await check(page, "learn-catalog");
     await act(page, "nav:training");
     await check(page, "training-setup");
-    await act(page, "setupMode:cross1");
-    await act(page, "trainingStart:cross1");
-    await check(page, "cross-plus-one");
+    await act(page, "setupMode:cross");
+    await act(page, "trainingStart:cross");
+    await check(page, "cross-training");
     await act(page, "nav:duel");
     await check(page, "duel-lobby");
     // A race: a second tab of the same browser is the opponent.

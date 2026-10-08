@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
-import { Choice, Numeric } from "./layout";
+import { Alg, Numeric } from "./layout";
 import { Sheet } from "./Sheet";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -228,10 +228,15 @@ function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: P
     </View>
     {player && <View className="items-center"><PlayerCube player={player} size={250} /></View>}
     {player && <ViewButtons player={player} />}
-    {player && <PlayerControls player={player} />}
-    {item.algs.length > 1 && <Choice label={tr("Algorithm")} value={String(choice)} onChange={id => onChoice(Number(id))}
-      options={item.algs.map((_, i) => ({ id: String(i), label: i ? tr("Alternative {0}", { 0: i }) : tr("Main") }))} />}
     <PlayerAlg player={player} text={alg} size={19} />
+    {player && <PlayerControls player={player} />}
+    {item.algs.length > 1 && <View className="gap-1">
+      {item.algs.map((a, i) => <Pressable key={i} accessibilityRole="button" accessibilityState={{ selected: i === choice }} onPress={() => onChoice(i)}
+        className={cn("gap-1 rounded-lg px-3 py-2 active:bg-muted/50", i === choice && "bg-muted")}>
+        <Text className="text-xs font-medium text-muted-foreground">{i ? tr("Alternative {0}", { 0: i }) : tr("Main")}</Text>
+        <Alg text={a} size={16} />
+      </Pressable>)}
+    </View>}
     {item.note ? <Text className="text-sm text-muted-foreground">{said(item.note)}</Text> : null}
   </>;
 }

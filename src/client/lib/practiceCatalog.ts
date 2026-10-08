@@ -1,4 +1,8 @@
 import type { CaseDto, SetDto } from "../../shared/types";
+import { language, t } from "../i18n";
+
+/** A case's set and group, in the current language: "F2L · Free Pairs". */
+export const caseContext = (c: Pick<CaseDto, "setLabel" | "group">) => `${t(c.setLabel)} · ${t(c.group)}`;
 
 /** Stable catalog ordering, shared by native lists and desktop grids. */
 export function groupCases<C extends Pick<CaseDto, "group">>(cases: readonly C[]): Map<string, C[]> {
@@ -39,17 +43,22 @@ export function toggleSelection(selected: ReadonlySet<string>, ids: readonly str
 }
 
 /** The words of each case a search reads, worked out once; and the words of the last query. */
-const caseWords = new WeakMap<object, string[]>();
+let caseWords = new WeakMap<object, string[]>(), wordsLanguage = "";
 let lastQuery = "", queryWords = [""];
+/** Lower case, accents dropped: "déconnectées" is found by "deconnectees". */
+const plain = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 function wordsOf(c: Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group" | "subgroup">) {
-  const text = [c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup].join(" ").toLowerCase(),
+  // The English words and the translated ones alike.
+  const shown = [c.name, c.setLabel, c.stage, c.group].map((s) => s && t(s)),
+    text = plain([c.id, c.name, c.setLabel, c.stage, c.group, c.subgroup, ...shown].join(" ")),
     words = [...new Set([...text.split(/\s+/), ...text.split(/[^a-z0-9]+/)])];
   caseWords.set(c, words);
   return words;
 }
 /** Whether every word typed starts a word of the case, so "g perm" finds the G perms and not every case with a "g" somewhere. */
 export function matches(c: Pick<CaseDto, "id" | "name" | "setLabel" | "stage" | "group" | "subgroup">, q: string) {
+  if (wordsLanguage !== language()) (caseWords = new WeakMap(), (wordsLanguage = language()));
   const words = caseWords.get(c) ?? wordsOf(c);
-  if (q !== lastQuery) queryWords = (lastQuery = q).toLowerCase().split(/\s+/);
+  if (q !== lastQuery) queryWords = plain(lastQuery = q).split(/\s+/);
   return queryWords.every(word => words.some(w => w.startsWith(word)));
 }

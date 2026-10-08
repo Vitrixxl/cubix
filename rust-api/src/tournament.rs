@@ -426,6 +426,8 @@ pub fn detail(db: &Connection, id: i64, uid: Option<&str>) -> Result<Value> {
     value["canManage"] = json!(uid.is_some_and(|uid| organises(db, &t, uid)));
     Ok(value)
 }
+/// The most players a tournament takes, and the limit of one made without saying.
+const MAX_PLAYERS: i64 = 100;
 fn number(body: &Value, key: &str, min: i64, max: i64) -> Result<i64> {
     body[key].as_i64().filter(|n| (min..=max).contains(n)).ok_or_else(ApiError::validation)
 }
@@ -444,8 +446,8 @@ pub fn create(db: &Connection, state: &AppState, body: &Value, group: Option<i64
     let (event, points, sets) = format(body)?;
     let starts = number(body, "startsAt", now() - 60_000, now() + 365 * accounts::DAY_MS)?;
     let cap = match body.get("maxPlayers") {
-        None | Some(Value::Null) => None,
-        Some(_) => Some(number(body, "maxPlayers", 2, 256)?),
+        None | Some(Value::Null) => MAX_PLAYERS,
+        Some(_) => number(body, "maxPlayers", 2, MAX_PLAYERS)?,
     };
     db.execute(
         "INSERT INTO tournaments(name,description,event,group_id,created_by,starts_at,points,sets,max_players,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",

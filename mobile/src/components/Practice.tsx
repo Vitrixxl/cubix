@@ -28,7 +28,7 @@ import { StaticCubeSvg } from "./StaticCubeSvg";
 import { said, tr } from "../../../src/client/i18n";
 
 /**
- * The pieces shared by the practice screens (timer, case training, cross + 1, duel), after the web phone layout: a
+ * The pieces shared by the practice screens (timer, case training, cross, duel), after the web phone layout: a
  * stage card with the prompt on top (what to solve and its picture), the time in the middle and the last solve's
  * actions as a row of large targets at the bottom, then the session under it. While the timer runs everything but the
  * time fades out.

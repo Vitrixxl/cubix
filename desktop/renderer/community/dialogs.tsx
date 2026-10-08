@@ -8,7 +8,7 @@ import { store as s } from "../store";
 import { Avatar, Modal, plural } from "../ui";
 import { Count, Empty, LABEL, ListSkeleton, NUMERIC, ROW, SearchField, SectionHead, Tip } from "../base";
 import { relative } from "../coaching/parts";
-import { community, type Conversation, type Format, type Group, type Person } from "./client";
+import { DEFAULT_PLAYERS, MAX_PLAYERS, community, playersLimit, type Conversation, type Format, type Group, type Person } from "./client";
 import { GroupMark } from "./messages";
 import { FormatFields, localInput } from "../tournaments/format";
 import { cn } from "@/lib/utils";
@@ -141,7 +141,7 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
     [name, setName] = useState(""),
     [description, setDescription] = useState(""),
     [starts, setStarts] = useState(() => localInput(Date.now() + 86_400_000)),
-    [cap, setCap] = useState(""),
+    [cap, setCap] = useState(String(DEFAULT_PLAYERS)),
     [format, setFormat] = useState<Format>({ event: "333", points: 3, sets: 2 }),
     [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -162,7 +162,7 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
-            const done = await community.createTournament(g.id, { ...format, name: name.trim(), description: description.trim(), startsAt: new Date(starts).getTime(), maxPlayers: cap ? Number(cap) : null });
+            const done = await community.createTournament(g.id, { ...format, name: name.trim(), description: description.trim(), startsAt: new Date(starts).getTime(), maxPlayers: playersLimit(cap) });
             setBusy(false);
             if (done) {
               setOpen(false);
@@ -184,7 +184,7 @@ export function TournamentDialog({ group: g, trigger }: { group: Group; trigger?
               </Field>
               <Field>
                 <FieldLabel htmlFor="tournament-cap">{tr("Most players")}</FieldLabel>
-                <Input id="tournament-cap" type="number" min={2} max={256} placeholder={tr("No limit")} value={cap} onChange={(e) => setCap(e.target.value)} />
+                <Input id="tournament-cap" type="number" required min={2} max={MAX_PLAYERS} value={cap} onChange={(e) => setCap(e.target.value)} />
               </Field>
             </div>
             <Field>

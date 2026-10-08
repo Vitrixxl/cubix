@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-02",
+ "generated": "2026-10-08",
  "sets": [
   {
    "id": "f2l",
@@ -76259,7 +76259,16 @@
      "f2l",
      "cross1-3",
      "cross1-4",
-     "cross1-5"
+     "cross1-5",
+     "cross-4",
+     "cross-5",
+     "cross-6",
+     "xcross-5",
+     "xcross-6",
+     "xcross-7",
+     "xxcross-6",
+     "xxcross-7",
+     "xxcross-8"
     ]
    },
    {
@@ -76424,6 +76433,42 @@
    {
     "id": "cross1-5",
     "label": "Cross+1 · 5 moves"
+   },
+   {
+    "id": "cross-4",
+    "label": "Cross · 4 moves"
+   },
+   {
+    "id": "cross-5",
+    "label": "Cross · 5 moves"
+   },
+   {
+    "id": "cross-6",
+    "label": "Cross · 6 moves"
+   },
+   {
+    "id": "xcross-5",
+    "label": "XCross · 5 moves"
+   },
+   {
+    "id": "xcross-6",
+    "label": "XCross · 6 moves"
+   },
+   {
+    "id": "xcross-7",
+    "label": "XCross · 7 moves"
+   },
+   {
+    "id": "xxcross-6",
+    "label": "XXCross · 6 moves"
+   },
+   {
+    "id": "xxcross-7",
+    "label": "XXCross · 7 moves"
+   },
+   {
+    "id": "xxcross-8",
+    "label": "XXCross · 8 moves"
    }
   ],
   "solveModes": [

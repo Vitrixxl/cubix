@@ -55,6 +55,10 @@ impl Db {
         add_column_if_missing(&db, "users", "avatar", "TEXT")?;
         // The algorithm a case was learned with arrived after learned cases.
         add_column_if_missing(&db, "learned_cases", "alg", "TEXT")?;
+        // Several algorithms per case arrived after one: the single choice becomes a list of one.
+        if !has_column(&db, "learned_cases", "algs")? {
+            db.execute_batch("ALTER TABLE learned_cases ADD COLUMN algs TEXT; UPDATE learned_cases SET algs=json_array(alg) WHERE alg IS NOT NULL;")?;
+        }
         // A coach may offer to move a session.
         add_column_if_missing(&db, "coach_bookings", "proposed_start", "INTEGER")?;
         add_column_if_missing(&db, "coach_bookings", "proposed_end", "INTEGER")?;
@@ -66,6 +70,9 @@ impl Db {
         add_column_if_missing(&db, "social_messages", "tournament_id", "INTEGER REFERENCES tournaments(id) ON DELETE CASCADE")?;
         // Giving up a tournament under way arrived with the tournament's own screen.
         add_column_if_missing(&db, "tournament_players", "withdrawn", "INTEGER NOT NULL DEFAULT 0")?;
+        // Every tournament has a limit of at most 100 players; older ones had none or up to 256. ponytail: the old
+        // column keeps its looser CHECK and NULL, rebuild the table if that ever matters; the API validates new values.
+        db.execute("UPDATE tournaments SET max_players=100 WHERE max_players IS NULL OR max_players>100", [])?;
         db.execute_batch("CREATE INDEX IF NOT EXISTS idx_social_messages_match ON social_messages(match_id) WHERE match_id IS NOT NULL")?;
         // Pictures and videos in coaching conversations arrived after the first messages.
         for (column, definition) in [("media_id", "TEXT"), ("media_type", "TEXT"), ("media_size", "INTEGER"), ("media_name", "TEXT")] {

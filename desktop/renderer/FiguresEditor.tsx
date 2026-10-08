@@ -143,13 +143,13 @@ export function FiguresBand() {
         {adding && (
           // The rest of the last row (a whole row when it is full): "Add" in the middle of the room left.
           <div
-            className={cn(cellLines(ids.length, columns, rows), "flex items-center justify-center")}
+            className={cn(cellLines(ids.length, columns, rows), "flex items-stretch")}
             style={{ gridColumn: `span ${columns - (ids.length % columns)}` }}
           >
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground"
+              className="h-auto flex-1 rounded-none text-muted-foreground"
               onClick={() => {
                 const id = unused(s.figures);
                 act("add:" + id);

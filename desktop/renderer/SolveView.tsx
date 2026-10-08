@@ -3,8 +3,7 @@
  * known, recorded by a smart cube or written by hand. The owner can write it (how the cube was held, then its turns,
  * rotations and slices included), share the solve by a link, and set its penalty, comment or delete it.
  */
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Delete, Link2Off, MessageSquare, PenLine, Share2, Trash2 } from "lucide-react";
 import { call } from "./bridge";
 import { store as s } from "./store";
@@ -17,10 +16,10 @@ import { mergeTurns } from "../../src/client/lib/solveAnalysis";
 import { fmtSolve } from "../../src/client/lib/format";
 import { puzzleInfo, puzzleOf, type StoredContext } from "../../src/shared/puzzles";
 import { Button as UiButton } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
 import { Logo, Wordmark } from "./logo";
@@ -63,6 +62,7 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
     draftText = writeAnnotation(draft),
     alg = (editing ? (draftText && draft.moves ? annotationAlg(draft) : "") : played(solve.solution)) ?? "",
     player = useAlgPlayer(alg, cube ? size : null, "full", { setup: setup ?? undefined });
+  const [commenting, setCommenting] = useState(s.commenting);
   useEffect(() => setEditing(false), [solve.id]);
   const recorded = readSolution(solve.solution),
     annotation = readAnnotation(solve.solution);
@@ -76,18 +76,6 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
       await s.refresh();
     } catch (e) {
       s.fail(e);
-    }
-  };
-  const share = async () => {
-    try {
-      const url = location.origin + "/solve/" + (await call("shareSolve", solve.id));
-      if (phone && navigator.share) await navigator.share({ url, title: fmtSolve(solve.time_ms, solve.penalty as any) });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success(tr("Link copied"), { description: url });
-      }
-    } catch (e) {
-      if ((e as Error).name !== "AbortError") s.fail(e);
     }
   };
 
@@ -148,19 +136,19 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
           </section>
         )}
         {solution}
-        {owner && solve.comment && <p className="text-sm text-muted-foreground">{solve.comment}</p>}
+        {owner && solve.id !== undefined && (commenting ? <CommentField solve={solve} onDone={() => setCommenting(false)} /> : solve.comment && <p className="text-sm whitespace-pre-wrap text-muted-foreground">{solve.comment}</p>)}
         {owner && solve.id !== undefined && !editing && (
           // The same actions as under the timer: the penalties, the comment, the link, then delete apart.
           <div className="mt-auto flex flex-wrap items-center gap-1.5">
             <PenaltyToggles penalty={solve.penalty} prefix={"penalty:" + solve.id + ":"} />
-            <Button action={"comment:" + solve.id} icon={MessageSquare} size="sm" variant="outline" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
+            <UiButton variant="outline" size="sm" onClick={() => setCommenting(true)} data-action="comment" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
+              <MessageSquare />
               {tr("Comment")}
-            </Button>
+            </UiButton>
             {!s.user.isGuest && (
-              <UiButton variant="outline" size="sm" onClick={share} data-action="share" className="text-muted-foreground">
-                <Share2 />
+              <Button action={"share:" + solve.id} icon={Share2} size="sm" variant="outline" className="text-muted-foreground">
                 {tr("Share")}
-              </UiButton>
+              </Button>
             )}
             <Button action={"delete:" + solve.id} icon={Trash2} size="sm" variant="outline" className="ml-auto text-muted-foreground hover:text-destructive">
               {tr("Delete")}
@@ -169,6 +157,47 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         )}
       </div>
     </div>
+  );
+}
+
+/** The comment written in place, focused: Enter or leaving it saves, Shift+Enter breaks the line, Escape cancels. */
+function CommentField({ solve, onDone }: { solve: ViewedSolve; onDone: () => void }) {
+  const [text, setText] = useState(solve.comment ?? ""),
+    cancelled = useRef(false);
+  const save = async () => {
+    onDone();
+    if (cancelled.current) return;
+    if (text.trim() === (solve.comment ?? "").trim()) return;
+    try {
+      await call("setComment", solve.id, text.trim());
+      s.overlaySolve = { ...s.overlaySolve, comment: text.trim() || null };
+      await s.refresh();
+    } catch (e) {
+      s.fail(e);
+    }
+  };
+  return (
+    <Textarea
+      autoFocus
+      aria-label={tr("Comment")}
+      placeholder={tr("What happened on this solve?")}
+      className="min-h-20 text-sm"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onFocus={(e) => e.target.setSelectionRange(text.length, text.length)}
+      onBlur={save}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          cancelled.current = true;
+          onDone();
+        }
+      }}
+    />
   );
 }
 
@@ -215,50 +244,75 @@ const PAD = [
   ["M", "E", "S", "x", "y", "z"],
 ];
 
+/** A pad key or its keyboard key: a face appends a turn, a modifier toggles on the last turn, ⌫ removes it. */
+function padPress(tokens: string[], key: string): string[] | null {
+  const last = tokens.at(-1);
+  if (key === "Backspace") return tokens.slice(0, -1);
+  if (key === "'" || key === "2") {
+    if (!last) return null;
+    const base = last.replace(/(2'|2|')$/, ""), suffix = last.slice(base.length);
+    return [...tokens.slice(0, -1), base + (suffix === key ? "" : key)];
+  }
+  return PAD.some((row) => row.includes(key)) ? [...tokens, key] : null;
+}
+
 /**
- * The turns written by hand: how the cube was held (the colours on top and in front), then the turns, typed or put
- * in with the pad. A modifier changes the last turn (R, R', R2).
+ * The turns written by hand: how the cube was held (the colours on top and in front), then the turns, put in with the
+ * pad or the same keys on the keyboard, never typed freely. A modifier toggles on the last turn (R, R', R2).
  */
 function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value: Annotation; onChange: (a: Annotation) => void; valid: boolean; onCancel: () => void; onSave: () => void }) {
   const tokens = value.moves.trim().split(/\s+/).filter(Boolean),
-    set = (moves: string[]) => onChange({ ...value, moves: moves.join(" ") }),
-    modify = (suffix: "" | "'" | "2") => {
-      const last = tokens.at(-1);
-      if (last) set([...tokens.slice(0, -1), last.replace(/(2'|2|')$/, "") + suffix]);
+    press = (key: string) => {
+      const moves = padPress(tokens, key);
+      if (moves) onChange({ ...value, moves: moves.join(" ") });
+      return !!moves;
     };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target as Element | null)?.closest?.("input, textarea, select, [role=listbox]")) return;
+      if (press(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    addEventListener("keydown", onKey, true);
+    return () => removeEventListener("keydown", onKey, true);
+  });
   return (
     <section className="flex flex-col gap-3" aria-label={tr("Write the turns")}>
       <div className="flex gap-3">
         <ColourSelect label={tr("On top")} value={value.top} options={COLOURS} onChange={(top) => onChange({ ...value, top, front: frontsOf(top).includes(value.front) ? value.front : frontsOf(top)[0]! })} />
         <ColourSelect label={tr("In front")} value={value.front} options={frontsOf(value.top)} onChange={(front) => onChange({ ...value, front })} />
       </div>
-      <Textarea
-        aria-label={tr("Turns")}
-        aria-invalid={!valid}
-        className="min-h-20 font-medium"
-        placeholder="x2 y R U R' U' r M' …"
-        value={value.moves}
-        onChange={(e) => onChange({ ...value, moves: e.target.value })}
-      />
-      {!valid && <FieldError className="text-xs">{tr("A turn cannot be read: use the notation of the pad.")}</FieldError>}
+      <div role="list" aria-label={tr("Turns")} className="flex max-h-28 min-h-16 flex-wrap content-start gap-1 overflow-y-auto rounded-md border border-input bg-muted/30 p-2">
+        {tokens.length ? (
+          tokens.map((t, i) => (
+            <code key={i} role="listitem" className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-sm font-medium">
+              {t}
+            </code>
+          ))
+        ) : (
+          <span className="self-center text-xs text-muted-foreground">x2 y R U R' U' r M' …</span>
+        )}
+      </div>
       <div className="grid grid-cols-[repeat(6,minmax(0,1fr))_auto] gap-1">
         {PAD.map((row, r) => (
           <div key={r} className="contents">
             {row.map((key) => (
-              <UiButton key={key} type="button" variant="outline" size="sm" className="font-medium" onClick={() => set([...tokens, key])}>
+              <UiButton key={key} type="button" variant="outline" size="sm" className="font-medium" onClick={() => press(key)}>
                 {key}
               </UiButton>
             ))}
             {r === 0 ? (
-              <UiButton type="button" variant="outline" size="sm" onClick={() => modify("'")} aria-label={tr("Counter-clockwise")}>
+              <UiButton type="button" variant="outline" size="sm" onClick={() => press("'")} aria-label={tr("Counter-clockwise")}>
                 ′
               </UiButton>
             ) : r === 1 ? (
-              <UiButton type="button" variant="outline" size="sm" onClick={() => modify("2")} aria-label={tr("Half turn")}>
+              <UiButton type="button" variant="outline" size="sm" onClick={() => press("2")} aria-label={tr("Half turn")}>
                 2
               </UiButton>
             ) : (
-              <UiButton type="button" variant="outline" size="sm" onClick={() => set(tokens.slice(0, -1))} aria-label={tr("Remove the last turn")}>
+              <UiButton type="button" variant="outline" size="sm" onClick={() => press("Backspace")} aria-label={tr("Remove the last turn")}>
                 <Delete />
               </UiButton>
             )}
@@ -276,7 +330,6 @@ function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value:
     </section>
   );
 }
-
 
 /** A solve shared by its link, as anyone opening the link sees it, signed in or not. */
 export function SharedSolve({ token }: { token: string }) {

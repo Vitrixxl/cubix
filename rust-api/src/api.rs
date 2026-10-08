@@ -28,6 +28,11 @@ pub fn string<'a>(body: &'a Value, key: &str, min: usize, max: usize) -> Result<
         .filter(|s| (min..=max).contains(&s.chars().count()))
         .ok_or_else(ApiError::validation)
 }
+/// A learned case as clients read it: its algorithms as a list.
+pub fn learned_row(mut row: Value) -> Value {
+    row["algs"] = row["algs"].as_str().and_then(|a| serde_json::from_str(a).ok()).unwrap_or(json!([]));
+    row
+}
 fn optional_string<'a>(body: &'a Value, key: &str) -> Result<Option<&'a str>> {
     match body.get(key) {
         None | Some(Value::Null) => Ok(None),
@@ -687,15 +692,23 @@ pub(crate) fn route(
                 return Err(ApiError::validation());
             }
             let mut out = serde_json::Map::new();
+            let ids = json!(cases).to_string();
+            // Players who chose at least one algorithm, then how many chose each (a player may have several).
             for row in all(
                 db,
-                "SELECT case_id,alg,count(*) n FROM learned_cases WHERE learned=1 AND alg IS NOT NULL AND case_id IN (SELECT value FROM json_each(?)) GROUP BY case_id,alg",
-                [json!(cases).to_string()],
+                "SELECT case_id,count(*) n FROM learned_cases WHERE learned=1 AND algs IS NOT NULL AND case_id IN (SELECT value FROM json_each(?)) GROUP BY case_id",
+                [&ids],
             )? {
-                let entry = out.entry(row["case_id"].as_str().unwrap().to_owned()).or_insert_with(|| json!({"total":0,"algs":{}}));
-                let n = row["n"].as_i64().unwrap_or(0);
-                entry["total"] = json!(entry["total"].as_i64().unwrap_or(0) + n);
-                entry["algs"][row["alg"].as_str().unwrap()] = json!(n);
+                out.insert(row["case_id"].as_str().unwrap().to_owned(), json!({"total":row["n"],"algs":{}}));
+            }
+            for row in all(
+                db,
+                "SELECT l.case_id,j.value alg,count(*) n FROM learned_cases l, json_each(l.algs) j WHERE l.learned=1 AND l.algs IS NOT NULL AND l.case_id IN (SELECT value FROM json_each(?)) GROUP BY l.case_id,j.value",
+                [&ids],
+            )? {
+                if let Some(entry) = out.get_mut(row["case_id"].as_str().unwrap()) {
+                    entry["algs"][row["alg"].as_str().unwrap()] = row["n"].clone();
+                }
             }
             Ok(Value::Object(out))
         }
@@ -708,31 +721,42 @@ pub(crate) fn route(
             let Some(entry) = state.catalog.by_id.get(case) else {
                 return Err(ApiError::new(400, "Unknown case"));
             };
-            // The algorithm the case was learned with, one of the catalogue's; unlearning forgets it.
-            let alg = optional_string(body, "alg")?.filter(|_| learned);
-            if let Some(alg) = alg
-                && !entry["algorithms"].as_array().is_some_and(|algs| algs.iter().any(|a| a["alg"] == alg))
-            {
+            // The algorithms the case was learned with, the catalogue's; `alg` alone is an older
+            // client's single choice. Unlearning forgets them. `alg` keeps the first for those clients.
+            let mut algs: Vec<&str> = match body.get("algs") {
+                Some(Value::Array(list)) => list.iter().map(|a| a.as_str().ok_or_else(ApiError::validation)).collect::<Result<_>>()?,
+                None | Some(Value::Null) => optional_string(body, "alg")?.into_iter().collect(),
+                _ => return Err(ApiError::validation()),
+            };
+            if !learned {
+                algs.clear();
+            }
+            let known = entry["algorithms"].as_array().cloned().unwrap_or_default();
+            if algs.iter().any(|alg| !known.iter().any(|a| a["alg"] == *alg)) {
                 return Err(ApiError::new(400, "Unknown algorithm"));
             }
+            let mut seen = std::collections::HashSet::new();
+            algs.retain(|alg| seen.insert(*alg));
+            let alg = algs.first().copied();
+            let algs = (!algs.is_empty()).then(|| json!(algs).to_string());
             // Two statements rather than UPSERT: an UPSERT's conflict clause would override the
             // INSERT OR REPLACE inside the sync journal trigger.
             let updated = db.execute(
-                "UPDATE learned_cases SET learned=?,alg=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?",
-                params![learned as i64, alg, uid, case],
+                "UPDATE learned_cases SET learned=?,alg=?,algs=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id=? AND case_id=?",
+                params![learned as i64, alg, algs, uid, case],
             )?;
             if updated == 0 {
                 db.execute(
-                    "INSERT INTO learned_cases(user_id,case_id,learned,alg) VALUES(?,?,?,?)",
-                    params![uid, case, learned as i64, alg],
+                    "INSERT INTO learned_cases(user_id,case_id,learned,alg,algs) VALUES(?,?,?,?,?)",
+                    params![uid, case, learned as i64, alg, algs],
                 )?;
             }
-            required(
+            Ok(learned_row(required(
                 db,
                 "SELECT * FROM learned_cases WHERE user_id=? AND case_id=?",
                 params![uid, case],
                 "Unknown case",
-            )
+            )?))
         }
         _ => Err(ApiError::new(404, "Not found")),
     }

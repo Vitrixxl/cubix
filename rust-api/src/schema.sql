@@ -24,6 +24,7 @@
       case_id TEXT NOT NULL,
       learned INTEGER NOT NULL DEFAULT 1 CHECK(learned IN (0, 1)),
       alg TEXT,
+      algs TEXT,
       updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       UNIQUE(user_id, case_id)
     );
@@ -224,7 +225,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
  starts_at INTEGER NOT NULL,
  points INTEGER NOT NULL CHECK(points BETWEEN 1 AND 15),
  sets INTEGER NOT NULL CHECK(sets BETWEEN 1 AND 9),
- max_players INTEGER CHECK(max_players BETWEEN 2 AND 256),
+ max_players INTEGER NOT NULL DEFAULT 100 CHECK(max_players BETWEEN 2 AND 100),
  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','running','finished','cancelled')),
  round INTEGER NOT NULL DEFAULT 0,
  rounds INTEGER NOT NULL DEFAULT 0,

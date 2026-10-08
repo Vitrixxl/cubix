@@ -49,6 +49,7 @@ export function Cube({
   animated = true,
   held = false,
   puzzle,
+  orientation,
 }: {
   scene?: Scene;
   setup?: string;
@@ -61,10 +62,12 @@ export function Cube({
   held?: boolean;
   /** A pyraminx or a megaminx scramble rather than a cube's (see `polyScene`); other puzzles keep `cubeSize`. */
   puzzle?: string;
+  /** How the cube is turned to the eye (see `cubeOrientation`), the usual three-quarter view by default. */
+  orientation?: CubeOrientation;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     [loaded, setLoaded] = useState<Scene | undefined>(scene),
-    rotation = useRef(cubeOrientation()),
+    rotation = useRef(orientation ?? cubeOrientation()),
     drag = useRef<number[] | null>(null),
     start = useRef(0),
     redraw = useRef<() => void>(() => {}),
@@ -87,7 +90,8 @@ export function Cube({
   // A new scene or a replay restarts the animation; a new size only redraws it where it stands.
   useEffect(() => {
     start.current = performance.now();
-    rotation.current = poly ? polyOrientation(poly.puzzle) : cubeOrientation();
+    rotation.current = poly ? polyOrientation(poly.puzzle) : (orientation ?? cubeOrientation());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, poly, replay]);
   useEffect(() => {
     let frame = 0;

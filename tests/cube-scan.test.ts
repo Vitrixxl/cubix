@@ -65,7 +65,7 @@ test("reads synthetic webcam frames", () => {
     lost = 0,
     decide = 0;
   for (let seed = 1; seed <= n; seed++) {
-    const { truth, frames } = syntheticCube(seed, 16);
+    const { truth, frames } = syntheticCube(seed, 16, process.env.SCAN_LOGO === "hex" ? "hex" : "ring");
     const faces = frames.map((fs) => {
       const reader = new FaceReader();
       let read: Rgb[] | null = null;

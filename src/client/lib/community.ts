@@ -99,6 +99,10 @@ export interface Match {
   present?: [boolean, boolean];
 }
 export type TournamentStatus = "open" | "running" | "finished" | "cancelled";
+/** A tournament takes from 2 to 100 players (the API enforces it); new ones offer 16. */
+export const MAX_PLAYERS = 100, DEFAULT_PLAYERS = 16;
+/** The players limit typed in a form, brought within bounds. */
+export const playersLimit = (typed: string) => Math.max(2, Math.min(MAX_PLAYERS, Math.round(Number(typed)) || DEFAULT_PLAYERS));
 export interface Tournament {
   id: number;
   name: string;
@@ -109,6 +113,7 @@ export interface Tournament {
   startsAt: number;
   points: number;
   sets: number;
+  /** Null only on tournaments made before every one had a limit. */
   maxPlayers: number | null;
   status: TournamentStatus;
   /** The round being played, from 1, and how many the bracket has. */
@@ -482,7 +487,7 @@ export class Community {
   }
   register = (id: number, join: boolean) => this.retournament(id, join ? "POST" : "DELETE", `tournaments/${id}/register`);
   /** A group's new tournament: its card comes into the group's conversation. */
-  async createTournament(group: number, form: Format & { name: string; description: string; startsAt: number; maxPlayers: number | null }) {
+  async createTournament(group: number, form: Format & { name: string; description: string; startsAt: number; maxPlayers: number }) {
     const t = await this.act<TournamentDetail>("POST", "tournaments", { groupId: group, ...form }, [`group:${group}`]);
     if (t) this.details.set(t.id, t);
     return t;

@@ -68,16 +68,16 @@ export const CaseSelector = memo(function CaseSelector({ cases, sets, selected, 
         if (row.kind === "set") {
           const all = row.count === row.ids.length;
           return <GroupToggle className="mt-1" title={row.set.label} open={row.open} onPress={() => setOpen({ ...open, [row.set.id]: !row.open })}
-            accessibilityLabel={tr("{0}, {1} of {2} selected", { 0: row.set.label, 1: row.count, 2: row.ids.length })}
+            accessibilityLabel={tr("{0}, {1} of {2} selected", { 0: tr(row.set.label), 1: row.count, 2: row.ids.length })}
             meta={<Numeric className={cn("text-xs", row.count ? "font-medium text-primary" : "text-muted-foreground")}>{row.count} / {row.ids.length}</Numeric>}>
             <Button variant="ghost" size="sm" className="h-11 px-2.5" onPress={() => all ? onChange(selected.filter(id => !row.ids.includes(id))) : toggle(row.ids.filter(id => !sel.has(id)))}>
               <Text className="text-sm text-muted-foreground">{all ? tr("Unselect all") : tr("Select all")}</Text>
             </Button>
           </GroupToggle>;
         }
-        if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={tr("Select the {0} cases", { 0: row.group })} onPress={() => toggle(row.ids)}
+        if (row.kind === "group") return <Pressable accessibilityRole="button" accessibilityLabel={tr("Select the {0} cases", { 0: tr(row.group) })} onPress={() => toggle(row.ids)}
           className="mt-2 h-8 flex-row items-center gap-2 self-start rounded-md px-1 active:bg-muted/50">
-          <Text numberOfLines={1} className="text-xs font-medium text-muted-foreground">{row.group}</Text>
+          <Text numberOfLines={1} className="text-xs font-medium text-muted-foreground">{tr(row.group)}</Text>
           <Numeric className="text-xs text-muted-foreground">{row.count} / {row.ids.length}</Numeric>
         </Pressable>;
         return <View className={cn("flex-row", row.end ? "pb-3" : "pb-1")} style={{ gap: TILE_GAP }}>

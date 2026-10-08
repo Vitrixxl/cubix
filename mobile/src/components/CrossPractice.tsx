@@ -5,7 +5,7 @@ import { Pressable, View } from "react-native";
 import { fmtTime } from "../../../src/client/lib/format";
 import { recordMessage, solveRecords } from "../../../src/client/lib/personalBest";
 import { practiceSummary } from "../../../src/client/lib/practiceSummary";
-import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../../src/shared/crossPlusOne";
+import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS, heldMoves, type CrossTarget } from "../../../src/shared/crossTraining";
 import { contextKey, type PracticeContext } from "../../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -18,7 +18,7 @@ import { useTimer } from "../hooks/useTimer";
 import { ensureLaunchSession } from "../lib/launchSession";
 import { TimesSheet } from "./TimesSheet";
 import { crossSolutions, type CrossSolution } from "../scrambler";
-import { crossContextAtom, crossMovesAtom, crossScrambleAtom, statsVersionAtom } from "../state";
+import { crossContextAtom, crossMovesAtom, crossScrambleAtom, crossTargetAtom, statsVersionAtom } from "../state";
 import { DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { Alg, BackButton, Fade, Label, MoreMenu, Page, PageHead } from "./layout";
 import {
@@ -29,18 +29,19 @@ import { LastSolveBar, SolveAction } from "./SolveMenus";
 import { tr } from "../../../src/client/i18n";
 
 /**
- * First-block training on the 3×3 (web `crossTraining`): timer solves on scrambles whose white cross and one back pair
- * take exactly 3, 4 or 5 moves, recorded as timer solves of the `cross1-N` scramble type.
+ * Cross training on the 3×3 (web `crossTraining`): timer solves on scrambles whose white cross, XCross or XXCross takes
+ * exactly the chosen number of moves, recorded as timer solves of the `xcross-6`… scramble types.
  */
 export function CrossPractice({ onBack }: { onBack: () => void }) {
   const context = useAtomValue(crossContextAtom);
-  // Each number of moves is its own context: its scramble, its session and its times.
+  // Each target and number of moves is its own context: its scramble, its session and its times.
   return <CrossSession key={contextKey(context)} context={context} onBack={onBack} />;
 }
 
 function CrossSession({ context, onBack }: { context: PracticeContext; onBack: () => void }) {
   const { height } = useLayout();
   const [moves, setMoves] = useAtom(crossMovesAtom);
+  const [target, setTarget] = useAtom(crossTargetAtom);
   const scramble = useAtomValue(crossScrambleAtom);
   const storeScramble = useSetAtom(crossScrambleAtom);
   const bumpStats = useSetAtom(statsVersionAtom);
@@ -66,7 +67,7 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
     if (!revealed || !scramble || solutions?.scramble === scramble) return;
     let active = true;
     setSolutions({ scramble, list: null }); setSolutionError("");
-    crossSolutions(scramble).then(list => { if (active) setSolutions({ scramble, list }); })
+    crossSolutions(scramble, target).then(list => { if (active) setSolutions({ scramble, list }); })
       .catch(error => { if (active) { setSolutions(null); setSolutionError((error as Error).message); } });
     return () => { active = false; };
   }, [revealed, scramble]);
@@ -107,9 +108,9 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
       {list ? <View className="gap-1.5">
         {list.map(v => <View key={v.moves + v.slot} className="flex-row items-center gap-4">
           <Alg text={heldMoves(v.moves)} size={solutionFont} className="flex-1" />
-          <Text className="text-xs text-muted-foreground">{tr("{0} block", { 0: v.slot })}</Text>
+          {!!v.slot && <Text className="text-xs text-muted-foreground">{v.slot}</Text>}
         </View>)}
-        {!list.length && <Text className="text-sm text-muted-foreground">{tr("No solution within 6 moves.")}</Text>}
+        {!list.length && <Text className="text-sm text-muted-foreground">{tr("No solution found.")}</Text>}
       </View> : solutionError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => { setRevealed(false); setTimeout(() => setRevealed(true)); }}><Text>{tr("Retry")}</Text></Button>}>{solutionError}</Alert>
         : <Skeleton accessibilityLabel={tr("Searching the solutions")} style={{ height: solutionFont * 1.4, width: solutionFont * 9 }} />}
     </View>}
@@ -126,13 +127,19 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
 
   return <Page className="pb-0">
     <Fade hidden={running}>
-      <PageHead lead={<BackButton label={tr("Change what to train")} onPress={onBack} />} title={tr("Cross + 1")} sub={tr("{0}-move first block", { 0: moves })}>
+      <PageHead lead={<BackButton label={tr("Change what to train")} onPress={onBack} />} title={tr(CROSS_TARGET_LABELS[target])} sub={tr("{0} moves", { 0: moves })}>
         <MoreMenu>
-          {/* The web phone's MenuChoice: the number of moves as radio items under their label. */}
+          {/* The web phone's MenuChoices: what to build, then the number of moves, as radio items under their label. */}
           <DropdownMenuGroup>
-            <DropdownMenuLabel>{tr("First block")}</DropdownMenuLabel>
+            <DropdownMenuLabel>{tr("What to build")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={target} onValueChange={value => { if (!locked) setTarget(value as CrossTarget); }}>
+              {CROSS_TARGETS.map(t => <DropdownMenuRadioItem key={t} value={t} disabled={locked} className="min-h-11"><Text className="text-base">{tr(CROSS_TARGET_LABELS[t])}</Text></DropdownMenuRadioItem>)}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{tr("Moves")}</DropdownMenuLabel>
             <DropdownMenuRadioGroup value={String(moves)} onValueChange={value => { if (!locked) setMoves(Number(value)); }}>
-              {CROSS_PLUS_ONE_MOVES.map(n => <DropdownMenuRadioItem key={n} value={String(n)} disabled={locked} className="min-h-11"><Text className="text-base">{tr("{0} moves", { 0: n })}</Text></DropdownMenuRadioItem>)}
+              {CROSS_MOVES[target].map(n => <DropdownMenuRadioItem key={n} value={String(n)} disabled={locked} className="min-h-11"><Text className="text-base">{tr("{0} moves", { 0: n })}</Text></DropdownMenuRadioItem>)}
             </DropdownMenuRadioGroup>
           </DropdownMenuGroup>
         </MoreMenu>

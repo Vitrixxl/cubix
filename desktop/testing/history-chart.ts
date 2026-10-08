@@ -31,7 +31,7 @@ try {
   await act("nav:profile");
   await act("profileMode:playground");
   // One row per solve in the table: the row's button opens the solve, its actions stand beside it.
-  const rows = page.locator('[data-action^="solve:"]'), plot = page.getByRole("group", { name: /^Solve times/ });
+  const rows = page.locator('[data-row]'), plot = page.getByRole("group", { name: /^Solve times/ });
   const row = (i: number) => rows.nth(i).locator("..");
   // Chart and table share one panel; its toolbar states how many solves the period holds, after the view switch.
   const view = async (name: "chart" | "table") => {
@@ -138,12 +138,16 @@ try {
   await row(0).locator('[data-action$=":+2"]').click();
   await page.waitForFunction(() => document.querySelector('[data-action^="solve:"]')?.textContent?.includes("+2"));
   await row(0).getByRole("button", { name: "Add comment" }).click();
-  await page.locator("[role=dialog] textarea").fill("Missed the last AUF");
-  await page.getByRole("button", { name: "Save" }).click();
+  // The solve's dialog opens on its comment, focused; Enter saves it.
+  await page.locator("[role=dialog] textarea:focus").fill("Missed the last AUF");
+  await page.keyboard.press("Enter");
+  await page.locator("[role=dialog]").getByText("Missed the last AUF").waitFor();
+  await page.keyboard.press("Escape");
   await rows.filter({ hasText: "Missed the last AUF" }).waitFor();
   await page.getByRole("button", { name: "Show only commented solves" }).click();
-  await page.waitForFunction(() => document.querySelectorAll('[data-action^="solve:"]').length === 1);
+  await page.waitForFunction(() => document.querySelectorAll("[data-row]").length === 1);
   await row(0).getByRole("button", { name: "Delete solve" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
   await page.getByText("No commented solve yet").waitFor();
   await page.getByRole("button", { name: "Show only commented solves" }).click();
   await selectedCount(599);

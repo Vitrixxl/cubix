@@ -7,7 +7,6 @@ import { store as s } from "./store";
 import { Avatar, Back, Button, Figure, InHead, MenuAction, MoreMenu, PAGE, PageHead, PuzzleButton, SelectMenu, Stats, Surface, Tip, plural, usePhone, useQuiet } from "./ui";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button as UiButton } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +17,7 @@ import { AnalysisPage } from "./profile/analysis";
 import { useProfileData, type ProfileData } from "./profile/data";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { ProfileSkeleton } from "./skeletons";
 
 const SECTIONS: Record<string, string> = { playground: "Timer", training: "Training", achievements: "Achievements", duels: "Battles", analysis: "Analysis" };
 
@@ -188,36 +188,6 @@ function SubPage({ mode, phone }: { mode: string; phone: boolean }) {
     <AnalysisPage phone={phone} />
   ) : (
     <BattlesPage phone={phone} />
-  );
-}
-
-/** The page on its way, shaped like it: its header, who they are beside the activity, the curve, three cards under them. */
-function ProfileSkeleton({ phone }: { phone: boolean }) {
-  return phone ? (
-    <div className="flex flex-col gap-3" aria-busy="true" aria-label={tr("Loading")}>
-      <Skeleton className="h-36 rounded-xl" />
-      <Skeleton className="h-48 rounded-xl" />
-      <Skeleton className="h-72 rounded-xl" />
-    </div>
-  ) : (
-    <div className={COLUMN} aria-busy="true" aria-label={tr("Loading")}>
-      <div className="flex min-h-10 shrink-0 items-center justify-between">
-        <Skeleton className="h-7 w-32" />
-        <Skeleton className="h-8 w-18" />
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="grid shrink-0 grid-cols-[20rem_minmax(0,1fr)] gap-4 2xl:grid-cols-[22rem_minmax(0,1fr)]">
-          <Skeleton className="h-56 rounded-xl" />
-          <Skeleton className="h-56 rounded-xl" />
-        </div>
-        <Skeleton className="min-h-0 flex-1 rounded-xl" />
-        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
-          <Skeleton className="h-36 rounded-xl" />
-          <Skeleton className="h-36 rounded-xl" />
-          <Skeleton className="h-36 rounded-xl" />
-        </div>
-      </div>
-    </div>
   );
 }
 

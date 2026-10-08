@@ -121,10 +121,10 @@ try {
   await act(page, "solution");
   await check("training");
   await act(page, "trainingSetup");
-  await act(page, "setupMode:cross1");
-  await act(page, "trainingStart:cross1");
+  await act(page, "setupMode:cross");
+  await act(page, "trainingStart:cross");
   await scrambled(page);
-  await check("cross-plus-one");
+  await check("cross-training");
 
   await act(page, "nav:profile");
   await page.waitForSelector('[data-action^="profileMode:"]');

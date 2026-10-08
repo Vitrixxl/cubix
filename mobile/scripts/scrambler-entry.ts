@@ -7,7 +7,7 @@ import "../../node_modules/cubing/dist/lib/cubing/chunks/inside-VUJSPBRA.js";
 import { KPattern } from "../../node_modules/cubing/dist/lib/cubing/kpuzzle/index.js";
 // @ts-ignore: bundled JavaScript without type declarations
 import { puzzles } from "../../node_modules/cubing/dist/lib/cubing/puzzles/index.js";
-import { crossPlusOneSolutions } from "../../src/shared/crossPlusOne";
+import { crossSolutions } from "../../src/shared/crossTraining";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -56,8 +56,8 @@ const handlers: Record<string, (payload: any) => Promise<string>> = {
   event: ({ event }) => inside.randomScrambleStringForEvent(event),
   orbit: ({ orbit }) => orbitScramble(orbit),
   pattern: ({ pattern }) => patternScramble(pattern),
-  // Optimal cross + 1 solutions: a depth-first search too slow for the app's JS thread.
-  crossSolutions: async ({ scramble }) => JSON.stringify(crossPlusOneSolutions(scramble)),
+  // Optimal cross, XCross or XXCross solutions: a depth-first search too slow for the app's JS thread.
+  crossSolutions: async ({ scramble, target }) => JSON.stringify(crossSolutions(scramble, target)),
 };
 window.addEventListener("message", event => void handle(event.data));
 document.addEventListener("message", event => void handle((event as MessageEvent).data));

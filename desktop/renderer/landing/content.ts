@@ -33,7 +33,7 @@ export const FEATURES: Feature[] = [
     points: [
       "All 15 WCA events, from 2×2 to 7×7, One-Handed and Blindfolded to Square-1, Pyraminx, Skewb, Megaminx and Clock",
       "Random-state scrambles like the WCA's, generated ahead in the background so a new one is always instant",
-      "Training scrambles: 2-gen, half turns, last layer, OLL, PLL and F2L cases, cross + 1",
+      "Training scrambles: 2-gen, half turns, last layer, OLL, PLL and F2L cases, cross, XCross and XXCross",
       "Ao5, Ao12 and any average you like (current, best or worst), mean, median, +2 and DNF by WCA rules",
       "A band of statistics you arrange yourself, personal best alerts, typed-in times from another timer",
     ],
@@ -60,7 +60,7 @@ export const FEATURES: Feature[] = [
       "Free practice on any cases, with random AUF and the solution hidden until you ask",
       "Daily learning: one new F2L, OLL or PLL case a day, in the order you set",
       "Review: every case you learned, drawn at random, by stage",
-      "Cross + 1: first-block scrambles of 3, 4 or 5 moves, with their optimal solutions",
+      "Cross, XCross and XXCross: scrambles of an exact number of moves, with their optimal solutions",
     ],
   },
   {

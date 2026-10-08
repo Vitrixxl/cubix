@@ -9,6 +9,7 @@ import { Toasts } from "./Toasts";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
 import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
+import { PageFallback } from "./skeletons";
 import { Rail, TIP_DELAY, TabBar } from "./shell";
 import { Practice } from "./practice";
 import { CoachingSidebar } from "./coaching/rail";
@@ -214,10 +215,10 @@ function App() {
           )}
           <SidebarInset className="relative min-h-0 min-w-0 overflow-hidden">
             {!s.ready ? (
-              <PageSkeleton side={!mobile} />
+              <PageFallback phone={mobile} />
             ) : (
               <div key={frameKey} className="absolute inset-0 flex min-h-0 flex-col bg-background">
-                <Suspense fallback={<PageSkeleton side={!mobile} />}>
+                <Suspense fallback={<PageFallback phone={mobile} />}>
                   {s.page === "training" && s.trainingStep === "setup" ? (
                     <TrainingSetup />
                   ) : ["playground", "training"].includes(s.page) ? (

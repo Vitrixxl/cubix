@@ -36,7 +36,7 @@ import { executableAlg, maskForStage, shortId } from "../lib/caseState";
 import { ensureLaunchSession } from "../lib/launchSession";
 import {
   casesAtom, learnedCaseIdsAtom, learningGoalAtom, puzzleAtom, randomAufAtom, replaceRouteAtom, routeAtom, selectedCaseIdsAtom, solveModeAtom,
-  statsVersionAtom, trainingKindAtom, trainingSetupModeAtom, trainingStepAtom, userAtom,
+  statsVersionAtom, trainingKindAtom, crossTargetAtom, trainingSetupModeAtom, trainingStepAtom, userAtom,
 } from "../state";
 import { tr } from "../../../src/client/i18n";
 
@@ -48,13 +48,13 @@ export function TrainingPage() {
 
 /** The mode trained last (web `lastSetupMode`), marked in the list. */
 function lastMode(kind: string, puzzle: string, mode: LearningMode) {
-  if (kind === "cross1" && puzzle === "333") return "cross1";
+  if (kind === "cross" && puzzle === "333") return "cross";
   return isReviewMode(mode) ? "review" : "practice";
 }
 
 /**
  * The ways to practise first, then the chosen one's setup, then the practice it started: cases of the catalogue or
- * cross + 1 scrambles (web `trainingStep`). Each step slides in over the previous one.
+ * cross scrambles (web `trainingStep`). Each step slides in over the previous one.
  */
 function TrainingRoot() {
   const daily = useDailyLearning();
@@ -62,6 +62,8 @@ function TrainingRoot() {
   const solveMode = useAtomValue(solveModeAtom);
   const [step, setStep] = useAtom(trainingStepAtom);
   const [kind, setKind] = useAtom(trainingKindAtom);
+  // Starting writes the target down: one read from the former first-block training stays an XCross.
+  const [crossTarget, setCrossTarget] = useAtom(crossTargetAtom);
   const [setupMode, setSetupMode] = useAtom(trainingSetupModeAtom);
   const route = useAtomValue(routeAtom);
   const replaceRoute = useSetAtom(replaceRouteAtom);
@@ -74,22 +76,22 @@ function TrainingRoot() {
     replaceRoute({ page: "training" });
   }, [autostart]);
   const start = useCallback((mode: string) => {
-    if (mode === "cross1") { if (puzzle !== "333") return; setKind("cross1"); }
+    if (mode === "cross") { if (puzzle !== "333") return; setCrossTarget(crossTarget); setKind("cross"); }
     else {
       setKind("cases");
       if (learningModeForPuzzle(mode, puzzle) === mode) daily.setMode(mode as LearningMode);
     }
     setStep("practice");
-  }, [puzzle, daily.setMode]);
+  }, [puzzle, daily.setMode, crossTarget]);
   // Leaving a session goes back to its setup, leaving a setup to the list.
   const toSetup = useCallback(() => setStep("setup"), []);
   const toList = useCallback(() => setSetupMode(""), []);
   const chosen = modes.find(m => m.id === setupMode);
   const practising = step === "practice" || autostart;
-  const id = practising ? `practice:${kind === "cross1" && puzzle === "333" ? "cross1" : "cases"}` : chosen ? `setup:${chosen.id}` : "list";
+  const id = practising ? `practice:${kind === "cross" && puzzle === "333" ? "cross" : "cases"}` : chosen ? `setup:${chosen.id}` : "list";
   return <SlideSwitch id={id} depth={practising ? 2 : chosen ? 1 : 0}>
     {practising
-      ? kind === "cross1" && puzzle === "333" && !autostart ? <CrossPractice key={solveMode} onBack={toSetup} /> : <TrainingSession key={`${puzzle}:${solveMode}`} daily={daily} onBack={toSetup} />
+      ? kind === "cross" && puzzle === "333" && !autostart ? <CrossPractice key={solveMode} onBack={toSetup} /> : <TrainingSession key={`${puzzle}:${solveMode}`} daily={daily} onBack={toSetup} />
       : chosen ? <SetupPage mode={chosen} onBack={toList} onStart={start} />
       : <TrainHome last={lastMode(kind, puzzle, daily.mode)} onOpen={setSetupMode} />}
   </SlideSwitch>;
@@ -189,8 +191,8 @@ function TrainingSession({ daily, onBack }: { daily: DailyLearning; onBack: () =
 
   const prompt = current ? <>
     <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-      <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityRole="button" accessibilityLabel={tr("Open {0}", { 0: current.c.name })}>
-        <Text className="text-lg font-semibold tracking-tight">{current.c.name}</Text>
+      <Pressable disabled={busy} onPress={() => setRoute({ page: "algorithms", caseId: current.c.id })} accessibilityRole="button" accessibilityLabel={tr("Open {0}", { 0: tr(current.c.name) })}>
+        <Text className="text-lg font-semibold tracking-tight">{tr(current.c.name)}</Text>
       </Pressable>
       <Text numberOfLines={1} className="shrink text-sm text-muted-foreground">{learning ? tr(daily.status) : tr(current.c.setLabel) + (current.c.group && current.c.group !== current.c.setLabel ? " · " + tr(current.c.group) : "")}</Text>
     </View>

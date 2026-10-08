@@ -1,5 +1,5 @@
 /** The algorithms page: the case list and the case detail. */
-import { catalogSections } from "../../src/client/lib/practiceCatalog";
+import { caseContext, catalogSections } from "../../src/client/lib/practiceCatalog";
 import { displayAlg, shortId, maskForStage } from "../../src/client/lib/caseState";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { call } from "./bridge";
@@ -7,7 +7,7 @@ import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, Se
 import { store as s, matches } from "./store";
 import { TouchAction, TouchBar } from "./phone";
 import { fmtTime } from "../../src/client/lib/format";
-import { Alg, Back, Bar, Button, Choice, Diagram, Empty, FOCUS, Figure, LABEL, LearnToggle, NUMERIC, MenuAction, PAGE, PageHead, PlayBadge, LearnedMark, ROW, SearchField, SectionHead, Strip, Surface, Tip, isPhone, run, usePhone, useViewport, type Props } from "./ui";
+import { Alg, Back, Bar, Button, Choice, Diagram, Empty, FOCUS, Figure, LABEL, LearnToggle, NUMERIC, MenuAction, PAGE, PageHead, PlayBadge, LearnedMark, ROW, StatusMark, SearchField, SectionHead, Strip, Surface, Tip, isPhone, run, usePhone, useViewport, type Props } from "./ui";
 import { Badge } from "@/components/ui/badge";
 import { TimerStats } from "./stats";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,6 @@ export function Algorithms() {
       <PageHead title={tr("Algorithms")} puzzle sub={tr("{0} of {1} learned", { 0: learned, 1: total })} more={mobile && <MenuAction action="methods" icon={BookOpen}>{tr("Solving methods")}</MenuAction>}>
         {!mobile && (
           <>
-            <StageTabs />
             <Button action="search" variant="outline" className="w-56 justify-start gap-2 text-muted-foreground max-lg:w-auto">
               <Search />
               <span className="max-lg:hidden">{tr("Search cases")}</span>
@@ -55,7 +54,15 @@ export function Algorithms() {
         )}
       </PageHead>
       <div className="flex min-h-0 flex-1 gap-6 xl:gap-8">
-        <CaseList wide={mobile} />
+        {mobile ? (
+          <CaseList wide />
+        ) : (
+          // The method's steps over the list.
+          <div className="flex min-h-0 w-[min(22rem,36%)] shrink-0 flex-col gap-3">
+            <StageTabs full />
+            <CaseList wide={false} />
+          </div>
+        )}
         {!mobile && (
           // The list is the box; the set or the case beside it sits on the page.
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -80,15 +87,15 @@ function currentSection() {
   };
 }
 
-/** The method's steps (F2L, OLL, PLL…) as tabs: over the page on a wide window, over the list on a phone. */
-function StageTabs() {
+/** The method's steps (F2L, OLL, PLL…) as tabs: over the list, its width on a wide window, in it on a phone. */
+function StageTabs({ full = false }: { full?: boolean }) {
   const { stages, stage } = currentSection();
   if (stages.length < 2) return null;
   return (
     <Tabs value={stage} onValueChange={(v: string) => void s.action("stage:" + v)} className="shrink-0">
-      <TabsList aria-label={tr("Step")}>
+      <TabsList aria-label={tr("Step")} className={cn(full && "w-full")}>
         {stages.map((st) => (
-          <TabsTrigger key={st} value={st} data-action={"stage:" + st} className="px-3.5">
+          <TabsTrigger key={st} value={st} data-action={"stage:" + st} className={cn("px-3.5", full && "flex-1")}>
             {said(st)}
           </TabsTrigger>
         ))}
@@ -108,13 +115,13 @@ function CaseList({ wide }: { wide: boolean }) {
   const [query, setQuery] = useState(""),
     found = wide && query.trim() ? s.cases().filter((c: any) => matches(c, query)).slice(0, 80) : null;
   return (
-    <Box data-tour="algorithms" className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "w-[min(22rem,36%)] px-3 pt-3")}>
+    <Box data-tour="algorithms" className={cn("flex min-h-0 shrink-0 flex-col gap-3", wide ? "flex-1" : "flex-1 px-3 pt-3")}>
       {wide && <SearchField value={query} onChange={setQuery} placeholder="Search cases: oll 21, pll t…" label="Search cases" className="h-10 shrink-0" />}
       {found ? (
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
           {!found.length && <Empty icon={SearchX}>{tr("No case matches.")}</Empty>}
           <div className={TILES}>
-            {found.map((c: any) => <CaseTile key={c.id} c={c} touch detail={`${c.setLabel} · ${c.group}`} />)}
+            {found.map((c: any) => <CaseTile key={c.id} c={c} touch detail={caseContext(c)} />)}
           </div>
         </div>
       ) : (
@@ -162,7 +169,7 @@ function CaseList({ wide }: { wide: boolean }) {
                   className={cn(ROW, "flex h-8 min-w-0 items-center gap-2 px-2 text-sm font-medium")}
                 >
                   {closed ? <ChevronRight className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
-                  <span className="truncate">{group}</span>
+                  <span className="truncate">{tr(group)}</span>
                   <span className={cn(NUMERIC, "text-xs font-normal text-muted-foreground")}>{members.length}</span>
                 </button>
                 <Button action={"train:" + key} icon={Timer} size="xs" className={cn("text-muted-foreground", !wide && "opacity-0 group-hover/head:opacity-100 focus-visible:opacity-100")}>
@@ -259,7 +266,7 @@ export function PaneHead({ title, sub, children, className }: { title: React.Rea
     <header className={cn("flex shrink-0 items-center gap-4", className)}>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <h2 className="truncate text-lg font-semibold tracking-tight md:text-xl">{said(title)}</h2>
-        {sub && <p className="line-clamp-2 text-sm text-muted-foreground">{said(sub)}</p>}
+        {sub && <p className="line-clamp-2 max-w-3xl text-sm text-muted-foreground">{said(sub)}</p>}
       </div>
       {children}
     </header>
@@ -319,7 +326,7 @@ function SetSummary() {
   ];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PaneHead title={all.active.label} sub={all.active.description} className="max-w-3xl px-1 pt-1 pb-5">
+      <PaneHead title={all.active.label} sub={all.active.description} className="px-1 pt-1 pb-5">
         <Button action={"train:" + all.active.id} icon={Timer} variant="default">
           {tr("Train all")}</Button>
       </PaneHead>
@@ -341,7 +348,7 @@ function SetSummary() {
                   onClick={run("case:" + members[0].id)}
                   className={cn("flex h-10 min-w-0 flex-1 items-center gap-4 rounded-md text-left", FOCUS)}
                 >
-                  <span className="w-40 truncate text-sm font-medium">{group}</span>
+                  <span className="w-40 truncate text-sm font-medium">{tr(group)}</span>
                   <Bar ratio={learned / members.length} className="max-w-48 flex-1" />
                   <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                     {learned} / {members.length}
@@ -382,7 +389,7 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
   const { index, count } = caseSteps(c),
     st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id),
-    chosen = learned ? s.learnedAlg[c.id] : undefined;
+    chosen = learned ? (s.learnedAlgs[c.id] ?? []) : [];
   // How many players learned the case with each algorithm; nothing for a guest or offline.
   const [choices, setChoices] = useState<{ total: number; algs: Record<string, number> } | null>(null);
   useEffect(() => {
@@ -390,17 +397,17 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
     setChoices(null);
     void call("algorithmChoices", [c.id]).then((v: any) => live && setChoices(v?.[c.id] ?? null), () => {});
     return () => { live = false; };
-  }, [c.id, chosen]);
+  }, [c.id, chosen.join("\n")]);
   const openPlayer = () => s.openAlg([{
     key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined,
-    context: `${c.setLabel} · ${c.group}`, algs: c.algorithms.map(displayAlg),
+    context: caseContext(c), algs: c.algorithms.map(displayAlg),
     note: c.notes, size: c.cube_size ?? 3, mask: maskForStage(c.stage),
   }], 0);
   const block = "flex flex-col gap-2 px-4 py-4 md:px-1 md:py-5";
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
       <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:items-start md:gap-8 md:px-1 md:pt-1 md:pb-5">
-        <div className="shrink-0 self-center">
+        <div className="relative shrink-0 self-center">
           {!c.diagram && !c.flat ? (
             <PlayDiagram id={c.id} name={c.id} onPlay={openPlayer}>
               <Diagram c={c} size={phone ? 104 : 152} />
@@ -408,11 +415,16 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
           ) : (
             <Diagram c={c} size={phone ? 104 : 152} />
           )}
+          {learned && (
+            <span className="pointer-events-none absolute top-0 right-0 rounded-full bg-background p-0.5 text-success" aria-label={tr("Learned")}>
+              <StatusMark state="done" />
+            </span>
+          )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-4 md:gap-5">
           {!mobile && (
             // In a dialog, clear of its close button.
-            <PaneHead title={c.id} sub={c.name !== c.id ? c.name : `${c.setLabel} · ${c.group}`} className={cn(dialog && "pr-8")}>
+            <PaneHead title={c.id} sub={c.name !== c.id ? c.name : caseContext(c)} className={cn(dialog && "pr-8")}>
               <Stepper action="caseStep" index={index} count={count} tips={caseTips()} />
             </PaneHead>
           )}
@@ -432,18 +444,21 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
       <section className={block}>
         <h3 className={LABEL}>{tr("Setup")}</h3>
         <Alg text={c.setup} size={17} />
-        {c.notes && <p className="text-sm text-muted-foreground">{c.notes}</p>}
+        {c.notes && <p className="text-sm text-muted-foreground">{tr(c.notes)}</p>}
       </section>
       <section className={cn(block, "gap-1")}>
         <h3 className={cn(LABEL, "pb-1")}>{tr("Algorithms")}</h3>
         {c.algorithms.map((a: any, i: number) => {
-          const mine = chosen === a.alg,
+          const mine = chosen.includes(a.alg),
             share = choices?.total ? (choices.algs[a.alg] ?? 0) / choices.total : null;
           return (
-          <div key={i} className={cn("-mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 max-md:flex-wrap max-md:gap-y-1", mine && "bg-success/10")}>
+          <div key={i} className="group/row -mx-1 flex min-w-0 items-center gap-4 rounded-lg px-1 py-2 max-md:flex-wrap max-md:gap-y-1">
             <span className={cn(NUMERIC, "w-4 shrink-0 text-xs text-muted-foreground")}>{i + 1}</span>
             <Alg text={displayAlg(a)} size={16} className="min-w-0 flex-1" />
-            <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground max-md:w-full max-md:pl-8">
+            <span className="shrink-0 md:order-last">
+              <LearnedMark id={c.id} learned={mine} action={`learnAlg:${c.id}:${i}`} touch={phone} />
+            </span>
+            <span className="flex shrink-0 items-center gap-3 text-xs whitespace-nowrap text-muted-foreground max-md:w-full max-md:flex-wrap max-md:gap-y-1 max-md:pl-8">
               {i === 0 && <Badge variant="accent">{tr("Primary")}</Badge>}
               {a.stm != null && <span className={NUMERIC}>{a.stm} {" "}{tr("STM")}</span>}
               <span>{SOURCES[a.source] ?? a.source}</span>
@@ -452,11 +467,10 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
                 <Tip content={tr("{0} of {1} players learned this case with it", { 0: choices!.algs[a.alg] ?? 0, 1: choices!.total })}>
                   <span className="flex items-center gap-1.5">
                     <Bar ratio={share} className="w-12" label={tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })} />
-                    <span className={NUMERIC}>{tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })}</span>
+                    <span className={cn(NUMERIC, "max-md:hidden")}>{tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })}</span>
                   </span>
                 </Tip>
               )}
-              <LearnToggle action={`learnAlg:${c.id}:${i}`} learned={mine} />
             </span>
           </div>
           );
@@ -509,7 +523,7 @@ function Detail() {
     learned = s.learned.has(c.id);
   return (
     <div className={PAGE}>
-      <PageHead lead={back} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
+      <PageHead lead={back} title={c.id} sub={caseContext(c)}>
         <Stepper action="caseStep" index={index} count={count} tips={caseTips()} />
       </PageHead>
       <Surface

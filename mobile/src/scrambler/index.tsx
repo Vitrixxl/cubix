@@ -4,6 +4,7 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import type { ScrambleEngine } from "../../../src/client/lib/practiceScrambleCore";
 import { SCRAMBLER_HTML } from "./scrambler-html";
 import { msg } from "../../../src/client/i18n/msg";
+import type { CrossTarget } from "../../../src/shared/crossTraining";
 
 /**
  * cubing.js runs in a hidden WebView (Hermes has neither WebAssembly nor module workers).
@@ -32,9 +33,9 @@ export const nativeEngine: ScrambleEngine = {
   patternScramble: pattern => send("pattern", { pattern }),
 };
 export type CrossSolution = { moves: string; slot: string };
-/** Optimal cross + 1 solutions of a scramble (`crossPlusOneSolutions`), searched in the WebView off the JS thread. */
-export async function crossSolutions(scramble: string): Promise<CrossSolution[]> {
-  return JSON.parse(await send("crossSolutions", { scramble }, 60000)) as CrossSolution[];
+/** Optimal cross, XCross or XXCross solutions of a scramble (`crossSolutions`), searched in the WebView off the JS thread. */
+export async function crossSolutions(scramble: string, target: CrossTarget): Promise<CrossSolution[]> {
+  return JSON.parse(await send("crossSolutions", { scramble, target }, 60000)) as CrossSolution[];
 }
 
 function receive(raw: string) {

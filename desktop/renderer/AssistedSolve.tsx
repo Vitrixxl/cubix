@@ -33,20 +33,30 @@ const STEPS = METHODS["333"].find((m) => m.id === "beginner")!.steps;
 export function AssistedSolve() {
   return (
     <Dialog open={s.assisted} onOpenChange={(next) => !next && void s.action("assisted:off")}>
-      <DialogContent
-        showCloseButton={false}
-        className="inset-0 flex w-auto max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 ring-0 sm:max-w-none max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] md:inset-4 md:rounded-xl md:ring-1"
-      >
-        {s.assisted && <Assist />}
-      </DialogContent>
+      {s.assisted && <Assist />}
     </Dialog>
   );
 }
 
-/** The workspace's header: the way back if any, the title and where the player is, its controls, then Close. */
-function Frame({ sub, back, actions, children }: { sub?: React.ReactNode; back?: () => void; actions?: React.ReactNode; children: React.ReactNode }) {
+/** The whole screen on phones; on larger ones nearly for the solve itself, else a window as tall as its content. */
+function Workspace({ small, children }: { small: boolean; children: React.ReactNode }) {
   return (
-    <>
+    <DialogContent
+      showCloseButton={false}
+      className={cn(
+        "inset-0 flex w-auto max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 ring-0 sm:max-w-none max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)] md:rounded-xl md:ring-1",
+        small ? "md:inset-auto md:top-1/2 md:left-1/2 md:max-h-[calc(100svh-2rem)] md:w-full md:max-w-3xl md:-translate-x-1/2 md:-translate-y-1/2" : "md:inset-4",
+      )}
+    >
+      {children}
+    </DialogContent>
+  );
+}
+
+/** The workspace's header: the way back if any, the title and where the player is, its controls, then Close. */
+function Frame({ sub, back, actions, large = false, children }: { sub?: React.ReactNode; back?: () => void; actions?: React.ReactNode; large?: boolean; children: React.ReactNode }) {
+  return (
+    <Workspace small={!large}>
       <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4 md:px-5">
         {back && <Back onClick={back} label="Back" action="assisted:back" />}
         <div className="flex min-w-0 flex-1 flex-col md:flex-row md:items-baseline md:gap-3">
@@ -57,7 +67,7 @@ function Frame({ sub, back, actions, children }: { sub?: React.ReactNode; back?:
         <Button action="assisted:off" icon={X} tip={tr("Close")} variant="ghost" />
       </header>
       {children}
-    </>
+    </Workspace>
   );
 }
 
@@ -74,8 +84,8 @@ function Assist() {
   if (!source)
     return (
       <Frame sub={tr("Your cube")}>
-        <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 md:justify-center md:p-8">
-          <div className="flex w-full max-w-2xl flex-col gap-6 md:-mt-8">
+        <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 md:p-8">
+          <div className="flex w-full max-w-2xl flex-col gap-6">
             <div className="flex flex-col gap-1.5 md:text-center">
               <h2 className="text-xl font-semibold tracking-tight">{tr("Start from your own cube")}</h2>
               <p className="text-sm text-balance text-muted-foreground">{tr("Qbix plans a beginner solve for it, then takes you through it turn by turn.")}</p>
@@ -338,6 +348,7 @@ function Solve({ cube, replan, rescan }: { cube: SmartCube; replan: () => void; 
   const lost = !!progress?.lost;
   return (
     <Frame
+      large
       sub={finished ? tr("Solved") : tr("Step {0} of {1}", { 0: step + 1, 1: STEPS.length })}
       actions={
         !finished &&

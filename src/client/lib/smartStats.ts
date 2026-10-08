@@ -271,14 +271,14 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
         action: "trainCases:" + cases.map((c) => c.id).join(","),
       });
   }
-  // A cross of many turns: planning it during inspection, with Cross + 1.
+  // A cross of many turns: planning it during inspection, with Cross training.
   const cross = step("cross");
   if (cross?.count && (cross.turns > 8 || heaviest?.id === "cross"))
     out.push({
       id: "cross",
       title: msg("Plan the whole cross"),
-      detail: msg("Your cross takes {0} turns and {1}; an optimal one takes 8 at most. Cross + 1 trains planning it with the first pair.", { 0: cross.turns.toFixed(1), 1: seconds(cross.duration) }),
-      action: "trainingStart:cross1",
+      detail: msg("Your cross takes {0} turns and {1}; an optimal one takes 8 at most. Cross training plans it, alone or with its first pairs.", { 0: cross.turns.toFixed(1), 1: seconds(cross.duration) }),
+      action: "trainingStart:cross",
     });
   // The last layer in two looks: the full sets save a look each.
   const twoLook = methods.find((m) => m.id === "cfop-2look");

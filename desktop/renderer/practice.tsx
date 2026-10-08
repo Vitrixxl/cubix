@@ -1,6 +1,6 @@
 /** The timer page and a running training: prompt, timer, session figures and the times list. */
 import { isReviewMode, learningTrackOf } from "../../src/client/lib/dailyLearning";
-import { CROSS_PLUS_ONE_MOVES, heldMoves } from "../../src/shared/crossPlusOne";
+import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS, heldMoves } from "../../src/shared/crossTraining";
 import { heldScramble } from "../../src/shared/puzzles";
 import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { practiceSummary, sessionExtremes, solveTone, trainingSessionRows, type Metric } from "../../src/client/lib/practiceSummary";
@@ -394,10 +394,10 @@ export function Practice() {
                   onClick={run("case:" + c.id)}
                   className={cn("rounded-md text-lg font-semibold tracking-tight transition-colors hover:text-primary", FOCUS)}
                 >
-                  {c.name}
+                  {tr(c.name)}
                 </button>
                 <span className="text-sm text-muted-foreground">
-                  {learning ? s.dailyStatus : c.setLabel + (c.group && c.group !== c.setLabel ? " · " + c.group : "")}
+                  {learning ? s.dailyStatus : tr(c.setLabel) + (c.group && c.group !== c.setLabel ? " · " + tr(c.group) : "")}
                 </span>
                 {!mobile && (
                   <span className="ml-auto flex items-center gap-1" data-no-timer>
@@ -543,23 +543,24 @@ export function Practice() {
   const head = (
     cross ? (
         <PageHead
-          title={tr("Cross + 1")}
+          title={mobile ? tr(CROSS_TARGET_LABELS[s.crossTarget]) : tr("Cross")}
           puzzle={!mobile}
           lead={<ChangeTraining />}
-          sub={mobile ? tr("{0}-move first block", { 0: s.crossMoves }) : tr("Training")}
+          sub={mobile ? tr("{0} moves", { 0: s.crossMoves }) : tr("Training")}
           more={
             mobile && (
-              <MenuChoice label={tr("First block")} action="crossMoves" value={String(s.crossMoves)} options={CROSS_PLUS_ONE_MOVES.map((n) => ({ id: String(n), label: `${n} moves` }))} />
+              <>
+                <MenuChoice label={tr("What to build")} action="crossTarget" value={s.crossTarget} options={crossTargetOptions} />
+                <MenuChoice label={tr("Moves")} action="crossMoves" value={String(s.crossMoves)} options={crossMoveOptions()} />
+              </>
             )
           }
         >
           {!mobile && (
-            <Choice
-              prefix="crossMoves:"
-              label={tr("Moves")}
-              value={String(s.crossMoves)}
-              options={CROSS_PLUS_ONE_MOVES.map((n) => ({ id: String(n), label: `${n} moves` }))}
-            />
+            <>
+              <Choice prefix="crossTarget:" label={tr("What to build")} value={s.crossTarget} options={crossTargetOptions} />
+              <Choice prefix="crossMoves:" label={tr("Moves")} value={String(s.crossMoves)} options={crossMoveOptions()} />
+            </>
           )}
           {replay}
           {timesToggle}
@@ -798,7 +799,10 @@ function SessionPeek({ training }: { training: boolean }) {
   );
 }
 
-/** Optimal back-block solutions under the scramble, held with white on the bottom and green in front (z2). */
+const crossTargetOptions = CROSS_TARGETS.map((t) => ({ id: t, label: CROSS_TARGET_LABELS[t] }));
+const crossMoveOptions = () => CROSS_MOVES[s.crossTarget].map((n) => ({ id: String(n), label: tr("{0} moves", { 0: n }) }));
+
+/** Optimal cross solutions under the scramble, held with white on the bottom and green in front (z2). */
 function CrossSolution({ font, toggle }: { font: number; toggle: React.ReactNode }) {
   const solutions = s.revealed && s.crossSolutions?.scramble === s.scramble ? s.crossSolutions.list : undefined;
   return (
@@ -811,7 +815,7 @@ function CrossSolution({ font, toggle }: { font: number; toggle: React.ReactNode
               {solutions.map((v) => (
                 <div key={v.moves + v.slot} className="flex items-baseline gap-4">
                   <Alg text={heldMoves(v.moves)} size={font} />
-                  <span className="text-xs text-muted-foreground">{said(v.slot)} {" "}{tr("block")}</span>
+                  {v.slot && <span className="text-xs text-muted-foreground">{v.slot}</span>}
                 </div>
               ))}
             </div>
@@ -920,10 +924,11 @@ const TimeRow = memo(
   function TimeRow({ solve: v, number, tone, touch }: { solve: any; number: number; tone: ReturnType<typeof solveTone>; touch: boolean; lang: string }) {
     return (
       <SolveMenu solve={v}>
-        <div className={cn(ROW, "group/row flex h-8 shrink-0 items-center gap-2 px-2 select-none has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50", touch && "h-11 active:bg-muted/50")}>
+        <div className={cn(ROW, "group/row flex h-8 shrink-0 items-center gap-2 px-2 select-none has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset", touch && "h-11 active:bg-muted/50")}>
           <button
             type="button"
             data-action={"solve:" + v.id}
+            data-row
             onClick={run("solve:" + v.id)}
             className="flex min-w-0 flex-1 items-center gap-3 self-stretch text-left outline-none"
           >

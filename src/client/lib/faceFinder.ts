@@ -3,11 +3,11 @@
  * a couple of milliseconds and without a model: the stickers are the flat patches between the picture's edges, and a
  * face is nine of them on a 3×3 lattice, wherever the face stands in the picture, however large and a little turned.
  *
- * Each colour is read from the middle of its sticker only, leaving out what is not the sticker's own colour: the dark
+ * Each colour is read from the middle of its sticker only (the centre's from its corners, around a logo), leaving out what is not the sticker's own colour: the dark
  * of a gap, a shadow or a logo, the white of a glint. `FaceReader` then keeps a face held still over a few frames and
  * gives each sticker its median colour across them.
  */
-import type { Rgb } from "./cubeScan";
+import { difference, type Rgb } from "./cubeScan";
 
 type Point = [number, number];
 export interface FoundFace {
@@ -39,18 +39,34 @@ const median = (values: number[]) => {
   return sorted[sorted.length >> 1]!;
 };
 
+/** A sticker's read square, as a share of the lattice step; the centre's four corner patches, where and how wide. */
+export const CELL = 0.56,
+  CORNER_AT = 0.25,
+  CORNER = 0.12;
+
 /**
- * The colour of a sticker: the middle of its cell (`size` of the lattice step across) taken at 8×8 points, without the
- * dark ones (gap, shadow, logo) nor the glint (brighter and greyer than the sticker), the median of each channel.
+ * The colour of a sticker: the middle of its cell (`CELL` of the lattice step across) taken at 8×8 points, without the
+ * dark ones (gap, shadow, logo) nor the glint (brighter and greyer than the sticker), the median of each channel. The
+ * centre (`centre`) often carries a logo over its middle: it is also read from four small patches toward its corners
+ * (`CORNER` wide, `CORNER_AT` from the middle along each step), which win when the two reads differ.
  */
-export function readCell(rgba: ArrayLike<number>, w: number, h: number, [cx, cy]: Point, u: Point, v: Point, size = 0.56): Rgb {
+export function readCell(rgba: ArrayLike<number>, w: number, h: number, at: Point, u: Point, v: Point, centre = false): Rgb {
+  const middle = sample(rgba, w, h, at, u, v, false);
+  if (!centre) return middle;
+  const corners = sample(rgba, w, h, at, u, v, true);
+  return difference(middle, corners) < 12 ? middle : corners;
+}
+
+/** A cell's colour from its middle, or from four patches toward its corners (`corners`). */
+function sample(rgba: ArrayLike<number>, w: number, h: number, [cx, cy]: Point, u: Point, v: Point, centre: boolean): Rgb {
   const r: number[] = [],
     g: number[] = [],
     b: number[] = [];
   for (let j = 0; j < 8; j++)
     for (let i = 0; i < 8; i++) {
-      const s = ((i + 0.5) / 8 - 0.5) * size,
-        t = ((j + 0.5) / 8 - 0.5) * size,
+      const [s, t] = centre
+        ? [(i < 4 ? -CORNER_AT : CORNER_AT) + (((i % 4) + 0.5) / 4 - 0.5) * CORNER, (j < 4 ? -CORNER_AT : CORNER_AT) + (((j % 4) + 0.5) / 4 - 0.5) * CORNER]
+        : [((i + 0.5) / 8 - 0.5) * CELL, ((j + 0.5) / 8 - 0.5) * CELL],
         x = Math.round(cx + s * u[0] + t * v[0]),
         y = Math.round(cy + s * u[1] + t * v[1]);
       if (x < 0 || y < 0 || x >= w || y >= h) continue;
@@ -326,12 +342,12 @@ function look(rgba: ArrayLike<number>, w: number, h: number, bar: number): Found
   if (!best || best.seen < 6 || best.score < 5.5) return null;
   const [centre, u, v] = refine(best.marks, best.centre, best.u, best.v);
   const points = OFFSETS.map(([i, j]): Point => [centre[0] + i * u[0] + j * v[0], centre[1] + i * u[1] + j * v[1]]);
-  return { centre, u, v, colours: points.map((p) => readCell(rgba, w, h, p, u, v)), seen: best.seen };
+  return { centre, u, v, colours: points.map((p, k) => readCell(rgba, w, h, p, u, v, k === 4)), seen: best.seen };
 }
 
 /** The nine colours read where a lattice stands (a guide drawn on the picture, when no face is found). */
 export const readFace = (rgba: ArrayLike<number>, w: number, h: number, centre: Point, u: Point, v: Point): Rgb[] =>
-  [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => readCell(rgba, w, h, [centre[0] + i * u[0] + j * v[0], centre[1] + i * u[1] + j * v[1]], u, v)));
+  [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => readCell(rgba, w, h, [centre[0] + i * u[0] + j * v[0], centre[1] + i * u[1] + j * v[1]], u, v, !i && !j)));
 
 /** Frames a face must stay still to be read. */
 export const STILL_FRAMES = 8;

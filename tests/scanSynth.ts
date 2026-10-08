@@ -79,8 +79,11 @@ export interface Synthetic {
   stickerless: boolean;
 }
 
-/** A random cube and its frames. */
-export function syntheticCube(seed: number, framesPerFace = 6): Synthetic {
+/**
+ * A random cube and its frames. Its centres' logo: a ring, dark on white, a shade off elsewhere; or (`hex`) a filled
+ * dark blue hexagon over the middle, half the sticker wide, on the yellow and white centres (as some cubes have).
+ */
+export function syntheticCube(seed: number, framesPerFace = 6, logo: "ring" | "hex" = "ring"): Synthetic {
   const r = random(seed * 7919 + 13);
   const turns: string[] = [];
   while (turns.length < 25) {
@@ -153,10 +156,13 @@ export function syntheticCube(seed: number, framesPerFace = 6): Synthetic {
           inside = Math.abs(fu - 0.5) < 0.5 - gap / 2 && Math.abs(fv - 0.5) < 0.5 - gap / 2 && Math.hypot(du, dv) < corner + 1e-9;
         const face = cells[j * 3 + i]!;
         c = inside ? make[face] : stickerless ? make[face].map((t) => t * 0.35) as V3 : body;
-        // A logo on the centre: a ring, dark on white, a shade off elsewhere.
-        if (inside && i === 1 && j === 1 && (face === "D" || logoAll)) {
+        if (inside && i === 1 && j === 1 && logo === "ring" && (face === "D" || logoAll)) {
           const d = Math.hypot(fu - 0.5, fv - 0.5);
           if (d > 0.14 && d < 0.26) c = face === "D" ? [0.05, 0.05, 0.06] : c.map((t) => t * 0.6) as V3;
+        }
+        if (inside && i === 1 && j === 1 && logo === "hex" && (face === "D" || face === "U" || logoAll)) {
+          const [x, y] = [Math.abs(fu - 0.5), Math.abs(fv - 0.5)];
+          if (y < 0.22 * 0.866 && 1.732 * x + y < 1.732 * 0.22) c = [0.01, 0.03, 0.22];
         }
       }
       const shade = 1 + falloff[0]! * (X / SIZE - 0.5) + falloff[1]! * (Y / SIZE - 0.5);

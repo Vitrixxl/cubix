@@ -430,10 +430,21 @@ test("learning marks are local for guests, imported on sign-in, synchronized bet
   expect(await remote(auth.token).learnedCases()).toEqual(["OLL 2"]);
   expect(reopened.local.learned()).toEqual(["OLL 2"]);
   await b.local.sync(); expect(b.local.learned()).toEqual(["OLL 2"]);
+  // Several algorithms of a case travel together.
+  const [first, second] = cases.find(c => c.id === "OLL 2")!.algorithms.map((x: { alg: string }) => x.alg);
+  await b.api.setLearned("OLL 2",true,[second!,first!]); await b.local.sync(); await reopened.local.sync();
+  expect(reopened.local.learnedAlgs()["OLL 2"]).toEqual([second,first]);
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM sync_changes WHERE kind='learned_cases'").get()?.n).toBe(3);
   await b.api.logout();
   expect(b.local.learned()).toEqual([]);
+});
+
+test("a workspace from before keeps its single learned algorithm as a list of one", () => {
+  const storage = new Storage();
+  storage.setItem("cubix.local.v1:workspace:guest", JSON.stringify({ version:1, sessions:{}, solves:{}, learned:{"OLL 2":true}, learnedAlg:{"OLL 2":"R U R'"}, groupOrder:{}, journey:{}, outbox:[], cursor:0 }));
+  const a = device(setup().remote,storage); a.control.offline=true;
+  expect(a.local.learnedAlgs()).toEqual({"OLL 2":["R U R'"]});
 });
 
 test("learning group priorities travel both ways, preserve other tracks, and survive offline edits and lost acknowledgements", async () => {

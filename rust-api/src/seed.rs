@@ -358,7 +358,7 @@ fn practice(tx: &Transaction, rng: &mut StdRng, catalog: &Catalog, p: &Player, a
                 let progress = ((day - p.joined) as f64 / span.max(1.)).clamp(0., 1.);
                 let mean = e.typical * p.skill * (1. + 0.9 * (-3. * progress).exp());
                 let kind = if e.puzzle == "333" && e.mode == "standard" && rng.gen_bool(0.08) {
-                    ["2gen-ru", "f2l", "last-layer", "cross1-4"][rng.gen_range(0..4)]
+                    ["2gen-ru", "f2l", "last-layer", "xcross-6"][rng.gen_range(0..4)]
                 } else {
                     "normal"
                 };
@@ -669,10 +669,10 @@ pub fn social(db: &mut Connection) -> Result<bool> {
         )
     };
     // Tournaments: the group's and the administration's; the "sprint" ones start a few minutes from now.
-    let tournament = |name: &str, event: &str, group: Option<i64>, by: Option<String>, starts: i64, points: i64, sets: i64, players: &[&str]| -> Result<i64> {
+    let tournament = |name: &str, event: &str, group: Option<i64>, by: Option<String>, starts: i64, points: i64, sets: i64, cap: i64, players: &[&str]| -> Result<i64> {
         tx.execute(
-            "INSERT INTO tournaments(name,description,event,group_id,created_by,starts_at,points,sets,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
-            params![name, "", event, group, by, starts, points, sets, at - 3 * DAY_MS],
+            "INSERT INTO tournaments(name,description,event,group_id,created_by,starts_at,points,sets,max_players,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            params![name, "", event, group, by, starts, points, sets, cap, at - 3 * DAY_MS],
         )?;
         let t = tx.last_insert_rowid();
         for (k, player) in players.iter().enumerate() {
@@ -681,11 +681,12 @@ pub fn social(db: &mut Connection) -> Result<bool> {
         Ok(t)
     };
     let club_players = ["dev", "lena_speed", "alex_cubes", "coach", "ben_tps", "chloe_f2l", "hugo_sub10"];
-    let cup = tournament("Club cup", "333", Some(club), Some(id("dev")), at + 2 * DAY_MS, 3, 2, &club_players)?;
-    let sprint = tournament("Friday sprint", "222", Some(club), Some(id("lena_speed")), at + 3 * MINUTE_MS, 2, 1, &["dev", "lena_speed", "alex_cubes", "kenji_cfop", "hugo_sub10"])?;
+    let cup = tournament("Club cup", "333", Some(club), Some(id("dev")), at + 2 * DAY_MS, 3, 2, 16, &club_players)?;
+    let sprint = tournament("Friday sprint", "222", Some(club), Some(id("lena_speed")), at + 3 * MINUTE_MS, 2, 1, 8, &["dev", "lena_speed", "alex_cubes", "kenji_cfop", "hugo_sub10"])?;
     let open = ["lena_speed", "alex_cubes", "kenji_cfop", "emma_pll", "felix_roux", "gaia_zz", "ines_bld", "tess_cll", "vera_zbll"];
-    tournament("Qbix Autumn Open", "333", None, None, at + 3 * DAY_MS, 3, 2, &open)?;
-    tournament("Weekly 2×2 sprint", "222", None, None, at + 5 * MINUTE_MS, 2, 1, &["dev", "alex_cubes", "kenji_cfop"])?;
+    // Full: the dev account sees it closed to newcomers.
+    tournament("Qbix Autumn Open", "333", None, None, at + 3 * DAY_MS, 3, 2, open.len() as i64, &open)?;
+    tournament("Weekly 2×2 sprint", "222", None, None, at + 5 * MINUTE_MS, 2, 1, 32, &["dev", "alex_cubes", "kenji_cfop"])?;
     // Battles waiting in the club: one open to all, one aimed at the dev account.
     let mut battles = vec![];
     for (from, to, event) in [("alex_cubes", None, "222"), ("lena_speed", Some("dev"), "333")] {

@@ -3,7 +3,7 @@ import { Box, Check, LayoutGrid, Play, type LucideIcon } from "lucide-react-nati
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { isLearningTrack, puzzleStages, reviewCases, trainingModeOptions } from "../../../src/client/lib/dailyLearning";
-import { CROSS_PLUS_ONE_MOVES } from "../../../src/shared/crossPlusOne";
+import { CROSS_MOVES, CROSS_TARGET_DETAILS, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../../src/shared/crossTraining";
 import { plural } from "../../../src/client/lib/format";
 import { toggleSelection } from "../../../src/client/lib/practiceCatalog";
 import { puzzleOf } from "../../../src/shared/puzzles";
@@ -12,7 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import type { useDailyLearning } from "../hooks/useDailyLearning";
-import { casesAtom, crossMovesAtom, learnedCaseIdsAtom, puzzleAtom, reviewStagesAtom, routeAtom, selectedCaseIdsAtom, setsAtom } from "../state";
+import { casesAtom, crossMovesAtom, crossTargetAtom, learnedCaseIdsAtom, puzzleAtom, reviewStagesAtom, routeAtom, selectedCaseIdsAtom, setsAtom } from "../state";
 import { CaseDiagram } from "./CaseDiagram";
 import { CaseSelector } from "./CaseSelector";
 import { BackButton, Numeric, Page, PageHead, SearchField, Surface } from "./layout";
@@ -23,7 +23,7 @@ import { useTourTarget } from "../tour";
 import { tr } from "../../../src/client/i18n";
 
 export type DailyLearning = ReturnType<typeof useDailyLearning>;
-/** A way to practise: `cross1`, `practice` or `review`; learning a set case by case belongs to Learn, not here. */
+/** A way to practise: `cross`, `practice` or `review`; learning a set case by case belongs to Learn, not here. */
 export type SetupMode = { id: string; label: string; summary: string; detail: string; icon: LucideIcon };
 
 /** The ways to practise the current puzzle (web `setupModes`), with what each would train right now. */
@@ -31,17 +31,18 @@ export function useSetupModes(): SetupMode[] {
   const puzzle = useAtomValue(puzzleAtom);
   const cases = useAtomValue(casesAtom);
   const moves = useAtomValue(crossMovesAtom);
+  const target = useAtomValue(crossTargetAtom);
   const selected = useAtomValue(selectedCaseIdsAtom);
   const learnedIds = useAtomValue(learnedCaseIdsAtom);
   return useMemo<SetupMode[]>(() => [
-    ...(puzzle === "333" ? [{ id: "cross1", label: tr("Cross + 1"), summary: tr("Scrambles whose first block takes an exact number of moves, to plan it in inspection."), detail: tr("{0}-move first block", { 0: moves }), icon: Box }] : []),
+    ...(puzzle === "333" ? [{ id: "cross", label: tr("Cross"), summary: tr("Scrambles whose cross, XCross or XXCross takes an exact number of moves, to plan it in inspection."), detail: tr("{0} · {1} moves", { 0: tr(CROSS_TARGET_LABELS[target]), 1: moves }), icon: Box }] : []),
     ...trainingModeOptions(puzzle).filter(({ value }) => !isLearningTrack(value)).map(({ value, label }) => ({
       id: value as string, label,
       icon: value === "practice" ? LayoutGrid : Check,
       summary: value === "practice" ? tr("Pick the cases you want and drill them, one scramble after another.") : tr("Every case you marked as learned, drawn at random, so none slips away."),
       detail: value === "practice" ? tr("{0} selected", { 0: plural(selected.length, "case") }) : plural(reviewCases(cases, new Set(learnedIds), puzzle).length, "learned case"),
     })),
-  ], [puzzle, moves, cases, selected.length, learnedIds]);
+  ], [puzzle, moves, target, cases, selected.length, learnedIds]);
 }
 
 /** The Train tab's first page: every way to practise the puzzle as large cards, the one trained last marked. */
@@ -50,7 +51,7 @@ export function TrainHome({ last, onOpen }: { last: string; onOpen: (mode: strin
   const target = useTourTarget("training");
   return <Page className="pb-0">
     <PageHead title={tr("Training")} sub={tr("Pick a way to practise")}><SessionButton /></PageHead>
-    <ScrollView className="-mx-4 flex-1" contentContainerClassName="px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
+    <ScrollView className="-mx-4 flex-1" contentContainerClassName="flex-grow justify-center px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
       <View {...target} accessibilityLabel={tr("Training modes")} className="gap-3">
         {modes.map(m => <PickerCard key={m.id} icon={lit => <Icon as={m.icon} size={20} className={lit ? "text-primary" : "text-muted-foreground"} />}
           title={m.label} detail={m.summary} meta={m.detail} marked={m.id === last} badge={m.id === last ? tr("Last trained") : undefined}
@@ -65,7 +66,7 @@ export function SetupPage({ mode, onBack, onStart }: { mode: SetupMode; onBack: 
   useBackTo(onBack);
   return <Page className="pb-0">
     <PageHead lead={<BackButton label={tr("Every way to practise")} onPress={onBack} />} title={mode.label} sub={mode.detail} />
-    {mode.id === "cross1" ? <CrossSetup onStart={() => onStart("cross1")} />
+    {mode.id === "cross" ? <CrossSetup onStart={() => onStart("cross")} />
       : mode.id === "practice" ? <Surface className="mb-3 flex-1"><CasesSetup onStart={() => onStart("practice")} /></Surface>
       : <ReviewSetup onStart={() => onStart("review")} />}
   </Page>;
@@ -81,10 +82,21 @@ function Start({ onPress, disabled = false, children }: { onPress: () => void; d
 
 function CrossSetup({ onStart }: { onStart: () => void }) {
   const [moves, setMoves] = useAtom(crossMovesAtom);
+  const [target, setTarget] = useAtom(crossTargetAtom);
   return <ScrollView className="-mx-4 flex-1" contentContainerClassName="flex-grow items-center justify-center gap-8 px-4 py-6">
-    <Text className="text-center text-sm text-muted-foreground">{tr("Scrambles whose back block takes exactly the chosen number of moves.")}</Text>
+    <Text className="text-center text-sm text-muted-foreground">{tr("Scrambles whose best cross, XCross or XXCross takes exactly the chosen number of moves.")}</Text>
+    <View className="w-full flex-row gap-3" accessibilityRole="radiogroup" accessibilityLabel={tr("What to build")}>
+      {CROSS_TARGETS.map(t => {
+        const on = target === t;
+        return <Pressable key={t} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={tr(CROSS_TARGET_LABELS[t])} onPress={() => setTarget(t)}
+          className={cn("flex-1 items-center gap-1 rounded-2xl border px-2 py-4 active:opacity-70", on ? "border-primary/50 bg-primary/10" : "border-border bg-card")}>
+          <Text className={cn("text-lg font-semibold", on && "text-primary")}>{tr(CROSS_TARGET_LABELS[t])}</Text>
+          <Text className="text-center text-xs text-muted-foreground">{tr(CROSS_TARGET_DETAILS[t])}</Text>
+        </Pressable>;
+      })}
+    </View>
     <View className="w-full flex-row gap-3" accessibilityRole="radiogroup" accessibilityLabel={tr("Moves")}>
-      {CROSS_PLUS_ONE_MOVES.map(n => {
+      {CROSS_MOVES[target].map(n => {
         const on = moves === n;
         return <Pressable key={n} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={tr("{0} moves", { 0: n })} onPress={() => setMoves(n)}
           className={cn("flex-1 items-center gap-1 rounded-2xl border px-4 py-5 active:opacity-70", on ? "border-primary/50 bg-primary/10" : "border-border bg-card")}>
@@ -93,7 +105,7 @@ function CrossSetup({ onStart }: { onStart: () => void }) {
         </Pressable>;
       })}
     </View>
-    <Start onPress={onStart}>{tr("Start · {0} moves", { 0: moves })}</Start>
+    <Start onPress={onStart}>{tr("Start · {0} in {1} moves", { 0: tr(CROSS_TARGET_LABELS[target]), 1: moves })}</Start>
   </ScrollView>;
 }
 
@@ -111,10 +123,10 @@ function ReviewSetup({ onStart }: { onStart: () => void }) {
     });
   }, [cases, puzzle, learnedIds]);
   const pool = stages.filter(st => picked.includes(st.stage)).reduce((n, st) => n + st.learned.length, 0);
-  return <ScrollView className="-mx-4 flex-1" contentContainerClassName="gap-3 px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
+  return <ScrollView className="-mx-4 flex-1" contentContainerClassName="flex-grow justify-center gap-3 px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
     <View accessibilityLabel={tr("Stages to review")} className="gap-3">
       {stages.map(st => <PickerCard key={st.stage} icon={() => <CaseDiagram c={st.learned[0] ?? st.cases[0]!} size={32} />}
-        title={st.stage} detail={st.sets.join(", ")} meta={tr("{0} / {1} learned", { 0: st.learned.length, 1: st.cases.length })}
+        title={st.stage} detail={st.sets.map(label => tr(label)).join(", ")} meta={tr("{0} / {1} learned", { 0: st.learned.length, 1: st.cases.length })}
         pressed={picked.includes(st.stage) && st.learned.length > 0} disabled={!st.learned.length}
         onPress={() => setPicked([...toggleSelection(new Set(picked), [st.stage])])} />)}
     </View>

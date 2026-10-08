@@ -13,7 +13,7 @@ import { msg } from "../i18n/msg";
 export interface CourseEntry {
   /** Index of the step shown. */
   step: number;
-  /** Inline algorithms marked learned, by `algId`. */
+  /** Inline algorithms marked learned, by `algId`, and intuitive steps marked mastered, by `stepId`. */
   learned: string[];
 }
 export interface CourseProgress {
@@ -92,19 +92,31 @@ export function methodFacts(method: SolvingMethod, cases: readonly Pick<CaseDto,
   return { steps: method.steps.length, algorithms: inline + cases.filter(c => sets.has(c.set)).length };
 }
 /**
- * Where a course stands: whether it was opened, the step shown, and its steps done out of those with algorithms. A step
- * is done once all its algorithms are learned; a step without any (intuitive) is never counted.
+ * Where a course stands: whether it was opened, the step shown, and its steps done out of those that can be: with
+ * algorithms, or intuitive; a step whose algorithms are still to come is not counted.
  */
 export function methodProgress(progress: CourseProgress, puzzle: PuzzleId, method: SolvingMethod, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>) {
   const started = !!progress.courses[courseKey(puzzle, method.id)];
   const entry = courseEntry(progress, puzzle, method.id);
-  const counts = method.steps.map(step => stepLearned(step, cases, learned, entry)).filter(c => c.total > 0);
-  return { started, done: counts.filter(c => c.learned === c.total).length, total: counts.length, step: entry.step };
+  const counted = method.steps.filter(step => !step.missing || stepAlgorithmCount(step, cases) > 0);
+  const done = counted.filter(step => stepDone(step, cases, learned, entry)).length, total = counted.length;
+  return { started, done, total, step: entry.step, learned: total > 0 && done === total };
 }
-/** A step is done once every algorithm it teaches is learned; a step without algorithms never is. */
+/**
+ * The share of a method's algorithms known, from 0 to 1, for its bar: it reaches 1 (learned, in green) only once the
+ * course is learned, intuitive steps mastered included.
+ */
+export function methodShare(method: SolvingMethod, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, progress: CourseProgress, puzzle: PuzzleId) {
+  const algorithms = methodFacts(method, cases).algorithms;
+  const share = algorithms ? methodLearned(method, cases, learned, courseEntry(progress, puzzle, method.id)) / algorithms : 0;
+  return methodProgress(progress, puzzle, method, cases, learned).learned ? 1 : Math.min(share, 0.99);
+}
+/** An intuitive step marked mastered: nothing to learn, so it is the learner's word. */
+export const stepMastered = (step: Pick<MethodStep, "title">, entry: CourseEntry) => entry.learned.includes(stepId(step));
+/** A step is done once every algorithm it teaches is learned; an intuitive one once marked mastered; one whose algorithms are to come never is. */
 export function stepDone(step: MethodStep, cases: readonly Pick<CaseDto, "id" | "set">[], learned: ReadonlySet<string>, entry: CourseEntry) {
   const count = stepLearned(step, cases, learned, entry);
-  return count.total > 0 && count.learned === count.total;
+  return count.total > 0 ? count.learned === count.total : !step.missing && stepMastered(step, entry);
 }
 
 /** The set a step opens on: the first one with cases still to learn, the first otherwise. */

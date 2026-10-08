@@ -13,7 +13,7 @@ import { ask } from "../confirm";
 import { eventInfo } from "../../../src/shared/puzzles";
 import { Bracket, roundName } from "../tournaments/bracket";
 import { FormatFields, STATUS_TEXT, formatText, localInput } from "../tournaments/format";
-import type { Tournament, TournamentDetail } from "../community/client";
+import { DEFAULT_PLAYERS, MAX_PLAYERS, playersLimit, type Tournament, type TournamentDetail } from "../community/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,7 +162,7 @@ function Actions({ t, reload }: { t: Tournament; reload: () => void }) {
 const afterDelete = (t: Tournament, reload: () => void) => (location.pathname.endsWith("/" + t.id) ? navigate("/admin/tournaments") : reload());
 
 function Create({ onCreated }: { onCreated: () => void }) {
-  const [form, setForm] = useState({ name: "", description: "", event: "333", startsAt: localInput(Date.now() + 2 * 86_400_000), points: 3, sets: 2, maxPlayers: "" });
+  const [form, setForm] = useState({ name: "", description: "", event: "333", startsAt: localInput(Date.now() + 2 * 86_400_000), points: 3, sets: 2, maxPlayers: String(DEFAULT_PLAYERS) });
   const [busy, setBusy] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm({ ...form, ...patch });
   return (
@@ -179,7 +179,7 @@ function Create({ onCreated }: { onCreated: () => void }) {
           startsAt: new Date(form.startsAt).getTime(),
           points: form.points,
           sets: form.sets,
-          maxPlayers: form.maxPlayers ? Number(form.maxPlayers) : null,
+          maxPlayers: playersLimit(form.maxPlayers),
         });
         setBusy(false);
         if (done) onCreated();
@@ -199,7 +199,7 @@ function Create({ onCreated }: { onCreated: () => void }) {
           </Field>
           <Field>
             <FieldLabel htmlFor="t-cap">Most players</FieldLabel>
-            <Input id="t-cap" type="number" min={2} max={256} placeholder="No limit" value={form.maxPlayers} onChange={(e) => set({ maxPlayers: e.target.value })} />
+            <Input id="t-cap" type="number" required min={2} max={MAX_PLAYERS} value={form.maxPlayers} onChange={(e) => set({ maxPlayers: e.target.value })} />
           </Field>
         </div>
         <Field>

@@ -101,6 +101,9 @@ pub fn pull(db: &Connection, uid: &str, after: i64, learning_groups: bool, journ
             value["case_ids"] = serde_json::from_str(value["case_ids"].as_str().unwrap_or("[]"))
                 .map_err(ApiError::internal)?;
         }
+        if table == "learned_cases" {
+            value = value.map(api::learned_row);
+        }
         if table == "learning_group_orders"
             && let Some(ref mut value) = value
         {

@@ -1,10 +1,10 @@
 /** The training setup screen: what to practise, before the timer. */
 import { isLearningTrack, isReviewMode, puzzleStages, reviewCases, trainingModeOptions } from "../../src/client/lib/dailyLearning";
 import { puzzleOf } from "../../src/shared/puzzles";
-import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
+import { CROSS_MOVES, CROSS_TARGET_DETAILS, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../src/shared/crossTraining";
 import { Box, Check, ChevronDown, ChevronRight, LayoutGrid, Play, type LucideIcon } from "lucide-react";
 import { store as s, catalog, matches } from "./store";
-import { Back, Button, Diagram, FOCUS, NUMERIC, PAGE, PageHead, ROW, SearchField, Surface, TILE, type Props, plural, run, usePhone } from "./ui";
+import { Back, Button, Diagram, FOCUS, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, Surface, TILE, type Props, plural, run, usePhone } from "./ui";
 import { Picker, PickerCard } from "./picker";
 import { CaseTile, FootBar, TILES } from "./algorithms";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ type SetupMode = { id: string; label: string; summary: string; detail: string; i
 /** The ways to practise; learning a set case by case belongs to Learn, not here. */
 function setupModes(): SetupMode[] {
   return [
-    ...(s.puzzle === "333" ? [{ id: "cross1", label: "Cross + 1", summary: "Scrambles whose first block takes an exact number of moves, to plan it in inspection.", detail: `${s.crossMoves}-move first block`, icon: Box }] : []),
+    ...(s.puzzle === "333" ? [{ id: "cross", label: "Cross", summary: "Scrambles whose cross, XCross or XXCross takes an exact number of moves, to plan it in inspection.", detail: tr("{0} · {1} moves", { 0: tr(CROSS_TARGET_LABELS[s.crossTarget]), 1: s.crossMoves }), icon: Box }] : []),
     ...trainingModeOptions(s.puzzle)
       .filter(({ value }) => !isLearningTrack(value))
       .map(({ value, label }) => ({
@@ -31,7 +31,7 @@ function setupModes(): SetupMode[] {
 
 /** The mode trained last, marked on the choice. */
 function lastSetupMode() {
-  if (s.trainingKind === "cross1" && s.puzzle === "333") return "cross1";
+  if (s.trainingKind === "cross" && s.puzzle === "333") return "cross";
   return isReviewMode(s.learningMode) ? "review" : "practice";
 }
 
@@ -52,7 +52,7 @@ export function TrainingSetup() {
         </Picker>
       </div>
     );
-  const body = chosen.id === "cross1" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <ReviewSetup />;
+  const body = chosen.id === "cross" ? <CrossSetup /> : chosen.id === "practice" ? <CasesSetup /> : <ReviewSetup />;
   return (
     <div className={PAGE}>
       <PageHead lead={<Back action="setupMode:" label="Every way to practise" />} title={said(chosen.label)} sub={said(chosen.detail)} puzzle />
@@ -101,9 +101,25 @@ function Centred({ text, children }: { text: string } & Props) {
 
 function CrossSetup() {
   return (
-    <Centred text={tr("Scrambles whose back block takes exactly the chosen number of moves.")}>
+    <Centred text={tr("Scrambles whose best cross, XCross or XXCross takes exactly the chosen number of moves.")}>
+      <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label={tr("What to build")}>
+        {CROSS_TARGETS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="radio"
+            aria-checked={s.crossTarget === t}
+            data-action={"crossTarget:" + t}
+            onClick={run("crossTarget:" + t)}
+            className={cn(TILE, "flex flex-1 flex-col items-center gap-1 px-2 py-4 aria-checked:border-primary/50 aria-checked:bg-primary/10")}
+          >
+            <span className={cn("text-lg font-semibold", s.crossTarget === t && "text-primary")}>{tr(CROSS_TARGET_LABELS[t])}</span>
+            <span className="text-xs text-muted-foreground">{tr(CROSS_TARGET_DETAILS[t])}</span>
+          </button>
+        ))}
+      </div>
       <div className="flex w-full max-w-md gap-3" role="radiogroup" aria-label={tr("Moves")}>
-        {CROSS_PLUS_ONE_MOVES.map((n) => (
+        {CROSS_MOVES[s.crossTarget].map((n) => (
           <button
             key={n}
             type="button"
@@ -118,7 +134,7 @@ function CrossSetup() {
           </button>
         ))}
       </div>
-      <Start action="trainingStart:cross1">{tr("Start ·")}{" "}{s.crossMoves} {" "}{tr("moves")}</Start>
+      <Start action="trainingStart:cross">{tr("Start · {0} in {1} moves", { 0: tr(CROSS_TARGET_LABELS[s.crossTarget]), 1: s.crossMoves })}</Start>
     </Centred>
   );
 }
@@ -150,7 +166,7 @@ function ReviewSetup() {
           action={"reviewStage:" + st.stage}
           icon={<Diagram c={st.learned[0] ?? st.cases[0]} size={32} />}
           title={said(st.stage)}
-          detail={st.sets.join(", ")}
+          detail={st.sets.map((label) => tr(label)).join(", ")}
           meta={tr("{0} / {1} learned", { 0: st.learned.length, 1: st.cases.length })}
           pressed={s.reviewStages.has(st.stage) && st.learned.length > 0}
           disabled={!st.learned.length}
@@ -198,7 +214,12 @@ function CasesSetup() {
             count = chosen.filter((c: any) => s.selected.has(c.id)).length,
             open = s.selectorOpen[set.id] ?? (count > 0 || !!s.query);
           if (!chosen.length) return null;
-          const groups = [...new Set(chosen.map((c: any) => c.group))] as string[];
+          const groups = [...new Set(chosen.map((c: any) => c.group))] as string[],
+            all = cases.filter((c: any) => c.set === set.id),
+            ring = (of: any[]) => {
+              const n = of.filter((c: any) => s.learned.has(c.id)).length;
+              return <ProgressRing done={n === of.length} share={n / of.length} />;
+            };
           return (
             <section key={set.id} className="flex flex-col pb-2">
               <div className={cn(ROW, "-mx-2 flex items-center gap-2 pr-1")}>
@@ -209,8 +230,9 @@ function CasesSetup() {
                   className={cn("flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left", FOCUS)}
                 >
                   {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
-                  <span className="w-10 text-xs font-medium text-muted-foreground">{set.stage}</span>
-                  <span className="truncate text-sm font-medium">{set.label}</span>
+                  {ring(all)}
+                  <span className="w-10 text-xs font-medium text-muted-foreground">{tr(set.stage)}</span>
+                  <span className="truncate text-sm font-medium">{tr(set.label)}</span>
                   <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
                     {count} / {chosen.length}
                   </span>
@@ -231,7 +253,8 @@ function CasesSetup() {
                           onClick={run("selectGroup:" + set.id + ":" + group)}
                           className={cn("flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground", FOCUS)}
                         >
-                          {group}
+                          {ring(all.filter((c: any) => c.group === group))}
+                          {tr(group)}
                           <span className={NUMERIC}>
                             {members.filter((c: any) => s.selected.has(c.id)).length} / {members.length}
                           </span>

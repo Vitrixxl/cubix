@@ -1,7 +1,7 @@
 import { applyAlg, invertAlg, randomAuf, solved, type CubeState } from "../../shared/cube";
 import { eventOf, puzzleInfo, validContext, type CubeSize, type PracticeContext } from "../../shared/puzzles";
 import { cases } from "../local/catalog";
-import { crossPlusOneMoves, crossPlusOnePattern, type PatternData } from "../../shared/crossPlusOne";
+import { crossPattern, crossTrainingType, type PatternData } from "../../shared/crossTraining";
 import { msg } from "../i18n/msg";
 
 /** Random-state generation needs cubing.js; each platform supplies its own runtime for it. */
@@ -49,8 +49,8 @@ export async function generatePracticeScramble(context: PracticeContext, engine:
   if (type === "half-turns") return moves(["R", "L", "U", "D", "F", "B"], ["2"], size === 2 ? 15 : 30);
   if (type === "outer-turns" && size) return moves(["R", "L", "U", "D", "F", "B"], undefined, SCRAMBLE_LENGTHS[size]);
   if (type === "edges-only" || type === "corners-only") return engine.orbitScramble(type === "edges-only" ? "EDGES" : "CORNERS");
-  const crossMoves = crossPlusOneMoves(type);
-  if (crossMoves) return engine.patternScramble(crossPlusOnePattern(crossMoves));
+  const cross = crossTrainingType(type);
+  if (cross) return engine.patternScramble(crossPattern(cross.target, cross.moves));
   if (type === "last-layer") return `${caseSetup("oll")} ${caseSetup("pll")} ${randomAuf()}`.trim();
   if (["oll", "pll", "f2l"].includes(type)) return `${caseSetup(type)} ${randomAuf()}`.trim();
   throw new Error(msg("This scramble generator is unavailable."));

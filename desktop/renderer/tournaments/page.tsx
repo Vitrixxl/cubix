@@ -102,7 +102,8 @@ function TournamentList() {
   return (
     <div className={PAGE}>
       <PageHead title={tr("Tournaments")} sub={tr("Open to every player, and your groups'")} />
-      <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1">
+      {/* Padded so the cards' outline and focus ring, drawn outside them, are not clipped by the scroll. */}
+      <div className="-m-1 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-1">
         {mine.map((t) => (
           <MatchReady key={t.id} title={tr("{0} · your match in {1} is ready.", { 0: said(roundName(t.round, t.rounds)), 1: t.name })} text={formatText(t)} match={t.myMatch!} />
         ))}

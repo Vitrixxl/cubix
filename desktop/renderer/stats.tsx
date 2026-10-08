@@ -206,7 +206,7 @@ function SolvesTable({
         <span className="max-md:hidden">{tr("Ao12")}</span>
         <span className="max-md:hidden">{tr("Comment")}</span>
         <span>{tr("Date")}</span>
-        <span className="w-28 max-md:hidden" />
+        <span className="w-40 max-md:hidden" />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pt-1" key={`${range.join(":")}:${sort}:${commented}`}>
         {!rows.length && <Empty>{commented ? tr("No commented solve yet. Add one with the bubble on a time.") : tr("No solves match.")}</Empty>}
@@ -214,11 +214,12 @@ function SolvesTable({
           // A case done during a smart cube solve opens that solve; its time is the case's, so it has no actions.
           const open = "solve:" + (v.solveId ?? v.id),
             row = (
-            <div className={cn(ROW, "history-row group/row has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50")}>
+            <div className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
               <div className={cn("grid items-center gap-4 px-2", COLUMNS)}>
                 <button
                   type="button"
                   data-action={open}
+                  data-row
                   onClick={run(open)}
                   className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3"
                 >
@@ -245,7 +246,7 @@ function SolvesTable({
                   <span className="truncate text-xs text-muted-foreground max-md:hidden">{v.comment}</span>
                   <span className="truncate text-xs text-muted-foreground">{v.displayDate}</span>
                 </button>
-                {v.solveId === undefined ? <SolveActions solve={v} comment className="w-28 justify-end max-md:hidden" /> : <span className="w-28 max-md:hidden" />}
+                {v.solveId === undefined ? <SolveActions solve={v} full className="w-40 justify-end max-md:hidden" /> : <span className="w-40 max-md:hidden" />}
               </div>
               {v.comment && <p className="-mt-1 pb-2 pl-[4.5rem] text-xs text-muted-foreground md:hidden">{v.comment}</p>}
             </div>

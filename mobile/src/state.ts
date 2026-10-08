@@ -9,6 +9,7 @@ import { EMPTY_COURSE_PROGRESS, courseStorageKey, readCourseProgress, type Cours
 import { pageUrl, readRoute } from "../../src/client/lib/route";
 import { api, authToken, local } from "./api";
 import { storage } from "./platform/storage";
+import { CROSS_MOVES, crossMovesFor, crossScrambleType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 
 // ---------------------------------------------------------------------------
 // Routing: one atom plus a bounded history so the Android back button behaves like the browser.
@@ -243,14 +244,23 @@ export const randomAufAtom = persisted<boolean>("cubix.training.randomAuf", true
 /** Selected cases still to learn, as the training page last saw them for a puzzle. Kept outside the
  * page so marking the last one learned from its details and coming back still celebrates. */
 export const learningGoalAtom = atom<{ puzzle: PuzzleId; pending: string[] } | null>(null);
-/** Cases of the catalogue, or first-block scrambles (cross and one pair) on the 3×3; shared with the web prefs. */
-type TrainingKind = "cases" | "cross1";
-const storedTrainingKindAtom = persisted<TrainingKind>("cubix.training.kind", "cases");
-export const trainingKindAtom = atom(get => get(storedTrainingKindAtom) === "cross1" ? "cross1" as const : "cases" as const,
+/** Cases of the catalogue, or cross scrambles (cross, XCross or XXCross) on the 3×3; shared with the web prefs. */
+type TrainingKind = "cases" | "cross";
+const storedTrainingKindAtom = persisted<string>("cubix.training.kind", "cases");
+// "cross1" was the first-block training (a pair and two cross edges): its nearest is the XCross.
+export const trainingKindAtom = atom(get => ["cross", "cross1"].includes(get(storedTrainingKindAtom)) ? "cross" as const : "cases" as const,
   (_get, set, kind: TrainingKind) => set(storedTrainingKindAtom, kind));
-const storedCrossMovesAtom = persisted<number>("cubix.training.crossMoves", 4);
-export const crossMovesAtom = atom(get => { const moves = get(storedCrossMovesAtom); return [3, 4, 5].includes(moves) ? moves : 4; },
-  (_get, set, moves: number) => { if ([3, 4, 5].includes(moves)) set(storedCrossMovesAtom, moves); });
+const storedCrossTargetAtom = persisted<string>("cubix.training.crossTarget", "");
+const storedCrossMovesAtom = persisted<number>("cubix.training.crossMoves", 5);
+export const crossTargetAtom = atom<CrossTarget, [CrossTarget], void>(get => {
+  const target = get(storedCrossTargetAtom);
+  return isCrossTarget(target) ? target : get(storedTrainingKindAtom) === "cross1" ? "xcross" : "cross";
+}, (get, set, target) => {
+  set(storedCrossMovesAtom, crossMovesFor(target, get(storedCrossMovesAtom)));
+  set(storedCrossTargetAtom, target);
+});
+export const crossMovesAtom = atom(get => crossMovesFor(get(crossTargetAtom), get(storedCrossMovesAtom)),
+  (get, set, moves: number) => { if (CROSS_MOVES[get(crossTargetAtom)].includes(moves)) set(storedCrossMovesAtom, moves); });
 /** Training opens on the choice of what to practise, then shows the timer for it (kept while switching tabs). */
 export const trainingStepAtom = atom<"setup" | "practice">("setup");
 /** Mode highlighted on the setup screen before it starts; empty = the one trained last. */
@@ -295,8 +305,8 @@ export const playgroundScrambleAtom = atom(get => {
   const c = get(practiceContextAtom);
   set(scramblesAtom, { ...get(scramblesAtom), [`${c.puzzle}:${c.solveMode}:${c.scrambleType}`]: value });
 });
-/** Cross + 1 training: timer solves of its own scramble type (`cross1-N`) on the 3×3. */
-export const crossContextAtom = atom(get => ({ puzzle: "333" as PuzzleId, solveMode: get(solveModeAtom), scrambleType: `cross1-${get(crossMovesAtom)}` as ScrambleType }));
+/** Cross training: timer solves of its own scramble type (`xcross-6`…) on the 3×3. */
+export const crossContextAtom = atom(get => ({ puzzle: "333" as PuzzleId, solveMode: get(solveModeAtom), scrambleType: crossScrambleType(get(crossTargetAtom), get(crossMovesAtom)) as ScrambleType }));
 /** Its scramble, kept per context beside the timer's own ones, like the web. */
 export const crossScrambleAtom = atom(get => {
   const c = get(crossContextAtom);

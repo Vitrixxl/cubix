@@ -125,11 +125,11 @@ export function StatusMark({ done, current = false }: { done: boolean; current?:
 }
 
 /** Whether a case or an algorithm is learned, as a labelled toggle: "Mark learned", then "Learned" in green. */
-export function LearnToggle({ learned, onPress, accessibilityLabel, disabled, className }: { learned: boolean; onPress: () => void; accessibilityLabel: string; disabled?: boolean; className?: string }) {
+export function LearnToggle({ learned, onPress, accessibilityLabel, disabled, mastery = false, className }: { learned: boolean; onPress: () => void; accessibilityLabel: string; disabled?: boolean; mastery?: boolean; className?: string }) {
   return <Pressable onPress={onPress} disabled={disabled} accessibilityRole="switch" accessibilityState={{ checked: learned, disabled }} accessibilityLabel={accessibilityLabel}
     className={cn("h-11 flex-row items-center gap-1.5 rounded-lg border px-3", learned ? "border-success/40 bg-success/15 active:bg-success/25" : "border-border active:bg-muted/50", disabled && "opacity-40", className)}>
     <Icon as={Check} size={16} className={learned ? "text-success" : "text-muted-foreground"} />
-    <Text className={cn("text-sm font-medium", learned ? "text-success" : "text-muted-foreground")}>{learned ? tr("Learned") : tr("Mark learned")}</Text>
+    <Text className={cn("text-sm font-medium", learned ? "text-success" : "text-muted-foreground")}>{mastery ? (learned ? tr("Mastered") : tr("Mark as mastered")) : learned ? tr("Learned") : tr("Mark learned")}</Text>
   </Pressable>;
 }
 

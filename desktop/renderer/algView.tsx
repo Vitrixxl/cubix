@@ -1,10 +1,11 @@
 /**
- * An algorithm in 3D, over the page: the cube on the left, plays the algorithm under the controls; its name, the
- * algorithm with the move being played lit, its alternatives and how to hold the cube on the right. Phones get it as
- * a sheet, the cube on top. The previous and next algorithms of the list are a click away.
+ * An algorithm in 3D, over the page: the cube on the left, the algorithm with the move being played lit and the
+ * controls under it; its name, the list of its algorithms (each can be the one learned) and its note on the right.
+ * Phones get it as a sheet, the cube on top. The previous and next algorithms of the list are a click away.
  */
 import { store as s } from "./store";
-import { Choice, usePhone } from "./ui";
+import { Alg, LABEL, LearnedMark, ROW, run, usePhone } from "./ui";
+import { cn } from "@/lib/utils";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer, usePlayerKeys } from "./AlgPlayer";
 import { PaneHead, Stepper } from "./algorithms";
 import { tr } from "../../src/client/i18n";
@@ -20,21 +21,23 @@ export function AlgView() {
   if (!view || !item) return null;
   const count = view.items.length;
   const stepper = count > 1 && <Stepper action="algView" index={view.index} count={count} tips={[tr("Previous algorithm"), tr("Next algorithm")]} />;
-  const choices = item.algs.length > 1 && (
-    <Choice
-      prefix="algChoice:"
-      label={tr("Algorithm")}
-      value={String(view.choice)}
-      options={item.algs.map((_, i) => ({ id: String(i), label: i ? tr("Alternative {0}", { 0: i }) : "Main" }))}
-      className="flex-wrap"
-    />
-  );
-  const text = (
-    <div className="flex flex-col gap-3">
-      <PlayerAlg key={alg} player={player} text={alg} size={phone ? 20 : 24} />
-      {item.note && <p className="text-sm leading-relaxed text-muted-foreground">{item.note}</p>}
+  // A case of the catalog: each of its algorithms can be the one it was learned with.
+  const c = s.find(item.key),
+    chosen = c && s.learned.has(c.id) ? (s.learnedAlgs[c.id] ?? []) : [];
+  const list = (
+    <div className="flex flex-col gap-1">
+      {item.algs.map((a, i) => (
+        <div key={i} className="group/row flex min-w-0 items-center gap-1">
+          <button type="button" data-action={"algChoice:" + i} onClick={run("algChoice:" + i)} aria-pressed={i === view.choice} className={cn(ROW, "flex min-w-0 flex-1 flex-col gap-1 px-3 py-2")}>
+            <span className={LABEL}>{i ? tr("Alternative {0}", { 0: i }) : tr("Main")}</span>
+            <Alg text={a} size={16} />
+          </button>
+          {c?.algorithms[i] && <LearnedMark id={c.id} learned={chosen.includes(c.algorithms[i].alg)} action={`learnAlg:${c.id}:${i}`} touch={phone} />}
+        </div>
+      ))}
     </div>
   );
+  const note = item.note && <p className="text-sm leading-relaxed text-muted-foreground">{item.note}</p>;
   if (phone)
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -43,26 +46,32 @@ export function AlgView() {
         </PaneHead>
         {player && <PlayerCube key={alg} player={player} size={260} className="self-center" />}
         {player && <ViewButtons player={player} className="self-center" />}
+        <PlayerAlg key={alg} player={player} text={alg} size={20} />
         {player && <PlayerControls player={player} touch />}
-        {choices}
-        {text}
+        {list}
+        {note}
       </div>
     );
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1">
-      <div className="relative flex w-105 shrink-0 items-center justify-center bg-muted/30">
-        {player && <PlayerCube key={alg} player={player} size={360} />}
-        {player && <ViewButtons player={player} className="absolute bottom-6 left-1/2 -translate-x-1/2" />}
+      <div className="flex w-105 shrink-0 flex-col gap-4 bg-muted/30 p-5">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+          {player && <PlayerCube key={alg} player={player} size={280} />}
+          {player && <ViewButtons player={player} />}
+        </div>
+        <PlayerAlg key={alg} player={player} text={alg} size={20} />
+        {player && <PlayerControls player={player} />}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-5 p-6 pt-5">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 p-6 pt-5">
         {/* Clear of the dialog's close button. */}
         <PaneHead title={item.name} sub={item.detail ?? item.context} className="pr-8">
           {stepper}
         </PaneHead>
-        {choices}
-        {/* Room for the lit move's background and focus ring, which the scrolling would clip. */}
-        <div className="-m-1.5 min-h-0 flex-1 overflow-y-auto p-1.5">{text}</div>
-        {player && <PlayerControls player={player} />}
+        {/* Room for the rows' focus ring, which the scrolling would clip. */}
+        <div className="-m-1.5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-1.5">
+          {list}
+          {note}
+        </div>
       </div>
     </div>
   );

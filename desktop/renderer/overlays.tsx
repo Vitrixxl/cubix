@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { language, tr } from "../../src/client/i18n";
+import { caseContext } from "../../src/client/lib/practiceCatalog";
 import { LanguagePicker, said } from "./base";
 import { LEGAL_DOCUMENTS } from "./legal/paths";
 
@@ -312,48 +313,16 @@ function SearchCases() {
             <div className="flex min-w-0 flex-col">
               <span className="truncate font-medium">
                 {c.id}
-                {c.name !== c.id && <span className="font-normal text-muted-foreground"> · {c.name}</span>}
+                {c.name !== c.id && <span className="font-normal text-muted-foreground"> · {tr(c.name)}</span>}
               </span>
               <span className="truncate text-xs text-muted-foreground">
-                {c.setLabel} · {c.group}
+                {caseContext(c)}
               </span>
             </div>
           </CommandItem>
         ))}
       </CommandList>
     </Command>
-  );
-}
-
-function CommentForm() {
-  const solve = s.overlaySolve,
-    [comment, setComment] = useState(solve?.comment ?? "");
-  return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        try {
-          await call("setComment", solve.id, comment);
-          close();
-          await s.refresh();
-        } catch (e) {
-          s.fail(e);
-        }
-      }}
-    >
-      <Field>
-        <FieldLabel htmlFor="solve-comment" className="sr-only">
-          {tr("Comment")}
-        </FieldLabel>
-        <Textarea id="solve-comment" autoFocus className="min-h-28" placeholder={tr("What happened on this solve?")} value={comment} onChange={(e) => setComment(e.target.value)} />
-      </Field>
-      <div className="flex justify-end gap-2">
-        <UiButton type="button" variant="ghost" onClick={close}>
-          {tr("Cancel")}</UiButton>
-        <UiButton type="submit">{tr("Save")}</UiButton>
-      </div>
-    </form>
   );
 }
 
@@ -390,9 +359,6 @@ export const Overlays = memo(function Overlays() {
       </Modal>
       <Modal id="learningGroups" title={tr("Group order · {0}", { 0: s.learningMode })} description={tr("Drag the groups, or use the arrow keys on a handle.")} className="sm:max-w-md">
         <LearningGroups key={s.learningMode} />
-      </Modal>
-      <Modal id="comment" title={tr("Comment")} className="sm:max-w-md">
-        <CommentForm key={s.overlaySolve?.id} />
       </Modal>
       <Modal id="solve" title={tr("Solve")} hideHeader className={s.overlaySolve?.scramble && puzzleInfo(puzzleOf(s.overlaySolve)).cubeSize ? "sm:max-w-4xl" : "sm:max-w-lg"}>
         <SolveDetails />

@@ -190,6 +190,11 @@ rustTest("a case is learned with one of its algorithms, and players see which on
   expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: false, alg: algs[1] }, bob.token)).body.alg).toBeNull();
   expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, alg: algs[0] }, alice.token)).body.alg).toBe(algs[0]);
   expect((await choices("PLL Aa")).body).toEqual({ "PLL Aa": { total: 2, algs: { [algs[0]]: 2 } } });
+  // Several algorithms per case: each counts its players, the first stays `alg` for older clients.
+  const both = await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, algs: [algs[1], algs[0], algs[1]] }, alice.token);
+  expect([both.body.alg, both.body.algs]).toEqual([algs[1], [algs[1], algs[0]]]);
+  expect((await call("/learned", "PUT", { caseId: "PLL Aa", learned: true, algs: [algs[0], "R U R'"] }, bob.token)).status).toBe(400);
+  expect((await choices("PLL Aa")).body).toEqual({ "PLL Aa": { total: 2, algs: { [algs[0]]: 2, [algs[1]]: 1 } } });
   expect((await choices("")).status).toBe(422);
   expect((await call("/algorithm-choices?cases=PLL%20Aa")).status).toBe(401);
 });

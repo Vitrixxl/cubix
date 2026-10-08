@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, Text as RNText, View } from "react-native";
 import { TIME_ENTRIES, type TimeEntry } from "../../../src/client/lib/format";
 import { EVENTS, eventInfo, puzzleInfo, scrambleLabel, type EventId, type ScrambleType } from "../../../src/shared/puzzles";
+import { crossTrainingType } from "../../../src/shared/crossTraining";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -27,8 +28,8 @@ export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: EventId; size
   return <RNText style={{ fontFamily: "cubing-icons", fontSize: size, lineHeight: size * 1.1, color: color ?? colors.foreground, includeFontPadding: false }}>{String.fromCodePoint(CODEPOINT[puzzle])}</RNText>;
 }
 
-/** Cross + 1 scrambles belong to training; the timer's scramble choice leaves them out. */
-export const timerScrambles = (types: readonly ScrambleType[]) => types.filter(type => !type.startsWith("cross1-"));
+/** Cross scrambles belong to training (cross1 is kept for history); the timer's scramble choice leaves them out. */
+export const timerScrambles = (types: readonly ScrambleType[]) => types.filter(type => !type.startsWith("cross1-") && !crossTrainingType(type));
 
 /** Choices laid out as large cells in a sheet; `prefix` goes before a label (a colour swatch). */
 export function SheetChoice<T extends string>({ label, value, options, onChange, columns = 3, disabled }: {

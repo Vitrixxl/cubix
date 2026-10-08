@@ -34,7 +34,7 @@ const cases = [
 ].map(c => ({ ...c, setup: "R U R' U'", setups_alt: [], stage: c.set.toUpperCase(), name: c.id, setLabel: c.set.toUpperCase(), algorithms: [{ alg: "R U R' U'", source: "jperm" }] }));
 const sets = [{ id: "oll", stage: "OLL", label: "OLL" }, { id: "pll", stage: "PLL", label: "PLL" }];
 mock.module("../src/api", () => ({ api: { algorithmChoices: async () => ({}) }, authToken: { get: () => "token" }, local: {
-  current: () => null, learned: () => ["OLL 4"], learnedAlg: () => ({}), read: { catalog: () => ({ cases, sets }), stats: () => [], caseHistory: () => ({ summary: { count: 0 } }) },
+  current: () => null, learned: () => ["OLL 4"], learnedAlgs: () => ({}), read: { catalog: () => ({ cases, sets }), stats: () => [], caseHistory: () => ({ summary: { count: 0 } }) },
 } }));
 mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ phone: true, width: 390, height: 844 }) }));
 mock.module("../src/components/CaseDiagram", () => ({ CaseDiagram: () => null }));

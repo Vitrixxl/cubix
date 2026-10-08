@@ -58,7 +58,7 @@ for (const file of [...globSync("desktop/renderer/**/*.{ts,tsx}"), ...globSync("
 }
 
 /** Every string of a data structure, but the fields that are notation, identifiers or addresses. */
-function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternatives", "sets", "mask", "level", "path", "puzzle", "solveMode", "twisty", "scrambles", "icon", "href", "url"])) {
+function walk(value: unknown, skip = new Set(["id", "alg", "setup", "alternatives", "sets", "mask", "level", "path", "puzzle", "solveMode", "twisty", "scrambles", "icon", "href", "url", "train"])) {
   if (typeof value === "string") return add(value);
   if (Array.isArray(value)) return value.forEach((v) => walk(v, skip));
   if (value && typeof value === "object") for (const [key, v] of Object.entries(value)) if (!skip.has(key)) walk(v, skip);
@@ -70,6 +70,23 @@ for (const [name, value] of Object.entries(content)) if (!["SITE", "NAME", "SOUR
 const { GUIDES } = await import("../desktop/guides/pages");
 walk(Object.values(GUIDES).map(({ name, heading }) => ({ name, heading })));
 walk(JSON.parse(readFileSync("data/puzzles.json", "utf8")));
+// The catalogue's words: its sets, stages, groups and notes, and the names that describe a case. Nicknames (Sune, T Perm,
+// the OLL names), letters and numbers stay as they are; a number in a name is a value ("Corner orientation {0}").
+const catalog = JSON.parse(readFileSync("data/catalog.json", "utf8"));
+const REDUCED = "After centers and edges are reduced: ";
+add(REDUCED + "{0}");
+for (const s of catalog.sets) {
+  add(s.description.replace(REDUCED, ""));
+  // "ZBLL T" is a name; "F2L Advanced" is shown as "Advanced" beside its stage.
+  if (s.stage !== "ZBLL") (add(s.label), add(s.label.replace(/^F2L /, "")));
+}
+for (const c of catalog.cases) {
+  add(c.stage);
+  add(c.notes);
+  if (!/^[A-Z][a-z]?[A-Z]?\d$/.test(c.group)) add(c.group);
+  const nickname = (/^oll|^pll/.test(c.set.replace(/^\d+x\d+-/, "")) && !/Shape$/.test(c.name)) || /^(F2L|PLL \(|Pi$|Sune$|Antisune$)/.test(c.name);
+  if (c.name !== c.id && !nickname) add(c.name.replace(/\d+/, "{0}"));
+}
 const { TOUR_STEPS } = await import("../src/client/lib/journey");
 walk(TOUR_STEPS.map(({ title, body }) => ({ title, body })));
 

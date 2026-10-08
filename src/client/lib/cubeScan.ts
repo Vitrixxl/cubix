@@ -29,11 +29,29 @@ function oklab([r, g, b]: readonly number[]): V3 {
   return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
 }
 
-/** How different two colours look (ΔE in OKLab, ×100). */
-export const difference = (a: Rgb, b: Rgb) => {
+/** How different two colours look (ΔE in OKLab, ×100), lightness weighed `lightness` (a face's light changes it most). */
+export const difference = (a: Rgb, b: Rgb, lightness = 1) => {
   const [p, q] = [oklab(a.map(linear)), oklab(b.map(linear))];
-  return 100 * Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+  return 100 * Math.hypot(lightness * (p[0] - q[0]), p[1] - q[1], p[2] - q[2]);
 };
+
+/** How each colour looks to a webcam before any is read (sRGB). */
+const CAMERA: Record<Face, Rgb> = { U: [220, 210, 40], D: [220, 220, 220], F: [30, 160, 60], B: [20, 80, 170], R: [240, 120, 30], L: [180, 30, 40] };
+
+/**
+ * The colours of a face read live, for the preview: each the closest of the colours' looks (`seen`: the face asked
+ * for's own centre, its colour for sure; else as a webcam usually shows it), hue before lightness. Centres of faces
+ * read before are no help here: each face has its own light.
+ * Until white is seen, a pale bright colour not closest to a colour seen is white (a warm camera turns it beige).
+ */
+export function liveColours(colours: readonly Rgb[], seen: Partial<Record<Face, Rgb>>): Face[] {
+  const looks = FACES.map((f) => seen[f] ?? CAMERA[f]);
+  return colours.map((c) => {
+    const face = FACES[looks.reduce((best, l, k) => (difference(c, l, LIGHTNESS) < difference(c, looks[best]!, LIGHTNESS) ? k : best), 0)]!,
+      top = Math.max(...c);
+    return !seen.D && !seen[face] && top > 110 && (top - Math.min(...c)) / top < 0.59 ? "D" : face;
+  });
+}
 
 /** The cheapest way to give each row its own column (Hungarian method, square matrix): the column of each row. */
 export function assign(cost: readonly (readonly number[])[]): number[] {

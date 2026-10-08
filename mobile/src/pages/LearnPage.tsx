@@ -1,10 +1,10 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Flag, GraduationCap, Lightbulb, Play, Route, Timer } from "lucide-react-native";
+import { BookA, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Flag, GraduationCap, Lightbulb, Play, Route, Timer } from "lucide-react-native";
 import { memo, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import {
-  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, goToStep, methodFacts, methodLearned, methodOf, methodProgress, openCourse,
-  recommendedMethod, setGroups, stepDone, stepLearned, stepSets, toggleAlgLearned, type CourseEntry,
+  LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, goToStep, methodFacts, methodLearned, methodOf, methodProgress, methodShare, openCourse,
+  recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepSets, toggleAlgLearned, type CourseEntry,
 } from "../../../src/client/lib/course";
 import { isLearningTrack, orderedGroups } from "../../../src/client/lib/dailyLearning";
 import { plural } from "../../../src/client/lib/format";
@@ -32,7 +32,7 @@ import { unlockPuzzleAtom } from "../journey";
 import { storage } from "../platform/storage";
 import {
   casesAtom, courseProgressAtom, goBackAtom, learnMethodAtom, learnedCaseIdsAtom, learningFilterAtom, notationAtom, previousRouteAtom, puzzleAtom,
-  replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsAtom,
+  replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setsAtom, statsAtom, trainingSetupModeAtom, trainingStepAtom,
 } from "../state";
 import { tr } from "../../../src/client/i18n";
 
@@ -58,7 +58,7 @@ function LevelBars({ level, on }: { level: MethodLevel; on: boolean }) {
   </View>;
 }
 
-/** The methods of the puzzle as large cards, each with the share of its algorithms known; a card opens its course where it was left. */
+/** The methods of the puzzle as large cards in the middle of the page, each with the share of its algorithms known; a card opens its course where it was left. */
 function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const cases = useAtomValue(casesAtom);
   const learnedIds = useAtomValue(learnedCaseIdsAtom);
@@ -70,7 +70,7 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const list = useTourTarget("learn");
   return <Page className="pb-0">
     <PageHead title={tr("Learn")} sub={tr("Choose a {0} method, then follow it step by step", { 0: tr(puzzleInfo(puzzle).label) })}><SessionButton /></PageHead>
-    <ScrollView className="-mx-4 flex-1" contentContainerClassName="px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
+    <ScrollView className="-mx-4 flex-1" contentContainerClassName="flex-grow justify-center px-4 pt-1 pb-6" showsVerticalScrollIndicator={false}>
       <View {...list} accessibilityLabel={tr("Methods")} className="gap-3">
         {METHODS[puzzle].map(method => {
           const facts = methodFacts(method, cases), state = methodProgress(progress, puzzle, method, cases, learned);
@@ -80,7 +80,7 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
           return <PickerCard key={method.id} accessibilityLabel={`${state.started ? tr("Continue") : tr("Start")} ${tr(method.name)}`} onPress={() => open(method.id)}
             icon={lit => <LevelBars level={method.level} on={lit} />} title={tr(method.name)} detail={tr(method.summary)}
             badge={state.started ? tr("In progress") : isRecommended ? tr("Recommended") : undefined} marked={isRecommended || state.started}
-            meta={`${detail} · ${tr("{0} / {1} algorithms known · {2}%", { 0: known, 1: facts.algorithms, 2: Math.round(share * 100) })}`} progress={share} />;
+            meta={`${detail} · ${tr("{0} / {1} algorithms known · {2}%", { 0: known, 1: facts.algorithms, 2: Math.round(share * 100) })}`} progress={methodShare(method, cases, learned, progress, puzzle)} />;
         })}
       </View>
     </ScrollView>
@@ -154,6 +154,9 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   const previousRoute = useAtomValue(previousRouteAtom);
   const goBack = useSetAtom(goBackAtom), replaceRoute = useSetAtom(replaceRouteAtom), setRoute = useSetAtom(routeAtom), setSelection = useSetAtom(selectedCaseIdsAtom);
   const openNotation = useSetAtom(notationAtom);
+  const setTrainingMode = useSetAtom(trainingSetupModeAtom), setTrainingStep = useSetAtom(trainingStepAtom);
+  // An intuitive step with its own training mode opens it (Training → Cross).
+  const openTraining = (mode: string) => { setTrainingMode(mode); setTrainingStep("setup"); setRoute({ page: "training" }); };
   const [learnSets, setLearnSets] = useAtom(learnSetsAtom);
   const [stepsOpen, setStepsOpen] = useState(false);
   // The course just finished: the page says so until a step is opened again.
@@ -277,9 +280,13 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
       {finished ? <Finished puzzle={puzzle} method={method} onTimer={() => setRoute({ page: "playground" })} onMethods={back} /> : <>
         <FlatList key={`${entry.step}:${chosen?.id ?? ""}`} data={rows} keyExtractor={row => row.key} ListHeaderComponent={header} renderItem={renderRow}
           // A step without algorithms: nothing to memorise, the idea to practise in solves.
-          ListEmptyComponent={count.total === 0 && !step.missing ? <Empty icon={Lightbulb} title={tr("An intuitive step")} className="py-8">{tr("Nothing to memorise here: understand the idea, then practise it in your solves.")}<Button variant="outline" className="h-11 gap-2" onPress={() => setRoute({ page: "playground" })}>
+          ListEmptyComponent={count.total === 0 && !step.missing ? <Empty icon={Lightbulb} title={tr("An intuitive step")} className="py-8">{tr("Nothing to memorise here: understand the idea, then practise it in your solves.")}
+            <LearnToggle mastery learned={stepMastered(step, entry)} accessibilityLabel={tr("Mastered")} onPress={() => setProgress(toggleAlgLearned(progress, puzzle, method.id, stepId(step)))} />
+            {step.train && puzzle === "333" ? <Button className="h-11 gap-2" onPress={() => openTraining(step.train!)}>
+              <Icon as={Dumbbell} size={16} className="text-primary-foreground" /><Text>{tr("Train the cross")}</Text>
+            </Button> : <Button variant="outline" className="h-11 gap-2" onPress={() => setRoute({ page: "playground" })}>
               <Icon as={Timer} size={16} className="text-foreground" /><Text>{tr("Practise with the timer")}</Text>
-            </Button>
+            </Button>}
           </Empty> : null}
           initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7}
           className="flex-1" contentContainerClassName="px-4 pt-4 pb-6" />
@@ -312,11 +319,11 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
           const learnedHere = stepLearned(st, cases, learned, entry), here = i === entry.step && !finished;
           return <Pressable key={st.title} accessibilityRole="button" accessibilityState={{ selected: here }} onPress={() => { setStepsOpen(false); go(i); }}
             className={cn("min-h-14 flex-row items-center gap-3 rounded-lg px-3 active:bg-muted/50", here && "bg-muted")}>
-            <StatusMark done={!!learnedHere.total && learnedHere.learned === learnedHere.total} current={here} />
+            <StatusMark done={stepsDone[i]!} current={here} />
             <View className="min-w-0 flex-1">
               <Text numberOfLines={1} className="text-base font-medium"><Text className="text-muted-foreground">{i + 1}</Text> {tr(st.title)}</Text>
               <Text numberOfLines={1} className="text-xs text-muted-foreground">
-                {learnedHere.total ? tr("{0} / {1} learned", { 0: learnedHere.learned, 1: plural(learnedHere.total, "alg") }) : st.missing ? tr("Algorithms to come") : tr("Intuitive")}
+                {learnedHere.total ? tr("{0} / {1} learned", { 0: learnedHere.learned, 1: plural(learnedHere.total, "alg") }) : st.missing ? tr("Algorithms to come") : stepMastered(st, entry) ? tr("Mastered") : tr("Intuitive")}
               </Text>
             </View>
           </Pressable>;

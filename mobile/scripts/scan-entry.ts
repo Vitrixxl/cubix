@@ -1,6 +1,6 @@
 // Runs inside the camera's WebView (src/scan). Bundled by scripts/build-scan.ts.
 import { difference, type Rgb } from "../../src/client/lib/cubeScan";
-import { FaceReader, findFace, readFace, type FoundFace } from "../../src/client/lib/faceFinder";
+import { CELL, CORNER, CORNER_AT, FaceReader, findFace, readFace, type FoundFace } from "../../src/client/lib/faceFinder";
 
 /**
  * The camera's picture, a square of it read 30 times a second with the web's own reader (faceFinder.ts): the face
@@ -64,7 +64,12 @@ function draw(holding: boolean) {
   }
   const { centre, u, v, colours } = face;
   overlay.innerHTML = `<polygon points="${square(centre, u, v, 0, 0, 1.5)}" fill="none" stroke="${holding ? app.primary : "white"}" stroke-opacity="${holding ? 1 : 0.8}" stroke-width="1.5" stroke-linejoin="round"/>`
-    + colours.map(([r, g, b], k) => `<polygon points="${square(centre, u, v, (k % 3) - 1, Math.floor(k / 3) - 1, 0.22)}" fill="rgb(${r},${g},${b})" stroke="white" stroke-width="0.8" stroke-linejoin="round"/>`).join("");
+    // Where each colour is read: the middle of the sticker, or the centre's four corners (a logo).
+    + colours.map(([r, g, b], k) => {
+      const [i, j] = [(k % 3) - 1, Math.floor(k / 3) - 1],
+        squares = k === 4 ? [-1, 1].flatMap(x => [-1, 1].map(y => square(centre, u, v, x * CORNER_AT, y * CORNER_AT, CORNER / 2))) : [square(centre, u, v, i, j, CELL / 2)];
+      return squares.map(points => `<polygon points="${points}" fill="rgb(${r},${g},${b})" stroke="white" stroke-width="${k === 4 ? 0.5 : 0.8}" stroke-linejoin="round"/>`).join("");
+    }).join("");
 }
 
 function tick() {

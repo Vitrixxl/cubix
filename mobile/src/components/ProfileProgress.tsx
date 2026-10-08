@@ -26,6 +26,7 @@ import { Sheet, SheetScrollView } from "./Sheet";
 import { SolveMenu } from "./SolveMenus";
 import { TimerStats } from "./TimesChart";
 import { locale, tr } from "../../../src/client/i18n";
+import { caseContext } from "../../../src/client/lib/practiceCatalog";
 
 /**
  * The account's building blocks, after the web app's GitHub-style profile (desktop/renderer/profile/*): the `Section`
@@ -292,7 +293,7 @@ export function ProfileCaseDialog({ c, data, onClose }: { c: CaseDto | undefined
       <View className="flex-row items-center gap-3">
         <CaseDiagram c={shown} size={56} />
         <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="text-sm font-semibold">{shown.setLabel} · {shown.group}</Text>
+          <Text numberOfLines={1} className="text-sm font-semibold">{caseContext(shown)}</Text>
           <Label>{plural(data?.summary.count ?? 0, "solve")}</Label>
         </View>
       </View>

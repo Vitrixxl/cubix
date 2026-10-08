@@ -9,7 +9,7 @@ import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
 import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
-import { CROSS_PLUS_ONE_MOVES } from "../../src/shared/crossPlusOne";
+import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossTrainingType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 import { courseEntry, courseStorageKey, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
@@ -70,7 +70,7 @@ export class Store {
   user: any = { isGuest: true, username: msg("Guest") };
   learned = new Set<string>();
   /** The algorithm each learned case was learned with, when one was chosen. */
-  learnedAlg: Record<string, string> = {};
+  learnedAlgs: Record<string, string[]> = {};
   journey: Journey = {};
   private introducedAccount = "";
   introductionReady = false;
@@ -107,6 +107,8 @@ export class Store {
   localData = false;
   overlay = "";
   overlaySolve: any = null;
+  /** Whether the solve dialog opens on its comment field. */
+  commenting = false;
   query = "";
   learningFilter = "all";
   catalogStage = "";
@@ -151,10 +153,11 @@ export class Store {
   goal = new Set<string>();
   /** Training opens on the choice of what to practise, then shows the timer for it. */
   trainingStep: "setup" | "practice" = "setup";
-  /** Cases of the catalogue, or first-block scrambles (cross and one pair) on the 3×3. */
-  trainingKind: "cases" | "cross1" = "cases";
-  crossMoves = 4;
-  /** Optimal cross + 1 solutions of the shown scramble, computed by the engine when revealed. */
+  /** Cases of the catalogue, or cross scrambles (cross, XCross or XXCross) on the 3×3. */
+  trainingKind: "cases" | "cross" = "cases";
+  crossTarget: CrossTarget = "cross";
+  crossMoves = 5;
+  /** Optimal cross solutions of the shown scramble, computed by the engine when revealed. */
   crossSolutions: { scramble: string; list: { moves: string; slot: string }[] | null } | null = null;
   /** Mode highlighted on the training setup screen, before it starts. */
   setupMode = "";
@@ -185,17 +188,17 @@ export class Store {
     this.version++;
     this.listeners.forEach((fn) => fn());
   };
-  /** First-block training: timer solves on scrambles whose cross and one pair take `crossMoves` turns. */
+  /** Cross training: timer solves on scrambles whose `crossTarget` takes `crossMoves` turns. */
   get crossTraining() {
-    return this.page === "training" && this.trainingKind === "cross1" && this.puzzle === "333";
+    return this.page === "training" && this.trainingKind === "cross" && this.puzzle === "333";
   }
-  /** Where solves are recorded: cross+1 scrambles are timer solves of their own scramble type. */
+  /** Where solves are recorded: cross scrambles are timer solves of their own scramble type. */
   practicePage = () => (this.crossTraining ? "playground" : this.page);
   context = () => ({
     puzzle: this.puzzle,
     solveMode: this.solveMode,
     scrambleType: this.crossTraining
-      ? `cross1-${this.crossMoves}`
+      ? crossScrambleType(this.crossTarget, this.crossMoves)
       : this.page === "training" ? "case" : this.scrambleType,
   });
   contextKey = () =>
@@ -341,10 +344,13 @@ export class Store {
       this.learningFilter = this.prefs["cubix.algs.learningFilter"] ?? "all";
       this.statsView = this.prefs["cubix.profile.statsView"] ?? "chart";
       this.caseSource = isCaseSource(this.prefs["cubix.algs.caseSource"]) ? this.prefs["cubix.algs.caseSource"] : "all";
-      this.trainingKind = this.prefs["cubix.training.kind"] === "cross1" ? "cross1" : "cases";
-      this.crossMoves = CROSS_PLUS_ONE_MOVES.includes(this.prefs["cubix.training.crossMoves"]) ? this.prefs["cubix.training.crossMoves"] : 4;
+      // "cross1" was the first-block training (a pair and two cross edges): its nearest is the XCross.
+      const kind = this.prefs["cubix.training.kind"], target = this.prefs["cubix.training.crossTarget"];
+      this.trainingKind = kind === "cross" || kind === "cross1" ? "cross" : "cases";
+      this.crossTarget = isCrossTarget(target) ? target : kind === "cross1" ? "xcross" : "cross";
+      this.crossMoves = crossMovesFor(this.crossTarget, this.prefs["cubix.training.crossMoves"]);
       this.learned = new Set(v.learned);
-      this.learnedAlg = v.learnedAlg ?? {};
+      this.learnedAlgs = v.learnedAlgs ?? {};
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
       const route = readRoute(window.location.pathname, window.location.search);
@@ -495,7 +501,7 @@ export class Store {
       this.stats = v.stats;
       this.prefs["cubix.duels"] = v.duels;
       this.learned = new Set(v.learned);
-      this.learnedAlg = v.learnedAlg ?? {};
+      this.learnedAlgs = v.learnedAlgs ?? {};
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.journey = v.journey ?? {};
       this.checkIntroduction();
@@ -545,7 +551,7 @@ export class Store {
       if (revision === this.revision) this.fail(e);
     }
   }
-  /** Cross + 1 solutions are worked out as soon as a scramble is shown, so revealing them is instant. */
+  /** Cross solutions are worked out as soon as a scramble is shown, so revealing them is instant. */
   prefetchCrossSolutions() {
     if (this.crossTraining && this.scramble) void this.loadCrossSolutions();
   }
@@ -575,7 +581,7 @@ export class Store {
     this.crossSolutions = { scramble, list: null };
     this.emit();
     try {
-      const list = await call("crossSolutions", scramble);
+      const list = await call("crossSolutions", scramble, this.crossTarget);
       if (this.crossSolutions?.scramble !== scramble) return;
       this.crossSolutions = { scramble, list };
       this.emit();
@@ -694,7 +700,7 @@ export class Store {
     this.timerEpoch++; this.showTimes = timesOpenAtStart(page);
     void this.syncScramble(); void this.refresh(); this.emit();
   }
-  /** The timer and the cross+1 training each keep their own scramble: show the one of the current context. */
+  /** The timer and the cross training each keep their own scramble: show the one of the current context. */
   async syncScramble() {
     if (this.practicePage() !== "playground") return;
     const { puzzle, solveMode, scrambleType } = this.context(),
@@ -759,13 +765,13 @@ export class Store {
           this.setupMode = arg;
           break;
         case "trainingSetup":
-          this.setupMode = "";
+          this.setupMode = arg;
           goPage("training", { puzzle: this.puzzle as PuzzleId });
           this.timerEpoch++;
           break;
         case "trainingStart": {
           if (this.learningFrozen || this.pendingSolve) break;
-          this.trainingKind = arg === "cross1" && this.puzzle === "333" ? "cross1" : "cases";
+          this.trainingKind = arg === "cross" && this.puzzle === "333" ? "cross" : "cases";
           this.pref("cubix.training.kind", this.trainingKind);
           if (this.trainingKind === "cases") {
             const mode = arg.startsWith("cases:") ? arg.slice(6) : "practice";
@@ -775,7 +781,7 @@ export class Store {
           goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
           this.timerEpoch++;
           this.emit();
-          if (this.trainingKind === "cross1") await this.syncScramble();
+          if (this.trainingKind === "cross") await this.syncScramble();
           else await this.nextCase();
           await this.refresh();
           break;
@@ -784,10 +790,14 @@ export class Store {
           this.reviewStages = toggleSelection(this.reviewStages, [arg]);
           this.per("cubix.training.reviewStages", [...this.reviewStages]);
           break;
+        case "crossTarget":
         case "crossMoves": {
-          const moves = Number(arg);
-          if (!CROSS_PLUS_ONE_MOVES.includes(moves as 3) || moves === this.crossMoves) break;
+          const target = kind === "crossTarget" ? arg : this.crossTarget,
+            moves = kind === "crossTarget" ? crossMovesFor(target as CrossTarget, this.crossMoves) : Number(arg);
+          if (!isCrossTarget(target) || !CROSS_MOVES[target].includes(moves) || (target === this.crossTarget && moves === this.crossMoves)) break;
+          this.crossTarget = target;
           this.crossMoves = moves;
+          this.pref("cubix.training.crossTarget", target);
           this.pref("cubix.training.crossMoves", moves);
           this.timerEpoch++;
           if (this.crossTraining) {
@@ -812,14 +822,17 @@ export class Store {
           break;
         }
         case "learnAlg": {
-          // `<case>:<index>`: learned with that algorithm; choosing the one already chosen unlearns the case.
+          // `<case>:<index>`: that algorithm learned or not; the case is learned while one of them is.
           const sep = arg.lastIndexOf(":"),
             id = arg.slice(0, sep),
             alg = this.find(id)?.algorithms[Number(arg.slice(sep + 1))]?.alg;
           if (!alg) break;
-          const learned = this.learnedAlg[id] !== alg;
+          const had = this.learned.has(id) ? (this.learnedAlgs[id] ?? []) : [],
+            algs = had.includes(alg) ? had.filter((a) => a !== alg) : [...had, alg],
+            learned = algs.length > 0;
           learned ? this.learned.add(id) : this.learned.delete(id);
-          await call("setLearned", id, learned, learned ? alg : null);
+          this.learnedAlgs = { ...this.learnedAlgs, [id]: algs };
+          await call("setLearned", id, learned, algs);
           await this.refresh();
           break;
         }
@@ -1130,11 +1143,21 @@ export class Store {
             await this.refresh();
           }
           break;
-        case "comment":
-          this.overlaySolve = this.findSolve(Number(arg));
-          this.overlay = "comment";
+        case "share": {
+          const url = location.origin + "/solve/" + (await call("shareSolve", Number(arg)));
+          if (isPhone(innerWidth) && navigator.share) await navigator.share({ url }).catch((e) => {
+            if (e.name !== "AbortError") throw e;
+          });
+          else {
+            await navigator.clipboard.writeText(url);
+            toast.success(tr("Link copied"), { description: url });
+          }
           break;
+        }
+        // The comment is written in the solve's dialog, its field open and focused.
+        case "comment":
         case "solve":
+          this.commenting = kind === "comment";
           this.overlaySolve =
             this.solves.find((s) => s.id === Number(arg)) ??
             (
@@ -1188,7 +1211,8 @@ export class Store {
           this.learnFinished = true;
           break;
         }
-        case "learnAlg": {
+        case "courseAlg": {
+          // An inline algorithm of the course learned, or an intuitive step mastered (by `stepId`); `learnAlg` is a catalogue case's.
           const course = this.learning;
           if (course) this.saveCourse(toggleAlgLearned(this.course, course.puzzle, course.method.id, arg));
           break;
@@ -1267,9 +1291,9 @@ export class Store {
     if (this.practicePage() === "training") return all.filter(([label]) => [msg("Best"), msg("Mean"), msg("Solves")].includes(label));
     return all;
   }
-  /** The scramble types the timer offers for the puzzle (cross + 1 has its own page). */
+  /** The scramble types the timer offers for the puzzle (cross training has its own page; cross1 is kept for history). */
   scrambleOptions = () =>
-    this.info().scrambles.filter((id: string) => !id.startsWith("cross1-")).map((id: string) => ({ id, label: this.label("scrambles", id) }));
+    this.info().scrambles.filter((id: string) => !id.startsWith("cross1-") && !crossTrainingType(id)).map((id: string) => ({ id, label: this.label("scrambles", id) }));
 }
 export const store = new Store();
 // The system's look, followed as it changes while the theme says "System".

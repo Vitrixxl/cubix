@@ -2,7 +2,7 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, Check, ChevronLeft, ChevronRight, CirclePlay, LayoutGrid, Play, SearchX, Timer } from "lucide-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, FlatList, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { catalogSections, groupCases, matches } from "../../../src/client/lib/practiceCatalog";
+import { caseContext, catalogSections, groupCases, matches } from "../../../src/client/lib/practiceCatalog";
 import { fmtTime } from "../../../src/client/lib/format";
 import { formatAlg } from "../../../src/shared/cube";
 import { viewForStage } from "../../../src/shared/cubeDiagram";
@@ -18,7 +18,7 @@ import { sourceLabel } from "../components/AlgText";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { MethodsSheet } from "../components/GuidesDialog";
 import {
-  Alg, BackButton, Bar, Choice, Empty, Figure, GroupToggle, HeadButton, Label, LearnToggle, MenuItem, Numeric, MoreMenu, Page, PageHead, SearchField,
+  Alg, BackButton, Bar, Choice, Empty, Figure, GroupToggle, HeadButton, Label, MenuItem, Numeric, MoreMenu, Page, PageHead, SearchField,
   StatusMark, TouchAction, TouchBar,
 } from "../components/layout";
 import { CubePreview } from "../components/Practice";
@@ -38,7 +38,7 @@ import {
 import { tr } from "../../../src/client/i18n";
 
 /** The algorithm each learned case was learned with, as the local workspace holds it. */
-const learnedAlgAtom = atom(get => { get(statsVersionAtom); return local.learnedAlg(); });
+const learnedAlgsAtom = atom(get => { get(statsVersionAtom); return local.learnedAlgs(); });
 
 /**
  * Algorithms, as the web app on a phone: its head (how many cases are learned, Solving methods in its "…"), a search
@@ -141,14 +141,14 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
   const renderRow = ({ item: row }: { item: Row }) => {
     if (row.kind === "group") return <GroupToggle className="bg-background pr-1" title={row.group} meta={row.list.length} open={row.expanded}
       onPress={() => setCollapsed(previous => ({ ...previous, [row.key]: !previous[row.key] }))}>
-      <Button variant="ghost" size="sm" className="h-11 gap-1.5 px-2.5" accessibilityLabel={tr("Train {0}", { 0: row.group })} onPress={() => trainAll(row.list)}>
+      <Button variant="ghost" size="sm" className="h-11 gap-1.5 px-2.5" accessibilityLabel={tr("Train {0}", { 0: tr(row.group) })} onPress={() => trainAll(row.list)}>
         <Icon as={Timer} size={15} className="text-muted-foreground" />
         <Text className="text-sm text-muted-foreground">{tr("Train")}</Text>
       </Button>
     </GroupToggle>;
     if (row.kind === "tiles") return <View className={cn("flex-row", row.end ? "pb-3" : "pb-1.5")} style={{ gap: TILE_GAP }}>
       {row.cases.map(c => <CaseTile key={c.id} c={c} size={size} best={stats.get(c.id)?.best} learned={learned.has(c.id)}
-        detail={found ? `${c.setLabel} · ${c.group}` : undefined} onOpen={openCase} onToggle={toggleLearned} />)}
+        detail={found ? caseContext(c) : undefined} onOpen={openCase} onToggle={toggleLearned} />)}
     </View>;
     return <Empty icon={Check}>{learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>;
   };
@@ -166,7 +166,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
         {sections.map(s => {
           const on = s.stage === section.stage;
           return <Pressable key={s.stage} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setStage(s.stage)} className="h-11 justify-center">
-            <Text className={cn("text-base", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{s.stage}</Text>
+            <Text className={cn("text-base", on ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>{tr(s.stage)}</Text>
             <View className={cn("absolute right-0 bottom-0 left-0 h-0.5 rounded-full", on ? "bg-primary" : "bg-transparent")} />
           </Pressable>;
         })}
@@ -201,7 +201,7 @@ function AlgorithmBrowser({ puzzle, cases, sets, stats }: { puzzle: string; case
 export const CaseTile = memo(function CaseTile({ c, size, best, learned, detail, onOpen, onToggle }: {
   c: CaseDto; size: number; best?: number | null; learned: boolean; detail?: string; onOpen: (id: string) => void; onToggle: (id: string) => void;
 }) {
-  const name = detail ?? (c.name !== c.id ? c.name : undefined);
+  const name = detail ?? (c.name !== c.id ? tr(c.name) : undefined);
   return <View className="rounded-lg bg-muted/45" style={{ width: size, height: size }}>
     <Pressable onPress={() => onOpen(c.id)} accessibilityRole="button" accessibilityLabel={name ? `${c.id}, ${name}` : c.id}
       className="flex-1 rounded-lg px-2 pt-2 pb-1.5 active:bg-muted/80">
@@ -265,7 +265,7 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
   const playItem = casePlayItem(c);
   const renderPage = useCallback(({ item }: { item: CaseDto }) => <CasePage c={item} stats={stats.get(item.id)} width={width} onPlay={playItem ? setPlaying : undefined} />, [stats, width, !!playItem]);
   return <Page className="pb-0">
-    <PageHead lead={<BackButton onPress={onBack} />} title={c.id} sub={`${c.setLabel} · ${c.group}`}>
+    <PageHead lead={<BackButton onPress={onBack} />} title={c.id} sub={caseContext(c)}>
       <HeadButton icon={ChevronLeft} label={tr("Previous case")} disabled={!previous} onPress={() => step(previous)} />
       <Numeric className="min-w-10 text-center text-xs text-muted-foreground">{index + 1} / {siblings.length}</Numeric>
       <HeadButton icon={ChevronRight} label={tr("Next case")} disabled={!next} onPress={() => step(next)} />
@@ -291,7 +291,7 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
 /** The case's algorithms in the 3D player, on cube puzzles. */
 function casePlayItem(c: CaseDto): PlayItem | null {
   const size = !c.diagram && (c.cube_size ?? puzzleInfo(puzzleOf(c)).cubeSize);
-  return size ? { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: `${c.setLabel} · ${c.group}`, algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage) } : null;
+  return size ? { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: caseContext(c), algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage) } : null;
 }
 
 /** Trains one case at once, skipping the setup. */
@@ -318,14 +318,14 @@ const CasePage = memo(function CasePage({ c, stats, width, onPlay }: { c: CaseDt
 });
 
 /**
- * A case in full: picture and figures, setup, its algorithms (the one it was learned with tinted, each with how many
- * players chose it, and its own learned toggle) and the case's statistics.
+ * A case in full: picture and figures, setup, its algorithms (each with how many players chose it and its own learned
+ * mark, several may be) and the case's statistics.
  */
 function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPlay?: (choice: number) => void }) {
   const solveMode = useAtomValue(solveModeAtom);
   const statsVersion = useAtomValue(statsVersionAtom);
   const learned = useAtomValue(learnedCaseIdsAtom).includes(c.id);
-  const learnedAlg = useAtomValue(learnedAlgAtom), chosen = learned ? learnedAlg[c.id] : undefined;
+  const learnedAlgs = useAtomValue(learnedAlgsAtom), chosen = learned ? (learnedAlgs[c.id] ?? []) : [];
   // How many players learned the case with each algorithm; nothing for a guest or offline.
   const [choices, setChoices] = useState<{ total: number; algs: Record<string, number> } | null>(null);
   useEffect(() => {
@@ -333,9 +333,12 @@ function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPl
     setChoices(null);
     void api.algorithmChoices([c.id]).then(all => { if (live) setChoices(all[c.id] ?? null); }, () => {});
     return () => { live = false; };
-  }, [c.id, chosen]);
-  // Learned with this algorithm; choosing the one already chosen unlearns the case.
-  const choose = (alg: string) => { const on = chosen !== alg; void api.setLearned(c.id, on, on ? alg : null).catch(() => { /* Reported by the sync indicator. */ }); };
+  }, [c.id, chosen.join("\n")]);
+  // That algorithm learned or not; the case is learned while one of them is.
+  const choose = (alg: string) => {
+    const algs = chosen.includes(alg) ? chosen.filter(a => a !== alg) : [...chosen, alg];
+    void api.setLearned(c.id, algs.length > 0, algs).catch(() => { /* Reported by the sync indicator. */ });
+  };
   // Computed from the local workspace, so the page never waits for its history.
   const history = useMemo(() => local.read.caseHistory(c.id, { solveMode }), [c.id, solveMode, statsVersion]);
   const info = puzzleInfo(puzzleOf(c));
@@ -345,7 +348,7 @@ function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPl
   const block = "gap-2 border-t border-border px-4 py-4";
   return <>
     <View className="flex-row items-center gap-6 px-4 pt-2 pb-4">
-      {isCube && !c.diagram
+      <View>{isCube && !c.diagram
         ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Play the algorithm in 3D")} disabled={!onPlay} onPress={() => onPlay?.(0)} className="rounded-md active:opacity-70">
           <CubePreview alg={c.setup} cube={c.cube_size ?? info.cubeSize ?? 3} size={104} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} />
           {onPlay ? <View className="absolute right-0 bottom-0 size-6 items-center justify-center rounded-full border border-border bg-background">
@@ -353,6 +356,8 @@ function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPl
           </View> : null}
         </Pressable>
         : <CaseDiagram c={c} size={104} />}
+        {learned ? <View pointerEvents="none" className="absolute -top-1 -right-1 rounded-full bg-background"><StatusMark done /></View> : null}
+      </View>
       <View className="min-w-0 flex-1 gap-3">
         {c.name !== c.id ? <Text numberOfLines={2} className="text-sm text-muted-foreground">{c.name}</Text> : null}
         <View className="flex-row gap-6">
@@ -365,13 +370,13 @@ function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPl
     <View className={block}>
       <Label>{tr("Setup")}</Label>
       <Alg text={isCube ? formatAlg(c.setup) : c.setup} size={17} selectable />
-      {c.notes ? <Text className="text-sm text-muted-foreground">{c.notes}</Text> : null}
+      {c.notes ? <Text className="text-sm text-muted-foreground">{tr(c.notes)}</Text> : null}
     </View>
     <View className={cn(block, "gap-1")}>
       <Label className="pb-1">{tr("Algorithms")}</Label>
       {c.algorithms.map((a, i) => {
-        const mine = chosen === a.alg, share = choices?.total ? (choices.algs[a.alg] ?? 0) / choices.total : null;
-        return <View key={i} className={cn("-mx-2 flex-row gap-4 rounded-lg px-2 py-2", mine && "bg-success/10")}>
+        const mine = chosen.includes(a.alg), share = choices?.total ? (choices.algs[a.alg] ?? 0) / choices.total : null;
+        return <View key={i} className="-mx-2 flex-row gap-4 rounded-lg px-2 py-2">
           <Numeric className="w-4 pt-0.5 text-xs text-muted-foreground">{i + 1}</Numeric>
           <View className="min-w-0 flex-1 gap-1.5">
             <Alg text={displayAlg(a)} size={16} selectable />
@@ -387,10 +392,11 @@ function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPl
                 <Numeric className="text-xs text-muted-foreground">{tr("Chosen by {0}% of players", { 0: Math.round(share * 100) })}</Numeric>
               </View>}
             </View>
-            <View className="items-end">
-              <LearnToggle learned={mine} onPress={() => choose(a.alg)} accessibilityLabel={mine ? tr("Learned with algorithm {0}", { 0: i + 1 }) : tr("Learn {0} with algorithm {1}", { 0: c.id, 1: i + 1 })} className="h-9" />
-            </View>
           </View>
+          <Pressable onPress={() => choose(a.alg)} accessibilityRole="switch" accessibilityState={{ checked: mine }} accessibilityLabel={mine ? tr("Learned with algorithm {0}", { 0: i + 1 }) : tr("Learn {0} with algorithm {1}", { 0: c.id, 1: i + 1 })}
+            className="-my-2 -mr-2 size-11 items-center justify-center rounded-full active:bg-muted/50">
+            <StatusMark done={mine} />
+          </Pressable>
         </View>;
       })}
     </View>
@@ -417,7 +423,7 @@ export function CaseSheet({ caseId, ids, onChange, onClose }: { caseId: string |
   if (!c) return null;
   const index = ids.indexOf(c.id), playItem = casePlayItem(c), learned = learnedIds.includes(c.id);
   return <>
-    <Sheet open={!!caseId} onClose={onClose} title={c.id} description={c.name !== c.id ? c.name : `${c.setLabel} · ${c.group}`} contentClassName="gap-0 px-0"
+    <Sheet open={!!caseId} onClose={onClose} title={c.id} description={c.name !== c.id ? c.name : caseContext(c)} contentClassName="gap-0 px-0"
       right={index >= 0 ? <View className="flex-row items-center">
         <HeadButton icon={ChevronLeft} label={tr("Previous case")} disabled={index <= 0} onPress={() => onChange(ids[index - 1]!)} />
         <HeadButton icon={ChevronRight} label={tr("Next case")} disabled={index >= ids.length - 1} onPress={() => onChange(ids[index + 1]!)} />

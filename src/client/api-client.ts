@@ -42,7 +42,7 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     learnedCases: () => request<string[]>("/learned"),
     /** The account and everything it holds, for good; the password confirms it (a wrong one is a 401, not an expiry). */
     deleteAccount: (password: string) => request<{ ok: true }>("/account/delete", "POST", { password }, undefined, true),
-    setLearned: (caseId: string, learned: boolean, alg?: string) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(alg ? { alg } : {}) }),
+    setLearned: (caseId: string, learned: boolean, algs?: string[]) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(algs?.length ? { algs } : {}) }),
     algorithmChoices: (caseIds: string[]) => request<Record<string, { total: number; algs: Record<string, number> }>>(`/algorithm-choices?cases=${caseIds.map(encodeURIComponent).join(",")}`),
     /** Incremental account sync; durable uploads can fall back to HTTP after disconnection. */
     connectLive: () => {

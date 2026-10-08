@@ -14,7 +14,7 @@ type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
 type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "solution" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
-interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithm each learned case was learned with, when one was chosen. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
+interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithms each learned case was learned with, when some were chosen. */ learnedAlgs?: Record<string, string[]>; /** Before: a single one. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
 /** Learning marks were device preferences before they joined the synchronized workspace. */
@@ -95,6 +95,7 @@ export function createLocalClient(options: {
     const stored = read<(Workspace & { cache?: unknown }) | null>("workspace:" + id,null);
     const workspace: Workspace & { cache?: unknown } = stored ?? empty();
     workspace.learned ??= {};
+    if (workspace.learnedAlg) { workspace.learnedAlgs = { ...Object.fromEntries(Object.entries(workspace.learnedAlg).map(([id, alg]) => [id, [alg]])), ...workspace.learnedAlgs }; delete workspace.learnedAlg; save(id, workspace); }
     if (!workspace.journey) { workspace.journey = {}; workspace.cursor = 0; save(id, workspace); }
     // Personal goals are gone: drop the ones kept here and their changes still waiting to be sent.
     if (Object.keys(workspace.journey).some(key => key !== PROFILE_KEY) || workspace.outbox.some(op => op.kind === "journey" && op.body.key !== PROFILE_KEY)) {
@@ -237,8 +238,9 @@ export function createLocalClient(options: {
           const row = change.value as LearnedCaseDto | null;
           if (!row || dirty.has(`learned:${row.case_id}`)) continue;
           if (row.learned) workspace.learned[row.case_id] = true; else delete workspace.learned[row.case_id];
-          workspace.learnedAlg ??= {};
-          if (row.learned && row.alg) workspace.learnedAlg[row.case_id] = row.alg; else delete workspace.learnedAlg[row.case_id];
+          const algs = row.algs?.length ? row.algs : row.alg ? [row.alg] : [];
+          workspace.learnedAlgs ??= {};
+          if (row.learned && algs.length) workspace.learnedAlgs[row.case_id] = algs; else delete workspace.learnedAlgs[row.case_id];
         } else if (change.kind === "sessions") {
           const localId = sessionIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
@@ -583,16 +585,17 @@ export function createLocalClient(options: {
       return order;
     }),
     learnedCases: async () => learnedIds(),
-    /** Learned or not; learned with `alg`, one of the case's algorithms, records the choice. */
-    setLearned: async (caseId: string, learned: boolean, alg?: string | null) => localMutation((workspace,id) => {
+    /** Learned or not; learned with `algs`, some of the case's algorithms, records them. */
+    setLearned: async (caseId: string, learned: boolean, algs?: string[] | null) => localMutation((workspace,id) => {
       const known = cases.find(c => c.id === caseId);
       if (!known) throw new Error("Unknown case.");
-      if (alg && !known.algorithms.some((a: { alg: string }) => a.alg === alg)) throw new Error("Unknown algorithm.");
-      workspace.learnedAlg ??= {};
+      const chosen = learned ? [...new Set(algs ?? [])] : [];
+      if (chosen.some(alg => !known.algorithms.some((a: { alg: string }) => a.alg === alg))) throw new Error("Unknown algorithm.");
+      workspace.learnedAlgs ??= {};
       if (learned) workspace.learned[caseId] = true; else delete workspace.learned[caseId];
-      if (learned && alg) workspace.learnedAlg[caseId] = alg; else delete workspace.learnedAlg[caseId];
-      operation(workspace,id,"learned",0,{ caseId, learned, ...(learned && alg ? { alg } : {}) });
-      return { caseId, learned, alg: learned && alg ? alg : null };
+      if (chosen.length) workspace.learnedAlgs[caseId] = chosen; else delete workspace.learnedAlgs[caseId];
+      operation(workspace,id,"learned",0,{ caseId, learned, ...(chosen.length ? { algs: chosen } : {}) });
+      return { caseId, learned, algs: chosen };
     }),
     /** Per case, how many players learned it and with which algorithm; nothing for a guest or offline. */
     algorithmChoices: async (caseIds: string[]): Promise<Record<string, { total: number; algs: Record<string, number> }>> => {
@@ -630,7 +633,7 @@ export function createLocalClient(options: {
     liveCursor: () => data().cursor,
     disconnected: (connection: Connection) => { if (live?.connection === connection) live = undefined; },
     learned: () => learnedIds(),
-    learnedAlg: () => ({ ...data().learnedAlg }),
+    learnedAlgs: () => ({ ...data().learnedAlgs }),
     learningGroupOrder: () => data().groupOrder,
     /** A live notification announced changes up to `cursor`; pull only if this device is behind. */
     remoteChanged: cursorChanged,
