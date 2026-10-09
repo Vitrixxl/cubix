@@ -208,6 +208,7 @@ export function CaseTile({
   action = "case:" + c.id,
   selected = s.caseId === c.id,
   pressed,
+  plain = false,
 }: {
   c: any;
   touch?: boolean;
@@ -215,6 +216,8 @@ export function CaseTile({
   action?: string;
   selected?: boolean;
   pressed?: boolean;
+  /** Drawn only, in a list that opens the case itself (the search): no control of its own, its diagram once in view. */
+  plain?: boolean;
 }) {
   const st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id),
@@ -224,19 +227,21 @@ export function CaseTile({
   const inside = (
     <>
       <span className="flex min-h-0 flex-1 items-center justify-center">
-        <Diagram c={c} size={70} />
+        {plain ? <SeenDiagram c={c} size={70} /> : <Diagram c={c} size={70} />}
       </span>
       {/* One line under the diagram: the name on the left, the best time on the right. */}
       <span className="flex items-baseline justify-between gap-1.5">
-        <span className="min-w-0 truncate text-xs font-medium">{shortId(c)}</span>
+        {/* The search mixes the sets: its tiles say which. */}
+        <span className="min-w-0 truncate text-xs font-medium">{plain ? c.id : shortId(c)}</span>
         <span className={cn(NUMERIC, "shrink-0 text-xs", st ? "text-muted-foreground" : "text-muted-foreground/60")}>{st ? fmtTime(st.best) : "–"}</span>
       </span>
     </>
   );
   const className = cn("case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5", FOCUS);
   // Opening the case on the algorithms page is going to its address: a link, which search engines follow too.
-  const open =
-    action === "case:" + c.id ? (
+  const open = plain ? (
+    <span className={className}>{inside}</span>
+  ) : action === "case:" + c.id ? (
       <Link to={pageUrl("algorithms", { caseId: c.id, puzzle: s.puzzle as PuzzleId })} data-action={action} className={className}>
         {inside}
       </Link>
@@ -254,8 +259,8 @@ export function CaseTile({
         touch && "active:bg-muted/80",
       )}
     >
-      {name ? <Tip content={said(name)}>{open}</Tip> : open}
-      {pressed === undefined && play && (
+      {name && !plain ? <Tip content={said(name)}>{open}</Tip> : open}
+      {pressed === undefined && play && !plain && (
         <Tip content={tr("Play in 3D")}>
           <button
             type="button"
@@ -269,7 +274,7 @@ export function CaseTile({
         </Tip>
       )}
       {pressed === undefined ? (
-        <span className="absolute top-0.5 right-0.5">
+        <span className={cn("absolute top-0.5 right-0.5", plain && "pointer-events-none")}>
           <LearnedMark id={c.id} learned={learned} />
         </span>
       ) : (
@@ -281,6 +286,23 @@ export function CaseTile({
       )}
     </div>
   );
+}
+
+/**
+ * A case's diagram, drawn once it comes into view: most cases are drawn as a 3D cube, and a long list of them at once
+ * (the search's results) made opening and typing slow.
+ */
+export function SeenDiagram({ c, size }: { c: any; size: number }) {
+  const ref = useRef<HTMLSpanElement>(null),
+    [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || seen) return;
+    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && setSeen(true), { rootMargin: "120px 0px" });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [seen]);
+  return seen ? <Diagram c={c} size={size} /> : <span ref={ref} className="block shrink-0" style={{ width: size, height: size }} />;
 }
 
 /** The title of the pane beside the list (a set, a case, an algorithm in 3D): its name, a muted line, its controls. */

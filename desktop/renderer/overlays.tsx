@@ -1,5 +1,5 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
-import React, { memo, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
 import { Check, Compass, Download, GraduationCap, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s, matches } from "./store";
@@ -11,7 +11,7 @@ import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
 import { GUIDES, type Guide } from "../guides/pages";
-import { Avatar, Button, Choice, Diagram, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
+import { Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
 import { SessionSheet } from "./phone";
 import { TimerStats } from "./stats";
 import { AlgView } from "./algView";
@@ -19,7 +19,8 @@ import { SolveView } from "./SolveView";
 import { NotationContent } from "./notation";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
-import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList, Command } from "@/components/ui/command";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, Command } from "@/components/ui/command";
+import { CaseTile } from "./algorithms";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
@@ -27,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { language, tr } from "../../src/client/i18n";
-import { caseContext } from "../../src/client/lib/practiceCatalog";
 import { LanguagePicker, said } from "./base";
 import { LEGAL_DOCUMENTS } from "./legal/paths";
 
@@ -297,50 +297,33 @@ function SearchDialog() {
     </CommandDialog>
   );
 }
-/** The search, there only while its dialog is open: typing draws its results again, never the page under it. */
+/** The search, there only while its dialog is open: typing draws its results again, never the page under it. Its results
+ * are the algorithms page's tiles; the arrow keys go from one to the next. */
 function SearchCases() {
   const [query, setQuery] = useState(""),
     typed = useDeferredValue(query),
-    results = useMemo(() => s.cases().filter((c: any) => matches(c, typed)).slice(0, 50), [typed, s.puzzle]);
+    results = useMemo(() => s.cases().filter((c: any) => matches(c, typed)).slice(0, 48), [typed, s.puzzle]);
   return (
     <Command shouldFilter={false}>
       <CommandInput autoFocus placeholder={tr("Search a case: oll fish, pll t, f2l 6…")} value={query} onValueChange={setQuery} />
-      <CommandList className="max-h-[min(60vh,28rem)] p-1">
+      <CommandList className="max-h-[min(60vh,28rem)] p-2">
         <CommandEmpty>{tr("No case matches.")}</CommandEmpty>
-        {results.map((c: any) => (
-          <CommandItem key={c.id} value={c.id} onSelect={() => void s.action("case:" + c.id)} className="gap-3 py-1.5">
-            <SeenDiagram c={c} size={40} />
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate font-medium">
-                {c.id}
-                {c.name !== c.id && <span className="font-normal text-muted-foreground"> · {tr(c.name)}</span>}
-              </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {caseContext(c)}
-              </span>
-            </div>
-          </CommandItem>
-        ))}
+        <CommandGroup className={cn("p-0 **:[[cmdk-group-items]]:grid **:[[cmdk-group-items]]:gap-1.5", "**:[[cmdk-group-items]]:grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]")}>
+          {results.map((c: any) => (
+            <CommandItem
+              key={c.id}
+              value={c.id}
+              title={c.name !== c.id ? `${c.id} · ${tr(c.name)}` : c.id}
+              onSelect={() => void s.action("case:" + c.id)}
+              className="block rounded-lg p-0 data-selected:bg-transparent data-selected:ring-2 data-selected:ring-primary/60 data-selected:ring-inset"
+            >
+              <CaseTile c={c} plain selected={false} />
+            </CommandItem>
+          ))}
+        </CommandGroup>
       </CommandList>
     </Command>
   );
-}
-
-/**
- * A result's diagram, drawn once its row comes into view: most cases are drawn as a 3D cube, and the fifty results at
- * once made typing and opening the search slow. The rows themselves stay, for the arrow keys to reach every one.
- */
-function SeenDiagram({ c, size }: { c: any; size: number }) {
-  const ref = useRef<HTMLSpanElement>(null),
-    [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const element = ref.current;
-    if (!element || seen) return;
-    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && setSeen(true), { root: element.closest("[cmdk-list]"), rootMargin: "120px 0px" });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [seen]);
-  return seen ? <Diagram c={c} size={size} /> : <span ref={ref} className="shrink-0" style={{ width: size, height: size }} />;
 }
 
 function SolveDetails() {

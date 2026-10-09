@@ -44,7 +44,14 @@ if (existsSync(copy)) git("worktree", "remove", "--force", copy);
 rmSync(copy, { recursive: true, force: true });
 git("worktree", "prune");
 if (git("worktree", "add", "--detach", copy, head).status !== 0) { console.error(`Could not check ${head} out in ${copy}`); process.exit(1); }
-for (const dir of ["node_modules", "mobile/node_modules"]) if (existsSync(join(root, dir))) symlinkSync(join(root, dir), join(copy, dir));
+// Hard links where they can be (Metro, which bundles the phone app, does not follow a linked node_modules), else links.
+for (const dir of ["node_modules", "mobile/node_modules"]) {
+  if (!existsSync(join(root, dir))) continue;
+  if (spawnSync("cp", ["-al", join(root, dir), join(copy, dir)]).status !== 0) {
+    rmSync(join(copy, dir), { recursive: true, force: true });
+    symlinkSync(join(root, dir), join(copy, dir));
+  }
+}
 
 const log = join(logs, `${new Date().toISOString().replace(/[:.]/g, "-")}-${head.slice(0, 7)}.log`);
 const out = openSync(log, "a");
