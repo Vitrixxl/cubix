@@ -19,7 +19,8 @@ import { SolveView } from "./SolveView";
 import { NotationContent } from "./notation";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, Command } from "@/components/ui/command";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList, Command } from "@/components/ui/command";
+import { Command as CommandPrimitive } from "cmdk";
 import { CaseTile } from "./algorithms";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -310,15 +311,16 @@ function SearchCases() {
         <CommandEmpty>{tr("No case matches.")}</CommandEmpty>
         <CommandGroup className={cn("p-0 **:[[cmdk-group-items]]:grid **:[[cmdk-group-items]]:gap-1.5", "**:[[cmdk-group-items]]:grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]")}>
           {results.map((c: any) => (
-            <CommandItem
+            // cmdk's own item, unstyled: the tile is the whole result, chosen as on the algorithms page.
+            <CommandPrimitive.Item
               key={c.id}
               value={c.id}
               title={c.name !== c.id ? `${c.id} · ${tr(c.name)}` : c.id}
               onSelect={() => void s.action("case:" + c.id)}
-              className="block rounded-lg p-0 data-selected:bg-transparent data-selected:ring-2 data-selected:ring-primary/60 data-selected:ring-inset"
+              className="rounded-lg outline-hidden data-[selected=true]:*:border-primary/50! data-[selected=true]:*:bg-primary/10!"
             >
               <CaseTile c={c} plain selected={false} />
-            </CommandItem>
+            </CommandPrimitive.Item>
           ))}
         </CommandGroup>
       </CommandList>
