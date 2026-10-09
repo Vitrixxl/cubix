@@ -1,0 +1,17 @@
+# The Go port (go-api/) with seeded data, on 127.0.0.1:47131: `bun run dev:docker --go`.
+# The image is scratch (no shell): a one-shot service seeds, then the API serves the same volume.
+name: cubix-go-dev
+services:
+  seed:
+    build: { context: ., dockerfile: go-api/Dockerfile, args: { GO_TAGS: seed } }
+    image: cubix-go-dev-api
+    volumes: [data:/var/lib/cubix]
+    command: ["/cubix-api", "seed"]
+  api:
+    image: cubix-go-dev-api
+    depends_on: { seed: { condition: service_completed_successfully } }
+    ports: ["127.0.0.1:${CUBIX_DEV_API_PORT:-47131}:3000"]
+    environment: { CUBIX_RATE_LIMIT: "100000" }
+    volumes: [data:/var/lib/cubix]
+volumes:
+  data:

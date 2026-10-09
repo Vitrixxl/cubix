@@ -35,7 +35,7 @@ export function createApi(db: {path:string}) { return createRustApi(db.path); }
 /** Runs `cubix-api admin-token [args]` against a database, as an operator would inside the
  * container; returns the first output line (the token, or the revocation message). */
 export function adminToken(path: string, ...args: string[]) {
-  const result = spawnSync(resolve("rust-api/target/release/cubix-api"), ["admin-token", ...args], {
+  const result = spawnSync(resolve(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api"), ["admin-token", ...args], {
     env: { ...process.env, CUBIX_DB:path, CUBIX_ADMIN_PASSWORD:"" }, encoding: "utf8" });
   if (result.status !== 0) throw Error("admin-token failed: " + result.stderr);
   return result.stdout.split("\n")[0]!.trim();
@@ -46,7 +46,7 @@ export function createRustApi(path: string, settings: Record<string,string> = {}
   `], { encoding: 'utf8' });
   if (reservation.status !== 0) throw Error(reservation.stderr);
   const port = Number(reservation.stdout.trim());
-  const child = spawn(resolve("rust-api/target/release/cubix-api"), [], {
+  const child = spawn(resolve(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api"), [], {
     env: { ...process.env, CUBIX_DB:path, CUBIX_HOST:"127.0.0.1", PORT:String(port), CUBIX_EXTRA_PORTS:"", CUBIX_ADMIN_PASSWORD:"synthetic-admin-test-password" /* mobile uploads only */, CUBIX_EXIT_WITH_PARENT:"1", ...settings }, stdio:['ignore','ignore','inherit'],
   });
   children.push(child);
