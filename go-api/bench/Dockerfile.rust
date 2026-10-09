@@ -1,0 +1,15 @@
+# The Rust API alone, built like the production image (Dockerfile) but without the web app, for the RAM comparison.
+FROM rust:1.98-bookworm AS build
+WORKDIR /app
+COPY rust-api ./rust-api
+COPY data ./data
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/app/rust-api/target,sharing=locked \
+    cargo build --locked --release --manifest-path rust-api/Cargo.toml && cp rust-api/target/release/cubix-api /cubix-api
+
+FROM debian:bookworm-slim
+RUN useradd --system --uid 1000 cubix && mkdir -p /var/lib/cubix && chown cubix /var/lib/cubix
+COPY --from=build /cubix-api /usr/local/bin/cubix-api
+ENV CUBIX_HOST=0.0.0.0 PORT=3000 CUBIX_DB=/var/lib/cubix/cubix.db
+USER cubix
+CMD ["cubix-api"]

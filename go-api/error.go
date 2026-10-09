@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type ApiError struct {
@@ -38,9 +40,11 @@ func toApiError(err error) *ApiError {
 
 // writeJSON answers `Json(value)` with a status.
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	body := encodeJSON(v)
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.WriteHeader(status)
-	_, _ = w.Write([]byte(encodeJSON(v)))
+	_, _ = io.WriteString(w, body)
 }
 
 // writeError is ApiError::into_response.

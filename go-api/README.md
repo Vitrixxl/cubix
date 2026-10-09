@@ -51,3 +51,10 @@ Pas de framework : `net/http` et son `ServeMux`.
   `broadcaster[T]`, `Notify` → canal de taille 1.
 - `stubs_*.go` : symboles des autres groupes (SOCIAL, COACHING, ADMIN, SEED) avec leur signature
   définitive. Le groupe qui les porte supprime son fichier de stubs et les implémente à l’identique.
+
+## Image et benchmark
+
+`go-api/Dockerfile` : binaire statique (musl, SQLite liée) sur `scratch`, sans l’application web (~16 Mio).
+`bun run dev:docker --go` lance cette image avec les données seedées (port 47131).
+`go-api/bench/bench.ts` compare la RAM et le débit des deux API en conteneur (voir son en-tête) ;
+derniers résultats dans `go-api/bench/results.md`.

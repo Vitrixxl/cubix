@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -345,7 +346,7 @@ func (s *AppState) routes() http.Handler {
 	route(true, "/api/mobile/updates", json, map[string]handler{"PUT": releasePublish})
 	route(true, "/api/mobile/updates/manifest", json, get(releaseManifest))
 	api := s.endpoint(true, json, every(apiDispatch))
-	// An empty catch-all matches no route in axum: `/api/` and `/api/admin/` are the fallback's. The exact
+	// An empty catch-all matches no route in axum: `/api/` is the fallback's. The exact
 	// patterns keep ServeMux from redirecting `/api` and `/api/admin` to them.
 	mux.Handle("/api", fallback)
 	mux.Handle("/api/admin", api)
@@ -357,14 +358,28 @@ func (s *AppState) routes() http.Handler {
 		api.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/api/admin/{path...}", func(w http.ResponseWriter, r *http.Request) {
+		// `/api/admin/` is `/api/{*path}` with the path `admin/`.
 		if r.PathValue("path") == "" {
-			fallback.ServeHTTP(w, r)
+			api.ServeHTTP(w, r)
 			return
 		}
 		admin.ServeHTTP(w, r)
 	})
 	mux.Handle("/", fallback)
-	return trafficMonitor(s.traffic, mux)
+	// ServeMux redirects paths with `//`, `.` or `..`; axum routes them as they are, by their prefix.
+	router := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Path
+		if c := path.Clean(p); c == p || c+"/" == p {
+			mux.ServeHTTP(w, r)
+		} else if strings.HasPrefix(p, "/api/admin/") {
+			admin.ServeHTTP(w, r)
+		} else if strings.HasPrefix(p, "/api/") {
+			api.ServeHTTP(w, r)
+		} else {
+			fallback.ServeHTTP(w, r)
+		}
+	})
+	return trafficMonitor(s.traffic, router)
 }
 
 type limitKey struct{}
@@ -435,9 +450,4 @@ func readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 		return nil, false
 	}
 	return data, true
-}
-
-// notImplemented answers for a handler whose port is not there yet.
-func notImplemented(w http.ResponseWriter) {
-	writeError(w, apiErr(501, "Not implemented"))
 }
