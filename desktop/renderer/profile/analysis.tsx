@@ -8,7 +8,7 @@ import { Bluetooth, Dumbbell, Rotate3d, Timer } from "lucide-react";
 import { store as s } from "../store";
 import { fmtTime } from "../../../src/client/lib/format";
 import type { CaseStats, MethodStats, SmartAnalysisDto, StepId, StepStats, TrainingSuggestion } from "../../../src/client/lib/smartStats";
-import { Back, Button, Diagram, Empty, FOCUS, Figure, NUMERIC, PageCard, PageHead, ROW, Segmented, Stats, Strip, Tip, plural, run } from "../ui";
+import { Button, Diagram, Empty, FOCUS, Figure, NUMERIC, PageCard, PageHead, ROW, Segmented, Stats, Strip, Tip, plural, run } from "../ui";
 import { stepColour } from "../stepColour";
 import type { PhaseId } from "../../../src/client/lib/solveAnalysis";
 import { CaseDialog } from "../learn";
@@ -37,7 +37,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
   const meta = !a?.count ? undefined : plural(a.count, "smart cube solve") + (a.pending ? " · " + tr("analysing {0} more…", { 0: a.pending }) : "");
   return (
     <>
-      <PageHead title={tr("Analysis")} sub={meta} lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}>
+      <PageHead title={tr("Analysis")} sub={meta}>
         {a && a.methods.length > 1 && (
           <Segmented label="Method" value={method!.id} options={a.methods.map((m) => ({ id: m.id, label: m.id === "all" ? "All" : m.label, count: m.count }))} onChange={setMethod} />
         )}
@@ -45,9 +45,7 @@ export function AnalysisPage({ phone }: { phone: boolean }) {
       {!a ? (
         <Skeleton className="min-h-0 flex-1 rounded-xl" />
       ) : !method ? (
-        <PageCard scroll={false}>
-          <NoSmartSolves pending={a.pending} />
-        </PageCard>
+        <NoSmartSolves pending={a.pending} />
       ) : (
         <div className={cn("grid min-h-0 flex-1 gap-4", phone ? "grid-cols-1 overflow-y-auto" : "grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]")}>
           <div className="flex min-h-0 min-w-0 flex-col gap-4">

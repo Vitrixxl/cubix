@@ -89,6 +89,7 @@ pub fn run(db: &mut Connection, catalog: &Catalog) -> Result<Option<Summary>> {
     for p in &players {
         practice(&tx, &mut rng, catalog, p, at)?;
     }
+    smart_solves(&tx, &mut rng, catalog, players.iter().find(|p| p.name == "dev").expect("dev account"))?;
     coaching_data(&tx, &mut rng, &players, at)?;
     duels(&tx, &mut rng, &players, at)?;
     traffic(&tx, &mut rng, &players, at)?;
@@ -383,6 +384,85 @@ fn practice(tx: &Transaction, rng: &mut StdRng, catalog: &Catalog, p: &Player, a
             }
         }
         day += DAY_MS;
+    }
+    Ok(())
+}
+
+/// A turn undone: R for R', R' for R, R2 for R2.
+fn inverse(turn: &str) -> String {
+    match turn.as_bytes() {
+        [f, b'\''] => (*f as char).to_string(),
+        [f] => format!("{}'", *f as char),
+        [f, b'2', ..] => format!("{}2", *f as char),
+        _ => unreachable!("face turn"),
+    }
+}
+/// The face-turn setups of a catalogue case (from the solved cube), tokens normalised.
+fn setups(case: &Value) -> Vec<Vec<String>> {
+    std::iter::once(&case["setup"])
+        .chain(case["setups_alt"].as_array().into_iter().flatten())
+        .filter_map(Value::as_str)
+        .map(|alg| alg.split_whitespace().map(|t| t.replace("2'", "2")).collect::<Vec<_>>())
+        .filter(|turns| turns.iter().all(|t| matches!(t.as_bytes(), [b'U' | b'D' | b'F' | b'B' | b'R' | b'L'] | [b'U' | b'D' | b'F' | b'B' | b'R' | b'L', b'\'' | b'2'])))
+        .collect()
+}
+
+/// The 3×3 timer solves of the last weeks turned on a smart cube, for the analysis: each one a cross,
+/// four F2L pairs, an OLL and a PLL from the catalogue, timed with a pause to recognise each step.
+/// The solution is built first and the scramble is its inverse, so no solver is needed.
+fn smart_solves(tx: &Transaction, rng: &mut StdRng, catalog: &Catalog, p: &Player) -> Result<()> {
+    let pick = |set: &str| -> Vec<Vec<Vec<String>>> {
+        catalog.cases.as_array().unwrap().iter().filter(|c| c["set"] == set).map(setups).filter(|s| !s.is_empty()).collect()
+    };
+    let (f2l, oll, pll) = (pick("f2l"), pick("oll"), pick("pll"));
+    let ids: Vec<i64> = all(tx, "SELECT id FROM solves WHERE user_id=? AND puzzle_id='333' AND solve_mode='standard' AND scramble_type='normal' AND case_id IS NULL ORDER BY created_at DESC LIMIT 150", [&p.id])?
+        .iter()
+        .filter_map(|r| r["id"].as_i64())
+        .collect();
+    for id in ids {
+        // The steps as the solver holds the cube (yellow on top, the cross below); undone, each F2L,
+        // OLL and PLL case keeps the cross and the other pairs, so each step solves exactly its part.
+        let mut steps: Vec<Vec<String>> = Vec::new();
+        let mut cross: Vec<String> = Vec::new();
+        while cross.len() < rng.gen_range(6..9) {
+            let face = ["U", "D", "F", "B", "R", "L"][rng.gen_range(0..6)];
+            if cross.last().is_none_or(|t| !t.starts_with(face)) {
+                cross.push(format!("{face}{}", ["", "'", "2"][rng.gen_range(0..3)]));
+            }
+        }
+        steps.push(cross);
+        let mut slots = [0, 1, 2, 3];
+        slots.shuffle(rng);
+        for slot in slots {
+            // The front-right pair's setup turned to another slot: R→F→L→B→R once per slot.
+            let setup = f2l.choose(rng).unwrap().choose(rng).unwrap();
+            let turned = setup.iter().map(|t| {
+                let mut face = t[..1].to_owned();
+                for _ in 0..slot {
+                    face = match face.as_str() { "R" => "F", "F" => "L", "L" => "B", "B" => "R", f => f }.to_owned();
+                }
+                face + &t[1..]
+            });
+            steps.push(turned.rev().map(|t| inverse(&t)).collect());
+        }
+        for set in [&oll, &pll] {
+            steps.push(set.choose(rng).unwrap().choose(rng).unwrap().iter().rev().map(|t| inverse(t)).collect());
+        }
+        // Recognition then execution, at a pace close to the player's.
+        let mut clock = 0.;
+        let mut turns: Vec<(String, i64)> = Vec::new();
+        for (i, step) in steps.iter().enumerate() {
+            clock += if i == 0 { 0. } else { time(rng, if i < 5 { 450. } else { 700. }) };
+            for turn in step {
+                // Recorded held white on top and green in front: up and down, right and left swap.
+                let face = match &turn[..1] { "U" => "D", "D" => "U", "R" => "L", "L" => "R", f => f };
+                turns.push((format!("{face}{}", &turn[1..]), clock as i64));
+                clock += time(rng, 140.);
+            }
+        }
+        let solution = turns.iter().map(|(t, at)| format!("{t}@{at}")).collect::<Vec<_>>().join(" ");
+        let scramble = turns.iter().rev().map(|(t, _)| inverse(t)).collect::<Vec<_>>().join(" ");
+        tx.execute("UPDATE solves SET scramble=?, solution=?, time_ms=?, penalty='none' WHERE id=?", params![scramble, solution, clock as i64, id])?;
     }
     Ok(())
 }

@@ -166,6 +166,8 @@ export interface Question {
   title: string;
   text?: string;
   action: string;
+  /** Whether it destroys something (the button in red); true unless said otherwise. */
+  destructive?: boolean;
 }
 /** What a platform gives the community, the coaching and a match: its API, the account, and how it shows things. */
 export interface SocialHost {
@@ -485,7 +487,11 @@ export class Community {
     if (t) this.details.set(id, t);
     return t;
   }
-  register = (id: number, join: boolean) => this.retournament(id, join ? "POST" : "DELETE", `tournaments/${id}/register`);
+  /** Registers, once confirmed, or takes the registration back. */
+  async register(id: number, join: boolean) {
+    if (join && !(await this.host.confirm({ title: tr("Register for this tournament?"), text: tr("You can unregister until it starts."), action: tr("Register"), destructive: false }))) return;
+    return this.retournament(id, join ? "POST" : "DELETE", `tournaments/${id}/register`);
+  }
   /** A group's new tournament: its card comes into the group's conversation. */
   async createTournament(group: number, form: Format & { name: string; description: string; startsAt: number; maxPlayers: number }) {
     const t = await this.act<TournamentDetail>("POST", "tournaments", { groupId: group, ...form }, [`group:${group}`]);
@@ -503,7 +509,9 @@ export class Community {
   /** A battle launched from a conversation: against the friend, or in a group against a member or anyone. */
   battle = (conversation: number, form: Format & { opponentId: string | null }) => this.act<Match>("POST", "matches", { conversationId: conversation, ...form });
   award = (match: number, winner: string, tournament: number) => this.act("POST", `matches/${match}/award`, { winner }, [`tournament:${tournament}`, ...this.tournamentKeys(tournament)]);
+  /** Accepts a battle, once confirmed, and opens it. */
   async acceptBattle(match: Match) {
+    if (!(await this.host.confirm({ title: tr("Accept the battle?"), text: tr("It opens and starts with the first scramble."), action: tr("Accept"), destructive: false }))) return;
     if (await this.act("POST", `matches/${match.id}/accept`, undefined, [`match:${match.id}`, ...(match.groupId && this.groups.has(match.groupId) ? [`group:${match.groupId}`] : [])])) this.host.navigate(matchUrl(match.id));
   }
   /** Calls a battle off, or declines it, once confirmed. */

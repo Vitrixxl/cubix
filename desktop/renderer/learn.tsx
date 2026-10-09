@@ -403,7 +403,7 @@ function StepBar({ puzzle, method, entry, tools }: { puzzle: PuzzleId; method: S
         <Button action="previous" icon={ChevronLeft} variant="ghost" tip={tr("Previous step")} disabled={entry.step === 0 || s.learnFinished} className="text-muted-foreground" />
         <h2 className="w-36 min-w-0 truncate text-center text-lg font-semibold tracking-tight">{s.learnFinished ? tr("Finished") : said(step.title)}</h2>
         <Button action={"learnStep:" + (entry.step + 1)} icon={ChevronRight} variant="ghost" tip={tr("Next step")} disabled={last || s.learnFinished} className="text-muted-foreground" />
-        <Separator orientation="vertical" className="mx-1 h-7 self-center" />
+        <Separator orientation="vertical" className="mx-1 self-stretch" />
         {/* The chips scroll sideways when they run out of room; the padding keeps their focus ring visible. */}
         <div className="-my-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto p-1">
           {method.steps.map((st, i) => {
