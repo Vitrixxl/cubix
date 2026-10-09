@@ -63,10 +63,10 @@ export function PageHead({ title, sub, lead, children, className }: { title: Rea
 }
 
 /** An icon button of a page head, 44 dp, quiet until pressed; `badge` puts a count on its corner. */
-export function HeadButton({ icon, label, onPress, disabled, active, badge }: { icon: LucideIcon; label: string; onPress: () => void; disabled?: boolean; active?: boolean; badge?: number }) {
+export function HeadButton({ icon, label, onPress, disabled, active, badge, primary }: { icon: LucideIcon; label: string; onPress: () => void; disabled?: boolean; active?: boolean; badge?: number; primary?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={said(label)} accessibilityState={{ disabled, selected: active }} disabled={disabled} onPress={onPress}
-    className={cn("size-11 items-center justify-center rounded-lg active:bg-muted", active && "bg-muted", disabled && "opacity-40")}>
-    <Icon as={icon} size={20} className="text-foreground" />
+    className={cn("size-11 items-center justify-center rounded-lg active:bg-muted", active && "bg-muted", primary && "bg-primary active:bg-primary/90", disabled && "opacity-40")}>
+    <Icon as={icon} size={20} className={primary ? "text-primary-foreground" : "text-foreground"} />
     {badge ? <View className="absolute top-1 right-1 min-w-4 items-center rounded-full bg-primary px-1"><Text className="text-xs font-semibold text-primary-foreground">{badge}</Text></View> : null}
   </Pressable>;
 }

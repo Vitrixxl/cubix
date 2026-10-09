@@ -260,7 +260,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
   return <Page className="pb-0">
     <PageHead lead={<BackButton label={tr("Every method")} onPress={back} />} title={tr(method.name)} sub={tr("{0} · {1} of {2} steps learned", { 0: tr(puzzleInfo(puzzle).label), 1: state.done, 2: state.total })}>
       {/* The beginner 3×3 course can solve the player's own cube with them (AssistedPage). */}
-      {puzzle === "333" && method.id === "beginner" && <HeadButton icon={Route} label={tr("Assisted solve")} onPress={() => setRoute({ page: "assisted" })} />}
+      {puzzle === "333" && method.id === "beginner" && <HeadButton icon={Route} label={tr("Assisted solve")} primary onPress={() => setRoute({ page: "assisted" })} />}
     </PageHead>
     <View className="-mx-4 min-h-0 flex-1">
       <Pressable accessibilityRole="button" accessibilityLabel={finished ? tr("{0} done. Every step", { 0: tr(method.name) }) : tr("Step {0} of {1}: {2}. Every step", { 0: entry.step + 1, 1: method.steps.length, 2: tr(step.title) })} onPress={() => setStepsOpen(true)}

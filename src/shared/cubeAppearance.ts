@@ -15,8 +15,11 @@ export const HELD_HEX: Record<Face, number> = {
 };
 export const FACE_COLORS = Object.fromEntries(FACES.map(f => [f, `#${FACE_HEX[f].toString(16).padStart(6, '0')}`])) as Record<Face, string>;
 // Neutral stickers remain readable against both light and dark app backgrounds.
-const GREY = 0x6e6e78;
+export const GREY = 0x6e6e78;
 const DIM = 0x4c4c56;
+
+/** A held cube's colours by sticker (Cubix's order, as in a solved `CubeScene`), `null` for a sticker not known: grey. */
+export const heldColors = (stickers: readonly (Face | null)[]) => stickers.map(f => (f ? HELD_HEX[f] : GREY));
 
 /** Assign colours to physical stickers once, using the final centre orientation.
  * The same colours follow those stickers throughout the animation. A `held` scramble (see `parseScramble`)

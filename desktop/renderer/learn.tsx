@@ -567,9 +567,9 @@ const assisted = (puzzle: PuzzleId, method: SolvingMethod) => puzzle === "333" &
 function AssistedButton({ puzzle, method, phone = false }: { puzzle: PuzzleId; method: SolvingMethod; phone?: boolean }) {
   if (!assisted(puzzle, method)) return null;
   return phone ? (
-    <Button action="assisted" icon={Route} tip={tr("Assisted solve")} />
+    <Button action="assisted" icon={Route} variant="default" tip={tr("Assisted solve")} />
   ) : (
-    <Button action="assisted" icon={Route} variant="outline">
+    <Button action="assisted" icon={Route} variant="default">
       {tr("Assisted solve")}
     </Button>
   );
@@ -615,6 +615,8 @@ function DesktopCourse({ puzzle, method, entry }: { puzzle: PuzzleId; method: So
         lead={<Back action="learnMethods" label="Every method" />}
         title={said(method.name)}
         sub={tr("{0} · {1} · {2} of {3} steps learned", { 0: said(puzzleInfo(puzzle).label), 1: tr(LEVEL_LABEL[method.level]), 2: progress.done, 3: progress.total })}
+        // The assisted solve, the course's main action, on the right.
+        className="md:justify-between"
       >
         <AssistedButton puzzle={puzzle} method={method} />
       </PageHead>

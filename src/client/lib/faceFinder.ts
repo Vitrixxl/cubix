@@ -1,22 +1,16 @@
 /**
- * Finds a face of a cube in a small camera picture (RGBA, 160 pixels a side is plenty) and reads its nine colours, in
- * a couple of milliseconds and without a model: the stickers are the flat patches between the picture's edges, and a
- * face is nine of them on a 3×3 lattice, wherever the face stands in the picture, however large and a little turned.
- *
- * Each colour is read from the middle of its sticker only (the centre's from its corners, around a logo), leaving out what is not the sticker's own colour: the dark
- * of a gap, a shadow or a logo, the white of a glint. `FaceReader` then keeps a face held still over a few frames and
- * gives each sticker its median colour across them.
+ * Finds a face of a cube in a small camera picture (RGBA, 160 pixels a side is plenty), in a couple of milliseconds
+ * and without a model: the stickers are the flat patches between the picture's edges, and a face is nine of them on a
+ * 3×3 lattice, wherever the face stands in the picture, however large and a little turned. Its colours are read where
+ * the lattice puts them (`readFace` in cubeScan.ts).
  */
-import { difference, type Rgb } from "./cubeScan";
+import { cellAt, cellSquares, readFace, VIEW, type Point, type Rgb } from "./cubeScan";
 
-type Point = [number, number];
 export interface FoundFace {
   /** The centre sticker, and the steps to the next column (`u`, to the right) and the next row (`v`, down), in pixels. */
   centre: Point;
   u: Point;
   v: Point;
-  /** Row by row, as the picture shows the face. */
-  colours: Rgb[];
   /** How many of the nine stickers stood apart; the others were read where the lattice puts them. */
   seen: number;
 }
@@ -31,60 +25,6 @@ interface Patch {
   spread: [number, number, number];
   /** Shaped and sized like one sticker. */
   sticker: boolean;
-}
-
-const median = (values: number[]) => {
-  if (!values.length) return 0;
-  const sorted = values.slice().sort((a, b) => a - b);
-  return sorted[sorted.length >> 1]!;
-};
-
-/** A sticker's read square, as a share of the lattice step; the centre's four corner patches, where and how wide. */
-export const CELL = 0.56,
-  CORNER_AT = 0.25,
-  CORNER = 0.12;
-
-/**
- * The colour of a sticker: the middle of its cell (`CELL` of the lattice step across) taken at 8×8 points, without the
- * dark ones (gap, shadow, logo) nor the glint (brighter and greyer than the sticker), the median of each channel. The
- * centre (`centre`) often carries a logo over its middle: it is also read from four small patches toward its corners
- * (`CORNER` wide, `CORNER_AT` from the middle along each step), which win when the two reads differ.
- */
-export function readCell(rgba: ArrayLike<number>, w: number, h: number, at: Point, u: Point, v: Point, centre = false): Rgb {
-  const middle = sample(rgba, w, h, at, u, v, false);
-  if (!centre) return middle;
-  const corners = sample(rgba, w, h, at, u, v, true);
-  return difference(middle, corners) < 12 ? middle : corners;
-}
-
-/** A cell's colour from its middle, or from four patches toward its corners (`corners`). */
-function sample(rgba: ArrayLike<number>, w: number, h: number, [cx, cy]: Point, u: Point, v: Point, centre: boolean): Rgb {
-  const r: number[] = [],
-    g: number[] = [],
-    b: number[] = [];
-  for (let j = 0; j < 8; j++)
-    for (let i = 0; i < 8; i++) {
-      const [s, t] = centre
-        ? [(i < 4 ? -CORNER_AT : CORNER_AT) + (((i % 4) + 0.5) / 4 - 0.5) * CORNER, (j < 4 ? -CORNER_AT : CORNER_AT) + (((j % 4) + 0.5) / 4 - 0.5) * CORNER]
-        : [((i + 0.5) / 8 - 0.5) * CELL, ((j + 0.5) / 8 - 0.5) * CELL],
-        x = Math.round(cx + s * u[0] + t * v[0]),
-        y = Math.round(cy + s * u[1] + t * v[1]);
-      if (x < 0 || y < 0 || x >= w || y >= h) continue;
-      const k = (y * w + x) * 4;
-      r.push(rgba[k]!);
-      g.push(rgba[k + 1]!);
-      b.push(rgba[k + 2]!);
-    }
-  if (!r.length) return [0, 0, 0];
-  const value = r.map((_, i) => Math.max(r[i]!, g[i]!, b[i]!)),
-    saturation = r.map((_, i) => (value[i]! - Math.min(r[i]!, g[i]!, b[i]!)) / (value[i]! || 1)),
-    rank = (values: number[], q: number) => values.slice().sort((p, q) => p - q)[Math.floor(q * (values.length - 1))]!,
-    bright = rank(value, 0.75),
-    middle = rank(value, 0.5),
-    vivid = rank(saturation, 0.75);
-  const keep = r.flatMap((_, i) => (value[i]! < 0.5 * bright || (value[i]! > middle && saturation[i]! < 0.6 * vivid) ? [] : [i]));
-  const from = keep.length >= 4 ? keep : r.map((_, i) => i);
-  return [median(from.map((i) => r[i]!)), median(from.map((i) => g[i]!)), median(from.map((i) => b[i]!))];
 }
 
 /**
@@ -341,60 +281,52 @@ function look(rgba: ArrayLike<number>, w: number, h: number, bar: number): Found
     }
   if (!best || best.seen < 6 || best.score < 5.5) return null;
   const [centre, u, v] = refine(best.marks, best.centre, best.u, best.v);
-  const points = OFFSETS.map(([i, j]): Point => [centre[0] + i * u[0] + j * v[0], centre[1] + i * u[1] + j * v[1]]);
-  return { centre, u, v, colours: points.map((p, k) => readCell(rgba, w, h, p, u, v, k === 4)), seen: best.seen };
+  return { centre, u, v, seen: best.seen };
 }
 
-/** The nine colours read where a lattice stands (a guide drawn on the picture, when no face is found). */
-export const readFace = (rgba: ArrayLike<number>, w: number, h: number, centre: Point, u: Point, v: Point): Rgb[] =>
-  [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => readCell(rgba, w, h, [centre[0] + i * u[0] + j * v[0], centre[1] + i * u[1] + j * v[1]], u, v, !i && !j)));
-
-/** Frames a face must stay still to be read. */
-export const STILL_FRAMES = 8;
-
-/** The same face at the same place: as large, as turned, most of its colours alike. */
-const same = (a: FoundFace, b: FoundFace) =>
-  length([a.centre[0] - b.centre[0], a.centre[1] - b.centre[1]]) < 0.25 * length(b.u) &&
-  Math.abs(length(a.u) / length(b.u) - 1) < 0.12 &&
-  Math.abs(Math.atan2(a.u[1], a.u[0]) - Math.atan2(b.u[1], b.u[0])) < 0.12 &&
-  a.colours.filter((c, i) => c.some((v, k) => Math.abs(v - b.colours[i]![k]!) > 40)).length <= 2;
+/** The side of the picture the face is looked for in, in pixels. */
+const FIND = 160;
+/** Frames a face found stays where it was when the next ones miss it (a blur, a hand). */
+const KEEP = 8;
 
 /**
- * A face held still over a few frames: it gives each sticker its median colour once `STILL_FRAMES` frames found the
- * same face at the same place. A frame without it, or with something else, is let pass (a hand, a blur, a false
- * face); several in a row start over.
+ * Reads the camera's square frame after frame: the face found in it, kept a few frames when missed, and the nine
+ * colours read on that lattice, in a `VIEW`-pixel picture; null while no face is found (as the lab: no lattice, nothing
+ * to read, until the cube is seen).
  */
-export class FaceReader {
-  private frames: FoundFace[] = [];
-  private stray: FoundFace[] = [];
-  private missed = 0;
-  /** How far along the face is to being read, 0 to 1. */
-  get progress() {
-    return this.frames.length / STILL_FRAMES;
-  }
-  reset() {
-    this.frames = [];
-    this.stray = [];
-    this.missed = 0;
-  }
-  /** The frame's face (or none); the nine colours once the face was still long enough. */
-  push(face: FoundFace | null): Rgb[] | null {
-    const last = this.frames.at(-1);
-    if (!face || (last && !same(face, last))) {
-      if (face) this.stray.push(face);
-      // Something else steady for three frames: the cube moved there.
-      if (this.stray.length >= 3 && this.stray.every((f) => same(f, this.stray[0]!))) {
-        this.frames = this.stray.slice();
-        this.stray = [];
-      } else if (++this.missed > 6) this.reset();
-      return null;
-    }
-    this.missed = 0;
-    this.stray = [];
-    this.frames.push(face);
-    if (this.frames.length < STILL_FRAMES) return null;
-    const read = Array.from({ length: 9 }, (_, i) => [0, 1, 2].map((k) => median(this.frames.map((f) => f.colours[i]![k]!))) as unknown as Rgb);
-    this.reset();
-    return read;
-  }
+export function faceWatcher() {
+  const make = (side: number) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = side;
+    return c.getContext("2d", { willReadFrequently: true })!;
+  };
+  const big = make(VIEW),
+    small = make(FIND);
+  let last: FoundFace | null = null,
+    missed = 0;
+  return (video: HTMLVideoElement): { centre: Point; u: Point; v: Point; colours: Rgb[] } | null => {
+    const crop = Math.min(video.videoWidth, video.videoHeight),
+      [sx, sy] = [(video.videoWidth - crop) / 2, (video.videoHeight - crop) / 2];
+    small.drawImage(video, sx, sy, crop, crop, 0, 0, FIND, FIND);
+    const face = findFace(small.getImageData(0, 0, FIND, FIND).data, FIND, FIND),
+      k = VIEW / FIND;
+    if (face) [last, missed] = [{ ...face, centre: [face.centre[0] * k, face.centre[1] * k], u: [face.u[0] * k, face.u[1] * k], v: [face.v[0] * k, face.v[1] * k] }, 0];
+    else if (++missed > KEEP) last = null;
+    if (!last) return null;
+    const { centre, u, v } = last;
+    big.drawImage(video, sx, sy, crop, crop, 0, 0, VIEW, VIEW);
+    return { centre, u, v, colours: readFace(big.getImageData(0, 0, VIEW, VIEW).data, VIEW, VIEW, centre, u, v) };
+  };
+}
+
+/** A lattice drawn (SVG points): its nine cells, where the centre is read, each cell's middle and a disc's radius. */
+export function latticeShapes(centre: Point, u: Point, v: Point) {
+  const square = (i: number, j: number, s: number, t: number, e: number) =>
+    [[-e, -e], [e, -e], [e, e], [-e, e]].map(([a, b]) => cellAt(centre, u, v, i, j, s + a!, t + b!).map((n) => n.toFixed(1)).join()).join(" ");
+  return {
+    cells: [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => square(i, j, 0, 0, 0.5))),
+    patches: cellSquares(true).map(([s, t, e]) => square(0, 0, s, t, e)),
+    dots: [-1, 0, 1].flatMap((j) => [-1, 0, 1].map((i) => cellAt(centre, u, v, i, j))),
+    r: 0.18 * Math.min(Math.hypot(...u), Math.hypot(...v)),
+  };
 }
