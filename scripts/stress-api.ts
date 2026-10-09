@@ -306,7 +306,7 @@ async function main() {
     "MB",
   );
   const log = openSync(join(OUT, "server.log"), "w");
-  const server = spawn(join(ROOT, "rust-api/target/release/cubix-api"), [], {
+  const server = spawn((process.env.CUBIX_API_BIN ?? join(ROOT,"rust-api/target/release/cubix-api")), [], {
     cwd: ROOT, env: { CUBIX_EXIT_WITH_PARENT: "1",  ...process.env, PORT:port, CUBIX_HOST:"127.0.0.1", CUBIX_EXTRA_PORTS:ports.slice(1).join(","), CUBIX_DB:dbPath },
     stdio:["ignore",log,log],
   });
@@ -562,7 +562,7 @@ async function main() {
     const report = {
       timestamp: new Date().toISOString(),
       backend,
-      runtime: spawnSync(join(ROOT,"rust-api/target/release/cubix-api"),["--version"],{encoding:"utf8"}).stdout.trim()+" (release)",
+      runtime: spawnSync((process.env.CUBIX_API_BIN ?? join(ROOT,"rust-api/target/release/cubix-api")),["--version"],{encoding:"utf8"}).stdout.trim()+" (release)",
       generatorRuntime: process.version,
       host: {
         cpu: cpus()[0].model,

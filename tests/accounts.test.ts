@@ -149,10 +149,10 @@ describe("Accounts", () => {
     expect((await call("/solves", "GET", undefined, alice.token)).body).toEqual([]);
     expect(db.db.query<any, []>("SELECT * FROM solves WHERE id = 1").get().time_ms).toBe(9000);
     expect(db.db.query<any, []>("SELECT * FROM solves WHERE id = 1").get().user_id).toBeNull();
-    const imported = spawnSync("rust-api/target/release/cubix-api", ["--import-history", "alice"], { env: { ...process.env, CUBIX_DB: path } });
+    const imported = spawnSync(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api", ["--import-history", "alice"], { env: { ...process.env, CUBIX_DB: path } });
     expect(imported.status).toBe(0);
     expect((await call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);
-    const repeated = spawnSync("rust-api/target/release/cubix-api", ["--import-history", "alice"], { env: { ...process.env, CUBIX_DB: path } });
+    const repeated = spawnSync(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api", ["--import-history", "alice"], { env: { ...process.env, CUBIX_DB: path } });
     expect(repeated.status).toBe(0);
     expect(repeated.stdout.toString()).toContain("Imported 0 legacy times");
     expect((await call("/solves", "GET", undefined, alice.token)).body).toHaveLength(1);

@@ -25,7 +25,7 @@ export class Database {
   }
 }
 export function openDb(path: string) {
-  const initialized = spawnSync(resolve('rust-api/target/release/cubix-api'), ['--init-db'], {
+  const initialized = spawnSync(resolve(process.env.CUBIX_API_BIN ?? 'rust-api/target/release/cubix-api'), ['--init-db'], {
     env: { ...process.env, CUBIX_DB: path }, encoding: 'utf8',
   });
   if (initialized.status !== 0) throw new Error(initialized.stderr || 'Build the Rust API first.');
