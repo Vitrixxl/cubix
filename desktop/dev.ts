@@ -5,6 +5,7 @@ delete process.env.ELECTRON_RUN_AS_NODE;
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { buildWeb, WEB_DIR } from "./web";
+import { splitLanguage } from "../src/client/lib/route";
 process.chdir(resolve(import.meta.dir, ".."));
 // Separate from the installed app: its own window lock, browser storage and former storage.json.
 process.env.CUBIX_DESKTOP_DATA ??= join(process.env.XDG_DATA_HOME ?? join(homedir(), ".local/share"), "cubix-desktop-dev");
@@ -40,7 +41,19 @@ const server = Bun.serve<Socket>({
     }
     // The administration is drawn by the same page (see rust-api/src/web.rs).
     const admin = url.pathname === "/admin" || url.pathname.startsWith("/admin/");
-    const app = /^\/(onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile|solve)(\/|$)/.test(url.pathname);
+    // The app's addresses, under the prefix of their language but English's; a page written ahead of time first, as
+    // rust-api/src/web.rs serves it.
+    const { language = "en", path: inner } = splitLanguage(url.pathname);
+    const app = /^\/(login|onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile|solve)(\/|$)/.test(inner);
+    if (app) {
+      const puzzle = url.searchParams.get("puzzle"), step = url.searchParams.get("step"), page = decodeURIComponent(inner.slice(1).replace(/\/$/, ""));
+      const names = [...(puzzle ? [...(step ? [`${page}@${puzzle}~${step}`] : []), `${page}@${puzzle}`] : []), page];
+      for (const name of names) {
+        const file = Bun.file(`${WEB}/pages/${language}/${name}.html.br`);
+        if (!name.split("/").includes("..") && (await file.exists()))
+          return new Response(file, { headers: { "content-type": "text/html; charset=utf-8", "content-encoding": "br", "cache-control": "no-cache" } });
+      }
+    }
     // The root is the landing page (desktop/renderer/landing); the app lives under its own paths.
     // The legal pages are pages of their own (desktop/renderer/legal), like the landing page.
     const legal = ["/legal", "/privacy", "/terms"].includes(url.pathname) ? url.pathname + ".html" : "";

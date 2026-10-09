@@ -273,7 +273,7 @@ export function Practice() {
     timesColumn = !mobile && (timesAlways || s.showTimes),
     compact = w <= 900 || h <= 760;
   const Stage = mobile ? Surface : "div";
-  const cubeLink = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status),
+  const cubeLink = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status, () => smartCube.snapshot.status),
     connectable = typeof CUBIX_DEV !== "undefined" && CUBIX_DEV && !mobile && s.puzzle === "333",
     // A connected cube stands in the middle of the 3×3 timer, as it is in hand; the scramble follows it turn by turn,
     // and its preview stays at the top as the state to reach. The cube starts the timer itself, once scrambled.

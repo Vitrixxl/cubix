@@ -12,5 +12,5 @@ else {
   // The engine and the dictionary start beside the app's code rather than once it has run.
   void import("./bridge");
   void import("../../src/client/i18n").then((i18n) => i18n.load(i18n.preferred())).catch(() => {});
-  void import("./app");
+  void import("./app").then((app) => app.mount());
 }

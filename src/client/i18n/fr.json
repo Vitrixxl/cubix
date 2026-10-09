@@ -2505,5 +2505,20 @@
  "Green at the bottom": "Vert en bas",
  "Or press Backspace": "Ou appuie sur Retour arrière",
  "Read the last face again": "Relire la dernière face",
- "Face found: read it.": "Face trouvée : lis-la."
+ "Face found: read it.": "Face trouvée : lis-la.",
+ "{0} algorithm": "Algorithme {0}",
+ "{0} algorithm trainer": "Entraîneur d'algorithmes {0}",
+ "{0} algorithms: {1}": "Algorithmes {0} : {1}",
+ "{0} method for the {1}, step {2}: {3}": "Méthode {0} pour le {1}, étape {2} : {3}",
+ "{0} timer": "Chrono {0}",
+ "{0} timer: free online speedcubing timer": "Chrono {0} : chronomètre de speedcubing gratuit en ligne",
+ "Continue without an account": "Continuer sans compte",
+ "Drill the {0} cases you are learning: pick them, solve them on random scrambles and see which ones slow you down. Free, without an account.": "Entraîne les cas du {0} que tu apprends : choisis-les, résous-les sur des mélanges aléatoires et vois lesquels te ralentissent. Gratuit, sans compte.",
+ "Every {0} case with its best algorithms, its diagram and a trainer: {1}. {2} cases, free, offline too.": "Tous les cas du {0} avec leurs meilleurs algorithmes, leur schéma et un entraîneur : {1}. {2} cas, gratuit, même hors ligne.",
+ "Learn the {0}": "Apprendre le {0}",
+ "Learn to solve the {0}: {1}": "Apprendre à résoudre le {0} : {1}",
+ "Setup: {0}.": "Mise en place : {0}.",
+ "Step-by-step courses to solve the {0}, from your first solve to advanced methods, with the algorithms of each step in 3D.": "Des cours pas à pas pour résoudre le {0}, de ta première résolution aux méthodes avancées, avec les algorithmes de chaque étape en 3D.",
+ "The best algorithms for {0}, a {1} case of the {2}:": "Les meilleurs algorithmes pour {0}, un cas {1} du {2} :",
+ "Time your {0} solves with official WCA scrambles, averages (ao5, ao12, ao100), a progress chart and smart cube support. Free, without an account.": "Chronomètre tes résolutions du {0} avec des mélanges WCA officiels, des moyennes (ao5, ao12, ao100), une courbe de progression et les cubes connectés. Gratuit, sans compte."
 }

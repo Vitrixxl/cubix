@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { said } from "./base";
 import { tr } from "../../src/client/i18n";
+import { Link } from "react-router";
 
 /**
  * The cards in the middle of the space under the page's header, both ways: two or four in a 2×2 square, three or more
@@ -46,8 +47,11 @@ export function PickerCard({
   progress,
   disabled = false,
   pressed,
+  href,
 }: {
   action: string;
+  /** The address the card opens, for a link search engines follow; the action still does the opening. */
+  href?: string;
   icon: React.ReactNode;
   title: string;
   detail: React.ReactNode;
@@ -59,15 +63,9 @@ export function PickerCard({
   disabled?: boolean;
   pressed?: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      data-action={action}
-      disabled={disabled}
-      aria-pressed={pressed}
-      onClick={run(action)}
-      className={cn(TILE, "group/card flex min-h-28 flex-col gap-3 p-4 md:min-h-44 md:p-5", pressed && "hover:border-primary/50 hover:bg-primary/10")}
-    >
+  const className = cn(TILE, "group/card flex min-h-28 flex-col gap-3 p-4 md:min-h-44 md:p-5", pressed && "hover:border-primary/50 hover:bg-primary/10");
+  const content = (
+    <>
       <span className="flex items-center gap-3">
         {/* The icon on a quiet square (base.tsx IconTile), lit with the accent on the card to pick. */}
         <span
@@ -104,6 +102,15 @@ export function PickerCard({
           {progress !== undefined && <Bar ratio={progress} fill={progress === 1 ? "bg-success" : undefined} />}
         </span>
       )}
+    </>
+  );
+  return href && !disabled ? (
+    <Link to={href} data-action={action} onClick={(e) => (e.preventDefault(), run(action)(e))} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <button type="button" data-action={action} disabled={disabled} aria-pressed={pressed} onClick={run(action)} className={className}>
+      {content}
     </button>
   );
 }

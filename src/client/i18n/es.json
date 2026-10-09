@@ -2505,5 +2505,20 @@
  "Green at the bottom": "Verde abajo",
  "Or press Backspace": "O pulsa Retroceso",
  "Read the last face again": "Volver a leer la última cara",
- "Face found: read it.": "Cara encontrada: léela."
+ "Face found: read it.": "Cara encontrada: léela.",
+ "{0} algorithm": "Algoritmo {0}",
+ "{0} algorithm trainer": "Entrenador de algoritmos de {0}",
+ "{0} algorithms: {1}": "Algoritmos de {0}: {1}",
+ "{0} method for the {1}, step {2}: {3}": "Método {0} para el {1}, paso {2}: {3}",
+ "{0} timer": "Cronómetro de {0}",
+ "{0} timer: free online speedcubing timer": "Cronómetro de {0}: cronómetro de speedcubing gratis en línea",
+ "Continue without an account": "Continuar sin cuenta",
+ "Drill the {0} cases you are learning: pick them, solve them on random scrambles and see which ones slow you down. Free, without an account.": "Practica los casos de {0} que estás aprendiendo: elígelos, resuélvelos con mezclas aleatorias y descubre cuáles te frenan. Gratis, sin cuenta.",
+ "Every {0} case with its best algorithms, its diagram and a trainer: {1}. {2} cases, free, offline too.": "Todos los casos de {0} con sus mejores algoritmos, su diagrama y un entrenador: {1}. {2} casos, gratis, también sin conexión.",
+ "Learn the {0}": "Aprende el {0}",
+ "Learn to solve the {0}: {1}": "Aprende a resolver el {0}: {1}",
+ "Setup: {0}.": "Preparación: {0}.",
+ "Step-by-step courses to solve the {0}, from your first solve to advanced methods, with the algorithms of each step in 3D.": "Cursos paso a paso para resolver el {0}, desde tu primera resolución hasta métodos avanzados, con los algoritmos de cada paso en 3D.",
+ "The best algorithms for {0}, a {1} case of the {2}:": "Los mejores algoritmos para {0}, un caso de {1} del {2}:",
+ "Time your {0} solves with official WCA scrambles, averages (ao5, ao12, ao100), a progress chart and smart cube support. Free, without an account.": "Cronometra tus resoluciones de {0} con mezclas oficiales de la WCA, medias (ao5, ao12, ao100), una gráfica de progreso y cubos inteligentes. Gratis, sin cuenta."
 }

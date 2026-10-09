@@ -63,7 +63,7 @@ export function CallView({ id }: { id: string }) {
 }
 
 function Room({ b, now }: { b: Booking; now: number }) {
-  useSyncExternalStore(s.subscribe, () => s.version);
+  useSyncExternalStore(s.subscribe, () => s.version, () => s.version);
   // The call under way, if it is this one: it went on floating while the player was elsewhere.
   const [call] = useState(() => enterCall(b));
   const phone = usePhone();

@@ -43,7 +43,24 @@ export async function launchApp({ dir, origin, width = 1280, height = 800 }: { d
   page.on("pageerror", (error) => errors.push(error.message));
   // A headless window has no size of its own: emulate the viewport.
   await resize(page, width, height);
+  await live(page);
   return { app, page, errors };
+}
+
+/**
+ * Waits for the app itself: a guest's page written ahead of time (desktop/prerender.tsx) stands in for it until the app
+ * draws its own, and looks the same to a selector.
+ */
+export async function live(page: Page) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await page.waitForFunction(() => !!document.getElementById("root")?.childElementCount && !document.getElementById("prerendered"), undefined, { timeout: 60000 });
+      return;
+    } catch (error) {
+      // The window was still opening its first page.
+      if (attempt > 5 || !/destroyed|navigat/i.test(String(error))) throw error;
+    }
+  }
 }
 
 export async function resize(page: Page, width: number, height: number) {
@@ -85,10 +102,15 @@ export async function timeSolve(page: Page) {
   await page.waitForSelector('.timer[data-phase="Idle"]');
 }
 
-/** The app is used signed in: on its login page, creates the account `username` (or signs in when it exists). */
+/** Signs in: on the login page, creates the account `username` (or signs in when it exists). A guest goes there first. */
 export async function signIn(page: Page, username: string, password = "a-long-test-password", onboarding = false) {
+  await live(page);
   await page.waitForSelector(".login, .rail, .tabbar", { timeout: 60000 });
-  if (!(await page.locator(".login").count())) return;
+  if (!(await page.locator(".login").count())) {
+    if (!(await page.evaluate(async () => ((await window.cubix.call("init")) as any).user?.isGuest))) return;
+    await page.goto(new URL("/login", page.url()).href);
+    await page.waitForSelector(".login", { timeout: 60000 });
+  }
   await page.locator('[data-action="login:mode:register"]').click();
   await page.fill("#login-username", username);
   await page.fill("#login-password", password);

@@ -1,18 +1,22 @@
 # Consignes pour les agents
 
-Chaque `git push` de `main` met automatiquement en prod : un hook Claude Code
-(`.claude/settings.json` → `.claude/hooks/deploy-on-push.sh`) lance
-`bun run deploy` après tout `git push` de `main` exécuté depuis ce dépôt. La
-commande enchaîne `git push`, `ssh vitrix@82.67.236.74 pihost update cubix`, la
-publication de la mise à jour OTA et, si le natif a changé, la compilation de
-l'APK ARM64 en local puis son envoi à l'API. Elle peut aussi être lancée à la
-main :
+Pousser `main` ne déploie rien. La mise en prod se lance en arrière-plan, sans
+bloquer le travail :
 
 ```sh
-bun run deploy
+bun run deploy:bg            # pousse main, puis déploie une copie du commit en arrière-plan
+bun run deploy:bg --status   # le déploiement en cours et le dernier log
 ```
 
-Vérifier que la commande se termine avec succès et signaler toute erreur de mise à jour.
+`scripts/deploy-background.ts` pousse `main`, extrait le commit dans un worktree
+sous `~/.cache/cubix-deploy`, puis y lance `bun run deploy` (`scripts/deploy.ts`,
+avec `--no-push`) détaché : `ssh vitrix@82.67.236.74 pihost update cubix`, la
+publication de la mise à jour OTA, les paquets desktop s'ils ont changé et, si le
+natif a changé, l'APK ARM64 compilé en local puis envoyé à l'API. On peut
+continuer à modifier, commiter ou pousser pendant ce temps. Le log est dans
+`~/.cache/cubix-deploy/logs/` et une notification bureau dit comment il s'est
+terminé. Lire le log à la fin, vérifier que le déploiement a réussi et signaler
+toute erreur. `bun run deploy` reste disponible pour un déploiement au premier plan.
 
 Avant de valider quoi que ce soit (commit, push, mise en prod), lancer le dev
 dans Docker et laisser l’utilisateur valider lui-même la modification :

@@ -8,7 +8,7 @@ import { Play, Swords, Users } from "lucide-react";
 import { Avatar } from "../base";
 import { store as s } from "../store";
 import { call } from "../bridge";
-import { go } from "../navigation";
+import { go, splitLanguage } from "../navigation";
 import { ask } from "../confirm";
 import { Community, type Notice, type SocialHost } from "../../../src/client/lib/community";
 
@@ -37,7 +37,7 @@ export const host: SocialHost = {
   notify,
   confirm: ask,
   navigate: (url) => go(url),
-  path: () => location.pathname,
+  path: () => splitLanguage(location.pathname).path,
   visible: () => document.visibilityState === "visible",
 };
 

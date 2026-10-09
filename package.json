@@ -18,12 +18,13 @@
     "build:db": "tsx scripts/build-db.ts",
     "mobile": "bun run --cwd mobile pc",
     "deploy": "bun scripts/deploy.ts",
+    "deploy:bg": "bun scripts/deploy-background.ts",
     "import:history": "sh scripts/rust.sh serve --import-history",
     "stress": "tsx scripts/stress-api.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p desktop && bun run --cwd mobile typecheck",
     "test": "bun run build:api && bun test --timeout 15000 ./tests ./desktop/tests && bun scripts/test-cube.ts && sh scripts/rust.sh test --locked --features seed",
     "test:api": "bun run build:api && bun test --timeout 15000 ./tests/accounts.test.ts ./tests/api-client.test.ts ./tests/rust-api.test.ts ./tests/admin.test.ts ./tests/api-only.test.ts",
-    "test:ui": "bun run build:api && bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts && bun desktop/testing/introduction.ts"
+    "test:ui": "bun run build:api && bun desktop/build.ts && bun desktop/web.ts && bun desktop/testing/web-app.ts && bun desktop/testing/responsive.ts && bun desktop/testing/history-chart.ts && bun desktop/testing/error-notification.ts && bun desktop/testing/introduction.ts && bun desktop/testing/prerender.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -355,7 +355,7 @@ export class Store {
       this.learningGroupOrder = v.learningGroupOrder ?? {};
       this.loadContext();
       const route = readRoute(window.location.pathname, window.location.search);
-      if (route && route.page !== "onboarding") this.applyRoute(route);
+      if (route) this.applyRoute(route);
       this.ready = true;
       this.emit();
       await this.refresh();
@@ -368,7 +368,8 @@ export class Store {
       this.fail(e);
     }
   }
-  /** Only an account uses the app; a guest (or an expired session) gets the login page. */
+  /** An account whose session holds. A guest uses the app on this device alone, but for the pages of an account
+   * (`ACCOUNT_PAGES`); an expired session gets the login page. */
   get signedIn() {
     return !this.user.isGuest && !this.expired;
   }
@@ -682,10 +683,16 @@ export class Store {
     this.loadContext();
   }
   applyRoute(route: AppRoute) {
-    if (route.page === "onboarding") return;
+    if (route.page === "onboarding" || route.page === "login") return;
     const { page } = route;
-    if (route.puzzle) this.usePuzzle(route.puzzle);
-    const caseId = route.caseId && this.find(route.caseId) ? route.caseId : "";
+    // A case's address names its puzzle: the list beside it opens on its step and its set.
+    const shown = page === "algorithms" ? this.find(route.caseId) : undefined, puzzle = shown ? puzzleOf(shown) : route.puzzle;
+    if (puzzle && puzzle !== this.puzzle) this.usePuzzle(puzzle);
+    const caseId = shown ? route.caseId : "";
+    if (shown) {
+      this.catalogStage = shown.stage;
+      if (this.sets[shown.stage] !== shown.set) this.sets = { ...this.sets, [shown.stage]: shown.set };
+    }
     const method = methodOf(this.puzzle as PuzzleId, route.learnMethod) ? route.learnMethod : "";
     this.coachingView = route.coaching ?? "";
     this.view = route.view ?? "";
@@ -1028,7 +1035,7 @@ export class Store {
           setTimeout(() => URL.revokeObjectURL(url), 10_000);
           break;
         }
-        // The account was deleted (Settings): this device goes back to a guest, as after signing out.
+        // The account was deleted (Settings): this device goes back to a guest, as after signing out, on the login page.
         case "accountDeleted":
         case "logout":
           if (kind === "logout") await call("logout");
@@ -1037,6 +1044,7 @@ export class Store {
           this.overlay = "";
           this.sessions.clear();
           this.profileMode = "overview";
+          go("/login", true);
           await this.refresh();
           break;
         case "profilePuzzle": {

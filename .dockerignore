@@ -20,6 +20,7 @@ data/*
 !desktop/
 desktop/*
 !desktop/web.ts
+!desktop/prerender.tsx
 !desktop/vendor.ts
 !desktop/appearance.ts
 !desktop/engine/

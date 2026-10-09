@@ -16,6 +16,7 @@
  *   bun scripts/deploy.ts --apk-only   rebuild and upload the APK for the deployed commit
  *   bun scripts/deploy.ts --update-only  export and publish the over-the-air update only
  *   bun scripts/deploy.ts --skip-desktop   leave the desktop packages as the server has them
+ *   bun scripts/deploy.ts --no-push    main is pushed already (scripts/deploy-background.ts deploys a copy of it)
  *
  * The APK is not built on the Pi: Gradle needs more memory than the board has and Google
  * ships no ARM64 Linux NDK, so the phone build always happens on the developer's machine.
@@ -38,6 +39,7 @@ const forceApk = process.argv.includes("--apk");
 const apkOnly = process.argv.includes("--apk-only");
 const updateOnly = process.argv.includes("--update-only");
 const skipDesktop = process.argv.includes("--skip-desktop");
+const noPush = process.argv.includes("--no-push");
 const APK = resolve(root, "mobile/build/cubix-android-arm64.apk");
 const UPDATE_DIR = resolve(root, "mobile/build/updates");
 
@@ -54,7 +56,7 @@ const head = git("rev-parse", "HEAD");
 const build = Math.floor(Number(git("log", "-1", "--format=%ct")) / 60);
 const runtime = runtimeVersion();
 if (git("status", "--porcelain")) console.warn("Warning: the working tree has uncommitted changes; only the committed HEAD is deployed.");
-if (git("rev-parse", "--abbrev-ref", "HEAD") !== "main") console.warn("Warning: not on main.");
+if (!noPush && git("rev-parse", "--abbrev-ref", "HEAD") !== "main") console.warn("Warning: not on main.");
 console.log(`Deploying ${head.slice(0, 7)} (build ${build}, runtime ${runtime})`);
 
 async function release(): Promise<Record<string, unknown> | null> {
@@ -65,7 +67,7 @@ async function release(): Promise<Record<string, unknown> | null> {
 }
 
 if (!apkOnly && !updateOnly) {
-  run("git", ["push"]);
+  if (!noPush) run("git", ["push"]);
   run("ssh", [PI, "pihost", "update", APP]);
   // pihost returns once compose is up; wait until the new binary answers with this commit.
   const deadline = Date.now() + 5 * 60 * 1000;

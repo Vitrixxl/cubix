@@ -2,7 +2,7 @@
 import type { NavigateFunction } from "react-router";
 import { pageUrl, type AppRoute } from "../../src/client/lib/route";
 
-export { pageUrl, readRoute, type AppRoute } from "../../src/client/lib/route";
+export { pageUrl, readRoute, splitLanguage, type AppRoute } from "../../src/client/lib/route";
 let navigate: NavigateFunction | undefined;
 export function bindNavigation(fn: NavigateFunction) { navigate = fn; return () => { if (navigate === fn) navigate = undefined; }; }
 export function go(to: string | number, replace = false) { if (typeof to === "number") void navigate?.(to); else void navigate?.(to, { replace }); }

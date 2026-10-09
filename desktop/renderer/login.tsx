@@ -1,5 +1,6 @@
 /**
- * The login page: the app is only used signed in. Sign in or create an account with a username and a password (the
+ * The login page, for the pages of an account (`ACCOUNT_PAGES`): the rest of the app is used without one, on this device.
+ * Sign in or create an account with a username and a password (the
  * API's rules: username 3–24, password 10 or more); Google is a placeholder for now. Times this device already holds
  * outside any account join the account either way (see `importGuest` in src/client/local/client.ts).
  */
@@ -20,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { legalPath } from "./legal/paths";
+import { go } from "./navigation";
 
 type Mode = "login" | "register";
 
@@ -48,6 +50,8 @@ export function LoginPage() {
     if (!phone) (username ? secret : user).current?.focus();
   }, [phone]);
   const register = mode === "register";
+  // Back where the visitor came from in the app, else to the timer.
+  const leave = () => ((history.state?.idx ?? 0) > 0 ? go(-1) : go("/timer", true));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -148,6 +152,11 @@ export function LoginPage() {
           </Button>
         </span>
       </Tip>
+      {!expired && (
+        <Button type="button" variant="ghost" data-action="login:guest" onClick={leave} className="w-full text-muted-foreground max-md:h-12 max-md:text-base">
+          {tr("Continue without an account")}
+        </Button>
+      )}
       {s.localData && (
         <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground" data-slot="login-kept">
           <HardDrive className="size-3.5" />

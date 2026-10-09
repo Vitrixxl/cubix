@@ -30,7 +30,7 @@ const held = (q: Quaternion): CubeOrientation => {
  * the view buttons (see `ViewButtons`).
  */
 export function LiveCube({ cube, size, onDrag, turnMs = TURN_MS, view: shared }: { cube: SmartCube; size: number; onDrag?: (across: number, down: number) => void; turnMs?: number; view?: CubeView }) {
-  const snapshot = useSyncExternalStore(cube.subscribe, () => cube.snapshot),
+  const snapshot = useSyncExternalStore(cube.subscribe, () => cube.snapshot, () => cube.snapshot),
     canvas = useRef<HTMLCanvasElement>(null),
     own = useMemo(() => (shared ? null : new CubeView()), [shared]),
     view = shared ?? own!,

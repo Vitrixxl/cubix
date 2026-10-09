@@ -97,7 +97,7 @@ async function appSession(token: string) {
   for (const [width, height, tag] of [[390, 844, "phone"], [1440, 900, "desktop"]] as const) {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: tag === "phone" ? 2 : 1 });
     const page = await context.newPage();
-    await page.goto(origin + "/timer");
+    await page.goto(origin + "/login");
     await page.waitForSelector(".login");
     await settle(page);
     await page.screenshot({ path: `${SHOTS}/login-${tag}.png` });

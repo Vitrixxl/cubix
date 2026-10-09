@@ -15,6 +15,9 @@ import { Kbd } from "@/components/ui/kbd";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { Link } from "react-router";
+import { pageUrl } from "./navigation";
+import type { PuzzleId } from "../../src/shared/puzzles";
 
 function useScrollPosition(key: string) {
   const ref = useRef<HTMLDivElement>(null);
@@ -218,14 +221,8 @@ export function CaseTile({
     on = pressed ?? (selected && !touch),
     name = detail ?? (c.name !== c.id ? c.name : undefined),
     play = casePlayItem(c);
-  const open = (
-    <button
-      type="button"
-      data-action={action}
-      aria-pressed={pressed}
-      onClick={run(action)}
-      className={cn("case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5", FOCUS)}
-    >
+  const inside = (
+    <>
       <span className="flex min-h-0 flex-1 items-center justify-center">
         <Diagram c={c} size={70} />
       </span>
@@ -234,8 +231,20 @@ export function CaseTile({
         <span className="min-w-0 truncate text-xs font-medium">{shortId(c)}</span>
         <span className={cn(NUMERIC, "shrink-0 text-xs", st ? "text-muted-foreground" : "text-muted-foreground/60")}>{st ? fmtTime(st.best) : "–"}</span>
       </span>
-    </button>
+    </>
   );
+  const className = cn("case-row-open flex size-full flex-col rounded-lg px-2 pt-2 pb-1.5", FOCUS);
+  // Opening the case on the algorithms page is going to its address: a link, which search engines follow too.
+  const open =
+    action === "case:" + c.id ? (
+      <Link to={pageUrl("algorithms", { caseId: c.id, puzzle: s.puzzle as PuzzleId })} data-action={action} className={className}>
+        {inside}
+      </Link>
+    ) : (
+      <button type="button" data-action={action} aria-pressed={pressed} onClick={run(action)} className={className}>
+        {inside}
+      </button>
+    );
   return (
     <div
       className={cn(

@@ -1,6 +1,6 @@
 /** The frame around the pages: the sidebar or the phone tab bar. */
 import { memo, useSyncExternalStore } from "react";
-import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, ChartColumn, ChevronDown, Coffee, Dumbbell, GraduationCap, Headset, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
+import { Bluetooth, BluetoothConnected, BluetoothSearching, BookA, BookOpen, Boxes, ChartColumn, ChevronDown, Coffee, Dumbbell, GraduationCap, Headset, LogIn, LogOut, MessagesSquare, Settings, Swords, Timer, Trophy, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import { Button as UiButton } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { pageUrl } from "./navigation";
+import { loginUrl } from "../../src/client/lib/route";
 import type { PuzzleId } from "../../src/shared/puzzles";
 import {
   Sidebar,
@@ -83,7 +84,7 @@ const waiting: Record<string, () => number> = {
  */
 const shellKey = () =>
   [s.page, s.profileMode, s.puzzle, s.solveMode, s.user.username, waiting.coaching!(), waiting.community!(), language()].join("|");
-const useShell = () => useSyncExternalStore(s.subscribe, shellKey);
+const useShell = () => useSyncExternalStore(s.subscribe, shellKey, shellKey);
 /** A section's count beside its name; folded to its icons, the sidebar keeps a dot on the icon. */
 function UnreadBadge({ page }: { page: string }) {
   const count = waiting[page]?.() ?? 0;
@@ -112,7 +113,7 @@ function Me({ size = 32 }: { size?: number }) {
 
 /** The connected cube, from any page: its state, and a click to connect it, cancel or disconnect. */
 function CubeLink() {
-  const { status, name, battery } = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot),
+  const { status, name, battery } = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot, () => smartCube.snapshot),
     I = status === "on" ? BluetoothConnected : status === "connecting" ? BluetoothSearching : Bluetooth,
     label = status === "on" ? name : status === "connecting" ? tr("Connecting…") : tr("Connect a cube"),
     tip = status === "on" ? tr("{0} connected · disconnect", { 0: name }) : status === "connecting" ? tr("Connecting… · cancel") : tr("Connect a cube");
@@ -138,7 +139,8 @@ export const Rail = memo(function Rail() {
     profile = s.page === "profile" && s.profileMode !== "analysis",
     { open, toggleSidebar } = useSidebar(),
     // Below this width the sidebar always keeps to its icons.
-    foldable = useViewport().w > SIDEBAR_WIDE;
+    foldable = useViewport().w > SIDEBAR_WIDE,
+    here = useLocation();
   return (
     // Folded, the icons are named by their tooltips: these come almost at once, and move from icon to icon instantly.
     <TooltipProvider delay={open ? TIP_DELAY : 80} closeDelay={0}>
@@ -250,7 +252,20 @@ export const Rail = memo(function Rail() {
               <span>{tr("Buy me a coffee")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* The account: the profile link, and beside it on the right its own sign-out icon button. */}
+          {/* The account: the profile link, and beside it on the right its own sign-out icon button; a guest's way in. */}
+          {s.user.isGuest ? (
+          <SidebarMenuItem className="mt-1 border-t pt-2">
+            <SidebarMenuButton
+              data-action="nav:login"
+              tooltip={tr("Sign in")}
+              render={<Link to={loginUrl(here.pathname + here.search)} />}
+              className="h-9 font-medium"
+            >
+              <LogIn />
+              <span>{tr("Sign in")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          ) : (
           <SidebarMenuItem className="mt-1 flex items-center gap-1 border-t pt-2 group-data-[collapsible=icon]:flex-col">
             <SidebarMenuButton
               data-action="nav:profile"
@@ -268,6 +283,7 @@ export const Rail = memo(function Rail() {
               </UiButton>
             </Tip>
           </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

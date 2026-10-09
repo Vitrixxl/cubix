@@ -1,4 +1,4 @@
-/** Two players, two tabs of one headless Chromium, race each other against a disposable API serving the web build: matchmaking,
+/** Two players, each signed in to an account in a headless Chromium of their own, race each other against a disposable API serving the web build: matchmaking,
  * the same scrambles, the opponent's live timer, chat, DNF and Cancel, the result, a rematch and the profile's battles.
  * Build first: `bun run build:api && bun desktop/web.ts`. */
 import { chromium, type Page } from "playwright";
@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startServer } from "./app";
+import { signIn, startServer } from "./app";
 
 const SHOTS = "artifacts/duel";
 await mkdir(SHOTS, { recursive: true });
@@ -14,12 +14,13 @@ const dir = await mkdtemp(join(tmpdir(), "cubix-duel-"));
 const { origin, server } = await startServer(join(dir, "server"));
 const browser = await chromium.launch({ executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium", headless: true });
 const errors: string[] = [];
-// Both players are tabs of the same browser: they share one engine.
-const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// A duel is an account's: each player signs in to their own, in a browser context of their own.
+let players = 0;
 async function open() {
-  const page = await context.newPage();
+  const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(origin + "/timer");
+  await signIn(page, `duel_${++players}_${Date.now() % 1e6}`);
   await page.waitForSelector(".rail, .tabbar");
   await page.locator('[data-action="nav:duel"]').first().click();
   await page.waitForSelector(".duel-lobby");

@@ -1,5 +1,5 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
-import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
+import React, { memo, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Check, Compass, Download, GraduationCap, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s, matches } from "./store";
@@ -309,7 +309,7 @@ function SearchCases() {
         <CommandEmpty>{tr("No case matches.")}</CommandEmpty>
         {results.map((c: any) => (
           <CommandItem key={c.id} value={c.id} onSelect={() => void s.action("case:" + c.id)} className="gap-3 py-1.5">
-            <Diagram c={c} size={40} />
+            <SeenDiagram c={c} size={40} />
             <div className="flex min-w-0 flex-col">
               <span className="truncate font-medium">
                 {c.id}
@@ -326,6 +326,23 @@ function SearchCases() {
   );
 }
 
+/**
+ * A result's diagram, drawn once its row comes into view: most cases are drawn as a 3D cube, and the fifty results at
+ * once made typing and opening the search slow. The rows themselves stay, for the arrow keys to reach every one.
+ */
+function SeenDiagram({ c, size }: { c: any; size: number }) {
+  const ref = useRef<HTMLSpanElement>(null),
+    [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || seen) return;
+    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && setSeen(true), { root: element.closest("[cmdk-list]"), rootMargin: "120px 0px" });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [seen]);
+  return seen ? <Diagram c={c} size={size} /> : <span ref={ref} className="shrink-0" style={{ width: size, height: size }} />;
+}
+
 function SolveDetails() {
   const solve = s.overlaySolve;
   return solve ? <SolveView key={solve.id} solve={solve} owner /> : null;
@@ -338,7 +355,7 @@ function SolveDetails() {
 const overlaysKey = () => (s.overlay ? s.overlay + ":" + s.version : "") + "|" + language();
 /** Every dialog of the app, each open while the app overlay names it. */
 export const Overlays = memo(function Overlays() {
-  useSyncExternalStore(s.subscribe, overlaysKey);
+  useSyncExternalStore(s.subscribe, overlaysKey, overlaysKey);
   return (
     <>
       <Modal id="settings" title={tr("Settings")} className="sm:max-w-md" tall>

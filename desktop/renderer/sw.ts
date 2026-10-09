@@ -37,8 +37,9 @@ worker.addEventListener("activate", (event) => {
     await worker.clients.claim();
   })());
 });
-/** The app's page, the shell every path of the app opens offline; the site's root is the landing page. */
-const APP = "/timer";
+/** The app's page, the shell every path of the app opens offline (a page written ahead of time online, desktop/prerender.tsx);
+ * the site's root is the landing page. */
+const APP = "/index.html";
 async function page(request: Request) {
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), 4000);

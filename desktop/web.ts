@@ -1,7 +1,8 @@
 /** Builds the web app into dist/web: the Rust API serves it, the desktop app loads it from there.
  *
  *   /                      landing.html: the landing page, rendered here (desktop/renderer/landing)
- *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker)
+ *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker); its public
+ *                          pages written ahead of time in every language under pages/ (desktop/prerender.tsx)
  *   /install.sh, .ps1      the desktop installers (desktop/install); robots.txt, sitemap.xml, llms.txt
  *   /build/*               bundles and fonts with a content hash in their name, immutable
  *   /vendor/cubing-<v>/*   cubing.js modules for the scramblers, immutable per version
@@ -14,6 +15,7 @@ import type { BuildOutput, BunPlugin } from "bun";
 import { compile, Features } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
 import { copyCubing } from "./vendor";
+import { buildPages } from "./prerender";
 
 const root = resolve(import.meta.dir, "..");
 process.chdir(root);
@@ -105,11 +107,14 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // one after the other as each is read; the engine's bridge and the i18n start with them (main.tsx).
   const start = chunks(app, ["desktop/renderer/app.tsx", "desktop/renderer/bridge.ts", "src/client/i18n/index.ts"]).filter((path) => path !== app.entry);
   const styles = app.files.filter((path) => path.endsWith(".css"));
+  // Before anything is drawn: whether this device shows the pages written ahead of time (boot.ts).
+  const { entry: boot } = await bundle("desktop/renderer/boot.ts");
   const html = (await readFile("desktop/renderer/index.html", "utf8"))
-    .replace("<!-- styles -->", [...styles.map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`)].join("\n    "))
+    .replace("<!-- styles -->", [`<script src="${boot}"></script>`, ...styles.map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`)].join("\n    "))
     .replace("<!-- scripts -->", `<script type="module" src="${app.entry}"></script>`);
   await writeFile(join(out, "index.html"), html);
-  await landing(out, bundle, preloads(fonts));
+  const pages = await buildPages(out);
+  await landing(out, bundle, preloads(fonts), pages);
   await legal(out, bundle);
   if (devTools) {
     // Outside the precache: the page is only served by the development server (desktop/dev.ts).
@@ -125,10 +130,11 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   const icons = (await readdir(join(out, "assets/icons"))).map((name) => `/assets/icons/${name}`);
   // The administration is never used offline.
   const shell = app.files.filter((path) => !basename(path).startsWith("admin-") && !Object.values(dictionaries).includes(path));
-  const precache = ["/timer", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, ...shell, ...fonts.values(), ...icons, ...vendorFiles];
+  // The app's own page, without any page written in it: the one every address opens offline (sw.ts).
+  const precache = ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, boot, ...shell, ...fonts.values(), ...icons, ...vendorFiles];
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
-  for (const url of [...precache, ...Object.values(dictionaries)]) hasher.update(url).update(await readFile(join(out, url === "/timer" ? "index.html" : url)));
+  for (const url of [...precache, ...Object.values(dictionaries)]) hasher.update(url).update(await readFile(join(out, url)));
   const version = hasher.digest("hex").slice(0, 16);
   // The case diagrams keep their names from one build to the next: they are kept until one of them changes.
   const cases = new Bun.CryptoHasher("sha256");
@@ -146,7 +152,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
  * search engines and language models look for beside it; the desktop installers it gives; its screenshots and its
  * social image.
  */
-async function landing(out: string, bundle: (entry: string, define?: Record<string, string>, splitting?: boolean) => Promise<Bundle>, preloads: string[]) {
+async function landing(out: string, bundle: (entry: string, define?: Record<string, string>, splitting?: boolean) => Promise<Bundle>, preloads: string[], pages: string[]) {
   const { createElement } = await import("react");
   const { renderToString } = await import("react-dom/server");
   const { Landing } = await import("./renderer/landing/Landing");
@@ -170,7 +176,7 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
   }
   await setLanguage("en", false);
   await writeFile(join(out, "robots.txt"), robots());
-  await writeFile(join(out, "sitemap.xml"), sitemap(new Date().toISOString().slice(0, 10)));
+  await writeFile(join(out, "sitemap.xml"), sitemap(new Date().toISOString().slice(0, 10), pages));
   await writeFile(join(out, "llms.txt"), llms());
   await writeFile(join(out, "llms-full.txt"), llmsFull());
   for (const name of ["install.sh", "install.ps1"]) await cp(join("desktop/install", name), join(out, name));

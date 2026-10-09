@@ -12,6 +12,8 @@ import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Dumbbell, Flag, Gradu
 import { METHODS, type MethodAlgorithm, type MethodLevel, type MethodStep, type SolvingMethod } from "../../src/shared/methods";
 import { applyAlg, solved } from "../../src/shared/cube";
 import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
+import { Link } from "react-router";
+import { pageUrl } from "./navigation";
 import { viewForMask } from "../../src/shared/cubeDiagram";
 import {
   LEVEL_LABEL, algId, algSetup, courseEntry, firstOpenSet, methodFacts, methodLearned, methodProgress, methodShare, recommendedMethod, setGroups, stepDone, stepId, stepLearned, stepMastered, stepSets,
@@ -100,6 +102,7 @@ function Methods() {
           <PickerCard
             key={row.method.id}
             action={"learnMethod:" + row.method.id}
+            href={pageUrl("learn", { puzzle, learnMethod: row.method.id })}
             icon={<LevelBars level={row.method.level} />}
             title={said(row.method.name)}
             badge={row.progress.started ? "In progress" : row.recommended ? "Recommended" : undefined}
@@ -408,18 +411,19 @@ function StepBar({ puzzle, method, entry, tools }: { puzzle: PuzzleId; method: S
               done = stepDone(st, cases, s.learned, entry),
               share = learned.total ? learned.learned / learned.total : 0,
               here = i === entry.step && !s.learnFinished;
+            // A link to the step's address, which search engines follow; the action opens it.
             const chip = (
-              <button
+              <Link
                 key={st.title}
-                type="button"
+                to={pageUrl("learn", { puzzle: s.puzzle as PuzzleId, learnMethod: method.id, ...(i ? { learnStep: i } : {}) })}
                 data-action={"learnStep:" + i}
                 aria-current={here ? "step" : undefined}
-                onClick={run("learnStep:" + i)}
+                onClick={(e) => (e.preventDefault(), run("learnStep:" + i)(e))}
                 className={cn(STEP, "flex h-9 shrink-0 items-center gap-2 px-2.5 text-sm text-muted-foreground hover:text-foreground")}
               >
                 <ProgressRing done={done} share={share} current={here} neutral={!learned.total} />
                 {said(st.title)}
-              </button>
+              </Link>
             );
             return learned.total ? (
               <Tip key={st.title} content={tr("{0} / {1} learned", { 0: learned.learned, 1: plural(learned.total, "alg") })}>

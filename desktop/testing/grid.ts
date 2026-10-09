@@ -137,8 +137,8 @@ try {
     const context = await browser.newContext({ viewport: { width: width!, height: height! } });
     const page = await context.newPage();
     page.on("pageerror", (e) => console.log("page error:", e.message));
-    await page.goto(origin + "/timer");
-    // Nothing without an account: the login page first, then a fresh account per size.
+    // The login page, then a fresh account per size.
+    await page.goto(origin + "/login");
     await page.waitForSelector("#login-username");
     await settle(page);
     await check(page, "login");

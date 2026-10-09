@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { LANGUAGES, language, onLanguage, setLanguage, tr, type Language } from "../../src/client/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 /** The language in use: a component reading it is drawn again when it changes. */
-export const useLanguage = () => useSyncExternalStore(onLanguage, language, () => "en" as Language);
+export const useLanguage = () => useSyncExternalStore(onLanguage, language, language);
 /** The languages, each under its own name: the choice is kept on this device. */
 export function LanguagePicker({ className }: { className?: string }) {
   const current = useLanguage(),

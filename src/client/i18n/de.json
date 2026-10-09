@@ -2505,5 +2505,20 @@
  "Green at the bottom": "Grün unten",
  "Or press Backspace": "Oder drücke die Rücktaste",
  "Read the last face again": "Letzte Seite neu lesen",
- "Face found: read it.": "Seite gefunden: lies sie ein."
+ "Face found: read it.": "Seite gefunden: lies sie ein.",
+ "{0} algorithm": "{0} Algorithmus",
+ "{0} algorithm trainer": "{0} Algorithmus-Trainer",
+ "{0} algorithms: {1}": "{0} Algorithmen: {1}",
+ "{0} method for the {1}, step {2}: {3}": "{0}-Methode für den {1}, Schritt {2}: {3}",
+ "{0} timer": "{0} Timer",
+ "{0} timer: free online speedcubing timer": "{0} Timer: kostenloser Online-Speedcubing-Timer",
+ "Continue without an account": "Ohne Konto fortfahren",
+ "Drill the {0} cases you are learning: pick them, solve them on random scrambles and see which ones slow you down. Free, without an account.": "Trainiere die {0}-Fälle, die du lernst: wähle sie aus, löse sie mit zufälligen Verdrehungen und sieh, welche dich bremsen. Kostenlos, ohne Konto.",
+ "Every {0} case with its best algorithms, its diagram and a trainer: {1}. {2} cases, free, offline too.": "Alle {0}-Fälle mit ihren besten Algorithmen, ihrem Diagramm und einem Trainer: {1}. {2} Fälle, kostenlos, auch offline.",
+ "Learn the {0}": "Lerne den {0}",
+ "Learn to solve the {0}: {1}": "Lerne, den {0} zu lösen: {1}",
+ "Setup: {0}.": "Aufbau: {0}.",
+ "Step-by-step courses to solve the {0}, from your first solve to advanced methods, with the algorithms of each step in 3D.": "Schritt-für-Schritt-Kurse, um den {0} zu lösen, von deiner ersten Lösung bis zu fortgeschrittenen Methoden, mit den Algorithmen jedes Schritts in 3D.",
+ "The best algorithms for {0}, a {1} case of the {2}:": "Die besten Algorithmen für {0}, einen {1}-Fall des {2}:",
+ "Time your {0} solves with official WCA scrambles, averages (ao5, ao12, ao100), a progress chart and smart cube support. Free, without an account.": "Stoppe deine {0}-Lösungen mit offiziellen WCA-Verdrehungen, Durchschnitten (ao5, ao12, ao100), einem Fortschrittsdiagramm und Smart-Cube-Unterstützung. Kostenlos, ohne Konto."
 }

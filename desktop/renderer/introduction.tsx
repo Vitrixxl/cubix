@@ -18,7 +18,7 @@ import { fmtTime, parseTypedTime } from "../../src/client/lib/format";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { PROFILE_KEY, TOUR_STEPS, journeyProfile } from "../../src/client/lib/journey";
 import { METHODS } from "../../src/shared/methods";
-import { go, goPage, pageUrl } from "./navigation";
+import { go, goPage, pageUrl, splitLanguage } from "./navigation";
 import { ImportTimes } from "./ImportTimes";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
@@ -437,12 +437,12 @@ function Tour() {
   // any later resize, scroll or change of the page measures again the same way.
   useEffect(() => {
     const st = TOUR_STEPS[step]!;
-    if (location.pathname !== pageUrl(st.page)) goPage(st.page, { puzzle: s.puzzle as PuzzleId }, true);
+    if (splitLanguage(location.pathname).path !== pageUrl(st.page)) goPage(st.page, { puzzle: s.puzzle as PuzzleId }, true);
     let frame = 0, previous = "", since = performance.now();
     const tick = () => {
       frame = 0;
       const now = read(step), key = round(now);
-      const moving = location.pathname !== pageUrl(st.page) || s.page !== st.page;
+      const moving = splitLanguage(location.pathname).path !== pageUrl(st.page) || s.page !== st.page;
       if ((!moving && key === previous) || performance.now() - since > 2500) {
         setSpot((old) => (old && round(old) === key ? old : now));
         document.querySelectorAll(`[data-tour="${st.inner}"]`).forEach((e) => observer.observe(e));

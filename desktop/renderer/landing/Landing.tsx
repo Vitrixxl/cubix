@@ -27,7 +27,8 @@ import { Features } from "./Features";
 import { EVENTS } from "../../../src/shared/puzzles";
 import { tr } from "../../../src/client/i18n";
 import { LanguagePicker, said, useLanguage } from "../base";
-import { preferred, setLanguage } from "../../../src/client/i18n";
+import { language, preferred, setLanguage } from "../../../src/client/i18n";
+import { localePath } from "../../../src/client/lib/route";
 
 export type Platform = "linux" | "windows" | "macos" | "android" | "ios" | "web";
 /** The visitor's platform, from the browser's user agent; iPads present themselves as Macs with touch. */
@@ -45,8 +46,9 @@ const GET: Partial<Record<Platform, string>> = { windows: "Download for Windows"
 
 /** A link drawn as a button: navigation stays a real link, for people and search engines alike. */
 function LinkButton({ href, size = "default", variant = "default", download, className, children }: { href: string; size?: "default" | "sm" | "lg"; variant?: "default" | "outline"; download?: boolean; className?: string; children: React.ReactNode }) {
+  // The app in the page's language (/fr/timer).
   return (
-    <a href={href} download={download} className={cn(buttonVariants({ size, variant }), className)}>
+    <a href={href === "/timer" ? localePath(language(), href) : href} download={download} className={cn(buttonVariants({ size, variant }), className)}>
       {children}
     </a>
   );

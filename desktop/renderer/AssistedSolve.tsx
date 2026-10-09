@@ -76,7 +76,7 @@ function Frame({ sub, back, actions, large = false, children }: { sub?: React.Re
 
 /** Where the cube comes from: the connected cube (only where one can be), the camera, or the colours entered by hand. */
 function Assist() {
-  const link = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status),
+  const link = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status, () => smartCube.snapshot.status),
     connectable = (typeof CUBIX_DEV !== "undefined" && CUBIX_DEV) || link !== "off",
     [source, setSource] = useState<"cube" | "scan" | "hand" | null>(null),
     // The cube read, turned by hand as the player turns theirs.

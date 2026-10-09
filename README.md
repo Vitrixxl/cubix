@@ -13,6 +13,17 @@ son service worker garde l'application et les mélangeurs, les temps sont enregi
 dans IndexedDB par un Web Worker avant toute synchronisation. Un seul onglet à la
 fois ouvre les données ; les autres attendent qu'il se ferme.
 
+L'application s'utilise sans compte, sur l'appareil ; les pages d'un compte (duel,
+tournois, messages, coaching, profil) envoient vers `/login?redirect=…`, qui y revient
+une fois connecté. Chaque langue autre que l'anglais vit sous son préfixe (`/fr/timer`).
+Les pages publiques (chrono, algorithmes et chaque cas, cours et chaque étape,
+entraîneur, pour chaque puzzle et chaque langue) sont écrites en HTML au build
+(`desktop/prerender.tsx`, `desktop/renderer/seo.ts`) dans `dist/web/pages`, compressées
+seulement : l'API sert celle de l'adresse (`rust-api/src/web.rs`), sinon `index.html`.
+L'application démarre à côté, invisible, et prend sa place dès qu'elle dessine la page.
+`CUBIX_PRERENDER_JOBS` règle le nombre de processus (par défaut un par cœur, 3 dans
+l'image Docker).
+
 Le desktop Electron ne contient que sa fenêtre : il ouvre l'application servie par
 l'API, comme une PWA. Il n'y a ni lanceur ni mise à jour : chaque lancement en ligne
 ouvre la dernière version déployée, et hors ligne la version en cache.

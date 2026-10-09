@@ -28,6 +28,7 @@ export const useLatestAnalysis = () =>
       return () => void listeners.delete(listener);
     },
     () => latest,
+    () => latest,
   );
 
 export function useSmartSolve(options: {
