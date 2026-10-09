@@ -15,10 +15,9 @@ import { spawn, fork, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { cpus, totalmem } from "node:os";
 const ROOT = process.cwd();
-const backend = "rust";
 const OUT =
   process.env.CUBIX_STRESS_OUT ??
-  join(ROOT, "artifacts", `stress-${backend}-${Date.now()}`);
+  join(ROOT, "artifacts", `stress-${Date.now()}`);
 const port = process.env.CUBIX_STRESS_PORT ?? "5199";
 let URL = `http://127.0.0.1:${port}`;
 const ports = (process.env.CUBIX_STRESS_PORTS ?? port).split(",");
@@ -44,19 +43,12 @@ async function worker() {
     sockets: WebSocket[] = [],
     opened = 0,
     wsClosed = 0,
-    pongs = 0,
     changes = 0;
-  let heartbeats: ReturnType<typeof setInterval>;
   process.on("message", async (message: any) => {
     try {
       if (message.type === "init") {
         users = message.users;
         URL = message.origin;
-        heartbeats = setInterval(() => {
-          for (const socket of sockets)
-            if (socket.readyState === WebSocket.OPEN)
-              socket.send('{"type":"ping"}');
-        }, 15000);
         process.send!({ id: message.id, ok: true });
       } else if (message.type === "connect") {
         const attempts = users.slice(opened, message.count);
@@ -85,17 +77,16 @@ async function worker() {
                   const timeout = setTimeout(() => finish(false), 8000);
                   socket.addEventListener("open", () =>
                     socket.send(
-                      JSON.stringify({ type: "auth", token: user.token }),
+                      JSON.stringify({ channel: "live", type: "auth", token: user.token }),
                     ),
                   );
                   socket.addEventListener("message", (event) => {
                     const data = JSON.parse(String(event.data));
-                    if (data.type === "ready") {
+                    if (data.channel === "live" && data.type === "ready") {
                       ready = true;
                       sockets.push(socket);
                       finish(true);
-                    } else if (data.type === "pong") pongs++;
-                    else if (data.type === "sync") changes++;
+                    } else if (data.channel === "sync") changes++;
                   });
                   socket.addEventListener("error", () => finish(false));
                   socket.addEventListener("close", () => {
@@ -128,8 +119,7 @@ async function worker() {
           active = 0;
         const errors: Record<string, number> = {};
         const activeUsers = new Set<string>();
-        const oldPongs = pongs,
-          oldChanges = changes,
+        const oldChanges = changes,
           oldClosed = wsClosed;
         const lag: number[] = [];
         let lastTick = performance.now();
@@ -211,7 +201,6 @@ async function worker() {
           bytes,
           maxActive,
           activeUsers: activeUsers.size,
-          pongs: pongs - oldPongs,
           changes: changes - oldChanges,
           wsClosed: wsClosed - oldClosed,
           connected: sockets.filter((s) => s.readyState === WebSocket.OPEN)
@@ -224,7 +213,6 @@ async function worker() {
           ),
         });
       } else if (message.type === "close") {
-        clearInterval(heartbeats);
         for (const socket of sockets) socket.close();
         sockets = [];
         process.send!({ id: message.id, ok: true });
@@ -306,12 +294,12 @@ async function main() {
     "MB",
   );
   const log = openSync(join(OUT, "server.log"), "w");
-  const server = spawn((process.env.CUBIX_API_BIN ?? join(ROOT,"rust-api/target/release/cubix-api")), [], {
+  const server = spawn((process.env.CUBIX_API_BIN ?? join(ROOT,"go-api/cubix-api")), [], {
     cwd: ROOT, env: { CUBIX_EXIT_WITH_PARENT: "1",  ...process.env, PORT:port, CUBIX_HOST:"127.0.0.1", CUBIX_EXTRA_PORTS:ports.slice(1).join(","), CUBIX_DB:dbPath },
     stdio:["ignore",log,log],
   });
   closeSync(log);
-  if (!server.pid) throw Error('Rust server did not start');
+  if (!server.pid) throw Error('API server did not start');
   const workers: any[] = [],
     pending = new Map<number, (value: any) => void>();
   let seq = 0,
@@ -398,9 +386,7 @@ async function main() {
       if (i === 49) throw Error("Server unavailable");
     }
     console.log(
-      "Production",
-      backend,
-      "server PID",
+      "Production server PID",
       server.pid,
       "; independent client workers; FD limit recorded from /proc",
     );
@@ -524,7 +510,6 @@ async function main() {
         routes,
         wsClosed: chunks.reduce((n, c) => n + c.wsClosed, 0),
         notifications: chunks.reduce((n, c) => n + c.changes, 0),
-        pongs: chunks.reduce((n, c) => n + c.pongs, 0),
         generatorRssMB: chunks.reduce((n, c) => n + c.generatorRssMB, 0),
         generatorLagP99: Math.max(...chunks.map((c) => c.generatorLagP99)),
         responseMB: chunks.reduce((n, c) => n + c.bytes, 0) / 1e6,
@@ -561,8 +546,7 @@ async function main() {
     finalDb.db.close();
     const report = {
       timestamp: new Date().toISOString(),
-      backend,
-      runtime: spawnSync((process.env.CUBIX_API_BIN ?? join(ROOT,"rust-api/target/release/cubix-api")),["--version"],{encoding:"utf8"}).stdout.trim()+" (release)",
+      runtime: spawnSync((process.env.CUBIX_API_BIN ?? join(ROOT,"go-api/cubix-api")),["--version"],{encoding:"utf8"}).stdout.trim()+" (release)",
       generatorRuntime: process.version,
       host: {
         cpu: cpus()[0].model,

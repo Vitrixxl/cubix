@@ -39,7 +39,7 @@ function browser() {
       // No data engine: nothing it would answer is drawn.
       build.onLoad({ filter: /renderer[\\/]bridge\.ts$/ }, () => ({
         loader: "ts",
-        contents: "export const call = (..._: unknown[]) => new Promise<any>(() => {}); export const onEvent = () => () => {}; export const openExternal = () => {};",
+        contents: "export const call = (..._: unknown[]) => new Promise<any>(() => {}); export const onEvent = () => () => {}; export const openExternal = () => {}; export const socket = { send: () => false, on: () => () => {}, connected: () => false };",
       }));
       build.onLoad({ filter: /\.css$/ }, () => ({ loader: "js", contents: "" }));
     },

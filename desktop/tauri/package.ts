@@ -1,5 +1,5 @@
 /**
- * The Tauri shell's packages, served next to the Electron ones (rust-api/src/desktop.rs): Linux x64 as a .tar.gz
+ * The Tauri shell's packages, served next to the Electron ones (go-api/desktop.go): Linux x64 as a .tar.gz
  * (`install.sh --tauri`) and Windows x64 as a .zip (`install.ps1` with CUBIX_SHELL=tauri). Both are built in Docker
  * (desktop/tauri/Dockerfile), so the machine needs neither WebKitGTK's headers nor a Windows toolchain; the build also
  * leaves a .deb and an NSIS installer in desktop/tauri/target, not served.

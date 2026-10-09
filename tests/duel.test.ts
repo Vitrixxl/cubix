@@ -2,28 +2,34 @@ import { expect, test, afterEach } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createRustApi } from "./backend";
+import { startApi } from "./backend";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {
   for (const cleanup of cleanups.splice(0)) cleanup();
 });
 
-/** A duel socket that keeps every message and can wait for the next one of a type. */
-async function player(origin: string) {
-  const ws = new WebSocket(origin.replace("http:", "ws:") + "/api/duel");
+/** An app's socket, signed in with `token` or without an account, that keeps every duel message and can wait for the
+ * next one of a type. */
+async function player(origin: string, token?: string) {
+  const ws = new WebSocket(origin.replace("http:", "ws:") + "/api/live");
   const inbox: any[] = [];
   const waiting: { type: string; test: (m: any) => boolean; resolve: (m: any) => void }[] = [];
+  const ready = Promise.withResolvers();
   ws.onmessage = ({ data }) => {
     const m = JSON.parse(String(data));
+    if (m.channel === "live" && m.type === "ready") return ready.resolve(m);
+    if (m.channel !== "duel") return;
     const i = waiting.findIndex((w) => w.type === m.type && w.test(m));
     if (i >= 0) waiting.splice(i, 1)[0]!.resolve(m);
     else inbox.push(m);
   };
   await new Promise((resolve) => (ws.onopen = resolve));
   cleanups.push(() => ws.close());
+  ws.send(JSON.stringify({ channel: "live", type: "auth", ...(token ? { token } : {}) }));
+  await ready.promise;
   return {
-    send: (m: object) => ws.send(JSON.stringify(m)),
+    send: (m: object) => ws.send(JSON.stringify({ channel: "duel", ...m })),
     next(type: string, test: (m: any) => boolean = () => true, wait = 3000) {
       const i = inbox.findIndex((m) => m.type === type && test(m));
       if (i >= 0) return Promise.resolve(inbox.splice(i, 1)[0]);
@@ -41,7 +47,7 @@ async function player(origin: string) {
 test("two players of close levels race an Ao5 on the same scrambles", async () => {
   const dir = mkdtempSync(join(tmpdir(), "cubix-duel-"));
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
-  const origin = `http://127.0.0.1:${createRustApi(join(dir, "test.db")).server.port}`;
+  const origin = `http://127.0.0.1:${startApi(join(dir, "test.db")).server.port}`;
   const a = await player(origin), b = await player(origin), far = await player(origin);
   // Far slower, and another event: neither is paired with these two.
   far.send({ type: "queue", event: "333", level: 60000 });
@@ -112,7 +118,7 @@ test("two players of close levels race an Ao5 on the same scrambles", async () =
 test("players search their own event, without a level at first", async () => {
   const dir = mkdtempSync(join(tmpdir(), "cubix-duel-"));
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
-  const origin = `http://127.0.0.1:${createRustApi(join(dir, "test.db")).server.port}`;
+  const origin = `http://127.0.0.1:${startApi(join(dir, "test.db")).server.port}`;
   const a = await player(origin), b = await player(origin), c = await player(origin);
   a.send({ type: "queue", event: "222" });
   b.send({ type: "queue", event: "444" });
@@ -125,19 +131,19 @@ test("players search their own event, without a level at first", async () => {
 test("an account signed in on two devices searches on both but never meets itself", async () => {
   const dir = mkdtempSync(join(tmpdir(), "cubix-duel-"));
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
-  const origin = `http://127.0.0.1:${createRustApi(join(dir, "test.db")).server.port}`;
+  const origin = `http://127.0.0.1:${startApi(join(dir, "test.db")).server.port}`;
   const register = async (username: string) =>
     (await (await fetch(`${origin}/api/auth/register`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username, password: "a-long-test-password" }) })).json()).token as string;
   const [alice, bob] = await Promise.all([register("alice"), register("bob")]);
-  const phone = await player(origin), laptop = await player(origin), other = await player(origin);
-  phone.send({ type: "queue", event: "333", token: alice });
+  const phone = await player(origin, alice), laptop = await player(origin, alice), other = await player(origin, bob);
+  phone.send({ type: "queue", event: "333" });
   await phone.next("queued");
-  laptop.send({ type: "queue", event: "333", token: alice });
+  laptop.send({ type: "queue", event: "333" });
   await laptop.next("queued");
   // Without a level they would meet at once: they only see each other searching.
   expect((await laptop.next("queue", (m) => m.searching === 1)).searching).toBe(1);
   await Bun.sleep(1500);
-  other.send({ type: "queue", event: "333", token: bob });
+  other.send({ type: "queue", event: "333" });
   const [first, against] = await Promise.all([phone.next("match"), other.next("match")]);
   expect(first.race).toBe(against.race);
   expect(against.players.map((p: any) => p.name).sort()).toEqual(["alice", "bob"]);

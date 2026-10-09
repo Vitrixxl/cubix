@@ -1,5 +1,5 @@
 /**
- * A match of a tournament or a battle, on the socket /api/matches/live (rust-api/src/tournament.rs): the server keeps
+ * A match of a tournament or a battle, on the app's socket (channel "match", go-api/tournament.go): the server keeps
  * the solves and the score; this client mirrors them for the match page, sends the player's times and their timer's
  * phases, and draws the scramble of each solve when it is this app's turn (the first player's, or the second's while
  * the first is away). Whoever is not a player of the match watches it. The web app and the Android app each give it
@@ -13,14 +13,25 @@ import { seatIn, type Match, type Result, type SocialHost } from "./community";
 export type Phase = DuelPhase;
 export const resultTime = (r: Result | null | undefined) => solveTime(r ?? null);
 
-/** What a platform gives a match: the community's host (its API, token, account and redraw), a scrambler and errors. */
-export interface MatchHost extends Pick<SocialHost, "origin" | "token" | "account" | "changed"> {
+/** What a platform gives a match: the community's host (its socket, account and redraw), a scrambler and errors. */
+export interface MatchHost extends Pick<SocialHost, "live" | "account" | "changed"> {
   scramble(context: PracticeContext): Promise<string>;
   fail(error: unknown): void;
 }
 
 export class MatchClient {
-  constructor(readonly host: MatchHost) {}
+  constructor(readonly host: MatchHost) {
+    host.live.on("match", (m) => (m.type === "state" ? m.match?.id : m.match) === this.id && this.id && this.receive(m));
+    host.live.on("live", (m) => {
+      if (!this.id) return;
+      // Back online, the match is joined again: its state comes with it.
+      if (m.type === "ready") this.send({ type: "join" });
+      else {
+        this.connected = false;
+        this.host.changed();
+      }
+    });
+  }
   id = 0;
   match: Match | null = null;
   error = "";
@@ -28,9 +39,6 @@ export class MatchClient {
   /** The other player's timer, and when it started on this device's clock. */
   phases: [Phase, Phase] = ["idle", "idle"];
   started: [number, number] = [0, 0];
-  private socket?: WebSocket;
-  private ping?: ReturnType<typeof setInterval>;
-  private retry?: ReturnType<typeof setTimeout>;
   /** The solve whose scramble this app already drew. */
   private drawn = 0;
 
@@ -69,45 +77,15 @@ export class MatchClient {
     this.match = null;
     this.error = "";
     this.drawn = 0;
-    this.connect();
+    this.send({ type: "join" });
   }
   close() {
-    clearTimeout(this.retry);
-    clearInterval(this.ping);
-    if (this.socket) {
-      this.socket.onclose = null;
-      this.socket.close();
-    }
-    this.socket = undefined;
+    if (this.id) this.send({ type: "leave" });
     this.connected = false;
     this.id = 0;
   }
-  private send(value: object) {
-    if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(value));
-  }
-  private connect(attempt = 0) {
-    const id = this.id;
-    const ws = new WebSocket(this.host.origin.replace(/^http/, "ws") + "/api/matches/live");
-    this.socket = ws;
-    ws.onopen = async () => {
-      const token = await this.host.token().catch(() => null);
-      if (this.socket !== ws) return;
-      ws.send(JSON.stringify({ type: "join", token, match: id }));
-      clearInterval(this.ping);
-      this.ping = setInterval(() => this.send({ type: "ping" }), 20_000);
-    };
-    ws.onmessage = (e) => {
-      try {
-        this.receive(JSON.parse(String(e.data)));
-      } catch {}
-    };
-    ws.onclose = () => {
-      if (this.socket !== ws) return;
-      this.connected = false;
-      clearInterval(this.ping);
-      this.host.changed();
-      this.retry = setTimeout(() => this.id === id && this.connect(attempt + 1), Math.min(10_000, 500 * 2 ** attempt));
-    };
+  private send(value: { type: string; [key: string]: unknown }) {
+    this.host.live.send({ channel: "match", match: this.id, ...value });
   }
   private receive(m: any) {
     if (m.type === "state") {

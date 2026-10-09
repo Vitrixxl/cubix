@@ -24,7 +24,7 @@ total = sum(s['requests'] for s in stages)
 errors = sum(s['failedRequests'] for s in stages)
 peak = max(max(s['rssMB'], s['peakMB']) for s in r['samples'])
 max_connections = max(s['connected'] for s in r['results'])
-lines = [f"# Stress test {r.get('backend', 'Rust')} — {r['timestamp'][:10]}", '',
+lines = [f"# Stress test — {r['timestamp'][:10]}", '',
          f"**{number(max_connections)} connexions établies au maximum**, {number(total)} requêtes, "
          f"{number(errors)} échecs ({number(errors / total * 100, 2)} %). Pic RSS serveur : **{number(peak, 1)} Mo**.", '',
          '| Connexions | Utilisateurs HTTP actifs | HTTP simultanées | Requêtes/s | p50 ms | p95 ms | p99 ms | Échecs | Pic RAM Mo | CPU moyen¹ |',
@@ -42,7 +42,7 @@ lines += ['', '¹ 100 % CPU = un cœur logique occupé. Le p95 signifie que 95 %
           f"- Swap serveur maximal : {number(max(s['swapMB'] for s in r['samples']), 1)} Mo.",
           f"- Descripteurs ouverts au pic : {number(max(s['openFds'] for s in r['samples']))} / {number(r['host']['fdHardLimit'])}.",
           f"- WebSockets fermées pendant les paliers HTTP : {number(sum(s['wsClosed'] for s in stages))}.",
-          f"- Notifications reçues : {number(sum(s['notifications'] for s in stages))} ; réponses aux heartbeats : {number(sum(s['pongs'] for s in stages))}.",
+          f"- Notifications reçues : {number(sum(s['notifications'] for s in stages))}.",
           f"- RAM des générateurs clients au plus haut relevé de fin de palier : {number(max(s['generatorRssMB'] for s in stages), 1)} Mo (processus distincts du serveur).",
           f"- Retard p99 maximal des boucles événementielles des générateurs : {number(max(s['generatorLagP99'] for s in stages), 1)} ms.",
           f"- Durée mesurée après préparation de la base : {number(r['totalElapsedSeconds'], 1)} secondes.",
@@ -89,7 +89,7 @@ lines += ['', f"Statuts : `{json.dumps(statuses, sort_keys=True)}`.",
           '- Ce maximum est celui testé dans ce scénario. Un grand nombre de sockets ouvertes ne garantit pas une latence acceptable sous une charge arbitraire.']
 if r['host']['fdHardLimit'] > 4096:
     lines += ['', 'Le test renforcé utilise un conteneur sans réseau externe, sans ports publiés, limité à 8 Gio de RAM '
-              'et 16 cœurs CPU, avec 262 144 descripteurs par processus. Huit ports loopback alimentent le même processus Rust '
+              'et 16 cœurs CPU, avec 262 144 descripteurs par processus. Huit ports loopback alimentent le même processus serveur '
               'pour éviter l’épuisement des ports TCP clients. '
               'Les timeouts HTTP n’interrompent pas la montée ; les échecs massifs de connexion/déconnexion ou le seuil RSS serveur de 4 000 Mo l’arrêtent.']
 lines += ['', 'Fichiers : `results.json`, `summary.csv`, `memory.csv`, `run.log`, `server.log`.', '']

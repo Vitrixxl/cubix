@@ -1,4 +1,4 @@
-/** Rebuild the portable multi-cube drills consumed by both the browser and Rust. */
+/** Rebuild the portable multi-cube drills consumed by both the browser and the API. */
 import { writeFile } from "node:fs/promises";
 import { invertAlg } from "../src/shared/cube";
 import type { CaseDto, SetDto, Stage } from "../src/shared/types";

@@ -1,13 +1,10 @@
 **
 !Dockerfile
 !.git
-!rust-api/
-rust-api/*
-!rust-api/Cargo.toml
-!rust-api/Cargo.lock
-!rust-api/catalog-sets.json
-!rust-api/src/
-!rust-api/src/**
+# The API, without its local build.
+!go-api/
+go-api/cubix-api
+go-api/embed/
 !data/
 data/*
 !data/*.json
@@ -29,7 +26,3 @@ desktop/*
 !desktop/assets/
 # The desktop installers the landing page gives (copied into the web build).
 !desktop/install/
-# The Go port (go-api/Dockerfile), without its local build.
-!go-api/
-go-api/cubix-api
-go-api/embed/

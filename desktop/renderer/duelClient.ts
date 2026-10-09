@@ -1,6 +1,6 @@
 /** The duel of the web app: the shared client (src/client/lib/duel.ts) on the data engine and the store. */
 import { store as s } from "./store";
-import { call } from "./bridge";
+import { call, socket } from "./bridge";
 import { DUELS_KEY, DuelClient, type DuelRecord } from "../../src/client/lib/duel";
 import { eventInfo } from "../../src/shared/puzzles";
 
@@ -39,7 +39,7 @@ class WebDuel extends DuelClient {
 }
 
 export const duel = new WebDuel({
-  origin: location.origin,
+  live: socket,
   changed: () => s.emit(),
   reset: () => void s.timerEpoch++,
   scramble: (context) => call("scramble", context),
@@ -47,7 +47,6 @@ export const duel = new WebDuel({
     const event = eventInfo(id);
     return event ? call("duelLevel", event.puzzle, event.solveMode) : null;
   },
-  token: () => call("duelToken"),
   // The engine keeps the battles; a race already kept as it stands is not written again.
   record: (record: DuelRecord) => {
     const existing = (s.prefs[DUELS_KEY] ?? []).find((v: DuelRecord) => v.id === record.id);

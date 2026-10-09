@@ -1,6 +1,6 @@
 package main
 
-// JSON values as serde_json handles them: no Rust module of its own.
+// JSON values, read and written as serde_json does (the format stored data and clients expect).
 
 import (
 	"bytes"

@@ -1,60 +1,77 @@
-# cubix-api en Go
+# Serveur (go-api)
 
-Portage de `rust-api/` : mêmes routes, codes, JSON, messages d’erreur, protocoles WebSocket, options
-(`--version`, `--host`, `--port`, `--init-db`, `admin-token [--revoke]`, `--admin-token`, `seed`,
-`--import-history <user>`), variables d’environnement et base SQLite (les deux binaires ouvrent la base
-de l’autre).
+Go, `net/http` et SQLite (`mattn/go-sqlite3`, cgo). Le binaire `cubix-api` sert les API HTTP et
+WebSocket et, quand elle est construite (`CUBIX_WEB_DIR`, sinon `dist/web`), l’application web.
+Voir le [README principal](../README.md) pour `docker compose up` et `bun run dev:docker`.
 
-## Construire
+## Construire et lancer
 
 ```sh
-go-api/build.sh               # copie les fichiers embarqués dans go-api/embed/ puis produit go-api/cubix-api
+bun run build:api             # = sh go-api/build.sh → go-api/cubix-api
 go-api/build.sh -tags seed    # avec la commande `cubix-api seed` (images de dev uniquement)
+go-api/cubix-api --port 3000  # ou `bun run start` (port 47129 par défaut)
 ```
 
-`go:embed` ne sort pas du module : `build.sh` copie `data/{catalog,puzzles,method-ids}.json` et
-`rust-api/src/{schema,query-indexes}.sql` dans `embed/` (ignoré par git). Lancer `build.sh` une fois
-avant `go vet` ou `go build`. Tests : `CUBIX_API_BIN=$PWD/go-api/cubix-api bun test …`.
+`go:embed` ne sort pas du module : `build.sh` copie `data/{catalog,puzzles,method-ids}.json` dans
+`embed/` (ignoré par git) ; `schema.sql` et `query-indexes.sql` sont embarqués depuis `go-api/`.
+Lancer `build.sh` une fois avant `go vet` ou `go test`. Il ajoute toujours le tag `sqlite_stat4`.
 
-Dépendances : `mattn/go-sqlite3` (cgo, vraie SQLite), `gorilla/websocket`, `x/crypto/argon2`.
-Pas de framework : `net/http` et son `ServeMux`.
+Le binaire se lance depuis tout répertoire. La base est choisie par `CUBIX_DB` ; initialisation et
+migrations sont automatiques (`--init-db` ne fait que cela). Autres commandes : `--version`,
+`--host`, `--port`, `admin-token [--revoke]` (ou `--admin-token`), `seed`, `--import-history <user>`.
+Un `.env` du répertoire courant ou de ses parents est chargé au démarrage, sans écraser l’environnement.
+
+L’image de production est le `Dockerfile` racine : binaire statique (musl, SQLite liée),
+`GO_TAGS=seed` pour l’image de dev (`compose.dev.yaml`).
+
+## Tests
+
+```sh
+bun run test:api                                                     # vrais binaires, bases temporaires
+cd go-api && go vet -tags seed ./... && go test -tags "sqlite_stat4 seed" ./...
+```
+
+Les tests `tests/*.test.ts` lancent `go-api/cubix-api` (`CUBIX_API_BIN` pour un autre binaire).
+`bun run stress` mesure le serveur sous charge (variables `CUBIX_STRESS_*` dans `scripts/stress-api.ts`,
+rapport par `python3 scripts/stress-report.py artifacts/<test>`).
 
 ## Conventions
 
-- Un seul `package main`, un fichier par module Rust, même nom (`api.go`, `social.go`…).
-  `value.go` regroupe ce que serde_json faisait (aucun module Rust).
-- Noms : `social::member` → `socialMember` ; `social::Card` → `SocialCard` ; un type qui porte déjà
-  le nom du module le garde (`Admin`, `Traffic`, `Catalog`, `Db`, `ApiError`). `Type::new` → `newType`.
-  Méthodes en lowerCamel (`hub.notifySync`).
-- Commentaires : ceux du Rust qui expliquent le *pourquoi*, traduits fidèlement (en anglais).
+- Un seul `package main`, un fichier par domaine (`api.go`, `social.go`, `coaching.go`…).
+- Noms préfixés par leur fichier : `socialMember`, `SocialCard` ; un type qui porte déjà le nom du
+  domaine le garde (`Admin`, `Traffic`, `Catalog`, `Db`, `ApiError`). Constructeurs `newType`.
+- Commentaires en anglais, qui expliquent le *pourquoi*.
 - JSON : `type M = map[string]any`. Corps lus par `decodeJSON` (nombres en `json.Number`), écrits par
-  `encodeJSON`/`writeJSON` (sans échappement HTML). Accès façon serde : `get`, `idx` (= `value[key]`),
-  `asStr`, `str`, `asInt` (= `as_i64`, refuse 1.5 et 1.0), `asUint`, `asFloat`, `asBool`, `asArray`,
-  `asObject`, `eqStr`, `eqInt`, `jsonEqual`, `contains`. Les lignes SQLite : `int64`, `float64`,
-  `string`, `nil` (les blobs sont `nil`).
-- `Option<T>` : pointeur (`*string`, `*float64`) ou, pour un id, valeur zéro (`0`, `""`).
-- Erreurs : `*ApiError{Status, Message}` ; `apiErr`, `internal(err)` (journalise `API error: …`, 500),
+  `encodeJSON`/`writeJSON` (sans échappement HTML). Accès : `get`, `idx`, `asStr`, `str`, `asInt`
+  (refuse 1.5 et 1.0), `asUint`, `asFloat`, `asBool`, `asArray`, `asObject`, `eqStr`, `eqInt`,
+  `jsonEqual`, `contains` (`value.go`). Lignes SQLite : `int64`, `float64`, `string`, `nil`.
+- Valeur facultative : pointeur (`*string`, `*float64`) ou, pour un id, valeur zéro (`0`, `""`).
+- Erreurs : `*ApiError{Status, Message}` ; `apiErr`, `internal(err)` (journalise, 500),
   `validation()` (422). Toute autre `error` devient `internal` à la réponse (`toApiError`).
-  Un `return nil, validation()` ; jamais un `*ApiError` nil typé dans une `error`.
-- Base : `state.db.Call(func(db *Conn) error)` ou `dbCall(state.db, func(db *Conn) (T, error))` ;
-  chaque appel a la connexion pour lui seul (comme le thread SQLite du Rust). Sur `*Conn` : `Exec`
-  (lignes modifiées), `ExecBatch`, `LastInsertRowid`, `Begin` → `*Tx` (`defer tx.Rollback()`,
-  `tx.Commit()`), et l’on continue d’utiliser le même `*Conn` dans la transaction. Aides : `dbAll`,
-  `dbOne` (nil si rien), `dbRequired(db, sql, message404, params...)` (paramètres en dernier),
-  `hasColumn`, `addColumnIfMissing`.
-- Handlers HTTP hors `api::dispatch` : `func(state *AppState, w http.ResponseWriter, r *http.Request)`,
-  paramètres de chemin par `r.PathValue`, corps par `readBody(w, r)` (limite de la route, 413 comme
-  axum), réponse par `writeResult(w, value, err)`. `setActor(r, ActivityActor{…})` remplace
-  l’extension `Actor` ; `onHeader` un en-tête posé par une couche.
-- WebSocket : `wsUpgrader`, `wsReceive` (messages, pings et pongs sur un canal), `wsSend`, `wsClose`
-  (dans `live.go`). Tâches tokio → goroutines, `Semaphore` → canal tamponné, `broadcast` →
-  `broadcaster[T]`, `Notify` → canal de taille 1.
-- `stubs_*.go` : symboles des autres groupes (SOCIAL, COACHING, ADMIN, SEED) avec leur signature
-  définitive. Le groupe qui les porte supprime son fichier de stubs et les implémente à l’identique.
+  Jamais un `*ApiError` nil typé dans une `error`. Les messages sont traduits par le client :
+  `bun scripts/i18n-extract.ts` les relève (`apiErr(…, "…")` et constantes `const x = "…"`).
+- Base : une connexion, un appel à la fois : `state.db.Call(func(db *Conn) error)` ou
+  `dbCall(state.db, func(db *Conn) (T, error))`. Sur `*Conn` : `Exec`, `ExecBatch`,
+  `LastInsertRowid`, `Begin` → `*Tx` (`defer tx.Rollback()`, `tx.Commit()`). Aides : `dbAll`,
+  `dbOne` (nil si rien), `dbRequired(db, sql, message404, params...)`, `hasColumn`, `addColumnIfMissing`.
+- Handlers HTTP : `func(state *AppState, w http.ResponseWriter, r *http.Request)`, `r.PathValue`,
+  `readBody(w, r)` (limite de la route, 413), `writeResult(w, value, err)`, `setActor` pour le
+  journal d’activité.
 
-## Image et benchmark
+## Administration
 
-`go-api/Dockerfile` : binaire statique (musl, SQLite liée) sur `scratch`, sans l’application web (~16 Mio).
-`bun run dev:docker --go` lance cette image avec les données seedées (port 47131).
-`go-api/bench/bench.ts` compare la RAM et le débit des deux API en conteneur (voir son en-tête) ;
-derniers résultats dans `go-api/bench/results.md`.
+`cubix-api admin-token` génère un jeton `cbx_admin_` + 64 caractères hexadécimaux, n’en stocke que
+le SHA-256 dans `admin_access` et l’affiche une fois ; le relancer le remplace et ferme toutes les
+sessions admin, `--revoke` désactive l’administration. La commande fonctionne serveur en marche
+(WAL). `POST /api/admin/login` prend `{"token"}` (5 essais / 15 min / IP) et pose le cookie
+`cubix_admin` (HttpOnly, SameSite=Strict, un jour). Sans jeton, les routes admin répondent 503.
+
+Les routes `/api/admin/*` (vue d’ensemble, journal des requêtes, IP, comptes, révocation et
+suppression d’un compte, socket `/api/admin/live`) exigent ce cookie, répondent `no-store`, et
+les écritures vérifient l’origine. Le journal est écrit par lots en arrière-plan et vidé à l’arrêt
+(SIGTERM). Rétention : 30 jours, 200 000 lignes ordinaires et 50 000 importantes ; agrégats par IP
+90 jours, activité quotidienne des comptes 400 jours (`activity.go`).
+
+`CUBIX_ADMIN_PASSWORD` sert uniquement aux envois de l’APK et des mises à jour mobiles
+(`PUT /api/mobile/apk`, `Authorization: Bearer …`). Le numéro de build (`CUBIX_BUILD_NUMBER`, date
+du commit en minutes) et `CUBIX_COMMIT` viennent de `/app/.env`, écrit par le `Dockerfile`.

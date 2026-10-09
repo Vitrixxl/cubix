@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { cubingScrambleEngine } from "../../src/client/lib/cubingScrambleEngine";
 import { tr } from "../../src/client/i18n";
+import type { LiveLink } from "../../src/client/live";
 
 /** What the Electron shell adds to the web app (desktop/electron/preload.ts). */
 export interface DesktopBridge {
@@ -27,6 +28,8 @@ const listeners = new Set<(event: any) => void>();
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let sequence = 0;
 let failure: Error | undefined;
+/** Whether the engine's socket is signed in (see `socket`). */
+let online = false;
 
 /** Without shared workers each tab runs its own engine, which keeps the whole workspace in memory: one tab at a time
  * owns it. The tab opened last always takes it; the one it was taken from stops its engine and offers to take it back. */
@@ -106,11 +109,16 @@ const worker = (async () => {
       else request.resolve(data.value);
     } else if (data.event === "started") {
       ready = true;
+      online = data.value.online;
       if (data.value.imported) void desktop?.legacyImported();
       if (data.value.displaced) void stale();
       resolve(port);
     } else if (data.event === "failed") reject(new Error(data.value));
     else if (data.event === "replaced") replaced(ready);
+    else if (data.event === "socket" && data.value.channel === "live") {
+      online = data.value.type === "ready";
+      for (const listener of listeners) listener(data);
+    }
     else for (const listener of listeners) listener(data);
   };
   const stopped = (event: Event) => {
@@ -154,6 +162,21 @@ export const call = async (method: string, ...args: any[]): Promise<any> => {
   });
 };
 window.cubix = { call };
+/** The app's one socket, held by the engine for every tab (src/client/live.ts): the tab's features send on it and hear
+ * their channels. */
+export const socket: LiveLink = {
+  send(message) {
+    if (!online || failure) return false;
+    void worker.then((port) => port.postMessage({ socket: message }));
+    return true;
+  },
+  on(channel, listener) {
+    return onEvent((event) => {
+      if (event.event === "socket" && (channel === "*" || event.value.channel === channel)) listener(event.value);
+    });
+  },
+  connected: () => online,
+};
 /** Engine events (`changed`, `sync`, `live`, `error`), plus the desktop's mouse back/forward buttons. */
 export function onEvent(callback: (event: any) => void) {
   listeners.add(callback);

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { DUELS_KEY, DuelClient, keepRecord, levelOf, type DuelRecord } from "../../../src/client/lib/duel";
 import { eventInfo } from "../../../src/shared/puzzles";
-import { API_ORIGIN, api, authToken, local } from "../api";
+import { api, live } from "../api";
 import { storage } from "../platform/storage";
 import { generatePracticeScramble } from "./practiceScramble";
 
@@ -22,7 +22,7 @@ export const battles = (): DuelRecord[] => {
 };
 
 export const duel = new DuelClient({
-  origin: API_ORIGIN,
+  live,
   changed: emit,
   reset: () => { epoch++; },
   scramble: generatePracticeScramble,
@@ -30,7 +30,6 @@ export const duel = new DuelClient({
     const event = eventInfo(id);
     return event ? levelOf(await api.solves("playground", 12, event.puzzle, { solveMode: event.solveMode, scrambleType: "normal" })) : null;
   },
-  token: async () => local.current().isGuest ? null : authToken.get(),
   record: record => {
     const list = battles(), next = keepRecord(list, record);
     if (JSON.stringify(next) === JSON.stringify(list)) return;

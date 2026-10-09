@@ -1,6 +1,6 @@
 /**
  * Assemble the single shared catalogue (`data/catalog.json`) from the curated inputs in `data/`.
- * Every client (Rust API, desktop, mobile, tests) reads the generated file and never merges sources itself.
+ * Every client (API, desktop, mobile, tests) reads the generated file and never merges sources itself.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

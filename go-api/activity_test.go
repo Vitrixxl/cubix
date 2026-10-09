@@ -31,7 +31,6 @@ func TestClassification(t *testing.T) {
 		{"GET", "/api/admin/overview", 200, "admin", false, true},
 		{"POST", "/api/admin/users/x/revoke", 200, "admin", true, true},
 		{"DELETE", "/api/admin/users/x", 200, "account", true, true},
-		{"GET", "/api/duel", 101, "duel", true, true},
 		{"PUT", "/api/mobile/apk", 200, "release", true, true},
 		{"GET", "/api/mobile/apk", 200, "mobile", false, true},
 		{"GET", "/build/app.js", 200, "asset", false, false},

@@ -6,8 +6,7 @@ services:
     build:
       context: .
       args:
-        CARGO_FEATURES: seed
-        CARGO_BUILD_JOBS: default
+        GO_TAGS: seed
     ports:
       - "127.0.0.1:${CUBIX_DEV_API_PORT:-47130}:3000"
     environment:

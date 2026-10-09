@@ -4,6 +4,7 @@
 import { cubeScene as cubePreview } from '../../src/shared/cubeScene';
 import { createLocalClient } from '../../src/client/local/client';
 import { createApiClient } from '../../src/client/api-client';
+import { createLive, type LiveMessage } from '../../src/client/live';
 import { applyAlg, combineAuf, compensateAuf, randomAuf, solved } from '../../src/shared/cube';
 import { executableAlg, maskForStage } from '../../src/client/lib/caseState';
 import { StaticCubeSvg } from '../../src/client/diagrams/StaticCubeSvg';
@@ -51,22 +52,11 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     remote: token => createApiClient(origin, { getToken: () => token }),
     changed: () => emit({ event: 'changed' }), status: status => emit({ event: 'sync', value: status }),
   });
-  let live: ReturnType<typeof local.api.connectLive> | undefined;
-  let liveToken: string | null = null, reconnect: ReturnType<typeof setTimeout> | undefined;
-  function connect() {
-    const token = storage.getItem(tokenKey); if (token === liveToken && live) return;
-    if (live) { local.disconnected(live); live.close(); } live = undefined; liveToken = token;
-    if (!token || local.current().isGuest) return;
-    live = local.api.connectLive(); const current = live;
-    current.on('open', () => current.send({ type: 'auth', token, protocol: 2, after: local.liveCursor() }));
-    current.on('message', ({ data }) => {
-      if (live !== current) return;
-      if (data.type === 'ready') emit({ event: 'live', value: 'online' });
-      void local.receiveLive(current, data);
-    });
-    current.on('close', () => { local.disconnected(current); if (live !== current) return; live = undefined; emit({ event: 'live', value: 'connecting' }); reconnect = setTimeout(connect, 3000); });
-    current.on('error', () => {});
-  }
+  // The app's one socket, signed in with the account's token (without one for a guest): its sync stays here, every
+  // other channel goes to the tabs as `socket` events, and the tabs send on it through `send`.
+  const live = createLive(local, () => local.current().isGuest ? null : storage.getItem(tokenKey));
+  live.on('*', value => emit({ event: 'socket', value }));
+  const connect = () => live.ensure();
   let lastAdvance: { key: string; promise: Promise<Record<string, unknown>> } | undefined;
   // Competition scrambles come from a reserve kept on the device for every event (scramblePool.ts), filled in the
   // background from the launch; the other scramble types keep one scramble generated ahead per context.
@@ -231,7 +221,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       return { ...solve, record };
     }
     // One-on-one races: the account's token names the player, recent timer solves place them among the others.
-    if (req.method === 'duelToken' || req.method === 'apiToken') return local.current().isGuest ? null : storage.getItem(tokenKey);
+    if (req.method === 'apiToken') return local.current().isGuest ? null : storage.getItem(tokenKey);
     if (req.method === 'duelLevel') {
       const [puzzle, solveMode] = req.args;
       return levelOf(await local.api.solves('playground', 12, puzzle, { solveMode, scrambleType: 'normal' }));
@@ -256,10 +246,13 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   }
   // Requests are handled one after another, like the solves they record.
   let queue = Promise.resolve();
-  const retry = setInterval(() => { void local.restore(); connect(); if (live?.ws.readyState === WebSocket.OPEN) live.send({ type: 'ping' }); }, 30000);
+  const retry = setInterval(() => { void local.restore(); connect(); }, 30000);
   void local.restore().then(connect);
   return {
     request: (req: EngineRequest) => { queue = queue.then(() => handle(req)); },
-    stop() { clearInterval(retry); clearTimeout(reconnect); local.stop(); live?.close(); },
+    stop() { clearInterval(retry); local.stop(); live.stop(); },
+    /** A tab's message for the socket, past the queue of requests: a timer's phase cannot wait for a statistic. */
+    send: (message: LiveMessage) => live.send(message),
+    online: () => live.connected(),
   };
 }

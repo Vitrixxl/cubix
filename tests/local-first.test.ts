@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { createLocalClient } from "../src/client/local/client";
 import { createApiClient } from "../src/client/api-client";
-import { createRustApi, openDb } from "./backend";
+import { startApi, openDb } from "./backend";
 import { history } from "../src/client/local/stats";
 import type { SolveDto } from "../src/shared/types";
 import { learningCases, learningKey, orderedGroups, type LearningTrack } from "../src/client/lib/dailyLearning";
@@ -19,7 +19,7 @@ class Storage {
 const cleanup: (()=>void)[] = [];
 afterEach(() => cleanup.splice(0).forEach(fn => fn()));
 function setup() {
-  const db = openDb(); const server = createRustApi(db.path);
+  const db = openDb(); const server = startApi(db.path);
   cleanup.push(() => db.db.close());
   const origin = `http://127.0.0.1:${server.server.port}`;
   return {db,origin,remote:(token: string | null) => createApiClient(origin,{getToken:()=>token})};
@@ -224,7 +224,7 @@ test("storage quota failures leave saved history intact and are reported instead
   expect(a.local.status().state).toBe("error");
 });
 
-test("local WCA statistics match Rust, and the embedded catalogue matches the server",async () => {
+test("local WCA statistics match the server, and the embedded catalogue matches the server",async () => {
   const {remote} = setup(); const a = device(remote);
   const auth = await a.api.register("stats_local","a-long-test-password");
   for (let i=0;i<15;i++) await a.api.addSolve({caseId:"PLL Aa",timeMs:1000+i*100,penalty:i===4||i===5?"dnf":i===8?"+2":"none"});
@@ -533,12 +533,13 @@ test("a live socket announces the account's own changes so other devices pull im
   });
   ws.addEventListener("message",event => messages.push(JSON.parse(String(event.data))));
   const ready = next("ready");
-  ws.addEventListener("open",() => ws.send(JSON.stringify({type:"auth",token:auth.token})));
+  const held = JSON.parse(a.storage.getItem("cubix.local.v1:workspace:"+auth.user.id)!).cursor;
+  ws.addEventListener("open",() => ws.send(JSON.stringify({channel:"live",type:"auth",token:auth.token,after:held})));
   const cursorAtConnect = (await ready).cursor;
-  expect(cursorAtConnect).toBe(JSON.parse(a.storage.getItem("cubix.local.v1:workspace:"+auth.user.id)!).cursor);
+  expect(cursorAtConnect).toBe(held);
   // Device B (plain HTTP) records a time and a learning mark; the socket of device A hears about both.
   const b = device(remote); await b.api.login("live_alice","a-long-test-password");
-  const announced = next("sync");
+  const announced = next("changes");
   const solve = await b.api.addSolve({timeMs:4321}); await b.api.setLearned("PLL Aa",true); await b.api.setLearningGroupOrder("PLL",trackGroups("PLL").reverse()); await b.local.sync();
   const notice = await announced;
   expect(notice.cursor).toBeGreaterThan(cursorAtConnect);
@@ -550,10 +551,10 @@ test("a live socket announces the account's own changes so other devices pull im
   // Being up to date, the same notification does not trigger another request.
   const before = a.control.requests; await a.local.remoteChanged(notice.cursor); expect(a.control.requests).toBe(before);
   // Direct REST writes are announced too.
-  const rest = next("sync"); await remote(auth.token).deleteSolve((await remote(auth.token).solves("playground"))[0].id); await rest;
+  const rest = next("changes"); await remote(auth.token).deleteSolve((await remote(auth.token).solves("playground"))[0].id); await rest;
   await new Promise(resolve => setTimeout(resolve,100));
-  // Only ready and sync frames ever reach this socket.
-  expect(messages.map(m => m.type).filter(t => t !== "sync")).toEqual(["ready"]);
+  // Only ready and the sync's changes ever reach this socket.
+  expect(messages.map(m => m.type).filter(t => t !== "changes")).toEqual(["ready"]);
   expect(messages.at(-1).cursor).toBeGreaterThan(notice.cursor);
 });
 

@@ -1,4 +1,4 @@
-/** Local tooling only. The running application uses Rust/rusqlite. */
+/** Local tooling only. The running application uses go-api (mattn/go-sqlite3). */
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
@@ -25,9 +25,9 @@ export class Database {
   }
 }
 export function openDb(path: string) {
-  const initialized = spawnSync(resolve(process.env.CUBIX_API_BIN ?? 'rust-api/target/release/cubix-api'), ['--init-db'], {
+  const initialized = spawnSync(resolve(process.env.CUBIX_API_BIN ?? 'go-api/cubix-api'), ['--init-db'], {
     env: { ...process.env, CUBIX_DB: path }, encoding: 'utf8',
   });
-  if (initialized.status !== 0) throw new Error(initialized.stderr || 'Build the Rust API first.');
+  if (initialized.status !== 0) throw new Error(initialized.stderr || 'Build the API first (bun run build:api).');
   return { path, db: new Database(path) };
 }

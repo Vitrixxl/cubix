@@ -1,10 +1,10 @@
 import {afterEach,expect,test} from "bun:test";
-import {adminToken,createRustApi,openDb} from "./backend";
+import {adminToken,startApi,openDb} from "./backend";
 import {createApiClient} from "../src/client/api-client";
 const cleanup:(()=>void)[]=[];afterEach(()=>cleanup.splice(0).forEach(fn=>fn()));
 
 function setup() {
- const db=openDb();cleanup.push(()=>db.db.close());const app=createRustApi(db.path);
+ const db=openDb();cleanup.push(()=>db.db.close());const app=startApi(db.path);
  return {db,origin:`http://127.0.0.1:${app.server.port}`,admin:adminToken(db.path)};
 }
 async function account(origin:string,name:string) {
@@ -21,15 +21,15 @@ async function adminSession(origin:string,token:string) {
  const cookie=response.headers.get("set-cookie")!.split(";")[0]!;
  return async(method:string,path:string)=>{const r=await fetch(origin+"/api/admin/"+path,{method,headers:{cookie}});return {status:r.status,value:await r.json()};};
 }
-/** A coaching socket, signed in, that keeps what it hears. */
+/** An app's socket, signed in, that keeps what it hears on the coaching channel and sends on it. */
 async function socket(origin:string,token:string) {
- const ws=new WebSocket(origin.replace("http:","ws:")+"/api/coaching/live");cleanup.push(()=>ws.close());
+ const ws=new WebSocket(origin.replace("http:","ws:")+"/api/live");cleanup.push(()=>ws.close());
  const heard:any[]=[];const waiters:[(m:any)=>boolean,(m:any)=>void][]=[];
- ws.onmessage=e=>{const m=JSON.parse(String(e.data));heard.push(m);for(const w of [...waiters])if(w[0](m)){waiters.splice(waiters.indexOf(w),1);w[1](m);}};
+ ws.onmessage=e=>{const m=JSON.parse(String(e.data));if(m.channel!=="coaching"&&m.channel!=="live")return;heard.push(m);for(const w of [...waiters])if(w[0](m)){waiters.splice(waiters.indexOf(w),1);w[1](m);}};
  await new Promise(r=>ws.onopen=r);
  const next=(match:(m:any)=>boolean)=>new Promise<any>((resolve,reject)=>{const found=heard.find(match);if(found){heard.splice(heard.indexOf(found),1);return resolve(found);}waiters.push([match,m=>{heard.splice(heard.indexOf(m),1);resolve(m);}]);setTimeout(()=>reject(Error("nothing heard")),3000);});
- ws.send(JSON.stringify({type:"auth",token}));await next(m=>m.type==="ready");
- return {send:(v:unknown)=>ws.send(JSON.stringify(v)),next};
+ ws.send(JSON.stringify({channel:"live",type:"auth",token}));await next(m=>m.type==="ready");
+ return {send:(v:object)=>ws.send(JSON.stringify({channel:"coaching",...v})),next};
 }
 
 test("an application, once approved, makes a coach whom players can book, review and message",async()=>{

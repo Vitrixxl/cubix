@@ -3,7 +3,7 @@
 Application native de speedcubing : chronomètre, algorithmes, entraînement,
 statistiques et succès. Un compte sert uniquement à synchroniser ses temps entre
 appareils. Application web (PWA) servie par l'API, desktop **Electron** qui ouvre
-cette même application, Android en **React Native**, API en **Rust / Axum / SQLite**.
+cette même application, Android en **React Native**, API en **Go / SQLite**.
 
 ## Web et desktop
 
@@ -19,7 +19,7 @@ une fois connecté. Chaque langue autre que l'anglais vit sous son préfixe (`/f
 Les pages publiques (chrono, algorithmes et chaque cas, cours et chaque étape,
 entraîneur, pour chaque puzzle et chaque langue) sont écrites en HTML au build
 (`desktop/prerender.tsx`, `desktop/renderer/seo.ts`) dans `dist/web/pages`, compressées
-seulement : l'API sert celle de l'adresse (`rust-api/src/web.rs`), sinon `index.html`.
+seulement : l'API sert celle de l'adresse (`go-api/web.go`), sinon `index.html`.
 L'application démarre à côté, invisible, et prend sa place dès qu'elle dessine la page.
 `CUBIX_PRERENDER_JOBS` règle le nombre de processus (par défaut un par cœur, 3 dans
 l'image Docker).
@@ -47,7 +47,7 @@ open artifacts/electron/Cubix-darwin-*/Cubix.app
 
 Le build crée `artifacts/electron/Cubix-darwin-arm64/Cubix.app` sur Apple Silicon,
 ou `Cubix-darwin-x64/Cubix.app` sur Intel. Copier `Cubix.app` dans `/Applications`
-pour l'installer. Le build s'exécute sur le Mac cible ; aucun build Rust ou Android
+pour l'installer. Le build s'exécute sur le Mac cible ; aucun build du serveur ou Android
 n'est nécessaire, la fenêtre ouvre l'API de production. L'application est signée
 localement (ad hoc), sans certificat Apple ; elle n'est pas notariée pour une
 distribution publique.
@@ -111,8 +111,8 @@ bundles nommés par leur contenu et mis en cache définitivement, page toujours 
 Hors Docker, l'API sert `dist/web` quand il a été construit, sinon l'API seule.
 Les comptes, temps, sessions et marques d'apprentissage restent dans le volume `cubix-data`.
 `docker compose down` conserve ce volume. `CUBIX_PORT=8080` change le port publié.
-Sur la Raspberry Pi de 4 Go, la compilation Rust utilise un seul job, sans LTO et
-avec 16 unités de génération de code. Le build Android se fait en local.
+Sur la Raspberry Pi de 4 Go, le serveur Go est compilé en binaire statique ; les caches de modules
+et de compilation survivent à l'image. Le build Android se fait en local.
 
 Les applications utilisent `https://cubix.vitrixxl.fr` par défaut. Pour travailler
 avec une API locale :
@@ -132,7 +132,7 @@ bun run dev:docker --reset      # repart d'une base vide, seedée à nouveau
 bun run dev:docker --stop       # arrête le conteneur, la base est conservée
 ```
 
-`compose.dev.yaml` construit l'image avec la feature cargo `seed` (absente des images de
+`compose.dev.yaml` construit l'image avec le tag Go `seed` (absente des images de
 production) et l'expose sur `http://127.0.0.1:47130`, qui sert aussi l'application web de
 l'image. Au démarrage, `cubix-api seed` remplit une base vide : 42 comptes avec un an de
 temps sur plusieurs épreuves (environ 60 000 solves, dont plus de 8 000 pour `dev`), cas
@@ -189,7 +189,7 @@ La commande affiche `cbx_admin_…` (256 bits aléatoires) une seule fois, puis 
 Relancer `admin-token` remplace le jeton : l'ancien ne marche plus et toutes les sessions admin
 ouvertes avec lui sont fermées, sockets live compris (en deux secondes au plus).
 `cubix-api admin-token --revoke` désactive entièrement l'administration. En local :
-`CUBIX_DB=… ./rust-api/target/release/cubix-api admin-token` (ou `--admin-token`).
+`CUBIX_DB=… ./go-api/cubix-api admin-token` (ou `--admin-token`).
 
 `CUBIX_ADMIN_PASSWORD` n'ouvre plus l'administration : il sert **uniquement** aux envois de
 l'APK et des mises à jour mobiles par `bun run deploy` (`Authorization: Bearer <mot de passe>`).
@@ -200,7 +200,7 @@ durée, IP, user agent tronqué, compte ; jamais de jeton, de paramètre ni de c
 IP sont gardés 90 jours, l'activité quotidienne des comptes 400 jours. Sont « importants » :
 les erreurs serveur, les erreurs client (sauf 404 hors API), l'authentification (échecs
 compris), les actions admin, les 429, les suppressions de compte, le matchmaking duel et les
-envois mobiles. Voir [la documentation du serveur](rust-api/README.md#administration).
+envois mobiles. Voir [la documentation du serveur](go-api/README.md#administration).
 
 Les limites sont de 600 requêtes/minute/IP par défaut (`CUBIX_RATE_LIMIT`),
 20 tentatives/minute/IP pour l'authentification utilisateur et 5 tentatives/15 minutes/IP
@@ -227,12 +227,12 @@ préférences, session) sont importées une fois, puis le fichier est renommé
 
 ## Développement et vérification
 
-Bun **1.4+**, Node.js **24+** pour les outils de catalogue/stress et Rust **1.98+**.
+Bun **1.4+**, Node.js **24+** pour les outils de catalogue/stress et Go **1.27+** (avec un compilateur C, pour SQLite).
 
 ```sh
 bun install --frozen-lockfile
 bun run typecheck
-bun run test            # clients partagés, API HTTP/WS, catalogue, desktop et Rust
+bun run test            # clients partagés, API HTTP/WS, catalogue, desktop et tests Go
 bun run test:ui         # parcours réels du site dans Electron/Chromium headless
 bun run build:api       # serveur seul
 bun run build:web       # application web
@@ -245,10 +245,10 @@ desktop/        application web (renderer/, engine/, guides/), fenêtre Electron
 mobile/         application Android React Native
 src/client/     client HTTP/WS, stockage/sync, statistiques et schémas partagés
 src/shared/     contrats TypeScript et modèle du cube
-rust-api/       API, authentification, WebSockets et migrations SQLite
+go-api/         API, authentification, WebSockets et migrations SQLite
 data/           catalogues embarqués (catalog.json généré par `bun run build:catalog`)
 assets/cases/   schémas sources des puzzles
-scripts/        catalogue, déploiement, tests de charge et `rust.sh` (cargo)
+scripts/        catalogue, déploiement, tests de charge
 docs/           sources du catalogue et modes de pratique
 Makefile        dépendances, compilation et installation du desktop
 tests/          tests des clients et de l'API réelle

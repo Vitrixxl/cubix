@@ -61,12 +61,12 @@ lancement précédent ni d’un autre appareil. Le panneau des temps et les stat
 ne montrent que cette session ; les temps sont tout de même synchronisés et comptent dans le
 profil, où l’historique reste global.
 Le paramètre historique `cubeSize` reste accepté. Les identifiants et compatibilités sont définis
-dans `../data/puzzles.json`, partagé avec Rust.
+dans `../data/puzzles.json`, partagé avec le serveur.
 L’application web sert cubing.js et ses workers sous `/vendor/cubing-<version>/`, sans dépendre d’un CDN.
 
 ## Un seul catalogue : `data/catalog.json`
 
-Tous les clients lisent le même fichier généré, `../data/catalog.json` : le serveur Rust l'embarque
+Tous les clients lisent le même fichier généré, `../data/catalog.json` : le serveur l'embarque
 avec `include_str!`, le client local TypeScript (desktop et mobile) l'importe, `desktop/scripts/export-assets.tsx`
 en rend les schémas SVG et `mobile/scripts/build-cases.ts` y résout les schémas des puzzles non cubiques
 (`scripts/build-case-images.ts` rasterise leurs SVG en PNG dans `assets/cases/`, versionnés, pour le mobile).
@@ -88,7 +88,7 @@ cellules, donc un cas a la même image partout. Le mobile les reçoit fusionnée
 (`diagramPaths`, mémorisé par état) : une poignée de vues natives par schéma au lieu d'une par facette.
 
 `bun scripts/build-cube-catalog.ts` reconstruit `../data/multi-cube.json`, partagé par les clients natifs
-et le serveur Rust. Les sources des nouveaux algorithmes sont conservées avec chaque cas :
+et le serveur. Les sources des nouveaux algorithmes sont conservées avec chaque cas :
 [J Perm Ortega](https://www.jperm.net/algs/2x2/oll), [PBL](https://www.jperm.net/algs/2x2/pbl),
 [4×4](https://www.jperm.net/4x4) et [SpeedCubeDB L2E](https://www.speedcubedb.com/a/5x5/L2E).
 Les commutateurs de centres sont des exercices Cubix ; les tests vérifient les pièces affectées,

@@ -27,7 +27,7 @@ bun run dev:docker --electron  # la même chose dans la fenêtre Electron
 ```
 
 Si la stack tourne déjà (conteneur `cubix-dev-api-1`, site sur le port 5181),
-la réutiliser au lieu d’en lancer une autre. Une modification de `rust-api`
+la réutiliser au lieu d’en lancer une autre. Une modification de `go-api`
 demande de reconstruire le conteneur (relancer `bun run dev:docker`). Donner
 à l’utilisateur l’URL et les étapes pour voir le changement (comptes seedés :
 `dev`, `coach`, `lena_speed`, `alex_cubes`…, mot de passe `cubix-dev-password`),

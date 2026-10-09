@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Play, Swords, Users } from "lucide-react";
 import { Avatar } from "../base";
 import { store as s } from "../store";
-import { call } from "../bridge";
+import { call, socket } from "../bridge";
 import { go, splitLanguage } from "../navigation";
 import { ask } from "../confirm";
 import { Community, type Notice, type SocialHost } from "../../../src/client/lib/community";
@@ -32,6 +32,7 @@ export function notify(n: Notice) {
 export const host: SocialHost = {
   origin: location.origin,
   token: () => call("apiToken"),
+  live: socket,
   account: () => s.user,
   changed: () => s.emit(),
   notify,

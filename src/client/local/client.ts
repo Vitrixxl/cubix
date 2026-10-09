@@ -392,14 +392,13 @@ export function createLocalClient(options: {
 
   /** Serialized behind upload acknowledgements, so echoed server IDs cannot duplicate offline rows. */
   function receiveLive(connection: Connection, message: LiveOutput): Promise<void> {
-    if (message.type === "ready") {
-      if (message.protocol === 2 && message.user && message.user.id === owner() && options.getToken()) {
+    if (message.channel === "live" && message.type === "ready") {
+      if (message.user && message.user.id === owner() && !message.user.isGuest && options.getToken()) {
         live = { connection, id: owner(), token: options.getToken()!, user: message.user, needsPull: message.cursor === undefined || message.cursor > data().cursor };
       }
       return reconnected();
     }
-    if (message.type === "sync") return cursorChanged(message.cursor);
-    if (message.type !== "changes") return Promise.resolve();
+    if (message.channel !== "sync" || message.type !== "changes") return Promise.resolve();
     const active = transport();
     if (!active || active.connection !== connection) return Promise.resolve();
     receiving = receiving.then(async () => {

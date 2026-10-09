@@ -233,14 +233,14 @@ func onHeader(w http.ResponseWriter, hook func(h http.Header, status int)) {
 
 type actorKey struct{}
 
-// setActor names the account a response concerns (Rust's `Actor` response extension).
+// setActor names the account a response concerns (the actor the activity log records).
 func setActor(r *http.Request, actor ActivityActor) {
 	if rw, ok := r.Context().Value(actorKey{}).(*responseWriter); ok {
 		rw.actor = &actor
 	}
 }
 
-// peerIP is axum's ConnectInfo: the socket's remote address.
+// peerIP is the socket's remote address.
 func peerIP(r *http.Request) netip.Addr {
 	if ap, err := netip.ParseAddrPort(r.RemoteAddr); err == nil {
 		return ap.Addr().Unmap()

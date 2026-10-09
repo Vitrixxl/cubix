@@ -45,7 +45,7 @@ async function seed() {
 }
 
 function adminToken() {
-  const result = spawnSync(resolve(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api"), ["admin-token"], { env: { ...process.env, CUBIX_DB: db, CUBIX_ADMIN_PASSWORD: "" }, encoding: "utf8" });
+  const result = spawnSync(resolve(process.env.CUBIX_API_BIN ?? "go-api/cubix-api"), ["admin-token"], { env: { ...process.env, CUBIX_DB: db, CUBIX_ADMIN_PASSWORD: "" }, encoding: "utf8" });
   if (result.status !== 0) throw Error("admin-token failed: " + result.stderr);
   return result.stdout.split("\n")[0]!.trim();
 }

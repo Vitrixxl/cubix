@@ -6,6 +6,7 @@ import { createEngine, type EngineMessage, type EngineRequest } from "../engine/
 import { cubingScrambleEngine } from "../../src/client/lib/cubingScrambleEngine";
 import type { ScrambleEngine } from "../../src/client/lib/practiceScrambleCore";
 import { openStorage } from "./idbStorage";
+import type { LiveMessage } from "../../src/client/live";
 
 type Port = { postMessage(message: unknown): void; onmessage: ((event: MessageEvent) => void) | null };
 type Start = { type: "start"; legacy: Record<string, string> | null };
@@ -98,8 +99,9 @@ function start({ legacy }: Start) {
 }
 function connect(port: Port) {
   ports.add(port);
-  port.onmessage = async ({ data }: MessageEvent<Start | EngineRequest | { type: "close" } | { scrambled: number; value?: string; error?: string }>) => {
-    if ("scrambled" in data) {
+  port.onmessage = async ({ data }: MessageEvent<Start | EngineRequest | { type: "close" } | { scrambled: number; value?: string; error?: string } | { socket: LiveMessage }>) => {
+    if ("socket" in data) engine?.send(data.socket);
+    else if ("scrambled" in data) {
       const call = drawing.get(data.scrambled);
       drawing.delete(data.scrambled);
       if (data.error !== undefined) call?.reject(new Error(data.error));
@@ -118,7 +120,7 @@ function connect(port: Port) {
     else if (data.type === "start") {
       try {
         const value = await start(data);
-        port.postMessage(retired ? { event: "replaced" } : { event: "started", value });
+        port.postMessage(retired ? { event: "replaced" } : { event: "started", value: { ...value, online: engine?.online() ?? false } });
       } catch (error) {
         starting = undefined;
         port.postMessage({ event: "failed", value: (error as Error)?.message ?? String(error) });

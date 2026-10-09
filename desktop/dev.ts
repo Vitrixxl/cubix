@@ -39,10 +39,10 @@ const server = Bun.serve<Socket>({
       return fetch(upstream + url.pathname + url.search, { method: request.method, headers, body: request.body, redirect: "manual" })
         .catch(() => new Response(JSON.stringify({ error: "API unavailable" }), { status: 502 }));
     }
-    // The administration is drawn by the same page (see rust-api/src/web.rs).
+    // The administration is drawn by the same page (see go-api/web.go).
     const admin = url.pathname === "/admin" || url.pathname.startsWith("/admin/");
     // The app's addresses, under the prefix of their language but English's; a page written ahead of time first, as
-    // rust-api/src/web.rs serves it.
+    // go-api/web.go serves it.
     const { language = "en", path: inner } = splitLanguage(url.pathname);
     const app = /^\/(login|onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile|solve)(\/|$)/.test(inner);
     if (app) {

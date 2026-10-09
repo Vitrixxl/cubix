@@ -1,20 +1,22 @@
-FROM rust:1.98-bookworm AS backend
-WORKDIR /app
-# Keep the 4 GiB Pi responsive: one compiler, no LTO, smaller code generation units.
-# The mobile app is built on the developer machine, never in this image.
-ARG CARGO_BUILD_JOBS=1
+# The API (go-api/): a static binary, musl with SQLite linked in. The mobile app is built on the developer
+# machine, never in this image.
+FROM golang:1.27-alpine AS backend
+RUN apk add --no-cache build-base
+WORKDIR /app/go-api
+COPY go-api/go.mod go-api/go.sum ./
+# The modules and the build cache outlive the image (BuildKit cache mounts): a change to the API recompiles
+# its own package, never go-sqlite3's C.
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked go mod download
+COPY data /app/data
+COPY go-api ./
 # compose.dev.yaml adds `seed` (development data); production builds keep none.
-ARG CARGO_FEATURES=""
-ENV CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
-COPY rust-api ./rust-api
-COPY data ./data
-# The registry and target/ outlive the image (BuildKit cache mounts): a change to the API recompiles its own crate,
-# never the dependencies. The binary is copied out, the mount being gone once the step ends.
-RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
-    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,target=/app/rust-api/target,sharing=locked \
-    cargo build --locked --release --manifest-path rust-api/Cargo.toml --features "$CARGO_FEATURES" \
-    && cp rust-api/target/release/cubix-api /cubix-api
+ARG GO_TAGS=""
+# Two packages compiled at once leave the 4 GiB Pi room for the web build running beside it.
+ARG GO_BUILD_JOBS=2
+ENV GOFLAGS=-p=$GO_BUILD_JOBS
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    CGO_ENABLED=1 ./build.sh -tags "sqlite_omit_load_extension $GO_TAGS" -trimpath -ldflags '-s -w -extldflags "-static"' \
+    && cp cubix-api /cubix-api
 
 # The web app, which the desktop app loads too. Only runtime dependencies are installed: Bun bundles
 # TypeScript itself, and no install script (Electron, Playwright) is needed to build.
@@ -33,7 +35,7 @@ RUN bun desktop/web.ts
 
 # The build number identifies the commit to the mobile application. It is derived from the
 # committer date so shallow clones (pihost) work; the arguments override it when set.
-FROM rust:1.98-bookworm AS buildinfo
+FROM alpine/git AS buildinfo
 WORKDIR /src
 ARG CUBIX_BUILD_NUMBER
 ARG CUBIX_COMMIT
@@ -50,10 +52,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && mkdir -p /var/lib/cubix && chown cubix:cubix /var/lib/cubix
 WORKDIR /app
 ENV CUBIX_HOST=0.0.0.0 PORT=3000 CUBIX_DB=/var/lib/cubix/cubix.db CUBIX_WEB_DIR=/app/web
+# The GC hands memory back past this soft limit: a burst of Argon2 hashes (64 MiB each) does not stay resident.
+ENV GOMEMLIMIT=256MiB
 COPY --from=backend /cubix-api /usr/local/bin/cubix-api
 COPY --from=web /app/dist/web /app/web
 # The server loads /app/.env at start-up; keeping the number outside the compiled layer
-# means a commit that only touches the mobile application does not recompile Rust.
+# means a commit that only touches the mobile application does not recompile the API.
 COPY --from=buildinfo /build.env /app/.env
 USER cubix
 EXPOSE 3000

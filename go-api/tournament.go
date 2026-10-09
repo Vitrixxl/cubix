@@ -11,7 +11,7 @@ package main
 // friends, against the other. Battles and a group's tournaments show in their conversation as cards.
 //
 // The HTTP routes live under /api/tournaments and /api/matches (`tournamentRoute`, on the database thread). Matches
-// are played on the socket /api/matches/live (`tournamentUpgrade`): the players' solves, their timers' phases, and
+// are played on the app's socket (live.go, channel "match", `onMatch`): the players' solves, their timers' phases, and
 // whoever watches. Everything is kept in the database as it happens, so a match survives a restart; who is connected
 // is not.
 
@@ -20,15 +20,12 @@ import (
 	"math"
 	"math/bits"
 	"math/rand/v2"
-	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 const tournamentUnknownTournament = "Unknown tournament"
@@ -1412,7 +1409,7 @@ func tournamentRun(state *AppState) {
 	}
 }
 
-// The live match socket.
+// The matches open on the apps (live.go).
 
 type tournamentViewer struct {
 	id string
@@ -1458,7 +1455,7 @@ func (room *tournamentRoom) send(value M) {
 	}
 	value["present"] = present
 	// Serialised once: one state goes to every viewer of a match as the same text.
-	message := encodeJSON(M{"type": "state", "match": value})
+	message := liveText("match", M{"type": "state", "match": value})
 	room.last = value
 	for _, viewer := range room.viewers {
 		viewer.tx.send(message)
@@ -1482,7 +1479,14 @@ func (l *TournamentLive) join(id int64, viewer *tournamentViewer, value M) {
 		room = &tournamentRoom{}
 		l.rooms[id] = room
 	}
-	room.viewers = append(room.viewers, viewer)
+	// The same app opening the match again (in another tab) hears its state again, in the same seat.
+	known := false
+	for _, v := range room.viewers {
+		known = known || v.id == viewer.id
+	}
+	if !known {
+		room.viewers = append(room.viewers, viewer)
+	}
 	room.send(value)
 }
 
@@ -1510,7 +1514,7 @@ func (l *TournamentLive) leave(id int64, viewer string) {
 	} else if room.last != nil {
 		room.send(room.last)
 		if seat >= 0 {
-			message := encodeJSON(M{"type": "timer", "seat": seat, "phase": "idle"})
+			message := liveText("match", M{"type": "timer", "match": id, "seat": seat, "phase": "idle"})
 			for _, v := range room.viewers {
 				v.tx.send(message)
 			}
@@ -1526,7 +1530,7 @@ func (l *TournamentLive) relay(id int64, from string, seat int, phase string) {
 	if !ok {
 		return
 	}
-	message := encodeJSON(M{"type": "timer", "seat": seat, "phase": phase})
+	message := liveText("match", M{"type": "timer", "match": id, "seat": seat, "phase": phase})
 	for _, v := range room.viewers {
 		if v.id != from {
 			v.tx.send(message)
@@ -1534,115 +1538,59 @@ func (l *TournamentLive) relay(id int64, from string, seat int, phase string) {
 	}
 }
 
-var tournamentUpgrader = wsUpgrader(4096)
-
-func tournamentUpgrade(state *AppState, w http.ResponseWriter, r *http.Request) {
-	conn, err := tournamentUpgrader.Upgrade(w, r, nil)
-	if err != nil {
+// onMatch: a match open on the app: joining it (or leaving it), then the player's timer and moves; whoever is not a
+// player watches. Over the allowance, messages are dropped.
+func (c *liveClient) onMatch(body any) {
+	if !c.matchRate.take() {
 		return
 	}
-	conn.SetReadLimit(16384)
-	tournamentClient(state, conn)
-}
-
-// tournamentClient: one open match: the first message names it and signs in; players then play, others watch.
-func tournamentClient(state *AppState, conn *websocket.Conn) {
-	defer conn.Close()
-	viewer := newUUID()
-	tx := newWsOutbox()
-	joined := false
-	var matchID int64
-	seat := -1
-	tokens, at := 30.0, time.Now()
-	idle := time.NewTimer(60 * time.Second)
-	defer idle.Stop()
-	incoming, stop := wsReceive(conn)
-	defer stop()
-	defer func() {
-		if joined {
-			state.matches.leave(matchID, viewer)
-		}
-	}()
-	errorMessage := func(err error) {
-		tx.send(encodeJSON(M{"type": "error", "message": toApiError(err).Message}))
+	state := c.state
+	id, ok := asInt(idx(body, "match"))
+	if !ok {
+		return
 	}
-	for {
-		select {
-		case <-idle.C:
-			return
-		case <-tx.wake:
-			if !tx.flush(conn) {
-				return
-			}
-		case message := <-incoming:
-			if message.err != nil {
-				return
-			}
-			switch message.kind {
-			case websocket.PingMessage, websocket.PongMessage:
-				continue
-			case websocket.TextMessage:
-			default:
-				return
-			}
-			idle.Reset(60 * time.Second)
-			tokens = min(tokens+time.Since(at).Seconds()*5, 30)
-			at = time.Now()
-			if tokens < 1 {
-				continue
-			}
-			tokens--
-			body, err := decodeJSON(message.data)
+	failed := func(err error) {
+		c.tx.send(liveText("match", M{"type": "error", "match": id, "message": toApiError(err).Message}))
+	}
+	seat, joined := c.matches[id]
+	switch kind := str(idx(body, "type")); {
+	case kind == "join":
+		var value M
+		userSeat := -1
+		auth := c.token
+		err := state.db.Call(func(db *Conn) error {
+			user, err := accountsSignedIn(db, auth)
 			if err != nil {
-				return
+				return err
 			}
-			kind := str(idx(body, "type"))
-			switch {
-			case kind == "ping":
-				tx.send(encodeJSON(M{"type": "pong"}))
-			case kind == "join" && !joined:
-				token := ""
-				if t, err := apiString(body, "token", 1, 128); err == nil {
-					token = "Bearer " + t
-				}
-				id, ok := asInt(idx(body, "match"))
-				if !ok {
-					return
-				}
-				var value M
-				userSeat := -1
-				err := state.db.Call(func(db *Conn) error {
-					user, err := accountsSignedIn(db, token)
-					if err != nil {
-						return err
-					}
-					uid := str(user["id"])
-					row, err := tournamentMatchRow(db, id)
-					if err != nil {
-						return err
-					}
-					if err := tournamentVisible(db, row, uid); err != nil {
-						return err
-					}
-					userSeat = tournamentSeatOf(row, uid)
-					value, err = tournamentMatchDto(db, row, true)
-					return err
-				})
-				if err != nil {
-					errorMessage(err)
-					continue
-				}
-				state.matches.join(id, &tournamentViewer{id: viewer, seat: userSeat, tx: tx}, value)
-				joined, matchID, seat = true, id, userSeat
-			case kind == "timer" && joined && seat >= 0:
-				if phase, ok := asStr(idx(body, "phase")); ok && isOneOf(phase, duelPhases[:]) {
-					state.matches.relay(matchID, viewer, seat, phase)
-				}
-			case joined && seat >= 0:
-				if err := state.db.Call(func(db *Conn) error { return tournamentPlay(db, state, matchID, seat, body) }); err != nil {
-					errorMessage(err)
-				}
+			uid := str(user["id"])
+			row, err := tournamentMatchRow(db, id)
+			if err != nil {
+				return err
 			}
+			if err := tournamentVisible(db, row, uid); err != nil {
+				return err
+			}
+			userSeat = tournamentSeatOf(row, uid)
+			value, err = tournamentMatchDto(db, row, true)
+			return err
+		})
+		if err != nil {
+			failed(err)
+			return
+		}
+		state.matches.join(id, &tournamentViewer{id: c.id, seat: userSeat, tx: c.tx}, value)
+		c.matches[id] = userSeat
+	case kind == "leave" && joined:
+		state.matches.leave(id, c.id)
+		delete(c.matches, id)
+	case kind == "timer" && joined && seat >= 0:
+		if phase, ok := asStr(idx(body, "phase")); ok && isOneOf(phase, duelPhases[:]) {
+			state.matches.relay(id, c.id, seat, phase)
+		}
+	case joined && seat >= 0:
+		if err := state.db.Call(func(db *Conn) error { return tournamentPlay(db, state, id, seat, body) }); err != nil {
+			failed(err)
 		}
 	}
 }

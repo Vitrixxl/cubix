@@ -1,11 +1,23 @@
 package main
 
-// Account-scoped incremental sync. Protocol 2 streams changed entities and acknowledges durable
-// uploads over the same socket; older clients retain cursor-only notifications.
+// The app's socket, /api/live: one per open app, signed in or not. It carries every live feature, each message naming
+// its channel in both directions:
+//
+//   - "live": the connection itself: the app's `auth` first, the server's `ready`;
+//   - "sync": the account's practice data: uploads and pulls answered by `requestId`, changes streamed as they happen;
+//   - "coaching": chat messages, bookings, presence and the signalling of calls;
+//   - "social": the community's events (server to app only);
+//   - "duel": the one-on-one races, their queue included;
+//   - "match": the battles and tournament matches open on screen, each named by its id.
+//
+// The server pings every socket; browsers answer protocol pings themselves, even in a background tab whose timers are
+// throttled, so an open app needs no message of its own to stay connected.
 
 import (
 	"net/http"
 	"net/netip"
+	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -137,7 +149,23 @@ func wsClose(conn *websocket.Conn, code int, reason string) {
 	_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason))
 }
 
-var liveUpgrader = wsUpgrader(4096)
+var liveUpgrader = wsUpgrader(16384)
+
+// livePing: how often the server pings each socket (CUBIX_PING_SECONDS, 30 by default). A socket that sends nothing,
+// not even a pong, for three of these is gone.
+var livePing = func() time.Duration {
+	if n, err := strconv.ParseUint(os.Getenv("CUBIX_PING_SECONDS"), 10, 16); err == nil && n > 0 {
+		return time.Duration(n) * time.Second
+	}
+	return 30 * time.Second
+}()
+
+// The largest message of each channel; the read limit is the largest of them, a batch of practice uploads.
+const liveSyncMax = 2 * 1024 * 1024
+
+// Offers and answers carry a whole session description: a few kilobytes, rarely more than 16.
+const liveCoachingMax = 65536
+const liveGameMax = 16384
 
 func liveUpgrade(state *AppState, w http.ResponseWriter, r *http.Request) {
 	ip := state.traffic.ip(peerIP(r), r.Header)
@@ -145,10 +173,11 @@ func liveUpgrade(state *AppState, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	conn.SetReadLimit(2 * 1024 * 1024)
+	conn.SetReadLimit(liveSyncMax)
 	live(state, conn, ip)
 }
 
+// liveSend writes a message; a peer that does not read it within 15 seconds is dropped.
 func liveSend(conn *websocket.Conn, value any) bool {
 	return wsSend(conn, value, 15*time.Second)
 }
@@ -157,211 +186,319 @@ func liveClose(conn *websocket.Conn) {
 	wsClose(conn, 4001, "Session expired")
 }
 
-func liveAuthenticated(state *AppState, token string) (M, error) {
-	user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, token) })
-	if err != nil {
-		return nil, err
+// liveText: a message of the socket on `channel`, serialised. The value is left as it is: it may be shared.
+func liveText(channel string, value M) string {
+	out := copyMap(value)
+	out["channel"] = channel
+	return encodeJSON(out)
+}
+
+// liveBucket: a channel's allowance of messages: `burst` at once, refilled at `rate` a second.
+type liveBucket struct {
+	tokens, rate, burst float64
+	at                  time.Time
+}
+
+func newLiveBucket(burst, rate float64) *liveBucket {
+	return &liveBucket{tokens: burst, rate: rate, burst: burst, at: time.Now()}
+}
+
+func (b *liveBucket) take() bool {
+	b.tokens = min(b.tokens+time.Since(b.at).Seconds()*b.rate, b.burst)
+	b.at = time.Now()
+	if b.tokens < 1 {
+		return false
 	}
-	if user["password_hash"] == nil {
-		return nil, apiErr(403, "Sign in to synchronize.")
-	}
-	return user, nil
+	b.tokens--
+	return true
+}
+
+// liveClient: one open app.
+type liveClient struct {
+	state *AppState
+	conn  *websocket.Conn
+	ip    netip.Addr
+	// The socket in the live hub, the coaching rooms, the duel arena and the match rooms.
+	id string
+	// "Bearer …" and its account, or "" and nil for an app without an account.
+	token string
+	user  M
+	// An account with a password: practice sync and coaching are theirs only.
+	member bool
+	// The practice cursor the app holds, for the changes streamed to it.
+	slot      *LiveSlot
+	delivered int64
+	// Coaching, community, duel and match messages, in the order they were sent.
+	tx *wsOutbox
+	// A call starts with a burst of ICE candidates; then a few messages a second.
+	coachingRate *liveBucket
+	// A burst of 30 messages, then 3 a second: a solve takes a handful, chat a few more.
+	duelRate  *liveBucket
+	matchRate *liveBucket
+	// The matches open, with the account's seat in each (-1 to watch).
+	matches map[int64]int
+}
+
+func (c *liveClient) uid() string {
+	return str(idx(c.user, "id"))
 }
 
 func live(state *AppState, conn *websocket.Conn, ip netip.Addr) {
 	defer conn.Close()
-	id := newUUID()
-	userID := ""
-	token := ""
-	streaming := false
-	delivered := int64(0)
-	slot := newLiveSlot()
-	deadline := time.NewTimer(5 * time.Second)
-	defer deadline.Stop()
+	c := &liveClient{state: state, conn: conn, ip: ip, id: newUUID(), slot: newLiveSlot(), tx: newWsOutbox(),
+		coachingRate: newLiveBucket(200, 20), duelRate: newLiveBucket(30, 3), matchRate: newLiveBucket(30, 5), matches: map[int64]int{}}
 	incoming, stop := wsReceive(conn)
 	defer stop()
+	defer c.leave()
+	// The app says who it is at once; afterwards any frame, a pong included, shows it is still there.
+	idle := time.NewTimer(5 * time.Second)
+	defer idle.Stop()
+	ping := time.NewTicker(livePing)
+	defer ping.Stop()
+	authenticated := false
 	var wake chan struct{}
-	defer func() {
-		if userID != "" {
-			state.hub.remove(userID, id)
-		}
-	}()
 	for {
 		select {
-		case <-deadline.C:
-			liveClose(conn)
+		case <-idle.C:
+			wsClose(conn, 1001, "Idle")
 			return
-		case <-wake:
-			if !slot.pending.Swap(false) {
-				continue
+		case <-ping.C:
+			if conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(15*time.Second)) != nil {
+				return
 			}
-			if streaming {
-				auth, after := token, delivered
-				page, err := dbCall(state.db, func(db *Conn) (M, error) {
-					user, err := accountsSignedIn(db, auth)
-					if err != nil {
-						return nil, err
-					}
-					return syncPull(db, str(user["id"]), after, true, true)
-				})
-				if err != nil {
-					liveClose(conn)
-					return
-				}
-				delivered, _ = asInt(page["cursor"])
-				if page["more"] == true {
-					slot.pending.Store(true)
-					slot.notify()
-				}
-				if delivered > after {
-					page["type"] = "changes"
-					page["after"] = after
-					if !liveSend(conn, page) {
-						return
-					}
-				}
-			} else {
-				if _, err := liveAuthenticated(state, token); err != nil {
-					liveClose(conn)
-					return
-				}
-				if !liveSend(conn, M{"type": "sync", "cursor": slot.cursor.Load()}) {
-					return
-				}
+		case <-wake:
+			if !c.stream() {
+				return
+			}
+		case <-c.tx.wake:
+			if !c.tx.flush(conn) {
+				return
 			}
 		case message := <-incoming:
 			if message.err != nil {
 				return
 			}
-			if !state.traffic.allow(ip, "/api/live", true) {
-				wsClose(conn, 1008, "Message rate limit exceeded")
-				return
+			if authenticated {
+				idle.Reset(3 * livePing)
 			}
 			switch message.kind {
-			case websocket.PingMessage, websocket.PongMessage:
+			case websocket.PongMessage:
+				// An open app is an active account even between HTTP requests.
+				if c.user != nil {
+					state.traffic.log.seen(c.uid())
+				}
+				continue
+			case websocket.PingMessage:
 				continue
 			case websocket.TextMessage:
 			default:
-				liveClose(conn)
+				wsClose(conn, 1008, "Invalid message")
 				return
 			}
 			body, err := decodeJSON(message.data)
 			if err != nil {
-				liveClose(conn)
+				wsClose(conn, 1008, "Invalid message")
 				return
 			}
-			kind := str(idx(body, "type"))
-			if streaming && userID != "" && (kind == "push" || kind == "pull") {
-				requestID, err := apiString(body, "requestId", 1, 100)
-				if err != nil {
-					liveClose(conn)
+			channel := str(idx(body, "channel"))
+			if !authenticated {
+				if channel != "live" || !eqStr(idx(body, "type"), "auth") {
+					wsClose(conn, 1008, "Authentication expected")
 					return
 				}
-				auth := token
-				result, err := dbCall(state.db, func(db *Conn) (any, error) {
-					caller, err := newApiCaller(db, auth)
-					if err != nil {
-						return nil, err
-					}
-					uid := caller.id()
-					if uid == "" {
-						return nil, apiErr(401, "Please sign in again.")
-					}
-					if eqStr(idx(body, "type"), "pull") {
-						after, ok := asInt(idx(body, "after"))
-						if !ok || after < 0 {
-							return nil, validation()
-						}
-						return syncPull(db, uid, after, true, true)
-					}
-					result, err := syncPush(db, state, uid, caller, body)
-					if err != nil {
-						return nil, err
-					}
-					cursor, err := syncCursor(db, uid)
-					if err != nil {
-						return nil, err
-					}
-					state.hub.notifySync(uid, cursor)
-					return result, nil
-				})
-				var response M
-				expired := false
-				if err != nil {
-					e := toApiError(err)
-					expired = e.Status == 401
-					response = M{"type": "result", "requestId": requestID, "status": e.Status, "error": e.Message}
-				} else {
-					if kind == "pull" {
-						cursor, _ := asInt(idx(result, "cursor"))
-						delivered = max(delivered, cursor)
-					}
-					response = M{"type": "result", "requestId": requestID, "value": result}
-				}
-				if !liveSend(conn, response) {
+				if !state.traffic.allow(ip, "/api/live", true) {
+					wsClose(conn, 1008, "Message rate limit exceeded")
 					return
 				}
-				if expired {
-					liveClose(conn)
+				if !c.auth(body) {
 					return
 				}
-				deadline.Reset(60 * time.Second)
+				authenticated = true
+				idle.Reset(3 * livePing)
+				if c.member {
+					wake = c.slot.wake
+				}
 				continue
 			}
-			if kind != "auth" && kind != "ping" {
-				liveClose(conn)
+			limit := liveGameMax
+			switch channel {
+			case "sync":
+				limit = liveSyncMax
+			case "coaching":
+				limit = liveCoachingMax
+			}
+			if len(message.data) > limit {
+				wsClose(conn, 1009, "Message too big")
 				return
 			}
-			if kind == "auth" && userID == "" {
-				value, err := apiString(body, "token", 1, 128)
-				if err != nil {
-					liveClose(conn)
-					return
-				}
-				token = "Bearer " + value
-				streaming = eqInt(idx(body, "protocol"), 2)
-				if streaming {
-					after, ok := asInt(idx(body, "after"))
-					if !ok || after < 0 {
-						liveClose(conn)
-						return
-					}
-					delivered = after
-				}
+			ok := true
+			switch channel {
+			case "sync":
+				ok = c.onSync(body)
+			case "coaching":
+				ok = c.onCoaching(body)
+			case "duel":
+				c.onDuel(body)
+			case "match":
+				c.onMatch(body)
 			}
-			user, err := liveAuthenticated(state, token)
-			if err != nil {
-				liveClose(conn)
-				return
-			}
-			uid := str(user["id"])
-			// An open app is an active account even between HTTP requests.
-			state.traffic.log.seen(uid)
-			if userID == "" {
-				state.hub.add(uid, id, slot)
-				userID = uid
-				wake = slot.wake
-			}
-			deadline.Reset(60 * time.Second)
-			var response M
-			if kind == "auth" {
-				// The current cursor lets a reconnecting device pull immediately if it fell behind.
-				cursor, err := dbCall(state.db, func(db *Conn) (int64, error) { return syncCursor(db, uid) })
-				if err != nil {
-					liveClose(conn)
-					return
-				}
-				if streaming {
-					response = M{"type": "ready", "cursor": cursor, "protocol": 2, "user": accountsPublic(user)}
-				} else {
-					response = M{"type": "ready", "cursor": cursor}
-				}
-			} else {
-				response = M{"type": "pong"}
-			}
-			if !liveSend(conn, response) {
+			if !ok {
 				return
 			}
 		}
 	}
+}
+
+// auth: the app's first message: its token when it has an account, and the practice cursor it holds.
+func (c *liveClient) auth(body any) bool {
+	state := c.state
+	if idx(body, "token") != nil {
+		token, err := apiString(body, "token", 1, 128)
+		if err != nil {
+			wsClose(c.conn, 1008, "Invalid message")
+			return false
+		}
+		user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsAuth(db, "Bearer "+token) })
+		if err != nil || user == nil {
+			liveClose(c.conn)
+			return false
+		}
+		c.token, c.user, c.member = "Bearer "+token, user, user["password_hash"] != nil
+	}
+	ready := M{"channel": "live", "type": "ready", "user": nil}
+	if c.user != nil {
+		state.traffic.log.seen(c.uid())
+		ready["user"] = accountsPublic(c.user)
+	}
+	if c.member {
+		if idx(body, "after") != nil {
+			after, ok := asInt(idx(body, "after"))
+			if !ok || after < 0 {
+				wsClose(c.conn, 1008, "Invalid message")
+				return false
+			}
+			c.delivered = after
+		}
+		uid := c.uid()
+		// The current cursor lets a reconnecting device pull immediately if it fell behind.
+		cursor, err := dbCall(state.db, func(db *Conn) (int64, error) { return syncCursor(db, uid) })
+		if err != nil {
+			liveClose(c.conn)
+			return false
+		}
+		ready["cursor"] = cursor
+		state.hub.add(uid, c.id, c.slot)
+		state.coaching.add(uid, c.id, c.tx)
+	}
+	return liveSend(c.conn, ready)
+}
+
+// leave: the app is gone: out of every room it was in.
+func (c *liveClient) leave() {
+	if c.member {
+		c.state.hub.remove(c.uid(), c.id)
+		c.state.coaching.remove(c.uid(), c.id)
+	}
+	c.state.duel.leave(c.id)
+	for id := range c.matches {
+		c.state.matches.leave(id, c.id)
+	}
+}
+
+// stream: the account's practice data changed: the next page of changes goes out.
+func (c *liveClient) stream() bool {
+	if !c.slot.pending.Swap(false) {
+		return true
+	}
+	auth, after := c.token, c.delivered
+	page, err := dbCall(c.state.db, func(db *Conn) (M, error) {
+		user, err := accountsSignedIn(db, auth)
+		if err != nil {
+			return nil, err
+		}
+		return syncPull(db, str(user["id"]), after, true, true)
+	})
+	if err != nil {
+		liveClose(c.conn)
+		return false
+	}
+	c.delivered, _ = asInt(page["cursor"])
+	if page["more"] == true {
+		c.slot.pending.Store(true)
+		c.slot.notify()
+	}
+	if c.delivered <= after {
+		return true
+	}
+	page["channel"] = "sync"
+	page["type"] = "changes"
+	page["after"] = after
+	return liveSend(c.conn, page)
+}
+
+// onSync: an upload or a pull, answered under its `requestId`.
+func (c *liveClient) onSync(body any) bool {
+	state := c.state
+	if !state.traffic.allow(c.ip, "/api/live", true) {
+		wsClose(c.conn, 1008, "Message rate limit exceeded")
+		return false
+	}
+	kind := str(idx(body, "type"))
+	requestID, err := apiString(body, "requestId", 1, 100)
+	if err != nil || (kind != "push" && kind != "pull") {
+		wsClose(c.conn, 1008, "Invalid message")
+		return false
+	}
+	if !c.member {
+		return liveSend(c.conn, M{"channel": "sync", "type": "result", "requestId": requestID, "status": 403, "error": "Sign in to synchronize."})
+	}
+	auth := c.token
+	result, err := dbCall(state.db, func(db *Conn) (any, error) {
+		caller, err := newApiCaller(db, auth)
+		if err != nil {
+			return nil, err
+		}
+		uid := caller.id()
+		if uid == "" {
+			return nil, apiErr(401, "Please sign in again.")
+		}
+		if kind == "pull" {
+			after, ok := asInt(idx(body, "after"))
+			if !ok || after < 0 {
+				return nil, validation()
+			}
+			return syncPull(db, uid, after, true, true)
+		}
+		result, err := syncPush(db, state, uid, caller, body)
+		if err != nil {
+			return nil, err
+		}
+		cursor, err := syncCursor(db, uid)
+		if err != nil {
+			return nil, err
+		}
+		state.hub.notifySync(uid, cursor)
+		return result, nil
+	})
+	response := M{"channel": "sync", "type": "result", "requestId": requestID}
+	expired := false
+	if err != nil {
+		e := toApiError(err)
+		expired = e.Status == 401
+		response["status"], response["error"] = e.Status, e.Message
+	} else {
+		if kind == "pull" {
+			cursor, _ := asInt(idx(result, "cursor"))
+			c.delivered = max(c.delivered, cursor)
+		}
+		response["value"] = result
+	}
+	if !liveSend(c.conn, response) {
+		return false
+	}
+	if expired {
+		liveClose(c.conn)
+		return false
+	}
+	return true
 }

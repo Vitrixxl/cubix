@@ -4,44 +4,44 @@ import { Community, type Notice, type Question, type SocialHost } from "../src/c
 import { Coaching } from "../src/client/lib/coaching";
 import { MatchClient } from "../src/client/lib/match";
 import { readRoute } from "../src/client/lib/route";
+import type { LiveLink, LiveMessage } from "../src/client/live";
 
-const realFetch = globalThis.fetch, RealSocket = globalThis.WebSocket;
+const realFetch = globalThis.fetch;
 let requests: { method: string; url: string; auth: string | null; body: unknown }[];
 let answers: Record<string, unknown>;
-let sockets: FakeSocket[];
-class FakeSocket {
-  static OPEN = 1;
-  readyState = 1;
-  sent: any[] = [];
-  onopen?: () => void;
-  onmessage?: (e: { data: string }) => void;
-  onclose: (() => void) | null = null;
-  constructor(readonly url: string) {
-    sockets.push(this);
+/** The app's socket (src/client/live.ts), as the clients see it: what they send, and what they hear by channel. */
+class FakeLive implements LiveLink {
+  sent: LiveMessage[] = [];
+  online = false;
+  listeners: [string, (m: any) => void][] = [];
+  send(message: LiveMessage) {
+    if (this.online) this.sent.push(message);
+    return this.online;
   }
-  send(data: string) {
-    this.sent.push(JSON.parse(data));
+  on(channel: string, listener: (m: any) => void) {
+    this.listeners.push([channel, listener]);
+    return () => {};
   }
-  close() {}
-  hear(m: object) {
-    this.onmessage?.({ data: JSON.stringify(m) });
+  connected() {
+    return this.online;
+  }
+  hear(m: LiveMessage) {
+    if (m.channel === "live") this.online = m.type === "ready";
+    for (const [channel, listener] of this.listeners) if (channel === m.channel || channel === "*") listener(m);
   }
 }
 beforeEach(() => {
   requests = [];
   answers = {};
-  sockets = [];
   globalThis.fetch = (async (url: string, init: RequestInit = {}) => {
     const method = init.method ?? "GET", path = url.replace("http://api.test/api/", "");
     requests.push({ method, url, auth: new Headers(init.headers).get("authorization"), body: init.body && typeof init.body === "string" ? JSON.parse(init.body) : init.body });
     const answer = answers[`${method} ${path}`];
     return answer instanceof Response ? answer : Response.json(answer ?? {});
   }) as typeof fetch;
-  globalThis.WebSocket = FakeSocket as any;
 });
 afterEach(() => {
   globalThis.fetch = realFetch;
-  globalThis.WebSocket = RealSocket;
 });
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -50,6 +50,7 @@ function fakeHost(over: Partial<SocialHost> = {}) {
   const host: SocialHost = {
     origin: "http://api.test",
     token: async () => "tok",
+    live: new FakeLive(),
     account: () => ({ id: "me", username: "Me Too" }),
     changed: () => void seen.changes++,
     notify: (n) => void seen.notices.push(n),
@@ -59,7 +60,7 @@ function fakeHost(over: Partial<SocialHost> = {}) {
     visible: () => true,
     ...over,
   };
-  return { host, seen };
+  return { host, seen, live: host.live as FakeLive };
 }
 const person = (id: string) => ({ id, username: id.toUpperCase(), avatar: null });
 
@@ -89,7 +90,7 @@ test("socket events become notices whose actions act and navigate; a message on 
   const community = new Community(host);
   community.attach("me");
   await tick();
-  community.event({ kind: "request", from: person("bob") });
+  community.event({ type: "request", from: person("bob") });
   const request = seen.notices.at(-1)!;
   expect(request).toMatchObject({ title: "BOB wants to be friends", id: "community-request-bob", face: { username: "BOB" } });
   request.action!.run();
@@ -98,38 +99,45 @@ test("socket events become notices whose actions act and navigate; a message on 
 
   community.conversations = [{ id: 4, kind: "direct", with: person("bob"), group: null, lastMessage: null, unread: 0, updatedAt: 0, open: true }];
   community.open = 4;
-  community.event({ kind: "message", conversation: 4, message: { id: 1, senderId: "bob", sender: person("bob"), body: "hi", createdAt: 5 } });
+  community.event({ type: "message", conversation: 4, message: { id: 1, senderId: "bob", sender: person("bob"), body: "hi", createdAt: 5 } });
   // Hidden app: it counts as unread and is announced.
   expect(community.conversations[0]!.unread).toBe(1);
   seen.notices.at(-1)!.action!.run();
   expect(seen.urls.at(-1)).toBe("/community/messages/4");
 
   // A ready match is announced to its players, but not on its own page.
-  community.event({ kind: "match", match: 9, status: "ready", players: ["me", "bob"] });
+  community.event({ type: "match", match: 9, status: "ready", players: ["me", "bob"] });
   expect(seen.notices.at(-1)).toMatchObject({ id: "community-match-9", icon: "play", duration: 30_000 });
   const page = fakeHost({ path: () => "/match/9" }), onPage = new Community(page.host);
   onPage.attach("me");
-  onPage.event({ kind: "match", match: 9, status: "ready", players: ["me", "bob"] });
+  onPage.event({ type: "match", match: 9, status: "ready", players: ["me", "bob"] });
   expect(page.seen.notices).toEqual([]);
 });
 
-test("coaching opens its socket with the token, passes the community's events on and announces a waiting call", async () => {
-  const { host, seen } = fakeHost();
+test("coaching and the community hear their channels of the app's socket, reload after a reconnection, and announce a waiting call", async () => {
+  const { host, seen, live } = fakeHost();
   const community = new Community(host);
-  const coaching = new Coaching(host, community);
+  const coaching = new Coaching(host);
   coaching.attach("me");
-  const socket = sockets[0]!;
-  expect(socket.url).toBe("ws://api.test/api/coaching/live");
-  await socket.onopen!();
-  expect(socket.sent).toEqual([{ type: "auth", token: "tok" }]);
-  socket.hear({ type: "ready" });
+  live.hear({ channel: "live", type: "ready", again: false });
   expect(coaching.connected).toBe(true);
+  coaching.signal({ type: "join", booking: "b1" });
+  expect(live.sent).toEqual([{ channel: "coaching", type: "join", booking: "b1" }]);
 
   community.attach("me");
-  socket.hear({ type: "social", kind: "invitation", from: "ann", name: "Cubers", group: 3 });
+  await tick();
+  live.hear({ channel: "social", type: "invitation", from: "ann", name: "Cubers", group: 3 });
   expect(seen.notices.at(-1)).toMatchObject({ title: "ann invites you to Cubers", icon: "group" });
 
-  socket.hear({ type: "presence", inCall: true, booking: "b1", user: "ann" });
+  // Lost, then back: only now does each reload what it shows.
+  live.hear({ channel: "live", type: "lost" });
+  expect(coaching.connected).toBe(false);
+  requests = [];
+  live.hear({ channel: "live", type: "ready", again: true });
+  await tick();
+  expect(requests.map((r) => r.url.replace("http://api.test/api/", "")).sort()).toEqual(["coaching/me", "competition", "social/me"]);
+
+  live.hear({ channel: "coaching", type: "presence", inCall: true, booking: "b1", user: "ann" });
   expect(coaching.waiting.has("b1")).toBe(true);
   seen.notices.at(-1)!.action!.run();
   expect(seen.urls.at(-1)).toBe("/coaching/call/b1");
@@ -141,22 +149,29 @@ test("coaching opens its socket with the token, passes the community's events on
   await expect(coaching.sendMedia(1, Object.assign(new Blob(["x"], { type: "text/plain" }), { name: "a.txt" }))).rejects.toThrow("a.txt is neither a picture nor a video.");
 });
 
-test("a match joins with the token, draws the scramble from the first seat once both players are here", async () => {
+test("a match joins once the socket is ready, again after a reconnection, and draws the scramble from the first seat once both players are here", async () => {
   const scrambles: unknown[] = [];
-  const { host } = fakeHost();
+  const { host, live: socket } = fakeHost();
   const live = new MatchClient({ ...host, scramble: async (context) => (scrambles.push(context), "R U"), fail: () => {} });
   live.open(7);
-  const socket = sockets[0]!;
-  expect(socket.url).toBe("ws://api.test/api/matches/live");
-  await socket.onopen!();
-  expect(socket.sent[0]).toEqual({ type: "join", token: "tok", match: 7 });
+  expect(socket.sent).toEqual([]);
+  socket.hear({ channel: "live", type: "ready", again: false });
+  expect(socket.sent).toEqual([{ channel: "match", match: 7, type: "join" }]);
   const match = { id: 7, event: "333", status: "live", players: [person("me"), person("bob")], solves: [], present: [true, true] };
-  socket.hear({ type: "state", match });
+  // Another match's state is not this one's.
+  socket.hear({ channel: "match", type: "state", match: { ...match, id: 8 } });
+  expect(live.match).toBeNull();
+  socket.hear({ channel: "match", type: "state", match });
   await tick();
   expect(live.seat).toBe(0);
   expect(scrambles).toEqual([{ puzzle: "333", solveMode: "standard", scrambleType: "normal" }]);
-  expect(socket.sent.at(-1)).toEqual({ type: "scramble", number: 1, text: "R U" });
+  expect(socket.sent.at(-1)).toEqual({ channel: "match", match: 7, type: "scramble", number: 1, text: "R U" });
+  socket.hear({ channel: "live", type: "lost" });
+  expect(live.connected).toBe(false);
+  socket.hear({ channel: "live", type: "ready", again: true });
+  expect(socket.sent.at(-1)).toEqual({ channel: "match", match: 7, type: "join" });
   live.close();
+  expect(socket.sent.at(-1)).toEqual({ channel: "match", match: 7, type: "leave" });
 });
 
 test("the app's addresses read back as routes, for the links the phone opens", () => {

@@ -4,9 +4,9 @@ package main
 // hours, players book one of the slots those hours offer, talk with their coach and meet them in a video call.
 // Payment comes later: a booking is confirmed at once and keeps the price shown when it was made.
 //
-// The HTTP routes live under /api/coaching (`coachingRoute`, run on the database connection). The socket
-// /api/coaching/live pushes chat messages and booking changes to every open app of an account, and relays the WebRTC
-// signalling of a session's call between its coach and student; the media itself goes peer to peer.
+// The HTTP routes live under /api/coaching (`coachingRoute`, run on the database connection). The app's socket
+// (live.go, channel "coaching") pushes chat messages and booking changes to every open app of an account, and relays
+// the WebRTC signalling of a session's call between its coach and student; the media itself goes peer to peer.
 //
 // Pictures and videos sent in a conversation are posted raw to /api/coaching/conversations/{id}/media
 // (`coachingUpload`) and kept as files beside the database; only the two parties of the conversation fetch them back
@@ -25,8 +25,6 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/gorilla/websocket"
 )
 
 const coachingMinute int64 = 60_000
@@ -2420,41 +2418,13 @@ func coachingSetActive(db *Conn, user string, active bool) (any, error) {
 	return M{"ok": true}, nil
 }
 
-// coachingOutbox is one socket's unbounded queue (tokio's mpsc::unbounded_channel): sending never blocks, so the
-// rooms send under their lock.
-type coachingOutbox struct {
-	mu    sync.Mutex
-	queue []M
-	wake  chan struct{}
-}
-
-func newCoachingOutbox() *coachingOutbox { return &coachingOutbox{wake: make(chan struct{}, 1)} }
-
-func (o *coachingOutbox) send(value M) {
-	o.mu.Lock()
-	o.queue = append(o.queue, value)
-	o.mu.Unlock()
-	select {
-	case o.wake <- struct{}{}:
-	default:
-	}
-}
-
-func (o *coachingOutbox) take() []M {
-	o.mu.Lock()
-	defer o.mu.Unlock()
-	queue := o.queue
-	o.queue = nil
-	return queue
-}
-
 type coachingMember struct{ user, socket string }
 
 // CoachingRooms is coaching::Rooms: the open apps and the calls under way.
 type CoachingRooms struct {
 	mu sync.Mutex
 	// Every open coaching socket of each account.
-	sockets map[string]map[string]*coachingOutbox
+	sockets map[string]map[string]*wsOutbox
 	// Who is in each session's call: the account and the socket it joined from.
 	calls map[string][]coachingMember
 	// The two accounts of each call under way, so whoever waits hears when the other one opens or closes the app.
@@ -2466,7 +2436,7 @@ type CoachingRooms struct {
 // newCoachingRooms is coaching::Rooms::default.
 func newCoachingRooms() *CoachingRooms {
 	return &CoachingRooms{
-		sockets: map[string]map[string]*coachingOutbox{},
+		sockets: map[string]map[string]*wsOutbox{},
 		calls:   map[string][]coachingMember{},
 		parties: map[string][2]string{},
 		names:   map[string]string{},
@@ -2475,13 +2445,14 @@ func newCoachingRooms() *CoachingRooms {
 
 func (r *CoachingRooms) sendLocked(user, socket string, value M) {
 	if tx := r.sockets[user][socket]; tx != nil {
-		tx.send(value)
+		tx.send(liveText("coaching", value))
 	}
 }
 
 func (r *CoachingRooms) notifyLocked(user string, value M) {
+	text := liveText("coaching", value)
 	for _, tx := range r.sockets[user] {
-		tx.send(value)
+		tx.send(text)
 	}
 }
 
@@ -2541,19 +2512,28 @@ func (r *CoachingRooms) onlineLocked(user string, online bool) {
 	}
 }
 
-// notify is coaching::Rooms::notify: tells every open app of the account (social::notify uses it).
+// notify is coaching::Rooms::notify: tells every open app of the account.
 func (r *CoachingRooms) notify(user string, value M) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.notifyLocked(user, value)
 }
 
-func (r *CoachingRooms) add(user, socket string, tx *coachingOutbox) {
+// tell sends a message already serialised to every open app of the account (social::notify uses it).
+func (r *CoachingRooms) tell(user, text string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, tx := range r.sockets[user] {
+		tx.send(text)
+	}
+}
+
+func (r *CoachingRooms) add(user, socket string, tx *wsOutbox) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	_, known := r.sockets[user]
 	if !known {
-		r.sockets[user] = map[string]*coachingOutbox{}
+		r.sockets[user] = map[string]*wsOutbox{}
 	}
 	r.sockets[user][socket] = tx
 	if !known {
@@ -2655,19 +2635,6 @@ func (r *CoachingRooms) ring(other, booking, from string) {
 	r.notify(other, M{"type": "presence", "booking": booking, "user": from, "inCall": true})
 }
 
-// Offers and answers carry a whole session description: a few kilobytes, rarely more than 16.
-var coachingUpgrader = wsUpgrader(16384)
-
-// coachingUpgrade is coaching::upgrade: GET /api/coaching/live.
-func coachingUpgrade(state *AppState, w http.ResponseWriter, r *http.Request) {
-	conn, err := coachingUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-	conn.SetReadLimit(65536)
-	coachingClient(state, conn)
-}
-
 // coachingCallable: whether the account may be in the session's call now: one of its two parties, the session not
 // cancelled, from a quarter of an hour before it until half an hour after. Returns the other party.
 func coachingCallable(state *AppState, booking, uid string) (string, error) {
@@ -2698,116 +2665,45 @@ func coachingCallable(state *AppState, booking, uid string) (string, error) {
 	})
 }
 
-// coachingSend writes a message, waiting as long as the peer takes (as axum's socket.send does).
-func coachingSend(conn *websocket.Conn, value any) bool {
-	_ = conn.SetWriteDeadline(time.Time{})
-	return conn.WriteMessage(websocket.TextMessage, []byte(encodeJSON(value))) == nil
-}
-
-// coachingClient: one open app: it signs in with its token, then hears about messages and bookings, and joins calls.
-func coachingClient(state *AppState, conn *websocket.Conn) {
-	defer conn.Close()
-	id := newUUID()
-	tx := newCoachingOutbox()
-	uid, username := "", ""
-	// A call starts with a burst of ICE candidates; then a few messages a second.
-	tokens, at := 200.0, time.Now()
-	idle := time.NewTimer(10 * time.Second)
-	defer idle.Stop()
-	incoming, stop := wsReceive(conn)
-	defer stop()
-	defer func() {
-		if uid != "" {
-			state.coaching.remove(uid, id)
-		}
-	}()
-	resetIdle := func() {
-		if !idle.Stop() {
-			select {
-			case <-idle.C:
-			default:
-			}
-		}
-		idle.Reset(60 * time.Second)
+// onCoaching: the calls of an account's sessions: joining, leaving, and the offers, answers and ICE candidates relayed
+// to the other party.
+func (c *liveClient) onCoaching(body any) bool {
+	if !c.coachingRate.take() {
+		wsClose(c.conn, 1008, "Message rate limit exceeded")
+		return false
 	}
-	for {
-		select {
-		case <-idle.C:
-			wsClose(conn, 4001, "Idle")
-			return
-		case <-tx.wake:
-			for _, value := range tx.take() {
-				if !coachingSend(conn, value) {
-					return
-				}
-			}
-		case message := <-incoming:
-			if message.err != nil {
-				return
-			}
-			switch message.kind {
-			case websocket.PingMessage, websocket.PongMessage:
-				continue
-			case websocket.TextMessage:
-			default:
-				wsClose(conn, 1008, "Invalid message")
-				return
-			}
-			tokens = min(tokens+time.Since(at).Seconds()*20, 200)
-			at = time.Now()
-			if tokens < 1 {
-				wsClose(conn, 1008, "Message rate limit exceeded")
-				return
-			}
-			tokens--
-			body, err := decodeJSON(message.data)
-			if err != nil {
-				wsClose(conn, 1008, "Invalid message")
-				return
-			}
-			kind := str(idx(body, "type"))
-			if uid == "" {
-				// The first message signs in.
-				var user M
-				if token, err := apiString(body, "token", 1, 128); err == nil && kind == "auth" {
-					user, _ = dbCall(state.db, func(db *Conn) (M, error) { return accountsAuth(db, "Bearer "+token) })
-				}
-				if user == nil || user["password_hash"] == nil {
-					wsClose(conn, 4001, "Please sign in again.")
-					return
-				}
-				uid, username = str(user["id"]), str(user["username"])
-				state.coaching.add(uid, id, tx)
-				resetIdle()
-				tx.send(M{"type": "ready"})
-				continue
-			}
-			resetIdle()
-			booking, err := apiString(body, "booking", 1, 64)
-			hasBooking := err == nil
-			switch {
-			case kind == "ping":
-				tx.send(M{"type": "pong"})
-			case kind == "join" && hasBooking:
-				other, err := coachingCallable(state, booking, uid)
-				if err != nil {
-					tx.send(M{"type": "ended", "booking": booking, "reason": toApiError(err).Message})
-				} else {
-					state.coaching.join(booking, uid, username, other, id)
-					state.coaching.ring(other, booking, username)
-				}
-			case kind == "leave" && hasBooking:
-				state.coaching.leave(booking, id)
-			case kind == "signal" && hasBooking:
-				if data, ok := asObject(idx(body, "data")); ok {
-					state.coaching.relay(booking, id, data)
-				}
-			}
+	state, kind := c.state, str(idx(body, "type"))
+	booking, err := apiString(body, "booking", 1, 64)
+	if err != nil {
+		return true
+	}
+	if !c.member {
+		if kind == "join" {
+			c.tx.send(liveText("coaching", M{"type": "ended", "booking": booking, "reason": "Please sign in again."}))
+		}
+		return true
+	}
+	uid, username := c.uid(), str(c.user["username"])
+	switch kind {
+	case "join":
+		other, err := coachingCallable(state, booking, uid)
+		if err != nil {
+			c.tx.send(liveText("coaching", M{"type": "ended", "booking": booking, "reason": toApiError(err).Message}))
+		} else {
+			state.coaching.join(booking, uid, username, other, c.id)
+			state.coaching.ring(other, booking, username)
+		}
+	case "leave":
+		state.coaching.leave(booking, c.id)
+	case "signal":
+		if data, ok := asObject(idx(body, "data")); ok {
+			state.coaching.relay(booking, c.id, data)
 		}
 	}
+	return true
 }
 
-// coachingZoneList: the time zones of jiff-tzdb 2026c, the database the Rust server bundles.
+// coachingZoneList: the time zones of jiff-tzdb 2026c, the database the server knew when written.
 const coachingZoneList = `
 Africa/Abidjan Africa/Accra Africa/Addis_Ababa Africa/Algiers Africa/Asmara Africa/Asmera Africa/Bamako
 Africa/Bangui Africa/Banjul Africa/Bissau Africa/Blantyre Africa/Brazzaville Africa/Bujumbura Africa/Cairo

@@ -2,12 +2,11 @@ import { expect, test } from "bun:test";
 import { DuelClient, type DuelHost } from "../src/client/lib/duel";
 
 const host: DuelHost = {
-  origin: "http://localhost",
+  live: { send: () => true, on: () => () => {}, connected: () => true },
   changed() {},
   reset() {},
   scramble: async () => "R U",
   level: async () => null,
-  token: async () => null,
   record() {},
   fail() {},
 };

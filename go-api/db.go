@@ -12,15 +12,15 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-//go:embed embed/schema.sql
+//go:embed schema.sql
 var schemaSQL string
 
-//go:embed embed/query-indexes.sql
+//go:embed query-indexes.sql
 var queryIndexesSQL string
 
 var bg = context.Background()
 
-// Conn is the one SQLite connection (rusqlite's Connection). A transaction runs on it too: `Begin`
+// Conn is the one SQLite connection. A transaction runs on it too: `Begin`
 // issues BEGIN, and every helper keeps taking the same *Conn.
 type Conn struct {
 	conn  *sql.Conn
@@ -49,7 +49,7 @@ func (c *Conn) LastInsertRowid() int64 {
 	return id
 }
 
-// Tx is rusqlite's Transaction: rolled back unless committed (call Rollback with defer).
+// Tx is a transaction: rolled back unless committed (call Rollback with defer).
 type Tx struct {
 	c    *Conn
 	done bool
@@ -87,7 +87,7 @@ func (c *Conn) prepare(query string) (*sql.Stmt, error) {
 	return s, nil
 }
 
-// Db owns the connection: every Call runs alone, as every job of Rust's SQLite thread.
+// Db owns the connection: every Call runs alone, one after the other.
 type Db struct {
 	mu sync.Mutex
 	c  *Conn

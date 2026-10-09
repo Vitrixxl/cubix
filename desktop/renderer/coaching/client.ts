@@ -1,8 +1,8 @@
 /**
- * Coaching on the web app: the shared client (src/client/lib/coaching.ts) on the community's host, the community taking
- * its events; pictures and videos shown from object URLs.
+ * Coaching on the web app: the shared client (src/client/lib/coaching.ts) on the community's host; pictures and videos
+ * shown from object URLs.
  */
-import { host, community } from "../community/client";
+import { host } from "../community/client";
 import { Coaching, CoachingError } from "../../../src/client/lib/coaching";
 import { tr } from "../../../src/client/i18n";
 
@@ -36,4 +36,4 @@ class WebCoaching extends Coaching {
   }
 }
 
-export const coaching = new WebCoaching(host, community);
+export const coaching = new WebCoaching(host);

@@ -1,11 +1,11 @@
 /**
- * Coaching: the /api/coaching routes called with the account's token, and the coaching socket that brings chat
- * messages, booking changes, the community's events and the signalling of calls. Everything lives here; pages read it
+ * Coaching: the /api/coaching routes called with the account's token, and its channel of the app's socket that brings
+ * chat messages, booking changes and the signalling of calls. Everything lives here; pages read it
  * and the host's `changed` redraws them. The web app and the Android app each give it their own host (community.ts).
  */
 import { msg } from "../i18n/msg";
 import { locale, tr } from "../i18n";
-import type { Community, SocialHost } from "./community";
+import type { SocialHost } from "./community";
 
 /** Version stored with each booking when the student accepts the cancellation terms. */
 export const CANCELLATION_POLICY = "24h-v1";
@@ -260,8 +260,10 @@ export const euros = (cents: number) => (cents / 100).toLocaleString(locale(), {
 export const price = (cents: number) => (cents ? euros(cents) : tr("Free"));
 
 export class Coaching {
-  /** `community` takes the community's events, which share the socket. */
-  constructor(readonly host: SocialHost, private readonly community?: Community) {}
+  constructor(readonly host: SocialHost) {
+    host.live.on("coaching", (e) => this.user && this.event(e));
+    host.live.on("live", (e) => this.user && this.connection(e));
+  }
   /** The account this state belongs to; null while signed out. */
   user: string | null = null;
   me?: Me;
@@ -281,35 +283,21 @@ export class Coaching {
   inCall = "";
   connected = false;
   failure = "";
-  private socket?: WebSocket;
-  private retry = 0;
-  /** The socket was ready once for this account: a `ready` after it is a reconnection. */
-  private wasReady = false;
-  private timer?: ReturnType<typeof setTimeout>;
-  private ping?: ReturnType<typeof setInterval>;
   private loading = new Map<string, Promise<unknown>>();
   private callListener?: (event: CallEvent) => void;
 
-  /** Follows the signed-in account: a new one starts afresh and opens its socket. */
+  /** Follows the signed-in account: a new one starts afresh. */
   attach(user: string | null) {
     if (user === this.user) return;
     this.detach();
     this.user = user;
     if (user) {
-      this.connect();
+      this.connected = this.host.live.connected();
       void this.load("me");
     }
   }
   private detach() {
-    clearTimeout(this.timer);
-    clearInterval(this.ping);
-    if (this.socket) {
-      this.socket.onclose = null;
-      this.socket.close();
-    }
-    this.socket = undefined;
     this.connected = false;
-    this.wasReady = false;
     this.me = this.coaches = this.bookings = this.conversations = this.dashboard = undefined;
     this.profiles.clear();
     this.slots.clear();
@@ -531,60 +519,25 @@ export class Coaching {
   onCall(listener?: (event: CallEvent) => void) {
     this.callListener = listener;
   }
-  signal(value: object) {
-    if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(value));
+  /** A message of the call: `join`, `leave` or `signal`, with its booking. */
+  signal(value: { type: string; booking: string; data?: unknown }) {
+    this.host.live.send({ channel: "coaching", ...value });
   }
-  private connect() {
-    const owner = this.user;
-    const ws = new WebSocket(this.host.origin.replace(/^http/, "ws") + "/api/coaching/live");
-    this.socket = ws;
-    ws.onopen = async () => {
-      const token = await this.host.token().catch(() => null);
-      if (!token || owner !== this.user) return ws.close();
-      ws.send(JSON.stringify({ type: "auth", token }));
-    };
-    ws.onmessage = (e) => {
-      let event: any;
-      try {
-        event = JSON.parse(String(e.data));
-      } catch {
-        return;
-      }
-      this.event(event);
-    };
-    ws.onclose = () => {
-      clearInterval(this.ping);
-      if (this.socket !== ws) return;
-      this.connected = false;
-      this.callListener?.({ type: "lost" });
-      this.host.changed();
-      // Back off up to half a minute; a signed-out app stays closed.
-      this.timer = setTimeout(() => owner === this.user && this.connect(), Math.min(30_000, 1000 * 2 ** this.retry++));
-    };
+  /** The socket came back, or went. Whatever changed meanwhile is read again; the first opening follows the loads of
+   * `attach`. */
+  private connection(event: { type: string; again?: boolean }) {
+    this.connected = event.type === "ready";
+    if (event.type === "ready" && event.again) {
+      void this.load("me");
+      if (this.bookings) void this.load("bookings");
+      if (this.conversations) void this.load("conversations");
+      if (this.dashboard) void this.load("dashboard");
+    }
+    this.callListener?.(event.type === "ready" ? { type: "ready" } : { type: "lost" });
+    this.host.changed();
   }
   private event(event: any) {
     switch (event.type) {
-      case "ready":
-        this.connected = true;
-        this.retry = 0;
-        clearInterval(this.ping);
-        this.ping = setInterval(() => this.signal({ type: "ping" }), 25_000);
-        // Whatever changed while the socket was down; the first opening follows the loads of `attach`.
-        if (this.wasReady) {
-          void this.load("me");
-          if (this.bookings) void this.load("bookings");
-          if (this.conversations) void this.load("conversations");
-          if (this.dashboard) void this.load("dashboard");
-          this.community?.reconnected();
-        }
-        this.wasReady = true;
-        this.callListener?.({ type: "ready" });
-        this.host.changed();
-        break;
-      // The community's events share this socket (community/client.ts).
-      case "social":
-        this.community?.event(event);
-        break;
       case "message":
         this.received(event.conversation, event.message, event.from);
         break;

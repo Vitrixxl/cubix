@@ -1,4 +1,4 @@
-/** Test harness: a disposable Rust API serving the web build (dist/web) and the Electron shell pointed at it,
+/** Test harness: a disposable API serving the web build (dist/web) and the Electron shell pointed at it,
  * without any window (Chromium's headless Ozone backend). Build first: `bun desktop/build.ts && bun desktop/web.ts`. */
 import { _electron as electron, type Page } from "playwright";
 import { mkdir } from "node:fs/promises";
@@ -17,7 +17,7 @@ export async function startServer(dir: string, env: Record<string, string> = {})
   const port = reserve.port!;
   reserve.stop();
   const origin = `http://127.0.0.1:${port}`;
-  const server = Bun.spawn([resolve(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api")], {
+  const server = Bun.spawn([resolve(process.env.CUBIX_API_BIN ?? "go-api/cubix-api")], {
     env: { ...process.env, PORT: String(port), CUBIX_HOST: "127.0.0.1", CUBIX_DB: join(dir, "server.db"), CUBIX_WEB_DIR: resolve("dist/web"), CUBIX_EXIT_WITH_PARENT: "1", ...env },
     stdout: "ignore",
     stderr: "inherit",

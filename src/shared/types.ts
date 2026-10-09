@@ -1,4 +1,4 @@
-/** HTTP and WebSocket contracts for the Rust API and native clients. */
+/** HTTP and WebSocket contracts for the API and native clients. */
 
 import type { CubeSize, EventId, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
 export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";

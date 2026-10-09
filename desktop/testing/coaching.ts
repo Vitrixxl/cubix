@@ -16,7 +16,7 @@ await mkdir(SHOTS, { recursive: true });
 const dir = await mkdtemp(join(tmpdir(), "cubix-coaching-"));
 const { origin, server } = await startServer(join(dir, "server"));
 const db = join(dir, "server", "server.db");
-const token = spawnSync(resolve(process.env.CUBIX_API_BIN ?? "rust-api/target/release/cubix-api"), ["admin-token"], { env: { ...process.env, CUBIX_DB: db }, encoding: "utf8" }).stdout.split("\n")[0]!.trim();
+const token = spawnSync(resolve(process.env.CUBIX_API_BIN ?? "go-api/cubix-api"), ["admin-token"], { env: { ...process.env, CUBIX_DB: db }, encoding: "utf8" }).stdout.split("\n")[0]!.trim();
 const browser = await chromium.launch({
   executablePath: process.env.CUBIX_TEST_CHROMIUM ?? "/usr/bin/chromium",
   headless: true,

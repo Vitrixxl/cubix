@@ -91,10 +91,10 @@ const { TOUR_STEPS } = await import("../src/client/lib/journey");
 walk(TOUR_STEPS.map(({ title, body }) => ({ title, body })));
 
 // The API's messages, shown as they come in notices.
-for (const file of globSync("rust-api/src/*.rs")) {
+for (const file of globSync("go-api/*.go")) {
   const source = readFileSync(file, "utf8");
-  for (const m of source.matchAll(/ApiError::new\(\s*\d+,\s*"((?:[^"\\]|\\.)*)"/g)) add(m[1]);
-  for (const m of source.matchAll(/const [A-Z_]+: &str = "((?:[^"\\]|\\.)*)";/g)) if (/^[A-Z][a-z]/.test(m[1]!) && m[1]!.includes(" ")) add(m[1]);
+  for (const m of source.matchAll(/apiErr\(\s*\d+,\s*(?:"((?:[^"\\]|\\.)*)"|`([^`]*)`)/g)) add(m[1] ?? m[2]);
+  for (const m of source.matchAll(/^const \w+ = "((?:[^"\\]|\\.)*)"$/gm)) if (/^[A-Z][a-z]/.test(m[1]!) && m[1]!.includes(" ")) add(m[1]);
 }
 
 const sorted = [...keys].sort((a, b) => a.localeCompare(b, "en"));

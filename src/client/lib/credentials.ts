@@ -1,5 +1,5 @@
 import { msg } from "../i18n/msg";
-/** The server's rules (rust-api/src/api.rs): 3–24 letters, digits or underscores; ten characters of password or more. */
+/** The server's rules (go-api/api.go): 3–24 letters, digits or underscores; ten characters of password or more. */
 const USERNAME = /^[A-Za-z0-9_]{3,24}$/;
 export const PASSWORD_MIN = 10;
 

@@ -4,13 +4,11 @@
  *   bun run dev:docker --electron  in the Electron window
  *   bun run dev:docker --reset     a fresh database, seeded again
  *   bun run dev:docker --stop      stops the container; its data is kept
- *   bun run dev:docker --go        the Go port of the API (compose.go-dev.yaml, port 47131) instead of Rust
  * The container keeps running after this script; the data lives in the `cubix-dev_data` volume. */
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 process.chdir(resolve(import.meta.dir, ".."));
-const go = process.argv.includes("--go");
-const compose = ["docker", "compose", "-f", go ? "compose.go-dev.yaml" : "compose.dev.yaml"];
+const compose = ["docker", "compose", "-f", "compose.dev.yaml"];
 const run = async (command: string[]) => {
   if (await Bun.spawn(command, { stdout: "inherit", stderr: "inherit", stdin: "inherit" }).exited) process.exit(1);
 };
@@ -22,7 +20,7 @@ if (flags.has("--stop")) {
 if (flags.has("--reset")) await run([...compose, "down", "--volumes"]);
 await run([...compose, "up", "--detach", "--build", "--wait"]);
 await run([...compose, "logs", "--no-log-prefix", "--tail", "20", "api"]);
-const port = process.env.CUBIX_DEV_API_PORT ?? (go ? "47131" : "47130");
+const port = process.env.CUBIX_DEV_API_PORT ?? "47130";
 console.log(`
 Cubix dev API: http://127.0.0.1:${port} (it serves the web app of the image too)
 Accounts: dev, coach, lena_speed, alex_cubes… password cubix-dev-password

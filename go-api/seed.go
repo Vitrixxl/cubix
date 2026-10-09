@@ -7,10 +7,10 @@ package main
 // reviews and messages, coach applications, duels and traffic for the administration.
 // Only an empty database is seeded, so the development container runs it at every start.
 // The random generator has a fixed seed: every reset gives the same data, dated from today.
-// seedRng reproduces rand 0.8's StdRng (ChaCha12) and its distributions draw for draw, so the Go and Rust
-// binaries seed the same data (only the UUIDs, drawn from the OS, differ).
+// seedRng reproduces rand 0.8's StdRng (ChaCha12) and its distributions draw for draw, so the data
+// matches what the former Rust server seeded (only the UUIDs, drawn from the OS, differ).
 
-// The C library's exp, log and cos, as Rust's f64 methods call them: Go's own differ in the last bit now and then,
+// The C library's exp, log and cos, as the generator's reference (Rust's f64 methods) calls them: Go's own differ in the last bit now and then,
 // which moved a rounded solve time by a millisecond.
 
 /*

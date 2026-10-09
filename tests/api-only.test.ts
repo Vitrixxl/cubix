@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
-import { createRustApi, openDb } from './backend';
+import { startApi, openDb } from './backend';
 
 test('the API serves the built web app next to /api, with immutable bundles', async () => {
   const web = mkdtempSync(join(tmpdir(), 'cubix-web-'));
@@ -14,7 +14,7 @@ test('the API serves the built web app next to /api, with immutable bundles', as
     writeFileSync(join(web, 'sw.js'), 'self');
     writeFileSync(join(web, 'build/main-abc.js'), 'console.log(1)');
     writeFileSync(join(web, 'build/main-abc.js.gz'), gzipSync('console.log(1)'));
-    const api = createRustApi(db.path, { CUBIX_WEB_DIR: web });
+    const api = startApi(db.path, { CUBIX_WEB_DIR: web });
     const get = (path: string, headers: Record<string, string> = {}) => api.handle(new Request('http://localhost' + path, { headers }));
     expect((await get('/api/health')).status).toBe(200);
     expect((await get('/api/health')).headers.get('cache-control')).toBe('no-store');
@@ -63,7 +63,7 @@ test('the API serves the built web app next to /api, with immutable bundles', as
 test('without a web build the server answers the API only', async () => {
   const db = openDb();
   try {
-    const api = createRustApi(db.path, { CUBIX_WEB_DIR: join(tmpdir(), 'cubix-no-web-build') });
+    const api = startApi(db.path, { CUBIX_WEB_DIR: join(tmpdir(), 'cubix-no-web-build') });
     expect((await api.handle(new Request('http://localhost/api/health'))).status).toBe(200);
     expect((await api.handle(new Request('http://localhost/'))).status).toBe(404);
   } finally {

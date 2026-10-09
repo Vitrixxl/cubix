@@ -7,7 +7,6 @@ package main
 
 import (
 	"math"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -64,13 +63,15 @@ func (o *wsOutbox) send(message string) {
 	}
 }
 
-// flush writes every queued message to the socket; false once a write fails.
+// flush writes every queued message to the socket; false once a write fails, or the peer does not read it within 15
+// seconds.
 func (o *wsOutbox) flush(conn *websocket.Conn) bool {
 	o.mu.Lock()
 	queue := o.queue
 	o.queue = nil
 	o.mu.Unlock()
 	for _, message := range queue {
+		_ = conn.SetWriteDeadline(time.Now().Add(15 * time.Second))
 		if conn.WriteMessage(websocket.TextMessage, []byte(message)) != nil {
 			return false
 		}
@@ -81,7 +82,7 @@ func (o *wsOutbox) flush(conn *websocket.Conn) bool {
 type duelWaiting struct {
 	id   string
 	name string
-	// The account behind the socket, when it sent a valid token ("" otherwise).
+	// The account behind the socket, when it signed in ("" otherwise).
 	user  string
 	event string
 	level *float64
@@ -140,7 +141,7 @@ func (r *duelRace) over() bool {
 
 func (r *duelRace) send(seat int, value M) {
 	if tx := r.seats[seat].tx; tx != nil {
-		tx.send(encodeJSON(value))
+		tx.send(liveText("duel", value))
 	}
 }
 
@@ -332,7 +333,7 @@ func (inner *duelInner) status() {
 				others++
 			}
 		}
-		w.tx.send(encodeJSON(M{"type": "queue", "searching": others}))
+		w.tx.send(liveText("duel", M{"type": "queue", "searching": others}))
 	}
 }
 
@@ -347,7 +348,7 @@ func (a *DuelArena) queue(waiting *duelWaiting) {
 	a.leave(waiting.id)
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	waiting.tx.send(encodeJSON(M{"type": "queued"}))
+	waiting.tx.send(liveText("duel", M{"type": "queued"}))
 	a.inner.queue = append(a.inner.queue, waiting)
 	a.inner.pair()
 	a.inner.status()
@@ -504,112 +505,43 @@ func duelRun(arena *DuelArena) {
 	}
 }
 
-var duelUpgrader = wsUpgrader(4096)
-
-func duelUpgrade(state *AppState, w http.ResponseWriter, r *http.Request) {
-	conn, err := duelUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-	conn.SetReadLimit(16384)
-	duelPlayer(state, conn)
-}
-
 // duelName: signed-in players race under their username, guests under a short name of their socket.
 // The account id, guest accounts included, goes to the statistics only.
-func duelName(state *AppState, id string, token *string) (string, string) {
-	var user M
-	if token != nil {
-		user, _ = dbCall(state.db, func(db *Conn) (M, error) { return accountsAuth(db, "Bearer "+*token) })
-	}
-	account := str(idx(user, "id"))
+func duelName(id string, user M) (string, string) {
 	name := "guest-" + strings.ReplaceAll(id, "-", "")[:4]
 	if user != nil && user["password_hash"] != nil {
 		if username, ok := asStr(user["username"]); ok {
 			name = username
 		}
 	}
-	return name, account
+	return name, str(idx(user, "id"))
 }
 
-func duelPlayer(state *AppState, conn *websocket.Conn) {
-	defer conn.Close()
-	id := newUUID()
-	tx := newWsOutbox()
-	named := false
-	var playerName, playerUser string
-	// A burst of 30 messages, then 3 a second: a solve takes a handful, chat a few more.
-	tokens, at := 30.0, time.Now()
-	// Clients ping every 20 seconds; a silent socket is gone.
-	idle := time.NewTimer(60 * time.Second)
-	defer idle.Stop()
-	incoming, stop := wsReceive(conn)
-	defer stop()
-	defer state.duel.leave(id)
-	for {
-		select {
-		case <-idle.C:
+// onDuel: a player's message: a search, leaving, or a move of the race. Over the allowance, messages are dropped.
+func (c *liveClient) onDuel(body any) {
+	if !c.duelRate.take() {
+		return
+	}
+	switch str(idx(body, "type")) {
+	case "queue":
+		event, err := apiString(body, "event", 1, 16)
+		if err != nil {
 			return
-		case <-tx.wake:
-			if !tx.flush(conn) {
+		}
+		for i := 0; i < len(event); i++ {
+			if ch := event[i]; !('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || '0' <= ch && ch <= '9') {
 				return
-			}
-		case message := <-incoming:
-			if message.err != nil {
-				return
-			}
-			switch message.kind {
-			case websocket.PingMessage, websocket.PongMessage:
-				continue
-			case websocket.TextMessage:
-			default:
-				return
-			}
-			idle.Reset(60 * time.Second)
-			tokens = min(tokens+time.Since(at).Seconds()*3, 30)
-			at = time.Now()
-			if tokens < 1 {
-				continue
-			}
-			tokens--
-			body, err := decodeJSON(message.data)
-			if err != nil {
-				return
-			}
-			switch str(idx(body, "type")) {
-			case "ping":
-				tx.send(encodeJSON(M{"type": "pong"}))
-			case "queue":
-				event, err := apiString(body, "event", 1, 16)
-				if err != nil {
-					continue
-				}
-				alphanumeric := true
-				for i := 0; i < len(event); i++ {
-					c := event[i]
-					alphanumeric = alphanumeric && ('a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9')
-				}
-				if !alphanumeric {
-					continue
-				}
-				var level *float64
-				if l, ok := asFloat(idx(body, "level")); ok && !math.IsInf(l, 0) && !math.IsNaN(l) && l > 0 && l < 3_600_000 {
-					level = &l
-				}
-				if !named {
-					var token *string
-					if t, err := apiString(body, "token", 1, 128); err == nil {
-						token = &t
-					}
-					playerName, playerUser = duelName(state, id, token)
-					named = true
-				}
-				state.duel.queue(&duelWaiting{id: id, name: playerName, user: playerUser, event: event, level: level, since: time.Now(), tx: tx})
-			case "leave":
-				state.duel.leave(id)
-			default:
-				state.duel.play(id, body)
 			}
 		}
+		var level *float64
+		if l, ok := asFloat(idx(body, "level")); ok && !math.IsInf(l, 0) && !math.IsNaN(l) && l > 0 && l < 3_600_000 {
+			level = &l
+		}
+		name, user := duelName(c.id, c.user)
+		c.state.duel.queue(&duelWaiting{id: c.id, name: name, user: user, event: event, level: level, since: time.Now(), tx: c.tx})
+	case "leave":
+		c.state.duel.leave(c.id)
+	default:
+		c.state.duel.play(c.id, body)
 	}
 }

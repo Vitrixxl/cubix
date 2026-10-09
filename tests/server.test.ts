@@ -4,19 +4,18 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { CASES } from "./backend";
-import { createRustApi } from "./backend";
+import { startApi } from "./backend";
 
-const rustTest = test;
 const cleanups: (() => void)[] = [];
 afterEach(() => {
   for (const cleanup of cleanups.splice(0)) cleanup();
 });
 function fixture() {
-  const dir = mkdtempSync(join(tmpdir(), "cubix-rust-parity-"));
+  const dir = mkdtempSync(join(tmpdir(), "cubix-server-"));
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
   return join(dir, "test.db");
 }
-function client(app: ReturnType<typeof createRustApi>) {
+function client(app: ReturnType<typeof startApi>) {
   return async (
     path: string,
     method = "GET",
@@ -36,8 +35,8 @@ function client(app: ReturnType<typeof createRustApi>) {
     return { status: response.status, body: (await response.json()) as any };
   };
 }
-rustTest("Rust exposes the complete catalogue and verified training histories", async () => {
-  const call = client(createRustApi(fixture()));
+test("the server exposes the complete catalogue and verified training histories", async () => {
+  const call = client(startApi(fixture()));
   expect((await call("/cases")).body).toEqual(CASES);
   const member = (await call("/auth/register", "POST", {username:"records",password:"a-long-test-password"})).body;
   const session = (await call("/sessions", "POST", {mode:"training",caseIds:[CASES[0].id]},member.token)).body;
@@ -50,8 +49,8 @@ rustTest("Rust exposes the complete catalogue and verified training histories", 
   expect((await call("/auth/login","POST",{username:"records",password:"a-long-test-password"})).status).toBe(200);
 });
 
-rustTest("a solve's turns are written by hand, and the solve shared by a link anyone can open", async () => {
-  const call = client(createRustApi(fixture()));
+test("a solve's turns are written by hand, and the solve shared by a link anyone can open", async () => {
+  const call = client(startApi(fixture()));
   const member = (await call("/auth/register", "POST", {username:"sharer",password:"a-long-test-password"})).body;
   const session = (await call("/sessions", "POST", {mode:"playground"},member.token)).body;
   const solve = (await call("/solves","POST",{sessionId:session.id,timeMs:9000,penalty:"none",scramble:"R U"},member.token)).body;
@@ -71,8 +70,8 @@ rustTest("a solve's turns are written by hand, and the solve shared by a link an
   expect((await call(`/solves/${solve.id}`,"PATCH",{solution:null},member.token)).body.solution).toBeNull();
 });
 
-rustTest(
-  "Rust itself migrates pre-account SQLite and retires legacy profile fields without losing history",
+test(
+  "the server itself migrates pre-account SQLite and retires legacy profile fields without losing history",
   async () => {
     const path = fixture();
     const db = new Database(path);
@@ -82,7 +81,7 @@ rustTest(
     CREATE TABLE users(id TEXT PRIMARY KEY,username TEXT NOT NULL UNIQUE COLLATE NOCASE,bio TEXT NOT NULL DEFAULT '',password_hash TEXT,created_at TEXT,is_private INTEGER DEFAULT 1,display_name TEXT DEFAULT '');
     INSERT INTO sessions VALUES(1,'playground','[]','2026-01-01');
     INSERT INTO solves VALUES(1,1,NULL,9000,'none',NULL,'2026-01-01');`);
-    const call = client(createRustApi(path));
+    const call = client(startApi(path));
     expect(
       db
         .query<{ name: string }, []>("PRAGMA table_info(users)")
@@ -106,8 +105,8 @@ rustTest(
   },
 );
 
-rustTest("signed-in Rust clients cannot open a second account, and guests cannot be created", async () => {
-  const call = client(createRustApi(fixture()));
+test("signed-in clients cannot open a second account, and guests cannot be created", async () => {
+  const call = client(startApi(fixture()));
   // The guest route is gone: like any unknown route, it needs an account.
   expect((await call("/auth/guest", "POST")).status).toBe(401);
   const member = (await call("/auth/register", "POST", { username: "first_member", password: "concurrent-password" })).body;
@@ -116,13 +115,13 @@ rustTest("signed-in Rust clients cannot open a second account, and guests cannot
 });
 
 
-rustTest("practice migration preserves existing cube histories and remains safe on restart", async () => {
+test("practice migration preserves existing cube histories and remains safe on restart", async () => {
   const path = fixture(), db = new Database(path); cleanups.unshift(() => db.close());
   db.exec(`CREATE TABLE sessions(id INTEGER PRIMARY KEY,mode TEXT,case_ids TEXT,created_at TEXT,cube_size INTEGER NOT NULL DEFAULT 3);
     CREATE TABLE solves(id INTEGER PRIMARY KEY,session_id INTEGER,case_id TEXT,time_ms INTEGER,penalty TEXT,scramble TEXT,created_at TEXT,cube_size INTEGER NOT NULL DEFAULT 3);
     INSERT INTO sessions VALUES(1,'training','["7x7 PLL Aa"]','2026-01-01',7),(2,'playground','[]','2026-01-02',4);
     INSERT INTO solves VALUES(1,1,'7x7 PLL Aa',9000,'+2','R U','2026-01-01',7),(2,2,NULL,42000,'none','Rw U','2026-01-02',4);`);
-  const server = createRustApi(path);
+  const server = startApi(path);
   const before = db.query("SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,puzzle_id,cube_size,solve_mode,scramble_type FROM solves ORDER BY id").all();
   expect(before).toMatchObject([
     {id:1,puzzle_id:"777",cube_size:7,solve_mode:"standard",scramble_type:"case",time_ms:9000,penalty:"+2",scramble:"R U"},
@@ -133,7 +132,7 @@ rustTest("practice migration preserves existing cube histories and remains safe 
     {puzzle_id:"444",solve_mode:"standard",scramble_type:"normal"},
   ]);
   server.server.stop();
-  const call = client(createRustApi(path));
+  const call = client(startApi(path));
   expect(db.query("SELECT id,session_id,case_id,time_ms,penalty,scramble,created_at,puzzle_id,cube_size,solve_mode,scramble_type FROM solves ORDER BY id").all()).toEqual(before);
   const auth = (await call("/auth/register","POST",{username:"migration_labels",password:"a-long-test-password"})).body;
   const niche = await call("/solves","POST",{puzzle:"sq1",solveMode:"blindfolded",timeMs:5000},auth.token);
@@ -142,9 +141,9 @@ rustTest("practice migration preserves existing cube histories and remains safe 
   expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
 });
 
-rustTest("learning marks are validated, upserted per account and journaled for sync", async () => {
+test("learning marks are validated, upserted per account and journaled for sync", async () => {
   const path = fixture();
-  const app = createRustApi(path);
+  const app = startApi(path);
   cleanups.push(() => app.server.stop());
   const call = client(app);
   const alice = (await call("/auth/register", "POST", { username: "learn_alice", password: "a-long-test-password" })).body;
@@ -171,8 +170,8 @@ rustTest("learning marks are validated, upserted per account and journaled for s
   expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
 });
 
-rustTest("a case is learned with one of its algorithms, and players see which ones are chosen", async () => {
-  const app = createRustApi(fixture());
+test("a case is learned with one of its algorithms, and players see which ones are chosen", async () => {
+  const app = startApi(fixture());
   cleanups.push(() => app.server.stop());
   const call = client(app);
   const [alice, bob, carol] = await Promise.all(["alg_alice", "alg_bob", "alg_carol"].map(async (username) => (await call("/auth/register", "POST", { username, password: "a-long-test-password" })).body));
@@ -199,9 +198,9 @@ rustTest("a case is learned with one of its algorithms, and players see which on
   expect((await call("/algorithm-choices?cases=PLL%20Aa")).status).toBe(401);
 });
 
-rustTest("learning order validates tracks and groups, isolates accounts, and replays uploads idempotently", async () => {
+test("learning order validates tracks and groups, isolates accounts, and replays uploads idempotently", async () => {
   const path = fixture();
-  const app = createRustApi(path); cleanups.push(() => app.server.stop());
+  const app = startApi(path); cleanups.push(() => app.server.stop());
   const call = client(app);
   const alice = (await call("/auth/register", "POST", { username:"priority_alice", password:"a-long-test-password" })).body;
   const bob = (await call("/auth/register", "POST", { username:"priority_bob", password:"a-long-test-password" })).body;
@@ -226,8 +225,8 @@ rustTest("learning order validates tracks and groups, isolates accounts, and rep
   expect(changes[0]).toMatchObject({ kind:"learning_group_orders", value:{ track:"PLL", groups:reversed } });
 });
 
-rustTest("Rust announces its build, stores the uploaded APK and serves it back", async () => {
-  const app = createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
+test("the server announces its build, stores the uploaded APK and serves it back", async () => {
+  const app = startApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
   const call = client(app);
   const origin = `http://127.0.0.1:${app.server.port}`;
   expect((await call("/mobile/release")).body).toEqual({
@@ -253,12 +252,12 @@ rustTest("Rust announces its build, stores the uploaded APK and serves it back",
   expect(new Uint8Array(await download.arrayBuffer())).toEqual(apk);
   expect((await call("/mobile/release")).body).toMatchObject({ apkBuild: 29800000, apkSha256: expect.stringMatching(/^[0-9a-f]{64}$/) });
   // A server started outside Docker or CI has no build number; the application then never prompts.
-  const bare = client(createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "", CUBIX_COMMIT: "" }));
+  const bare = client(startApi(fixture(), { CUBIX_BUILD_NUMBER: "", CUBIX_COMMIT: "" }));
   expect((await bare("/mobile/release")).body).toMatchObject({ build: null, commit: null });
 });
 
-rustTest("Rust publishes over-the-air updates following the expo-updates protocol", async () => {
-  const app = createRustApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
+test("the server publishes over-the-air updates following the expo-updates protocol", async () => {
+  const app = startApi(fixture(), { CUBIX_BUILD_NUMBER: "29800000", CUBIX_COMMIT: "0123456789abcdef" });
   const call = client(app);
   const origin = `http://127.0.0.1:${app.server.port}`;
   const auth = { Authorization: "Bearer synthetic-admin-test-password" };
@@ -308,9 +307,9 @@ rustTest("Rust publishes over-the-air updates following the expo-updates protoco
   expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ commit: "0123456789abcdef" });
 });
 
-rustTest("Normal migration merges both histories and receipts, fixes defaults and tolerates old-client retries", async () => {
+test("Normal migration merges both histories and receipts, fixes defaults and tolerates old-client retries", async () => {
   const path = fixture(), db = new Database(path); cleanups.unshift(() => db.close());
-  const app = createRustApi(path), call = client(app);
+  const app = startApi(path), call = client(app);
   const auth = (await call("/auth/register","POST",{username:"normal_migration",password:"a-long-test-password"})).body;
   const operations = ["competition","random-moves"].map((scrambleType,index) => ({
     id:`normal-session-${index}`,method:"POST",path:"sessions",createdAt:`2026-01-0${index+1}T00:00:00.000Z`,
@@ -333,7 +332,7 @@ rustTest("Normal migration merges both histories and receipts, fixes defaults an
   for (const [index,op] of operations.entries()) db.query("UPDATE sync_receipts SET payload=?,result=? WHERE operation_id=?").run(JSON.stringify(op),JSON.stringify({...sessions[index],scramble_type:op.body.scrambleType}),op.id);
   const before = db.query("SELECT * FROM solves ORDER BY id").all() as any[];
   const oldCursor = (db.query("SELECT max(seq) n FROM sync_changes").get() as any).n;
-  const migrated = createRustApi(path), next = client(migrated);
+  const migrated = startApi(path), next = client(migrated);
   expect(db.query("SELECT * FROM solves ORDER BY id").all()).toEqual(before.map(row=>({...row,scramble_type:"normal"})));
   for (const table of ["sessions","solves"]) {
     expect((db.query(`SELECT count(*) n FROM ${table} WHERE scramble_type!='normal'`).get() as any).n).toBe(0);
@@ -358,6 +357,6 @@ rustTest("Normal migration merges both histories and receipts, fixes defaults an
   expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
   const migratedCursor = (db.query("SELECT max(seq) n FROM sync_changes").get() as any).n;
   migrated.server.stop();
-  createRustApi(path);
+  startApi(path);
   expect((db.query("SELECT max(seq) n FROM sync_changes").get() as any).n).toBe(migratedCursor);
 });

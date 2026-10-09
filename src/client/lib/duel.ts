@@ -1,12 +1,14 @@
 /**
- * One-on-one races against another player on the same five scrambles, an Ao5 each, through the API's duel socket
- * (rust-api/src/duel.rs). The server pairs players of similar levels and keeps the score; this client mirrors its
- * state for a page. The web app and the Android app each give it their own host: scrambles, level, token and storage.
+ * One-on-one races against another player on the same five scrambles, an Ao5 each, on the app's socket (channel
+ * "duel", go-api/duel.go): players race under their account's username, or as guests without one. The server pairs
+ * players of similar levels and keeps the score; this client mirrors its state for a page. The web app and the Android
+ * app each give it their own host: the socket, scrambles, level and storage.
  */
 import { averageOf, effective, fmtSolve, fmtTime } from "./format";
 import { eventInfo, type PracticeContext, type ScrambleType } from "../../shared/puzzles";
 import type { Penalty } from "../../shared/types";
 import { msg } from "../i18n/msg";
+import type { LiveLink } from "../live";
 
 export const ROUNDS = 5;
 export type DuelSolve = { ms: number; penalty: Penalty } | null;
@@ -78,10 +80,9 @@ export function opponentStatus(d: Pick<DuelClient, "opponentHere" | "over" | "op
   return d.scrambles.length ? msg("Round {0}", { 0: d.round + 1 }) : msg("Waiting");
 }
 
-/** What a platform gives the duel: its API, scrambles, the player's level and token, and where battles go. */
+/** What a platform gives the duel: the app's socket, scrambles, the player's level, and where battles go. */
 export interface DuelHost {
-  /** The API's origin, http(s). */
-  origin: string;
+  live: LiveLink;
   /** The state changed: draw it again. */
   changed(): void;
   /** A new race or game: the player's timer starts over. */
@@ -89,8 +90,6 @@ export interface DuelHost {
   scramble(context: PracticeContext): Promise<string>;
   /** The player's level on an event (see the duel guide), null without enough solves. */
   level(event: string): Promise<number | null>;
-  /** The account's token, so the player races under their username; null for a guest. */
-  token(): Promise<string | null>;
   /** Keeps a finished race, again whenever a penalty changes it. */
   record(record: DuelRecord): void;
   fail(error: unknown): void;
@@ -99,7 +98,6 @@ export interface DuelHost {
 export class DuelClient {
   /** Off, looking for an opponent, or racing one. */
   status: "off" | "searching" | "racing" = "off";
-  socket: WebSocket | null = null;
   /** Other players searching the same event. */
   searching = 0;
   searchSince = 0;
@@ -128,9 +126,18 @@ export class DuelClient {
   dismissed = 0;
   notice = "";
   private searchEvent = "";
-  private ping: ReturnType<typeof setInterval> | undefined;
 
-  constructor(private readonly platform: DuelHost) {}
+  constructor(private readonly platform: DuelHost) {
+    // Whatever comes after leaving is not this player's any more.
+    platform.live.on("duel", (m) => this.status !== "off" && this.receive(m));
+    // The server takes a player whose socket closed out of the queue and the race.
+    platform.live.on("live", (m) => {
+      if (m.type !== "lost" || this.status === "off") return;
+      this.status = "off";
+      this.notice = msg("Connection lost.");
+      this.changed();
+    });
+  }
 
   get me() {
     return this.results[this.seat] ?? [];
@@ -169,8 +176,8 @@ export class DuelClient {
   private changed() {
     this.platform.changed();
   }
-  private send(message: object) {
-    if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
+  private send(message: { type: string; [key: string]: unknown }) {
+    return this.platform.live.send({ channel: "duel", ...message });
   }
 
   /** The player's level on an event: what the matchmaking compares. */
@@ -183,40 +190,6 @@ export class DuelClient {
     if (this.levelEvent !== event) return;
     this.level = level;
     this.changed();
-  }
-
-  private connect() {
-    return new Promise<WebSocket>((resolve, reject) => {
-      const unreachable = () => reject(Error(msg("The duel server cannot be reached.")));
-      if (this.socket && this.socket.readyState <= WebSocket.OPEN) {
-        if (this.socket.readyState === WebSocket.OPEN) return resolve(this.socket);
-        this.socket.addEventListener("open", () => resolve(this.socket!), { once: true });
-        this.socket.addEventListener("error", unreachable, { once: true });
-        return;
-      }
-      const socket = new WebSocket(this.platform.origin.replace(/\/$/, "").replace(/^http/, "ws") + "/api/duel");
-      this.socket = socket;
-      socket.onopen = () => resolve(socket);
-      socket.onerror = unreachable;
-      socket.onmessage = ({ data }) => {
-        if (this.socket !== socket) return;
-        try {
-          this.receive(JSON.parse(String(data)));
-        } catch {}
-      };
-      socket.onclose = () => {
-        if (this.socket !== socket) return;
-        this.socket = null;
-        clearInterval(this.ping);
-        if (this.status !== "off") {
-          this.status = "off";
-          this.notice = msg("Connection lost.");
-          this.changed();
-        }
-      };
-      clearInterval(this.ping);
-      this.ping = setInterval(() => this.send({ type: "ping" }), 20000);
-    });
   }
 
   private receive(m: any) {
@@ -318,19 +291,15 @@ export class DuelClient {
     this.searching = 0;
     this.status = "searching";
     this.changed();
-    try {
-      await this.loadLevel(event);
-      const socket = await this.connect(),
-        token = await this.platform.token().catch(() => null);
-      if (this.status !== "searching" || this.socket !== socket || this.searchEvent !== event) return;
-      this.send({ type: "queue", event, level: this.level ?? null, ...(token ? { token } : {}) });
-    } catch (e: any) {
+    await this.loadLevel(event);
+    if (this.status !== "searching" || this.searchEvent !== event) return;
+    if (!this.send({ type: "queue", event, level: this.level ?? null })) {
       this.status = "off";
-      this.notice = e?.message ?? String(e);
+      this.notice = msg("The duel server cannot be reached.");
       this.changed();
     }
   }
-  /** Stops searching, or leaves the race; the socket stays open for the next search. */
+  /** Stops searching, or leaves the race. */
   leave() {
     this.send({ type: "leave" });
     this.status = "off";

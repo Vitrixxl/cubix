@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { openDb, createRustApi } from "./backend";
+import { openDb, startApi } from "./backend";
 import { createApiClient } from "../src/client/api-client";
 
 const cleanups: (() => void)[] = [];
@@ -7,7 +7,7 @@ afterEach(() => cleanups.splice(0).forEach(close => close()));
 
 test("batched sync preserves page order, opt-ins, tombstones and account isolation", async () => {
   const { db, path } = openDb(); cleanups.push(() => db.close());
-  const app = createRustApi(path);
+  const app = startApi(path);
   const origin = `http://127.0.0.1:${app.server.port}`;
   const anon = createApiClient(origin, { getToken: () => null });
   const alice = await anon.register("batch_alice", "a-long-test-password");
@@ -56,7 +56,7 @@ test("batched sync preserves page order, opt-ins, tombstones and account isolati
 
 test("history filters use ordered indexes and preserve legacy session mode", async () => {
   const { db, path } = openDb(); cleanups.push(() => db.close());
-  const app = createRustApi(path), origin = `http://127.0.0.1:${app.server.port}`;
+  const app = startApi(path), origin = `http://127.0.0.1:${app.server.port}`;
   let token: string | null = null;
   const api = createApiClient(origin, { getToken: () => token });
   const auth = await api.register("ordered_history", "a-long-test-password"); token = auth.token;

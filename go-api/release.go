@@ -40,7 +40,7 @@ const releaseApkPath = "/api/mobile/apk"
 // Over-the-air assets are served from here, followed by their hexadecimal SHA-256.
 const releaseAssetsPath = "/api/mobile/updates/assets"
 
-// releaseParseUint is Rust's `str::parse::<u64>`: digits, optionally after one `+`.
+// releaseParseUint parses an unsigned integer: digits, optionally after one `+`.
 func releaseParseUint(text string) (uint64, bool) {
 	n, err := strconv.ParseUint(strings.TrimPrefix(text, "+"), 10, 64)
 	return n, err == nil
@@ -430,7 +430,7 @@ func releaseAssetEntry(value any, launch bool) (M, error) {
 	return M{"hash": hash, "key": key, "contentType": contentType, "fileExtension": extension}, nil
 }
 
-// releaseJSONBody is axum's `Json<Value>` extractor; on a rejection it has answered.
+// releaseJSONBody reads a JSON body; on a rejection it has answered.
 func releaseJSONBody(w http.ResponseWriter, r *http.Request) (any, bool) {
 	reject := func(status int, message string) (any, bool) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

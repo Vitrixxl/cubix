@@ -1,4 +1,4 @@
-/** Builds the web app into dist/web: the Rust API serves it, the desktop app loads it from there.
+/** Builds the web app into dist/web: the API serves it, the desktop app loads it from there.
  *
  *   /                      landing.html: the landing page, rendered here (desktop/renderer/landing)
  *   /timer, /learn…        index.html, the app (never cached by HTTP, network-first in the service worker); its public

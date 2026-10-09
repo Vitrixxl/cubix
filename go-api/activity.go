@@ -39,13 +39,12 @@ const activityBatch = 2000
 const activityQueue = 20_000
 
 // activityKinds: every kind a request can be classified as, the important ones first.
-var activityKinds = [15]string{
+var activityKinds = [14]string{
 	"rate-limit",
 	"server-error",
 	"auth",
 	"admin",
 	"account",
-	"duel",
 	"release",
 	"client-error",
 	"not-found",
@@ -213,8 +212,6 @@ func activityClassify(method, path string, status int) (kind string, important b
 		kind = "auth"
 	case admin:
 		kind = "admin"
-	case path == "/api/duel":
-		kind = "duel"
 	case strings.HasPrefix(path, "/api/mobile/") && method != "GET" && method != "HEAD":
 		kind = "release"
 	case !api && status == 404:
@@ -235,7 +232,7 @@ func activityClassify(method, path string, status int) (kind string, important b
 		kind = "page"
 	}
 	switch kind {
-	case "rate-limit", "server-error", "account", "auth", "duel", "release", "client-error":
+	case "rate-limit", "server-error", "account", "auth", "release", "client-error":
 		important = true
 	case "admin":
 		important = method != "GET" || status >= 400

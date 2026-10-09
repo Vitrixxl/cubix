@@ -5,8 +5,7 @@ package main
 // (tournament.go): each shows in its conversation as a card, a message that carries it.
 //
 // The HTTP routes live under /api/social (`socialRoute`, run on the database thread). What changes reaches the open
-// apps of the accounts concerned on their coaching socket, as `{"type": "social", "kind": …}` events: the app keeps
-// one socket per account for everything live.
+// apps of the accounts concerned on their socket (live.go), as `{"channel": "social", "type": …}` events.
 
 import (
 	"math"
@@ -40,10 +39,10 @@ func optStr(s string) any {
 
 // socialNotify tells every open app of these accounts.
 func socialNotify(state *AppState, users []string, kind string, value M) {
-	value["type"] = "social"
-	value["kind"] = kind
+	value["type"] = kind
+	text := liveText("social", value)
 	for _, user := range users {
-		state.coaching.notify(user, value)
+		state.coaching.tell(user, text)
 	}
 }
 

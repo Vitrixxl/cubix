@@ -57,7 +57,7 @@ describe("dictionaries", () => {
 
 test("the privacy policy states the log retention the server applies", async () => {
   const { RETENTION } = await import("../desktop/renderer/legal/retention");
-  const source = readFileSync("rust-api/src/activity.rs", "utf8");
-  const constant = (name: string) => Number(new RegExp(`pub const ${name}: i64 = (\\d+);`).exec(source)?.[1]);
-  expect({ ...RETENTION } as Record<string, number>).toEqual({ log: constant("RETENTION_DAYS"), traffic: constant("TRAFFIC_DAYS"), activity: constant("ACTIVITY_DAYS") });
+  const source = readFileSync("go-api/activity.go", "utf8");
+  const constant = (name: string) => Number(new RegExp(`const ${name} int64 = (\\d+)`).exec(source)?.[1]);
+  expect({ ...RETENTION } as Record<string, number>).toEqual({ log: constant("activityRetentionDays"), traffic: constant("activityTrafficDays"), activity: constant("activityActivityDays") });
 });

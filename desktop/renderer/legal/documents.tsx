@@ -1,7 +1,7 @@
 /**
  * The legal documents of Qbix, in French (the language of the law that governs them) and in English: the legal
  * notice, the privacy policy and the terms of use. They say what the app really does: what it keeps, where, for how
- * long and who sees it (see rust-api/src/activity.rs for the logs' retention, coaching.rs for calls).
+ * long and who sees it (see go-api/activity.go for the logs' retention, coaching.go for calls).
  * Other languages read the English version.
  */
 import type { ReactNode } from "react";

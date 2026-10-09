@@ -328,9 +328,6 @@ func (s *AppState) routes() http.Handler {
 	route(false, "/api/admin/live", 4096, get(adminUpgrade))
 	admin := s.endpoint(false, 4096, every(adminDispatch))
 	route(true, "/api/live", json, get(liveUpgrade))
-	route(true, "/api/duel", json, get(duelUpgrade))
-	route(true, "/api/coaching/live", json, get(coachingUpgrade))
-	route(true, "/api/matches/live", json, get(tournamentUpgrade))
 	// Pictures and videos in coaching conversations travel raw, above the JSON limit below.
 	route(true, "/api/coaching/conversations/{id}/media", coachingMediaMax, map[string]handler{"POST": coachingUpload})
 	route(true, "/api/coaching/media/{id}", json, get(coachingMedia))

@@ -16,7 +16,7 @@ config.resolver.extraNodeModules = new Proxy({}, {
 });
 // Never resolve React or React Native from the repository root's node_modules.
 const escapedRoot = repoRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-config.resolver.blockList = [new RegExp(`^${escapedRoot}/(?:node_modules|desktop|rust-api/target|build|dist)/.*`)];
+config.resolver.blockList = [new RegExp(`^${escapedRoot}/(?:node_modules|desktop|build|dist)/.*`)];
 config.transformer.babelTransformerPath = require.resolve("react-native-svg-transformer/expo");
 config.resolver.assetExts = config.resolver.assetExts.filter(ext => ext !== "svg");
 config.resolver.sourceExts = [...config.resolver.sourceExts, "svg"];

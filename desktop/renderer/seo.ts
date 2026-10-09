@@ -1,6 +1,6 @@
 /**
  * What search engines read of the app: each public page's title, description and address, and the pages built as HTML
- * ahead of time in every language (desktop/prerender.tsx), which the API serves by their address (rust-api/src/web.rs).
+ * ahead of time in every language (desktop/prerender.tsx), which the API serves by their address (go-api/web.go).
  * The pages of an account, a guest's own data or the login page are not for search engines.
  */
 import catalogData from "../assets/catalog.json";

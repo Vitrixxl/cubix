@@ -66,7 +66,7 @@ func syncCursor(db *Conn, uid string) (int64, error) {
 	return seq, nil
 }
 
-// parseJSONText reads a JSON column, the internal error of Rust's `serde_json::from_str(..).map_err(internal)`.
+// parseJSONText reads a JSON column; a malformed one is an internal error.
 func parseJSONText(v any, fallback string) (any, error) {
 	text, ok := asStr(v)
 	if !ok {

@@ -1,6 +1,6 @@
 # Cubix web et desktop
 
-L'application est une application web (PWA) servie par l'API Rust. Le desktop
+L'application est une application web (PWA) servie par l'API (Go). Le desktop
 Electron n'est qu'une fenêtre qui l'ouvre : il ne contient ni l'interface, ni le
 moteur de données, ni lanceur, ni système de mise à jour.
 
@@ -51,7 +51,7 @@ open artifacts/electron/Cubix-darwin-*/Cubix.app
 Le paquet est `artifacts/electron/Cubix-darwin-arm64/Cubix.app` sur Apple Silicon
 ou `Cubix-darwin-x64/Cubix.app` sur Intel. Il contient la fenêtre Electron, ses
 helpers, l'icône Cubix et les licences. Copier `Cubix.app` dans `/Applications`
-pour l'installer. Le build ne compile ni le serveur Rust ni Android : il ouvre
+pour l'installer. Le build ne compile ni le serveur ni Android : il ouvre
 par défaut l'application de production.
 
 Electron Packager assemble le bundle et le signe ad hoc, sans compte Apple. Une

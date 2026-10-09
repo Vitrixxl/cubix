@@ -29,7 +29,7 @@ func validation() *ApiError {
 	return apiErr(422, "Invalid request")
 }
 
-// toApiError is Rust's `From<rusqlite::Error>`: any other error is an internal one.
+// toApiError: an *ApiError stays itself; any other error is an internal one.
 func toApiError(err error) *ApiError {
 	var e *ApiError
 	if errors.As(err, &e) {

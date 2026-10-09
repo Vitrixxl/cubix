@@ -333,7 +333,7 @@
  "As a coach": "Como coach",
  "As a cuber": "Como cuber",
  "Asked {0}": "Solicitado {0}",
- "Asset file extensions look like \\\".png\\\"": "Las extensiones de los archivos de recursos son como \\\".png\\\"",
+ "Asset file extensions look like \".png\"": "Las extensiones de los archivos de recursos son como \".png\"",
  "assets must be an array": "assets debe ser un array",
  "Assisted solve": "Resolución asistida",
  "Assisted solve (3×3 beginner)": "Resolución asistida (3×3 principiante)",
@@ -2524,5 +2524,7 @@
  "Setup: {0}.": "Preparación: {0}.",
  "Step-by-step courses to solve the {0}, from your first solve to advanced methods, with the algorithms of each step in 3D.": "Cursos paso a paso para resolver el {0}, desde tu primera resolución hasta métodos avanzados, con los algoritmos de cada paso en 3D.",
  "The best algorithms for {0}, a {1} case of the {2}:": "Los mejores algoritmos para {0}, un caso de {1} del {2}:",
- "Time your {0} solves with official WCA scrambles, averages (ao5, ao12, ao100), a progress chart and smart cube support. Free, without an account.": "Cronometra tus resoluciones de {0} con mezclas oficiales de la WCA, medias (ao5, ao12, ao100), una gráfica de progreso y cubos inteligentes. Gratis, sin cuenta."
+ "Time your {0} solves with official WCA scrambles, averages (ao5, ao12, ao100), a progress chart and smart cube support. Free, without an account.": "Cronometra tus resoluciones de {0} con mezclas oficiales de la WCA, medias (ao5, ao12, ao100), una gráfica de progreso y cubos inteligentes. Gratis, sin cuenta.",
+ "Internal server error": "Error interno del servidor",
+ "Invalid request": "Solicitud no válida"
 }

@@ -1,5 +1,6 @@
 import { createApiClient } from "../../src/client/api-client";
 import { createLocalClient, type SyncStatus } from "../../src/client/local/client";
+import { createLive } from "../../src/client/live";
 import { storage } from "./platform/storage";
 import { createEvent } from "./platform/events";
 import Constants from "expo-constants";
@@ -24,3 +25,5 @@ export const local = createLocalClient({
   status: status => syncStatusChanged.emit(status),
 });
 export const api = local.api;
+/** The app's one socket: sync, coaching, the community, duels and matches (LiveConnection opens it). */
+export const live = createLive(local, () => local.current().isGuest ? null : authToken.get());

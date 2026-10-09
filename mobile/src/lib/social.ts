@@ -5,7 +5,7 @@ import { Coaching } from "../../../src/client/lib/coaching";
 import { Community, type Notice, type SocialHost } from "../../../src/client/lib/community";
 import { MatchClient } from "../../../src/client/lib/match";
 import type { UserDto } from "../../../src/shared/types";
-import { API_ORIGIN, authToken, local } from "../api";
+import { API_ORIGIN, authToken, live as socket, local } from "../api";
 import { ask } from "../components/Confirm";
 import { toastAtom } from "../components/Toast";
 import { puzzleAtom, routeAtom, routeOfUrl, urlOfRoute } from "../state";
@@ -35,6 +35,7 @@ export function openUrl(url: string) {
 const host: SocialHost = {
   origin: API_ORIGIN,
   token: async () => (local.current()?.isGuest ? null : authToken.get()),
+  live: socket,
   account: () => { const user = local.current(); return { id: user?.id ?? "", username: user?.username ?? "" }; },
   changed,
   notify,
@@ -45,8 +46,7 @@ const host: SocialHost = {
 };
 
 export const community = new Community(host);
-/** Its socket also carries the community's events. */
-export const coaching = new Coaching(host, community);
+export const coaching = new Coaching(host);
 export const live = new MatchClient({
   ...host,
   scramble: generatePracticeScramble,
@@ -59,18 +59,9 @@ export function attachSocial(user: Pick<UserDto, "id" | "isGuest"> | null) {
   community.attach(user && !user.isGuest ? user.id : null);
 }
 
-// Back in front: sockets Android closed meanwhile open again at once (their own retries may be waiting), and what is on
-// screen counts as read.
+// Back in front: what is on screen counts as read (the socket opens again in LiveConnection).
 AppState.addEventListener("change", state => {
-  if (state !== "active") return;
-  const user = coaching.user;
-  if (user && !coaching.connected) {
-    coaching.attach(null);
-    coaching.attach(user);
-    community.reconnected();
-  }
-  if (live.id && !live.connected) live.open(live.id);
-  changed();
+  if (state === "active") changed();
 });
 
 /**

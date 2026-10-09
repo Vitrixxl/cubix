@@ -9,16 +9,18 @@ export interface AddSolveBody { puzzle?: PuzzleId; solveMode?: SolveMode; scramb
 export interface SyncPage { changes: { kind: "sessions" | "solves" | "learned_cases" | "learning_group_orders" | "personal_entries"; id: number; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[]; cursor: number; more: boolean }
 export interface SyncOperation { id: string; method: string; path: string; body: unknown; createdAt?: string }
 export interface SyncResult { results: { id: string; value: SessionDto | SolveDto | LearnedCaseDto | LearningGroupOrderDto | JourneyEntryDto | null }[] }
-type LiveInput = { type: "auth"; token: string; protocol?: 2; after?: number } | { type: "ping" };
-export type LiveOutput = { type: "pong" }
-  | { type: "ready"; cursor?: number; protocol?: 2; user?: UserDto }
-  | { type: "sync"; cursor: number }
-  | ({ type: "changes"; after: number } & SyncPage)
-  | { type: "result"; requestId: string; value?: unknown; error?: string; status?: number };
+/** What goes up the app's socket (go-api/live.go): `auth` first, then any channel's messages (src/client/live.ts). */
+type LiveInput = { channel: "live"; type: "auth"; token?: string; after?: number } | { channel: string; type: string; [key: string]: unknown };
+/** What comes down: `ready` (with the account and its practice cursor, if it has one), the sync's own messages, and
+ * the other channels' (`coaching`, `social`, `duel`, `match`). */
+export type LiveOutput = { channel: "live"; type: "ready"; cursor?: number; user: UserDto | null }
+  | ({ channel: "sync"; type: "changes"; after: number } & SyncPage)
+  | { channel: "sync"; type: "result"; requestId: string; value?: unknown; error?: string; status?: number }
+  | { channel: "coaching" | "social" | "duel" | "match"; type: string; [key: string]: any };
 type LiveEvents = { open: Event; message: { data: LiveOutput }; close: CloseEvent; error: Event };
 
 const practiceQuery = (puzzle: PuzzleInput, filter: PracticeFilter = {}) => new URLSearchParams({ puzzle: puzzleId(puzzle), solveMode: filter.solveMode ?? "standard", ...(filter.scrambleType ? {scrambleType: filter.scrambleType} : {}) }).toString();
-/** Shared HTTP/WebSocket client; the Rust server owns persistence and auth. */
+/** Shared HTTP/WebSocket client; the server owns persistence and auth. */
 export function createApiClient(origin: string, options: { getToken: () => string | null; onSessionExpired?: () => void }) {
   const base = origin.replace(/\/$/, "") + "/api";
   async function request<T>(path: string, method = "GET", body?: unknown, signal?: AbortSignal, auth = false): Promise<T> {
@@ -44,7 +46,8 @@ export function createApiClient(origin: string, options: { getToken: () => strin
     deleteAccount: (password: string) => request<{ ok: true }>("/account/delete", "POST", { password }, undefined, true),
     setLearned: (caseId: string, learned: boolean, algs?: string[]) => request<LearnedCaseDto>("/learned", "PUT", { caseId, learned, ...(algs?.length ? { algs } : {}) }),
     algorithmChoices: (caseIds: string[]) => request<Record<string, { total: number; algs: Record<string, number> }>>(`/algorithm-choices?cases=${caseIds.map(encodeURIComponent).join(",")}`),
-    /** Incremental account sync; durable uploads can fall back to HTTP after disconnection. */
+    /** The app's socket (owned by src/client/live.ts): incremental account sync over it, durable uploads falling back
+     * to HTTP after a disconnection, and every other live channel. */
     connectLive: () => {
       const ws = new WebSocket(base.replace(/^http/, "ws") + "/live");
       const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
@@ -53,13 +56,13 @@ export function createApiClient(origin: string, options: { getToken: () => strin
         const requestId = crypto.randomUUID();
         const timer = setTimeout(() => { pending.delete(requestId); reject(new TypeError("Synchronization timed out")); ws.close(); }, 15000);
         pending.set(requestId, { resolve, reject, timer });
-        try { ws.send(JSON.stringify({ type, requestId, ...body })); }
+        try { ws.send(JSON.stringify({ channel: "sync", type, requestId, ...body })); }
         catch (error) { clearTimeout(timer); pending.delete(requestId); reject(error); }
       });
       ws.addEventListener("message", event => {
         let data: LiveOutput;
         try { data = JSON.parse(String(event.data)); } catch { return; }
-        if (data.type !== "result") return;
+        if (data.channel !== "sync" || data.type !== "result") return;
         const job = pending.get(data.requestId); if (!job) return;
         clearTimeout(job.timer); pending.delete(data.requestId);
         if (data.error) job.reject(new ApiError(data.status ?? 500, data.error)); else job.resolve(data.value);

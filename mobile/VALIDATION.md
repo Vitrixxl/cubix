@@ -83,7 +83,7 @@ cas de la liste lorsque son statut change.
 | Schémas, setups, algorithmes, sources et vidéos | SVG natifs ; liens externes dans le navigateur Android |
 | Sélection, AUF, solutions, navigation et annulation | Entraîneur natif |
 | Profils, progression et graphiques | Écrans natifs et graphiques SVG |
-| Comptes, amis, conversations et synchronisation | Même API Rust et même client local, stockage MMKV |
+| Comptes, amis, conversations et synchronisation | Même API et même client local, stockage MMKV |
 | Thèmes et aide | Préférences persistantes et guides embarqués |
 | Raccourcis clavier | Contrôles tactiles équivalents |
 

@@ -1,12 +1,13 @@
 /**
  * The community and tournaments: the /api/social, /api/tournaments and /api/matches routes called with the account's
- * token, and their events, which arrive on the coaching socket (coaching.ts passes them here). Everything lives here;
+ * token, and their events, which arrive on the app's socket (channel "social", src/client/live.ts). Everything lives here;
  * pages read it and the host's `changed` redraws them. The web app and the Android app each give it their own host:
  * the API, the token, notifications, confirmations and navigation.
  */
 import { eventInfo } from "../../shared/puzzles";
 import { msg } from "../i18n/msg";
 import { tr } from "../i18n";
+import type { LiveLink } from "../live";
 
 export interface Person {
   id: string;
@@ -174,6 +175,8 @@ export interface SocialHost {
   /** The API's origin, http(s). */
   origin: string;
   token(): Promise<string | null>;
+  /** The app's socket, shared by the community, the coaching and matches. */
+  live: LiveLink;
   /** The account signed in. */
   account(): { id: string; username: string };
   /** The state changed: draw it again. */
@@ -223,7 +226,10 @@ export const STATUS_TEXT = { open: msg("Registration open"), running: msg("Under
 export const MATCH_STATUS: Record<MatchStatus, string> = { waiting: msg("Waiting"), ready: msg("Ready"), live: msg("Live"), done: msg("Finished"), cancelled: msg("Cancelled") };
 
 export class Community {
-  constructor(readonly host: SocialHost) {}
+  constructor(readonly host: SocialHost) {
+    host.live.on("social", (e) => this.user && this.event(e));
+    host.live.on("live", (e) => e.type === "ready" && e.again && this.reconnected());
+  }
   user: string | null = null;
   me?: Me;
   conversations?: Conversation[];
@@ -538,9 +544,9 @@ export class Community {
     for (const id of this.cards.keys()) void this.load(`match:${id}`);
     for (const id of this.summaries.keys()) if (!this.details.has(id)) void this.load(`tournament:${id}`);
   }
-  /** An event of the coaching socket about the community. */
+  /** An event of the socket about the community. */
   event(e: any) {
-    switch (e.kind) {
+    switch (e.type) {
       case "request":
         this.host.notify({
           title: tr("{0} wants to be friends", { 0: e.from.username }),

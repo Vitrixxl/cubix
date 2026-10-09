@@ -1,5 +1,5 @@
 /**
- * The desktop packages the server hands out (rust-api/src/desktop.rs) and the landing page's install commands fetch:
+ * The desktop packages the server hands out (go-api/desktop.go) and the landing page's install commands fetch:
  * Linux x64 as a .tar.gz (installed by /install.sh) and Windows x64 as a .zip (installed by /install.ps1), both built
  * here from the Electron shell. The Windows build needs no Windows: Packager assembles it from Electron's own build.
  *

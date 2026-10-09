@@ -12,7 +12,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const LIMIT = 50;
-const KINDS = ["rate-limit", "server-error", "auth", "admin", "account", "duel", "release", "client-error", "not-found", "sync", "live", "mobile", "api", "page", "asset"];
+const KINDS = ["rate-limit", "server-error", "auth", "admin", "account", "release", "client-error", "not-found", "sync", "live", "mobile", "api", "page", "asset"];
 const RANGES: Record<string, number> = { "1h": 3600e3, "24h": 86400e3, "7d": 7 * 86400e3, "30d": 30 * 86400e3 };
 const FILTERS = ["important", "kind", "status", "method", "ip", "path", "user", "range"] as const;
 

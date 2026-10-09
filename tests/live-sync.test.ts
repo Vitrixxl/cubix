@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { createRustApi, openDb } from "./backend";
+import { startApi, openDb } from "./backend";
 import { createApiClient, type LiveOutput } from "../src/client/api-client";
 import { createLocalClient } from "../src/client/local/client";
 
@@ -11,7 +11,7 @@ const until = async (predicate: () => boolean | Promise<boolean>) => {
 };
 function setup() {
   const { db, path } = openDb(); cleanups.push(() => db.close());
-  const server = createRustApi(path);
+  const server = startApi(path);
   const origin = `http://127.0.0.1:${server.server.port}`;
   const device = () => {
     const values = new Map<string, string>();
@@ -33,11 +33,11 @@ function setup() {
       const socket = local.api.connectLive(); cleanups.push(socket.close);
       const frames: LiveOutput[] = [];
       const ready = Promise.withResolvers<void>();
-      socket.on("open", () => socket.send({ type: "auth", token: values.get("token")!, protocol: 2, after: local.liveCursor() }));
+      socket.on("open", () => socket.send({ channel: "live", type: "auth", token: values.get("token")!, after: local.liveCursor() }));
       socket.on("message", ({ data }) => {
         frames.push(data);
         const applied = local.receiveLive(socket, data);
-        if (data.type === "ready") applied.then(() => ready.resolve(), ready.reject);
+        if (data.channel === "live" && data.type === "ready") applied.then(() => ready.resolve(), ready.reject);
       });
       socket.on("close", () => local.disconnected(socket));
       await ready.promise;
@@ -75,9 +75,9 @@ test("connected devices upload and apply changed entities with zero HTTP sync re
   await b.local.restore(); await a.local.restore(); // periodic health checks do not poll the API
   expect(second.frames.length).toBe(framesBefore);
   expect([a.requests(), b.requests(), other.requests()]).toEqual(requests);
-  expect(isolated.frames.some(f => f.type === "changes")).toBe(false);
-  expect(first.frames.some(f => f.type === "changes")).toBe(true);
-  expect(second.frames.filter(f => f.type === "changes").every(f => f.changes.length <= 2)).toBe(true);
+  expect(isolated.frames.some(f => f.channel === "sync" && f.type === "changes")).toBe(false);
+  expect(first.frames.some(f => f.channel === "sync" && f.type === "changes")).toBe(true);
+  expect(second.frames.filter(f => f.channel === "sync" && f.type === "changes").every(f => "changes" in f && f.changes.length <= 2)).toBe(true);
   expect(a.local.status()).toMatchObject({ state: "synced", pending: 0 });
 });
 
@@ -101,7 +101,7 @@ test("reconnecting catches up paginated changes and preserves pending offline ed
   expect(await b.local.api.solves("playground", 1000)).toHaveLength(605);
   expect(b.local.learned()).toEqual(["PLL Aa", "PLL Ab"]);
   await until(() => a.local.learned().includes("PLL Ab"));
-  expect(first.frames.filter(f => f.type === "changes").every(f => f.changes.length <= 500)).toBe(true);
+  expect(first.frames.filter(f => f.channel === "sync" && f.type === "changes").every(f => "changes" in f && f.changes.length <= 500)).toBe(true);
 });
 
 test("socket uploads are idempotent and an expired token cannot read or mutate data", async () => {
