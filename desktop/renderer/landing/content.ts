@@ -12,7 +12,7 @@ export const DESCRIPTION =
   "Qbix is a free all-in-one speedcubing app: a WCA cube timer with random-state scrambles and averages, 6,500 algorithms (F2L, OLL, PLL, ZBLL) with a 3D player, case training, step-by-step courses, live duels and stats. Web, Windows, Linux, macOS and Android. No ads, no premium tier.";
 export const TAGLINE = "One app to time, learn and get faster on every WCA puzzle, from your first solve to competition. Free, without ads or premium tier.";
 
-export const PUZZLES = ["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "3×3 One-Handed", "3×3 Blindfolded", "4×4 and 5×5 Blindfolded", "Square-1", "Pyraminx", "Skewb", "Megaminx", "Clock"];
+export const PUZZLES = ["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "3×3 One-Handed", "3×3 Blindfolded", "4×4 and 5×5 Blindfolded", "Square-1", "Pyraminx", "Skewb", "Megaminx"];
 export const IMPORTS = ["csTimer", "Twisty Timer", "Cubic Timer", "CubeTime", "CubeDesk", "ZKT Timer", "Cubeast", "acubemy", "Speedcuber Timer"];
 
 export interface Feature {
@@ -31,7 +31,7 @@ export const FEATURES: Feature[] = [
     title: "A cube timer for every WCA event",
     summary: "Hold, release, solve: the timer of competitions, with official scrambles generated on your device.",
     points: [
-      "All 15 WCA events, from 2×2 to 7×7, One-Handed and Blindfolded to Square-1, Pyraminx, Skewb, Megaminx and Clock",
+      "14 WCA events, from 2×2 to 7×7, One-Handed and Blindfolded to Square-1, Pyraminx, Skewb and Megaminx",
       "Random-state scrambles like the WCA's, generated ahead in the background so a new one is always instant",
       "Training scrambles: 2-gen, half turns, last layer, OLL, PLL and F2L cases, cross, XCross and XXCross",
       "Ao5, Ao12 and any average you like (current, best or worst), mean, median, +2 and DNF by WCA rules",
@@ -42,10 +42,10 @@ export const FEATURES: Feature[] = [
     id: "algorithms",
     hook: "6,500 algorithms. One 3D player.",
     title: "6,500 algorithms with a 3D player",
-    summary: "The 1,755 cases of the methods people actually use, each with several algorithms and a cube that plays them.",
+    summary: "The 1,737 cases of the methods people actually use, each with several algorithms and a cube that plays them.",
     points: [
       "3×3: F2L (basic, advanced and expert cases), 2-look and full OLL and PLL, and all 472 ZBLL",
-      "2×2 Ortega and PBL, big cube centres, edge pairing and parities, Square-1, Pyraminx, Skewb, Megaminx and Clock",
+      "2×2 Ortega and PBL, big cube centres, edge pairing and parities, Square-1, Pyraminx, Skewb and Megaminx",
       "A 3D cube that plays, pauses, steps and slows down any algorithm, and turns under your mouse",
       "Search a case by its name in a few letters: “t perm”, “oll 21”",
       "Mark what you learned and see your own best and mean on each case",
@@ -71,7 +71,7 @@ export const FEATURES: Feature[] = [
     points: [
       "3×3: beginner method, CFOP, Roux and ZZ",
       "2×2: beginner, Ortega, CLL and EG; 4×4 to 7×7: reduction and Yau",
-      "Square-1, Pyraminx, Skewb, Megaminx and Clock, from the first solve on",
+      "Square-1, Pyraminx, Skewb and Megaminx, from the first solve on",
       "A puzzle you cannot solve yet opens on its course; everything else unlocks once it is solved",
     ],
   },

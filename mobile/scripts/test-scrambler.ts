@@ -10,7 +10,7 @@ import { SCRAMBLER_HTML } from "../src/scrambler/scrambler-html";
 const executable = process.env.CHROMIUM_PATH ?? Bun.which("chromium") ?? Bun.which("google-chrome") ?? Bun.which("brave");
 if (!executable) throw new Error("Install Chromium or set CHROMIUM_PATH to run the embedded scrambler test.");
 const profile = mkdtempSync(join(tmpdir(), "cubix-scrambler-"));
-const requests = ["222", "333", "444", "555", "666", "777", "sq1", "pyram", "skewb", "minx", "clock"].map(event => ({ kind: "event", payload: { event } }))
+const requests = ["222", "333", "444", "555", "666", "777", "sq1", "pyram", "skewb", "minx"].map(event => ({ kind: "event", payload: { event } }))
   .concat(["EDGES", "CORNERS"].map(orbit => ({ kind: "orbit", payload: { orbit } })) as any)
   // A back block in 4 moves: its optimal solutions are searched in the page.
   .concat([{ kind: "crossSolutions", payload: { scramble: "L F2 D' R' F R2 F L' D F2 D2 B' R2 B2 L2 U2 F' U2 L2 F L2", target: "xcross" } }] as any);

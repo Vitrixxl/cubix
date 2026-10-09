@@ -2,7 +2,7 @@
 
 ## Puzzle, mélange et mode de résolution
 
-Le sélecteur **2×2 à 7×7 / Square-1 / Pyraminx / Skewb / Megaminx / Clock** dans la barre de navigation
+Le sélecteur **2×2 à 7×7 / Square-1 / Pyraminx / Skewb / Megaminx** dans la barre de navigation
 est un simple menu déroulant natif qui fixe le puzzle pour toute l’application.
 Le mode **Standard / One-handed / Blindfolded** se règle avec les boutons du Playground.
 Catalogue, entraînement, mélanges, temps et progression
@@ -21,7 +21,7 @@ l’armement, le chronométrage et l’enregistrement d’un temps.
 Le type **Outer turns** des grands cubes utilise 40, 60, 80 et 100 mouvements extérieurs selon la taille
 (4×4 à 7×7) ; ce sont des mélanges par mouvements aléatoires, pas des mélanges WCA à état aléatoire.
 Aucun rendu 3D : chaque cas est illustré par un schéma SVG statique (cubes) ou par une image
-générée par cubing.js (Square-1, Pyraminx, Skewb, Megaminx, Clock). Le chronomètre affiche le mélange
+générée par cubing.js (Square-1, Pyraminx, Skewb, Megaminx). Le chronomètre affiche le mélange
 en notation et rien d’autre.
 
 Le Playground propose les types compatibles avec le puzzle : mélanges d’épreuve via cubing.js,
@@ -29,19 +29,17 @@ Le Playground propose les types compatibles avec le puzzle : mélanges d’épre
 dernière couche, cas OLL/PLL/F2L et couches extérieures des grands cubes.
 Les cas sont tirés du catalogue ; les générateurs restreints par mouvements ne prétendent pas
 échantillonner uniformément tous les états. **Event scramble** sert à l’entraînement personnel ;
-les compétitions officielles utilisent leurs propres mélanges. Square-1, Pyraminx, Skewb,
-Megaminx et Clock ont également leur catalogue et leur entraînement : **99 cas dans 18 groupes**.
+les compétitions officielles utilisent leurs propres mélanges. Square-1, Pyraminx, Skewb
+et Megaminx ont également leur catalogue et leur entraînement : **81 cas dans 15 groupes**.
 
 - **Square-1** : 29 cas de forme cubique, orientation et permutation des coins/arêtes, parité et tranche centrale.
 - **Pyraminx** : 11 cas de pointes, insertions et dernière couche.
 - **Skewb** : 7 cas de coins et cycles de centres pour la méthode débutante.
 - **Megaminx** : 34 exercices de paires et cas d’orientation/permutation de dernière couche.
-- **Clock** : 18 exercices de groupes de cadrans, face arrière et alignement complet.
 
 Ces catalogues couvrent des méthodes débutantes et intermédiaires ainsi que des exercices ciblés ;
 ils ne recensent pas toutes les variantes avancées. Chaque cas a un setup, une solution et un schéma.
-Les AUF aléatoires restent réservés aux cubes NxN. Sur Clock, les séquences servent à travailler
-les groupes de cadrans ; une résolution libre demande d’adapter les rotations à leur état.
+Les AUF aléatoires restent réservés aux cubes NxN.
 
 En blindfolded, le temps enregistré inclut mémorisation et exécution, sans chronos séparés.
 

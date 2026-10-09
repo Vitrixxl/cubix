@@ -23,6 +23,7 @@ import { PhoneSheet } from "./phone";
 import { Alg, Back, Button, Choice, Empty, Figure, Icon, LABEL, LearnToggle, Modal, PAGE, PageHead, ROW, SectionHead, ProgressRing, StatusMark, Surface, Tip, plural, run, usePhone } from "./ui";
 import { Picker, PickerCard } from "./picker";
 import { CaseDetail, CaseTile, FootBar, PlayDiagram } from "./algorithms";
+import { isPolyPuzzle } from "../../src/shared/puzzleScene";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button as UiButton } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -138,7 +139,7 @@ function inlineItem(puzzle: PuzzleId, step: MethodStep, a: MethodAlgorithm, entr
     learned: entry.learned.includes(id),
     action: "courseAlg:" + id,
     diagram: <InlineDiagram puzzle={puzzle} step={step} a={a} size={64} />,
-    play: size ? { key: id, name: a.name, detail: a.detail, context: step.title, algs, note: a.note, size, mask: step.mask ?? "full", setup: a.setup } : undefined,
+    play: size || isPolyPuzzle(puzzle) ? { key: id, name: a.name, detail: a.detail, context: step.title, algs, note: a.note, size: size ?? 0, mask: step.mask ?? "full", setup: a.setup, puzzle: isPolyPuzzle(puzzle) ? puzzle : undefined } : undefined,
   };
 }
 

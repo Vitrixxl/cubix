@@ -5,10 +5,11 @@
  */
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ChevronFirst, Focus, Pause, Play, Rotate3d, RotateCcw, StepBack, StepForward } from "lucide-react";
-import { AlgPlayer, PLAYER_SPEEDS, algScene, readAlg, speedLabel, type PlayerOptions } from "../../src/client/lib/algPlayer";
-import { cubeViewRadius } from "../../src/shared/cubeScene";
+import { AlgPlayer, PLAYER_SPEEDS, algScene, polyAlgScene, readAlg, speedLabel, type PlayerOptions } from "../../src/client/lib/algPlayer";
+import type { PolyPuzzle } from "../../src/shared/puzzleScene";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
 import { paintShapes } from "./Cube";
+import { paintPulse } from "./paint";
 import { NUMERIC, Tip } from "./base";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,14 +19,14 @@ import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
 /** A player for `alg` on a cube of `size`, or null where it cannot be played (other puzzles, unknown moves). */
-export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string } = {}) {
-  const { setup, autoplay, loop, speed, view } = options;
+export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string; puzzle?: PolyPuzzle } = {}) {
+  const { setup, autoplay, loop, speed, view, puzzle } = options;
   const player = useMemo(() => {
-    const scene = size ? algScene(alg, size, mask, setup) : null;
+    const scene = puzzle ? polyAlgScene(puzzle, alg) : size ? algScene(alg, size, mask, setup) : null;
     return scene ? new AlgPlayer(scene, { autoplay, loop, speed, view }) : null;
     // The view and speed are read once: a new algorithm starts a new player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alg, size, mask, setup, autoplay, loop]);
+  }, [alg, size, mask, setup, autoplay, loop, puzzle]);
   useEffect(() => () => player?.dispose(), [player]);
   return player;
 }
@@ -34,44 +35,6 @@ export function useAlgPlayer(alg: string, size: number | null | undefined, mask:
 export const usePlayback = (player: AlgPlayer) => useSyncExternalStore(player.subscribe, player.getSnapshot);
 /** What a part of the player shows of the playback (a number, a string): drawn again only when that changes, not at every frame. */
 const usePlayed = <T,>(player: AlgPlayer, read: (p: AlgPlayer) => T) => useSyncExternalStore(player.subscribe, () => read(player));
-
-/** The glow of `AlgPlayer.showFront` on the painted cube: the front face lit, two waves spreading from its centre. */
-function paintPulse(ctx: CanvasRenderingContext2D, player: AlgPlayer, size: number) {
-  const pulse = player.pulse();
-  if (!pulse) return;
-  const unit = size / 2 / cubeViewRadius(player.scene),
-    at = (v: number[]) => [size / 2 + v[0]! * unit, size / 2 - v[1]! * unit] as const,
-    [cx, cy] = at(pulse.centre),
-    corners = pulse.corners.map(at),
-    reach = Math.max(...corners.map(([x, y]) => Math.hypot(x - cx, y - cy))),
-    fade = 1 - pulse.t;
-  ctx.save();
-  ctx.beginPath();
-  corners.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-  ctx.closePath();
-  ctx.shadowColor = `rgba(255,255,255,${fade})`;
-  ctx.shadowBlur = size / 14;
-  ctx.strokeStyle = `rgba(255,255,255,${0.8 * fade})`;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.clip();
-  ctx.fillStyle = `rgba(255,255,255,${0.22 * fade})`;
-  ctx.fill();
-  for (const delay of [0, 0.3]) {
-    const t = (pulse.t - delay) / (1 - delay);
-    if (t <= 0) continue;
-    const r = t * reach,
-      band = reach * 0.18,
-      wave = ctx.createRadialGradient(cx, cy, Math.max(0, r - band), cx, cy, r + band);
-    wave.addColorStop(0, "rgba(255,255,255,0)");
-    wave.addColorStop(0.5, `rgba(255,255,255,${0.55 * (1 - t)})`);
-    wave.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = wave;
-    ctx.fill();
-  }
-  ctx.restore();
-}
 
 /** The cube: drag to turn it, double-click to see it from the start again. */
 export function PlayerCube({ player, size, className }: { player: AlgPlayer; size: number; className?: string }) {
@@ -86,8 +49,8 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
     const ctx = element.getContext("2d")!;
     ctx.scale(ratio, ratio);
     const draw = () => {
-      paintShapes(ctx, player.shapes(), size, cubeViewRadius(player.scene));
-      paintPulse(ctx, player, size);
+      paintShapes(ctx, player.shapes(), size, player.radius);
+      paintPulse(ctx, player.pulse(), size, player.radius);
     };
     draw();
     return player.subscribe(draw);
@@ -123,7 +86,7 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
  * Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been
  * turned.
  */
-export function ViewButtons({ player, className }: { player: AlgPlayer; className?: string }) {
+export function ViewButtons({ player, className }: { player: Pick<AlgPlayer, "subscribe" | "showFront" | "resetView" | "turned">; className?: string }) {
   const turned = useSyncExternalStore(player.subscribe, player.turned);
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -144,7 +107,7 @@ export function ViewButtons({ player, className }: { player: AlgPlayer; classNam
  * Without a player it is the plain algorithm.
  */
 export function PlayerAlg({ player, text, size = 18, className }: { player?: AlgPlayer | null; text: string; size?: number; className?: string }) {
-  const words = useMemo(() => readAlg(text).words, [text]);
+  const words = useMemo(() => readAlg(text, player?.puzzle).words, [text, player]);
   return (
     <div className={cn("alg flex min-w-0 flex-wrap gap-x-[0.5em] gap-y-[0.3em] font-sans leading-snug font-medium tracking-tight", className)} style={{ fontSize: size }}>
       {player ? <LitWords player={player} words={words} /> : words.map((word, i) => <span key={i}>{word.map((part, j) => <span key={j} className={cn(part.move === undefined && "text-muted-foreground")}>{said(part.text)}</span>)}</span>)}

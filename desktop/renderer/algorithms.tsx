@@ -1,6 +1,6 @@
 /** The algorithms page: the case list and the case detail. */
 import { caseContext, catalogSections } from "../../src/client/lib/practiceCatalog";
-import { displayAlg, shortId, maskForStage } from "../../src/client/lib/caseState";
+import { casePlayItem, displayAlg, shortId } from "../../src/client/lib/caseState";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { call } from "./bridge";
 import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, PlayCircle, Search, SearchX, Timer } from "lucide-react";
@@ -216,7 +216,8 @@ export function CaseTile({
   const st = s.stats.find((v) => v.caseId === c.id),
     learned = s.learned.has(c.id),
     on = pressed ?? (selected && !touch),
-    name = detail ?? (c.name !== c.id ? c.name : undefined);
+    name = detail ?? (c.name !== c.id ? c.name : undefined),
+    play = casePlayItem(c);
   const open = (
     <button
       type="button"
@@ -245,6 +246,19 @@ export function CaseTile({
       )}
     >
       {name ? <Tip content={said(name)}>{open}</Tip> : open}
+      {pressed === undefined && play && (
+        <Tip content={tr("Play in 3D")}>
+          <button
+            type="button"
+            data-play={c.id}
+            aria-label={tr("Play {0} in 3D", { 0: said(c.id) })}
+            onClick={() => s.openAlg([play], 0)}
+            className={cn("absolute top-1 left-1 rounded-full text-muted-foreground hover:text-foreground [@media(hover:hover)]:opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100", FOCUS)}
+          >
+            <PlayCircle className="size-4" />
+          </button>
+        </Tip>
+      )}
       {pressed === undefined ? (
         <span className="absolute top-0.5 right-0.5">
           <LearnedMark id={c.id} learned={learned} />
@@ -398,18 +412,14 @@ export function CaseDetail({ id = s.caseId, dialog = false }: { id?: string; dia
     void call("algorithmChoices", [c.id]).then((v: any) => live && setChoices(v?.[c.id] ?? null), () => {});
     return () => { live = false; };
   }, [c.id, chosen.join("\n")]);
-  const openPlayer = () => s.openAlg([{
-    key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined,
-    context: caseContext(c), algs: c.algorithms.map(displayAlg),
-    note: c.notes, size: c.cube_size ?? 3, mask: maskForStage(c.stage),
-  }], 0);
+  const play = casePlayItem(c);
   const block = "flex flex-col gap-2 px-4 py-4 md:px-1 md:py-5";
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
       <div className="flex items-center gap-6 px-4 pt-4 pb-4 md:items-start md:gap-8 md:px-1 md:pt-1 md:pb-5">
         <div className="relative shrink-0 self-center">
-          {!c.diagram && !c.flat ? (
-            <PlayDiagram id={c.id} name={c.id} onPlay={openPlayer}>
+          {play ? (
+            <PlayDiagram id={c.id} name={c.id} onPlay={() => s.openAlg([play], 0)}>
               <Diagram c={c} size={phone ? 104 : 152} />
             </PlayDiagram>
           ) : (

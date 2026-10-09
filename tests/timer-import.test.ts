@@ -9,7 +9,7 @@ describe("reading other timers' exports", () => {
       session1: [[[0, 10512], "R U2 F'", "", 1696500000], [[2000, 12345], "D2 B", "pop", 1696500060], [[-1, 9800], "L' U", "", 1696500120]],
       session2: [[[0, 95321, 62000, 31000], "R U", "", 1696600000]],
       session3: [[[0, 30000], "", "", 1696700000]],
-      properties: { sessionN: 3, sessionData: JSON.stringify({ 1: { name: "main", opt: {} }, 2: { name: "OH", opt: { scrType: "333oh" } }, 3: { name: 3, opt: { scrType: "333fm" } } }) },
+      properties: { sessionN: 3, sessionData: JSON.stringify({ 1: { name: "main", opt: {} }, 2: { name: "OH", opt: { scrType: "333oh" } }, 3: { name: 3, opt: { scrType: "clkwca" } } }) },
     });
     const r = readTimerExport(file);
     expect(r.app).toBe("csTimer");

@@ -99,16 +99,5 @@ for(const [i,alg] of ["R2 U2' R2' U' R2 U2' R2'","R2 U2 R2' U R2 U2 R2'","R U R'
 s=set('minx','cp','PLL','Corner permutation','Corner cycles and swaps to finish the last layer. BR means the back-right face.');
 for(const [i,alg] of ["R' BR' R BR R' F' R BR' R' BR F R","R' F' BR' R BR R' F R BR' R' BR R","BR' R' U L U' R' U L' U' R2 BR","BR' R2' U L U' R U L' U' R BR","y L' R U2 R' U' R U R' U' R U R' U' R U' R' L","R U R' U R' U' R F' R U R' U' R' F R2 U' R2' U R U'"].entries())await add(s,`Corner permutation ${i+1}`,alg,minxSource);
 
-const clockSource='https://www.jaapsch.net/puzzles/clock.htm';
-s=set('clock','pins','Dials','Pin groups','Read a dial offset, choose the raised pins and turn towards 12. These are dial-alignment drills, not fixed OLL-style cases.');
-for(const [i,group] of ['UR','DR','DL','UL','U','R','D','L','ALL'].entries())await add(s,`${group} · front alignment`,`${group}${i%5+1}${i%2?'-':'+'}`,clockSource,'The letters identify the raised pin group. The number counts hours; + is clockwise and − counterclockwise when looking at that side.');
-s=set('clock','back','Dials','Back cross','Turn the puzzle over with y2, align the rear cross, then return to the starting side.');
-for(const [i,group] of ['U','R','D','L','ALL'].entries())await add(s,`${group} · back alignment`,`y2 ${group}${i+1}+ y2`,clockSource);
-s=set('clock','sequences','Dials','Complete sequences','Combine pin groups into cross and full-puzzle practice. The required offsets depend on the displayed setup.');
-for(const [name,alg] of [
- ['Front cross',"U3+ R2- D4+ L1- ALL2+"],['Back cross',"y2 U2- R4+ D1- L3+ ALL1- y2"],
- ['Front dial sequence',"UR2+ DR1- DL4+ UL3- U1+ R2- D3+ L4- ALL2+"],
- ['Full clock sequence',"UR2+ DR1- DL4+ UL3- U1+ R2- D3+ L4- ALL2+ y2 U3- R2+ D1- L4+ ALL1+ y2"],
-])await add(s,name,alg,'Cubix · Clock dial-sequence drills', 'Solve all dials to 12. This fixed setup lets you practise the sequence; adapt each turn amount when solving a different scramble.');
 await writeFile('data/niche-catalog.json',JSON.stringify({sets,cases},null,2)+'\n');
 console.log(`${cases.length} verified cases across ${sets.length} sets.`);

@@ -213,7 +213,7 @@ function SolutionFigures({ turns }: { turns: { move: string; at?: number }[] }) 
   );
 }
 
-const Swatch = ({ colour }: { colour: Colour }) => <span className="inline-block size-3 rounded-[3px] ring-1 ring-foreground/20" style={{ background: SWATCH[colour] }} aria-label={colourName(colour)} />;
+export const Swatch = ({ colour }: { colour: Colour }) => <span className="inline-block size-3 rounded-[3px] ring-1 ring-foreground/20" style={{ background: SWATCH[colour] }} aria-label={colourName(colour)} />;
 
 function ColourSelect({ label, value, options, onChange }: { label: string; value: Colour; options: readonly Colour[]; onChange: (c: Colour) => void }) {
   const items = options.map((c) => ({ value: c, label: colourName(c) }));

@@ -1,6 +1,6 @@
 /**
  * Rasterise the pre-rendered case diagrams of the non-cube puzzles (`assets/cases/*.svg`, from
- * build-niche-catalog.ts) into palette PNGs next to them. The mobile app shows the bitmaps: a clock or
+ * build-niche-catalog.ts) into palette PNGs next to them. The mobile app shows the bitmaps: a
  * megaminx SVG holds a few hundred elements, each a native view in react-native-svg, while a PNG is
  * one image node that Android decodes off the JavaScript thread. The longest side covers the largest
  * on-screen size (150 pt) at 3× density.

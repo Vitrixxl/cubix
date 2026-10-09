@@ -139,7 +139,7 @@ describe("the notation guide", () => {
     expect(notationView("B").yaw).toBeGreaterThan(Math.PI / 2);
   });
   test("each other puzzle has its own notation", () => {
-    expect(Object.keys(PUZZLE_NOTATION).sort()).toEqual(["clock", "minx", "pyram", "skewb", "sq1"]);
+    expect(Object.keys(PUZZLE_NOTATION).sort()).toEqual(["minx", "pyram", "skewb", "sq1"]);
   });
 });
 

@@ -2,7 +2,7 @@ export const CUBE_SIZES = [2, 3, 4, 5, 6, 7] as const;
 export type CubeSize = typeof CUBE_SIZES[number];
 
 import registry from "../../data/puzzles.json";
-export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx" | "clock";
+export type PuzzleId = "222" | "333" | "444" | "555" | "666" | "777" | "sq1" | "pyram" | "skewb" | "minx";
 export type PuzzleInput = CubeSize | PuzzleId;
 export type SolveMode = "standard" | "one-handed" | "blindfolded";
 export type ScrambleType = "normal" | "2gen-ru" | "2gen-lu" | "2gen-rf" | "2gen-mu" | "3gen-rul" | "3gen-ruf" | "half-turns" | "edges-only" | "corners-only" | "last-layer" | "oll" | "pll" | "f2l" | "outer-turns" | "cross1-3" | "cross1-4" | "cross1-5" | `${"cross" | "xcross" | "xxcross"}-${number}` | "case";
@@ -37,7 +37,7 @@ export const eventOf = (puzzle: PuzzleId, solveMode: SolveMode) => EVENTS.find(e
 export const eventInfo = (id: string) => EVENTS.find(e => e.id === id);
 /** Solves recorded before events kept any mode on any puzzle: they still get a name. */
 export const eventLabel = (puzzle: PuzzleId, solveMode: SolveMode) =>
-  eventOf(puzzle, solveMode)?.label ?? `${puzzleInfo(puzzle).label} · ${modeLabel(solveMode)}`;
+  eventOf(puzzle, solveMode)?.label ?? `${puzzleInfo(puzzle)?.label ?? puzzle} · ${modeLabel(solveMode)}`;
 export const scrambleLabel = (type: ScrambleType) => SCRAMBLE_TYPES.find(s => s.id === type)?.label ?? type;
 export function validContext(context: PracticeContext, training = false): boolean {
   return isPuzzle(context.puzzle) && SOLVE_MODES.some(m => m.id === context.solveMode)

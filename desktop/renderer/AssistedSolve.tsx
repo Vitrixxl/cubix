@@ -22,6 +22,9 @@ import { ScrambleTracker, type ScrambleProgress, type TurnProgress } from "../..
 import { SmartCube, canonicalTurn, smartCube, stateToFacelets } from "../../src/client/lib/smartCube";
 import { CubeScan, hex, useSquare } from "./CubeScan";
 import { LiveCube } from "./LiveCube";
+import { ViewButtons } from "./AlgPlayer";
+import { Swatch } from "./SolveView";
+import { CubeView } from "../../src/client/lib/cubeView";
 import { store as s } from "./store";
 import { Bar, Button, Empty, Figure, IconTile, LABEL, NUMERIC, SectionHead, StatusMark, Strip, TILE, Tip, plural, usePhone } from "./ui";
 import { tr } from "../../src/client/i18n";
@@ -282,6 +285,7 @@ function Solve({ cube, replan, rescan }: { cube: SmartCube; replan: () => void; 
     [box, setBox] = useState<HTMLDivElement | null>(null),
     side = useSquare(box),
     [start] = useState(Date.now),
+    [view] = useState(() => new CubeView()),
     [end, setEnd] = useState<number | null>(null);
   const progress = usePartProgress(cube, plan ?? NO_PLAN, at, () => setAt(at + 1));
   const part = plan?.parts[at],
@@ -369,8 +373,9 @@ function Solve({ cube, replan, rescan }: { cube: SmartCube; replan: () => void; 
       <Steps plan={plan} at={at} />
       <div className="flex min-h-0 flex-1 max-md:flex-col">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-3 p-4 md:p-6">
-          <div ref={setBox} className="flex min-h-0 w-full flex-1 items-center justify-center">
-            {side > 0 && <LiveCube cube={cube} size={side} turnMs={manual ? 320 : undefined} />}
+          <div ref={setBox} className="relative flex min-h-0 w-full flex-1 items-center justify-center">
+            {side > 0 && <LiveCube cube={cube} size={side} turnMs={manual ? 320 : undefined} view={view} />}
+            <ViewButtons player={view} className="absolute bottom-0 left-1/2 -translate-x-1/2" />
           </div>
           {next >= 0 && (
             <div className="flex items-baseline gap-3 max-md:hidden" aria-hidden="true">
@@ -378,7 +383,9 @@ function Solve({ cube, replan, rescan }: { cube: SmartCube; replan: () => void; 
               <span className="alg font-sans text-4xl font-semibold tracking-tight text-primary">{said(turns[next]!)}</span>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">{tr("Yellow on top, green in front, all the way through")}</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Swatch colour="yellow" /> {tr("on top")} · <Swatch colour="green" /> {tr("in front")}
+          </p>
         </div>
         <aside className="flex min-h-0 shrink-0 flex-col gap-5 overflow-y-auto border-t p-4 md:w-96 md:border-t-0 md:border-l md:p-5">
           {finished ? (

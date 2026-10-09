@@ -44,7 +44,7 @@ Trois choses à la fois, qu'aucun voisin (csTimer, Twisty Timer, Cubeast…) ne 
 
 ## Capabilities and Constraints
 
-- **Chrono** : les épreuves WCA (2×2 à 7×7, une main, à l'aveugle, Square-1, Pyraminx, Skewb, Megaminx, Clock),
+- **Chrono** : les épreuves WCA (2×2 à 7×7, une main, à l'aveugle, Square-1, Pyraminx, Skewb, Megaminx),
   mélanges à état aléatoire générés sur l'appareil, mélanges d'entraînement, moyennes (Ao5, Ao12, AoX), +2 et DNF
   selon le règlement WCA, bande de statistiques que l'on compose soi-même.
 - **Algorithmes** : catalogue de 1 755 cas et 6 508 algorithmes (F2L, OLL, PLL, ZBLL, autres puzzles), lecteur 3D.

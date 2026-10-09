@@ -452,29 +452,4 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
       ],
     },
   ],
-  clock: [
-    {
-      id: "beginner", name: "Beginner", level: "beginner",
-      summary: "Solve the front cross, then the back cross, then the corners.",
-      steps: [
-        { title: "Front cross", text: "Use pin settings to bring the four edge dials to the same time as the centre, then turn the whole cross to 12.", sets: ["clock-pins"] },
-        { title: "Back cross", text: "Flip the clock and solve the other cross, with pin settings that leave the first one untouched.", sets: ["clock-back"] },
-        {
-          title: "Corners", text: "Turn each corner to 12, one pin up at a time. Each corner dial is linked to the one behind it, so both sides finish together.",
-          tips: ["With one pin up, the wheel next to it turns that corner alone.", "Flip the clock when a corner of the front is still off: its back corner moves with it."],
-        },
-      ],
-    },
-    {
-      id: "7-simul", name: "7-simul", level: "advanced",
-      summary: "The speed method: seven steps with the same pin settings every solve, turning two wheels at once.",
-      steps: [
-        {
-          title: "Read", text: "During inspection, read the dials and work out how far each of the seven steps must turn.",
-          tips: ["Read the front dials first, then the back ones.", "Learn the seven pin settings by heart: only the amounts change."],
-        },
-        { title: "Solve", text: "Apply the steps of the first side, flip the clock and apply the rest. Only the amounts change from one scramble to the next.", sets: ["clock-sequences"] },
-      ],
-    },
-  ],
 };

@@ -119,10 +119,6 @@ export const PUZZLE_NOTATION: Partial<Record<PuzzleId, NotationSection[]>> = {
     { title: msg("Layers"), text: "(x, y) turns the top layer by x and the bottom layer by y, in twelfths of a turn (one small wedge); positive is clockwise, negative counter-clockwise.", examples: ["(1, 0)", "(-3, 3)"] },
     { title: msg("Slash"), text: "/ turns the right half of the puzzle a half turn. It only works when both layers line up along the slice.", examples: ["(1, 0) / (-1, 0) /"] },
   ],
-  clock: [
-    { title: msg("Pins and dials"), text: "UR, DR, DL and UL put the pin of that corner up; U, R, D, L two pins on a side; ALL every pin. The number then turns those dials by that many hours, + clockwise, - counter-clockwise.", examples: ["UR3+", "ALL2-"] },
-    { title: msg("Turning over"), text: "y2 turns the clock over to work on its back; the moves after it are read on that side.", examples: ["y2"] },
-  ],
 };
 
 /** Whether the puzzle's notation is cube notation, shown on the 3D cube. */

@@ -42,7 +42,7 @@ try {
   assert.equal(await stored(page), 3);
   assert.ok(!existsSync(join(dir, "storage.json")) && existsSync(join(dir, "storage.imported.json")), "storage.json is set aside once imported");
   console.log("Former desktop data imported into IndexedDB");
-  for (const puzzle of ["222", "333", "444", "555", "666", "777", "pyram", "skewb", "sq1", "minx", "clock"]) {
+  for (const puzzle of ["222", "333", "444", "555", "666", "777", "pyram", "skewb", "sq1", "minx"]) {
     const text = await scramble(page, puzzle);
     assert.ok(typeof text === "string" && text.length > 0, `${puzzle} scramble`);
   }
@@ -59,7 +59,7 @@ try {
   await server.exited;
   ({ app, page, errors } = await open());
   assert.equal(await stored(page), 4);
-  for (const puzzle of ["444", "sq1", "clock"]) assert.ok(await scramble(page, puzzle));
+  for (const puzzle of ["444", "sq1", "minx"]) assert.ok(await scramble(page, puzzle));
   console.log("Opened offline from the service worker cache, with a scramble and the 4 solves");
   assert.deepEqual(errors, []);
   await app.close();

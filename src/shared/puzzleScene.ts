@@ -24,6 +24,8 @@ interface Geometry {
    * piece, each convex, rather than as one body.
    */
   pieces?: V[][];
+  /** The quarter of a whole-puzzle rotation by axis (x, y, z), where the notation has one. */
+  spin?: Partial<Record<'x' | 'y' | 'z', number>>;
 }
 export interface PolyScene {
   puzzle: PolyPuzzle;
@@ -208,6 +210,7 @@ function megaminx(): Geometry {
       return axis && { axis, depth, step: (Math.PI * 2) / 5 };
     },
     radius: 1.34,
+    spin: { y: (Math.PI * 2) / 5 },
   };
 }
 
@@ -232,7 +235,7 @@ function skewb(): Geometry {
   });
   // WCA notation: R, U, L and B turn the corners DRB, ULB, DLF and DLB, clockwise seen from the corner.
   const corners: Record<string, V> = { R: unit([1, -1, -1]), U: unit([-1, 1, -1]), L: unit([-1, -1, 1]), B: unit([-1, -1, -1]) };
-  return { stickers, move: (name) => corners[name] && { axis: corners[name]!, depth: 0, step: (Math.PI * 2) / 3 }, radius: 1.9 };
+  return { stickers, move: (name) => corners[name] && { axis: corners[name]!, depth: 0, step: (Math.PI * 2) / 3 }, radius: 1.9, spin: { x: Math.PI / 2, y: Math.PI / 2, z: Math.PI / 2 } };
 }
 
 /**
@@ -304,8 +307,10 @@ const geometry = (puzzle: PolyPuzzle) => (GEOMETRY[puzzle] ??= BUILD[puzzle]());
  * Skewb: R U L B (see `skewb`). Square-1: (x, y) turns the top x twelfths and the bottom y, each clockwise seen from
  * that face; / turns the right half over.
  */
-function parse(puzzle: PolyPuzzle, scramble: string): { axis: V; depth: number; angle: number }[] {
-  const { move } = geometry(puzzle);
+export type PolyTurn = { axis: V; depth: number; angle: number };
+const AXES: Record<string, V> = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+export function polyTurns(puzzle: PolyPuzzle, scramble: string): PolyTurn[] {
+  const { move, spin } = geometry(puzzle);
   if (puzzle === 'sq1')
     return [...scramble.matchAll(/\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)|\//g)].flatMap(([token, top, bottom]) => {
       if (token === '/') return [{ axis: SQ1_SLICE, depth: 0, angle: Math.PI }];
@@ -321,7 +326,9 @@ function parse(puzzle: PolyPuzzle, scramble: string): { axis: V; depth: number; 
     });
   return scramble.split(/\s+/).flatMap((token) => {
     const [, name, suffix = ''] = /^([A-Za-z]+)(\+\+|--|'|2'?)?$/.exec(token) ?? [];
-    const m = name && move(name);
+    // x, y and z turn the whole puzzle, clockwise seen from R, U and F.
+    const quarter = name && spin?.[name as 'x'],
+      m = quarter ? { axis: AXES[name]!, depth: -Infinity, step: quarter } : name && move(name);
     if (!m) return [];
     const turns = suffix === '++' ? 2 : suffix === '--' ? -2 : suffix === "'" ? -1 : suffix === '2' ? 2 : suffix === "2'" ? -2 : 1;
     // A double turn of the megaminx keeps the opposite layer and turns all the rest.
@@ -329,12 +336,20 @@ function parse(puzzle: PolyPuzzle, scramble: string): { axis: V; depth: number; 
   });
 }
 
-export function polyScene(puzzle: PolyPuzzle, scramble: string, animated = true): PolyScene {
+/** The scene of a scramble or of turns; `undo` starts where they lead from, undone from the solved puzzle, and plays them. */
+export function polyScene(puzzle: PolyPuzzle, scramble: string | PolyTurn[], animated = true, undo = false): PolyScene {
   const { stickers, radius, pieces } = geometry(puzzle);
   let state: M[] = stickers.map(() => IDENTITY);
+  const list = typeof scramble === 'string' ? polyTurns(puzzle, scramble) : scramble;
+  // A turn's layer is the same set of stickers before and after it, so a turn is undone turning its layer back.
+  if (undo)
+    for (const { axis, depth, angle } of [...list].reverse()) {
+      const turn = rotation(axis, -angle);
+      state = state.map((m, i) => (dot(apply(m, stickers[i]!.center), axis) > depth ? compose(turn, m) : m));
+    }
   const states = [state],
     turns: Turn[] = [];
-  for (const { axis, depth, angle } of parse(puzzle, scramble)) {
+  for (const { axis, depth, angle } of list) {
     const moving = new Set(stickers.flatMap((s, i) => (dot(apply(state[i]!, s.center), axis) > depth ? [i] : []))),
       turn = rotation(axis, angle);
     state = state.map((m, i) => (moving.has(i) ? compose(turn, m) : m));

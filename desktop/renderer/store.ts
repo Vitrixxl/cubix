@@ -13,6 +13,7 @@ import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossTrainingType, isCro
 import { courseEntry, courseStorageKey, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
+import type { PolyPuzzle } from "../../src/shared/puzzleScene";
 import { PROFILE_KEY, journeyProfile, puzzleLocked, withKnownPuzzle, type Journey } from "../../src/client/lib/journey";
 import { go, goPage, readRoute, type AppRoute } from "./navigation";
 import { smartCube } from "../../src/client/lib/smartCube";
@@ -37,7 +38,7 @@ export const catalog = catalogData as any;
 const caseById = new Map<string, any>(catalog.cases.map((c: any) => [c.id, c]));
 const casesByPuzzle = new Map<string, any[]>();
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
-export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
+export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string; puzzle?: PolyPuzzle }
 /** Whether every word typed starts a word of the case (shared with the phone app). */
 export { matches };
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */

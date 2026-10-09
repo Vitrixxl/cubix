@@ -320,7 +320,7 @@ test("practice labels survive offline reopening, guest import and sync while his
     {puzzle:"333", solveMode:"standard", scrambleType:"2gen-ru"},
     {puzzle:"333", solveMode:"one-handed", scrambleType:"2gen-ru"},
     {puzzle:"333", solveMode:"blindfolded", scrambleType:"normal"},
-    ...(["sq1","pyram","skewb","minx","clock"] as const).map(puzzle => ({puzzle, solveMode:"standard", scrambleType:"normal"} as const)),
+    ...(["sq1","pyram","skewb","minx"] as const).map(puzzle => ({puzzle, solveMode:"standard", scrambleType:"normal"} as const)),
   ] as const;
   for (const [i,context] of contexts.entries()) {
     const session = await a.api.createSession("playground",[],context.puzzle,context);
@@ -374,7 +374,7 @@ test("both APIs inherit context, reject incompatible labels and isolate training
 
 test('niche training sessions, case statistics and modes survive guest import and another device',async()=>{
   const {remote,db}=setup(),a=device(remote);
-  const puzzles=['sq1','pyram','skewb','minx','clock'] as const;
+  const puzzles=["sq1","pyram","skewb","minx"] as const;
   for(const puzzle of puzzles){
     const catalogue=await a.api.cases(puzzle);expect(catalogue.length).toBeGreaterThan(0);
     const c=catalogue[0],context={solveMode:'one-handed' as const,scrambleType:'case' as const};
@@ -397,7 +397,7 @@ test('niche training sessions, case statistics and modes survive guest import an
     const server=await remote(auth.token).stats(puzzle,context);
     expect(local.trainingSolves).toBe(1);expect(local.cases.map(c=>c.summary)).toEqual(server);
   }
-  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(10);
+  expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE cube_size IS NULL AND scramble_type='case'").get()?.n).toBe(puzzles.length*2);
 });
 
 test("learning marks are local for guests, imported on sign-in, synchronized between devices and migrated from the old preference",async () => {
@@ -602,4 +602,17 @@ test("pending legacy uploads retain their operation IDs and retry a lost acknowl
   expect(reopened.local.status().pending).toBe(0);
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM sessions").get()?.n).toBe(1);
   expect(db.db.query<{n:number}>("SELECT count(*) n FROM solves WHERE scramble_type='normal'").get()?.n).toBe(1);
+});
+
+test("sessions, solves and profile entries of a retired puzzle (Clock) leave the device", () => {
+  const { remote } = setup(), storage = new Storage(), key = "cubix.local.v1:workspace:guest";
+  const row = { cube_size: null, solve_mode: "standard", scramble_type: "normal", created_at: new Date().toISOString() };
+  storage.setItem(key, JSON.stringify({ version: 1, normalScrambles: true, groupOrder: {}, outbox: [], cursor: 0, learned: {},
+    journey: { profile: { kind: "profile", knownPuzzles: ["333", "clock"], bests: { clock: 9000 }, priority: "clock", learningPuzzles: ["clock"], completedAt: row.created_at } },
+    sessions: { [-1]: { ...row, id: -1, puzzle_id: "clock", mode: "playground", case_ids: [] }, [-2]: { ...row, id: -2, puzzle_id: "333", mode: "playground", case_ids: [] } },
+    solves: { [-3]: { ...row, id: -3, puzzle_id: "clock", session_id: -1, time_ms: 9000, penalty: "none" }, [-4]: { ...row, id: -4, puzzle_id: "333", session_id: -2, time_ms: 9000, penalty: "none" } } }));
+  const a = device(remote, storage);
+  expect(a.local.read.journey().profile).toMatchObject({ knownPuzzles: ["333"], bests: {}, priority: null, learningPuzzles: [] });
+  const saved = JSON.parse(storage.getItem(key)!);
+  expect([Object.keys(saved.sessions), Object.keys(saved.solves)]).toEqual([["-2"], ["-4"]]);
 });

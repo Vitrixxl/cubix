@@ -20,7 +20,7 @@ import { said, tr } from "../../../src/client/i18n";
 const CODEPOINT: Record<EventId, number> = {
   "222": 0xf10a, "333": 0xf106, "444": 0xf101, "555": 0xf10c, "666": 0xf113, "777": 0xf111,
   "333oh": 0xf115, "333bf": 0xf107, "444bf": 0xf104, "555bf": 0xf114,
-  sq1: 0xf102, pyram: 0xf112, skewb: 0xf105, minx: 0xf103, clock: 0xf108,
+  sq1: 0xf102, pyram: 0xf112, skewb: 0xf105, minx: 0xf103,
 };
 /** The WCA glyph of a puzzle or event, `size` dp, in `color` (default: the text colour). */
 export function PuzzleIcon({ puzzle, size = 20, color }: { puzzle: EventId; size?: number; color?: string }) {
@@ -52,7 +52,7 @@ export function SheetChoice<T extends string>({ label, value, options, onChange,
   </View>;
 }
 
-/** The fifteen WCA events as a grid of glyph cells, the current one lit. */
+/** The fourteen WCA events as a grid of glyph cells, the current one lit. */
 export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onChange: (event: EventId) => void; disabled?: boolean }) {
   const colors = useColors();
   return <View className="flex-row flex-wrap" style={{ marginHorizontal: -2 }} accessibilityRole="radiogroup" accessibilityLabel={tr("Puzzle")}>

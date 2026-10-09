@@ -2,9 +2,9 @@ import { ChevronFirst, ChevronLeft, ChevronRight, Focus, Pause, Play, Rotate3d, 
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { PanResponder, Pressable, View } from "react-native";
 import Svg, { Circle, ClipPath, Defs, G, Polygon, Polyline } from "react-native-svg";
-import { AlgPlayer, algScene, readAlg, speedLabel, type PlayerOptions } from "../../../src/client/lib/algPlayer";
+import { AlgPlayer, algScene, polyAlgScene, readAlg, speedLabel, type PlayerOptions } from "../../../src/client/lib/algPlayer";
 import type { CubeMask } from "../../../src/shared/cubeAppearance";
-import { cubeViewRadius } from "../../../src/shared/cubeScene";
+import type { PolyPuzzle } from "../../../src/shared/puzzleScene";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -20,14 +20,14 @@ import { said, tr } from "../../../src/client/i18n";
  */
 
 /** A player for `alg` on a cube of `size`, or null where it cannot be played (other puzzles, unknown moves). */
-export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string } = {}) {
-  const { setup, autoplay, loop, speed, view } = options;
+export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string; puzzle?: PolyPuzzle } = {}) {
+  const { setup, autoplay, loop, speed, view, puzzle } = options;
   const player = useMemo(() => {
-    const scene = size ? algScene(alg, size, mask, setup) : null;
+    const scene = puzzle ? polyAlgScene(puzzle, alg) : size ? algScene(alg, size, mask, setup) : null;
     return scene ? new AlgPlayer(scene, { autoplay, loop, speed, view }) : null;
     // The view and speed are read once: a new algorithm starts a new player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alg, size, mask, setup, autoplay, loop]);
+  }, [alg, size, mask, setup, autoplay, loop, puzzle]);
   useEffect(() => () => player?.dispose(), [player]);
   return player;
 }
@@ -59,21 +59,23 @@ export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }
       if (now - tap.current < 320) { player.resetView(); tap.current = 0; } else tap.current = now;
     },
   }), [player]);
-  const unit = 60 / cubeViewRadius(player.scene);
+  const unit = 60 / player.radius;
   const points = (list: number[][]) => list.map(([x, y]) => `${(60 + x! * unit).toFixed(2)},${(60 - y! * unit).toFixed(2)}`).join(" ");
   return <View {...responder.panHandlers} accessibilityRole="image" accessibilityLabel={tr("3D cube: drag to turn it, double-tap to reset")} style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox="0 0 120 120">
       {player.shapes().map((shape, i) => shape.line
         ? <Polyline key={i} points={points(shape.points)} fill="none" stroke={hex(shape.color)} strokeWidth={120 / size} />
         : <Polygon key={i} points={points(shape.points)} fill={hex(shape.color)} />)}
-      <Pulse player={player} unit={unit} />
+      <Pulse pulse={player.pulse()} unit={unit} />
     </Svg>
   </View>;
 }
 
-/** The glow of `AlgPlayer.showFront`, as the web canvas draws it: the front face lit, two waves spreading from its centre. */
-function Pulse({ player, unit }: { player: AlgPlayer; unit: number }) {
-  const pulse = player.pulse();
+/**
+ * The glow of `showFront` (AlgPlayer, CubeView), as the web canvas draws it: the front face lit, two waves spreading
+ * from its centre, in a 120-unit square.
+ */
+export function Pulse({ pulse, unit }: { pulse: ReturnType<AlgPlayer["pulse"]>; unit: number }) {
   if (!pulse) return null;
   const at = (v: number[]) => [60 + v[0]! * unit, 60 - v[1]! * unit] as const,
     [cx, cy] = at(pulse.centre),
@@ -94,7 +96,7 @@ function Pulse({ player, unit }: { player: AlgPlayer; unit: number }) {
 }
 
 /** Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been turned. */
-export function ViewButtons({ player }: { player: AlgPlayer }) {
+export function ViewButtons({ player }: { player: Pick<AlgPlayer, "subscribe" | "showFront" | "resetView" | "turned"> }) {
   const turned = useSyncExternalStore(player.subscribe, player.turned);
   return <View className="flex-row justify-center gap-2">
     <Button variant="secondary" size="lg" onPress={player.showFront} className="gap-2">
@@ -110,7 +112,7 @@ export function ViewButtons({ player }: { player: AlgPlayer }) {
 
 /** The written algorithm, its brackets muted, the move being played lit; a tap on a move turns it. */
 export function PlayerAlg({ player, text, size = 18 }: { player: AlgPlayer | null; text: string; size?: number }) {
-  const words = useMemo(() => readAlg(text).words, [text]);
+  const words = useMemo(() => readAlg(text, player?.puzzle).words, [text, player]);
   return player ? <LitWords player={player} words={words} size={size} /> : <Words words={words} size={size} current={-1} />;
 }
 function LitWords({ player, words, size }: { player: AlgPlayer; words: ReturnType<typeof readAlg>["words"]; size: number }) {
@@ -184,7 +186,7 @@ function Scrubber({ value, total, onSeek }: { value: number; total: number; onSe
 }
 
 /** An algorithm the player can show: its name, its ways to play it (the first one first), and the cube it is on. */
-export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string }
+export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string; puzzle?: PolyPuzzle }
 
 /**
  * A list of algorithms in 3D, in a sheet: the one shown with the previous and next a tap away, its alternatives, the
@@ -208,7 +210,7 @@ export function AlgPlayerSheet({ items, index, onIndex, onClose, choice: initial
 
 function PlayerBody({ item, choice, onChoice, count, index, onIndex }: { item: PlayItem; choice: number; onChoice: (choice: number) => void; count: number; index: number; onIndex: (index: number) => void }) {
   const alg = item.algs[choice] ?? item.algs[0]!;
-  const player = useAlgPlayer(alg, item.size, item.mask, { setup: item.setup });
+  const player = useAlgPlayer(alg, item.size, item.mask, { setup: item.setup, puzzle: item.puzzle });
   const step = (label: string, icon: typeof Play, target: number) =>
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={target < 0 || target >= count} onPress={() => onIndex(target)}
       className={cn("size-11 items-center justify-center rounded-lg active:bg-muted/50", (target < 0 || target >= count) && "opacity-40")}>

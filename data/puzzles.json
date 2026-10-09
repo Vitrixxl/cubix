@@ -126,15 +126,6 @@
       "scrambles": [
         "normal"
       ]
-    },
-    {
-      "id": "clock",
-      "label": "Clock",
-      "cubeSize": null,
-      "twisty": "clock",
-      "scrambles": [
-        "normal"
-      ]
     }
   ],
   "scrambles": [
@@ -344,12 +335,6 @@
       "id": "minx",
       "label": "Megaminx",
       "puzzle": "minx",
-      "solveMode": "standard"
-    },
-    {
-      "id": "clock",
-      "label": "Clock",
-      "puzzle": "clock",
       "solveMode": "standard"
     }
   ]

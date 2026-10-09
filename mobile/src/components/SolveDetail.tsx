@@ -27,7 +27,7 @@ export type ViewedSolve = SolveSummary & Partial<Pick<SolveDto, "solution" | "pu
 /** Each colour as the 3D cube draws it (its faces seen yellow on top, blue in front). */
 const SWATCH: Record<Colour, string> = { white: FACE_COLORS.D, yellow: FACE_COLORS.U, green: FACE_COLORS.B, blue: FACE_COLORS.F, red: FACE_COLORS.R, orange: FACE_COLORS.L };
 const colourName = (c: Colour) => c.charAt(0).toUpperCase() + c.slice(1);
-const Swatch = ({ colour }: { colour: Colour }) => <View accessibilityLabel={colourName(colour)} className="size-3 rounded-[3px] border border-foreground/20" style={{ backgroundColor: SWATCH[colour] }} />;
+export const Swatch = ({ colour }: { colour: Colour }) => <View accessibilityLabel={colourName(colour)} className="size-3 rounded-[3px] border border-foreground/20" style={{ backgroundColor: SWATCH[colour] }} />;
 
 /** How the solution plays on the cube the app shows the scramble on; null when there is none to play. */
 function played(solution: string | null | undefined) {

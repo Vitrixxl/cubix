@@ -22,7 +22,7 @@ import {
   StatusMark, TouchAction, TouchBar,
 } from "../components/layout";
 import { CubePreview } from "../components/Practice";
-import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
+import { AlgPlayerSheet } from "../components/AlgPlayer";
 import { SessionButton } from "../components/PuzzlePicker";
 import { Sheet, SheetScrollView } from "../components/Sheet";
 import { TimerStats } from "../components/TimesChart";
@@ -30,7 +30,7 @@ import { useLayout } from "../hooks/useLayout";
 import { usePreservedList } from "../hooks/usePreservedList";
 import { useSlide } from "../hooks/useSlide";
 import { useTourTarget } from "../tour";
-import { displayAlg, maskForStage, shortId } from "../lib/caseState";
+import { casePlayItem, displayAlg, maskForStage, shortId } from "../lib/caseState";
 import {
   casesAtom, collapsedAlgorithmGroupsAtom, goBackAtom, guidesAtom, learnedCaseIdsAtom, learningFilterAtom, previousRouteAtom, puzzleAtom,
   replaceRouteAtom, routeAtom, selectedCaseIdsAtom, setByStageAtom, setsAtom, solveModeAtom, stageAtom, statsAtom, statsVersionAtom,
@@ -288,11 +288,6 @@ function CaseDetail({ c, caseIds, cases, stats, onBack }: { c: CaseDto; caseIds?
   </Page>;
 }
 
-/** The case's algorithms in the 3D player, on cube puzzles. */
-function casePlayItem(c: CaseDto): PlayItem | null {
-  const size = !c.diagram && (c.cube_size ?? puzzleInfo(puzzleOf(c)).cubeSize);
-  return size ? { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: caseContext(c), algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage) } : null;
-}
 
 /** Trains one case at once, skipping the setup. */
 function useTrain() {
@@ -348,9 +343,9 @@ function CaseBody({ c, stats, onPlay }: { c: CaseDto; stats?: CaseStatsDto; onPl
   const block = "gap-2 border-t border-border px-4 py-4";
   return <>
     <View className="flex-row items-center gap-6 px-4 pt-2 pb-4">
-      <View>{isCube && !c.diagram
+      <View>{(isCube && !c.diagram) || onPlay
         ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Play the algorithm in 3D")} disabled={!onPlay} onPress={() => onPlay?.(0)} className="rounded-md active:opacity-70">
-          <CubePreview alg={c.setup} cube={c.cube_size ?? info.cubeSize ?? 3} size={104} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} />
+          {isCube && !c.diagram ? <CubePreview alg={c.setup} cube={c.cube_size ?? info.cubeSize ?? 3} size={104} mask={maskForStage(c.stage)} view={viewForStage(c.stage)} /> : <CaseDiagram c={c} size={104} />}
           {onPlay ? <View className="absolute right-0 bottom-0 size-6 items-center justify-center rounded-full border border-border bg-background">
             <Icon as={Play} size={11} className="text-muted-foreground" fill="currentColor" />
           </View> : null}

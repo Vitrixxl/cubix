@@ -23,6 +23,19 @@ export type JourneyEntry = JourneyProfile;
 export type Journey = Record<string, JourneyEntry | null>;
 export interface JourneyEntryDto { id: number; key: string; value: JourneyEntry | null; updated_at: string }
 export const PROFILE_KEY = "profile";
+/** A profile without the puzzles the app retired (Clock), so one saved when they existed stays valid. */
+export function withoutRetired(value: unknown): unknown {
+  const v = value as Record<string, any> | null;
+  if (v?.kind !== "profile" || !Array.isArray(v.knownPuzzles)) return value;
+  const keep = (map: unknown) => map && typeof map === "object" && !Array.isArray(map) ? Object.fromEntries(Object.entries(map).filter(([p]) => isPuzzle(p))) : map;
+  const out: Record<string, any> = { ...v, knownPuzzles: v.knownPuzzles.filter(isPuzzle) };
+  if (Array.isArray(v.learningPuzzles)) out.learningPuzzles = v.learningPuzzles.filter(isPuzzle);
+  for (const key of ["knownMethods", "learningMethods", "bests"]) if (key in v) out[key] = keep(v[key]);
+  if (v.priority != null && !isPuzzle(v.priority)) {
+    out.priority = null; out.learningPuzzles = []; delete out.priorityMethod; delete out.learningMethods;
+  }
+  return out;
+}
 export const journeyProfile = (journey: Journey): JourneyProfile | undefined => journey.profile?.kind === "profile" ? journey.profile : undefined;
 /** Whether the profile does not list a puzzle as one the player can solve yet. */
 export const puzzleLocked = (profile: JourneyProfile | undefined, puzzle: PuzzleId) => !!profile && !profile.knownPuzzles.includes(puzzle);

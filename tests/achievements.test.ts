@@ -13,7 +13,7 @@ test("an empty history unlocks nothing and lists every puzzle, learning set and 
   expect(summary.unlocked).toBe(0);
   expect(summary.total).toBe(summary.achievements.length);
   expect(summary.achievements.filter(a => a.unlocked)).toEqual([]);
-  expect(new Set(summary.achievements.map(a => a.group))).toEqual(new Set(["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "Square-1", "Pyraminx", "Skewb", "Megaminx", "Clock", "General"]));
+  expect(new Set(summary.achievements.map(a => a.group))).toEqual(new Set(["2×2", "3×3", "4×4", "5×5", "6×6", "7×7", "Square-1", "Pyraminx", "Skewb", "Megaminx", "General"]));
   expect(summary.achievements.map(a => a.id).length).toBe(new Set(summary.achievements.map(a => a.id)).size);
   expect(byId(summary.achievements, "learn:pll")).toMatchObject({ target: 21, progress: 0, group: "3×3", category: "knowledge" });
   expect(byId(summary.achievements, "learn:2x2-pbl").group).toBe("2×2");

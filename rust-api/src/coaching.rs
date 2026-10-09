@@ -1037,6 +1037,9 @@ fn history(db: &Connection, id: &str) -> Result<Value> {
     let mut puzzles = serde_json::Map::new();
     for row in all(db, "SELECT DISTINCT puzzle_id FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard'", [id])? {
         let puzzle = row["puzzle_id"].as_str().unwrap_or_default();
+        if !crate::practice::is_puzzle(puzzle) {
+            continue;
+        }
         let mut recent: Vec<Option<f64>> = all(
             db,
             "SELECT time_ms,penalty FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard' AND puzzle_id=? ORDER BY created_at DESC,id DESC LIMIT 50",
@@ -1074,6 +1077,9 @@ fn practice(db: &Connection, id: &str, top: i64) -> Result<Value> {
         params![id, top],
     )? {
         let puzzle = row["puzzle_id"].as_str().unwrap_or_default();
+        if !crate::practice::is_puzzle(puzzle) {
+            continue;
+        }
         let last: Vec<Option<f64>> = all(
             db,
             "SELECT time_ms,penalty FROM solves WHERE user_id=? AND case_id IS NULL AND solve_mode='standard' AND puzzle_id=? ORDER BY created_at DESC,id DESC LIMIT 5",

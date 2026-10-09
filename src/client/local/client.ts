@@ -1,5 +1,5 @@
 import {createCatalogCache,evictCatalogCache} from "./catalog-cache";
-import { puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
+import { isPuzzle, puzzleOf, puzzleId, puzzleInfo, contextOf, eventInfo, matchesPractice, solveModeOf, scrambleTypeOf, normalizeScrambleType, validContext, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
 import type { ImportedSolve } from "../lib/timerImport";
 import { readSolution, SOLUTION_MAX } from "../lib/solution";
 import { ApiError, createApiClient, type AddSolveBody, type LiveOutput } from "../api-client";
@@ -8,7 +8,7 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases } from "./catalog";
 import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
-import { PROFILE_KEY, journeyProfile, validJourneyEntry, type Journey, type JourneyEntryDto } from "../lib/journey";
+import { PROFILE_KEY, journeyProfile, validJourneyEntry, withoutRetired, type Journey, type JourneyEntryDto } from "../lib/journey";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
@@ -130,6 +130,17 @@ export function createLocalClient(options: {
     }
     // Retired social caches (friends, conversations) are dropped from older workspaces.
     if (workspace.cache !== undefined) { delete workspace.cache; workspace.outbox = workspace.outbox.filter(op => !["bio","message"].includes(op.kind)); save(id,workspace); }
+    const profile = workspace.journey.profile;
+    if (profile && JSON.stringify(withoutRetired(profile)) !== JSON.stringify(profile)) { workspace.journey.profile = withoutRetired(profile) as typeof profile; save(id,workspace); }
+    // Retired puzzles (Clock): their sessions and solves leave this device; the server keeps its copy untouched.
+    const retired = (row: SessionDto | SolveDto) => !isPuzzle(puzzleOf(row));
+    if ([...Object.values(workspace.sessions), ...Object.values(workspace.solves)].some(retired)) {
+      const gone = new Set<number>();
+      for (const rows of [workspace.sessions, workspace.solves] as Record<number, SessionDto | SolveDto>[])
+        for (const row of Object.values(rows)) if (retired(row)) { gone.add(row.id); delete rows[row.id]; }
+      workspace.outbox = workspace.outbox.filter(op => !gone.has(op.localId) && !gone.has(op.body?.sessionId));
+      save(id,workspace);
+    }
     const legacyText = storage.getItem(LEGACY_LEARNED_KEY);
     if (legacyText !== null) {
       // One-time import of the pre-sync device preference; a signed-in account uploads it too.
@@ -226,7 +237,7 @@ export function createLocalClient(options: {
       const sessionIds = byServer(workspace.sessions), solveIds = byServer(workspace.solves);
       for (const change of [...changes].sort((a,b) => Number(a.kind === "solves") - Number(b.kind === "solves"))) {
         if (change.kind === "personal_entries") {
-          const row = change.value as JourneyEntryDto | null;
+          const row = change.value ? { ...change.value as JourneyEntryDto, value:withoutRetired((change.value as JourneyEntryDto).value) as JourneyEntryDto["value"] } : null;
           if (!row || !validJourneyEntry(row.key, row.value) || workspace.outbox.some(op => op.kind === "journey" && op.body.key === row.key)) continue;
           workspace.journey[row.key] = row.value;
         } else if (change.kind === "learning_group_orders") {
@@ -244,12 +255,12 @@ export function createLocalClient(options: {
         } else if (change.kind === "sessions") {
           const localId = sessionIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           if (dirty.has(`sessions:${localId}`)) continue;
-          if (!change.value) { delete workspace.sessions[localId]; sessionIds.delete(change.id); }
+          if (!change.value || !isPuzzle(puzzleOf(change.value as SessionDto))) { delete workspace.sessions[localId]; sessionIds.delete(change.id); }
           else { workspace.sessions[localId] = { ...change.value as SessionDto, scramble_type:scrambleTypeOf(change.value as SessionDto), id:localId, serverId:change.id }; sessionIds.set(change.id, localId); }
         } else if (change.kind === "solves") {
           const localId = solveIds.get(change.id) ?? (id === "guest" ? newId() : change.id);
           // A remote deletion wins even over an edit queued locally but not uploaded yet.
-          if (!change.value) {
+          if (!change.value || !isPuzzle(puzzleOf(change.value as SolveDto))) {
             delete workspace.solves[localId]; solveIds.delete(change.id);
             workspace.outbox = workspace.outbox.filter(op => !(op.localId === localId && ["penalty", "comment", "solution", "delete"].includes(op.kind)));
           }

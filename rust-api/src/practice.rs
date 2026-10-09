@@ -20,6 +20,10 @@ fn puzzle(id: &str) -> Result<&'static Value> {
         .find(|p| p["id"] == id)
         .ok_or_else(ApiError::validation)
 }
+/// Whether the registry still has this puzzle: rows of a retired one (Clock) stay in the database, unlisted.
+pub fn is_puzzle(id: &str) -> bool {
+    puzzle(id).is_ok()
+}
 fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }

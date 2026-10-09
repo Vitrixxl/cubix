@@ -39,11 +39,11 @@ const isEvent = (id: string): id is EventId => WCA.has(id);
 /** csTimer's scramble types, and the other timers' puzzle names, as WCA events. */
 const CSTIMER: Record<string, EventId> = {
   "333": "333", "222so": "222", "444wca": "444", "555wca": "555", "666wca": "666", "777wca": "777",
-  "333ni": "333bf", "333oh": "333oh", clkwca: "clock", mgmp: "minx", pyrso: "pyram", skbso: "skewb", sqrs: "sq1",
+  "333ni": "333bf", "333oh": "333oh", mgmp: "minx", pyrso: "pyram", skbso: "skewb", sqrs: "sq1",
   "444bld": "444bf", "555bld": "555bf",
   // Same puzzles, other scramblers.
   "222o": "222", "2223": "222", "444m": "444", "444": "444", "444yj": "444", "555": "555", "666si": "666", "666p": "666",
-  "666s": "666", "777si": "777", "777p": "777", "777s": "777", clkwcab: "clock", clk: "clock", clko: "clock",
+  "666s": "666", "777si": "777", "777p": "777", "777s": "777",
   mgmc: "minx", mgmo: "minx", mgmso: "minx", pyro: "pyram", pyrm: "pyram", skbo: "skewb", skb: "skewb", sq1h: "sq1",
   sq1t: "sq1",
   // CubeTime's own name for 3BLD in its csTimer files.
@@ -51,7 +51,7 @@ const CSTIMER: Record<string, EventId> = {
 };
 const TWISTY: Record<string, EventId> = {
   "222": "222", "333": "333", "444": "444", "555": "555", "666": "666", "777": "777", mega: "minx", pyra: "pyram",
-  skewb: "skewb", clock: "clock", sq1: "sq1", "333oh": "333oh", "333bld": "333bf", "444bld": "444bf", "555bld": "555bf",
+  skewb: "skewb", sq1: "sq1", "333oh": "333oh", "333bld": "333bf", "444bld": "444bf", "555bld": "555bf",
 };
 const CUBEDESK: Record<string, EventId> = { "333bl": "333bf" };
 
@@ -226,7 +226,11 @@ function qbix(data: any): TimerImport {
     }
     const event = eventOf(solve.puzzle_id ?? "333", solve.solve_mode ?? "standard")?.id,
       at = Date.parse(solve.created_at);
-    if (!event || !Number.isFinite(solve.time_ms) || !Number.isFinite(at)) {
+    if (!event) {
+      skip(skipped, "events Cubix does not practise");
+      continue;
+    }
+    if (!Number.isFinite(solve.time_ms) || !Number.isFinite(at)) {
       skip(skipped, "unreadable solves");
       continue;
     }

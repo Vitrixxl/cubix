@@ -45,7 +45,6 @@ const EVENTS: &[Event] = &[
     Event { id: "pyram", puzzle: "pyram", mode: "standard", typical: 7_000., dnf: 0.02 },
     Event { id: "skewb", puzzle: "skewb", mode: "standard", typical: 8_000., dnf: 0.02 },
     Event { id: "minx", puzzle: "minx", mode: "standard", typical: 95_000., dnf: 0.015 },
-    Event { id: "clock", puzzle: "clock", mode: "standard", typical: 13_000., dnf: 0.04 },
 ];
 fn event(id: &str) -> &'static Event {
     EVENTS.iter().find(|e| e.id == id).expect("seed event")
@@ -104,7 +103,7 @@ pub fn run(db: &mut Connection, catalog: &Catalog) -> Result<Option<Summary>> {
 
 const NAMES: &[&str] = &[
     "alex_cubes", "ben_tps", "chloe_f2l", "dario_oh", "emma_pll", "felix_roux", "gaia_zz", "hugo_sub10",
-    "ines_bld", "jules_lookahead", "kenji_cfop", "lea_skewb", "malo_megaminx", "nora_pyra", "oscar_clock",
+    "ines_bld", "jules_lookahead", "kenji_cfop", "lea_skewb", "malo_megaminx", "nora_pyra", "oscar_ao5",
     "paula_sq1", "quentin_4x4", "rosa_cross", "sami_ortega", "tess_cll", "ugo_yau", "vera_zbll", "will_2gen",
     "xena_colorneutral", "yann_slowturn", "zoe_newbie", "arthur_rubik", "bea_timer", "cyril_ao100",
     "dina_lsll", "eliott_cube", "fanny_tracking", "gabin_wca", "hana_pb", "ivan_fingertricks",
@@ -117,7 +116,7 @@ const COACHES: &[Coach] = &[
     ("tom_onehand", 0.55, &["333oh"], &["English"], 2000, "One-handed specialist, 12 years of OH"),
     ("yuki_blind", 0.6, &["333bf", "444bf"], &["English", "Japanese"], 3500, "Blindfolded: memo, M2/OP to 3-style"),
     ("marco_minx", 0.5, &["minx", "pyram", "skewb"], &["Italian", "English"], 1500, "Megaminx and the small puzzles"),
-    ("sofia_sq1", 0.55, &["sq1", "clock"], &["Spanish", "English"], 0, "Free Square-1 lessons for beginners"),
+    ("sofia_sq1", 0.55, &["sq1"], &["Spanish", "English"], 0, "Free Square-1 lessons for beginners"),
 ];
 
 fn players(rng: &mut StdRng, at: i64) -> Vec<Player> {
@@ -238,18 +237,6 @@ fn scramble(rng: &mut StdRng, puzzle: &str) -> Option<String> {
             })
             .collect::<Vec<_>>()
             .join(" "),
-        "clock" => {
-            let mut pins: Vec<String> = ["UR", "DR", "DL", "UL", "U", "R", "D", "L", "ALL"]
-                .iter()
-                .map(|p| {
-                    let n = rng.gen_range(0..=6);
-                    format!("{p}{n}{}", if n == 0 || rng.r#gen() { "+" } else { "-" })
-                })
-                .collect();
-            pins.push("y2".into());
-            pins.extend(["U", "R", "D", "L", "ALL"].iter().map(|p| format!("{p}{}+", rng.gen_range(0..=6))));
-            pins.join(" ")
-        }
         _ => return None,
     })
 }

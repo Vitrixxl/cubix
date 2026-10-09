@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { faceOfSlot } from "../../src/shared/cube";
 import { HELD_HEX } from "../../src/shared/cubeAppearance";
-import { CUBE_PITCH, CUBE_YAW, cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, turnCube, type CubeOrientation, type CubeScene } from "../../src/shared/cubeScene";
+import { CUBE_PITCH, CUBE_YAW, cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, type CubeOrientation, type CubeScene } from "../../src/shared/cubeScene";
 import { rotate, type Quaternion, type SmartCube } from "../../src/client/lib/smartCube";
-import { paintShapes } from "./paint";
+import { CubeView } from "../../src/client/lib/cubeView";
+import { paintPulse, paintShapes } from "./paint";
 import { tr } from "../../src/client/i18n";
 
 /** How long a turn takes on screen: quick enough to keep up with a fast solve. */
@@ -25,12 +26,14 @@ const held = (q: Quaternion): CubeOrientation => {
 
 /**
  * A smart cube as it stands, each turn played as it comes. A cube with a gyroscope is shown as it is held: a drag
- * goes to `onDrag` (the virtual cube turns itself); without one, a drag turns the view.
+ * goes to `onDrag` (the virtual cube turns itself); without one, a drag turns the view. `view`: the view shared with
+ * the view buttons (see `ViewButtons`).
  */
-export function LiveCube({ cube, size, onDrag, turnMs = TURN_MS }: { cube: SmartCube; size: number; onDrag?: (across: number, down: number) => void; turnMs?: number }) {
+export function LiveCube({ cube, size, onDrag, turnMs = TURN_MS, view: shared }: { cube: SmartCube; size: number; onDrag?: (across: number, down: number) => void; turnMs?: number; view?: CubeView }) {
   const snapshot = useSyncExternalStore(cube.subscribe, () => cube.snapshot),
     canvas = useRef<HTMLCanvasElement>(null),
-    rotation = useRef(cubeOrientation()),
+    own = useMemo(() => (shared ? null : new CubeView()), [shared]),
+    view = shared ?? own!,
     drag = useRef<number[] | null>(null),
     // The turn on screen and when it started; one frame pending at most, however many samples come in.
     shown = useRef<{ scene: CubeScene; start: number }>({ scene: { size: 3, colors: COLORS, states: [Array.from(cube.snapshot.state)], moves: [] }, start: 0 }),
@@ -44,13 +47,17 @@ export function LiveCube({ cube, size, onDrag, turnMs = TURN_MS }: { cube: Smart
       { scene, start } = shown.current,
       progress = Math.min(1, (performance.now() - start) / turnMs);
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    paintShapes(ctx, cubeShapes(scene, progress * cubeSceneDuration(scene), undefined, undefined, rotation.current), size, cubeViewRadius(scene));
+    paintShapes(ctx, cubeShapes(scene, progress * cubeSceneDuration(scene), undefined, undefined, view.orientation), size, cubeViewRadius(scene));
+    paintPulse(ctx, view.pulse(), size, cubeViewRadius(scene));
     if (progress < 1) redraw();
   };
   const redraw = () => {
     if (!frame.current) frame.current = requestAnimationFrame(draw);
   };
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useEffect(() => () => own?.dispose(), [own]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => view.subscribe(redraw), [view]);
   // Sizing the canvas clears it: only when the size changes, drawn again at once.
   useLayoutEffect(() => {
     if (!canvas.current) return;
@@ -62,8 +69,7 @@ export function LiveCube({ cube, size, onDrag, turnMs = TURN_MS }: { cube: Smart
   }, [size]);
   useEffect(() => {
     if (!snapshot.orientation) return;
-    rotation.current = held(snapshot.orientation);
-    redraw();
+    view.hold(held(snapshot.orientation));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshot.orientation]);
   useEffect(() => {
@@ -94,8 +100,7 @@ export function LiveCube({ cube, size, onDrag, turnMs = TURN_MS }: { cube: Smart
         drag.current = [e.clientX, e.clientY];
         if (onDrag) return onDrag(across, down);
         if (cube.snapshot.orientation) return;
-        rotation.current = turnCube(rotation.current, across, down);
-        redraw();
+        view.rotate(across, down);
       }}
       onPointerUp={() => {
         drag.current = null;

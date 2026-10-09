@@ -3,10 +3,11 @@ import { Camera, Check, ChevronLeft, ChevronRight, Paintbrush, RotateCcw, ScanLi
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { BackHandler, PanResponder, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path } from "react-native-svg";
+import Svg, { G, Path } from "react-native-svg";
 import { applyAlg, faceOfSlot, invertToken, parseAlg, type CubeState, type Face } from "../../../src/shared/cube";
 import { HELD_HEX } from "../../../src/shared/cubeAppearance";
-import { cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, turnCube, type CubeScene } from "../../../src/shared/cubeScene";
+import { cubeSceneDuration, cubeShapes, cubeViewRadius, type CubeScene } from "../../../src/shared/cubeScene";
+import { CubeView } from "../../../src/client/lib/cubeView";
 import { METHODS } from "../../../src/shared/methods";
 import { solveBeginner } from "../../../src/client/lib/beginnerSolver";
 import { scannedState } from "../../../src/client/lib/cubeScan";
@@ -19,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { BackButton, Empty, Figure, HeadButton, Label, Numeric, Page, PageHead } from "../components/layout";
 import { CubeScan, hex } from "../components/scan/CubeScan";
 import { pathsOf } from "../components/ScrambleCube";
+import { Pulse, ViewButtons } from "../components/AlgPlayer";
+import { Swatch } from "../components/SolveDetail";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { goBackAtom } from "../state";
 import { tr } from "../../../src/client/i18n";
@@ -110,7 +113,8 @@ function Solve({ start, leave, rescan }: { start: CubeState; leave: () => void; 
     [at, setAt] = useState<At>({ part: 0, made: 0, state: start, turn: null }),
     [began] = useState(Date.now),
     [end, setEnd] = useState<number | null>(null),
-    [box, setBox] = useState(0);
+    [box, setBox] = useState(0),
+    [view] = useState(() => new CubeView());
   const part = plan?.parts[at.part],
     turns = part ? turnsOf(part.alg) : [],
     finished = !!plan?.parts.length && at.part >= plan.parts.length;
@@ -159,9 +163,13 @@ function Solve({ start, leave, rescan }: { start: CubeState; leave: () => void; 
       })}
     </View>
     <View className="min-h-0 flex-1 items-center justify-center" onLayout={e => { const { width, height } = e.nativeEvent.layout; setBox(Math.floor(Math.min(width, height))); }}>
-      {box > 0 && <SolveCube state={at.state} turn={at.turn} size={box} />}
+      {box > 0 && <SolveCube state={at.state} turn={at.turn} size={box} view={view} />}
     </View>
-    <Text className="text-center text-xs text-muted-foreground">{tr("Yellow on top, green in front, all the way through")}</Text>
+    <ViewButtons player={view} />
+    <View className="flex-row items-center justify-center gap-1.5">
+      <Swatch colour="yellow" /><Text className="text-xs text-muted-foreground">{tr("on top")} ·</Text>
+      <Swatch colour="green" /><Text className="text-xs text-muted-foreground">{tr("in front")}</Text>
+    </View>
     {finished ? <View className="gap-4">
       <View className="flex-row items-center gap-3">
         <View className="size-12 items-center justify-center rounded-full bg-success/15"><Icon as={Check} size={24} className="text-success" /></View>
@@ -220,11 +228,11 @@ const TURN_MS = 320;
 /** Each sticker keeps the colour of the face it started on, in the held palette (yellow on top). */
 const COLORS = Array.from({ length: 54 }, (_, origin) => HELD_HEX[faceOfSlot(origin)]);
 
-/** The cube as it stands, its last turn played (at once with reduced motion); a drag turns the view. */
-function SolveCube({ state, turn, size }: { state: CubeState; turn: At["turn"]; size: number }) {
+/** The cube as it stands, its last turn played (at once with reduced motion); a drag turns `view`. */
+function SolveCube({ state, turn, size, view }: { state: CubeState; turn: At["turn"]; size: number; view: CubeView }) {
   const reduced = useReducedMotion(),
-    orientation = useRef(cubeOrientation()),
     [, redraw] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => view.subscribe(redraw), [view]);
   const scene = useMemo<CubeScene>(() => turn
     ? { size: 3, colors: COLORS, states: [Array.from(turn.before), Array.from(state)], moves: parseAlg(turn.move) }
     : { size: 3, colors: COLORS, states: [Array.from(state)], moves: [] }, [state, turn]);
@@ -243,19 +251,19 @@ function SolveCube({ state, turn, size }: { state: CubeState; turn: At["turn"]; 
     onPanResponderMove: event => {
       const { pageX, pageY } = event.nativeEvent, from = last.current;
       if (!from) return;
-      orientation.current = turnCube(orientation.current, (pageX - from.x) * 0.012, (pageY - from.y) * 0.012);
+      view.rotate((pageX - from.x) * 0.012, (pageY - from.y) * 0.012);
       last.current = { x: pageX, y: pageY };
-      redraw();
     },
     onPanResponderRelease: () => { last.current = null; },
-  }), []);
+  }), [view]);
   const radius = cubeViewRadius(scene),
-    paths = pathsOf(cubeShapes(scene, progress * cubeSceneDuration(scene), undefined, undefined, orientation.current));
+    paths = pathsOf(cubeShapes(scene, progress * cubeSceneDuration(scene), undefined, undefined, view.orientation));
   return <View {...responder.panHandlers} accessibilityRole="image" accessibilityLabel={tr("Your cube: drag to turn it")} style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox={`${-radius} ${-radius} ${radius * 2} ${radius * 2}`}>
       {paths.map((p, i) => p.line
         ? <Path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={(radius * 2) / size} />
         : <Path key={i} d={p.d} fill={p.color} />)}
+      <G transform={`translate(${-radius} ${-radius}) scale(${radius / 60})`}><Pulse pulse={view.pulse()} unit={60 / radius} /></G>
     </Svg>
   </View>;
 }

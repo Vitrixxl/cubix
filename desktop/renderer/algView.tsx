@@ -15,7 +15,7 @@ export function AlgView() {
     phone = usePhone(),
     item = view?.items[view.index],
     alg = item ? (item.algs[view!.choice] ?? item.algs[0]!) : "";
-  const player = useAlgPlayer(alg, item?.size, item?.mask, { setup: item?.setup });
+  const player = useAlgPlayer(alg, item?.size, item?.mask, { setup: item?.setup, puzzle: item?.puzzle });
   // Only while the dialog is open: its content can outlive it for the closing animation.
   usePlayerKeys(s.overlay === "algPlayer" ? player : null);
   if (!view || !item) return null;

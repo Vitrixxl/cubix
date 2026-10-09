@@ -6,7 +6,8 @@
  */
 import { applyMove, invertToken, parseMove, solved, type Move } from "../../shared/cube";
 import { stickerColors, type CubeMask } from "../../shared/cubeAppearance";
-import { cubeFace, cubeOrientation, cubeSceneDuration, cubeShapes, turnCube, type CubeOrientation, type CubeScene } from "../../shared/cubeScene";
+import { cubeFace, cubeOrientation, cubeSceneDuration, cubeShapes, cubeViewRadius, turnCube, type CubeOrientation, type CubeScene } from "../../shared/cubeScene";
+import { polyOrientation, polyScene, polySceneDuration, polyShapes, polyTurns, type PolyPuzzle, type PolyScene } from "../../shared/puzzleScene";
 
 /** A piece of a written algorithm: a move (its index among the written moves in `move`) or bracket marks. */
 export interface AlgPart { text: string; move?: number }
@@ -23,11 +24,19 @@ export interface ReadAlg {
 
 type Node = { move: string; source: number } | { group: Node[]; second?: Node[]; op?: "," | ":"; count: number; prime: boolean };
 const MOVE_RE = /\d*[UDFBRLudfbrlMESxyz]w?\d*'?\d*/y;
+/** The moves of the other puzzles: the megaminx's faces by name, the square-1's `(x, y)` and `/`. */
+const POLY_MOVE_RE: Record<PolyPuzzle, RegExp> = {
+  pyram: /[UDFBRLudfbrlxyz]'?\d*'?/y,
+  skewb: /[UDFBRLxyz]'?\d*'?/y,
+  minx: /(?:DBR|DBL|BR|BL|DR|DL|[UDFRLBxyz])(?:\+\+|--|\d*'?\d*)/y,
+  sq1: /\(\s*-?\d+\s*,\s*-?\d+\s*\)|\//y,
+};
 const SUFFIX_RE = /\d*'?\d*/y;
 const OPEN = "([", CLOSE = ")]";
 
 /** Reads a written algorithm: what it shows and what it plays. Unknown text makes it unreadable (`ok` false) but still shown. */
-export function readAlg(alg: string): ReadAlg {
+export function readAlg(alg: string, puzzle?: PolyPuzzle): ReadAlg {
+  const moveRe = puzzle ? POLY_MOVE_RE[puzzle] : MOVE_RE;
   const words: AlgPart[][] = [];
   let word: AlgPart[] = [],
     moveCount = 0,
@@ -54,6 +63,14 @@ export function readAlg(alg: string): ReadAlg {
         i++;
         continue;
       }
+      moveRe.lastIndex = i;
+      const found = moveRe.exec(text)?.[0];
+      if (found) {
+        word.push({ text: found, move: moveCount });
+        nodes.push({ move: found, source: moveCount++ });
+        i += found.length;
+        continue;
+      }
       if (OPEN.includes(c)) {
         mark(c);
         i++;
@@ -78,14 +95,6 @@ export function readAlg(alg: string): ReadAlg {
         first = nodes.splice(0);
         op = c;
         i++;
-        continue;
-      }
-      MOVE_RE.lastIndex = i;
-      const found = MOVE_RE.exec(text)?.[0];
-      if (found) {
-        word.push({ text: found, move: moveCount });
-        nodes.push({ move: found, source: moveCount++ });
-        i += found.length;
         continue;
       }
       ok = false;
@@ -130,15 +139,21 @@ export function playableMoves(alg: string, size: number): (Move & { source: numb
 }
 
 /** The scene of an algorithm: the case it solves (the algorithm undone from a solved cube), then each of its moves. */
-export interface AlgScene extends CubeScene {
+export interface CubeAlgScene extends CubeScene {
   /** The written move each played move comes from. */
   sources: number[];
 }
+/** The same on another puzzle (`polyScene`), each turn played its own move. */
+export interface PolyAlgScene extends PolyScene {
+  sources: number[];
+}
+export type AlgScene = CubeAlgScene | PolyAlgScene;
+const isPoly = (scene: AlgScene): scene is PolyAlgScene => "puzzle" in scene;
 /**
  * The scene of `alg` on a cube of `size`: from `setup` (moves from a solved cube; "" the solved cube) or, by default,
  * from the case it solves (the algorithm undone), then each of its moves.
  */
-export function algScene(alg: string, size: number, mask: CubeMask = "full", setup?: string): AlgScene | null {
+export function algScene(alg: string, size: number, mask: CubeMask = "full", setup?: string): CubeAlgScene | null {
   if (!Number.isInteger(size) || size < 2 || size > 7) return null;
   const moves = playableMoves(alg, size),
     from = setup === undefined ? null : playableMoves(setup, size);
@@ -158,9 +173,29 @@ export function algScene(alg: string, size: number, mask: CubeMask = "full", set
   return { size, colors: stickerColors(start, mask), states, moves, sources: moves.map((m) => m.source) };
 }
 
+/** The scene of `alg` on another puzzle, from the case it solves; null when a move does not exist there. */
+export function polyAlgScene(puzzle: PolyPuzzle, alg: string): PolyAlgScene | null {
+  const read = readAlg(alg, puzzle);
+  if (!read.ok) return null;
+  const turns = read.moves.map((m) => ({ source: m.source, turns: polyTurns(puzzle, m.token) }));
+  // Only the square-1 has moves turning nothing, (0, 0).
+  if (puzzle !== "sq1" && turns.some((t) => t.turns.length !== 1)) return null;
+  const played = turns.flatMap((t) => t.turns.map((turn) => ({ ...turn, source: t.source })));
+  if (!played.length) return null;
+  return { ...polyScene(puzzle, played, true, true), sources: played.map((t) => t.source) };
+}
+
+/** Moves the scene plays. */
+export const algTotal = (scene: AlgScene) => scene.sources.length;
+/** Half the width the scene is drawn in (`paintShapes`). */
+export const algRadius = (scene: AlgScene) => (isPoly(scene) ? scene.radius : cubeViewRadius(scene));
+
 /** Shapes of the scene `position` moves into it (fractions turn the layer part way), seen with `orientation`. */
-export const algShapes = (scene: AlgScene, position: number, orientation?: CubeOrientation) =>
-  cubeShapes(scene, scene.moves.length ? (position / scene.moves.length) * cubeSceneDuration(scene) : 0, undefined, undefined, orientation);
+export const algShapes = (scene: AlgScene, position: number, orientation?: CubeOrientation) => {
+  const total = algTotal(scene);
+  if (isPoly(scene)) return polyShapes(scene, total ? (position / total) * polySceneDuration(scene) : 0, orientation ?? polyOrientation(scene.puzzle));
+  return cubeShapes(scene, total ? (position / total) * cubeSceneDuration(scene) : 0, undefined, undefined, orientation);
+};
 
 // ---------------------------------------------------------------------------
 // Playback clock
@@ -254,13 +289,20 @@ export class AlgPlayer {
   private pulseFrame = 0;
   constructor(readonly scene: AlgScene, private options: PlayerOptions = {}) {
     this.playback = startPlayback(options.speed ?? 1);
-    this.home = options.view ? cubeOrientation(options.view.yaw, options.view.pitch) : cubeOrientation();
+    this.home = options.view ? cubeOrientation(options.view.yaw, options.view.pitch) : isPoly(scene) ? polyOrientation(scene.puzzle) : cubeOrientation();
     this.orientation = this.home;
     this.looping = !!options.loop;
     if (options.autoplay !== undefined) this.later(options.autoplay, () => this.play());
   }
   get total() {
-    return this.scene.moves.length;
+    return algTotal(this.scene);
+  }
+  /** The puzzle other than a cube the scene is of, to read its algorithms (`readAlg`). */
+  get puzzle() {
+    return isPoly(this.scene) ? this.scene.puzzle : undefined;
+  }
+  get radius() {
+    return algRadius(this.scene);
   }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -318,6 +360,8 @@ export class AlgPlayer {
   };
   /** Makes the face to hold in front glow (see `pulse`), turning the cube back first if that face is out of sight. */
   showFront = () => {
+    // Other puzzles have no face to light: they turn back to the front.
+    if (isPoly(this.scene)) return this.resetView();
     if (!cubeFace(this.scene.size, FRONT, this.orientation).seen) this.orientation = this.home;
     this.pulseStart = Date.now();
     if (this.pulseFrame) cancelAnimationFrame(this.pulseFrame);
@@ -330,7 +374,7 @@ export class AlgPlayer {
   /** The glow of `showFront` while it lasts: the front face on screen (see `cubeFace`) and how far along it is, 0 to 1. */
   pulse = () => {
     const t = (Date.now() - this.pulseStart) / FRONT_PULSE_MS;
-    if (!this.pulseStart || t >= 1) return null;
+    if (!this.pulseStart || t >= 1 || isPoly(this.scene)) return null;
     const face = cubeFace(this.scene.size, FRONT, this.orientation);
     return face.seen ? { ...face, t } : null;
   };

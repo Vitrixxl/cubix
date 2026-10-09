@@ -42,7 +42,7 @@ export const GUIDE_TEXT: Record<Guide, Block[]> = {
     { cards: [
       { h: msg("Timer"), p: msg("Apply the scramble, hold Space (or touch the screen), release to start, press any key to stop. Times, Ao5 and Ao12 are kept per puzzle."),
         links: [a("/guides/how-to-use-a-cube-timer/", msg("Timer guide")), a("/guides/cube-duel/", msg("Duel guide")), a("/guides/cubing-coaching/", msg("Coaching guide"))] },
-      { h: msg("Algorithms"), p: msg("F2L, OLL and PLL cases with diagrams, setups and algorithms from trusted sources. 2×2 to 7×7, Square-1, Pyraminx, Skewb, Megaminx and Clock are included."),
+      { h: msg("Algorithms"), p: msg("F2L, OLL and PLL cases with diagrams, setups and algorithms from trusted sources. 2×2 to 7×7, Square-1, Pyraminx, Skewb and Megaminx are included."),
         links: [a("/guides/cube-algorithms/", msg("Algorithm guide"))] },
       { h: msg("Training"), p: msg("Pick the cases you want to drill. Qbix shows a setup, times your execution and tracks your progress per case."),
         links: [a("/guides/algorithm-training/", msg("Training guide"))] },

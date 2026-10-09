@@ -25,6 +25,7 @@ import { PuzzleIcon, SessionButton } from "../components/PuzzlePicker";
 import { Sheet } from "../components/Sheet";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { AlgPlayerSheet, type PlayItem } from "../components/AlgPlayer";
+import { isPolyPuzzle } from "../../../src/shared/puzzleScene";
 import { CaseSheet, CaseTile, tileGrid } from "./AlgorithmsPage";
 import { useLayout } from "../hooks/useLayout";
 import { useTourTarget } from "../tour";
@@ -184,7 +185,7 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
       const id = algId(step, alg), algs = [alg.alg, ...(alg.alternatives ?? [])];
       return {
         key: id, name: alg.name, detail: alg.detail, alg: alg.alg, alternatives: alg.alternatives ?? [], note: alg.note, learned: entry.learned.includes(id), step, own: alg,
-        play: size ? { key: id, name: alg.name, detail: alg.detail, context: step.title, algs, note: alg.note, size, mask: step.mask ?? "full", setup: alg.setup } : undefined,
+        play: size || isPolyPuzzle(puzzle) ? { key: id, name: alg.name, detail: alg.detail, context: step.title, algs, note: alg.note, size: size ?? 0, mask: step.mask ?? "full", setup: alg.setup, puzzle: isPolyPuzzle(puzzle) ? puzzle : undefined } : undefined,
       };
     });
   }, [puzzle, step, entry.learned]);

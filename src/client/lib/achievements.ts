@@ -16,7 +16,6 @@ const SINGLE_GOALS: Record<PuzzleId, number[]> = {
   pyram: [20, 10, 6, 4],
   skewb: [20, 10, 6, 4],
   minx: [300, 180, 120, 90, 60],
-  clock: [20, 12, 8, 6],
 };
 /** Average-of-5 goals reuse the ladder without its hardest step. */
 const AVERAGE_GOALS: Record<PuzzleId, number[]> = Object.fromEntries(Object.entries(SINGLE_GOALS).map(([id, goals]) => [id, goals.slice(0, -1)])) as Record<PuzzleId, number[]>;

@@ -1,1 +1,1 @@
-export { caseState, maskForStage, displayAlg, executableAlg, shortId } from "../../../src/client/lib/caseState";
+export { caseState, maskForStage, displayAlg, executableAlg, shortId, casePlayItem } from "../../../src/client/lib/caseState";

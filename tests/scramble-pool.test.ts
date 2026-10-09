@@ -23,14 +23,14 @@ describe("the reserve of scrambles", () => {
   });
 
   test("an empty reserve answers nothing and starts filling; a failing scrambler is left aside", async () => {
-    const pool = createScramblePool({ storage: memory(), events: ["clock", "333"], size: 1, pause: 0, generate: async (event) => {
-      if (event === "clock") throw new Error("unavailable");
+    const pool = createScramblePool({ storage: memory(), events: ["minx", "333"], size: 1, pause: 0, generate: async (event) => {
+      if (event === "minx") throw new Error("unavailable");
       return "R U";
     } });
     expect(pool.take("333")).toBeUndefined();
     await pool.fill();
     expect(pool.count("333")).toBe(1);
-    expect(pool.count("clock")).toBe(0);
+    expect(pool.count("minx")).toBe(0);
   });
 
   test("a scrambler that failed once is tried again at the next filling", async () => {

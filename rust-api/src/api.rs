@@ -313,6 +313,10 @@ async fn respond(
                         params![token],
                         "Unknown solve",
                     )
+                    .and_then(|row| match row["puzzle_id"].as_str().is_some_and(crate::practice::is_puzzle) {
+                        true => Ok(row),
+                        false => Err(ApiError::new(404, "Unknown solve")),
+                    })
                 })
                 .await;
         }
