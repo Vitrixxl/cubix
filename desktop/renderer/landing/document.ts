@@ -51,7 +51,7 @@ export function structuredData(language: Language = "en") {
  * default theme's CSS variables, set on `html.landing` so they stand over the stylesheet's own (`.dark`). Each language's
  * page names the others for search engines (hreflang), the English one at the root by default.
  */
-export function landingDocument({ language = "en", body, theme, styles, scripts }: { language?: Language; body: string; theme: Record<string, string>; styles: string[]; scripts: string[] }) {
+export function landingDocument({ language = "en", body, theme, styles, scripts, app = [] }: { language?: Language; body: string; theme: Record<string, string>; styles: string[]; scripts: string[]; /** The app's first files, fetched ahead when a link to it is pointed at (landing/main.tsx). */ app?: string[] }) {
   const title = escape(t(TITLE)), description = escape(t(DESCRIPTION)), url = SITE + landingPath(language);
   const ogLocale = (id: Language) => LANGUAGES.find((l) => l.id === id)!.locale.replace("-", "_");
   const tokens = Object.entries(theme)
@@ -93,6 +93,7 @@ export function landingDocument({ language = "en", body, theme, styles, scripts 
     <link rel="icon" href="/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="alternate" type="text/markdown" href="/llms.txt" title="${NAME} for language models" />
+    <meta name="cubix-app" content="${escape(app.join(" "))}" />
     <style>html.landing{${tokens}}</style>
     ${styles.map((href) => `<link rel="stylesheet" href="${href}" />`).join("\n    ")}
     ${structuredData(language)

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { achievements } from "../src/client/lib/achievements";
+import { achievementBadge, achievementSeries, achievements, isTimeGoal } from "../src/client/lib/achievements";
 import { cases } from "../src/client/local/catalog";
 import type { SolveDto } from "../src/shared/types";
 
@@ -85,4 +85,23 @@ test("volume, active days and streaks count every puzzle and mode", () => {
   expect(byId(list, "days:30")).toMatchObject({ unlocked: false, progress: 16 });
   expect(byId(list, "streak:7")).toMatchObject({ unlocked: true, unlockedAt: at(7) });
   expect(byId(list, "streak:30")).toMatchObject({ unlocked: false, detail: "12 / 30 days" });
+});
+
+test("each achievement reads as a badge and belongs to a series, and the solve that unlocked it is kept", () => {
+  const rows = [solve({ time_ms: 9000, created_at: at(1) })];
+  const list = achievements(rows, []).achievements;
+  expect(achievementBadge(byId(list, "333:single:10"))).toEqual({ value: "10", unit: "sec" });
+  expect(achievementBadge(byId(list, "333:single:60"))).toEqual({ value: "1:00", unit: "sec" });
+  expect(achievementBadge(byId(list, "333:ao5:30"))).toEqual({ value: "30", unit: "ao5" });
+  expect(achievementBadge(byId(list, "total:1000"))).toEqual({ value: "1k", unit: "times" });
+  expect(achievementBadge(byId(list, "learn:2look-oll"))).toEqual({ value: "2-OLL", unit: "10" });
+  expect(achievementBadge(byId(list, "learn:4x4-edges")).value).toBe("EP");
+  expect(achievementBadge(byId(list, "learn:2x2-pbl")).value).toBe("PBL");
+  expect(achievementSeries(byId(list, "333:single:10"))).toBe("333:single");
+  expect(achievementSeries(byId(list, "learn:oll"))).toBe("learn:3×3");
+  expect(isTimeGoal(byId(list, "333:bld:60"))).toBe(true);
+  expect(isTimeGoal(byId(list, "333:bld:first"))).toBe(false);
+  expect(byId(list, "333:single:10").solveId).toBe(rows[0]!.id);
+  expect(byId(list, "333:solves:1").solveId).toBe(rows[0]!.id);
+  expect(byId(list, "days:7").solveId).toBeUndefined();
 });

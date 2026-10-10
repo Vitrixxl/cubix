@@ -19,6 +19,7 @@ import { fmtDate, joinedDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { competitionEvent, generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
 import { createScramblePool, SCRAMBLE_POOL_KEY } from '../../src/client/lib/scramblePool';
+import { dailyScramble } from '../../src/client/lib/daily';
 import { crossSolutions } from '../../src/shared/crossTraining';
 import { analyseSolve, type CatalogCase } from '../../src/client/lib/solveAnalysis';
 import { DUELS_KEY, keepRecord, levelOf } from '../../src/client/lib/duel';
@@ -62,6 +63,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   // background from the launch; the other scramble types keep one scramble generated ahead per context.
   const reserve = createScramblePool({ storage, events: EVENTS.map(e => e.id), generate: event => scrambles.randomScrambleForEvent(event) });
   const nextScrambles = new Map<string, Promise<string>>();
+  const dailies = new Map<string, Promise<string>>();
   const scrambleKey = (context: PracticeContext) => `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
   function prefetchScramble(context: PracticeContext) {
     if (context.scrambleType === 'normal') return void reserve.fill(competitionEvent(context));
@@ -161,7 +163,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       const filter = { solveMode: context.solveMode };
       // A 3×3 case's times come from its training, from the smart cube solves it was done in, or from both; the
       // timer itself shows no case figures. The solves are analysed once for the whole snapshot.
-      const source: CaseSource = isCaseSource(q.caseSource) && context.puzzle === '333' && (q.page !== 'playground' || q.caseId) ? q.caseSource : 'training';
+      // The training's own figures (its recommendations) are the training's alone.
+      const source: CaseSource = isCaseSource(q.caseSource) && context.puzzle === '333' && (!['playground', 'training'].includes(q.page) || q.caseId) ? q.caseSource : 'training';
       const inSolves = source === 'training' ? null : Promise.all([
         local.api.solves('playground', Infinity, '333', { solveMode: context.solveMode }).then(timer => smart.digests(timer, context.solveMode)),
         local.api.solves('training', Infinity, '333', { solveMode: context.solveMode }),
@@ -169,17 +172,19 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       const jobs: Record<string, Promise<unknown>> = {
         // The latest thousand solves, or only those of the session the client shows (`session`, null before its first).
         solves: 'session' in q && q.session == null ? Promise.resolve([])
-          : local.api.solves(trainingMode ? 'training' : 'playground', 1000, context.puzzle, context).then(rows => 'session' in q ? rows.filter((row: any) => row.session_id === q.session) : rows),
+          : local.api.solves(trainingMode ? 'training' : 'playground', 'session' in q ? Infinity : 1000, context.puzzle, context).then(rows => 'session' in q ? rows.filter((row: any) => row.session_id === q.session) : rows),
         stats: inSolves && source !== 'training'
           ? inSolves.then(([digests, training]) => shownOf(smart.caseStats(source, digests, training, local.read.stats(context.puzzle, filter), context.solveMode)).value)
           : Promise.resolve(shownOf(local.read.stats(context.puzzle, filter)).value),
       };
+      // The timer's sessions, to name the current one and go back to another.
+      if (q.page === 'playground') jobs.sessions = Promise.resolve(local.read.sessions(context.puzzle, context));
       if (q.page === 'profile') {
         jobs.profile = Promise.resolve(displayed(local.read.profile(q.profilePuzzle, q.profileFilter), profileView, q.known?.profile));
         jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       }
       if (q.analysis) {
-        const mode = q.profileFilter?.solveMode ?? 'standard';
+        const mode = trainingMode ? context.solveMode : q.profileFilter?.solveMode ?? 'standard';
         jobs.analysis = (inSolves && mode === context.solveMode ? inSolves.then(([digests]) => digests) : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(timer => smart.digests(timer, mode)))
           .then(digests => smart.analysis(digests, mode));
       }
@@ -204,6 +209,12 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);
     if (req.method === 'scramble') return await takeScramble(req.args[0]);
+    // The day's scramble of an event (src/client/lib/daily.ts), searched once per day.
+    if (req.method === 'dailyScramble') {
+      const key = req.args.join(':');
+      if (!dailies.has(key)) dailies.set(key, dailyScramble(req.args[0], req.args[1], scrambles).catch(error => { dailies.delete(key); throw error; }));
+      return await dailies.get(key);
+    }
     if (req.method === 'crossSolutions') return crossSolutions(req.args[0], req.args[1]);
     // A smart cube solve, split into its steps and its cases: here, off the page, after the solve was saved.
     if (req.method === 'analyseSolve') return analyseSolve(req.args[0], cases as unknown as CatalogCase[]);

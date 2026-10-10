@@ -14,7 +14,7 @@
     "build:desktop": "bun desktop/package.ts",
     "build:android": "bun run --cwd mobile apk",
     "build:assets": "bun desktop/scripts/export-assets.tsx",
-    "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-case-images.ts && bun scripts/build-catalog.ts",
+    "build:catalog": "bun scripts/build-cube-catalog.ts && bun scripts/build-niche-catalog.ts && bun scripts/build-algsets.ts && bun scripts/build-case-images.ts && bun scripts/build-catalog.ts",
     "build:db": "tsx scripts/build-db.ts",
     "mobile": "bun run --cwd mobile pc",
     "deploy": "bun scripts/deploy.ts",

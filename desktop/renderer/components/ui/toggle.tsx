@@ -1,20 +1,24 @@
 import { Toggle as TogglePrimitive } from "@base-ui/react/toggle"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
+import { buttonSizes } from "@/components/ui/button"
 
+/** A button that stays pressed: the shapes of components/ui/button.tsx, the pressed state in the accent. */
 const toggleVariants = cva(
-  "group/toggle inline-flex items-center justify-center gap-1 rounded-[calc(var(--radius)*1.2)] text-sm font-medium whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted data-[state=on]:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/toggle inline-flex items-center justify-center rounded-[12px] font-semibold whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-accent aria-pressed:text-foreground data-[state=on]:bg-accent dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-transparent",
-        outline: "border border-border bg-background hover:bg-muted dark:border-input dark:bg-input/30 dark:hover:bg-input/50 dark:aria-pressed:bg-muted",
+        outline: "bg-muted text-muted-foreground inset-ring-1 inset-ring-edge hover:bg-accent",
       },
       size: {
-        default:
-          "h-8 min-w-8 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        sm: "h-7 min-w-7 rounded-[min(var(--radius),12px)] px-2.5 text-[0.8rem] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 min-w-9 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        default: cn(buttonSizes.default, "min-w-9 max-md:min-w-11"),
+        sm: cn(buttonSizes.sm, "min-w-8"),
+        icon: buttonSizes.icon,
+        /** An option of a segmented control: inside its 4px-padded track, as tall in all as a button, the radius less the padding. */
+        segment:
+          "h-7 gap-1 rounded-[8px] px-3 text-[0.8125rem] max-md:h-9 [&_svg:not([class*='size-'])]:size-3.5",
       },
     },
     defaultVariants: {

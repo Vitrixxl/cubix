@@ -1,7 +1,7 @@
 /** HTTP and WebSocket contracts for the API and native clients. */
 
 import type { CubeSize, EventId, PuzzleId, SolveMode, ScrambleType } from "./puzzles";
-export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials";
+export type Stage = "F2L" | "OLL" | "PLL" | "ZBLL" | "PBL" | "Centers" | "Edges" | "Parity" | "Basics" | "Cube shape" | "Corners" | "Last layer" | "Dials" | "Last slot" | "OLLCP" | "COLL" | "CMLL" | "CLL" | "EG";
 
 export type LearningGroupOrder = Partial<Record<"F2L" | "OLL" | "PLL", string[]>>;
 export interface LearningGroupOrderDto {
@@ -70,6 +70,8 @@ export interface SolveDto {
   comment?: string | null;
   /** The turns that were made, when they are known (a smart cube records them); see `lib/solution`. */
   solution?: string | null;
+  /** Blindfolded: the memorisation, in milliseconds from the start (the rest of `time_ms` is the execution). */
+  memo_ms?: number | null;
   created_at: string;
 }
 
@@ -81,7 +83,25 @@ export interface SessionDto {
   id: number;
   mode: SessionMode;
   case_ids: string[];
+  /** The name the player gave it; none shows its day and event. */
+  name?: string | null;
   created_at: string;
+}
+
+/** A timer session's figures, as the profile and the timer list them (`client/lib/sessions`). */
+export interface SessionSummary {
+  /** The session's id; solves recorded outside any session are grouped by day, without one. */
+  id: number | null;
+  name: string | null;
+  /** Its first solve (or its creation, while empty). */
+  at: string;
+  lastAt: string;
+  count: number;
+  best: number | null;
+  mean: number | null;
+  /** Best Ao5 and Ao12 inside the session. */
+  ao5: number | null;
+  ao12: number | null;
 }
 
 /** Learning status is independent of timed solves and follows the account across devices. */
@@ -108,6 +128,8 @@ export interface CaseStatsDto {
   bestAo12: number | null;
   last: number | null;
   lastAt: string | null;
+  /** Blindfolded: the mean memorisation, when solves have one. */
+  memo?: number | null;
 }
 
 export interface HistoryPoint {
@@ -125,6 +147,8 @@ export interface HistoryPoint {
   smart?: boolean;
   /** A case done during a smart cube solve rather than trained on its own: the solve it was part of. */
   solveId?: number;
+  /** Blindfolded: the memorisation time, when it was marked. */
+  memoMs?: number;
 }
 
 export interface CaseHistoryDto {
@@ -143,7 +167,8 @@ export interface UserDto {
 export interface AuthDto { user: UserDto; token: string }
 export interface ProfileDto {
   user: UserDto;
-  playground: CaseHistoryDto;
+  /** The timer solves, and their sessions (`lib/sessions`), oldest first. */
+  playground: CaseHistoryDto & { sessions?: SessionSummary[] };
   cases: (CaseHistoryDto & { name: string; stage: Stage })[];
   totalSolves: number;
   trainingSolves: number;
@@ -188,6 +213,8 @@ export interface AchievementDto {
   unlocked: boolean;
   /** Date of the solve that unlocked it; absent for learning goals. */
   unlockedAt?: string;
+  /** The solve that unlocked it, when a solve did (time goals and solve counts). */
+  solveId?: number;
 }
 export interface AchievementSummaryDto {
   unlocked: number;

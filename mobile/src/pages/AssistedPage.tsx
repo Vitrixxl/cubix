@@ -257,13 +257,14 @@ function SolveCube({ state, turn, size, view }: { state: CubeState; turn: At["tu
     onPanResponderRelease: () => { last.current = null; },
   }), [view]);
   const radius = cubeViewRadius(scene),
-    paths = pathsOf(cubeShapes(scene, progress * cubeSceneDuration(scene), undefined, undefined, view.orientation));
+    shapes = cubeShapes(scene, progress * cubeSceneDuration(scene), undefined, undefined, view.orientation),
+    paths = pathsOf(shapes);
   return <View {...responder.panHandlers} accessibilityRole="image" accessibilityLabel={tr("Your cube: drag to turn it")} style={{ width: size, height: size }}>
     <Svg width={size} height={size} viewBox={`${-radius} ${-radius} ${radius * 2} ${radius * 2}`}>
       {paths.map((p, i) => p.line
         ? <Path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={(radius * 2) / size} />
         : <Path key={i} d={p.d} fill={p.color} />)}
-      <G transform={`translate(${-radius} ${-radius}) scale(${radius / 60})`}><Pulse pulse={view.pulse()} unit={60 / radius} /></G>
+      <G transform={`translate(${-radius} ${-radius}) scale(${radius / 60})`}><Pulse pulse={view.pulse()} unit={60 / radius} shapes={shapes} size={size} /></G>
     </Svg>
   </View>;
 }

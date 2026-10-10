@@ -13,7 +13,7 @@ export const CASES: CaseDto[] = sets.flatMap(set => {
   return data.cases.map((c: any) => ({ id:c.id,name:c.name,stage:set.stage,set:set.id,setLabel:set.label,group:c.group,
     ...(c.subgroup ? {subgroup:c.subgroup} : {}), ...(c.probability ? {probability:c.probability} : {}),
     setup:c.setup,setups_alt:c.setups_alt??[],algorithms:c.algorithms.map(({verified, ...alg}: any)=>alg) }));
-});
+}).concat((JSON.parse(readFileSync(resolve('data/algsets.json'), 'utf8')).cases as CaseDto[]).filter(c => !c.cube_size));
 const temporary: string[] = [];
 const children: ChildProcess[] = [];
 afterEach(async () => {

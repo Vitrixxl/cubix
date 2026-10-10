@@ -1,7 +1,9 @@
 import { EVENTS, PUZZLES, matchesPractice, puzzleOf, solveModeOf, scrambleTypeOf, type PuzzleInput, type PracticeFilter } from "../../shared/puzzles";
-import type { CaseHistoryDto, EventRecordDto, SolveDto, ProfileDto, UserDto } from "../../shared/types";
+import type { CaseHistoryDto, EventRecordDto, SessionDto, SolveDto, ProfileDto, UserDto } from "../../shared/types";
 import { effective, best, bestAverage, mean, rollingAverages } from "../lib/format";
 import { cases } from "./catalog";
+import { sessionSummaries } from "../lib/sessions";
+import { memoMean } from "../lib/practiceSummary";
 
 // ISO timestamps of one format order like their characters: a plain comparison, many times faster than localeCompare.
 export const chronological = (a: SolveDto, b: SolveDto) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0) || ((a as SolveDto & {serverId?:number}).serverId ?? a.id) - ((b as SolveDto & {serverId?:number}).serverId ?? b.id);
@@ -11,7 +13,8 @@ const defaultScrambles = new Map(PUZZLES.map(p => [p.id, p.scrambles[0]]));
 function summary(caseId: string, solves: SolveDto[], times: (number | null)[], ao5: (number | null)[], ao12: (number | null)[]): CaseHistoryDto["summary"] {
   let worst: number | null = null;
   for (const time of times) if (time !== null) worst = worst === null ? time : Math.max(worst, time);
-  return { caseId, count: solves.length, best: best(times), worst, mean: mean(times),
+  const memo = memoMean(solves);
+  return { caseId, count: solves.length, best: best(times), worst, mean: mean(times), ...(memo !== null ? { memo } : {}),
     ao5: ao5.at(-1) ?? null, ao12: ao12.at(-1) ?? null, bestAo5: best(ao5), bestAo12: best(ao12), last: times.at(-1) ?? null, lastAt: solves.at(-1)?.created_at ?? null };
 }
 
@@ -24,7 +27,7 @@ function orderedHistory(caseId: string, solves: Attempt[]): CaseHistoryDto {
   return { summary: summary(caseId, solves, times, ao5, ao12),
     history: solves.map((s,i) => { const time = times[i]; if (time !== null) minimum = minimum === null ? time : Math.min(minimum,time);
       return { id:s.id, time, timeMs:s.time_ms, penalty:s.penalty, comment:s.comment ?? null, at:s.created_at, best:minimum, sessionId:s.session_id,
-        ...(s.solution || s.solveId !== undefined ? { smart:true } : {}), ...(s.solveId !== undefined ? { solveId:s.solveId } : {}) }; }), ao5, ao12 };
+        ...(s.solution || s.solveId !== undefined ? { smart:true } : {}), ...(s.solveId !== undefined ? { solveId:s.solveId } : {}), ...(s.memo_ms != null ? { memoMs:s.memo_ms } : {}) }; }), ao5, ao12 };
 }
 export function history(caseId: string, rows: Attempt[]): CaseHistoryDto {
   return orderedHistory(caseId, [...rows].sort(chronological));
@@ -49,7 +52,7 @@ export function caseStats(rows: SolveDto[], puzzle: PuzzleInput = 3, filter: Pra
   });
 }
 
-export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}, bests: Partial<Record<string, number>> = {}): ProfileDto {
+export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}, bests: Partial<Record<string, number>> = {}, sessions: Record<number, SessionDto> = {}): ProfileDto {
   // Sort once for every history and record, retaining the input order of the activity feed.
   const ordered = [...rows].sort(chronological);
   const solves = ordered.filter(s => matchesPractice(s, cubeSize, s.case_id ? {solveMode:filter.solveMode} : filter));
@@ -57,7 +60,7 @@ export function profile(user: UserDto, rows: SolveDto[], cubeSize: PuzzleInput =
   const playground = solves.filter(s => !s.case_id), timed = new Set(playground.map(s => s.id));
   return { user, totalSolves: solves.length, trainingSolves: solves.length - playground.length,
     activeDays: new Set(solves.map(s => s.created_at.slice(0,10))).size,
-    playground: orderedHistory("playground",playground), cases: [...groups].flatMap(([id, rows]) => {
+    playground: { ...orderedHistory("playground",playground), sessions: sessionSummaries(playground, sessions) }, cases: [...groups].flatMap(([id, rows]) => {
       const c = casesById.get(id); return c ? [{ ...orderedHistory(id,rows), name:c.name, stage:c.stage }] : [];
     }),
     records: orderedRecords(ordered, bests),

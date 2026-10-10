@@ -13,7 +13,7 @@ import { SolveAnalysisButton, capitalised, colourLabel } from "./SolveAnalysis";
 import { FACE_COLORS } from "../../src/shared/cubeAppearance";
 import { annotationAlg, COLOURS, frontsOf, heldAlg, readAnnotation, readSolution, writeAnnotation, type Annotation, type Colour } from "../../src/client/lib/solution";
 import { mergeTurns } from "../../src/client/lib/solveAnalysis";
-import { fmtSolve } from "../../src/client/lib/format";
+import { fmtSolve, fmtTime } from "../../src/client/lib/format";
 import { puzzleInfo, puzzleOf, type StoredContext } from "../../src/shared/puzzles";
 import { Button as UiButton } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
-import { Logo, Wordmark } from "./logo";
+import { Brand } from "./logo";
 import { applyTheme } from "./theme";
 import { DEFAULT_THEME } from "../../src/client/lib/theme";
 
@@ -32,6 +32,8 @@ export type ViewedSolve = StoredContext & {
   penalty: string;
   scramble?: string | null;
   solution?: string | null;
+  /** Blindfolded: the memorisation, when it was marked. */
+  memo_ms?: number | null;
   comment?: string | null;
   created_at?: string;
   displayDate?: string;
@@ -94,7 +96,7 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
         <div className="ml-auto flex items-center gap-1">
           {recorded && solve.id !== undefined && <SolveAnalysisButton solve={solve} turns={recorded} />}
           {owner && !recorded && cube && (
-            <UiButton variant="outline" size="xs" onClick={() => setEditing(true)} data-action="annotate">
+            <UiButton variant="outline" onClick={() => setEditing(true)} data-action="annotate">
               <PenLine />
               {annotation ? tr("Edit the turns") : tr("Write the turns")}
             </UiButton>
@@ -122,9 +124,14 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <header className="flex flex-col gap-1 pr-8">
-          <span className={cn(NUMERIC, "text-5xl font-medium tracking-tight", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
+          <span className={cn(NUMERIC, "text-5xl leading-none font-extrabold tracking-[-0.04em] md:text-6xl", solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")}>
             {fmtSolve(solve.time_ms, solve.penalty as any)}
           </span>
+          {solve.memo_ms != null && (
+            <span className={cn(NUMERIC, "text-sm font-semibold")}>
+              {tr("Memo {0} · execution {1}", { 0: fmtTime(solve.memo_ms), 1: fmtTime(solve.time_ms - solve.memo_ms) })}
+            </span>
+          )}
           <span className="text-sm text-muted-foreground">
             {[solve.username, puzzleInfo(puzzleOf(solve)).label, solve.displayDate ?? (solve.created_at && new Date(solve.created_at).toLocaleString())].filter(Boolean).join(" · ")}
           </span>
@@ -141,16 +148,16 @@ export function SolveView({ solve, owner = false }: { solve: ViewedSolve; owner?
           // The same actions as under the timer: the penalties, the comment, the link, then delete apart.
           <div className="mt-auto flex flex-wrap items-center gap-1.5">
             <PenaltyToggles penalty={solve.penalty} prefix={"penalty:" + solve.id + ":"} />
-            <UiButton variant="outline" size="sm" onClick={() => setCommenting(true)} data-action="comment" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
+            <UiButton variant="outline" onClick={() => setCommenting(true)} data-action="comment" className={cn("text-muted-foreground", solve.comment && "text-primary")}>
               <MessageSquare />
               {tr("Comment")}
             </UiButton>
             {!s.user.isGuest && (
-              <Button action={"share:" + solve.id} icon={Share2} size="sm" variant="outline" className="text-muted-foreground">
+              <Button action={"share:" + solve.id} icon={Share2} variant="outline" className="text-muted-foreground">
                 {tr("Share")}
               </Button>
             )}
-            <Button action={"delete:" + solve.id} icon={Trash2} size="sm" variant="outline" className="ml-auto text-muted-foreground hover:text-destructive">
+            <Button action={"delete:" + solve.id} icon={Trash2} variant="outline" className="ml-auto text-muted-foreground hover:text-destructive">
               {tr("Delete")}
             </Button>
           </div>
@@ -299,20 +306,20 @@ function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value:
         {PAD.map((row, r) => (
           <div key={r} className="contents">
             {row.map((key) => (
-              <UiButton key={key} type="button" variant="outline" size="sm" className="font-medium" onClick={() => press(key)}>
+              <UiButton key={key} type="button" variant="outline" className="font-medium" onClick={() => press(key)}>
                 {key}
               </UiButton>
             ))}
             {r === 0 ? (
-              <UiButton type="button" variant="outline" size="sm" onClick={() => press("'")} aria-label={tr("Counter-clockwise")}>
+              <UiButton type="button" variant="outline" onClick={() => press("'")} aria-label={tr("Counter-clockwise")}>
                 ′
               </UiButton>
             ) : r === 1 ? (
-              <UiButton type="button" variant="outline" size="sm" onClick={() => press("2")} aria-label={tr("Half turn")}>
+              <UiButton type="button" variant="outline" onClick={() => press("2")} aria-label={tr("Half turn")}>
                 2
               </UiButton>
             ) : (
-              <UiButton type="button" variant="outline" size="sm" onClick={() => press("Backspace")} aria-label={tr("Remove the last turn")}>
+              <UiButton type="button" variant="outline" onClick={() => press("Backspace")} aria-label={tr("Remove the last turn")}>
                 <Delete />
               </UiButton>
             )}
@@ -345,8 +352,7 @@ export function SharedSolve({ token }: { token: string }) {
     <div className="flex min-h-svh flex-col items-center gap-8 bg-background px-4 py-6 md:py-10">
       <header className="flex w-full max-w-4xl items-center gap-3">
         <a href="/" className={cn("flex items-center gap-2 rounded-md", FOCUS)}>
-          <Logo size={24} />
-          <Wordmark className="text-xl" />
+          <Brand className="text-2xl" />
         </a>
         <UiButton variant="outline" className="ml-auto" render={<a href="/timer" />}>
           {tr("Open Qbix")}

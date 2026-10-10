@@ -1,6 +1,6 @@
 /** The app's public pages written ahead of time and the app without an account, in a headless Chromium against a
  * disposable API serving the web build: what a crawler reads without JavaScript, the page giving way to the app, the
- * language of the address, an account's page sending a guest to the login page and back, and an account's device never
+ * language of the address, an account's page asking a guest to sign in and going there after, and an account's device never
  * showing a guest's page. Build first: `bun run build:api && bun desktop/web.ts`. */
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -27,7 +27,7 @@ try {
   assert.equal(await crawler.locator('meta[name="robots"]').getAttribute("content"), "index, follow, max-image-preview:large");
   assert.equal(await crawler.locator('link[rel="alternate"][hreflang]').count(), 6);
   // Each move is an element of its own.
-  assert.ok((await crawler.locator("#prerendered").innerText()).replace(/\s+/g, " ").includes("Algorithms 1 R U R' U R U' R' U R U2 R'"));
+  assert.match((await crawler.locator("#prerendered").innerText()).replace(/\s+/g, " "), /OLL 21 H Shape .*Algorithms \d+ .*1 R U R' U R U' R' U R U2 R'/);
   assert.ok((await crawler.locator('#prerendered a[href="/algorithms/OLL%2022?puzzle=333"]').count()) > 0, "the other cases are links");
   await crawler.screenshot({ path: `${SHOTS}/crawler.png` });
   const shell = await crawler.goto(origin + "/community");
@@ -41,26 +41,38 @@ try {
   await guest.goto(origin + "/algorithms/OLL%2021");
   await live(guest);
   assert.equal(await guest.title(), "OLL 21 (H Shape) algorithm | Qbix");
-  await guest.locator('a[data-action="case:OLL 22"]').click();
+  await guest.locator('a[data-action="caseStep:next"][href*="OLL%2022"]').click();
   await guest.waitForURL(/OLL%2022/);
   await guest.waitForFunction(() => document.title.startsWith("OLL 22"));
   console.log("The page gives way to the app; a case's link opens it in place, the title following");
 
-  // An account's page sends the guest to the login page, and back there once signed in.
-  await guest.locator('[data-action="nav:community"]').first().click();
+  // An account's page opens the sign-in dialog over the guest's page, and goes there once signed in.
+  await guest.keyboard.press("Alt+7");
   await guest.waitForSelector(".login");
-  assert.equal(new URL(guest.url()).pathname + new URL(guest.url()).search, "/login?redirect=%2Fcommunity");
+  await guest.waitForURL(/OLL%2022/);
   await guest.screenshot({ path: `${SHOTS}/login.png` });
   await guest.locator('[data-action="login:guest"]').click();
-  await guest.waitForURL(/OLL%2022/);
+  await guest.locator(".login").waitFor({ state: "detached" });
+  assert.match(guest.url(), /OLL%2022/);
+  // The case is a dialog over the list: closed, the header's sign-in, which Escape closes on the same page.
+  await guest.keyboard.press("Escape");
+  await guest.locator('[data-slot="dialog-overlay"]').waitFor({ state: "detached" });
+  const list = guest.url();
   await guest.locator('[data-action="nav:login"]').first().click();
   await guest.waitForSelector(".login");
+  await guest.keyboard.press("Escape");
+  await guest.locator(".login").waitFor({ state: "detached" });
+  assert.equal(guest.url(), list);
+  // /login names the page to open once signed in.
+  await guest.goto(origin + "/login?redirect=%2Fcommunity");
+  await guest.waitForSelector(".login");
+  await guest.waitForURL((url) => url.pathname === "/timer");
   await guest.locator('[data-action="login:mode:register"]').click();
   await guest.fill("#login-username", `prerender_${Date.now() % 1e8}`);
   await guest.fill("#login-password", "a-long-test-password");
   await guest.locator('[data-action="login:submit"]').click();
-  await guest.waitForURL((url) => url.pathname !== "/login", { timeout: 30000 });
-  console.log("An account's page asks a guest to sign in, and the login page goes back where it was asked from");
+  await guest.waitForURL(/community/, { timeout: 30000 });
+  console.log("An account's page asks a guest to sign in over their page; /login opens the dialog and goes on to its redirect");
 
   // An account's device never shows a guest's page written ahead of time.
   await guest.goto(origin + "/algorithms?puzzle=333");

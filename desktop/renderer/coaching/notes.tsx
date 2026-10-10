@@ -22,10 +22,10 @@ import { said } from "../base";
 
 /** How the notes read: Tailwind on the editor's own elements, there being no typography plugin. */
 const PROSE = cn(
-  "[&_.tiptap]:min-h-full [&_.tiptap]:px-3 [&_.tiptap]:py-2.5 [&_.tiptap]:leading-relaxed [&_.tiptap]:outline-none",
+  "[&_.tiptap]:min-h-full [&_.tiptap]:px-5 [&_.tiptap]:py-3 [&_.tiptap]:leading-relaxed [&_.tiptap]:outline-none",
   "[&_.tiptap>*+*]:mt-2 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_h3]:font-semibold",
   "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li>p]:my-0.5 [&_li::marker]:text-muted-foreground",
-  "[&_blockquote]:border-l-2 [&_blockquote]:border-primary/60 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
+  "[&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic",
   "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]",
   "[&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
   "[&_a]:text-primary [&_a]:underline [&_hr]:border-border",
@@ -102,7 +102,7 @@ export function PrivateNotes({ conversation, note, className }: { conversation: 
   useEffect(() => () => clearTimeout(timer.current), []);
   return (
     <Surface className={className} aria-label={tr("Private notes")} data-slot="private-notes">
-      <SectionHead title="Private notes" className="px-4 pt-2">
+      <SectionHead title="Private notes" className="px-5 pt-4">
         <span className="text-xs text-muted-foreground">{state === "saving" ? tr("Saving…") : state === "unsaved" ? tr("Unsaved") : tr("Only you see them")}</span>
       </SectionHead>
       {editor && <Toolbar editor={editor} />}
@@ -115,7 +115,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   const active = useEditorState({ editor, selector: ({ editor }) => TOOLS.flat().map(([, , , is]) => is(editor)) });
   let i = 0;
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-0.5 border-y px-2 py-1" role="toolbar" aria-label={tr("Formatting")}>
+    <div className="mx-3 mt-1 flex shrink-0 flex-wrap items-center gap-0.5 px-1 py-1" role="toolbar" aria-label={tr("Formatting")}>
       {TOOLS.map((group, g) => (
         <div key={g} className="flex items-center gap-0.5">
           {g > 0 && <Separator orientation="vertical" className="mx-1 h-4!" />}
@@ -123,7 +123,7 @@ function Toolbar({ editor }: { editor: Editor }) {
             const on = active[i++];
             return (
               <Tip key={label} content={`${said(label)} · ${keys}`}>
-                <Toggle size="sm" className="px-1.5" pressed={on} onMouseDown={(e) => e.preventDefault()} onPressedChange={() => run(editor)} aria-label={said(label)} data-action={"note:" + label.toLowerCase().replace(/ /g, "-")}>
+                <Toggle pressed={on} onMouseDown={(e) => e.preventDefault()} onPressedChange={() => run(editor)} aria-label={said(label)} data-action={"note:" + label.toLowerCase().replace(/ /g, "-")}>
                   <I />
                 </Toggle>
               </Tip>

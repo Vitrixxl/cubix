@@ -1,32 +1,21 @@
 /**
  * The landing page at the site's root. The build renders it to HTML (desktop/web.ts), so search engines and language
  * models read it whole without JavaScript; the browser then hydrates it for what needs the visitor's device: the
- * platform it runs on, the install command to copy, the APK's size, and the cube that solves as the page scrolls
- * (SolveStage.tsx), one step for each feature read, whose words come in with it.
+ * platform it runs on, the install command to copy, the APK's size, the cube that solves itself at the top
+ * (HeroCube.tsx) and the live copies of the app's screens that show what it does (Demos.tsx).
  */
-import { Fragment, useEffect, useState } from "react";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Check,
-  Copy,
-  Download,
-  Globe,
-  Laptop,
-  Play,
-  Smartphone,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, ArrowUpRight, Check, Coffee, Copy, Download, Globe, MonitorSmartphone, Upload, Video, Heart, Code, Box } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { Logo, Wordmark } from "../logo";
-import { DESCRIPTION, FAQ, FEATURES, IMPORTS, NAME, SITE, SOURCE, TAGLINE, type Feature } from "./content";
-import { CubeStill, SolveStage, solveByItself } from "./SolveStage";
-import { Features } from "./Features";
+import { Brand, Logo } from "../logo";
+import { FAQ, FEATURES, IMPORTS, NAME, SITE, SOURCE, type Feature } from "./content";
+import { CubeStill, HeroCube } from "./HeroCube";
+import { AlgDemo, DuelDemo, LessonDemo, TimerDemo, TrainDemo } from "./Demos";
 import { EVENTS } from "../../../src/shared/puzzles";
 import { tr } from "../../../src/client/i18n";
-import { LanguagePicker, said, useLanguage } from "../base";
+import { LanguagePicker, Segmented, said, useLanguage } from "../base";
 import { language, preferred, setLanguage } from "../../../src/client/i18n";
 import { localePath } from "../../../src/client/lib/route";
 
@@ -41,30 +30,26 @@ export function detectPlatform(agent: string, touch = 0): Platform {
   return "web";
 }
 
-/** What the first button says once the visitor's platform is known, where there is something to install. */
+/** What the download button says once the visitor's platform is known, where there is something to install. */
 const GET: Partial<Record<Platform, string>> = { windows: "Download for Windows", linux: "Install on Linux", macos: "Get it for macOS", android: "Download for Android" };
+const COFFEE = "https://buymeacoffee.com/vitrixxl";
 
 /** A link drawn as a button: navigation stays a real link, for people and search engines alike. */
-function LinkButton({ href, size = "default", variant = "default", download, className, children }: { href: string; size?: "default" | "sm" | "lg"; variant?: "default" | "outline"; download?: boolean; className?: string; children: React.ReactNode }) {
-  // The app in the page's language (/fr/timer).
+function LinkButton({ href, size = "default", variant = "default", download, className, children }: { href: string; size?: "default" | "sm"; variant?: "default" | "outline" | "secondary" | "ghost"; download?: boolean; className?: string; children: React.ReactNode }) {
+  // The app's pages in the page's language (/fr/timer).
   return (
-    <a href={href === "/timer" ? localePath(language(), href) : href} download={download} className={cn(buttonVariants({ size, variant }), className)}>
+    <a href={href.startsWith("/") && !href.startsWith("/api/") ? localePath(language(), href) : href} download={download} className={cn(buttonVariants({ size, variant }), className)}>
       {children}
     </a>
   );
 }
-/**
- * The page's two main buttons, larger than the app's, an icon a little nearer its edge than the words are; the
- * outlined one filled, to read over the grid behind it.
- */
-const BIG = "h-12 gap-2.5 rounded-full px-6 text-base has-data-[icon=inline-start]:pl-5 has-data-[icon=inline-end]:pr-5";
-const FILLED = "bg-card hover:bg-accent dark:bg-card dark:hover:bg-accent";
 
 /** A command to paste in a terminal, with a button that copies it. */
 function Command({ lines, label }: { lines: string[]; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="flex items-start gap-3 rounded-xl border bg-background p-3 pl-5">
+    // Concentric with the copy button: its 12px corners 8px in.
+    <div className="flex items-start gap-3 rounded-[20px] bg-background p-2 pl-4">
       {/* A long command wraps rather than scrolls out of sight: the copy takes it whole. */}
       <pre aria-label={said(label)} className="min-w-0 flex-1 py-1.5 font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]">
         {lines.map((line) => (
@@ -75,8 +60,7 @@ function Command({ lines, label }: { lines: string[]; label: string }) {
         ))}
       </pre>
       <Button
-        variant="outline"
-        size="sm"
+        variant="secondary"
         onClick={() => {
           void navigator.clipboard?.writeText(lines.join("\n")).then(() => {
             setCopied(true);
@@ -109,13 +93,7 @@ const SHELLS: { id: Shell; label: string; hint: string }[] = [
 function ShellChoice({ shell, onChange }: { shell: Shell; onChange: (shell: Shell) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <ToggleGroup aria-label={tr("Desktop app")} variant="outline" size="sm" spacing={0} value={[shell]} onValueChange={(next: string[]) => next[0] && onChange(next[0] as Shell)}>
-        {SHELLS.map((s) => (
-          <ToggleGroupItem key={s.id} value={s.id} className="px-3 text-muted-foreground aria-pressed:bg-primary/10 aria-pressed:text-foreground dark:aria-pressed:bg-primary/10">
-            {said(s.label)}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <Segmented label={tr("Desktop app")} value={shell} options={SHELLS} onChange={(id) => onChange(id as Shell)} className="bg-muted inset-ring-0" />
       <p className="text-xs text-muted-foreground">{said(SHELLS.find((s) => s.id === shell)!.hint)}</p>
     </div>
   );
@@ -137,12 +115,13 @@ function Install({ detected }: { detected?: Platform }) {
       .then((release) => release?.apkSize && setApk(release.apkSize))
       .catch(() => {});
   }, []);
-  const note = "text-sm text-muted-foreground";
+  const note = "text-sm leading-relaxed text-muted-foreground";
   return (
-    <Tabs value={platform} onValueChange={(value) => setPlatform(value as Platform)} className="gap-5">
-      <TabsList className="flex h-auto! w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+    <Tabs value={platform} onValueChange={(value) => setPlatform(value as Platform)} className="gap-4 [&>[data-slot=tabs-content]]:px-2 [&>[data-slot=tabs-content]]:pb-2">
+      {/* The chosen platform on the accent fill, its 8px corners concentric with the list's 12px around 4px of padding. */}
+      <TabsList className="h-auto! w-full flex-wrap justify-start gap-0.5 bg-muted inset-ring-0">
         {PLATFORMS.map((p) => (
-          <TabsTrigger key={p.id} value={p.id} className="h-9 flex-none rounded-lg border px-3.5 data-active:border-primary data-active:bg-primary/10">
+          <TabsTrigger key={p.id} value={p.id} className="h-8 flex-none px-3">
             {said(p.label)}
           </TabsTrigger>
         ))}
@@ -176,7 +155,7 @@ function Install({ detected }: { detected?: Platform }) {
       </TabsContent>
       <TabsContent keepMounted value="android" className="flex flex-col items-start gap-3">
         <p className={note}>{tr("Download the app and open the file to install it; your phone may ask you to allow installs from your browser once. It updates itself afterwards.")}</p>
-        <LinkButton href="/api/mobile/apk" size="lg" download className={BIG}>
+        <LinkButton href="/api/mobile/apk" download>
           <Download data-icon="inline-start" />
           {tr("Download the APK")}{megabytes(apk)}
         </LinkButton>
@@ -184,14 +163,14 @@ function Install({ detected }: { detected?: Platform }) {
       </TabsContent>
       <TabsContent keepMounted value="ios" className="flex flex-col items-start gap-3">
         <p className={note}>
-          {tr("There is no iPhone or iPad app yet. Qbix runs in Safari: open it, then")}{" "}<strong className="font-medium text-foreground">{tr("Share → Add to Home Screen")}</strong>{tr(". It opens full screen like an app and works offline.")}</p>
-        <LinkButton href="/timer" size="lg" className={BIG}>
+          {tr("There is no iPhone or iPad app yet. Qbix runs in Safari: open it, then")}{" "}<strong className="font-semibold text-foreground">{tr("Share → Add to Home Screen")}</strong>{tr(". It opens full screen like an app and works offline.")}</p>
+        <LinkButton href="/timer">
           <Globe data-icon="inline-start" />
           {tr("Open Qbix in Safari")}</LinkButton>
       </TabsContent>
       <TabsContent keepMounted value="web" className="flex flex-col items-start gap-3">
         <p className={note}>{tr("Nothing to install: Qbix runs in any recent browser and works offline. Chrome and Edge also offer to install it as an app.")}</p>
-        <LinkButton href="/timer" size="lg" className={BIG}>
+        <LinkButton href="/timer">
           <Globe data-icon="inline-start" />
           {tr("Open Qbix in your browser")}</LinkButton>
       </TabsContent>
@@ -199,26 +178,57 @@ function Install({ detected }: { detected?: Platform }) {
   );
 }
 
+/** A part of the page in its column. */
 function Section({ id, children, className }: { id?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section id={id} className={cn("mx-auto w-full max-w-7xl scroll-mt-8 px-5 py-20 md:px-8 md:py-28", className)}>
+    <section id={id} className={cn("mx-auto w-full max-w-7xl scroll-mt-20 px-5 py-16 md:px-8 md:py-24", className)}>
       {children}
     </section>
   );
 }
-/** A line of the sheet under "Free. Really.": what it is about, then the facts. */
-function Fact({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
+/** A part's title, as large as the app's own figures. */
+const TITLE = "text-[clamp(2.25rem,5.5vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.045em] text-balance";
+
+/**
+ * What the app does, one feature after the other: its few words and what it lets you do beside a live copy of its
+ * screen. The order is a cuber's: time, learn the first solve, the algorithms, drill them, race.
+ */
+const TOUR: { id: string; label: string; dot: string; demo: () => React.ReactNode; open?: [string, string] }[] = [
+  { id: "timer", label: "Timer", dot: "bg-primary", demo: TimerDemo, open: ["/timer", "Open the timer"] },
+  { id: "learn", label: "First solve", dot: "bg-success", demo: LessonDemo, open: ["/learn", "Start the course"] },
+  { id: "algorithms", label: "Algorithms", dot: "bg-lilac", demo: AlgDemo, open: ["/algorithms", "Browse the algorithms"] },
+  { id: "training", label: "Training", dot: "bg-warning", demo: TrainDemo },
+  { id: "duel", label: "Duels", dot: "bg-destructive", demo: DuelDemo, open: ["/duel", "Find an opponent"] },
+];
+const feature = (id: string) => FEATURES.find((f) => f.id === id) as Feature;
+
+function Stop({ id, label, dot, demo: Demo, open, flip }: (typeof TOUR)[number] & { flip: boolean }) {
+  const f = feature(id);
   return (
-    <div id={id} className="grid scroll-mt-8 gap-x-12 gap-y-3 border-t py-8 md:grid-cols-[20rem_minmax(0,1fr)] md:py-10">
-      <h3 className="text-xl font-semibold tracking-tight text-balance md:text-2xl">{title}</h3>
-      <div className="flex max-w-[68ch] flex-col gap-4 text-lg leading-relaxed text-muted-foreground">{children}</div>
-    </div>
+    <section id={id} className="landing-reveal grid scroll-mt-20 grid-cols-[minmax(0,1fr)] items-center gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
+      <div className={cn("flex flex-col items-start gap-5", flip && "lg:order-2")}>
+        <span className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+          <span className={cn("size-2 rounded-full", dot)} />
+          {said(label)}
+        </span>
+        <h2 className={TITLE}>{said(f.hook)}</h2>
+        <p className="max-w-[46ch] text-lg leading-relaxed text-muted-foreground">{said(f.summary)}</p>
+        {open && (
+          <LinkButton href={open[0]} variant="secondary">
+            {said(open[1])}
+            <ArrowRight data-icon="inline-end" />
+          </LinkButton>
+        )}
+      </div>
+      <Demo />
+    </section>
   );
 }
+
 /** Names side by side, as a sentence would list them. */
 function Names({ label, names }: { label: string; names: string[] }) {
   return (
-    <ul aria-label={said(label)} className="flex flex-wrap gap-x-6 gap-y-1.5 text-lg font-medium text-foreground">
+    <ul aria-label={said(label)} className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-foreground">
       {names.map((name) => (
         <li key={name}>{said(name)}</li>
       ))}
@@ -226,31 +236,14 @@ function Names({ label, names }: { label: string; names: string[] }) {
   );
 }
 
-/** Words that come in one after the other: each is a part of its own (see `landing-part` and `landing-in` in globals.css). */
-function Words({ text, from = 0, part = "landing-in", className }: { text: string; from?: number; part?: string; className?: string }) {
-  return text.split(" ").map((word, i) => (
-    <Fragment key={i}>
-      {i > 0 && " "}
-      <span className={cn(part, "inline-block", className)} style={{ "--i": from + i } as React.CSSProperties}>
-        {said(word)}
-      </span>
-    </Fragment>
-  ));
-}
-/**
- * A feature in the solve: a few words, as large as the window allows, that come in one after the other as it scrolls
- * into view, on the side of the window the cube leaves free. What the feature does in full is further down the page.
- */
-function Chapter({ feature, right }: { feature: Feature; right: boolean }) {
+/** One of the things around the features, in a card of its own. */
+function Extra({ id, icon: Icon, title, children }: { id?: string; icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
-    <section data-chapter className="flex min-h-[72svh] items-center lg:min-h-svh" style={{ "--n": feature.hook.split(" ").length } as React.CSSProperties}>
-      {/* The place of the words across the page: they are held in the window, over it (see `landing-title`). */}
-      <div className={cn("w-full lg:w-[50%]", right && "lg:ml-auto")}>
-        <h2 className="landing-title landing-ink text-[clamp(2.75rem,12vw,4.25rem)] leading-[0.96] font-semibold tracking-[-0.04em] text-balance lg:text-[clamp(3.75rem,6.8vw,6.5rem)]">
-          <Words text={said(feature.hook)} part="landing-part" />
-        </h2>
-      </div>
-    </section>
+    <article id={id} className="landing-reveal flex scroll-mt-20 flex-col gap-3 rounded-3xl bg-card p-6 md:p-7">
+      <Icon className="size-5 text-primary" />
+      <h3 className="text-xl font-bold tracking-tight text-balance">{said(title)}</h3>
+      <div className="flex flex-col gap-4 leading-relaxed text-muted-foreground">{children}</div>
+    </article>
   );
 }
 
@@ -265,162 +258,134 @@ export function Landing() {
   }, []);
   const [platform, setPlatform] = useState<Platform>();
   useEffect(() => setPlatform(detectPlatform(navigator.userAgent, navigator.maxTouchPoints)), []);
-  const link = "rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground";
+  const get = said((platform && GET[platform]) ?? tr("Download {0}", { 0: NAME })),
+    link = "rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground",
+    nav = "rounded-lg px-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground";
   return (
     <div className="flex min-h-svh flex-col overflow-x-clip bg-background text-foreground">
-      <div className="fixed top-4 right-4 z-40 md:top-5 md:right-6">
-        <LanguagePicker className="h-9 rounded-full bg-background/80 backdrop-blur" />
-      </div>
-      <main>
-        {/* The solve: the cube stays in the window while the page is read, and each feature that comes in plays a step of it. */}
-        <SolveStage
-          finish={[
-            <LinkButton key="install" href="#download" className="h-10 gap-2 rounded-full px-4 text-sm has-data-[icon=inline-start]:pl-3.5">
-              <Download data-icon="inline-start" />
-              {tr("Install")}</LinkButton>,
-            <LinkButton key="web" href="/timer" variant="outline" className={cn("h-10 rounded-full px-4 text-sm", FILLED)}>
-              {tr("Try on web")}</LinkButton>,
-          ]}
-        >
-          <div className="mx-auto w-full max-w-7xl px-5 md:px-8">
-            <section data-top className="landing-leave flex min-h-svh flex-col justify-center gap-6 pt-12 pb-32 lg:gap-7 lg:w-[52%] lg:pt-16 lg:pb-44">
-              <a href="/" className="landing-in flex items-center gap-2 self-start rounded-sm" aria-label={tr("{0} home", { 0: NAME })} style={{ "--i": 0 } as React.CSSProperties}>
-                <Logo size={22} />
-                <Wordmark className="text-xl" />
-              </a>
-              <h1 className="landing-ink text-[clamp(2.6rem,5.4vw,4.5rem)] leading-[0.98] font-semibold tracking-[-0.035em] text-balance">
-                <Words text={tr("The free speedcubing app to")} className="text-muted-foreground" /> <Words text={tr("time, learn and get faster")} from={5} />
-              </h1>
-              <p className="landing-in landing-ink max-w-[56ch] text-lg leading-relaxed text-muted-foreground" style={{ "--i": 10 } as React.CSSProperties}>
-                {said(TAGLINE)}
-              </p>
-              <div className="landing-in flex flex-wrap gap-3 pt-1" style={{ "--i": 12 } as React.CSSProperties}>
-                <LinkButton href="#download" size="lg" className={BIG}>
-                  <Download data-icon="inline-start" />
-                  {said((platform && GET[platform]) ?? tr("Download {0}", { 0: NAME }))}
-                </LinkButton>
-                <LinkButton href="/timer" size="lg" variant="outline" className={cn(BIG, FILLED)}>
-                  {tr("Open in your browser")}<ArrowRight data-icon="inline-end" />
-                </LinkButton>
-              </div>
-              <div className="landing-in flex flex-wrap items-center gap-x-4 gap-y-2 pt-6 text-sm text-muted-foreground lg:pt-8" style={{ "--i": 14 } as React.CSSProperties}>
-                <Button variant="outline" size="lg" className={cn("h-11 gap-2 rounded-full px-5 text-base has-data-[icon=inline-start]:pl-4", FILLED)} onClick={solveByItself}>
-                  <Play data-icon="inline-start" className="text-primary" />
-                  {tr("Solve the cube")}</Button>
-                <span className="landing-ink">{tr("or scroll: the timer starts with the first turn")}</span>
-              </div>
-            </section>
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-5 md:px-8">
+          <a href={localePath(language(), "/")} className="rounded-xl" aria-label={tr("{0} home", { 0: NAME })}>
+            <Brand size={30} className="text-2xl" />
+          </a>
+          <nav aria-label={tr("Sections")} className="flex items-center gap-5 max-md:hidden">
+            <a href="#tour" className={nav}>{tr("What it does")}</a>
+            <a href="#download" className={nav}>{tr("Download")}</a>
+            <a href="#faq" className={nav}>{tr("Questions")}</a>
+          </nav>
+          <span className="flex-1" />
+          <LanguagePicker className="h-10 w-auto max-sm:hidden" />
+          <LinkButton href="/timer">{tr("Open Qbix")}</LinkButton>
+        </div>
+      </header>
 
-            <div id="features" className="scroll-mt-8">
-              {FEATURES.map((feature, i) => (
-                <Chapter key={feature.id} feature={feature} right={i % 2 === 1} />
-              ))}
+      <main>
+        <section className="mx-auto grid w-full max-w-7xl items-center gap-x-12 gap-y-10 px-5 pt-8 pb-16 md:px-8 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-8">
+          <div className="flex flex-col items-start gap-5">
+            <h1 className="landing-in flex flex-col gap-4">
+              <span className="text-sm font-bold text-primary md:text-base">{tr("The free speedcubing app")}</span>
+              <span className="text-[clamp(2.9rem,5.6vw,4.75rem)] leading-[0.9] font-extrabold tracking-[-0.05em] text-balance">
+                {tr("From your first solve")}{" "}<span className="text-primary">{tr("to your next PB.")}</span>
+              </span>
+            </h1>
+            <p className="landing-in max-w-[48ch] text-lg leading-relaxed text-muted-foreground [--i:1]">{tr("Time your solves, learn your first one step by step, play every algorithm in 3D, drill what you learned and race your friends. Free, without ads or premium tier.")}</p>
+            <div className="landing-in flex w-full flex-wrap items-center gap-x-5 gap-y-3 [--i:2]">
+              <LinkButton href="/timer">
+                {tr("Open Qbix in your browser")}
+                <ArrowRight data-icon="inline-end" />
+              </LinkButton>
+              <p className="max-w-[30ch] text-sm font-medium text-muted-foreground">{tr("No account needed · works offline · Web, Windows, Linux, macOS and Android")}</p>
+            </div>
+            {/* Or install it right here, the visitor's platform chosen for them. */}
+            <div id="download" className="landing-in w-full scroll-mt-20 rounded-3xl bg-card p-3 [--i:3]">
+              <Install detected={platform} />
             </div>
           </div>
-        </SolveStage>
+          <HeroCube />
+        </section>
 
-        <Features />
+        <div id="tour" className="mx-auto flex w-full max-w-7xl scroll-mt-16 flex-col gap-24 px-5 py-16 md:gap-36 md:px-8 md:py-24">
+          {TOUR.map((stop, i) => (
+            <Stop key={stop.id} {...stop} flip={i % 2 === 1} />
+          ))}
+        </div>
 
-        <Section id="free" className="flex flex-col gap-12 md:gap-16">
-          <h2 className="text-[clamp(3.5rem,11vw,6rem)] leading-[0.9] font-semibold tracking-[-0.04em]">
-            {tr("Free.")}{" "}<span className="text-muted-foreground">{tr("Really.")}</span>
-          </h2>
-          <div className="border-b">
-            <Fact title={tr("Nothing to pay, nothing to unlock")}>
+        <Section id="more" className="flex flex-col gap-10">
+          <h2 className={TITLE}>{tr("And everything around it")}</h2>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <Extra id="free" icon={Heart} title={tr("Free. Really.")}>
               <p>{tr("No ads, ever. No premium tier: every feature for everyone, from the first solve to competition. No subscription, no trial.")}</p>
-              <p>{tr("Only a coaching session has a price, and its coach sets it.")}</p>
-            </Fact>
-            <Fact title={tr("Everything in one app")}>
-              <p>{tr("The timer, the algorithms, the training, the courses, the duels and the statistics share your times and what you learned: a case you drill is a case you see improve.")}</p>
-            </Fact>
-            <Fact id="puzzles" title={tr("Every WCA event")}>
+            </Extra>
+            <Extra id="puzzles" icon={Box} title={tr("Every WCA event")}>
               <ul aria-label={tr("Puzzles")} className="flex flex-wrap gap-2">
                 {EVENTS.map((e) => (
-                  <li key={e.id} title={said(e.label)} aria-label={said(e.label)} className="flex size-11 items-center justify-center rounded-xl border bg-card transition-colors hover:border-primary/60">
-                    <Logo size={24} puzzle={e.id} />
+                  <li key={e.id} title={said(e.label)} aria-label={said(e.label)} className="flex size-10 items-center justify-center rounded-xl bg-muted">
+                    <Logo size={22} puzzle={e.id} />
                   </li>
                 ))}
               </ul>
-            </Fact>
-            <Fact id="import" title={tr("Switch from your timer in a minute")}>
-              <p>
-                {tr("Export your times from your current timer and drop the file in")}{" "}{said(NAME)}{tr(": every solve comes with its date, penalty, scramble and session. It is read on your device, and importing the same file twice adds nothing twice.")}</p>
-              <Names label={tr("Timers you can import from")} names={IMPORTS} />
-            </Fact>
-            <Fact title={tr("Offline first")}>
+            </Extra>
+            <Extra id="coaching" icon={Video} title={feature("coaching").title}>
+              <p>{said(feature("coaching").summary)}</p>
+              <p>{tr("Only a coaching session has a price, and its coach sets it.")}</p>
+            </Extra>
+            <Extra id="everywhere" icon={MonitorSmartphone} title={feature("everywhere").title}>
               <p>{tr("Every solve is saved on your device first, then synced to your other devices. The timer, the algorithms and the training work without a connection.")}</p>
-            </Fact>
-            <Fact title={tr("Open source")}>
+            </Extra>
+            <Extra id="import" icon={Upload} title={tr("Switch from your timer in a minute")}>
+              <p>{tr("Export your times from your current timer and drop the file in Qbix, with their dates, penalties, scrambles and sessions.")}</p>
+              <Names label={tr("Timers you can import from")} names={IMPORTS} />
+            </Extra>
+            <Extra id="source" icon={Code} title={tr("Open source")}>
               <p>
                 {said(NAME)} {" "}{tr("is an independent project, and its code is public.")}{" "}
-                <a href={SOURCE} className="inline-flex items-center gap-1 rounded-sm text-foreground underline underline-offset-4 transition-colors hover:text-primary">
+                <a href={SOURCE} className="inline-flex items-center gap-1 rounded-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-primary">
                   {tr("Read it on GitHub")}<ArrowUpRight className="size-4" />
                 </a>
               </p>
-            </Fact>
+            </Extra>
           </div>
         </Section>
 
-        <Section id="download" className="grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-          <header className="flex flex-col gap-5">
-            <h2 className="text-4xl leading-none font-semibold tracking-tight md:text-6xl">{tr("Get")}{" "}{said(NAME)}</h2>
-            <p className="max-w-[44ch] text-lg leading-relaxed text-muted-foreground">{tr("Free on every platform, with the same account everywhere. Your platform is selected for you.")}</p>
-            <ul className="flex flex-col gap-3 pt-2 text-sm leading-relaxed text-muted-foreground">
-              {[
-                { icon: Laptop, text: "Windows, Linux and macOS apps open the latest version at every launch: nothing to update by hand." },
-                { icon: Smartphone, text: "The Android app updates itself; your times sync with your computer." },
-                { icon: Globe, text: "The web app works offline and installs from Chrome, Edge or Safari." },
-              ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex gap-3">
-                  <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
-                  {said(text)}
-                </li>
-              ))}
-            </ul>
-          </header>
-          <div className="self-start rounded-3xl border bg-card p-5 md:p-8">
-            <Install detected={platform} />
-          </div>
-        </Section>
-
-        <Section id="faq" className="flex flex-col gap-12">
-          <h2 className="text-4xl leading-none font-semibold tracking-tight md:text-6xl">{tr("Questions")}</h2>
-          <dl className="grid gap-x-16 md:grid-cols-2">
+        <Section id="faq" className="flex flex-col gap-10">
+          <h2 className={TITLE}>{tr("Questions")}</h2>
+          <dl className="grid gap-x-12 gap-y-9 md:grid-cols-2">
             {FAQ.map((item) => (
-              <div key={item.question} className="flex flex-col gap-2 border-t py-7">
-                <dt className="text-lg font-medium">{said(item.question)}</dt>
+              <div key={item.question} className="flex flex-col gap-2">
+                <dt className="text-lg font-bold tracking-tight">{said(item.question)}</dt>
                 <dd className="max-w-[60ch] leading-relaxed text-muted-foreground">{said(item.answer)}</dd>
               </div>
             ))}
           </dl>
         </Section>
 
-        <Section className="grid items-center gap-x-16 gap-y-9 pb-28 md:pb-40 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <Section className="grid items-center gap-x-16 gap-y-9 pb-24 md:pb-32 lg:grid-cols-[minmax(0,1fr)_auto]">
           {/* Where the page began scrambled, it ends solved. */}
-          <CubeStill solved className="size-80 max-lg:hidden lg:order-2 xl:size-96" />
-          <div className="flex flex-col items-start gap-9">
-            <h2 className="max-w-[12ch] text-[clamp(3rem,9vw,6rem)] leading-[0.95] font-semibold tracking-[-0.04em] text-balance">{tr("Ready for your next PB?")}</h2>
+          <CubeStill solved className="size-72 max-lg:hidden lg:order-2 xl:size-80" />
+          <div className="flex flex-col items-start gap-8">
+            <h2 className={cn(TITLE, "max-w-[12ch]")}>{tr("Ready for your next PB?")}</h2>
             <div className="flex flex-wrap gap-3">
-              <LinkButton href="#download" size="lg" className={BIG}>
-                <Download data-icon="inline-start" />
-                {said((platform && GET[platform]) ?? tr("Download {0}", { 0: NAME }))}
+              <LinkButton href="/timer">
+                {tr("Open Qbix in your browser")}
+                <ArrowRight data-icon="inline-end" />
               </LinkButton>
-              <LinkButton href="/timer" size="lg" variant="outline" className={cn(BIG, FILLED)}>
-                {tr("Open in your browser")}<ArrowRight data-icon="inline-end" />
+              <LinkButton href="#download" variant="secondary">
+                <Download data-icon="inline-start" />
+                {get}
               </LinkButton>
             </div>
           </div>
         </Section>
       </main>
 
-      <footer className="border-t">
+      <footer className="bg-card">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-8 text-sm text-muted-foreground md:px-8">
-          <span className="flex items-center gap-2 text-foreground">
-            <Logo size={16} />
-            <Wordmark />
-          </span>
-          <span>{said(DESCRIPTION.split(":")[0])}.</span>
+          <Brand size={22} className="text-lg text-foreground" />
+          <span>{tr("The free speedcubing app")}</span>
           <span className="flex-1" />
+          <a href={COFFEE} target="_blank" rel="noreferrer" className={cn(link, "inline-flex items-center gap-1.5 font-semibold text-primary hover:text-primary/80")}>
+            <Coffee className="size-4" />
+            {tr("Buy me a coffee")}</a>
           <a href={SOURCE} className={link}>
             {tr("Source code")}</a>
           <a href="/llms.txt" className={link}>
@@ -433,6 +398,7 @@ export function Landing() {
             {tr("Terms of use")}</a>
           <a href="/privacy#cookies" className={link}>
             {tr("Cookies")}</a>
+          <LanguagePicker className="w-auto sm:hidden" />
           <span className="w-full text-xs">{tr("Not affiliated with Rubik's Brand Ltd or the World Cube Association.")}</span>
         </div>
       </footer>

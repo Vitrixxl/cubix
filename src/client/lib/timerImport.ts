@@ -20,8 +20,10 @@ export interface ImportedSolve {
   comment: string | null;
   /** When the solve was done (ms since 1970). */
   at: number;
-  /** The session it had in the other timer, if it had one. */
+  /** The session it had in the other timer, if it had one: its name, which Qbix keeps. */
   session?: string;
+  /** The session's name when `session` is not one (Qbix's own export: its id); blank for none. */
+  sessionName?: string;
 }
 export interface TimerImport {
   /** The timer the file comes from, as shown to the player. */
@@ -218,7 +220,8 @@ function cubeTimeCsv(source: string, fallback: EventId): TimerImport {
 /** Qbix's own export (Settings › Download my data, or the profile's Export): its timer solves, by session. */
 function qbix(data: any): TimerImport {
   const skipped: Record<string, number> = {},
-    solves: ImportedSolve[] = [];
+    solves: ImportedSolve[] = [],
+    names = new Map<unknown, string>((data.sessions ?? []).map((s: any) => [s.id, String(s.name ?? "")]));
   for (const solve of data.solves) {
     if (solve.case_id) {
       skip(skipped, "training solves");
@@ -234,7 +237,7 @@ function qbix(data: any): TimerImport {
       skip(skipped, "unreadable solves");
       continue;
     }
-    solves.push({ event, timeMs: solve.time_ms, penalty: solve.penalty ?? "none", scramble: text(solve.scramble), comment: text(solve.comment), at, session: solve.session_id == null ? undefined : String(solve.session_id) });
+    solves.push({ event, timeMs: solve.time_ms, penalty: solve.penalty ?? "none", scramble: text(solve.scramble), comment: text(solve.comment), at, session: solve.session_id == null ? undefined : String(solve.session_id), sessionName: names.get(solve.session_id) ?? "" });
   }
   return { app: "Qbix", solves, skipped, needsEvent: false };
 }

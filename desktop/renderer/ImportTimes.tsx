@@ -8,7 +8,6 @@ import { IMPORT_APPS, readTimerExport, type ImportedSolve, type TimerImport } fr
 import { EVENTS, eventInfo, type EventId, type PuzzleId } from "../../src/shared/puzzles";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { call } from "./bridge";
@@ -81,12 +80,15 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
           setOver(false);
           void load(e.dataTransfer.files);
         }}
-        className={cn("flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card px-6 py-8 text-center transition-colors", over && "border-primary bg-primary/10")}
+        className={cn(
+          "flex flex-col items-center gap-3 rounded-[20px] bg-muted px-6 py-8 text-center outline-2 -outline-offset-2 outline-transparent transition-colors outline-dashed",
+          over && "bg-primary/10 outline-primary",
+        )}
       >
-        <IconTile icon={Upload} />
-        <span className="text-sm font-medium">{tr("Drop your exports here")}</span>
-        <span className="max-w-lg text-xs text-muted-foreground">{IMPORT_APPS.join(" · ")}</span>
-        <Button variant="outline" size="sm" onClick={() => input.current?.click()} disabled={busy}>
+        <IconTile icon={Upload} className="size-12 rounded-2xl bg-accent [&_svg]:size-6" />
+        <span className="text-lg font-extrabold tracking-[-0.02em]">{tr("Drop your exports here")}</span>
+        <span className="max-w-md text-xs leading-relaxed text-muted-foreground">{IMPORT_APPS.join(" · ")}</span>
+        <Button onClick={() => input.current?.click()} disabled={busy} className="mt-1">
           <FileUp data-icon="inline-start" />
           {tr("Choose files")}</Button>
         <input
@@ -114,7 +116,7 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
         </ul>
       )}
       {solves.length > 0 && (
-        <Button onClick={() => void save()} disabled={busy} className="self-start">
+        <Button onClick={() => void save()} disabled={busy} className="self-end">
           {busy ? tr("Importing…") : tr("Import {0}", { 0: plural(solves.length, "solve") })}
         </Button>
       )}
@@ -149,10 +151,10 @@ function FileRow({ file, onEvent, onRemove }: { file: Loaded; onEvent: (event: E
     skipped = Object.entries(read?.skipped ?? {});
   return (
     <li>
-      <Card size="sm" className="flex-row items-start gap-3 px-3">
+      <div className="flex items-start gap-3 rounded-[16px] bg-muted px-4 py-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex items-baseline gap-2">
-            <span className="truncate text-sm font-medium">{read ? read.app : file.name}</span>
+            <span className="truncate text-sm font-semibold">{read ? read.app : file.name}</span>
             {read && <span className="truncate text-xs text-muted-foreground">{said(file.name)}</span>}
           </div>
           {file.error ? (
@@ -188,7 +190,7 @@ function FileRow({ file, onEvent, onRemove }: { file: Loaded; onEvent: (event: E
             <X />
           </Button>
         </Tip>
-      </Card>
+      </div>
     </li>
   );
 }

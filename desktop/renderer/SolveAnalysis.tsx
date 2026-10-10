@@ -3,7 +3,7 @@
  * on a step opens the analysis on it, with the step replayed as it was turned (and held, with a gyroscope).
  * A saved solve shows the solution kept with it, played in 3D, and the same analysis worked out again from it.
  */
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Pause, Play, RotateCcw } from "lucide-react";
 import { PLAYER_SPEEDS, speedLabel } from "../../src/client/lib/algPlayer";
 import { SmartCube, stateToFacelets } from "../../src/client/lib/smartCube";
@@ -15,14 +15,13 @@ import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { LiveCube } from "./LiveCube";
-import { Alg, Diagram, Figure, FOCUS, LABEL, Modal, NUMERIC, ROW, Strip, Tip, usePhone, useViewport } from "./ui";
+import { Alg, DOT, Diagram, FOCUS, StatCard, LABEL, Modal, NUMERIC, ROW, Strip, Tip, usePhone, useViewport } from "./ui";
 import { catalog, store as s } from "./store";
 import { stepColour } from "./stepColour";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 
 /** The case of a step, opened over the analysis: Learn's dialog, loaded with Learn when first needed. */
-const CaseDialog = lazy(() => import("./learn").then((module) => ({ default: module.CaseDialog })));
 const seconds = (ms: number) => (ms / 1000).toFixed(2);
 const tps = (phase: Phase) => (phase.execution > 0 ? (phase.turns.length / (phase.execution / 1000)).toFixed(1) : "–");
 /** A text with its first letter in capitals. */
@@ -108,7 +107,7 @@ export function SolveStrip({ analysis }: { analysis: SolveAnalysis }) {
         <span className={cn(NUMERIC, "shrink-0 text-sm text-muted-foreground")}>
           {analysis.turns} {" "}{tr("turns ·")}{" "}{analysis.tps.toFixed(2)} {" "}{tr("TPS")}{skips.length ? tr(" · {0} skip", { 0: skips.join(", ") }) : ""}
         </span>
-        <Button variant="outline" size="xs" onClick={() => setOpen(analysis.phases[0]!.id)}>
+        <Button variant="outline" onClick={() => setOpen(analysis.phases[0]!.id)}>
           {tr("Analysis")}</Button>
       </div>
       <SolveBar analysis={analysis} onSelect={setOpen} legend={false} />
@@ -135,7 +134,7 @@ export function SolveAnalysisButton({ solve, turns }: { solve: { scramble?: stri
   if (!analysis) return null;
   return (
     <>
-      <Button variant="outline" size="xs" onClick={() => setOpen(analysis.phases[0]!.id)}>
+      <Button variant="outline" onClick={() => setOpen(analysis.phases[0]!.id)}>
         {tr("Analysis")}
       </Button>
       <SolveDialog analysis={analysis} phase={open} onPhase={setOpen} />
@@ -207,21 +206,15 @@ function SolveDialog({ analysis, phase: id, onPhase }: { analysis: SolveAnalysis
         tall
         className="flex h-[calc(100svh-3rem)] w-[calc(100vw-3rem)] max-w-[1400px] flex-col gap-6 p-8 sm:max-w-[1400px]"
       >
-        <div className="flex flex-wrap gap-x-10 gap-y-3">
-          <Figure label={tr("Time")} value={`${seconds(analysis.time)} s`} size="2xl" />
-          <Figure label={tr("Turns")} value={analysis.turns} size="2xl" />
-          <Figure label={tr("TPS")} value={analysis.tps.toFixed(2)} size="2xl" />
-          <Figure label={tr("Cross")} value={crossName(COLOUR_NAMES[analysis.cross])} size="2xl" />
+        <div className="grid grid-cols-4 gap-3">
+          <StatCard label={tr("Time")} value={`${seconds(analysis.time)} s`} dot={DOT.accent} size="sm" className="bg-muted" />
+          <StatCard label={tr("Turns")} value={analysis.turns} size="sm" className="bg-muted" />
+          <StatCard label={tr("TPS")} value={analysis.tps.toFixed(2)} dot={DOT.lilac} size="sm" className="bg-muted" />
+          <StatCard label={tr("Cross")} value={crossName(COLOUR_NAMES[analysis.cross])} dot="bg-faint" size="sm" className="bg-muted" />
         </div>
         <SolveBar analysis={analysis} selected={id ?? undefined} onSelect={onPhase} large />
         {id && <PhaseView key={id} analysis={analysis} phase={analysis.phases.find((p) => p.id === id)!} />}
       </Modal>
-      {/* A case of the analysis opened as on Learn: the algorithms page's detail, over the analysis. */}
-      {id && (
-        <Suspense fallback={null}>
-          <CaseDialog />
-        </Suspense>
-      )}
     </>
   );
 }
@@ -236,7 +229,7 @@ function CaseButton({ id, name, size }: { id: string; name: string; size: number
     <button type="button" onClick={() => openCase(id)} className={cn(ROW, "group flex items-center gap-4 p-2")}>
       {known && <Diagram c={known} size={size} />}
       <span className="flex flex-col gap-1">
-        <span className="text-xl font-semibold tracking-tight">{name}</span>
+        <span className="text-xl font-bold tracking-[-0.02em]">{name}</span>
         <span className="flex items-center gap-1 text-sm text-muted-foreground group-hover:text-foreground">
           {tr("Open the algorithms")}{" "}<ChevronRight className="size-4" />
         </span>
@@ -293,9 +286,9 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
                 {replay.playing ? <Pause /> : <Play />}
               </Button>
             </Tip>
-            <ToggleGroup aria-label={tr("Speed")} size="sm" spacing={1} value={[String(replay.speed)]} onValueChange={(next: string[]) => next[0] && replay.setSpeed(Number(next[0]))} className="ml-auto">
+            <ToggleGroup aria-label={tr("Speed")} spacing={1} value={[String(replay.speed)]} onValueChange={(next: string[]) => next[0] && replay.setSpeed(Number(next[0]))} className="ml-auto">
               {PLAYER_SPEEDS.map((speed) => (
-                <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground")}>
+                <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "text-muted-foreground aria-pressed:text-foreground")}>
                   {speedLabel(speed)}
                 </ToggleGroupItem>
               ))}
@@ -318,24 +311,24 @@ function PhaseView({ analysis, phase }: { analysis: SolveAnalysis; phase: Phase 
       <section className="flex min-w-0 flex-1 flex-col gap-7 overflow-x-hidden overflow-y-auto pr-2">
         <div className="flex items-baseline gap-4">
           <span className="size-4 shrink-0 self-center rounded-full" style={{ background: stepColour(phase.id) }} />
-          <h3 className="text-3xl font-semibold tracking-tight">
+          <h3 className="text-3xl font-extrabold tracking-[-0.03em]">
             {said(phase.label)}
             {phase.pair && <span className="ml-3 text-lg font-normal text-muted-foreground">{capitalised(tr("{0}–{1} pair", { 0: colourLabel(COLOUR_NAMES[phase.pair[0]]), 1: colourLabel(COLOUR_NAMES[phase.pair[1]]) }))}</span>}
           </h3>
-          <span className={cn(NUMERIC, "ml-auto text-5xl font-semibold tracking-tight")}>{phase.skip ? tr("Skip") : `${seconds(phase.end - phase.start)} s`}</span>
+          <span className={cn(NUMERIC, "ml-auto text-5xl font-extrabold tracking-[-0.04em]")}>{phase.skip ? tr("Skip") : `${seconds(phase.end - phase.start)} s`}</span>
         </div>
         {phase.skip ? (
           <p className="text-lg text-muted-foreground">{tr("Already solved by the step before: nothing to do.")}</p>
         ) : (
           <>
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 gap-3">
               {[
-                ["Recognition", `${seconds(phase.recognition)} s`],
-                ["Execution", `${seconds(phase.execution)} s`],
-                ["Turns", String(phase.turns.length)],
-                ["TPS", tps(phase)],
-              ].map(([label, value]) => (
-                <Figure key={label} label={said(label)} value={value} size="2xl" />
+                ["Recognition", `${seconds(phase.recognition)} s`, DOT.warning],
+                ["Execution", `${seconds(phase.execution)} s`, DOT.accent],
+                ["Turns", String(phase.turns.length), "bg-faint"],
+                ["TPS", tps(phase), DOT.lilac],
+              ].map(([label, value, dot]) => (
+                <StatCard key={label} label={said(label)} value={value} dot={dot} size="sm" className="bg-muted" />
               ))}
             </div>
             {/^(f2l|oll|pll)/.test(phase.id) && (

@@ -63,7 +63,7 @@ describe("smart cube statistics", () => {
     expect(tPerm.count).toBe(3);
     expect(tPerm.recognition).toBeCloseTo((600 + 1600 + 600) / 3, 5);
     expect(result.suggestions.length).toBeGreaterThan(0);
-    for (const s of result.suggestions) expect(s.action).toMatch(/^(trainCases:|trainingStart:)/);
+    for (const s of result.suggestions) expect(s.action).toMatch(/^(trainCases:|trainingStart:|learnFrom:)/);
     expect(result.latest.map((l) => l.id)).toEqual([3, 2, 1]);
     expect(smartAnalysis([])).toMatchObject({ count: 0, methods: [], suggestions: [] });
   });

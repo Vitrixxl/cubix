@@ -47,7 +47,7 @@ try {
   assert.ok(await fits(a), "the lobby fits the window");
   await a.screenshot({ path: `${SHOTS}/lobby.png` });
   await a.locator('[data-action="duel:search"]').click();
-  await a.waitForSelector(".duel-lobby .setup-start:not(.primary)");
+  await a.waitForSelector(".duel-lobby .duel-cancel");
   await b.locator('[data-action="duel:search"]').click();
   await Promise.all([a.waitForSelector(".duel-race"), b.waitForSelector(".duel-race")]);
   await Promise.all([a.waitForSelector(".duel-scramble .alg"), b.waitForSelector(".duel-scramble .alg")]);
@@ -65,11 +65,13 @@ try {
   await b.screenshot({ path: `${SHOTS}/opponent-running.png` });
   await a.keyboard.press("a");
   await b.waitForSelector(".duel-side.theirs.idle");
-  await b.waitForFunction(() => document.querySelector(".duel-side.theirs .timer-digits")?.textContent !== "0.000");
+  await b.waitForFunction(() => document.querySelector(".duel-side.theirs > :first-child")?.textContent !== "0.000");
+  // The opponent's time in their column of the rounds.
+  await b.waitForFunction(() => /\d/.test(document.querySelectorAll('.duel-board-row[data-round="0"] [role="cell"]')[1]?.textContent ?? ""));
 
   // Cancel takes A's solve back while B has not finished; A redoes it.
   await a.locator('[data-action="duel:cancel"]').click();
-  await b.waitForFunction(() => document.querySelector(".duel-board-row:not(.mine) .duel-board-cell.mono")?.textContent === "1");
+  await b.waitForFunction(() => document.querySelectorAll('.duel-board-row[data-round="0"] [role="cell"]')[1]?.textContent === "…");
   await solve(a);
 
   // Chat.
@@ -81,23 +83,23 @@ try {
   await solve(b, 250);
   // A DNF on B's first solve, then the other rounds.
   await b.locator('[data-action="duel:dnf"]').click();
-  await a.waitForSelector(".duel-board-row:not(.mine) .duel-board-cell.danger");
+  await a.waitForFunction(() => document.querySelectorAll('.duel-board-row[data-round="0"] [role="cell"]')[1]?.textContent === "DNF");
   for (let round = 1; round < 5; round++) {
-    for (const page of [a, b]) await page.waitForFunction((r) => document.querySelector(".duel-scramble .label")?.textContent?.startsWith(`Round ${r + 1}`), round);
+    for (const page of [a, b]) await page.waitForFunction((r) => document.querySelector('.duel-board-row[aria-current="true"]')?.getAttribute("data-round") === String(r), round);
     await solve(a, 120);
     await solve(b, 200);
   }
   await Promise.all([a.waitForSelector(".duel-result"), b.waitForSelector(".duel-result")]);
   await a.waitForTimeout(300);
-  assert.equal(await a.locator(".duel-result h2").textContent(), "You win");
+  assert.equal(await a.locator(".duel-result h2").textContent(), "Victory");
   await a.screenshot({ path: `${SHOTS}/result.png` });
 
   // Rematch: B offers, A accepts, the dialog closes on new scrambles.
   await b.locator('[data-action="duel:rematch"]').click();
-  await a.waitForSelector('.duel-result [data-action="duel:rematch"].primary');
+  await a.waitForSelector('.duel-result [data-action="duel:rematch"]:has-text("Accept rematch")');
   await a.locator('[data-action="duel:rematch"]').click();
   await Promise.all([a.waitForSelector(".duel-result", { state: "detached" }), b.waitForSelector(".duel-result", { state: "detached" })]);
-  await a.waitForFunction(() => document.querySelector(".duel-scramble .label")?.textContent?.startsWith("Round 1"));
+  await a.waitForFunction(() => document.querySelector('.duel-board-row[aria-current="true"]')?.getAttribute("data-round") === "0");
 
   // The phone layout of the race.
   await a.setViewportSize({ width: 390, height: 844 });
@@ -114,14 +116,19 @@ try {
   await a.locator('[data-action="duel:leave"]').click();
   await b.waitForSelector(".duel-side.theirs.gone");
   await a.locator('[data-action="nav:profile"]').first().click();
-  await a.waitForSelector(".ov-battles .ov-battle");
+  // The overview's "Battles" counts them and opens their page.
+  await a.waitForFunction(() => /[1-9]/.test(document.querySelector('[data-action="profileMode:duels"]')?.textContent ?? ""));
   assert.ok(await fits(a), "the overview fits the window");
   await a.screenshot({ path: `${SHOTS}/profile.png` });
   await a.locator('[data-action="profileMode:duels"]').click();
-  await a.waitForSelector(".battles .battle-row .battle-mark.win");
+  await a.waitForSelector('main table tbody tr [aria-label="win" i]');
   await a.screenshot({ path: `${SHOTS}/battles.png` });
-  // Each tab kept its side of the race in the shared storage.
-  await a.waitForFunction(() => document.querySelectorAll(".battles .battle-row:not(.battle-head)").length === 2);
+  // The finished race alone: the rematch left half-way is not a battle.
+  await a.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 1);
+  // The duel lobby's "Races played" opens the same page.
+  await a.locator('[data-action="nav:duel"]').first().click();
+  await a.locator('main [data-action="profileMode:duels"]').first().click();
+  await a.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 1);
   assert.deepEqual(errors, []);
   console.log("Duel UI: OK");
 } finally {

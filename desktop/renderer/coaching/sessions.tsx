@@ -1,20 +1,17 @@
-/** Every session on the shared calendar, filtered by status; a day opens its sessions and their actions. */
+/** Every session as a line under its day, filtered by status; the one chosen beside, with what can be done with it. */
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, CalendarDays, CalendarX, Check, MessageSquare, Star, Video, X } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarX, Check, Star, X } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, Modal, NUMERIC, plural, Tip } from "../ui";
+import { Avatar, Modal, NUMERIC, ROW, StateMark, Surface, Tip, usePhone } from "../ui";
 import { go } from "../navigation";
 import { callOpen, coaching, price, type Booking } from "./client";
-import { day, dayKey, relative, span, time, url } from "./parts";
-import { Empty, Stars } from "../base";
-import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, longDay, toDate } from "./calendar";
+import { Tools, day, dayKey, relative, span, time, url } from "./parts";
+import { Empty, LINK, LINK_ACCENT, ListSkeleton, Segmented, Stars } from "../base";
+import { PersonDialog, SessionCard } from "./person";
 import { CANCELLATION_NOTICE, cancellationOpen } from "./policy";
 import { store as s } from "../store";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button as UiButton } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,167 +39,123 @@ export function Sessions() {
   useEffect(() => {
     void coaching.load("bookings");
   }, []);
-  const now = useMinute();
+  const now = useMinute(),
+    phone = usePhone();
   const [tab, setTab] = useState("upcoming"),
-    [month, setMonth] = useState(""),
-    [picked, setPicked] = useState("");
+    [picked, setPicked] = useState(""),
+    [person, setPerson] = useState<Booking | null>(null);
   const all = coaching.bookings;
   const groups = {
     upcoming: all?.filter((b) => b.status === "booked" && b.endsAt > now).sort((a, b) => a.startsAt - b.startsAt),
     past: all?.filter((b) => b.status === "booked" && b.endsAt <= now).sort((a, b) => b.startsAt - a.startsAt),
     cancelled: all?.filter((b) => b.status === "cancelled").sort((a, b) => b.startsAt - a.startsAt),
   };
-  const list = groups[tab as keyof typeof groups];
-  const byDay = new Map<string, Booking[]>();
-  for (const b of [...(list ?? [])].sort((a, b) => a.startsAt - b.startsAt)) {
-    const key = dayKey(b.startsAt);
-    byDay.set(key, [...(byDay.get(key) ?? []), b]);
-  }
-  const today = dayKey(now),
-    shown = month || dayKey(list?.[0]?.startsAt ?? now).slice(0, 7),
-    sessions = byDay.get(picked) ?? [],
-    hasSessions = [...byDay.keys()].some((d) => d.startsWith(shown));
+  const list = groups[tab as keyof typeof groups],
+    current = list?.find((b) => b.id === picked) ?? (phone ? undefined : list?.[0]);
+  const detail = current && <SessionCard key={current.id} b={current} onProfile={() => setPerson(current)} />;
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <Tabs value={tab} onValueChange={(v: string) => { setTab(v); setMonth(""); setPicked(""); }} className="shrink-0">
-        <TabsList>
-          {(["upcoming", "past", "cancelled"] as const).map((id) => (
-            <TabsTrigger key={id} value={id} data-action={"sessions:" + id} className="gap-1.5 px-3">
-              {said(SESSION_TABS[id])}
-              {groups[id] && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{groups[id]!.length}</span>}
-            </TabsTrigger>
+    <>
+      <Tools>
+        <Segmented
+          label="Sessions"
+          value={tab}
+          action="sessions:"
+          onChange={(v) => {
+            setTab(v);
+            setPicked("");
+          }}
+          options={(["upcoming", "past", "cancelled"] as const).map((id) => ({ id, label: said(SESSION_TABS[id]), count: groups[id]?.length }))}
+        />
+      </Tools>
+      <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "grid-cols-[minmax(0,1fr)_minmax(24rem,30rem)]")}>
+        <Surface className="min-w-0 px-2.5 pt-3 pb-2.5" aria-label={tr("Sessions")}>
+          {!list ? (
+            <ListSkeleton />
+          ) : !list.length ? (
+            <Empty icon={CalendarDays} className="h-full">
+              {tab === "upcoming" ? tr("No upcoming session.") : tab === "past" ? tr("No past session yet.") : tr("No cancelled session.")}
+              {tab === "upcoming" && (
+                <UiButton variant="outline" onClick={() => go(url("coaches"))} data-action="coaching:find">
+                  {tr("Find a coach")}
+                </UiButton>
+              )}
+            </Empty>
+          ) : (
+            <SessionDays list={list} now={now} active={current?.id} onPick={(b) => setPicked(b.id)} />
+          )}
+        </Surface>
+        {!phone && <Surface className="min-w-0 overflow-y-auto">{detail ?? <Empty icon={CalendarDays} title="Pick a session." />}</Surface>}
+      </div>
+      {phone && (
+        <Modal open={!!current} onOpenChange={(open) => !open && setPicked("")} title={current ? span(current.startsAt, current.endsAt) : tr("Sessions")} hideHeader>
+          {detail}
+        </Modal>
+      )}
+      {person && <PersonDialog id={person.with.id} name={person.with.username} open onOpenChange={(open) => !open && setPerson(null)} />}
+    </>
+  );
+}
+
+const dayTitle = (ms: number, now: number) => (dayKey(ms) === dayKey(now) ? tr("Today") : dayKey(ms) === dayKey(now + 86_400_000) ? tr("Tomorrow") : dayKey(ms) === dayKey(now - 86_400_000) ? tr("Yesterday") : day(ms));
+
+/** Sessions as lines under their day; a click on one shows it. */
+export function SessionDays({ list, now, active, onPick }: { list: Booking[]; now: number; active?: string; onPick: (b: Booking) => void }) {
+  const days: Booking[][] = [];
+  for (const b of list) {
+    const last = days[days.length - 1];
+    if (last && dayKey(last[0]!.startsAt) === dayKey(b.startsAt)) last.push(b);
+    else days.push([b]);
+  }
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-slot="sessions">
+      {days.map((d) => (
+        <section key={d[0]!.id} className="flex flex-col gap-0.5" aria-label={dayTitle(d[0]!.startsAt, now)}>
+          <h3 className="px-3 pt-1 pb-0.5 text-xs font-bold text-muted-foreground first-letter:uppercase">{dayTitle(d[0]!.startsAt, now)}</h3>
+          {d.map((b) => (
+            <SessionLine key={b.id} b={b} now={now} active={b.id === active} onClick={() => onPick(b)} />
           ))}
-        </TabsList>
-      </Tabs>
-      <section aria-label={tr("Sessions")} className="flex min-h-0 flex-1 flex-col gap-3">
-        <MonthHeader month={shown} today={today} onMonth={setMonth} />
-        {!list ? (
-          <CalendarSkeleton />
-        ) : (
-          <>
-            {!hasSessions && (
-              <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm text-muted-foreground" role="status">
-                <span>{tab === "upcoming" ? tr("No upcoming session this month.") : tab === "past" ? tr("No past session this month.") : tr("No cancelled session this month.")}</span>
-                {tab === "upcoming" && !list.length && (
-                  <UiButton variant="outline" size="sm" onClick={() => go(url("coaches"))} data-action="coaching:find">{tr("Find a coach")}</UiButton>
-                )}
-              </div>
-            )}
-            <Month
-              month={shown}
-              today={today}
-              allowPast
-              selected={(d) => d === picked}
-              disabled={(d) => !byDay.has(d)}
-              pick={(d) => setPicked(d)}
-              className="max-lg:min-h-0 max-lg:flex-1"
-              cell={(d) => ({
-                body: !!byDay.get(d)?.length && (
-                  <DayBoxes items={byDay.get(d)!}>
-                    {(b) => (
-                      <DayChip
-                        key={b.id}
-                        tone={tab === "cancelled" ? "past" : "free"}
-                        aria-label={`${time(b.startsAt)}–${time(b.endsAt)} · ${b.with.username}`}
-                        data-session={b.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPicked(d);
-                        }}
-                        className="gap-1.5"
-                      >
-                        <span className={cn(NUMERIC, "shrink-0")}>{time(b.startsAt)}</span>
-                        <span className="min-w-0 truncate font-normal @max-[7rem]:hidden">{b.with.username}</span>
-                      </DayChip>
-                    )}
-                  </DayBoxes>
-                ),
-              })}
-            />
-          </>
-        )}
-      </section>
-      <Modal
-        open={!!picked}
-        onOpenChange={(open) => !open && setPicked("")}
-        title={picked ? longDay.format(toDate(picked)) : tr("Sessions")}
-        description={`${said(SESSION_TABS[tab as keyof typeof SESSION_TABS] ?? tab)} · ${plural(sessions.length, "session")}`}
-        className="flex max-h-[85dvh] flex-col sm:max-w-3xl"
-      >
-        {sessions.length ? (
-          <ul className="-mx-3 flex min-h-0 flex-col gap-0.5 overflow-y-auto" data-slot="sessions">
-            {sessions.map((b) => (
-              <SessionRow key={b.id} b={b} now={now} />
-            ))}
-          </ul>
-        ) : (
-          <Empty icon={CalendarDays} title="No session for this filter on this day." />
-        )}
-      </Modal>
+        </section>
+      ))}
     </div>
   );
 }
 
-/** One session: when, with whom and why, then what can be done with it. */
-export function SessionRow({ b, now, compact = false }: { b: Booking; now: number; compact?: boolean }) {
-  const open = callOpen(b, now),
-    waiting = coaching.waiting.has(b.id),
-    over = b.endsAt <= now;
+/** Where a session stands, in a word after its dot: the call open, a new time offered, a review to leave, how soon. */
+function standing(b: Booking, now: number): [tone: "" | "good" | "accent" | "lilac" | "off", text: string] {
+  if (b.status === "cancelled") return ["off", b.cancelledByMe ? tr("cancelled by you") : tr("cancelled")];
+  if (callOpen(b, now)) return coaching.waiting.has(b.id) ? ["accent", tr("{0} is waiting", { 0: b.with.username })] : ["good", tr("call open")];
+  if (b.proposal && b.endsAt > now) return ["lilac", tr("new time offered")];
+  if (b.endsAt <= now) return b.role === "student" && !b.review ? ["accent", tr("to review")] : ["", tr("over")];
+  return ["", relative(b.startsAt, now)];
+}
+
+/** One session in a list: its hours and price, who with and why, and where it stands. */
+export function SessionLine({ b, now, active = false, onClick }: { b: Booking; now: number; active?: boolean; onClick: () => void }) {
+  const [tone, text] = standing(b, now);
   return (
-    <li className={cn("flex flex-col gap-2 rounded-lg px-3 py-2.5", b.status === "cancelled" && "opacity-60")} data-booking={b.id}>
-      <div className="flex items-center gap-4 max-sm:flex-wrap">
-        <div className="flex w-24 shrink-0 flex-col">
-          <span className="text-xs text-muted-foreground">{day(b.startsAt)}</span>
-          <span className={cn(NUMERIC, "font-medium")}>
-            {time(b.startsAt)}–{time(b.endsAt)}
-          </span>
-        </div>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Avatar name={b.with.username} src={b.with.avatar} size={32} />
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex items-center gap-2 truncate font-medium">
-              {b.with.username}
-              <Badge variant="secondary" className="font-normal">
-                {b.role === "student" ? tr("Your coach") : tr("Your student")}
-              </Badge>
-            </span>
-            <span className="truncate text-xs text-muted-foreground">
-              {b.status === "cancelled"
-                ? b.cancelledByMe ? tr("Cancelled by you") : tr("Cancelled by {0}", { 0: b.with.username })
-                : over
-                  ? b.note || tr("Session over")
-                  : `${relative(b.startsAt, now)}${b.note ? " · " + b.note : ""}`}
-            </span>
-          </div>
-        </div>
-        {!compact && <span className={cn(NUMERIC, "shrink-0 text-muted-foreground max-md:hidden")}>{price(b.priceCents)}</span>}
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 max-sm:w-full max-sm:justify-end">
-          {open && (
-            <UiButton size="sm" onClick={() => go(url("call/" + b.id))} data-action="coaching:join" className={cn(waiting && "animate-pulse")}>
-              <Video />
-              {waiting ? tr("{0} is waiting", { 0: b.with.username }) : tr("Join call")}
-            </UiButton>
-          )}
-          {over && b.status === "booked" && b.role === "student" && <ReviewButton b={b} />}
-          {over && b.role === "coach" && b.review && <Stars rating={b.review.rating} size={12} figure={false} />}
-          {b.conversationId && (
-            <Tip content={tr("Message {0}", { 0: b.with.username })}>
-              <UiButton variant="ghost" size="icon-sm" aria-label={tr("Message {0}", { 0: b.with.username })} onClick={() => go(url("messages/" + b.conversationId))}>
-                <MessageSquare />
-              </UiButton>
-            </Tip>
-          )}
-          {b.status === "booked" && !over && b.role === "coach" && <MoveButton b={b} />}
-          {b.status === "booked" && !over && <CancelButton b={b} />}
-        </div>
-      </div>
-      {b.status === "booked" && !over && (
-        <p className="text-xs text-muted-foreground" data-slot="cancellation-deadline">
-          {cancellationOpen(b.startsAt, now) ? tr("Cancellation allowed before {0}.", { 0: span(b.startsAt - CANCELLATION_NOTICE) }) : tr("Cancellation closed: this session starts within 24 hours.")}
-        </p>
-      )}
-      {b.proposal && b.status === "booked" && !over && <Offer b={b} />}
-    </li>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active || undefined}
+      className={cn(ROW, "grid w-full grid-cols-[6.5rem_auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 aria-[current=true]:bg-muted", b.status === "cancelled" && "text-muted-foreground")}
+      data-booking={b.id}
+      data-session={b.id}
+    >
+      <span className="flex flex-col">
+        <b className={cn(NUMERIC, "text-[15px] font-extrabold", b.status === "cancelled" && "line-through")}>
+          {time(b.startsAt)}–{time(b.endsAt)}
+        </b>
+        <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{price(b.priceCents)}</span>
+      </span>
+      <Avatar name={b.with.username} src={b.with.avatar} size={36} />
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate font-bold">
+          {b.with.username} <span className="text-xs font-semibold text-muted-foreground">{b.role === "student" ? tr("your coach") : tr("your student")}</span>
+        </span>
+        <span className="truncate text-[13px] text-muted-foreground">{b.note || tr("No note")}</span>
+      </span>
+      <StateMark tone={tone}>{text}</StateMark>
+    </button>
   );
 }
 
@@ -221,14 +174,13 @@ export function Offer({ b }: { b: Booking }) {
     }
   };
   return (
-    <Alert variant="warning" data-slot="offer">
-      <CalendarClock />
-      <AlertTitle className="font-normal">
-        {b.role === "student" ? tr("{0} offers to move it to ", { 0: b.with.username }) : tr("You offered ")}
-        <span className={cn(NUMERIC, "font-medium")}>{span(b.proposal!.start, b.proposal!.end)}</span>
+    <div className="flex flex-col gap-2.5 rounded-[18px] bg-muted px-4 py-3.5 text-sm" data-slot="offer">
+      <StateMark tone="lilac">{b.role === "student" ? tr("{0} offers another time", { 0: b.with.username }) : tr("You offered another time")}</StateMark>
+      <p>
+        <span className={cn(NUMERIC, "text-[17px] font-bold first-letter:uppercase")}>{span(b.proposal!.start, b.proposal!.end)}</span>
         {b.role === "coach" && <span className="text-muted-foreground"> {tr("· waiting for")} {b.with.username}</span>}
-      </AlertTitle>
-      <AlertDescription className="flex flex-wrap gap-1.5 pt-1.5">
+      </p>
+      <div className="flex flex-wrap gap-1.5">
         {b.role === "student" ? (
           <>
             <UiButton size="sm" disabled={pending} onClick={() => act(() => coaching.answer(b.id, true), tr("Session moved"))} data-action="offer:accept">
@@ -244,8 +196,8 @@ export function Offer({ b }: { b: Booking }) {
             {tr("Take back")}
           </UiButton>
         )}
-      </AlertDescription>
-    </Alert>
+      </div>
+    </div>
   );
 }
 
@@ -255,9 +207,9 @@ export function MoveButton({ b, label = false }: { b: Booking; label?: boolean }
   return (
     <>
       {label ? (
-        <UiButton variant="outline" size="sm" className="flex-1" onClick={() => setOpen(true)} data-action="coaching:move">
-          <CalendarClock />
-          {tr("Move")}</UiButton>
+        <button type="button" className={LINK_ACCENT} onClick={() => setOpen(true)} data-action="coaching:move">
+          {tr("Offer another time")}
+        </button>
       ) : (
         <Tip content={tr("Offer another time")}>
           <UiButton variant="ghost" size="icon-sm" aria-label={tr("Offer another time")} onClick={() => setOpen(true)} data-action="coaching:move">
@@ -371,10 +323,9 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
   return (
     <>
       {label ? (
-        <UiButton variant="outline" size="sm" className="flex-1 hover:text-destructive" onClick={cancel} data-action="coaching:cancel">
-          <X />
-          {tr("Cancel")}
-        </UiButton>
+        <button type="button" className={cn(LINK, "hover:text-destructive")} onClick={cancel} data-action="coaching:cancel">
+          {tr("Cancel the session")}
+        </button>
       ) : (
         <Tip content={tr("Cancel the session")}>
           <UiButton variant="ghost" size="icon-sm" aria-label={tr("Cancel the session")} onClick={cancel} data-action="coaching:cancel" className="hover:text-destructive">
@@ -403,7 +354,7 @@ export function CancelButton({ b, label = false }: { b: Booking; label?: boolean
 }
 
 /** Rating a past session: five stars and a few words, changeable later. */
-function ReviewButton({ b }: { b: Booking }) {
+export function ReviewButton({ b }: { b: Booking }) {
   const [open, setOpen] = useState(false),
     [rating, setRating] = useState(b.review?.rating ?? 0),
     [comment, setComment] = useState(b.review?.comment ?? ""),
@@ -452,7 +403,7 @@ function Rating({ value, onChange }: { value: number; onChange: (rating: number)
   return (
     <ToggleGroup value={value ? [String(value)] : []} onValueChange={(v: string[]) => v[0] && onChange(Number(v[0]))} aria-label={tr("Rating")} className="justify-center">
       {[1, 2, 3, 4, 5].map((n) => (
-        <ToggleGroupItem key={n} value={String(n)} aria-label={tr("{0} out of 5", { 0: n })} data-rating={n} className="size-11 p-0 hover:bg-transparent aria-pressed:bg-transparent data-[pressed]:bg-transparent">
+        <ToggleGroupItem key={n} value={String(n)} aria-label={tr("{0} out of 5", { 0: n })} data-rating={n} size="icon" className="hover:bg-transparent aria-pressed:bg-transparent data-[pressed]:bg-transparent">
           <Star className={cn("size-8! transition-colors", n <= value ? "fill-warning text-warning" : "text-muted-foreground/40")} />
         </ToggleGroupItem>
       ))}

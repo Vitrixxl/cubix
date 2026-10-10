@@ -4,7 +4,7 @@
  * Phones get it as a sheet, the cube on top. The previous and next algorithms of the list are a click away.
  */
 import { store as s } from "./store";
-import { Alg, LABEL, LearnedMark, ROW, run, usePhone } from "./ui";
+import { Alg, FOCUS, LABEL, LearnedMark, run, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer, usePlayerKeys } from "./AlgPlayer";
 import { PaneHead, Stepper } from "./algorithms";
@@ -27,8 +27,9 @@ export function AlgView() {
   const list = (
     <div className="flex flex-col gap-1">
       {item.algs.map((a, i) => (
-        <div key={i} className="group/row flex min-w-0 items-center gap-1">
-          <button type="button" data-action={"algChoice:" + i} onClick={run("algChoice:" + i)} aria-pressed={i === view.choice} className={cn(ROW, "flex min-w-0 flex-1 flex-col gap-1 px-3 py-2")}>
+        // The row holds the choice and, at its end, the learned mark: the chosen one on the accent, no outline.
+        <div key={i} className={cn("group/row flex min-w-0 items-center gap-1 rounded-[12px] pr-2 transition-colors", i === view.choice ? "bg-accent" : "hover:bg-muted")}>
+          <button type="button" data-action={"algChoice:" + i} onClick={run("algChoice:" + i)} aria-pressed={i === view.choice} className={cn(FOCUS, "flex min-w-0 flex-1 flex-col gap-1 rounded-[12px] px-4 py-2.5 text-left")}>
             <span className={LABEL}>{i ? tr("Alternative {0}", { 0: i }) : tr("Main")}</span>
             <Alg text={a} size={16} />
           </button>
@@ -44,9 +45,9 @@ export function AlgView() {
         <PaneHead title={item.name} sub={item.detail ?? item.context}>
           {stepper}
         </PaneHead>
-        {player && <PlayerCube key={alg} player={player} size={260} className="self-center" />}
+        {player && <PlayerCube key={"cube:" + alg} player={player} size={260} className="self-center" />}
         {player && <ViewButtons player={player} className="self-center" />}
-        <PlayerAlg key={alg} player={player} text={alg} size={20} />
+        <PlayerAlg key={"text:" + alg} player={player} text={alg} size={22} className="font-semibold" />
         {player && <PlayerControls player={player} touch />}
         {list}
         {note}
@@ -54,12 +55,12 @@ export function AlgView() {
     );
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1">
-      <div className="flex w-105 shrink-0 flex-col gap-4 bg-muted/30 p-5">
+      <div className="flex w-105 shrink-0 flex-col gap-4 bg-background p-6">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-          {player && <PlayerCube key={alg} player={player} size={280} />}
+          {player && <PlayerCube key={"cube:" + alg} player={player} size={280} />}
           {player && <ViewButtons player={player} />}
         </div>
-        <PlayerAlg key={alg} player={player} text={alg} size={20} />
+        <PlayerAlg key={"text:" + alg} player={player} text={alg} size={22} className="font-semibold" />
         {player && <PlayerControls player={player} />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-4 p-6 pt-5">

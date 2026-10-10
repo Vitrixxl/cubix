@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { bindNavigation, go, goPage, pageUrl, readRoute } from "../renderer/navigation";
-import { accountOnly, localePath, loginNext, loginUrl, splitLanguage } from "../../src/client/lib/route";
+import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
 test("URLs cover every page and encode case IDs, methods, puzzle and course steps", () => {
   expect(pageUrl("playground")).toBe("/timer");
   expect(pageUrl("algorithms", { caseId: "PLL Aa", puzzle: "333" })).toBe("/algorithms/PLL%20Aa?puzzle=333");
@@ -36,10 +36,9 @@ test("a language other than English lives under its prefix; the address under it
   expect(localePath("en", "/timer")).toBe("/timer");
   expect(localePath("it", "/timer")).toBe("/it/timer");
 });
-test("a guest is sent to the login page from an account's pages, and back to them once signed in", () => {
+test("a guest is asked to sign in on an account's pages, and /login goes back to its redirect once signed in", () => {
   for (const path of ["/duel", "/community/messages/3", "/tournaments", "/match/4", "/coaching", "/profile"]) expect(accountOnly(readRoute(path, "")!)).toBe(true);
   for (const path of ["/timer", "/algorithms", "/learn/cfop", "/training", "/profile/analysis", "/onboarding"]) expect(accountOnly(readRoute(path, "")!)).toBe(false);
-  expect(loginUrl("/community/messages/3")).toBe("/login?redirect=%2Fcommunity%2Fmessages%2F3");
   expect(loginNext("?redirect=%2Fcommunity%2Fmessages%2F3")).toBe("/community/messages/3");
   // Never another site.
   for (const search of ["", "?redirect=https%3A%2F%2Fevil.example", "?redirect=%2F%2Fevil.example", "?redirect=%2F%5Cevil.example"]) expect(loginNext(search)).toBe("/timer");

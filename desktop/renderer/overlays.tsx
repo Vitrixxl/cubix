@@ -1,22 +1,22 @@
 /** Dialogs drawn over the app: settings, guides, methods, case search, solves, comments and group order. */
 import React, { memo, useDeferredValue, useMemo, useState, useSyncExternalStore } from "react";
-import { Check, Compass, Download, GraduationCap, RotateCcw, Trash2 } from "lucide-react";
+import { Check, Compass, Download, GraduationCap, LogOut, Monitor, Moon, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { store as s, matches } from "./store";
 import { call, openExternal } from "./bridge";
 import { ImportTimes } from "./ImportTimes";
 import { accents } from "./theme";
-import { LearningGroups } from "./LearningGroups";
 import { GuideContent } from "../guides/Content";
 import { METHODS } from "../../src/shared/methods";
 import { PUZZLES, puzzleInfo, puzzleOf } from "../../src/shared/puzzles";
+import { INSPECTIONS } from "../../src/client/lib/format";
 import { GUIDES, type Guide } from "../guides/pages";
 import { Avatar, Button, Choice, FOCUS, LABEL, Modal, NUMERIC, Tip, run, usePhone } from "./ui";
 import { SessionSheet } from "./phone";
-import { TimerStats } from "./stats";
 import { AlgView } from "./algView";
 import { SolveView } from "./SolveView";
 import { NotationContent } from "./notation";
+import { DailyDialog } from "./daily";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandList, Command } from "@/components/ui/command";
@@ -24,7 +24,6 @@ import { Command as CommandPrimitive } from "cmdk";
 import { CaseTile } from "./algorithms";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -37,77 +36,66 @@ const close = s.closeOverlay;
 /** A settings row: its name on the left, its controls on the right. */
 function SettingRow({ label, children }: { label: string; children?: React.ReactNode }) {
   return (
-    <div className="flex min-h-9 items-center justify-between gap-4">
-      <span className="text-sm">{said(label)}</span>
-      <div className="flex items-center gap-1.5">{children}</div>
+    <div className="flex min-h-10 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <span className="text-sm font-medium">{said(label)}</span>
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 }
 
-/** Settings: the account, then the appearance. */
+/** A group of settings under its small heading. */
+function SettingGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      <h3 className={LABEL}>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** Settings: who is signed in, then the look of the app, its language and the account's data. */
 function Settings() {
+  const joined = s.profile?.user?.joined;
   return (
     <div className="settings flex flex-col gap-6">
-      <section className="flex flex-col gap-3">
-        <h3 className={LABEL}>{tr("Account")}</h3>
-        <div className="flex items-center gap-3">
-          <Avatar name={s.user.username} size={40} />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-medium">{s.user.username}</span>
-            <span className="text-xs text-muted-foreground">{tr("Joined")}{" "}{s.profile?.user?.joined}</span>
-          </div>
-          <Button action="logout" variant="outline">
-            {tr("Sign out")}</Button>
+      <section className="flex items-center gap-3 rounded-[20px] bg-muted p-3" aria-label={tr("Account")}>
+        <Avatar name={s.user.username} size={44} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-base font-bold tracking-[-0.01em]">{s.user.username}</span>
+          {joined && <span className="truncate text-xs text-muted-foreground">{tr("Joined")} {joined}</span>}
         </div>
+        <Button action="logout" icon={LogOut} variant="ghost" className="text-muted-foreground hover:text-foreground">
+          {tr("Sign out")}</Button>
       </section>
-      {!s.user.isGuest && <AccountData />}
-      <Separator />
-      <section className="flex flex-col gap-2">
-        <h3 className={LABEL}>{tr("Language")}</h3>
-        <SettingRow label={tr("Language of the app")}>
-          <LanguagePicker className="w-40" />
-        </SettingRow>
-      </section>
-      <Separator />
-      <section className="flex flex-col gap-2">
-        <h3 className={LABEL}>{tr("Appearance")}</h3>
+      <SettingGroup title={tr("Appearance")}>
         <SettingRow label={tr("Theme")}>
           <Choice
             prefix="light:"
             label={tr("Theme")}
             value={s.colorMode}
+            className="bg-muted"
             options={[
-              { id: "dark", label: "Dark" },
-              { id: "light", label: "Light" },
-              { id: "system", label: "System" },
+              { id: "dark", label: <><Moon />{tr("Dark")}</> },
+              { id: "light", label: <><Sun />{tr("Light")}</> },
+              { id: "system", label: <><Monitor />{tr("System")}</> },
             ]}
           />
         </SettingRow>
-        <SettingRow label={tr("Accent")}>
-          {accents.map((a) => (
-            <Tip key={a.id} content={said(a.name)}>
-              <button
-                type="button"
-                data-action={"theme:" + a.id}
-                aria-label={said(a.name)}
-                aria-pressed={s.themeName === a.id}
-                onClick={run("theme:" + a.id)}
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-md transition-shadow",
-                  FOCUS,
-                  s.themeName === a.id && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-popover",
-                )}
-                style={{ background: a.color }}
-              >
-                {s.themeName === a.id && <Check className="size-3.5 text-white" />}
-              </button>
-            </Tip>
-          ))}
+      </SettingGroup>
+      <SettingGroup title={tr("Timer")}>
+        <SettingRow label={tr("WCA inspection")}>
+          <Choice prefix="inspection:" label={tr("WCA inspection")} value={s.inspection} className="bg-muted" options={INSPECTIONS.map((i) => ({ id: i.id, label: tr(i.label) }))} />
         </SettingRow>
-      </section>
+      </SettingGroup>
+      <SettingGroup title={tr("Language")}>
+        <SettingRow label={tr("Language of the app")}>
+          <LanguagePicker className="w-40" />
+        </SettingRow>
+      </SettingGroup>
+      {!s.user.isGuest && <AccountData />}
       <nav className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={tr("Legal documents")}>
         {[...LEGAL_DOCUMENTS, { path: "/privacy#cookies", label: "Cookies" }].map(({ path, label }) => (
-          <a key={path} href={path} onClick={(e) => (e.preventDefault(), void openExternal(location.origin + path))} className="rounded-sm hover:text-foreground hover:underline">
+          <a key={path} href={path} onClick={(e) => (e.preventDefault(), void openExternal(location.origin + path))} className={cn("rounded-sm hover:text-foreground hover:underline", FOCUS)}>
             {tr(label)}
           </a>
         ))}
@@ -138,15 +126,14 @@ function AccountData() {
     }
   }
   return (
-    <section className="flex flex-col gap-2" aria-label={tr("Your data")}>
-      <h3 className={LABEL}>{tr("Your data")}</h3>
-      <div className="flex flex-wrap gap-2">
-        <UiButton variant="outline" size="sm" onClick={() => void s.action("exportData")} data-action="exportData">
+    <SettingGroup title={tr("Your data")}>
+      <div className="flex flex-wrap gap-2 pt-1">
+        <UiButton variant="secondary" onClick={() => void s.action("exportData")} data-action="exportData">
           <Download />
           {tr("Download my data")}
         </UiButton>
         <AlertDialog onOpenChange={() => (setPassword(""), setError(""))}>
-          <AlertDialogTrigger render={<UiButton variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" data-action="deleteAccount" />}>
+          <AlertDialogTrigger render={<UiButton variant="ghost" className="text-muted-foreground hover:text-destructive" data-action="deleteAccount" />}>
             <Trash2 />
             {tr("Delete my account")}
           </AlertDialogTrigger>
@@ -171,7 +158,7 @@ function AccountData() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </section>
+    </SettingGroup>
   );
 }
 
@@ -189,8 +176,8 @@ function GuidesDialog() {
       className="flex h-[min(88vh,820px)] gap-0 overflow-hidden p-0 sm:max-w-5xl"
       sheetClassName="gap-0 p-0"
     >
-      <nav aria-label={tr("Guides")} className="flex shrink-0 flex-col gap-0.5 p-3 md:w-52 md:border-r md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:border-b max-md:pr-12 max-md:[scrollbar-width:none]">
-        <span className={cn(LABEL, "px-2.5 pb-2 max-md:hidden")}>{tr("Guides")}</span>
+      <nav aria-label={tr("Guides")} className="flex shrink-0 flex-col gap-0.5 p-3 md:m-2 md:mr-0 md:w-56 md:rounded-[20px] md:bg-muted/60 md:pt-5 max-md:flex-row max-md:overflow-x-auto max-md:pr-12 max-md:[scrollbar-width:none]">
+        <span className="px-2.5 pb-3 text-lg font-extrabold tracking-[-0.025em] max-md:hidden">{tr("Guides")}</span>
         {/* One guide among the others: the chosen one raised, as every choice of the app. Outside the article, so its
             click handler never sees these actions. */}
         <ToggleGroup
@@ -206,14 +193,14 @@ function GuidesDialog() {
               key={id}
               value={id}
               data-action={"guidePage:" + id}
-              className="h-auto min-h-8 justify-start py-1.5 text-left font-normal whitespace-normal text-muted-foreground aria-pressed:font-medium aria-pressed:text-foreground max-md:whitespace-nowrap"
+              className="h-auto min-h-9 justify-start rounded-[10px] py-1.5 text-left font-medium whitespace-normal text-muted-foreground hover:bg-accent/60 aria-pressed:bg-accent aria-pressed:font-semibold aria-pressed:text-foreground max-md:whitespace-nowrap max-md:bg-muted"
             >
               {said(GUIDES[id].name)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
         {/* Replays: the app tour (the shared `tour` action) and the introduction, which leaves the guides behind. */}
-        <div className="flex gap-0.5 md:mt-auto md:flex-col md:border-t md:pt-2 max-md:border-l max-md:pl-1">
+        <div className="flex gap-0.5 md:mt-auto md:flex-col md:pt-2 max-md:pl-1">
           <Button action="tour" icon={Compass} className="justify-start font-normal text-muted-foreground">
             {tr("Replay tour")}</Button>
           <UiButton
@@ -230,7 +217,7 @@ function GuidesDialog() {
         </div>
       </nav>
       <article
-        className="guides-body min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-10 md:px-10 md:pt-10"
+        className="guides-body min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-10 md:px-12 md:pt-10"
         onClick={(e) => {
           const button = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
           if (button) return void s.action(button.dataset.action!);
@@ -259,11 +246,10 @@ function MethodsDialog() {
         <Choice prefix="guidePuzzle:" label={tr("Puzzle")} value={s.guidePuzzle} options={PUZZLES.map((p) => ({ id: p.id, label: p.label }))} className="flex-wrap" />
         <Choice prefix="guideMethod:" label={tr("Method")} value={method.id} options={methods.map((m) => ({ id: m.id, label: m.name }))} className="flex-wrap" />
       </div>
-      <Separator />
-      <div className="flex max-h-[55vh] flex-col gap-4 overflow-y-auto pr-1">
+      <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto rounded-[20px] bg-muted/60 p-5">
         <div className="flex items-start gap-4">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h3 className="text-base font-semibold">{said(method.name)}</h3>
+            <h3 className="text-xl font-extrabold tracking-[-0.025em]">{said(method.name)}</h3>
             <p className="text-sm text-muted-foreground">{said(method.summary)}</p>
           </div>
           <Button action={`learnFrom:${s.guidePuzzle}:${method.id}`} icon={GraduationCap} variant="outline" className="shrink-0">
@@ -272,9 +258,9 @@ function MethodsDialog() {
         <ol className="flex flex-col gap-4">
           {method.steps.map((step, i) => (
             <li key={step.title} className="flex gap-4">
-              <span className={cn(NUMERIC, "w-5 shrink-0 pt-px text-sm text-muted-foreground")}>{i + 1}</span>
+              <span className={cn(NUMERIC, "flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-primary")}>{i + 1}</span>
               <div className="flex flex-col gap-1">
-                <strong className="text-sm font-medium">{said(step.title)}</strong>
+                <strong className="pt-0.5 text-sm font-semibold">{said(step.title)}</strong>
                 <p className="text-sm text-muted-foreground">{said(step.text)}</p>
               </div>
             </li>
@@ -317,7 +303,8 @@ function SearchCases() {
               value={c.id}
               title={c.name !== c.id ? `${c.id} · ${tr(c.name)}` : c.id}
               onSelect={() => void s.action("case:" + c.id)}
-              className="rounded-lg outline-hidden data-[selected=true]:*:border-primary/50! data-[selected=true]:*:bg-primary/10!"
+              // The chosen result in the accent colour, no ring: a ring was cut by the list's edges.
+              className="rounded-[14px] outline-hidden data-[selected=true]:*:bg-accent!"
             >
               <CaseTile c={c} plain selected={false} />
             </CommandPrimitive.Item>
@@ -343,7 +330,7 @@ export const Overlays = memo(function Overlays() {
   useSyncExternalStore(s.subscribe, overlaysKey, overlaysKey);
   return (
     <>
-      <Modal id="settings" title={tr("Settings")} className="sm:max-w-md" tall>
+      <Modal id="settings" title={tr("Settings")} className="sm:max-w-lg" tall>
         <Settings />
       </Modal>
       <Modal id="importTimes" title={tr("Import times")} description={tr("From another timer, or a file exported from Qbix. The file is read on this device.")} className="sm:max-w-lg">
@@ -353,20 +340,15 @@ export const Overlays = memo(function Overlays() {
       <SessionSheet />
       <MethodsDialog />
       <SearchDialog />
+      <DailyDialog />
       <Modal id="algPlayer" title={s.algView?.items[s.algView.index]?.name ?? tr("Algorithm")} description={tr("The algorithm played on the cube")} hideHeader tall className="flex h-[min(86vh,560px)] gap-0 overflow-hidden p-0 sm:max-w-4xl" sheetClassName="pb-6">
         <AlgView />
       </Modal>
       <Modal id="notation" title={tr("Notation")} description={tr("How moves are written")} tall className="flex h-[min(88vh,760px)] flex-col sm:max-w-5xl">
         <NotationContent />
       </Modal>
-      <Modal id="learningGroups" title={tr("Group order · {0}", { 0: s.learningMode })} description={tr("Drag the groups, or use the arrow keys on a handle.")} className="sm:max-w-md">
-        <LearningGroups key={s.learningMode} />
-      </Modal>
       <Modal id="solve" title={tr("Solve")} hideHeader className={s.overlaySolve?.scramble && puzzleInfo(puzzleOf(s.overlaySolve)).cubeSize ? "sm:max-w-4xl" : "sm:max-w-lg"}>
         <SolveDetails />
-      </Modal>
-      <Modal id="profileCase" title={said(s.caseId)} className="flex h-[min(88vh,760px)] flex-col sm:max-w-4xl" tall>
-        <TimerStats compact data={s.caseHistory} empty={tr("No attempts on this case yet.")} />
       </Modal>
     </>
   );

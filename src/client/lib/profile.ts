@@ -158,3 +158,58 @@ export function trendScale<P extends { time: number | null }>(history: readonly 
       points.map((v, i) => (finite(v) ? `${finite(points[i - 1]) ? "L" : "M"}${round(x(i))} ${round(y(v))}` : "")).join(" ");
   return { from, shown, ao5, low, high, y, line, ticks: [0, 1, 2].map((i) => high - ((high - low) * i) / 2), finite };
 }
+
+/* The journal. */
+
+/** A day of the journal: its solves, the event's best single and best Ao5 that day, and the records it set. */
+export type JournalDay = { key: string; date: Date; count: number; best: number | null; ao5: number | null; records: { kind: "single" | "ao5"; time: number; gain: number | null }[] };
+
+/**
+ * The active days, newest first, from every event's solves (`activity`) and one event's timer history in order with
+ * its Ao5 (`history`, `averages`): each day's best single and Ao5, and the records beaten that day with their gain.
+ */
+export function journalDays(activity: readonly ActivitySolve[], history: readonly Timed[], averages: readonly (number | null)[]): JournalDay[] {
+  const days = new Map<string, JournalDay>(),
+    day = (at: string) => {
+      const date = new Date(at),
+        key = dayKey(date);
+      let d = days.get(key);
+      if (!d) days.set(key, (d = { key, date: new Date(date.getFullYear(), date.getMonth(), date.getDate()), count: 0, best: null, ao5: null, records: [] }));
+      return d;
+    };
+  for (const v of activity) day(v.at).count++;
+  const best = { single: null as number | null, ao5: null as number | null };
+  history.forEach((v, i) => {
+    if (!v.at) return;
+    const d = day(v.at);
+    for (const [kind, time] of [["single", v.time], ["ao5", averages[i]]] as const) {
+      if (!finite(time)) continue;
+      const own = kind === "single" ? "best" : "ao5";
+      if (d[own] == null || time < d[own]!) d[own] = time;
+      const previous = best[kind];
+      if (previous != null && time >= previous) continue;
+      best[kind] = time;
+      // A day keeps one record of each kind, its best; `gain` holds the record before the day until the end.
+      const set = d.records.find((r) => r.kind === kind);
+      if (set) set.time = time;
+      else d.records.push({ kind, time, gain: previous });
+    }
+  });
+  // The gain: how much the day took off the record standing before it (none for a first time).
+  for (const d of days.values()) for (const r of d.records) r.gain = r.gain == null ? null : r.gain - r.time;
+  return [...days.values()].sort((a, b) => (a.key < b.key ? 1 : -1));
+}
+
+/** The best Ao5 of each of the last `count` weeks (from Monday), oldest first, null for a week without one. */
+export function weeklyBestAo5(history: readonly Timed[], averages: readonly (number | null)[], count = 10, today = new Date()) {
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7)),
+    weeks = Array.from({ length: count }, (_, i) => ({ start: new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 7 * (count - 1 - i)), best: null as number | null }));
+  history.forEach((v, i) => {
+    const time = averages[i],
+      at = new Date(v.at);
+    if (!finite(time)) return;
+    const week = weeks.findLast((w) => w.start <= at);
+    if (week && at.getTime() - week.start.getTime() < 7 * 86_400_000 && (week.best == null || time < week.best)) week.best = time;
+  });
+  return weeks;
+}

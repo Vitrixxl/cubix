@@ -5,11 +5,8 @@ import { detectPlatform, Landing } from "../renderer/landing/Landing";
 import { FAQ, FEATURES, SITE } from "../renderer/landing/content";
 import { landingDocument, llms, llmsFull, robots, sitemap, structuredData } from "../renderer/landing/document";
 import { desktopVersion } from "../package-release";
-import { allDone, colours, type CatalogCase } from "../../src/client/lib/solveAnalysis";
-import { solveCfop } from "../../src/client/lib/cfopSolver";
-import { applyAlg, type CubeState } from "../../src/shared/cube";
-import { SCRAMBLE, SOLUTION, STEP_TURNS, TURNS, solveScene } from "../renderer/landing/solve";
-import catalog from "../assets/catalog.json";
+import { applyAlg, colorOf, solved, type CubeState } from "../../src/shared/cube";
+import { INSPECTION, SCRAMBLE, SOLUTION, TURN_BACK, TURNS, loopScene, solveScene } from "../renderer/landing/solve";
 import { setLanguage } from "../../src/client/i18n";
 
 describe("the landing page", () => {
@@ -27,11 +24,15 @@ describe("the landing page", () => {
   test("renders whole without JavaScript: every feature, the downloads, the questions", () => {
     const html = renderToString(createElement(Landing));
     expect(html).toContain("<h1");
-    // A title is written word by word, each in its own element.
-    const text = html.replace(/<[^>]+>/g, "");
-    expect(text).toContain("The free speedcubing app to time, learn and get faster");
-    for (const feature of FEATURES) expect(text).toContain(feature.title.replace(/&/g, "&amp;"));
+    const text = html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'");
+    expect(text).toContain("The free speedcubing app");
+    // Each feature: shown live with its words, or in a card of its own.
+    for (const id of ["timer", "learn", "algorithms", "training", "duel"]) expect(text).toContain(FEATURES.find((f) => f.id === id)!.hook);
+    for (const id of ["coaching", "everywhere"]) expect(html).toContain(`id="${id}"`);
+    // No figures on the page: it shows what the app does.
+    expect(text).not.toMatch(/6,500|1,737/);
     for (const item of FAQ) expect(html).toContain(item.question.replace(/'/g, "&#x27;"));
+    expect(html).toContain("buymeacoffee.com");
     expect(html).toContain('href="/timer"');
     expect(html).toContain("install.ps1");
     expect(html).toContain("Tauri");
@@ -69,23 +70,27 @@ describe("the landing page", () => {
     }
   });
 
-  test("the cube solved under the scroll plays the app's own CFOP solution of its scramble", () => {
-    const scene = solveScene(), start = Uint16Array.from(scene.states[0]!) as CubeState;
-    expect(scene.moves).toHaveLength(STEP_TURNS.flat().length);
-    expect(allDone(colours(start))).toBe(false);
-    expect(allDone(colours(Uint16Array.from(scene.states.at(-1)!)))).toBe(true);
-    const steps = solveCfop(start, (catalog as { cases: CatalogCase[] }).cases)!;
-    expect(steps.map((step) => step.alg)).toEqual(SOLUTION.map((step) => step.alg));
-    expect(allDone(colours(applyAlg(start, steps.map((step) => step.alg).join(" "))))).toBe(true);
-    expect(TURNS).toBe(49);
-    expect(SCRAMBLE.split(" ")).toHaveLength(20);
+  test("the cube at the top replays the world record: its official scramble, solved by its reconstruction", () => {
+    // Every face of one colour, whichever way the cube is held.
+    const uniform = (state: CubeState) => [0, 1, 2, 3, 4, 5].every((face) => [...Array(9).keys()].every((i) => colorOf(state, face * 9 + i) === colorOf(state, face * 9 + 4)));
+    // Scrambled as the WCA does, white on top and green in front, then inspected and solved.
+    const scrambled = applyAlg(solved(3), SCRAMBLE);
+    expect(uniform(scrambled)).toBe(false);
+    expect(uniform(applyAlg(scrambled, [INSPECTION, ...SOLUTION.map((step) => step.alg)].join(" ")))).toBe(true);
+    expect(TURNS).toBe(32);
+    const scene = solveScene(), loop = loopScene();
+    expect(scene.states[0]).toEqual(Array.from(scrambled));
+    expect(uniform(Uint16Array.from(scene.states.at(-1)!))).toBe(true);
+    // The loop turns the solved cube back, scrambles it to the same cube, and ends where it began.
+    expect(loop.states[TURN_BACK.split(" ").length + SCRAMBLE.split(" ").length]).toEqual(scene.states[0]!);
+    expect(loop.states.at(-1)).toEqual(loop.states[0]!);
   });
 
   test("the scrambled cube is drawn in the page before any script runs", () => {
     const html = renderToString(createElement(Landing));
     expect(html).toContain("data-still");
     expect(html.match(/<polygon/g)!.length).toBeGreaterThan(27);
-    expect(html.match(/data-chapter/g)).toHaveLength(FEATURES.length);
+    for (const demo of ["timer", "learn", "algorithms", "training", "duel"]) expect(html).toContain(`data-demo="${demo}"`);
   });
 
   test("the desktop version digests the shell: the same sources, the same version", async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { applyAlg, FACES, solved, type Face } from "../src/shared/cube";
-import { HELD_HEX } from "../src/shared/cubeAppearance";
+import { REAL_HELD_HEX as HELD_HEX } from "../src/shared/cubeAppearance";
 import { solveBeginner } from "../src/client/lib/beginnerSolver";
 import { classify, scannedState, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
 import { allDone, colours, crossDone, edgesOriented, topDone } from "../src/client/lib/solveAnalysis";
@@ -30,6 +30,11 @@ describe("beginner solver", () => {
       for (const part of parts!) {
         expect(part.alg).toMatch(/^[UDFBRL](2|')?( [UDFBRL](2|')?)*$/);
         expect(part.step).toBeGreaterThanOrEqual(reached.at(-1) ?? 0);
+        // The course's algorithm it is made of, but for the cross and the last turn of the top.
+        if (part.step > 0 && part.label !== "Turn the top") {
+          expect(part.gesture, `seed ${seed} ${part.label}`).toBeDefined();
+          expect(part.gesture!.alg.split(" ").length * part.gesture!.times).toBeGreaterThanOrEqual(part.alg.split(" ").length - 2);
+        }
         state = applyAlg(state, part.alg);
         reached.push(part.step);
       }

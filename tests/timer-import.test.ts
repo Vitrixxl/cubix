@@ -108,17 +108,17 @@ describe("reading other timers' exports", () => {
   });
 });
 
-test("Qbix's own export: its timer solves come back by session, its training solves stay out", () => {
+test("Qbix's own export: its timer solves come back by session, with its name, its training solves stay out", () => {
   const file = JSON.stringify({
     app: "Qbix",
     solves: [
       { id: 1, session_id: 7, case_id: null, time_ms: 9870, penalty: "+2", scramble: "R U", comment: "pb", created_at: "2026-10-01T10:00:00.000Z", puzzle_id: "333", solve_mode: "one-handed" },
       { id: 2, session_id: 8, case_id: "pll-t", time_ms: 1500, penalty: "none", scramble: null, created_at: "2026-10-01T10:01:00.000Z" },
     ],
-    sessions: [],
+    sessions: [{ id: 7, name: "OH practice" }],
   });
   const read = readTimerExport(file);
   expect(read.app).toBe("Qbix");
-  expect(read.solves).toEqual([{ event: "333oh", timeMs: 9870, penalty: "+2", scramble: "R U", comment: "pb", at: Date.parse("2026-10-01T10:00:00.000Z"), session: "7" }]);
+  expect(read.solves).toEqual([{ event: "333oh", timeMs: 9870, penalty: "+2", scramble: "R U", comment: "pb", at: Date.parse("2026-10-01T10:00:00.000Z"), session: "7", sessionName: "OH practice" }]);
   expect(read.skipped).toEqual({ "training solves": 1 });
 });

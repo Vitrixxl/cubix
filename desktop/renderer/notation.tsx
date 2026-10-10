@@ -115,8 +115,7 @@ function MoveBlock({ block }: { block: NotationBlock }) {
 
 /** A move to show: a click turns it on the cube. */
 function MoveTile({ move }: { move: string }) {
-  const on = s.notationMove === move,
-    phone = usePhone();
+  const on = s.notationMove === move;
   return (
     <Toggle
       variant="outline"
@@ -124,7 +123,7 @@ function MoveTile({ move }: { move: string }) {
       pressed={on}
       aria-label={`${move}: ${describeMove(move, puzzleInfo(s.notationPuzzle).cubeSize ?? 3) || "play it"}`}
       onClick={run("notationMove:" + move)}
-      className={cn(NUMERIC, "px-3 text-base aria-pressed:border-primary/50 aria-pressed:bg-primary/10 aria-pressed:text-primary dark:aria-pressed:bg-primary/10", phone ? "h-11" : "h-10")}
+      className={cn(NUMERIC, "aria-pressed:bg-primary/15 aria-pressed:text-primary dark:aria-pressed:bg-primary/15")}
     >
       {said(move)}
     </Toggle>
@@ -150,15 +149,14 @@ function MovePlayer({ move, size, phone = false }: { move: string; size: number;
 
 function LoopControls({ player }: { player: AlgPlayer }) {
   usePlayback(player);
-  const phone = usePhone();
   return (
     <div className="flex items-center gap-1">
       <Tip content={player.active ? tr("Pause") : tr("Play")}>
-        <Button variant="ghost" size={phone ? "icon-lg" : "icon"} aria-label={player.active ? tr("Pause") : tr("Play")} onClick={player.toggle} className={cn("text-muted-foreground hover:text-foreground", phone && "size-11")}>
+        <Button variant="ghost" size="icon" aria-label={player.active ? tr("Pause") : tr("Play")} onClick={player.toggle} className="text-muted-foreground hover:text-foreground">
           {player.active ? <Pause /> : <Play />}
         </Button>
       </Tip>
-      <SpeedChoice player={player} touch={phone} />
+      <SpeedChoice player={player} />
     </div>
   );
 }

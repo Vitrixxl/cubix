@@ -1,27 +1,28 @@
 /** The coach's side: the dashboard with the weeks ahead, the students, the weekly schedule and the public profile. */
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, ExternalLink, ImageUp, Save, TriangleAlert, UserRoundX, Users } from "lucide-react";
+import { CalendarDays, ExternalLink, ImageUp, Save, UserRoundX, Users } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, NUMERIC, plural, usePhone } from "../ui";
+import { Avatar, Modal, NUMERIC, plural, usePhone } from "../ui";
 import { go } from "../navigation";
-import { coaching, euros, price } from "./client";
+import { coaching, euros, price, type Booking } from "./client";
 import { Chat } from "./chat";
-import { SessionRow, useMinute } from "./sessions";
+import { SessionDays, useMinute } from "./sessions";
+import { PersonDialog, SessionCard } from "./person";
+import { CoachRow } from "./browse";
 import { day, span, url } from "./parts";
-import { Bar, Empty, EventPicker, Figure, ListSkeleton, SectionHead, Strip, Surface } from "../base";
+import { Bar, Empty, EventPicker, LINK, ListSkeleton, Segmented, StateMark, Surface } from "../base";
 import { ChatPanel, ConversationList, ConversationRow, LIST } from "../chat";
 import { cn } from "@/lib/utils";
-import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button as UiButton } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { tr, locale } from "../../../src/client/i18n";
 import { ask } from "../confirm";
 import { said } from "../base";
+import { msg } from "../../../src/client/i18n/msg";
 
 function useDashboard() {
   useEffect(() => {
@@ -31,28 +32,20 @@ function useDashboard() {
 }
 const WEEK_NAMES = ["This week", "Next week", "In 2 weeks", "In 3 weeks"];
 
-/** What is coming: the figures of the weeks ahead, each week's load against its free slots, and the next sessions. */
+/** What is coming: what is left to set up, the figures of the weeks ahead, each week's sessions against its free slots, and the next sessions. */
 export function Dashboard() {
   const d = useDashboard(),
-    now = useMinute();
+    now = useMinute(),
+    phone = usePhone(),
+    [shown, setShown] = useState<Booking | null>(null),
+    [person, setPerson] = useState<Booking | null>(null);
   if (!d)
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true" aria-label={tr("Loading")}>
-        <Skeleton className="h-16 shrink-0 rounded-xl" />
+        <Skeleton className="h-24 shrink-0 rounded-[24px]" />
         <div className="flex min-h-0 flex-1 gap-4 max-lg:flex-col">
-          <div className="flex shrink-0 flex-col gap-5 rounded-xl p-4 ring-1 ring-foreground/10 lg:w-80">
-            <Skeleton className="h-4 w-24" />
-            {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-1.5" />
-              </div>
-            ))}
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-xl p-4 ring-1 ring-foreground/10">
-            <Skeleton className="h-4 w-32" />
-            <ListSkeleton rows={4} className="-mx-1.5" />
-          </div>
+          <Skeleton className="rounded-[24px] lg:w-96" />
+          <Skeleton className="flex-1 rounded-[24px]" />
         </div>
       </div>
     );
@@ -65,65 +58,98 @@ export function Dashboard() {
     !c.headline && ["Introduce yourself on your public page.", "profile", "Edit my profile"],
     !c.accepting && ["Your bookings are paused.", "profile", "Open bookings"],
   ].filter(Boolean) as [string, string, string][];
+  const figures: [React.ReactNode, string][] = [
+    [week.sessions, msg("sessions in the next 7 days")],
+    [`${(week.minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h`, msg("booked in the next 7 days")],
+    [euros(month), msg("expected over 4 weeks")],
+    [week.openSlots, msg("free slots in the next 7 days")],
+    [d.students.length, msg("students")],
+    [c.rating == null ? "–" : c.rating.toFixed(1), plural(c.reviews, "review")],
+  ];
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      {todo.map(([text, view, action]) => (
-        <Alert key={view + text} variant="warning" className="shrink-0 items-center has-[>svg]:grid-cols-[auto_1fr_auto] *:[svg]:row-span-1 *:[svg]:translate-y-0" data-slot="todo">
-          <TriangleAlert />
-          <AlertTitle className="font-normal">{said(text)}</AlertTitle>
-          <UiButton size="sm" variant="outline" onClick={() => go(url(view))}>
-            {said(action)}
-          </UiButton>
-        </Alert>
-      ))}
-      <section aria-label={tr("Dashboard")} className="flex min-h-0 flex-1 flex-col gap-4">
-        <Strip className="grid-cols-3 xl:grid-cols-6">
-          <Figure label="Sessions · 7 days" value={week.sessions} size="xl" />
-          <Figure label="Booked · 7 days" value={`${(week.minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h`} size="xl" />
-          <Figure label="Expected · 4 weeks" value={euros(month)} tone="accent" size="xl" />
-          <Figure label="Free slots · 7 days" value={week.openSlots} size="xl" />
-          <Figure label="Students" value={d.students.length} size="xl" />
-          <Figure label="Rating" value={c.rating == null ? "–" : c.rating.toFixed(1)} tone="warning" size="xl" />
-        </Strip>
-        <div className="flex min-h-0 flex-1 gap-4 max-lg:flex-col">
-          <Surface className="shrink-0 lg:w-80" aria-label={tr("Forecast")}>
-            <SectionHead title="Forecast" className="px-4 pt-2" />
-            <ul className="flex flex-col gap-4 px-4 pt-2 pb-4">
-              {d.weeks.map((w, i) => (
-                <li key={w.from} className="flex flex-col gap-1.5" data-week={i}>
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium">{said(WEEK_NAMES[i])}</span>
-                    <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-                      {day(w.from)} – {day(w.to - 1)}
-                    </span>
-                  </span>
-                  {/* Booked in the accent, the free slots paler behind, the rest of the busiest week empty. */}
-                  <Bar ratio={w.sessions / most} behind={(w.sessions + w.openSlots) / most} className="h-1.5" label="Forecast" text={`${plural(w.sessions, "session")} · ${plural(w.openSlots, "free slot")}`} />
-                  <span className={cn(NUMERIC, "flex justify-between text-xs text-muted-foreground")}>
-                    <span>
-                      <span className="font-medium text-foreground">{plural(w.sessions, "session")}</span> · {plural(w.openSlots, "free slot")}
-                    </span>
-                    <span className="text-foreground">{euros(w.incomeCents)}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Surface>
-          <Surface className="min-w-0 flex-1">
-            <SectionHead title="Next sessions" meta={d.upcoming.length} className="px-4 pt-2" />
-            {!d.upcoming.length ? (
-              <Empty icon={CalendarDays}>{tr("No session booked yet.")}</Empty>
-            ) : (
-              <ul className={cn(LIST, "min-h-0 flex-1 overflow-y-auto")} data-slot="upcoming">
-                {d.upcoming.map((b) => (
-                  <SessionRow key={b.id} b={b} now={now} compact />
-                ))}
-              </ul>
-            )}
-          </Surface>
+    <section aria-label={tr("Dashboard")} className="flex min-h-0 flex-1 flex-col gap-4 max-lg:overflow-y-auto">
+      {todo.length > 0 && (
+        <div className="grid shrink-0 gap-3 md:grid-cols-3">
+          {todo.map(([text, view, action]) => (
+            <div key={view + text} className="flex items-center gap-3 rounded-[20px] bg-card px-4 py-3" data-slot="todo">
+              <StateMark tone="accent" className="min-w-0 flex-1 whitespace-normal">
+                {said(text)}
+              </StateMark>
+              <UiButton onClick={() => go(url(view))}>
+                {said(action)}
+              </UiButton>
+            </div>
+          ))}
         </div>
-      </section>
-    </div>
+      )}
+      <Surface className="shrink-0 px-6 py-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
+          {figures.map(([value, label]) => (
+            <div key={label} className="flex flex-col">
+              <dd className={cn(NUMERIC, "order-first text-3xl font-extrabold tracking-[-0.03em] max-md:text-2xl")}>{value}</dd>
+              <dt className="text-xs text-muted-foreground">{said(label)}</dt>
+            </div>
+          ))}
+        </dl>
+      </Surface>
+      <div className="flex min-h-0 flex-1 gap-4 max-lg:flex-col-reverse max-lg:flex-none">
+        <Surface className="shrink-0 gap-4 px-6 py-5 lg:w-96" aria-label={tr("Forecast")}>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-base font-extrabold">{tr("The next four weeks")}</h2>
+            {/* The bars' two colours said once, so nothing needs guessing. */}
+            <span className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <i className="size-2.5 rounded-[3px] bg-primary" aria-hidden="true" />
+                {tr("sessions booked")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <i className="size-2.5 rounded-[3px] bg-primary/35" aria-hidden="true" />
+                {tr("free slots left")}
+              </span>
+            </span>
+          </div>
+          <ul className="flex flex-col gap-5">
+            {d.weeks.map((w, i) => (
+              <li key={w.from} className="flex flex-col gap-1.5" data-week={i}>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="font-bold">{said(WEEK_NAMES[i])}</span>
+                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
+                    {day(w.from)} – {day(w.to - 1)}
+                  </span>
+                </span>
+                <Bar ratio={w.sessions / most} behind={(w.sessions + w.openSlots) / most} className="h-2" label="Forecast" text={`${plural(w.sessions, "session")} · ${plural(w.openSlots, "free slot")}`} />
+                <span className={cn(NUMERIC, "flex justify-between text-xs text-muted-foreground")}>
+                  <span>
+                    <span className="font-bold text-foreground">{plural(w.sessions, "session")}</span> · {plural(w.openSlots, "free slot")}
+                  </span>
+                  <span className="font-bold text-foreground">{euros(w.incomeCents)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Surface>
+        <Surface className="min-w-0 flex-1 px-2.5 pt-4 pb-2.5 max-lg:flex-none">
+          <div className="flex shrink-0 items-baseline gap-2 px-3 pb-1">
+            <h2 className="text-base font-extrabold">{tr("Next sessions")}</h2>
+            <span className={cn(NUMERIC, "text-sm text-muted-foreground")}>{d.upcoming.length || ""}</span>
+            <button type="button" className={cn(LINK, "ml-auto")} onClick={() => go(url("schedule"))}>
+              {tr("Schedule")}
+            </button>
+          </div>
+          {!d.upcoming.length ? (
+            <Empty icon={CalendarDays}>{tr("No session booked yet.")}</Empty>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col" data-slot="upcoming">
+              <SessionDays list={d.upcoming} now={now} onPick={setShown} />
+            </div>
+          )}
+        </Surface>
+      </div>
+      <Modal open={!!shown} onOpenChange={(open) => !open && setShown(null)} title={shown ? shown.with.username : tr("Session")} hideHeader className={phone ? undefined : "sm:max-w-lg"}>
+        {shown && <SessionCard b={shown} onProfile={() => setPerson(shown)} />}
+      </Modal>
+      {person && <PersonDialog id={person.with.id} name={person.with.username} open onOpenChange={(open) => !open && setPerson(null)} />}
+    </section>
   );
 }
 
@@ -135,6 +161,10 @@ export function StudentsView({ id }: { id: string }) {
     void coaching.load("conversations");
     void coaching.load("bookings");
   }, []);
+  // On a wide window the first student opens when none is chosen; a phone shows the list first.
+  useEffect(() => {
+    if (!phone && !id && d?.students.length) go(url("students/" + d.students[0]!.id), true);
+  }, [id, d?.students.length, phone]);
   const student = d?.students.find((st) => st.id === id),
     conversation = coaching.conversations?.find((c) => c.id === student?.conversationId);
   return (
@@ -234,28 +264,22 @@ function ProfileForm() {
     }
   }
   return (
-    <form onSubmit={save} className="mx-auto flex min-h-0 w-full max-w-3xl flex-col" data-slot="coach-profile">
-      <Surface className="flex-1">
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-6">
+    <form onSubmit={save} className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]" data-slot="coach-profile">
+      <Surface className="min-w-0">
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-6 max-md:p-4">
         <Picture />
         <div className="grid gap-5 sm:grid-cols-2">
           <Field>
             <FieldLabel>{tr("Bookings")}</FieldLabel>
-            <ToggleGroup variant="outline" spacing={0} value={[accepting ? "open" : "paused"]} onValueChange={(v: string[]) => v[0] && setAccepting(v[0] === "open")} aria-label={tr("Bookings")}>
-              <ToggleGroupItem value="open" data-action="profile:open" className="px-4">
-                {tr("Open")}</ToggleGroupItem>
-              <ToggleGroupItem value="paused" data-action="profile:paused" className="px-4">
-                {tr("Paused")}</ToggleGroupItem>
-            </ToggleGroup>
+            <div>
+              <Segmented label="Bookings" value={accepting ? "open" : "paused"} onChange={(v) => setAccepting(v === "open")} action="profile:" className="w-fit bg-muted" options={[{ id: "open", label: "Open" }, { id: "paused", label: "Paused" }]} />
+            </div>
           </Field>
           <Field>
             <FieldLabel>{tr("New students")}</FieldLabel>
-            <ToggleGroup variant="outline" spacing={0} value={[newStudents ? "open" : "closed"]} onValueChange={(v: string[]) => v[0] && setNewStudents(v[0] === "open")} aria-label={tr("New students")}>
-              <ToggleGroupItem value="open" data-action="profile:newcomers" className="px-4">
-                {tr("Welcome")}</ToggleGroupItem>
-              <ToggleGroupItem value="closed" data-action="profile:regulars" className="px-4">
-                {tr("My students only")}</ToggleGroupItem>
-            </ToggleGroup>
+            <div>
+              <Segmented label="New students" value={newStudents ? "newcomers" : "regulars"} onChange={(v) => setNewStudents(v === "newcomers")} action="profile:" className="w-fit bg-muted" options={[{ id: "newcomers", label: "Welcome" }, { id: "regulars", label: "My students only" }]} />
+            </div>
             <FieldDescription>{newStudents ? tr("Anyone can book your free slots.") : tr("Only players you already coached see your slots.")}</FieldDescription>
           </Field>
         </div>
@@ -286,16 +310,22 @@ function ProfileForm() {
           </Field>
         </div>
       </div>
-      <div className="flex shrink-0 gap-2 border-t p-4">
-        <UiButton type="button" variant="outline" size="lg" className="max-md:h-11" onClick={() => go(url("coach/" + coach.id))} data-action="profile:preview">
+      <div className="flex shrink-0 gap-2 px-6 pt-2 pb-6 max-md:px-4 max-md:pb-4">
+        <UiButton type="button" variant="outline" onClick={() => go(url("coach/" + coach.id))} data-action="profile:preview">
           <ExternalLink />
           {tr("Public page")}
         </UiButton>
-        <UiButton type="submit" size="lg" className="flex-1 max-md:h-11" disabled={!valid || pending} data-action="profile:save">
+        <UiButton type="submit" className="flex-1" disabled={!valid || pending} data-action="profile:save">
           <Save />
           {pending ? tr("Saving…") : tr("Save")}
         </UiButton>
       </div>
+      </Surface>
+      {/* What players will see in the list of coaches, as it is typed. */}
+      <Surface className="gap-3 self-start px-2.5 pt-4 pb-2.5 max-lg:hidden" aria-label={tr("How players see you")}>
+        <h2 className="px-3 text-xs font-bold text-muted-foreground">{tr("How players see you in the list")}</h2>
+        <CoachRow c={{ ...coach, headline: headline.trim(), events, languages: languages.split(",").map((l) => l.trim()).filter(Boolean), priceCents: valid ? cents : coach.priceCents, newStudents }} />
+        <p className="px-3 pb-1 text-xs text-muted-foreground">{accepting ? tr("Bookings open.") : tr("Bookings paused: players see no slot.")}</p>
       </Surface>
     </form>
   );
@@ -336,12 +366,12 @@ function Picture() {
         />
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <UiButton type="button" variant="outline" size="sm" disabled={pending} onClick={() => input.current?.click()} data-action="profile:picture">
+            <UiButton type="button" variant="outline" disabled={pending} onClick={() => input.current?.click()} data-action="profile:picture">
               <ImageUp />
               {coach.avatar ? tr("Change") : tr("Add a picture")}
             </UiButton>
             {coach.avatar && (
-              <UiButton type="button" variant="ghost" size="sm" disabled={pending} onClick={async () => (await ask({ title: tr("Remove your picture?"), action: tr("Remove") })) && set(null)}>
+              <UiButton type="button" variant="ghost" disabled={pending} onClick={async () => (await ask({ title: tr("Remove your picture?"), action: tr("Remove") })) && set(null)}>
                 {tr("Remove")}</UiButton>
             )}
           </div>

@@ -42,13 +42,13 @@ export function FloatingCall() {
       {/* The other party is heard whether the window is open or folded. */}
       <Sound stream={call.remote} />
       {live.hidden ? (
-        <UiButton size="lg" className="h-11 gap-2.5 rounded-full pr-3 pl-4 shadow-lg" onClick={() => fold(false)} onMouseDown={(e) => e.preventDefault()} data-action="call:show">
+        <UiButton className="shadow-lg" onClick={() => fold(false)} onMouseDown={(e) => e.preventDefault()} data-action="call:show">
           <span className={cn("size-2 rounded-full ring-2 ring-primary-foreground/30", call.phase === "connected" ? "bg-success" : "animate-pulse bg-warning")} />
           {tr("Call with")}{" "}{b.with.username}
           <Maximize2 />
         </UiButton>
       ) : (
-        <Movable place={floatingAt} ratio={16 / 9} min={224} className={cn("max-w-full", !floatingAt.w && "w-80 max-sm:w-64")} frame="dark overflow-hidden rounded-xl bg-background text-foreground shadow-2xl ring-1 ring-foreground/15">
+        <Movable place={floatingAt} ratio={16 / 9} min={224} className={cn("max-w-full", !floatingAt.w && "w-80 max-sm:w-64")} frame="dark overflow-hidden rounded-[20px] bg-background text-foreground shadow-2xl">
           {() => (
             <>
               <Stream stream={call.remote} muted className={cn("size-full object-cover", !peerVideo && "invisible")} />
@@ -79,7 +79,7 @@ export function FloatingCall() {
                     {call.camera ? <Video /> : <VideoOff />}
                   </Control>
                   <Tip content={tr("Leave the call")}>
-                    <UiButton variant="destructive" size="icon-lg" aria-label={tr("Leave the call")} onClick={() => call.close()} onMouseDown={(e) => e.preventDefault()} data-action="call:leave" className="w-11">
+                    <UiButton variant="destructive" size="icon" aria-label={tr("Leave the call")} onClick={() => call.close()} onMouseDown={(e) => e.preventDefault()} data-action="call:leave" className="w-11">
                       <PhoneOff />
                     </UiButton>
                   </Tip>
@@ -100,7 +100,7 @@ function Small({ tip, onClick, action, children }: { tip: string; onClick: () =>
     <Tip content={tip} side="top">
       <UiButton
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         aria-label={said(tip)}
         onClick={onClick}
         // Clicked, it keeps no focus: Space goes on starting the timer rather than pressing it again.

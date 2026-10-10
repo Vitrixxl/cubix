@@ -17,11 +17,14 @@ export function caseState(c: CaseDto): CubeState {
   return s;
 }
 
-export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" ? "OLL" : stage === "PLL" || stage === "ZBLL" ? "PLL" : stage === "F2L" ? "F2L" : "full");
+export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" || stage === "Last slot" ? "OLL" : stage === "PLL" || stage === "ZBLL" || stage === "OLLCP" || stage === "COLL" ? "PLL" : stage === "CMLL" ? "CMLL" : stage === "F2L" ? "F2L" : "full");
 
 /** Algorithm as the user should execute it from the shown case (pre-AUF included). */
 export const displayAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `(${a.pre_auf}) ${a.alg}` : a.alg);
 export const executableAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `${a.pre_auf} ${a.alg}` : a.alg);
+
+/** An algorithm's length in the slice turn metric: every turn counts one, rotations (x, y, z) none. The catalogue's own `stm`. */
+export const moveCount = (alg: string): number => alg.replace(/[()[\]]/g, " ").split(/\s+/).filter((m) => m && !/^[xyz]/.test(m)).length;
 
 /** "F2L 12" → "12", "PLL T" → "T". */
 export const shortId = (c: Pick<CaseDto, "id">) => c.id.replace(/^\S+\s+/, "");

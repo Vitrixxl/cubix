@@ -20,6 +20,15 @@ export const TIME_ENTRIES: { id: TimeEntry; label: string }[] = [
   { id: "casual", label: msg("Casual") },
 ];
 
+/** The WCA inspection before a timer solve: off, announced aloud as a judge does, counted down on screen, or both. */
+export type Inspection = "off" | "voice" | "display" | "both";
+export const INSPECTIONS: { id: Inspection; label: string }[] = [
+  { id: "off", label: msg("None") },
+  { id: "voice", label: msg("Spoken") },
+  { id: "display", label: msg("On screen") },
+  { id: "both", label: msg("Spoken and on screen") },
+];
+
 /** Longest time accepted from the keyboard: ten hours. */
 const MAX_TYPED_MS = 36_000_000;
 

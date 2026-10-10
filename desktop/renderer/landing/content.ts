@@ -27,9 +27,9 @@ export interface Feature {
 export const FEATURES: Feature[] = [
   {
     id: "timer",
-    hook: "Time every WCA event.",
+    hook: "Hold, release, solve.",
     title: "A cube timer for every WCA event",
-    summary: "Hold, release, solve: the timer of competitions, with official scrambles generated on your device.",
+    summary: "The timer of competitions, with random-state scrambles for every WCA event generated on your device, averages, +2 and DNF by the rules.",
     points: [
       "14 WCA events, from 2×2 to 7×7, One-Handed and Blindfolded to Square-1, Pyraminx, Skewb and Megaminx",
       "Random-state scrambles like the WCA's, generated ahead in the background so a new one is always instant",
@@ -40,9 +40,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: "algorithms",
-    hook: "6,500 algorithms. One 3D player.",
+    hook: "Every algorithm, played in 3D.",
     title: "6,500 algorithms with a 3D player",
-    summary: "The 1,737 cases of the methods people actually use, each with several algorithms and a cube that plays them.",
+    summary: "The cases of the methods people actually use, each with several algorithms and a cube that plays them, step by step and at your speed.",
     points: [
       "3×3: F2L (basic, advanced and expert cases), 2-look and full OLL and PLL, and all 472 ZBLL",
       "2×2 Ortega and PBL, big cube centres, edge pairing and parities, Square-1, Pyraminx, Skewb and Megaminx",
@@ -53,21 +53,21 @@ export const FEATURES: Feature[] = [
   },
   {
     id: "training",
-    hook: "Drill any case.",
+    hook: "Drill what you learned.",
     title: "Training that remembers what you know",
-    summary: "Drill the cases you choose, learn a new one each day, review the ones you learned.",
+    summary: "Drill the cases you learned, the slowest first, and plan the cross.",
     points: [
-      "Free practice on any cases, with random AUF and the solution hidden until you ask",
-      "Daily learning: one new F2L, OLL or PLL case a day, in the order you set",
-      "Review: every case you learned, drawn at random, by stage",
+      "Recommended first: your learned cases slower than usual, each with why",
+      "Whole sets or single cases you learned, with random AUF and the solution hidden until you ask",
+      "Every attempt compared with your mean on its case",
       "Cross, XCross and XXCross: scrambles of an exact number of moves, with their optimal solutions",
     ],
   },
   {
     id: "learn",
-    hook: "Learn CFOP, Roux and ZZ.",
+    hook: "Never solved a cube? Start here.",
     title: "Courses from your first solve to CFOP, Roux and ZZ",
-    summary: "Step-by-step lessons for every puzzle, with the algorithms of each step and a cube that shows them.",
+    summary: "Step-by-step lessons from your first solve to CFOP, Roux and ZZ, on every puzzle, with a cube that shows each move.",
     points: [
       "3×3: beginner method, CFOP, Roux and ZZ",
       "2×2: beginner, Ortega, CLL and EG; 4×4 to 7×7: reduction and Yau",
@@ -77,9 +77,9 @@ export const FEATURES: Feature[] = [
   },
   {
     id: "duel",
-    hook: "Race another cuber, live.",
+    hook: "Race a friend, live.",
     title: "Live duels",
-    summary: "Race another cuber on the same five scrambles, live, matched to your level.",
+    summary: "The same scrambles for both of you, live: see your opponent hold, start and stop. A friend, or a cuber matched to your level.",
     points: ["Matchmaking by your recent times", "See your opponent hold, start and stop, live", "Chat, rematch, and your record of wins on your profile"],
   },
   {

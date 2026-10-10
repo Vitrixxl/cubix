@@ -17,6 +17,7 @@ const result = await Bun.build({
       export const call = (...args) => window.cubixTestCall(...args);
       export const onEvent = () => () => {};
       export const openExternal = async () => {};
+      export const socket = { send: () => false, on: () => () => {}, connected: () => false };
     ` }));
     build.onLoad({ filter: /^harness$/, namespace: "test" }, () => ({ loader: "tsx", resolveDir: root, contents: `
       import React, { useSyncExternalStore } from 'react';

@@ -83,18 +83,26 @@ const settle = (page: Page) => page.waitForTimeout(250);
 /** Clicks the first visible control of an action; on phones a header's "…" menu is opened for it when needed. */
 const act = async (page: Page, action: string) => {
   const target = page.locator(`[data-action="${action}"]:visible`);
-  if (!(await target.count()) && (await page.locator('[data-action="menu:more"]:visible').count())) {
-    await page.locator('[data-action="menu:more"]:visible').first().click();
-    await page.waitForTimeout(250);
-  }
+  // The account's menu (desktop header) or the page's "…" (phones) holds what is not in view.
+  for (const menu of ["menu:account", "menu:more"])
+    if (!(await target.count()) && (await page.locator(`[data-action="${menu}"]:visible`).count())) {
+      await page.locator(`[data-action="${menu}"]:visible`).first().click();
+      await page.waitForTimeout(250);
+    }
   await target.first().click();
   await settle(page);
 };
 /** Opens a method's course from its card in the list of methods. */
 async function openMethod(page: Page, id: string) {
-  // Learn opens on the choice between methods and algorithms; the methods are a step further.
-  if (!(await page.locator(`[data-action="learnMethod:${id}"]:visible`).count())) await act(page, "learnMethods");
-  await act(page, "learnMethod:" + id);
+  // From a course, back to the list of methods (where the method is a card in the list, or the panel's button).
+  if (!(await page.locator(`[data-action="learnMethod:${id}"]:visible, [data-method="${id}"]:visible`).count())) await act(page, "learnMethods");
+  // The list chooses a method; its panel starts it.
+  const tile = page.locator(`[data-method="${id}"]:visible`);
+  if (await tile.count()) await tile.first().click();
+  // Phones show the panel in a sheet, over the page's own: the last one.
+  await page.waitForTimeout(400);
+  await page.locator(`[data-action="learnMethod:${id}"]:visible`).last().click();
+  await settle(page);
 }
 /** Shows a step of the open course: from the list of steps, in its sheet on phones. */
 async function learnStep(page: Page, index: number) {
@@ -111,7 +119,8 @@ async function check(page: Page, screen: string) {
     if (document.documentElement.scrollHeight > innerHeight + 1 || document.documentElement.scrollWidth > innerWidth + 1) errors.push("Page overflows the viewport");
     for (const head of document.querySelectorAll("header")) {
       const title = head.querySelector("h1"), sub = title?.parentElement?.querySelector("p");
-      if (!title || !sub || !title.getBoundingClientRect().width) continue;
+      // A head stacked by design (a breadcrumb over the title, its line under it) has no subtitle beside the title.
+      if (!title || !sub || !title.getBoundingClientRect().width || getComputedStyle(title.parentElement!).flexDirection !== "row") continue;
       const a = title.getBoundingClientRect(), b = sub.getBoundingClientRect();
       if (b.width && (b.top >= a.bottom || b.left < a.right - 1)) errors.push("Header subtitle wraps: " + title.textContent);
     }
@@ -137,7 +146,7 @@ try {
     const context = await browser.newContext({ viewport: { width: width!, height: height! } });
     const page = await context.newPage();
     page.on("pageerror", (e) => console.log("page error:", e.message));
-    // The login page, then a fresh account per size.
+    // The sign-in dialog (/login), then a fresh account per size.
     await page.goto(origin + "/login");
     await page.waitForSelector("#login-username");
     await settle(page);
@@ -156,7 +165,14 @@ try {
     await act(page, "nav:algorithms");
     await check(page, "algorithms");
     await page.locator("[data-action^='case:']").first().click();
+    // The dialog's code loads on its first opening: check it once it is there.
+    await page.waitForSelector('[data-slot="dialog-content"], [data-slot="drawer-popup"]');
     await check(page, "case");
+    // The case is a dialog over the list.
+    for (let i = 0; i < 3 && (await page.locator('[data-slot="dialog-overlay"], [data-slot="drawer-overlay"]').count()); i++) {
+      await page.keyboard.press("Escape");
+      await settle(page);
+    }
     // Learn: the methods of the puzzle, a step teaching its own algorithms, a step teaching catalogue sets.
     await act(page, "nav:learn");
     await check(page, "learn-methods");
@@ -176,43 +192,38 @@ try {
     await check(page, "learn-catalog");
     await act(page, "nav:training");
     await check(page, "training-setup");
-    await act(page, "setupMode:cross");
     await act(page, "trainingStart:cross");
     await check(page, "cross-training");
     await act(page, "nav:duel");
     await check(page, "duel-lobby");
-    // A race: a second tab of the same browser is the opponent.
-    const other = await context.newPage();
+    // A race: another player, in a browser context of their own (the tabs of one browser share one connection).
+    const rival = await browser.newContext({ viewport: { width: width!, height: height! } });
+    const other = await rival.newPage();
     await other.goto(origin + "/timer");
-    // Another account in the same browser would replace this one: the opponent tab signs in as the same player, the
-    // server pairs the two tabs as different connections.
-    await other.waitForSelector('[data-action="nav:duel"]', { timeout: 60000 });
+    await signIn(other, "grid_rival_" + width);
+    await other.waitForSelector(".rail, .tabbar", { timeout: 60000 });
     await other.locator('[data-action="nav:duel"]').first().click();
     await other.waitForSelector('[data-action="duel:search"]');
     await page.locator('[data-action="duel:search"]').click();
     await other.locator('[data-action="duel:search"]').click();
     await page.waitForSelector(".duel-scramble .alg");
     await check(page, "duel-race");
-    await other.close();
+    await rival.close();
     // The profile is the account row at the foot of the sidebar, the Account tab on phones.
     await act(page, "nav:profile");
     await check(page, "profile");
     for (const mode of ["playground", "training", "achievements", "duels"]) {
       // A section without data (no battles yet) has no link to open.
-      if (!(await page.locator(`[data-action="profileMode:${mode}"]:visible`).count()) && !(await page.locator('[data-action="menu:more"]:visible').count())) continue;
+      if (!(await page.locator(`[data-action="profileMode:${mode}"]:visible`).count())) continue;
       await act(page, "profileMode:" + mode);
       await check(page, "profile-" + mode);
-      if (mode === "playground") {
-        await act(page, "statsView:table");
-        await check(page, "profile-table");
-        await act(page, "statsView:chart");
-      }
+      // The statistics show their chart and their list of solves together: one check holds both.
       // Phones switch the sections with a segmented control rather than opening them as pages.
       await act(page, "profileMode:overview");
     }
     await act(page, "settings");
     await check(page, "settings");
-    // The guides are in the sidebar's foot, on phones in the account page's header.
+    // The guides are in the account menu: the header's, on phones beside the Me section's pages.
     await page.keyboard.press("Escape");
     await settle(page);
     await act(page, "help");

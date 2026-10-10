@@ -19,7 +19,7 @@ import (
 // webPages: the first segment of every address of the app (`src/client/lib/route.ts`).
 var webPages = []string{
 	"login", "onboarding", "timer", "algorithms", "training", "duel", "learn", "coaching", "community",
-	"tournaments", "match", "profile", "solve",
+	"tournaments", "match", "daily", "profile", "solve",
 }
 
 // webLanguages: the languages whose pages live under their prefix; English's are at the root.
@@ -46,9 +46,14 @@ func webRouter(dir string) http.Handler {
 	if isFile(filepath.Join(dir, "landing.html")) {
 		landing = "landing.html"
 	}
+	// The administration's page: the app's without its chunks loaded ahead (`desktop/web.ts`); a build from before it, the app's.
+	admin := "index.html"
+	if isFile(filepath.Join(dir, "admin.html")) {
+		admin = "admin.html"
+	}
 	files := map[string]string{
 		"/":      landing,
-		"/admin": "index.html",
+		"/admin": admin,
 		// The legal notice, the privacy policy and the terms of use, pages of their own.
 		"/legal":   "legal.html",
 		"/privacy": "privacy.html",
@@ -62,7 +67,7 @@ func webRouter(dir string) http.Handler {
 			return
 		}
 		if page, ok := strings.CutPrefix(path, "/admin/"); ok && page != "" {
-			webServeFile(w, r, filepath.Join(dir, "index.html"))
+			webServeFile(w, r, filepath.Join(dir, admin))
 			return
 		}
 		webPage(dir, w, r)

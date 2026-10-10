@@ -149,3 +149,60 @@ describe("a timer started and stopped by a smart cube", () => {
     expect(timer.begin()).toBe(false);
   });
 });
+
+describe("a WCA inspection before the solve", () => {
+  const started = async (startAt: number) => {
+    let now = 0;
+    const stops: [number, string][] = [];
+    const timer = new PracticeTimer({ canStart: () => true, inspection: () => true, now: () => now, onChange: () => {}, onStop: (ms, penalty) => stops.push([ms, penalty]) });
+    try {
+      timer.press();
+      expect(timer.snapshot.phase).toBe("inspecting");
+      timer.release();
+      expect(timer.snapshot.phase).toBe("inspecting");
+      // A hold let go too soon goes back to the inspection, not to rest.
+      timer.press(); timer.release();
+      expect(timer.snapshot.phase).toBe("inspecting");
+      timer.press();
+      await Bun.sleep(HOLD_DELAY_MS + 20);
+      now = startAt;
+      timer.release();
+      now = startAt + 9000;
+      timer.press();
+      return stops;
+    } finally { timer.dispose(); }
+  };
+  test("no penalty within 15 seconds, +2 until 17, DNF after", async () => {
+    expect(await started(15000)).toEqual([[9000, "none"]]);
+    expect(await started(16500)).toEqual([[9000, "+2"]]);
+    expect(await started(17001)).toEqual([[9000, "dnf"]]);
+  });
+  test("a smart cube or a Stackmat starting during the inspection gets its penalty too", () => {
+    let now = 0;
+    const stops: string[] = [];
+    const timer = new PracticeTimer({ canStart: () => true, inspection: () => true, now: () => now, onChange: () => {}, onStop: (_, penalty) => stops.push(penalty) });
+    timer.press();
+    now = 16000;
+    timer.begin();
+    timer.finish(5000);
+    expect(stops).toEqual(["+2"]);
+    // The next solve begins with no inspection left over.
+    timer.begin();
+    timer.finish(5000);
+    expect(stops).toEqual(["+2", "none"]);
+  });
+});
+
+test("blindfolded: the first press ends the memorisation, the second stops; one input heard twice acts once", () => {
+  let now = 0;
+  const stops: [number, number | undefined][] = [];
+  const timer = new PracticeTimer({ canStart: () => true, memo: () => true, now: () => now, onChange: () => {}, onStop: (ms, _, memo) => stops.push([ms, memo]) });
+  timer.begin();
+  now = 30000;
+  timer.press(30000);
+  timer.press(30000);
+  expect(timer.snapshot).toMatchObject({ phase: "running", memo: 30000 });
+  now = 75000;
+  timer.press(75000);
+  expect(stops).toEqual([[75000, 30000]]);
+});

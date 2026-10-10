@@ -140,7 +140,7 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
       }}
     >
       {dragging && (
-        <div className="pointer-events-none absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/60 bg-background/80 text-sm font-medium">
+        <div className="pointer-events-none absolute inset-3 z-10 flex flex-col items-center justify-center gap-2 rounded-[20px] bg-background/85 text-sm font-semibold ring-2 ring-primary ring-inset">
           <ImageUp className="size-6 text-primary" />
           {tr("Drop to send to")} {c.with.username}
         </div>
@@ -148,7 +148,7 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
       {head && (
         <ChatHeader
           back={back ? { label: "Every conversation", onClick: () => go(back) } : undefined}
-          face={<Avatar name={c.with.username} src={c.with.avatar} size={32} />}
+          face={<Avatar name={c.with.username} src={c.with.avatar} size={40} />}
           title={c.with.username}
           sub={c.role === "student" ? tr("Your coach") : tr("Your student")}
           onOpen={() => setFile(true)}
@@ -161,11 +161,12 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
         key={c.id}
         messages={messages}
         me={s.user.id}
-        bubble={(m, mine, last) => (
+        them={c.with.username}
+        bubble={(m) => (
           <>
             {m.media && <MediaView media={m.media} />}
             {m.body && (
-              <Bubble mine={mine} last={last} at={m.createdAt}>
+              <Bubble at={m.createdAt}>
                 {m.body}
               </Bubble>
             )}
@@ -178,8 +179,8 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
         }
       >
         {uploads.map((u) => (
-          <div key={u.key} className="flex max-w-[70%] flex-col items-end gap-1 self-end" data-slot="upload" aria-label={tr("Sending {0}", { 0: u.name })}>
-            <Skeleton className="h-40 w-56 rounded-2xl" />
+          <div key={u.key} className="flex max-w-[70%] flex-col items-start gap-1 md:ml-[128px]" data-slot="upload" aria-label={tr("Sending {0}", { 0: u.name })}>
+            <Skeleton className="h-40 w-56 rounded-[18px]" />
             <span className="truncate px-1 text-xs text-muted-foreground">
               {tr("Sending")} {u.name}
             </span>
@@ -191,7 +192,7 @@ export function Chat({ conversation: c, back, head = true }: { conversation: Con
         <ChatClosed
           action={
             c.role === "student" && (
-              <UiButton size="sm" onClick={book} data-action="chat:book">
+              <UiButton onClick={book} data-action="chat:book">
                 <CalendarPlus />
                 {tr("Book")}
               </UiButton>
@@ -255,14 +256,14 @@ function Write({ c, attach, book }: { c: Conversation; attach: (files: File[]) =
         }}
         attach={
           <Tip content={tr("Send a picture or a video")}>
-            <InputGroupButton type="button" size="icon-sm" className="size-7 rounded-lg text-muted-foreground hover:text-foreground" aria-label={tr("Send a picture or a video")} onClick={() => picker?.click()} data-action="chat:attach">
+            <UiButton type="button" variant="outline" size="icon" aria-label={tr("Send a picture or a video")} onClick={() => picker?.click()} data-action="chat:attach">
               <Paperclip />
-            </InputGroupButton>
+            </UiButton>
           </Tip>
         }
         actions={
           book && (
-            <InputGroupButton type="button" size="sm" className="h-7 rounded-lg text-muted-foreground hover:text-foreground" onClick={book} data-action="chat:book">
+            <InputGroupButton type="button" size="sm" className="text-muted-foreground hover:text-foreground" onClick={book} data-action="chat:book">
               <CalendarPlus />
               {tr("Book")}
             </InputGroupButton>
@@ -290,12 +291,12 @@ function MediaView({ media }: { media: Media }) {
   }, [media.id]);
   const video = media.type.startsWith("video/"),
     label = media.name || (video ? "Video" : "Photo");
-  if (failed) return <span className="rounded-2xl bg-muted px-3 py-1.5 text-muted-foreground">{tr("{0} is unavailable", { 0: said(label) })}</span>;
-  if (!src) return <Skeleton className="h-48 w-64 rounded-2xl" aria-label={tr("Loading {0}", { 0: label })} />;
-  if (video) return <video src={src} controls preload="metadata" className="max-h-72 max-w-full rounded-2xl bg-muted" aria-label={said(label)} data-slot="message-video" />;
+  if (failed) return <span className="rounded-[18px] bg-muted px-3 py-1.5 text-muted-foreground">{tr("{0} is unavailable", { 0: said(label) })}</span>;
+  if (!src) return <Skeleton className="h-48 w-64 rounded-[18px]" aria-label={tr("Loading {0}", { 0: label })} />;
+  if (video) return <video src={src} controls preload="metadata" className="max-h-72 max-w-full rounded-[18px] bg-muted" aria-label={said(label)} data-slot="message-video" />;
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label={tr("Open {0}", { 0: label })} className={cn("overflow-hidden rounded-2xl", FOCUS)}>
+      <button type="button" onClick={() => setOpen(true)} aria-label={tr("Open {0}", { 0: label })} className={cn("overflow-hidden rounded-[18px]", FOCUS)}>
         <img src={src} alt={said(label)} className="max-h-72 max-w-full object-contain" data-slot="message-image" />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>

@@ -227,20 +227,25 @@ func syncPush(db *Conn, state *AppState, uid string, caller *ApiCaller, body any
 			if err != nil {
 				return nil, err
 			}
-			solve := false
+			solve, session := false, false
 			if rest, ok := strings.CutPrefix(path, "solves/"); ok {
 				id, err := strconv.ParseUint(rest, 10, 64)
 				solve = err == nil && id > 0
 			}
+			if rest, ok := strings.CutPrefix(path, "sessions/"); ok {
+				id, err := strconv.ParseUint(rest, 10, 64)
+				session = err == nil && id > 0
+			}
 			if !((method == "POST" && (path == "sessions" || path == "solves")) ||
 				(solve && (method == "PATCH" || method == "DELETE")) ||
+				(session && method == "PATCH") ||
 				(method == "PUT" && (path == "learned" || path == "learning-group-order" || path == "journey"))) {
 				return nil, validation()
 			}
 			value, err := apiRoute(db, state, method, path, map[string]string{}, idx(op, "body"), caller)
 			if err != nil {
 				// Deletion wins over a late offline edit from another device.
-				if e := toApiError(err); e.Status == 404 && solve {
+				if e := toApiError(err); e.Status == 404 && (solve || session) {
 					value, err = nil, nil
 				} else {
 					return nil, e

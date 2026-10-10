@@ -43,7 +43,8 @@ export * from "./base";
 export const plural = (count: number, noun: string) => tn(count, `{n} ${noun}`);
 export { run } from "./store";
 
-type Size = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
+/** The button sizes of components/ui/button.tsx: standard, or compact for dense lists. */
+type Size = "default" | "sm" | "icon" | "icon-sm";
 
 /** A shadcn button dispatching a store action, with a tooltip when it has one (icon buttons always do). */
 export function Button({
@@ -96,7 +97,7 @@ export function ActionToggle({
   disabled,
   size = "default",
   variant,
-}: { action: string; pressed: boolean; icon?: LucideIcon; tip?: React.ReactNode; disabled?: boolean; size?: "default" | "sm" | "lg"; variant?: "default" | "outline" } & Props) {
+}: { action: string; pressed: boolean; icon?: LucideIcon; tip?: React.ReactNode; disabled?: boolean; size?: "default" | "sm"; variant?: "default" | "outline" } & Props) {
   const head = React.useContext(InHead);
   const toggle = (
     <Toggle
@@ -153,12 +154,13 @@ export function SelectMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<UiButton variant={variant} data-action={"menu:" + action} aria-label={said(label)} className={cn("gap-1.5", className)} />}
+        render={<UiButton variant={variant} data-action={"menu:" + action} aria-label={said(label)} className={className} />}
       >
         {icon}
-        {caption && <span className="text-muted-foreground">{said(caption)}</span>}
-        <span className="truncate">{said(current?.label ?? value)}</span>
-        <ChevronDown className="text-muted-foreground" />
+        {/* With its caption, a pill: "Scramble normal", the value in the accent and no chevron. */}
+        {caption && <span className="font-semibold text-muted-foreground">{said(caption)}</span>}
+        <span className={cn("truncate", caption && "font-bold text-primary")}>{said(current?.label ?? value)}</span>
+        {!caption && <ChevronDown className="text-muted-foreground" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-auto min-w-44">
         <DropdownMenuRadioGroup value={value} onValueChange={(v: string) => (onChange ? onChange(v) : void s.action(action + ":" + v))}>
@@ -202,7 +204,7 @@ export function PuzzleButton({ profile = false }: { profile?: boolean }) {
     <PuzzlePicker
       profile={profile}
       trigger={
-        <UiButton variant={variant} className="gap-2">
+        <UiButton variant={variant}>
           <Icon name={"Puzzle" + e.id} size={16} />
           {said(e.label)}
           <ChevronDown className="text-muted-foreground" />
@@ -272,19 +274,19 @@ export function SolveMenu({ solve, children }: { solve: { id: number; time_ms?: 
 export function SolveActions({ solve, full = false, className }: { solve: { id: number; penalty?: string; comment?: string | null }; full?: boolean; className?: string }) {
   return (
     <span className={cn("flex items-center opacity-0 transition-opacity group-hover/row:opacity-100 group-focus-within/row:opacity-100", className)}>
-      <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground aria-pressed:text-warning">
+      <ActionToggle action={`penalty:${solve.id}:+2`} pressed={solve.penalty === "+2"} size="sm" className="text-muted-foreground aria-pressed:text-warning">
         +2
       </ActionToggle>
-      <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="h-6 min-w-0 px-1.5 text-xs text-muted-foreground aria-pressed:text-destructive">
+      <ActionToggle action={`penalty:${solve.id}:dnf`} pressed={solve.penalty === "dnf"} size="sm" className="text-muted-foreground aria-pressed:text-destructive">
         {tr("DNF")}</ActionToggle>
       {full && (
         <>
-          <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-xs" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
-          {!s.user.isGuest && <Button action={"share:" + solve.id} icon={Share2} size="icon-xs" label={tr("Share")} className="text-muted-foreground" />}
-          <Button action={"solve:" + solve.id} icon={Info} size="icon-xs" label={tr("Details")} className="text-muted-foreground" />
+          <Button action={"comment:" + solve.id} icon={MessageSquare} size="icon-sm" label={solve.comment ? tr("Edit comment") : tr("Add comment")} className={cn("text-muted-foreground", solve.comment && "text-primary")} />
+          {!s.user.isGuest && <Button action={"share:" + solve.id} icon={Share2} size="icon-sm" label={tr("Share")} className="text-muted-foreground" />}
+          <Button action={"solve:" + solve.id} icon={Info} size="icon-sm" label={tr("Details")} className="text-muted-foreground" />
         </>
       )}
-      <Button action={"delete:" + solve.id} icon={Trash2} size="icon-xs" label={tr("Delete solve")} className="text-muted-foreground hover:text-destructive" />
+      <Button action={"delete:" + solve.id} icon={Trash2} size="icon-sm" label={tr("Delete solve")} className="text-muted-foreground hover:text-destructive" />
     </span>
   );
 }
@@ -342,7 +344,7 @@ export function StatusMark({ state }: { state: "done" | "current" | "neutral" | 
 }
 
 /** How far a step or set is learned: a check once all its algorithms are, a small dot without algorithms, else a ring filled as far as they are. */
-export function ProgressRing({ done, share, current, neutral }: { done: boolean; share: number; current?: boolean; neutral?: boolean }) {
+export function ProgressRing({ done, share, current, neutral, className }: { done: boolean; share: number; current?: boolean; neutral?: boolean; className?: string }) {
   if (done || neutral)
     return (
       <span className={cn("flex size-4 shrink-0 items-center justify-center", done ? "text-success" : current ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
@@ -352,7 +354,7 @@ export function ProgressRing({ done, share, current, neutral }: { done: boolean;
   const r = 6.5,
     length = 2 * Math.PI * r;
   return (
-    <svg viewBox="0 0 16 16" className={cn("size-4 shrink-0 -rotate-90", current || share > 0 ? "text-primary" : "text-muted-foreground/50")} aria-hidden="true">
+    <svg viewBox="0 0 16 16" className={cn("size-4 shrink-0 -rotate-90", current || share > 0 ? "text-primary" : "text-muted-foreground/50", className)} aria-hidden="true">
       <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth="2.5" />
       {share > 0 && <circle cx="8" cy="8" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={`${share * length} ${length}`} />}
     </svg>
@@ -360,14 +362,14 @@ export function ProgressRing({ done, share, current, neutral }: { done: boolean;
 }
 
 /** Whether an algorithm or a case is learned, as a labelled toggle: "Mark learned", then "Learned" in green; an intuitive step says mastered. */
-export function LearnToggle({ action, learned, touch = false, mastery = false, className }: { action: string; learned: boolean; touch?: boolean; mastery?: boolean; className?: string }) {
+export function LearnToggle({ action, learned, mastery = false, className }: { action: string; learned: boolean; mastery?: boolean; className?: string }) {
   return (
     <ActionToggle
       action={action}
       pressed={learned}
       icon={Check}
       variant="outline"
-      className={cn("text-muted-foreground aria-pressed:border-success/40 aria-pressed:bg-success/15 aria-pressed:text-success", touch && "h-11 px-3", className)}
+      className={cn("text-muted-foreground aria-pressed:bg-success/15 aria-pressed:text-success", className)}
     >
       {mastery ? (learned ? tr("Mastered") : tr("Mark as mastered")) : learned ? tr("Learned") : tr("Mark learned")}
     </ActionToggle>
@@ -384,7 +386,9 @@ export function PenaltyToggles({
   onToggle,
   disabled = false,
   variant = "outline",
+  className,
 }: {
+  className?: string;
   penalty: string | undefined;
   prefix?: string;
   onToggle?: (penalty: "+2" | "dnf") => void;
@@ -398,12 +402,11 @@ export function PenaltyToggles({
           <Toggle
             key={p}
             variant={variant}
-            size="sm"
             pressed={penalty === p}
             disabled={disabled}
             data-action={prefix != null ? prefix + p : undefined}
             onClick={() => (onToggle ? onToggle(p) : void s.action(prefix + p))}
-            className={cn("text-muted-foreground", p === "+2" ? "aria-pressed:text-warning" : "aria-pressed:text-destructive")}
+            className={cn("text-muted-foreground", p === "+2" ? "aria-pressed:text-warning" : "aria-pressed:text-destructive", className)}
           >
             {p === "+2" ? "+2" : tr("DNF")}
           </Toggle>
@@ -487,14 +490,20 @@ export function Modal({
   description,
   hideHeader = false,
   tall = false,
+  initialFocus,
+  dismissible = true,
 }: {
+  /** False: no way to close it but its own content (no ✕, Escape or click outside). */
+  dismissible?: boolean;
+  /** What takes the focus once open (desktop): by default its first control. */
+  initialFocus?: () => HTMLElement | null;
   id?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   title: React.ReactNode;
   description?: React.ReactNode;
   hideHeader?: boolean;
-  tall?: boolean;
+  tall?: boolean | "full";
   className?: string;
   sheetClassName?: string;
   children: React.ReactNode;
@@ -502,6 +511,7 @@ export function Modal({
   const phone = usePhone(),
     open = id != null ? s.overlay === id : !!shown,
     onOpenChange = (next: boolean) => {
+      if (!next && !dismissible) return;
       if (id != null) return void (!next && s.overlay === id && s.closeOverlay());
       changed?.(next);
     };
@@ -513,9 +523,9 @@ export function Modal({
     );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("gap-5 p-6", DIALOG_FOOTER, className)}>
+      <DialogContent initialFocus={initialFocus} showCloseButton={dismissible} className={cn("gap-5 p-6", DIALOG_FOOTER, className)}>
         <DialogHeader className={hideHeader ? "sr-only" : undefined}>
-          <DialogTitle className="text-lg font-semibold tracking-tight">{said(title)}</DialogTitle>
+          <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{said(title)}</DialogTitle>
           {description && <DialogDescription>{said(description)}</DialogDescription>}
         </DialogHeader>
         {children}

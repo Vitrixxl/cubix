@@ -1,274 +1,57 @@
-/** The overview's sections: timer, training, achievements and battles, each one card built the same way. */
-import { BookOpen, CalendarDays, ChevronDown, Gauge, Layers, MessageSquare, Rotate3d, Swords, Timer, Trophy, type LucideIcon } from "lucide-react";
-import { store as s } from "../store";
-import { fmtTime, shortDate, solvedAt } from "../../../src/client/lib/format";
-import { timerFigures } from "../../../src/client/lib/practiceSummary";
-import { Bar, Button, Empty, Figure, Icon, IconTile, NUMERIC, PuzzlePicker, ROW, SectionHead, SolveMenu, Stats, Tip, run } from "../ui";
-import { RESULT_MARK, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
+/** The marks the profile's pages share: an achievement's badge, a battle's result, and an empty battle history. */
+import { BookOpen, Flame, Gauge, Layers, Swords, Timer, type LucideIcon } from "lucide-react";
+import { Button, Empty, NUMERIC } from "../ui";
+import { achievementBadge } from "../../../src/client/lib/achievements";
+import type { AchievementCategory, AchievementDto } from "../../../src/shared/types";
+import { RESULT_MARK, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
-import { Button as UiButton } from "@/components/ui/button";
-import { MoreLink, Section } from "./card";
-import { Legend, Trend, TrendLegend } from "./trend";
-import { battles, type ProfileData } from "./data";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
-/** The latest timer solves, newest first; a click opens one, a right-click its menu. */
-export function LatestSolves({ history, averages, count = 5, phone = false }: { history: any[]; averages: (number | null)[]; count?: number; phone?: boolean }) {
-  const from = Math.max(0, history.length - count),
-    rows = history
-      .slice(from)
-      .map((v, i) => ({ v, index: from + i }))
-      .reverse(),
-    columns = phone ? "grid-cols-[2.75rem_5.5rem_minmax(0,1fr)_auto]" : "grid-cols-[3rem_6rem_7.5rem_minmax(0,1fr)_auto]";
-  return (
-    <div className="-mx-2 flex flex-col">
-      {rows.map(({ v, index }) => {
-        const previous = history[index - 1],
-          pb = v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time);
-        return (
-          <SolveMenu key={v.id} solve={{ ...v, time_ms: v.timeMs }}>
-            <button type="button" data-action={"solve:" + v.id} onClick={run("solve:" + v.id)} className={cn(ROW, "grid h-9 w-full items-center gap-3 px-2", columns)}>
-              <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
-              <span className="flex items-center gap-1.5">
-                <span className={cn(NUMERIC, "text-sm font-medium", v.time == null ? "text-destructive" : pb ? "text-success" : "")}>{fmtTime(v.time, { blank: "DNF" })}</span>
-                {v.penalty === "+2" && <span className={cn(NUMERIC, "text-xs text-warning")}>+2</span>}
-                {pb && <span className="text-xs font-medium text-success">{tr("PB")}</span>}
-                {v.smart && <Rotate3d className="size-3.5 text-muted-foreground" aria-label={tr("Turned on a connected cube")} />}
-              </span>
-              {!phone && <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{averages[index] != null ? tr("Ao5 {0}", { 0: fmtTime(averages[index]) }) : ""}</span>}
-              <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                {v.comment && (
-                  <>
-                    <MessageSquare className="size-3.5 shrink-0" aria-label={tr("Comment")} />
-                    <span className="truncate">{v.comment}</span>
-                  </>
-                )}
-              </span>
-              <span className="text-right text-xs text-muted-foreground">{solvedAt(v.at)}</span>
-            </button>
-          </SolveMenu>
-        );
-      })}
-    </div>
-  );
-}
-
-/** The chosen event as the timer card's title, opening the puzzle picker. */
-function EventTitle() {
-  const e = s.event(s.profilePuzzle, s.profileSolveMode);
-  return (
-    <PuzzlePicker
-      profile
-      trigger={
-        <UiButton variant="ghost" className="-ml-2.5 h-8 gap-2 px-2.5 text-base font-semibold tracking-tight">
-          <Icon name={"Puzzle" + e.id} size={18} className="text-primary" />
-          {said(e.label)}
-          <ChevronDown className="text-muted-foreground" />
-        </UiButton>
-      }
-    />
-  );
-}
+/** The achievements' categories in their order: each one's name, icon and colour (its badges, its filter). */
+export const CATEGORIES: { id: AchievementCategory; label: string; icon: LucideIcon; colour: string }[] = [
+  { id: "speed", label: "Speed", icon: Timer, colour: "var(--primary)" },
+  { id: "average", label: "Averages", icon: Gauge, colour: "var(--lilac)" },
+  { id: "volume", label: "Volume", icon: Layers, colour: "var(--warning)" },
+  { id: "knowledge", label: "Knowledge", icon: BookOpen, colour: "var(--success)" },
+  { id: "dedication", label: "Dedication", icon: Flame, colour: "var(--destructive)" },
+];
+export const categoryOf = (a: { category: string }) => CATEGORIES.find((c) => c.id === a.category) ?? CATEGORIES[0]!;
 
 /**
- * The chosen event's card: its best single and where it stands now, its curve and, on phones, its latest
- * solves. `fill` (the desktop overview) stretches the curve over the height the card is given.
+ * An achievement's badge, the same wherever one shows: its goal (10, 1:00, OLL…) over its unit, on a disc filled with
+ * its category's colour once unlocked; until then a quiet disc whose ring fills with the progress. Small badges keep
+ * the goal only.
  */
-export function TimerSection({ d, phone, fill = false }: { d: ProfileData; phone: boolean; fill?: boolean }) {
-  const t = d.timer,
-    event = s.event(s.profilePuzzle, s.profileSolveMode),
-    all = timerFigures(t),
-    // Its best single beside where it stands now; the other bests are on the Timer page.
-    figures = [all[0]!, ...all.slice(3, phone ? 6 : 7)];
+export function AchievementBadge({ a, size = 44, className }: { a: AchievementDto; size?: number; className?: string }) {
+  const { value, unit } = achievementBadge(a),
+    colour = categoryOf(a).colour,
+    small = size < 36;
   return (
-    <Section
-      label={tr("Timer")}
-      title={<EventTitle />}
-      meta={t.count && !phone ? tr("{0} scrambles", { 0: s.label("scrambles", s.profileScramble) }) : undefined}
-      open={t.count ? "playground" : undefined}
-      more={tr("Statistics")}
-      aside={
-        !phone && (
-          <>
-            {!!t.count && <TrendLegend />}
-            {/* The analysis of the smart cube solves: their steps and cases. */}
-            <MoreLink actions={["profileMode:analysis"]}>{tr("Analysis")}</MoreLink>
-          </>
-        )
-      }
-      className={fill ? "min-h-0 flex-1" : undefined}
-      body={cn(fill && "min-h-0 flex-1", !t.count && "flex-1")}
-    >
-      {!t.count ? (
-        <Empty icon={Timer} title={tr("No {0} solves yet.", { 0: said(event.label) })} className="p-2">
-          <Button action="nav:playground" icon={Timer} variant="outline">
-            {tr("Open the timer")}
-          </Button>
-        </Empty>
-      ) : (
-        <>
-          <Stats columns={figures.length}>
-            {figures.map(([label, value, tone]) => (
-              <Figure key={label} label={said(label)} value={value} tone={tone} caption="plain" size="xl" />
-            ))}
-          </Stats>
-          <Trend history={d.history} averages={d.ao5} className={fill ? "min-h-24 flex-1" : phone ? "h-40" : "h-48"} />
-          {!fill && (
-            <div className="flex flex-col gap-1">
-              <SectionHead title={tr("Latest solves")}>
-                <MoreLink actions={["statsView:table", "profileMode:playground"]}>{tr("View all")}</MoreLink>
-              </SectionHead>
-              <LatestSolves history={d.history} averages={d.ao5} phone={phone} />
-            </div>
-          )}
-        </>
+    <span
+      aria-hidden="true"
+      className={cn(
+        "relative flex shrink-0 flex-col items-center justify-center rounded-full leading-none",
+        a.unlocked ? "text-background" : "bg-muted text-muted-foreground",
+        className,
       )}
-    </Section>
-  );
-}
-
-/** Learned and trained cases per stage; `compact` (the overview's bottom row) keeps the first three stages. */
-export function TrainingSection({ d, compact = false }: { d: ProfileData; compact?: boolean }) {
-  const stages = compact ? d.stages.slice(0, 3) : d.stages;
-  return (
-    <Section
-      label={tr("Training")}
-      title={tr("Training")}
-      meta={tr("{0} of {1} learned", { 0: d.learned, 1: d.cases.length })}
-      open="training"
-      more={tr("Cases")}
-      body={compact ? "gap-3 pt-1" : undefined}
+      style={{ width: size, height: size, background: a.unlocked ? colour : undefined }}
     >
-      {!compact && (
-        <Stats columns={3}>
-          <Figure caption="plain" size="xl" label={tr("Learned")} value={d.learned.toLocaleString()} tone="accent" />
-          <Figure caption="plain" size="xl" label={tr("Trained")} value={d.trained.toLocaleString()} />
-          <Figure caption="plain" size="xl" label={tr("Solves")} value={d.trainingSolves.toLocaleString()} />
-        </Stats>
+      {!a.unlocked && (
+        <svg viewBox="0 0 40 40" fill="none" strokeWidth={2.6} className="absolute inset-0 size-full -rotate-90">
+          <circle cx="20" cy="20" r="18" stroke="var(--accent)" />
+          <circle cx="20" cy="20" r="18" stroke={colour} strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0.5, a.ratio * 100)} 100`} />
+        </svg>
       )}
-      {stages.length ? (
-        <div className="flex flex-col gap-3">
-          <div className={cn("grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4", compact ? "gap-y-2.5" : "gap-y-3")}>
-            {stages.map((r) => (
-              <Tip key={r.stage} content={tr("{0} learned · {1} trained · {2} cases", { 0: r.learned, 1: r.trained, 2: r.total })}>
-                <div className="col-span-3 grid grid-cols-subgrid items-center">
-                  <span className="text-sm font-medium">{said(r.stage)}</span>
-                  <Bar ratio={r.total ? r.learned / r.total : 0} behind={r.total ? r.trained / r.total : 0} label={r.stage} />
-                  <span className={cn(NUMERIC, "text-right text-xs whitespace-nowrap text-muted-foreground")}>
-                    <span className="text-foreground">{r.learned}</span> / {r.total}
-                  </span>
-                </div>
-              </Tip>
-            ))}
-          </div>
-          {!compact && (
-            <Legend
-              series={[
-                ["Learned", "size-2 bg-primary"],
-                ["Trained", "size-2 bg-primary/35"],
-              ]}
-            />
-          )}
-        </div>
-      ) : (
-        <Empty className="p-2">{tr("No algorithm sets for this puzzle.")}</Empty>
+      <b className={cn(NUMERIC, "relative font-extrabold tracking-[-0.03em]")} style={{ fontSize: Math.round(size * (value.length > 4 ? 0.22 : small ? 0.42 : 0.3)) }}>
+        {value}
+      </b>
+      {!small && (
+        <i className="relative mt-px font-bold not-italic opacity-80" style={{ fontSize: Math.round(size * 0.17) }}>
+          {said(unit)}
+        </i>
       )}
-    </Section>
-  );
-}
-
-const CATEGORY_ICON: Record<string, LucideIcon> = { knowledge: BookOpen, speed: Timer, average: Gauge, volume: Layers, dedication: CalendarDays };
-
-/** An achievement's mark: its category's icon on a quiet square, in the accent once unlocked. */
-export function AchievementMark({ a, size = "md" }: { a: any; size?: "md" | "lg" }) {
-  return <IconTile icon={CATEGORY_ICON[a.category] ?? Trophy} className={cn(size === "md" && "size-9 [&_svg]:size-4", a.unlocked && "bg-primary/15 text-primary")} />;
-}
-
-/** A goal on its way: title, its progress in words and a bar. */
-export function Goal({ a }: { a: any }) {
-  return (
-    <div className="flex items-center gap-3">
-      <AchievementMark a={a} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="truncate text-sm font-medium">{said(a.title)}</span>
-          <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{Math.round(a.ratio * 100)}%</span>
-        </div>
-        <Bar ratio={a.ratio} fill="bg-primary/70" />
-      </div>
-    </div>
-  );
-}
-
-export function AchievementsSection({ d, wide = false, compact = false }: { d: ProfileData; wide?: boolean; compact?: boolean }) {
-  const recent = d.recent.slice(0, wide ? 4 : 3),
-    goals = d.goals.slice(0, 3);
-  if (compact) {
-    const next = d.goals[0];
-    return (
-      <Section label={tr("Achievements")} title={tr("Achievements")} meta={tr("{0} of {1}", { 0: d.unlocked, 1: d.totalAchievements })} open="achievements" more={tr("All")} body="gap-3 pt-1">
-        {d.recent[0] ? (
-          <Tip content={said(d.recent[0].description)}>
-            <div className="flex items-center gap-3">
-              <AchievementMark a={d.recent[0]} />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm font-medium">{said(d.recent[0].title)}</span>
-                <span className="text-xs text-muted-foreground">
-                  {tr("Unlocked")} {d.recent[0].unlockedAt ? shortDate(d.recent[0].unlockedAt) : ""}
-                </span>
-              </div>
-            </div>
-          </Tip>
-        ) : (
-          <Empty className="p-2">{tr("Your first solves unlock the first ones.")}</Empty>
-        )}
-        {next && <Goal a={next} />}
-      </Section>
-    );
-  }
-  return (
-    <Section
-      label={tr("Achievements")}
-      title={tr("Achievements")}
-      meta={tr("{0} of {1} unlocked", { 0: d.unlocked, 1: d.totalAchievements })}
-      open="achievements"
-      more={tr("All")}
-      body={wide ? "grid grid-cols-2 gap-x-10" : undefined}
-    >
-      <div className="flex flex-col gap-2">
-        <SectionHead title={tr("Recently unlocked")} />
-        {recent.length ? (
-          <div className={cn("grid gap-3", wide ? "grid-cols-4" : "grid-cols-3")}>
-            {recent.map((a) => (
-              <Tip key={a.id} content={said(a.description)}>
-                <div className="flex min-w-0 flex-col items-start gap-2">
-                  <AchievementMark a={a} size="lg" />
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="line-clamp-2 text-sm leading-snug font-medium">{said(a.title)}</span>
-                    <span className="text-xs text-muted-foreground">{a.unlockedAt ? shortDate(a.unlockedAt) : ""}</span>
-                  </div>
-                </div>
-              </Tip>
-            ))}
-          </div>
-        ) : (
-          <Empty className="p-2">{tr("Your first solves unlock the first ones.")}</Empty>
-        )}
-      </div>
-      <div className="flex flex-col gap-2">
-        <SectionHead title={tr("Closest goals")} />
-        {goals.length ? (
-          <div className="flex flex-col gap-3">
-            {goals.map((a) => (
-              <Goal key={a.id} a={a} />
-            ))}
-          </div>
-        ) : (
-          <Empty className="p-2">{tr("Everything is unlocked.")}</Empty>
-        )}
-      </div>
-    </Section>
+    </span>
   );
 }
 
@@ -294,50 +77,5 @@ export function NoBattles({ compact = false }: { compact?: boolean }) {
         {tr("Find an opponent")}
       </Button>
     </Empty>
-  );
-}
-
-export function BattlesSection({ compact = false }: { compact?: boolean }) {
-  const list = battles(),
-    won = list.filter((b) => b.result === "win").length,
-    lost = list.filter((b) => b.result === "loss").length;
-  return (
-    <Section
-      label={tr("Battles")}
-      title={tr("Battles")}
-      meta={list.length ? battleRecord(list) : undefined}
-      open={list.length ? "duels" : undefined}
-      more={tr("History")}
-      body={cn(compact && "pt-1", !list.length && "flex-1")}
-    >
-      {!list.length ? (
-        <NoBattles compact={compact} />
-      ) : (
-        <>
-          <Stats columns={3}>
-            <Figure caption="plain" size="xl" label={tr("Played")} value={String(list.length)} />
-            <Figure caption="plain" size="xl" label={tr("Won")} value={String(won)} tone="good" />
-            <Figure caption="plain" size="xl" label={tr("Win rate")} value={Math.round((won / Math.max(1, won + lost)) * 100) + "%"} />
-          </Stats>
-          {!compact && (
-            <div className="flex flex-col gap-1">
-              <SectionHead title={tr("Recent battles")} />
-              <div className="flex flex-col gap-1">
-                {list.slice(0, 3).map((b) => (
-                  <div key={b.id} className="flex h-9 items-center gap-3">
-                    <ResultMark result={b.result} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{said(b.opponent)}</span>
-                    <span className={cn(NUMERIC, "text-xs whitespace-nowrap")}>
-                      {ao5Text(b.ao5[0])} <span className="text-muted-foreground">{tr("vs")}</span> {ao5Text(b.ao5[1])}
-                    </span>
-                    <span className="w-12 text-right text-xs text-muted-foreground">{shortDate(b.at)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </Section>
   );
 }

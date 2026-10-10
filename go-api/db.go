@@ -174,6 +174,8 @@ func dbMigrate(db *Conn) error {
 		func() error { return addColumnIfMissing(db, "solves", "comment", "TEXT") },
 		// The turns of a solve, as a smart cube records them, arrived with smart cubes.
 		func() error { return addColumnIfMissing(db, "solves", "solution", "TEXT") },
+		// Blindfolded solves keep their memorisation time, within the solve's.
+		func() error { return addColumnIfMissing(db, "solves", "memo_ms", "INTEGER") },
 		// A solve shared by a link carries the link's token.
 		func() error { return addColumnIfMissing(db, "solves", "share_token", "TEXT") },
 		func() error {
@@ -184,6 +186,8 @@ func dbMigrate(db *Conn) error {
 		// Coaches may keep to the students they have; accounts may show a picture.
 		func() error { return addColumnIfMissing(db, "coaches", "new_students", "INTEGER NOT NULL DEFAULT 1") },
 		func() error { return addColumnIfMissing(db, "users", "avatar", "TEXT") },
+		// Timer sessions may carry a name given by the player (null: the default, date and event).
+		func() error { return addColumnIfMissing(db, "sessions", "name", "TEXT") },
 		// The algorithm a case was learned with arrived after learned cases.
 		func() error { return addColumnIfMissing(db, "learned_cases", "alg", "TEXT") },
 		// Several algorithms per case arrived after one: the single choice becomes a list of one.
@@ -234,6 +238,9 @@ func dbMigrate(db *Conn) error {
 		func() error {
 			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_coach_messages_media ON coach_messages(media_id) WHERE media_id IS NOT NULL")
 		},
+		// Daily results made on a connected cube are verified, their moves kept.
+		func() error { return addColumnIfMissing(db, "daily_results", "verified", "INTEGER NOT NULL DEFAULT 0") },
+		func() error { return addColumnIfMissing(db, "daily_results", "solution", "TEXT") },
 		func() error { return coachingSweepMedia(db) },
 		func() error { return practiceMigrate(db) },
 		func() error { return syncMigrate(db) },

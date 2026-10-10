@@ -22,7 +22,7 @@ const check = (ok: unknown, what: string) => {
   console.log(`${ok ? "✓" : "✗"} ${what}`);
 };
 
-/** Accounts using the app: solves over a few events, learned cases, a guest, a failed sign-in and a missing page. */
+/** Accounts using the app: solves over a few events, learned cases, a failed sign-in and a missing page. */
 async function seed() {
   const PASSWORD = "a-long-test-password";
   const cases = ["F2L 1", "F2L 2", "F2L 3", "F2L 4", "F2L 5"];
@@ -38,7 +38,6 @@ async function seed() {
     for (const caseId of cases.slice(0, i + 1)) await api.setLearned(caseId, true);
     await api.me();
   }
-  await fetch(origin + "/api/auth/guest", { method: "POST" });
   await fetch(origin + "/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: "alice", password: "wrong-password-here" }) });
   await fetch(origin + "/api/does-not-exist");
   await fetch(origin + "/missing-page");
@@ -91,8 +90,8 @@ const nav = async (page: Page, phone: boolean, view: string) => {
   await settle(page);
 };
 
-/** The app's side: the login page on a desktop and a phone; a session the administration ends brings the login page
- * back at once with a message and the username; signing in again reopens the app; signing out returns to it. */
+/** The app's side: the sign-in dialog on a desktop and a phone; a session the administration ends brings it back at
+ * once with a message and the username; signing in again closes it; signing out opens it again. */
 async function appSession(token: string) {
   for (const [width, height, tag] of [[390, 844, "phone"], [1440, 900, "desktop"]] as const) {
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: tag === "phone" ? 2 : 1 });
@@ -117,18 +116,18 @@ async function appSession(token: string) {
     await fetch(origin + `/api/admin/users/${id}/revoke`, { method: "POST", headers: { cookie, origin } });
     // The server tells the app's live socket at once: its next sync is refused.
     await page.waitForSelector("[data-slot=login-expired]", { timeout: 20000 });
-    check(true, "app: a revoked session returns to the login page with a message");
+    check(true, "app: a revoked session opens the sign-in dialog with a message");
     check((await page.inputValue("#login-username")) === "expiry_user", "app: the ended session keeps the username");
     await settle(page);
     await page.screenshot({ path: `${SHOTS}/login-expired-desktop.png` });
     await page.fill("#login-password", "a-long-test-password");
     await page.locator('[data-action="login:submit"]').click();
-    await page.waitForSelector(".timer");
+    await page.locator(".login").waitFor({ state: "detached" });
     check((await page.locator(".rail").count()) === 1, "app: signing in again reopens the app");
     await page.locator('[data-action="menu:account"]').click();
     await page.locator('[data-action="logout"]').click();
     await page.waitForSelector(".login");
-    check(!(await page.locator("[data-slot=login-expired]").count()), "app: signing out returns to the login page");
+    check(!(await page.locator("[data-slot=login-expired]").count()), "app: signing out opens the sign-in dialog again");
     await context.close();
   }
 }
@@ -161,12 +160,15 @@ try {
     await loaded(page);
     await page.waitForSelector("[data-slot=live][data-connected]", { timeout: 10000 });
     await settle(page, 700);
-    check(!(await page.evaluate(() => performance.getEntriesByType("resource").some((r) => /\/build\/(worker|app)-/.test(r.name)))), `${tag}: /admin loads neither the app nor its engine`);
+    const appFiles = await page.evaluate(() => performance.getEntriesByType("resource").map((r) => r.name).filter((name) => /\/build\/(worker|app)-/.test(name)));
+    check(!appFiles.length, `${tag}: /admin loads neither the app nor its engine${appFiles.length ? " · " + appFiles.join(", ") : ""}`);
     check(await page.locator("figure[data-chart-title]").count() === 4, `${tag}: overview draws four charts`);
     await shot(page, `admin-overview-${tag}`, true);
 
     await nav(page, phone, "users");
-    check((await page.locator(phone ? "[data-slot=users-list] li" : "[data-slot=users-table] tbody tr").count()) >= (phone ? 5 : 6), `${tag}: users lists every account`);
+    const listed = await page.locator(phone ? "[data-slot=users-list] li" : "[data-slot=users-table] tbody tr").count();
+    // Guest accounts were retired (go-api/admin_data.go): the five accounts, four once the desktop run deleted one.
+    check(listed >= (phone ? 4 : 5), `${tag}: users lists every account (${listed})`);
     await shot(page, `admin-users-${tag}`);
     if (!phone) {
       await page.locator('[data-action="sort:solves"]').click();
@@ -175,7 +177,8 @@ try {
       check((await page.locator("[data-slot=users-table] tbody tr").first().getAttribute("data-user")) === "erin_speed", `${tag}: sorting by solves puts the busiest account first`);
       await page.locator('[data-action="users:filter:guests"]').click();
       await settle(page);
-      check((await page.locator("[data-slot=users-table] tbody tr").count()) === 1, `${tag}: the guests filter keeps the guest only`);
+      const guests = await page.locator("[data-slot=users-table] tbody tr").count();
+      check(guests === 0, `${tag}: the guests filter keeps guests only, none left (${guests})`);
       await page.locator('[data-action="users:filter:all"]').click();
       await settle(page);
     }

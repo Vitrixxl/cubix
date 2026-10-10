@@ -4,23 +4,24 @@
  * progress per puzzle, cases learned, the coach's notes and every session together.
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { CalendarDays, GraduationCap, MessageSquare, Timer, TrendingDown, TrendingUp, UserRound } from "lucide-react";
+import { CalendarDays, GraduationCap, MessageSquare, Timer, TrendingDown, TrendingUp, UserRound, Video } from "lucide-react";
 import { Avatar, Icon, Modal, NUMERIC, plural } from "../ui";
 import { catalog } from "../store";
 import { go } from "../navigation";
 import { fmtTime } from "../../../src/client/lib/format";
 import { eventInfo } from "../../../src/shared/puzzles";
-import { coaching, type Booking, type History, type PersonProfile } from "./client";
+import { callOpen, coaching, price, type Booking, type History, type PersonProfile } from "./client";
 import { day, relative, span, url } from "./parts";
-import { Bar, Empty, Figure, SectionHead, Stars, Strip, Surface, Tip } from "../base";
+import { Bar, Empty, SectionHead, StateMark, Stars, Surface, Tip } from "../base";
 import { HEAT_LEVELS, heatmap, type HeatCell } from "../../../src/client/lib/profile";
-import { CancelButton, MoveButton, Offer } from "./sessions";
+import { CancelButton, MoveButton, Offer, ReviewButton } from "./sessions";
+import { CANCELLATION_NOTICE, cancellationOpen } from "./policy";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { tr, localFormat, locale } from "../../../src/client/i18n";
 import { said } from "../base";
+import { msg } from "../../../src/client/i18n/msg";
 /** The notes' editor, loaded with them only: it weighs more than the rest of coaching. */
 const PrivateNotes = lazy(() => import("./notes").then((m) => ({ default: m.PrivateNotes })));
 
@@ -34,48 +35,83 @@ function usePerson(id: string) {
   return coaching.people.get(id);
 }
 
-/** The card of a booked session: who, when, why, and the way to their profile or their conversation. */
+/**
+ * A session in full: who with (their face, since when on Qbix), when and why, what matters at a glance, then what can
+ * be done: join the call, write, see their file, review it, offer another time, cancel; another time offered under it.
+ */
 export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => void }) {
-  const p = usePerson(b.with.id);
-  const done = p?.sessions.filter((x) => x.status === "booked" && x.endsAt <= Date.now()).length;
+  const p = usePerson(b.with.id),
+    now = Date.now(),
+    over = b.endsAt <= now,
+    open = callOpen(b, now),
+    waiting = coaching.waiting.has(b.id),
+    upcoming = b.status === "booked" && !over;
+  const done = p?.sessions.filter((x) => x.status === "booked" && x.endsAt <= now).length;
   return (
-    <div className="flex flex-col gap-3" data-slot="session-card">
-      <div className="flex items-center gap-3">
-        <Avatar name={b.with.username} src={b.with.avatar} size={40} />
+    <div className="flex flex-col gap-5 p-6 max-md:p-1" data-slot="session-card">
+      <div className="flex items-center gap-3.5">
+        <Avatar name={b.with.username} src={b.with.avatar} size={52} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-semibold">{b.with.username}</span>
-          <span className="text-xs text-muted-foreground">{p ? tr("{0} · on Qbix since {1}", { 0: b.role === "coach" ? tr("Student") : tr("Coach"), 1: since(p.since) }) : <Skeleton className="mt-1 h-3 w-36" />}</span>
+          <span className="truncate text-xl font-extrabold tracking-[-0.02em]">{b.with.username}</span>
+          <span className="text-[13px] text-muted-foreground">{p ? tr("{0} · on Qbix since {1}", { 0: b.role === "coach" ? tr("Your student") : tr("Your coach"), 1: since(p.since) }) : <Skeleton className="mt-1 h-3 w-36" />}</span>
         </div>
       </div>
-      <div className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2">
-        <span className={cn(NUMERIC, "font-medium")}>{span(b.startsAt, b.endsAt)}</span>
-        <span className="text-xs text-muted-foreground">{relative(b.startsAt)}</span>
-        {b.note && <p className="pt-1 whitespace-pre-line">“{b.note}”</p>}
+      <div className="flex flex-col gap-1">
+        <span className={cn(NUMERIC, "text-2xl font-extrabold tracking-[-0.02em] first-letter:uppercase", b.status === "cancelled" && "text-muted-foreground line-through")}>{span(b.startsAt, b.endsAt)}</span>
+        <span className={cn(NUMERIC, "text-[13px] text-muted-foreground")}>
+          {b.status === "cancelled" ? (b.cancelledByMe ? tr("Cancelled by you") : tr("Cancelled by {0}", { 0: b.with.username })) : over ? tr("Session over") : relative(b.startsAt, now)} · {price(b.priceCents)}
+        </span>
+        {b.note && <p className="pt-2 text-[15px] leading-normal whitespace-pre-line">“{b.note}”</p>}
       </div>
-      <Strip className="grid-cols-3 px-3 py-2.5">
-        <Figure label="Together" value={done} size="base" />
-        <Figure label="Solves" value={p?.practice.solves} size="base" />
-        <Figure label="Days · 30" value={p?.practice.activeDays} size="base" />
-      </Strip>
-      <div className="flex gap-2">
-        {b.conversationId && (
-          <UiButton variant="outline" size="sm" className="flex-1" onClick={() => go(url(b.role === "coach" ? "students/" + b.studentId : "messages/" + b.conversationId))}>
-            <MessageSquare />
-            {tr("Message")}</UiButton>
-        )}
-        <UiButton size="sm" className="flex-1" onClick={onProfile} data-action="person:profile">
-          <UserRound />
-          {tr("View profile")}</UiButton>
-      </div>
-      {b.role === "coach" && b.status === "booked" && b.endsAt > Date.now() && (
-        <>
-          {b.proposal && <Offer b={b} />}
-          <div className="flex gap-2">
-            <MoveButton b={b} label />
-            <CancelButton b={b} label />
+      <dl className="flex gap-8 text-xs text-muted-foreground">
+        {(
+          [
+            [done, tr("sessions together")],
+            [p?.practice.solves.toLocaleString(locale()), tr("solves")],
+            [p?.practice.activeDays, tr("active days · 30 d")],
+          ] as const
+        ).map(([value, label]) => (
+          <div key={label} className="flex flex-col">
+            <dd className={cn(NUMERIC, "order-first text-lg font-extrabold text-foreground")}>{value ?? "–"}</dd>
+            <dt>{label}</dt>
           </div>
-        </>
+        ))}
+      </dl>
+      <div className="flex flex-wrap gap-2">
+        {open && (
+          <UiButton onClick={() => go(url("call/" + b.id))} data-action="coaching:join">
+            <Video />
+            {waiting ? tr("{0} is waiting", { 0: b.with.username }) : tr("Join call")}
+          </UiButton>
+        )}
+        {over && b.status === "booked" && b.role === "student" && <ReviewButton b={b} />}
+        {b.conversationId && (
+          <UiButton variant="outline" onClick={() => go(url(b.role === "coach" ? "students/" + b.studentId : "messages/" + b.conversationId))} data-action="session:message">
+            <MessageSquare />
+            {tr("Message")}
+          </UiButton>
+        )}
+        <UiButton variant="outline" onClick={onProfile} data-action="person:profile">
+          <UserRound />
+          {b.role === "coach" ? tr("Student file") : tr("Coach file")}
+        </UiButton>
+      </div>
+      {over && b.role === "coach" && b.review && (
+        <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+          <Stars rating={b.review.rating} size={12} figure={false} />
+          {b.review.comment && <span>“{b.review.comment}”</span>}
+        </p>
       )}
+      {upcoming && (
+        <div className="flex flex-col gap-2 text-[13px] text-muted-foreground">
+          <span className="flex flex-wrap gap-x-5 gap-y-1">
+            {b.role === "coach" && <MoveButton b={b} label />}
+            <CancelButton b={b} label />
+          </span>
+          <span data-slot="cancellation-deadline">{cancellationOpen(b.startsAt, now) ? tr("Cancellation allowed before {0}.", { 0: span(b.startsAt - CANCELLATION_NOTICE) }) : tr("Cancellation closed: this session starts within 24 hours.")}</span>
+        </div>
+      )}
+      {b.proposal && upcoming && <Offer b={b} />}
     </div>
   );
 }
@@ -87,14 +123,14 @@ export function SessionCard({ b, onProfile }: { b: Booking; onProfile: () => voi
  */
 export function PersonDialog({ id, name, open, onOpenChange, inChat = false }: { id: string; name: string; open: boolean; onOpenChange: (open: boolean) => void; inChat?: boolean }) {
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={name} hideHeader tall className="flex h-[min(88vh,52rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl" sheetClassName="gap-0 p-0">
+    <Modal open={open} onOpenChange={onOpenChange} title={name} hideHeader tall className="flex h-[min(88vh,52rem)] flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-5xl" sheetClassName="gap-0 bg-background p-0">
       {open && <PersonBody id={id} name={name} inChat={inChat} close={() => onOpenChange(false)} />}
     </Modal>
   );
 }
 
 /** A part of someone's file: a card, its title on top. */
-const SECTION = "gap-3 p-4";
+const SECTION = "gap-3 p-5";
 
 function PersonBody({ id, name, inChat, close }: { id: string; name: string; inChat: boolean; close: () => void }) {
   const p = usePerson(id),
@@ -106,10 +142,10 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-slot="person-dialog">
       {/* The close button keeps the top right corner: the way to the conversation sits under the name. */}
-      <header className="flex shrink-0 items-center gap-4 border-b p-6 pr-14 pb-5 max-md:p-5">
+      <header className="flex shrink-0 items-center gap-4 p-6 pr-14 pb-3 max-md:p-5">
         <Avatar name={name} src={p?.avatar} size={64} />
         <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
-          <h2 className="truncate text-xl font-semibold tracking-tight">{name}</h2>
+          <h2 className="truncate text-2xl font-extrabold tracking-[-0.03em]">{name}</h2>
           <p className="text-sm text-muted-foreground">
             {p
               ? [
@@ -122,7 +158,6 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
           {p && !inChat && (
             <UiButton
               variant="outline"
-              size="sm"
               className="mt-1"
               onClick={() => {
                 close();
@@ -145,14 +180,23 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6 max-md:p-5">
-          <Strip className="grid-cols-3 lg:grid-cols-6">
-            <Figure label="Sessions" value={done.length} />
-            <Figure label="Coming" value={booked.length - done.length} />
-            <Figure label="Together" value={minutes ? `${(minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h` : "–"} />
-            <Figure label="Rating" value={rated.length ? <Stars rating={rated.reduce((sum, b) => sum + b.review!.rating, 0) / rated.length} size={12} figure={false} /> : "–"} />
-            <Figure label="Solves" value={p.practice.solves} />
-            <Figure label="Active days · 30" value={p.practice.activeDays} />
-          </Strip>
+          <dl className="grid shrink-0 grid-cols-3 gap-x-6 gap-y-3 px-1 lg:grid-cols-6">
+            {(
+              [
+                [done.length, msg("sessions together")],
+                [booked.length - done.length, msg("to come")],
+                [minutes ? `${(minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 })} h` : "–", msg("spent together")],
+                [rated.length ? (rated.reduce((sum, b) => sum + b.review!.rating, 0) / rated.length).toFixed(1) : "–", msg("rating of the sessions")],
+                [p.practice.solves.toLocaleString(locale()), msg("solves")],
+                [p.practice.activeDays, msg("active days · 30 d")],
+              ] as const
+            ).map(([value, label]) => (
+              <div key={label} className="flex flex-col">
+                <dd className={cn(NUMERIC, "order-first text-2xl font-extrabold tracking-[-0.02em]")}>{value}</dd>
+                <dt className="text-xs text-muted-foreground">{said(label)}</dt>
+              </div>
+            ))}
+          </dl>
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_23rem]">
             <div className="flex min-w-0 flex-col gap-4">
               <Activity days={p.history.days} />
@@ -183,14 +227,14 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
                 ) : (
                   <ul className="-mx-2 flex flex-col gap-0.5" data-slot="person-sessions">
                     {p.sessions.map((b) => (
-                      <li key={b.id} className={cn("flex flex-col gap-1 rounded-lg px-2 py-2", b.status === "cancelled" && "opacity-60")}>
+                      <li key={b.id} className={cn("flex flex-col gap-1 rounded-xl px-2 py-2", b.status === "cancelled" && "opacity-60")}>
                         <span className="flex items-center gap-2">
                           <span className={cn(NUMERIC, "text-sm")}>{span(b.startsAt)}</span>
                           <span className="ml-auto">
                             {b.status === "cancelled" ? (
-                              <Badge variant="secondary">{tr("Cancelled")}</Badge>
+                              <StateMark tone="off">{tr("cancelled")}</StateMark>
                             ) : b.endsAt > now ? (
-                              <Badge variant="outline">{day(b.startsAt) === day(now) ? tr("Today") : tr("Coming")}</Badge>
+                              <StateMark tone="good">{day(b.startsAt) === day(now) ? tr("today") : tr("to come")}</StateMark>
                             ) : (
                               b.review && <Stars rating={b.review.rating} size={11} figure={false} />
                             )}
@@ -262,7 +306,7 @@ export function PuzzleCard({ x, history, grow = false }: { x: PersonProfile["pra
       <div className="flex items-center gap-3">
         <Icon name={"Puzzle" + x.puzzle} size={22} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-sm font-medium">{eventInfo(x.puzzle)?.label ?? x.puzzle}</span>
+          <span className="text-sm font-bold">{said(eventInfo(x.puzzle)?.label ?? x.puzzle)}</span>
           <span className="text-xs text-muted-foreground">{plural(x.solves, "solve")}</span>
         </div>
         {change != null && Math.abs(change) >= 10 && (
@@ -347,7 +391,7 @@ export function Learned({ ids, className }: { ids: string[]; className?: string 
             <li key={set.id} className="flex flex-col gap-1.5">
               <span className="flex items-baseline justify-between gap-2 text-xs">
                 <span className="truncate font-medium">{said(set.label)}</span>
-                <span className={cn(NUMERIC, "text-muted-foreground")}>
+                <span className={cn(NUMERIC, "shrink-0 whitespace-nowrap text-muted-foreground")}>
                   {set.learned} / {set.count}
                 </span>
               </span>

@@ -153,12 +153,26 @@ export function markSvg(puzzle: string, accent: string) {
   );
 }
 
-/** The app's name: Qbix, its Q bold. */
+/** The app's name, as it is drawn: "Qbix", extra bold and tight. */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={"tracking-tight " + (className ?? "")} aria-label={tr("Qbix")}>
-      <span className="font-extrabold">Q</span>
-      <span className="font-medium">bix</span>
+    <span className={"font-extrabold tracking-[-0.04em] " + (className ?? "")} aria-label={tr("Qbix")}>
+      Qbix
+    </span>
+  );
+}
+
+/** The app's badge, the same everywhere (app, landing, legal pages): the 3×3 mark, its top right sticker in the accent. */
+export function Badge({ size = 30, puzzle = "333" }: { size?: number; puzzle?: string }) {
+  return <Logo size={size} puzzle={puzzle} />;
+}
+
+/** The badge and the name side by side: the app's brand in its header. */
+export function Brand({ size = 30, puzzle, className }: { size?: number; puzzle?: string; className?: string }) {
+  return (
+    <span className={"inline-flex items-center gap-2.5 " + (className ?? "")}>
+      <Badge size={size} puzzle={puzzle} />
+      <Wordmark className="leading-none" />
     </span>
   );
 }
