@@ -85,11 +85,11 @@ if (process.argv.includes("--prebuild") || !existsSync(resolve(root, "android/gr
 // Gradle's default JS inputs exclude the shared sources outside mobile/ and public env values.
 // Always refresh the release bundle, while retaining the expensive native compilation cache.
 const tasks = debug ? ["assembleDebug"] : [":app:createBundleReleaseJsAndAssets", "--rerun", "assembleRelease"];
-// A desktop PC keeps working while it builds: Gradle within 1 GB, Kotlin compiled inside it rather than in a daemon of
-// its own, two workers, and no release lint of every native module (it alone outgrows the template's metaspace).
-const memory = ["-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8", "-Pkotlin.compiler.execution.strategy=in-process"];
+// The machine is used at full power (AGENTS.md): 1 GB of heap ran out in the release dex merge. Kotlin is compiled inside
+// Gradle rather than in a daemon of its own, and the release lint of every native module is skipped.
+const memory = ["-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8", "-Pkotlin.compiler.execution.strategy=in-process"];
 const skipLint = debug ? [] : ["-x", "lintVitalAnalyzeRelease", "-x", "lintVitalReportRelease", "-x", "lintVitalRelease"];
-run("./gradlew", [...tasks, ...(arch ? [`-PreactNativeArchitectures=${arch}`] : []), ...memory, ...skipLint, "--no-daemon", "--console=plain", "--max-workers=2"], resolve(root, "android"));
+run("./gradlew", [...tasks, ...(arch ? [`-PreactNativeArchitectures=${arch}`] : []), ...memory, ...skipLint, "--no-daemon", "--console=plain"], resolve(root, "android"));
 const apk = resolve(root, `android/app/build/outputs/apk/${debug ? "debug/app-debug.apk" : "release/app-release.apk"}`);
 mkdirSync(resolve(root, "build"), { recursive: true });
 const out = resolve(root, outputArgument ?? `build/cubix-${debug ? "debug" : "release"}${arm64 ? "-arm64" : arch ? `-${arch}` : ""}.apk`);
