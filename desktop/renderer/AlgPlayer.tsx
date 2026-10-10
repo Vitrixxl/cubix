@@ -162,9 +162,10 @@ export function usePlayerKeys(player: AlgPlayer | null) {
 
 /**
  * The transport: restart, step back, play or pause, step forward, then the speed; the scrubber with the move count
- * under it. `compact` cycles the speed on one button; `touch` spreads the buttons and makes the scrubber 44 px.
+ * under it. `compact` cycles the speed on one button; `touch` spreads the buttons and makes the scrubber 44 px; `inline`
+ * puts the scrubber between the step forward and the speed, all on one bar.
  */
-export function PlayerControls({ player, compact = false, touch = false, className }: { player: AlgPlayer; compact?: boolean; touch?: boolean; className?: string }) {
+export function PlayerControls({ player, compact = false, touch = false, inline = false, className }: { player: AlgPlayer; compact?: boolean; touch?: boolean; inline?: boolean; className?: string }) {
   const total = player.total;
   // The buttons change with these only; the scrubber alone follows every frame.
   usePlayed(player, ({ playback: p }) => [p.playing, p.position === 0, p.target === 0, p.target >= total, p.position >= total, p.speed].join());
@@ -190,7 +191,8 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
         {button("Previous move (←)", StepBack, player.stepBack, p.target === 0)}
         {button(p.playing ? "Pause (Space)" : p.position >= total ? "Play again (Space)" : "Play (Space)", p.playing ? Pause : p.position >= total ? RotateCcw : Play, player.toggle, false, true)}
         {button("Next move (→)", StepForward, player.stepForward, p.target >= total)}
-        {compact || touch ? (
+        {inline && <Scrubber player={player} touch={touch} className="mx-2 flex-1" />}
+        {compact || touch || inline ? (
           <Tip content="Speed">
             <Button variant="ghost" onClick={player.cycleSpeed} aria-label={tr("Speed {0}", { 0: speedLabel(p.speed) })} className={cn(NUMERIC, "min-w-11 text-muted-foreground hover:text-foreground")}>
               {speedLabel(p.speed)}
@@ -200,20 +202,20 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
           <SpeedChoice player={player} className="ml-auto" />
         )}
       </div>
-      <Scrubber player={player} touch={touch} />
+      {!inline && <Scrubber player={player} touch={touch} />}
     </div>
   );
 }
 
 /** The scrubber and the moves played under it: the part of the controls drawn on every frame. */
-function Scrubber({ player, touch }: { player: AlgPlayer; touch: boolean }) {
+function Scrubber({ player, touch, className }: { player: AlgPlayer; touch: boolean; className?: string }) {
   const p = usePlayback(player),
     total = player.total,
     // While the thumb is held the scrubber shows the pointer; let go, the cube settles on the nearest move.
     [held, setHeld] = useState(false),
     done = Math.round(p.position * 10) / 10;
   return (
-    <div className="flex items-center gap-3">
+    <div className={cn("flex items-center gap-3", className)}>
       <Slider
         aria-label={tr("Moves played")}
         min={0}

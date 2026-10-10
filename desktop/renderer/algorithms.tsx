@@ -693,7 +693,7 @@ function CaseCard({ id }: { id: string }) {
   );
   // Phones play it above the list: back up to it.
   const list = <AlgList c={c} order={order} chosen={chosen} picked={picked} pick={(i) => (pick(i), phone && document.querySelector("[data-alg-stage]")?.scrollIntoView({ block: "start", behavior: "smooth" }))} />,
-    stage = <AlgStage c={c} i={picked} mine={chosen.includes(algs[picked]?.alg)} choices={choices} cube={phone ? 200 : Math.max(120, Math.min(260, Math.min(800, h - 48) - 520))} phone={phone} />,
+    stage = <AlgStage c={c} i={picked} mine={chosen.includes(algs[picked]?.alg)} choices={choices} cube={phone ? 200 : Math.max(120, Math.min(300, Math.min(800, h - 48) - 440))} phone={phone} />,
     times = s.caseHistory && (
       <TimerStats
         data={s.caseHistory}
@@ -878,14 +878,15 @@ function AlgStage({ c, i, mine, choices, cube, phone }: { c: any; i: number; min
     player = useAlgPlayer(ssr ? "" : text, ssr ? null : item?.size, item?.mask, { puzzle: ssr ? undefined : item?.puzzle });
   if (!a) return null;
   return (
-    <section data-alg-stage aria-label={tr("Algorithm {0} of {1}", { 0: i + 1, 1: c.algorithms.length })} className={cn("flex min-h-0 flex-col overflow-hidden rounded-[22px] bg-background", phone && "shrink-0")}>
-      <div className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 pt-4 pb-4", phone && "px-3")}>
+    <section data-alg-stage aria-label={tr("Algorithm {0} of {1}", { 0: i + 1, 1: c.algorithms.length })} className={cn("relative flex min-h-0 flex-col overflow-hidden rounded-[22px] bg-background inset-ring-1 inset-ring-border", phone && "shrink-0")}>
+      {/* The view over the cube's corner rather than a row of its own. */}
+      {player && <ViewButtons player={player} className="absolute top-3 right-3 z-10" />}
+      <div className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 pt-4 pb-4", phone && "px-3")}>
         {player && <PlayerCube key={"cube" + text} player={player} size={cube} />}
-        {player && <ViewButtons player={player} />}
-        <PlayerAlg key={"alg" + text} player={player} text={text} size={phone ? 17 : 19} className="justify-center text-center font-semibold" />
-        {player && <PlayerControls player={player} touch={phone} className="w-full max-w-md" />}
+        <PlayerAlg key={"alg" + text} player={player} text={text} size={phone ? 17 : 20} className="justify-center text-center font-semibold" />
+        {player && <PlayerControls player={player} touch={phone} inline={!phone} className="w-full max-w-lg rounded-[16px] bg-card p-1.5" />}
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 bg-card px-5 py-4">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border px-5 py-4">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className={cn(LABEL, "font-bold tracking-wide uppercase")}>{tr("Algorithm {0} of {1}", { 0: i + 1, 1: c.algorithms.length })}</p>
           <AlgFacts a={a} cube={onCube(c)} choices={choices} full />
