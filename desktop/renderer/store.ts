@@ -1,6 +1,6 @@
 import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../appearance";
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
-import { recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
+import { recognitionRun, recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
 import { resumes, type SessionSummary } from "../../src/client/lib/sessions";
 import { exportFile } from "../../src/client/lib/exportData";
@@ -35,6 +35,9 @@ const AHEAD = "cubix.scramblesAhead";
 /** The scramble shown last and its puzzle, kept on the device: the timer drawn while the app starts shows it already. */
 export const lastScramble: { puzzle?: string; scramble?: string } = (() => { try { return JSON.parse(localStorage.getItem(SHOWN_SCRAMBLE) ?? "{}") ?? {}; } catch { return {}; } })();
 // The connected cube coming and going, wherever the player is.
+/** The ways of training the setup page offers, in its order. */
+export const TRAINING_MODES = ["cross", "recognition", "learned", "sets", "free"] as const;
+export type TrainingMode = (typeof TRAINING_MODES)[number];
 let cubeLink = smartCube.snapshot.status;
 smartCube.subscribe(() => {
   const { status, name, error } = smartCube.snapshot;
@@ -57,7 +60,7 @@ export const catalog = catalogData as any;
 const caseById = new Map<string, any>(catalog.cases.map((c: any) => [c.id, c]));
 const casesByPuzzle = new Map<string, any[]>();
 /** An algorithm the 3D player can show: its name, its ways to play it (the first one first), and the cube it is on. */
-export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; setup?: string; puzzle?: PolyPuzzle }
+export interface PlayItem { key: string; name: string; detail?: string; context?: string; algs: string[]; note?: string; size: number; mask: CubeMask; hints?: boolean; setup?: string; puzzle?: PolyPuzzle }
 /** Whether every word typed starts a word of the case (shared with the phone app). */
 export { matches };
 /** From this width a training opens with its times shown, and Escape no longer folds them away. */
@@ -201,8 +204,13 @@ export class Store {
   request = 0;
   /** Training opens on the choice of what to practise, then shows the timer for it. */
   trainingStep: "setup" | "practice" = "setup";
-  /** Cases of the catalogue, or cross scrambles (cross, XCross or XXCross) on the 3×3. */
-  trainingKind: "cases" | "cross" = "cases";
+  /**
+   * Learned cases of the catalogue, cross scrambles (cross, XCross or XXCross) on the 3×3, a recognition run through
+   * a set, or free practice on any case.
+   */
+  trainingKind: "cases" | "cross" | "recognition" | "free" = "cases";
+  /** The recognition run under way: the learned cases of a set, each once in a random order, and the one shown. */
+  recognition: { set: string; order: string[]; index: number } | null = null;
   crossTarget: CrossTarget = "cross";
   crossMoves = 5;
   /** Optimal cross solutions of the shown scramble, computed by the engine when revealed. */
@@ -322,6 +330,17 @@ export class Store {
   }
   /** Whole sets the training drills (their learned cases), per puzzle. */
   get trainSets(): string[] { return this.prefs["cubix.training.setsByCube"]?.[this.puzzle] ?? []; }
+  /** The way of training chosen on the setup page. */
+  get trainingMode(): TrainingMode { return TRAINING_MODES.includes(this.prefs["cubix.training.mode"]) ? this.prefs["cubix.training.mode"] : "learned"; }
+  /** The set the recognition goes through, per puzzle, and the seconds each case is shown without a connected cube. */
+  get recognitionSet(): string {
+    const learned = (set: string) => this.cases().some((c: any) => c.set === set && this.learned.has(c.id)),
+      chosen = this.prefs["cubix.training.recognitionByCube"]?.[this.puzzle];
+    return chosen && learned(chosen) ? chosen : (this.allSets().find((set: any) => learned(set.id))?.id ?? "");
+  }
+  get recognitionSeconds(): number { return this.prefs["cubix.training.recognitionSeconds"] ?? 3; }
+  /** The cases free practice drills, learned or not, per puzzle. */
+  get freePicks(): string[] { return this.prefs["cubix.training.freeByCube"]?.[this.puzzle] ?? []; }
   /** The recommended cases picked, per puzzle; until the player picks, the four first recommended. */
   get trainPicks(): string[] { return this.prefs["cubix.training.picksByCube"]?.[this.puzzle] ?? this.recommended().slice(0, 4).map((r) => r.id); }
   private recommendation: { key: unknown[]; value: Recommendation[] } = { key: [], value: [] };
@@ -332,10 +351,19 @@ export class Store {
       this.recommendation = { key, value: recommend(this.cases(), this.learned, this.stats ?? [], this.puzzle === "333" ? (this.smartAnalysis?.methods?.[0]?.cases ?? []) : []) };
     return this.recommendation.value;
   }
-  /** The cases a training drills: the learned ones of the recommended picked, the whole sets and the cases picked by hand. */
-  get practiceSelected(): Set<string> { return new Set(trainingPool(this.cases(), this.learned, { picks: this.trainPicks, sets: this.trainSets, hand: [...this.selected] })); }
+  /** The learned cases of the recommended picked, the whole sets and the cases picked by hand. */
+  get casesPool(): Set<string> { return new Set(trainingPool(this.cases(), this.learned, { picks: this.trainPicks, sets: this.trainSets, hand: [...this.selected] })); }
+  /** The cases a training drills: the cases' pool, the recognition's case shown, or the cases picked for free practice. */
+  get practiceSelected(): Set<string> {
+    if (this.trainingKind === "recognition") return new Set(this.recognition?.order.slice(this.recognition.index, this.recognition.index + 1));
+    if (this.trainingKind === "free") return new Set(this.freePicks.filter((id) => this.find(id)));
+    return this.casesPool;
+  }
   /** What a training drills, in short: its recommended cases, its whole sets (their learned cases) and its cases picked by hand. */
-  trainingParts() {
+  trainingParts(kind = this.trainingKind) {
+    const run = this.recognition;
+    if (kind === "recognition") return run ? [tr(this.allSets().find((set: any) => set.id === run.set)?.label ?? ""), tr("{0} of {1}", { 0: Math.min(run.index + 1, run.order.length), 1: run.order.length })] : [];
+    if (kind === "free") return [tr("Free practice")];
     const learned = (ids: Iterable<string>) => [...ids].filter((id) => this.learned.has(id)).length,
       picks = learned(this.trainPicks),
       hand = learned(this.selected);
@@ -387,7 +415,7 @@ export class Store {
       this.caseSource = isCaseSource(this.prefs["cubix.algs.caseSource"]) ? this.prefs["cubix.algs.caseSource"] : "all";
       // "cross1" was the first-block training (a pair and two cross edges): its nearest is the XCross.
       const kind = this.prefs["cubix.training.kind"], target = this.prefs["cubix.training.crossTarget"];
-      this.trainingKind = kind === "cross" || kind === "cross1" ? "cross" : "cases";
+      this.trainingKind = kind === "cross" || kind === "cross1" ? "cross" : kind === "recognition" || kind === "free" ? kind : "cases";
       this.crossTarget = isCrossTarget(target) ? target : kind === "cross1" ? "xcross" : "cross";
       this.crossMoves = crossMovesFor(this.crossTarget, this.prefs["cubix.training.crossMoves"]);
       this.learned = new Set(v.learned);
@@ -656,6 +684,9 @@ export class Store {
     if (this.crossTraining && this.scramble) void this.loadCrossSolutions();
   }
   async nextCase(direction = "next") {
+    // A recognition run moves on once its case is done, and ends after the last.
+    const run = this.recognition;
+    if (direction === "next" && this.trainingKind === "recognition" && run && this.training?.id === run.order[run.index]) run.index++;
     const puzzle = this.puzzle,
       selected = [...this.practiceSelected];
     const value = await call(
@@ -927,8 +958,12 @@ export class Store {
           break;
         case "trainingStart": {
           if (this.learningFrozen || this.pendingSolve) break;
-          this.trainingKind = arg === "cross" && this.puzzle === "333" ? "cross" : "cases";
+          this.trainingKind = arg === "cross" && this.puzzle === "333" ? "cross" : arg === "recognition" || arg === "free" ? arg : "cases";
           this.pref("cubix.training.kind", this.trainingKind);
+          if (this.trainingKind === "recognition") {
+            this.recognition = { set: this.recognitionSet, order: recognitionRun(this.cases(), this.learned, this.recognitionSet), index: 0 };
+            this.training = null;
+          }
           // The recommended cases picked stay those of this start, whatever is recommended later.
           if (this.trainingKind === "cases") this.per("cubix.training.picksByCube", this.trainPicks);
           goPage("training", { trainingStep: "practice", puzzle: this.puzzle as PuzzleId });
@@ -939,6 +974,15 @@ export class Store {
           await this.refresh();
           break;
         }
+        case "trainingMode":
+          if (TRAINING_MODES.includes(arg as TrainingMode)) this.pref("cubix.training.mode", arg);
+          break;
+        case "recognitionSet":
+          this.per("cubix.training.recognitionByCube", arg);
+          break;
+        case "recognitionSeconds":
+          this.pref("cubix.training.recognitionSeconds", Number(arg));
+          break;
         case "trainSet":
           this.per("cubix.training.setsByCube", [...toggleSelection(new Set(this.trainSets), [arg])]);
           await this.refreshLearning(true);
@@ -1016,7 +1060,9 @@ export class Store {
         case "train": {
           // Cases picked elsewhere, by their ids: the analysis of the smart cube solves, whose cases are 3×3 ones.
           const picked = kind === "trainCases" ? arg.split(",") : null,
-            train = kind === "train" || !!picked;
+            train = kind === "train" || !!picked,
+            // The setup's picker of free practice picks among every case, into a selection of its own.
+            free = !train && this.page === "training" && this.trainingMode === "free";
           // The smart cube analysis picks 3×3 cases whatever the puzzle shown; the algorithms page picks its own.
           if (picked && !this.cases().some((c: any) => c.id === picked[0])) this.usePuzzle("333");
           // Training cases from elsewhere drills those alone (their learned ones).
@@ -1036,13 +1082,15 @@ export class Store {
                         ? c.set === arg
                         : `${c.set}:${c.group}` === arg,
                     )
-                    // The training's picker lists learned cases only: a whole set or group is its learned ones.
-                    .filter((c: any) => train || this.learned.has(c.id))
+                    // The training's picker lists learned cases only (but for free practice): a whole set or group is its learned ones.
+                    .filter((c: any) => train || free || this.learned.has(c.id))
                     .map((c: any) => c.id);
-          if (kind === "clear") this.selected.clear();
-          else if (train) this.selected = new Set(ids);
-          else this.selected = toggleSelection(this.selected, ids);
-          this.per("cubix.training.selectionByCube", [...this.selected]);
+          const chosen = kind === "clear" ? new Set<string>() : train ? new Set(ids) : toggleSelection(free ? new Set(this.freePicks) : this.selected, ids);
+          if (free) this.per("cubix.training.freeByCube", [...chosen]);
+          else {
+            this.selected = chosen;
+            this.per("cubix.training.selectionByCube", [...this.selected]);
+          }
           if (train) {
             this.caseDialog = "";
             // Training a group or a case from the catalogue skips the setup screen.

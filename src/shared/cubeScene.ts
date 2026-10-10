@@ -38,7 +38,9 @@ export function cubeScene(setup: string, size: number, mask: CubeMask, animated 
 /** Seconds a scene takes to play all its moves. */
 export const cubeSceneDuration = (scene: CubeScene) => Math.max(scene.size, 3);
 /** Half-width of the view, in cube units: a canvas of `size` pixels draws `size / 2 / cubeViewRadius` pixels per unit. */
-export const cubeViewRadius = (scene: CubeScene) => scene.size * 0.975;
+export const cubeViewRadius = (scene: CubeScene, hints = false) => scene.size * (hints ? 1.1 : 0.975);
+/** How far past its face a hidden sticker of the top layer floats (`cubeShapes` hints), in pieces. */
+const HINT_GAP = 1.25;
 
 type V = readonly number[];
 // Fixed-size arithmetic, in the very order of operations of the drawing's maths: no spread, no map, no rounding change.
@@ -138,7 +140,11 @@ export function cubeFace(size: number, normal: V, orientation: CubeOrientation) 
   });
   return { centre: project(centre), corners, seen: n[0]! * -centre[0]! + n[1]! * -centre[1]! + n[2]! * (eye - centre[2]!) > 0.0001 };
 }
-export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation): CubeShape[] {
+/**
+ * `hints` also draws the top layer's stickers the eye cannot see, floating behind their faces: the last layer's sides
+ * a recognition needs, read without turning the cube.
+ */
+export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pitch = CUBE_PITCH, orientation?: CubeOrientation, hints = false): CubeShape[] {
   const progress = Math.min(1, Math.max(0, seconds / cubeSceneDuration(scene))) * scene.moves.length,
     index = Math.min(Math.floor(progress), scene.moves.length),
     f = progress % 1,
@@ -185,6 +191,20 @@ export function cubeShapes(scene: CubeScene, seconds: number, yaw = CUBE_YAW, pi
   const paint = (points: V[], color: number, line = false) => {
     if (points.length) shapes.push({ points: points.map(project), color, line });
   };
+  if (hints)
+    slotsFor(scene.size).forEach(({ p, n }, slot) => {
+      // The side stickers of the top layer on a hidden face, pushed out along their normal, painted first: behind it all.
+      if (n[1] !== 0 || Math.abs(p[1]! - h) > 0.0001) return;
+      const moved = moving(Math.round(p[axis]! + h)),
+        center = add(p, scale(n, 0.5 + HINT_GAP));
+      if (seen(n, add(p, scale(n, 0.5)), moved)) return;
+      const along = n[0] !== 0 ? 2 : 0;
+      paint(CORNERS.map(([sa, sb]) => {
+        const v = [center[0]!, center[1]! + sb * 0.42, center[2]!];
+        v[along] += sa * 0.42;
+        return pose(v, moved);
+      }), scene.colors[state[slot]!]!);
+    });
   for (const { start, end, turn } of slabs) {
     const lo = [-h - 0.5, -h - 0.5, -h - 0.5],
       hi = [h + 0.5, h + 0.5, h + 0.5];

@@ -20,11 +20,11 @@ export { paintShapes };
  * only painted again. The oldest go past a few hundred.
  */
 const stills = new Map<string, CubeShape[]>();
-function stillShapes(scene: Scene) {
-  const key = scene.size + ":" + scene.states.at(-1)!.map((origin) => scene.colors[origin]).join();
+function stillShapes(scene: Scene, hints: boolean) {
+  const key = scene.size + ":" + hints + ":" + scene.states.at(-1)!.map((origin) => scene.colors[origin]).join();
   let shapes = stills.get(key);
   if (!shapes) {
-    shapes = cubeShapes(scene, 99, undefined, undefined, cubeOrientation());
+    shapes = cubeShapes(scene, 99, undefined, undefined, cubeOrientation(), hints);
     if (stills.size >= 300) stills.delete(stills.keys().next().value!);
     stills.set(key, shapes);
   }
@@ -36,8 +36,9 @@ function paintCube(
   seconds: number,
   size: number,
   orientation: CubeOrientation,
+  hints: boolean,
 ) {
-  paintShapes(ctx, cubeShapes(scene, seconds, undefined, undefined, orientation), size, cubeViewRadius(scene));
+  paintShapes(ctx, cubeShapes(scene, seconds, undefined, undefined, orientation, hints), size, cubeViewRadius(scene, hints));
 }
 export function Cube({
   scene,
@@ -50,6 +51,7 @@ export function Cube({
   held = false,
   puzzle,
   orientation,
+  hints = false,
 }: {
   scene?: Scene;
   setup?: string;
@@ -64,6 +66,8 @@ export function Cube({
   puzzle?: string;
   /** How the cube is turned to the eye (see `cubeOrientation`), the usual three-quarter view by default. */
   orientation?: CubeOrientation;
+  /** The top layer's hidden stickers drawn floating behind it, for recognising a last layer case. */
+  hints?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     [loaded, setLoaded] = useState<Scene | undefined>(scene),
@@ -112,8 +116,8 @@ export function Cube({
       // A solve starting ends the replay of the scramble at once: the cube is faded out until it stops.
       const seconds = animated && !store.running ? (performance.now() - start.current) / 1000 : 99;
       if (poly) paintShapes(ctx, polyShapes(poly, seconds, rotation.current), size, poly.radius);
-      else if (!animated) paintShapes(ctx, stillShapes(loaded!), size, cubeViewRadius(loaded!));
-      else paintCube(ctx, loaded!, seconds, size, rotation.current);
+      else if (!animated) paintShapes(ctx, stillShapes(loaded!, hints), size, cubeViewRadius(loaded!, hints));
+      else paintCube(ctx, loaded!, seconds, size, rotation.current, hints);
       if (animated && seconds < (poly ? polySceneDuration(poly) : cubeSceneDuration(loaded!)))
         frame = requestAnimationFrame(draw);
     };
@@ -126,7 +130,7 @@ export function Cube({
       cancelAnimationFrame(frame);
       redraw.current = () => {};
     };
-  }, [loaded, poly, size, replay, animated]);
+  }, [loaded, poly, size, replay, animated, hints]);
   return (
     <canvas
       ref={canvas}

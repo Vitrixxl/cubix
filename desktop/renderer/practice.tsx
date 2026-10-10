@@ -7,7 +7,7 @@ import { INSPECTION_DNF_MS, INSPECTION_MS, PracticeTimer, timerHint, worsePenalt
 import { stackmat } from "../../src/client/lib/stackmat";
 import { dailyDay, isDailyEvent } from "../../src/client/lib/daily";
 import { TONE_TEXT } from "../../src/client/lib/tone";
-import { shortId, maskForStage } from "../../src/client/lib/caseState";
+import { shortId, maskForStage, hintsForStage } from "../../src/client/lib/caseState";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { smartCube } from "../../src/client/lib/smartCube";
 import "./dev/devTools";
@@ -445,6 +445,7 @@ export function Practice() {
         setup={training ? s.training.setup : s.scramble}
         cubeSize={training ? c.cube_size ?? 3 : cubeSize}
         mask={training ? maskForStage(c.stage) : undefined}
+        hints={training && hintsForStage(c.stage)}
         size={previewSize}
         replay={s.replay}
         held={!training && heldScramble(s.context().scrambleType)}

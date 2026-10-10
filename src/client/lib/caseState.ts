@@ -18,6 +18,8 @@ export function caseState(c: CaseDto): CubeState {
 }
 
 export const maskForStage = (stage: Stage): CubeMask => (stage === "OLL" || stage === "Last slot" ? "OLL" : stage === "PLL" || stage === "ZBLL" || stage === "OLLCP" || stage === "COLL" ? "PLL" : stage === "CMLL" ? "CMLL" : stage === "F2L" ? "F2L" : "full");
+/** Stages whose case is read on the top layer's sides too: their cube draws the hidden stickers of that layer (`cubeShapes` hints). */
+export const hintsForStage = (stage: Stage) => ["OLL", "PLL", "ZBLL", "OLLCP", "COLL", "CMLL", "CLL", "EG", "PBL", "Last slot"].includes(stage);
 
 /** Algorithm as the user should execute it from the shown case (pre-AUF included). */
 export const displayAlg = (a: { alg: string; pre_auf?: string }): string => (a.pre_auf ? `(${a.pre_auf}) ${a.alg}` : a.alg);
@@ -30,10 +32,10 @@ export const moveCount = (alg: string): number => alg.replace(/[()[\]]/g, " ").s
 export const shortId = (c: Pick<CaseDto, "id">) => c.id.replace(/^\S+\s+/, "");
 
 /** A case's algorithms in the 3D player: on its cube, its stage's stickers greyed, or on its other puzzle; null where there is no 3D model. */
-export function casePlayItem(c: CaseDto): { key: string; name: string; detail?: string; context: string; algs: string[]; note?: string; size: number; mask: CubeMask; puzzle?: PolyPuzzle } | null {
+export function casePlayItem(c: CaseDto): { key: string; name: string; detail?: string; context: string; algs: string[]; note?: string; size: number; mask: CubeMask; hints: boolean; puzzle?: PolyPuzzle } | null {
   const id = puzzleOf(c),
     puzzle = isPolyPuzzle(id) ? id : undefined,
     size = c.cube_size ?? puzzleInfo(id)?.cubeSize ?? 0;
   if (!puzzle && !size) return null;
-  return { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: caseContext(c), algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage), puzzle };
+  return { key: c.id, name: c.id, detail: c.name !== c.id ? c.name : undefined, context: caseContext(c), algs: c.algorithms.map(displayAlg), note: c.notes, size, mask: maskForStage(c.stage), hints: hintsForStage(c.stage), puzzle };
 }

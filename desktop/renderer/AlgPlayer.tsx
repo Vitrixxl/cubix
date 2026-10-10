@@ -19,13 +19,13 @@ import { said } from "./base";
 
 /** A player for `alg` on a cube of `size`, or null where it cannot be played (other puzzles, unknown moves). */
 export function useAlgPlayer(alg: string, size: number | null | undefined, mask: CubeMask = "full", options: PlayerOptions & { setup?: string; puzzle?: PolyPuzzle } = {}) {
-  const { setup, autoplay, loop, speed, view, puzzle } = options;
+  const { setup, autoplay, loop, speed, view, puzzle, hints } = options;
   const player = useMemo(() => {
     const scene = puzzle ? polyAlgScene(puzzle, alg) : size ? algScene(alg, size, mask, setup) : null;
-    return scene ? new AlgPlayer(scene, { autoplay, loop, speed, view }) : null;
+    return scene ? new AlgPlayer(scene, { autoplay, loop, speed, view, hints }) : null;
     // The view and speed are read once: a new algorithm starts a new player.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alg, size, mask, setup, autoplay, loop, puzzle]);
+  }, [alg, size, mask, setup, autoplay, loop, puzzle, hints]);
   useEffect(() => () => player?.dispose(), [player]);
   return player;
 }

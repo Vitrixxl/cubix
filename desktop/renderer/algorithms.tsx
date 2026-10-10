@@ -875,7 +875,7 @@ function AlgStage({ c, i, mine, choices, cube, phone }: { c: any; i: number; min
     text = a ? displayAlg(a) : "",
     // Nothing is played on a page written ahead of time.
     ssr = typeof document === "undefined",
-    player = useAlgPlayer(ssr ? "" : text, ssr ? null : item?.size, item?.mask, { puzzle: ssr ? undefined : item?.puzzle });
+    player = useAlgPlayer(ssr ? "" : text, ssr ? null : item?.size, item?.mask, { puzzle: ssr ? undefined : item?.puzzle, hints: item?.hints });
   if (!a) return null;
   return (
     <section data-alg-stage aria-label={tr("Algorithm {0} of {1}", { 0: i + 1, 1: c.algorithms.length })} className={cn("relative flex min-h-0 flex-col overflow-hidden rounded-[22px] bg-background inset-ring-1 inset-ring-border", phone && "shrink-0")}>

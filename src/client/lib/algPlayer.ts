@@ -188,13 +188,13 @@ export function polyAlgScene(puzzle: PolyPuzzle, alg: string): PolyAlgScene | nu
 /** Moves the scene plays. */
 export const algTotal = (scene: AlgScene) => scene.sources.length;
 /** Half the width the scene is drawn in (`paintShapes`). */
-export const algRadius = (scene: AlgScene) => (isPoly(scene) ? scene.radius : cubeViewRadius(scene));
+export const algRadius = (scene: AlgScene, hints = false) => (isPoly(scene) ? scene.radius : cubeViewRadius(scene, hints));
 
 /** Shapes of the scene `position` moves into it (fractions turn the layer part way), seen with `orientation`. */
-export const algShapes = (scene: AlgScene, position: number, orientation?: CubeOrientation) => {
+export const algShapes = (scene: AlgScene, position: number, orientation?: CubeOrientation, hints = false) => {
   const total = algTotal(scene);
   if (isPoly(scene)) return polyShapes(scene, total ? (position / total) * polySceneDuration(scene) : 0, orientation ?? polyOrientation(scene.puzzle));
-  return cubeShapes(scene, total ? (position / total) * cubeSceneDuration(scene) : 0, undefined, undefined, orientation);
+  return cubeShapes(scene, total ? (position / total) * cubeSceneDuration(scene) : 0, undefined, undefined, orientation, hints);
 };
 
 // ---------------------------------------------------------------------------
@@ -266,6 +266,8 @@ export interface PlayerOptions {
   loop?: boolean;
   /** The view the cube is first seen from, and back to on a reset. */
   view?: { yaw: number; pitch: number };
+  /** The top layer's hidden stickers drawn floating behind it (a last layer case). */
+  hints?: boolean;
 }
 
 /** The face held in front, in cube axes, and how long `showFront` marks it. */
@@ -302,7 +304,7 @@ export class AlgPlayer {
     return isPoly(this.scene) ? this.scene.puzzle : undefined;
   }
   get radius() {
-    return algRadius(this.scene);
+    return algRadius(this.scene, this.options.hints);
   }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -310,7 +312,7 @@ export class AlgPlayer {
   };
   getSnapshot = () => this.playback;
   /** Shapes to draw now. */
-  shapes = () => algShapes(this.scene, this.playback.position, this.orientation);
+  shapes = () => algShapes(this.scene, this.playback.position, this.orientation, this.options.hints);
   /** The written move to highlight. */
   current = () => currentSource(this.scene, this.playback);
 

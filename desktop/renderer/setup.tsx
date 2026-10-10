@@ -1,17 +1,22 @@
 /**
- * The training's page, before the timer: the learned cases recommended first (the slowest against the player's usual,
- * each with why), then whole sets (their learned cases), cases picked by hand and the cross. A bar under the
- * recommendations sums up what will be drilled and starts it. Only learned cases are trained: learning new ones is
- * the courses' work, and a set with none learned leads to its course.
+ * The training's page, before the timer: the ways of training as a list on the left (arrows move, Enter starts), the
+ * one chosen large on the right: the cross, a recognition run through a set, the learned cases (the recommended ones,
+ * the slowest against the player's usual, and those picked by hand), whole sets, or free practice on any case. Phones
+ * open the chosen one in a sheet. Learning new cases is the courses' work: a set with none learned leads to its course.
  */
-import { useMemo, useState } from "react";
-import type { PuzzleId } from "../../src/shared/puzzles";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { puzzleInfo, type PuzzleId } from "../../src/shared/puzzles";
 import { METHODS } from "../../src/shared/methods";
 import { CROSS_MOVES, CROSS_TARGET_LABELS, CROSS_TARGETS } from "../../src/shared/crossTraining";
-import { recommendedWhy, type Recommendation } from "../../src/client/lib/trainingPicks";
-import { ChevronDown, ChevronRight, GraduationCap, Play, Rotate3d, Shuffle, Timer } from "lucide-react";
-import { store as s, matches } from "./store";
-import { ActionToggle, Button, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, plural, run, usePhone } from "./ui";
+import { recommendedWhy, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
+import { smartCube } from "../../src/client/lib/smartCube";
+import { hintsForStage, maskForStage } from "../../src/client/lib/caseState";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Dices, Eye, GraduationCap, Layers, Play, RotateCcw, Rotate3d, Shuffle, Target, Timer, type LucideIcon } from "lucide-react";
+import { store as s, matches, type TrainingMode } from "./store";
+import { PhoneSheet } from "./phone";
+import { Practice } from "./practice";
+import { Cube } from "./Cube";
+import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
 import { CaseTile, FootBar, TILES } from "./algorithms";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -22,6 +27,8 @@ import { said } from "./base";
 const sec = (ms: number) => (ms / 1000).toFixed(2);
 /** Each stage's colour, as the catalogue draws it. */
 const STAGE_FILL: Record<string, string> = { F2L: "bg-success", OLL: "bg-primary", PLL: "bg-lilac", ZBLL: "bg-warning" };
+/** The seconds a case may be shown in a recognition run without a connected cube. */
+const RECOGNITION_SECONDS = [1, 2, 3, 5, 8];
 /** The course that teaches a set, if one does. */
 function courseAction(setId: string) {
   const method = METHODS[s.puzzle as PuzzleId]?.find((m) => m.steps.some((step) => step.sets?.includes(setId)));
@@ -41,66 +48,368 @@ function useSets() {
     return [...sets.filter((x) => x.learned), ...sets.filter((x) => !x.learned)];
   }, [cases, s.learned, s.learned.size]);
 }
+type Sets = ReturnType<typeof useSets>;
+
+/** A connected cube times the recognition itself (on the 3×3, beside the desktop's timer). */
+function useCubeRecognition() {
+  const link = useSyncExternalStore(smartCube.subscribe, () => smartCube.snapshot.status, () => smartCube.snapshot.status);
+  return link === "on" && !usePhone() && s.puzzle === "333";
+}
+
+/** The set a recognition run goes through (`recognitionSet`: the one chosen, else the first with learned cases). */
+const recognitionSet = (sets: Sets) => sets.find((x) => x.set.id === s.recognitionSet);
+
+/** A way of training as the list shows it: its icon, name and line, then its number, large, with what it counts. */
+type ModeRow = { id: TrainingMode; icon: LucideIcon; title: string; summary: string; count: number; unit: string; share?: number; start: string; ready: boolean };
+
+function modeRows(sets: Sets): ModeRow[] {
+  const cases = s.cases(),
+    pool = s.casesPool,
+    learned = trainingPool(cases, s.learned, { picks: s.trainPicks, hand: [...s.selected] }).length,
+    whole = trainingPool(cases, s.learned, { sets: s.trainSets }).length,
+    known = sets.reduce((n, x) => n + x.learned, 0),
+    total = sets.reduce((n, x) => n + x.all.length, 0),
+    chosen = recognitionSet(sets),
+    free = s.freePicks.filter((id) => s.find(id)).length;
+  const rows: ModeRow[] = [
+    { id: "cross", icon: Target, title: "Cross", summary: tr("Plan the cross in inspection, by its exact number of moves"), count: s.crossMoves, unit: tr("moves"), start: "trainingStart:cross", ready: true },
+    {
+      id: "recognition", icon: Eye, title: "Recognition", summary: tr("Every learned case of a set once, in a random order"),
+      count: chosen?.learned ?? 0, unit: chosen ? tr(chosen.set.label) : tr("cases"), share: chosen ? chosen.learned / chosen.all.length : 0,
+      start: "trainingStart:recognition", ready: !!chosen?.learned,
+    },
+    { id: "learned", icon: GraduationCap, title: "Learned", summary: tr("Your slowest learned cases, and cases picked by hand"), count: learned, unit: tr(learned === 1 ? "case" : "cases"), start: "trainingStart:cases:practice", ready: !!pool.size },
+    { id: "sets", icon: Layers, title: "Whole sets", summary: tr("Every learned case of the sets you choose"), count: whole, unit: tr(whole === 1 ? "case" : "cases"), share: total ? known / total : 0, start: "trainingStart:cases:practice", ready: !!pool.size },
+    { id: "free", icon: Dices, title: "Free practice", summary: tr("Any case of the catalogue, learned or not"), count: free, unit: tr(free === 1 ? "case" : "cases"), start: "trainingStart:free", ready: !!free },
+  ];
+  return rows.filter((r) => r.id !== "cross" || s.puzzle === "333");
+}
 
 export function TrainingSetup() {
   const phone = usePhone(),
     sets = useSets(),
-    pool = s.practiceSelected,
-    learned = sets.reduce((n, x) => n + x.learned, 0),
-    cross = s.puzzle === "333",
-    parts = s.trainingParts();
-  const start = (
-    <Button action="trainingStart:cases:practice" variant="default" icon={Play} disabled={!pool.size}>
-      {tr("Train")}
-    </Button>
-  );
-  const side = (
-    <>
-      <SetsCard sets={sets} phone={phone} />
-      <HandCard learned={learned} />
-      {cross && <CrossCard />}
-    </>
-  );
+    rows = modeRows(sets),
+    chosen = rows.find((r) => r.id === s.trainingMode) ?? rows.find((r) => r.id === "learned")!,
+    [sheet, setSheet] = useState(false);
+  const key = (e: React.KeyboardEvent<HTMLElement>) => {
+    const i = rows.indexOf(chosen),
+      next = e.key === "ArrowDown" || e.key === "ArrowRight" ? i + 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? i - 1 : -1;
+    if (e.key === "Enter" && chosen.ready) return void (e.preventDefault(), run(chosen.start)(e));
+    if (!rows[next]) return;
+    e.preventDefault();
+    void s.action("trainingMode:" + rows[next].id);
+    e.currentTarget.querySelector<HTMLElement>(`[data-action="trainingMode:${rows[next].id}"]`)?.focus();
+  };
   return (
     <div className={PAGE} data-tour="training">
-      {phone && <PageHead title={tr("Training")} puzzle more={<MenuAction action="auf" icon={Shuffle}>{tr("Random AUF")}{" "}{s.randomAuf ? tr("· on") : tr("· off")}</MenuAction>} />}
-      {phone ? (
-        <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1 pb-2 *:shrink-0">
-          <Recommended learned={learned} phone />
-          {side}
+      <PageHead title={tr("Training")} puzzle more={phone && <MenuAction action="auf" icon={Shuffle}>{tr("Random AUF")}{" "}{s.randomAuf ? tr("· on") : tr("· off")}</MenuAction>} />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 md:grid md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-5">
+        <div
+          role={phone ? "navigation" : "radiogroup"}
+          aria-label={tr("Ways of training")}
+          onKeyDown={phone ? undefined : key}
+          className="-m-1 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1 md:gap-3"
+        >
+          {rows.map((row) => (
+            <ModeTile key={row.id} row={row} checked={!phone && row === chosen} onPick={() => phone && setSheet(true)} />
+          ))}
         </div>
-      ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-x-5 gap-y-4">
-          <Recommended learned={learned} />
-          <div className="row-span-2 flex min-h-0 flex-col gap-4">{side}</div>
-          <Surface className="flex-row items-center gap-3.5 rounded-[22px] bg-muted py-3 pr-3.5 pl-6">
-            <strong className={cn(NUMERIC, "text-3xl font-extrabold tracking-[-0.04em]")}>{pool.size}</strong>
-            <span className="text-sm font-semibold text-faint">{tr(pool.size === 1 ? "case" : "cases")}</span>
-            <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-              {parts.map((part) => (
-                <span key={part} className="rounded-lg bg-card px-2.5 py-1 text-[13px] font-semibold text-muted-foreground">{part}</span>
-              ))}
-            </span>
-            <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
-              {tr("Random AUF")}
-            </ActionToggle>
-            {start}
-          </Surface>
-        </div>
-      )}
+        {!phone && <ModeHero mode={chosen} sets={sets} />}
+      </div>
       {phone && (
-        <FootBar className="justify-between gap-4">
-          <span className="min-w-0 truncate px-2 text-sm text-muted-foreground">
-            <strong className={cn(NUMERIC, "mr-1.5 text-lg text-foreground")}>{pool.size}</strong>
-            {said(parts.join(" · ") || tr("No case picked"))}
-          </span>
-          {start}
-        </FootBar>
+        <PhoneSheet open={sheet} onOpenChange={setSheet} title={tr(chosen.title)} hideTitle className="flex max-h-[85svh] flex-col gap-3 overflow-y-auto px-3 pb-4">
+          <ModeHero mode={chosen} sets={sets} phone />
+        </PhoneSheet>
       )}
-      <Modal id="pickCases" title={tr("Pick cases")} description={tr("Among the cases you learned")} tall className="flex h-[min(86vh,760px)] flex-col sm:max-w-4xl">
-        <CasesPicker />
+      <Modal
+        id="pickCases"
+        title={tr("Pick cases")}
+        description={chosen.id === "free" ? tr("Among every case, learned or not") : tr("Among the cases you learned")}
+        tall
+        className="flex h-[min(86vh,760px)] flex-col sm:max-w-4xl"
+      >
+        <CasesPicker free={chosen.id === "free"} />
       </Modal>
     </div>
+  );
+}
+
+/**
+ * A way of training as a row to choose, like Learn's methods: its icon, name and line, its number large on the right,
+ * over a bar where a share says something. The chosen one is checked and the only one in the tab order.
+ */
+function ModeTile({ row, checked, onPick }: { row: ModeRow; checked: boolean; onPick: () => void }) {
+  const phone = usePhone(),
+    Icon = row.icon;
+  return (
+    <button
+      type="button"
+      role={phone ? undefined : "radio"}
+      aria-checked={phone ? undefined : checked}
+      tabIndex={phone || checked ? 0 : -1}
+      data-action={"trainingMode:" + row.id}
+      onClick={(e) => {
+        run("trainingMode:" + row.id)(e);
+        onPick();
+      }}
+      className={cn(TILE, "group/card flex shrink-0 flex-col gap-3 p-4 md:flex-1 md:justify-center md:p-5")}
+    >
+      <span className="flex items-center gap-3 md:gap-4">
+        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-muted text-muted-foreground transition-colors group-hover/card:bg-accent", checked && "text-primary")}>
+          <Icon className="size-5" aria-hidden="true" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-lg font-extrabold tracking-[-0.02em] md:text-xl">{tr(row.title)}</span>
+          <span className={cn("text-sm text-muted-foreground", phone ? "truncate" : "line-clamp-2")}>{row.summary}</span>
+        </span>
+        <span className="flex shrink-0 flex-col items-end">
+          <span className={cn(NUMERIC, "text-2xl leading-none font-extrabold tracking-[-0.03em] md:text-[32px]", row.count ? "text-foreground" : "text-faint")}>{row.count}</span>
+          <span className="mt-1 max-w-28 truncate text-xs text-muted-foreground">{row.unit}</span>
+        </span>
+      </span>
+      {row.share !== undefined && <Bar ratio={row.share} className="w-full" label={tr("Learned")} />}
+    </button>
+  );
+}
+
+/** The way of training chosen, large: what it needs chosen, then its start. */
+function ModeHero({ mode, sets, phone = false }: { mode: ModeRow; sets: Sets; phone?: boolean }) {
+  const learned = sets.reduce((n, x) => n + x.learned, 0);
+  return (
+    <div className={cn("flex min-h-0 flex-col gap-4", !phone && "h-full")}>
+      {mode.id === "cross" ? (
+        <CrossCard />
+      ) : mode.id === "recognition" ? (
+        <RecognitionCard sets={sets} phone={phone} />
+      ) : mode.id === "learned" ? (
+        <>
+          <Recommended learned={learned} phone={phone} />
+          <HandCard learned={learned} />
+          <CasesBar />
+        </>
+      ) : mode.id === "sets" ? (
+        <>
+          <SetsCard sets={sets} phone={phone} />
+          <CasesBar />
+        </>
+      ) : (
+        <FreeCard />
+      )}
+    </div>
+  );
+}
+
+/** What the cases' training drills, summed up (the recommended, the whole sets, those by hand), and its start. */
+function CasesBar() {
+  const pool = s.casesPool,
+    parts = s.trainingParts("cases");
+  return (
+    <Surface className="shrink-0 gap-3 rounded-[22px] bg-muted px-5 py-3.5">
+      <div className="flex min-w-0 items-baseline gap-2">
+        <strong className={cn(NUMERIC, "text-3xl font-extrabold tracking-[-0.04em]")}>{pool.size}</strong>
+        <span className="text-sm font-semibold text-faint">{tr(pool.size === 1 ? "case" : "cases")}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-muted-foreground">{said(parts.join(" · "))}</span>
+      </div>
+      <div className="flex items-center justify-end gap-2">
+        <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
+          {tr("Random AUF")}
+        </ActionToggle>
+        <Button action="trainingStart:cases:practice" variant="default" icon={Play} disabled={!pool.size}>
+          {tr("Train")}
+        </Button>
+      </div>
+    </Surface>
+  );
+}
+
+/** Free practice: cases picked by hand among every case of the puzzle, learned or not, a few of them shown; its start. */
+function FreeCard() {
+  const picks = new Set(s.freePicks),
+    picked = s.cases().filter((c: any) => picks.has(c.id)),
+    shown = picked.slice(0, 18);
+  return (
+    <Card title={tr("Free practice")} meta={tr("any case, learned or not")} className="min-h-0 flex-1">
+      {picked.length ? (
+        <div className="flex min-h-0 flex-wrap content-start items-center gap-1.5 overflow-hidden">
+          {shown.map((c: any) => (
+            <Diagram key={c.id} c={c} size={44} />
+          ))}
+          {picked.length > shown.length && <span className={cn(NUMERIC, "px-1 text-sm font-semibold text-faint")}>+{picked.length - shown.length}</span>}
+        </div>
+      ) : (
+        <Empty icon={Dices} title={tr("No case picked")} className="py-6" />
+      )}
+      <div className="mt-auto flex flex-wrap items-center gap-2">
+        <span className="flex-1 text-sm text-muted-foreground">{picked.length ? plural(picked.length, "case") : tr("None picked by hand")}</span>
+        <Button action="menu:pickCases" variant="outline">{tr("Pick…")}</Button>
+        <ActionToggle action="auf" pressed={s.randomAuf} icon={Shuffle} tip={tr("Random AUF · Alt+A")}>
+          {tr("Random AUF")}
+        </ActionToggle>
+        <Button action="trainingStart:free" variant="default" icon={Play} disabled={!picked.length}>
+          {tr("Train")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Recognition: one set to go through, each with how many of its cases are learned (a set with none leads to its
+ * course); without a connected cube, the seconds each case is shown. Its start.
+ */
+function RecognitionCard({ sets, phone }: { sets: Sets; phone: boolean }) {
+  const chosen = recognitionSet(sets),
+    cube = useCubeRecognition();
+  return (
+    <Card title={tr("Recognition")} meta={cube ? tr("timed on the cube") : tr("one case after another")} className={cn(!phone && "min-h-0 flex-1")}>
+      <div className={cn("-mx-1 flex flex-col gap-1.5 px-1", !phone && "min-h-0 overflow-y-auto")} role="radiogroup" aria-label={tr("Set")}>
+        {sets.map(({ set, all, learned }) =>
+          learned ? (
+            <button
+              key={set.id}
+              type="button"
+              role="radio"
+              aria-checked={set.id === chosen?.set.id}
+              data-action={"recognitionSet:" + set.id}
+              onClick={run("recognitionSet:" + set.id)}
+              className={cn("grid shrink-0 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 rounded-2xl bg-muted px-3.5 py-2.5 text-left transition-colors hover:bg-accent aria-checked:bg-accent", FOCUS)}
+            >
+              <b className="flex items-center gap-2 text-[15px] font-bold">
+                {tr(set.label)}
+                {set.id === chosen?.set.id && <Check className="size-4 text-primary" aria-hidden="true" />}
+              </b>
+              <span className={cn(NUMERIC, "text-[13px] font-semibold text-faint")}>{tr("{0} learned of {1}", { 0: learned, 1: all.length })}</span>
+              <Pips learned={learned} total={all.length} fill={STAGE_FILL[set.stage] ?? "bg-primary"} />
+            </button>
+          ) : (
+            <CourseRow key={set.id} set={set} />
+          ),
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {cube ? (
+          <span className="flex-1 text-sm text-muted-foreground">{tr("Set each case up on the cube: its time is saved")}</span>
+        ) : (
+          <span className="flex flex-1 items-center gap-2">
+            <Timer className="size-4 text-muted-foreground" aria-hidden="true" />
+            <Choice prefix="recognitionSeconds:" label={tr("Seconds per case")} value={String(s.recognitionSeconds)} options={RECOGNITION_SECONDS.map((n) => ({ id: String(n), label: tr("{0} s", { 0: n }) }))} />
+          </span>
+        )}
+        <Button action="trainingStart:recognition" variant="default" icon={Play} disabled={!chosen?.learned}>
+          {tr("Start")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/** A set with nothing learned: the way to its course. */
+function CourseRow({ set }: { set: any }) {
+  return (
+    <button
+      type="button"
+      data-action={courseAction(set.id)}
+      onClick={run(courseAction(set.id))}
+      className={cn("flex shrink-0 items-center justify-between gap-3 rounded-2xl px-3.5 py-2 text-left text-faint transition-colors hover:bg-muted hover:text-muted-foreground", FOCUS)}
+    >
+      <b className="text-sm font-bold">{tr(set.label)}</b>
+      <span className="flex items-center gap-1 text-[13px] font-semibold">
+        {tr("none learned · see Courses")}
+        <ChevronRight className="size-3.5" aria-hidden="true" />
+      </span>
+    </button>
+  );
+}
+
+/** A running recognition: timed on a connected cube like any training, else shown case after case for a set time. */
+export function RecognitionPractice() {
+  const run = s.recognition,
+    over = !run || run.index >= run.order.length;
+  // The run's end, with or without a cube, shows on the timed page.
+  return useCubeRecognition() && !over ? <Practice /> : <TimedRecognition />;
+}
+
+/** How long a case's name and algorithm stay shown before the next one. */
+const REVEAL_MS = 1500;
+
+/**
+ * A recognition run without a cube: each case large for the seconds chosen, a bar running out under it; then its name
+ * and algorithm for a moment, and the next. Space or a click shows it at once, then moves on. Nothing is recorded.
+ */
+function TimedRecognition() {
+  const runOf = s.recognition,
+    id = runOf?.order[runOf.index],
+    c = id && s.training?.id === id ? s.find(id) : null,
+    parts = s.trainingParts("recognition");
+  return (
+    <div className={PAGE}>
+      <PageHead title={tr("Recognition")} lead={<Button action="trainingSetup" icon={ChevronLeft} tip={tr("Change what to train")} />} sub={said(parts.join(" · "))} />
+      {!id ? (
+        <Empty icon={Check} title={runOf?.order.length ? tr("All {0} cases done", { 0: runOf.order.length }) : tr("Recognition")}>
+          <div className="flex gap-2">
+            <Button action="trainingStart:recognition" variant="default" icon={RotateCcw}>{tr("Again")}</Button>
+            <Button action="trainingSetup">{tr("Change set")}</Button>
+          </div>
+        </Empty>
+      ) : c ? (
+        <RecognitionCase key={runOf!.index} c={c} />
+      ) : (
+        <div className="flex-1" />
+      )}
+    </div>
+  );
+}
+
+function RecognitionCase({ c }: { c: any }) {
+  const { w, h } = useViewport(),
+    [shown, setShown] = useState(false),
+    bar = useRef<HTMLDivElement>(null),
+    size = Math.round(Math.max(160, Math.min(h * 0.5, w * 0.8, 440))),
+    next = () => void s.action("next"),
+    // Every cube's case in 3D, its hidden stickers shown; other puzzles their diagram.
+    cubeSize = c.cube_size ?? puzzleInfo(s.puzzle as PuzzleId).cubeSize;
+  // The bar runs out over the seconds chosen, then the case is named.
+  useEffect(() => {
+    const animation = bar.current?.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: s.recognitionSeconds * 1000, fill: "forwards" });
+    animation?.finished.then(() => setShown(true), () => {});
+    return () => animation?.cancel();
+  }, []);
+  useEffect(() => {
+    if (!shown) return;
+    const timeout = setTimeout(next, REVEAL_MS);
+    return () => clearTimeout(timeout);
+  }, [shown]);
+  const go = () => (shown ? next() : setShown(true));
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat || s.overlay) return;
+      e.preventDefault();
+      go();
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  });
+  return (
+    <button type="button" onClick={go} className={cn("flex min-h-0 flex-1 flex-col items-center justify-center gap-5 rounded-[26px]", FOCUS)} aria-label={shown ? tr("Next case") : tr("Show the case")}>
+      {cubeSize ? (
+        <Cube setup={s.training.setup} cubeSize={cubeSize} mask={maskForStage(c.stage)} size={size} animated={false} hints={hintsForStage(c.stage)} />
+      ) : s.training?.svg ? (
+        <div style={{ width: size, height: size }} className="[&_svg]:block [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: s.training.svg }} />
+      ) : (
+        <Diagram c={c} size={size} />
+      )}
+      <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-muted">
+        <div ref={bar} className={cn("h-full origin-left rounded-full bg-primary", shown && "opacity-0")} />
+      </div>
+      <div className={cn("flex min-h-20 flex-col items-center gap-1.5 transition-opacity", !shown && "opacity-0")} aria-live="polite">
+        {shown && (
+          <>
+            <b className="text-2xl font-extrabold tracking-[-0.03em]">{tr(c.name)}</b>
+            <Alg text={s.training.algorithm} size={20} />
+          </>
+        )}
+      </div>
+    </button>
   );
 }
 
@@ -315,15 +624,16 @@ function CrossCard() {
   );
 }
 
-/** The learned cases to pick by hand, set by set; the count picked, the search and Clear above them. */
-function CasesPicker() {
-  const cases = s.cases().filter((c: any) => s.learned.has(c.id)),
+/** The cases to pick by hand, set by set (the learned ones, every one for free practice); the count picked, the search and Clear above them. */
+function CasesPicker({ free = false }: { free?: boolean }) {
+  const cases = free ? s.cases() : s.cases().filter((c: any) => s.learned.has(c.id)),
+    picks = free ? new Set(s.freePicks) : s.selected,
     phone = usePhone();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <span className="flex items-baseline gap-2">
-          <span className={cn(NUMERIC, "text-[28px] leading-none font-extrabold tracking-[-0.03em]")}>{cases.filter((c: any) => s.selected.has(c.id)).length}</span>
+          <span className={cn(NUMERIC, "text-[28px] leading-none font-extrabold tracking-[-0.03em]")}>{cases.filter((c: any) => picks.has(c.id)).length}</span>
           <span className="text-sm text-muted-foreground">{tr("picked")}</span>
         </span>
         <div className="flex items-center gap-2 max-md:w-full">
@@ -337,7 +647,7 @@ function CasesPicker() {
             label="Search cases"
             className="w-56 max-md:w-full"
           />
-          <Button action="clear" disabled={!s.selected.size}>{tr("Clear")}</Button>
+          <Button action="clear" disabled={!picks.size}>{tr("Clear")}</Button>
         </div>
       </header>
       {/* The set and group rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
@@ -345,7 +655,7 @@ function CasesPicker() {
         {s.allSets().map((set: any) => {
           const all = cases.filter((c: any) => c.set === set.id),
             chosen = all.filter((c: any) => matches(c, s.query)),
-            count = chosen.filter((c: any) => s.selected.has(c.id)).length,
+            count = chosen.filter((c: any) => picks.has(c.id)).length,
             open = s.selectorOpen[set.id] ?? (count > 0 || !!s.query);
           if (!chosen.length) return null;
           const groups = [...new Set(chosen.map((c: any) => c.group))] as string[];
@@ -383,13 +693,13 @@ function CasesPicker() {
                         >
                           {tr(group)}
                           <span className={NUMERIC}>
-                            {members.filter((c: any) => s.selected.has(c.id)).length} / {members.length}
+                            {members.filter((c: any) => picks.has(c.id)).length} / {members.length}
                           </span>
                         </button>
                       )}
                       <div className={TILES}>
                         {members.map((c: any) => (
-                          <CaseTile key={c.id} c={c} touch={phone} action={"select:" + c.id} pressed={s.selected.has(c.id)} />
+                          <CaseTile key={c.id} c={c} touch={phone} action={"select:" + c.id} pressed={picks.has(c.id)} />
                         ))}
                       </div>
                     </div>

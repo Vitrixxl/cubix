@@ -95,6 +95,7 @@ const TournamentsPage = later(CODE.tournaments, (m) => m.TournamentsPage);
 const MatchPage = later(CODE.match, (m) => m.MatchPage);
 const DailyPage = later(CODE.daily, (m) => m.DailyPage);
 const TrainingSetup = later(CODE.training, (m) => m.TrainingSetup);
+const RecognitionPractice = later(CODE.training, (m) => m.RecognitionPractice);
 const Learn = later(CODE.learn, (m) => m.Learn);
 const Overlays = later(() => import("./overlays"), (m) => m.Overlays);
 const CaseDialog = later(() => import("./algorithms"), (m) => m.CaseDialog);
@@ -270,6 +271,8 @@ function App() {
                   <Shown />
                   {s.page === "training" && s.trainingStep === "setup" ? (
                     <TrainingSetup />
+                  ) : s.page === "training" && s.trainingKind === "recognition" ? (
+                    <RecognitionPractice />
                   ) : ["playground", "training"].includes(s.page) ? (
                     <Practice />
                   ) : s.page === "algorithms" ? (
