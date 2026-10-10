@@ -8,9 +8,9 @@ for (const theme of THEMES) for (const light of [false, true]) {
 }
 test('missing and invalid preferences fall back to the app defaults', () => {
   for (const values of [{},{'cubix.ui.theme':'broken','cubix.ui.colorMode':'invalid'},{'cubix.ui.theme':'"unknown"','cubix.ui.colorMode':'"sepia"'}]) {
-    expect(appearanceFromStorage(values)).toEqual({themeName:'peach',mode:'dark',light:false});
+    expect(appearanceFromStorage(values)).toEqual({themeName:'t3-chat',mode:'dark',light:false});
   }
 });
 test('the system mode follows the system, dark without a window to ask', () => {
-  expect(appearanceFromStorage({'cubix.ui.colorMode':'"system"'})).toEqual({themeName:'peach',mode:'system',light:false});
+  expect(appearanceFromStorage({'cubix.ui.colorMode':'"system"'})).toEqual({themeName:'t3-chat',mode:'system',light:false});
 });

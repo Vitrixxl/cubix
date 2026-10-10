@@ -1,6 +1,6 @@
 export type ThemeId = "peach" | "t3-code" | "t3-chat" | "grove" | "ocean" | "ember" | "iris";
-/** The theme until the user picks one: peach. */
-export const DEFAULT_THEME: ThemeId = "peach";
+/** The theme until the user picks one: pink (T3 Chat). */
+export const DEFAULT_THEME: ThemeId = "t3-chat";
 
 type Rgb = [number, number, number];
 function parse(color: string): Rgb {
@@ -22,7 +22,7 @@ const ACCENTS: Record<"dark" | "light", Record<ThemeId, { accent: string; series
   dark: {
     peach: { accent: "#ffb48c", series2: "#c9b4ff" },
     "t3-code": { accent: "#7fb2ff", series2: "#ffb48c" },
-    "t3-chat": { accent: "#ff8fbf", series2: "#c9b4ff" },
+    "t3-chat": { accent: "#f5609f", series2: "#c9b4ff" },
     grove: { accent: "#8fe0c2", series2: "#ffd98a" },
     ocean: { accent: "#7fd4e8", series2: "#c9b4ff" },
     ember: { accent: "#ff9d6b", series2: "#ffd98a" },

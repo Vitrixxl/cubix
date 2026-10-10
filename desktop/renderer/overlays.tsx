@@ -81,6 +81,27 @@ function Settings() {
             ]}
           />
         </SettingRow>
+        <SettingRow label={tr("Accent")}>
+          {accents.map((a) => (
+            <Tip key={a.id} content={said(a.name)}>
+              <button
+                type="button"
+                data-action={"theme:" + a.id}
+                aria-label={said(a.name)}
+                aria-pressed={s.themeName === a.id}
+                onClick={run("theme:" + a.id)}
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-full transition-shadow",
+                  FOCUS,
+                  s.themeName === a.id && "ring-2 ring-primary ring-offset-2 ring-offset-popover",
+                )}
+                style={{ background: a.color }}
+              >
+                {s.themeName === a.id && <Check className="size-3.5 text-[#1c1317]" />}
+              </button>
+            </Tip>
+          ))}
+        </SettingRow>
       </SettingGroup>
       <SettingGroup title={tr("Timer")}>
         <SettingRow label={tr("WCA inspection")}>
