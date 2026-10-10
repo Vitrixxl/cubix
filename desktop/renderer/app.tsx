@@ -5,6 +5,7 @@ import { store as s, TIMES_OPEN_WIDTH } from "./store";
 import { language, onLanguage, preferred, setLanguage } from "../../src/client/i18n";
 import { onEvent } from "./bridge";
 import { applyTheme, faviconPuzzle } from "./theme";
+import { cacheAppearance } from "../appearance";
 import { Toasts } from "./Toasts";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
@@ -204,7 +205,7 @@ function App() {
       removeEventListener("mouseup", mouse);
     };
   }, []);
-  useLayoutEffect(() => applyTheme(s.themeName, s.light), [s.themeName, s.light]);
+  useLayoutEffect(() => (applyTheme(s.themeName, s.light), cacheAppearance(s.themeName, s.colorMode)), [s.themeName, s.light, s.colorMode]);
   useEffect(() => void (s.error && !s.ready && reveal()), [s.error]);
   // Coaching keeps its socket open while an account is signed in: messages and calls reach every page.
   useEffect(() => coaching.attach(s.ready && s.signedIn ? s.user.id : null), [s.ready, s.signedIn, s.user.id]);

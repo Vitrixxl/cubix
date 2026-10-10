@@ -3,7 +3,7 @@ import { catalogSections, toggleSelection } from "../src/client/lib/practiceCata
 import { practiceSummary, trainingSessionRows } from "../src/client/lib/practiceSummary";
 import { LaunchSessions } from "../src/client/lib/launchSessions";
 import { PracticeTimer, HOLD_DELAY_MS } from "../src/client/lib/practiceTimer";
-import { THEMES, buildTheme, themeTokens } from "../src/client/lib/theme";
+import { THEMES, buildTheme, luminance, themeTokens } from "../src/client/lib/theme";
 
 const cases = [
   { id: "a", set: "full", group: "one" }, { id: "b", set: "full", group: "two" },
@@ -205,4 +205,18 @@ test("blindfolded: the first press ends the memorisation, the second stops; one 
   now = 75000;
   timer.press(75000);
   expect(stops).toEqual([[75000, 30000]]);
+});
+
+test("every theme tints the surfaces and keeps its inks readable", () => {
+  const contrast = (a: string, b: string) => { const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p); return (x! + 0.05) / (y! + 0.05); };
+  const backgrounds = new Set<string>();
+  for (const { id } of THEMES) for (const mode of ["light", "dark"] as const) {
+    const t = themeTokens(id, mode);
+    backgrounds.add(t.background!);
+    const inks = mode === "light" ? ["foreground", "muted-foreground", "faint", "destructive", "success", "warning"] : ["foreground", "muted-foreground"];
+    for (const surface of ["background", "card", "muted", "popover"]) for (const ink of inks)
+      expect(contrast(t[ink]!, t[surface]!), `${id} ${mode} ${ink} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+    if (mode === "light") for (const surface of ["background", "card"]) expect(contrast(t.edge!, t[surface]!), `${id} edge on ${surface}`).toBeGreaterThanOrEqual(3);
+  }
+  expect(backgrounds.size).toBe(THEMES.length * 2);
 });

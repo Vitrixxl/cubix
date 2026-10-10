@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
 import { Brand } from "./logo";
 import { applyTheme } from "./theme";
-import { DEFAULT_THEME } from "../../src/client/lib/theme";
+import { cachedAppearance } from "../appearance";
 
 export type ViewedSolve = StoredContext & {
   id?: number;
@@ -342,7 +342,7 @@ function AnnotationEditor({ value, onChange, valid, onCancel, onSave }: { value:
 export function SharedSolve({ token }: { token: string }) {
   const [solve, setSolve] = useState<ViewedSolve | null | undefined>(undefined);
   // The app's own look, the stored settings being the app's to read.
-  useEffect(() => applyTheme(DEFAULT_THEME, matchMedia("(prefers-color-scheme: light)").matches), []);
+  useEffect(() => applyTheme(cachedAppearance().themeName, matchMedia("(prefers-color-scheme: light)").matches), []);
   useEffect(() => {
     fetch(location.origin + "/api/shared/" + encodeURIComponent(token))
       .then((response) => (response.ok ? response.json() : null))

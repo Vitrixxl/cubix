@@ -1,5 +1,4 @@
-import { appearanceFromStorage, systemLight, type ColorMode } from "../appearance";
-import { DEFAULT_THEME } from "../../src/client/lib/theme";
+import { appearanceFromStorage, cachedAppearance, systemLight, type ColorMode } from "../appearance";
 import { isLearningTrack, type LearningPlan } from "../../src/client/lib/dailyLearning";
 import { recommend, trainingPool, type Recommendation } from "../../src/client/lib/trainingPicks";
 import { LaunchSessions } from "../../src/client/lib/launchSessions";
@@ -92,10 +91,10 @@ export class Store {
   entry = "timer";
   /** The WCA inspection before a timer solve: off, announced aloud, counted down on screen, or both. */
   inspection: Inspection = "off";
-  themeName: string = DEFAULT_THEME;
-  light = false;
+  themeName: string = cachedAppearance().themeName;
+  light = cachedAppearance().light;
   /** What the player chose: `light` follows it, the system's look when "system". */
-  colorMode: ColorMode = "dark";
+  colorMode: ColorMode = cachedAppearance().mode;
   user: any = { isGuest: true, username: msg("Guest") };
   learned = new Set<string>();
   /** The algorithm each learned case was learned with, when one was chosen. */
