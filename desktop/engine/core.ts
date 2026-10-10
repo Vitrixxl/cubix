@@ -19,7 +19,7 @@ import { fmtDate, joinedDate } from '../../src/client/lib/format';
 import { recordMessage, solveRecords } from '../../src/client/lib/personalBest';
 import { competitionEvent, generatePracticeScramble, type ScrambleEngine } from '../../src/client/lib/practiceScrambleCore';
 import { createScramblePool, SCRAMBLE_POOL_KEY } from '../../src/client/lib/scramblePool';
-import { dailyScramble } from '../../src/client/lib/daily';
+import { dailyDay, dailyScramble, DAILY_EVENTS } from '../../src/client/lib/daily';
 import { crossSolutions } from '../../src/shared/crossTraining';
 import { analyseSolve, type CatalogCase } from '../../src/client/lib/solveAnalysis';
 import { DUELS_KEY, keepRecord, levelOf } from '../../src/client/lib/duel';
@@ -64,6 +64,12 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   const reserve = createScramblePool({ storage, events: EVENTS.map(e => e.id), generate: event => scrambles.randomScrambleForEvent(event) });
   const nextScrambles = new Map<string, Promise<string>>();
   const dailies = new Map<string, Promise<string>>();
+  // The day's scramble of an event (src/client/lib/daily.ts), searched once per day.
+  function daily(day: string, event: string) {
+    const key = `${day}:${event}`;
+    if (!dailies.has(key)) dailies.set(key, dailyScramble(day, event, scrambles).catch(error => { dailies.delete(key); throw error; }));
+    return dailies.get(key)!;
+  }
   const scrambleKey = (context: PracticeContext) => `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
   function prefetchScramble(context: PracticeContext) {
     if (context.scrambleType === 'normal') return void reserve.fill(competitionEvent(context));
@@ -154,8 +160,10 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
   const preferences = () => Object.fromEntries(Object.entries(storage.all()).filter(([key]) => !key.startsWith('cubix.local.v1:workspace:') && !key.startsWith(CATALOG_CACHE_PREFIX) && key !== SCRAMBLE_POOL_KEY && key !== SMART_DIGESTS_KEY));
   const methods = new Set(Object.keys(local.api).filter(k => !['connectLive'].includes(k)));
   async function run(req: EngineRequest): Promise<unknown> {
-    // The reserve of scrambles fills from the launch, once the page has had a moment to draw.
-    if (req.method === 'init') setTimeout(() => void reserve.fill(), 1500);
+    // The reserve of scrambles fills from the launch, while the pages load: its search runs in a worker of its own.
+    if (req.method === 'init') void reserve.fill();
+    // Today's daily scrambles, searched from the launch too: their page never waits on them.
+    if (req.method === 'init') for (const event of DAILY_EVENTS) void daily(dailyDay(), event).catch(() => {});
     if (req.method === 'init') return { protocol: 2, user: local.current(), status: local.status(), localData: localData(), storage: preferences(), origin, learned: local.learned(), learnedAlgs: local.learnedAlgs(), learningGroupOrder: local.learningGroupOrder(), journey: local.read.journey() };
     if (req.method === 'snapshot') {
       const q = req.args[0], context = q.context;
@@ -179,10 +187,11 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       };
       // The timer's sessions, to name the current one and go back to another.
       if (q.page === 'playground') jobs.sessions = Promise.resolve(local.read.sessions(context.puzzle, context));
-      if (q.page === 'profile') {
-        jobs.profile = Promise.resolve(displayed(local.read.profile(q.profilePuzzle, q.profileFilter), profileView, q.known?.profile));
-        jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
-      }
+      // The profile is read on its page, and once ahead from any other so that its first opening has it already: with
+      // the puzzle and filters it opens on, those of the timer.
+      const onProfile = q.page === 'profile';
+      if (onProfile || !q.known?.profile) jobs.profile = Promise.resolve(displayed(onProfile ? local.read.profile(q.profilePuzzle, q.profileFilter) : local.read.profile(context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType }), profileView, q.known?.profile));
+      if (onProfile || !q.known?.achievements) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       if (q.analysis) {
         const mode = trainingMode ? context.solveMode : q.profileFilter?.solveMode ?? 'standard';
         jobs.analysis = (inSolves && mode === context.solveMode ? inSolves.then(([digests]) => digests) : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(timer => smart.digests(timer, mode)))
@@ -209,12 +218,7 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
     if (req.method === 'preference') { storage.setItem(req.args[0], JSON.stringify(req.args[1])); return true; }
     if (req.method === 'cubePreview') return cubePreview(req.args[0], req.args[1], req.args[2], true, req.args[3]);
     if (req.method === 'scramble') return await takeScramble(req.args[0]);
-    // The day's scramble of an event (src/client/lib/daily.ts), searched once per day.
-    if (req.method === 'dailyScramble') {
-      const key = req.args.join(':');
-      if (!dailies.has(key)) dailies.set(key, dailyScramble(req.args[0], req.args[1], scrambles).catch(error => { dailies.delete(key); throw error; }));
-      return await dailies.get(key);
-    }
+    if (req.method === 'dailyScramble') return await daily(req.args[0], req.args[1]);
     if (req.method === 'crossSolutions') return crossSolutions(req.args[0], req.args[1]);
     // A smart cube solve, split into its steps and its cases: here, off the page, after the solve was saved.
     if (req.method === 'analyseSolve') return analyseSolve(req.args[0], cases as unknown as CatalogCase[]);

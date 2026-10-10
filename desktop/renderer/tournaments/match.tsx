@@ -4,7 +4,7 @@
  * on the timer page), and every solve so far as a butterfly beside them. Those who are not players watch it live. Once
  * a player has won, the verdict rises over the race's foot, with the way back to the tournament or the conversation.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { toast } from "sonner";
 import { CircleAlert, Crown, Flag, Undo2, X } from "lucide-react";
 import { store as s } from "../store";
@@ -83,7 +83,8 @@ function useMatchTimer() {
 
 export function MatchPage() {
   const id = Number(s.view.split("/")[0]);
-  useEffect(() => {
+  // Before the first paint: the match held already shows at once, never the one opened before.
+  useLayoutEffect(() => {
     live.open(id);
     // The notice that brought the player here, if any, has done its job.
     toast.dismiss("community-match-" + id);

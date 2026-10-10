@@ -556,8 +556,9 @@ export class Store {
       if (v.caseHistory) this.caseHistory = v.caseHistory;
       this.smartAnalysis = v.analysis ?? (this.page === "profile" || this.page === "training" ? this.smartAnalysis : null);
       this.known = {
-        ...(this.profile && v.tokens?.profile ? { profile: v.tokens.profile } : {}),
-        ...(this.achievements && v.tokens?.achievements ? { achievements: v.tokens.achievements } : {}),
+        // Kept from an earlier snapshot when this one did not read them (another page than the profile).
+        ...(this.profile && (v.tokens?.profile ?? this.known.profile) ? { profile: v.tokens?.profile ?? this.known.profile } : {}),
+        ...(this.achievements && (v.tokens?.achievements ?? this.known.achievements) ? { achievements: v.tokens?.achievements ?? this.known.achievements } : {}),
         ...(this.caseHistory && v.tokens?.caseHistory ? { caseHistory: v.tokens.caseHistory } : {}),
       };
       this.emit();

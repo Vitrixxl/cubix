@@ -22,6 +22,13 @@ describe("the reserve of scrambles", () => {
     expect(again.count("444")).toBe(2);
   });
 
+  test("gives every event two scrambles before topping any up", async () => {
+    const order: string[] = [];
+    const pool = createScramblePool({ storage: memory(), events: ["333", "444", "555"], size: 3, generate: async (event) => (order.push(event), "R") });
+    await pool.fill("444");
+    expect(order).toEqual(["444", "444", "333", "333", "555", "555", "444", "333", "555"]);
+  });
+
   test("an empty reserve answers nothing and starts filling; a failing scrambler is left aside", async () => {
     const pool = createScramblePool({ storage: memory(), events: ["minx", "333"], size: 1, pause: 0, generate: async (event) => {
       if (event === "minx") throw new Error("unavailable");

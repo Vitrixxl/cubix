@@ -6,19 +6,21 @@
 export const SCRAMBLE_POOL_KEY = "cubix.scramblePool";
 /** Scrambles kept ahead per event. */
 export const SCRAMBLE_POOL_SIZE = 5;
+/** Scrambles every event gets before any is topped up to the full reserve: none waits behind another's five. */
+const READY = 2;
 
 interface Storage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
 
-export function createScramblePool({ storage, events, generate, size = SCRAMBLE_POOL_SIZE, pause = 50 }: {
+export function createScramblePool({ storage, events, generate, size = SCRAMBLE_POOL_SIZE, pause = 0 }: {
   storage: Storage;
   /** Every event, in the order to fill them. */
   events: readonly string[];
   generate: (event: string) => Promise<string>;
   size?: number;
-  /** Rest between two scrambles, so the background work never hogs the device. */
+  /** Rest between two scrambles (none by default: the search runs in a worker of its own). */
   pause?: number;
 }) {
   const pool: Record<string, string[]> = (() => {
@@ -36,14 +38,15 @@ export function createScramblePool({ storage, events, generate, size = SCRAMBLE_
   const failed = new Set<string>();
   let filling: Promise<void> | undefined;
 
-  /** Fills every event's reserve, `priority` first; one filling at a time. */
+  /** Fills every event's reserve, `priority` first: each event to READY, then each to `size`; one filling at a time. */
   function fill(priority?: string): Promise<void> {
     if (priority && !first.includes(priority)) first.unshift(priority);
     filling ??= (async () => {
       failed.clear();
       try {
         for (;;) {
-          const event = [...first, ...events].find((e) => !failed.has(e) && (pool[e]?.length ?? 0) < size);
+          const order = [...first, ...events].filter((e) => !failed.has(e)),
+            event = [Math.min(READY, size), size].map((level) => order.find((e) => (pool[e]?.length ?? 0) < level)).find(Boolean);
           if (!event) break;
           try {
             const scramble = await generate(event);

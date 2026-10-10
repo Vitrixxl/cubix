@@ -201,13 +201,16 @@ export class DuelClient {
     return this.platform.live.send({ channel: "duel", ...message });
   }
 
+  /** The levels read, by event: an event chosen again shows its own at once while it is read anew. */
+  private levels = new Map<string, number | null>();
   /** The player's level on an event: what the matchmaking compares. */
   async loadLevel(event: string) {
     if (this.levelEvent === event && this.level !== undefined) return;
     this.levelEvent = event;
-    this.level = undefined;
+    this.level = this.levels.get(event);
     this.changed();
     const level = await this.platform.level(event).catch(() => null);
+    this.levels.set(event, level);
     if (this.levelEvent !== event) return;
     this.level = level;
     this.changed();

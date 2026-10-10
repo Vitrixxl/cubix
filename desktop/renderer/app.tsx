@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
+import { createElement, lazy, Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { MotionConfig } from "motion/react";
 import { store as s, TIMES_OPEN_WIDTH } from "./store";
@@ -19,7 +19,8 @@ import { SignInDialog } from "./login";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
 import { bindNavigation, go, readRoute, type AppRoute } from "./navigation";
-import { onIntent, whenIdle } from "./prefetch";
+import { onIntent } from "./prefetch";
+import { preloadAll } from "./preload";
 import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
 import { pageSeo, pageTitle } from "./seo";
 import { isPhone } from "../../src/client/lib/viewport";
@@ -29,13 +30,15 @@ import { said, useLanguage } from "./base";
 /** Kept on this device for the next launch: an account's device never shows a page written ahead of time (boot.ts). */
 const SIGNED_IN_KEY = "cubix.signedIn";
 /**
- * A part of the app loaded on first use. A tab left open across a deploy may no longer find it on the server: the
- * page loads again, once, to get the new version.
+ * A part of the app, fetched at start-up and drawn at once when it is there: React's `lazy` would still
+ * suspend once on a part already loaded. A tab left open across a deploy may no longer find it on the server: the page
+ * loads again, once, to get the new version.
  */
-const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentType<any>) =>
-  lazy(() =>
+const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentType<any>) => {
+  let ready: React.ComponentType<any> | undefined;
+  const Lazy = lazy(() =>
     load().then(
-      (module) => (sessionStorage.removeItem(RELOADED), { default: pick(module) }),
+      (module) => (sessionStorage.removeItem(RELOADED), { default: (ready = pick(module)) }),
       (error) => {
         if (sessionStorage.getItem(RELOADED)) throw error;
         sessionStorage.setItem(RELOADED, "1");
@@ -44,8 +47,11 @@ const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentT
       },
     ),
   );
+  void load().then((module) => (ready = pick(module)), () => {});
+  return (props: any) => createElement(ready ?? Lazy, props);
+};
 const RELOADED = "cubix.reloadedForUpdate";
-/** Each page's code, loaded on first use (or ahead, see `warm`). */
+/** Each page's code, all fetched at start-up (`later`). */
 const CODE = {
   algorithms: () => import("./algorithms"),
   profile: () => import("./profile"),
@@ -59,15 +65,12 @@ const CODE = {
   learn: () => import("./learn"),
 };
 /**
- * What a link opens, fetched ahead (prefetch.ts): the page's code and, for the pages that read the server, their list
- * (read only, at most once a minute). The timer and a drill's session are in the app's first part already.
+ * What a link opens, fetched ahead (prefetch.ts): for the pages that read the server, their list (read only, at most
+ * once a minute). Every page's code is there from the start already.
  */
 const warmed = new Map<string, number>();
-function warm(route: AppRoute, data: boolean) {
-  const load = route.page === "training" && route.trainingStep === "practice" ? undefined : CODE[route.page as keyof typeof CODE];
-  // A chunk that fails here is asked again, and reported, by the page itself when opened.
-  void load?.().catch(() => {});
-  if (!data || !s.ready || !s.signedIn || s.user.isGuest) return;
+function warm(route: AppRoute) {
+  if (!s.ready || !s.signedIn || s.user.isGuest) return;
   const key = route.page === "coaching" ? (coaching.isCoach ? "dashboard" : "coaches") : route.page === "community" ? "conversations" : route.page === "tournaments" && !route.view ? "tournaments" : "";
   if (!key || Date.now() - (warmed.get(route.page) ?? 0) < 60_000) return;
   warmed.set(route.page, Date.now());
@@ -76,10 +79,8 @@ function warm(route: AppRoute, data: boolean) {
 function prefetchLinks() {
   onIntent((link) => {
     const route = readRoute(link.pathname, link.search);
-    if (route) warm(route, true);
+    if (route) warm(route);
   });
-  // The sections of the header, likeliest to be opened next: their code once the browser has nothing else to do.
-  whenIdle(() => ["learn", "algorithms", "duel", "profile"].forEach((page) => warm(readRoute("/" + page, "")!, false)));
 }
 const Introduction = later(() => import("./introduction"), (m) => m.Introduction);
 const Onboarding = later(() => import("./introduction"), (m) => m.Onboarding);
@@ -208,6 +209,8 @@ function App() {
   // Coaching keeps its socket open while an account is signed in: messages and calls reach every page.
   useEffect(() => coaching.attach(s.ready && s.signedIn ? s.user.id : null), [s.ready, s.signedIn, s.user.id]);
   useEffect(() => community.attach(s.ready && s.signedIn && !s.user.isGuest ? s.user.id : null), [s.ready, s.signedIn, s.user.id]);
+  // The pages that read the server, read ahead once the account is attached: none opens on a skeleton.
+  useEffect(() => preloadAll(), [s.ready, s.signedIn, s.user.id]);
   useLayoutEffect(() => faviconPuzzle(s.event().id), [s.puzzle, s.solveMode]);
   useEffect(() => {
     if (!s.ready) return;

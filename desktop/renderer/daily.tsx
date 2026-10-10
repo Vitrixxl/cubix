@@ -26,6 +26,50 @@ const dayLabel = (day: string) => new Date(day + "T12:00:00Z").toLocaleDateStrin
 const axis = (ms: number) => (ms >= 60000 ? fmtTime(ms).replace(/\.\d+$/, "") : String(+(ms / 1000).toFixed(1))) + " s";
 const eventLabel = (id: string) => tr(eventInfo(id)?.label ?? id);
 
+/**
+ * What the page read, kept for its next opening: shown at once, then read anew. A ranking that cannot be read stays as
+ * it was, "offline" only when none was read yet. The field and results are kept by account.
+ */
+const scrambles = new Map<string, string>(),
+  boards = new Map<string, DailyBoard | "offline">(),
+  histories = new Map<string, DailyDay[] | "offline">();
+/** The day's scramble of an event and its field, in the view chosen, with the attempt kept on this device placed in it. */
+function loadDaily(event: DailyEvent, day: string) {
+  const key = `${day}:${event}`,
+    verified = s.dailyVerified,
+    local = s.dailyDone[key],
+    held = `${s.user.id}:${key}:${verified}`;
+  void call("dailyScramble", day, event).then((v: string) => (scrambles.set(key, v), s.emit()), () => {});
+  return (async () => {
+    await s.dailyFlush();
+    try {
+      const token = s.signedIn ? await call("apiToken") : null;
+      boards.set(held, await fetchDaily(location.origin, token, event, day, local ? { timeMs: local.timeMs, penalty: local.penalty } : undefined, false, verified));
+    } catch {
+      if (!boards.has(held)) boards.set(held, "offline");
+    }
+    s.emit();
+  })();
+}
+/** The player's results on an event, in the view chosen. */
+async function loadHistory(event: DailyEvent) {
+  const key = `${s.user.id}:${event}:${s.dailyVerified}`;
+  try {
+    await s.dailyFlush();
+    histories.set(key, await fetchDailyHistory(location.origin, await call("apiToken"), event, s.dailyVerified));
+  } catch {
+    if (!histories.has(key)) histories.set(key, "offline");
+  }
+  s.emit();
+}
+/** Today's scramble, field and results of the event the page opens on, read ahead so that it opens at once. */
+export function preloadDaily() {
+  const current = s.event().id,
+    event: DailyEvent = isDailyEvent(current) ? current : "333";
+  void loadDaily(event, dailyDay());
+  if (s.signedIn) void loadHistory(event);
+}
+
 /** The field as a histogram on its side: a row per bucket of times, the bar as long as its solvers, the player's in the accent. */
 function DailyChart({ board, place }: { board: DailyBoard; place: DailyPlace | null }) {
   const { from, width, counts } = board.buckets,
@@ -158,29 +202,13 @@ export function DailyPage() {
     wide = w >= 1280,
     [event, setEvent] = useState<DailyEvent>(isDailyEvent(current) ? current : "333"),
     [day, setDay] = useState(today),
-    [scramble, setScramble] = useState(""),
-    [board, setBoard] = useState<DailyBoard | null | "offline">(null),
     [results, setResults] = useState(false),
     verified = s.dailyVerified,
     local = s.dailyDone[`${day}:${event}`],
-    past = day !== today;
-  useEffect(() => {
-    let live = true;
-    setBoard(null);
-    setScramble("");
-    void call("dailyScramble", day, event).then((v: string) => live && setScramble(v), () => {});
-    void (async () => {
-      await s.dailyFlush();
-      try {
-        const token = s.signedIn ? await call("apiToken") : null;
-        const value = await fetchDaily(location.origin, token, event, day, local ? { timeMs: local.timeMs, penalty: local.penalty } : undefined, false, verified);
-        if (live) setBoard(value);
-      } catch {
-        if (live) setBoard("offline");
-      }
-    })();
-    return () => void (live = false);
-  }, [event, day, local?.penalty, local?.timeMs, verified]);
+    past = day !== today,
+    scramble = scrambles.get(`${day}:${event}`) ?? "",
+    board = boards.get(`${s.user.id}:${day}:${event}:${verified}`) ?? null;
+  useEffect(() => void loadDaily(event, day), [event, day, local?.penalty, local?.timeMs, verified]);
   const loaded = board && board !== "offline" ? board : null,
     place = loaded ? loaded.mine ?? loaded.placed : null,
     done = !!local || !!loaded?.mine;
@@ -280,22 +308,8 @@ function Results({ day, event, onPick, bare = false }: { day: string; event: Dai
   const today = dailyDay(),
     verified = s.dailyVerified,
     local = s.dailyDone[`${today}:${event}`],
-    [history, setHistory] = useState<DailyDay[] | null | "offline">(null);
-  useEffect(() => {
-    let live = true;
-    setHistory(null);
-    if (!s.signedIn) return void setHistory("offline");
-    void (async () => {
-      try {
-        await s.dailyFlush();
-        const value = await fetchDailyHistory(location.origin, await call("apiToken"), event, verified);
-        if (live) setHistory(value);
-      } catch {
-        if (live) setHistory("offline");
-      }
-    })();
-    return () => void (live = false);
-  }, [event, verified, s.signedIn, local?.penalty, local?.timeMs]);
+    history = !s.signedIn ? "offline" : (histories.get(`${s.user.id}:${event}:${verified}`) ?? null);
+  useEffect(() => void (s.signedIn && loadHistory(event)), [event, verified, s.signedIn, local?.penalty, local?.timeMs]);
   // Offline or a guest: the attempts this device keeps (today's and yesterday's).
   const list: DailyDay[] =
     history && history !== "offline"
