@@ -16,6 +16,7 @@ import { Practice } from "./practice";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
 import { live } from "./coaching/call";
+import { XpGain } from "./xp";
 import { SignInDialog } from "./login";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
@@ -299,6 +300,7 @@ function App() {
         </div>
         {live.call && <Suspense fallback={null}><FloatingCall /></Suspense>}
         <Toasts light={s.light} />
+        <XpGain />
         <Confirmations />
         <SignInDialog />
         <Suspense fallback={s.overlay === "settings" ? <SettingsSkeleton phone={mobile} /> : null}><Overlays /></Suspense>

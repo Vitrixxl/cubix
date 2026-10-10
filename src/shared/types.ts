@@ -215,9 +215,13 @@ export interface AchievementDto {
   unlockedAt?: string;
   /** The solve that unlocked it, when a solve did (time goals and solve counts). */
   solveId?: number;
+  /** Experience it gives once unlocked: more for each harder step of its series. */
+  xp?: number;
 }
 export interface AchievementSummaryDto {
   unlocked: number;
   total: number;
+  /** Experience earned: the sum of the unlocked achievements' XP. */
+  xp: number;
   achievements: AchievementDto[];
 }

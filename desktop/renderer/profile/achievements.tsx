@@ -11,7 +11,7 @@ import { Back, Bar, Choice, Empty, FOCUS, Modal, NUMERIC, PageHead, SelectMenu, 
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { achievementKind, achievementSeries, isTimeGoal } from "../../../src/client/lib/achievements";
+import { achievementKind, achievementSeries, isTimeGoal, level } from "../../../src/client/lib/achievements";
 import { fmtTime } from "../../../src/client/lib/format";
 import { eventOf, type PuzzleId } from "../../../src/shared/puzzles";
 import { sets } from "../../../src/client/local/catalog";
@@ -91,7 +91,7 @@ export function AchievementsPage({ phone }: { phone: boolean }) {
   const head = (
     <PageHead
       title={tr("Achievements")}
-      sub={tr("{0} of {1} unlocked", { 0: s.achievements?.unlocked ?? 0, 1: s.achievements?.total ?? 0 })}
+      sub={`${tr("{0} of {1} unlocked", { 0: s.achievements?.unlocked ?? 0, 1: s.achievements?.total ?? 0 })} · ${tr("Level {0}", { 0: level(s.achievements?.xp ?? 0).level })}`}
       lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}
     >
       {!phone && <Filters groups={groups} unlocked={unlocked} locked={inGroup.length - unlocked} />}
@@ -314,7 +314,7 @@ function Detail({ a, all, pick }: { a: A; all: A[]; pick: (a: A) => void }) {
       </div>
       <h2 className="text-center text-[28px] leading-tight font-extrabold tracking-[-0.03em]">{said(a.title)}</h2>
       <p className="mt-0.5 text-center text-sm font-semibold text-muted-foreground">
-        {said(a.group)} · {said(category.label)}
+        {said(a.group)} · {said(category.label)} · {a.unlocked ? tr("+{0} XP", { 0: a.xp ?? 0 }) : tr("{0} XP", { 0: a.xp ?? 0 })}
       </p>
       <p className="mx-2 mt-3 text-center text-[15px] text-balance text-muted-foreground">{said(a.description)}</p>
       <dl className={cn("mt-5 grid gap-2", facts.length > 1 && "grid-cols-2")}>

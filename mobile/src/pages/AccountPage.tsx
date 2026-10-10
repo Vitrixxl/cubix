@@ -5,6 +5,7 @@ import { ScrollView, View } from "react-native";
 import { fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
 import { timerFigures } from "../../../src/client/lib/practiceSummary";
 import { achievementLists, stageCounts } from "../../../src/client/lib/profile";
+import { level } from "../../../src/client/lib/achievements";
 import { eventInfo, eventOf, scrambleLabel, puzzleInfo, type EventId } from "../../../src/shared/puzzles";
 import type { CaseDto } from "../../../src/shared/types";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,7 @@ function Identity({ d, onImport }: { d: Overview | null; onImport: () => void })
         <MenuItem icon={Settings} onPress={() => openSettings(true)}>{tr("Settings")}</MenuItem>
       </MoreMenu>
     </View>
+    <Level />
     {d ? <View className="flex-row flex-wrap gap-y-3" accessibilityLabel={tr("Summary")}>
       <Figure className="w-1/2" size="lg" label={tr("Solves")} value={d.solves.toLocaleString()} />
       <Figure className="w-1/2" size="lg" label={tr("Active days")} value={d.days.size.toLocaleString()} />
@@ -129,6 +131,18 @@ function Identity({ d, onImport }: { d: Overview | null; onImport: () => void })
       <Figure className="w-1/2" size="lg" label={tr("Trained")} value={d.trainingSolves.toLocaleString()} />
     </View> : <Skeleton accessibilityLabel={tr("Loading your figures")} className="h-36 rounded-lg" />}
   </Surface>;
+}
+
+/** Their level, earned with the achievements' XP, and how far into the next one. */
+function Level() {
+  const xp = useAtomValue(profileAchievementsAtom)?.xp ?? 0, l = level(xp);
+  return <View className="gap-1.5" accessibilityLabel={tr("{0} XP in all", { 0: xp.toLocaleString() })}>
+    <View className="flex-row items-baseline justify-between gap-2">
+      <Text className="text-sm font-semibold">{tr("Level {0}", { 0: l.level })}</Text>
+      <Numeric className="text-xs text-muted-foreground">{tr("{0} / {1} XP", { 0: l.into.toLocaleString(), 1: l.span.toLocaleString() })}</Numeric>
+    </View>
+    <Bar ratio={l.into / l.span} />
+  </View>;
 }
 
 /** The chosen event's card: its best single beside where it stands now, its curve and its latest solves. */

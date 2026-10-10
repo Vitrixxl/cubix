@@ -31,6 +31,7 @@ import {
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
 import { METHODS } from "../../../src/shared/methods";
 import { journeyProfile } from "../../../src/client/lib/journey";
+import { LevelBar } from "../xp";
 import {
   Avatar,
   Button,
@@ -125,6 +126,7 @@ export function IdentityCard() {
           )}
         </div>
       </div>
+      <Level />
       <div className="grid grid-cols-2 gap-1.5">
         <Button
           action="importTimes"
@@ -174,6 +176,20 @@ export function IdentityCard() {
         </Button>
       </div>
     </Surface>
+  );
+}
+
+/** Their level, earned with the achievements' XP, and how far into the next one; opens the achievements. */
+function Level() {
+  return (
+    <button
+      type="button"
+      data-action="profileMode:achievements"
+      onClick={() => void s.action("profileMode:achievements")}
+      className="rounded-2xl bg-muted px-3.5 py-2.5 text-left hover:bg-accent"
+    >
+      <LevelBar xp={s.xp ?? s.achievements?.xp ?? 0} />
+    </button>
   );
 }
 

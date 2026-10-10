@@ -114,7 +114,23 @@ export function achievements(rows: SolveDto[], learned: readonly string[]): Achi
   }
   STREAK_GOALS.forEach((goal, i) => out.push({ id: `streak:${goal}`, title: msg("{0}-day streak", { 0: goal }), description: msg("Practise {0} days in a row.", { 0: goal }), category: "dedication", group: general,
     progress: Math.min(longest, goal), target: goal, ratio: Math.min(1, longest / goal), detail: msg("{0} / {1} days", { 0: longest, 1: goal }), unlocked: longest >= goal, ...(streakDates[i] ? { unlockedAt: streakDates[i] } : {}) }));
-  return { unlocked: out.filter(a => a.unlocked).length, total: out.length, achievements: out };
+  // Each step of a series is worth more than the one before (Sub-30 25 XP, Sub-25 50…); a set is worth its cases.
+  const steps = new Map<string, number>();
+  for (const a of out) {
+    const series = achievementSeries(a), step = (steps.get(series) ?? 0) + 1;
+    steps.set(series, step);
+    a.xp = achievementKind(a) === "sets" ? Math.max(XP_STEP, a.target) : XP_STEP * step;
+  }
+  return { unlocked: out.filter(a => a.unlocked).length, total: out.length, xp: out.reduce((sum, a) => sum + (a.unlocked ? a.xp! : 0), 0), achievements: out };
+}
+
+const XP_STEP = 25;
+/** The level an amount of XP reaches: level n needs 100 × (1 + 2 + … + n−1) XP, each level 100 XP longer than the last. */
+export function level(xp: number): { level: number; into: number; span: number } {
+  let n = 1;
+  while (50 * n * (n + 1) <= xp) n++;
+  const floor = 50 * n * (n - 1);
+  return { level: n, into: xp - floor, span: 100 * n };
 }
 
 /** Group order for display: puzzles in registry order, then general goals. */

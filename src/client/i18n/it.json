@@ -3192,5 +3192,12 @@
  "Green": "Verde",
  "Cyan": "Ciano",
  "Orange": "Arancione",
- "Purple": "Viola"
+ "Purple": "Viola",
+ "{0} / {1} XP": "{0} / {1} XP",
+ "{0} XP": "{0} XP",
+ "{0} XP in all": "{0} XP in totale",
+ "+{0} XP": "+{0} XP",
+ "Level {0}": "Livello {0}",
+ "Experience": "Esperienza",
+ "Level up · level {0}": "Sali di livello · livello {0}"
 }

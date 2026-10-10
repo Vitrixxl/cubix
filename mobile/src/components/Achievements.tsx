@@ -39,6 +39,7 @@ const AchievementRow = memo(function AchievementRow({ achievement: a }: { achiev
         <Numeric className="shrink text-right text-xs text-muted-foreground">{note}</Numeric>
       </View>
       <Text className="text-xs text-muted-foreground">{tr(a.description)}</Text>
+      <Numeric className="text-xs font-semibold text-muted-foreground">{a.unlocked ? tr("+{0} XP", { 0: a.xp ?? 0 }) : tr("{0} XP", { 0: a.xp ?? 0 })}</Numeric>
       <Bar ratio={a.ratio} done={a.unlocked} className="mt-1" />
     </View>
   </View>;

@@ -120,6 +120,11 @@ export class Store {
   solves: any[] = [];
   profile: any = null;
   achievements: any = null;
+  /** The account's XP and achievements unlocked, and the latest gain while its bar shows (`at` tells two gains apart). */
+  xp: number | null = null;
+  unlocked = { count: 0, total: 0 };
+  xpOwner = "";
+  xpGain: { from: number; to: number; at: number } | null = null;
   caseHistory: any = null;
   /** The engine's tokens of the figures held: unchanged ones are not sent again. */
   known: Record<string, number> = {};
@@ -566,6 +571,14 @@ export class Store {
       await this.refreshLearning(true);
       if (v.profile) this.profile = v.profile;
       if (v.achievements) this.achievements = v.achievements;
+      if (v.progress) {
+        const { xp, unlocked, total } = v.progress;
+        // A gain of the same account only: signing in to another one is no gain.
+        if (this.xp !== null && this.xpOwner === String(this.user.id) && xp > this.xp) this.xpGain = { from: this.xp, to: xp, at: Date.now() };
+        this.xp = xp;
+        this.unlocked = { count: unlocked, total };
+        this.xpOwner = String(this.user.id);
+      }
       if (v.caseHistory) this.caseHistory = v.caseHistory;
       this.smartAnalysis = v.analysis ?? (this.page === "profile" || this.page === "training" ? this.smartAnalysis : null);
       this.known = {

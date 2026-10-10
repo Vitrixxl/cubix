@@ -14,6 +14,7 @@ import { pageUrl, readRoute, type AppRoute } from "./navigation";
 import type { PuzzleId } from "../../src/shared/puzzles";
 import { language, tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { LevelBar } from "./xp";
 import { smartCube } from "../../src/client/lib/smartCube";
 import { stackmat } from "../../src/client/lib/stackmat";
 /** How long the pointer rests on something before its tooltip shows: the same in every part of the app. */
@@ -148,13 +149,20 @@ export function AccountMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-60">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="flex items-center gap-2.5 py-2">
-            <Avatar name={guest ? "?" : s.user.username} size={28} />
+          <DropdownMenuLabel className="flex items-center gap-3 py-2">
+            <Avatar name={guest ? "?" : s.user.username} size={guest ? 28 : 40} className={cn(!guest && "rounded-xl")} />
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-sm font-bold text-foreground">{guest ? tr("Guest") : s.user.username}</span>
-              <span className="truncate text-xs font-normal">{guest ? tr("Times stay on this device") : tr("Signed in")}</span>
+              <span className="truncate text-xs font-normal">
+                {guest ? tr("Times stay on this device") : tr("{0} of {1} achievements unlocked", { 0: s.unlocked.count, 1: s.unlocked.total })}
+              </span>
             </span>
           </DropdownMenuLabel>
+          {!guest && s.xp !== null && (
+            <DropdownMenuItem data-action="nav:achievements" className="mx-1 mb-1 block rounded-xl bg-muted px-3 py-2.5" render={<Link to={pageUrl("profile", { profileMode: "achievements" })} />}>
+              <LevelBar xp={s.xp} />
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { achievementBadge, achievementSeries, achievements, isTimeGoal } from "../src/client/lib/achievements";
+import { achievementBadge, achievementSeries, achievements, isTimeGoal, level } from "../src/client/lib/achievements";
 import { cases } from "../src/client/local/catalog";
 import type { SolveDto } from "../src/shared/types";
 
@@ -104,4 +104,20 @@ test("each achievement reads as a badge and belongs to a series, and the solve t
   expect(byId(list, "333:single:10").solveId).toBe(rows[0]!.id);
   expect(byId(list, "333:solves:1").solveId).toBe(rows[0]!.id);
   expect(byId(list, "days:7").solveId).toBeUndefined();
+});
+
+test("each harder step of a series gives more XP, the unlocked ones add up to a level", () => {
+  const empty = achievements([], []);
+  expect(empty.xp).toBe(0);
+  expect(byId(empty.achievements, "333:single:60").xp).toBe(25);
+  expect(byId(empty.achievements, "333:single:45").xp).toBe(50);
+  expect(byId(empty.achievements, "learn:pll").xp).toBe(25);
+  expect(byId(empty.achievements, "learn:oll").xp).toBe(57);
+  const list = achievements([solve({ time_ms: 40000, created_at: at(1) })], []);
+  // Sub-60, Sub-45 and the first 3×3 solve.
+  expect(list.xp).toBe(25 + 50 + 25);
+  expect(level(0)).toEqual({ level: 1, into: 0, span: 100 });
+  expect(level(99)).toEqual({ level: 1, into: 99, span: 100 });
+  expect(level(100)).toEqual({ level: 2, into: 0, span: 200 });
+  expect(level(350)).toEqual({ level: 3, into: 50, span: 300 });
 });

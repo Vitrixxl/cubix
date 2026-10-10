@@ -191,6 +191,8 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       // first opening has it already: with the puzzle and filters it opens on, those of the timer.
       const onProfile = q.page === 'profile', ahead = !onProfile && q.profileAhead;
       if (onProfile || (ahead && !q.known?.profile)) jobs.profile = Promise.resolve(displayed(onProfile ? local.read.profile(q.profilePuzzle, q.profileFilter) : local.read.profile(context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType }), profileView, q.known?.profile));
+      // The XP and achievements unlocked on every snapshot, for the account menu and the bar that fills when XP is earned.
+      jobs.progress = Promise.resolve(local.read.achievements()).then(({ xp, unlocked, total }) => ({ xp, unlocked, total }));
       if (onProfile || (ahead && !q.known?.achievements)) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       if (q.analysis) {
         const mode = trainingMode ? context.solveMode : q.profileFilter?.solveMode ?? 'standard';
