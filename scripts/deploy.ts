@@ -112,6 +112,9 @@ if (!apkOnly) {
     if (update.runtimeVersion !== runtime) { console.error(`The export targets runtime ${update.runtimeVersion}, expected ${runtime}.`); process.exit(1); }
     validateProductionUpdate(update, readFileSync(resolve(UPDATE_DIR, update.launchAsset.path)));
     for (const asset of [update.launchAsset, ...update.assets]) {
+      // Assets are named by their hash: one the server stores already is the same file.
+      const stored = await fetch(`${ORIGIN}/api/mobile/updates/assets/${asset.hash}`, { method: "HEAD", signal: AbortSignal.timeout(10000) }).then((r) => r.ok).catch(() => false);
+      if (stored) continue;
       const bytes = readFileSync(resolve(UPDATE_DIR, asset.path));
       console.log(`Uploading ${asset.path} (${(bytes.length / 1024).toFixed(0)} KiB)`);
       await send(`/api/mobile/updates/assets/${asset.hash}`, { "Content-Type": "application/octet-stream" }, new Blob([bytes]));
