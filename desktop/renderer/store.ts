@@ -9,8 +9,8 @@ import { cleanFigures, DEFAULT_FIGURES, FIGURE_LIMIT, parseFigure, sessionFigure
 import { isPhone } from "../../src/client/lib/viewport";
 import { call, openExternal } from "./bridge";
 import catalogData from "../assets/catalog.json";
-import { eventInfo, eventLabel, eventOf, isPuzzle, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
-import { CROSS_MOVES, crossMovesFor, crossScrambleType, crossTrainingType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
+import { EVENTS, eventInfo, eventLabel, eventOf, isPuzzle, PUZZLES, normalizeScrambleType, puzzleOf, type PuzzleId, type SolveMode } from "../../src/shared/puzzles";
+import { CROSS_MOVES, CROSS_TARGETS, crossMovesFor, crossScrambleType, crossTrainingType, isCrossTarget, type CrossTarget } from "../../src/shared/crossTraining";
 import { courseEntry, courseStorageKey, goToStep, methodOf, openCourse, readCourseProgress, recommendedMethod, toggleAlgLearned, type CourseProgress } from "../../src/client/lib/course";
 import { duel } from "./duelClient";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
@@ -29,6 +29,11 @@ import { msg } from "../../src/client/i18n/msg";
 import { isCaseSource, type CaseSource } from "../../src/client/lib/smartStats";
 import { cancelDaily, dailyDay, fetchDaily, isDailyEvent, DailyError, type DailyBoard } from "../../src/client/lib/daily";
 
+const SHOWN_SCRAMBLE = "cubix.shownScramble";
+/** The next scrambles drawn ahead, by context (`Store.ahead`). */
+const AHEAD = "cubix.scramblesAhead";
+/** The scramble shown last and its puzzle, kept on the device: the timer drawn while the app starts shows it already. */
+export const lastScramble: { puzzle?: string; scramble?: string } = (() => { try { return JSON.parse(localStorage.getItem(SHOWN_SCRAMBLE) ?? "{}") ?? {}; } catch { return {}; } })();
 // The connected cube coming and going, wherever the player is.
 let cubeLink = smartCube.snapshot.status;
 smartCube.subscribe(() => {
@@ -108,6 +113,9 @@ export class Store {
   collapsed = new Set<string>();
   selectorOpen: Record<string, boolean> = {};
   scramble = "";
+  private savedScramble = lastScramble.scramble;
+  /** Whether the start-up is done: the snapshots read the profile ahead from then on (engine/core.ts). */
+  private profileAhead = false;
   training: any = null;
   solves: any[] = [];
   profile: any = null;
@@ -218,6 +226,7 @@ export class Store {
     };
   };
   emit = () => {
+    if (this.scramble && this.scramble !== this.savedScramble) try { localStorage.setItem(SHOWN_SCRAMBLE, JSON.stringify({ puzzle: this.puzzle, scramble: (this.savedScramble = this.scramble) })); } catch {}
     this.version++;
     this.listeners.forEach((fn) => fn());
   };
@@ -382,14 +391,18 @@ export class Store {
       this.loadContext();
       const route = readRoute(window.location.pathname, window.location.search);
       if (route) this.applyRoute(route);
+      // The account's setup is in `init` already: the app shows without waiting for its first snapshot.
+      this.checkIntroduction();
       this.ready = true;
       this.emit();
+      // The scramble is asked with the first snapshot, not after it; once shown, one ahead for every event and type.
+      const scrambled = (this.scramble ? Promise.resolve() : this.nextScramble()).finally(() => this.drawAllAhead());
       await this.refresh();
-      await Promise.all([
-        this.scramble ? Promise.resolve() : this.nextScramble(),
-        this.nextCase(),
-      ]);
+      await Promise.all([scrambled, this.nextCase()]);
       this.prefetchCrossSolutions();
+      // The profile, read ahead once the timer is up rather than with its first snapshots.
+      this.profileAhead = true;
+      if (!this.profile) void this.refresh();
     } catch (e) {
       this.fail(e);
     }
@@ -486,6 +499,7 @@ export class Store {
         scrambleType: this.profileScramble,
       },
       advance: false,
+      profileAhead: this.profileAhead,
       caseSource: this.caseSource,
       // The training's recommendations read the smart cube solves too.
       analysis: (this.page === "profile" && this.profileMode === "analysis") || (this.page === "training" && this.trainingStep === "setup" && this.puzzle === "333"),
@@ -565,16 +579,49 @@ export class Store {
       this.fail(e);
     }
   }
+  /**
+   * The next scramble of each context (puzzle, solve mode, scramble type), drawn ahead and kept on the device: a new
+   * one shows at once, even while the app starts. Read again from the device at each use, a tab never takes one
+   * another tab took.
+   */
+  private ahead(change?: (scrambles: Record<string, string>) => void): Record<string, string> {
+    let scrambles: Record<string, string> = {};
+    try { scrambles = JSON.parse(localStorage.getItem(AHEAD) ?? "{}") ?? {}; } catch {}
+    if (change) {
+      change(scrambles);
+      try { localStorage.setItem(AHEAD, JSON.stringify(scrambles)); } catch {}
+    }
+    return scrambles;
+  }
+  private drawing = new Set<string>();
+  drawAhead(context: { puzzle: string; solveMode: string; scrambleType: string }) {
+    const key = `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
+    if (this.ahead()[key] || this.drawing.has(key)) return;
+    this.drawing.add(key);
+    void call("scramble", context).then((v: string) => void this.ahead((a) => void (a[key] ??= v)), () => {}).finally(() => this.drawing.delete(key));
+  }
+  /** Every event's scramble, every scramble type of the puzzle in use, and the cross training's. */
+  drawAllAhead() {
+    for (const e of EVENTS) this.drawAhead({ puzzle: e.puzzle, solveMode: e.solveMode, scrambleType: "normal" });
+    const cross = this.puzzle === "333" ? CROSS_TARGETS.flatMap((t) => CROSS_MOVES[t].map((n) => crossScrambleType(t, n))) : [];
+    for (const type of [...(PUZZLES.find((p) => p.id === this.puzzle)?.scrambles ?? []), ...cross]) this.drawAhead({ puzzle: this.puzzle, solveMode: this.solveMode, scrambleType: type });
+  }
   async nextScramble() {
     const revision = ++this.revision,
       context = { ...this.context(), scrambleType: this.scrambleType },
       daily = this.dailyEvent(),
       day = dailyDay();
     if (this.crossTraining) context.scrambleType = this.context().scrambleType;
-    this.generating = true;
-    this.emit();
+    const key = `${context.puzzle}:${context.solveMode}:${context.scrambleType}`;
+    let ready: string | undefined;
+    if (!daily) this.ahead((a) => void ((ready = a[key]), delete a[key]));
+    if (ready === undefined) {
+      this.generating = true;
+      this.emit();
+    }
     try {
-      const value = await (daily ? call("dailyScramble", day, daily) : call("scramble", context));
+      const value = ready ?? (await (daily ? call("dailyScramble", day, daily) : call("scramble", context)));
+      if (!daily) this.drawAhead(context);
       if (revision !== this.revision) return;
       this.scramble = value;
       this.dailyShown = daily ? { day, event: daily } : null;
@@ -797,6 +844,8 @@ export class Store {
     this.emit();
     if (!this.scramble) await this.nextScramble();
     else this.prefetchCrossSolutions();
+    // This puzzle's other scramble types, ahead (before the app is ready, `init` does it once the first is shown).
+    if (this.ready) this.drawAllAhead();
   }
   /** A solve of the timer session or of a profile history, shaped like a timer solve. */
   findSolve(id: number) {

@@ -187,11 +187,11 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       };
       // The timer's sessions, to name the current one and go back to another.
       if (q.page === 'playground') jobs.sessions = Promise.resolve(local.read.sessions(context.puzzle, context));
-      // The profile is read on its page, and once ahead from any other so that its first opening has it already: with
-      // the puzzle and filters it opens on, those of the timer.
-      const onProfile = q.page === 'profile';
-      if (onProfile || !q.known?.profile) jobs.profile = Promise.resolve(displayed(onProfile ? local.read.profile(q.profilePuzzle, q.profileFilter) : local.read.profile(context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType }), profileView, q.known?.profile));
-      if (onProfile || !q.known?.achievements) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
+      // The profile is read on its page, and once ahead from any other after the start-up (`profileAhead`) so that its
+      // first opening has it already: with the puzzle and filters it opens on, those of the timer.
+      const onProfile = q.page === 'profile', ahead = !onProfile && q.profileAhead;
+      if (onProfile || (ahead && !q.known?.profile)) jobs.profile = Promise.resolve(displayed(onProfile ? local.read.profile(q.profilePuzzle, q.profileFilter) : local.read.profile(context.puzzle, { solveMode: context.solveMode, scrambleType: context.scrambleType }), profileView, q.known?.profile));
+      if (onProfile || (ahead && !q.known?.achievements)) jobs.achievements = Promise.resolve(displayed(local.read.achievements(), undefined, q.known?.achievements));
       if (q.analysis) {
         const mode = trainingMode ? context.solveMode : q.profileFilter?.solveMode ?? 'standard';
         jobs.analysis = (inSolves && mode === context.solveMode ? inSolves.then(([digests]) => digests) : local.api.solves('playground', Infinity, '333', { solveMode: mode }).then(timer => smart.digests(timer, mode)))
@@ -259,12 +259,14 @@ export function createEngine({ origin, storage, emit, scrambles, lock }: {
       emit({ id: req.id, value: value instanceof Shown ? value.value : display(value ?? null) }); connect();
     } catch (error) { emit({ id: req.id, error: (error as Error).message }); }
   }
-  // Requests are handled one after another, like the solves they record.
+  // Requests are handled one after another, like the solves they record; a scramble records nothing and never waits
+  // behind them, nor holds them while it is searched.
   let queue = Promise.resolve();
+  const searches = new Set(['scramble', 'dailyScramble']);
   const retry = setInterval(() => { void local.restore(); connect(); }, 30000);
   void local.restore().then(connect);
   return {
-    request: (req: EngineRequest) => { queue = queue.then(() => handle(req)); },
+    request: (req: EngineRequest) => { if (searches.has(req.method)) void handle(req); else queue = queue.then(() => handle(req)); },
     stop() { clearInterval(retry); local.stop(); live.stop(); },
     /** A tab's message for the socket, past the queue of requests: a timer's phase cannot wait for a statistic. */
     send: (message: LiveMessage) => live.send(message),

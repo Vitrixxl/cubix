@@ -3,8 +3,9 @@
  * in place instead of jumping from a generic shape. Every block keeps the page's own sizes (its columns, its cards, its
  * bars of controls), in the page's surfaces. Kept light: no page module is imported here.
  */
-import { store as s } from "./store";
-import { PAGE } from "./base";
+import { lastScramble, store as s } from "./store";
+import { readRoute } from "./navigation";
+import { Alg, PAGE } from "./base";
 import { coaching } from "./coaching/client";
 import { tr } from "../../src/client/i18n";
 import { cn } from "@/lib/utils";
@@ -108,6 +109,11 @@ function Stage({ figures = 3, kicker, className }: { figures?: number; kicker?: 
  * the stage as one card with its tools under it, the figures in a bar.
  */
 export function TimerSkeleton({ phone, training }: { phone: boolean; training?: boolean }) {
+  // While the app starts, the scramble shown last (store.ts) is the one the timer opens on, on the same puzzle: there at
+  // once, not a bone.
+  const puzzle = typeof location === "undefined" ? undefined : readRoute(location.pathname, location.search)?.puzzle,
+    text = !training && !s.ready && lastScramble.scramble && (puzzle ?? lastScramble.puzzle) === lastScramble.puzzle ? lastScramble.scramble : "",
+    shown = (size: number) => (text ? <div className="scramble min-w-0 flex-1"><Alg text={text} size={size} /></div> : null);
   const digits = (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
       <Bone className="h-36 w-[min(19rem,80%)] rounded-[26px] max-md:h-24" />
@@ -125,8 +131,12 @@ export function TimerSkeleton({ phone, training }: { phone: boolean; training?: 
         <div className={cn(CARD, "flex-1 overflow-hidden")}>
           <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-4">
             {training && <Bone className="size-16 rounded-[18px]" />}
-            <Bone className="h-7 w-11/12" />
-            <Bone className="h-7 w-3/5" />
+            {shown(18) ?? (
+              <>
+                <Bone className="h-7 w-11/12" />
+                <Bone className="h-7 w-3/5" />
+              </>
+            )}
             {digits}
           </div>
           <div className="grid shrink-0 grid-cols-5 gap-1 px-2 pt-1 pb-2">
@@ -169,10 +179,12 @@ export function TimerSkeleton({ phone, training }: { phone: boolean; training?: 
               </>
             ) : (
               <div className="flex shrink-0 items-start gap-6">
-                <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
-                  <Bone className="h-9 w-11/12" />
-                  <Bone className="h-9 w-2/3" />
-                </div>
+                {shown(26) ?? (
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+                    <Bone className="h-9 w-11/12" />
+                    <Bone className="h-9 w-2/3" />
+                  </div>
+                )}
                 <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
                   {["w-[151px]", "w-28", "w-36", "w-9", "w-11", "w-9", "w-9", "w-11"].map((w, i) => <Bone key={i} className={cn("h-9", w)} />)}
                 </div>
