@@ -25,7 +25,7 @@
  * holds the development password and must not be used here. `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { runtimeVersion } from "../mobile/app.config";
 import { validateProductionUpdate } from "../mobile/scripts/validate-update";
@@ -92,13 +92,18 @@ const adminPassword = () => {
   if (!password) { console.error("No admin password: set CUBIX_DEPLOY_PASSWORD or configure CUBIX_ADMIN_PASSWORD on the server."); process.exit(1); }
   return password;
 };
-const send = async (path: string, headers: Record<string, string>, body: Blob) => {
+/** PUTs a file with curl: Bun's fetch stalls on bodies of tens of MiB over a slow link (the APK never got through). */
+const send = async (path: string, headers: Record<string, string>, file: string) => {
   // Ten minutes, or as long as the file takes at 8 KiB/s: the desktop packages weigh over 100 MiB and the link to the
   // server has carried them below 32 KiB/s.
-  const timeout = Math.max(10 * 60 * 1000, (body.size / (8 * 1024)) * 1000);
-  const response = await fetch(`${ORIGIN}${path}`, { method: "PUT", headers: { Authorization: `Bearer ${adminPassword()}`, ...headers }, body, signal: AbortSignal.timeout(timeout) });
-  const answer = await response.text();
-  if (!response.ok) { console.error(`${path} failed (${response.status}): ${answer}`); process.exit(1); }
+  const seconds = Math.ceil(Math.max(10 * 60, statSync(file).size / (8 * 1024)));
+  // The headers go through stdin, so the admin password never shows in the process list.
+  const lines = Object.entries({ Authorization: `Bearer ${adminPassword()}`, ...headers }).map(([name, value]) => `${name}: ${value}`).join("\n");
+  const curl = spawnSync("curl", ["-sS", "-X", "PUT", "-H", "@-", "--data-binary", `@${file}`, "--max-time", String(seconds), "-w", "\n%{http_code}", `${ORIGIN}${path}`], { input: lines, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const output = curl.stdout ?? "";
+  const status = Number(output.slice(output.lastIndexOf("\n") + 1));
+  const answer = output.slice(0, output.lastIndexOf("\n"));
+  if (curl.status !== 0 || status < 200 || status >= 300) { console.error(`${path} failed (${curl.status !== 0 ? curl.stderr.trim() : status}): ${answer}`); process.exit(1); }
   return JSON.parse(answer) as Record<string, any>;
 };
 
@@ -115,11 +120,11 @@ if (!apkOnly) {
       // Assets are named by their hash: one the server stores already is the same file.
       const stored = await fetch(`${ORIGIN}/api/mobile/updates/assets/${asset.hash}`, { method: "HEAD", signal: AbortSignal.timeout(10000) }).then((r) => r.ok).catch(() => false);
       if (stored) continue;
-      const bytes = readFileSync(resolve(UPDATE_DIR, asset.path));
-      console.log(`Uploading ${asset.path} (${(bytes.length / 1024).toFixed(0)} KiB)`);
-      await send(`/api/mobile/updates/assets/${asset.hash}`, { "Content-Type": "application/octet-stream" }, new Blob([bytes]));
+      const file = resolve(UPDATE_DIR, asset.path);
+      console.log(`Uploading ${asset.path} (${(statSync(file).size / 1024).toFixed(0)} KiB)`);
+      await send(`/api/mobile/updates/assets/${asset.hash}`, { "Content-Type": "application/octet-stream" }, file);
     }
-    const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, new Blob([readFileSync(resolve(UPDATE_DIR, "update.json"))]));
+    const info = await send("/api/mobile/updates", { "Content-Type": "application/json" }, resolve(UPDATE_DIR, "update.json"));
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
   }
 }
@@ -133,9 +138,9 @@ if (!apkOnly && !updateOnly && !skipDesktop) {
     if (!stale.length) { console.log(`The server already serves ${script}'s ${version}.`); continue; }
     run("bun", [script]);
     for (const name of stale) {
-      const bytes = readFileSync(resolve(OUT, name));
-      console.log(`Uploading ${name} (${(bytes.length / 1048576).toFixed(1)} MiB)`);
-      await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, new Blob([bytes]));
+      const file = resolve(OUT, name);
+      console.log(`Uploading ${name} (${(statSync(file).size / 1048576).toFixed(1)} MiB)`);
+      await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, file);
     }
     console.log(`${script}'s ${version} is now served by ${ORIGIN}/api/desktop`);
   }
@@ -148,7 +153,6 @@ if (!forceApk && !apkOnly && deployed.apkRuntimeVersion === runtime) { console.l
 
 run("bun", ["scripts/build-apk.ts", "--arm64", `--output=${APK}`], { cwd: resolve(root, "mobile") });
 
-const bytes = readFileSync(APK);
-console.log(`Uploading ${(bytes.length / 1048576).toFixed(1)} MiB to ${ORIGIN}/api/mobile/apk`);
-const info = await send("/api/mobile/apk", { "X-Cubix-Build": String(build), "X-Cubix-Commit": head, "X-Cubix-Runtime": runtime, "Content-Type": "application/vnd.android.package-archive" }, new Blob([bytes]));
+console.log(`Uploading ${(statSync(APK).size / 1048576).toFixed(1)} MiB to ${ORIGIN}/api/mobile/apk`);
+const info = await send("/api/mobile/apk", { "X-Cubix-Build": String(build), "X-Cubix-Commit": head, "X-Cubix-Runtime": runtime, "Content-Type": "application/vnd.android.package-archive" }, APK);
 console.log(`APK build ${info.apkBuild} (${String(info.apkCommit).slice(0, 7)}, runtime ${info.apkRuntimeVersion}) is now served by ${ORIGIN}/api/mobile/apk`);
