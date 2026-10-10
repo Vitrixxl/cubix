@@ -93,8 +93,9 @@ const adminPassword = () => {
   return password;
 };
 const send = async (path: string, headers: Record<string, string>, body: Blob) => {
-  // Ten minutes, or as long as the file takes at 32 KiB/s: the desktop packages weigh over 100 MiB and the server's link can drop below 64 KiB/s.
-  const timeout = Math.max(10 * 60 * 1000, (body.size / (32 * 1024)) * 1000);
+  // Ten minutes, or as long as the file takes at 8 KiB/s: the desktop packages weigh over 100 MiB and the link to the
+  // server has carried them below 32 KiB/s.
+  const timeout = Math.max(10 * 60 * 1000, (body.size / (8 * 1024)) * 1000);
   const response = await fetch(`${ORIGIN}${path}`, { method: "PUT", headers: { Authorization: `Bearer ${adminPassword()}`, ...headers }, body, signal: AbortSignal.timeout(timeout) });
   const answer = await response.text();
   if (!response.ok) { console.error(`${path} failed (${response.status}): ${answer}`); process.exit(1); }
@@ -142,8 +143,7 @@ if (updateOnly || skipApk) process.exit(0);
 if (deployed.apkBuild === build && deployed.apkCommit === head) { console.log("The server already stores this build's APK."); process.exit(0); }
 if (!forceApk && !apkOnly && deployed.apkRuntimeVersion === runtime) { console.log(`The stored APK already has runtime ${runtime}; no native change, no APK (pass --apk to force one).`); process.exit(0); }
 
-// Low CPU priority: Gradle should not make the machine unusable while it runs.
-run("nice", ["-n", "19", "bun", "scripts/build-apk.ts", "--arm64", `--output=${APK}`], { cwd: resolve(root, "mobile") });
+run("bun", ["scripts/build-apk.ts", "--arm64", `--output=${APK}`], { cwd: resolve(root, "mobile") });
 
 const bytes = readFileSync(APK);
 console.log(`Uploading ${(bytes.length / 1048576).toFixed(1)} MiB to ${ORIGIN}/api/mobile/apk`);

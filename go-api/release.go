@@ -17,9 +17,7 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -145,14 +143,24 @@ func releasePublishedUpdates() M {
 	return updates
 }
 
-// releaseFile answers stored bytes with their headers, as `bytes.into_response()` with headers inserted.
-func releaseFile(w http.ResponseWriter, data []byte, headers map[string]string) {
+// releaseFile streams a stored file with its headers, never holding it in memory.
+func releaseFile(w http.ResponseWriter, path string, headers map[string]string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
 	for name, value := range headers {
 		w.Header().Set(name, value)
 	}
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10))
 	w.WriteHeader(200)
-	_, _ = w.Write(data)
+	_, _ = io.Copy(w, f)
+	return nil
 }
 
 // releaseApk: `GET /api/mobile/apk` sends the uploaded APK; the phone's browser offers to install it.
@@ -162,11 +170,6 @@ func releaseApk(state *AppState, w http.ResponseWriter, r *http.Request) {
 		writeError(w, apiErr(404, "No APK has been uploaded to this server yet"))
 		return
 	}
-	data, err := os.ReadFile(filepath.Join(releaseApkDir(), releaseApkFile))
-	if err != nil {
-		writeError(w, internal(err))
-		return
-	}
 	headers := map[string]string{
 		"Content-Type":        "application/vnd.android.package-archive",
 		"Content-Disposition": `attachment; filename="cubix-android-arm64.apk"`,
@@ -174,7 +177,9 @@ func releaseApk(state *AppState, w http.ResponseWriter, r *http.Request) {
 	if sha, ok := asStr(idx(meta, "sha256")); ok && releaseHeaderValue(sha) {
 		headers["ETag"] = `"` + sha + `"`
 	}
-	releaseFile(w, data, headers)
+	if err := releaseFile(w, filepath.Join(releaseApkDir(), releaseApkFile), headers); err != nil {
+		writeError(w, internal(err))
+	}
 }
 
 // releaseHeaderValue is HeaderValue::from_str succeeding: visible ASCII, spaces and tabs.
@@ -190,15 +195,38 @@ func releaseHeaderValue(value string) bool {
 // releaseUpload: `PUT /api/mobile/apk` with `Authorization: Bearer <admin password>`, `X-Cubix-Build` and
 // `X-Cubix-Commit` stores a new APK atomically. Uploading the same build again is harmless.
 func releaseUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
-	body, ok := readBody(w, r)
+	meta, err := releaseApkHeaders(state, r)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	dir := releaseApkDir()
+	if err := os.MkdirAll(dir, 0o777); err != nil {
+		writeError(w, internal(err))
+		return
+	}
+	size, sum, ok := storeBody(w, r, filepath.Join(dir, releaseApkFile), func(head []byte, size int64, _ string) error {
+		// Every APK is a ZIP archive; anything else is a wrong file, not a signed build.
+		if size < 1024 || !bytes.HasPrefix(head, []byte("PK\x03\x04")) {
+			return apiErr(422, "The body is not an APK")
+		}
+		return nil
+	})
 	if !ok {
 		return
 	}
-	value, err := releaseStoreApk(state, r, body)
-	writeResult(w, value, err)
+	meta["sha256"], meta["size"], meta["uploadedAt"] = sum, size, accountsNow()
+	if err := releaseReplace(filepath.Join(dir, releaseMetaFile), filepath.Join(dir, releaseMetaFile+".tmp"), releasePretty(meta)); err != nil {
+		writeError(w, internal(err))
+		return
+	}
+	commit := meta["commit"].(string)
+	fmt.Printf("Stored APK build %d (%s) — %d bytes\n", meta["build"], commit[:min(len(commit), 7)], size)
+	writeJSON(w, 200, releaseInfo())
 }
 
-func releaseStoreApk(state *AppState, r *http.Request, body []byte) (any, error) {
+// releaseApkHeaders checks an APK upload before its body is read: the password, the build, commit and runtime.
+func releaseApkHeaders(state *AppState, r *http.Request) (M, error) {
 	if err := releaseAuthorize(state, r); err != nil {
 		return nil, err
 	}
@@ -219,35 +247,7 @@ func releaseStoreApk(state *AppState, r *http.Request, body []byte) (any, error)
 		}
 		runtime = value
 	}
-	// Every APK is a ZIP archive; anything else is a wrong file, not a signed build.
-	if len(body) < 1024 || !bytes.HasPrefix(body, []byte("PK\x03\x04")) {
-		return nil, apiErr(422, "The body is not an APK")
-	}
-	sum := sha256.Sum256(body)
-	size := len(body)
-	meta := M{
-		"build":          build,
-		"commit":         commit,
-		"runtimeVersion": runtime,
-		"sha256":         hex.EncodeToString(sum[:]),
-		"size":           size,
-		"uploadedAt":     accountsNow(),
-	}
-	dir := releaseApkDir()
-	err := func() error {
-		if err := os.MkdirAll(dir, 0o777); err != nil {
-			return err
-		}
-		if err := releaseReplace(filepath.Join(dir, releaseApkFile), filepath.Join(dir, releaseApkFile+".tmp"), body); err != nil {
-			return err
-		}
-		return releaseReplace(filepath.Join(dir, releaseMetaFile), filepath.Join(dir, releaseMetaFile+".tmp"), releasePretty(meta))
-	}()
-	if err != nil {
-		return nil, internal(err)
-	}
-	fmt.Printf("Stored APK build %d (%s) — %d bytes\n", build, commit[:min(len(commit), 7)], size)
-	return releaseInfo(), nil
+	return M{"build": build, "commit": commit, "runtimeVersion": runtime}, nil
 }
 
 // releaseReplace writes `data` to `temporary`, then renames it over `path`.
@@ -360,34 +360,32 @@ func releaseWriteAtomically(path string, data []byte) error {
 // releaseUploadAsset: `PUT /api/mobile/updates/assets/{sha256}` stores one exported file under its hash. The
 // content is verified against the path, so a corrupt upload is refused rather than served.
 func releaseUploadAsset(state *AppState, w http.ResponseWriter, r *http.Request) {
-	body, ok := readBody(w, r)
-	if !ok {
+	if err := releaseAuthorize(state, r); err != nil {
+		writeError(w, err)
 		return
 	}
-	value, err := func() (any, error) {
-		if err := releaseAuthorize(state, r); err != nil {
-			return nil, err
+	hash := r.PathValue("hash")
+	if !releaseIsSha256(hash) {
+		writeError(w, apiErr(422, "The asset path must be a hexadecimal SHA-256"))
+		return
+	}
+	dir := releaseAssetsDir()
+	if err := os.MkdirAll(dir, 0o777); err != nil {
+		writeError(w, internal(err))
+		return
+	}
+	size, _, ok := storeBody(w, r, filepath.Join(dir, hash), func(_ []byte, size int64, sum string) error {
+		if size == 0 {
+			return apiErr(422, "The asset is empty")
 		}
-		hash := r.PathValue("hash")
-		if !releaseIsSha256(hash) {
-			return nil, apiErr(422, "The asset path must be a hexadecimal SHA-256")
+		if sum != hash {
+			return apiErr(422, "The asset does not match its SHA-256")
 		}
-		if len(body) == 0 {
-			return nil, apiErr(422, "The asset is empty")
-		}
-		if sum := sha256.Sum256(body); hex.EncodeToString(sum[:]) != hash {
-			return nil, apiErr(422, "The asset does not match its SHA-256")
-		}
-		dir := releaseAssetsDir()
-		if err := os.MkdirAll(dir, 0o777); err != nil {
-			return nil, internal(err)
-		}
-		if err := releaseWriteAtomically(filepath.Join(dir, hash), body); err != nil {
-			return nil, internal(err)
-		}
-		return M{"size": len(body)}, nil
-	}()
-	writeResult(w, value, err)
+		return nil
+	})
+	if ok {
+		writeJSON(w, 200, M{"size": size})
+	}
 }
 
 // releaseAssetEntry validates one manifest asset from the publish request and keeps the fields expo-updates reads.
@@ -590,12 +588,9 @@ func releaseAsset(state *AppState, w http.ResponseWriter, r *http.Request) {
 		writeError(w, apiErr(404, "No such asset"))
 		return
 	}
-	data, err := os.ReadFile(filepath.Join(releaseAssetsDir(), hash))
-	if err != nil {
+	if releaseFile(w, filepath.Join(releaseAssetsDir(), hash), map[string]string{"Content-Type": "application/octet-stream", "ETag": `"` + hash + `"`}) != nil {
 		writeError(w, apiErr(404, "No such asset"))
-		return
 	}
-	releaseFile(w, data, map[string]string{"Content-Type": "application/octet-stream", "ETag": `"` + hash + `"`})
 }
 
 // releasePublicOrigin: where phones reach this server: `CUBIX_PUBLIC_ORIGIN`, or the request's own host through

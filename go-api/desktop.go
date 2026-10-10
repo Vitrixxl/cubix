@@ -10,8 +10,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -108,21 +106,42 @@ func desktopDownload(state *AppState, w http.ResponseWriter, r *http.Request) {
 // desktopUpload: `PUT /api/desktop/{name}` with `Authorization: Bearer <admin password>`, `X-Cubix-Version`
 // (the shell's version) and `X-Cubix-Commit` stores a package atomically.
 func desktopUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
-	body, ok := readBody(w, r)
+	file, meta, err := desktopHeaders(state, r)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	dir := desktopDir()
+	if err := os.MkdirAll(dir, 0o777); err != nil {
+		writeError(w, internal(err))
+		return
+	}
+	size, sum, ok := storeBody(w, r, filepath.Join(dir, file.name), func(head []byte, size int64, _ string) error {
+		if size < 1024 || !bytes.HasPrefix(head, file.magic) {
+			return apiErr(422, "The body is not this package")
+		}
+		return nil
+	})
 	if !ok {
 		return
 	}
-	value, err := desktopStore(state, r, body)
-	writeResult(w, value, err)
+	meta["sha256"], meta["size"], meta["uploadedAt"] = sum, size, accountsNow()
+	if err := releaseReplace(filepath.Join(dir, file.name+".json"), filepath.Join(dir, file.name+".json.tmp"), releasePretty(meta)); err != nil {
+		writeError(w, internal(err))
+		return
+	}
+	fmt.Printf("Stored desktop package %s (%s)\n", file.name, meta["version"])
+	writeJSON(w, 200, desktopPackages())
 }
 
-func desktopStore(state *AppState, r *http.Request, body []byte) (any, error) {
+// desktopHeaders checks an upload before its body is read: the password, the package's name, its version and commit.
+func desktopHeaders(state *AppState, r *http.Request) (desktopFile, M, error) {
 	if err := releaseAuthorize(state, r); err != nil {
-		return nil, err
+		return desktopFile{}, nil, err
 	}
 	file, err := desktopFileOf(r.PathValue("name"))
 	if err != nil {
-		return nil, err
+		return desktopFile{}, nil, err
 	}
 	version := releaseHeaderText(r, "X-Cubix-Version")
 	valid := version != "" && len(version) <= 64
@@ -132,36 +151,11 @@ func desktopStore(state *AppState, r *http.Request, body []byte) (any, error) {
 		}
 	}
 	if !valid {
-		return nil, apiErr(422, "X-Cubix-Version must name the desktop version")
+		return desktopFile{}, nil, apiErr(422, "X-Cubix-Version must name the desktop version")
 	}
 	commit := releaseHeaderText(r, "X-Cubix-Commit")
 	if !releaseIsCommit(commit) {
-		return nil, apiErr(422, "X-Cubix-Commit must be a hexadecimal commit")
+		return desktopFile{}, nil, apiErr(422, "X-Cubix-Commit must be a hexadecimal commit")
 	}
-	if len(body) < 1024 || !bytes.HasPrefix(body, file.magic) {
-		return nil, apiErr(422, "The body is not this package")
-	}
-	sum := sha256.Sum256(body)
-	meta := M{
-		"version":    version,
-		"commit":     commit,
-		"sha256":     hex.EncodeToString(sum[:]),
-		"size":       len(body),
-		"uploadedAt": accountsNow(),
-	}
-	dir := desktopDir()
-	err = func() error {
-		if err := os.MkdirAll(dir, 0o777); err != nil {
-			return err
-		}
-		if err := releaseReplace(filepath.Join(dir, file.name), filepath.Join(dir, file.name+".tmp"), body); err != nil {
-			return err
-		}
-		return releaseReplace(filepath.Join(dir, file.name+".json"), filepath.Join(dir, file.name+".json.tmp"), releasePretty(meta))
-	}()
-	if err != nil {
-		return nil, internal(err)
-	}
-	fmt.Printf("Stored desktop package %s (%s)\n", file.name, version)
-	return desktopPackages(), nil
+	return file, M{"version": version, "commit": commit}, nil
 }

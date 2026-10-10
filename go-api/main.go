@@ -2,10 +2,14 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -420,31 +424,97 @@ func (s *AppState) endpoint(cors bool, limit int64, methods map[string]handler) 
 	})
 }
 
+// bodyLimit is the route's body limit.
+func bodyLimit(r *http.Request) int64 {
+	if limit, ok := r.Context().Value(limitKey{}).(int64); ok {
+		return limit
+	}
+	return 2 * 1024 * 1024
+}
+
+// bodyRejected answers a body that could not be read, as axum's `Bytes` extractor does.
+func bodyRejected(w http.ResponseWriter, err error) {
+	status, message := http.StatusBadRequest, "Failed to buffer the request body: "+err.Error()
+	var max *http.MaxBytesError
+	if errors.As(err, &max) {
+		status, message = http.StatusRequestEntityTooLarge, "Failed to buffer the request body: length limit exceeded"
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = io.WriteString(w, message)
+}
+
 // readBody is axum's `Bytes` extractor under the route's body limit; on failure it has answered.
 func readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
-	limit, ok := r.Context().Value(limitKey{}).(int64)
-	if !ok {
-		limit = 2 * 1024 * 1024
-	}
-	tooLarge := func() ([]byte, bool) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		_, _ = io.WriteString(w, "Failed to buffer the request body: length limit exceeded")
-		return nil, false
-	}
+	limit := bodyLimit(r)
 	if r.ContentLength > limit {
-		return tooLarge()
+		bodyRejected(w, &http.MaxBytesError{Limit: limit})
+		return nil, false
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err != nil {
-		var max *http.MaxBytesError
-		if errors.As(err, &max) {
-			return tooLarge()
-		}
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = io.WriteString(w, "Failed to buffer the request body: "+err.Error())
+		bodyRejected(w, err)
 		return nil, false
 	}
 	return data, true
+}
+
+// bodyHead is how many first bytes storeBody hands `check`: enough for any magic number.
+const bodyHead = 64
+
+// storeBody streams the request body, under the route's limit, into a temporary file beside `path` and hashes it on
+// the way: a package of hundreds of megabytes never sits in memory. `check` judges its first bytes, size and
+// SHA-256 before it is renamed over `path`. On any failure, a client gone mid-upload included, the temporary file is
+// removed and the request answered.
+func storeBody(w http.ResponseWriter, r *http.Request, path string, check func(head []byte, size int64, sum string) error) (int64, string, bool) {
+	limit := bodyLimit(r)
+	if r.ContentLength > limit {
+		bodyRejected(w, &http.MaxBytesError{Limit: limit})
+		return 0, "", false
+	}
+	file, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
+	if err != nil {
+		writeError(w, internal(err))
+		return 0, "", false
+	}
+	defer os.Remove(file.Name()) // already renamed when the upload succeeds
+	body := http.MaxBytesReader(w, r.Body, limit)
+	head := make([]byte, bodyHead)
+	n, err := io.ReadFull(body, head)
+	head = head[:n]
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		err = nil
+	}
+	hash := sha256.New()
+	var size int64
+	if err == nil {
+		size, err = io.Copy(io.MultiWriter(file, hash), io.MultiReader(bytes.NewReader(head), body))
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err == nil {
+		// os.CreateTemp makes the file private; served files keep os.WriteFile's mode.
+		err = os.Chmod(file.Name(), 0o644)
+	}
+	var disk *fs.PathError
+	if errors.As(err, &disk) {
+		// The file failed, not the client.
+		writeError(w, internal(err))
+		return 0, "", false
+	}
+	if err != nil {
+		bodyRejected(w, err)
+		return 0, "", false
+	}
+	sum := hex.EncodeToString(hash.Sum(nil))
+	if err := check(head, size, sum); err != nil {
+		writeError(w, err)
+		return 0, "", false
+	}
+	if err := os.Rename(file.Name(), path); err != nil {
+		writeError(w, internal(err))
+		return 0, "", false
+	}
+	return size, sum, true
 }

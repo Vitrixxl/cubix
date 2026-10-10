@@ -1779,22 +1779,6 @@ func coachingSignedIn(db *Conn, authorization string) (M, error) {
 // coachingUpload is `POST /api/coaching/conversations/{id}/media`: a picture or a video as the whole body, sent as a
 // message of its own. Its original name may come URI-encoded in `X-File-Name`.
 func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
-	bytes, ok := readBody(w, r)
-	if !ok {
-		return
-	}
-	value, err := coachingSendMedia(state, r, bytes)
-	writeResult(w, value, err)
-}
-
-func coachingSendMedia(state *AppState, r *http.Request, bytes []byte) (any, error) {
-	kind := coachingSniff(bytes)
-	if kind == "" {
-		return nil, apiErr(415, "Send a picture (JPEG, PNG, GIF, WebP, AVIF) or a video (MP4, MOV, WebM).")
-	}
-	if strings.HasPrefix(kind, "image/") && len(bytes) > coachingImageMax {
-		return nil, apiErr(413, "Pictures are limited to 10 MB.")
-	}
 	var b strings.Builder
 	n := 0
 	for _, c := range strings.TrimSpace(coachingLossy(percentDecode(headerText(r, "X-File-Name")))) {
@@ -1808,7 +1792,7 @@ func coachingSendMedia(state *AppState, r *http.Request, bytes []byte) (any, err
 		n++
 	}
 	name := b.String()
-	// Only a party to the conversation leaves a file on the disk.
+	// Only a party to the conversation leaves a file on the disk, so they are checked before the body is read.
 	id, authorization := r.PathValue("id"), headerText(r, "Authorization")
 	var user, conversation M
 	err := state.db.Call(func(db *Conn) error {
@@ -1820,22 +1804,35 @@ func coachingSendMedia(state *AppState, r *http.Request, bytes []byte) (any, err
 		return err
 	})
 	if err != nil {
-		return nil, err
+		writeError(w, err)
+		return
 	}
-	media := &coachingAttachment{id: newUUID(), kind: kind, size: len(bytes), name: name}
 	dir := coachingMediaDir()
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, internal(err)
+		writeError(w, internal(err))
+		return
 	}
+	media := &coachingAttachment{id: newUUID(), name: name}
 	path := filepath.Join(dir, media.id)
-	if err := os.WriteFile(path, bytes, 0o644); err != nil {
-		return nil, internal(err)
+	size, _, ok := storeBody(w, r, path, func(head []byte, size int64, _ string) error {
+		media.kind = coachingSniff(head)
+		if media.kind == "" {
+			return apiErr(415, "Send a picture (JPEG, PNG, GIF, WebP, AVIF) or a video (MP4, MOV, WebM).")
+		}
+		if strings.HasPrefix(media.kind, "image/") && size > coachingImageMax {
+			return apiErr(413, "Pictures are limited to 10 MB.")
+		}
+		return nil
+	})
+	if !ok {
+		return
 	}
+	media.size = int(size)
 	sent, err := dbCall(state.db, func(db *Conn) (any, error) { return coachingPost(db, state, conversation, user, "", media) })
 	if err != nil {
 		_ = os.Remove(path)
 	}
-	return sent, err
+	writeResult(w, sent, err)
 }
 
 // coachingMedia is `GET /api/coaching/media/{id}`: a picture or a video of a conversation, for its two parties only.
