@@ -48,7 +48,7 @@ Trois choses à la fois, qu'aucun voisin (csTimer, Twisty Timer, Cubeast…) ne 
   mélanges à état aléatoire générés sur l'appareil, mélanges d'entraînement, moyennes (Ao5, Ao12, AoX), +2 et DNF
   selon le règlement WCA, bande de statistiques que l'on compose soi-même.
 - **Algorithmes** : catalogue de 1 755 cas et 6 508 algorithmes (F2L, OLL, PLL, ZBLL, autres puzzles), lecteur 3D.
-- **Entraînement** : pratique libre par cas, apprentissage quotidien, révision, cross + 1.
+- **Entraînement** : seulement les cas appris (apprendre passe par les cours) : les plus lents recommandés d'abord, ensembles entiers ou cas un par un, cross.
 - **Cours** : du premier solve à CFOP, Roux et ZZ, et les méthodes des autres puzzles.
 - **Duels** en direct, appariés par niveau.
 - **Statistiques et profil** : courbe de tous les solves, records, calendrier de pratique, succès.

@@ -1,18 +1,18 @@
 /**
- * The login page, for the pages of an account (`ACCOUNT_PAGES`): the rest of the app is used without one, on this device.
+ * The sign-in dialog, over the page in view (`s.askSignIn`, or the address /login): the pages of an account
+ * (`ACCOUNT_PAGES`) ask for it, the rest of the app is used without one, on this device.
  * Sign in or create an account with a username and a password (the
  * API's rules: username 3–24, password 10 or more); Google is a placeholder for now. Times this device already holds
  * outside any account join the account either way (see `importGuest` in src/client/local/client.ts).
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, HardDrive } from "lucide-react";
 import { store as s } from "./store";
-import { Tip, usePhone } from "./ui";
+import { Modal, Tip, usePhone } from "./ui";
 import { credentialErrors } from "../../src/client/lib/credentials";
-import { Logo, Wordmark } from "./logo";
+import { Brand } from "./logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
@@ -34,7 +34,19 @@ function GoogleMark() {
   );
 }
 
-export function LoginPage() {
+/** Open while the overlay is "signin"; an ended session keeps it open until signed in again. */
+export function SignInDialog() {
+  return (
+    <Modal open={s.overlay === "signin" || s.expired} onOpenChange={(open) => !open && s.closeOverlay()} dismissible={!s.expired}
+      // The username, or the password once it is known (an ended session).
+      initialFocus={() => document.getElementById(s.expired ? "login-password" : "login-username")}
+      title={tr("Sign in")} hideHeader tall="full">
+      <SignInForm />
+    </Modal>
+  );
+}
+
+function SignInForm() {
   const phone = usePhone();
   const [mode, setMode] = useState<Mode>("login"),
     // After an ended session the account is known: only its password is asked again.
@@ -43,15 +55,8 @@ export function LoginPage() {
     [shown, setShown] = useState(false),
     [pending, setPending] = useState(false),
     [error, setError] = useState<{ field: "username" | "password" | ""; message: string } | null>(null);
-  const user = useRef<HTMLInputElement>(null);
   const expired = s.expired;
-  const secret = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (!phone) (username ? secret : user).current?.focus();
-  }, [phone]);
   const register = mode === "register";
-  // Back where the visitor came from in the app, else to the timer.
-  const leave = () => ((history.state?.idx ?? 0) > 0 ? go(-1) : go("/timer", true));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +68,10 @@ export function LoginPage() {
     setError(null);
     setPending(true);
     try {
+      // Signed in, the dialog closes on the page in view, or the one that asked for an account.
+      const next = s.signInNext;
       await s.authenticate(mode, name, password);
+      if (next) go(next);
     } catch (reason) {
       const message = (reason as Error)?.message || "Something went wrong. Please try again.";
       // The API names the field it refuses; the rest (wrong credentials, rate limit, offline) stays under the form.
@@ -79,7 +87,6 @@ export function LoginPage() {
       <Field data-invalid={error?.field === "username" || undefined}>
         <FieldLabel htmlFor="login-username">{tr("Username")}</FieldLabel>
         <Input
-          ref={user}
           id="login-username"
           name="username"
           value={username}
@@ -102,7 +109,6 @@ export function LoginPage() {
         <FieldLabel htmlFor="login-password">{tr("Password")}</FieldLabel>
         <InputGroup className="max-md:h-12">
           <InputGroupInput
-            ref={secret}
             id="login-password"
             name="password"
             type={shown ? "text" : "password"}
@@ -136,14 +142,14 @@ export function LoginPage() {
   );
   const actions = (
     <div className="flex flex-col gap-4">
-      <Button type="submit" size="lg" disabled={pending} data-action="login:submit" className="w-full max-md:h-12 max-md:text-base">
+      <Button type="submit" disabled={pending} data-action="login:submit" className="w-full">
         {pending ? (register ? tr("Creating account…") : tr("Signing in…")) : register ? tr("Create account") : tr("Sign in")}
       </Button>
       {register && <Consent />}
-      <FieldSeparator className="md:[&_[data-slot=field-separator-content]]:bg-card">{tr("or")}</FieldSeparator>
+      <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">{tr("or")}</FieldSeparator>
       <Tip content={tr("Coming soon")}>
         <span className="flex w-full" tabIndex={0}>
-          <Button type="button" variant="outline" size="lg" disabled aria-describedby="google-soon" className="w-full max-md:h-12 max-md:text-base">
+          <Button type="button" variant="outline" disabled aria-describedby="google-soon" className="w-full">
             <GoogleMark />
             {tr("Continue with Google")}
             <Badge id="google-soon" variant="secondary" className="ml-1">
@@ -153,7 +159,7 @@ export function LoginPage() {
         </span>
       </Tip>
       {!expired && (
-        <Button type="button" variant="ghost" data-action="login:guest" onClick={leave} className="w-full text-muted-foreground max-md:h-12 max-md:text-base">
+        <Button type="button" variant="ghost" data-action="login:guest" onClick={s.closeOverlay} className="w-full text-muted-foreground">
           {tr("Continue without an account")}
         </Button>
       )}
@@ -165,12 +171,9 @@ export function LoginPage() {
     </div>
   );
   const head = (
-    <div className="flex flex-col items-start gap-1.5 md:items-center md:text-center">
-      <div className="mb-3 flex items-center gap-2.5">
-        <Logo size={phone ? 24 : 22} />
-        <Wordmark className="text-2xl md:text-xl" />
-      </div>
-      <h1 className="text-2xl font-semibold tracking-tight md:text-xl">{register ? tr("Create your account") : tr("Welcome back")}</h1>
+    <div className="flex flex-col items-start gap-2">
+      <Brand size={30} className="mb-3 text-[24px]" />
+      <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{register ? tr("Create your account") : tr("Welcome back")}</h2>
       <p className="text-sm text-muted-foreground">{tr("Time your solves, learn algorithms, race in duels.")}</p>
     </div>
   );
@@ -182,7 +185,7 @@ export function LoginPage() {
         setError(null);
       }}
     >
-      <TabsList className="w-full max-md:h-11!">
+      <TabsList className="w-full max-md:h-12!">
         <TabsTrigger value="login" data-action="login:mode:login">
           {tr("Sign in")}</TabsTrigger>
         <TabsTrigger value="register" data-action="login:mode:register">
@@ -196,34 +199,14 @@ export function LoginPage() {
     </Alert>
   );
 
-  if (phone)
-    return (
-      <form
-        onSubmit={submit}
-        noValidate
-        className="login flex h-svh flex-col gap-6 overflow-y-auto bg-background px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),1.25rem)]"
-      >
-        {head}
-        {tabs}
-        {notice}
-        {fields}
-        <div className="mt-auto">{actions}</div>
-      </form>
-    );
   return (
-    <main className="login flex h-svh items-center justify-center overflow-y-auto bg-background p-6">
-      <Card className="w-full max-w-sm py-8">
-        <CardContent className="px-8">
-          <form onSubmit={submit} noValidate className="flex flex-col gap-6">
-            {head}
-            {tabs}
-            {notice}
-            {fields}
-            {actions}
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+    <form onSubmit={submit} noValidate className="login flex flex-1 flex-col gap-6">
+      {head}
+      {tabs}
+      {notice}
+      {fields}
+      <div className="mt-auto">{actions}</div>
+    </form>
   );
 }
 

@@ -8,12 +8,13 @@ import { isLearningTrack, learningCases, learningKey, LEARNING_TRACKS, orderedGr
 import { cases } from "./catalog";
 import { history, profile, caseStats, chronological } from "./stats";
 import { achievements } from "../lib/achievements";
+import { sessionSummaries } from "../lib/sessions";
 import { PROFILE_KEY, journeyProfile, validJourneyEntry, withoutRetired, type Journey, type JourneyEntryDto } from "../lib/journey";
 
 type Remote = ReturnType<typeof createApiClient>;
 type Session = SessionDto & { serverId?: number };
 type Solve = SolveDto & { serverId?: number; deleted?: boolean };
-type Operation = { id: string; kind: "session" | "solve" | "penalty" | "comment" | "solution" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
+type Operation = { id: string; kind: "session" | "session-name" | "solve" | "penalty" | "comment" | "solution" | "delete" | "learned" | "learning-order" | "journey"; localId: number; body: any; createdAt: string; error?: string };
 interface Workspace { version: 1; normalScrambles?: true; sessions: Record<number, Session>; solves: Record<number, Solve>; learned: Record<string, boolean>; /** The algorithms each learned case was learned with, when some were chosen. */ learnedAlgs?: Record<string, string[]>; /** Before: a single one. */ learnedAlg?: Record<string, string>; groupOrder: LearningGroupOrder; journey: Journey; outbox: Operation[]; cursor: number }
 export interface SyncStatus { state: "local" | "syncing" | "synced" | "offline" | "signin" | "error"; pending: number; error?: string }
 const PREFIX = "cubix.local.v1:";
@@ -22,6 +23,8 @@ const LEGACY_LEARNED_KEY = "cubix.algs.learnedCaseIds";
 const GUEST: UserDto = { id: "local-guest", username: "Guest", isGuest: true, createdAt: "1970-01-01T00:00:00.000Z" };
 const empty = (): Workspace => ({ version:1, normalScrambles:true, sessions:{}, solves:{}, learned:{}, groupOrder:{}, journey:{}, outbox:[], cursor:0 });
 const newId = () => -Number.parseInt(crypto.randomUUID().replaceAll("-", "").slice(0,12),16) - 1;
+/** A session name as stored: trimmed, at most 60 characters; blank is none. */
+const sessionTitle = (name: string | null | undefined) => name?.trim().slice(0,60) || null;
 
 /** Persist first. Network acknowledgements never determine whether a solve is saved. */
 export function createLocalClient(options: {
@@ -204,11 +207,11 @@ export function createLocalClient(options: {
       // Stable local IDs make a repeated import safe even if the app closes between writes.
       for (const session of Object.values(guest.sessions)) if (!account.sessions[session.id]) {
         account.sessions[session.id] = { ...session, serverId:undefined };
-        operation(account,user.id,"session",session.id,{ mode:session.mode, caseIds:session.case_ids, ...contextOf(session) },session.created_at);
+        operation(account,user.id,"session",session.id,{ mode:session.mode, caseIds:session.case_ids, ...(session.name ? { name:session.name } : {}), ...contextOf(session) },session.created_at);
       }
       for (const solve of liveSolves(guest)) if (!account.solves[solve.id]) {
         account.solves[solve.id] = { ...solve, serverId:undefined };
-        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...(solve.solution ? { solution:solve.solution } : {}), ...contextOf(solve) },solve.created_at);
+        operation(account,user.id,"solve",solve.id,{ sessionId:solve.session_id, caseId:solve.case_id, timeMs:solve.time_ms, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment ?? null, ...(solve.solution ? { solution:solve.solution } : {}), ...(solve.memo_ms != null ? { memoMs:solve.memo_ms } : {}), ...contextOf(solve) },solve.created_at);
       }
       for (const caseId of learnedIds(guest)) if (!account.learned[caseId]) {
         account.learned[caseId] = true;
@@ -231,7 +234,7 @@ export function createLocalClient(options: {
   async function merge(id: string, changes: Awaited<ReturnType<Remote["syncPull"]>>["changes"], cursor: number) {
     await edit(id, workspace => {
       if (cursor < workspace.cursor) return;
-      const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" ? "sessions" : "solves"}:${op.localId}`));
+      const dirty = new Set(workspace.outbox.map(op => op.kind === "learned" ? `learned:${op.body.caseId}` : `${op.kind === "session" || op.kind === "session-name" ? "sessions" : "solves"}:${op.localId}`));
       // Local IDs by server ID, built once: a first pull brings thousands of rows.
       const byServer = (rows: Record<number, Session | Solve>) => new Map(Object.values(rows).flatMap(r => r.serverId === undefined ? [] : [[r.serverId, r.id] as const]));
       const sessionIds = byServer(workspace.sessions), solveIds = byServer(workspace.solves);
@@ -268,7 +271,9 @@ export function createLocalClient(options: {
             if (dirty.has(`solves:${localId}`)) continue;
             const row = change.value as SolveDto;
             const sid = (row.session_id == null ? undefined : sessionIds.get(row.session_id)) ?? row.session_id;
-            workspace.solves[localId] = { ...row, scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
+            // A server that does not keep memorisation times yet leaves the one recorded here.
+            const memo = row.memo_ms ?? workspace.solves[localId]?.memo_ms;
+            workspace.solves[localId] = { ...row, ...(memo != null ? { memo_ms:memo } : {}), scramble_type:scrambleTypeOf(row), id:localId, session_id:sid, serverId:change.id };
             solveIds.set(change.id, localId);
           }
         }
@@ -319,19 +324,24 @@ export function createLocalClient(options: {
             }
           }
           activeOperation = op.id;
-          let path = op.kind === "session" ? "sessions" : op.kind === "learned" ? "learned" : op.kind === "learning-order" ? "learning-group-order" : op.kind === "journey" ? "journey" : "solves";
+          let path = op.kind === "session" || op.kind === "session-name" ? "sessions" : op.kind === "learned" ? "learned" : op.kind === "learning-order" ? "learning-group-order" : op.kind === "journey" ? "journey" : "solves";
           const body = { ...op.body };
           if (op.kind === "solve") {
             const sid = sessionServerId(workspace,body.sessionId);
             if (sid === undefined) throw new Error("The session is waiting to synchronize.");
             body.sessionId = sid;
           }
+          if (op.kind === "session-name") {
+            const serverId = sessionServerId(workspace,op.localId);
+            if (!serverId) throw new Error("The session is waiting to synchronize.");
+            path += "/" + serverId;
+          }
           if (op.kind === "penalty" || op.kind === "comment" || op.kind === "solution" || op.kind === "delete") {
             const serverId = solveServerId(workspace,op.localId);
             if (!serverId) throw new Error("The solve is waiting to synchronize.");
             path += "/" + serverId;
           }
-          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" || op.kind === "journey" ? "PUT" : op.kind === "penalty" || op.kind === "comment" || op.kind === "solution" ? "PATCH" : "POST";
+          const method = op.kind === "delete" ? "DELETE" : op.kind === "learned" || op.kind === "learning-order" || op.kind === "journey" ? "PUT" : op.kind === "penalty" || op.kind === "comment" || op.kind === "solution" || op.kind === "session-name" ? "PATCH" : "POST";
           const result: any = (await (socket?.connection ?? remote).syncPush([{ id:op.id, method, path, body, ...(method === "POST" ? {createdAt:op.createdAt} : {}) }])).results[0].value;
           // Write only the acknowledgement; preserve edits made while the request was in flight.
           await edit(id, latest => {
@@ -438,7 +448,12 @@ export function createLocalClient(options: {
     caseHistory: (caseId: string, filter: PracticeFilter = {}) => derived("case" + args(caseId, filter.solveMode), () =>
       history(caseId,ordered().filter(s => s.case_id === caseId && solveModeOf(s) === (filter.solveMode ?? "standard")))),
     profile: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("profile" + args(puzzleId(cubeSize), filter.solveMode, filter.scrambleType, current()), () =>
-      profile(current(),ordered(),cubeSize,filter,journeyProfile(data().journey)?.bests)),
+      profile(current(),ordered(),cubeSize,filter,journeyProfile(data().journey)?.bests,data().sessions)),
+    /** The timer sessions of a practice context, newest first, with their figures; started ones without solves too. */
+    sessions: (cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => derived("sessions" + args(puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {
+      const workspace = data(), own = Object.values(workspace.sessions).filter(s => s.mode === "playground" && matchesPractice(s,cubeSize,filter));
+      return sessionSummaries(ordered().filter(s => !s.case_id && matchesPractice(s,cubeSize,filter)), workspace.sessions, own.map(s => s.id)).reverse();
+    }),
     achievements: () => derived("achievements", () => achievements(ordered(),learnedIds())),
     /** A solve of any session, by its id. */
     solve: (id: number) => { const solve = data().solves[id]; return solve && !solve.deleted ? solve : null; },
@@ -489,12 +504,22 @@ export function createLocalClient(options: {
       return { ok:true };
     },
     latestSession: async (mode: SessionMode, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => Object.values(data().sessions).filter(s => s.mode === mode && matchesPractice(s,cubeSize,filter)).sort((a,b) => b.created_at.localeCompare(a.created_at))[0] ?? null,
-    createSession: async (mode: SessionMode, caseIds: string[] = [], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => localMutation((workspace,id) => {
+    createSession: async (mode: SessionMode, caseIds: string[] = [], cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}, name?: string | null) => localMutation((workspace,id) => {
       const context = { puzzle: puzzleId(cubeSize), solveMode: filter.solveMode ?? "standard", scrambleType: normalizeScrambleType(filter.scrambleType ?? (mode === "training" ? "case" : "normal")) };
       if (!validContext(context, mode === "training") || caseIds.some(id => !cases.some(c => c.id === id && puzzleOf(c) === context.puzzle))) throw new Error("Case, cube and practice context do not match.");
-      const session: Session = { id:newId(), cube_size:puzzleInfo(cubeSize).cubeSize, puzzle_id:context.puzzle, solve_mode:context.solveMode, scramble_type:context.scrambleType, mode, case_ids:caseIds, created_at:new Date().toISOString() };
+      const title = sessionTitle(name);
+      const session: Session = { id:newId(), cube_size:puzzleInfo(cubeSize).cubeSize, puzzle_id:context.puzzle, solve_mode:context.solveMode, scramble_type:context.scrambleType, mode, case_ids:caseIds, ...(title ? { name:title } : {}), created_at:new Date().toISOString() };
       workspace.sessions[session.id] = session;
-      operation(workspace,id,"session",session.id,{mode,caseIds,...context},session.created_at); return session;
+      operation(workspace,id,"session",session.id,{mode,caseIds,...(title ? { name:title } : {}),...context},session.created_at); return session;
+    }),
+    /** Names a session (trimmed, at most 60 characters); an empty name gives back its day and event. Only the latest
+     * name needs uploading. */
+    renameSession: async (sessionId: number, name: string | null) => localMutation((workspace,id) => {
+      const session = workspace.sessions[sessionId]; if (!session) throw new Error("Unknown local session.");
+      const title = sessionTitle(name);
+      session.name = title;
+      workspace.outbox = workspace.outbox.filter(op => !(op.kind === "session-name" && !op.error && op.localId === sessionId));
+      operation(workspace,id,"session-name",sessionId,{ name:title }); return session;
     }),
     /**
      * Solves from another timer (timerImport.ts), written at once with their own dates: one session per event and
@@ -515,9 +540,10 @@ export function createLocalClient(options: {
         const context = { puzzle, solveMode, scrambleType: "normal" as const }, group = `${solve.event}|${solve.session ?? ""}`;
         let session = sessions.get(group);
         if (!session) {
-          session = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", mode:"playground", case_ids:[], created_at:at };
+          const name = sessionTitle(solve.sessionName ?? solve.session);
+          session = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", mode:"playground", case_ids:[], ...(name ? { name } : {}), created_at:at };
           workspace.sessions[session.id] = session; sessions.set(group,session);
-          operation(workspace,id,"session",session.id,{ mode:"playground", caseIds:[], ...context },at);
+          operation(workspace,id,"session",session.id,{ mode:"playground", caseIds:[], ...(name ? { name } : {}), ...context },at);
         }
         const row: Solve = { id:newId(), cube_size:puzzleInfo(puzzle).cubeSize, puzzle_id:puzzle, solve_mode:solveMode, scramble_type:"normal", session_id:session.id, case_id:null, time_ms:timeMs, penalty:solve.penalty, scramble:solve.scramble, comment:solve.comment?.slice(0,500) || null, created_at:at };
         workspace.solves[row.id] = row;
@@ -542,9 +568,11 @@ export function createLocalClient(options: {
       const createdAt = new Date(Math.max(Date.now(),latest+1)).toISOString();
       // A solution that cannot be read is left out: it never keeps the time from being saved.
       const solution = readSolution(body.solution) ? body.solution!.trim() : undefined;
-      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),created_at:createdAt };
+      // A memorisation outside the solve is left out the same way.
+      const memo = Number.isFinite(body.memoMs) && body.memoMs! >= 0 && body.memoMs! <= body.timeMs ? Math.round(body.memoMs!) : undefined;
+      const solve: Solve = { id:newId(),cube_size:puzzleInfo(context.puzzle).cubeSize,puzzle_id:context.puzzle,solve_mode:context.solveMode,scramble_type:context.scrambleType,session_id:body.sessionId ?? null,case_id:body.caseId ?? null,time_ms:Math.round(body.timeMs),penalty:body.penalty ?? "none",scramble:body.scramble ?? null,comment:body.comment?.trim() || null,...(solution ? { solution } : {}),...(memo !== undefined ? { memo_ms:memo } : {}),created_at:createdAt };
       workspace.solves[solve.id] = solve;
-      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution},solve.created_at); return solve;
+      operation(workspace,id,"solve",solve.id,{...body,...context,timeMs:solve.time_ms,solution,memoMs:memo},solve.created_at); return solve;
     }),
     solves: async (mode: SessionMode, limit = 500, cubeSize: PuzzleInput = 3, filter: PracticeFilter = {}) => {
       const newest = derived("solves" + args(mode, puzzleId(cubeSize), filter.solveMode, filter.scrambleType), () => {

@@ -19,8 +19,8 @@ const problems = () => page.evaluate(() => {
   const visible = (element: Element) => { const r = box(element); return r.width > 0 && r.height > 0; };
   const root = document.documentElement;
   if (root.scrollHeight > innerHeight || root.scrollWidth > innerWidth) issues.push("the page scrolls");
-  // Phones navigate with the tab bar at the foot, the desktop with the sidebar.
-  const tabbar = document.querySelector('nav[aria-label="Sections"]');
+  // Phones navigate with the tab bar at the foot, the desktop with the header.
+  const tabbar = document.querySelector('.tabbar');
   const inWindow = (selector: string) => {
     for (const element of document.querySelectorAll(selector)) {
       if (!visible(element)) continue;
@@ -29,11 +29,11 @@ const problems = () => page.evaluate(() => {
       else if (tabbar && !tabbar.contains(element) && r.bottom > box(tabbar).top + 1) issues.push(`${selector} under the tab bar`);
     }
   };
-  inWindow('nav[aria-label="Sections"] button');
-  inWindow('[data-slot="sidebar"] button');
+  inWindow('.tabbar a');
+  inWindow('.topbar a, .topbar button');
   // Every page opens with its header: the title and its controls must fit on it.
-  inWindow('[data-slot="sidebar-inset"] header button');
-  for (const element of document.querySelectorAll('[data-slot="sidebar-inset"] header'))
+  inWindow('[data-slot="app-main"] header button');
+  for (const element of document.querySelectorAll('[data-slot="app-main"] header'))
     if (element.scrollWidth > element.clientWidth + 1) issues.push("the page header is clipped");
   // The practice: the prompt (scramble or case) over the timer, the figures under it.
   const timer = document.querySelector("[data-phase]");
@@ -42,11 +42,16 @@ const problems = () => page.evaluate(() => {
     inWindow("[data-phase] > :first-child"); // the digits, or the typed time
     // The controls of the stage: the prompt's, the last solve's and, on phones, the bar at the thumb.
     inWindow("[data-no-timer] button");
-    const metrics = document.querySelector('[aria-label="Statistics"], [aria-label="Session times"]');
-    if (metrics) inWindow('[aria-label="Statistics"] > *, [aria-label="Session times"]');
-    const t = box(timer);
-    if (prompt && box(prompt).bottom > t.top + 1) issues.push("the prompt overlaps the timer");
-    if (metrics && t.bottom > box(metrics).top + 1) issues.push("the timer overlaps the metrics");
+    inWindow('[aria-label="Statistics"] > *, [aria-label="Session times"]');
+    // The timer as drawn, for what lies under it: its digits and lines may spill out of a squeezed section.
+    const parts = [timer, ...timer.children].filter(visible).map(box),
+      t = { top: Math.min(...parts.map((r) => r.top)), bottom: Math.max(...parts.map((r) => r.bottom)), left: Math.min(...parts.map((r) => r.left)), right: Math.max(...parts.map((r) => r.right)) };
+    if (prompt && box(prompt).bottom > box(timer).top + 1) issues.push("the prompt overlaps the timer");
+    // What sits under the timer: the figures, the session times, a training's last solve and attempts (not a column beside it).
+    for (const under of document.querySelectorAll('[aria-label="Statistics"], [aria-label="Session times"], [aria-label="Last solve"], [aria-label="Attempts of the session"]')) {
+      const m = box(under);
+      if (visible(under) && m.left < t.right - 1 && m.right > t.left + 1 && m.top > t.top && t.bottom > m.top + 1) issues.push("the timer overlaps the metrics");
+    }
     const cube = prompt?.querySelector('[class~="group/cube"]'), digits = timer.firstElementChild;
     if (cube && digits) {
       const [c, d] = [box(cube), box(digits)];
@@ -58,7 +63,7 @@ const problems = () => page.evaluate(() => {
     }
   }
   // Cards (the profile's, the phone's stage) stay inside the window and are never cut sideways.
-  for (const card of document.querySelectorAll('[data-slot="sidebar-inset"] [data-slot="card"]')) {
+  for (const card of document.querySelectorAll('[data-slot="app-main"] [data-slot="card"]')) {
     const r = box(card);
     if (r.width && (r.left < -1 || r.right > innerWidth + 1)) issues.push("a card outside the window");
     if (card.scrollWidth > card.clientWidth + 1) issues.push("a card clipped");
@@ -110,18 +115,17 @@ try {
   await check("algorithms");
   await act(page, "case:F2L 1");
   await check("case"); // opened beside the list on desktop, as a page of its own on phones
+  // The training drills learned cases only.
+  await act(page, "learn:F2L 1");
 
   await act(page, "nav:training");
-  await page.waitForSelector('[data-action^="setupMode:"]');
+  await page.waitForSelector('[data-action^="trainSet:"]');
   await check("training-setup");
-  await act(page, "setupMode:practice");
-  await act(page, "selectSet:f2l");
+  await act(page, "trainSet:f2l");
   await act(page, "trainingStart:cases:practice");
   await page.waitForSelector('[data-action="solution"]');
-  await act(page, "solution");
   await check("training");
   await act(page, "trainingSetup");
-  await act(page, "setupMode:cross");
   await act(page, "trainingStart:cross");
   await scrambled(page);
   await check("cross-training");

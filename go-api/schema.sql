@@ -281,3 +281,23 @@ CREATE TABLE IF NOT EXISTS match_solves (
  b_penalty TEXT,
  PRIMARY KEY(match_id, number)
 );
+CREATE TABLE IF NOT EXISTS daily_results (
+ day TEXT NOT NULL,
+ event TEXT NOT NULL,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ time_ms INTEGER NOT NULL,
+ penalty TEXT NOT NULL DEFAULT 'none',
+ created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+ verified INTEGER NOT NULL DEFAULT 0,
+ solution TEXT,
+ PRIMARY KEY(day, event, user_id)
+);
+CREATE TABLE IF NOT EXISTS daily_cancelled (
+ day TEXT NOT NULL,
+ event TEXT NOT NULL,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ time_ms INTEGER NOT NULL,
+ penalty TEXT NOT NULL,
+ cancelled_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+ PRIMARY KEY(day, event, user_id)
+);

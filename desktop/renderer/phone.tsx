@@ -8,7 +8,7 @@ import { ChevronDown, type LucideIcon } from "lucide-react";
 import { store as s, run } from "./store";
 import { EVENTS } from "../../src/shared/puzzles";
 import { TIME_ENTRIES } from "../../src/client/lib/format";
-import { Icon, LABEL, type Props, type Tone } from "./base";
+import { Icon, type Props, type Tone } from "./base";
 import { cn } from "@/lib/utils";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button as UiButton } from "@/components/ui/button";
@@ -38,15 +38,16 @@ export function PhoneSheet({
   onOpenChange: (open: boolean) => void;
   title: React.ReactNode;
   description?: React.ReactNode;
-  tall?: boolean;
+  /** `full`: the whole screen. */
+  tall?: boolean | "full";
   snapPoints?: (number | string)[];
   hideTitle?: boolean;
 } & Props) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange} snapPoints={snapPoints} showSwipeHandle>
-      <DrawerContent className={cn("pb-[env(safe-area-inset-bottom)]", tall && "h-[calc(100dvh-5rem)]")}>
+      <DrawerContent className={cn("pb-[env(safe-area-inset-bottom)]", tall === "full" ? "h-dvh max-h-dvh data-[swipe-direction=down]:rounded-t-none" : tall && "h-[calc(100dvh-5rem)]")}>
         <DrawerHeader className={cn("px-5 pt-2 pb-1 text-left!", hideTitle && "sr-only")}>
-          <DrawerTitle className="text-base font-semibold">{title}</DrawerTitle>
+          <DrawerTitle className="text-xl font-extrabold tracking-[-0.025em]">{title}</DrawerTitle>
           <DrawerDescription className={description ? "text-xs" : "sr-only"}>{description ?? title}</DrawerDescription>
         </DrawerHeader>
         <div className={cn("flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-2 pb-5", className)}>{children}</div>
@@ -95,16 +96,16 @@ export function TouchAction({
     <UiButton
       data-action={action}
       variant={primary ? "default" : "ghost"}
+      size="tab"
       aria-pressed={pressed}
       disabled={disabled}
       onClick={run(action)}
       className={cn(
-        "h-12 flex-col gap-0.5 px-1 text-xs font-medium",
         !primary && "text-muted-foreground aria-pressed:bg-muted aria-pressed:text-foreground",
         pressed && PRESSED_TONE[tone],
       )}
     >
-      {I ? <I className="size-5" /> : null}
+      {I ? <I /> : null}
       {label}
     </UiButton>
   );
@@ -117,7 +118,7 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
     <UiButton
       variant="outline"
       data-action="menu:session"
-      className="h-9 max-w-44 gap-1.5 px-2"
+      className="max-w-44"
       onClick={(event) => {
         event.currentTarget.blur();
         s.overlay = scramble ? "session:scramble" : "session";
@@ -127,7 +128,7 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
       <Icon name={"Puzzle" + e.id} size={16} />
       <span className="truncate">
         {said(e.label)}
-        {scramble && s.scrambleType !== "normal" && <span className="text-muted-foreground"> · {s.label("scrambles", s.scrambleType)}</span>}
+        {scramble && (s.dailyEvent() || s.scrambleChoice() !== "normal") && <span className="text-muted-foreground"> · {s.dailyEvent() ? tr("Daily") : s.label("scrambles", s.scrambleType)}</span>}
       </span>
       <ChevronDown className="text-muted-foreground" />
     </UiButton>
@@ -135,7 +136,7 @@ export function SessionButton({ scramble = false }: { scramble?: boolean }) {
 }
 
 /** A cell of a sheet's choice: quiet, tinted with the accent once chosen. */
-const CELL = "h-11 w-full bg-muted/40 px-2 text-muted-foreground aria-pressed:bg-primary/15 aria-pressed:text-foreground";
+const CELL = "w-full bg-muted text-muted-foreground aria-pressed:bg-accent aria-pressed:text-foreground";
 
 /**
  * Choices laid out as large cells in a sheet. Each cell's `onClick` acts when it is tapped, even chosen already;
@@ -151,13 +152,13 @@ function SheetChoice({ label, value, options, onChange, columns = 3, className }
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className={LABEL}>{said(label)}</h3>
+      <h3 className="text-sm font-bold">{said(label)}</h3>
       <ToggleGroup
         aria-label={said(label)}
         value={[value]}
         spacing={1}
         onValueChange={(next: string[]) => next[0] && next[0] !== value && onChange?.(next[0])}
-        className="grid w-full gap-1"
+        className="grid w-full gap-1.5"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {options.map((o) => (
@@ -203,7 +204,7 @@ export function SessionSheet() {
         <>
           <SheetChoice
             label={tr("Scramble")}
-            value={s.scrambleType}
+            value={s.scrambleChoice()}
             columns={2}
             options={s.scrambleOptions()}
             onChange={(id) => void s.action("scrambleType:" + id).then(() => {

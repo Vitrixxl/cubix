@@ -15,6 +15,8 @@ export interface BeginnerPart {
   /** The colours of the piece placed, for a corner or an edge. */
   piece?: Face[];
   alg: string;
+  /** The course's algorithm the part is made of, and how many times in a row it is done. */
+  gesture?: { alg: string; times: number };
 }
 
 const STEPS = METHODS["333"].find((m) => m.id === "beginner")!.steps;
@@ -79,11 +81,16 @@ function looks(state: CubeState, algs: string[], ok: (state: CubeState) => boole
 export function solveBeginner(start: CubeState): BeginnerPart[] | null {
   const parts: BeginnerPart[] = [];
   let state = start;
-  const add = (step: number, label: string, moves: string, piece?: Face[]) => {
+  const add = (step: number, label: string, moves: string, piece?: Face[], gesture?: BeginnerPart["gesture"]) => {
     const merged = mergeTurns(moves.split(/\s+/).filter(Boolean)).join(" ");
     if (!merged) return;
     state = applyAlg(state, merged);
-    parts.push({ step, label, alg: merged, ...(piece && { piece }) });
+    parts.push({ step, label, alg: merged, ...(piece && { piece }), ...(gesture && { gesture }) });
+  };
+  /** The course's algorithm a look ends with, once. */
+  const once = (moves: string, algs: string[]) => {
+    const alg = algs.find((a) => moves.endsWith(a));
+    return alg ? { alg, times: 1 } : undefined;
   };
 
   add(0, msg("White cross"), optimalCross(colours(state)).join(" "));
@@ -98,13 +105,14 @@ export function solveBeginner(start: CubeState): BeginnerPart[] | null {
       if (moves && (!best || length(moves) < length(best.moves))) best = { slot, moves };
     }
     if (best) {
-      add(1, msg("Corner"), best.moves, ["D", ...best.slot.faces]);
+      // The trigger is four turns, after one turn of the top at most.
+      add(1, msg("Corner"), best.moves, ["D", ...best.slot.faces], { alg: best.slot.trigger, times: Math.floor(length(best.moves) / 4) });
       continue;
     }
     // No white corner can reach its slot from the top: one stuck at the bottom in the wrong slot comes out first.
     const stuck = SLOTS.find((slot) => !placed.includes(slot) && pieceColours(colours(state), slot.corner).includes("D"));
     if (!stuck) return null;
-    add(1, msg("Take a corner out"), stuck.trigger);
+    add(1, msg("Take a corner out"), stuck.trigger, undefined, { alg: stuck.trigger, times: 1 });
   }
   if (!firstLayer(colours(state))) return null;
 
@@ -117,31 +125,31 @@ export function solveBeginner(start: CubeState): BeginnerPart[] | null {
       if (moves && (!best || length(moves) < length(best.moves))) best = { slot, moves };
     }
     if (best) {
-      add(2, msg("Edge"), best.moves, best.slot.faces);
+      add(2, msg("Edge"), best.moves, best.slot.faces, once(best.moves, best.slot.inserts));
       continue;
     }
     // Every edge left is in the middle layer, in the wrong slot or flipped: a top edge put in its place takes it out.
     const stuck = SLOTS.find((slot) => !placed.includes(slot) && !pieceColours(colours(state), slot.edge).includes("U"));
     if (!stuck) return null;
-    add(2, msg("Take an edge out"), stuck.inserts[0]!);
+    add(2, msg("Take an edge out"), stuck.inserts[0]!, undefined, { alg: stuck.inserts[0]!, times: 1 });
   }
   if (!twoLayers(colours(state))) return null;
 
   const cross = looks(state, [LINE, L], (s) => edgesOriented(colours(s)), 3);
   if (!cross) return null;
-  for (const moves of cross) add(3, msg("Yellow cross"), moves);
+  for (const moves of cross) add(3, msg("Yellow cross"), moves, undefined, once(moves, [LINE, L]));
 
   const face = looks(state, [SUNE], (s) => topDone(colours(s)), 3);
   if (!face) return null;
-  for (const moves of face) add(4, "Sune", moves);
+  for (const moves of face) add(4, "Sune", moves, undefined, once(moves, [SUNE]));
 
   const corners = looks(state, [CORNERS], (s) => cornersPermuted(colours(s)), 2);
   if (!corners) return null;
-  for (const moves of corners) add(5, msg("Corner cycle"), moves);
+  for (const moves of corners) add(5, msg("Corner cycle"), moves, undefined, once(moves, [CORNERS]));
   const aligned = (s: CubeState) => AUF.find((auf) => allDone(colours(applyAlg(s, auf))));
   const edges = looks(state, [UA, UB], (s) => aligned(s) !== undefined, 2);
   if (!edges) return null;
-  for (const moves of edges) add(5, msg("Edge cycle"), moves);
+  for (const moves of edges) add(5, msg("Edge cycle"), moves, undefined, once(moves, [UA, UB]));
   add(5, msg("Turn the top"), aligned(state) ?? "");
   return allDone(colours(state)) ? parts : null;
 }

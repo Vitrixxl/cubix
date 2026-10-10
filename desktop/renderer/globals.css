@@ -6,6 +6,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* The app's face, the landing page's too: Bricolage Grotesque, one variable font (weights 200 to 800). */
+@font-face { font-family: "Bricolage Grotesque"; src: url("../assets/fonts/BricolageGrotesque.woff2") format("woff2"); font-weight: 200 800; font-stretch: 75% 100%; font-display: swap; }
 @font-face { font-family: Geist; src: url("../assets/fonts/Geist-Regular.woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: Geist; src: url("../assets/fonts/Geist-Medium.woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: Geist; src: url("../assets/fonts/Geist-SemiBold.woff2"); font-weight: 600; font-display: swap; }
@@ -23,8 +25,12 @@
 @theme inline {
     --color-success: var(--success);
     --color-warning: var(--warning);
+    --color-lilac: var(--lilac);
+    --color-faint: var(--faint);
+    --color-edge: var(--edge);
+    --color-timer-ink: var(--timer-ink);
     --font-heading: var(--font-sans);
-    --font-sans: Geist, sans-serif;
+    --font-sans: var(--app-font);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -89,7 +95,12 @@
     --chart-3: oklch(0.592 0.249 0.584);
     --chart-4: oklch(0.525 0.223 3.958);
     --chart-5: oklch(0.459 0.187 3.815);
-    --radius: 0.625rem;
+    --radius: 0.75rem;
+    /* Nested corners: a control or a floating panel is rounded-lg (--radius, 12px) with p-1; what sits inside it (a menu
+       item, the chosen option of a segmented control) is rounded-(--radius-inner), the outer radius less that 4px padding,
+       so the corners stay concentric. */
+    --radius-inner: calc(var(--radius) - 4px);
+    --app-font: "Bricolage Grotesque", system-ui, sans-serif;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.592 0.249 0.584);
@@ -143,7 +154,13 @@
     }
   html {
     @apply font-sans antialiased;
+    font-optical-sizing: auto;
     }
+  /* Headings are set tight, as the figures are. */
+  h1, h2, h3 {
+    letter-spacing: -0.025em;
+  }
+
   code, kbd, samp, pre {
     @apply font-sans;
   }
@@ -179,71 +196,24 @@ html.landing a:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 3px;
 }
-/*
- * The landing page's words. A feature's parts come in one after the other as it scrolls into view: --t is how far in
- * it is (0 to 1), --n how many parts it has, --i the place of each; --o is how far it has left by the top. The page's
- * script sets --t and --o (landing/SolveStage.tsx); without it, everything is simply there.
- */
-html.landing [data-chapter],
-html.landing [data-top] {
-    --t: 1;
-    --o: 0;
-}
-html.landing .landing-part {
-    --p: clamp(0, calc((var(--t) * (var(--n) + 4) - var(--i)) / 4), 1);
-    opacity: var(--p);
-    transform: translateY(calc((1 - var(--p)) * 0.6em));
-    filter: blur(calc((1 - var(--p)) * 10px));
-}
-html.landing .landing-leave,
-html.landing .landing-title {
-    opacity: calc(1 - var(--o));
-    transform: translateY(calc(var(--o) * -3rem));
-    filter: blur(calc(var(--o) * 8px));
-}
-/*
- * Once the script runs (data-live), a feature's words leave the scroll: they are held in the window, at their place
- * across the page (--x, --w, in pixels), --d pixels from its middle. The script alone moves them, so they brake
- * about the middle without the scroll pulling them the other way.
- */
-html.landing [data-live] .landing-title {
-    position: fixed;
-    top: 50%;
-    left: calc(var(--x, 0) * 1px);
-    width: calc(var(--w, 0) * 1px);
-    transform: translateY(calc(-50% + var(--d, 0) * 1px + var(--o) * -3rem));
-    will-change: transform;
-}
-/* Words over the tiles the pointer lights: the page's own colour gathers around the letters, so they stay read. */
-html.landing .landing-ink {
-    text-shadow:
-        0 0 0.12em var(--background),
-        0 0 0.4em var(--background),
-        0 0 1em var(--background),
-        0 0.04em 0.08em rgb(0 0 0 / 0.55);
-}
-/* The arrow that says the page goes on. */
 @media (prefers-reduced-motion: no-preference) {
-    html.landing .landing-nudge {
-        animation: landing-nudge 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-    }
-}
-@keyframes landing-nudge {
-    50% {
-        transform: translateY(3px);
-    }
-}
-/* The top of the page comes in by itself as the page opens, as the cube's pieces do. */
-@media (prefers-reduced-motion: no-preference) {
+    /* The top of the page comes in by itself as the page opens, one part after the other (--i). */
     html.landing .landing-in {
-        animation: landing-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-        animation-delay: calc(var(--i) * 60ms + 150ms);
+        animation: landing-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation-delay: calc(var(--i, 0) * 80ms + 100ms);
+    }
+    /* Each part further down comes in as it scrolls into view, where the browser can tie an animation to the scroll. */
+    @supports (animation-timeline: view()) {
+        html.landing .landing-reveal {
+            animation: landing-in linear both;
+            animation-timeline: view();
+            animation-range: entry 0% entry 40%;
+        }
     }
 }
 @keyframes landing-in {
     from {
         opacity: 0;
-        transform: translateY(0.5em);
-        filter: blur(12px);
+        transform: translateY(1.25rem);
     }
 }

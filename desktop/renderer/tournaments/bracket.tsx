@@ -7,12 +7,11 @@
 import { MoreHorizontal, Trophy } from "lucide-react";
 import type { Match, Person, TournamentDetail } from "../community/client";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { tr } from "../../../src/client/i18n";
 import { Avatar, NUMERIC, Surface, said } from "../base";
-import { CARD_LINK, MATCH_STATUS, MatchStatusBadge, PlayerLine, apart, opens, roundName, scoreOf } from "./format";
+import { CARD_LINK, LiveDot, MATCH_STATUS, PlayerLine, apart, opens, roundName, scoreOf } from "./format";
 export { roundName };
 const over = (m: Match) => m.status === "done" || m.status === "cancelled";
 
@@ -47,11 +46,11 @@ export function Bracket({
               aria-label={roundName(round, t.rounds)}
               data-round={round}
             >
-              <header className={cn("flex shrink-0 items-center justify-between gap-2 border-b pb-2", current && "border-primary/40")}>
-                <h3 className={cn("text-sm font-medium", current && "text-primary")}>{roundName(round, t.rounds)}</h3>
-                <Badge variant={current ? "accent" : "secondary"} className={NUMERIC}>
+              <header className="flex h-8 shrink-0 items-baseline justify-between gap-2 px-1">
+                <h3 className={cn("text-xs font-bold tracking-[0.08em] uppercase", current ? "text-primary" : "text-muted-foreground")}>{roundName(round, t.rounds)}</h3>
+                <span className={cn(NUMERIC, "text-xs font-semibold text-muted-foreground")}>
                   {round > t.round && t.status === "running" ? tr("Next") : tr("{0} of {1} over", { 0: done, 1: matches.length })}
-                </Badge>
+                </span>
               </header>
               <div className="flex min-h-0 flex-1 flex-col">
                 {pairs(matches).map((pair, k) => (
@@ -61,7 +60,7 @@ export function Bracket({
                     ))}
                     {/* The line from the pair to the match their winners meet in, across the gap between the columns. */}
                     {round < t.rounds && pair.length === 2 && (
-                      <span aria-hidden className="pointer-events-none absolute top-1/4 -right-7 bottom-1/4 w-7 rounded-r-lg border-y-2 border-r-2 border-foreground/20" />
+                      <span aria-hidden className="pointer-events-none absolute top-1/4 -right-7 bottom-1/4 w-7 rounded-r-lg border-y-[1.5px] border-r-[1.5px] border-muted-foreground/30" />
                     )}
                   </div>
                 ))}
@@ -70,12 +69,14 @@ export function Bracket({
           );
         })}
         {t.status === "finished" && t.winner && (
-          <section className="flex w-56 shrink-0 flex-col" aria-label={tr("Champion")}>
-            <h3 className="shrink-0 border-b border-warning/40 pb-2 text-sm font-medium text-warning">{tr("Champion")}</h3>
-            <div className="my-auto flex flex-col items-center gap-3 rounded-xl bg-warning/10 px-4 py-6 text-center ring-1 ring-warning/25">
-              <Trophy className="size-10 text-warning" />
-              <Avatar name={t.winner.username} src={t.winner.avatar} size={48} />
-              <span className="truncate text-lg font-semibold">{t.winner.username}</span>
+          <section className="flex w-48 shrink-0 flex-col" aria-label={tr("Champion")}>
+            <h3 className="flex h-8 shrink-0 items-baseline px-1 text-xs font-bold tracking-[0.08em] text-warning uppercase">{tr("Champion")}</h3>
+            <div className="my-auto flex flex-col items-center gap-2.5 text-center">
+              <Avatar name={t.winner.username} src={t.winner.avatar} size={64} />
+              <span className="flex max-w-full items-center gap-1.5 truncate text-xl font-extrabold tracking-[-0.02em]">
+                <Trophy className="size-5 shrink-0 text-warning" />
+                {t.winner.username}
+              </span>
             </div>
           </section>
         )}
@@ -102,9 +103,9 @@ function MatchCard({ match: m, me, joined, onOpen, onAward }: { match: Match; me
     scored = m.status !== "waiting" && !bye;
   return (
     // The line coming from the pair before, drawn outside the card.
-    <div className={cn("relative", joined && "before:pointer-events-none before:absolute before:top-1/2 before:right-full before:w-7 before:border-t-2 before:border-foreground/20")}>
+    <div className={cn("relative", joined && "before:pointer-events-none before:absolute before:top-1/2 before:right-full before:w-7 before:border-t-[1.5px] before:border-muted-foreground/30")}>
       <Surface
-        className={cn("gap-2 p-3", open && CARD_LINK, mine && "ring-primary/50", bye && "opacity-60")}
+        className={cn("gap-1.5 rounded-[16px] bg-muted px-3 py-2.5", open && CARD_LINK, open && "hover:bg-accent", mine && "ring-[1.5px] ring-primary ring-inset", bye && "bg-transparent opacity-60")}
         data-match={m.id}
         data-status={m.status}
         {...(open ? opens(() => onOpen!(m)) : {})}
@@ -112,14 +113,15 @@ function MatchCard({ match: m, me, joined, onOpen, onAward }: { match: Match; me
       >
         <div className="flex h-5 items-center gap-2 text-xs text-muted-foreground">
           <span className={NUMERIC}>{tr("Match {0}", { 0: m.slot + 1 })}</span>
-          <MatchStatusBadge status={m.status} className="ml-auto">
+          <span className={cn("ml-auto flex items-center gap-1.5 font-semibold", m.status === "live" ? "text-primary" : m.status === "ready" && "text-success")} data-slot="match-status">
+            {m.status === "live" && <LiveDot className="size-1.5" />}
             {bye ? tr("Bye") : said(MATCH_STATUS[m.status])}
             {m.forfeit && tr(" · given")}
-          </MatchStatusBadge>
+          </span>
           {decidable && (
             <span {...apart} className="-my-1 -mr-1">
               <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={tr("Decide the match")} className="text-muted-foreground" />}>
+                <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={tr("Decide the match")} className="text-muted-foreground" />}>
                   <MoreHorizontal />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-auto">

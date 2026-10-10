@@ -3,6 +3,8 @@ export class LaunchSessions {
   private ids = new Map<string, number>();
   private pending = new Map<string, Promise<number>>();
   get(key: string): number | undefined { return this.ids.get(key); }
+  /** Another session for `key`: one started or chosen again. */
+  set(key: string, id: number) { this.pending.delete(key); this.ids.set(key, id); }
   ensure(key: string, create: () => Promise<{ id: number }>): Promise<number> {
     const id = this.ids.get(key);
     if (id !== undefined) return Promise.resolve(id);

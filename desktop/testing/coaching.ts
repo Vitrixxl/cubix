@@ -90,7 +90,7 @@ try {
 
   // The coach now gets the dashboard, fills in the profile and the hours.
   await coach.reload();
-  await coach.waitForSelector('[data-action="nav:coaching"]');
+  await coach.waitForSelector(".rail, .tabbar");
   await go(coach, "/coaching");
   await coach.waitForURL(/\/coaching\/dashboard$/);
   await coach.waitForSelector('[data-slot="todo"]');
@@ -134,18 +134,22 @@ try {
   assert.ok(await fits(coach), "the schedule fits");
   await coach.screenshot({ path: `${SHOTS}/schedule.png` });
 
-  // Another player finds the coach and books the first slot.
+  // Another player finds the coach and books the first slot, beside the list.
   await go(player, "/coaching/coaches");
   await player.waitForSelector('[data-coach="coach_anna"]');
   assert.ok(await fits(player), "the coaches fit");
   await player.screenshot({ path: `${SHOTS}/coaches.png` });
   await player.locator('[data-coach="coach_anna"]').click();
   await player.waitForSelector('[data-slot="coach-about"]');
+  // The coach's full page, then back to the list to book.
+  await player.locator('[data-action="coaching:coach-page"]').click();
+  await player.waitForURL(/\/coaching\/coach\/[^/]+$/);
+  await player.waitForSelector('[data-slot="coach-about"]');
   assert.ok(await fits(player), "the coach page fits");
   await player.screenshot({ path: `${SHOTS}/coach-about.png` });
-  await player.locator('[data-action="coaching:open-booking"]').click();
+  await go(player, "/coaching/coaches");
   await player.waitForSelector('[data-slot="slots"] button');
-  assert.ok(await fits(player), "the booking page fits");
+  assert.ok(await fits(player), "the booking panel fits");
   await player.locator('[data-slot="slots"] button').first().click();
   await player.fill("#booking-note", "My F2L is slow");
   assert.ok(await player.locator('[data-action="coaching:book"]').isDisabled(), "booking requires accepting the policy");
@@ -153,7 +157,8 @@ try {
   await player.screenshot({ path: `${SHOTS}/coach-page.png` });
   await player.locator('[data-action="coaching:book"]').click();
   await player.waitForURL(/\/coaching\/sessions$/);
-  await player.locator('[data-slot="calendar"] [data-session]').first().click();
+  await player.locator('[data-slot="sessions"] [data-session]').first().click();
+  await player.waitForSelector('[data-slot="session-card"]:has-text("My F2L is slow")');
   await player.waitForSelector('[data-slot="sessions"] [data-booking]');
   const booking = (await player.locator('[data-slot="sessions"] [data-booking]').first().getAttribute("data-booking"))!;
   await player.screenshot({ path: `${SHOTS}/sessions.png` });
@@ -196,9 +201,14 @@ try {
   await coach.fill('[data-action="chat:input"]', "Yes, and a timer.");
   await coach.keyboard.press("Enter");
   await player.waitForSelector('[data-slot="chat"] p:has-text("Yes, and a timer.")');
-  await coach.fill("#student-note", "Slow F2L, works on lookahead");
-  await coach.locator("#student-note").blur();
-  await coach.waitForSelector('label[for="student-note"]:not(:has-text("Unsaved")):not(:has-text("Saving"))');
+  // The private notes, in the student's file: a rich text editor, saved on blur.
+  await coach.locator('[data-action="chat:profile"]').first().click();
+  const note = coach.locator('[data-action="student:note"]:visible').first();
+  await note.fill("Slow F2L, works on lookahead");
+  await note.blur();
+  await coach.waitForSelector('[data-slot="private-notes"]:has-text("Slow F2L, works on lookahead"):has-text("Only you see them")');
+  await coach.keyboard.press("Escape");
+  await coach.waitForSelector('[data-slot="private-notes"]', { state: "detached" });
   assert.ok(await fits(coach), "the students view fits");
   await coach.screenshot({ path: `${SHOTS}/students.png` });
 
@@ -211,7 +221,7 @@ try {
   // Offer and answer cross; then the state each side sends of its devices arrives with them.
   await Promise.all([coach.waitForSelector('[data-slot="stage"]:is([data-phase="connecting"],[data-phase="connected"])'), player.waitForSelector('[data-slot="stage"]:is([data-phase="connecting"],[data-phase="connected"])')]);
   await player.locator('[data-action="call:mic"]').click();
-  await coach.waitForSelector("text=Muted");
+  await coach.waitForSelector('[aria-label="Muted"]');
   // The media itself needs ICE candidates, which some sandboxed Chromium builds never gather (none even for a lone
   // data channel): CUBIX_TEST_MEDIA=1 checks the connection and the received video where they do.
   if (process.env.CUBIX_TEST_MEDIA) {
@@ -236,7 +246,7 @@ try {
   await player.reload();
   await player.waitForSelector('[data-action="sessions:past"]');
   await player.locator('[data-action="sessions:past"]').click();
-  await player.locator(`[data-slot="calendar"] [data-session="${booking}"]`).click();
+  await player.locator(`[data-slot="sessions"] [data-session="${booking}"]`).click();
   await player.locator('[data-action="coaching:review"]').click();
   await player.locator('[data-rating="5"]').click();
   await player.getByLabel("Comment").fill("Clear and patient, my F2L is already faster.");
@@ -244,6 +254,7 @@ try {
   await player.waitForSelector("text=Thanks for your review");
   await go(player, "/coaching/coaches");
   await player.locator('[data-coach="coach_anna"]').click();
+  await player.locator('[data-action="coaching:coach-page"]').click();
   await player.waitForSelector('[data-slot="reviews"] p:has-text("Clear and patient")');
   await player.screenshot({ path: `${SHOTS}/coach-reviewed.png` });
 

@@ -70,6 +70,27 @@ export function clock(ms: number) {
   const seconds = Math.floor(ms / 1000);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
+/** How long a search waits before anyone on the event will do, as the server has it (go-api/duel.go). */
+export const ANYONE_AFTER = 30_000;
+/**
+ * The levels a player may meet after `waited` ms: 15% either way at first, 3% more each second (go-api/duel.go); null
+ * without a level, or once anyone will do.
+ */
+export function matchRange(level: number | null | undefined, waited = 0): [number, number] | null {
+  if (!level || waited >= ANYONE_AFTER) return null;
+  const range = 0.15 + 0.03 * Math.max(0, waited / 1000);
+  return [level / (1 + range), level * (1 + range)];
+}
+/** The rounds each side took, by the better time. */
+export function roundsWon(mine: DuelSolve[], theirs: DuelSolve[]): [number, number] {
+  const won: [number, number] = [0, 0];
+  for (let r = 0; r < ROUNDS; r++) {
+    if (!mine[r] || !theirs[r]) continue;
+    const c = compare(solveTime(mine[r]!), solveTime(theirs[r]!));
+    if (c !== "draw") won[c === "win" ? 0 : 1]++;
+  }
+  return won;
+}
 /** What the opponent is doing, in a word or two. */
 export function opponentStatus(d: Pick<DuelClient, "opponentHere" | "over" | "opponentPhase" | "them" | "round" | "scrambles">) {
   if (!d.opponentHere) return msg("Left");

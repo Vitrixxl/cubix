@@ -85,11 +85,8 @@ function Form() {
   return (
     <form onSubmit={submit} noValidate className="mx-auto flex min-h-0 w-full max-w-2xl flex-col" data-slot="apply">
       <Surface className="flex-1">
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold tracking-tight">{tr("Become a coach")}</h2>
-          <p className="text-muted-foreground">{tr("The team reads every application and answers by e-mail.")}</p>
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-6 max-md:p-4">
+        <p className="text-muted-foreground">{tr("The team reads every application and answers by e-mail.")}</p>
         <Field data-invalid={error?.field === "email" || undefined}>
           <FieldLabel htmlFor="apply-email">{tr("E-mail address")}</FieldLabel>
           <Input id="apply-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tr("you@example.com")} aria-invalid={error?.field === "email" || undefined} data-action="apply:email" />
@@ -114,8 +111,8 @@ function Form() {
           </Alert>
         )}
       </div>
-      <div className="shrink-0 border-t p-4">
-        <UiButton type="submit" size="lg" className="w-full max-md:h-11" disabled={pending} data-action="coaching:apply:send">
+      <div className="shrink-0 px-6 pt-2 pb-6 max-md:px-4 max-md:pb-4">
+        <UiButton type="submit" className="w-full" disabled={pending} data-action="coaching:apply:send">
           <Send />
           {pending ? tr("Sending…") : tr("Send my application")}
         </UiButton>

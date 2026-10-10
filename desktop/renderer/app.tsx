@@ -8,20 +8,19 @@ import { applyTheme, faviconPuzzle } from "./theme";
 import { Toasts } from "./Toasts";
 import { Confirmations } from "./confirm";
 import { ErrorNotification } from "./ErrorNotification";
-import { PageSkeleton, WindowSidebar, usePhone } from "./ui";
-import { PageFallback } from "./skeletons";
-import { Rail, TIP_DELAY, TabBar } from "./shell";
+import { PageSkeleton, usePhone } from "./ui";
+import { AppSkeleton, CaseDialogSkeleton, PageFallback, SettingsSkeleton } from "./skeletons";
+import { Header, NarrowSectionTabs, PhoneTop, TIP_DELAY, TabBar } from "./shell";
 import { Practice } from "./practice";
-import { CoachingSidebar } from "./coaching/rail";
 import { coaching } from "./coaching/client";
 import { community } from "./community/client";
 import { live } from "./coaching/call";
-import { LoginPage } from "./login";
-import { SidebarInset } from "@/components/ui/sidebar";
+import { SignInDialog } from "./login";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Navigate, useLocation, useNavigate } from "react-router";
-import { bindNavigation, go, readRoute } from "./navigation";
-import { accountOnly, localePath, loginNext, loginUrl, splitLanguage } from "../../src/client/lib/route";
+import { bindNavigation, go, readRoute, type AppRoute } from "./navigation";
+import { onIntent, whenIdle } from "./prefetch";
+import { accountOnly, localePath, loginNext, splitLanguage } from "../../src/client/lib/route";
 import { pageSeo, pageTitle } from "./seo";
 import { isPhone } from "../../src/client/lib/viewport";
 import type { PuzzleId } from "../../src/shared/puzzles";
@@ -46,18 +45,58 @@ const later = <M,>(load: () => Promise<M>, pick: (module: M) => React.ComponentT
     ),
   );
 const RELOADED = "cubix.reloadedForUpdate";
+/** Each page's code, loaded on first use (or ahead, see `warm`). */
+const CODE = {
+  algorithms: () => import("./algorithms"),
+  profile: () => import("./profile"),
+  duel: () => import("./duel"),
+  coaching: () => import("./coaching/page"),
+  community: () => import("./community/page"),
+  tournaments: () => import("./tournaments/page"),
+  match: () => import("./tournaments/match"),
+  daily: () => import("./daily"),
+  training: () => import("./setup"),
+  learn: () => import("./learn"),
+};
+/**
+ * What a link opens, fetched ahead (prefetch.ts): the page's code and, for the pages that read the server, their list
+ * (read only, at most once a minute). The timer and a drill's session are in the app's first part already.
+ */
+const warmed = new Map<string, number>();
+function warm(route: AppRoute, data: boolean) {
+  const load = route.page === "training" && route.trainingStep === "practice" ? undefined : CODE[route.page as keyof typeof CODE];
+  // A chunk that fails here is asked again, and reported, by the page itself when opened.
+  void load?.().catch(() => {});
+  if (!data || !s.ready || !s.signedIn || s.user.isGuest) return;
+  const key = route.page === "coaching" ? (coaching.isCoach ? "dashboard" : "coaches") : route.page === "community" ? "conversations" : route.page === "tournaments" && !route.view ? "tournaments" : "";
+  if (!key || Date.now() - (warmed.get(route.page) ?? 0) < 60_000) return;
+  warmed.set(route.page, Date.now());
+  void (route.page === "coaching" ? coaching.load(key as "dashboard" | "coaches") : community.load(key)).catch(() => {});
+}
+function prefetchLinks() {
+  onIntent((link) => {
+    const route = readRoute(link.pathname, link.search);
+    if (route) warm(route, true);
+  });
+  // The sections of the header, likeliest to be opened next: their code once the browser has nothing else to do.
+  whenIdle(() => ["learn", "algorithms", "duel", "profile"].forEach((page) => warm(readRoute("/" + page, "")!, false)));
+}
 const Introduction = later(() => import("./introduction"), (m) => m.Introduction);
 const Onboarding = later(() => import("./introduction"), (m) => m.Onboarding);
-const Algorithms = later(() => import("./algorithms"), (m) => m.Algorithms);
-const Profile = later(() => import("./profile"), (m) => m.Profile);
-const DuelPage = later(() => import("./duel"), (m) => m.DuelPage);
-const CoachingPage = later(() => import("./coaching/page"), (m) => m.CoachingPage);
-const CommunityPage = later(() => import("./community/page"), (m) => m.CommunityPage);
-const TournamentsPage = later(() => import("./tournaments/page"), (m) => m.TournamentsPage);
-const MatchPage = later(() => import("./tournaments/match"), (m) => m.MatchPage);
-const TrainingSetup = later(() => import("./setup"), (m) => m.TrainingSetup);
-const Learn = later(() => import("./learn"), (m) => m.Learn);
+const Algorithms = later(CODE.algorithms, (m) => m.Algorithms);
+const Profile = later(CODE.profile, (m) => m.Profile);
+const DuelPage = later(CODE.duel, (m) => m.DuelPage);
+const CoachingPage = later(CODE.coaching, (m) => m.CoachingPage);
+const CommunityPage = later(CODE.community, (m) => m.CommunityPage);
+const TournamentsPage = later(CODE.tournaments, (m) => m.TournamentsPage);
+const MatchPage = later(CODE.match, (m) => m.MatchPage);
+const DailyPage = later(CODE.daily, (m) => m.DailyPage);
+const TrainingSetup = later(CODE.training, (m) => m.TrainingSetup);
+const Learn = later(CODE.learn, (m) => m.Learn);
 const Overlays = later(() => import("./overlays"), (m) => m.Overlays);
+const CaseDialog = later(() => import("./algorithms"), (m) => m.CaseDialog);
+/** Whether a case's dialog was opened yet: its part of the app loads then, and stays for the next. */
+let caseOpened = false;
 const FloatingCall = later(() => import("./coaching/floating"), (m) => m.FloatingCall);
 const SharedSolve = later(() => import("./SolveView"), (m) => m.SharedSolve);
 function App() {
@@ -68,6 +107,18 @@ function App() {
   useLayoutEffect(() => {
     if (s.ready && route) s.applyRoute(route);
   }, [location.pathname, location.search, s.ready]);
+  // Signing in is a dialog over a page. The address /login opens it over the page it names (`redirect`), else the
+  // timer; a page of an account opens it for a guest, who stays on the page they were on.
+  const account = (path: string) => { const url = new URL(path, "https://x"), r = readRoute(url.pathname, url.search); return !!r && accountOnly(r); };
+  const asked = route?.page === "login" ? loginNext(location.search) : s.ready && s.user.isGuest && route && accountOnly(route) ? location.pathname + location.search : null;
+  useEffect(() => {
+    if (!s.ready || asked === null) return;
+    if (s.signedIn) return go(asked, true);
+    s.askSignIn(account(asked) ? asked : "");
+    if (route?.page === "login") go(account(asked) ? "/timer" : asked, true);
+    else if ((history.state?.idx ?? 0) > 0) go(-1);
+    else go("/timer", true);
+  }, [asked, s.ready]);
   useEffect(() => {
     void s.init();
     const unsubscribe = onEvent((event) => {
@@ -83,7 +134,7 @@ function App() {
       else if (event.event === "browser-forward") go(1);
     });
     const key = (e: KeyboardEvent) => {
-      if (s.expired || /^\/(onboarding|login)$/.test(splitLanguage(window.location.pathname).path) || s.overlay === "tour") return;
+      if (s.expired || /^\/onboarding$/.test(splitLanguage(window.location.pathname).path) || s.overlay === "tour" || s.overlay === "signin") return;
       const typing = (e.target as HTMLElement).closest("input,textarea");
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
@@ -180,20 +231,11 @@ function App() {
         // A list and its detail (messages, students) stay in place; a coach or a call is a page of its own.
         (s.page === "coaching" ? ":" + (/^(coach|call)\//.test(s.coachingView) ? s.coachingView : s.coachingView.split("/")[0]) : "") +
         // The community is one page, a conversation opening in place; a tournament or a match is a page of its own.
-        (s.page === "tournaments" || s.page === "match" ? ":" + s.view.split("/")[0] : "");
-  // The login page, asked for or after an ended session; signed in, it goes on to where it was asked from.
-  if (route?.page === "login" && s.ready && s.signedIn) return <Navigate to={loginNext(location.search)} replace />;
-  if (route?.page === "login" || s.expired)
-    return (
-      <TooltipProvider delay={TIP_DELAY}>
-        <Shown />
-        <LoginPage />
-        <Toasts light={s.light} />
-      </TooltipProvider>
-    );
-  // A guest uses the app on this device; the pages of an account ask to sign in, and come back once signed in.
-  if (s.ready && s.user.isGuest && route && accountOnly(route)) return <Navigate to={loginUrl(location.pathname + location.search)} replace />;
-  if (s.ready && s.signedIn && !s.introductionReady) return <PageSkeleton />;
+        (s.page === "tournaments" || s.page === "match" ? ":" + s.view.split("/")[0] : "") +
+        (s.page === "community" && s.view.startsWith("people") ? ":people" : "");
+  // On its way to the page under the sign-in dialog (above).
+  if (asked !== null) return <AppSkeleton phone={mobile} />;
+  if (s.ready && s.signedIn && !s.introductionReady) return <AppSkeleton phone={mobile} />;
   // A link to someone or something (a friend's link, a tournament, a match) waits for the end of the introduction.
   if (s.ready && s.signedIn && !journeyProfile(s.journey) && route?.page !== "onboarding")
     return <Navigate to={"/onboarding" + (route && ["community", "tournaments", "match"].includes(route.page) ? "?next=" + encodeURIComponent(location.pathname + location.search) : "")} replace />;
@@ -208,26 +250,17 @@ function App() {
   return (
     <TooltipProvider delay={TIP_DELAY}>
       <MotionConfig reducedMotion="user">
-        <WindowSidebar
-          // Coaching has its own sidebar beside; a match takes the whole window.
-          compact={s.page === "coaching" || s.page === "match"}
-          data-app-shell=""
-          data-running={s.running ? "" : undefined}
-          className="group/app h-svh min-h-0 overflow-hidden bg-background max-md:flex-col"
-          style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "calc(3rem + 1px)" } as React.CSSProperties}
-        >
-          {/* The coaching sidebar pushes out of the app's, side by side with it. */}
-          {!mobile && !arena && (
-            <div className="flex shrink-0">
-              <Rail />
-              {!s.user.isGuest && <CoachingSidebar open={s.page === "coaching"} />}
-            </div>
-          )}
-          <SidebarInset className="relative min-h-0 min-w-0 overflow-hidden">
+        <div data-app-shell="" data-running={s.running ? "" : undefined} className="group/app flex h-svh min-h-0 flex-col overflow-hidden">
+          {/* A battle or a tournament under way takes the whole window. */}
+          {!mobile && !arena && <Header />}
+          {!mobile && !arena && <NarrowSectionTabs />}
+          {mobile && !arena && <PhoneTop />}
+          <div className="flex min-h-0 flex-1">
+          <main data-slot="app-main" className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
             {!s.ready ? (
               <PageFallback phone={mobile} />
             ) : (
-              <div key={frameKey} className="absolute inset-0 flex min-h-0 flex-col bg-background">
+              <div key={frameKey} className="absolute inset-0 flex min-h-0 flex-col">
                 <Suspense fallback={<PageFallback phone={mobile} />}>
                   <Shown />
                   {s.page === "training" && s.trainingStep === "setup" ? (
@@ -248,19 +281,24 @@ function App() {
                     <TournamentsPage />
                   ) : s.page === "match" ? (
                     <MatchPage />
+                  ) : s.page === "daily" ? (
+                    <DailyPage />
                   ) : (
                     <Profile />
                   )}
                 </Suspense>
               </div>
             )}
-          </SidebarInset>
+          </main>
+          </div>
           {mobile && !arena && <TabBar />}
-        </WindowSidebar>
+        </div>
         {live.call && <Suspense fallback={null}><FloatingCall /></Suspense>}
         <Toasts light={s.light} />
         <Confirmations />
-        <Suspense fallback={null}><Overlays /></Suspense>
+        <SignInDialog />
+        <Suspense fallback={s.overlay === "settings" ? <SettingsSkeleton phone={mobile} /> : null}><Overlays /></Suspense>
+        {(caseOpened ||= !!(s.caseDialog || (s.page === "algorithms" && s.caseId))) && <Suspense fallback={<CaseDialogSkeleton phone={mobile} />}><CaseDialog /></Suspense>}
         <ErrorNotification message={said(s.error)} />
         {s.overlay === "tour" && <Suspense fallback={null}><Introduction key={s.user.id} /></Suspense>}
       </MotionConfig>
@@ -308,6 +346,7 @@ function Routed() {
 }
 /** The app opens in the language of its address (/fr/…), else the device's, its texts loaded. */
 export function mount() {
+  prefetchLinks();
   if (document.documentElement.hasAttribute("data-account") || isPhone(innerWidth)) reveal();
   void setLanguage(splitLanguage(location.pathname).language ?? preferred(), false).finally(() => createRoot(document.getElementById("root")!).render(<Routed />));
 }

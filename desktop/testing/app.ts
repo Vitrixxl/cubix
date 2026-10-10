@@ -1,4 +1,4 @@
-/** Test harness: a disposable API serving the web build (dist/web) and the Electron shell pointed at it,
+/** Test harness: a disposable API serving the web build (dist/web, or $CUBIX_TEST_WEB_DIR) and the Electron shell pointed at it,
  * without any window (Chromium's headless Ozone backend). Build first: `bun desktop/build.ts && bun desktop/web.ts`. */
 import { _electron as electron, type Page } from "playwright";
 import { mkdir } from "node:fs/promises";
@@ -18,7 +18,7 @@ export async function startServer(dir: string, env: Record<string, string> = {})
   reserve.stop();
   const origin = `http://127.0.0.1:${port}`;
   const server = Bun.spawn([resolve(process.env.CUBIX_API_BIN ?? "go-api/cubix-api")], {
-    env: { ...process.env, PORT: String(port), CUBIX_HOST: "127.0.0.1", CUBIX_DB: join(dir, "server.db"), CUBIX_WEB_DIR: resolve("dist/web"), CUBIX_EXIT_WITH_PARENT: "1", ...env },
+    env: { ...process.env, PORT: String(port), CUBIX_HOST: "127.0.0.1", CUBIX_DB: join(dir, "server.db"), CUBIX_WEB_DIR: resolve(process.env.CUBIX_TEST_WEB_DIR ?? "dist/web"), CUBIX_EXIT_WITH_PARENT: "1", ...env },
     stdout: "ignore",
     stderr: "inherit",
   });
@@ -70,8 +70,24 @@ export async function resize(page: Page, width: number, height: number) {
 
 /** Clicks the first button with this data-action and waits for the page transition to end. */
 export async function act(page: Page, action: string) {
-  await page.locator(`[data-action="${action}"]`).first().click();
+  const target = page.locator(`[data-action="${action}"]:visible`);
+  if (!(await target.count())) {
+    // The account's actions wait in its menu, on the header's face.
+    if (ACCOUNT_MENU.includes(action) && (await page.locator('[data-action="menu:account"]:visible').count())) {
+      await page.locator('[data-action="menu:account"]:visible').first().click();
+      await target.first().waitFor();
+    } else if (NAV_KEYS[action]) {
+      // A page of another section: its shortcut, as its tab only shows within its section.
+      await page.keyboard.press("Alt+" + NAV_KEYS[action]);
+      return;
+    }
+  }
+  await (await target.count() ? target : page.locator(`[data-action="${action}"]`)).first().click();
 }
+/** The actions of the account menu (shell.tsx). */
+const ACCOUNT_MENU = ["settings", "help", "notation", "importTimes", "smartCube", "logout", "nav:login"];
+/** The pages' shortcuts (app.tsx). */
+const NAV_KEYS: Record<string, string> = { "nav:playground": "1", "nav:algorithms": "2", "nav:learn": "3", "nav:training": "4", "nav:duel": "5", "nav:tournaments": "6", "nav:community": "7", "nav:coaching": "8", "nav:analysis": "9" };
 
 /** Waits for a scramble on the practice page. */
 export const scrambled = (page: Page) =>
@@ -82,12 +98,13 @@ export const scrambled = (page: Page) =>
 
 /**
  * The solves of the practice page's session (this launch's only): the "Solves" figure of the statistics, or the count
- * beside the times list's heading when the list stands beside the stage (the figure then leaves the statistics).
+ * beside the times list's heading (or the session's name) when the list stands beside the stage (the figure then leaves the statistics).
  */
 export const solveCount = (page: Page, n: number) =>
   page.waitForFunction((n) => {
     const figure = [...document.querySelectorAll('[aria-label="Statistics"] > *')].find((f) => f.firstElementChild?.textContent === "Solves"),
-      heading = [...document.querySelectorAll("h2")].find((h) => h.textContent === "Times" || h.textContent === "Session");
+      // The timer's session list is headed by its name, a field.
+      heading = [...document.querySelectorAll("h2")].find((h) => h.textContent === "Times" || h.textContent === "Session") ?? document.querySelector('input[aria-label="Session name"]');
     return (figure?.lastElementChild ?? heading?.nextElementSibling)?.textContent === String(n);
   }, n);
 
@@ -102,7 +119,7 @@ export async function timeSolve(page: Page) {
   await page.waitForSelector('.timer[data-phase="Idle"]');
 }
 
-/** Signs in: on the login page, creates the account `username` (or signs in when it exists). A guest goes there first. */
+/** Signs in: in the sign-in dialog, creates the account `username` (or signs in when it exists). A guest opens it first. */
 export async function signIn(page: Page, username: string, password = "a-long-test-password", onboarding = false) {
   await live(page);
   await page.waitForSelector(".login, .rail, .tabbar", { timeout: 60000 });
@@ -115,15 +132,16 @@ export async function signIn(page: Page, username: string, password = "a-long-te
   await page.fill("#login-username", username);
   await page.fill("#login-password", password);
   await page.locator('[data-action="login:submit"]').click();
-  const error = page.locator("[data-slot=field-error]");
-  await Promise.race([page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 }), error.waitFor({ timeout: 30000 })]);
-  if (await page.locator(".login").count()) {
+  const error = page.locator("[data-slot=field-error]"), dialog = page.locator(".login");
+  await Promise.race([dialog.waitFor({ state: "detached", timeout: 30000 }), error.waitFor({ timeout: 30000 })]);
+  if (await dialog.count()) {
     // Taken: the account exists already, sign in to it.
     await page.locator('[data-action="login:mode:login"]').click();
     await page.fill("#login-password", password);
     await page.locator('[data-action="login:submit"]').click();
-    await page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 });
+    await dialog.waitFor({ state: "detached", timeout: 30000 });
   }
+  await page.waitForSelector(".rail, .tabbar, .journey-setup", { timeout: 30000 });
   // Ordinary UI fixtures use an established profile that solves every puzzle, so none opens locked on its course;
   // onboarding and locking have their own full interaction test.
   if (!onboarding) {

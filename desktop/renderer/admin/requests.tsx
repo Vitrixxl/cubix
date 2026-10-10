@@ -62,7 +62,6 @@ export function Requests({ phone }: { phone: boolean }) {
           onPressedChange={setFollowing}
           aria-label="Follow new requests"
           data-action="requests:live"
-          className="gap-1.5 px-3"
         >
           <Radio className={cn(following && live.connected ? "text-success" : "text-muted-foreground")} />
           Live
@@ -74,7 +73,6 @@ export function Requests({ phone }: { phone: boolean }) {
           pressed={value("important") === "1"}
           onPressedChange={(on: boolean) => set({ important: on ? "1" : null })}
           data-action="requests:important"
-          className="gap-1.5 px-3"
         >
           <Flag />
           Important

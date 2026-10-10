@@ -44,7 +44,7 @@ const server = Bun.serve<Socket>({
     // The app's addresses, under the prefix of their language but English's; a page written ahead of time first, as
     // go-api/web.go serves it.
     const { language = "en", path: inner } = splitLanguage(url.pathname);
-    const app = /^\/(login|onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|profile|solve)(\/|$)/.test(inner);
+    const app = /^\/(login|onboarding|timer|algorithms|training|duel|learn|coaching|community|tournaments|match|daily|profile|solve)(\/|$)/.test(inner);
     if (app) {
       const puzzle = url.searchParams.get("puzzle"), step = url.searchParams.get("step"), page = decodeURIComponent(inner.slice(1).replace(/\/$/, ""));
       const names = [...(puzzle ? [...(step ? [`${page}@${puzzle}~${step}`] : []), `${page}@${puzzle}`] : []), page];

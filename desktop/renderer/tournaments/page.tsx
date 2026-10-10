@@ -1,21 +1,20 @@
 /**
- * Tournaments: the ones open to every player (the administration creates them) and those of the account's groups, to
- * register for until they start, then followed round by round; and one tournament's page: where it stands, its players
- * and its bracket, the player's own match a click away.
+ * Tournaments, drawn as the duel's arena: the ones open to every player (the administration creates them) and those of
+ * the account's groups listed on the left, the one picked on the stage in the middle with its one action (play your
+ * match, register, see the bracket), its players on the right. And one tournament's page: where it stands and what can
+ * be done on a line over it, its bracket, its players beside.
  */
-import { useEffect } from "react";
-import { CalendarClock, Check, Crown, Flag, Play, Swords, Trophy, Users, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Crown, FastForward, Flag, Play, Swords, Trophy, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
 import { ask } from "../confirm";
-import { Empty, Figure, ListSkeleton, NUMERIC, PAGE, PageHead, SectionHead, Strip, Surface } from "../ui";
+import { Avatar, Empty, FADE, ListSkeleton, NUMERIC, PAGE, PageHead, Surface, usePhone, useViewport } from "../ui";
 import { Back, day, relative, time } from "../coaching/parts";
 import { community, communityUrl, eventName, formatText, matchUrl, tournamentUrl, type Tournament, type TournamentDetail } from "../community/client";
-import { PersonRow } from "../community/dialogs";
 import { Bracket, roundName } from "./bracket";
-import { CARD_LINK, EventTile, StatusBadge, apart, opens } from "./format";
+import { StageAction, KICKER, PanelHead, Rank, StageMeter, Stage, StageFigure, Steps } from "./format";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { tr } from "../../../src/client/i18n";
@@ -28,154 +27,223 @@ export function TournamentsPage() {
 
 /** "Sat 10 Oct · 18:00 · in 2 days" */
 export const when = (ms: number) => `${day(ms)} · ${time(ms)} · ${relative(ms)}`;
+const full = (t: Tournament) => !!t.maxPlayers && t.players >= t.maxPlayers;
+const players = (t: Tournament) => `${t.players}${t.maxPlayers ? " / " + t.maxPlayers : ""}`;
 
 /** Register, or take the registration back, while the tournament has not started. */
 export function RegisterButton({ t, size = "default" }: { t: Tournament; size?: "default" | "sm" }) {
   if (t.status !== "open") return null;
-  const full = !!t.maxPlayers && t.players >= t.maxPlayers;
   return t.registered ? (
-    <Button variant="outline" size={size} onClick={() => void community.register(t.id, false)} className="group/registered" data-action={"tournament:unregister:" + t.id}>
+    <Button variant="secondary" size={size} onClick={() => void community.register(t.id, false)} className="group/registered" data-action={"tournament:unregister:" + t.id}>
       <Check className="group-hover/registered:hidden" />
       <X className="hidden group-hover/registered:block" />
       <span className="group-hover/registered:hidden">{tr("Registered")}</span>
       <span className="hidden group-hover/registered:inline">{tr("Unregister")}</span>
     </Button>
   ) : (
-    <Button size={size} disabled={full} onClick={() => void community.register(t.id, true)} data-action={"tournament:register:" + t.id}>
-      {full ? tr("Full") : tr("Register")}
+    <Button size={size} disabled={full(t)} onClick={() => void community.register(t.id, true)} data-action={"tournament:register:" + t.id}>
+      {full(t) ? tr("Full") : tr("Register")}
     </Button>
   );
 }
 
-/** The account's match ready to be played: the round, against whom, and the way to it. */
+/** The account's match ready to be played, as the duel's challenge card: the round, where, and the way to it. */
 function MatchReady({ title, text, match, action }: { title: string; text: string; match: number; action?: string }) {
   return (
-    <Alert variant="info" className="flex shrink-0 items-center gap-3 px-4 py-3" data-slot="my-match">
-      <Swords />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{text}</AlertDescription>
+    <div className="grid shrink-0 gap-2.5 rounded-[18px] bg-muted p-3.5" data-slot="my-match">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Swords className="size-4" />
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <b className="truncate text-[15px]">{title}</b>
+          <span className="truncate text-[13px] text-muted-foreground">{text}</span>
+        </span>
       </div>
       <Button onClick={() => go(matchUrl(match))} data-action={action}>
         <Play />
-        {tr("Play your match")}</Button>
-    </Alert>
-  );
-}
-
-/** The cards on their way: shaped like a tournament's card. */
-function CardsSkeleton() {
-  return (
-    <div className={GRID} aria-busy="true" aria-label={tr("Loading")}>
-      {[0, 1, 2].map((i) => (
-        <Surface key={i} className="gap-4 p-4">
-          <div className="flex items-start gap-3">
-            <Skeleton className="size-10 rounded-lg" />
-            <div className="flex flex-1 flex-col gap-2">
-              <Skeleton className="h-5 w-2/3" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-            <Skeleton className="h-5 w-20" />
-          </div>
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-7 w-24" />
-        </Surface>
-      ))}
+        {tr("Play your match")}
+      </Button>
     </div>
   );
 }
 
-/** The cards share the width: as many columns as fit, stretched to fill the row. */
-const GRID = "grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-4";
+/** The order the list keeps: under way, then registration open, then the past. */
+const SECTIONS: [string, (t: Tournament) => boolean][] = [
+  ["Under way", (t) => t.status === "running"],
+  ["Registration open", (t) => t.status === "open"],
+  ["Past", (t) => t.status === "finished" || t.status === "cancelled"],
+];
 
 function TournamentList() {
   useEffect(() => {
     void community.load("tournaments");
   }, []);
-  const list = community.tournaments,
-    mine = list?.filter((t) => t.myMatch) ?? [],
-    sections: [string, Tournament[]][] = [
-      ["Under way", list?.filter((t) => t.status === "running") ?? []],
-      ["Registration open", list?.filter((t) => t.status === "open") ?? []],
-      ["Past", list?.filter((t) => t.status === "finished" || t.status === "cancelled") ?? []],
-    ];
-  return (
-    <div className={PAGE}>
-      <PageHead title={tr("Tournaments")} sub={tr("Open to every player, and your groups'")} />
-      {/* Padded so the cards' outline and focus ring, drawn outside them, are not clipped by the scroll. */}
-      <div className="-m-1 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-1">
-        {mine.map((t) => (
-          <MatchReady key={t.id} title={tr("{0} · your match in {1} is ready.", { 0: said(roundName(t.round, t.rounds)), 1: t.name })} text={formatText(t)} match={t.myMatch!} />
-        ))}
-        {!list ? (
-          <CardsSkeleton />
-        ) : !list.length ? (
-          <Empty icon={Trophy}>{tr("No tournament yet. The next ones will be listed here.")}</Empty>
-        ) : (
-          sections.map(
-            ([title, items]) =>
-              items.length > 0 && (
-                <section key={title} className="flex flex-col gap-2" aria-label={tr(title)}>
-                  <SectionHead title={title} meta={items.length} />
-                  <div className={GRID}>
-                    {items.map((t) => (
-                      <TournamentCard key={t.id} t={t} />
-                    ))}
-                  </div>
-                </section>
-              ),
+  const { w } = useViewport(),
+    phone = usePhone(),
+    wide = w >= 1280,
+    list = community.tournaments,
+    ordered = SECTIONS.flatMap(([, keep]) => list?.filter(keep) ?? []),
+    mine = list?.find((t) => t.myMatch),
+    [picked, setPicked] = useState<number | null>(null),
+    shown = ordered.find((t) => t.id === picked) ?? mine ?? ordered.find((t) => t.status === "open") ?? ordered[0];
+  const rows = (
+    <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
+      {SECTIONS.map(([title, keep]) => {
+        const items = list?.filter(keep) ?? [];
+        return (
+          items.length > 0 && (
+            <section key={title} className="flex flex-col gap-0.5" aria-label={tr(title)}>
+              <h3 className={cn(KICKER, "px-3 pb-1")}>
+                {tr(title)} <span className={NUMERIC}>{items.length}</span>
+              </h3>
+              {items.map((t) => (
+                <TournamentRow key={t.id} t={t} current={!phone && t.id === shown?.id} onClick={() => (phone ? go(tournamentUrl(t.id)) : setPicked(t.id))} />
+              ))}
+            </section>
           )
-        )}
-      </div>
+        );
+      })}
+    </div>
+  );
+  return (
+    <div className={cn(PAGE, "tournaments")}>
+      {phone && <PageHead title={tr("Tournaments")} sub={tr("Open to every player, and your groups'")} />}
+      {!list ? (
+        <div className="grid min-h-0 flex-1 gap-5 md:grid-cols-[340px_minmax(0,1fr)]" aria-busy="true" aria-label={tr("Loading")}>
+          <Surface className="p-4">
+            <ListSkeleton rows={6} className="p-0" />
+          </Surface>
+          <div className="flex flex-col items-center justify-center gap-6 max-md:hidden">
+            <Skeleton className="size-[clamp(168px,30vh,260px)] rounded-full" />
+            <Skeleton className="h-8 w-80" />
+          </div>
+        </div>
+      ) : !list.length ? (
+        <Empty icon={Trophy} title={tr("No tournament yet")} className="flex-1">
+          {tr("No tournament yet. The next ones will be listed here.")}
+        </Empty>
+      ) : (
+        <div className={cn("grid min-h-0 flex-1 gap-5", !phone && "md:grid-cols-[320px_minmax(0,1fr)]", wide && "md:grid-cols-[340px_minmax(0,1fr)_320px]")}>
+          <Surface className="gap-3.5 p-4 pt-5">
+            {!phone && <PanelHead title="Tournaments" meta={list.length} className="px-1" />}
+            {rows}
+            {mine && (
+              <MatchReady title={tr("{0} · your match is ready", { 0: said(roundName(mine.round, mine.rounds)) })} text={`${mine.name} · ${formatText(mine)}`} match={mine.myMatch!} action="tournament:play" />
+            )}
+          </Surface>
+          {!phone && shown && <TournamentStage t={community.summary(shown)} />}
+          {wide && shown && (
+            <Surface className="gap-3.5 p-4 pt-5">
+              <Entrants id={shown.id} />
+            </Surface>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-/** A tournament as a card, here and in a conversation: its name, group and format, when, how many, and registering. The
- * whole card opens its page. */
-export function TournamentCard({ t, className }: { t: Tournament; className?: string }) {
+/** A tournament in the list: its name, where and what, and the step it is at; the account's match marked. */
+function TournamentRow({ t, current, onClick }: { t: Tournament; current: boolean; onClick: () => void }) {
   return (
-    <Surface className={cn("gap-4 p-4", CARD_LINK, className)} data-tournament={t.id} data-status={t.status} aria-label={tr("Open {0}", { 0: t.name })} {...opens(() => go(tournamentUrl(t.id)), "link")}>
-      <div className="flex items-start gap-3">
-        <EventTile event={t.event} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h3 className="line-clamp-2 text-base leading-snug font-semibold tracking-tight">{t.name}</h3>
-          <p className="text-sm text-muted-foreground">
-            {t.group && <span className="text-foreground/80">{t.group} · </span>}
-            {eventName(t.event)} · {formatText(t)}
-          </p>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={current ? "true" : undefined}
+      data-tournament={t.id}
+      data-status={t.status}
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-[14px] px-3 py-2.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current]:bg-muted"
+    >
+      <b className="truncate text-[15px] font-bold">{t.name}</b>
+      <Steps t={t} />
+      <span className="col-span-2 flex min-w-0 items-center gap-1.5 text-[12.5px] text-muted-foreground">
+        {t.myMatch ? <span className="shrink-0 font-semibold text-primary">{tr("Your match")} ·</span> : t.registered && t.status === "open" ? <span className="shrink-0 font-semibold text-success">{tr("Registered")} ·</span> : null}
+        <span className="truncate">{[t.group, eventName(t.event), formatText(t)].filter(Boolean).join(" · ")}</span>
+      </span>
+    </button>
+  );
+}
+
+/** The tournament picked, on the stage: its name, its one action as the disc (or how full it is), its figures. */
+function TournamentStage({ t }: { t: Tournament }) {
+  const open = () => go(tournamentUrl(t.id));
+  const action = t.myMatch ? (
+    <StageAction icon={Play} title={tr("Play")} sub={tr("your {0} match", { 0: said(roundName(t.round, t.rounds)).toLowerCase() })} onClick={() => go(matchUrl(t.myMatch!))} data-action="tournament:play" />
+  ) : t.status === "open" && !t.registered && !full(t) ? (
+    <StageAction icon={Check} title={tr("Register")} sub={tr("starts {0}", { 0: relative(t.startsAt) })} onClick={() => void community.register(t.id, true)} data-action={"tournament:register:" + t.id} />
+  ) : t.status === "open" ? (
+    <StageMeter share={t.maxPlayers ? t.players / t.maxPlayers : 1} value={players(t)} label={t.registered ? tr("You are registered") : tr("Full")} tone="good" />
+  ) : (
+    <StageAction icon={Trophy} title={tr("Bracket")} sub={t.status === "running" ? said(roundName(t.round, t.rounds)) : t.winner ? tr("{0} won it", { 0: t.winner.username }) : tr("Cancelled")} onClick={open} />
+  );
+  return (
+    <Stage
+      className="tournament-stage"
+      data-tournament={t.id}
+      lead={
+        <div className="-mt-1 flex flex-wrap items-center justify-center gap-2">
+          {t.registered && t.status === "open" && <RegisterButton t={t} />}
+          <Button variant="ghost" onClick={open} data-action="tournament:open">
+            {t.status === "open" ? tr("See the tournament") : tr("Open the tournament")}
+          </Button>
         </div>
-        <StatusBadge t={t} />
-      </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <CalendarClock className="size-4" />
-          {t.status === "open" ? tr("Starts {0}", { 0: when(t.startsAt) }) : t.status === "running" ? tr("Started {0}", { 0: relative(t.startedAt ?? t.startsAt) }) : day(t.finishedAt ?? t.startsAt)}
-        </span>
-        <span className="flex items-center gap-2">
-          <Users className="size-4" />
-          <span className={NUMERIC}>
-            {t.players}
-            {t.maxPlayers ? ` / ${t.maxPlayers}` : ""} {tr("players")}
-          </span>
-        </span>
-        {t.winner && (
-          <span className="flex items-center gap-2 text-foreground">
-            <Crown className="size-4 text-warning" />
-            {tr("{0} won the tournament", { 0: t.winner.username })}</span>
-        )}
-      </div>
-      {(t.status === "open" || t.myMatch) && (
-        <div className="mt-auto flex flex-wrap items-center gap-2" {...apart}>
-          <RegisterButton t={t} size="sm" />
-          {t.myMatch && (
-            <Button size="sm" onClick={() => go(matchUrl(t.myMatch!))}>
-              <Play />
-              {tr("Play your match")}</Button>
+      }
+      figures={
+        <>
+          <StageFigure value={eventName(t.event)} label="Event" />
+          <StageFigure value={players(t)} label="Players" />
+          {t.status === "open" ? (
+            <StageFigure value={`${day(t.startsAt)} · ${time(t.startsAt)}`} label="Starts" />
+          ) : t.status === "running" ? (
+            <StageFigure value={`${t.round} / ${t.rounds}`} label="Round" tone="accent" />
+          ) : (
+            <StageFigure value={t.winner?.username ?? "–"} label="Champion" />
           )}
-        </div>
+        </>
+      }
+    >
+      <div className="flex max-w-xl flex-col items-center gap-1.5">
+        <span className={KICKER}>{t.group ? tr("{0} · group tournament", { 0: t.group }) : tr("Open tournament")}</span>
+        <h2 className="text-[clamp(26px,3.4vw,40px)] leading-[1.05] font-extrabold tracking-[-0.03em] text-balance">{t.name}</h2>
+        <p className="text-sm text-muted-foreground">{formatText(t)}</p>
+      </div>
+      {action}
+    </Stage>
+  );
+}
+
+/** The players registered, in their draw order once the tournament started; the champion crowned. */
+function Entrants({ id, className }: { id: number; className?: string }) {
+  useEffect(() => {
+    if (!community.details.has(id)) void community.load(`tournament:${id}`);
+  }, [id]);
+  const t = community.details.get(id);
+  return (
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-3", className)} aria-label={tr("Players")}>
+      <PanelHead title="Players" meta={t ? t.entrants.length : undefined} className="px-1" />
+      {!t ? (
+        <ListSkeleton rows={6} className="p-0" />
+      ) : !t.entrants.length ? (
+        <Empty icon={Users} className="flex-1">
+          {tr("No one yet.")}
+        </Empty>
+      ) : (
+        <ul className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
+          {t.entrants.map((p, i) => {
+            const me = p.id === s.user.id;
+            return (
+              <li key={p.id} className={cn("flex min-h-11 items-center gap-3 rounded-[14px] px-2.5 py-1.5", me && "bg-primary/10")} data-person={p.username}>
+                <Rank n={p.seed ?? i + 1} />
+                <Avatar name={p.username} src={p.avatar} size={32} />
+                <span className={cn("min-w-0 flex-1 truncate text-[15px] font-bold", me && "text-primary")}>{p.username}</span>
+                {t.winner?.id === p.id && <Crown className="size-4 text-warning" aria-label={tr("Champion")} />}
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </Surface>
+    </div>
   );
 }
 
@@ -183,31 +251,34 @@ function TournamentView({ id }: { id: number }) {
   useEffect(() => {
     void community.load(`tournament:${id}`);
   }, [id]);
-  const t = community.details.get(id);
+  const phone = usePhone(),
+    t = community.details.get(id);
   // A group's tournament goes back to the group's conversation, where its card is.
   const back = t?.groupId ? communityUrl(`groups/${t.groupId}`) : tournamentUrl();
   // Still in it while it runs: the tournament is the whole app, left only by giving up.
   const held = community.competition?.tournament === id;
-  const lead = held ? <Trophy className="size-6 text-warning" /> : <Back to={back} />;
+  const lead = held ? <Trophy className="size-5 text-warning" /> : <Back to={back} />;
   if (!t)
     return (
       <div className={PAGE} aria-busy="true" aria-label={tr("Loading")}>
-        <PageHead title={tr("Tournament")} lead={lead} />
-        <Skeleton className="h-18 shrink-0 rounded-xl" />
-        <div className="flex min-h-0 flex-1 gap-4">
+        <div className="flex h-9 items-center gap-2">
+          {lead}
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <Skeleton className="h-10 w-80 shrink-0" />
+        <div className="flex min-h-0 flex-1 gap-5">
           <Surface className="min-w-0 flex-1 gap-3 p-4">
-            <Skeleton className="h-5 w-24" />
             <div className="flex flex-1 gap-14">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="flex flex-1 flex-col justify-around gap-3">
                   {Array.from({ length: 4 >> i }, (_, k) => (
-                    <Skeleton key={k} className="h-24 rounded-xl" />
+                    <Skeleton key={k} className="h-20 rounded-2xl" />
                   ))}
                 </div>
               ))}
             </div>
           </Surface>
-          <Surface className="w-64 shrink-0 p-2 max-md:hidden">
+          <Surface className="w-80 shrink-0 p-4 max-md:hidden">
             <ListSkeleton rows={6} className="p-0" />
           </Surface>
         </div>
@@ -218,71 +289,93 @@ function TournamentView({ id }: { id: number }) {
   const confirm = async (question: { title: string; text: string; action: string; destructive?: boolean }, then: () => unknown) => {
     if (await ask({ ...question, cancel: tr("Not now") })) void then();
   };
+  const actions = (
+    <>
+      <RegisterButton t={t} />
+      {t.myMatch && !held && (
+        <Button onClick={() => go(matchUrl(t.myMatch!))}>
+          <Play />
+          {tr("Play your match")}
+        </Button>
+      )}
+      {held && (
+        <Button variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => void community.withdraw(t)} data-action="tournament:withdraw" aria-label={tr("Give up")}>
+          <Flag />
+          <span className="max-md:hidden">{tr("Give up")}</span>
+        </Button>
+      )}
+      {t.canManage && t.status === "open" && (
+        <Button
+          variant="secondary"
+          aria-label={tr("Start now")}
+          onClick={() =>
+            confirm(
+              { title: tr("Start the tournament now?"), text: tr("The {0} registered players are drawn into the bracket and registration closes.", { 0: t.players }), action: tr("Start now"), destructive: false },
+              () => community.manage(t.id, "start"),
+            )
+          }
+        >
+          <FastForward />
+          <span className="max-md:hidden">{tr("Start now")}</span>
+        </Button>
+      )}
+      {t.canManage && (t.status === "open" || t.status === "running") && (
+        <Button
+          variant="ghost"
+          className="text-muted-foreground hover:text-destructive"
+          aria-label={tr("Cancel the tournament")}
+          onClick={() => confirm({ title: tr("Cancel the tournament?"), text: tr("Its matches stop where they are. This cannot be undone."), action: tr("Cancel the tournament") }, () => community.manage(t.id, "cancel"))}
+        >
+          <X />
+          <span className="max-md:hidden">{tr("Cancel")}</span>
+        </Button>
+      )}
+    </>
+  );
   return (
-    <div className={PAGE}>
-      <PageHead title={<>{t.name}</>} lead={lead} sub={t.group ? tr("{0} · group tournament", { 0: t.group }) : tr("Open tournament")}>
-        <StatusBadge t={t} />
-        <RegisterButton t={t} />
-        {t.myMatch && !held && (
-          <Button onClick={() => go(matchUrl(t.myMatch!))}>
-            <Play />
-            {tr("Play your match")}</Button>
-        )}
-        {held && (
-          <Button variant="outline" className="text-muted-foreground hover:text-destructive" onClick={() => void community.withdraw(t)} data-action="tournament:withdraw">
-            <Flag />
-            {tr("Give up")}</Button>
-        )}
-        {t.canManage && t.status === "open" && (
-          <Button
-            variant="outline"
-            onClick={() =>
-              confirm(
-                { title: tr("Start the tournament now?"), text: tr("The {0} registered players are drawn into the bracket and registration closes.", { 0: t.players }), action: tr("Start now"), destructive: false },
-                () => community.manage(t.id, "start"),
-              )
-            }
-          >
-            {tr("Start now")}</Button>
-        )}
-        {t.canManage && (t.status === "open" || t.status === "running") && (
-          <Button
-            variant="outline"
-            className="text-muted-foreground hover:text-destructive"
-            onClick={() => confirm({ title: tr("Cancel the tournament?"), text: tr("Its matches stop where they are. This cannot be undone."), action: tr("Cancel the tournament") }, () => community.manage(t.id, "cancel"))}
-          >
-            {tr("Cancel")}</Button>
-        )}
-      </PageHead>
-      {held && <Standing t={t} />}
-      <Strip className="grid-cols-2 md:grid-cols-6">
-        <Figure label="Event" value={eventName(t.event)} size="base" />
-        <Figure label={t.status === "open" ? "Starts" : "Started"} value={t.status === "open" ? `${day(t.startsAt)} · ${time(t.startsAt)}` : day(t.startedAt ?? t.startsAt)} size="base" />
-        <Figure label="Format" value={formatText(t)} size="base" className="col-span-2" />
-        <Figure label="Players" value={`${t.players}${t.maxPlayers ? " / " + t.maxPlayers : ""}`} size="base" />
-        {t.status === "running" ? (
-          <Figure label={roundName(t.round, t.rounds)} value={tr("{0} of {1} over", { 0: over, 1: round.length })} size="base" tone="accent" />
-        ) : t.status === "finished" ? (
-          <Figure label="Champion" value={t.winner?.username ?? "–"} size="base" tone="warning" />
-        ) : t.status === "open" ? (
-          <Figure label="Registration" value={tr("closes {0}", { 0: relative(t.startsAt) })} size="base" />
-        ) : (
-          <Figure label="Status" value={tr("Cancelled")} size="base" />
-        )}
-      </Strip>
+    <div className={cn(PAGE, "tournament")}>
+      <div className={cn("flex min-h-9 shrink-0 items-center gap-2", FADE)}>
+        {lead}
+        <span className={cn(KICKER, "mr-auto truncate")}>{[t.group ? tr("{0} · group tournament", { 0: t.group }) : tr("Open tournament"), eventName(t.event), formatText(t)].join(" · ")}</span>
+        {!phone && actions}
+      </div>
+      <header className="flex shrink-0 flex-wrap items-end gap-x-10 gap-y-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Steps t={t} />
+          <h1 className="truncate text-[26px] leading-none font-extrabold tracking-[-0.03em] md:text-[34px]">{t.name}</h1>
+        </div>
+        <div className="flex flex-wrap gap-x-8 gap-y-2 [&>div]:items-start">
+          <StageFigure value={players(t)} label="Players" />
+          {t.status === "open" ? (
+            <StageFigure value={relative(t.startsAt)} label={tr("Starts {0}", { 0: `${day(t.startsAt)} · ${time(t.startsAt)}` })} />
+          ) : t.status === "running" ? (
+            <StageFigure value={`${over} / ${round.length}`} label={tr("{0} · matches over", { 0: said(roundName(t.round, t.rounds)) })} tone="accent" />
+          ) : t.status === "finished" ? (
+            <StageFigure value={t.winner?.username ?? "–"} label="Champion" />
+          ) : (
+            <StageFigure value={tr("Cancelled")} label="Status" />
+          )}
+        </div>
+        {phone && <div className="flex flex-wrap gap-2">{actions}</div>}
+      </header>
       {t.description && <p className="line-clamp-2 max-w-prose shrink-0 text-sm text-muted-foreground">{t.description}</p>}
-      <div className="flex min-h-0 flex-1 gap-4">
-        <Surface className="min-w-0 flex-1 gap-3 p-4" aria-label={tr("Bracket")}>
-          <SectionHead title="Bracket" />
+      {held && <Standing t={t} />}
+      <div className="flex min-h-0 flex-1 gap-5">
+        <Surface className="min-w-0 flex-1 gap-3 p-4 pt-[18px]" aria-label={tr("Bracket")}>
+          <PanelHead title="Bracket" meta={t.matches.length ? `${t.round} / ${t.rounds}` : undefined} className="px-1" />
           {t.matches.length ? (
             <Bracket tournament={t} me={s.user.id} onOpen={(m) => go(matchUrl(m.id))} onAward={t.canManage ? (m, p) => void community.award(m.id, p.id, t.id) : undefined} />
           ) : (
-            <Empty icon={Trophy}>
+            <Empty icon={Trophy} className="flex-1">
               {t.status === "cancelled" ? tr("Called off before it started.") : tr("The players are drawn into the bracket {0}.", { 0: t.status === "open" ? relative(t.startsAt) : tr("at the start") })}
             </Empty>
           )}
         </Surface>
-        <Entrants t={t} />
+        {!phone && (
+          <Surface className="w-80 shrink-0 gap-3 p-4 pt-[18px] max-lg:w-64">
+            <Entrants id={t.id} />
+          </Surface>
+        )}
       </div>
     </div>
   );
@@ -302,39 +395,12 @@ function Standing({ t }: { t: TournamentDetail }) {
       action="tournament:play"
     />
   ) : (
-    <Alert className="shrink-0 px-4 py-3" data-slot="standing">
-      <Check />
-      <AlertTitle>{tr("You are still in")}</AlertTitle>
-      <AlertDescription className={NUMERIC}>
+    <p className="flex shrink-0 items-center gap-2.5 rounded-[18px] bg-muted px-4 py-3 text-sm" data-slot="standing">
+      <Check className="size-4 shrink-0 text-success" />
+      <b className="shrink-0">{tr("You are still in")}</b>
+      <span className={cn(NUMERIC, "min-w-0 truncate text-muted-foreground")}>
         {tr("Waiting for the rest of the {0}: {1} of {2} matches over. Your next match opens here by itself.", { 0: said(roundName(t.round, t.rounds)), 1: over, 2: round.length })}
-      </AlertDescription>
-    </Alert>
-  );
-}
-
-/** The players registered, in their draw order once the tournament started. */
-function Entrants({ t }: { t: TournamentDetail }) {
-  return (
-    <Surface className="w-64 shrink-0 max-md:hidden" aria-label={tr("Players")}>
-      <SectionHead title="Players" meta={t.entrants.length} className="px-4 pt-3" />
-      {!t.entrants.length ? (
-        <Empty icon={Users} className="p-4">
-          {tr("No one yet.")}
-        </Empty>
-      ) : (
-        <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-          {t.entrants.map((p) => (
-            <PersonRow
-              key={p.id}
-              p={p}
-              name={p.id === s.user.id ? <span className="text-primary">{p.username}</span> : undefined}
-              lead={p.seed ? <span className={cn(NUMERIC, "w-4 shrink-0 text-right text-xs text-muted-foreground")}>{p.seed}</span> : undefined}
-            >
-              {t.winner?.id === p.id && <Trophy className="size-4 text-warning" />}
-            </PersonRow>
-          ))}
-        </ul>
-      )}
-    </Surface>
+      </span>
+    </p>
   );
 }

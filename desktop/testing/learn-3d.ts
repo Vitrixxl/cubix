@@ -19,17 +19,25 @@ const browser = await chromium.launch({ executablePath: process.env.CUBIX_TEST_C
 const settle = (page: Page) => page.waitForTimeout(300);
 async function act(page: Page, action: string) {
   const target = page.locator(`[data-action="${action}"]:visible`);
-  if (!(await target.count()) && (await page.locator('[data-action="menu:more"]:visible').count())) {
-    await page.locator('[data-action="menu:more"]:visible').first().click();
-    await page.waitForTimeout(250);
-  }
+  // The account's menu (desktop header) or the page's "…" (phones) holds what is not in view.
+  for (const menu of ["menu:account", "menu:more"])
+    if (!(await target.count()) && (await page.locator(`[data-action="${menu}"]:visible`).count())) {
+      await page.locator(`[data-action="${menu}"]:visible`).first().click();
+      await page.waitForTimeout(250);
+    }
   await target.first().click();
   await settle(page);
 }
 async function openMethod(page: Page, id: string) {
-  // Learn opens on the choice between methods and algorithms; the methods are a step further.
-  if (!(await page.locator(`[data-action="learnMethod:${id}"]:visible`).count())) await act(page, "learnMethods");
-  await act(page, "learnMethod:" + id);
+  // From a course, back to the list of methods (where the method is a card in the list, or the panel's button).
+  if (!(await page.locator(`[data-action="learnMethod:${id}"]:visible, [data-method="${id}"]:visible`).count())) await act(page, "learnMethods");
+  // The list chooses a method; its panel starts it.
+  const tile = page.locator(`[data-method="${id}"]:visible`);
+  if (await tile.count()) await tile.first().click();
+  // Phones show the panel in a sheet, over the page's own: the last one.
+  await page.waitForTimeout(400);
+  await page.locator(`[data-action="learnMethod:${id}"]:visible`).last().click();
+  await settle(page);
 }
 async function learnStep(page: Page, index: number) {
   if (!(await page.locator(`[data-action="learnStep:${index}"]:visible`).count())) await act(page, "learnSteps");
@@ -94,6 +102,8 @@ try {
     await learnStep(page, 2);
     await shot(page, "cfop-oll");
     if (!before) {
+      // The notation is in the account's menu: the header's on a desktop, beside the Me section's pages on phones.
+      if (width < 700) await act(page, "nav:profile");
       await act(page, "notation");
       await page.waitForTimeout(700);
       await shot(page, "notation");
@@ -110,10 +120,12 @@ try {
     }
     await shot(page, "case");
     if (!before) {
-      await page.locator("[data-play]:visible").first().click();
+      // The case opens in a dialog over the list: its own 3D button.
+      await page.locator('[role="dialog"] [data-play]:visible').first().click();
       await page.waitForSelector("[data-player-controls]");
       await shot(page, "player-case");
-      await close(page);
+      // The player, then the case's dialog.
+      for (let i = 0; i < 3 && (await page.locator('[role="dialog"]').count()); i++) await close(page);
     }
     if (!before) {
       if (width < 700) await act(page, "nav:profile");

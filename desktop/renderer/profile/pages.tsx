@@ -1,18 +1,18 @@
-/** The profile's sub-pages: training cases, achievements and battles; a heading, then one card that scrolls inside. */
-import { ChevronDown, ChevronRight, Trophy } from "lucide-react";
+/** The profile's sub-pages: training cases and battles (the achievements have their own file); a heading, then one card that scrolls inside. */
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { shortId } from "../../../src/client/lib/caseState";
 import { store as s, matches } from "../store";
 import { fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
 import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
-import { Back, Bar, Choice, Diagram, Empty, FOCUS, Figure, Icon, NUMERIC, PageCard, PageHead, PuzzleButton, ROW, SearchField, SectionHead, SelectMenu, Stats, Strip, run, plural } from "../ui";
+import { Back, Choice, Diagram, FOCUS, NUMERIC, PageCard, PageHead, PuzzleButton, ROW, SearchField, run, plural } from "../ui";
 import { TILES } from "../algorithms";
 import { ROUNDS, ao5Text, battleRecord, type DuelRecord } from "../duelClient";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AchievementMark, NoBattles, ResultMark } from "./sections";
+import { NoBattles, ResultMark } from "./sections";
 import { battles } from "./data";
+import { Figures } from "./card";
 import { tr } from "../../../src/client/i18n";
-import { said } from "../base";
 
 export function TrainingPage({ phone }: { phone: boolean }) {
   const p = s.profile,
@@ -69,7 +69,7 @@ export function TrainingPage({ phone }: { phone: boolean }) {
                 <div className={cn(TILES, "pt-1")}>
                   {chosen.map((c) => {
                     const st = p.cases?.find((v: any) => v.summary?.caseId === c.id),
-                      open = s.overlay === "profileCase" && s.caseId === c.id;
+                      open = s.caseDialog === c.id;
                     // The case tiles of the algorithms page: the diagram, then the name and the best time on one line.
                     return (
                       <button
@@ -78,10 +78,10 @@ export function TrainingPage({ phone }: { phone: boolean }) {
                         data-action={"profileCase:" + c.id}
                         onClick={run("profileCase:" + c.id)}
                         className={cn(
-                          "flex aspect-square min-w-0 flex-col rounded-lg bg-muted/45 px-2 pt-2 pb-1.5 transition-colors [@media(hover:hover)]:hover:bg-muted/80",
+                          "flex aspect-square min-w-0 flex-col rounded-2xl bg-muted/60 px-2 pt-2 pb-1.5 transition-colors [@media(hover:hover)]:hover:bg-muted/80",
                           FOCUS,
                           !st && "opacity-45 hover:opacity-100",
-                          open && "bg-muted opacity-100 ring-1 ring-primary/70",
+                          open && "bg-accent opacity-100 [@media(hover:hover)]:hover:bg-accent",
                         )}
                       >
                         <span className="flex min-h-0 flex-1 items-center justify-center">
@@ -106,87 +106,6 @@ export function TrainingPage({ phone }: { phone: boolean }) {
   );
 }
 
-export function AchievementsPage({ phone }: { phone: boolean }) {
-  const items: any[] = s.achievements?.achievements ?? [],
-    // The profile's puzzle first, then the others in their order.
-    groups = ([...new Set(items.map((a) => a.group))] as string[]).sort(
-      (a, b) => Number(items.find((v) => v.group === b)?.puzzle === s.profilePuzzle) - Number(items.find((v) => v.group === a)?.puzzle === s.profilePuzzle),
-    ),
-    unlocked = s.achievements?.unlocked ?? 0,
-    total = s.achievements?.total ?? 0;
-  let shown = 0;
-  return (
-    <>
-      <PageHead title={tr("Achievements")} sub={tr("{0} of {1} unlocked", { 0: unlocked, 1: total })} lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />} />
-      <PageCard
-        toolbar={
-          <>
-            <SelectMenu
-              action="achievementGroup"
-              value={s.achievementGroup}
-              align="start"
-              variant="outline"
-              options={[{ id: "all", label: "All puzzles" }, ...groups.map((id) => ({ id, label: id }))]}
-            />
-            <Choice
-              prefix="achievementFilter:"
-              label={tr("Filter")}
-              value={s.achievementFilter}
-              options={[
-                { id: "all", label: tr("All") },
-                { id: "unlocked", label: tr("Unlocked") },
-                { id: "locked", label: tr("Locked") },
-              ]}
-            />
-            <div className="ml-auto flex w-48 items-center gap-3 max-md:hidden">
-              <Bar ratio={total ? unlocked / total : 0} className="flex-1" />
-              <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{Math.round((total ? unlocked / total : 0) * 100)}%</span>
-            </div>
-          </>
-        }
-      >
-        {groups
-          .filter((group) => s.achievementGroup === "all" || s.achievementGroup === group)
-          .map((group) => {
-            const members = items.filter((a) => a.group === group),
-              visible = members.filter((a) => s.achievementFilter === "all" || a.unlocked === (s.achievementFilter === "unlocked"));
-            shown += visible.length;
-            if (!visible.length) return null;
-            return (
-              <section className="flex flex-col gap-1 pb-5" key={group}>
-                <SectionHead
-                  title={
-                    <span className="flex items-center gap-2">
-                      {members[0].puzzle && <Icon name={"Puzzle" + members[0].puzzle} size={16} className="text-muted-foreground" />}
-                      {said(group)}
-                    </span>
-                  }
-                  meta={`${members.filter((a) => a.unlocked).length} / ${members.length}`}
-                />
-                <div className="grid gap-x-8 gap-y-1 lg:grid-cols-2">
-                  {visible.map((a) => (
-                    <div key={a.id} className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5">
-                      <AchievementMark a={a} />
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className={cn("truncate text-sm font-medium", !a.unlocked && "text-foreground/80")}>{said(a.title)}</span>
-                          <span className={cn(NUMERIC, "shrink-0 text-xs text-muted-foreground")}>{a.unlockedAt ? shortDate(a.unlockedAt) : said(a.detail)}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{said(a.description)}</p>
-                        {!a.unlocked && <Bar ratio={a.ratio} fill="bg-primary/70" />}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        {!shown && <Empty icon={Trophy} title={s.achievementFilter === "unlocked" ? tr("Nothing unlocked here yet. Keep practising!") : tr("Everything here is unlocked.")} />}
-      </PageCard>
-    </>
-  );
-}
-
 const battleEvent = (b: DuelRecord) => {
   const e = eventInfo(b.event);
   return e ? eventLabel(e.puzzle, e.solveMode) : b.event;
@@ -205,15 +124,18 @@ export function BattlesPage({ phone }: { phone: boolean }) {
         </PageCard>
       ) : (
         <>
-          <Strip label="Summary">
-            <Stats columns={5}>
-              <Figure caption="plain" size="xl" label={tr("Played")} value={String(list.length)} />
-              <Figure caption="plain" size="xl" label={tr("Won")} value={String(count("win"))} tone="good" />
-              <Figure caption="plain" size="xl" label={tr("Lost")} value={String(count("loss"))} />
-              <Figure caption="plain" size="xl" label={tr("Win rate")} value={Math.round((count("win") / Math.max(1, count("win") + count("loss"))) * 100) + "%"} />
-              <Figure caption="plain" size="xl" label={tr("Best Ao5")} value={averages.length ? fmtTime(Math.min(...averages)) : "–"} tone="accent" />
-            </Stats>
-          </Strip>
+          <section aria-label={tr("Summary")}>
+            <Figures
+              tiles
+              figures={[
+                [tr("Played"), String(list.length)],
+                [tr("Won"), String(count("win")), "good"],
+                [tr("Lost"), String(count("loss")), "bad"],
+                [tr("Win rate"), Math.round((count("win") / Math.max(1, count("win") + count("loss"))) * 100) + "%", "accent"],
+                [tr("Best Ao5"), averages.length ? fmtTime(Math.min(...averages)) : "–", "accent"],
+              ]}
+            />
+          </section>
           <PageCard>
             <Table aria-label={battleRecord(list)}>
               <TableHeader>

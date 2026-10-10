@@ -49,6 +49,16 @@ test("the server exposes the complete catalogue and verified training histories"
   expect((await call("/auth/login","POST",{username:"records",password:"a-long-test-password"})).status).toBe(200);
 });
 
+test("a blindfolded solve keeps its memorisation, which must lie within the solve", async () => {
+  const call = client(startApi(fixture()));
+  const member = (await call("/auth/register", "POST", {username:"blind",password:"a-long-test-password"})).body;
+  const context = {puzzle:"333",solveMode:"blindfolded",scrambleType:"normal"};
+  const session = (await call("/sessions", "POST", {mode:"playground",...context},member.token)).body;
+  expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000,memoMs:24999.6},member.token)).body.memo_ms).toBe(25000);
+  expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000},member.token)).body.memo_ms).toBeNull();
+  expect((await call("/solves","POST",{sessionId:session.id,...context,timeMs:60000,memoMs:61000},member.token)).status).toBe(422);
+});
+
 test("a solve's turns are written by hand, and the solve shared by a link anyone can open", async () => {
   const call = client(startApi(fixture()));
   const member = (await call("/auth/register", "POST", {username:"sharer",password:"a-long-test-password"})).body;

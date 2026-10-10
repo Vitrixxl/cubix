@@ -67,6 +67,26 @@ func apiComment(body any) (set bool, text *string, err error) {
 	return true, &s, nil
 }
 
+// apiSessionName: a session's name: absent (set false), cleared (`null` or blank: nil) or trimmed text of at most 60
+// characters.
+func apiSessionName(body any) (set bool, text *string, err error) {
+	v, ok := get(body, "name")
+	if !ok {
+		return false, nil, nil
+	}
+	if v == nil {
+		return true, nil, nil
+	}
+	s, err := apiString(body, "name", 0, 60)
+	if err != nil {
+		return false, nil, err
+	}
+	if s = strings.TrimSpace(s); s == "" {
+		return true, nil, nil
+	}
+	return true, &s, nil
+}
+
 // apiSolution: the turns of a solve: absent, or trimmed text of at most 10000 characters (blank is absent).
 func apiSolution(body any) (*string, error) {
 	v, ok := get(body, "solution")
@@ -563,6 +583,10 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		}
 		return M{"ok": true}, nil
 	}
+	// The daily scramble's field is open to guests; ranking asks for an account.
+	if strings.HasPrefix(path, "daily/") {
+		return dailyRoute(db, method, strings.Split(path, "/"), query, body, caller)
+	}
 	user, err := caller.signedIn()
 	if err != nil {
 		return nil, err
@@ -659,8 +683,25 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 				return nil, apiErr(400, "Case and cube do not match.")
 			}
 		}
-		row, err := dbRequired(db, "INSERT INTO sessions(mode,case_ids,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?) RETURNING *", "Unknown session",
-			mode, encodeJSON(cases), uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType)
+		_, name, err := apiSessionName(body)
+		if err != nil {
+			return nil, err
+		}
+		row, err := dbRequired(db, "INSERT INTO sessions(mode,case_ids,user_id,cube_size,puzzle_id,solve_mode,scramble_type,name) VALUES(?,?,?,?,?,?,?,?) RETURNING *", "Unknown session",
+			mode, encodeJSON(cases), uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType, name)
+		if err != nil {
+			return nil, err
+		}
+		return apiSessionDto(row)
+	case is("PATCH", "sessions", "*"):
+		set, name, err := apiSessionName(body)
+		if err != nil {
+			return nil, err
+		}
+		if !set {
+			return nil, validation()
+		}
+		row, err := dbRequired(db, "UPDATE sessions SET name=? WHERE id=? AND user_id=? RETURNING *", "Unknown session", name, parts[1], uid)
 		if err != nil {
 			return nil, err
 		}
@@ -742,6 +783,16 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if err != nil {
 			return nil, err
 		}
+		// Blindfolded: the memorisation, absent or within the solve.
+		var memo *float64
+		if v, ok := get(body, "memoMs"); ok && v != nil {
+			f, ok := asFloat(v)
+			if !ok || math.IsNaN(f) || f < 0 || f > time {
+				return nil, validation()
+			}
+			f = math.Round(f)
+			memo = &f
+		}
 		var selectedSession M
 		if sid != nil {
 			if selectedSession, err = apiSession(db, *sid, uid); err != nil {
@@ -775,8 +826,8 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 				return nil, apiErr(400, "Unknown case")
 			}
 		}
-		return dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
-			sid, caseID, math.Round(time), penalty, scramble, comment, solution, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType)
+		return dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
+			sid, caseID, math.Round(time), penalty, scramble, comment, solution, memo, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType)
 	case is("PATCH", "solves", "*"):
 		// Either field may be edited on its own; the other keeps its value.
 		var penalty *string

@@ -1,15 +1,16 @@
 /**
- * The coaching page. Players find a coach, book one of their slots, follow their sessions and talk with them; coaches
- * also get their dashboard, students, schedule and profile. The sections are a second sidebar sliding out of the app's
- * (a menu on phones); a coach's page, their booking and a call take the whole page.
+ * The coaching page. Players find a coach and book one of their slots on the same screen, follow their sessions and
+ * talk with them; coaches also get their dashboard, students, schedule and profile. On top, the player's sections as
+ * tabs and the coach's in a menu beside them (one menu on phones), then the tools of the page shown; a call takes the
+ * whole page.
  */
-import { useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { store as s } from "../store";
-import { PAGE, PageHead, usePhone } from "../ui";
+import { PAGE, Segmented, usePhone } from "../ui";
 import { go } from "../navigation";
 import { coaching } from "./client";
-import { url } from "./parts";
+import { ToolsSlot, url } from "./parts";
 import { Count } from "../base";
 import { COACH, badge, sections } from "./sections";
 import { BookPage, CoachList, CoachPage } from "./browse";
@@ -19,8 +20,10 @@ import { Apply } from "./apply";
 import { Dashboard, CoachProfile, StudentsView } from "./coach";
 import { Schedule } from "./schedule";
 import { CallView } from "./callView";
+import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PLAYER_SECTIONS } from "../../../src/client/lib/coaching";
 import { tr } from "../../../src/client/i18n";
 import { said } from "../base";
 
@@ -38,16 +41,16 @@ export function CoachingPage() {
     if (me && !coaching.isCoach && COACH.some(([id]) => id === view)) go(url("coaches"), true);
   }, [me, view]);
   if (view === "call" && arg) return <CallView id={arg} />;
-  if (view === "coach" && arg) return sub === "book" ? <BookPage id={arg} /> : <CoachPage id={arg} />;
-  return <Shell view={view} arg={arg} />;
+  return <Shell view={view} arg={arg} sub={sub} />;
 }
 
-function Shell({ view, arg }: { view: string; arg: string }) {
-  // The sections slide out of the app's sidebar (coaching/rail.tsx); phones keep them in a menu here.
-  const menu = usePhone();
-  const current = sections().flat().find(([id]) => id === view);
+function Shell({ view, arg, sub }: { view: string; arg: string; sub: string }) {
+  const phone = usePhone(),
+    [slot, setSlot] = useState<HTMLElement | null>(null);
   const body =
-    view === "dashboard" ? (
+    view === "coach" && arg ? (
+      sub === "book" ? <BookPage id={arg} /> : <CoachPage id={arg} />
+    ) : view === "dashboard" ? (
       <Dashboard />
     ) : view === "students" ? (
       <StudentsView id={arg} />
@@ -64,33 +67,95 @@ function Shell({ view, arg }: { view: string; arg: string }) {
     ) : view === "coaches" ? (
       <CoachList />
     ) : null;
+  // A coach's page and their booking belong to finding a coach.
+  const tab = view === "coach" ? "coaches" : view;
   return (
     <div className={PAGE}>
-      <PageHead title={menu ? tr("Coaching") : said(current?.[1] ?? "Coaching")}>
-        {menu && <SectionMenu view={view} />}
-      </PageHead>
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</main>
+      <div className="flex shrink-0 flex-wrap items-center gap-2" data-slot="coaching-bar">
+        {phone ? (
+          <SectionMenu view={tab} />
+        ) : (
+          <>
+            <Segmented
+              label="Coaching"
+              value={PLAYER_SECTIONS.some(([id]) => id === tab) ? tab : ""}
+              onChange={(id) => go(url(id))}
+              action="coaching:"
+              className="shrink-0 flex-nowrap"
+              options={PLAYER_SECTIONS.map(([id, label]) => ({
+                id,
+                label: (
+                  <>
+                    {said(label)}
+                    <Count n={badge(id)} className="ml-0.5" />
+                  </>
+                ),
+              }))}
+            />
+            <CoachMenu view={tab} />
+          </>
+        )}
+        <div ref={setSlot} className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 max-md:flex-1" />
+      </div>
+      <ToolsSlot.Provider value={slot}>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</main>
+      </ToolsSlot.Provider>
     </div>
   );
 }
 
+/** The coach's own sections in a menu beside the tabs, named after the one shown; for a player, the way to become one. */
+function CoachMenu({ view }: { view: string }) {
+  const current = COACH.find(([id]) => id === view);
+  if (!coaching.isCoach)
+    return (
+      <UiButton variant={view === "apply" ? "secondary" : "ghost"} onClick={() => go(url("apply"))} data-action="coaching:apply" aria-current={view === "apply" ? "page" : undefined}>
+        <Sparkles />
+        {tr("Become a coach")}
+      </UiButton>
+    );
+  const waiting = COACH.reduce((n, [id]) => n + badge(id), 0);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<UiButton variant={current ? "secondary" : "ghost"} data-action="coaching:coach-space" />}>
+        {tr("Coach space")}
+        {current && <span className="text-muted-foreground">· {said(current[1])}</span>}
+        <Count n={current ? 0 : waiting} className="ml-0" />
+        <ChevronDown className="text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-auto min-w-56">
+        <DropdownMenuRadioGroup value={view} onValueChange={(id: string) => go(url(id))}>
+          {COACH.map(([id, label, I]) => (
+            <DropdownMenuRadioItem key={id} value={id} data-action={"coaching:" + id} closeOnClick>
+              <I />
+              {said(label)}
+              <Count n={badge(id)} />
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** On phones every section in one menu, named after the one shown. */
 function SectionMenu({ view }: { view: string }) {
   const current = sections().flat().find(([id]) => id === view),
     I = current?.[2];
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<UiButton variant="outline" data-action="coaching:sections" className="gap-1.5" />}>
+      <DropdownMenuTrigger render={<UiButton variant="outline" data-action="coaching:sections" />}>
         {I && <I />}
-        {said(current?.[1] ?? "Sections")}
+        {said(current?.[1] ?? "Coaching")}
         <Count n={coaching.me?.unread ?? 0} />
         <ChevronDown className="text-muted-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-auto min-w-52">
+      <DropdownMenuContent align="start" className="w-auto min-w-52">
         <DropdownMenuRadioGroup value={view} onValueChange={(id: string) => go(url(id))}>
           {sections().map((group, i) => (
             <DropdownMenuGroup key={i}>
               {i > 0 && <DropdownMenuSeparator />}
-              {coaching.isCoach && <DropdownMenuLabel>{i === 0 ? tr("Your coaching") : tr("Get coached")}</DropdownMenuLabel>}
+              {coaching.isCoach && <DropdownMenuLabel>{i === 0 ? tr("Coach space") : tr("Get coached")}</DropdownMenuLabel>}
               {group.map(([id, label, I]) => (
                 <DropdownMenuRadioItem key={id} value={id} data-action={"coaching:" + id} closeOnClick>
                   <I />

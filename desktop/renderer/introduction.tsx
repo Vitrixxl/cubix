@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Ban, Check, CornerDownLeft, GraduationCap, Plus, Shapes, Timer, X } from "lucide-react";
 import { store as s } from "./store";
-import { Icon, IconTile, LABEL, Logo, NUMERIC, PageHead, Surface, TILE, Tip, Wordmark, usePhone } from "./ui";
+import { Brand, Icon, IconTile, LABEL, NUMERIC, Surface, TILE, Tip, usePhone } from "./ui";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ const STEPS = [
 const LAST = STEPS.length - 1;
 
 /** The chosen state of a tile picked by a tick (role=checkbox): the tint of a pressed TILE. */
-const CHECKED = "aria-checked:border-primary/50 aria-checked:bg-primary/10";
+const CHECKED = "aria-checked:bg-accent aria-checked:text-foreground";
 
 /** The page header, its title named as the page's and focused as each step comes in. */
 function StepHead({ title, sub }: { title: string; sub: string }) {
@@ -47,8 +47,9 @@ function StepHead({ title, sub }: { title: string; sub: string }) {
     h1.focus({ preventScroll: true });
   }, []);
   return (
-    <div ref={ref} className="contents">
-      <PageHead title={title} sub={sub} />
+    <div ref={ref} className="flex shrink-0 flex-col gap-1.5">
+      <h1 className="text-3xl font-extrabold tracking-[-0.03em] text-balance md:text-4xl">{title}</h1>
+      <p className="text-sm text-muted-foreground md:text-base">{sub}</p>
     </div>
   );
 }
@@ -64,12 +65,12 @@ function Welcome() {
       {rows.map((r, i) => (
         <Surface key={r.title} role="listitem" className="flex-row items-center gap-3 px-4 py-3 sm:flex-col sm:items-start sm:gap-4 sm:p-5">
           <IconTile icon={r.icon} />
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium">
-              <span className="mr-1.5 text-muted-foreground tabular-nums">{i + 1}</span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-base font-bold tracking-[-0.01em]">
+              <span className="mr-2 text-primary tabular-nums">{i + 1}</span>
               {said(r.title)}
             </span>
-            <span className="truncate text-xs text-muted-foreground">{said(r.text)}</span>
+            <span className="truncate text-sm text-muted-foreground">{said(r.text)}</span>
           </span>
         </Surface>
       ))}
@@ -109,7 +110,7 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethods, onBest
           <Tile key={p.id} label={said(p.label)} checked={value.includes(p.id)} onClick={() => onToggle(p.id)} glyph={<Icon name={"Puzzle" + p.id} size={phone ? 24 : 30} />} />
         ))}
       </div>
-      <section aria-label={tr("Methods")} className="flex min-h-0 flex-1 flex-col gap-1">
+      <section aria-label={tr("Methods")} className="flex min-h-0 flex-1 flex-col gap-2">
         <h2 className={cn(LABEL, "flex justify-between")}>
           {tr("Methods you know")}{!!value.length && <span className="max-sm:hidden">{tr("Your best single, if you know it")}</span>}
         </h2>
@@ -118,15 +119,14 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethods, onBest
             value.map((id) => {
               const p = puzzleInfo(id);
               return (
-                <div key={id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b py-2.5 last:border-b-0">
-                  <span className="flex w-36 shrink-0 items-center gap-2 text-sm font-medium">
+                <div key={id} className="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[16px] bg-card px-3 py-2.5 sm:px-4">
+                  <span className="flex w-32 shrink-0 items-center gap-2 text-sm font-bold">
                     <Icon name={"Puzzle" + id} size={18} className="text-muted-foreground" />
                     {said(p.label)}
                   </span>
                   <ToggleGroup
                     multiple
                     variant="outline"
-                    size="sm"
                     spacing={1}
                     value={methods[id] ?? []}
                     onValueChange={(next: string[]) => onMethods(id, next)}
@@ -140,7 +140,7 @@ function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethods, onBest
                           <ToggleGroupItem
                             value={m.id}
                             aria-label={`${said(p.label)} ${said(m.name)}`}
-                            className="text-muted-foreground aria-pressed:border-primary/50 aria-pressed:bg-primary/10 aria-pressed:text-foreground dark:aria-pressed:bg-primary/10"
+                            className="text-muted-foreground aria-pressed:bg-primary/15 aria-pressed:text-foreground dark:aria-pressed:bg-primary/15"
                           >
                             {on ? <Check className="text-primary" strokeWidth={3} /> : <Plus />}
                             {said(m.name)}
@@ -167,7 +167,6 @@ function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; o
   const invalid = !!value.trim() && parseTypedTime(value) === null;
   return (
     <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-      <span className="sm:hidden">{tr("PB")}</span>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -179,6 +178,36 @@ function PbInput({ puzzle, value, onChange }: { puzzle: string; value: string; o
         className={cn(NUMERIC, "h-8 w-28 text-right text-sm")}
       />
     </label>
+  );
+}
+
+/** Where the introduction is: its steps in a row, the current one raised, those done ticked. Phones keep the dots. */
+function Stepper({ step }: { step: number }) {
+  return (
+    <ol className="flex items-center gap-1" aria-label={tr("Step {0} of {1}", { 0: step + 1, 1: STEPS.length })}>
+      {STEPS.map((st, i) => (
+        <li
+          key={st.label}
+          aria-current={i === step ? "step" : undefined}
+          className={cn(
+            "flex items-center gap-2 rounded-xl py-1.5 pr-3.5 pl-1.5 text-sm font-semibold text-muted-foreground transition-colors max-sm:p-1",
+            i === step && "text-foreground sm:bg-card",
+          )}
+        >
+          <span
+            className={cn(
+              NUMERIC,
+              "flex size-6 items-center justify-center rounded-lg bg-muted text-xs font-bold max-sm:size-2.5 max-sm:rounded-full max-sm:text-[0px]",
+              i === step && "bg-primary text-primary-foreground",
+              i < step && "bg-primary/20 text-primary",
+            )}
+          >
+            {i < step ? <Check className="size-3.5 max-sm:hidden" strokeWidth={3} /> : i + 1}
+          </span>
+          <span className="max-sm:sr-only">{said(st.label)}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -243,16 +272,15 @@ export function Onboarding() {
   return (
     <MotionConfig reducedMotion="user">
       <main className="journey-setup flex h-svh flex-col overflow-hidden bg-background text-foreground" aria-labelledby="journey-title" onKeyDown={onKeyDown}>
-        <header className="flex h-14 shrink-0 items-center gap-4 px-4 md:h-16 md:px-8">
-          <span className="flex items-center gap-2.5">
-            <Logo size={20} />
-            <Wordmark className="text-lg max-sm:hidden" />
-          </span>
-          <span className="flex-1" />
-          {existing && (
-            <Button variant="ghost" size="sm" disabled={saving} onClick={() => (history.length > 1 ? go(-1) : goPage("playground"))}>
-              {tr("Cancel")}</Button>
-          )}
+        <header className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 md:h-20 md:px-9">
+          <Brand size={30} className="text-[26px] max-sm:[&>span:last-child]:hidden" />
+          <Stepper step={step} />
+          <div className="flex justify-end">
+            {existing && (
+              <Button variant="ghost" disabled={saving} onClick={() => (history.length > 1 ? go(-1) : goPage("playground"))}>
+                {tr("Cancel")}</Button>
+            )}
+          </div>
         </header>
         {/* On a wide screen the step and its buttons sit together in the middle, a short way for the mouse; phones keep
             the buttons at the foot, under the thumb. */}
@@ -279,21 +307,22 @@ export function Onboarding() {
             </motion.section>
           </AnimatePresence>
         </div>
-        <footer className="journey-footer shrink-0 max-md:border-t">
+        <footer className="journey-footer shrink-0">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 md:px-8">
-            <Button variant="ghost" size="lg" disabled={saving || step === 0} onClick={() => goTo(step - 1)} className={cn("max-md:h-11", step === 0 && "invisible")}>
+            <Button variant="ghost" disabled={saving || step === 0} onClick={() => goTo(step - 1)} className={cn(step === 0 && "invisible")}>
               <ArrowLeft />
-              {tr("Back")}</Button>
+              {/* The smallest phones keep the arrow alone, for the tour's button to fit beside Skip. */}
+              <span className="max-sm:sr-only">{tr("Back")}</span></Button>
             <div className="flex items-center gap-2">
               {step === LAST && !existing && (
-                <Button variant="outline" size="lg" disabled={saving} onClick={() => void finish(false)} className="max-md:h-11">
+                <Button variant="outline" disabled={saving} onClick={() => void finish(false)}>
                   <span className="max-sm:hidden">{tr("Skip the tour")}</span>
                   <span className="sm:hidden">{tr("Skip")}</span>
                 </Button>
               )}
-              <Button size="lg" disabled={saving} onClick={advance} className="max-md:h-11">
+              <Button disabled={saving} onClick={advance}>
                 {saving ? tr("Saving…") : step === 0 ? tr("Get started") : step === LAST ? (existing ? tr("Save") : tr("Start the tour")) : tr("Continue")}
-                {!saving && <ArrowRight />}
+                {!saving && <ArrowRight className="max-sm:hidden" />}
                 {!saving && (
                   <Kbd aria-hidden="true" className="ml-1 bg-primary-foreground/15 text-primary-foreground max-md:hidden">
                     <CornerDownLeft />
@@ -488,18 +517,18 @@ function Tour() {
           <mask id={mask}>
             <rect width="100%" height="100%" fill="white" />
             {holes.map((h) => (
-              <motion.rect key={h.key} rx={10} fill="black" initial={false} animate={{ x: h.box.x, y: h.box.y, width: h.box.width, height: h.box.height }} transition={spring} />
+              <motion.rect key={h.key} rx={12} fill="black" initial={false} animate={{ x: h.box.x, y: h.box.y, width: h.box.width, height: h.box.height }} transition={spring} />
             ))}
           </mask>
         </defs>
-        <rect width="100%" height="100%" className="fill-black/60" mask={`url(#${mask})`} />
+        <rect width="100%" height="100%" className="fill-black/65" mask={`url(#${mask})`} />
       </svg>
       {holes.map((h) => (
         <motion.div
           key={h.key}
           data-spotlight={h.key === "nav" ? "nav" : "inner"}
           aria-hidden="true"
-          className={cn("pointer-events-none absolute top-0 left-0 rounded-lg border", h.key === "nav" ? "border-primary/50" : "border-2 border-primary")}
+          className={cn("pointer-events-none absolute top-0 left-0 rounded-[12px] border-2", h.key === "nav" ? "border-primary/50" : "border-primary")}
           initial={{ opacity: 0, x: h.box.x, y: h.box.y, width: h.box.width, height: h.box.height }}
           animate={{ opacity: 1, x: h.box.x, y: h.box.y, width: h.box.width, height: h.box.height }}
           transition={spring}
@@ -507,7 +536,7 @@ function Tour() {
       ))}
       <motion.div
         ref={cardRef}
-        className="journey-tour-card absolute top-0 left-0 flex flex-col gap-4 rounded-xl border bg-popover p-5 text-popover-foreground shadow-lg"
+        className="journey-tour-card absolute top-0 left-0 flex flex-col gap-4 rounded-[20px] bg-popover p-5 text-popover-foreground shadow-2xl shadow-black/40"
         style={{ width }}
         initial={false}
         animate={{ x: at.x, y: at.y, opacity: spot ? 1 : 0 }}
@@ -516,18 +545,18 @@ function Tour() {
         <header className="flex items-center gap-3">
           <span className="flex items-center gap-1" aria-hidden="true">
             {TOUR_STEPS.map((_, i) => (
-              <span key={i} className={cn("h-1.5 rounded-xs transition-all", i === shownStep ? "w-4 bg-primary" : i < shownStep ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/25")} />
+              <span key={i} className={cn("h-1.5 rounded-full transition-all motion-reduce:transition-none", i === shownStep ? "w-5 bg-primary" : i < shownStep ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/25")} />
             ))}
           </span>
           <span className={cn(NUMERIC, "text-xs text-muted-foreground")} aria-label={tr("Step {0} of {1}", { 0: shownStep + 1, 1: TOUR_STEPS.length })}>
             {shownStep + 1} / {TOUR_STEPS.length}
           </span>
-          <Button size="icon-sm" variant="ghost" aria-label={tr("End tour")} className="-my-1 -mr-2 ml-auto text-muted-foreground" onClick={end}>
+          <Button size="icon" variant="ghost" aria-label={tr("End tour")} className="-my-1 -mr-2 ml-auto text-muted-foreground" onClick={end}>
             <X />
           </Button>
         </header>
         <motion.div key={shownStep} className="flex flex-col gap-1.5" initial={reduced ? false : { opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
-          <h2 id="tour-title" className="text-lg font-semibold tracking-tight">{said(current.title)}</h2>
+          <h2 id="tour-title" className="text-xl font-extrabold tracking-[-0.025em]">{said(current.title)}</h2>
           <p id="tour-body" className="text-sm leading-relaxed text-muted-foreground">{current.body}</p>
         </motion.div>
         <footer className="flex items-center justify-between gap-3">

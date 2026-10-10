@@ -53,41 +53,27 @@ try {
     await page.screenshot({ path: `${OUT}/overview-${width}x${height}.png` });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
-  // No records table nor latest solves: the timer card picks its event in its title, its best single among its figures.
-  assert.equal(await page.locator('[aria-label="Personal records"], [aria-label="Latest solves"]').count(), 0, "no records nor latest solves on the overview");
-  const timer = page.locator('[aria-label="Timer"]');
-  assert.equal(await timer.getByText("Best single", { exact: true }).count(), 1, "the best single beside the current figures");
-  await timer.locator('[data-action="menu:profilePuzzles"]').click();
-  await page.getByRole("listbox", { name: "Puzzle" }).getByRole("option", { name: "2×2" }).click();
-  await page.waitForFunction(() => document.querySelector('[aria-label="Timer"] h2')?.textContent?.includes("2×2"));
+  // The notebook: the account's card, the records as plates, the journal of the days with its puzzle, the month.
+  for (const label of ["Account", "Personal bests", "Journal", "Calendar"]) assert.equal(await page.locator(`[aria-label="${label}"]`).count(), 1, `the ${label} card`);
+  const journal = page.locator('[aria-label="Journal"]');
+  assert.ok((await journal.locator("article").count()) >= 1, "the journal has a day");
+  assert.match((await journal.locator("article h3").first().textContent()) ?? "", /3×3 best/, "a day names the puzzle's best");
+  await journal.locator('[data-action="menu:profilePuzzles"]').click();
+  await page.getByRole("menuitemradio", { name: "2×2" }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Journal"] article h3')?.textContent?.includes("2×2"));
   await page.screenshot({ path: `${OUT}/overview-222.png` });
-  await timer.locator('[data-action="menu:profilePuzzles"]').click();
-  await page.getByRole("listbox", { name: "Puzzle" }).getByRole("option", { name: "3×3", exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('[aria-label="Timer"] h2')?.textContent?.includes("3×3"));
+  await journal.locator('[data-action="menu:profilePuzzles"]').click();
+  await page.getByRole("menuitemradio", { name: "3×3", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Journal"] article h3')?.textContent?.includes("3×3"));
   assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
   assert.equal(await page.locator('[data-tour="profile-overview"]').count(), 1, "the tour can show the profile");
-  assert.equal(await page.locator('.rail [data-action="logout"]').count(), 1, "the sidebar has its own logout row");
-  const profileRow = await page.locator('.rail [data-action="nav:profile"]').boundingBox(), logout = await page.locator('.rail [data-action="logout"]').boundingBox();
-  assert.ok(profileRow && logout && logout.x >= profileRow.x + profileRow.width && Math.abs(logout.y + logout.height / 2 - (profileRow.y + profileRow.height / 2)) <= 2, "logout is its own icon button, right of the profile");
-  // The sidebar folds to its icons and stays folded after a reload; it unfolds the same way.
-  const state = () => page.locator('[data-slot="sidebar"]').first().getAttribute("data-state");
-  assert.equal(await state(), "expanded");
-  await page.locator('[data-action="sidebar:toggle"]').click();
-  await page.waitForFunction(() => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === "collapsed");
-  await page.reload(); await page.locator(".rail").waitFor();
-  assert.equal(await state(), "collapsed", "the folded sidebar is remembered");
-  // Folded, every icon of the sidebar sits on the same vertical axis.
-  const centres = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.rail [data-brand] svg, .rail [data-slot="sidebar-menu-button"], .rail [aria-label^="Puzzle"], .rail [data-action="logout"]')]
-    .filter(e => e.getClientRects().length).map(e => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; }));
-  assert.ok(centres.length >= 10 && Math.max(...centres) - Math.min(...centres) < 0.5, `folded sidebar icons are aligned (${centres.join(", ")})`);
-  // Folded, a section's name shows almost at once on hover.
-  await page.locator('.rail [data-action="nav:training"]').hover();
-  await page.waitForTimeout(250);
-  assert.equal(await page.locator('[data-slot="tooltip-content"]').filter({ hasText: "Training" }).count(), 1, "folded tooltips are quick");
-  await page.locator(".rail [data-brand]").hover();
-  await page.locator('[data-action="sidebar:toggle"]').click();
-  await page.waitForFunction(() => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === "expanded");
-  assert.equal(await page.locator(".rail").getByLabel("Qbix", { exact: true }).count(), 1, "the sidebar carries the Qbix name");
+  // The header: the brand, the five sections, the coffee in plain view, the puzzle and the account's menu with sign-out.
+  assert.equal(await page.locator(".rail").getByLabel("Qbix", { exact: true }).count(), 1, "the header carries the Qbix name");
+  assert.deepEqual(await page.locator('.rail nav[aria-label="Sections"] a').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-section"))), ["timer", "learn", "algorithms", "compete", "me"]);
+  assert.equal(await page.locator('.rail a[href="https://buymeacoffee.com/vitrixxl"]').count(), 1, "the header links to Buy Me a Coffee");
+  await page.locator('.rail [data-action="menu:account"]').click();
+  await page.locator('[data-slot="dropdown-menu-item"][data-action="logout"]').waitFor({ timeout: 3000 }); // the account menu signs out
+  await page.keyboard.press("Escape");
   // The mark follows the puzzle picked in the header, and the tab's icon with it.
   const favicon = () => page.locator('link[rel="icon"][type="image/svg+xml"]').getAttribute("href");
   const before = await favicon();
@@ -95,7 +81,6 @@ try {
   await page.getByRole("menuitemradio", { name: "Pyraminx" }).click();
   await page.waitForFunction(() => document.querySelector('.rail [data-action="menu:puzzles"]')?.getAttribute("aria-label") === "Puzzle: Pyraminx");
   assert.notEqual(await favicon(), before, "the tab's icon follows the puzzle");
-  assert.equal(await page.locator('.rail a[href="https://buymeacoffee.com/vitrixxl"]').count(), 1, "the sidebar links to Buy Me a Coffee");
   await page.goto(origin + "/profile?puzzle=333"); await page.locator('[data-tour="profile-overview"]').waitFor();
   // A fresh account: compact empty states, still inside the window.
   const fresh = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();

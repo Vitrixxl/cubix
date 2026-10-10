@@ -10,7 +10,7 @@ import { CalendarCog, CalendarOff, CalendarPlus, CalendarX, ChevronLeft, Chevron
 import { toast } from "sonner";
 import { Empty, LABEL, NUMERIC, ROW, TILE, Tip, plural } from "../ui";
 import { coaching, type Booking, type Opening, type Override } from "./client";
-import { clockTime, time } from "./parts";
+import { Tools, clockTime, time } from "./parts";
 import { PersonDialog, SessionCard } from "./person";
 import { CalendarSkeleton, DayBoxes, DayChip, Month, MonthHeader, NARROW_BAR, WEEKDAYS, addDays, longDay, shortDay, toDate, weekdayOf } from "./calendar";
 import { cn } from "@/lib/utils";
@@ -189,9 +189,10 @@ function ScheduleForm() {
   }
   return (
     <section aria-label={tr("Schedule")} className="flex min-h-0 flex-1 flex-col gap-3">
-      <MonthHeader month={month} today={today} onMonth={setMonth}>
+      <MonthHeader month={month} today={today} onMonth={setMonth} />
+      <Tools>
         {picking ? (
-          <span className="ml-auto flex items-center gap-2" data-slot="schedule-picking">
+          <span className="flex items-center gap-2" data-slot="schedule-picking">
             <span className="text-sm text-muted-foreground max-sm:hidden">{selected.length ? tr("{0} picked", { 0: plural(selected.length, "day") }) : picking === "open" ? tr("Pick the days to open") : tr("Pick the days to cancel")}</span>
             <UiButton variant="ghost" onClick={stopPicking} data-action="schedule:stop">
               {tr("Cancel")}</UiButton>
@@ -200,11 +201,11 @@ function ScheduleForm() {
             </UiButton>
           </span>
         ) : (
-          <UiButton className="ml-auto" onClick={() => setStep({ kind: "menu" })} data-action="schedule:edit">
+          <UiButton onClick={() => setStep({ kind: "menu" })} data-action="schedule:edit">
             <CalendarCog />
             {tr("Edit availability")}</UiButton>
         )}
-      </MonthHeader>
+      </Tools>
       <div className="flex min-h-0 flex-1 max-lg:overflow-y-auto">
         <Month
           month={month}
@@ -307,7 +308,7 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{tr("Edit availability")}</DialogTitle>
+        <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{tr("Edit availability")}</DialogTitle>
         <DialogDescription>{tr("What do you want to change?")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-2">
@@ -363,10 +364,10 @@ function Menu({ saved, pending, commit, choose, edit }: { saved: Availability; p
 /** One way to change the availability, as a card leading to its next step. */
 function ActionCard({ icon, title, text, onClick, action }: { icon: React.ReactNode; title: string; text: string; onClick: () => void; action: string }) {
   return (
-    <button type="button" onClick={onClick} data-action={action} className={cn(TILE, "flex items-center gap-3 p-3")}>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4.5">{icon}</span>
+    <button type="button" onClick={onClick} data-action={action} className={cn(TILE, "flex items-center gap-3 bg-muted p-3 hover:bg-accent")}>
+      <span className="flex size-6 shrink-0 items-center justify-center text-primary [&_svg]:size-5">{icon}</span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium">{title}</span>
+        <span className="font-bold">{title}</span>
         <span className="text-xs text-muted-foreground">{text}</span>
       </span>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
@@ -385,7 +386,7 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{rule ? tr("Weekly hours") : tr("Add weekly hours")}</DialogTitle>
+        <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{rule ? tr("Weekly hours") : tr("Add weekly hours")}</DialogTitle>
         <DialogDescription>{days.length ? `${weekdaysText(days)} · ${rangeText([start, end])}` : tr("Pick at least one day.")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4">
@@ -393,7 +394,7 @@ function RuleForm({ rule, today, pending, back, save, remove }: { rule: Rule | n
           <FieldLabel>{tr("Days")}</FieldLabel>
           <ToggleGroup multiple variant="outline" spacing={0} value={days.map(String)} onValueChange={(v: string[]) => setDays(v.map(Number).sort())} aria-label={tr("Days")} className="w-full">
             {WEEKDAYS.map((w, d) => (
-              <ToggleGroupItem key={w} value={String(d)} aria-label={said(w)} className="flex-1 px-0 text-xs data-[pressed]:bg-primary/15 data-[pressed]:text-primary">
+              <ToggleGroupItem key={w} value={String(d)} aria-label={said(w)} className="flex-1 data-[pressed]:bg-accent data-[pressed]:text-primary">
                 {w.slice(0, 2)}
               </ToggleGroupItem>
             ))}
@@ -453,7 +454,7 @@ function DayView({ day, saved, off, sessions, pending, commit, go }: { day: stri
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{longDay.format(toDate(day))}</DialogTitle>
+        <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{longDay.format(toDate(day))}</DialogTitle>
         <DialogDescription>{dayOff ? tr("Day off: no one can book you.") : hours.length ? `${hours.map(rangeText).join(", ")} · ${plural(slots, "slot")}` : tr("Closed: no hours this day.")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4" data-slot="day-panel">
@@ -532,7 +533,7 @@ function DaysForm({ kind, days, saved, off, booked, pending, apply }: { kind: Pi
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{kind === "open" ? tr("Add a date") : tr("Cancel a date")}</DialogTitle>
+        <DialogTitle className="text-xl font-extrabold tracking-[-0.025em]">{kind === "open" ? tr("Add a date") : tr("Cancel a date")}</DialogTitle>
         <DialogDescription>
           {daysText(days)}
           {one && ` · ${off.has(one) ? tr("day off") : hours.length ? hours.map(rangeText).join(", ") : tr("closed")}`}

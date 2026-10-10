@@ -1,4 +1,4 @@
-/** The coaching sections: a second sidebar beside the app's (coaching/rail.tsx), a menu on phones (coaching/page.tsx). */
+/** The coaching sections: tabs and the coach's menu over the coaching pages, one menu on phones (coaching/page.tsx). */
 import { CalendarClock, CalendarDays, IdCard, LayoutDashboard, MessagesSquare, Search, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { coaching } from "./client";
 import { COACH_SECTIONS, type SectionId } from "../../../src/client/lib/coaching";

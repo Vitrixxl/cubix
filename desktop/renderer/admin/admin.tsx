@@ -143,7 +143,7 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
     <form onSubmit={submit} noValidate className="flex flex-col gap-6" data-slot="admin-login">
       <div className={cn("flex flex-col gap-1.5", !phone && "items-center text-center")}>
         <div className="mb-3 flex items-center gap-2.5">
-          <Logo size={22} />
+          <Logo size={22} puzzle="333" />
           <Wordmark className="text-lg" />
           <span className="text-lg text-muted-foreground">admin</span>
         </div>
@@ -178,7 +178,7 @@ function TokenScreen({ notice, onIn }: { notice: string; onIn: () => void }) {
           </FieldDescription>
         )}
       </Field>
-      <Button type="submit" size="lg" disabled={pending} className={cn("w-full", phone && "mt-auto h-12 text-base")} data-action="admin:login">
+      <Button type="submit" disabled={pending} className={cn("w-full", phone && "mt-auto")} data-action="admin:login">
         <KeyRound />
         {pending ? "Checking…" : "Open administration"}
       </Button>
@@ -262,7 +262,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
         <Sidebar collapsible="icon" className="border-sidebar-border">
           <SidebarHeader className="pt-4">
             <div className="flex h-8 items-center gap-2.5 px-2">
-              <Logo size={16} />
+              <Logo size={16} puzzle="333" />
               <span className="text-base font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
                 <Wordmark /> <span className="font-normal text-muted-foreground">admin</span>
               </span>
@@ -296,7 +296,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
               <>
                 <SidebarTrigger variant="outline" size="icon" aria-label="Views" data-action="admin:menu" />
                 <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Logo size={14} /> <Wordmark /> <span className="font-normal text-muted-foreground">admin</span>
+                  <Logo size={14} puzzle="333" /> <Wordmark /> <span className="font-normal text-muted-foreground">admin</span>
                 </span>
               </>
             )}

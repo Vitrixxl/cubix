@@ -258,7 +258,7 @@ function App() {
             <div className="grid grid-cols-9 gap-1">
               {[...FACES, "x", "y", "z"].map((face) =>
                 ["", "'", "2"].map((suffix) => (
-                  <Button key={face + suffix} variant="outline" size="sm" className="px-0 font-mono" onClick={() => turnSeen(face + suffix)}>
+                  <Button key={face + suffix} variant="outline" size="sm" className="font-mono" onClick={() => turnSeen(face + suffix)}>
                     {face + suffix}
                   </Button>
                 )),

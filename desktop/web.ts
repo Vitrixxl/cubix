@@ -113,8 +113,11 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
     .replace("<!-- styles -->", [`<script src="${boot}"></script>`, ...styles.map((href) => `<link rel="stylesheet" href="${href}" />`), ...preloads(fonts), ...start.map((href) => `<link rel="modulepreload" href="${href}" />`)].join("\n    "))
     .replace("<!-- scripts -->", `<script type="module" src="${app.entry}"></script>`);
   await writeFile(join(out, "index.html"), html);
+  // The administration's page: the same entry without the app's chunks loaded ahead (go-api/web.go serves it at /admin).
+  await writeFile(join(out, "admin.html"), html.replace(/\n\s*<link rel="modulepreload"[^>]*>/g, ""));
   const pages = await buildPages(out);
-  await landing(out, bundle, preloads(fonts), pages);
+  // The landing page draws in the app's face alone.
+  await landing(out, bundle, preloads(new Map([...fonts].filter(([name]) => name.startsWith("Bricolage")))), pages, [app.entry, ...start, ...styles]);
   await legal(out, bundle);
   if (devTools) {
     // Outside the precache: the page is only served by the development server (desktop/dev.ts).
@@ -152,7 +155,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
  * search engines and language models look for beside it; the desktop installers it gives; its screenshots and its
  * social image.
  */
-async function landing(out: string, bundle: (entry: string, define?: Record<string, string>, splitting?: boolean) => Promise<Bundle>, preloads: string[], pages: string[]) {
+async function landing(out: string, bundle: (entry: string, define?: Record<string, string>, splitting?: boolean) => Promise<Bundle>, preloads: string[], pages: string[], app: string[]) {
   const { createElement } = await import("react");
   const { renderToString } = await import("react-dom/server");
   const { Landing } = await import("./renderer/landing/Landing");
@@ -172,6 +175,7 @@ async function landing(out: string, bundle: (entry: string, define?: Record<stri
       theme: themeTokens(DEFAULT_THEME, "dark"),
       styles: outputs.filter((path) => path.endsWith(".css")),
       scripts: [entry],
+      app,
     }).replace("</head>", `  ${preloads.join("\n    ")}\n  </head>`));
   }
   await setLanguage("en", false);

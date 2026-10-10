@@ -4,18 +4,17 @@
  * battles between the two and their record, and ending the friendship.
  */
 import { useState } from "react";
-import { Crown, LogOut, MessageSquare, MoreHorizontal, Pencil, Plus, Shield, Trash2, UserMinus, UserPlus, Users, X } from "lucide-react";
+import { LogOut, MessageSquare, Plus, Shield, Trash2, UserMinus, UserPlus, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
-import { Avatar, Empty, Figure, LABEL, Modal, NUMERIC, ROW, SectionHead, Strip, plural } from "../ui";
+import { Avatar, Empty, Figure, LABEL, LINK, Modal, NUMERIC, ROW, SectionHead, Strip, plural } from "../ui";
 import { day, relative } from "../coaching/parts";
 import { community, eventName, scoreOf, tournamentUrl, type Conversation, type Group, type Match } from "./client";
-import { GroupMark, organiser } from "./messages";
+import { organiser } from "./messages";
 import { MatchDialog } from "./cards";
-import { EditGroupDialog, FriendPicker, PersonRow, TournamentDialog, useFriendsOutside } from "./dialogs";
+import { EditGroupDialog, FriendPicker, TournamentDialog, useFriendsOutside } from "./dialogs";
 import { EventTile, MatchStatusBadge, StatusBadge } from "../tournaments/format";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -28,7 +27,7 @@ import { said } from "../base";
 /** A part of the details: its title, a count, an action on the right. */
 function Part({ title, count, action, children }: { title: string; count?: number; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-1.5 border-t px-4 py-4" aria-label={title}>
+    <section className="flex flex-col gap-1.5 px-4 pt-3 pb-2" aria-label={title}>
       <SectionHead title={title} meta={count || undefined}>
         {action}
       </SectionHead>
@@ -68,20 +67,21 @@ function GroupDetails({ id }: { id: number }) {
     invited = g.members.filter((m) => m.role === "invited");
   return (
     <>
-      <header className="flex flex-col items-center gap-2 px-4 pt-6 pb-4 text-center">
-        <GroupMark size={56} />
-        <h2 className="text-lg font-semibold tracking-tight">{g.name}</h2>
+      <header className="flex flex-col gap-1.5 px-5 pt-5 pr-14 pb-2">
+        <span className="flex items-baseline gap-3">
+          <h2 className="truncate text-lg font-extrabold tracking-[-0.02em]">{g.name}</h2>
+          {run && (
+            <button type="button" className={LINK} onClick={() => setEditing(true)}>
+              {tr("Edit")}
+            </button>
+          )}
+        </span>
         {g.description && <p className="text-muted-foreground">{g.description}</p>}
         <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{tr("Created {0}", { 0: day(g.createdAt) })} · {plural(members.length, "member")}</span>
-        {run && (
-          <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setEditing(true)}>
-            <Pencil />
-            {tr("Edit")}</Button>
-        )}
         <EditGroupDialog group={g} open={editing} onOpenChange={setEditing} />
       </header>
       <Part title={tr("Members")} count={members.length} action={run && <InviteDialog g={g} />}>
-        <ul className="-mx-2 flex flex-col gap-0.5" data-slot="members">
+        <ul className="grid grid-cols-4 gap-x-1.5 gap-y-3 pt-1" data-slot="members">
           {[...members, ...invited].map((m) => (
             <Member key={m.id} g={g} m={m} />
           ))}
@@ -95,7 +95,7 @@ function GroupDetails({ id }: { id: number }) {
             <TournamentDialog
               group={g}
               trigger={
-                <Button size="sm" variant="ghost" className="text-muted-foreground">
+                <Button variant="ghost" className="text-muted-foreground">
                   <Plus />
                   {tr("Organise")}</Button>
               }
@@ -127,7 +127,7 @@ function GroupDetails({ id }: { id: number }) {
       <Part title={tr("Battles")} count={g.battles.length}>
         <Battles battles={g.battles} empty={tr("No battle yet: launch one from the top of the conversation.")} />
       </Part>
-      <div className="mt-auto flex flex-col gap-1 border-t p-3">
+      <div className="mt-auto flex flex-col gap-1 p-3">
         {g.role !== "owner" ? (
           <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" onClick={() => void community.remove(g.id, s.user.id)}>
             <LogOut />
@@ -142,29 +142,31 @@ function GroupDetails({ id }: { id: number }) {
   );
 }
 
-function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
+export function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
   const removable = m.id !== s.user.id && m.role !== "owner" && (g.role === "owner" || (g.role === "admin" && m.role !== "admin")),
     manageable = removable || (g.role === "owner" && (m.role === "admin" || m.role === "member")),
     friend = community.me?.friends.some((f) => f.id === m.id);
+  const actions = manageable || (m.id !== s.user.id && m.role !== "invited"),
+    face = (
+      <>
+        <span className={cn("rounded-full", m.role === "invited" && "opacity-55 outline-2 outline-offset-2 outline-muted-foreground/50 outline-dashed")}>
+          <Avatar name={m.username} src={m.avatar} size={48} />
+        </span>
+        <span className="max-w-full truncate text-xs font-bold">{m.id === s.user.id ? tr("You") : m.username}</span>
+        <small className={cn("text-[11px] font-semibold", m.role === "owner" || m.role === "admin" ? "text-warning" : "text-muted-foreground")}>
+          {ROLE_LABEL[m.role] ? said(ROLE_LABEL[m.role]) : tr("member")}
+        </small>
+      </>
+    ),
+    tile = "flex w-full min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-1 text-center";
   return (
-    <PersonRow
-      p={m}
-      data-member={m.username}
-      name={<span className={cn(m.role === "invited" && "text-muted-foreground")}>{m.id === s.user.id ? tr("You") : m.username}</span>}
-      detail={m.role === "invited" ? tr("Invited {0}", { 0: relative(m.joinedAt) }) : tr("Joined {0}", { 0: relative(m.joinedAt) })}
-    >
-      {ROLE_LABEL[m.role] && (
-        <Badge variant="secondary" className="gap-1">
-          {m.role === "owner" ? <Crown /> : m.role === "admin" ? <Shield /> : null}
-          {said(ROLE_LABEL[m.role])}
-        </Badge>
-      )}
-      {(manageable || (m.id !== s.user.id && m.role !== "invited")) && (
+    <li data-member={m.username} data-person={m.username} title={m.role === "invited" ? tr("Invited {0}", { 0: relative(m.joinedAt) }) : tr("Joined {0}", { 0: relative(m.joinedAt) })}>
+      {!actions ? (
+        <div className={tile}>{face}</div>
+      ) : (
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button size="icon-sm" variant="ghost" aria-label={tr("Manage {0}", { 0: m.username })} />}>
-            <MoreHorizontal />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-auto">
+          <DropdownMenuTrigger render={<button type="button" className={cn(ROW, tile)} aria-label={tr("Manage {0}", { 0: m.username })} />}>{face}</DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-auto">
             {m.id !== s.user.id && m.role !== "invited" && (friend ? (
               <DropdownMenuItem onClick={() => void community.message(m.id)}>
                 <MessageSquare />
@@ -193,12 +195,12 @@ function Member({ g, m }: { g: Group; m: Group["members"][number] }) {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-    </PersonRow>
+    </li>
   );
 }
 
 /** Inviting to a group: friends ticked from a list, or any player by name. */
-function InviteDialog({ g }: { g: Group }) {
+export function InviteDialog({ g }: { g: Group }) {
   const [open, setOpen] = useState(false),
     [picked, setPicked] = useState<string[]>([]),
     [name, setName] = useState(""),
@@ -207,7 +209,6 @@ function InviteDialog({ g }: { g: Group }) {
   return (
     <>
       <Button
-        size="sm"
         variant="ghost"
         className="text-muted-foreground"
         data-action="group:invite"
@@ -308,14 +309,16 @@ function FriendDetails({ c }: { c: Conversation }) {
     won = done.filter((b) => b.winner === s.user.id).length;
   return (
     <>
-      <header className="flex flex-col items-center gap-2 px-4 pt-6 pb-4 text-center">
-        <Avatar name={other.username} src={other.avatar} size={56} />
-        <h2 className="text-lg font-semibold tracking-tight">{other.username}</h2>
+      <header className="flex items-center gap-3.5 px-5 pt-5 pr-14 pb-2">
+        <Avatar name={other.username} src={other.avatar} size={52} />
+        <span className="flex min-w-0 flex-col gap-0.5">
+        <h2 className="truncate text-lg font-extrabold tracking-[-0.02em]">{other.username}</h2>
         <span className="text-xs text-muted-foreground">{friend ? tr("Friends since {0}", { 0: day(friend.since) }) : tr("No longer friends")}</span>
+        </span>
       </header>
       <Part title={tr("Your battles")} count={battles.length}>
         {done.length > 0 && (
-          <Strip className="mb-1 grid-cols-3">
+          <Strip className="mb-1 grid-cols-3 bg-muted">
             <Figure label="Won" value={won} tone="good" />
             <Figure label="Lost" value={done.length - won} tone="bad" />
             <Figure label="Played" value={done.length} />
@@ -324,7 +327,7 @@ function FriendDetails({ c }: { c: Conversation }) {
         <Battles battles={battles} empty={tr("No battle yet: challenge {0} from the top of the conversation.", { 0: other.username })} />
       </Part>
       {friend && (
-        <div className="mt-auto flex flex-col gap-1 border-t p-3">
+        <div className="mt-auto flex flex-col gap-1 p-3">
           <Button variant="ghost" className="justify-start text-muted-foreground hover:text-destructive" onClick={() => void community.removeFriend(other.id)}>
             <UserMinus />
             {tr("Remove from friends")}</Button>

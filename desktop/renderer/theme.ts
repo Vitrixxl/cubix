@@ -9,8 +9,9 @@ export const accents = THEMES.map((t) => ({ id: t.id, name: t.name, color: t.col
  * tinted with its hue (`themeTokens`, shared with the Android app), on the document root so the popups Base UI portals
  * into <body> inherit them too. Dark or light is the `dark` class.
  */
-export function applyTheme(name: string, light: boolean) {
-  const id = THEMES.find((t) => t.id === name)?.id ?? DEFAULT_THEME;
+export function applyTheme(_name: string, light: boolean) {
+  // ponytail: one accent for now (the settings no longer offer others); the stored choice is kept for when they return.
+  const id = DEFAULT_THEME;
   const root = document.documentElement;
   root.classList.toggle("dark", !light);
   root.style.colorScheme = light ? "light" : "dark";

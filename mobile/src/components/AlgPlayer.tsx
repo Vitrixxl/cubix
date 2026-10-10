@@ -1,7 +1,9 @@
 import { ChevronFirst, ChevronLeft, ChevronRight, Focus, Pause, Play, Rotate3d, RotateCcw, StepBack, StepForward } from "lucide-react-native";
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { PanResponder, Pressable, View } from "react-native";
-import Svg, { Circle, ClipPath, Defs, G, Polygon, Polyline } from "react-native-svg";
+import Svg, { ClipPath, Defs, G, Path, Polygon, Polyline, Rect, Text as SvgText } from "react-native-svg";
+import { useColors } from "../theme";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 import { AlgPlayer, algScene, polyAlgScene, readAlg, speedLabel, type PlayerOptions } from "../../../src/client/lib/algPlayer";
 import type { CubeMask } from "../../../src/shared/cubeAppearance";
 import type { PolyPuzzle } from "../../../src/shared/puzzleScene";
@@ -66,36 +68,43 @@ export function PlayerCube({ player, size }: { player: AlgPlayer; size: number }
       {player.shapes().map((shape, i) => shape.line
         ? <Polyline key={i} points={points(shape.points)} fill="none" stroke={hex(shape.color)} strokeWidth={120 / size} />
         : <Polygon key={i} points={points(shape.points)} fill={hex(shape.color)} />)}
-      <Pulse pulse={player.pulse()} unit={unit} />
+      <Pulse pulse={player.pulse()} unit={unit} shapes={player.shapes()} size={size} />
     </Svg>
   </View>;
 }
 
 /**
- * The glow of `showFront` (AlgPlayer, CubeView), as the web canvas draws it: the front face lit, two waves spreading
- * from its centre, in a 120-unit square.
+ * What `showFront` (AlgPlayer, CubeView) marks for a moment, as the web canvas draws it (desktop/renderer/paint.ts):
+ * the other faces dimmed and an accent tag reading "Front" under the front face. No glow. In a 120-unit square drawn
+ * `size` pixels wide; `shapes`: the cube's, in cube units.
  */
-export function Pulse({ pulse, unit }: { pulse: ReturnType<AlgPlayer["pulse"]>; unit: number }) {
+export function Pulse({ pulse, unit, shapes, size }: { pulse: ReturnType<AlgPlayer["pulse"]>; unit: number; shapes: { points: number[][]; line?: boolean }[]; size: number }) {
+  const colors = useColors(), still = useReducedMotion();
   if (!pulse) return null;
   const at = (v: number[]) => [60 + v[0]! * unit, 60 - v[1]! * unit] as const,
-    [cx, cy] = at(pulse.centre),
     corners = pulse.corners.map(at),
-    reach = Math.max(...corners.map(([x, y]) => Math.hypot(x - cx, y - cy))),
-    outline = corners.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" "),
-    fade = 1 - pulse.t;
+    path = (list: (readonly [number, number])[]) => "M" + list.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join("L") + "Z",
+    alpha = still ? 1 : Math.max(0, Math.min(1, pulse.t / 0.12, (1 - pulse.t) / 0.25)),
+    px = 120 / size,
+    label = tr("Front"),
+    // ponytail: the text is not measured; a width per letter fits the five languages' word for it.
+    w = (label.length * 7 + 16) * px, h = 20 * px, tip = 5 * px,
+    cx = Math.min(120 - w / 2 - 2 * px, Math.max(w / 2 + 2 * px, at(pulse.centre)[0])),
+    top = Math.min(120 - h - 2 * px, Math.max(...corners.map(([, y]) => y)) + tip + 4 * px);
   return <G>
-    <Defs><ClipPath id="front"><Polygon points={outline} /></ClipPath></Defs>
-    <Polygon points={outline} fill="#fff" fillOpacity={0.22 * fade} stroke="#fff" strokeOpacity={0.8 * fade} strokeWidth={1} />
-    <G clipPath="url(#front)">
-      {[0, 0.3].map(delay => {
-        const t = (pulse.t - delay) / (1 - delay);
-        return t > 0 ? <Circle key={delay} cx={cx} cy={cy} r={t * reach} fill="none" stroke="#fff" strokeOpacity={0.55 * (1 - t)} strokeWidth={reach * 0.18} /> : null;
-      })}
+    <Defs><ClipPath id="front"><Path d={"M0,0H120V120H0Z" + path(corners)} clipRule="evenodd" /></ClipPath></Defs>
+    <G clipPath="url(#front)" opacity={0.5 * alpha}>
+      {shapes.map((shape, i) => shape.line ? null : <Polygon key={i} points={shape.points.map(v => at(v).join(",")).join(" ")} fill="#000" />)}
+    </G>
+    <G opacity={alpha}>
+      <Path d={`M${cx - tip},${top}L${cx},${top - tip}L${cx + tip},${top}Z`} fill={colors.primary} />
+      <Rect x={cx - w / 2} y={top} width={w} height={h} rx={6 * px} fill={colors.primary} />
+      <SvgText x={cx} y={top + h / 2 + 4 * px} textAnchor="middle" fontSize={12 * px} fontWeight="600" fill={colors.variables["--primary-foreground"]}>{label}</SvgText>
     </G>
   </G>;
 }
 
-/** Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been turned. */
+/** Under the cube: show the face to hold in front (marked for a moment), and put the cube back as it started once it has been turned. */
 export function ViewButtons({ player }: { player: Pick<AlgPlayer, "subscribe" | "showFront" | "resetView" | "turned"> }) {
   const turned = useSyncExternalStore(player.subscribe, player.turned);
   return <View className="flex-row justify-center gap-2">

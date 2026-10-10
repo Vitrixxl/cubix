@@ -296,6 +296,9 @@ func seedRun(db *Conn, catalog *Catalog) (*SeedSummary, error) {
 	if err := seedTraffic(db, rng, players, at); err != nil {
 		return nil, err
 	}
+	if err := seedDaily(db, players, at); err != nil {
+		return nil, err
+	}
 	if _, err := db.Exec("INSERT INTO admin_access(id,digest,version,created_at) VALUES(1,?,'dev',?)", accountsDigest(seedAdminToken), at); err != nil {
 		return nil, err
 	}
@@ -369,6 +372,38 @@ func seedPlayers(rng *seedRng, at int64) []*seedPlayer {
 		list = append(list, &seedPlayer{id: newUUID(), name: name, joined: joined, skill: skill, practice: rng.rangeF64(0.03, 0.35), events: events})
 	}
 	return list
+}
+
+// seedDaily: every player but dev and coach (left to try it) on the day's 3×3 scramble, and some on the one-handed one, so the daily
+// histogram has a shape; the two weeks before too, dev and coach every day, for the history. About a third on a connected
+// cube (verified). Its own draws: the rest of the seed stays as it was.
+func seedDaily(db *Conn, players []*seedPlayer, at int64) error {
+	rng := newSeedRng(7)
+	for back := int64(0); back <= 14; back++ {
+		day := dailyDay(time.UnixMilli(at - back*accountsDayMs))
+		for _, p := range players {
+			mine := p.name == "dev" || p.name == "coach"
+			if back == 0 && mine || back > 0 && !mine && !rng.chance(0.6) {
+				continue
+			}
+			for _, e := range []string{"333", "333oh"} {
+				if e == "333oh" && !rng.chance(0.4) {
+					continue
+				}
+				typical := seedEventOf(e).typical
+				ms := math.Max(seedTime(rng, typical*p.skill), dailyEvents[e])
+				verified := 0
+				if rng.chance(0.35) {
+					verified = 1
+				}
+				if _, err := db.Exec("INSERT INTO daily_results(day,event,user_id,time_ms,penalty,verified,created_at) VALUES(?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ',?/1000.0,'unixepoch'))",
+					day, e, p.id, ms, seedPenalty(rng, 0.03), verified, at-back*accountsDayMs-rng.rangeU64(0, 6*seedHourMs)); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // seedNormal: a standard normal draw (Box-Muller).

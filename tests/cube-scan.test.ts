@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { applyAlg, FACES, slotsFor, solved, type Face } from "../src/shared/cube";
-import { HELD_HEX } from "../src/shared/cubeAppearance";
+import { REAL_HELD_HEX as HELD_HEX } from "../src/shared/cubeAppearance";
 import { cubeSamples, lab8, readCube, readFace, REFS, resolve, SCAN_FACES, scanColour, scanProblem, type Rgb } from "../src/client/lib/cubeScan";
 import { colours } from "../src/client/lib/solveAnalysis";
 

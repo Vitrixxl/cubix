@@ -267,7 +267,7 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
       out.push({
         id: "recognition",
         title: msg("Recognise the last layer sooner"),
-        detail: msg("You pause {0} on average before an OLL or a PLL. Train the cases you take longest to see, with a random turn of the top: {1}.", { 0: seconds(pause), 1: names(cases) }),
+        detail: msg("{0} of pause before an OLL or a PLL, longest on {1}.", { 0: seconds(pause), 1: names(cases) }),
         action: "trainCases:" + cases.map((c) => c.id).join(","),
       });
   }
@@ -277,7 +277,7 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
     out.push({
       id: "cross",
       title: msg("Plan the whole cross"),
-      detail: msg("Your cross takes {0} turns and {1}; an optimal one takes 8 at most. Cross training plans it, alone or with its first pairs.", { 0: cross.turns.toFixed(1), 1: seconds(cross.duration) }),
+      detail: msg("{0} turns and {1} for your cross; an optimal one takes 8 at most.", { 0: cross.turns.toFixed(1), 1: seconds(cross.duration) }),
       action: "trainingStart:cross",
     });
   // The last layer in two looks: the full sets save a look each.
@@ -288,8 +288,9 @@ export function suggest(all: MethodStats, methods: MethodStats[]): TrainingSugge
     out.push({
       id: "full-ll",
       title: msg("Learn the full {0}", { 0: track }),
-      detail: msg("{0} of your {1} solves took two looks for the last layer. Learning the full {2} saves one, a case a day.", { 0: twoLook.count, 1: all.count, 2: track }),
-      action: "trainingStart:cases:" + track,
+      detail: msg("{0} of your {1} solves took two looks for the last layer. Learning the full {2}, in the CFOP course, saves one.", { 0: twoLook.count, 1: all.count, 2: track }),
+      // New cases are learned in the courses; the training drills the learned ones.
+      action: "learnFrom:333:cfop",
     });
   }
   return out;

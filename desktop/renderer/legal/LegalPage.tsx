@@ -38,7 +38,7 @@ export function LegalPage({ id, initial = "fr" }: { id: DocumentId; initial?: Do
       <header className="border-b">
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
           <a href="/" className="flex items-center gap-2 rounded-sm" aria-label="Qbix">
-            <Logo size={20} />
+            <Logo size={20} puzzle="333" />
             <Wordmark className="text-lg" />
           </a>
           <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label={language === "fr" ? "Documents légaux" : "Legal documents"}>
@@ -48,9 +48,9 @@ export function LegalPage({ id, initial = "fr" }: { id: DocumentId; initial?: Do
               </a>
             ))}
           </nav>
-          <ToggleGroup aria-label="Langue · Language" variant="outline" size="sm" spacing={1} value={[language]} onValueChange={(v: string[]) => v[0] && setLanguage(v[0] as DocumentLanguage)} className="ml-auto">
-            <ToggleGroupItem value="fr" lang="fr" className="px-2.5">FR</ToggleGroupItem>
-            <ToggleGroupItem value="en" lang="en" className="px-2.5">EN</ToggleGroupItem>
+          <ToggleGroup aria-label="Langue · Language" variant="outline" spacing={1} value={[language]} onValueChange={(v: string[]) => v[0] && setLanguage(v[0] as DocumentLanguage)} className="ml-auto">
+            <ToggleGroupItem value="fr" lang="fr">FR</ToggleGroupItem>
+            <ToggleGroupItem value="en" lang="en">EN</ToggleGroupItem>
           </ToggleGroup>
         </div>
       </header>

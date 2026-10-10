@@ -1,62 +1,22 @@
-/** The profile's one building block: a card with a heading row (title, muted meta, a link to its page) and a body. */
+/** The profile pages' shared pieces: a card's title, and a row of figures. */
 import React from "react";
-import { ChevronRight } from "lucide-react";
-import { Surface, type Props, run } from "../ui";
+import { StatCard, dots, type Tone } from "../ui";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { said } from "../base";
 
 /** The title of a profile card: between the page's heading and a section's. */
-export const CARD_TITLE = "shrink-0 text-base font-semibold tracking-tight";
+export const CARD_TITLE = "shrink-0 text-lg font-extrabold tracking-[-0.03em]";
 
 /**
- * The look of the profile's floating tooltips (the curve's crosshair, the heatmap's day), which follow the pointer
- * instead of an element: the same as a `Tip`.
+ * A row of figures inside a card, each after its dot (the best in mint, averages in peach and lilac): the timer's
+ * tiles without their tile. `tiles` gives each its own tile instead, on the page background.
  */
-export const TIP = "pointer-events-none z-50 flex flex-col gap-0.5 rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background";
-
-/** A quiet link at the end of a heading row: "View all ›". */
-export function MoreLink({ actions, children, className }: { actions: string[] } & Props) {
+export function Figures({ figures, tiles = false, className }: { figures: [label: string, value: React.ReactNode, tone?: Tone][]; tiles?: boolean; className?: string }) {
+  const colours = dots(figures.map(([, , tone]) => tone ?? ""));
   return (
-    <Button variant="ghost" size="sm" data-action={actions.at(-1)} onClick={run(...actions)} className={cn("-mr-2 gap-0.5 text-muted-foreground hover:text-foreground", className)}>
-      {children}
-      <ChevronRight />
-    </Button>
-  );
-}
-
-/** A section of the profile: every one is built the same, heading row then body, same padding. */
-export function Section({
-  title,
-  meta,
-  open,
-  more = "Details",
-  aside,
-  children,
-  className,
-  body,
-  label,
-}: {
-  title: React.ReactNode;
-  meta?: React.ReactNode;
-  /** The sub-page the heading links to. */
-  open?: string;
-  more?: string;
-  aside?: React.ReactNode;
-  body?: string;
-  label?: string;
-} & Props) {
-  return (
-    <Surface className={className} aria-label={said(label)}>
-      <div className="flex min-h-13 shrink-0 items-center gap-3 px-5 pt-2">
-        <h2 className={CARD_TITLE}>{said(title)}</h2>
-        {meta != null && <span className="min-w-0 truncate text-sm text-muted-foreground">{said(meta)}</span>}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          {aside}
-          {open && <MoreLink actions={["profileMode:" + open]}>{said(more)}</MoreLink>}
-        </div>
-      </div>
-      <div className={cn("flex min-h-0 flex-col gap-5 px-5 pt-3 pb-5", body)}>{children}</div>
-    </Surface>
+    <div className={cn("grid shrink-0", tiles ? "gap-3 max-md:gap-2" : "gap-x-6 gap-y-3", className)} style={{ gridTemplateColumns: `repeat(${figures.length}, minmax(0, 1fr))` }}>
+      {figures.map(([label, value], i) => (
+        <StatCard key={label} label={label} value={value} dot={colours[i]} size="sm" className={tiles ? undefined : "bg-transparent p-0"} />
+      ))}
+    </div>
   );
 }

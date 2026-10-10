@@ -79,7 +79,7 @@ export const TOUR_STEPS = [
   { page: "playground", target: "playground", inner: "timer", title: "Time your solve", body: "Hold to arm the timer, release to start, then press again when the cube is solved. Times are saved on this device first, then synced." },
   { page: "playground", target: "playground", inner: "session", title: "Follow your session", body: "Your best single, averages and every time of the session update after each solve." },
   { page: "algorithms", target: "algorithms", inner: "algorithms", title: "Find the right algorithm", body: "Browse the cases of every set, play their moves and mark the ones you know." },
-  { page: "training", target: "training", inner: "training", title: "Practise with a purpose", body: "Drill chosen cases, review what you know or learn one new case a day." },
+  { page: "training", target: "training", inner: "training", title: "Practise with a purpose", body: "Drill the cases you learned, the slowest first, or plan the cross." },
   { page: "duel", target: "duel", inner: "duel", title: "Race when you are ready", body: "Challenge another cuber over five scrambles. Your battles stay on your profile." },
   { page: "learn", target: "learn", inner: "learn", title: "Learn a new puzzle", body: "Pick a method and follow it step by step, with every algorithm of each step." },
   { page: "profile", target: "profile", inner: "profile-overview", title: "Watch your progress", body: "Your times, practice and results live here. You can replay this tour from the guides." },

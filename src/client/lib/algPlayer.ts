@@ -268,8 +268,8 @@ export interface PlayerOptions {
   view?: { yaw: number; pitch: number };
 }
 
-/** The face held in front, in cube axes, and how long `showFront` makes it glow. */
-const FRONT = [0, 0, 1], FRONT_PULSE_MS = 1400;
+/** The face held in front, in cube axes, and how long `showFront` marks it. */
+const FRONT = [0, 0, 1], FRONT_PULSE_MS = 2200;
 
 /**
  * One algorithm being played: the clock running frame by frame, the cube's orientation under the pointer, and
@@ -358,7 +358,7 @@ export class AlgPlayer {
     this.orientation = this.home;
     this.emit();
   };
-  /** Makes the face to hold in front glow (see `pulse`), turning the cube back first if that face is out of sight. */
+  /** Marks the face to hold in front (see `pulse`), turning the cube back first if that face is out of sight. */
   showFront = () => {
     // Other puzzles have no face to light: they turn back to the front.
     if (isPoly(this.scene)) return this.resetView();
@@ -371,7 +371,7 @@ export class AlgPlayer {
     };
     tick();
   };
-  /** The glow of `showFront` while it lasts: the front face on screen (see `cubeFace`) and how far along it is, 0 to 1. */
+  /** The mark of `showFront` while it lasts: the front face on screen (see `cubeFace`) and how far along it is, 0 to 1. */
   pulse = () => {
     const t = (Date.now() - this.pulseStart) / FRONT_PULSE_MS;
     if (!this.pulseStart || t >= 1 || isPoly(this.scene)) return null;

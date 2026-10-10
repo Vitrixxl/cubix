@@ -1,4 +1,6 @@
-/** Pieces shared by the coaching pages: their addresses, dates and the way back. */
+/** Pieces shared by the coaching pages: their addresses, dates, the way back and the place of their tools. */
+import { createContext, useContext } from "react";
+import { createPortal } from "react-dom";
 import { Back as BaseBack } from "../base";
 import { go } from "../navigation";
 import { tr, localFormat, perLanguage } from "../../../src/client/i18n";
@@ -32,4 +34,12 @@ export const clockTime = (minutes: number) => `${String(Math.floor(minutes / 60)
 /** The header's back arrow, to a coaching address. */
 export function Back({ to, label = "Back" }: { to: string; label?: string }) {
   return <BaseBack onClick={() => go(to)} label={label} action="coaching:back" />;
+}
+
+/** Where a coaching page puts its own tools: on the right of the tabs (coaching/page.tsx). */
+export const ToolsSlot = createContext<HTMLElement | null>(null);
+/** The page's own tools (filters, the way back), drawn beside the coaching tabs. */
+export function Tools({ children }: { children: React.ReactNode }) {
+  const slot = useContext(ToolsSlot);
+  return slot ? createPortal(children, slot) : null;
 }

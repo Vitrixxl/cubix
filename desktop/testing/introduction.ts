@@ -19,8 +19,9 @@ page.on("pageerror", e => errors.push(e.message));
 await mkdir(SHOTS, { recursive: true });
 const shot = (name: string) => page.screenshot({ path: `${SHOTS}/${name}.png` });
 const heading = (text: string) => page.getByRole("heading", { name: text, exact: true }).waitFor();
-const checkbox = (name: string) => page.getByRole("checkbox", { name, exact: true });
-const checked = async (name: string) => (await checkbox(name).getAttribute("aria-checked")) === "true";
+// The puzzles are ticked tiles; a puzzle's methods, toggle buttons.
+const checkbox = (name: string) => page.getByRole("checkbox", { name, exact: true }).or(page.locator(`[aria-pressed][aria-label="${name}"]`));
+const checked = async (name: string) => ((await checkbox(name).getAttribute("aria-checked")) ?? (await checkbox(name).getAttribute("aria-pressed"))) === "true";
 const noPageScroll = async (what: string) =>
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth || scrollY !== 0), false, `${what}: the page never scrolls`);
 const bounded = async (selector: string) => {
@@ -35,7 +36,7 @@ const fits = async (sizes: [number, number][], name?: string) => {
     await bounded(".journey-setup"); await bounded(".journey-footer");
     for (const button of await page.locator(".journey-footer button:visible").all()) {
       const b = await button.boundingBox();
-      assert.ok(b && b.x >= 0 && b.x + b.width <= width + 1, "footer buttons fit the window");
+      assert.ok(b && b.x >= 0 && b.x + b.width <= width + 1, `footer buttons fit the ${width}×${height} window (${await button.textContent()}: ${JSON.stringify(b)})`);
     }
     if (name) { await page.waitForTimeout(350); await shot(`${name}-${width}x${height}`); }
   }
@@ -131,6 +132,7 @@ try {
   assert.equal(await page.locator('[aria-label="Personal goals"], [aria-label="Personal setup"]').count(), 0, "no journey or goals on the profile");
 
   // Replay the tour from the guides; Tab stays in the tour, Escape ends it.
+  await page.locator('[data-action="menu:account"]').click();
   await page.locator('[data-action="help"]').first().click();
   await page.getByRole("button", { name: "Replay tour", exact: true }).click();
   await heading(TOUR_STEPS[0].title);
@@ -140,10 +142,10 @@ try {
   await page.keyboard.press("Escape"); await page.locator(".journey-tour").waitFor({ state: "detached" });
   assert.equal(await page.locator("[data-app-shell]").evaluate((n: HTMLElement) => n.inert), false);
 
-  // Phones: the card docks at the top or bottom, the whole tour from the guides, in the profile's menu.
+  // Phones: the card docks at the top or bottom, the whole tour from the guides, in the account menu beside the Me section's pages.
   await page.setViewportSize({ width: 360, height: 640 });
   await page.locator('[data-action="nav:profile"]:visible').first().click();
-  await page.locator('[data-action="menu:more"]:visible').first().click();
+  await page.locator('[data-action="menu:account"]:visible').first().click();
   await page.getByRole("menuitem", { name: "Guides" }).click();
   await page.getByRole("button", { name: "Replay tour", exact: true }).click();
   await tour("phone", { desktop: false });
@@ -157,7 +159,7 @@ try {
   await page.locator('[data-action="nav:algorithms"]').first().click(); await page.waitForURL("**/algorithms?*");
   await puzzlePick("4×4");
   await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "444");
-  await page.locator('[data-action="nav:training"]').first().click(); await page.waitForURL("**/training?*");
+  await page.keyboard.press("Alt+4"); await page.waitForURL("**/training?*");
   await puzzlePick("2×2");
   await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "222");
   // Finishing a course makes its puzzle a known one.
@@ -168,6 +170,7 @@ try {
   await page.waitForURL(url => url.pathname === "/timer" && url.searchParams.get("puzzle") === "555");
 
   // Edit the setup from the guides: the saved answers come back, with the puzzle finished since.
+  await page.locator('[data-action="menu:account"]').click();
   await page.locator('[data-action="help"]').first().click();
   await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
   for (const name of ["3×3", "3×3 CFOP", "3×3 Roux", "5×5", "5×5 Reduction"]) assert.equal(await checked(name), true, `${name} is known`);
@@ -178,6 +181,7 @@ try {
   await page.waitForTimeout(600); assert.equal(await page.locator(".journey-setup").count(), 0);
 
   // Redo the introduction from the guides, then cancel back to the app.
+  await page.locator('[data-action="menu:account"]').click();
   await page.locator('[data-action="help"]').first().click();
   await page.getByRole("button", { name: "Redo the introduction", exact: true }).click(); await heading("What can you solve?");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -186,7 +190,7 @@ try {
 
   // Routing: shortcuts, deep links, reload and history.
   // The sections in their groups, in the order of their shortcuts.
-  assert.deepEqual(await page.locator('.rail [data-sidebar="content"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:analysis", "nav:algorithms", "nav:learn", "nav:training", "nav:duel", "nav:tournaments", "nav:community", "nav:coaching"]);
+  assert.deepEqual(await page.locator('.rail nav[aria-label="Sections"] [data-action^="nav:"]').evaluateAll(nodes => nodes.map(n => n.getAttribute("data-action"))), ["nav:playground", "nav:learn", "nav:algorithms", "nav:duel", "nav:profile"]);
   await page.locator('[data-action="nav:profile"]').first().click(); await page.waitForURL("**/profile*");
   for (const [key, pathname] of [["1", "/timer"], ["2", "/algorithms"], ["3", "/learn"], ["4", "/training"], ["5", "/duel"], ["6", "/tournaments"], ["7", "/community"], ["8", "/coaching"], ["9", "/profile/analysis"]]) {
     await page.keyboard.press("Alt+" + key);
@@ -211,9 +215,9 @@ try {
   assert.equal(new URL(page.url()).pathname, "/profile/playground");
 
   await page.setViewportSize({ width: 1600, height: 900 });
-  assert.equal(await page.locator('[data-action="menu:account"]').count(), 0);
+  await page.locator('[data-action="menu:account"]').click();
   await page.locator('[data-action="logout"]').first().click();
-  await page.locator(".rail").waitFor({ state: "detached" });
+  // Signing out opens the sign-in dialog over the app (login.tsx), the app staying under it.
   await page.getByRole("button", { name: "Sign in", exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log("Onboarding (welcome, puzzles with inline methods) at five sizes without page scroll, Enter, no goals on the profile, puzzle locking (learn dialog, greyed sections, skip, finish), the tour's tab and in-page cut-outs on desktop and phone, replay and redo from the guides, edit/cancel, routing and logout passed.");

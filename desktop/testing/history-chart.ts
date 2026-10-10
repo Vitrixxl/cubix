@@ -33,19 +33,13 @@ try {
   // One row per solve in the table: the row's button opens the solve, its actions stand beside it.
   const rows = page.locator('[data-row]'), plot = page.getByRole("group", { name: /^Solve times/ });
   const row = (i: number) => rows.nth(i).locator("..");
-  // Chart and table share one panel; its toolbar states how many solves the period holds, after the view switch.
-  const view = async (name: "chart" | "table") => {
-    await page.locator(`[data-action="statsView:${name}"]`).click();
-    await (name === "chart" ? plot : page.getByRole("button", { name: "Sort solves" })).waitFor();
-  };
-  const countText = () => document.querySelector('[aria-label="View"] + span')?.textContent ?? "";
-  const shownCount = () => page.evaluate(() => Number((document.querySelector('[aria-label="View"] + span')?.textContent ?? "0").split(" ")[0]!.replaceAll(",", "")));
-  await page.waitForFunction(() => document.querySelector('[aria-label="View"] + span')?.textContent === "600 solves", undefined, { timeout: 60000 });
-  assert.equal(await rows.count(), 0);
-  await view("table");
+  // The chart and the solves of its period side by side; the period states how many solves it holds.
+  const countText = () => (document.querySelector("[data-count]") as HTMLElement | null)?.dataset.count ?? "0";
+  const shownCount = () => page.evaluate(countText).then(Number);
+  await page.waitForFunction(() => (document.querySelector("[data-count]") as HTMLElement | null)?.dataset.count === "600", undefined, { timeout: 60000 });
   assert.equal(await rows.count(), 100); // The table draws its rows in pages.
-  await view("chart");
-  const summary = await page.locator('[aria-label="Summary"]').innerText();
+  const figures = () => page.locator('[aria-label="Figures"] tbody tr').filter({ hasText: "Solves" }).innerText();
+  assert.match(await figures(), /600\s+600/);
   const bounds = async () => {
     const box = (await plot.boundingBox())!;
     return { x: box.x, y: box.y + box.height / 2, width: box.width };
@@ -61,7 +55,7 @@ try {
   };
   const selectedCount = async (expected?: number) => {
     await page.waitForFunction(n => {
-      const count = Number((document.querySelector('[aria-label="View"] + span')?.textContent ?? "0").split(" ")[0]!.replaceAll(",", ""));
+      const count = Number((document.querySelector("[data-count]") as HTMLElement | null)?.dataset.count ?? "0");
       return n == null ? count > 1 && count < 600 : count === n;
     }, expected);
     return shownCount();
@@ -69,21 +63,16 @@ try {
   await drag(0.25, 0.65);
   const selected = await selectedCount();
   assert(selected > 230 && selected < 250, `Selected ${selected}`);
-  assert.equal(await page.evaluate(countText), `${selected} of 600 solves`);
-  assert.equal(await page.locator('[aria-label="Summary"]').innerText(), summary);
-  await view("table"); // The selection carries over to the table and back.
-  assert.equal(await shownCount(), selected);
+  // The figures follow the period: its solves beside every one.
+  assert.match(await figures(), new RegExp(`${selected}\\s+600`));
   const beforePan = await rows.first().innerText();
-  await view("chart");
   await drag(0.6, 0.3, true);
   assert.equal(await shownCount(), selected);
-  await view("table");
   assert.notEqual(await rows.first().innerText(), beforePan);
-  await view("chart");
   const b = await bounds();
   await page.mouse.move(b.x + b.width / 2, b.y);
   await page.mouse.wheel(0, -220);
-  await page.waitForFunction(n => Number((document.querySelector('[aria-label="View"] + span')?.textContent ?? "0").split(" ")[0]) < n, selected);
+  await page.waitForFunction(n => Number((document.querySelector("[data-count]") as HTMLElement | null)?.dataset.count) < n, selected);
   const zoomCount = await shownCount();
   assert(zoomCount > 1);
   await plot.focus();
@@ -112,7 +101,6 @@ try {
   await selectedCount(600);
   console.log("Chart: selection, reverse selection, zoom, pan, reset, keyboard and cancellation passed");
 
-  await view("table");
   // The time of each row, without its PB or +2 tag.
   const times = () => page.locator('[data-action^="solve:"] > span:nth-child(2) > span:first-child').allInnerTexts();
   const seconds = (v: string) => (v === "DNF" ? Infinity : Number(v));
@@ -158,30 +146,26 @@ try {
   for (const [width, height] of [[1920, 1080], [1280, 800], [800, 600], [640, 480], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(100);
-    for (const name of ["table", "chart"] as const) {
-      await view(name);
-      await page.waitForTimeout(100);
-      const layout = await page.evaluate(() => {
-        const bar = document.querySelector('[aria-label="View"]')!.parentElement!;
-        const panel = bar.closest('[data-slot="card"]')!.getBoundingClientRect();
-        const tabbar = document.querySelector('nav[aria-label="Sections"]')?.getBoundingClientRect();
-        const plot = document.querySelector('[role="group"][aria-label^="Solve times"]')?.getBoundingClientRect();
-        const profile = document.querySelector('[data-slot="sidebar-inset"] section[aria-label="Timer"]')!;
-        return {
-          visible: panel.bottom <= (tabbar?.top ?? innerHeight) && panel.right <= innerWidth && (!plot || plot.height >= 40),
-          barFits: bar.scrollWidth <= bar.clientWidth + 1,
-          fits: document.documentElement.scrollHeight === innerHeight && document.documentElement.scrollWidth === innerWidth,
-          internalFits: profile.scrollHeight <= profile.clientHeight + 1,
-        };
-      });
-      await page.screenshot({ path: `${SHOTS}/history-${name}-${width}.png` });
-      assert.deepEqual(layout, { visible: true, barFits: true, fits: true, internalFits: true }, `${name} ${width}×${height}`);
-    }
+    const layout = await page.evaluate(() => {
+      // The cards shown (the curve and the list, or one tab of them on a short window) end inside the window.
+      const cards = [...document.querySelectorAll('[data-slot="app-main"] section[aria-label="Timer"] [data-slot="card"]')].map((c) => c.getBoundingClientRect());
+      const list = { bottom: Math.max(...cards.map((c) => c.bottom)), right: Math.max(...cards.map((c) => c.right)), height: Math.min(...cards.map((c) => c.height)) };
+      const tabbar = document.querySelector('.tabbar')?.getBoundingClientRect();
+      const plot = document.querySelector('[role="group"][aria-label^="Solve times"]')?.getBoundingClientRect();
+      const profile = document.querySelector('[data-slot="app-main"] section[aria-label="Timer"]')!;
+      return {
+        visible: list.bottom <= (tabbar?.top ?? innerHeight) + 1 && list.right <= innerWidth && list.height >= 80 && (!plot || plot.height >= 40),
+        fits: document.documentElement.scrollHeight === innerHeight && document.documentElement.scrollWidth === innerWidth,
+        internalFits: profile.scrollHeight <= profile.clientHeight + 1,
+      };
+    });
+    await page.screenshot({ path: `${SHOTS}/history-${width}.png` });
+    assert.deepEqual(layout, { visible: true, fits: true, internalFits: true }, `${width}×${height}`);
   }
   await page.setViewportSize({ width: 1280, height: 800 });
   for (const [label, count] of [["2×2", 1], ["4×4", 7], ["5×5", 0]] as const) {
     await act("menu:profilePuzzles");
-    await page.getByRole("option", { name: label, exact: true }).click();
+    await page.getByRole("menuitemradio", { name: label, exact: true }).click();
     await selectedCount(count);
     if (count) {
       assert.equal(await page.getByRole("button", { name: "Reset zoom" }).count(), 0);

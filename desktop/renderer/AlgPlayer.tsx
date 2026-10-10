@@ -8,8 +8,7 @@ import { ChevronFirst, Focus, Pause, Play, Rotate3d, RotateCcw, StepBack, StepFo
 import { AlgPlayer, PLAYER_SPEEDS, algScene, polyAlgScene, readAlg, speedLabel, type PlayerOptions } from "../../src/client/lib/algPlayer";
 import type { PolyPuzzle } from "../../src/shared/puzzleScene";
 import type { CubeMask } from "../../src/shared/cubeAppearance";
-import { paintShapes } from "./Cube";
-import { paintPulse } from "./paint";
+import { paintPulse, paintShapes } from "./paint";
 import { NUMERIC, Tip } from "./base";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -83,18 +82,18 @@ export function PlayerCube({ player, size, className }: { player: AlgPlayer; siz
 }
 
 /**
- * Under the cube: show the face to hold in front (it glows), and put the cube back as it started once it has been
+ * Under the cube: show the face to hold in front (marked for a moment), and put the cube back as it started once it has been
  * turned.
  */
 export function ViewButtons({ player, className }: { player: Pick<AlgPlayer, "subscribe" | "showFront" | "resetView" | "turned">; className?: string }) {
   const turned = useSyncExternalStore(player.subscribe, player.turned, player.turned);
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Button variant="secondary" size="lg" onClick={player.showFront} className="gap-2 shadow-md">
+      <Button variant="secondary" onClick={player.showFront}>
         <Focus />
         {tr("Show front")}</Button>
       {turned && (
-        <Button variant="secondary" size="lg" onClick={player.resetView} className="gap-2 shadow-md">
+        <Button variant="secondary" onClick={player.resetView}>
           <Rotate3d />
           {tr("Reset view")}</Button>
       )}
@@ -130,7 +129,7 @@ function LitWords({ player, words }: { player: AlgPlayer; words: ReturnType<type
             data-move={part.move}
             aria-current={part.move === current ? "step" : undefined}
             onClick={() => player.playSource(part.move!)}
-            className="-mx-[0.12em] rounded-[0.2em] px-[0.12em] outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 aria-[current=step]:bg-primary/15 aria-[current=step]:text-primary"
+            className="-mx-[0.15em] rounded-[0.3em] px-[0.15em] outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 aria-[current=step]:bg-primary aria-[current=step]:text-primary-foreground"
           >
             {said(part.text)}
           </button>
@@ -163,23 +162,22 @@ export function usePlayerKeys(player: AlgPlayer | null) {
 
 /**
  * The transport: restart, step back, play or pause, step forward, then the speed; the scrubber with the move count
- * under it. `compact` cycles the speed on one button; `touch` makes every target 44 px.
+ * under it. `compact` cycles the speed on one button; `touch` spreads the buttons and makes the scrubber 44 px.
  */
 export function PlayerControls({ player, compact = false, touch = false, className }: { player: AlgPlayer; compact?: boolean; touch?: boolean; className?: string }) {
   const total = player.total;
   // The buttons change with these only; the scrubber alone follows every frame.
   usePlayed(player, ({ playback: p }) => [p.playing, p.position === 0, p.target === 0, p.target >= total, p.position >= total, p.speed].join());
-  const p = player.playback,
-    icon = touch ? "icon-lg" : compact ? "icon-sm" : "icon";
+  const p = player.playback;
   const button = (tip: string, I: React.ElementType, onClick: () => void, disabled = false, primary = false) => (
     <Tip content={tip}>
       <Button
         variant={primary ? "default" : "ghost"}
-        size={icon}
+        size="icon"
         aria-label={said(tip)}
         disabled={disabled}
         onClick={onClick}
-        className={cn(!primary && "text-muted-foreground hover:text-foreground", touch && "size-11")}
+        className={cn(!primary && "text-muted-foreground hover:text-foreground")}
       >
         <I />
       </Button>
@@ -194,7 +192,7 @@ export function PlayerControls({ player, compact = false, touch = false, classNa
         {button("Next move (→)", StepForward, player.stepForward, p.target >= total)}
         {compact || touch ? (
           <Tip content="Speed">
-            <Button variant="ghost" size={touch ? "lg" : "sm"} onClick={player.cycleSpeed} aria-label={tr("Speed {0}", { 0: speedLabel(p.speed) })} className={cn(NUMERIC, "min-w-11 text-muted-foreground hover:text-foreground", touch && "h-11")}>
+            <Button variant="ghost" onClick={player.cycleSpeed} aria-label={tr("Speed {0}", { 0: speedLabel(p.speed) })} className={cn(NUMERIC, "min-w-11 text-muted-foreground hover:text-foreground")}>
               {speedLabel(p.speed)}
             </Button>
           </Tip>
@@ -232,20 +230,20 @@ function Scrubber({ player, touch }: { player: AlgPlayer; touch: boolean }) {
         }}
         className={cn("flex-1", touch && "py-3")}
       />
-      <span className={cn(NUMERIC, "w-14 shrink-0 text-right text-xs text-muted-foreground")} aria-live={held ? "off" : "polite"}>
+      <span className={cn(NUMERIC, "w-14 shrink-0 text-right text-sm font-semibold text-muted-foreground")} aria-live={held ? "off" : "polite"}>
         {Math.floor(done)} / {total}
       </span>
     </div>
   );
 }
 
-/** The speeds of a player side by side, the one in use pressed; `touch` makes them 44 px tall. */
-export function SpeedChoice({ player, touch = false, className }: { player: AlgPlayer; touch?: boolean; className?: string }) {
+/** The speeds of a player side by side, the one in use pressed. */
+export function SpeedChoice({ player, className }: { player: AlgPlayer; className?: string }) {
   const speed = usePlayed(player, (p) => p.playback.speed);
   return (
-    <ToggleGroup aria-label={tr("Speed")} size="sm" spacing={1} value={[String(speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className={className}>
+    <ToggleGroup aria-label={tr("Speed")} size="segment" spacing={0.5} value={[String(speed)]} onValueChange={(next: string[]) => next[0] && player.setSpeed(Number(next[0]))} className={cn("rounded-[12px] bg-muted p-1 inset-ring-1 inset-ring-edge", className)}>
       {PLAYER_SPEEDS.map((speed) => (
-        <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "px-2 text-xs text-muted-foreground aria-pressed:text-foreground", touch && "h-11")}>
+        <ToggleGroupItem key={speed} value={String(speed)} className={cn(NUMERIC, "text-muted-foreground hover:bg-accent aria-pressed:bg-accent aria-pressed:text-foreground")}>
           {speedLabel(speed)}
         </ToggleGroupItem>
       ))}

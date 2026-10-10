@@ -217,8 +217,8 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         { title: "OLL", text: "Make the top face one colour in a single algorithm (57 cases), or in two steps with 2-look OLL (10 algorithms).", sets: ["2look-oll", "oll"] },
         { title: "PLL", text: "Move the last-layer pieces into place in a single algorithm (21 cases), or with 2-look PLL (6 algorithms).", sets: ["2look-pll", "pll"] },
         {
-          title: "Going further", text: "When the last-layer edges are already oriented after F2L, ZBLL solves the whole last layer in one algorithm.",
-          sets: ["zbll-t", "zbll-u", "zbll-l", "zbll-pi", "zbll-h", "zbll-s", "zbll-as"],
+          title: "Going further", text: "WV and VLS orient the last layer while inserting the last pair; COLL and OLLCP leave only an edge PLL. When the last-layer edges are already oriented after F2L, ZBLL solves the whole last layer in one algorithm.",
+          sets: ["wv", "vls", "coll", "ollcp", "zbll-t", "zbll-u", "zbll-l", "zbll-pi", "zbll-h", "zbll-s", "zbll-as"],
         },
       ],
     },
@@ -236,6 +236,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
         },
         {
           title: "CMLL", text: "Orient and permute the four top corners in one algorithm (42 cases).",
+          sets: ["cmll"],
           mask: "OLL",
           algs: [
             { name: "Sune", alg: "R U R' U R U2 R'" },
@@ -248,8 +249,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
             { name: "Adjacent swap", alg: "R U R' U' R' F R2 U' R' U' R U R' F'", note: "Corners oriented: the two corners with matching sides go on the left." },
             { name: "Diagonal swap", alg: "F R U' R' U' R U R' F' R U R' U' R' F R F'", note: "Corners oriented, no two with matching sides." },
           ],
-          tips: ["These nine algorithms are two-look CMLL: orient the corners, then swap them. The top edges may move freely."],
-          missing: "The 42 one-look CMLL algorithms are not in Cubix yet: two-look CMLL is shown instead.",
+          tips: ["The nine algorithms below are two-look CMLL, to start with: orient the corners, then swap them. The top edges may move freely."],
         },
         {
           title: "LSE", text: "Solve the last six edges with only M and U turns: orient them, place the left and right edges, then finish the middle slice.",
@@ -323,7 +323,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           title: "First layer", text: "Solve a complete first layer, with matching side colours.",
           tips: ["Plan the whole layer during inspection.", "Build it on the bottom, so the top is in view for recognition."],
         },
-        { title: "CLL", text: "Orient and permute the last layer in one algorithm (42 cases).", missing: "The 42 CLL algorithms are not in Cubix yet." },
+        { title: "CLL", text: "Orient and permute the last layer in one algorithm (42 cases).", sets: ["2x2-cll"] },
       ],
     },
     {
@@ -334,7 +334,7 @@ export const METHODS: Record<PuzzleId, SolvingMethod[]> = {
           title: "First face", text: "Make one face a single colour; the first layer may be solved, adjacent-swapped or diagonal-swapped.",
           tips: ["Recognise the bottom layer during inspection: solved, adjacent swap or diagonal swap."],
         },
-        { title: "CLL, EG-1 or EG-2", text: "Recognise the case and solve both layers in one algorithm: CLL, EG-1 or EG-2 depending on the first layer, 42 cases each.", missing: "The CLL, EG-1 and EG-2 algorithms are not in Cubix yet." },
+        { title: "CLL, EG-1 or EG-2", text: "Recognise the case and solve both layers in one algorithm: CLL, EG-1 or EG-2 depending on the first layer, 42 cases each.", sets: ["2x2-cll", "2x2-eg1", "2x2-eg2"] },
       ],
     },
   ],

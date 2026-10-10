@@ -11,7 +11,7 @@
  * said, sticker by sticker.
  */
 import { FACES, slotsFor, type CubeState, type Face } from "../../shared/cube";
-import { HELD_HEX } from "../../shared/cubeAppearance";
+import { REAL_HELD_HEX } from "../../shared/cubeAppearance";
 import { msg } from "../i18n/msg";
 import { solveBeginner } from "./beginnerSolver";
 import { faceMap, pieceColours } from "./solveAnalysis";
@@ -447,7 +447,7 @@ const TURNS = (() => {
   return [...seen.values()].map((frame) => FACES.map((f) => FACES.indexOf(faceMap(frame)[f])));
 })();
 /** How each colour usually looks, and how much that weighs against the centres and the pieces. */
-const USUAL_RGB = FACES.map((f) => [HELD_HEX[f] >> 16, (HELD_HEX[f] >> 8) & 255, HELD_HEX[f] & 255].map(linear)),
+const USUAL_RGB = FACES.map((f) => [REAL_HELD_HEX[f] >> 16, (REAL_HELD_HEX[f] >> 8) & 255, REAL_HELD_HEX[f] & 255].map(linear)),
   USUAL = USUAL_RGB.map(feature);
 const USUAL_WEIGHT = 2;
 

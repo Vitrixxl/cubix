@@ -1,5 +1,5 @@
 import { CUBE_BODY, cubeOrientation, type CubeOrientation, type CubeShape } from './cubeScene';
-import { FACE_HEX } from './cubeAppearance';
+import { FACE_HEX, MINX_HEX } from './cubeAppearance';
 
 /**
  * The pyraminx, the megaminx, the skewb and the square-1 of the timer, drawn like the 3D cube (`cubeScene`): a dark
@@ -150,18 +150,18 @@ function megaminx(): Geometry {
   const tilt = Math.atan(2),
     around = (deg: number, up: number) => [Math.sin(tilt) * Math.sin((deg * Math.PI) / 180), up * Math.cos(tilt), Math.sin(tilt) * Math.cos((deg * Math.PI) / 180)],
     faces: [string, V, number][] = [
-      ['U', [0, 1, 0], 0xece8e2],
-      ['F', around(0, 1), 0x0f8a4b],
-      ['R', around(72, 1), FACE_HEX.R],
-      ['BR', around(144, 1), 0x2b56c4],
-      ['BL', around(216, 1), FACE_HEX.U],
-      ['L', around(288, 1), 0x8a4ee0],
-      ['D', [0, -1, 0], 0x8b8b94],
-      ['DR', around(36, -1), 0xfff3a3],
-      ['DBR', around(108, -1), 0xf59ad2],
-      ['B', around(180, -1), 0x86dd5c],
-      ['DBL', around(252, -1), FACE_HEX.L],
-      ['DL', around(324, -1), 0x86d3f7],
+      ['U', [0, 1, 0], MINX_HEX.U],
+      ['F', around(0, 1), MINX_HEX.F],
+      ['R', around(72, 1), MINX_HEX.R],
+      ['BR', around(144, 1), MINX_HEX.BR],
+      ['BL', around(216, 1), MINX_HEX.BL],
+      ['L', around(288, 1), MINX_HEX.L],
+      ['D', [0, -1, 0], MINX_HEX.D],
+      ['DR', around(36, -1), MINX_HEX.DR],
+      ['DBR', around(108, -1), MINX_HEX.DBR],
+      ['B', around(180, -1), MINX_HEX.B],
+      ['DBL', around(252, -1), MINX_HEX.DBL],
+      ['DL', around(324, -1), MINX_HEX.DL],
     ],
     normals = Object.fromEntries(faces.map(([name, n]) => [name, n]));
   const neighbours = (n: V) => faces.filter(([, m]) => Math.abs(dot(n, m) - 1 / Math.sqrt(5)) < 1e-6).map(([, m]) => m);

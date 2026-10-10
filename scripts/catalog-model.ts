@@ -43,6 +43,9 @@ export function buildCatalog(generated = new Date().toISOString().slice(0, 10)):
       algorithms: c.algorithms.map(a => ({ ...a, alg: reducedAlg(a.alg, size), ...(a.gen ? { gen: reducedAlg(a.gen, size) } : {}) })),
     });
   }
+  // Sets that stay on their own cube (COLL, CMLL, CLL, EG…), last: the cases before them keep their place.
+  const own = read<{ sets: SetDto[]; cases: CaseDto[] }>("algsets.json");
+  sets.push(...own.sets); cases.push(...own.cases);
   const ids = new Set<string>();
   for (const c of cases) { if (ids.has(c.id)) throw Error(`Duplicate case id: ${c.id}`); ids.add(c.id); }
   for (const s of sets) { const n = cases.filter(c => c.set === s.id).length; if (n !== s.count) throw Error(`Set ${s.id} declares ${s.count} cases but has ${n}`); }

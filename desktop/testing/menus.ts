@@ -5,7 +5,7 @@ import { chromium, type Page } from "playwright";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { signIn, startServer } from "./app";
+import { act as click, signIn, startServer } from "./app";
 
 const SHOTS = "artifacts/menus";
 await mkdir(SHOTS, { recursive: true });
@@ -15,7 +15,7 @@ const browser = await chromium.launch({ executablePath: process.env.CUBIX_TEST_C
 
 const settle = (page: Page) => page.waitForTimeout(300);
 const act = async (page: Page, action: string) => {
-  await page.locator(`[data-action="${action}"]`).first().click();
+  await click(page, action);
   await settle(page);
 };
 async function solve(page: Page) {
@@ -98,6 +98,9 @@ try {
   await page.locator(".case-row-open").nth(2).click();
   await settle(page);
   await shot(page, "case-light");
+  // The case is a dialog over the list.
+  await page.keyboard.press("Escape");
+  await settle(page);
   await act(page, "nav:profile");
   await shot(page, "profile-light");
   await act(page, "profileMode:playground");

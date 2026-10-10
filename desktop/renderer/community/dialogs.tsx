@@ -61,7 +61,7 @@ export function PersonRow({
   as?: "li" | "label" | "div";
 } & React.HTMLAttributes<HTMLElement>) {
   return (
-    <As className={cn("flex min-h-12 items-center gap-3 rounded-lg px-2 py-1.5", className)} data-person={p?.username} {...rest}>
+    <As className={cn("flex min-h-12 items-center gap-3 rounded-xl px-2 py-1.5", className)} data-person={p?.username} {...rest}>
       {lead}
       {face ?? <Avatar name={p?.username} src={p?.avatar} size={32} />}
       <span className="flex min-w-0 flex-1 flex-col">
@@ -77,7 +77,7 @@ export function PersonRow({
 const opener = (trigger: React.ReactElement<{ onClick?: () => void }>, open: () => void) => cloneElement(trigger, { onClick: open });
 
 /** A battle launched from a conversation: against the friend, or in a group against a member or whoever takes it. */
-export function BattleDialog({ conversation: c, group }: { conversation: Conversation; group?: Group }) {
+export function BattleDialog({ conversation: c, group, trigger }: { conversation: Conversation; group?: Group; trigger?: React.ReactElement }) {
   const [open, setOpen] = useState(false),
     [opponent, setOpponent] = useState("anyone"),
     [format, setFormat] = useState<Format>({ event: "333", points: 3, sets: 1 }),
@@ -86,7 +86,7 @@ export function BattleDialog({ conversation: c, group }: { conversation: Convers
     items = [{ value: "anyone", label: tr("Anyone in the group") }, ...others.map((m) => ({ value: m.id, label: m.username }))];
   return (
     <>
-      <HeadButton icon={Swords} label={tr("Battle")} data-action="conversation:battle" onClick={() => setOpen(true)} />
+      {opener(trigger ?? <HeadButton icon={Swords} label={tr("Battle")} data-action="conversation:battle" />, () => setOpen(true))}
       <Modal
         open={open}
         onOpenChange={setOpen}
@@ -209,7 +209,7 @@ export function FriendPicker({ friends, value, onChange }: { friends: Person[]; 
     shown = friends.filter((f) => f.username.toLowerCase().includes(query.trim().toLowerCase()));
   if (!friends.length)
     return (
-      <Empty icon={Users} className="rounded-lg border p-4">
+      <Empty icon={Users} className="rounded-[14px] bg-muted p-4">
         {tr("Add friends first: you invite them from here.")}
       </Empty>
     );
@@ -217,9 +217,9 @@ export function FriendPicker({ friends, value, onChange }: { friends: Person[]; 
     <div className="flex flex-col gap-2">
       <SearchField value={query} onChange={setQuery} placeholder="Find a friend" />
       {!shown.length ? (
-        <Empty className="rounded-lg border p-4">{tr("No friend by that name.")}</Empty>
+        <Empty className="rounded-[14px] bg-muted p-4">{tr("No friend by that name.")}</Empty>
       ) : (
-        <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1" aria-label={tr("Friends")}>
+        <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto rounded-lg bg-muted/60 p-1" aria-label={tr("Friends")}>
           {shown.map((f) => {
             const checked = value.includes(f.id);
             return (
@@ -227,7 +227,7 @@ export function FriendPicker({ friends, value, onChange }: { friends: Person[]; 
                 <PersonRow
                   as="label"
                   p={f}
-                  className={cn(ROW, "cursor-pointer", checked && "bg-primary/10 hover:bg-primary/15")}
+                  className={cn(ROW, "cursor-pointer rounded-(--radius-inner)", checked && "bg-accent hover:bg-accent")}
                   data-friend={f.username}
                   lead={<Checkbox checked={checked} onCheckedChange={(on) => onChange(on ? [...value, f.id] : value.filter((id) => id !== f.id))} />}
                 />
@@ -479,16 +479,10 @@ export function Requests() {
     empty = me && !me.incoming.length && !me.invitations.length && !me.outgoing.length;
   return (
     <Popover>
-      <Tip content={tr("Requests")}>
-        <PopoverTrigger render={<Button variant="outline" size="icon" className="relative" aria-label={count ? tr("Requests, {0} waiting", { 0: count }) : tr("Requests")} data-action="community:requests" />}>
-          <Bell />
-          {count > 0 && (
-            <span data-slot="requests-count" className="absolute -top-1.5 -right-1.5 flex">
-              <Count n={count} className="ml-0 h-4.5 min-w-4.5 px-1 ring-2 ring-background" />
-            </span>
-          )}
-        </PopoverTrigger>
-      </Tip>
+      <PopoverTrigger render={<Button variant="ghost" className="text-muted-foreground" aria-label={count ? tr("Requests, {0} waiting", { 0: count }) : tr("Requests")} data-action="community:requests" />}>
+        {tr("Requests")}
+        {count > 0 && <Count n={count} className="ml-0 h-4.5 min-w-4.5 px-1" />}
+      </PopoverTrigger>
       <PopoverContent align="end" className="w-88 gap-3 p-2" data-slot="requests">
         {empty && (
           <Empty icon={Bell} className="p-4">

@@ -1,20 +1,17 @@
 /**
- * The account page: who they are beside their year of practice, the chosen event's figures and curve,
- * then training, achievements and battles, the whole overview inside the window. Each section opens its own page.
+ * The account page, a practice notebook: who they are and their records, the journal of their days, the month and
+ * the weeks' best averages, the whole overview inside the window. Each section opens its own page.
  */
-import { BookA, BookOpen, Download, FileJson, LogOut, Settings, Sheet, Timer, Upload } from "lucide-react";
 import { store as s } from "./store";
-import { Avatar, Back, Button, Figure, InHead, MenuAction, MoreMenu, PAGE, PageHead, PuzzleButton, SelectMenu, Stats, Surface, Tip, plural, usePhone, useQuiet } from "./ui";
-import { TimerStats } from "./stats";
+import { PAGE, usePhone } from "./ui";
+import { StatsPage } from "./stats";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button as UiButton } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Heatmap } from "./profile/heatmap";
-import { AchievementsSection, BattlesSection, TimerSection, TrainingSection } from "./profile/sections";
-import { AchievementsPage, BattlesPage, TrainingPage } from "./profile/pages";
+import { BattlesPage, TrainingPage } from "./profile/pages";
+import { AchievementsPage } from "./profile/achievements";
 import { AnalysisPage } from "./profile/analysis";
-import { useProfileData, type ProfileData } from "./profile/data";
+import { useProfileData } from "./profile/data";
+import { IdentityCard, Journal, MonthCard, RecordPlates, WeeksCard } from "./profile/journal";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { ProfileSkeleton } from "./skeletons";
@@ -24,162 +21,46 @@ const SECTIONS: Record<string, string> = { playground: "Timer", training: "Train
 /** The reading column: the page's padding, centred and capped like GitHub's. */
 const COLUMN = cn(PAGE, "mx-auto w-full max-w-7xl");
 
-/** Bringing times from another timer (or a Qbix export), and taking all of them away as a file. */
-function DataButtons() {
-  const variant = useQuiet();
-  return (
-    <>
-      <Button action="importTimes" icon={Upload} tip={tr("Import times")} />
-      <DropdownMenu>
-        <Tip content={tr("Export")}>
-          <DropdownMenuTrigger render={<UiButton variant={variant} size="icon" aria-label={tr("Export")} data-action="menu:export" />}>
-            <Download />
-          </DropdownMenuTrigger>
-        </Tip>
-        <DropdownMenuContent align="end" className="w-auto">
-          <MenuAction action="exportSolves" icon={Sheet}>
-            {tr("My solves, as a table (CSV)")}
-          </MenuAction>
-          <MenuAction action="exportData" icon={FileJson}>
-            {tr("All my profile's data (JSON)")}
-          </MenuAction>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
-  );
-}
-
 /**
- * Who they are and how much they practise, every event together: the avatar and name, then six figures two by two,
- * so that their labels are never cut. Phones keep the page's other actions in its "…" menu.
- */
-function Identity({ d, phone }: { d: ProfileData; phone: boolean }) {
-  const user = s.user;
-  return (
-    <Surface className={cn("min-w-0 justify-between gap-5 p-5", phone && "p-4")}>
-      <div className="flex min-w-0 items-center gap-4">
-        <Avatar name={user?.username} size={48} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="truncate text-xl font-semibold tracking-tight">{user?.username}</h2>
-          <p className="truncate text-sm text-muted-foreground">{user?.joined ? tr("Joined {0}", { 0: user.joined }) : null}</p>
-        </div>
-        {phone && (
-          <InHead.Provider value={true}>
-            <MoreMenu>
-              <MenuAction action="importTimes" icon={Upload}>
-                {tr("Import times")}
-              </MenuAction>
-              <MenuAction action="exportSolves" icon={Sheet}>
-                {tr("Export my solves (CSV)")}
-              </MenuAction>
-              <MenuAction action="exportData" icon={FileJson}>
-                {tr("Export all my data (JSON)")}
-              </MenuAction>
-              <MenuAction action="notation" icon={BookA}>
-                {tr("Notation")}
-              </MenuAction>
-              <MenuAction action="help" icon={BookOpen}>
-                {tr("Guides")}
-              </MenuAction>
-              <MenuAction action="settings" icon={Settings}>
-                {tr("Settings")}
-              </MenuAction>
-            </MoreMenu>
-          </InHead.Provider>
-        )}
-      </div>
-      <section aria-label={tr("Summary")}>
-        <Stats className="grid-cols-2 gap-y-3">
-          <Figure caption="plain" size="xl" label={tr("Solves")} value={d.activity.length.toLocaleString()} />
-          <Figure caption="plain" size="xl" label={tr("Active days")} value={d.days.toLocaleString()} />
-          <Figure caption="plain" size="xl" label={tr("Streak")} value={String(d.streak.current)} tone={d.streak.current ? "warning" : ""} />
-          <Figure caption="plain" size="xl" label={tr("Best streak")} value={String(d.streak.longest)} />
-          <Figure caption="plain" size="xl" label={tr("This week")} value={d.week.toLocaleString()} />
-          <Figure caption="plain" size="xl" label={tr("Trained")} value={d.trainingSolves.toLocaleString()} />
-        </Stats>
-      </section>
-    </Surface>
-  );
-}
-
-/**
- * The overview fills the window under its header, as cards with room between them: who they are beside their year of
- * practice; the chosen event's figures and curve, its event picked in its title; training, achievements and battles
- * along the bottom. A short window scrolls the cards inside, under the header.
+ * The notebook fills the window under the header in three columns: who they are and their records; the journal of
+ * their days; the month and the best Ao5 of each week. Each column scrolls inside itself when the window is short.
  */
 function Overview() {
   const d = useProfileData();
   return (
-    <div className={COLUMN}>
-      <PageHead title={tr("Profile")}>
-        <DataButtons />
-      </PageHead>
-      {/* The margin given back keeps the cards' outlines clear of the scrolling edge. */}
-      <div data-tour="profile-overview" className="-m-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-1">
-        <div className="grid shrink-0 grid-cols-[20rem_minmax(0,1fr)] gap-4 2xl:grid-cols-[22rem_minmax(0,1fr)]">
-          <Identity d={d} phone={false} />
-          <Heatmap solves={d.activity} latest={d.latest} phone={false} />
+    <div className={PAGE}>
+      <div data-tour="profile-overview" className="grid min-h-0 flex-1 grid-cols-[16rem_minmax(0,1fr)_19rem] gap-5 xl:grid-cols-[18.75rem_minmax(0,1fr)_22.5rem] xl:gap-[22px]">
+        <div className="flex min-h-0 flex-col gap-4">
+          <IdentityCard />
+          <RecordPlates d={d} />
         </div>
-        <div className="flex min-h-64 flex-1 flex-col">
-          <TimerSection d={d} phone={false} fill />
-        </div>
-        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_19rem] gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_22rem]">
-          <TrainingSection d={d} compact />
-          <AchievementsSection d={d} compact />
-          <BattlesSection compact />
+        <Journal d={d} phone={false} />
+        <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1">
+          <MonthCard d={d} />
+          <WeeksCard d={d} />
         </div>
       </div>
     </div>
   );
 }
 
-/** Phones: the same cards one under the other, scrolling inside the page; signing out closes the list, centred. */
+/** Phones: the same cards one under the other, scrolling inside the page. */
 function PhoneOverview() {
   const d = useProfileData();
   return (
-    <div data-tour="profile-overview" className="flex flex-col gap-3">
-      <Identity d={d} phone />
-      <TimerSection d={d} phone />
-      <Heatmap solves={d.activity} latest={d.latest} phone />
-      <TrainingSection d={d} />
-      <AchievementsSection d={d} />
-      <BattlesSection />
-      <div className="flex justify-center pb-2">
-        <Button action="logout" icon={LogOut} variant="ghost" className="text-muted-foreground hover:text-destructive">
-          {tr("Log out")}
-        </Button>
-      </div>
+    <div data-tour="profile-overview" className="flex flex-col gap-4 pb-2">
+      <IdentityCard />
+      <MonthCard d={d} />
+      <Journal d={d} phone />
+      <RecordPlates d={d} />
+      <WeeksCard d={d} />
     </div>
-  );
-}
-
-function TimerPage({ phone }: { phone: boolean }) {
-  const p = s.profile,
-    count = p.playground?.summary?.count ?? 0;
-  return (
-    <>
-      <PageHead title={tr("Timer")} sub={count ? plural(count, "solve") : undefined} lead={!phone && <Back action="profileMode:overview" label="Back to the profile" />}>
-        {!phone && <PuzzleButton profile />}
-        <SelectMenu action="profileScramble" caption="Scramble" value={s.profileScramble} options={s.info(s.profilePuzzle).scrambles.map((id: string) => ({ id, label: s.label("scrambles", id) }))} />
-      </PageHead>
-      <TimerStats
-        data={p.playground}
-        empty={
-          <>
-            <span>{tr("No times in this selection yet.")}</span>
-            <Button action="nav:playground" icon={Timer} variant="outline">
-              {tr("Open the timer")}
-            </Button>
-          </>
-        }
-      />
-    </>
   );
 }
 
 function SubPage({ mode, phone }: { mode: string; phone: boolean }) {
   return mode === "playground" ? (
-    <TimerPage phone={phone} />
+    <StatsPage phone={phone} />
   ) : mode === "training" ? (
     <TrainingPage phone={phone} />
   ) : mode === "achievements" ? (

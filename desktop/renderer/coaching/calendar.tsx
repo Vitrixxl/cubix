@@ -33,18 +33,18 @@ export const NARROW_BAR = "hidden h-1 shrink-0 rounded-full bg-primary/50 @max-[
 export function MonthHeader({ month, today, onMonth, children }: { month: string; today: string; onMonth: (month: string) => void; children?: React.ReactNode }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2">
-      <h2 className="min-w-36 text-base font-semibold tracking-tight first-letter:uppercase">{monthName.format(toDate(month + "-01"))}</h2>
+      <h2 className="min-w-36 text-lg font-extrabold tracking-[-0.02em] first-letter:uppercase">{monthName.format(toDate(month + "-01"))}</h2>
       <Tip content={tr("Previous month")}>
-        <UiButton variant="outline" size="icon-sm" aria-label={tr("Previous month")} onClick={() => onMonth(shiftMonth(month, -1))} data-action="calendar:previous">
+        <UiButton variant="outline" size="icon" aria-label={tr("Previous month")} onClick={() => onMonth(shiftMonth(month, -1))} data-action="calendar:previous">
           <ChevronLeft />
         </UiButton>
       </Tip>
       <Tip content={tr("Next month")}>
-        <UiButton variant="outline" size="icon-sm" aria-label={tr("Next month")} onClick={() => onMonth(shiftMonth(month, 1))} data-action="calendar:next">
+        <UiButton variant="outline" size="icon" aria-label={tr("Next month")} onClick={() => onMonth(shiftMonth(month, 1))} data-action="calendar:next">
           <ChevronRight />
         </UiButton>
       </Tip>
-      <UiButton variant="ghost" size="sm" onClick={() => onMonth(today.slice(0, 7))}>
+      <UiButton variant="ghost" onClick={() => onMonth(today.slice(0, 7))}>
         {tr("Today")}
       </UiButton>
       {children}
@@ -56,16 +56,16 @@ export function MonthHeader({ month, today, onMonth, children }: { month: string
 export function CalendarSkeleton() {
   return (
     <Surface className="min-w-0 flex-1 max-lg:min-h-[36rem]" aria-busy="true" aria-label={tr("Loading")}>
-      <div className="grid shrink-0 grid-cols-7 border-b">
+      <div className="grid shrink-0 grid-cols-7 px-2 pt-2">
         {WEEKDAYS.map((w) => (
           <span key={w} className="px-2.5 py-2">
             <Skeleton className="h-4 w-8" />
           </span>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-1 p-2 pt-0">
         {Array.from({ length: 42 }, (_, i) => (
-          <span key={i} className={cn("p-1.5", i % 7 !== 6 && "border-r", i < 35 && "border-b")}>
+          <span key={i} className="rounded-xl bg-muted/40 p-1.5">
             <Skeleton className="size-6 rounded-full" />
           </span>
         ))}
@@ -107,15 +107,15 @@ export function Month({
   const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
   return (
     <Surface className={cn("min-w-0 flex-1 max-lg:min-h-[36rem] max-lg:flex-none", className)} role="grid" aria-label={tr("Calendar")} data-slot="calendar">
-      <div className="grid shrink-0 grid-cols-7 border-b" role="row">
+      <div className="grid shrink-0 grid-cols-7 gap-1 px-2 pt-2 max-md:px-1" role="row">
         {WEEKDAYS.map((w) => (
-          <span key={w} role="columnheader" className="px-2.5 py-2 text-xs font-medium text-muted-foreground">
+          <span key={w} role="columnheader" className="px-2 py-1.5 text-xs font-semibold text-muted-foreground max-md:px-1">
             {said(w)}
           </span>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
-        {days.map((day, i) => {
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-1 p-2 pt-0 max-md:gap-0.5 max-md:p-1 max-md:pt-0">
+        {days.map((day) => {
           const past = day < today,
             off = (past && !allowPast) || !!disabled?.(day),
             outside = !day.startsWith(month),
@@ -133,13 +133,11 @@ export function Month({
               onClick={(e) => !off && pick(day, e)}
               onKeyDown={(e) => !off && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pick(day, e))}
               className={cn(
-                "@container relative flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden p-1.5 outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
-                i % 7 !== 6 && "border-r",
-                i < 35 && "border-b",
-                outside && "bg-muted/25",
-                off ? "text-muted-foreground/60" : "cursor-pointer hover:bg-muted/50",
+                "@container relative flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1.5 transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset max-md:rounded-lg max-md:p-1",
+                !outside && "bg-muted/45",
+                off ? "text-muted-foreground/60" : "cursor-pointer hover:bg-accent",
                 className,
-                chosen && "bg-primary/10 ring-2 ring-primary ring-inset hover:bg-primary/10",
+                chosen && "bg-accent hover:bg-accent",
               )}
             >
               <span className="flex items-center gap-1">
@@ -155,15 +153,21 @@ export function Month({
   );
 }
 
-/** A box of a day's grid ({@link DayBoxes}): a time to book, a session booked, the count of the others. */
-const BOX = cn("flex min-h-6 w-full min-w-0 items-center justify-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums transition-colors", FOCUS);
+/** A box of a day's grid ({@link DayBoxes}): a time to book, a session booked, the count of the others. Outlined, never filled. */
+const BOX = cn("flex min-h-6 w-full min-w-0 items-center justify-center gap-1 rounded-[8px] border-[1.5px] px-1.5 py-0.5 text-xs font-bold tabular-nums transition-colors", FOCUS);
 /** What a box holds: free (a slot to book, a session to come), chosen (the slot picked, a session in the coach's month), offered (another time offered), past. */
 const TONES = {
-  free: "bg-primary/15 text-primary hover:bg-primary/25",
-  chosen: "bg-primary text-primary-foreground hover:bg-primary/90",
-  offered: "bg-warning/15 text-warning hover:bg-warning/25",
-  past: "bg-muted text-muted-foreground hover:bg-muted/70",
+  free: "border-accent text-foreground hover:border-primary hover:text-primary",
+  chosen: "border-primary text-primary hover:bg-primary/10",
+  offered: "border-dashed border-warning text-warning",
+  past: "border-transparent text-muted-foreground hover:text-foreground",
 };
+
+/** A time to pick, outlined: the one chosen in the accent, one gone struck through. Times of a day, slots of a coach. */
+export const SLOT = cn(
+  "inline-flex h-8 shrink-0 items-center rounded-[12px] border-[1.5px] border-accent px-2.5 text-[13px] font-bold whitespace-nowrap tabular-nums transition-colors hover:border-primary hover:text-primary aria-pressed:border-primary aria-pressed:text-primary disabled:border-dashed disabled:text-muted-foreground disabled:line-through disabled:hover:border-accent",
+  FOCUS,
+);
 
 /** A box of a day's grid, the same in every calendar: `paired` when it shares its line. */
 export function DayChip({ tone, paired = false, className, ...props }: { tone: keyof typeof TONES; paired?: boolean } & React.ComponentProps<"button">) {

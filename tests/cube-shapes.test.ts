@@ -7,8 +7,8 @@ const fingerprint = (value: unknown) =>
 
 test("the cube's shapes stay exactly as drawn, mid-move, held, turned and at every size", () => {
   const turned = turnCube(cubeOrientation(), 0.7, 0.3);
-  expect(fingerprint(cubeShapes(cubeScene("R U R' U'", 3, "full"), 1.3))).toBe("c40d2c62c312956c");
-  expect(fingerprint(cubeShapes(cubeScene("F2 Rw 3U' B", 5, "full", true, true), 2.2, undefined, undefined, turned))).toBe("663c3eb324b600a3");
-  expect(fingerprint(cubeShapes(cubeScene("L D2 Fw", 7, "full"), 4.1, undefined, undefined, turned))).toBe("f5feb1322008cb6e");
-  expect(fingerprint(cubeShapes(cubeScene("", 2, "full"), 0))).toBe("3d2644a767baa405");
+  expect(fingerprint(cubeShapes(cubeScene("R U R' U'", 3, "full"), 1.3))).toBe("d229204b7c5efaad");
+  expect(fingerprint(cubeShapes(cubeScene("F2 Rw 3U' B", 5, "full", true, true), 2.2, undefined, undefined, turned))).toBe("b0c8bd5055ddef80");
+  expect(fingerprint(cubeShapes(cubeScene("L D2 Fw", 7, "full"), 4.1, undefined, undefined, turned))).toBe("354a7ad37e4c07c2");
+  expect(fingerprint(cubeShapes(cubeScene("", 2, "full"), 0))).toBe("5902713bb6c5352c");
 });

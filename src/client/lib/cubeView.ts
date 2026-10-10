@@ -1,11 +1,11 @@
 /**
  * The view of a cube drawn as it stands rather than played (the assisted solve's): turned under the pointer, put back,
- * its front face made to glow, with the same calls as `AlgPlayer` so both renderers' view buttons and glow take either.
+ * its front face marked, with the same calls as `AlgPlayer` so both renderers' view buttons and mark take either.
  */
 import { cubeFace, cubeOrientation, turnCube, type CubeOrientation } from "../../shared/cubeScene";
 
-/** The face held in front, in cube axes, and how long `showFront` makes it glow. */
-const FRONT = [0, 0, 1], FRONT_PULSE_MS = 1400;
+/** The face held in front, in cube axes, and how long `showFront` marks it. */
+const FRONT = [0, 0, 1], FRONT_PULSE_MS = 2200;
 
 // ponytail: mirrors AlgPlayer's view half; AlgPlayer can extend this once nobody else is editing it.
 export class CubeView {

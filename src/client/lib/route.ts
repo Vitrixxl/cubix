@@ -1,7 +1,7 @@
 /** The app's addresses as routes and back, free of the router: the web app's and the links the Android app opens. */
 import { isPuzzle, type PuzzleId } from "../../shared/puzzles";
 export interface AppRoute { page: string; caseId: string; /** Coaching: the view and its argument, e.g. "coach/<id>". */ coaching?: string; /** The community, tournaments and matches: the view under the page, e.g. "groups/<id>/battles". */ view?: string; profileMode: string; trainingStep: "setup" | "practice"; learnMethod: string; learnStep?: number; puzzle?: PuzzleId }
-const pages: Record<string, string> = { login: "login", timer: "playground", algorithms: "algorithms", training: "training", duel: "duel", learn: "learn", coaching: "coaching", community: "community", tournaments: "tournaments", match: "match", profile: "profile", onboarding: "onboarding" };
+const pages: Record<string, string> = { login: "login", timer: "playground", algorithms: "algorithms", training: "training", duel: "duel", learn: "learn", coaching: "coaching", community: "community", tournaments: "tournaments", match: "match", daily: "daily", profile: "profile", onboarding: "onboarding" };
 /** Pages whose address goes deeper than one level: a view and its arguments. */
 const NESTED = ["community", "tournaments", "match"];
 const paths = Object.fromEntries(Object.entries(pages).map(([path, page]) => [page, path]));
@@ -38,7 +38,7 @@ export function readRoute(pathname: string, search: string): AppRoute | null {
   if (!page || parts.length > 2) return null;
   let detail = "";
   try { detail = decodeURIComponent(parts[1] ?? ""); } catch { return null; }
-  if (["playground", "duel", "onboarding", "login"].includes(page) && detail) return null;
+  if (["playground", "duel", "daily", "onboarding", "login"].includes(page) && detail) return null;
   if (page === "profile" && detail && !["playground", "training", "achievements", "duels", "analysis"].includes(detail)) return null;
   if (page === "training" && detail && detail !== "practice") return null;
   const query = new URLSearchParams(search), puzzle = query.get("puzzle"), step = query.get("step");
@@ -46,13 +46,12 @@ export function readRoute(pathname: string, search: string): AppRoute | null {
   if (step !== null && (page !== "learn" || !detail || !/^\d{1,3}$/.test(step))) return null;
   return { page, caseId: page === "algorithms" ? detail : "", profileMode: page === "profile" ? detail || "overview" : "overview", trainingStep: page === "training" && detail ? "practice" : "setup", learnMethod: page === "learn" ? detail : "", ...(isPuzzle(puzzle) ? { puzzle } : {}), ...(step !== null ? { learnStep: Number(step) } : {}) };
 }
-/** The pages of an account: a guest, who uses the app on this device only, is sent to the login page instead. The
+/** The pages of an account: a guest, who uses the app on this device only, is asked to sign in instead. The
  * analysis of the smart cube solves, under the profile, reads this device's solves and stays open. */
 export const ACCOUNT_PAGES = ["duel", "coaching", "community", "tournaments", "match", "profile"];
 export const accountOnly = (route: Pick<AppRoute, "page" | "profileMode">) => ACCOUNT_PAGES.includes(route.page) && !(route.page === "profile" && route.profileMode === "analysis");
-/** The login page, back to `next` (an address of the app) once signed in. */
-export const loginUrl = (next?: string) => "/login" + (next && next !== "/login" ? "?redirect=" + encodeURIComponent(next) : "");
-/** Where the login page goes once signed in: its `redirect`, if it is an address of this site, else the timer. */
+/** Where /login (the sign-in dialog, see app.tsx) goes once signed in: its `redirect`, if it is an address of this
+ * site, else the timer. */
 export function loginNext(search: string) {
   const next = new URLSearchParams(search).get("redirect") ?? "";
   return /^\/(?![/\\])/.test(next) ? next : "/timer";

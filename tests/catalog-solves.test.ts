@@ -3,18 +3,23 @@ import { cases } from "../src/client/local/catalog";
 import { applyAlg, colorOf, faceOfSlot, slotsFor, solved, type CubeState } from "../src/shared/cube";
 import { isPolyPuzzle, polyScene, type PolyPuzzle } from "../src/shared/puzzleScene";
 import { puzzleOf } from "../src/shared/puzzles";
-import { casePlayItem, executableAlg } from "../src/client/lib/caseState";
+import { casePlayItem, executableAlg, moveCount } from "../src/client/lib/caseState";
 import { polyAlgScene, readAlg } from "../src/client/lib/algPlayer";
 
 /**
- * The stickers a stage's algorithm must bring home: all of them, but for F2L the last layer's, and for OLL the last
- * layer's sides (its top only has to be of its colour, which `colorOf` checks).
+ * The stickers a stage's algorithm must bring home: all of them, but for F2L the last layer's, for OLL (and the last
+ * slot) the last layer's sides (its top only has to be of its colour, which `colorOf` checks), for OLLCP and COLL the
+ * top edges' sides, for CMLL the M slice and the top edges.
  */
 function goal(stage: string, size: number) {
   const top = (size - 1) / 2,
     slots = slotsFor(size).map((s, i) => ({ i, s }));
   if (stage === "F2L") return slots.filter(({ s }) => s.p[1] !== top).map(({ i }) => i);
-  if (stage === "OLL") return slots.filter(({ s }) => s.p[1] !== top || s.n[1] === 1).map(({ i }) => i);
+  if (stage === "OLL" || stage === "Last slot") return slots.filter(({ s }) => s.p[1] !== top || s.n[1] === 1).map(({ i }) => i);
+  // OLLCP and COLL leave the top edges' sides; CMLL, the M slice and the top edges.
+  const corner = (p: readonly number[]) => p.every((v) => Math.abs(v) === top);
+  if (stage === "OLLCP" || stage === "COLL") return slots.filter(({ s }) => s.p[1] !== top || s.n[1] === 1 || corner(s.p)).map(({ i }) => i);
+  if (stage === "CMLL") return slots.filter(({ s }) => s.p[0] !== 0 && (s.p[1] !== top || corner(s.p))).map(({ i }) => i);
   return slots.map(({ i }) => i);
 }
 /** The 24 ways to hold a cube. */
@@ -75,4 +80,8 @@ test("the other puzzles' algorithms play turn by turn, each turn lit on its writ
   expect(polyAlgScene("minx", "R' F' BR' R BR")!.sources).toEqual([0, 1, 2, 3, 4]);
   expect(polyAlgScene("skewb", "R' L R L' y2")!.sources).toHaveLength(5);
   expect(polyAlgScene("pyram", "R ?")).toBeNull();
+});
+
+test("an algorithm's length counted on the page is the catalogue's own STM, wherever it has one", () => {
+  for (const c of cases) for (const a of c.algorithms) if (a.stm != null) expect([c.id, moveCount(a.alg)]).toEqual([c.id, a.stm]);
 });

@@ -1,6 +1,6 @@
 /**
- * The web app's Geist, cut to the characters it writes and packed as WOFF2: `bun desktop/scripts/subset-fonts.ts`
- * writes desktop/assets/fonts/Geist-*.woff2 from the TTFs beside them. Run again only when the app writes a character
+ * The web app's fonts (Bricolage Grotesque, and Geist for the landing page), cut to the characters it writes and packed as WOFF2: `bun desktop/scripts/subset-fonts.ts`
+ * writes desktop/assets/fonts/*.woff2 from the TTFs beside them. Run again only when the app writes a character
  * outside these ranges; a missing one falls back to the system's sans-serif.
  *
  * Subset by HarfBuzz (libharfbuzz-subset, through bun:ffi), every layout feature kept (tabular figures…). WOFF2 with
@@ -86,9 +86,10 @@ function woff2(sfnt: Uint8Array): Uint8Array {
   return out;
 }
 
-for (const weight of WEIGHTS) {
-  const ttf = new Uint8Array(await Bun.file(`${DIR}/Geist-${weight}.ttf`).arrayBuffer());
+// The app's Bricolage Grotesque (one variable font, its axes kept), then the landing page's Geist.
+for (const name of ["BricolageGrotesque", ...WEIGHTS.map((weight) => `Geist-${weight}`)]) {
+  const ttf = new Uint8Array(await Bun.file(`${DIR}/${name}.ttf`).arrayBuffer());
   const out = woff2(subset(ttf));
-  await Bun.write(`${DIR}/Geist-${weight}.woff2`, out);
-  console.log(`Geist-${weight}.woff2: ${out.length} bytes (TTF ${ttf.length})`);
+  await Bun.write(`${DIR}/${name}.woff2`, out);
+  console.log(`${name}.woff2: ${out.length} bytes (TTF ${ttf.length})`);
 }
