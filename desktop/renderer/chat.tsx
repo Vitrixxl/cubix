@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@/components/ui/input-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { localFormat, tr } from "../../src/client/i18n";
+import { VirtualList } from "./virtual";
 
 /** The rows of a list inside its card. */
 export const LIST = "flex flex-col gap-0.5 p-2";
@@ -43,10 +44,19 @@ export function ConversationList({
   top,
   query,
   onQuery,
+  scroller,
   children,
   className,
   ...rest
-}: { head?: React.ReactNode; top?: React.ReactNode; query?: string; onQuery?: (query: string) => void } & Props & React.HTMLAttributes<HTMLDivElement>) {
+}: {
+  head?: React.ReactNode;
+  top?: React.ReactNode;
+  query?: string;
+  onQuery?: (query: string) => void;
+  /** Takes the rows' scrolling box, for a `VirtualList` of them. */
+  scroller?: React.Ref<HTMLDivElement>;
+} & Props &
+  React.HTMLAttributes<HTMLDivElement>) {
   return (
     <Surface className={cn("w-[340px] shrink-0 gap-3 pt-3 max-md:w-full", className)} {...rest}>
       {head && <div className="flex shrink-0 items-center gap-1.5 px-4 pt-1">{head}</div>}
@@ -56,7 +66,9 @@ export function ConversationList({
         </div>
       )}
       {top}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+      <div ref={scroller} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {children}
+      </div>
     </Surface>
   );
 }
@@ -190,7 +202,8 @@ type Turn<T> = { day: boolean; mine: boolean; items: T[]; event?: React.ReactNod
  * name (in their colour, "You" in the accent) and its time in the margin. A message `event`
  * returns something for (a battle, a tournament) stands as a turn of its own. `them` names the other party when the
  * messages do not carry their sender. `bubble` draws a message inside its turn; `children` come after (the ones on
- * their way). The newest stays in view as messages arrive and pictures take their height.
+ * their way). The newest stays in view as messages arrive and pictures take their height. Only the turns in view are
+ * drawn, so a long conversation stays light.
  */
 export function MessageList<T extends Said>({
   messages,
@@ -243,28 +256,36 @@ export function MessageList<T extends Said>({
         empty
       ) : (
         <div className="flex flex-col gap-1">
-          {turns.map((t) => {
-            const first = t.items[0]!,
-              name = t.mine ? tr("You") : (first.sender?.username ?? them ?? "");
-            return (
-              <React.Fragment key={first.id}>
-                {t.day && <DayDivider at={first.createdAt} />}
-                <div className={cn(TURN, "py-1.5")} data-mine={t.mine || undefined}>
-                  <div className="flex min-w-0 items-baseline gap-2 md:flex-col md:items-end md:gap-0 md:pt-0.5 md:text-right">
-                    <span className={cn("max-w-full truncate text-[13px] font-extrabold", t.mine ? "text-primary" : personColour(name))}>{name}</span>
-                    <time className={cn(NUMERIC, "text-[11px] font-semibold text-muted-foreground")}>{time(first.createdAt)}</time>
-                  </div>
-                  <div className="flex min-w-0 flex-col items-start gap-1.5">
-                    {t.items.map((m) => (
-                      <div key={m.id} className={cn("flex max-w-full min-w-0 flex-col items-start gap-1.5", t.event && "w-full", fresh(m) && FRESH)} data-message={m.id}>
-                        {t.event ?? bubble(m)}
-                      </div>
-                    ))}
+          <VirtualList
+            items={turns}
+            scroller={scroller}
+            estimate={72}
+            gap={4}
+            anchorTo="end"
+            rowKey={(t) => t.items[0]!.id}
+            row={(t, _, measure) => {
+              const first = t.items[0]!,
+                name = t.mine ? tr("You") : (first.sender?.username ?? them ?? "");
+              return (
+                <div ref={measure} className="flex flex-col gap-1">
+                  {t.day && <DayDivider at={first.createdAt} />}
+                  <div className={cn(TURN, "py-1.5")} data-mine={t.mine || undefined}>
+                    <div className="flex min-w-0 items-baseline gap-2 md:flex-col md:items-end md:gap-0 md:pt-0.5 md:text-right">
+                      <span className={cn("max-w-full truncate text-[13px] font-extrabold", t.mine ? "text-primary" : personColour(name))}>{name}</span>
+                      <time className={cn(NUMERIC, "text-[11px] font-semibold text-muted-foreground")}>{time(first.createdAt)}</time>
+                    </div>
+                    <div className="flex min-w-0 flex-col items-start gap-1.5">
+                      {t.items.map((m) => (
+                        <div key={m.id} className={cn("flex max-w-full min-w-0 flex-col items-start gap-1.5", t.event && "w-full", fresh(m) && FRESH)} data-message={m.id}>
+                          {t.event ?? bubble(m)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </React.Fragment>
-            );
-          })}
+              );
+            }}
+          />
           {children}
         </div>
       )}

@@ -3,13 +3,14 @@
  * day's scramble and its one action in the middle (solve it, or the share of the field beaten once done), the field as
  * a histogram on the right with the player's bar raised. The same standing in a dialog after the solve.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, CalendarDays, History, Play, Undo2 } from "lucide-react";
 import { store as s } from "./store";
 import { call } from "./bridge";
 import { Alg, Button, Empty, Modal, NUMERIC, PAGE, PageHead, Segmented, Surface, Tip, isPhone, useViewport } from "./ui";
 import { CARD_LINK, KICKER, PanelHead, Stage, StageAction, StageFigure, StageMeter, Ticket, opens } from "./tournaments/format";
 import { cn } from "@/lib/utils";
+import { VirtualList } from "./virtual";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button as UiButton } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -319,7 +320,8 @@ function Results({ day, event, onPick, bare = false }: { day: string; event: Dai
           .map(([key, v]) => ({ day: key.split(":")[0]!, timeMs: v.timeMs, penalty: v.penalty as DailyDay["penalty"], verified: !!v.verified, rank: 0, beats: 0, total: 0 }))
           .sort((a, b) => b.day.localeCompare(a.day));
   const stats = dailyStats(list, today),
-    ranked = history && history !== "offline";
+    ranked = history && history !== "offline",
+    scroller = useRef<HTMLDivElement>(null);
   return (
     <>
       {!bare && <PanelHead title="Your results" meta={list.length || undefined} className="px-1" />}
@@ -329,7 +331,7 @@ function Results({ day, event, onPick, bare = false }: { day: string; event: Dai
         <Stat label="Mean rank" value={ranked && stats.rank != null ? stats.rank.toLocaleString() : null} />
         <Stat label="Streak" value={tn(stats.streak, "{n} day")} />
       </dl>
-      <div className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1" aria-label={tr("Your days")}>
+      <div ref={scroller} className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1" aria-label={tr("Your days")}>
         {history === null ? (
           <Skeleton className="min-h-24 flex-1 rounded-[14px]" />
         ) : (
@@ -346,19 +348,26 @@ function Results({ day, event, onPick, bare = false }: { day: string; event: Dai
                 className={TICKET_LINK}
               />
             )}
-            {list.map((v) => (
-              <Ticket
-                key={v.day}
-                result={v.penalty === "dnf" ? "loss" : "win"}
-                score={<span className="text-base">{fmtSolve(v.timeMs, v.penalty)}</span>}
-                name={v.day === today ? tr("Today") : dayLabel(v.day)}
-                level={v.total ? tr("{0} of {1}", { 0: v.rank, 1: v.total }) : undefined}
-                sub={<Verified on={v.verified} />}
-                aria-current={day === v.day ? "true" : undefined}
-                {...opens(() => onPick(v.day, event))}
-                className={cn(TICKET_LINK, "grid-cols-[72px_minmax(0,1fr)_auto]")}
-              />
-            ))}
+            <VirtualList
+              items={list}
+              scroller={scroller}
+              estimate={60}
+              rowKey={(v) => v.day}
+              row={(v, _, measure) => (
+                <Ticket
+                  // Ticket hands `ref` to its root like its other attributes.
+                  {...{ ref: measure }}
+                  result={v.penalty === "dnf" ? "loss" : "win"}
+                  score={<span className="text-base">{fmtSolve(v.timeMs, v.penalty)}</span>}
+                  name={v.day === today ? tr("Today") : dayLabel(v.day)}
+                  level={v.total ? tr("{0} of {1}", { 0: v.rank, 1: v.total }) : undefined}
+                  sub={<Verified on={v.verified} />}
+                  aria-current={day === v.day ? "true" : undefined}
+                  {...opens(() => onPick(v.day, event))}
+                  className={cn(TICKET_LINK, "grid-cols-[72px_minmax(0,1fr)_auto]")}
+                />
+              )}
+            />
             {!s.signedIn && (
               <p className="px-1 pt-3 text-sm text-muted-foreground">
                 <SignInNote />

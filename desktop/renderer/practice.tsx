@@ -17,6 +17,7 @@ import { useLatestAnalysis, useSmartCase, useSmartSolve } from "./smartSolve";
 import { caseGoal, caseMatcher, goalReached, setupTurns } from "../../src/client/lib/smartTraining";
 import { SolveStrip } from "./SolveAnalysis";
 import { SeenDiagram } from "./algorithms";
+import { VirtualList } from "./virtual";
 import { recommendedWhy } from "../../src/client/lib/trainingPicks";
 import { balancedColumns, FiguresBand, useWidth } from "./FiguresEditor";
 import {
@@ -1069,7 +1070,8 @@ function SessionBoard() {
     metrics = s.metrics(),
     extremes = sessionExtremes(s.solves),
     rows = trainingSessionRows<any, any>(s.cases().filter((c: any) => tried.has(c.id)), s.solves).sort((a, b) => (b.mean ?? Infinity) - (a.mean ?? Infinity)),
-    lang = language();
+    lang = language(),
+    list = useRef<HTMLDivElement>(null);
   return (
     <>
       <div className="flex shrink-0 items-center gap-2 px-4 pt-4">
@@ -1110,12 +1112,18 @@ function SessionBoard() {
       </div>
       <SessionCases />
       {tab === "cases" ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pt-3 pb-3">
+        <div ref={list} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pt-3 pb-3">
           {rows.length ? (
             <>
               <span className="px-2 pb-1 text-xs font-semibold text-faint">{tr("Slowest to fastest · {0}", { 0: plural(s.solves.length, "attempt") })}</span>
-              {rows.map(({ c, count, mean, validCount }, i) => (
-                <div key={c.id} aria-current={c.id === s.training?.id ? "step" : undefined} className="grid shrink-0 grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl px-2 py-1.5 aria-[current=step]:bg-accent">
+              <VirtualList
+                items={rows}
+                scroller={list}
+                estimate={46}
+                gap={2}
+                rowKey={(r) => r.c.id}
+                row={({ c, count, mean, validCount }, i, measure) => (
+                <div ref={measure} aria-current={c.id === s.training?.id ? "step" : undefined} className="grid shrink-0 grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl px-2 py-1.5 aria-[current=step]:bg-accent">
                   <Diagram c={c} size={34} />
                   <span className="min-w-0">
                     <b className="block truncate text-sm">{tr(c.name)}</b>
@@ -1128,18 +1136,31 @@ function SessionBoard() {
                   </span>
                   <span className={cn(NUMERIC, "text-[15px] font-bold", rows.length > 1 && (i === 0 ? "text-destructive" : i === rows.length - 1 ? "text-success" : ""))}>{fmtTime(mean)}</span>
                 </div>
-              ))}
+                )}
+              />
             </>
           ) : (
             <NoTimes />
           )}
         </div>
       ) : (
-        <div className="times-list flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pt-3 pb-3">
+        <div ref={list} className="times-list flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pt-3 pb-3">
           {!s.solves.length && <NoTimes />}
-          {[...s.solves].reverse().map((v, i) => (
-            <TimeRow key={v.id} solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={false} lang={lang} caption={tr(s.find(v.case_id)?.name ?? "")} />
-          ))}
+          {/* Newest first, read from the end of the session rather than a reversed copy of it. */}
+          <VirtualList
+            items={s.solves}
+            scroller={list}
+            estimate={36}
+            rowKey={(_, i) => s.solves[s.solves.length - 1 - i]!.id}
+            row={(_, i, measure) => {
+              const v = s.solves[s.solves.length - 1 - i]!;
+              return (
+                <div ref={measure} className="shrink-0">
+                  <TimeRow solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={false} lang={lang} caption={tr(s.find(v.case_id)?.name ?? "")} />
+                </div>
+              );
+            }}
+          />
         </div>
       )}
     </>
@@ -1314,7 +1335,8 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
     extremes = sessionExtremes(s.solves),
     selected = s.practiceSelected,
     tried = new Set(s.solves.map((v) => v.case_id)),
-    lang = language();
+    lang = language(),
+    list = useRef<HTMLDivElement>(null);
   return (
     <>
       {/* The column's heading: its name and count, its actions on the right, a line under it across the panel. */}
@@ -1336,12 +1358,18 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
         </>
       )}
       {training ? (
-        <div className={cn("flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto", bare ? "-mx-2 mt-1" : "px-3 pb-3")}>
-          {trainingSessionRows<any, any>(
-            s.cases().filter((c: any) => selected.has(c.id) || tried.has(c.id)),
-            s.solves,
-          ).map(({ c, solves, best: fastest, mean: average, validCount }) => (
-            <div key={c.id} className="flex items-start gap-3 rounded-lg px-2 py-2">
+        <div ref={list} className={cn("flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto", bare ? "-mx-2 mt-1" : "px-3 pb-3")}>
+          <VirtualList
+            items={trainingSessionRows<any, any>(
+              s.cases().filter((c: any) => selected.has(c.id) || tried.has(c.id)),
+              s.solves,
+            )}
+            scroller={list}
+            estimate={76}
+            gap={4}
+            rowKey={(r) => r.c.id}
+            row={({ c, solves, best: fastest, mean: average, validCount }, _, measure) => (
+            <div ref={measure} className="flex items-start gap-3 rounded-lg px-2 py-2">
               <div className="flex w-10 shrink-0 flex-col items-center gap-1">
                 <Diagram c={c} size={36} />
                 <span className="max-w-full truncate text-xs text-muted-foreground">{shortId(c)}</span>
@@ -1372,14 +1400,26 @@ function Times({ closable = true, bare = false, touch = false }: { closable?: bo
                 )}
               </div>
             </div>
-          ))}
+            )}
+          />
         </div>
       ) : (
-        <div className={cn("times-list flex min-h-0 flex-1 flex-col overflow-y-auto", bare ? "-mx-2 mt-1" : "px-3 pb-3")}>
+        <div ref={list} className={cn("times-list flex min-h-0 flex-1 flex-col overflow-y-auto", bare ? "-mx-2 mt-1" : "px-3 pb-3")}>
           {!s.solves.length && <NoTimes />}
-          {[...s.solves].reverse().map((v, i) => (
-            <TimeRow key={v.id} solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={touch} lang={lang} />
-          ))}
+          <VirtualList
+            items={s.solves}
+            scroller={list}
+            estimate={touch ? 44 : 36}
+            rowKey={(_, i) => s.solves[s.solves.length - 1 - i]!.id}
+            row={(_, i, measure) => {
+              const v = s.solves[s.solves.length - 1 - i]!;
+              return (
+                <div ref={measure} className="shrink-0">
+                  <TimeRow solve={v} number={s.solves.length - i} tone={solveTone(v, extremes)} touch={touch} lang={lang} />
+                </div>
+              );
+            }}
+          />
         </div>
       )}
     </>

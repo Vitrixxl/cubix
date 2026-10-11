@@ -3,7 +3,7 @@
  * the friends or by name), its tournaments and its battles, then leaving or deleting it. A friend's: since when, the
  * battles between the two and their record, and ending the friendship.
  */
-import { useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { LogOut, MessageSquare, Plus, Shield, Trash2, UserMinus, UserPlus, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
@@ -14,6 +14,7 @@ import { organiser } from "./messages";
 import { MatchDialog } from "./cards";
 import { EditGroupDialog, FriendPicker, TournamentDialog, useFriendsOutside } from "./dialogs";
 import { EventTile, MatchStatusBadge, StatusBadge } from "../tournaments/format";
+import { VirtualList, inRows, useColumns } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -41,16 +42,17 @@ const DETAIL_ROW = cn(ROW, "flex w-full items-center gap-3 px-2 py-2");
 
 /** The details of a conversation: its group's, or the friend's. */
 export function Details({ conversation: c }: { conversation: Conversation }) {
+  const scroller = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto text-sm" data-slot="details">
-      {c.kind === "group" ? <GroupDetails id={c.group!.id} /> : <FriendDetails c={c} />}
+    <div ref={scroller} className="flex min-h-0 flex-1 flex-col overflow-y-auto text-sm" data-slot="details">
+      {c.kind === "group" ? <GroupDetails id={c.group!.id} scroller={scroller} /> : <FriendDetails c={c} />}
     </div>
   );
 }
 
 const ROLE_LABEL = { owner: msg("Owner"), admin: msg("Admin"), member: "", invited: msg("Invited") };
 
-function GroupDetails({ id }: { id: number }) {
+function GroupDetails({ id, scroller }: { id: number; scroller: RefObject<HTMLDivElement | null> }) {
   const g = community.groups.get(id),
     [editing, setEditing] = useState(false);
   if (!g)
@@ -81,11 +83,7 @@ function GroupDetails({ id }: { id: number }) {
         <EditGroupDialog group={g} open={editing} onOpenChange={setEditing} />
       </header>
       <Part title={tr("Members")} count={members.length} action={run && <InviteDialog g={g} />}>
-        <ul className="grid grid-cols-4 gap-x-1.5 gap-y-3 pt-1" data-slot="members">
-          {[...members, ...invited].map((m) => (
-            <Member key={m.id} g={g} m={m} />
-          ))}
-        </ul>
+        <MemberGrid g={g} members={[...members, ...invited]} scroller={scroller} columns={4} className="pt-1" />
       </Part>
       <Part
         title={tr("Tournaments")}
@@ -139,6 +137,35 @@ function GroupDetails({ id }: { id: number }) {
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * The members as tiles, `columns` to a row or as many of at least `min` pixels as fit; only the rows in view of
+ * `scroller` are drawn, so a club of hundreds stays light.
+ */
+export function MemberGrid({ g, members, scroller, columns, min = 88, className }: { g: Group; members: Group["members"]; scroller: RefObject<HTMLElement | null>; columns?: number; min?: number; className?: string }) {
+  const grid = useRef<HTMLDivElement>(null),
+    fit = useColumns(grid, min, 6),
+    count = columns ?? fit;
+  return (
+    <div ref={grid} role="list" className={cn("grid gap-x-1.5 gap-y-3", className)} style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }} data-slot="members">
+      <VirtualList
+        items={inRows(members, count)}
+        scroller={scroller}
+        estimate={84}
+        gap={12}
+        spacer="col-span-full"
+        rowKey={(row) => row[0]!.id}
+        row={(row, _, measure) => (
+          <ul ref={measure} role="none" className="col-span-full grid grid-cols-subgrid">
+            {row.map((m) => (
+              <Member key={m.id} g={g} m={m} />
+            ))}
+          </ul>
+        )}
+      />
+    </div>
   );
 }
 

@@ -2,7 +2,8 @@
  * The profile's notebook (profile/2.html): who they are with the account's actions, the records as plates, the
  * journal of the active days, the month as a calendar and the best Ao5 of each week.
  */
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import type { Virtualizer } from "@tanstack/react-virtual";
 import {
   BookOpen,
   ChevronLeft,
@@ -32,6 +33,7 @@ import { eventInfo, eventLabel } from "../../../src/shared/puzzles";
 import { METHODS } from "../../../src/shared/methods";
 import { journeyProfile } from "../../../src/client/lib/journey";
 import { LevelBar } from "../xp";
+import { VirtualList } from "../virtual";
 import {
   Avatar,
   Button,
@@ -291,9 +293,17 @@ const ACHIEVEMENT_TONE: Record<string, "good" | "bad" | "accent" | "lilac" | "wa
 const FILTERS = ["all", "records", "achievements", "battles"] as const;
 type Filter = (typeof FILTERS)[number];
 
-/** The journal: one entry per active day, newest first, its figures in words and what happened that day. */
-export function Journal({ d, phone }: { d: ProfileData; phone: boolean }) {
-  const [filter, setFilter] = useState<Filter>("all"),
+/** Brings a day of the journal into view, drawn or not: set by the journal while it shows. */
+let jumpToDay: ((key: string) => void) | null = null;
+
+/**
+ * The journal: one entry per active day, newest first, its figures in words and what happened that day; only the days
+ * in view are drawn. On phones it has no scroller of its own and scrolls with the overview, passed as `scroller`.
+ */
+export function Journal({ d, phone, scroller }: { d: ProfileData; phone: boolean; scroller?: RefObject<HTMLElement | null> }) {
+  const own = useRef<HTMLDivElement>(null),
+    list = useRef<Virtualizer<HTMLElement, Element>>(null),
+    [filter, setFilter] = useState<Filter>("all"),
     event = s.event(s.profilePuzzle, s.profileSolveMode),
     days = useMemo(() => {
       const duels = new Map<string, ReturnType<typeof battles>>(),
@@ -324,6 +334,13 @@ export function Journal({ d, phone }: { d: ProfileData; phone: boolean }) {
             : day.duels.length),
     ),
     today = dayKey(new Date());
+  useEffect(() => {
+    jumpToDay = (key) => {
+      const i = shown.findIndex((day) => day.key === key);
+      if (i >= 0) list.current?.scrollToIndex(i, { align: "start", behavior: "smooth" });
+    };
+    return () => void (jumpToDay = null);
+  });
   return (
     <section
       aria-label={tr("Journal")}
@@ -350,6 +367,7 @@ export function Journal({ d, phone }: { d: ProfileData; phone: boolean }) {
         />
       </div>
       <div
+        ref={own}
         className={cn(
           "flex min-h-0 flex-col",
           !phone && "-mr-2 overflow-y-auto pr-2",
@@ -366,142 +384,149 @@ export function Journal({ d, phone }: { d: ProfileData; phone: boolean }) {
             className="py-10"
           />
         ) : (
-          shown.map((day, i) => (
-            <article
-              key={day.key}
-              id={"day-" + day.key}
-              className={cn(
-                "grid scroll-mt-2 grid-cols-[3.5rem_minmax(0,1fr)] gap-4 px-1.5 pt-3.5 pb-4 md:grid-cols-[4rem_minmax(0,1fr)]",
-                i && "border-t border-card",
-              )}
-            >
-              <div className="text-center">
-                <b
-                  className={cn(
-                    NUMERIC,
-                    "block text-[32px] leading-none font-extrabold tracking-[-0.04em]",
-                    day.key === today && "text-primary",
-                  )}
-                >
-                  {day.date.getDate()}
-                </b>
-                <small className="text-xs font-bold text-muted-foreground">
-                  {day.date.toLocaleDateString(undefined, { weekday: "short" })}{" "}
-                  {day.date.toLocaleDateString(undefined, { month: "short" })}
-                </small>
-              </div>
-              <div className="flex min-w-0 flex-col gap-2.5">
-                <h3 className="text-base font-bold">
-                  {plural(day.count, "solve")}
-                  {day.best != null && (
-                    <span
-                      className={cn(
-                        NUMERIC,
-                        "font-semibold text-muted-foreground",
-                      )}
-                    >
-                      {" · "}
-                      {said(event.label)}{" "}
-                      {tr("best {0}", { 0: fmtTime(day.best) })}
-                      {day.ao5 != null &&
-                        " · " + tr("Ao5 {0}", { 0: fmtTime(day.ao5) })}
-                    </span>
-                  )}
-                </h3>
-                {filter !== "all" &&
-                !day.records.length &&
-                !day.unlocked.length &&
-                !day.duels.length ? null : (
-                  <div className="flex flex-wrap gap-1.5 empty:hidden">
-                    {(filter === "all" || filter === "records") &&
-                      day.records.map((r) => (
-                        <Moment key={r.kind} icon={Trophy} tone="accent">
-                          {r.kind === "single"
-                            ? tr("Single record")
-                            : tr("Ao5 record")}{" "}
-                          <b className={NUMERIC}>{fmtTime(r.time)}</b>
-                          {r.gain != null && (
-                            <span
-                              className={cn(NUMERIC, "text-muted-foreground")}
-                            >
-                              {" "}
-                              (−{fmtTime(r.gain)})
-                            </span>
-                          )}
-                        </Moment>
-                      ))}
-                    {(filter === "all" || filter === "achievements") &&
-                      day.unlocked
-                        .slice(0, day.unlocked.length > 3 ? 2 : 3)
-                        .map((a) => (
-                          <Moment
-                            key={a.id}
-                            badge={<AchievementBadge a={a} size={24} className="-my-1.5 -ml-1" />}
-                            tone={ACHIEVEMENT_TONE[a.category] ?? "warning"}
-                          >
-                            {tr("Achievement")} <b>{said(a.title)}</b>
+          <VirtualList
+            items={shown}
+            scroller={scroller ?? own}
+            estimate={96}
+            rowKey={(day) => day.key}
+            handle={list}
+            row={(day, i, measure) => (
+              <article
+                ref={measure}
+                id={"day-" + day.key}
+                className={cn(
+                  "grid scroll-mt-2 grid-cols-[3.5rem_minmax(0,1fr)] gap-4 px-1.5 pt-3.5 pb-4 md:grid-cols-[4rem_minmax(0,1fr)]",
+                  i && "border-t border-card",
+                )}
+              >
+                <div className="text-center">
+                  <b
+                    className={cn(
+                      NUMERIC,
+                      "block text-[32px] leading-none font-extrabold tracking-[-0.04em]",
+                      day.key === today && "text-primary",
+                    )}
+                  >
+                    {day.date.getDate()}
+                  </b>
+                  <small className="text-xs font-bold text-muted-foreground">
+                    {day.date.toLocaleDateString(undefined, { weekday: "short" })}{" "}
+                    {day.date.toLocaleDateString(undefined, { month: "short" })}
+                  </small>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2.5">
+                  <h3 className="text-base font-bold">
+                    {plural(day.count, "solve")}
+                    {day.best != null && (
+                      <span
+                        className={cn(
+                          NUMERIC,
+                          "font-semibold text-muted-foreground",
+                        )}
+                      >
+                        {" · "}
+                        {said(event.label)}{" "}
+                        {tr("best {0}", { 0: fmtTime(day.best) })}
+                        {day.ao5 != null &&
+                          " · " + tr("Ao5 {0}", { 0: fmtTime(day.ao5) })}
+                      </span>
+                    )}
+                  </h3>
+                  {filter !== "all" &&
+                  !day.records.length &&
+                  !day.unlocked.length &&
+                  !day.duels.length ? null : (
+                    <div className="flex flex-wrap gap-1.5 empty:hidden">
+                      {(filter === "all" || filter === "records") &&
+                        day.records.map((r) => (
+                          <Moment key={r.kind} icon={Trophy} tone="accent">
+                            {r.kind === "single"
+                              ? tr("Single record")
+                              : tr("Ao5 record")}{" "}
+                            <b className={NUMERIC}>{fmtTime(r.time)}</b>
+                            {r.gain != null && (
+                              <span
+                                className={cn(NUMERIC, "text-muted-foreground")}
+                              >
+                                {" "}
+                                (−{fmtTime(r.gain)})
+                              </span>
+                            )}
                           </Moment>
                         ))}
-                    {(filter === "all" || filter === "achievements") &&
-                      day.unlocked.length > 3 && (
-                        <Tip
-                          content={day.unlocked
-                            .slice(2)
-                            .map((a) => said(a.title))
-                            .join(" · ")}
-                        >
-                          <button
-                            type="button"
-                            data-action="profileMode:achievements"
-                            onClick={run("profileMode:achievements")}
-                            className="rounded-[10px]"
-                          >
-                            <Moment icon={Gauge} tone="warning">
-                              {tr("+{0} achievements", {
-                                0: day.unlocked.length - 2,
-                              })}
+                      {(filter === "all" || filter === "achievements") &&
+                        day.unlocked
+                          .slice(0, day.unlocked.length > 3 ? 2 : 3)
+                          .map((a) => (
+                            <Moment
+                              key={a.id}
+                              badge={<AchievementBadge a={a} size={24} className="-my-1.5 -ml-1" />}
+                              tone={ACHIEVEMENT_TONE[a.category] ?? "warning"}
+                            >
+                              {tr("Achievement")} <b>{said(a.title)}</b>
                             </Moment>
-                          </button>
-                        </Tip>
-                      )}
-                    {(filter === "all" || filter === "battles") &&
-                      day.duels.map((b) => (
-                        <Moment
-                          key={b.id}
-                          icon={Swords}
-                          tone={
-                            b.result === "win"
-                              ? "lilac"
+                          ))}
+                      {(filter === "all" || filter === "achievements") &&
+                        day.unlocked.length > 3 && (
+                          <Tip
+                            content={day.unlocked
+                              .slice(2)
+                              .map((a) => said(a.title))
+                              .join(" · ")}
+                          >
+                            <button
+                              type="button"
+                              data-action="profileMode:achievements"
+                              onClick={run("profileMode:achievements")}
+                              className="rounded-[10px]"
+                            >
+                              <Moment icon={Gauge} tone="warning">
+                                {tr("+{0} achievements", {
+                                  0: day.unlocked.length - 2,
+                                })}
+                              </Moment>
+                            </button>
+                          </Tip>
+                        )}
+                      {(filter === "all" || filter === "battles") &&
+                        day.duels.map((b) => (
+                          <Moment
+                            key={b.id}
+                            icon={Swords}
+                            tone={
+                              b.result === "win"
+                                ? "lilac"
+                                : b.result === "loss"
+                                  ? "bad"
+                                  : "warning"
+                            }
+                          >
+                            {b.result === "win"
+                              ? tr("Battle won")
                               : b.result === "loss"
-                                ? "bad"
-                                : "warning"
-                          }
-                        >
-                          {b.result === "win"
-                            ? tr("Battle won")
-                            : b.result === "loss"
-                              ? tr("Battle lost")
-                              : tr("Battle drawn")}{" "}
-                          {tr("against {0}", { 0: b.opponent })}
-                          {eventInfo(b.event) && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              ·{" "}
-                              {said(
-                                eventLabel(
-                                  eventInfo(b.event)!.puzzle,
-                                  eventInfo(b.event)!.solveMode,
-                                ),
-                              )}
-                            </span>
-                          )}
-                        </Moment>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </article>
-          ))
+                                ? tr("Battle lost")
+                                : tr("Battle drawn")}{" "}
+                            {tr("against {0}", { 0: b.opponent })}
+                            {eventInfo(b.event) && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                ·{" "}
+                                {said(
+                                  eventLabel(
+                                    eventInfo(b.event)!.puzzle,
+                                    eventInfo(b.event)!.solveMode,
+                                  ),
+                                )}
+                              </span>
+                            )}
+                          </Moment>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            )}
+          />
         )}
       </div>
     </section>
@@ -535,10 +560,11 @@ export function MonthCard({ d }: { d: ProfileData }) {
         weekday: "narrow",
       }),
     ),
-    open = (key: string) =>
-      document
-        .getElementById("day-" + key)
-        ?.scrollIntoView({ block: "start", behavior: "smooth" }),
+    open = (key: string) => {
+      const el = document.getElementById("day-" + key);
+      if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+      else jumpToDay?.(key);
+    },
     tally: [string, React.ReactNode, string?][] = [
       [
         d.streak.longest

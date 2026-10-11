@@ -20,6 +20,7 @@ import { Button as UiButton } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
+import { VirtualList } from "./virtual";
 
 type SolveSort = "newest" | "oldest" | "fastest" | "slowest";
 
@@ -29,9 +30,6 @@ const SOLVE_SORTS: { id: SolveSort; label: string }[] = [
   { id: "fastest", label: "Fastest first" },
   { id: "slowest", label: "Slowest first" },
 ];
-
-/** Rows drawn before the table asks for more; long timer histories stay light. */
-const SOLVE_PAGE = 100;
 
 const byTime = (a: any, b: any, direction: 1 | -1) => (a.time == null ? (b.time == null ? 0 : 1) : b.time == null ? -1 : (a.time - b.time) * direction);
 /** A difference of times, signed: "−0.240", "+1.450". */
@@ -435,20 +433,21 @@ function FiguresCard({ rows, event, scramble }: { rows: PeriodFigure[]; event: s
 
 /** Every time the best single fell, newest first: the time, the session or day, and what it took off. */
 function RecordsCard({ records, history, sessionOf }: { records: ReturnType<typeof singleRecords>; history: any[]; sessionOf: any[] }) {
+  const scroller = useRef<HTMLDivElement>(null);
   return (
     <Surface className={CARD} aria-label={tr("Records broken")}>
       <CardHead title="Records broken" meta={tr("single")} />
-      <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
-        {records.map((r) => {
+      <div ref={scroller} className="-mx-2 min-h-0 flex-1 overflow-y-auto">
+        <VirtualList items={records} scroller={scroller} estimate={36} rowKey={(r) => r.index} row={(r, _, measure) => {
           const session = sessionOf[r.index], open = "solve:" + history[r.index].id;
           return (
-            <button key={r.index} type="button" data-action={open} onClick={run(open)} className={cn(ROW, "grid h-9 w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-baseline gap-3 px-2 text-sm")}>
+            <button ref={measure} type="button" data-action={open} onClick={run(open)} className={cn(ROW, "grid h-9 w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-baseline gap-3 px-2 text-sm")}>
               <b className={cn(NUMERIC, "text-base text-success")}>{fmtTime(r.time)}</b>
               <span className="truncate text-muted-foreground">{session?.name ? `${session.name} · ${shortDate(r.at)}` : shortDate(r.at)}</span>
               <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{r.gain == null ? tr("first") : signed(-r.gain)}</span>
             </button>
           );
-        })}
+        }} />
       </div>
     </Surface>
   );
@@ -458,6 +457,8 @@ function RecordsCard({ records, history, sessionOf }: { records: ReturnType<type
 const SESSION_COLUMNS = "grid-cols-[minmax(0,1fr)_4rem_5.5rem_5.5rem_5.5rem_5.5rem_5rem] max-md:grid-cols-[minmax(0,1fr)_5rem_3rem]";
 
 function SessionList({ sessions, label, phone }: { sessions: any[]; label: (x: any) => string; phone: boolean }) {
+  const scroller = useRef<HTMLDivElement>(null),
+    newest = useMemo(() => [...sessions].reverse(), [sessions]);
   return (
     <Surface className={CARD} aria-label={tr("Sessions of the period")}>
       <CardHead title="Sessions of the period" />
@@ -470,9 +471,9 @@ function SessionList({ sessions, label, phone }: { sessions: any[]; label: (x: a
         <span className="max-md:hidden">{tr("Ao12")}</span>
         <span>{phone ? tr("Solves") : tr("Date")}</span>
       </div>
-      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
-        {[...sessions].reverse().map((x) => (
-          <div key={x.id ?? x.at} className={cn(NUMERIC, "grid h-9 items-center gap-4 rounded-[10px] px-2 text-sm text-muted-foreground *:text-right *:first:text-left hover:bg-muted", SESSION_COLUMNS)}>
+      <div ref={scroller} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+        <VirtualList items={newest} scroller={scroller} estimate={36} rowKey={(x) => x.id ?? x.at} row={(x, _, measure) => (
+          <div ref={measure} className={cn(NUMERIC, "grid h-9 items-center gap-4 rounded-[10px] px-2 text-sm text-muted-foreground *:text-right *:first:text-left hover:bg-muted", SESSION_COLUMNS)}>
             <span className="truncate font-bold text-foreground">{x.name ? x.name : label(x)}</span>
             <span className="max-md:hidden">{x.count}</span>
             <span className="text-success max-md:hidden">{fmtTime(x.best)}</span>
@@ -481,7 +482,7 @@ function SessionList({ sessions, label, phone }: { sessions: any[]; label: (x: a
             <span className="max-md:hidden">{fmtTime(x.ao12)}</span>
             <span className="text-xs">{phone ? x.count : shortDate(x.at)}</span>
           </div>
-        ))}
+        )} />
       </div>
     </Surface>
   );
@@ -492,7 +493,7 @@ const COLUMNS = "grid-cols-[3rem_6rem_4.5rem_minmax(0,1fr)_8.5rem_4rem_auto] max
 
 /** The solves of the period, sorted as asked; in time order, under the heading of their session. */
 function SolveList({ history, ao5, ao12, sessionOf, range, phone, records, sort, setSort, commented, setCommented }: { history: any[]; ao5: (number | null)[]; ao12: (number | null)[]; sessionOf: any[]; range: ChartRange; phone: boolean; records: { index: number }[] } & SolveTableState) {
-  const [shown, setShown] = useState(SOLVE_PAGE);
+  const scroller = useRef<HTMLDivElement>(null);
   const pbs = useMemo(() => new Set(records.map((r) => r.index)), [records]);
   // Each session's memo mean, blindfolded.
   const memos = useMemo(() => {
@@ -504,40 +505,56 @@ function SolveList({ history, ao5, ao12, sessionOf, range, phone, records, sort,
     });
     return new Map([...sums].map(([k, [sum, n]]) => [k, sum / n]));
   }, [history, sessionOf]);
-  let rows = history
-    .slice(range[0], range[1] + 1)
-    .map((v, i) => ({ v, index: range[0] + i }))
-    .filter((r) => !commented || r.v.comment);
-  if (sort === "newest") rows.reverse();
-  else if (sort === "fastest") rows.sort((a, b) => byTime(a.v, b.v, 1) || b.index - a.index);
-  else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
   const grouped = sort === "newest" || sort === "oldest",
     commentCount = useMemo(() => history.filter((v) => v.comment).length, [history]);
-  rows = rows.slice(0, shown);
-  const out: React.ReactNode[] = [];
-  let current: any = undefined;
-  for (const { v, index } of rows) {
-    const session = sessionOf[index];
-    if (grouped && session !== current) {
-      current = session;
-      if (session)
-        out.push(
-          <div key={"s" + index} className="sticky top-0 z-[1] flex items-baseline gap-3 bg-card px-2 pt-3 pb-1.5">
-            <b className="shrink-0 text-sm">{session.name || shortDate(session.at)}</b>
-            <span className={cn(NUMERIC, "truncate text-xs font-semibold text-muted-foreground")}>
-              {[session.name && shortDate(session.at), plural(session.count, "solve"), tr("mean {0}", { 0: fmtTime(session.mean) }), tr("best {0}", { 0: fmtTime(session.best) }), memos.has(session) && tr("mean memo {0}", { 0: fmtTime(memos.get(session)) })].filter(Boolean).join(" · ")}
-            </span>
-          </div>,
-        );
+  // The rows drawn: each solve, and in time order the heading of its session before its first solve.
+  const [from, to] = range;
+  const items = useMemo(() => {
+    const rows = history
+      .slice(from, to + 1)
+      .map((v, i) => ({ v, index: from + i }))
+      .filter((r) => !commented || r.v.comment);
+    if (sort === "newest") rows.reverse();
+    else if (sort === "fastest") rows.sort((a, b) => byTime(a.v, b.v, 1) || b.index - a.index);
+    else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
+    const out: { v?: any; index: number; session: any }[] = [];
+    let current: any = undefined;
+    for (const { v, index } of rows) {
+      const session = sessionOf[index];
+      if (grouped && session !== current && (current = session)) out.push({ index, session });
+      out.push({ v, index, session });
     }
-    out.push(<SolveRow key={v.id} v={v} index={index} pb={pbs.has(index)} session={session} ao5={ao5[index]} ao12={ao12[index]} when={grouped ? hourOf(v.at) : shortDate(v.at)} phone={phone} />);
-  }
-  const total = history.slice(range[0], range[1] + 1).filter((v) => !commented || v.comment).length;
+    return out;
+  }, [history, sessionOf, from, to, commented, sort, grouped]);
+  // Only the rows in view are drawn: the heading of the session at the top stays pinned even once its own row is gone.
+  const [top, setTop] = useState(0);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !grouped) return;
+    // The first solve still in view; the headings, pinned while drawn, would always seem to be.
+    const find = () => {
+      const edge = el.getBoundingClientRect().top;
+      for (const row of el.querySelectorAll<HTMLElement>(":scope > .history-row[data-index]")) if (row.getBoundingClientRect().bottom > edge) return setTop(Number(row.dataset.index));
+    };
+    setTop(0);
+    find();
+    el.addEventListener("scroll", find, { passive: true });
+    return () => el.removeEventListener("scroll", find);
+  }, [items, grouped]);
+  const pinned = grouped ? items[top]?.session : undefined;
+  const head = (session: any, measure?: (el: HTMLElement | null) => void) => (
+    <div ref={measure} className="sticky top-0 z-[1] flex items-baseline gap-3 bg-card px-2 pt-3 pb-1.5">
+      <b className="shrink-0 text-sm">{session.name || shortDate(session.at)}</b>
+      <span className={cn(NUMERIC, "truncate text-xs font-semibold text-muted-foreground")}>
+        {[session.name && shortDate(session.at), plural(session.count, "solve"), tr("mean {0}", { 0: fmtTime(session.mean) }), tr("best {0}", { 0: fmtTime(session.best) }), memos.has(session) && tr("mean memo {0}", { 0: fmtTime(memos.get(session)) })].filter(Boolean).join(" · ")}
+      </span>
+    </div>
+  );
   return (
     <Surface className={CARD} aria-label={tr("Solves of the period")}>
       <CardHead title={phone ? "Solves" : "Solves of the period"}>
-        <SelectMenu action="solveSort" label="Sort solves" variant="ghost" onChange={(id) => (setSort(id as SolveSort), setShown(SOLVE_PAGE))} value={sort} options={SOLVE_SORTS} icon={<ArrowDownUp className="text-muted-foreground" />} />
-        <Toggle pressed={commented} onPressedChange={(on: boolean) => (setCommented(on), setShown(SOLVE_PAGE))} aria-label={tr("Show only commented solves")} className="aria-pressed:text-foreground">
+        <SelectMenu action="solveSort" label="Sort solves" variant="ghost" onChange={(id) => setSort(id as SolveSort)} value={sort} options={SOLVE_SORTS} icon={<ArrowDownUp className="text-muted-foreground" />} />
+        <Toggle pressed={commented} onPressedChange={setCommented} aria-label={tr("Show only commented solves")} className="aria-pressed:text-foreground">
           <MessageSquare />
           <span className="max-md:hidden">{tr("Commented")}</span>
           <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{commentCount}</span>
@@ -554,20 +571,23 @@ function SolveList({ history, ao5, ao12, sessionOf, range, phone, records, sort,
         <span className="max-md:hidden" />
         <span className="w-40 max-md:hidden" />
       </div>
-      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" key={`${range.join(":")}:${sort}:${commented}`}>
-        {!rows.length && <Empty>{commented ? tr("No commented solve yet. Add one with the bubble on a time.") : tr("No solves match.")}</Empty>}
-        {out}
-        {total > shown && (
-          <UiButton variant="ghost" className="my-2 w-full text-muted-foreground" onClick={() => setShown(shown + SOLVE_PAGE)}>
-            {tr("Show more ({0} left)", { 0: total - shown })}
-          </UiButton>
-        )}
+      <div ref={scroller} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" key={`${range.join(":")}:${sort}:${commented}`}>
+        {!items.length && <Empty>{commented ? tr("No commented solve yet. Add one with the bubble on a time.") : tr("No solves match.")}</Empty>}
+        {/* Takes no room: the headings drawn in the list come after it and cover it while they are there. */}
+        {pinned && <div className="sticky top-0 z-[1] h-0" aria-hidden>{head(pinned)}</div>}
+        <VirtualList
+          items={items}
+          scroller={scroller}
+          estimate={(i) => (items[i]!.v ? 36 : 38)}
+          rowKey={(r) => (r.v ? r.v.id : "s" + r.index)}
+          row={(r, _, measure) => (r.v ? <SolveRow v={r.v} index={r.index} pb={pbs.has(r.index)} session={r.session} ao5={ao5[r.index]} ao12={ao12[r.index]} when={grouped ? hourOf(r.v.at) : shortDate(r.v.at)} phone={phone} measure={measure} /> : head(r.session, measure))}
+        />
       </div>
     </Surface>
   );
 }
 
-function SolveRow({ v, index, pb, session, ao5, ao12, when, phone }: { v: any; index: number; pb: boolean; session: any; ao5: number | null | undefined; ao12: number | null | undefined; when: string; phone: boolean }) {
+function SolveRow({ v, index, pb, session, ao5, ao12, when, phone, measure }: { v: any; index: number; pb: boolean; session: any; ao5: number | null | undefined; ao12: number | null | undefined; when: string; phone: boolean; measure?: (el: HTMLElement | null) => void }) {
   const open = "solve:" + v.id,
     gap = v.time != null && session?.mean != null ? v.time - session.mean : null;
   const marks = (
@@ -587,7 +607,7 @@ function SolveRow({ v, index, pb, session, ao5, ao12, when, phone }: { v: any; i
   );
   return (
     <SolveMenu solve={{ ...v, time_ms: v.timeMs }}>
-      <div className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
+      <div ref={measure} className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
         <div className={cn("grid items-center gap-3 px-2", COLUMNS)}>
           <button type="button" data-action={open} data-row onClick={run(open)} className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3">
             <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
@@ -704,19 +724,23 @@ const TABLE_COLUMNS = "grid-cols-[3.5rem_7rem_5.5rem_5.5rem_minmax(0,1fr)_8rem_a
 
 /** Every attempt of the visible period, sorted as asked; right-click a row for its menu. */
 function SolvesTable({ history, ao5, ao12, range, total, tools, sort, setSort, commented, setCommented }: { history: any[]; ao5: (number | null)[]; ao12: (number | null)[]; range: ChartRange; total: React.ReactNode; tools?: React.ReactNode } & SolveTableState) {
-  const [shown, setShown] = useState(SOLVE_PAGE);
-  const rows = history
-    .slice(range[0], range[1] + 1)
-    .map((v, i) => {
-      const index = range[0] + i,
-        previous = history[index - 1];
-      return { v, index, pb: v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time) };
-    })
-    .filter((r) => !commented || r.v.comment);
-  if (sort === "newest") rows.reverse();
-  else if (sort === "fastest") rows.sort((a, b) => byTime(a.v, b.v, 1) || b.index - a.index);
-  else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
-  const commentCount = history.filter((v) => v.comment).length;
+  const scroller = useRef<HTMLDivElement>(null);
+  const [from, to] = range;
+  const rows = useMemo(() => {
+    const rows = history
+      .slice(from, to + 1)
+      .map((v, i) => {
+        const index = from + i,
+          previous = history[index - 1];
+        return { v, index, pb: v.time != null && v.time === v.best && (!previous || previous.best == null || previous.best > v.time) };
+      })
+      .filter((r) => !commented || r.v.comment);
+    if (sort === "newest") rows.reverse();
+    else if (sort === "fastest") rows.sort((a, b) => byTime(a.v, b.v, 1) || b.index - a.index);
+    else if (sort === "slowest") rows.sort((a, b) => byTime(a.v, b.v, -1) || b.index - a.index);
+    return rows;
+  }, [history, from, to, commented, sort]);
+  const commentCount = useMemo(() => history.filter((v) => v.comment).length, [history]);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -741,13 +765,13 @@ function SolvesTable({ history, ao5, ao12, range, total, tools, sort, setSort, c
         <span>{tr("Date")}</span>
         <span className="w-40 max-md:hidden" />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pt-1" key={`${range.join(":")}:${sort}:${commented}`}>
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto pt-1" key={`${range.join(":")}:${sort}:${commented}`}>
         {!rows.length && <Empty>{commented ? tr("No commented solve yet. Add one with the bubble on a time.") : tr("No solves match.")}</Empty>}
-        {rows.slice(0, shown).map(({ v, index, pb }) => {
+        <VirtualList items={rows} scroller={scroller} estimate={36} rowKey={(r) => r.v.id} row={({ v, index, pb }, _, measure) => {
           // A case done during a smart cube solve opens that solve; its time is the case's, so it has no actions.
           const open = "solve:" + (v.solveId ?? v.id),
             row = (
-              <div className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
+              <div ref={measure} className={cn(ROW, "history-row group/row has-[[data-row]:focus-visible]:ring-3 has-[[data-row]:focus-visible]:ring-ring/50 has-[[data-row]:focus-visible]:ring-inset")}>
                 <div className={cn("grid items-center gap-4 px-2", TABLE_COLUMNS)}>
                   <button type="button" data-action={open} data-row onClick={run(open)} className="col-span-6 grid h-9 grid-cols-subgrid items-center text-left outline-none max-md:col-span-3">
                     <span className={cn(NUMERIC, "text-right text-xs text-muted-foreground")}>{index + 1}</span>
@@ -775,19 +799,8 @@ function SolvesTable({ history, ao5, ao12, range, total, tools, sort, setSort, c
                 </div>
               </div>
             );
-          return v.solveId === undefined ? (
-            <SolveMenu key={v.id} solve={{ ...v, time_ms: v.timeMs }}>
-              {row}
-            </SolveMenu>
-          ) : (
-            <div key={v.id}>{row}</div>
-          );
-        })}
-        {rows.length > shown && (
-          <UiButton variant="ghost" className="my-2 w-full text-muted-foreground" onClick={() => setShown(shown + SOLVE_PAGE)}>
-            {tr("Show more ({0} left)", { 0: rows.length - shown })}
-          </UiButton>
-        )}
+          return v.solveId === undefined ? <SolveMenu solve={{ ...v, time_ms: v.timeMs }}>{row}</SolveMenu> : row;
+        }} />
       </div>
     </div>
   );

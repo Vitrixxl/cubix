@@ -30,6 +30,7 @@
     "@base-ui/react": "^1.8.0",
     "@tailwindcss/node": "4.1.14",
     "@tailwindcss/oxide": "4.1.14",
+    "@tanstack/react-virtual": "^3.14.14",
     "@tiptap/extension-list": "^3.31.4",
     "@tiptap/extensions": "^3.31.4",
     "@tiptap/markdown": "^3.31.4",

@@ -10,11 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableHead } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { useEffect, useState } from "react";
+import { createRef, useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Figure, FOCUS, NUMERIC, PAGE, Tip } from "../base";
 
 export { Avatar, NUMERIC, SectionHead } from "../base";
+
+/** The admin's one scrolling box, for the `VirtualList`s of its long tables. */
+export const adminScroll = createRef<HTMLDivElement>();
 
 /** Every view's column: the app's page padding and gaps, growing with its content (the administration scrolls). */
 export const VIEW = cn(PAGE, "mx-auto h-auto min-h-full w-full max-w-(--breakpoint-2xl)");

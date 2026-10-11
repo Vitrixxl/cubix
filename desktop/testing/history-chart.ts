@@ -37,7 +37,7 @@ try {
   const countText = () => (document.querySelector("[data-count]") as HTMLElement | null)?.dataset.count ?? "0";
   const shownCount = () => page.evaluate(countText).then(Number);
   await page.waitForFunction(() => (document.querySelector("[data-count]") as HTMLElement | null)?.dataset.count === "600", undefined, { timeout: 60000 });
-  assert.equal(await rows.count(), 100); // The table draws its rows in pages.
+  assert.ok((await rows.count()) < 100); // The table draws only the rows in view.
   const figures = () => page.locator('[aria-label="Figures"] tbody tr').filter({ hasText: "Solves" }).innerText();
   assert.match(await figures(), /600\s+600/);
   const bounds = async () => {
@@ -119,8 +119,11 @@ try {
   assert.equal((await times())[0], "1:23.000"); // DNFs stay last in both directions, as on mobile.
   await sort.click();
   await page.getByRole("menuitemradio", { name: "Newest first" }).click();
-  await page.getByRole("button", { name: "Show more (500 left)" }).click();
-  assert.equal(await rows.count(), 200);
+  // The whole period is one list: scrolled to its end, its oldest solve is drawn, the rows above it no longer.
+  await page.locator("[data-row]").last().evaluate((el) => el.closest("[class*=overflow-y-auto]")!.scrollTo(0, 1e7));
+  await page.waitForFunction(() => document.querySelectorAll("[data-row]").length > 0);
+  assert.ok((await rows.count()) < 100);
+  await page.locator("[data-row]").first().evaluate((el) => el.closest("[class*=overflow-y-auto]")!.scrollTo(0, 0));
 
   const newest = await rows.first().innerText();
   await row(0).locator('[data-action$=":+2"]').click();

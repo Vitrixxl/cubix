@@ -4,7 +4,7 @@
  * match, register, see the bracket), its players on the right. And one tournament's page: where it stands and what can
  * be done on a line over it, its bracket, its players beside.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Crown, FastForward, Flag, Play, Swords, Trophy, Users, X } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
@@ -14,6 +14,7 @@ import { Back, day, relative, time } from "../coaching/parts";
 import { community, communityUrl, eventName, formatText, matchUrl, tournamentUrl, type Tournament, type TournamentDetail } from "../community/client";
 import { Bracket, roundName } from "./bracket";
 import { StageAction, KICKER, PanelHead, Rank, StageMeter, Stage, StageFigure, Steps } from "./format";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -86,9 +87,10 @@ function TournamentList() {
     ordered = SECTIONS.flatMap(([, keep]) => list?.filter(keep) ?? []),
     mine = list?.find((t) => t.myMatch),
     [picked, setPicked] = useState<number | null>(null),
+    scroller = useRef<HTMLDivElement>(null),
     shown = ordered.find((t) => t.id === picked) ?? mine ?? ordered.find((t) => t.status === "open") ?? ordered[0];
   const rows = (
-    <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
+    <div ref={scroller} className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
       {SECTIONS.map(([title, keep]) => {
         const items = list?.filter(keep) ?? [];
         return (
@@ -97,9 +99,14 @@ function TournamentList() {
               <h3 className={cn(KICKER, "px-3 pb-1")}>
                 {tr(title)} <span className={NUMERIC}>{items.length}</span>
               </h3>
-              {items.map((t) => (
-                <TournamentRow key={t.id} t={t} current={!phone && t.id === shown?.id} onClick={() => (phone ? go(tournamentUrl(t.id)) : setPicked(t.id))} />
-              ))}
+              <VirtualList
+                items={items}
+                scroller={scroller}
+                estimate={64}
+                gap={2}
+                rowKey={(t) => t.id}
+                row={(t, _, measure) => <TournamentRow ref={measure} t={t} current={!phone && t.id === shown?.id} onClick={() => (phone ? go(tournamentUrl(t.id)) : setPicked(t.id))} />}
+              />
             </section>
           )
         );
@@ -145,9 +152,10 @@ function TournamentList() {
 }
 
 /** A tournament in the list: its name, where and what, and the step it is at; the account's match marked. */
-function TournamentRow({ t, current, onClick }: { t: Tournament; current: boolean; onClick: () => void }) {
+function TournamentRow({ t, current, onClick, ref }: { t: Tournament; current: boolean; onClick: () => void; ref?: (el: HTMLElement | null) => void }) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       aria-current={current ? "true" : undefined}

@@ -7,7 +7,8 @@ import { useState } from "react";
 import { Play, Plus, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { admin, navigate, useAdmin } from "./api";
-import { Failure, Link, NUMERIC, TableSkeleton, VIEW, num, when } from "./parts";
+import { Failure, Link, NUMERIC, TableSkeleton, VIEW, adminScroll, num, when } from "./parts";
+import { VirtualList } from "../virtual";
 import { Back, Empty, Icon, PageHead, Surface, Tip } from "../base";
 import { ask } from "../confirm";
 import { eventInfo } from "../../../src/shared/puzzles";
@@ -83,33 +84,40 @@ function List() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.data.map((t) => (
-              <TableRow key={t.id} data-tournament={t.id}>
-                <TableCell>
-                  <Link to={`/admin/tournaments/${t.id}`} className="font-medium">
-                    {t.name}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <span className="flex items-center gap-2">
-                    <Icon name={"Puzzle" + t.event} size={16} />
-                    {eventInfo(t.event)?.label ?? t.event}
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{when(t.startsAt)}</TableCell>
-                <TableCell className="text-muted-foreground">{formatText(t)}</TableCell>
-                <TableCell className={cn(NUMERIC, "text-right")}>
-                  {num(t.players)}
-                  {t.maxPlayers ? ` / ${t.maxPlayers}` : ""}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={t.status === "running" ? "accent" : "secondary"}>{t.status === "running" ? roundName(t.round, t.rounds) : STATUS_TEXT[t.status]}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Actions t={t} reload={data.reload} />
-                </TableCell>
-              </TableRow>
-            ))}
+            <VirtualList
+              items={data.data}
+              scroller={adminScroll}
+              estimate={49}
+              spacerAs="tr"
+              rowKey={(t) => t.id}
+              row={(t, _, measure) => (
+                <TableRow ref={measure} data-tournament={t.id}>
+                  <TableCell>
+                    <Link to={`/admin/tournaments/${t.id}`} className="font-medium">
+                      {t.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <span className="flex items-center gap-2">
+                      <Icon name={"Puzzle" + t.event} size={16} />
+                      {eventInfo(t.event)?.label ?? t.event}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{when(t.startsAt)}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatText(t)}</TableCell>
+                  <TableCell className={cn(NUMERIC, "text-right")}>
+                    {num(t.players)}
+                    {t.maxPlayers ? ` / ${t.maxPlayers}` : ""}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={t.status === "running" ? "accent" : "secondary"}>{t.status === "running" ? roundName(t.round, t.rounds) : STATUS_TEXT[t.status]}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Actions t={t} reload={data.reload} />
+                  </TableCell>
+                </TableRow>
+              )}
+            />
           </TableBody>
         </Table>
       )}

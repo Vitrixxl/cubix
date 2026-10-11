@@ -2,6 +2,7 @@
  * The account page, a practice notebook: who they are and their records, the journal of their days, the month and
  * the weeks' best averages, the whole overview inside the window. Each section opens its own page.
  */
+import { useRef, type RefObject } from "react";
 import { store as s } from "./store";
 import { PAGE, usePhone } from "./ui";
 import { StatsPage } from "./stats";
@@ -45,13 +46,13 @@ function Overview() {
 }
 
 /** Phones: the same cards one under the other, scrolling inside the page. */
-function PhoneOverview() {
+function PhoneOverview({ scroller }: { scroller: RefObject<HTMLElement | null> }) {
   const d = useProfileData();
   return (
     <div data-tour="profile-overview" className="flex flex-col gap-4 pb-2">
       <IdentityCard />
       <MonthCard d={d} />
-      <Journal d={d} phone />
+      <Journal d={d} phone scroller={scroller} />
       <RecordPlates d={d} />
       <WeeksCard d={d} />
     </div>
@@ -104,7 +105,8 @@ const PHONE_TABS = () => [
  * and scroll inside their card.
  */
 function PhoneProfile({ mode }: { mode: string }) {
-  const p = s.profile;
+  const p = s.profile,
+    scroller = useRef<HTMLElement>(null);
   return (
     <div className={PAGE}>
       <Tabs value={mode} onValueChange={(v: string) => void s.action("profileMode:" + v)} className="shrink-0">
@@ -119,8 +121,8 @@ function PhoneProfile({ mode }: { mode: string }) {
       {!p ? (
         <ProfileSkeleton phone />
       ) : mode === "overview" ? (
-        <section className="-mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-px" aria-label={tr("Profile")}>
-          <PhoneOverview />
+        <section ref={scroller} className="-mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-px" aria-label={tr("Profile")}>
+          <PhoneOverview scroller={scroller} />
         </section>
       ) : (
         <section className="profile-main flex min-h-0 flex-1 flex-col gap-3" aria-label={said(SECTIONS[mode])}>

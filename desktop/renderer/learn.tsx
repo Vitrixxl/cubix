@@ -22,6 +22,7 @@ import { store as s, type PlayItem } from "./store";
 import { PhoneSheet } from "./phone";
 import { ActionCard, ActionToggle, Alg, Back, Bar, Button, Choice, DOT, Diagram, Empty, FOCUS, Figure, Icon, LearnToggle, NUMERIC, PAGE, PageHead, ROW, SectionHead, Segmented, ProgressRing, StatCard, StatusMark, Surface, TILE, Tip, plural, run, usePhone } from "./ui";
 import { FootBar, PlayDiagram } from "./algorithms";
+import { VirtualList, inRows, useColumns } from "./virtual";
 import { casePlayItem, moveCount, shortId } from "../../src/client/lib/caseState";
 import { fmtTime } from "../../src/client/lib/format";
 import { Kbd } from "@/components/ui/kbd";
@@ -721,6 +722,8 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
   );
 }
 
+type RailRow = { key: string } & ({ kind: "piece"; p: Piece } | { kind: "group"; group: string; learned: number; total: number } | { kind: "tiles"; pieces: Piece[] });
+
 /**
  * What a step teaches, as a list to pick the workbench's piece from: its own algorithms as rows, the set's cases as a
  * grid of numbered tiles under their group (the time on it, or New while to learn, faded); the set and the filter of
@@ -728,7 +731,17 @@ function IntuitiveBench({ puzzle, method, entry, touch = false }: { puzzle: Puzz
  */
 function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; bench: Bench; touch?: boolean; onPick?: () => void }) {
   const { sets, chosen, inline, groups, count } = pieces,
-    pick = (p: Piece) => (bench.pick(p.key), onPick?.());
+    pick = (p: Piece) => (bench.pick(p.key), onPick?.()),
+    list = useRef<HTMLElement>(null),
+    columns = useColumns(list, 72, 6);
+  // The step's own algorithms, then each group's name and its cases, a row of the grid at a time: drawn as they show.
+  const rows: RailRow[] = inline.filter((p) => shownByFilter(p.learned)).map((p) => ({ kind: "piece", key: p.key, p }));
+  for (const [group, members] of groups) {
+    const shown = members.filter((p) => shownByFilter(p.learned));
+    if (!shown.length) continue;
+    rows.push({ kind: "group", key: "group:" + group, group, learned: members.filter((p) => p.learned).length, total: members.length });
+    inRows(shown, columns).forEach((pieces, i) => rows.push({ kind: "tiles", key: group + ":" + i, pieces }));
+  }
   return (
     <>
       <div className="flex shrink-0 flex-col gap-2.5 px-2">
@@ -748,37 +761,39 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
           />
         )}
       </div>
-      <nav aria-label={chosen ? tr("Cases") : tr("Algorithms")} className="-m-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-1">
-        {inline.filter((p) => shownByFilter(p.learned)).map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            data-pick={p.key}
-            aria-current={p === bench.piece ? "true" : undefined}
-            onClick={() => pick(p)}
-            className={cn(ROW, "flex shrink-0 items-center gap-3 px-2 py-1.5 aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground", touch && "min-h-14")}
-          >
-            <span className={cn(!p.learned && p !== bench.piece && "opacity-45 saturate-50")}>{p.diagram(52)}</span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[15px] font-bold">{said(p.name)}</span>
-              <span className={cn("truncate text-xs", p === bench.piece ? "text-primary-foreground/75" : p.learned ? "text-muted-foreground" : "text-warning")}>{p.learned ? tr("Learned") : tr("To learn")}</span>
-            </span>
-          </button>
-        ))}
-        {groups.map(([group, members]) => {
-          const shown = members.filter((p) => shownByFilter(p.learned)),
-            learned = members.filter((p) => p.learned).length;
-          if (!shown.length) return null;
-          return (
-            <section key={group} aria-label={tr(group)} className="flex shrink-0 flex-col gap-1.5 pt-2.5">
-              <h3 className="flex justify-between px-1.5 text-[13px] font-extrabold text-muted-foreground">
-                {tr(group)}
-                <span className={cn(NUMERIC, "font-bold text-faint", learned === members.length && "text-success")}>
-                  {learned} / {members.length}
+      <nav ref={list} aria-label={chosen ? tr("Cases") : tr("Algorithms")} className="-m-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-1">
+        <VirtualList
+          items={rows}
+          scroller={list}
+          estimate={(i) => (rows[i]!.kind === "tiles" ? 112 : rows[i]!.kind === "group" ? 30 : 66)}
+          rowKey={(v) => v.key}
+          row={(v, _, measure) =>
+            v.kind === "piece" ? (
+              <button
+                ref={measure}
+                type="button"
+                data-pick={v.p.key}
+                aria-current={v.p === bench.piece ? "true" : undefined}
+                onClick={() => pick(v.p)}
+                className={cn(ROW, "flex shrink-0 items-center gap-3 px-2 py-1.5 aria-[current=true]:bg-primary aria-[current=true]:text-primary-foreground", touch && "min-h-14")}
+              >
+                <span className={cn(!v.p.learned && v.p !== bench.piece && "opacity-45 saturate-50")}>{v.p.diagram(52)}</span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[15px] font-bold">{said(v.p.name)}</span>
+                  <span className={cn("truncate text-xs", v.p === bench.piece ? "text-primary-foreground/75" : v.p.learned ? "text-muted-foreground" : "text-warning")}>{v.p.learned ? tr("Learned") : tr("To learn")}</span>
+                </span>
+              </button>
+            ) : v.kind === "group" ? (
+              <h3 ref={measure} className="flex shrink-0 justify-between px-1.5 pt-2.5 text-[13px] font-extrabold text-muted-foreground">
+                {tr(v.group)}
+                <span className={cn(NUMERIC, "font-bold text-faint", v.learned === v.total && "text-success")}>
+                  {v.learned} / {v.total}
                 </span>
               </h3>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-1.5">
-                {shown.map((p) => {
+            ) : (
+              // A row of the group's grid: 4.5rem tiles at least, as its auto-fill grid would hold them.
+              <div ref={measure} className="grid shrink-0 gap-1.5 pt-1" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                {v.pieces.map((p) => {
                   const here = p === bench.piece,
                     st = s.stats.find((v) => v.caseId === p.caseId);
                   return (
@@ -805,9 +820,9 @@ function Rail({ pieces, bench, touch = false, onPick }: { pieces: StepPieces; be
                   );
                 })}
               </div>
-            </section>
-          );
-        })}
+            )
+          }
+        />
       </nav>
     </>
   );

@@ -4,7 +4,7 @@
  * between the two and their score, what waits for the account between them. A group's: its members, its battles and
  * its tournaments. The address keeps the open one (/community/people/u/<id>, /community/people/g/<id>).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, Copy, MoreHorizontal, Pencil, Share2, Swords, Trophy, UserMinus, UserRoundX, Users } from "lucide-react";
 import { Link } from "react-router";
 import { store as s } from "../store";
@@ -13,9 +13,10 @@ import { Avatar, Empty, LINK, LINK_ACCENT, ListSkeleton, NUMERIC, ROW, SearchFie
 import { day, relative, time } from "../coaching/parts";
 import { MATCH_STATUS, community, communityUrl, eventName, formatText, scoreOf, seatIn, type Conversation, type Match, type Person } from "./client";
 import { GroupMark, organiser, waiting } from "./messages";
-import { InviteDialog, Member } from "./groups";
+import { InviteDialog, MemberGrid } from "./groups";
 import { MatchDialog, TournamentChatCard } from "./cards";
 import { BattleDialog, EditGroupDialog, NewGroupDialog, TournamentDialog } from "./dialogs";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -95,7 +96,8 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
     groups = (me?.groups ?? []).filter((g) => g.name.toLowerCase().includes(q)),
     requests = (me?.incoming.length ?? 0) + (me?.invitations.length ?? 0) + (me?.outgoing.length ?? 0),
     // Players found on Qbix who are not friends already (those show in the list above).
-    strangers = found?.filter((p) => p.relation !== "friend");
+    strangers = found?.filter((p) => p.relation !== "friend"),
+    scroller = useRef<HTMLDivElement>(null);
   return (
     <Surface className={cn("w-[380px] shrink-0 gap-3 pt-4 pb-3 max-md:w-full", className)} data-slot="contacts">
       <div className="flex shrink-0 items-center gap-2 px-5">
@@ -118,7 +120,7 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
           { id: "requests", label: "Requests", count: requests || undefined },
         ]}
       />
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-1">
+      <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-1">
         {!me ? (
           <ListSkeleton className="p-0" />
         ) : (
@@ -142,7 +144,7 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
                 {!friends.length ? (
                   <p className="px-2 text-[13px] text-muted-foreground">{q ? tr("No friend by that name.") : tr("No friend yet. Find players by their username, or share your link.")}</p>
                 ) : (
-                  friends.map((f) => <FriendRow key={f.id} f={f} active={kind === "u" && id === f.id} />)
+                  <VirtualList items={friends} scroller={scroller} estimate={56} gap={2} rowKey={(f) => f.id} row={(f, _, measure) => <FriendRow ref={measure} f={f} active={kind === "u" && id === f.id} />} />
                 )}
               </Part>
             )}
@@ -151,17 +153,24 @@ function Contacts({ kind, id, className }: { kind: string; id: string; className
                 {!groups.length ? (
                   <p className="px-2 text-[13px] text-muted-foreground">{q ? tr("No group by that name.") : tr("No group yet: make one for your club or your friends.")}</p>
                 ) : (
-                  groups.map((g) => (
-                    <Line
-                      key={g.id}
-                      to={peopleUrl("g", g.id)}
-                      active={kind === "g" && Number(id) === g.id}
-                      face={<GroupMark size={40} />}
-                      name={g.name}
-                      sub={[plural(g.members, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")}
-                      data-group={g.id}
-                    />
-                  ))
+                  <VirtualList
+                    items={groups}
+                    scroller={scroller}
+                    estimate={56}
+                    gap={2}
+                    rowKey={(g) => g.id}
+                    row={(g, _, measure) => (
+                      <Line
+                        ref={measure}
+                        to={peopleUrl("g", g.id)}
+                        active={kind === "g" && Number(id) === g.id}
+                        face={<GroupMark size={40} />}
+                        name={g.name}
+                        sub={[plural(g.members, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")}
+                        data-group={g.id}
+                      />
+                    )}
+                  />
                 )}
               </Part>
             )}
@@ -187,9 +196,9 @@ function Part({ title, count, children }: { title: React.ReactNode; count?: numb
 }
 
 /** A friend or a group in the list: the face, the name, a line under it, and on the right what stands between you. */
-function Line({ to, active, face, name, sub, end, ...rest }: { to: string; active: boolean; face: React.ReactNode; name: React.ReactNode; sub: React.ReactNode; end?: React.ReactNode } & Record<`data-${string}`, unknown>) {
+function Line({ to, active, face, name, sub, end, ref, ...rest }: { to: string; active: boolean; face: React.ReactNode; name: React.ReactNode; sub: React.ReactNode; end?: React.ReactNode; ref?: (el: HTMLElement | null) => void } & Record<`data-${string}`, unknown>) {
   return (
-    <Link to={to} aria-current={active ? "page" : undefined} className={cn(ROW, "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-2.5 py-2 aria-[current=page]:bg-muted")} {...rest}>
+    <Link ref={ref} to={to} aria-current={active ? "page" : undefined} className={cn(ROW, "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-2.5 py-2 aria-[current=page]:bg-muted")} {...rest}>
       {face}
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-[15px] font-bold">{name}</span>
@@ -200,12 +209,13 @@ function Line({ to, active, face, name, sub, end, ...rest }: { to: string; activ
   );
 }
 
-function FriendRow({ f, active }: { f: Person & { since: number }; active: boolean }) {
+function FriendRow({ f, active, ref }: { f: Person & { since: number }; active: boolean; ref?: (el: HTMLElement | null) => void }) {
   const c = directWith(f.id),
     loaded = c && community.messages.has(c.id),
     t = tally(battlesIn(c));
   return (
     <Line
+      ref={ref}
       to={peopleUrl("u", f.id)}
       active={active}
       face={<Avatar name={f.username} src={f.avatar} size={40} />}
@@ -576,6 +586,7 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
   }, [id]);
   const g = community.groups.get(id),
     [editing, setEditing] = useState(false),
+    scroller = useRef<HTMLDivElement>(null),
     c = g && community.conversations?.find((x) => x.id === g.conversationId),
     members = useMemo(() => g?.members.filter((m) => m.role !== "invited") ?? [], [g]),
     invited = g?.members.filter((m) => m.role === "invited") ?? [];
@@ -647,15 +658,11 @@ function GroupPage({ id, phone }: { id: number; phone: boolean }) {
         </DropdownMenu>
       </Head>
       <EditGroupDialog group={g} open={editing} onOpenChange={setEditing} />
-      <div className="grid min-h-0 flex-1 gap-x-8 gap-y-6 content-start overflow-y-auto px-6 pb-6 max-md:px-4 lg:grid-cols-2">
+      <div ref={scroller} className="grid min-h-0 flex-1 gap-x-8 gap-y-6 content-start overflow-y-auto px-6 pb-6 max-md:px-4 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-6">
           <section className="flex flex-col gap-2" aria-label={tr("Members")}>
             <Caption action={run && <InviteDialog g={g} />}>{tr("Members · click a name to manage them")}</Caption>
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-x-1.5 gap-y-3" data-slot="members">
-              {[...members, ...invited].map((m) => (
-                <Member key={m.id} g={g} m={m} />
-              ))}
-            </ul>
+            <MemberGrid g={g} members={[...members, ...invited]} scroller={scroller} />
           </section>
           <section className="flex flex-col gap-2" aria-label={tr("Battles")}>
             <Caption>{tr("Battles of the group")}</Caption>

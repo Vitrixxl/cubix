@@ -3,7 +3,7 @@
  * about them and their week of slots to book on the same screen. A coach's full page (their figures as a coach and as a
  * cuber, their reviews) and the booking alone (from a conversation) keep the same booking panel.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { CalendarCheck, CalendarX, ChevronLeft, ChevronRight, MessageSquare, SearchX, Star, Timer, UserRoundX, Users } from "lucide-react";
 import { useLocation } from "react-router";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import { Back, Tools, dayKey, day, span, time, url } from "./parts";
 import { Bar, Empty, LINK, ListSkeleton, SearchField, Stars, Surface, Tip } from "../base";
 import { Activity, Learned, PuzzleCard } from "./person";
 import { SLOT } from "./calendar";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,7 +55,8 @@ export function CoachList() {
     [most, setMost] = useState("any"),
     [soon, setSoon] = useState(false),
     [sort, setSort] = useState("next"),
-    [picked, setPicked] = useState<{ id: string; slot: number | null } | null>(null);
+    [picked, setPicked] = useState<{ id: string; slot: number | null } | null>(null),
+    scroller = useRef<HTMLDivElement>(null);
   const list = coaching.coaches;
   const taught = useMemo(() => EVENTS.filter((e) => list?.some((c) => c.events.includes(e.id))), [list]),
     spoken = useMemo(() => [...new Set(list?.flatMap((c) => c.languages) ?? [])].sort(), [list]);
@@ -96,7 +98,7 @@ export function CoachList() {
             <span className="text-[13px] text-muted-foreground">{tr("times in {0}", { 0: zone() })}</span>
             <SelectMenu action="coaching:sort" variant="ghost" value={sort} onChange={setSort} label="Sort" options={SORTS} className="ml-auto h-7 px-2 text-[13px]" />
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
             {!shown ? (
               <ListSkeleton rows={5} />
             ) : !shown.length ? (
@@ -110,11 +112,19 @@ export function CoachList() {
               </Empty>
             ) : (
               <ul className="flex flex-col gap-1" data-slot="coach-list">
-                {shown.map((c) => (
-                  <li key={c.id}>
-                    <CoachRow c={c} active={!phone && c.id === chosen?.id} slot={c.id === picked?.id ? picked.slot : null} onPick={(slot) => pick(c, slot)} />
-                  </li>
-                ))}
+                <VirtualList
+                  items={shown}
+                  scroller={scroller}
+                  estimate={120}
+                  gap={4}
+                  spacerAs="li"
+                  rowKey={(c) => c.id}
+                  row={(c, _, measure) => (
+                    <li ref={measure}>
+                      <CoachRow c={c} active={!phone && c.id === chosen?.id} slot={c.id === picked?.id ? picked.slot : null} onPick={(slot) => pick(c, slot)} />
+                    </li>
+                  )}
+                />
               </ul>
             )}
           </div>
@@ -273,6 +283,7 @@ export function CoachPage({ id }: { id: string }) {
     void coaching.load("bookings");
   }, [id]);
   const phone = usePhone(),
+    scroller = useRef<HTMLDivElement>(null),
     c = coaching.profiles.get(id),
     own = id === s.user.id,
     // Messages open once a session is booked with them, even one cancelled since.
@@ -296,12 +307,12 @@ export function CoachPage({ id }: { id: string }) {
           </UiButton>
         )}
       </Tools>
-      <div className={cn("grid min-h-0 flex-1 gap-5", phone ? "auto-rows-max overflow-y-auto" : "grid-cols-[minmax(0,1fr)_minmax(26rem,32rem)]")}>
+      <div ref={phone ? scroller : undefined} className={cn("grid min-h-0 flex-1 gap-5", phone ? "auto-rows-max overflow-y-auto" : "grid-cols-[minmax(0,1fr)_minmax(26rem,32rem)]")}>
         <Surface className={cn("min-w-0", !phone && "overflow-hidden")}>
           {!c ? (
             <PanelSkeleton />
           ) : (
-            <div className={cn("flex min-h-0 flex-1 flex-col gap-2 pb-4", !phone && "overflow-y-auto")} data-slot="coach-about">
+            <div ref={phone ? undefined : scroller} className={cn("flex min-h-0 flex-1 flex-col gap-2 pb-4", !phone && "overflow-y-auto")} data-slot="coach-about">
               <CoachHead c={c} full />
               <div className="flex flex-col gap-6 px-6 pt-3 max-md:px-4">
                 <Times c={c} />
@@ -309,7 +320,7 @@ export function CoachPage({ id }: { id: string }) {
                   <Activity days={c.history?.days ?? []} className="bg-transparent p-0 ring-0" />
                   <Learned ids={c.history?.learned ?? []} className="bg-transparent p-0 ring-0" />
                 </div>
-                <Reviews c={c} />
+                <Reviews c={c} scroller={scroller} />
               </div>
             </div>
           )}
@@ -361,8 +372,8 @@ function Times({ c }: { c: Coach }) {
   );
 }
 
-/** What the students say: the average and how many gave each rating, then every review. */
-function Reviews({ c }: { c: Coach }) {
+/** What the students say: the average and how many gave each rating, then every review, drawn while in view of `scroller`. */
+function Reviews({ c, scroller }: { c: Coach; scroller: RefObject<HTMLDivElement | null> }) {
   const counts = c.ratingCounts ?? [0, 0, 0, 0, 0],
     most = Math.max(1, ...counts);
   return (
@@ -391,18 +402,25 @@ function Reviews({ c }: { c: Coach }) {
             </div>
           </div>
           <ul className="flex flex-col gap-4" data-slot="reviews">
-            {c.reviewList.map((r, i) => (
-              <li key={i} className="grid grid-cols-[110px_minmax(0,1fr)] gap-x-[18px] max-md:grid-cols-1">
-                <span className="flex flex-col md:items-end md:text-right">
-                  <b className="truncate text-[13px] font-extrabold">{r.username}</b>
-                  <span className={cn(NUMERIC, "text-[11px] text-muted-foreground")}>{day(r.at)}</span>
-                </span>
-                <span className="flex flex-col gap-1">
-                  <Stars rating={r.rating} size={12} figure={false} />
-                  {r.comment && <p className="text-[15px] leading-normal whitespace-pre-line">{r.comment}</p>}
-                </span>
-              </li>
-            ))}
+            <VirtualList
+              items={c.reviewList}
+              scroller={scroller}
+              estimate={64}
+              gap={16}
+              spacerAs="li"
+              row={(r, _, measure) => (
+                <li ref={measure} className="grid grid-cols-[110px_minmax(0,1fr)] gap-x-[18px] max-md:grid-cols-1">
+                  <span className="flex flex-col md:items-end md:text-right">
+                    <b className="truncate text-[13px] font-extrabold">{r.username}</b>
+                    <span className={cn(NUMERIC, "text-[11px] text-muted-foreground")}>{day(r.at)}</span>
+                  </span>
+                  <span className="flex flex-col gap-1">
+                    <Stars rating={r.rating} size={12} figure={false} />
+                    {r.comment && <p className="text-[15px] leading-normal whitespace-pre-line">{r.comment}</p>}
+                  </span>
+                </li>
+              )}
+            />
           </ul>
         </>
       )}

@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Check, Headset, Inbox, Mail, Pause, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import { admin, useAdmin } from "./api";
-import { Avatar, date, Failure, LINK, NUMERIC, num, SectionHead, TableSkeleton, UserLink, VIEW, when } from "./parts";
+import { Avatar, adminScroll, date, Failure, LINK, NUMERIC, num, SectionHead, TableSkeleton, UserLink, VIEW, when } from "./parts";
+import { VirtualList } from "../virtual";
 import { Empty, Events, PageHead, Segmented, Surface, Tip } from "../base";
 import { ask } from "../confirm";
 import { cn } from "@/lib/utils";
@@ -60,60 +61,68 @@ export function Coaching({ phone }: { phone: boolean }) {
           <Empty icon={Inbox} title={filter === "pending" ? "No application waiting." : "No application here."} />
         ) : (
           <ul className="flex flex-col gap-3" data-slot="applications">
-            {applications.map((a) => (
-              <li key={a.id} data-application={a.id}>
-                <Surface className="gap-3 p-4 text-sm">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Avatar name={a.username} size={32} />
-                    <span className="flex min-w-0 flex-col">
-                      <UserLink id={a.userId} name={a.username} />
-                      <Tip content={when(a.createdAt)}>
-                        <span className="w-fit text-xs text-muted-foreground">Applied {date(a.createdAt)}</span>
-                      </Tip>
-                    </span>
-                    <a href={`mailto:${a.email}?subject=${encodeURIComponent("Your Qbix coach application")}`} className={cn(LINK, "flex items-center gap-1.5 text-muted-foreground")} data-slot="email">
-                      <Mail className="size-4" />
-                      {a.email}
-                    </a>
-                    <Events events={a.events} />
-                    <span className="ml-auto flex items-center gap-2">
-                      {a.status === "pending" ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={!!busy}
-                            onClick={async () =>
-                              (await ask({ title: `Reject ${a.username}'s application?`, text: "The application is closed; write to the player to say why.", action: "Reject" })) &&
-                              act("r" + a.id, `/coaching/applications/${a.id}/reject`, "Application rejected")
-                            }
-                            data-action="coaching:reject"
-                          >
-                            <X />
-                            Reject
-                          </Button>
-                          <Button size="sm" disabled={!!busy} onClick={() => act("a" + a.id, `/coaching/applications/${a.id}/approve`, `${a.username} is now a coach`)} data-action="coaching:approve">
-                            <Check />
-                            Approve
-                          </Button>
-                        </>
-                      ) : (
-                        <Badge variant={a.status === "approved" ? "success" : "secondary"} className="capitalize">
-                          {a.status} {a.decidedAt ? date(a.decidedAt) : ""}
-                        </Badge>
-                      )}
-                    </span>
-                  </div>
-                  {a.experience && (
-                    <p>
-                      <span className="text-muted-foreground">Level · </span>
-                      {a.experience}
-                    </p>
-                  )}
-                  <p className="whitespace-pre-line">{a.message}</p>
-                </Surface>
-              </li>
-            ))}
+            <VirtualList
+              items={applications}
+              scroller={adminScroll}
+              estimate={150}
+              gap={12}
+              spacerAs="li"
+              rowKey={(a) => a.id}
+              row={(a, _, measure) => (
+                <li ref={measure} data-application={a.id}>
+                  <Surface className="gap-3 p-4 text-sm">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Avatar name={a.username} size={32} />
+                      <span className="flex min-w-0 flex-col">
+                        <UserLink id={a.userId} name={a.username} />
+                        <Tip content={when(a.createdAt)}>
+                          <span className="w-fit text-xs text-muted-foreground">Applied {date(a.createdAt)}</span>
+                        </Tip>
+                      </span>
+                      <a href={`mailto:${a.email}?subject=${encodeURIComponent("Your Qbix coach application")}`} className={cn(LINK, "flex items-center gap-1.5 text-muted-foreground")} data-slot="email">
+                        <Mail className="size-4" />
+                        {a.email}
+                      </a>
+                      <Events events={a.events} />
+                      <span className="ml-auto flex items-center gap-2">
+                        {a.status === "pending" ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!!busy}
+                              onClick={async () =>
+                                (await ask({ title: `Reject ${a.username}'s application?`, text: "The application is closed; write to the player to say why.", action: "Reject" })) &&
+                                act("r" + a.id, `/coaching/applications/${a.id}/reject`, "Application rejected")
+                              }
+                              data-action="coaching:reject"
+                            >
+                              <X />
+                              Reject
+                            </Button>
+                            <Button size="sm" disabled={!!busy} onClick={() => act("a" + a.id, `/coaching/applications/${a.id}/approve`, `${a.username} is now a coach`)} data-action="coaching:approve">
+                              <Check />
+                              Approve
+                            </Button>
+                          </>
+                        ) : (
+                          <Badge variant={a.status === "approved" ? "success" : "secondary"} className="capitalize">
+                            {a.status} {a.decidedAt ? date(a.decidedAt) : ""}
+                          </Badge>
+                        )}
+                      </span>
+                    </div>
+                    {a.experience && (
+                      <p>
+                        <span className="text-muted-foreground">Level · </span>
+                        {a.experience}
+                      </p>
+                    )}
+                    <p className="whitespace-pre-line">{a.message}</p>
+                  </Surface>
+                </li>
+              )}
+            />
           </ul>
         )}
       </section>
@@ -137,44 +146,51 @@ export function Coaching({ phone }: { phone: boolean }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {d.coaches.map((c) => (
-                <TableRow key={c.id} data-coach={c.username} className={cn(!c.active && "text-muted-foreground")}>
-                  <TableCell className="max-w-72">
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <Avatar name={c.username} size={24} />
-                      <span className="flex min-w-0 flex-col">
-                        <UserLink id={c.id} name={c.username} />
-                        <span className="truncate text-xs text-muted-foreground">{c.headline || "No headline"}</span>
+              <VirtualList
+                items={d.coaches}
+                scroller={adminScroll}
+                estimate={53}
+                spacerAs="tr"
+                rowKey={(c) => c.id}
+                row={(c, _, measure) => (
+                  <TableRow ref={measure} data-coach={c.username} className={cn(!c.active && "text-muted-foreground")}>
+                    <TableCell className="max-w-72">
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <Avatar name={c.username} size={24} />
+                        <span className="flex min-w-0 flex-col">
+                          <UserLink id={c.id} name={c.username} />
+                          <span className="truncate text-xs text-muted-foreground">{c.headline || "No headline"}</span>
+                        </span>
                       </span>
-                    </span>
-                  </TableCell>
-                  {!phone && (
-                    <TableCell>
-                      <Events events={c.events} />
                     </TableCell>
-                  )}
-                  {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{c.rating == null ? "–" : `${c.rating.toFixed(1)} (${c.reviews})`}</TableCell>}
-                  {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{num(c.sessions)}</TableCell>}
-                  {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{num(c.upcoming)}</TableCell>}
-                  {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{num(c.students)}</TableCell>}
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!!busy}
-                      onClick={async () =>
-                        (!c.active ||
-                          (await ask({ title: `Take ${c.username} off the list of coaches?`, text: "Players can no longer find or book this coach until it is enabled again.", action: "Disable" }))) &&
-                        act("c" + c.id, `/coaching/coaches/${encodeURIComponent(c.id)}/${c.active ? "disable" : "enable"}`, c.active ? `${c.username} is no longer listed` : `${c.username} is a coach again`)
-                      }
-                      data-action={c.active ? "coaching:disable" : "coaching:enable"}
-                    >
-                      {c.active ? <Pause /> : <Play />}
-                      {c.active ? "Disable" : "Enable"}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    {!phone && (
+                      <TableCell>
+                        <Events events={c.events} />
+                      </TableCell>
+                    )}
+                    {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{c.rating == null ? "–" : `${c.rating.toFixed(1)} (${c.reviews})`}</TableCell>}
+                    {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{num(c.sessions)}</TableCell>}
+                    {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{num(c.upcoming)}</TableCell>}
+                    {!phone && <TableCell className={cn(NUMERIC, "text-right")}>{num(c.students)}</TableCell>}
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!!busy}
+                        onClick={async () =>
+                          (!c.active ||
+                            (await ask({ title: `Take ${c.username} off the list of coaches?`, text: "Players can no longer find or book this coach until it is enabled again.", action: "Disable" }))) &&
+                          act("c" + c.id, `/coaching/coaches/${encodeURIComponent(c.id)}/${c.active ? "disable" : "enable"}`, c.active ? `${c.username} is no longer listed` : `${c.username} is a coach again`)
+                        }
+                        data-action={c.active ? "coaching:disable" : "coaching:enable"}
+                      >
+                        {c.active ? <Pause /> : <Play />}
+                        {c.active ? "Disable" : "Enable"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )}
+              />
             </TableBody>
           </Table>
         )}

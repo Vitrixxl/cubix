@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Flag, ListX, Radio } from "lucide-react";
 import { navigate, useAdmin, useLiveState, useRoute, withParams, type LogRow, type Requests as Data } from "./api";
 import { admin } from "./api";
-import { Choose, Failure, IpLink, Kind, NUMERIC, num, TableSkeleton, Status, UserLink, VIEW, when } from "./parts";
+import { Choose, Failure, IpLink, Kind, NUMERIC, adminScroll, num, TableSkeleton, Status, UserLink, VIEW, when } from "./parts";
+import { VirtualList } from "../virtual";
 import { Empty, FOCUS, PageHead, SearchField, Tip } from "../base";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -139,20 +140,27 @@ export function Requests({ phone }: { phone: boolean }) {
           <Empty icon={ListX} title={any ? "No request matches these filters." : "No request logged yet."} />
         ) : phone ? (
           <ul className="flex flex-col" data-slot="requests-list">
-            {rows.map((r) => (
-              <li key={r.id} className="flex flex-col gap-1 border-b py-2.5 last:border-0">
-                <span className="flex min-w-0 items-center gap-2">
-                  <Status status={r.status} />
-                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{r.method}</span>
-                  <span className={cn(NUMERIC, "min-w-0 flex-1 truncate text-sm")}>{r.path}</span>
-                </span>
-                <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                  <span className={NUMERIC}>{when(r.at, true)}</span>·<Kind kind={r.kind} important={r.important} />·
-                  {r.userId ? <UserLink id={r.userId} name={r.username} /> : <IpLink ip={r.ip} />}
-                  <span className={cn(NUMERIC, "ml-auto")}>{r.durationMs.toFixed(0)} ms</span>
-                </span>
-              </li>
-            ))}
+            <VirtualList
+              items={rows}
+              scroller={adminScroll}
+              estimate={62}
+              spacerAs="li"
+              rowKey={(r) => r.id}
+              row={(r, _, measure) => (
+                <li ref={measure} className="flex flex-col gap-1 border-b py-2.5 [&:nth-last-child(2)]:border-0">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Status status={r.status} />
+                    <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>{r.method}</span>
+                    <span className={cn(NUMERIC, "min-w-0 flex-1 truncate text-sm")}>{r.path}</span>
+                  </span>
+                  <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                    <span className={NUMERIC}>{when(r.at, true)}</span>·<Kind kind={r.kind} important={r.important} />·
+                    {r.userId ? <UserLink id={r.userId} name={r.username} /> : <IpLink ip={r.ip} />}
+                    <span className={cn(NUMERIC, "ml-auto")}>{r.durationMs.toFixed(0)} ms</span>
+                  </span>
+                </li>
+              )}
+            />
           </ul>
         ) : (
           <Table data-slot="requests-table">
@@ -168,42 +176,49 @@ export function Requests({ phone }: { phone: boolean }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-                    <Tip content={new Date(r.at).toLocaleString()}>
-                      <span>{when(r.at, true)}</span>
-                    </Tip>
-                  </TableCell>
-                  <TableCell>
-                    <Status status={r.status} />
-                  </TableCell>
-                  <TableCell className="max-w-0 truncate">
-                    <span className={cn(NUMERIC, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
-                    {r.userAgent ? (
-                      <Tip content={r.userAgent}>
-                        <span className={NUMERIC}>{r.path}</span>
+              <VirtualList
+                items={rows}
+                scroller={adminScroll}
+                estimate={41}
+                spacerAs="tr"
+                rowKey={(r) => r.id}
+                row={(r, _, measure) => (
+                  <TableRow ref={measure}>
+                    <TableCell className={cn(NUMERIC, "text-xs text-muted-foreground")}>
+                      <Tip content={new Date(r.at).toLocaleString()}>
+                        <span>{when(r.at, true)}</span>
                       </Tip>
-                    ) : (
-                      <span className={NUMERIC}>{r.path}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Kind kind={r.kind} important={r.important} />
-                  </TableCell>
-                  <TableCell className={cn(NUMERIC, "text-right text-muted-foreground")}>{r.durationMs < 10 ? r.durationMs.toFixed(1) : r.durationMs.toFixed(0)} ms</TableCell>
-                  <TableCell className="max-w-36 truncate">
-                    <UserLink id={r.userId} name={r.username} />
-                  </TableCell>
-                  <TableCell className="max-w-36 truncate">
-                    <Tip content={`Only ${r.ip}`}>
-                      <button type="button" className={cn(NUMERIC, FOCUS, "max-w-full truncate rounded-sm text-left transition-colors hover:text-primary")} onClick={() => set({ ip: r.ip })}>
-                        {r.ip}
-                      </button>
-                    </Tip>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <Status status={r.status} />
+                    </TableCell>
+                    <TableCell className="max-w-0 truncate">
+                      <span className={cn(NUMERIC, "mr-2 text-xs text-muted-foreground")}>{r.method}</span>
+                      {r.userAgent ? (
+                        <Tip content={r.userAgent}>
+                          <span className={NUMERIC}>{r.path}</span>
+                        </Tip>
+                      ) : (
+                        <span className={NUMERIC}>{r.path}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Kind kind={r.kind} important={r.important} />
+                    </TableCell>
+                    <TableCell className={cn(NUMERIC, "text-right text-muted-foreground")}>{r.durationMs < 10 ? r.durationMs.toFixed(1) : r.durationMs.toFixed(0)} ms</TableCell>
+                    <TableCell className="max-w-36 truncate">
+                      <UserLink id={r.userId} name={r.username} />
+                    </TableCell>
+                    <TableCell className="max-w-36 truncate">
+                      <Tip content={`Only ${r.ip}`}>
+                        <button type="button" className={cn(NUMERIC, FOCUS, "max-w-full truncate rounded-sm text-left transition-colors hover:text-primary")} onClick={() => set({ ip: r.ip })}>
+                          {r.ip}
+                        </button>
+                      </Tip>
+                    </TableCell>
+                  </TableRow>
+                )}
+              />
             </TableBody>
           </Table>
         )}

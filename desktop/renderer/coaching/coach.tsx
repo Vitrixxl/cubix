@@ -12,6 +12,7 @@ import { CoachRow } from "./browse";
 import { day, span, url } from "./parts";
 import { Bar, Empty, EventPicker, LINK, ListSkeleton, Segmented, StateMark, Surface } from "../base";
 import { ChatPanel, ConversationList, ConversationRow, LIST } from "../chat";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -156,7 +157,8 @@ export function Dashboard() {
 /** The students: the list, then one student's conversation, floating on the page; their name opens their file. */
 export function StudentsView({ id }: { id: string }) {
   const d = useDashboard(),
-    phone = usePhone();
+    phone = usePhone(),
+    scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
     void coaching.load("conversations");
     void coaching.load("bookings");
@@ -170,25 +172,33 @@ export function StudentsView({ id }: { id: string }) {
   return (
     <div className="flex min-h-0 flex-1 gap-4">
       {(!phone || !id) && (
-        <ConversationList>
+        <ConversationList scroller={scroller}>
           {!d ? (
             <ListSkeleton />
           ) : !d.students.length ? (
             <Empty icon={Users}>{tr("Players who book you or write to you appear here.")}</Empty>
           ) : (
             <ul className={LIST} data-slot="students">
-              {d.students.map((st) => (
-                <li key={st.id}>
-                  <ConversationRow
-                    to={url("students/" + st.id)}
-                    active={st.id === id}
-                    face={<Avatar name={st.username} src={st.avatar} size={40} />}
-                    name={st.username}
-                    preview={plural(st.done, "session") + (st.nextAt ? tr(" · next {0}", { 0: span(st.nextAt) }) : "")}
-                    unread={st.unread}
-                  />
-                </li>
-              ))}
+              <VirtualList
+                items={d.students}
+                scroller={scroller}
+                estimate={62}
+                gap={2}
+                spacerAs="li"
+                rowKey={(st) => st.id}
+                row={(st, _, measure) => (
+                  <li ref={measure}>
+                    <ConversationRow
+                      to={url("students/" + st.id)}
+                      active={st.id === id}
+                      face={<Avatar name={st.username} src={st.avatar} size={40} />}
+                      name={st.username}
+                      preview={plural(st.done, "session") + (st.nextAt ? tr(" · next {0}", { 0: span(st.nextAt) }) : "")}
+                      unread={st.unread}
+                    />
+                  </li>
+                )}
+              />
             </ul>
           )}
         </ConversationList>

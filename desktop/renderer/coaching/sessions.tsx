@@ -1,5 +1,5 @@
 /** Every session as a line under its day, filtered by status; the one chosen beside, with what can be done with it. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarClock, CalendarDays, CalendarX, Check, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, Modal, NUMERIC, ROW, StateMark, Surface, Tip, usePhone } from "../ui";
@@ -10,6 +10,7 @@ import { Empty, LINK, LINK_ACCENT, ListSkeleton, Segmented, Stars } from "../bas
 import { PersonDialog, SessionCard } from "./person";
 import { CANCELLATION_NOTICE, cancellationOpen } from "./policy";
 import { store as s } from "../store";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,16 +107,24 @@ export function SessionDays({ list, now, active, onPick }: { list: Booking[]; no
     if (last && dayKey(last[0]!.startsAt) === dayKey(b.startsAt)) last.push(b);
     else days.push([b]);
   }
+  const scroller = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-slot="sessions">
-      {days.map((d) => (
-        <section key={d[0]!.id} className="flex flex-col gap-0.5" aria-label={dayTitle(d[0]!.startsAt, now)}>
-          <h3 className="px-3 pt-1 pb-0.5 text-xs font-bold text-muted-foreground first-letter:uppercase">{dayTitle(d[0]!.startsAt, now)}</h3>
-          {d.map((b) => (
-            <SessionLine key={b.id} b={b} now={now} active={b.id === active} onClick={() => onPick(b)} />
-          ))}
-        </section>
-      ))}
+    <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto" data-slot="sessions">
+      <VirtualList
+        items={days}
+        scroller={scroller}
+        estimate={90}
+        gap={12}
+        rowKey={(d) => d[0]!.id}
+        row={(d, _, measure) => (
+          <section ref={measure} className="flex flex-col gap-0.5" aria-label={dayTitle(d[0]!.startsAt, now)}>
+            <h3 className="px-3 pt-1 pb-0.5 text-xs font-bold text-muted-foreground first-letter:uppercase">{dayTitle(d[0]!.startsAt, now)}</h3>
+            {d.map((b) => (
+              <SessionLine key={b.id} b={b} now={now} active={b.id === active} onClick={() => onPick(b)} />
+            ))}
+          </section>
+        )}
+      />
     </div>
   );
 }

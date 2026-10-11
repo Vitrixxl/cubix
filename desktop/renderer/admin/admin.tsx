@@ -12,7 +12,7 @@ import { Empty, Logo, Tip, usePhone, WindowSidebar, Wordmark } from "../base";
 import { Confirmations } from "../confirm";
 import { Toasts } from "../Toasts";
 import { admin, AdminError, LiveContext, navigate, onExpired, refreshAll, useLive, useRefreshed, useRoute } from "./api";
-import { NUMERIC } from "./parts";
+import { NUMERIC, adminScroll } from "./parts";
 import { Overview } from "./overview";
 import { Users } from "./users";
 import { User } from "./user";
@@ -319,7 +319,7 @@ function Shell({ onSignOut }: { onSignOut: () => void }) {
               </Button>
             )}
           </header>
-          <div data-admin-scroll className="min-h-0 flex-1 overflow-y-auto">
+          <div ref={adminScroll} data-admin-scroll className="min-h-0 flex-1 overflow-y-auto">
             {body}
           </div>
         </SidebarInset>

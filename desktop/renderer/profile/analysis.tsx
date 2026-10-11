@@ -4,7 +4,8 @@
  * cost with the chosen case in detail, and the training that would help most, one proposal per tile. Without a
  * smart cube solve, it says how to get one.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { VirtualList, inRows, useColumns } from "../virtual";
 import { Bluetooth, Dumbbell, GraduationCap, History, Timer } from "lucide-react";
 import { store as s, catalog } from "../store";
 import { fmtTime } from "../../../src/client/lib/format";
@@ -101,8 +102,11 @@ function Workshop({ method, latest, suggestions, phone }: { method: MethodStats;
     chosen = board.tiles.find((t) => t.id === picked) ?? board.tiles[0],
     // The board's slowest learned cases, as it is sorted.
     slowest = learnedOnly(board.tiles.filter((t) => t.stats).map((t) => t.id)).slice(0, 5);
+  const page = useRef<HTMLDivElement>(null),
+    grid = useRef<HTMLDivElement>(null),
+    columns = useColumns(grid, 112, 8);
   return (
-    <div className={cn("min-h-0 flex-1 gap-4", phone ? "flex flex-col overflow-y-auto [&>*]:shrink-0" : "grid grid-cols-[minmax(0,1fr)_22rem] grid-rows-[auto_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_26rem]")}>
+    <div ref={page} className={cn("min-h-0 flex-1 gap-4", phone ? "flex flex-col overflow-y-auto [&>*]:shrink-0" : "grid grid-cols-[minmax(0,1fr)_22rem] grid-rows-[auto_minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_26rem]")}>
       <Steps method={method} latest={latest} className={phone ? undefined : "col-start-1"} />
       <Surface aria-label={tr("Cases")} className={cn("flex flex-col", phone ? "min-h-[28rem]" : "col-start-1 row-start-2")}>
         <div className="flex shrink-0 flex-wrap items-center gap-2 px-5 pt-4 pb-3">
@@ -138,11 +142,23 @@ function Workshop({ method, latest, suggestions, phone }: { method: MethodStats;
             </Button>
           )}
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] content-start gap-2 overflow-y-auto px-5 pb-5">
-          {board.tiles.map((t) => (
-            <CaseTile key={t.id} tile={t} on={!phone && t.id === chosen?.id} onPick={() => (phone ? void s.action("caseDialog:" + t.id) : setPicked(t.id))} />
-          ))}
-          {!board.tiles.length && <Empty className="col-span-full">{tr("No case of the catalogue recognised yet.")}</Empty>}
+        {/* Rows of the auto-fill grid it was (7rem tiles at least), drawn as they show: the page scrolls them on phones. */}
+        <div ref={grid} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 pb-5">
+          <VirtualList
+            items={inRows(board.tiles, columns)}
+            scroller={phone ? page : grid}
+            estimate={112}
+            gap={8}
+            rowKey={(row) => row[0]!.id}
+            row={(row, _, measure) => (
+              <div ref={measure} className="grid shrink-0 gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                {row.map((t) => (
+                  <CaseTile key={t.id} tile={t} on={!phone && t.id === chosen?.id} onPick={() => (phone ? void s.action("caseDialog:" + t.id) : setPicked(t.id))} />
+                ))}
+              </div>
+            )}
+          />
+          {!board.tiles.length && <Empty>{tr("No case of the catalogue recognised yet.")}</Empty>}
         </div>
       </Surface>
       {!phone && <CaseSheet tile={chosen} usual={board.usual} step={step} className="col-start-2 row-span-2 row-start-1" />}
@@ -158,7 +174,7 @@ function boardOf(method: MethodStats, step: (typeof BOARD)[number], sort: string
   const seen = method.cases.filter((c) => c.step === step.id),
     usual = seen.length ? seen.reduce((t, c) => t + c.duration, 0) / seen.length : 0,
     byId = new Map(seen.map((c) => [c.id, c])),
-    ids = [...catalog.cases.filter((c: any) => step.set(c.set)).map((c: any) => c.id as string), ...seen.map((c) => c.id)].filter((id, i, all) => all.indexOf(id) === i),
+    ids = [...new Set<string>([...catalog.cases.filter((c: any) => step.set(c.set)).map((c: any) => c.id as string), ...seen.map((c) => c.id)])],
     key = (c: CaseStats) => (sort === "recognition" ? c.recognition : sort === "count" ? c.count : (c.duration - usual) * c.count);
   const tiles: Tile[] = ids.map((id) => {
     const stats = byId.get(id),

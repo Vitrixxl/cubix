@@ -3,7 +3,7 @@
  * Pictures and videos go as messages of their own: picked with the clip, pasted, or dropped on the conversation. The
  * kit is chat.tsx, shared with the community.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarPlus, ImageUp, MessagesSquare, Paperclip } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { PersonDialog } from "./person";
 import { url } from "./parts";
 import { Empty, FOCUS, ListSkeleton } from "../base";
 import { Bubble, ChatClosed, ChatHeader, ChatPanel, Composer, ConversationList, ConversationRow, LIST, MessageList } from "../chat";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { InputGroupButton } from "@/components/ui/input-group";
@@ -28,6 +29,7 @@ export function Messages({ id }: { id: number | null }) {
     void coaching.load("conversations");
   }, []);
   const phone = usePhone();
+  const scroller = useRef<HTMLDivElement>(null);
   const list = coaching.conversations;
   const current = list?.find((c) => c.id === id);
   // On a wide window the latest conversation opens when none is chosen; a phone shows the list first.
@@ -37,7 +39,7 @@ export function Messages({ id }: { id: number | null }) {
   return (
     <div className="flex min-h-0 flex-1 gap-4">
       {(!phone || !id) && (
-        <ConversationList>
+        <ConversationList scroller={scroller}>
           {!list ? (
             <ListSkeleton />
           ) : !list.length ? (
@@ -49,20 +51,28 @@ export function Messages({ id }: { id: number | null }) {
             </Empty>
           ) : (
             <ul className={LIST} data-slot="conversations">
-              {list.map((c) => (
-                <li key={c.id}>
-                  <ConversationRow
-                    to={url("messages/" + c.id)}
-                    active={c.id === id}
-                    face={<Avatar name={c.with.username} src={c.with.avatar} size={40} />}
-                    name={c.with.username}
-                    tag={c.role === "student" ? tr("coach") : tr("student")}
-                    at={c.lastMessage?.at}
-                    preview={c.lastMessage ? (c.lastMessage.mine ? tr("You: {0}", { 0: said(gist(c.lastMessage.body, c.lastMessage.media)) }) : said(gist(c.lastMessage.body, c.lastMessage.media))) : tr("No message yet")}
-                    unread={c.unread}
-                  />
-                </li>
-              ))}
+              <VirtualList
+                items={list}
+                scroller={scroller}
+                estimate={62}
+                gap={2}
+                spacerAs="li"
+                rowKey={(c) => c.id}
+                row={(c, _, measure) => (
+                  <li ref={measure}>
+                    <ConversationRow
+                      to={url("messages/" + c.id)}
+                      active={c.id === id}
+                      face={<Avatar name={c.with.username} src={c.with.avatar} size={40} />}
+                      name={c.with.username}
+                      tag={c.role === "student" ? tr("coach") : tr("student")}
+                      at={c.lastMessage?.at}
+                      preview={c.lastMessage ? (c.lastMessage.mine ? tr("You: {0}", { 0: said(gist(c.lastMessage.body, c.lastMessage.media)) }) : said(gist(c.lastMessage.body, c.lastMessage.media))) : tr("No message yet")}
+                      unread={c.unread}
+                    />
+                  </li>
+                )}
+              />
             </ul>
           )}
         </ConversationList>

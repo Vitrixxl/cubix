@@ -3,7 +3,7 @@
  * popover with the session and what matters at a glance, and their whole file in a dialog: figures, activity,
  * progress per puzzle, cases learned, the coach's notes and every session together.
  */
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, GraduationCap, MessageSquare, Timer, TrendingDown, TrendingUp, UserRound, Video } from "lucide-react";
 import { Avatar, Icon, Modal, NUMERIC, plural } from "../ui";
 import { catalog } from "../store";
@@ -16,6 +16,7 @@ import { Bar, Empty, SectionHead, StateMark, Stars, Surface, Tip } from "../base
 import { HEAT_LEVELS, heatmap, type HeatCell } from "../../../src/client/lib/profile";
 import { CancelButton, MoveButton, Offer, ReviewButton } from "./sessions";
 import { CANCELLATION_NOTICE, cancellationOpen } from "./policy";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button as UiButton } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -134,7 +135,8 @@ const SECTION = "gap-3 p-5";
 
 function PersonBody({ id, name, inChat, close }: { id: string; name: string; inChat: boolean; close: () => void }) {
   const p = usePerson(id),
-    now = Date.now();
+    now = Date.now(),
+    scroller = useRef<HTMLDivElement>(null);
   const booked = p?.sessions.filter((b) => b.status === "booked") ?? [],
     done = booked.filter((b) => b.endsAt <= now),
     rated = done.filter((b) => b.review),
@@ -179,7 +181,7 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
           </div>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6 max-md:p-5">
+        <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6 max-md:p-5">
           <dl className="grid shrink-0 grid-cols-3 gap-x-6 gap-y-3 px-1 lg:grid-cols-6">
             {(
               [
@@ -226,24 +228,32 @@ function PersonBody({ id, name, inChat, close }: { id: string; name: string; inC
                   </Empty>
                 ) : (
                   <ul className="-mx-2 flex flex-col gap-0.5" data-slot="person-sessions">
-                    {p.sessions.map((b) => (
-                      <li key={b.id} className={cn("flex flex-col gap-1 rounded-xl px-2 py-2", b.status === "cancelled" && "opacity-60")}>
-                        <span className="flex items-center gap-2">
-                          <span className={cn(NUMERIC, "text-sm")}>{span(b.startsAt)}</span>
-                          <span className="ml-auto">
-                            {b.status === "cancelled" ? (
-                              <StateMark tone="off">{tr("cancelled")}</StateMark>
-                            ) : b.endsAt > now ? (
-                              <StateMark tone="good">{day(b.startsAt) === day(now) ? tr("today") : tr("to come")}</StateMark>
-                            ) : (
-                              b.review && <Stars rating={b.review.rating} size={11} figure={false} />
-                            )}
+                    <VirtualList
+                      items={p.sessions}
+                      scroller={scroller}
+                      estimate={40}
+                      gap={2}
+                      spacerAs="li"
+                      rowKey={(b) => b.id}
+                      row={(b, _, measure) => (
+                        <li ref={measure} className={cn("flex flex-col gap-1 rounded-xl px-2 py-2", b.status === "cancelled" && "opacity-60")}>
+                          <span className="flex items-center gap-2">
+                            <span className={cn(NUMERIC, "text-sm")}>{span(b.startsAt)}</span>
+                            <span className="ml-auto">
+                              {b.status === "cancelled" ? (
+                                <StateMark tone="off">{tr("cancelled")}</StateMark>
+                              ) : b.endsAt > now ? (
+                                <StateMark tone="good">{day(b.startsAt) === day(now) ? tr("today") : tr("to come")}</StateMark>
+                              ) : (
+                                b.review && <Stars rating={b.review.rating} size={11} figure={false} />
+                              )}
+                            </span>
                           </span>
-                        </span>
-                        {b.note && <span className="text-xs whitespace-pre-line text-muted-foreground">{b.note}</span>}
-                        {b.review?.comment && <span className="text-xs text-muted-foreground italic">“{b.review.comment}”</span>}
-                      </li>
-                    ))}
+                          {b.note && <span className="text-xs whitespace-pre-line text-muted-foreground">{b.note}</span>}
+                          {b.review?.comment && <span className="text-xs text-muted-foreground italic">“{b.review.comment}”</span>}
+                        </li>
+                      )}
+                    />
                   </ul>
                 )}
               </Surface>

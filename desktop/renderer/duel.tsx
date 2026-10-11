@@ -23,6 +23,7 @@ import { community, type Conversation } from "./community/client";
 import { FriendsDialog } from "./community/dialogs";
 import { relative } from "./coaching/parts";
 import { cn } from "@/lib/utils";
+import { VirtualList } from "./virtual";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button as UiButton } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -325,7 +326,8 @@ const shortEvent = (id: string) => {
 /** The races played on this device: the record as one bar, then each race as a ticket, newest first. */
 function Played() {
   const list: DuelRecord[] = s.prefs[DUELS_KEY] ?? [],
-    count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length;
+    count = (r: DuelRecord["result"]) => list.filter((b) => b.result === r).length,
+    scroller = useRef<HTMLDivElement>(null);
   return (
     <>
       <PanelHead title="Races played" meta={list.length || undefined} className="px-1">
@@ -344,24 +346,31 @@ function Played() {
           <div className="px-1">
             <Record won={count("win")} drawn={count("draw")} lost={count("loss")} />
           </div>
-          <div className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1" role="list" aria-label={tr("Races played")}>
-            {list.map((b) => {
-              const [a, z] = roundsWon(b.mine, b.theirs),
-                [mine, theirs] = b.ao5;
-              return (
-                <Ticket
-                  key={b.id}
-                  role="listitem"
-                  result={b.result}
-                  score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
-                  name={said(b.opponent)}
-                  level={shortEvent(b.event)}
-                  sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
-                  aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
-                  className="hover:bg-muted"
-                />
-              );
-            })}
+          <div ref={scroller} className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1" role="list" aria-label={tr("Races played")}>
+            <VirtualList
+              items={list}
+              scroller={scroller}
+              estimate={60}
+              rowKey={(b) => b.id}
+              row={(b, _, measure) => {
+                const [a, z] = roundsWon(b.mine, b.theirs),
+                  [mine, theirs] = b.ao5;
+                return (
+                  <Ticket
+                    // Ticket hands `ref` to its root like its other attributes.
+                    {...{ ref: measure }}
+                    role="listitem"
+                    result={b.result}
+                    score={mine === null && theirs === null ? tr("DNF") : `${a}–${z}`}
+                    name={said(b.opponent)}
+                    level={shortEvent(b.event)}
+                    sub={`${relative(Date.parse(b.at))} · ${tr("Ao5")} ${raceAverage(mine)}`}
+                    aside={mine !== null && theirs !== null ? <Gap ms={mine - theirs} /> : <Gap>{b.result === "draw" ? tr("Draw") : tr("DNF")}</Gap>}
+                    className="hover:bg-muted"
+                  />
+                );
+              }}
+            />
           </div>
         </>
       )}
@@ -685,15 +694,24 @@ function Chat() {
     <div className="duel-chat flex min-h-0 flex-1 flex-col gap-2.5">
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pt-1.5 text-sm" ref={list} aria-live="polite">
         {said_(tr("vs {0} · {1}", { 0: duel.opponent.name, 1: event ? eventLabel(event.puzzle, event.solveMode) : duel.event }))}
-        {duel.chat.map((m, i) => {
-          const own = m.seat === duel.seat;
-          return (
-            <div key={i} className={cn("duel-chat-line flex items-start gap-2", own && "mine flex-row-reverse text-right")}>
-              <Avatar name={duel.players[m.seat]?.name} size={24} />
-              <p className={cn("duel-chat-text min-w-0 pt-[3px] leading-snug break-words", own && "text-primary")}>{said(m.text)}</p>
-            </div>
-          );
-        })}
+        {/* The spacers' negative margins take back the column's gap they would add around them. */}
+        <VirtualList
+          items={duel.chat}
+          scroller={list}
+          estimate={32}
+          gap={8}
+          spacer="-my-1"
+          anchorTo="end"
+          row={(m, _, measure) => {
+            const own = m.seat === duel.seat;
+            return (
+              <div ref={measure} className={cn("duel-chat-line flex items-start gap-2", own && "mine flex-row-reverse text-right")}>
+                <Avatar name={duel.players[m.seat]?.name} size={24} />
+                <p className={cn("duel-chat-text min-w-0 pt-[3px] leading-snug break-words", own && "text-primary")}>{said(m.text)}</p>
+              </div>
+            );
+          }}
+        />
         {result && said_(result === "win" ? tr("You win") : result === "loss" ? tr("{0} wins", { 0: duel.opponent.name }) : tr("Draw"))}
         {!here && said_(tr("{0} left", { 0: duel.opponent.name }))}
       </div>

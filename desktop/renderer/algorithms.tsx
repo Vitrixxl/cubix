@@ -13,6 +13,8 @@ import { TimerStats } from "./stats";
 import { useWidth } from "./FiguresEditor";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
+import { VirtualList, inRows } from "./virtual";
+import type { Virtualizer } from "@tanstack/react-virtual";
 import { tr } from "../../src/client/i18n";
 import { said } from "./base";
 import { Link } from "react-router";
@@ -172,7 +174,7 @@ function SetTree({ sections, active }: { sections: ReturnType<typeof currentSet>
                     <button
                       key={group}
                       type="button"
-                      onClick={() => document.getElementById(groupId(set.id, group))?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      onClick={() => jumpTo?.(groupId(set.id, group))}
                       className={cn(ROW, "flex h-8 w-full items-center justify-between gap-2 pr-2.5 pl-9 text-sm text-muted-foreground hover:text-foreground")}
                     >
                       <span className="truncate">{tr(group)}</span>
@@ -244,59 +246,103 @@ function FilterChoice({ section }: { section: any }) {
   );
 }
 
+/** Brings a group of the shelves into view, drawn or not: set by the shelves showing, used by the set tree. */
+let jumpTo: ((id: string) => void) | null = null;
+
 /** The set's groups as shelves: the group's name, how far it is learned and its Train on the left, its cases beside. */
 function Shelves({ set, section, wide, small, picked, pick }: { set: any; section: any; wide: boolean; small: boolean; picked: Set<string> | null; pick: ((id: string) => void) | null }) {
-  const scroll = useScrollPosition(`catalog:${s.puzzle}:${set.id}`);
+  const scroll = useScrollPosition(`catalog:${s.puzzle}:${set.id}`),
+    list = useRef<Virtualizer<HTMLElement, Element> | null>(null);
   const members = (group: string) => section.all.filter((c: any) => c.group === group);
   // Large tiles fill the width: as many columns as hold a tile of at least FLUID_MIN, each diagram as wide as its column.
+  // The compact ones as many as their auto-fill grid would hold, so the rows drawn one by one line up as one grid.
   const [first, setFirst] = useState<HTMLElement | null>(null),
     width = useWidth(first),
-    columns = Math.max(1, Math.floor((width + FLUID_GAP) / ((wide ? FLUID_MIN : FLUID_MIN_PHONE) + FLUID_GAP))),
+    fluid = !small && width > 0,
+    [least, gap] = fluid ? [wide ? FLUID_MIN : FLUID_MIN_PHONE, FLUID_GAP] : small ? [56, 2] : [84, 6],
+    columns = Math.max(1, Math.floor((width + gap) / (least + gap))),
     side = Math.min(FLUID_MAX, Math.floor((width - FLUID_GAP * (columns - 1)) / columns) - 12),
-    fluid = !small && width > 0;
+    tiles = small ? TILES_SMALL : fluid ? "grid gap-x-1.5 gap-y-2" : TILES,
+    // Between two rows of a group, its grid's own gap.
+    between = small ? "pt-0.5" : fluid ? "pt-2" : "pt-1",
+    // Beside the group's name, enough rows to be as tall as it.
+    headRows = wide ? (small ? 3 : 2) : 1;
+  // Drawn as they come into view: each group's heading with its first rows, then its other rows one by one.
+  const shelves = section.groups.flatMap(([group, shown]: [string, any[]], index: number) => {
+    const all = members(group),
+      rows = inRows(shown, columns),
+      chunks = [rows.slice(0, headRows).flat(), ...rows.slice(headRows)];
+    return chunks.map((cases, n) => ({ group, all, index, n, cases, last: n === chunks.length - 1 }));
+  });
+  useEffect(() => {
+    jumpTo = (id) => {
+      const i = shelves.findIndex((v: any) => !v.n && groupId(set.id, v.group) === id);
+      if (i >= 0) list.current?.scrollToIndex(i, { align: "start", behavior: "smooth" });
+    };
+    return () => void (jumpTo = null);
+  });
+  const grid = (cases: any[], className?: string) => (
+    <div className={cn(tiles, className)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      {cases.map((c: any) => (
+        <CaseTile key={c.id} c={c} touch={!wide} small={small} size={fluid ? side : undefined} pressed={picked ? picked.has(c.id) : undefined} onPress={pick ? () => pick(c.id) : undefined} />
+      ))}
+    </div>
+  );
   return (
     <div ref={scroll} className={cn("min-h-0 flex-1 overflow-y-auto", wide ? "-mr-3 pr-3 pb-16" : "-mx-4 px-4")}>
+      {/* The width of the cases' column, for the columns of every row. */}
+      <div aria-hidden="true" className={cn("h-0", wide && "grid grid-cols-[9.5rem_minmax(0,1fr)] gap-x-4")}>
+        <div ref={setFirst} className={wide ? "col-start-2" : undefined} />
+      </div>
       {!section.groups.length && (
         <Empty icon={Check}>{s.learningFilter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>
       )}
-      {section.groups.map(([group, shown]: [string, any[]], index: number) => {
-        const all = members(group),
-          learned = learnedOf(all),
-          key = set.id + ":" + group;
-        return (
-          <section
-            key={group}
-            id={groupId(set.id, group)}
-            aria-label={tr(group)}
-            className={cn("scroll-mt-1 border-t border-border/60 first:border-t-0", wide ? "grid grid-cols-[9.5rem_minmax(0,1fr)] gap-4 py-3" : "flex flex-col gap-2 py-3")}
-          >
-            <div className={cn("flex", wide ? "flex-col items-start gap-1.5 pt-2" : "items-center gap-2")}>
-              <h3 className="max-w-full text-base leading-tight font-extrabold tracking-[-0.01em] text-balance">{tr(group)}</h3>
-              <span className={cn(NUMERIC, "text-[13px] font-semibold", learned === all.length ? "text-success" : "text-muted-foreground")}>
-                {tr("{0} of {1} learned", { 0: learned, 1: all.length })}
-              </span>
-              {wide && (
-                <span className="flex max-w-32 flex-wrap gap-[3px]" aria-hidden="true">
-                  {all.map((c: any) => (
-                    <i key={c.id} className={cn("size-[7px] rounded-[2px]", s.learned.has(c.id) ? "bg-success" : "bg-muted")} />
-                  ))}
-                </span>
-              )}
-              <Button action={"train:" + key} icon={Timer} variant="secondary" className={cn(wide ? "mt-1" : "ml-auto")}>
-                {tr("Train")}</Button>
-            </div>
-            <div
-              ref={index ? undefined : setFirst}
-              className={small ? TILES_SMALL : fluid ? "grid gap-x-1.5 gap-y-2" : TILES}
-              style={fluid ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
+      <VirtualList
+        items={shelves}
+        scroller={scroll}
+        handle={list}
+        estimate={(i) => {
+          const v = shelves[i],
+            row = small ? 66 : fluid ? side + 56 : 108;
+          return v.n ? row + 8 : (wide ? Math.max(150, headRows * row) : 40 + row) + 24;
+        }}
+        rowKey={(v: any) => v.group + ":" + v.n}
+        row={(v: any, _, measure) => {
+          const learned = learnedOf(v.all),
+            key = set.id + ":" + v.group;
+          if (v.n)
+            return (
+              <div ref={measure} className={cn(wide && "grid grid-cols-[9.5rem_minmax(0,1fr)] gap-x-4", between, v.last && "pb-3")}>
+                {grid(v.cases, wide ? "col-start-2" : undefined)}
+              </div>
+            );
+          return (
+            <section
+              ref={measure}
+              id={groupId(set.id, v.group)}
+              aria-label={tr(v.group)}
+              className={cn(v.index && "border-t border-border/60", wide ? "grid grid-cols-[9.5rem_minmax(0,1fr)] gap-x-4 pt-3" : "flex flex-col gap-2 pt-3", v.last && "pb-3")}
             >
-              {shown.map((c: any) => (
-                <CaseTile key={c.id} c={c} touch={!wide} small={small} size={fluid ? side : undefined} pressed={picked ? picked.has(c.id) : undefined} onPress={pick ? () => pick(c.id) : undefined} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+              <div className={cn("flex", wide ? "flex-col items-start gap-1.5 pt-2" : "items-center gap-2")}>
+                <h3 className="max-w-full text-base leading-tight font-extrabold tracking-[-0.01em] text-balance">{tr(v.group)}</h3>
+                <span className={cn(NUMERIC, "text-[13px] font-semibold", learned === v.all.length ? "text-success" : "text-muted-foreground")}>
+                  {tr("{0} of {1} learned", { 0: learned, 1: v.all.length })}
+                </span>
+                {wide && (
+                  <span className="flex max-w-32 flex-wrap gap-[3px]" aria-hidden="true">
+                    {v.all.map((c: any) => (
+                      <i key={c.id} className={cn("size-[7px] rounded-[2px]", s.learned.has(c.id) ? "bg-success" : "bg-muted")} />
+                    ))}
+                  </span>
+                )}
+                <Button action={"train:" + key} icon={Timer} variant="secondary" className={cn(wide ? "mt-1" : "ml-auto")}>
+                  {tr("Train")}</Button>
+              </div>
+              {grid(v.cases)}
+            </section>
+          );
+        }}
+      />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { Practice } from "./practice";
 import { Cube } from "./Cube";
 import { ActionToggle, Alg, Bar, Button, Choice, Diagram, Empty, FOCUS, MenuAction, Modal, NUMERIC, PAGE, PageHead, ProgressRing, ROW, SearchField, SectionHead, Segmented, Surface, TILE, plural, run, usePhone, useViewport } from "./ui";
 import { CaseTile, FootBar, TILES } from "./algorithms";
+import { VirtualList, inRows, useColumns } from "./virtual";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { tr } from "../../src/client/i18n";
@@ -624,11 +625,40 @@ function CrossCard() {
   );
 }
 
+type PickerRow = { key: string; end?: boolean; last?: boolean } & (
+  | { kind: "set"; set: any; chosen: any[]; count: number; open: boolean }
+  | { kind: "group"; set: any; group: string; members: any[]; top: boolean }
+  | { kind: "tiles"; cases: any[]; top: boolean }
+);
+
 /** The cases to pick by hand, set by set (the learned ones, every one for free practice); the count picked, the search and Clear above them. */
 function CasesPicker({ free = false }: { free?: boolean }) {
   const cases = free ? s.cases() : s.cases().filter((c: any) => s.learned.has(c.id)),
     picks = free ? new Set(s.freePicks) : s.selected,
-    phone = usePhone();
+    phone = usePhone(),
+    list = useRef<HTMLDivElement>(null),
+    // As many columns as TILES' auto-fill grid holds (5.25rem, 6px apart), so the rows drawn one by one line up.
+    columns = useColumns(list, 84, 6);
+  // Every set's row, then its groups opened: a group's name, its cases a row at a time. `end` closes a group, `last` a set.
+  const rows: PickerRow[] = [];
+  for (const set of s.allSets()) {
+    const all = cases.filter((c: any) => c.set === set.id),
+      chosen = all.filter((c: any) => matches(c, s.query)),
+      count = chosen.filter((c: any) => picks.has(c.id)).length,
+      open = s.selectorOpen[set.id] ?? (count > 0 || !!s.query);
+    if (!chosen.length) continue;
+    rows.push({ kind: "set", key: set.id, set, chosen, count, open });
+    if (!open) continue;
+    const groups = [...new Set(chosen.map((c: any) => c.group))] as string[];
+    for (const group of groups) {
+      const members = chosen.filter((c: any) => c.group === group),
+        key = set.id + ":" + group;
+      if (groups.length > 1) rows.push({ kind: "group", key, set, group, members, top: true });
+      inRows(members, columns).forEach((row, i) => rows.push({ kind: "tiles", key: key + ":" + i, cases: row, top: groups.length === 1 && !i }));
+      rows[rows.length - 1]!.end = true;
+    }
+    rows[rows.length - 1]!.last = true;
+  }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3">
@@ -651,63 +681,65 @@ function CasesPicker({ free = false }: { free?: boolean }) {
         </div>
       </header>
       {/* The set and group rows reach 8px past their text (-mx-2): the list's padding holds them, so nothing scrolls sideways. */}
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2">
-        {s.allSets().map((set: any) => {
-          const all = cases.filter((c: any) => c.set === set.id),
-            chosen = all.filter((c: any) => matches(c, s.query)),
-            count = chosen.filter((c: any) => picks.has(c.id)).length,
-            open = s.selectorOpen[set.id] ?? (count > 0 || !!s.query);
-          if (!chosen.length) return null;
-          const groups = [...new Set(chosen.map((c: any) => c.group))] as string[];
-          return (
-            <section key={set.id} className="flex flex-col pb-2">
-              <div className={cn(ROW, "-mx-2 flex items-center gap-2 pr-1")}>
-                <button
-                  type="button"
-                  data-action={"selectorToggle:" + set.id}
-                  onClick={run("selectorToggle:" + set.id)}
-                  className={cn("flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left", FOCUS)}
-                >
-                  {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
-                  <ProgressRing done={count === chosen.length} share={count / chosen.length} />
-                  <span className="truncate text-[15px] font-bold">{tr(set.label)}</span>
-                  <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
-                    {count} / {chosen.length}
-                  </span>
-                </button>
-                <Button action={"selectSet:" + set.id} className="text-muted-foreground">
-                  {count === chosen.length ? tr("Unselect all") : tr("Select all")}
-                </Button>
+      <div ref={list} className="mt-3 min-h-0 flex-1 overflow-y-auto px-2">
+        <VirtualList
+          items={rows}
+          scroller={list}
+          estimate={(i) => (rows[i]!.kind === "tiles" ? 112 : rows[i]!.kind === "set" ? 40 : 30)}
+          rowKey={(v) => v.key}
+          row={(v, _, measure) => {
+            if (v.kind === "set") {
+              const { set, chosen, count, open } = v;
+              return (
+                <div ref={measure} className={cn(v.last && "pb-2")}>
+                  <div className={cn(ROW, "-mx-2 flex items-center gap-2 pr-1")}>
+                    <button
+                      type="button"
+                      data-action={"selectorToggle:" + set.id}
+                      onClick={run("selectorToggle:" + set.id)}
+                      className={cn("flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left", FOCUS)}
+                    >
+                      {open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+                      <ProgressRing done={count === chosen.length} share={count / chosen.length} />
+                      <span className="truncate text-[15px] font-bold">{tr(set.label)}</span>
+                      <span className={cn(NUMERIC, "text-xs text-muted-foreground")}>
+                        {count} / {chosen.length}
+                      </span>
+                    </button>
+                    <Button action={"selectSet:" + set.id} className="text-muted-foreground">
+                      {count === chosen.length ? tr("Unselect all") : tr("Select all")}
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
+            // A group's rows: its name (when the set has several) then its cases, a row of the grid at a time.
+            const pad = cn(v.top ? "pt-2" : "pt-1", v.end && (v.last ? "pb-5" : "pb-3"));
+            if (v.kind === "group")
+              return (
+                <div ref={measure} className={pad}>
+                  <button
+                    type="button"
+                    data-action={"selectGroup:" + v.set.id + ":" + v.group}
+                    onClick={run("selectGroup:" + v.set.id + ":" + v.group)}
+                    className={cn("flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground", FOCUS)}
+                  >
+                    {tr(v.group)}
+                    <span className={NUMERIC}>
+                      {v.members.filter((c: any) => picks.has(c.id)).length} / {v.members.length}
+                    </span>
+                  </button>
+                </div>
+              );
+            return (
+              <div ref={measure} className={cn(TILES, pad)} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                {v.cases.map((c: any) => (
+                  <CaseTile key={c.id} c={c} touch={phone} action={"select:" + c.id} pressed={picks.has(c.id)} />
+                ))}
               </div>
-              {open &&
-                groups.map((group) => {
-                  const members = chosen.filter((c: any) => c.group === group);
-                  return (
-                    <div key={group} className="flex flex-col gap-1 pt-2 pb-3">
-                      {groups.length > 1 && (
-                        <button
-                          type="button"
-                          data-action={"selectGroup:" + set.id + ":" + group}
-                          onClick={run("selectGroup:" + set.id + ":" + group)}
-                          className={cn("flex w-fit items-center gap-2 rounded-md px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground", FOCUS)}
-                        >
-                          {tr(group)}
-                          <span className={NUMERIC}>
-                            {members.filter((c: any) => picks.has(c.id)).length} / {members.length}
-                          </span>
-                        </button>
-                      )}
-                      <div className={TILES}>
-                        {members.map((c: any) => (
-                          <CaseTile key={c.id} c={c} touch={phone} action={"select:" + c.id} pressed={picks.has(c.id)} />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-            </section>
-          );
-        })}
+            );
+          }}
+        />
       </div>
     </div>
   );

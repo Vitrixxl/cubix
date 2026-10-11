@@ -5,7 +5,7 @@
  * launches a battle (and, in a group its organisers run, a tournament) and opens the details. The kit is chat.tsx,
  * shared with coaching.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MessagesSquare, PanelRight, SearchX, UserPlus, Users } from "lucide-react";
 import { store as s } from "../store";
 import { go } from "../navigation";
@@ -16,6 +16,7 @@ import { Bubble, ChatClosed, ChatHeader, Composer, ConversationList as List, Con
 import { cardText, community, communityUrl, eventName, matchUrl, seatIn, type Conversation, type Message } from "./client";
 import { BattleCard, TournamentChatCard } from "./cards";
 import { BattleDialog, TournamentDialog, NewGroupDialog, Requests } from "./dialogs";
+import { VirtualList } from "../virtual";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { tr } from "../../../src/client/i18n";
@@ -47,7 +48,8 @@ export function ConversationList({ id, onFriends, className }: { id: number | nu
   useEffect(() => {
     void community.load("conversations");
   }, []);
-  const list = community.conversations,
+  const scroller = useRef<HTMLDivElement>(null),
+    list = community.conversations,
     invitations = community.me?.invitations ?? [],
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all"),
@@ -80,6 +82,7 @@ export function ConversationList({ id, onFriends, className }: { id: number | nu
       }
       query={query}
       onQuery={setQuery}
+      scroller={scroller}
       top={
         <>
           <Segmented
@@ -127,11 +130,19 @@ export function ConversationList({ id, onFriends, className }: { id: number | nu
         )
       ) : (
         <ul className={LIST} data-slot="conversations">
-          {shown.map((c) => (
-            <li key={c.id}>
-              <ConversationRow c={c} active={c.id === id} />
-            </li>
-          ))}
+          <VirtualList
+            items={shown}
+            scroller={scroller}
+            estimate={62}
+            gap={2}
+            spacerAs="li"
+            rowKey={(c) => c.id}
+            row={(c, _, measure) => (
+              <li ref={measure}>
+                <ConversationRow c={c} active={c.id === id} />
+              </li>
+            )}
+          />
         </ul>
       )}
     </List>
