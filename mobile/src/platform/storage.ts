@@ -8,3 +8,6 @@ export const storage = {
   setItem: (key: string, value: string) => { mmkv.set(key, value); },
   removeItem: (key: string) => { mmkv.remove(key); },
 };
+
+/** Ready from the first line (the web's storage loads first: storage.web.ts). */
+export const storageReady: Promise<void> = Promise.resolve();
