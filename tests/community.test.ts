@@ -73,8 +73,11 @@ test("friends, messages and groups", async () => {
   expect((await alice.get("social/users?q=bob_c")).map((u: any) => u.username)).toEqual(["bob_cubes"]);
   expect(await alice.get("social/users?q=bob%25")).toEqual([]);
   expect((await alice.call("POST", "social/friends", { username: "BOB_CUBES" })).value.relation).toBe("outgoing");
-  expect((await bobLive.next((m) => m.channel === "social" && m.type === "request")).from.username).toBe("alice");
-  expect((await bob.get("social/me")).incoming.map((p: any) => p.username)).toEqual(["alice"]);
+  // The event brings Bob's community as it now is: his app has nothing to ask.
+  const request = await bobLive.next((m) => m.channel === "social" && m.type === "request");
+  expect(request.from.username).toBe("alice");
+  expect(request.me).toEqual(await bob.get("social/me"));
+  expect(request.me.incoming.map((p: any) => p.username)).toEqual(["alice"]);
   expect((await alice.call("POST", "social/friends", { username: "bob_cubes" })).status).toBe(409);
   expect((await bob.call("POST", `social/friends/${alice.id}/accept`)).value.relation).toBe("friend");
   expect((await alice.get("social/me")).friends.map((p: any) => p.username)).toEqual(["bob_cubes"]);
@@ -247,7 +250,9 @@ test("battles and tournaments show in their conversations as cards; two friends 
   const open = (await bob.call("POST", "matches", { conversationId: group.conversationId, event: "222", points: 1, sets: 1 })).value;
   expect(open).toMatchObject({ groupId: group.id, players: [{ username: "bob_cubes" }, null] });
   await alice.call("POST", `matches/${open.id}/accept`);
-  expect((await bobLive.next((m) => m.channel === "social" && m.type === "match" && m.match === open.id)).status).toBe("ready");
+  const ready = await bobLive.next((m) => m.channel === "social" && m.type === "match" && m.match === open.id);
+  expect(ready.status).toBe("ready");
+  expect(ready.competition).toEqual({ match: open.id, tournament: null });
   // Every account sees the open tournaments and those of its groups.
   expect((await bob.get("tournaments")).map((t: any) => t.name)).toEqual(["Club cup"]);
   expect(await (await account(origin, "dave")).get("tournaments")).toEqual([]);

@@ -1386,12 +1386,13 @@ func coachingRoute(db *Conn, state *AppState, method string, parts []string, que
 		if err != nil {
 			return nil, err
 		}
-		if read > 0 {
-			state.coaching.notify(uid, M{"type": "read", "conversation": cid})
-		}
 		unread, err := coachingUnread(db, uid)
 		if err != nil {
 			return nil, err
+		}
+		if read > 0 {
+			// The account's other apps take the new count as it is.
+			state.coaching.notify(uid, M{"type": "read", "conversation": cid, "unread": unread})
 		}
 		return M{"ok": true, "read": read, "unread": unread}, nil
 

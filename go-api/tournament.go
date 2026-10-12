@@ -336,7 +336,7 @@ func tournamentAnnounce(db *Conn, state *AppState, row M, status string) error {
 		}
 		users = sortedUnique(append(users, members...))
 	}
-	socialNotify(state, users, "match", M{"match": row["id"], "status": status, "players": players, "tournament": row["tournament_name"], "round": row["round"], "group": row["group_name"], "groupId": row["group_id"]})
+	socialNotify(db, state, users, "match", M{"match": row["id"], "status": status, "players": players, "tournament": row["tournament_name"], "round": row["round"], "group": row["group_name"], "groupId": row["group_id"]})
 	return nil
 }
 
@@ -714,7 +714,7 @@ func tournamentCreate(db *Conn, state *AppState, body any, group int64, by strin
 		if err != nil {
 			return nil, err
 		}
-		socialNotify(state, members, "tournament", M{"tournament": id, "group": group, "created": true})
+		socialNotify(db, state, members, "tournament", M{"tournament": id, "group": group, "created": true})
 		// Its card in the group's conversation, from its organiser.
 		if by != "" {
 			author, err := dbRequired(db, "SELECT id,username,avatar FROM users WHERE id=?", tournamentUnknownTournament, by)
@@ -783,7 +783,7 @@ func tournamentChanged(db *Conn, state *AppState, t M) error {
 		}
 		users = sortedUnique(append(users, members...))
 	}
-	socialNotify(state, users, "tournament", M{"tournament": id})
+	socialNotify(db, state, users, "tournament", M{"tournament": id})
 	return nil
 }
 
@@ -1122,7 +1122,7 @@ func tournamentDelete(db *Conn, state *AppState, id int64) (any, error) {
 	if _, err := db.Exec("DELETE FROM tournaments WHERE id=?", id); err != nil {
 		return nil, err
 	}
-	socialNotify(state, users, "tournament", M{"tournament": id, "deleted": true})
+	socialNotify(db, state, users, "tournament", M{"tournament": id, "deleted": true})
 	if group, ok := asInt(t["group_id"]); ok {
 		if err := socialChanged(db, state, group, false); err != nil {
 			return nil, err
@@ -1219,7 +1219,7 @@ func tournamentBattle(db *Conn, state *AppState, user M, body any) (any, error) 
 			others = append(others, u)
 		}
 	}
-	socialNotify(state, others, "battle", M{"match": id, "group": optID(group), "groupName": row["group_name"], "conversation": conversation["id"], "from": row["creator_name"], "open": row["player_b"] == nil})
+	socialNotify(db, state, others, "battle", M{"match": id, "group": optID(group), "groupName": row["group_name"], "conversation": conversation["id"], "from": row["creator_name"], "open": row["player_b"] == nil})
 	if isGroup {
 		if err := socialChanged(db, state, group, false); err != nil {
 			return nil, err

@@ -90,7 +90,12 @@ test("socket events become notices whose actions act and navigate; a message on 
   const community = new Community(host);
   community.attach("me");
   await tick();
-  community.event({ type: "request", from: person("bob") });
+  // With the community it changed, the event asks for nothing.
+  requests = [];
+  community.event({ type: "request", from: person("bob"), me: { friends: [], incoming: [person("bob")], outgoing: [], groups: [], invitations: [], unread: 0 } });
+  await tick();
+  expect(requests).toEqual([]);
+  expect(community.me?.incoming[0]?.username).toBe("BOB");
   const request = seen.notices.at(-1)!;
   expect(request).toMatchObject({ title: "BOB wants to be friends", id: "community-request-bob", face: { username: "BOB" } });
   request.action!.run();

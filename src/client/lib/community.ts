@@ -544,8 +544,11 @@ export class Community {
     for (const id of this.cards.keys()) void this.load(`match:${id}`);
     for (const id of this.summaries.keys()) if (!this.details.has(id)) void this.load(`tournament:${id}`);
   }
-  /** An event of the socket about the community. */
+  /** An event of the socket about the community. It brings the account's community (`me`) or competition when it changed
+   * them (go-api/social.go, socialNotify); without them, they are read again. */
   event(e: any) {
+    const me = () => (e.me ? (this.me = e.me) : void this.load("me"));
+    const competition = () => (e.competition ? (this.competition = e.competition) : void this.load("competition"));
     switch (e.type) {
       case "request":
         this.host.notify({
@@ -554,14 +557,14 @@ export class Community {
           face: e.from,
           action: { label: tr("Accept"), run: () => void this.acceptFriend(e.from.id) },
         });
-        void this.load("me");
+        me();
         break;
       case "accepted":
         this.host.notify({ title: tr("{0} accepted your friend request", { 0: e.by.username }), face: e.by, action: { label: tr("Message"), run: () => void this.message(e.by.id) } });
-        void this.load("me");
+        me();
         break;
       case "friends":
-        void this.load("me");
+        me();
         if (this.conversations) void this.load("conversations");
         break;
       case "message":
@@ -569,19 +572,19 @@ export class Community {
         break;
       case "invitation":
         this.host.notify({ title: tr("{0} invites you to {1}", { 0: e.from, 1: e.name }), icon: "group", action: { label: tr("Join"), run: () => void this.join(e.group) } });
-        void this.load("me");
+        me();
         break;
       case "groups":
-        void this.load("me");
+        me();
         if (this.conversations) void this.load("conversations");
         for (const id of [e.deleted, e.left]) if (id) this.groups.delete(id);
         break;
       case "group":
         if (this.groups.has(e.group)) void this.load(`group:${e.group}`);
-        void this.load("me");
+        me();
         break;
       case "tournament":
-        void this.load("competition");
+        competition();
         if (e.deleted) this.details.delete(e.tournament);
         else if (this.details.has(e.tournament) || this.summaries.has(e.tournament)) void this.load(`tournament:${e.tournament}`);
         if (this.tournaments) void this.load("tournaments");
@@ -589,7 +592,7 @@ export class Community {
         for (const [id, g] of this.groups) if (g.tournaments.some((t) => t.id === e.tournament)) void this.load(`group:${id}`);
         break;
       case "match":
-        void this.load("competition");
+        competition();
         this.refreshMatch(e.match);
         if (e.groupId && this.groups.has(e.groupId)) void this.load(`group:${e.groupId}`);
         // The group's members hear of its matches too; only the players are called to theirs.

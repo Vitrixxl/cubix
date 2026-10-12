@@ -542,7 +542,8 @@ export class Coaching {
         this.received(event.conversation, event.message, event.from);
         break;
       case "read":
-        void this.load("me");
+        if (this.me && event.unread !== undefined) this.me = { ...this.me, unread: event.unread };
+        else void this.load("me");
         if (this.conversations) void this.load("conversations");
         break;
       case "bookings":

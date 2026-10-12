@@ -37,13 +37,51 @@ func optStr(s string) any {
 	return s
 }
 
-// socialNotify tells every open app of these accounts.
-func socialNotify(state *AppState, users []string, kind string, value M) {
+// socialNotify tells every open app of these accounts. What the event changes for each of them travels with it, so
+// that their apps need not ask for it again: the community (`me`, as `GET /api/social/me`) or the competition
+// (`competition`, as `GET /api/competition`). If it cannot be read, the event goes without it and the app asks.
+func socialNotify(db *Conn, state *AppState, users []string, kind string, value M) {
 	value["type"] = kind
+	key, read := "", func(string) (any, error) { return nil, nil }
+	switch kind {
+	case "request", "accepted", "friends", "invitation", "groups", "group":
+		key, read = "me", func(uid string) (any, error) { return socialMe(db, uid) }
+	case "match", "tournament":
+		key, read = "competition", func(uid string) (any, error) { return tournamentCurrent(db, uid) }
+	}
 	text := liveText("social", value)
 	for _, user := range users {
-		state.coaching.tell(user, text)
+		if key == "" {
+			state.coaching.tell(user, text)
+			continue
+		}
+		own := M{}
+		for k, v := range value {
+			own[k] = v
+		}
+		if v, err := read(user); err == nil {
+			own[key] = v
+		}
+		state.coaching.tell(user, liveText("social", own))
 	}
+}
+
+// socialMe: everything the community page opens with: friends, requests, groups, invitations and unread messages.
+func socialMe(db *Conn, uid string) (M, error) {
+	joined, invited, err := socialGroups(db, uid)
+	if err != nil {
+		return nil, err
+	}
+	value, err := socialFriends(db, uid)
+	if err != nil {
+		return nil, err
+	}
+	value["groups"] = joined
+	value["invitations"] = invited
+	if value["unread"], err = socialUnread(db, uid); err != nil {
+		return nil, err
+	}
+	return value, nil
 }
 
 // socialPerson: a player as the community shows them.
@@ -163,8 +201,8 @@ func socialBefriend(db *Conn, state *AppState, user, other M) (any, error) {
 	if _, err := db.Exec("INSERT INTO friends(user_id,friend_id,status,created_at) VALUES(?,?,'pending',?)", uid, oid, accountsNow()); err != nil {
 		return nil, err
 	}
-	socialNotify(state, []string{oid}, "request", M{"from": socialPerson(user["id"], user["username"], user["avatar"])})
-	socialNotify(state, []string{uid}, "friends", M{})
+	socialNotify(db, state, []string{oid}, "request", M{"from": socialPerson(user["id"], user["username"], user["avatar"])})
+	socialNotify(db, state, []string{uid}, "friends", M{})
 	return M{"relation": "outgoing"}, nil
 }
 
@@ -177,8 +215,8 @@ func socialAccept(db *Conn, state *AppState, user M, other string) (any, error) 
 	if changed == 0 {
 		return nil, apiErr(404, "No request from this player.")
 	}
-	socialNotify(state, []string{other}, "accepted", M{"by": socialPerson(user["id"], user["username"], user["avatar"])})
-	socialNotify(state, []string{uid}, "friends", M{})
+	socialNotify(db, state, []string{other}, "accepted", M{"by": socialPerson(user["id"], user["username"], user["avatar"])})
+	socialNotify(db, state, []string{uid}, "friends", M{})
 	return M{"relation": "friend"}, nil
 }
 
@@ -398,7 +436,7 @@ func socialPost(db *Conn, state *AppState, conversation M, user M, body string, 
 	if err != nil {
 		return nil, err
 	}
-	socialNotify(state, participants, "message", M{"conversation": id, "message": message, "title": title})
+	socialNotify(db, state, participants, "message", M{"conversation": id, "message": message, "title": title})
 	return message, nil
 }
 
@@ -541,7 +579,7 @@ func socialCreateGroup(db *Conn, state *AppState, uid string, body any) (any, er
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	socialNotify(state, []string{uid}, "groups", M{})
+	socialNotify(db, state, []string{uid}, "groups", M{})
 	// The friends picked as it was made are invited at once.
 	list, _ := asArray(idx(body, "invite"))
 	picked := 0
@@ -595,7 +633,7 @@ func socialInvite(db *Conn, state *AppState, group int64, by string, byName any,
 	if err != nil {
 		return err
 	}
-	socialNotify(state, []string{other}, "invitation", M{"group": group, "name": row["name"], "from": byName})
+	socialNotify(db, state, []string{other}, "invitation", M{"group": group, "name": row["name"], "from": byName})
 	return nil
 }
 
@@ -616,7 +654,7 @@ func socialChanged(db *Conn, state *AppState, id int64, invited bool) error {
 	if err != nil {
 		return err
 	}
-	socialNotify(state, users, "group", M{"group": id})
+	socialNotify(db, state, users, "group", M{"group": id})
 	return nil
 }
 
@@ -636,20 +674,7 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 	switch {
 	// Everything the community page opens with.
 	case is("GET", "me"):
-		joined, invited, err := socialGroups(db, uid)
-		if err != nil {
-			return nil, err
-		}
-		value, err := socialFriends(db, uid)
-		if err != nil {
-			return nil, err
-		}
-		value["groups"] = joined
-		value["invitations"] = invited
-		if value["unread"], err = socialUnread(db, uid); err != nil {
-			return nil, err
-		}
-		return value, nil
+		return socialMe(db, uid)
 	case is("GET", "users"):
 		q := strings.ToLower(strings.TrimSpace(query["q"]))
 		if q == "" || utf8.RuneCountInString(q) > 24 {
@@ -694,7 +719,7 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		if gone == 0 {
 			return nil, apiErr(404, socialUnknownUser)
 		}
-		socialNotify(state, []string{uid, id}, "friends", M{})
+		socialNotify(db, state, []string{uid, id}, "friends", M{})
 		return M{"relation": "none"}, nil
 	case is("GET", "conversations"):
 		return socialConversations(db, uid)
@@ -849,7 +874,7 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		if _, err := db.Exec("DELETE FROM social_groups WHERE id=?", id); err != nil {
 			return nil, err
 		}
-		socialNotify(state, users, "groups", M{"deleted": id})
+		socialNotify(db, state, users, "groups", M{"deleted": id})
 		return M{"ok": true}, nil
 	case is("POST", "groups", "*", "invite"):
 		id, err := number(parts[1])
@@ -897,7 +922,7 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		if err := socialChanged(db, state, id, true); err != nil {
 			return nil, err
 		}
-		socialNotify(state, []string{uid}, "groups", M{})
+		socialNotify(db, state, []string{uid}, "groups", M{})
 		return socialGroup(db, id, uid)
 	case is("POST", "groups", "*", "members", "*", "role"):
 		id, err := number(parts[1])
@@ -960,7 +985,7 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		if _, err := db.Exec("DELETE FROM group_members WHERE group_id=? AND user_id=?", id, memberID); err != nil {
 			return nil, err
 		}
-		socialNotify(state, []string{memberID}, "groups", M{"left": id})
+		socialNotify(db, state, []string{memberID}, "groups", M{"left": id})
 		if own {
 			return M{"ok": true}, nil
 		}
