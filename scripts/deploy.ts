@@ -1,8 +1,8 @@
 /**
  * Deploy the current `main` commit: push, rebuild the server on the Raspberry Pi through
  * pihost (the image also builds the web app, which the desktop app loads), upload the desktop
- * packages when the Electron or Tauri shell changed (desktop/package-release.ts, desktop/tauri/package.ts:
- * the landing page's install commands download them), then ship the phone build. Two things can reach phones:
+ * packages when the Electron shell changed (desktop/package-release.ts: the landing page's
+ * install commands download them), then ship the phone build. Two things can reach phones:
  *
  *   - an over-the-air update: the JavaScript bundle exported by `expo export`, which
  *     installed applications fetch by themselves at their next launch. Published every time.
@@ -128,10 +128,10 @@ if (!apkOnly) {
     console.log(`Update ${info.updates?.[runtime]?.id} (build ${build}) is now served for runtime ${runtime}.`);
   }
 }
-// --- Desktop packages: the Electron and Tauri shells for Linux and Windows, each only when it changed (its version digests it). ---
+// --- Desktop packages: the Electron shell for Linux and Windows, only when it changed (its version digests it). ---
 if (!apkOnly && !updateOnly && !skipDesktop) {
   const served = (await fetch(`${ORIGIN}/api/desktop`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as Record<string, { version?: string }>;
-  for (const script of ["desktop/package-release.ts", "desktop/tauri/package.ts"]) {
+  for (const script of ["desktop/package-release.ts"]) {
     const { desktopVersion, OUT, PACKAGES } = await import(`../${script}`);
     const version = await desktopVersion();
     const stale = (Object.values(PACKAGES) as string[]).filter((name) => served[name]?.version !== version);

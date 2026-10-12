@@ -35,7 +35,6 @@ describe("the landing page", () => {
     expect(html).toContain("buymeacoffee.com");
     expect(html).toContain('href="/timer?puzzle=333"');
     expect(html).toContain("install.ps1");
-    expect(html).toContain("Tauri");
     expect(html).toContain("/api/mobile/apk");
     expect(html).not.toContain("smartCube");
   });

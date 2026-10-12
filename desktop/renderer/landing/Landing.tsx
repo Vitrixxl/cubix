@@ -15,7 +15,7 @@ import { CubeStill, HeroCube } from "./HeroCube";
 import { AlgDemo, DuelDemo, LessonDemo, TimerDemo, TrainDemo } from "./Demos";
 import { EVENTS } from "../../../src/shared/puzzles";
 import { tr } from "../../../src/client/i18n";
-import { LanguagePicker, Segmented, said, useLanguage } from "../base";
+import { LanguagePicker, said, useLanguage } from "../base";
 import { language, preferred, setLanguage } from "../../../src/client/i18n";
 import { localePath } from "../../../src/client/lib/route";
 
@@ -83,21 +83,6 @@ const PLATFORMS: { id: Platform; label: string }[] = [
   { id: "ios", label: "iPhone & iPad" },
   { id: "web", label: "Web" },
 ];
-/** The two desktop apps, the same web app in its own window: Electron with its own Chromium, or Tauri (desktop/tauri)
- * with the system's webview. Each installer installs one or the other. */
-type Shell = "electron" | "tauri";
-const SHELLS: { id: Shell; label: string; hint: string }[] = [
-  { id: "electron", label: "Electron", hint: "Brings its own Chromium: the same on every computer." },
-  { id: "tauri", label: "Tauri", hint: "Lighter: draws with the webview your system already has." },
-];
-function ShellChoice({ shell, onChange }: { shell: Shell; onChange: (shell: Shell) => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <Segmented label={tr("Desktop app")} value={shell} options={SHELLS} onChange={(id) => onChange(id as Shell)} className="bg-muted inset-ring-0" />
-      <p className="text-xs text-muted-foreground">{said(SHELLS.find((s) => s.id === shell)!.hint)}</p>
-    </div>
-  );
-}
 const megabytes = (bytes?: number) => (bytes ? ` · ${Math.round(bytes / 1048576)} MB` : "");
 
 /** How to get Qbix on each platform, the visitor's own selected once known. */
@@ -105,8 +90,6 @@ function Install({ detected }: { detected?: Platform }) {
   const [chosen, setPlatform] = useState<Platform>(),
     platform = chosen ?? detected ?? "web",
     [origin, setOrigin] = useState(SITE),
-    [shell, setShell] = useState<Shell>("electron"),
-    tauri = shell === "tauri",
     [apk, setApk] = useState<number>();
   useEffect(() => {
     setOrigin(location.origin);
@@ -127,30 +110,24 @@ function Install({ detected }: { detected?: Platform }) {
         ))}
       </TabsList>
       <TabsContent keepMounted value="windows" className="flex flex-col gap-3">
-        <ShellChoice shell={shell} onChange={setShell} />
         <p className={note}>{tr("Open PowerShell and paste this line: it installs Qbix for you, with a Start menu shortcut. No administrator rights needed.")}</p>
-        <Command label={tr("Install on Windows")} lines={[`${tauri ? "$env:CUBIX_SHELL='tauri'; " : ""}irm ${origin}/install.ps1 | iex`]} />
+        <Command label={tr("Install on Windows")} lines={[`irm ${origin}/install.ps1 | iex`]} />
         <p className="text-xs text-muted-foreground">{tr("Windows 10 and 11, 64-bit. Run it again to update.")}</p>
       </TabsContent>
       <TabsContent keepMounted value="linux" className="flex flex-col gap-3">
-        <ShellChoice shell={shell} onChange={setShell} />
         <p className={note}>{tr("Paste this in a terminal: Qbix goes to your applications menu and the")}{" "}<code className="font-mono">{tr("cubix")}</code> {" "}{tr("command. No sudo needed.")}</p>
-        <Command label={tr("Install on Linux")} lines={[`curl -fsSL ${origin}/install.sh | sh${tauri ? " -s -- --tauri" : ""}`]} />
+        <Command label={tr("Install on Linux")} lines={[`curl -fsSL ${origin}/install.sh | sh`]} />
         <p className="text-xs text-muted-foreground">
-          {tauri && <>{tr("Needs WebKitGTK 4.1, there on most Linux desktops.")}{" "}</>}
           {tr("Linux x64. Run it again to update; add")}{" "}<code className="font-mono">-s -- --uninstall</code> {" "}{tr("after")}{" "}<code className="font-mono">sh</code> {" "}{tr("to remove it.")}</p>
       </TabsContent>
       <TabsContent keepMounted value="macos" className="flex flex-col gap-3">
-        <ShellChoice shell={shell} onChange={setShell} />
         <p className={note}>
           {tr("The macOS app is built on your Mac from the source code, with")}{" "}
-          <a className="text-foreground underline underline-offset-4" href={tauri ? "https://rustup.rs" : "https://bun.sh"}>{tauri ? tr("Rust") : tr("Bun")}</a> {" "}
+          <a className="text-foreground underline underline-offset-4" href="https://bun.sh">{tr("Bun")}</a> {" "}
           {tr("installed. Or use Qbix in Safari or Chrome, nothing to install.")}</p>
         <Command
           label={tr("Build on macOS")}
-          lines={tauri
-            ? [`git clone ${SOURCE}.git && cd cubix/desktop/tauri`, `cargo install tauri-cli --version "^2" --locked`, "cargo tauri build --bundles app && cp -R target/release/bundle/macos/Qbix.app /Applications/"]
-            : [`git clone ${SOURCE}.git && cd cubix`, "bun install --frozen-lockfile && bun run build:desktop", "cp -R artifacts/electron/Cubix-darwin-*/Cubix.app /Applications/"]}
+          lines={[`git clone ${SOURCE}.git && cd cubix`, "bun install --frozen-lockfile && bun run build:desktop", "cp -R artifacts/electron/Cubix-darwin-*/Cubix.app /Applications/"]}
         />
       </TabsContent>
       <TabsContent keepMounted value="android" className="flex flex-col items-start gap-3">

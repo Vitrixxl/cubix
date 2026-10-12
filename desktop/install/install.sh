@@ -1,19 +1,16 @@
 #!/bin/sh
 # Installs Qbix, the desktop app of https://cubix.vitrixxl.fr, for the current user, without sudo:
 # the app in ~/.local/share/cubix-electron, an entry in the applications menu and the `cubix` command.
-# Run it again to update. With --tauri, the Tauri app instead, in ~/.local/share/cubix-tauri: lighter, it draws
-# with the system's WebKitGTK 4.1 rather than its own Chromium. Each replaces the other.
+# Run it again to update.
 #
 #   curl -fsSL https://cubix.vitrixxl.fr/install.sh | sh
-#   curl -fsSL https://cubix.vitrixxl.fr/install.sh | sh -s -- --tauri
 #   curl -fsSL https://cubix.vitrixxl.fr/install.sh | sh -s -- --uninstall
 set -eu
 
 origin="${CUBIX_ORIGIN:-https://cubix.vitrixxl.fr}"
 data="${XDG_DATA_HOME:-$HOME/.local/share}"
-shell=electron package=cubix-linux-x64
-if [ "${1:-}" = "--tauri" ]; then shell=tauri package=cubix-tauri-linux-x64; fi
-base="$data/cubix-$shell"
+package=cubix-linux-x64
+base="$data/cubix-electron"
 entry="$data/applications/fr.vitrixxl.cubix.desktop"
 icon="$data/icons/hicolor/512x512/apps/fr.vitrixxl.cubix.png"
 command="$HOME/.local/bin/cubix"
@@ -51,11 +48,6 @@ else
   exit 1
 fi
 tar -xzf "$tmp/qbix.tar.gz" -C "$tmp"
-if [ "$shell" = tauri ] && ldd "$tmp/$package/cubix" 2>/dev/null | grep -q "not found"; then
-  echo "Qbix's Tauri app needs WebKitGTK 4.1: install libwebkit2gtk-4.1-0 (Debian, Ubuntu), webkit2gtk4.1 (Fedora)" >&2
-  echo "or webkit2gtk-4.1 (Arch), then run this again. Or install the Electron app, which brings its own: drop --tauri." >&2
-  exit 1
-fi
 
 # The whole folder is swapped at once: the app never runs half replaced. Private data lives elsewhere.
 mkdir -p "$data" "$data/applications" "$(dirname "$icon")" "$(dirname "$command")"
@@ -63,7 +55,8 @@ rm -rf "$base.new" "$base.old"
 mv "$tmp/$package" "$base.new"
 if [ -e "$base" ]; then mv "$base" "$base.old"; fi
 mv "$base.new" "$base"
-rm -rf "$base.old" "$data/cubix-$([ "$shell" = tauri ] && echo electron || echo tauri)"
+# The former Tauri app, replaced by this one.
+rm -rf "$base.old" "$data/cubix-tauri"
 
 cp "$base/fr.vitrixxl.cubix.png" "$icon"
 cat >"$entry" <<DESKTOP

@@ -1,10 +1,7 @@
 # Installs Qbix, the desktop app of https://cubix.vitrixxl.fr, for the current user, without administrator
 # rights: the app in %LOCALAPPDATA%\Programs\Qbix, with a Start menu and a desktop shortcut. Run it again to update.
-# With CUBIX_SHELL=tauri, the Tauri app instead: lighter, it draws with Windows' WebView2 rather than its own Chromium.
-# Each replaces the other.
 #
 #   irm https://cubix.vitrixxl.fr/install.ps1 | iex
-#   $env:CUBIX_SHELL='tauri'; irm https://cubix.vitrixxl.fr/install.ps1 | iex
 $ErrorActionPreference = 'Stop'
 # Invoke-WebRequest downloads far slower while it draws its progress bar.
 $ProgressPreference = 'SilentlyContinue'
@@ -13,12 +10,8 @@ $origin = if ($env:CUBIX_ORIGIN) { $env:CUBIX_ORIGIN } else { 'https://cubix.vit
 if (-not [Environment]::Is64BitOperatingSystem) {
   throw "Qbix's desktop app is built for 64-bit Windows. Use it in your browser instead: $origin/timer"
 }
-$package = if ($env:CUBIX_SHELL -eq 'tauri') { 'cubix-tauri-windows-x64' } else { 'cubix-windows-x64' }
-$folder = if ($env:CUBIX_SHELL -eq 'tauri') { $package } else { 'Cubix-win32-x64' }
-$webview = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
-if ($env:CUBIX_SHELL -eq 'tauri' -and -not (@('HKLM:\SOFTWARE\WOW6432Node', 'HKCU:\Software') | Where-Object { Test-Path "$_\Microsoft\EdgeUpdate\Clients\$webview" })) {
-  throw "Qbix's Tauri app needs Microsoft Edge WebView2: install it from https://developer.microsoft.com/microsoft-edge/webview2/ and run this again, or install the Electron app, which brings its own."
-}
+$package = 'cubix-windows-x64'
+$folder = 'Cubix-win32-x64'
 $dir = Join-Path $env:LOCALAPPDATA 'Programs\Qbix'
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ('qbix-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $tmp | Out-Null
