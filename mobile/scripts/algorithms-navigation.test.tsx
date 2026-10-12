@@ -44,7 +44,8 @@ mock.module("../src/components/TimesChart", () => ({ TimerStats: () => null }));
 mock.module("../src/components/AlgText", () => ({ sourceLabel: (source: string) => source }));
 mock.module("../src/components/GuidesDialog", () => ({ MethodsSheet: () => null }));
 mock.module("../src/components/PuzzlePicker", () => ({ PuzzleIcon: () => null }));
-mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar" }));
+mock.module("../src/components/AppBar", () => ({ AppBar: "AppBar", PushedBar: "PushedBar", PuzzleChip: "PuzzleChip" }));
+mock.module("../src/components/AccountMenu", () => ({ AccountMenu: "AccountMenu" }));
 mock.module("../src/components/AlgPlayer", () => ({ PlayerAlg: () => null, PlayerControls: () => null, PlayerCube: () => null, ViewButtons: () => null, useAlgPlayer: () => null }));
 mock.module("../src/components/Sheet", () => ({ Sheet: "Sheet", SheetScrollView: "SheetScrollView", SheetInput: "SheetInput" }));
 mockLucide();
@@ -52,7 +53,7 @@ mock.module("../src/components/ui/text", () => ({ Text: "Text" }));
 mock.module("../src/components/ui/button", () => ({ Button: "Button" }));
 mock.module("../src/components/ui/icon", () => ({ Icon: "Icon" }));
 mock.module("../src/components/layout", () => Object.fromEntries(
-  ["Alg", "Empty", "HeadButton", "MenuItem", "MoreMenu", "Numeric", "SearchField", "StatusMark"].map(name => [name, name])));
+  ["Alg", "Empty", "Figure", "HeadButton", "MenuItem", "MoreMenu", "Numeric", "SearchField", "StatusMark"].map(name => [name, name])));
 const { AlgorithmsPage } = await import("../src/pages/AlgorithmsPage");
 const { routeAtom, goBackAtom, learningFilterAtom, selectedCaseIdsAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

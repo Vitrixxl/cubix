@@ -15,6 +15,7 @@ import { PlayerAlg, PlayerControls, PlayerCube, ViewButtons, useAlgPlayer } from
 import { Alg, Label, Numeric } from "./layout";
 import { analyseSolution, SolveBar, SplitTime, StepLegend } from "./analysis/steps";
 import { SheetChoice } from "./PuzzlePicker";
+import { useLayout } from "../hooks/useLayout";
 import type { SolveSummary } from "./SolveMenus";
 import { locale, tr } from "../../../src/client/i18n";
 
@@ -74,8 +75,10 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
   };
   // On a screen the cube takes the height left; while turns are written, everything scrolls.
   const grow = fill && !editing;
+  // A wide screen puts the cube and its player on the left, the rest docked in a card column at the right.
+  const { wide } = useLayout(), split = grow && wide && cube && !!player;
 
-  const body = <>
+  const head = <>
     <View className="flex-row items-end justify-between gap-3">
       <View className="min-w-0 shrink gap-1">
         <SplitTime text={fmtSolve(solve.time_ms, solve.penalty)} size={52} className={cn(solve.penalty === "dnf" && "text-destructive", solve.penalty === "+2" && "text-warning")} />
@@ -87,11 +90,15 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
       <Label className="font-bold tracking-widest uppercase">{tr("Scramble")}</Label>
       <Alg text={solve.scramble} size={14} selectable />
     </View> : null}
+  </>;
+  const stage = <>
     {cube && player && <View className={cn("items-center", grow && "min-h-0 flex-1")} onLayout={grow ? e => setRoom(Math.floor(Math.min(e.nativeEvent.layout.height, e.nativeEvent.layout.width))) : undefined}>
       {(grow ? room > 40 : true) && <PlayerCube key={alg + setup} player={player} size={grow ? room : 220} />}
       <ViewButtons player={player} compact className="absolute bottom-0" />
     </View>}
     {cube && player && alg ? <PlayerControls player={player} /> : null}
+  </>;
+  const rest = <>
     {editing ? <AnnotationEditor value={draft} onChange={setDraft} valid={!!draftText} onCancel={() => setEditing(false)} onSave={() => void save()} />
       : <View className="gap-1" accessibilityLabel={tr("Solution")}>
         <View className="min-h-9 flex-row items-center gap-3">
@@ -108,7 +115,7 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
           </Button>}
         </View>
         {alg && player
-          ? <ScrollView className={cn(fill && "max-h-16")} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+          ? <ScrollView className={cn(fill && !split && "max-h-16")} nestedScrollEnabled showsVerticalScrollIndicator={false}>
             <PlayerAlg key={alg} player={player} text={recorded ? "z2 " + alg : annotation!.moves} size={15} />
           </ScrollView>
           : <Text className="text-sm text-muted-foreground">{cube ? tr("No turns yet: write them to replay the solve.") : tr("No turns recorded for this solve.")}</Text>}
@@ -123,9 +130,14 @@ export function SolveDetail({ solve, onSave, comment, aside, onStep, action, fil
       <SolveBar analysis={analysis} onSelect={onStep} height={14} />
       <View className="flex-row items-center gap-2"><StepLegend analysis={analysis} />{action}</View>
     </View> : action ? <View className="flex-row justify-end">{action}</View> : null}
-    {comment ?? (solve.comment ? <Text selectable numberOfLines={fill ? 2 : undefined} className="text-sm text-muted-foreground">{solve.comment}</Text> : null)}
+    {comment ?? (solve.comment ? <Text selectable numberOfLines={fill && !split ? 2 : undefined} className="text-sm text-muted-foreground">{solve.comment}</Text> : null)}
     {!editing && children}
   </>;
+  if (split) return <View className="min-h-0 flex-1 flex-row gap-4">
+    <View className="min-w-0 flex-1 gap-2.5">{stage}</View>
+    <ScrollView className="w-[400px] grow-0 rounded-[26px] bg-popover" contentContainerClassName="gap-3 p-4" keyboardShouldPersistTaps="handled">{head}{rest}</ScrollView>
+  </View>;
+  const body = <>{head}{stage}{rest}</>;
   return grow ? <View className="min-h-0 flex-1 gap-2.5">{body}</View>
     : fill ? <ScrollView className="flex-1" contentContainerClassName="gap-3 pb-4" keyboardShouldPersistTaps="handled">{body}</ScrollView>
     : <View className="gap-4">{body}</View>;

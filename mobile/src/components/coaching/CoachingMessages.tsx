@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
+import { useLayout } from "../../hooks/useLayout";
 import { coaching, useCoaching } from "../../lib/social";
 import { routeAtom } from "../../state";
 import { Empty, ListSkeleton } from "../layout";
@@ -22,27 +23,28 @@ import { tr } from "../../../../src/client/i18n";
 /**
  * Conversations between coaches and students (the web's coaching/chat.tsx on a phone): the list, or one conversation
  * with its messages and the box to write. Pictures and videos go as messages of their own, picked with the clip. The
- * coaching page mounts it at "messages" and "messages/<id>", and a coach's student at "students/<id>".
+ * coaching page mounts it at "messages" and "messages/<id>", and a coach's student at "students/<id>". On a wide screen
+ * the page shows the list and the conversation side by side: a row replaces the one open, which has no way back.
  */
 export function CoachingMessages({ conversationId }: { conversationId?: number }) {
   useCoaching();
-  const nav = useCoachingNav();
+  const nav = useCoachingNav(), { wide } = useLayout();
   useEffect(() => { void coaching.load("conversations"); }, []);
   const list = coaching.conversations, current = list?.find(c => c.id === conversationId);
   // Back to where the conversation was opened from: the messages, or the coach's students.
-  const route = useAtomValue(routeAtom) as { view?: string }, section = route.view?.split("/")[0] || "messages";
+  const route = useAtomValue(routeAtom) as { view?: string }, parts = route.view?.split("/") ?? [], section = parts[0] || "messages", open = parts[1] ?? "";
   if (conversationId == null) return <ConversationList>
     {!list ? <ListSkeleton className="px-2" />
       : !list.length ? <Empty icon={MessagesSquare} title={tr("No conversation yet.")} className="py-10">{tr("Book a session with a coach to write to them.")}<Button variant="outline" className="h-11 rounded-lg" onPress={() => nav.go("coaches")}><Text>{tr("Find a coach")}</Text></Button>
       </Empty>
-        : list.map(c => <ConversationRow key={c.id} onPress={() => nav.go("messages/" + c.id)} name={c.with.username} tag={c.role === "student" ? "coach" : "student"}
+        : list.map(c => <ConversationRow key={c.id} onPress={() => nav.go("messages/" + c.id, wide)} on={section === "messages" && String(c.id) === open} name={c.with.username} tag={c.role === "student" ? "coach" : "student"}
           face={<Face name={c.with.username} src={c.with.avatar} size={44} />} at={c.lastMessage?.at} unread={c.unread}
           preview={c.lastMessage ? (c.lastMessage.mine ? tr("You: {0}", { 0: preview(c.lastMessage) }) : preview(c.lastMessage)) : tr("No message yet")} />)}
   </ConversationList>;
   // A conversation is a screen of its own.
   return <View className="min-h-0 flex-1">
-    {current ? <Chat conversation={current} back={() => nav.back(section)} />
-      : <><PushedBar title={tr("Messages")} onBack={() => nav.back(section)} />
+    {current ? <Chat conversation={current} back={wide ? undefined : () => nav.back(section)} />
+      : <>{!wide ? <PushedBar title={tr("Messages")} onBack={() => nav.back(section)} /> : null}
         <Empty icon={MessagesSquare} title={list ? tr("This conversation does not exist.") : tr("Your conversations open here.")} /></>}
   </View>;
 }

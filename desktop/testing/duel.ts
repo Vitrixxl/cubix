@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { signIn, startServer } from "./app";
+import { signIn, startServer, desktopContext } from "./app";
 
 const SHOTS = "artifacts/duel";
 await mkdir(SHOTS, { recursive: true });
@@ -17,7 +17,7 @@ const errors: string[] = [];
 // A duel is an account's: each player signs in to their own, in a browser context of their own.
 let players = 0;
 async function open() {
-  const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+  const page = await (await desktopContext(browser, { viewport: { width: 1440, height: 900 } })).newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(origin + "/timer");
   await signIn(page, `duel_${++players}_${Date.now() % 1e6}`);

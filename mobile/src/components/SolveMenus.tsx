@@ -18,6 +18,7 @@ import { toastAtom } from "./Toast";
 import { deletedSolveIdAtom, routeAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { Confirmations, ask } from "./Confirm";
 import { Numeric, TouchAction, TouchBar, type Tone } from "./layout";
+import { useLayout } from "../hooks/useLayout";
 import { TONE_TEXT } from "../../../src/client/lib/tone";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -151,13 +152,18 @@ export function LastSolveBar({ solve, extra, look = "touch" }: { solve: SolveSum
   </TouchBar>;
 }
 
-/** A small filled button of the timer's row of last-solve actions; `pressed` tints its word with `tone`. */
-function PillAction({ icon, label, pressed, tone = "", disabled, onPress, accessibilityLabel }: { icon?: typeof Plus; label: string; pressed?: boolean; tone?: Tone; disabled?: boolean; onPress: () => void; accessibilityLabel?: string }) {
-  const text = pressed ? TONE_TEXT[tone] || "text-foreground" : "text-foreground";
+/**
+ * A small filled button of the timer's row of last-solve actions; `pressed` tints its word with `tone`, `primary`
+ * fills it with the accent (the next scramble). Larger on a tablet, under the thumb.
+ */
+export function PillAction({ icon, label, pressed, tone = "", primary, disabled, onPress, accessibilityLabel }: { icon?: typeof Plus; label: string; pressed?: boolean; tone?: Tone; primary?: boolean; disabled?: boolean; onPress: () => void; accessibilityLabel?: string }) {
+  const { tablet } = useLayout();
+  const text = primary ? "text-primary-foreground" : pressed ? TONE_TEXT[tone] || "text-foreground" : "text-foreground";
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ selected: pressed, disabled }} disabled={disabled} onPress={onPress}
-    className={cn("h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-2", pressed ? "bg-accent" : "bg-muted active:bg-muted/70", disabled && "opacity-40")}>
-    {icon && <Icon as={icon} size={15} className={text} />}
-    <Text numberOfLines={1} className={cn("text-[13px] font-bold", text)}>{said(label)}</Text>
+    className={cn("h-10 min-w-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl px-2", tablet && "h-12 gap-2 rounded-2xl",
+      primary ? "bg-primary active:bg-primary/85" : pressed ? "bg-accent" : "bg-muted active:bg-muted/70", disabled && "opacity-40")}>
+    {icon && <Icon as={icon} size={tablet ? 18 : 15} className={text} />}
+    <Text numberOfLines={1} className={cn("text-[13px] font-bold", tablet && "text-[15px]", text)}>{said(label)}</Text>
   </Pressable>;
 }
 

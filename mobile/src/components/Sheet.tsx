@@ -43,7 +43,9 @@ export function Sheet({ open, onClose, title, description, right, hideTitle = fa
   const ref = useRef<BottomSheetModal>(null);
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // On a tablet the sheet keeps to a readable width, centred, rather than spreading across the screen.
+  const margin = Math.max(0, (width - 720) / 2);
   const latestClose = useRef(onClose);
   latestClose.current = onClose;
   // Only a presented sheet is dismissed: dismissing one that never opened leaves the modal "dismissing" for good.
@@ -70,6 +72,7 @@ export function Sheet({ open, onClose, title, description, right, hideTitle = fa
   const body = cn("gap-4 px-5 pt-2", contentClassName);
   // A sheet opened from another (a choice in the settings, a confirmation over a solve) goes over it, the first kept.
   return <BottomSheetModal ref={ref} onDismiss={() => { presented.current = false; latestClose.current(); }} backdropComponent={backdrop}
+    style={margin ? { marginHorizontal: margin } : undefined}
     stackBehavior="push" enableDynamicSizing maxDynamicContentSize={max}
     enableContentPanningGesture={contentPanning}
     keyboardBehavior="interactive" keyboardBlurBehavior="restore" android_keyboardInputMode="adjustPan" enableBlurKeyboardOnGesture

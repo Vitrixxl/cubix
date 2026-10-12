@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qbix · Maquettes tablette et petit écran</title>
+<style>
+@font-face { font-family: "Bricolage Grotesque"; src: url("../desktop/assets/fonts/BricolageGrotesque.woff2") format("woff2"); font-weight: 200 800; font-stretch: 75% 100%; font-display: swap; }
+/* Pink dark: themeTokens("t3-chat", "dark") from src/client/lib/theme.ts */
+:root {
+  --bg: #22131b; --card: #271821; --pop: #2e1e27; --muted: #2e1e27; --acc: #372730;
+  --fg: #f3e7ec; --mfg: #bcacb3; --faint: #87777e; --ink: #fbf0f5;
+  --pri: #f5609f; --pri-fg: #1c1317; --c2: #c9b4ff;
+  --bad: #ff8f80; --ok: #8fe0c2; --warn: #ffd98a; --lilac: #c9b4ff;
+  --border: rgba(243, 231, 236, .08); --edge: transparent;
+  --shadow: 0 10px 40px rgba(0,0,0,.45);
+  --r: 12px; --z: 1;
+  color-scheme: dark;
+}
+:root.light {
+  --bg: #eddee5; --card: #f7e8ef; --pop: #f8eaf0; --muted: #e3d3da; --acc: #d8c7d0;
+  --fg: #23161d; --mfg: #51424a; --faint: #62525b; --ink: #23161d;
+  --pri: #b51b5c; --pri-fg: #fff8f3; --c2: #6a4fc0;
+  --bad: #a52a18; --ok: #156045; --warn: #734d00; --lilac: #5c41b0;
+  --border: rgba(35, 22, 29, .14); --edge: #89747f; --shadow: 0 10px 30px rgba(60,20,40,.18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Bricolage Grotesque", system-ui, sans-serif; background: #120a0f; color: var(--fg); -webkit-font-smoothing: antialiased; }
+:root.light body { background: #d9c9d1; }
+button { font: inherit; color: inherit; border: 0; background: none; }
+svg.lucide { width: 18px; height: 18px; stroke-width: 2; flex: none; }
+
+/* ------------------------------------------------------------ The document around the phones */
+.doc { padding: 40px 32px 120px; }
+.doc-head { max-width: 1320px; }
+.doc-head { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+.doc-head h1 { font-size: 44px; font-weight: 800; letter-spacing: -.04em; }
+.doc-head h1 b { color: var(--pri); }
+.doc-head p { color: var(--mfg); max-width: 900px; line-height: 1.5; }
+.dirs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 10px 0 24px; }
+.dir { background: var(--card); border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.dir h3 { font-size: 20px; font-weight: 800; letter-spacing: -.02em; display: flex; gap: 10px; align-items: center; }
+.dir h3 i { font-style: normal; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--pri); color: var(--pri-fg); font-size: 16px; }
+.dir p, .dir li { color: var(--mfg); font-size: 14px; line-height: 1.45; }
+.dir ul { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.tools { position: sticky; top: 0; z-index: 50; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 24px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+.tools a { color: var(--mfg); text-decoration: none; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 999px; background: var(--muted); white-space: nowrap; }
+.tools a:hover { color: var(--fg); background: var(--acc); }
+.tools .sp { flex: 1; }
+.tools label { font-size: 13px; color: var(--mfg); display: flex; gap: 6px; align-items: center; }
+.tools select, .tools input { font: inherit; font-size: 13px; background: var(--muted); color: var(--fg); border: 0; border-radius: 8px; padding: 4px 6px; }
+.toc { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 100%; }
+section.page { padding-top: 64px; scroll-margin-top: 70px; }
+.page-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; max-width: 1000px; }
+.page-head h2 { font-size: 32px; font-weight: 800; letter-spacing: -.03em; display: flex; align-items: baseline; gap: 12px; }
+.page-head h2 small { font-size: 16px; color: var(--faint); font-weight: 700; }
+.page-head p { color: var(--mfg); line-height: 1.5; font-size: 15px; }
+.page-head .feats { display: flex; flex-wrap: wrap; gap: 6px; }
+.page-head .feats span { font-size: 12px; font-weight: 600; color: var(--mfg); background: var(--card); border-radius: 999px; padding: 4px 10px; }
+.phones { display: flex; flex-wrap: wrap; gap: 40px 48px; align-items: flex-start; padding-bottom: 12px; }
+figure.variant { display: flex; flex-direction: column; gap: 12px; }
+figure.variant figcaption { width: calc(390px * var(--z)); display: flex; flex-direction: column; gap: 4px; }
+figure.variant figcaption b { font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+figure.variant figcaption b em { font-style: normal; color: var(--pri); }
+figure.variant figcaption span { font-size: 13px; color: var(--mfg); line-height: 1.45; }
+.stack { display: flex; gap: 16px; align-items: flex-start; }
+.state { font-size: 12px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+
+/* ------------------------------------------------------------ The phone */
+.phone { zoom: var(--z); width: 390px; height: 844px; border-radius: 46px; padding: 10px; background: #050304; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 30px 60px rgba(0,0,0,.5); flex: none; }
+.phone > .scr { position: relative; width: 100%; height: 100%; border-radius: 37px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; font-size: 14px; }
+.sbar { height: 34px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 26px 0 30px; font-size: 13px; font-weight: 700; color: var(--fg); }
+.sbar .ic { display: flex; gap: 5px; align-items: center; }
+.sbar .ic svg.lucide { width: 14px; height: 14px; }
+.gbar { height: 18px; flex: none; display: grid; place-items: center; }
+.gbar::after { content: ""; width: 120px; height: 4px; border-radius: 4px; background: var(--fg); opacity: .5; }
+.body { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+
+/* ------------------------------------------------------------ Layout helpers */
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; min-height: 0; }
+.between { justify-content: space-between; }
+.center { justify-content: center; align-items: center; text-align: center; }
+.end { justify-content: flex-end; }
+.start { align-items: flex-start; }
+.g0 { gap: 0; } .g2 { gap: 2px; } .g4 { gap: 4px; } .g6 { gap: 6px; } .g10 { gap: 10px; } .g12 { gap: 12px; } .g16 { gap: 16px; } .g20 { gap: 20px; }
+.p0 { padding: 0; } .p8 { padding: 8px; } .p12 { padding: 12px; } .p16 { padding: 16px; } .px16 { padding-left: 16px; padding-right: 16px; } .px12 { padding-left: 12px; padding-right: 12px; } .py8 { padding-top: 8px; padding-bottom: 8px; } .pb8 { padding-bottom: 8px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+/* A list longer than the screen: cut at the bottom with a fade, as the app's own lists scroll inside the screen. */
+.scroll { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; -webkit-mask-image: linear-gradient(#000 85%, transparent); mask-image: linear-gradient(#000 85%, transparent); }
+.hscroll { display: flex; gap: 8px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.hscroll > * { flex: none; }
+.trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr { height: 1px; background: var(--border); flex: none; }
+
+/* ------------------------------------------------------------ Type */
+.display { font-size: 34px; font-weight: 800; letter-spacing: -.04em; line-height: 1.05; }
+.h1 { font-size: 26px; font-weight: 800; letter-spacing: -.035em; line-height: 1.1; }
+.h2 { font-size: 20px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15; }
+.h3 { font-size: 16px; font-weight: 700; letter-spacing: -.015em; line-height: 1.2; }
+.t { font-size: 14px; line-height: 1.4; }
+.s { font-size: 12.5px; color: var(--mfg); line-height: 1.35; }
+.xs { font-size: 11px; color: var(--mfg); line-height: 1.3; }
+.cap { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--faint); }
+.b { font-weight: 700; } .xb { font-weight: 800; } .m { font-weight: 500; }
+.num { font-variant-numeric: tabular-nums; }
+.mfg { color: var(--mfg); } .faint { color: var(--faint); } .pri { color: var(--pri); } .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .lilac { color: var(--lilac); }
+.big { font-size: 28px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.alg { font-size: 19px; font-weight: 600; word-spacing: 6px; line-height: 1.5; letter-spacing: -.01em; }
+.alg.sm { font-size: 15px; word-spacing: 4px; }
+kbd { font: inherit; font-weight: 700; font-size: 12px; background: var(--muted); padding: 2px 7px; border-radius: 6px; }
+
+/* ------------------------------------------------------------ Surfaces */
+.card { background: var(--card); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card.hi { background: var(--acc); }
+.card.pop { background: var(--pop); }
+.card.tight { padding: 10px; border-radius: 16px; }
+.card.dash { background: transparent; border: 1.5px dashed var(--border); }
+.card.pri { background: var(--pri); color: var(--pri-fg); }
+.card.pri .s, .card.pri .xs, .card.pri .mfg { color: color-mix(in srgb, var(--pri-fg) 70%, transparent); }
+.well { background: var(--muted); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.outline { outline: 2px solid var(--pri); outline-offset: -2px; }
+
+/* ------------------------------------------------------------ Controls (shadcn, as on the desktop) */
+.btn { height: 40px; padding: 0 14px; border-radius: var(--r); background: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-weight: 700; font-size: 14px; white-space: nowrap; flex: none; box-shadow: inset 0 0 0 1px var(--edge); }
+.btn.pri { background: var(--pri); color: var(--pri-fg); box-shadow: none; }
+.btn.soft { background: color-mix(in srgb, var(--pri) 16%, transparent); color: var(--pri); box-shadow: none; }
+.btn.ghost { background: transparent; box-shadow: none; color: var(--mfg); }
+.btn.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.btn.sm { height: 32px; padding: 0 10px; font-size: 13px; border-radius: 10px; }
+.btn.lg { height: 52px; font-size: 16px; border-radius: 16px; padding: 0 18px; }
+.btn.icon { width: 40px; padding: 0; }
+.btn.icon.sm { width: 32px; }
+.btn.block { display: flex; width: 100%; }
+.chip { height: 32px; padding: 0 12px; border-radius: 999px; background: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; white-space: nowrap; flex: none; color: var(--mfg); box-shadow: inset 0 0 0 1px var(--edge); }
+.chip.on { background: var(--acc); color: var(--fg); }
+.chip.pri { background: var(--pri); color: var(--pri-fg); }
+.chip .v { color: var(--pri); font-weight: 700; }
+.chip svg.lucide { width: 15px; height: 15px; }
+.seg { display: inline-flex; background: var(--muted); border-radius: 12px; padding: 3px; gap: 2px; flex: none; box-shadow: inset 0 0 0 1px var(--edge); }
+.seg > * { height: 30px; padding: 0 11px; border-radius: 9px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; font-size: 13px; color: var(--mfg); white-space: nowrap; }
+.seg > .on { background: var(--acc); color: var(--fg); }
+.seg.block { display: flex; } .seg.block > * { flex: 1; justify-content: center; }
+.utabs { display: flex; gap: 14px; border-bottom: 1px solid var(--border); padding: 0 14px; flex: none; overflow: hidden; }
+.utabs > * { padding: 10px 0 9px; font-weight: 700; font-size: 13.5px; color: var(--faint); white-space: nowrap; position: relative; display: inline-flex; gap: 5px; align-items: center; }
+.utabs > .on { color: var(--fg); }
+.utabs > .on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px; background: var(--pri); }
+.field { height: 42px; border-radius: var(--r); background: var(--input, var(--muted)); display: flex; align-items: center; gap: 8px; padding: 0 12px; color: var(--faint); font-size: 14px; box-shadow: inset 0 0 0 1px var(--edge); }
+.field.area { height: auto; min-height: 64px; align-items: flex-start; padding: 10px 12px; }
+.check { width: 20px; height: 20px; border-radius: 6px; background: var(--muted); display: grid; place-items: center; flex: none; box-shadow: inset 0 0 0 1.5px var(--faint); }
+.check.on { background: var(--pri); color: var(--pri-fg); box-shadow: none; }
+.check.on::after { content: "✓"; font-size: 13px; font-weight: 800; }
+.switch { width: 40px; height: 24px; border-radius: 99px; background: var(--acc); position: relative; flex: none; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--mfg); }
+.switch.on { background: var(--pri); } .switch.on::after { left: 19px; background: var(--pri-fg); }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--pri); color: var(--pri-fg); font-size: 11px; font-weight: 800; display: inline-grid; place-items: center; flex: none; }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 99px; font-size: 11.5px; font-weight: 700; background: var(--muted); color: var(--mfg); white-space: nowrap; flex: none; }
+.pill.pri { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+.pill.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.pill.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.pill.lilac { background: color-mix(in srgb, var(--lilac) 18%, transparent); color: var(--lilac); }
+.pill.bad { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pri); flex: none; display: inline-block; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.lilac { background: var(--lilac); } .dot.bad { background: var(--bad); } .dot.faint { background: var(--faint); }
+.bar { height: 6px; border-radius: 6px; background: var(--acc); overflow: hidden; flex: none; }
+.bar > i { display: block; height: 100%; border-radius: 6px; background: var(--pri); }
+.bar.ok > i { background: var(--ok); }
+.bar.thin { height: 4px; }
+.ring { --p: 40; width: 44px; height: 44px; border-radius: 50%; background: conic-gradient(var(--pri) calc(var(--p) * 1%), var(--acc) 0); display: grid; place-items: center; flex: none; }
+.ring::before { content: ""; grid-area: 1 / 1; width: calc(100% - 8px); height: calc(100% - 8px); border-radius: 50%; background: var(--card); }
+.ring > * { grid-area: 1 / 1; z-index: 1; font-size: 12px; font-weight: 800; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; flex: none; background: var(--pri); color: var(--pri-fg); }
+.avatar.y { background: var(--warn); color: #2a1d10; } .avatar.l { background: var(--lilac); color: #1f1530; } .avatar.g { background: var(--ok); color: #10241c; } .avatar.n { background: var(--acc); color: var(--fg); }
+.avatar.sm { width: 30px; height: 30px; font-size: 11px; } .avatar.lg { width: 64px; height: 64px; font-size: 22px; } .avatar.xl { width: 88px; height: 88px; font-size: 30px; }
+.icon-tile { width: 40px; height: 40px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; flex: none; color: var(--mfg); }
+.icon-tile.pri { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+.li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; min-width: 0; }
+.li.on { background: var(--acc); }
+.li > .col { gap: 2px; flex: 1; }
+.logo { display: inline-grid; grid-template-columns: repeat(3, 7px); gap: 2px; flex: none; }
+.logo i { width: 7px; height: 7px; border-radius: 2px; background: var(--fg); opacity: .85; }
+.logo i:nth-child(3), .logo i:nth-child(1) { background: var(--pri); opacity: 1; }
+.puzzle { display: inline-grid; grid-template-columns: repeat(3, 4px); gap: 1.5px; flex: none; }
+.puzzle i { width: 4px; height: 4px; border-radius: 1px; background: currentColor; }
+
+/* ------------------------------------------------------------ The timer */
+.timer { font-weight: 800; letter-spacing: -.05em; line-height: .9; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.timer .ms { color: var(--pri); font-size: .62em; letter-spacing: -.04em; }
+.timer.xl { font-size: 104px; } .timer.l { font-size: 84px; } .timer.m { font-size: 56px; } .timer.s { font-size: 34px; }
+.timer.run { color: var(--ink); } .timer.armed { color: var(--ok); } .timer.held { color: var(--bad); }
+.times { display: flex; gap: 6px; }
+.times > * { flex: 1; height: 34px; border-radius: 10px; background: var(--muted); display: grid; place-items: center; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.stat { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.stat > span:first-child { font-size: 12px; color: var(--mfg); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.stat > b { font-size: 20px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ Navigation of each direction */
+/* A · Tabs: an app bar on top, the section's pages as underlined tabs, five labelled tabs at the bottom. */
+.appbar { display: flex; align-items: center; gap: 8px; padding: 6px 16px 8px; flex: none; min-height: 52px; }
+.appbar .title { font-size: 24px; font-weight: 800; letter-spacing: -.035em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabbar { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 6px 2px; background: var(--card); border-top: 1px solid var(--border); }
+.tabbar > * { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--faint); position: relative; }
+.tabbar > * > span:first-child { width: 56px; height: 30px; border-radius: 99px; display: grid; place-items: center; position: relative; }
+.tabbar > .on { color: var(--fg); }
+.tabbar > .on > span:first-child { background: color-mix(in srgb, var(--pri) 22%, transparent); color: var(--pri); }
+.tabbar svg.lucide { width: 20px; height: 20px; }
+.nd { position: absolute; top: 3px; right: 14px; width: 7px; height: 7px; border-radius: 50%; background: var(--pri); box-shadow: 0 0 0 2px var(--card); }
+/* B · Thumb: a small context line on top, everything else in reach: a floating pill of icons, sheets that rise from it. */
+.ctx { display: flex; align-items: center; gap: 8px; padding: 4px 14px 6px; flex: none; min-height: 44px; }
+.ctx .where { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 17px; letter-spacing: -.02em; }
+.ctx .where small { color: var(--faint); font-weight: 700; font-size: 15px; }
+.fnav { position: absolute; left: 14px; right: 14px; bottom: 8px; height: 60px; border-radius: 22px; background: var(--pop); box-shadow: var(--shadow), inset 0 0 0 1px var(--border); display: flex; align-items: center; justify-content: space-around; padding: 0 8px; z-index: 5; }
+.fnav > * { height: 44px; min-width: 44px; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--faint); font-weight: 800; font-size: 13px; position: relative; }
+.fnav > .on { background: var(--pri); color: var(--pri-fg); padding: 0 14px; }
+.fnav svg.lucide { width: 21px; height: 21px; }
+.fnav .nd { right: 6px; top: 6px; box-shadow: 0 0 0 2px var(--pop); }
+.fnav-space { height: 76px; flex: none; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--pop); border-radius: 26px 26px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.4), inset 0 1px 0 var(--border); display: flex; flex-direction: column; gap: 10px; padding: 8px 16px 14px; z-index: 6; }
+.sheet::before { content: ""; width: 38px; height: 4px; border-radius: 4px; background: var(--faint); opacity: .6; align-self: center; flex: none; }
+.sheet.over-nav { bottom: 76px; border-radius: 22px; left: 10px; right: 10px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); z-index: 4; }
+.scrim { position: absolute; inset: 0; background: rgba(8, 3, 6, .55); z-index: 5; }
+/* C · Hub: each section opens on a board of tiles; its tools open full screen, without the bar, a close and a title on top. */
+.hubhead { display: flex; align-items: flex-end; gap: 10px; padding: 8px 18px 12px; flex: none; }
+.hubhead .display { flex: 1; }
+.ibar { flex: none; display: flex; align-items: center; justify-content: space-around; height: 58px; background: var(--bg); border-top: 1px solid var(--border); }
+.ibar > * { width: 52px; height: 40px; display: grid; place-items: center; color: var(--faint); position: relative; border-radius: 14px; }
+.ibar > .on { color: var(--pri); }
+.ibar > .on::after { content: ""; position: absolute; bottom: -2px; width: 18px; height: 3px; border-radius: 3px; background: var(--pri); }
+.ibar svg.lucide { width: 22px; height: 22px; }
+.ibar .nd { right: 10px; top: 6px; box-shadow: 0 0 0 2px var(--bg); }
+.tool { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; flex: none; min-height: 50px; }
+.tool .title { flex: 1; min-width: 0; text-align: center; font-weight: 800; font-size: 16px; letter-spacing: -.02em; }
+.tool .title small { display: block; font-size: 11.5px; font-weight: 600; color: var(--mfg); letter-spacing: 0; }
+.tile { background: var(--card); border-radius: 24px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; overflow: hidden; }
+.tile.hero { background: linear-gradient(150deg, color-mix(in srgb, var(--pri) 28%, var(--card)), var(--card) 70%); }
+.actionbar { flex: none; display: flex; gap: 8px; padding: 10px 14px; background: var(--card); border-top: 1px solid var(--border); }
+
+/* ------------------------------------------------------------ Cubes (drawn by the script at the end) */
+.ll, .iso { display: inline-block; flex: none; }
+.ll svg, .iso svg { display: block; width: 100%; height: 100%; }
+.ll { width: 56px; height: 56px; } .iso { width: 60px; height: 60px; }
+.ll.sm { width: 40px; height: 40px; } .iso.sm { width: 40px; height: 40px; } .ll.lg, .iso.lg { width: 120px; height: 120px; } .iso.xl { width: 200px; height: 200px; }
+.case { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 6px; border-radius: 16px; background: var(--card); min-width: 0; }
+.case b { font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.case small { font-size: 11px; color: var(--ok); font-weight: 700; font-variant-numeric: tabular-nums; }
+.case.todo small { color: var(--faint); }
+.st { width: 12px; height: 12px; border-radius: 50%; border: 1.5px dashed var(--faint); flex: none; display: inline-block; }
+.st.ok { border: 0; background: var(--ok); }
+.st.prog { border: 2px solid var(--pri); border-right-color: transparent; }
+
+/* ============================================================ Tablet and small screen kit */
+.card.row, .well.row, .tile.row, .pane.row { flex-direction: row; }  /* .row means a row, even on a surface that stacks by default */
+/* A figure = one direction: its two screens side by side, tablet portrait then small landscape screen. */
+.phones { flex-direction: column; flex-wrap: nowrap; gap: 44px; }
+figure.variant figcaption { width: auto; max-width: 1100px; }
+.stack { gap: 28px; flex-wrap: wrap; align-items: flex-end; }
+/* The screens, drawn at their real CSS size, then scaled (zoom slider). */
+.dev { zoom: calc(var(--z) * .62); flex: none; background: #050304; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 30px 60px rgba(0,0,0,.5); }
+.dev > .scr { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; font-size: 14px; }
+.dev.tab { width: 858px; height: 1218px; padding: 12px; border-radius: 40px; }        /* iPad Air portrait, 834 × 1194 */
+.dev.tab > .scr { border-radius: 28px; }
+.dev.tabl { width: 1218px; height: 858px; padding: 12px; border-radius: 40px; }       /* the same tablet in landscape, 1194 × 834 */
+.dev.tabl > .scr { border-radius: 28px; }
+.dev.pc { width: 1296px; height: 760px; padding: 8px 8px 8px; border-radius: 14px; }  /* a small laptop: 1280 × 720 in its window */
+.dev.pc > .scr { border-radius: 6px; }
+.dev .wbar { height: 24px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--card); font-size: 11px; color: var(--faint); font-weight: 600; }
+.dev .wbar i { width: 9px; height: 9px; border-radius: 50%; background: var(--acc); }
+.dev .tsbar { height: 24px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 700; }
+.dev .tsbar .ic { display: flex; gap: 5px; } .dev .tsbar svg.lucide { width: 13px; height: 13px; }
+.size { font-size: 12px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+.size b { color: var(--mfg); }
+/* Desktop-scale type: bigger screens, one notch up. */
+.display.xl { font-size: 48px; } .timer.xxl { font-size: 150px; } .timer.xxxl { font-size: 190px; }
+.grid6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.grid8 { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; }
+.px24 { padding-left: 24px; padding-right: 24px; } .p20 { padding: 20px; } .p24 { padding: 24px; }
+.w280 { width: 280px; flex: none; } .w320 { width: 320px; flex: none; } .w360 { width: 360px; flex: none; }
+
+/* ---------- A · Rail: the desktop app, its top bar turned into a rail on the left */
+.shell { flex: 1; min-height: 0; display: flex; position: relative; }
+.rail { width: 76px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 0 12px; background: var(--card); border-right: 1px solid var(--border); }
+.rail > .logo { margin-bottom: 14px; }
+.rail > a { width: 64px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; font-size: 11px; font-weight: 700; color: var(--faint); position: relative; text-decoration: none; }
+.rail > a > span { width: 52px; height: 32px; border-radius: 99px; display: grid; place-items: center; position: relative; }
+.rail > a.on { color: var(--fg); } .rail > a.on > span { background: color-mix(in srgb, var(--pri) 22%, transparent); color: var(--pri); }
+.rail svg.lucide { width: 21px; height: 21px; }
+.rail .sp { flex: 1; }
+.rail.wide { width: 220px; align-items: stretch; padding: 16px 12px; }            /* expanded rail, labels beside the icons */
+.rail.wide > a { width: auto; flex-direction: row; gap: 12px; padding: 0 12px; height: 44px; border-radius: 14px; font-size: 14px; }
+.rail.wide > a > span { width: auto; height: auto; background: none !important; }
+.rail.wide > a.on { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.phead { display: flex; align-items: center; gap: 12px; padding: 14px 24px 10px; flex: none; min-height: 64px; }
+.phead .title { font-size: 28px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+.phead .utabs { border: 0; padding: 0; }
+.dock { width: 320px; flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--card); border-left: 1px solid var(--border); min-height: 0; }
+.drawer { position: absolute; top: 0; bottom: 0; right: 0; width: 380px; z-index: 6; background: var(--pop); box-shadow: -20px 0 60px rgba(0,0,0,.45); display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 24px 0 0 24px; }
+.drawer.left { right: auto; left: 0; border-radius: 0 24px 24px 0; box-shadow: 20px 0 60px rgba(0,0,0,.45); }
+
+/* ---------- B · Grand mobile: the phone app's language, grown to the tablet */
+.bigtitle { display: flex; align-items: flex-end; gap: 12px; padding: 18px 28px 8px; flex: none; }
+.bigtitle .display { flex: 1; }
+.dev .fnav { left: 50%; right: auto; transform: translateX(-50%); bottom: 18px; width: 460px; height: 64px; border-radius: 24px; }
+.dev .fnav.wide { width: 560px; }
+/* The bottom bar never shows a label (it pushed the buttons): icons only, the current one filled. */
+.fnav > * { font-size: 0; gap: 0; } .fnav > .on { padding: 0; width: 56px; }
+.dev .fnav-space { height: 96px; }
+.dev .sheet { left: 50%; right: auto; transform: translateX(-50%); width: min(720px, 100%); }
+.dev .sheet.over-nav { bottom: 96px; width: 620px; left: 50%; right: auto; }
+.sidesheet { position: absolute; top: 12px; bottom: 12px; right: 12px; width: 380px; z-index: 6; background: var(--pop); border-radius: 26px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.sidesheet.docked { position: relative; top: auto; bottom: auto; right: auto; z-index: 1; margin: 12px 12px 12px 0; box-shadow: inset 0 0 0 1px var(--border); background: var(--card); }
+
+/* ---------- C · Volets: canonical layouts (list-detail, supporting pane), everything visible, nothing floats */
+.cbar { display: flex; align-items: center; gap: 10px; padding: 10px 20px; flex: none; min-height: 56px; border-bottom: 1px solid var(--border); }
+.cbar .sect { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; letter-spacing: -.02em; padding: 0 12px; height: 38px; border-radius: 12px; background: var(--muted); }
+.panes { flex: 1; min-height: 0; display: flex; gap: 0; }
+.panes.v { flex-direction: column; }
+.pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; position: relative; }
+.pane.side { flex: none; background: color-mix(in srgb, var(--card) 70%, var(--bg)); }
+.pane .ph { display: flex; align-items: center; gap: 8px; flex: none; } .pane .ph .h3 { flex: 1; }
+.grip { flex: none; background: var(--border); position: relative; }
+.panes > .grip { width: 1px; } .panes.v > .grip { width: auto; height: 1px; }
+.grip::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 6px; height: 40px; border-radius: 6px; background: var(--acc); }
+.panes.v > .grip::after { width: 40px; height: 6px; }
+</style>
+</head>
+<body>
+<div class="tools">
+  <span class="row g6"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="h3">Qbix · tablette &amp; petit écran</b></span>
+  <span class="sp"></span>
+  <label>Accent <select id="accent"><option value="#f5609f">Pink</option><option value="#7fb2ff">Blue</option><option value="#ffb48c">Peach</option><option value="#8fe0c2">Green</option><option value="#7fd4e8">Cyan</option><option value="#ff9d6b">Orange</option><option value="#c9b4ff">Purple</option></select></label>
+  <label><input type="checkbox" id="light"> Light</label>
+  <label>Zoom <input type="range" id="zoom" min="0.6" max="2" step="0.05" value="1"></label>
+  <nav class="toc" id="toc"></nav>
+</div>
+<main class="doc">
+<header class="doc-head">
+  <h1>Qbix sur tablette et petit écran, <b>trois directions</b></h1>
+  <p>Entre le téléphone (jusqu'à 700 px, l'app mobile) et le grand écran, l'app de bureau est aujourd'hui simplement écrasée : mélange coincé dans une colonne, panneaux qui mangent la place, barre du haut et onglets qui prennent 120 px de hauteur sur un portable de 720 px. Chaque page est dessinée trois fois, une par direction, et chaque fois sur deux écrans : une tablette en portrait (834 × 1194) et un petit écran en paysage (1280 × 720, qui vaut aussi pour une tablette couchée ou un portable 13"). Mêmes couleurs, même police, mêmes composants ; toutes les fonctions présentes ; jamais de défilement de la page.</p>
+  <div class="dirs">
+    <div class="dir"><h3><i>A</i> Rail</h3><p>L'app de bureau, rendue compacte.</p><ul><li>La barre du haut devient un rail d'icônes à gauche : toute la hauteur rendue au contenu.</li><li>Les pages d'une section en onglets sur la ligne du titre.</li><li>Les panneaux latéraux restent ancrés quand il y a la place (paysage), et passent en tiroir par-dessus en portrait.</li></ul></div>
+    <div class="dir"><h3><i>B</i> Grand mobile</h3><p>L'app mobile choisie, agrandie pour la tablette.</p><ul><li>La même barre flottante en bas, les mêmes grands titres et onglets de page.</li><li>Les panneaux sont des feuilles : du bas en portrait, sur le côté (ou ancrées) en paysage.</li><li>Une seule app tactile du téléphone à la tablette ; le bureau reste pour le grand écran.</li></ul></div>
+    <div class="dir"><h3><i>C</i> Volets</h3><p>Des dispositions canoniques : liste-détail, volet d'appui.</p><ul><li>Une barre fine : section en menu, pages en onglets, puzzle, compte.</li><li>Chaque page découpée en volets, empilés en portrait, côte à côte en paysage, avec une poignée pour les redimensionner.</li><li>Rien ne flotte ni ne se cache : tout reste visible, la densité s'adapte.</li></ul></div>
+  </div>
+</header>

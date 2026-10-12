@@ -1,6 +1,6 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { BookA, Check, ChevronLeft, ChevronRight, ChevronsUpDown, CircleHelp, Dumbbell, Eye, EyeOff, Flag, GraduationCap, Info, Route, Timer, type LucideIcon } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import {
@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api, local } from "../api";
-import { Alg, Bar, Empty, Figure, HeadButton, LearnToggle, Numeric } from "../components/layout";
+import { Alg, Bar, Empty, Figure, HeadButton, IconTile, LearnToggle, Numeric } from "../components/layout";
 import { AppBar, PushedBar, SectionTabs } from "../components/AppBar";
 import { Chip, ChipMenu } from "../components/Chips";
 import { PuzzleIcon } from "../components/PuzzlePicker";
@@ -57,6 +57,12 @@ export function LearnPage({ method: methodId }: { method?: string }) {
   return method ? <Course key={`${puzzle}:${method.id}`} puzzle={puzzle} method={method} /> : <Methods puzzle={puzzle} />;
 }
 
+/** On a tablet: a panel docked at the right of the page (wide), or peeking above the bottom bar (portrait). */
+const DOCKED = "m-3 ml-0 w-[380px] gap-3 rounded-[26px] border border-border bg-card p-4";
+const PEEK = "mb-2 w-full max-w-[620px] gap-3 self-center rounded-[22px] border border-border bg-popover p-4";
+/** A list two by two, for a grid of two columns. */
+const pairs = <T,>(list: T[]) => Array.from({ length: Math.ceil(list.length / 2) }, (_, i) => list.slice(i * 2, i * 2 + 2));
+
 /** A method's level as three rising bars: one lit for a first method, all three for a top-level one. */
 function LevelBars({ level, on }: { level: MethodLevel; on: boolean }) {
   const lit = { beginner: 1, intermediate: 2, advanced: 3 }[level];
@@ -90,8 +96,29 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
   const rows = useMemo(() => methodRows(puzzle, cases, learned, progress), [puzzle, cases, learned, progress]);
   const last = progress.methods[puzzle];
   const hero = rows.find(r => r.method.id === last && r.state.started && !r.state.learned) ?? rows.find(r => r.state.started && !r.state.learned) ?? rows.find(r => r.recommended) ?? rows[0];
-  const open = (id: string) => { setProgress(openCourse(progress, puzzle, id)); setRoute({ page: "learn", method: id }); };
+  const open = (id: string, step?: number) => {
+    const opened = openCourse(progress, puzzle, id);
+    setProgress(step === undefined ? opened : goToStep(opened, puzzle, id, step)); setRoute({ page: "learn", method: id });
+  };
   const list = useTourTarget("learn");
+  const { tablet, wide } = useLayout();
+  // A tablet: the methods as large cards two by two, the course to carry on peeking above the bar, or docked beside them when wide.
+  if (tablet) return <View className="flex-1 flex-row">
+    <View className="min-w-0 flex-1">
+      <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} /></AppBar>
+      <SectionTabs />
+      <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3.5 px-7 pt-3.5 pb-3" showsVerticalScrollIndicator={false}>
+        <View {...list} accessibilityLabel={tr("Methods")} className="gap-3.5">
+          {pairs(rows).map(pair => <View key={pair[0]!.method.id} className="flex-row gap-3.5">
+            {pair.map(row => <MethodCard key={row.method.id} puzzle={puzzle} row={row} compact={wide} onPress={() => open(row.method.id)} />)}
+            {pair.length < 2 && <View className="flex-1" />}
+          </View>)}
+        </View>
+      </ScrollView>
+      {!wide && hero && <View className={PEEK}><HeroCourse puzzle={puzzle} row={hero} onOpen={() => open(hero.method.id)} variant="peek" /></View>}
+    </View>
+    {wide && hero && <View className={DOCKED}><HeroCourse puzzle={puzzle} row={hero} onOpen={() => open(hero.method.id)} onStep={i => open(hero.method.id, i)} variant="side" /></View>}
+  </View>;
   return <View className="flex-1">
     <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} /></AppBar>
     <SectionTabs />
@@ -107,42 +134,75 @@ function Methods({ puzzle }: { puzzle: PuzzleId }) {
 }
 
 /** A small figure on a quiet well, its dot in its colour. */
-function Well({ label, value, dot }: { label: string; value: string; dot: string }) {
-  return <View className="min-w-0 flex-1 gap-0.5 rounded-xl bg-card px-2.5 py-1.5">
+function Well({ label, value, dot, muted = false }: { label: string; value: string; dot: string; muted?: boolean }) {
+  return <View className={cn("min-w-0 flex-1 gap-0.5 rounded-xl bg-card px-2.5 py-1.5", muted && "bg-muted")}>
     <View className="flex-row items-center gap-1"><View className={cn("size-1.5 rounded-full", dot)} /><Text numberOfLines={1} className="text-xs text-muted-foreground">{label}</Text></View>
     <Numeric numberOfLines={1} className="text-base font-extrabold tracking-tight">{value}</Numeric>
   </View>;
 }
 
-/** The course to carry on: its name large, its line and three figures, a bar per step, then Start or Continue. */
-function HeroCourse({ puzzle, row, onOpen }: { puzzle: PuzzleId; row: MethodRow; onOpen: () => void }) {
+/** Each step of a method with its algorithms learned and whether it is done. */
+function useStepCounts(puzzle: PuzzleId, method: SolvingMethod) {
   const cases = useAtomValue(casesAtom), learnedIds = useAtomValue(learnedCaseIdsAtom), progress = useAtomValue(courseProgressAtom);
-  const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
+  return useMemo(() => {
+    const learned = new Set(learnedIds), entry = courseEntry(progress, puzzle, method.id);
+    return method.steps.map(st => ({ ...stepLearned(st, cases, learned, entry), done: stepDone(st, cases, learned, entry) }));
+  }, [cases, learnedIds, progress, puzzle, method]);
+}
+
+/** A bar per step of a method, green once done; `here` outlines the current one. */
+function StepBars({ puzzle, method, here, className }: { puzzle: PuzzleId; method: SolvingMethod; here?: number; className?: string }) {
+  const counts = useStepCounts(puzzle, method);
+  return <View className="flex-row gap-1" accessibilityLabel={tr("Steps")}>
+    {method.steps.map((st, i) => {
+      const count = counts[i]!;
+      return <Bar key={st.title} ratio={count.done ? 1 : count.total ? count.learned / count.total : 0} fill={count.done ? "bg-success" : undefined}
+        className={cn("h-1.5 min-w-0 flex-1", className, i === here && "border border-foreground/40")} />;
+    })}
+  </View>;
+}
+
+/**
+ * The course to carry on: its name large, its line and three figures, a bar per step, then Start or Continue. On a
+ * tablet it `peek`s above the bottom bar (no line: the cards show it), or docks at the `side`, its steps as a list.
+ */
+function HeroCourse({ puzzle, row, onOpen, onStep, variant }: { puzzle: PuzzleId; row: MethodRow; onOpen: () => void; onStep?: (index: number) => void; variant?: "peek" | "side" }) {
+  const counts = useStepCounts(puzzle, row.method);
+  const colors = useColors();
   const { method, state } = row;
-  const entry = courseEntry(progress, puzzle, method.id), step = method.steps[state.step] ?? method.steps[0]!;
+  const step = method.steps[state.step] ?? method.steps[0]!;
   const action = state.started ? tr("Continue · {0}", { 0: tr(step.title) }) : tr("Start · {0}", { 0: tr(step.title) });
-  return <View className="gap-2.5 rounded-3xl bg-muted p-4">
+  const side = variant === "side";
+  return <View className={cn("gap-2.5 rounded-3xl bg-muted p-4", variant === "peek" && "rounded-none bg-transparent p-0", side && "flex-1 rounded-none bg-transparent p-1")}>
     <View className="flex-row items-center gap-1.5">
       <LevelBars level={method.level} on={state.started || row.recommended} />
       <Text className={cn("text-sm font-bold", state.started || row.recommended ? "text-primary" : "text-muted-foreground")}>
         {state.started ? tr("Continue") : row.recommended ? tr("Start here") : tr(LEVEL_LABEL[method.level])}
       </Text>
     </View>
-    <Text numberOfLines={1} className="text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{tr(method.name)}</Text>
-    <Text numberOfLines={2} className="text-[13px] leading-[18px] text-muted-foreground">{tr(method.summary)}</Text>
+    <Text numberOfLines={1} className={cn("text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]", side && "text-[40px] leading-[44px]")}>{tr(method.name)}</Text>
+    {!variant && <Text numberOfLines={2} className="text-[13px] leading-[18px] text-muted-foreground">{tr(method.summary)}</Text>}
     <View className="flex-row gap-1.5">
-      <Well label={tr("Steps")} value={`${state.done} / ${state.total}`} dot="bg-success" />
-      <Well label={tr("Algorithms")} value={`${row.known} / ${row.facts.algorithms}`} dot="bg-primary" />
-      <Well label={tr("Known")} value={`${row.percent}%`} dot="bg-lilac" />
+      <Well label={tr("Steps")} value={`${state.done} / ${state.total}`} dot="bg-success" muted={!!variant} />
+      <Well label={tr("Algorithms")} value={`${row.known} / ${row.facts.algorithms}`} dot="bg-primary" muted={!!variant} />
+      <Well label={tr("Known")} value={`${row.percent}%`} dot="bg-lilac" muted={!!variant} />
     </View>
-    <View className="flex-row gap-1" accessibilityLabel={tr("Steps")}>
+    {side ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-0.5" accessibilityLabel={tr("Steps")}>
       {method.steps.map((st, i) => {
-        const count = stepLearned(st, cases, learned, entry), done = stepDone(st, cases, learned, entry);
-        return <Bar key={st.title} ratio={done ? 1 : count.total ? count.learned / count.total : 0} fill={done ? "bg-success" : undefined}
-          className={cn("h-1.5 min-w-0 flex-1 bg-card", i === state.step && "border border-foreground/40")} />;
+        const count = counts[i]!, line = count.total ? `${count.learned} / ${count.total}` + (count.done ? ` · ${tr("Done")}` : "") : count.done ? tr("Done") : tr("An intuitive step");
+        return <Pressable key={st.title} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${tr(st.title)} · ${line}`} onPress={() => onStep?.(i)}
+          className={cn("min-h-12 flex-row items-center gap-3 rounded-xl px-2.5 py-1.5 active:bg-muted/70", i === state.step && "bg-muted")}>
+          <Ring share={count.done ? 1 : count.total ? count.learned / count.total : 0} color={count.done ? colors.variables["--success"] ?? colors.primary : colors.primary} />
+          <View className="min-w-0 flex-1">
+            <Text numberOfLines={1} className="text-[15px] font-bold">{tr(st.title)}</Text>
+            <Numeric numberOfLines={1} className={cn("text-xs text-muted-foreground", count.done && "text-success")}>{line}</Numeric>
+          </View>
+        </Pressable>;
       })}
-    </View>
-    <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("Step {0} of {1}", { 0: state.step + 1, 1: method.steps.length })} · <Text className="text-[13px] font-semibold text-foreground">{tr(step.title)}</Text></Text>
+    </ScrollView> : <>
+      <StepBars puzzle={puzzle} method={method} here={state.step} className={variant ? undefined : "bg-card"} />
+      <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("Step {0} of {1}", { 0: state.step + 1, 1: method.steps.length })} · <Text className="text-[13px] font-semibold text-foreground">{tr(step.title)}</Text></Text>
+    </>}
     <Pressable accessibilityRole="button" accessibilityLabel={`${state.started ? tr("Continue") : tr("Start")} ${tr(method.name)}`} onPress={onOpen}
       className="h-12 flex-row items-center justify-between rounded-2xl bg-primary px-4 active:bg-primary/85">
       <Text numberOfLines={1} className="shrink text-base font-bold text-primary-foreground">{action}</Text>
@@ -151,11 +211,26 @@ function HeroCourse({ puzzle, row, onOpen }: { puzzle: PuzzleId; row: MethodRow;
   </View>;
 }
 
+/** What a method's tile or card says beside its name: its badge, and its level, steps and steps learned. */
+function methodLabels({ method, state, share, recommended, facts }: MethodRow) {
+  const done = share === 1;
+  return {
+    done, badge: done ? null : state.started ? tr("In progress") : recommended ? tr("Recommended") : null,
+    detail: `${tr(LEVEL_LABEL[method.level])} · ${plural(facts.steps, "step")}` + (state.started ? ` · ${tr("{0} of {1} steps learned", { 0: state.done, 1: state.total })}` : ""),
+  };
+}
+
+/** A method's badge: in progress or recommended, or learned in green. */
+function MethodBadge({ badge, done }: { badge: string | null; done: boolean }) {
+  return <>
+    {badge ? <Badge variant="accent"><Text className="text-xs font-semibold text-primary">{badge}</Text></Badge> : null}
+    {done ? <Badge variant="success"><Icon as={Check} size={12} strokeWidth={3} className="text-success" /><Text className="text-xs font-semibold text-success">{tr("Learned")}</Text></Badge> : null}
+  </>;
+}
+
 /** A method as a row: its level, name and badge, its line, then its share known large over the algorithms, and its bar. */
 function MethodTile({ row, onPress }: { row: MethodRow; onPress: () => void }) {
-  const { method, state } = row, done = row.share === 1;
-  const badge = done ? null : state.started ? tr("In progress") : row.recommended ? tr("Recommended") : null;
-  const detail = `${tr(LEVEL_LABEL[method.level])} · ${plural(row.facts.steps, "step")}` + (state.started ? ` · ${tr("{0} of {1} steps learned", { 0: state.done, 1: state.total })}` : "");
+  const { method, state } = row, { done, badge, detail } = methodLabels(row);
   return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${state.started ? tr("Continue") : tr("Start")} ${tr(method.name)}`}
     className="gap-2 rounded-2xl bg-card px-3.5 py-3 active:bg-muted/60">
     <View className="flex-row items-center gap-3">
@@ -163,8 +238,7 @@ function MethodTile({ row, onPress }: { row: MethodRow; onPress: () => void }) {
       <View className="min-w-0 flex-1 gap-0.5">
         <View className="flex-row items-center gap-2">
           <Text numberOfLines={1} className="shrink text-base font-extrabold tracking-tight">{tr(method.name)}</Text>
-          {badge ? <Badge variant="accent"><Text className="text-xs font-semibold text-primary">{badge}</Text></Badge> : null}
-          {done ? <Badge variant="success"><Icon as={Check} size={12} strokeWidth={3} className="text-success" /><Text className="text-xs font-semibold text-success">{tr("Learned")}</Text></Badge> : null}
+          <MethodBadge badge={badge} done={done} />
         </View>
         <Text numberOfLines={1} className="text-xs text-muted-foreground">{detail}</Text>
       </View>
@@ -174,6 +248,41 @@ function MethodTile({ row, onPress }: { row: MethodRow; onPress: () => void }) {
       </View>
     </View>
     <Bar ratio={row.share} fill={done ? "bg-success" : undefined} />
+  </Pressable>;
+}
+
+/**
+ * A method as a tablet's card: its level and badge, its name large and its line; then a bar per step and its share
+ * known large (portrait), or its share on one row over a single bar (`compact`, wide screens, where height is short).
+ */
+function MethodCard({ puzzle, row, compact, onPress }: { puzzle: PuzzleId; row: MethodRow; compact: boolean; onPress: () => void }) {
+  const { method, state } = row, { done, badge, detail } = methodLabels(row);
+  const tone = done ? "text-success" : row.percent ? "text-foreground" : "text-muted-foreground/50";
+  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${state.started ? tr("Continue") : tr("Start")} ${tr(method.name)}`}
+    className={cn("min-w-0 flex-1 gap-2 rounded-3xl bg-card p-5 active:bg-muted/60", compact ? "gap-1.5 p-4" : "min-h-72")}>
+    <View className="min-h-6 flex-row items-center gap-2">
+      <LevelBars level={method.level} on={row.recommended || state.started} />
+      <View className="flex-1" />
+      <MethodBadge badge={badge} done={done} />
+    </View>
+    <Text numberOfLines={1} className="text-[26px] leading-8 font-extrabold tracking-[-0.04em]">{tr(method.name)}</Text>
+    <Text numberOfLines={compact ? 2 : 3} className="text-sm leading-5 text-muted-foreground">{tr(method.summary)}</Text>
+    {compact ? <>
+      <View className="flex-row items-baseline gap-2">
+        <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{detail}</Text>
+        <Numeric className="text-sm text-muted-foreground">{row.known} / {row.facts.algorithms}</Numeric>
+        <Numeric className={cn("text-2xl font-extrabold tracking-tight", tone)}>{row.percent}%</Numeric>
+      </View>
+      <Bar ratio={row.share} fill={done ? "bg-success" : undefined} />
+    </> : <>
+      <View className="flex-1" />
+      <Text numberOfLines={1} className="text-xs text-muted-foreground">{detail}</Text>
+      <StepBars puzzle={puzzle} method={method} />
+      <View className="flex-row items-baseline justify-between gap-2">
+        <Numeric className={cn("text-[34px] leading-10 font-extrabold tracking-tight", tone)}>{row.percent}%</Numeric>
+        <Numeric className="text-sm text-muted-foreground">{tr("{0} / {1} algs", { 0: row.known, 1: row.facts.algorithms })}</Numeric>
+      </View>
+    </>}
   </Pressable>;
 }
 
@@ -238,7 +347,9 @@ const VERDICT_FILL: Record<Verdict, string> = { no: "bg-destructive", meh: "bg-w
 /**
  * A course, pushed from Courses: its steps as ring chips on one sliding line, then the step: an intuitive one shows its
  * sheet and its workbench as cards; one with algorithms its workbench, one case at a time with its group's strip under
- * it, the step's sheet behind the (i). Train, the timer and Previous / Next step stay at the bottom.
+ * it, the step's sheet behind the (i). Train, the timer and Previous / Next step stay at the bottom. On a tablet the
+ * steps become the page's tabs and the workbench grows to two columns; when wide, the step's cases and its actions
+ * dock at the right.
  */
 function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
@@ -274,6 +385,24 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
     setSelection(cases.filter(c => c.set === chosen.id).map(c => c.id));
     setRoute({ page: "training", autostart: true });
   };
+  const { tablet, wide } = useLayout();
+  const stepNav = <>
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous step")} disabled={entry.step === 0} onPress={() => go(entry.step - 1)}
+      className={cn("size-11 items-center justify-center rounded-xl bg-muted active:bg-muted/70", entry.step === 0 && "opacity-40")}>
+      <Icon as={ChevronLeft} size={20} />
+    </Pressable>
+    {next
+      ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Next step: {0}", { 0: tr(next.title) })} onPress={() => go(entry.step + 1)}
+        className={cn("h-11 min-w-0 flex-1 flex-row items-center justify-between gap-2 rounded-xl pr-2.5 pl-4", hasPieces ? "bg-muted active:bg-muted/70" : "bg-primary active:bg-primary/85")}>
+        <Text numberOfLines={1} className={cn("shrink text-[15px] font-bold", !hasPieces && "text-primary-foreground")}>{tr("Next step")} · {tr(next.title)}</Text>
+        <Icon as={ChevronRight} size={18} className={hasPieces ? "text-foreground" : "text-primary-foreground"} />
+      </Pressable>
+      : <Pressable accessibilityRole="button" accessibilityLabel={tr("Finish")} onPress={() => { void unlock(method.id); setFinished(true); }}
+        className="h-11 min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary px-3 active:bg-primary/85">
+        <Icon as={Flag} size={17} className="text-primary-foreground" />
+        <Text className="text-[15px] font-bold text-primary-foreground">{tr("Finish")}</Text>
+      </Pressable>}
+  </>;
   return <View className="flex-1">
     <PushedBar title={tr(method.name)} sub={tr("{0} · {1} of {2} steps learned", { 0: tr(puzzleInfo(puzzle).label), 1: state.done, 2: state.total })} onBack={back}>
       {/* The beginner 3×3 course can solve the player's own cube with them (AssistedPage). */}
@@ -282,34 +411,31 @@ function Course({ puzzle, method }: { puzzle: PuzzleId; method: SolvingMethod })
         : <HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("methods")} />}
     </PushedBar>
     <StepChips puzzle={puzzle} method={method} entry={entry} finished={finished} onPick={go} />
-    {finished ? <Finished puzzle={puzzle} method={method} onTimer={() => setRoute({ page: "playground" })} onMethods={back} /> : <>
-      {hasPieces
-        ? <Workbench key={`${entry.step}:${chosen?.id ?? ""}`} puzzle={puzzle} method={method} entry={entry} chosen={chosen} own={own}
-          onSet={id => setLearnSets(previous => ({ ...previous, [setKey]: id }))} />
-        : <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2.5 px-4 pb-3">
+    {finished ? <Finished puzzle={puzzle} method={method} onTimer={() => setRoute({ page: "playground" })} onMethods={back} />
+      : hasPieces ? <>
+        <Workbench key={`${entry.step}:${chosen?.id ?? ""}`} puzzle={puzzle} method={method} entry={entry} chosen={chosen} own={own}
+          onSet={id => setLearnSets(previous => ({ ...previous, [setKey]: id }))} onAbout={() => setAbout(true)}
+          side={wide ? <>
+            <View className="gap-1.5">
+              {chosen && <SideAction icon={Dumbbell} label={tr("Train {0}", { 0: tr(chosen.label) })} disabled={!learnedInSet} onPress={train} />}
+              <SideAction icon={Timer} label={tr("Practise with the timer")} onPress={() => setRoute({ page: "playground" })} />
+            </View>
+            <View className="flex-row items-center gap-1.5">{stepNav}</View>
+          </> : undefined} />
+        {!wide && <View className={cn("flex-row items-center gap-1.5 px-4 pt-1 pb-2", tablet && "px-7")}>
+          {chosen && <HeadButton icon={Dumbbell} label={tr("Train {0}", { 0: tr(chosen.label) })} disabled={!learnedInSet} onPress={train} />}
+          <HeadButton icon={Timer} label={tr("Practise with the timer")} onPress={() => setRoute({ page: "playground" })} />
+          {stepNav}
+        </View>}
+      </>
+      : tablet ? <IntuitiveStep puzzle={puzzle} method={method} entry={entry} wide={wide} nav={<View className="flex-row items-center gap-1.5">{stepNav}</View>} />
+      : <>
+        <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2.5 px-4 pb-3">
           <View className="gap-3 rounded-3xl bg-card p-4"><StepSheet puzzle={puzzle} method={method} entry={entry} /></View>
           <IntuitiveBench puzzle={puzzle} method={method} entry={entry} />
-        </ScrollView>}
-      <View className="flex-row items-center gap-1.5 px-4 pt-1 pb-2">
-        {hasPieces && chosen && <HeadButton icon={Dumbbell} label={tr("Train {0}", { 0: tr(chosen.label) })} disabled={!learnedInSet} onPress={train} />}
-        {hasPieces && <HeadButton icon={Timer} label={tr("Practise with the timer")} onPress={() => setRoute({ page: "playground" })} />}
-        <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous step")} disabled={entry.step === 0} onPress={() => go(entry.step - 1)}
-          className={cn("size-11 items-center justify-center rounded-xl bg-muted active:bg-muted/70", entry.step === 0 && "opacity-40")}>
-          <Icon as={ChevronLeft} size={20} />
-        </Pressable>
-        {next
-          ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Next step: {0}", { 0: tr(next.title) })} onPress={() => go(entry.step + 1)}
-            className={cn("h-11 min-w-0 flex-1 flex-row items-center justify-between gap-2 rounded-xl pr-2.5 pl-4", hasPieces ? "bg-muted active:bg-muted/70" : "bg-primary active:bg-primary/85")}>
-            <Text numberOfLines={1} className={cn("shrink text-[15px] font-bold", !hasPieces && "text-primary-foreground")}>{tr("Next step")} · {tr(next.title)}</Text>
-            <Icon as={ChevronRight} size={18} className={hasPieces ? "text-foreground" : "text-primary-foreground"} />
-          </Pressable>
-          : <Pressable accessibilityRole="button" accessibilityLabel={tr("Finish")} onPress={() => { void unlock(method.id); setFinished(true); }}
-            className="h-11 min-w-0 flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary px-3 active:bg-primary/85">
-            <Icon as={Flag} size={17} className="text-primary-foreground" />
-            <Text className="text-[15px] font-bold text-primary-foreground">{tr("Finish")}</Text>
-          </Pressable>}
-      </View>
-    </>}
+        </ScrollView>
+        <View className="flex-row items-center gap-1.5 px-4 pt-1 pb-2">{stepNav}</View>
+      </>}
     <Sheet open={about} onClose={() => setAbout(false)} title={tr(step.title)} description={tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })} scroll>
       <StepSheet puzzle={puzzle} method={method} entry={entry} bare />
     </Sheet>
@@ -322,17 +448,21 @@ function StepChips({ puzzle, method, entry, finished, onPick }: { puzzle: Puzzle
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const colors = useColors();
   const scroll = useRef<ScrollView>(null), offsets = useRef<number[]>([]);
-  useEffect(() => { scroll.current?.scrollTo({ x: Math.max(0, (offsets.current[entry.step] ?? 0) - 16), animated: true }); }, [entry.step]);
-  return <View className="pb-2.5">
-    <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5 px-4" accessibilityLabel={tr("Steps")}>
+  // A tablet shows them as the page's row of underlined tabs, each with its ring.
+  const { tablet } = useLayout();
+  useEffect(() => { scroll.current?.scrollTo({ x: Math.max(0, (offsets.current[entry.step] ?? 0) - (tablet ? 28 : 16)), animated: true }); }, [entry.step]);
+  return <View className={tablet ? "border-b border-border" : "pb-2.5"}>
+    <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} contentContainerClassName={tablet ? "gap-6 px-7" : "gap-1.5 px-4"} accessibilityLabel={tr("Steps")}>
       {method.steps.map((st, i) => {
         const count = stepLearned(st, cases, learned, entry), done = finished || stepDone(st, cases, learned, entry), here = i === entry.step && !finished;
+        const ringColor = done ? colors.variables["--success"] ?? colors.primary : colors.primary;
         return <Pressable key={st.title} onLayout={event => { offsets.current[i] = event.nativeEvent.layout.x; }} onPress={() => onPick(i)}
-          accessibilityRole="button" accessibilityState={{ selected: here }} accessibilityLabel={`${i + 1}. ${tr(st.title)} · ${done ? tr("Done") : tr("To do")}`}
-          className={cn("h-10 flex-row items-center gap-2 rounded-full px-3.5", here ? "bg-primary active:bg-primary/85" : "bg-muted active:bg-muted/70")}>
+          accessibilityRole={tablet ? "tab" : "button"} accessibilityState={{ selected: here }} accessibilityLabel={`${i + 1}. ${tr(st.title)} · ${done ? tr("Done") : tr("To do")}`}
+          className={tablet ? "h-12 flex-row items-center gap-2" : cn("h-10 flex-row items-center gap-2 rounded-full px-3.5", here ? "bg-primary active:bg-primary/85" : "bg-muted active:bg-muted/70")}>
           <Ring share={done ? 1 : count.total ? count.learned / count.total : 0}
-            color={here ? colors.variables["--primary-foreground"] ?? colors.background : done ? colors.variables["--success"] ?? colors.primary : colors.primary} />
-          <Text numberOfLines={1} className={cn("text-sm font-bold", here && "text-primary-foreground")}>{tr(st.title)}</Text>
+            color={here && !tablet ? colors.variables["--primary-foreground"] ?? colors.background : ringColor} />
+          <Text numberOfLines={1} className={cn("text-sm font-bold", here && !tablet && "text-primary-foreground", tablet && "text-[15px]", tablet && !here && "text-muted-foreground")}>{tr(st.title)}</Text>
+          {tablet && here && <View className="absolute right-0 bottom-0 left-0 h-[3px] rounded-full bg-primary" />}
         </Pressable>;
       })}
     </ScrollView>
@@ -375,14 +505,63 @@ function StepSheet({ puzzle, method, entry, bare = false }: { puzzle: PuzzleId; 
   </View>;
 }
 
+/** A wide button of a docked panel: its icon and its label. */
+function SideAction({ icon, label, onPress, disabled }: { icon: LucideIcon; label: string; onPress: () => void; disabled?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
+    className={cn("h-11 flex-row items-center justify-center gap-2 rounded-xl bg-muted px-3 active:bg-muted/70", disabled && "opacity-40")}>
+    <Icon as={icon} size={17} />
+    <Text numberOfLines={1} className="shrink text-[15px] font-bold">{label}</Text>
+  </Pressable>;
+}
+
+/**
+ * An intuitive step on a tablet: its sheet read large at the top (the cube before and after, its title, its text and
+ * its tips as cards), its workbench and Previous / Next step peeking above the bar, or docked beside it when wide.
+ */
+function IntuitiveStep({ puzzle, method, entry, wide, nav }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; wide: boolean; nav: ReactNode }) {
+  const poster = <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-4 px-7 pt-4 pb-4"><StepPoster puzzle={puzzle} method={method} entry={entry} /></ScrollView>;
+  return wide
+    ? <View className="min-h-0 flex-1 flex-row">{poster}<View className={DOCKED}><IntuitiveBench puzzle={puzzle} method={method} entry={entry} bare /><View className="flex-1" />{nav}</View></View>
+    : <>{poster}<View className={PEEK}><IntuitiveBench puzzle={puzzle} method={method} entry={entry} row bare />{nav}</View></>;
+}
+
+/** A step's sheet at a tablet's size: the cube before and after it large, its title, its text, its tips side by side. */
+function StepPoster({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
+  const step = method.steps[entry.step]!, picture = stepPicture(method, entry.step);
+  const cases = useAtomValue(casesAtom), learnedIds = useAtomValue(learnedCaseIdsAtom);
+  const { width, wide } = useLayout();
+  const count = stepLearned(step, cases, new Set(learnedIds), entry);
+  // Two cubes across the page (less the docked panel when wide), at most 250 each.
+  const size = Math.max(120, Math.min(250, Math.round(((wide ? width - 392 : width) - 56 - 100) / 2)));
+  return <>
+    {puzzleInfo(puzzle).cubeSize ? <View className="flex-row items-center justify-center gap-5 rounded-3xl bg-card p-5" accessibilityLabel={tr("Before and after this step")}>
+      <StepCube puzzle={puzzle} setup={picture.before} mask={picture.mask} size={size} />
+      <Icon as={ChevronRight} size={22} className="text-muted-foreground" />
+      <StepCube puzzle={puzzle} setup={picture.after} mask={picture.mask} size={size} />
+    </View> : null}
+    <View className="gap-1.5">
+      <Numeric className="text-sm font-bold text-primary">{tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })}</Numeric>
+      <Text className="text-[40px] leading-[44px] font-extrabold tracking-[-0.04em]">{tr(step.title)}</Text>
+      <Text className="text-base leading-6 text-foreground/85">{tr(step.text)}</Text>
+    </View>
+    {step.tips?.length ? <View className="flex-row flex-wrap gap-3">
+      {step.tips.map((tip, i) => <View key={tip} className="min-w-[30%] flex-1 gap-1.5 rounded-2xl bg-card p-4">
+        <Numeric className="text-2xl font-extrabold text-warning">{i + 1}</Numeric>
+        <Text className="text-sm leading-5 text-foreground/85">{tr(tip)}</Text>
+      </View>)}
+    </View> : null}
+    {step.missing && count.total > 0 ? <Alert>{tr(step.missing)}</Alert> : null}
+  </>;
+}
+
 /** An intuitive step's workbench: Train the cross where it has its training, and Mark as mastered; or its algorithms to come. */
-function IntuitiveBench({ puzzle, method, entry }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry }) {
+function IntuitiveBench({ puzzle, method, entry, row = false, bare = false }: { puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; row?: boolean; bare?: boolean }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const setTrainingMode = useSetAtom(trainingSetupModeAtom), setTrainingStep = useSetAtom(trainingStepAtom), setRun = useSetAtom(trainingRunAtom), setRoute = useSetAtom(routeAtom);
   const step = method.steps[entry.step]!, train = step.train && puzzle === "333", mastered = stepMastered(step, entry);
   const card = (icon: LucideIcon, title: string, line: string, onPress: () => void, primary: boolean, on = false) =>
     <Pressable accessibilityRole={primary ? "button" : "switch"} accessibilityState={{ checked: on }} accessibilityLabel={title} onPress={onPress}
-      className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5", primary ? "bg-primary active:bg-primary/85" : on ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
+      className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5", row && "min-w-0 flex-1", primary ? "bg-primary active:bg-primary/85" : on ? "bg-success/15 active:bg-success/25" : "bg-muted active:bg-muted/70")}>
       <View className={cn("size-10 items-center justify-center rounded-xl", primary ? "bg-primary-foreground/15" : "bg-card")}>
         <Icon as={icon} size={20} className={primary ? "text-primary-foreground" : on ? "text-success" : "text-foreground"} />
       </View>
@@ -392,26 +571,29 @@ function IntuitiveBench({ puzzle, method, entry }: { puzzle: PuzzleId; method: S
       </View>
       {primary && <Icon as={ChevronRight} size={18} className="text-primary-foreground" />}
     </Pressable>;
-  return <View className="gap-2.5 rounded-3xl bg-card p-4" accessibilityLabel={tr("Workbench")}>
+  return <View className={cn("gap-2.5 rounded-3xl bg-card p-4", bare && "rounded-none bg-transparent p-0")} accessibilityLabel={tr("Workbench")}>
     <View className="flex-row items-center justify-between">
       <Text className="text-[11px] font-bold tracking-[1px] text-muted-foreground uppercase">{tr("Workbench")}</Text>
       <Badge variant="secondary"><Text className="text-xs">{step.missing ? tr("Algorithms to come") : tr("An intuitive step")}</Text></Badge>
     </View>
-    {step.missing ? <Text className="text-sm text-muted-foreground">{tr(step.missing)}</Text> : <>
+    {step.missing ? <Text className="text-sm text-muted-foreground">{tr(step.missing)}</Text> : <View className={cn("gap-2.5", row && "flex-row")}>
       {/* An intuitive step with its own training mode opens it (Training → Cross). */}
       {train && card(Dumbbell, tr("Train the cross"), tr("Plan it in inspection, then count its moves"), () => { setTrainingMode(""); setRun("cross"); setTrainingStep("practice"); setRoute({ page: "training" }); }, true)}
       {card(Check, mastered ? tr("Mastered") : tr("Mark as mastered"), mastered ? tr("Undo if it still takes thought") : tr("When you do it without thinking"),
         () => setProgress(toggleAlgLearned(progress, puzzle, method.id, stepId(step))), false, mastered)}
-    </>}
+    </View>}
   </View>;
 }
 
 /**
  * A step with algorithms: the set and the filter of learned ones, then the case on the workbench (its name, diagram,
- * figures, algorithm hidden until asked for, and how the try went), then its group as a strip to pick from.
+ * figures, algorithm hidden until asked for, and how the try went), then its group as a strip to pick from. Wide, the
+ * whole step's cases replace the strip in a docked panel, the set and the filter over them.
  */
-function Workbench({ puzzle, method, entry, chosen, own, onSet }: {
+function Workbench({ puzzle, method, entry, chosen, own, onSet, onAbout, side }: {
   puzzle: PuzzleId; method: SolvingMethod; entry: CourseEntry; chosen?: { id: string; label: string; count: number }; own: { id: string; label: string; count: number }[]; onSet: (id: string) => void;
+  /** Opens the step's sheet; `side`: the step's actions at the foot of the docked panel (wide screens). */
+  onAbout: () => void; side?: ReactNode;
 }) {
   const [progress, setProgress] = useAtom(courseProgressAtom);
   const cases = useAtomValue(casesAtom), stats = useAtomValue(statsAtom);
@@ -419,7 +601,7 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet }: {
   const learned = useMemo(() => new Set(learnedIds), [learnedIds]);
   const learnedAlgs = useAtomValue(learnedAlgsAtom);
   const [filter, setFilter] = useAtom(learningFilterAtom);
-  const { width } = useLayout();
+  const { width, tablet, wide } = useLayout();
   const step = method.steps[entry.step]!;
   const shownByFilter = (on: boolean) => filter === "learned" ? on : filter === "not-learned" ? !on : true;
   const groups = useMemo(() => {
@@ -490,74 +672,165 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet }: {
     { id: "not-learned" as const, label: tr("To learn"), count: count.total - count.learned },
   ];
   const current = options.find(o => o.id === filter)!;
-  return <>
-    <View className="flex-row items-center gap-2 px-4 pb-2">
-      {own.length > 1 && chosen ? <ScrollView horizontal showsHorizontalScrollIndicator={false} className="min-w-0 flex-1" contentContainerClassName="rounded-xl bg-muted p-1">
-        {own.map(s => {
-          const on = s.id === chosen.id, known = cases.filter(c => c.set === s.id && learned.has(c.id)).length;
-          return <Pressable key={s.id} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={tr(s.label)} onPress={() => onSet(s.id)}
-            className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-3", on && "bg-background")}>
-            <Text numberOfLines={1} className={cn("text-sm font-bold", !on && "text-muted-foreground")}>{tr(s.label)}</Text>
-            {on && <Numeric className="text-xs text-muted-foreground">{known}/{s.count}</Numeric>}
-          </Pressable>;
-        })}
-      </ScrollView> : <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold text-muted-foreground">{chosen ? tr("Cases") : tr("Algorithms")} <Numeric className="text-sm text-muted-foreground">{count.learned} / {count.total}</Numeric></Text>}
-      <ChipMenu label={tr("Filter")} value={filter} onChange={setFilter} options={options.map(o => ({ id: o.id, label: `${o.label} · ${o.count}` }))}>
-        <Text className="text-sm font-bold">{current.label} <Numeric className="text-sm font-bold text-primary">{current.count}</Numeric></Text>
-      </ChipMenu>
-    </View>
-    <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2.5 px-4 pb-2">
-      {piece ? <View className="gap-3 rounded-3xl bg-card p-4" accessibilityLabel={tr("Workbench")}>
-        <View className="flex-row items-start gap-3">
-          <View className="min-w-0 flex-1 gap-0.5">
-            <Text numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
-            <Text numberOfLines={1} className="text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
-            {piece.sub ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{piece.sub}</Text> : null}
-            <LearnToggle learned={piece.learned} onPress={() => toggle(piece)} className="mt-1.5 self-start"
-              accessibilityLabel={piece.learned ? tr("{0} learned", { 0: said(piece.name) }) : tr("Mark {0} learned", { 0: said(piece.name) })} />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={piece.c ? tr("Open {0}", { 0: piece.c.id }) : tr("Play {0} in 3D", { 0: tr(piece.name) })}
-            disabled={!piece.c && !piece.play} onPress={() => piece.c ? setCaseOpen(piece.c.id) : setPlaying(playable.indexOf(piece))} className="rounded-2xl active:opacity-70">
-            <PieceDiagram piece={piece} puzzle={puzzle} step={step} size={diagramSize} />
-          </Pressable>
-        </View>
-        {piece.note ? <Text numberOfLines={3} className="text-[13px] leading-[18px] text-muted-foreground">{tr(piece.note)}</Text> : null}
-        <View className="flex-row gap-2">
-          {piece.c && <>
-            <Figure label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} className="flex-1" />
-            <Figure label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" className="flex-1" />
-            <Figure label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} className="flex-1" />
-          </>}
-          <Figure label={`${tr("Got it")} · ${tr("This session")}`} value={tries.length ? `${tries.filter(t => t.verdict === "yes").length} / ${tries.length}` : "–"} className="flex-1" />
-        </View>
-        {(piece.algs.length > 1 || piece.c) && <View className="flex-row flex-wrap items-center gap-1.5">
-          {piece.algs.length > 1 && <View accessibilityRole="tablist" accessibilityLabel={tr("Algorithms")} className="flex-row rounded-xl bg-muted p-1">
-            {piece.algs.map((a, i) => <Pressable key={a} accessibilityRole="tab" accessibilityState={{ selected: i === choice }} onPress={() => setChoice(i)}
-              className={cn("h-8 flex-row items-center gap-1 rounded-lg px-2.5", i === choice && "bg-background")}>
-              {piece.mine.includes(a) && <Icon as={Check} size={13} strokeWidth={3} className="text-success" />}
-              <Text className={cn("text-[13px] font-bold", i !== choice && "text-muted-foreground")}>{tr("{0} moves", { 0: moveCount(a) })}</Text>
-            </Pressable>)}
+  const shownGroups = groups.map(([name, pieces]) => [name, pieces.filter(p => shownByFilter(p.learned))] as [string, Piece[]]).filter(([, pieces]) => pieces.length);
+  const topRow = <View className={cn("flex-row items-center gap-2 px-4 pb-2", tablet && "px-7 pt-3", wide && "p-0")}>
+    {own.length > 1 && chosen ? <ScrollView horizontal showsHorizontalScrollIndicator={false} className="min-w-0 flex-1" contentContainerClassName="rounded-xl bg-muted p-1">
+      {own.map(s => {
+        const on = s.id === chosen.id, known = cases.filter(c => c.set === s.id && learned.has(c.id)).length;
+        return <Pressable key={s.id} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={tr(s.label)} onPress={() => onSet(s.id)}
+          className={cn("h-9 flex-row items-center gap-1.5 rounded-lg px-3", on && "bg-background")}>
+          <Text numberOfLines={1} className={cn("text-sm font-bold", !on && "text-muted-foreground")}>{tr(s.label)}</Text>
+          {on && <Numeric className="text-xs text-muted-foreground">{known}/{s.count}</Numeric>}
+        </Pressable>;
+      })}
+    </ScrollView> : wide ? <View className="flex-1" /> : <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold text-muted-foreground">{chosen ? tr("Cases") : tr("Algorithms")} <Numeric className="text-sm text-muted-foreground">{count.learned} / {count.total}</Numeric></Text>}
+    <ChipMenu label={tr("Filter")} value={filter} onChange={setFilter} options={options.map(o => ({ id: o.id, label: `${o.label} · ${o.count}` }))}>
+      <Text className="text-sm font-bold">{current.label} <Numeric className="text-sm font-bold text-primary">{current.count}</Numeric></Text>
+    </ChipMenu>
+  </View>;
+  const empty = <Empty icon={Check}>{filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>;
+  const sheets = <>
+    <PiecesSheet open={listOpen} onClose={() => setListOpen(false)} groups={shownGroups}
+      current={piece} puzzle={puzzle} step={step} onPick={key => { setListOpen(false); select(key); }} />
+    <AlgPlayerSheet items={playable.map(p => p.play!)} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
+    <CaseSheet caseId={caseOpen} ids={caseIds} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
+  </>;
+  const trailView = trail.length > 0 && <View className="min-w-0 shrink flex-row items-center gap-1.5" accessibilityLabel={trail.map(t => tr(VERDICTS.find(v => v.id === t.verdict)!.label)).join(", ")}>
+    <Text className="text-xs text-muted-foreground">{plural(trail.length, "try")}</Text>
+    <View className="shrink flex-row gap-1 overflow-hidden">{trail.slice(-12).map((t, i) => <View key={i} className={cn("size-2.5 rounded-[3px]", VERDICT_FILL[t.verdict])} />)}</View>
+  </View>;
+  const card = piece && (() => {
+    const learnToggle = (className?: string) => <LearnToggle learned={piece.learned} onPress={() => toggle(piece)} className={className}
+      accessibilityLabel={piece.learned ? tr("{0} learned", { 0: said(piece.name) }) : tr("Mark {0} learned", { 0: said(piece.name) })} />;
+    const diagram = (size: number) => <Pressable accessibilityRole="button" accessibilityLabel={piece.c ? tr("Open {0}", { 0: piece.c.id }) : tr("Play {0} in 3D", { 0: tr(piece.name) })}
+      disabled={!piece.c && !piece.play} onPress={() => piece.c ? setCaseOpen(piece.c.id) : setPlaying(playable.indexOf(piece))} className="rounded-2xl active:opacity-70">
+      <PieceDiagram piece={piece} puzzle={puzzle} step={step} size={size} />
+    </Pressable>;
+    const note = piece.note ? <Text numberOfLines={3} className="text-[13px] leading-[18px] text-muted-foreground">{tr(piece.note)}</Text> : null;
+    const figures = <View className="flex-row gap-2">
+      {piece.c && <>
+        <Figure label={tr("Average")} value={st?.mean != null ? fmtTime(st.mean) : "–"} className="flex-1" />
+        <Figure label={tr("Best")} value={st?.best != null ? fmtTime(st.best) : "–"} tone="good" className="flex-1" />
+        <Figure label={tr("Attempts")} value={st?.count ? String(st.count) : "–"} className="flex-1" />
+      </>}
+      <Figure label={`${tr("Got it")} · ${tr("This session")}`} value={tries.length ? `${tries.filter(t => t.verdict === "yes").length} / ${tries.length}` : "–"} className="flex-1" />
+    </View>;
+    const choices = <>
+      {piece.algs.length > 1 && <View accessibilityRole="tablist" accessibilityLabel={tr("Algorithms")} className="flex-row rounded-xl bg-muted p-1">
+        {piece.algs.map((a, i) => <Pressable key={a} accessibilityRole="tab" accessibilityState={{ selected: i === choice }} onPress={() => setChoice(i)}
+          className={cn("h-8 flex-row items-center gap-1 rounded-lg px-2.5", i === choice && "bg-background")}>
+          {piece.mine.includes(a) && <Icon as={Check} size={13} strokeWidth={3} className="text-success" />}
+          <Text className={cn("text-[13px] font-bold", i !== choice && "text-muted-foreground")}>{tr("{0} moves", { 0: moveCount(a) })}</Text>
+        </Pressable>)}
+      </View>}
+      {piece.c && <Chip icon={Check} on={piece.mine.includes(alg)} onPress={() => use(piece, alg)}>{tr("I use it")}</Chip>}
+    </>;
+    const well = <View className="gap-2.5 rounded-2xl bg-background p-3">
+      <View className="min-h-10 flex-row items-center gap-3">
+        <View className="min-w-0 flex-1">
+          {open ? <Alg text={alg} size={18} selectable /> : <View className="flex-row flex-wrap gap-1" accessibilityLabel={tr("{0} moves", { 0: moveCount(alg) })}>
+            {Array.from({ length: moveCount(alg) }, (_, i) => <View key={i} className="h-4 w-5 rounded-[4px] bg-foreground/10" />)}
           </View>}
-          {piece.c && <Chip icon={Check} on={piece.mine.includes(alg)} onPress={() => use(piece, alg)}>{tr("I use it")}</Chip>}
-        </View>}
-        <View className="gap-2.5 rounded-2xl bg-background p-3">
-          <View className="min-h-10 flex-row items-center gap-3">
-            <View className="min-w-0 flex-1">
-              {open ? <Alg text={alg} size={18} selectable /> : <View className="flex-row flex-wrap gap-1" accessibilityLabel={tr("{0} moves", { 0: moveCount(alg) })}>
-                {Array.from({ length: moveCount(alg) }, (_, i) => <View key={i} className="h-4 w-5 rounded-[4px] bg-foreground/10" />)}
-              </View>}
-            </View>
-            <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>
-          </View>
-          <View className="flex-row gap-1.5" accessibilityLabel={tr("Do it on your cube, from memory.")}>
-            {VERDICTS.map(v => <Pressable key={v.id} accessibilityRole="button" accessibilityLabel={tr(v.label)} onPress={() => tell(v.id)}
-              className={cn("h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1 rounded-xl", v.className)}>
-              {v.id === "yes" && <Icon as={Check} size={15} strokeWidth={3} className="text-success" />}
-              <Text numberOfLines={1} className={cn("text-[15px] font-bold", v.tone)}>{tr(v.label)}</Text>
-            </Pressable>)}
+        </View>
+        <Chip icon={open ? EyeOff : Eye} onPress={() => setOpen(!open)} accessibilityLabel={open ? tr("Hide the algorithm") : tr("Show the algorithm")}>{open ? tr("Hide") : tr("Show")}</Chip>
+      </View>
+      <View className="flex-row gap-1.5" accessibilityLabel={tr("Do it on your cube, from memory.")}>
+        {VERDICTS.map(v => <Pressable key={v.id} accessibilityRole="button" accessibilityLabel={tr(v.label)} onPress={() => tell(v.id)}
+          className={cn("h-11 min-w-0 flex-1 flex-row items-center justify-center gap-1 rounded-xl", v.className)}>
+          {v.id === "yes" && <Icon as={Check} size={15} strokeWidth={3} className="text-success" />}
+          <Text numberOfLines={1} className={cn("text-[15px] font-bold", v.tone)}>{tr(v.label)}</Text>
+        </Pressable>)}
+      </View>
+    </View>;
+    // A tablet: the case and its diagram large on the left, its figures, algorithms and tries on the right.
+    if (tablet) {
+      const previous = all[(index - 1 + all.length) % all.length]!, following = all[(index + 1) % all.length]!;
+      return <View className="flex-row gap-5 rounded-3xl bg-card p-5" accessibilityLabel={tr("Workbench")}>
+        <View className="w-[270px] gap-1">
+          <Text numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
+          <Text numberOfLines={1} className="text-[40px] leading-[44px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
+          {piece.sub ? <Text numberOfLines={1} className="text-[15px] font-semibold text-muted-foreground">{piece.sub}</Text> : null}
+          <View className="flex-1 items-center justify-center pt-2">{diagram(wide ? 200 : 180)}</View>
+        </View>
+        <View className="min-w-0 flex-1 gap-3">
+          {figures}
+          {note}
+          <View className="flex-row flex-wrap items-center gap-1.5">{learnToggle()}<View className="flex-1" />{choices}</View>
+          {well}
+          <View className="flex-1" />
+          <View className="min-h-11 flex-row items-center gap-2">
+            <View className="min-w-0 flex-1">{trailView}</View>
+            {all.length > 1 && <>
+              <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous case")} onPress={() => go(-1)} className="h-11 flex-row items-center gap-1 rounded-xl pr-3.5 pl-2 active:bg-muted/70">
+                <Icon as={ChevronLeft} size={18} /><Text numberOfLines={1} className="text-[15px] font-bold">{said(previous.short ?? previous.name)}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} onPress={() => go(1)} className="h-11 flex-row items-center gap-1 rounded-xl bg-muted pr-2 pl-3.5 active:bg-muted/70">
+                <Text numberOfLines={1} className="text-[15px] font-bold">{said(following.short ?? following.name)}</Text><Icon as={ChevronRight} size={18} />
+              </Pressable>
+            </>}
           </View>
         </View>
-      </View> : <Empty icon={Check}>{filter === "learned" ? tr("No learned cases in this set yet.") : tr("Every case of this set is learned.")}</Empty>}
+      </View>;
+    }
+    return <View className="gap-3 rounded-3xl bg-card p-4" accessibilityLabel={tr("Workbench")}>
+      <View className="flex-row items-start gap-3">
+        <View className="min-w-0 flex-1 gap-0.5">
+          <Text numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{piece.context}</Text>
+          <Text numberOfLines={1} className="text-[30px] leading-[34px] font-extrabold tracking-[-0.04em]">{said(piece.name)}</Text>
+          {piece.sub ? <Text numberOfLines={1} className="text-sm text-muted-foreground">{piece.sub}</Text> : null}
+          {learnToggle("mt-1.5 self-start")}
+        </View>
+        {diagram(diagramSize)}
+      </View>
+      {note}
+      {figures}
+      {(piece.algs.length > 1 || piece.c) && <View className="flex-row flex-wrap items-center gap-1.5">{choices}</View>}
+      {well}
+    </View>;
+  })();
+  // Wide: the workbench and the step's sheet on the page, every case of the step docked beside, with the step's actions under them.
+  if (wide) return <>
+    <View className="min-h-0 flex-1 flex-row">
+      <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 px-7 pt-4 pb-3">
+        {card ?? empty}
+        <Pressable accessibilityRole="button" accessibilityLabel={tr("About this step")} onPress={onAbout} className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3 active:bg-muted/60">
+          <IconTile icon={Info} />
+          <View className="min-w-0 flex-1 gap-0.5">
+            <Numeric numberOfLines={1} className="text-xs font-bold text-primary">{tr("Step {0} of {1}", { 0: entry.step + 1, 1: method.steps.length })} · {tr("About this step")}</Numeric>
+            <Text numberOfLines={1} className="text-sm text-muted-foreground">{tr(step.text)}</Text>
+          </View>
+          <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
+        </Pressable>
+      </ScrollView>
+      <View className={DOCKED}>
+        <View className="flex-row items-baseline justify-between gap-2">
+          <Text className="text-xl font-extrabold tracking-tight">{chosen ? tr("Cases") : tr("Algorithms")}</Text>
+          <Numeric className="text-sm text-muted-foreground">{count.learned} / {count.total}</Numeric>
+        </View>
+        {topRow}
+        <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-1.5 pb-1" accessibilityLabel={tr("Every case of the step")}>
+          {shownGroups.map(([name, pieces]) => {
+            const known = pieces.filter(p => p.learned).length;
+            return <View key={name} className="gap-1.5">
+              <View className="flex-row justify-between pt-1.5">
+                <Text numberOfLines={1} className="shrink text-[13px] font-extrabold text-muted-foreground">{tr(name)}</Text>
+                <Numeric className={cn("text-[13px]", known === pieces.length ? "text-success" : "text-muted-foreground")}>{known} / {pieces.length}</Numeric>
+              </View>
+              <View className="flex-row flex-wrap gap-1.5">
+                {pieces.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={50} onPress={() => select(p.key)} />)}
+              </View>
+            </View>;
+          })}
+        </ScrollView>
+        {side}
+      </View>
+    </View>
+    {sheets}
+  </>;
+  return <>
+    {topRow}
+    <ScrollView className="min-h-0 flex-1" contentContainerClassName={cn("gap-2.5 px-4 pb-2", tablet && "gap-3 px-7")}>
+      {card ?? empty}
       {piece && <View className="gap-2">
         <View className="flex-row items-center justify-between gap-2">
           <Pressable accessibilityRole="button" accessibilityLabel={tr("Every case of the step")} onPress={() => setListOpen(true)} className="min-h-9 flex-row items-center gap-1.5 rounded-lg active:opacity-70">
@@ -565,20 +838,14 @@ function Workbench({ puzzle, method, entry, chosen, own, onSet }: {
             <Numeric className="text-sm text-muted-foreground">{groupTotal.filter(p => p.learned).length} / {groupTotal.length}</Numeric>
             <Icon as={ChevronsUpDown} size={14} className="text-muted-foreground" />
           </Pressable>
-          {trail.length > 0 && <View className="min-w-0 shrink flex-row items-center gap-1.5" accessibilityLabel={trail.map(t => tr(VERDICTS.find(v => v.id === t.verdict)!.label)).join(", ")}>
-            <Text className="text-xs text-muted-foreground">{plural(trail.length, "try")}</Text>
-            <View className="shrink flex-row gap-1 overflow-hidden">{trail.slice(-12).map((t, i) => <View key={i} className={cn("size-2.5 rounded-[3px]", VERDICT_FILL[t.verdict])} />)}</View>
-          </View>}
+          {!tablet && trailView}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5">
-          {strip.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={48} onPress={() => select(p.key)} />)}
+          {strip.map(p => <PieceTile key={p.key} p={p} here={p === piece} puzzle={puzzle} step={step} size={tablet ? 56 : 48} onPress={() => select(p.key)} />)}
         </ScrollView>
       </View>}
     </ScrollView>
-    <PiecesSheet open={listOpen} onClose={() => setListOpen(false)} groups={groups.map(([name, pieces]) => [name, pieces.filter(p => shownByFilter(p.learned))] as [string, Piece[]]).filter(([, pieces]) => pieces.length)}
-      current={piece} puzzle={puzzle} step={step} onPick={key => { setListOpen(false); select(key); }} />
-    <AlgPlayerSheet items={playable.map(p => p.play!)} index={playing} onIndex={setPlaying} onClose={() => setPlaying(null)} />
-    <CaseSheet caseId={caseOpen} ids={caseIds} onChange={setCaseOpen} onClose={() => setCaseOpen(null)} />
+    {sheets}
   </>;
 }
 
@@ -595,7 +862,8 @@ type ListRow = { key: string } & ({ kind: "group"; name: string; learned: number
 function PiecesSheet({ open, onClose, groups, current, puzzle, step, onPick }: {
   open: boolean; onClose: () => void; groups: [string, Piece[]][]; current?: Piece; puzzle: PuzzleId; step: MethodStep; onPick: (key: string) => void;
 }) {
-  const { width } = useLayout();
+  // The sheet keeps to 720 wide on a tablet (Sheet).
+  const width = Math.min(useLayout().width, 720);
   const columns = Math.max(4, Math.floor((width - 40) / 72));
   const size = Math.floor((width - 40 - 6 * (columns - 1)) / columns) - 12;
   const rows = useMemo(() => groups.flatMap(([name, pieces]): ListRow[] => [

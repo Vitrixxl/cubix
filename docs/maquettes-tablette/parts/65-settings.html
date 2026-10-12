@@ -1,0 +1,956 @@
+<style>
+:is(#settings,#welcome) .pill svg.lucide { width: 12px; height: 12px; }
+:is(#settings,#welcome) .sw { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #1c1317; }
+:is(#settings,#welcome) .sw.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--fg); }
+:is(#settings,#welcome) .sw svg.lucide { width: 15px; height: 15px; stroke-width: 3; }
+:is(#settings,#welcome) .sw.lg { width: 44px; height: 44px; }
+:is(#settings,#welcome) .sw.lg svg.lucide { width: 20px; height: 20px; }
+:is(#settings,#welcome) .grp { background: var(--card); border-radius: 20px; display: flex; flex-direction: column; flex: none; }
+:is(#settings,#welcome) .grp > .li { border-radius: 0; padding: 10px 16px; min-height: 52px; }
+:is(#settings,#welcome) .grp > .li + .li { box-shadow: inset 0 1px 0 var(--border); }
+:is(#settings,#welcome) .grp > .li > svg.lucide:first-child { color: var(--mfg); }
+:is(#settings,#welcome) .lbl { font-size: 13px; font-weight: 700; color: var(--mfg); }
+:is(#settings,#welcome) .sel { justify-content: space-between; width: 170px; }
+:is(#settings,#welcome) .radio { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--faint); flex: none; }
+:is(#settings,#welcome) .radio.on { box-shadow: inset 0 0 0 6px var(--pri); }
+:is(#settings,#welcome) .pz { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 72px; border-radius: 18px; background: var(--card); font-size: 13.5px; font-weight: 700; color: var(--mfg); position: relative; min-width: 0; }
+:is(#settings,#welcome) .pz.on { background: var(--acc); color: var(--fg); }
+:is(#settings,#welcome) .pz.on > :first-child { color: var(--pri); }
+:is(#settings,#welcome) .pz.on::after { content: "✓"; position: absolute; top: 6px; right: 10px; color: var(--pri); font-weight: 800; font-size: 13px; }
+:is(#settings,#welcome) .pz svg.lucide { width: 22px; height: 22px; stroke-width: 1.6; }
+:is(#settings,#welcome) .pz.lg { height: 92px; font-size: 15px; border-radius: 22px; }
+:is(#settings,#welcome) .gl { display: inline-grid; gap: 1.5px; }
+:is(#settings,#welcome) .gl i { width: var(--s); height: var(--s); border-radius: 1.5px; background: currentColor; }
+:is(#settings,#welcome) .mchip { height: 36px; padding: 0 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; background: var(--muted); color: var(--mfg); flex: none; }
+:is(#settings,#welcome) .mchip.on { background: color-mix(in srgb, var(--pri) 20%, var(--card)); color: var(--fg); }
+:is(#settings,#welcome) .mchip svg.lucide { width: 15px; height: 15px; }
+:is(#settings,#welcome) .mchip.on svg.lucide { color: var(--pri); }
+:is(#settings,#welcome) .stp { display: flex; align-items: center; gap: 6px; }
+:is(#settings,#welcome) .stp > span { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 6px; border-radius: 12px; font-weight: 700; font-size: 13.5px; color: var(--faint); }
+:is(#settings,#welcome) .stp > span.on { background: var(--card); color: var(--fg); padding-right: 12px; }
+:is(#settings,#welcome) .stp b { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--muted); }
+:is(#settings,#welcome) .stp .on b { background: var(--pri); color: var(--pri-fg); }
+:is(#settings,#welcome) .stp .ok b { background: color-mix(in srgb, var(--pri) 25%, var(--card)); color: var(--pri); }
+:is(#settings,#welcome) .stp b svg.lucide { width: 13px; height: 13px; stroke-width: 3; }
+:is(#settings,#welcome) .tdots { display: flex; gap: 4px; align-items: center; }
+:is(#settings,#welcome) .tdots i { width: 6px; height: 6px; border-radius: 6px; background: var(--acc); }
+:is(#settings,#welcome) .tdots i.d { background: color-mix(in srgb, var(--pri) 55%, transparent); }
+:is(#settings,#welcome) .tdots i.on { width: 18px; background: var(--pri); }
+:is(#settings,#welcome) .sep { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--faint); font-weight: 600; }
+:is(#settings,#welcome) .sep::before, :is(#settings,#welcome) .sep::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+:is(#settings,#welcome) .tour { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; }
+:is(#settings,#welcome) .tour > b { width: 24px; height: 24px; border-radius: 8px; background: var(--muted); display: grid; place-items: center; font-size: 12px; color: var(--mfg); flex: none; }
+</style>
+
+<!-- =============================================================== 20 · Settings -->
+<section class="page" id="settings" data-short="Settings">
+  <div class="page-head">
+    <h2>20 · Settings <small>menu du compte · Settings · Import times</small></h2>
+    <p>Aujourd'hui les réglages et l'import sont deux modales de desktop (512 px de large) posées au milieu d'un écran vide, et sur 1280 × 720 la modale Settings défile. Ici les réglages deviennent une vraie page du compte qui tient sans défilement, avec l'import des temps à côté au lieu d'une deuxième modale, et les entrées du menu du compte (guides, notation, cube connecté, café) à portée.</p>
+    <div class="feats"><span>Compte : avatar, niveau, succès, Sign out</span><span>Thème Dark / Light / System</span><span>Accent Peach, Blue, Pink, Green, Cyan, Orange, Purple</span><span>WCA inspection : None, Spoken, On screen, Spoken and on screen</span><span>Language of the app : English, Français, Español, Italiano, Deutsch</span><span>Username · Email · Password</span><span>Import times : 9 chronos, fichiers lus sur l'appareil, épreuve devinée, laissés de côté, dernier import</span><span>Download my data</span><span>Delete my account (mot de passe)</span><span>Profile · Guides · Notation</span><span>Connect a cube · Connect a Stackmat (Experimental)</span><span>Buy me a coffee · Open source</span><span>Legal notice · Privacy · Terms · Cookies</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>L'avatar du rail ouvre Settings comme une page de Me : des rangées groupées, une colonne en portrait, deux en paysage. L'import des temps est ancré à droite sur 1280 et sort en tiroir en portrait (bouton Import).</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+              <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <a><span><i data-lucide="timer"></i></span>Timer</a>
+              <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+              <a><span><i data-lucide="boxes"></i></span>Algs</a>
+              <a><span><i data-lucide="swords"></i></span>Challenges</a>
+              <a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+              <span class="sp"></span>
+              <span class="avatar sm l" style="box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--pri)">YU</span>
+            </nav>
+            <div class="main">
+              <div class="phead"><span class="title">Settings</span><span class="grow"></span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="col g10 px24 grow" style="padding-bottom:20px">
+                <div class="card hi" style="flex-direction:row;align-items:center;gap:16px;padding:14px 18px">
+                  <span class="avatar lg l" style="border-radius:20px">YU</span>
+                  <div class="col g2 grow"><span class="h2">yuki_blind</span><span class="s trunc">Joined Mar 2025 · 121 of 204 achievements</span></div>
+                  <div class="col g4" style="width:170px"><div class="row between"><b class="s b" style="color:var(--fg)">Level 14</b><span class="xs b num">610 / 1,400 XP</span></div><div class="bar thin"><i style="width:43.5%"></i></div></div>
+                  <button class="btn ghost"><i data-lucide="log-out"></i>Sign out</button>
+                </div>
+                <span class="cap" style="padding:4px 4px 0">Appearance</span>
+                <div class="grp">
+                  <div class="li"><i data-lucide="sun-moon"></i><b class="t b grow">Theme</b><div class="seg"><span class="on"><i data-lucide="moon" style="width:14px;height:14px"></i>Dark</span><span><i data-lucide="sun" style="width:14px;height:14px"></i>Light</span><span><i data-lucide="monitor" style="width:14px;height:14px"></i>System</span></div></div>
+                  <div class="li"><i data-lucide="palette"></i><b class="t b grow">Accent</b><div class="row g10"><span class="sw" style="background:#ffb48c"></span><span class="sw" style="background:#7fb2ff"></span><span class="sw on" style="background:#f5609f"><i data-lucide="check"></i></span><span class="sw" style="background:#8fe0c2"></span><span class="sw" style="background:#7fd4e8"></span><span class="sw" style="background:#ff9d6b"></span><span class="sw" style="background:#c9b4ff"></span></div></div>
+                </div>
+                <span class="cap" style="padding:4px 4px 0">Timer &amp; language</span>
+                <div class="grp">
+                  <div class="li"><i data-lucide="hourglass"></i><b class="t b grow">WCA inspection</b><div class="seg"><span class="on">None</span><span>Spoken</span><span>On screen</span><span>Spoken and on screen</span></div></div>
+                  <div class="li"><i data-lucide="languages"></i><b class="t b grow">Language of the app</b><button class="btn sel">English<i data-lucide="chevron-down"></i></button></div>
+                </div>
+                <span class="cap" style="padding:4px 4px 0">Account</span>
+                <div class="grp">
+                  <div class="li"><i data-lucide="at-sign"></i><b class="t b grow">Username</b><span class="s">yuki_blind</span><i data-lucide="chevron-right" class="faint"></i></div>
+                  <div class="li"><i data-lucide="mail"></i><b class="t b grow">Email</b><span class="s">yuki@qbix.app</span><i data-lucide="chevron-right" class="faint"></i></div>
+                  <div class="li"><i data-lucide="key-round"></i><b class="t b grow">Password</b><span class="s">Change</span><i data-lucide="chevron-right" class="faint"></i></div>
+                </div>
+                <span class="cap" style="padding:4px 4px 0">Your data</span>
+                <div class="grp">
+                  <div class="li"><i data-lucide="upload"></i><div class="col"><b class="t b">Import times</b><span class="xs trunc">csTimer, Twisty Timer, Cubic Timer, CubeTime, CubeDesk, ZKT, Cubeast, acubemy, Speedcuber Timer</span></div><button class="btn sm soft">Import<i data-lucide="panel-right-open"></i></button></div>
+                  <div class="li"><i data-lucide="download"></i><b class="t b grow">Download my data</b><button class="btn sm"><i data-lucide="download"></i>Download</button></div>
+                  <div class="li bad"><i data-lucide="trash-2" style="color:var(--bad)"></i><div class="col"><b class="t b">Delete my account</b><span class="xs">Asks for your password · cannot be undone</span></div></div>
+                </div>
+                <span class="cap" style="padding:4px 4px 0">More</span>
+                <div class="grid3" style="gap:10px">
+                  <div class="card tight row g10" style="flex-direction:row"><span class="icon-tile pri"><i data-lucide="book-open"></i></span><b class="t b">Guides</b></div>
+                  <div class="card tight row g10" style="flex-direction:row"><span class="icon-tile pri"><i data-lucide="book-a"></i></span><b class="t b">Notation</b></div>
+                  <div class="card tight row g10" style="flex-direction:row"><span class="icon-tile pri"><i data-lucide="bluetooth"></i></span><b class="t b">Connect a cube</b></div>
+                  <div class="card tight row g10" style="flex-direction:row"><span class="icon-tile pri"><i data-lucide="timer"></i></span><div class="col g2"><b class="t b">Stackmat</b><span class="pill pri" style="align-self:flex-start">Experimental</span></div></div>
+                  <div class="card tight row g10" style="flex-direction:row"><span class="icon-tile pri"><i data-lucide="coffee"></i></span><b class="t b pri">Buy me a coffee</b></div>
+                  <div class="card tight row g10" style="flex-direction:row"><span class="icon-tile pri"><i data-lucide="github"></i></span><b class="t b grow">Open source</b><i data-lucide="external-link" class="faint" style="width:14px;height:14px"></i></div>
+                </div>
+                <span class="grow"></span>
+                <div class="row wrap xs" style="column-gap:16px;padding:0 4px"><span>Legal notice</span><span>Privacy policy</span><span>Terms of use</span><span>Cookies</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+              <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <a><span><i data-lucide="timer"></i></span>Timer</a>
+              <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+              <a><span><i data-lucide="boxes"></i></span>Algs</a>
+              <a><span><i data-lucide="swords"></i></span>Challenges</a>
+              <a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+              <span class="sp"></span>
+              <span class="avatar sm l" style="box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--pri)">YU</span>
+            </nav>
+            <div class="main">
+              <div class="phead"><span class="title">Settings</span><span class="grow"></span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="row g16 px24 grow start" style="padding-bottom:16px;align-items:stretch">
+                <div class="col g8 grow">
+                  <div class="card hi" style="flex-direction:row;align-items:center;gap:12px;padding:12px 14px">
+                    <span class="avatar l" style="border-radius:14px;width:48px;height:48px">YU</span>
+                    <div class="col g4 grow"><div class="row between"><b class="h3">yuki_blind</b><span class="xs b num">Level 14 · 610 / 1,400 XP</span></div><div class="bar thin"><i style="width:43.5%"></i></div><span class="xs">Joined Mar 2025 · 121 of 204 achievements</span></div>
+                  </div>
+                  <span class="cap" style="padding:4px 4px 0">Appearance</span>
+                  <div class="grp">
+                    <div class="li"><b class="t b grow">Theme</b><div class="seg"><span class="on"><i data-lucide="moon" style="width:14px;height:14px"></i>Dark</span><span><i data-lucide="sun" style="width:14px;height:14px"></i>Light</span><span><i data-lucide="monitor" style="width:14px;height:14px"></i>System</span></div></div>
+                    <div class="li"><b class="t b grow">Accent</b><div class="row g6"><span class="sw" style="background:#ffb48c;width:28px;height:28px"></span><span class="sw" style="background:#7fb2ff;width:28px;height:28px"></span><span class="sw on" style="background:#f5609f;width:28px;height:28px"><i data-lucide="check"></i></span><span class="sw" style="background:#8fe0c2;width:28px;height:28px"></span><span class="sw" style="background:#7fd4e8;width:28px;height:28px"></span><span class="sw" style="background:#ff9d6b;width:28px;height:28px"></span><span class="sw" style="background:#c9b4ff;width:28px;height:28px"></span></div></div>
+                  </div>
+                  <span class="cap" style="padding:4px 4px 0">Timer &amp; language</span>
+                  <div class="grp">
+                    <div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><b class="t b">WCA inspection</b><div class="seg block"><span class="on" style="padding:0 6px">None</span><span style="padding:0 6px">Spoken</span><span style="padding:0 6px">On screen</span><span style="padding:0 6px">Spoken and on screen</span></div></div>
+                    <div class="li"><b class="t b grow">Language of the app</b><button class="btn sel">English<i data-lucide="chevron-down"></i></button></div>
+                  </div>
+                  <span class="grow"></span>
+                  <div class="row wrap xs" style="column-gap:14px;padding:0 4px"><span>Legal notice</span><span>Privacy policy</span><span>Terms of use</span><span>Cookies</span></div>
+                </div>
+                <div class="col g8 grow">
+                  <span class="cap" style="padding:0 4px">Account</span>
+                  <div class="grp">
+                    <div class="li"><i data-lucide="at-sign"></i><b class="t b grow">Username</b><span class="s">yuki_blind</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                    <div class="li"><i data-lucide="mail"></i><b class="t b grow">Email</b><span class="s">yuki@qbix.app</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                    <div class="li"><i data-lucide="key-round"></i><b class="t b grow">Password</b><span class="s">Change</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                  </div>
+                  <span class="cap" style="padding:4px 4px 0">Your data</span>
+                  <div class="grp">
+                    <div class="li"><i data-lucide="download"></i><b class="t b grow">Download my data</b><button class="btn sm">Download</button></div>
+                    <div class="li"><i data-lucide="trash-2" style="color:var(--bad)"></i><b class="t b grow bad">Delete my account</b><span class="xs">With your password</span></div>
+                  </div>
+                  <span class="cap" style="padding:4px 4px 0">More</span>
+                  <div class="grid3" style="gap:8px">
+                    <div class="card tight center g4"><i data-lucide="book-open" class="pri"></i><b class="s b" style="color:var(--fg)">Guides</b></div>
+                    <div class="card tight center g4"><i data-lucide="book-a" class="pri"></i><b class="s b" style="color:var(--fg)">Notation</b></div>
+                    <div class="card tight center g4"><i data-lucide="bluetooth" class="pri"></i><b class="s b" style="color:var(--fg)">Connect a cube</b></div>
+                    <div class="card tight center g4"><i data-lucide="timer" class="pri"></i><b class="s b" style="color:var(--fg)">Stackmat <span class="pill pri">Exp.</span></b></div>
+                    <div class="card tight center g4"><i data-lucide="coffee" class="pri"></i><b class="s b pri">Buy me a coffee</b></div>
+                    <div class="card tight center g4"><i data-lucide="github" class="pri"></i><b class="s b" style="color:var(--fg)">Open source</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <aside class="dock" style="width:340px">
+              <div class="row g8"><span class="h2 grow">Import times</span><button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button></div>
+              <span class="xs">From another timer, or a file exported from Qbix. The file is read on this device.</span>
+              <div class="card dash center g6" style="padding:16px 12px">
+                <span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span>
+                <b class="h3">Drop your exports here</b>
+                <span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span>
+                <button class="btn sm pri"><i data-lucide="file-up"></i>Choose files</button>
+              </div>
+              <span class="cap">Files to import</span>
+              <div class="card tight pop" style="gap:4px">
+                <div class="row g10"><span class="icon-tile" style="width:32px;height:32px"><i data-lucide="file-json"></i></span><div class="col g0 grow"><b class="s b trunc" style="color:var(--fg)">cstimer_20261010.txt</b><span class="xs">csTimer backup · 6 sessions</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                <span class="xs num">3×3 4,812 · 2×2 312 · 3×3 OH 140 · Pyraminx 96 · Left out: 3</span>
+              </div>
+              <div class="card tight pop" style="gap:4px">
+                <div class="row g10"><span class="icon-tile" style="width:32px;height:32px"><i data-lucide="file-spreadsheet"></i></span><div class="col g0 grow"><b class="s b trunc" style="color:var(--fg)">twisty_backup.txt</b><span class="xs">Twisty Timer · 1,108 solves</span></div><button class="chip on">Event <span class="v">3×3</span><i data-lucide="chevron-down"></i></button></div>
+              </div>
+              <div class="row g8 xs"><i data-lucide="circle-check" class="ok" style="width:15px;height:15px"></i>Last time: 2,410 imported from CubeDesk</div>
+              <span class="grow"></span>
+              <button class="btn pri block lg"><i data-lucide="download"></i>Import 6,468 solves</button>
+            </aside>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Tiroir ouvert · Import times</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+              <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <a><span><i data-lucide="timer"></i></span>Timer</a>
+              <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+              <a><span><i data-lucide="boxes"></i></span>Algs</a>
+              <a><span><i data-lucide="swords"></i></span>Challenges</a>
+              <a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+              <span class="sp"></span>
+              <span class="avatar sm l">YU</span>
+            </nav>
+            <div class="main">
+              <div class="phead"><span class="title">Settings</span><span class="grow"></span></div>
+              <div class="col g10 px24 grow">
+                <div class="card hi" style="height:92px"></div>
+                <div class="grp" style="height:104px"></div>
+                <div class="grp" style="height:104px"></div>
+                <div class="grp" style="height:156px"></div>
+                <div class="grp" style="height:156px"></div>
+              </div>
+            </div>
+            <div class="scrim"></div>
+            <div class="drawer" style="width:470px;gap:14px;padding:20px">
+              <div class="row g8"><span class="h1 grow">Import times</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+              <span class="s">From another timer, or a file exported from Qbix. The file is read on this device.</span>
+              <div class="card dash center g10" style="padding:30px 18px">
+                <span class="icon-tile pri" style="border-radius:50%;width:52px;height:52px"><i data-lucide="upload"></i></span>
+                <b class="h2">Drop your exports here</b>
+                <span class="s">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT Timer · Cubeast · acubemy · Speedcuber Timer</span>
+                <button class="btn pri"><i data-lucide="file-up"></i>Choose files</button>
+              </div>
+              <span class="cap" style="padding:4px 4px 0">Files to import</span>
+              <div class="card" style="gap:6px">
+                <div class="row g10"><span class="icon-tile"><i data-lucide="file-json"></i></span><div class="col g0 grow"><b class="t b trunc">cstimer_20261010.txt</b><span class="xs">csTimer backup · 6 sessions</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                <span class="s num">3×3 4,812 · 2×2 312 · 3×3 One-Handed 140 · Pyraminx 96</span>
+                <span class="xs">Left out: 3 (no time)</span>
+              </div>
+              <div class="card" style="gap:6px">
+                <div class="row g10"><span class="icon-tile"><i data-lucide="file-spreadsheet"></i></span><div class="col g0 grow"><b class="t b trunc">twisty_backup.txt</b><span class="xs">Twisty Timer · event not found</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                <div class="row between"><span class="s num">1,108 solves</span><button class="chip on">Event <span class="v">3×3</span><i data-lucide="chevron-down"></i></button></div>
+              </div>
+              <div class="card hi" style="flex-direction:row;align-items:center;gap:10px">
+                <i data-lucide="circle-check" class="ok"></i>
+                <div class="col g0 grow"><b class="t b">Last time: 2,410 solves imported</b><span class="xs">186 solves already here · from CubeDesk</span></div>
+              </div>
+              <span class="grow"></span>
+              <button class="btn lg pri block"><i data-lucide="download"></i>Import 6,468 solves</button>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>La feuille Settings du téléphone devient une page de cartes à toucher : choix en place (segments, pastilles de 44 px, boutons radio), deux colonnes. Sur 1280 la feuille du compte reste ancrée à droite ; en portrait l'import monte en feuille.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><button class="btn icon ghost" style="align-self:center"><i data-lucide="chevron-left"></i></button><span class="display xl">Settings</span><button class="btn icon ghost" style="align-self:center"><i data-lucide="circle-help"></i></button><span class="avatar sm l" style="align-self:center">YU</span></div>
+          <div class="col g12 grow" style="padding:8px 28px 0">
+            <div class="tile hero" style="flex-direction:row;align-items:center;gap:16px;padding:16px 18px">
+              <span class="avatar lg l" style="border-radius:20px">YU</span>
+              <div class="col g4 grow"><div class="row between"><b class="h2">yuki_blind</b><span class="xs b">121 / 204 achievements</span></div><div class="row between"><b class="s b" style="color:var(--fg)">Level 14</b><span class="xs b num">610 / 1,400 XP</span></div><div class="bar"><i style="width:43.5%"></i></div></div>
+              <button class="btn ghost" style="height:44px"><i data-lucide="log-out"></i>Sign out</button>
+            </div>
+            <div class="tile" style="gap:14px;padding:16px 18px">
+              <span class="cap">Appearance</span>
+              <div class="seg block" style="padding:4px"><span class="on" style="height:44px;font-size:15px"><i data-lucide="moon" style="width:16px;height:16px"></i>Dark</span><span style="height:44px;font-size:15px"><i data-lucide="sun" style="width:16px;height:16px"></i>Light</span><span style="height:44px;font-size:15px"><i data-lucide="monitor" style="width:16px;height:16px"></i>System</span></div>
+              <div class="row between" style="padding:0 6px">
+                <div class="col center g6"><span class="sw lg" style="background:#ffb48c"></span><span class="xs b">Peach</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#7fb2ff"></span><span class="xs b">Blue</span></div>
+                <div class="col center g6"><span class="sw lg on" style="background:#f5609f"><i data-lucide="check"></i></span><span class="xs b pri">Pink</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#8fe0c2"></span><span class="xs b">Green</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#7fd4e8"></span><span class="xs b">Cyan</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#ff9d6b"></span><span class="xs b">Orange</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#c9b4ff"></span><span class="xs b">Purple</span></div>
+              </div>
+            </div>
+            <div class="grid2" style="gap:12px">
+              <div class="tile" style="gap:2px;padding:14px 10px 10px">
+                <span class="cap row g6" style="padding:0 8px 6px"><i data-lucide="hourglass" style="width:14px;height:14px"></i>WCA inspection</span>
+                <div class="li on" style="min-height:44px"><span class="radio on"></span><b class="t b">None</b></div>
+                <div class="li" style="min-height:44px"><span class="radio"></span><b class="t b">Spoken</b></div>
+                <div class="li" style="min-height:44px"><span class="radio"></span><b class="t b">On screen</b></div>
+                <div class="li" style="min-height:44px"><span class="radio"></span><b class="t b">Spoken and on screen</b></div>
+              </div>
+              <div class="tile" style="gap:8px;padding:14px 16px">
+                <span class="cap row g6" style="padding-bottom:4px"><i data-lucide="languages" style="width:14px;height:14px"></i>Language of the app</span>
+                <div class="row wrap g8"><span class="chip on" style="height:44px;padding:0 16px;font-size:14px">English</span><span class="chip" style="height:44px;padding:0 16px;font-size:14px">Français</span><span class="chip" style="height:44px;padding:0 16px;font-size:14px">Español</span><span class="chip" style="height:44px;padding:0 16px;font-size:14px">Italiano</span><span class="chip" style="height:44px;padding:0 16px;font-size:14px">Deutsch</span></div>
+              </div>
+            </div>
+            <div class="grid2" style="gap:12px">
+              <div class="tile" style="gap:0;padding:14px 6px 6px">
+                <span class="cap" style="padding:0 12px 6px">Account</span>
+                <div class="li" style="min-height:48px"><b class="t b grow">Username</b><span class="s">yuki_blind</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                <div class="li" style="min-height:48px"><b class="t b grow">Email</b><span class="s">yuki@qbix.app</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                <div class="li" style="min-height:48px"><b class="t b grow">Password</b><span class="s">••••••••••</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+              </div>
+              <div class="tile" style="gap:8px;padding:14px 16px">
+                <span class="cap">Your data</span>
+                <button class="btn soft block" style="height:48px;justify-content:flex-start"><i data-lucide="upload"></i>Import times<span class="grow"></span><span class="xs pri">9 timers</span></button>
+                <button class="btn block" style="height:48px;justify-content:flex-start"><i data-lucide="download"></i>Download my data</button>
+                <button class="btn ghost block" style="height:44px;justify-content:flex-start;color:var(--bad)"><i data-lucide="trash-2"></i>Delete my account</button>
+              </div>
+            </div>
+            <div class="hscroll" style="gap:8px">
+              <span class="chip" style="height:44px;padding:0 16px"><i data-lucide="book-open"></i>Guides</span>
+              <span class="chip" style="height:44px;padding:0 16px"><i data-lucide="book-a"></i>Notation</span>
+              <span class="chip" style="height:44px;padding:0 16px"><i data-lucide="bluetooth"></i>Connect a cube</span>
+              <span class="chip" style="height:44px;padding:0 16px"><i data-lucide="timer"></i>Connect a Stackmat <span class="pill pri">Experimental</span></span>
+              <span class="chip pri" style="height:44px;padding:0 16px"><i data-lucide="coffee"></i>Buy me a coffee</span>
+              <span class="chip" style="height:44px;padding:0 16px"><i data-lucide="github"></i>Open source</span>
+            </div>
+            <div class="row wrap xs center" style="column-gap:16px"><span>Legal notice</span><span>Privacy policy</span><span>Terms of use</span><span>Cookies</span></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row grow g0" style="align-items:stretch">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="padding:14px 28px 8px"><button class="btn icon ghost" style="align-self:center"><i data-lucide="chevron-left"></i></button><span class="display">Settings</span><button class="btn icon ghost" style="align-self:center"><i data-lucide="circle-help"></i></button></div>
+              <div class="row g12 grow" style="padding:6px 28px 0;align-items:stretch">
+                <div class="col g12 grow">
+                  <div class="tile" style="gap:12px;padding:14px 16px">
+                    <span class="cap">Appearance</span>
+                    <div class="seg block"><span class="on" style="height:40px"><i data-lucide="moon" style="width:15px;height:15px"></i>Dark</span><span style="height:40px"><i data-lucide="sun" style="width:15px;height:15px"></i>Light</span><span style="height:40px"><i data-lucide="monitor" style="width:15px;height:15px"></i>System</span></div>
+                    <div class="row between" style="padding:0 4px"><span class="sw" style="background:#ffb48c;width:40px;height:40px"></span><span class="sw" style="background:#7fb2ff;width:40px;height:40px"></span><span class="sw on" style="background:#f5609f;width:40px;height:40px"><i data-lucide="check"></i></span><span class="sw" style="background:#8fe0c2;width:40px;height:40px"></span><span class="sw" style="background:#7fd4e8;width:40px;height:40px"></span><span class="sw" style="background:#ff9d6b;width:40px;height:40px"></span><span class="sw" style="background:#c9b4ff;width:40px;height:40px"></span></div>
+                  </div>
+                  <div class="tile" style="gap:10px;padding:14px 16px">
+                    <span class="cap row g6"><i data-lucide="hourglass" style="width:14px;height:14px"></i>WCA inspection</span>
+                    <div class="seg block"><span class="on" style="height:40px;padding:0 6px">None</span><span style="height:40px;padding:0 6px">Spoken</span><span style="height:40px;padding:0 6px">On screen</span><span style="height:40px;padding:0 6px">Spoken and on screen</span></div>
+                  </div>
+                  <div class="tile" style="gap:10px;padding:14px 16px">
+                    <span class="cap row g6"><i data-lucide="languages" style="width:14px;height:14px"></i>Language of the app</span>
+                    <div class="row wrap g8"><span class="chip on" style="height:40px;padding:0 14px">English</span><span class="chip" style="height:40px;padding:0 14px">Français</span><span class="chip" style="height:40px;padding:0 14px">Español</span><span class="chip" style="height:40px;padding:0 14px">Italiano</span><span class="chip" style="height:40px;padding:0 14px">Deutsch</span></div>
+                  </div>
+                </div>
+                <div class="col g12 grow">
+                  <div class="tile" style="gap:0;padding:14px 6px 6px">
+                    <span class="cap" style="padding:0 12px 4px">Account</span>
+                    <div class="li" style="min-height:46px"><b class="t b grow">Username</b><span class="s">yuki_blind</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                    <div class="li" style="min-height:46px"><b class="t b grow">Email</b><span class="s">yuki@qbix.app</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                    <div class="li" style="min-height:46px"><b class="t b grow">Password</b><span class="s">••••••••••</span><i data-lucide="pencil" class="faint" style="width:15px;height:15px"></i></div>
+                  </div>
+                  <div class="tile" style="gap:8px;padding:14px 16px">
+                    <span class="cap">Your data</span>
+                    <button class="btn soft block" style="height:46px;justify-content:flex-start"><i data-lucide="upload"></i>Import times<span class="grow"></span><span class="xs pri">csTimer, Twisty Timer +7</span></button>
+                    <button class="btn block" style="height:46px;justify-content:flex-start"><i data-lucide="download"></i>Download my data</button>
+                    <button class="btn ghost block" style="height:40px;justify-content:flex-start;color:var(--bad)"><i data-lucide="trash-2"></i>Delete my account</button>
+                  </div>
+                  <div class="row wrap xs" style="column-gap:14px;padding:0 6px"><span>Legal notice</span><span>Privacy policy</span><span>Terms of use</span><span>Cookies</span></div>
+                </div>
+              </div>
+              <div class="fnav-space"></div>
+            </div>
+            <aside class="sidesheet docked" style="width:360px;gap:12px">
+              <div class="row g12">
+                <span class="avatar lg l" style="border-radius:18px;width:56px;height:56px">YU</span>
+                <div class="col g4 grow">
+                  <div class="row between"><b class="h2">yuki_blind</b><span class="xs b">121 / 204</span></div>
+                  <div class="row between"><b class="s b" style="color:var(--fg)">Level 14</b><span class="xs b num">610 / 1,400 XP</span></div>
+                  <div class="bar thin"><i style="width:43.5%"></i></div>
+                </div>
+              </div>
+              <div class="grid3" style="gap:8px">
+                <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--pop)"><i data-lucide="user-round" class="pri"></i><b class="s b" style="color:var(--fg)">Profile</b></div>
+                <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--acc)"><i data-lucide="settings" class="pri"></i><b class="s b" style="color:var(--fg)">Settings</b></div>
+                <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--pop)"><i data-lucide="book-open" class="pri"></i><b class="s b" style="color:var(--fg)">Guides</b></div>
+                <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--pop)"><i data-lucide="book-a" class="pri"></i><b class="s b" style="color:var(--fg)">Notation</b></div>
+                <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--pop)"><i data-lucide="upload" class="pri"></i><b class="s b" style="color:var(--fg)">Import times</b></div>
+                <div class="card tight center" style="gap:6px;padding:12px 4px;background:var(--pop)"><i data-lucide="download" class="pri"></i><b class="s b" style="color:var(--fg)">Export</b></div>
+              </div>
+              <div class="grp" style="background:var(--pop)">
+                <div class="li" style="min-height:48px"><i data-lucide="bluetooth"></i><b class="t b grow">Connect a cube</b><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="min-height:48px"><i data-lucide="timer"></i><b class="t b grow">Connect a Stackmat</b><span class="pill pri">Experimental</span></div>
+                <div class="li" style="min-height:48px"><i data-lucide="github"></i><b class="t b grow">Open source</b><i data-lucide="external-link" class="faint" style="width:15px;height:15px"></i></div>
+              </div>
+              <span class="grow"></span>
+              <button class="btn lg block soft"><i data-lucide="coffee"></i>Buy me a coffee</button>
+              <button class="btn block ghost" style="color:var(--bad);height:44px"><i data-lucide="log-out"></i>Log out</button>
+            </aside>
+          </div>
+          <nav class="fnav" style="left:452px">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Feuille ouverte · Import times</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><button class="btn icon ghost" style="align-self:center"><i data-lucide="chevron-left"></i></button><span class="display xl">Settings</span><span class="avatar sm l" style="align-self:center">YU</span></div>
+          <div class="col g12 grow" style="padding:8px 28px 0">
+            <div class="tile hero" style="height:96px"></div>
+            <div class="tile" style="height:170px"></div>
+            <div class="grid2" style="gap:12px"><div class="tile" style="height:230px"></div><div class="tile" style="height:230px"></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="height:860px;gap:14px;padding:10px 24px 24px">
+            <div class="row g8"><span class="h1 grow">Import times</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+            <span class="s">From another timer, or a file exported from Qbix. The file is read on this device.</span>
+            <div class="card dash center g10" style="padding:28px 18px">
+              <span class="icon-tile pri" style="border-radius:50%;width:56px;height:56px"><i data-lucide="upload"></i></span>
+              <b class="h2">Drop your exports here</b>
+              <div class="row wrap center g6" style="max-width:560px"><span class="pill">csTimer</span><span class="pill">Twisty Timer</span><span class="pill">Cubic Timer</span><span class="pill">CubeTime</span><span class="pill">CubeDesk</span><span class="pill">ZKT Timer</span><span class="pill">Cubeast</span><span class="pill">acubemy</span><span class="pill">Speedcuber Timer</span></div>
+              <button class="btn lg pri"><i data-lucide="file-up"></i>Choose files</button>
+            </div>
+            <div class="grid2" style="gap:12px">
+              <div class="card" style="gap:6px">
+                <div class="row g10"><span class="icon-tile"><i data-lucide="file-json"></i></span><div class="col g0 grow"><b class="t b trunc">cstimer_20261010.txt</b><span class="xs">csTimer backup · 6 sessions</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                <span class="s num">3×3 4,812 · 2×2 312 · 3×3 OH 140 · Pyraminx 96</span>
+                <span class="xs">Left out: 3 (no time)</span>
+              </div>
+              <div class="card" style="gap:6px">
+                <div class="row g10"><span class="icon-tile"><i data-lucide="file-spreadsheet"></i></span><div class="col g0 grow"><b class="t b trunc">twisty_backup.txt</b><span class="xs">Twisty Timer · event not found</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                <div class="row between"><span class="s num">1,108 solves</span><button class="chip on" style="height:40px">Event <span class="v">3×3</span><i data-lucide="chevron-down"></i></button></div>
+              </div>
+            </div>
+            <div class="card hi" style="flex-direction:row;align-items:center;gap:10px">
+              <i data-lucide="circle-check" class="ok"></i>
+              <div class="col g0 grow"><b class="t b">Last time: 2,410 solves imported</b><span class="xs">186 solves already here · from CubeDesk</span></div>
+            </div>
+            <span class="grow"></span>
+            <button class="btn lg pri block"><i data-lucide="download"></i>Import 6,468 solves</button>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Settings devient une cinquième page de Me, en liste-détail : chaque rubrique avec sa valeur actuelle dans la liste, la rubrique choisie en grand à côté (aperçu du thème en portrait, import des temps en paysage). Rien en modale.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span>Profile</span><span>Messages</span><span>Community</span><span>Coaching</span><span class="on">Settings</span></div>
+            <span class="grow"></span>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes v">
+            <div class="pane side" style="flex:none;height:440px">
+              <div class="ph"><span class="h3">Settings</span><button class="btn sm ghost"><i data-lucide="log-out"></i>Sign out</button></div>
+              <div class="grid2" style="gap:6px 12px">
+                <div class="li"><span class="icon-tile pri"><i data-lucide="user-round"></i></span><div class="col"><b class="t b">Account</b><span class="xs trunc">yuki_blind · yuki@qbix.app</span></div></div>
+                <div class="li on"><span class="icon-tile pri"><i data-lucide="palette"></i></span><div class="col"><b class="t b">Appearance</b><span class="xs">Dark · Pink</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="hourglass"></i></span><div class="col"><b class="t b">Timer</b><span class="xs">WCA inspection: None</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="languages"></i></span><div class="col"><b class="t b">Language</b><span class="xs">English</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="upload"></i></span><div class="col"><b class="t b">Import times</b><span class="xs trunc">csTimer, Twisty Timer +7 · last: 2,410</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="database"></i></span><div class="col"><b class="t b">Your data</b><span class="xs">Download · Delete my account</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="book-open"></i></span><div class="col"><b class="t b">Guides &amp; notation</b><span class="xs">Replay the tour</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="bluetooth"></i></span><div class="col"><b class="t b">Devices</b><span class="xs">Connect a cube · Stackmat <span class="pri b">Experimental</span></span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="coffee"></i></span><div class="col"><b class="t b">Buy me a coffee</b><span class="xs">Free, no ads</span></div></div>
+                <div class="li"><span class="icon-tile pri"><i data-lucide="github"></i></span><div class="col"><b class="t b">About</b><span class="xs trunc">Open source · Legal · Privacy · Terms · Cookies</span></div></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="gap:14px">
+              <div class="ph"><span class="h3">Appearance</span><button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button></div>
+              <span class="lbl">Theme</span>
+              <div class="grid3" style="gap:12px">
+                <div class="card hi center outline" style="height:132px;gap:10px"><i data-lucide="moon" class="pri" style="width:30px;height:30px"></i><b class="h3">Dark</b></div>
+                <div class="card center" style="height:132px;gap:10px"><i data-lucide="sun" class="mfg" style="width:30px;height:30px"></i><b class="h3">Light</b></div>
+                <div class="card center" style="height:132px;gap:10px"><i data-lucide="monitor" class="mfg" style="width:30px;height:30px"></i><b class="h3">System</b><span class="xs">Follows the device</span></div>
+              </div>
+              <span class="lbl" style="margin-top:6px">Accent</span>
+              <div class="row between" style="padding:0 10px">
+                <div class="col center g6"><span class="sw lg" style="background:#ffb48c"></span><span class="xs b">Peach</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#7fb2ff"></span><span class="xs b">Blue</span></div>
+                <div class="col center g6"><span class="sw lg on" style="background:#f5609f"><i data-lucide="check"></i></span><span class="xs b pri">Pink</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#8fe0c2"></span><span class="xs b">Green</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#7fd4e8"></span><span class="xs b">Cyan</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#ff9d6b"></span><span class="xs b">Orange</span></div>
+                <div class="col center g6"><span class="sw lg" style="background:#c9b4ff"></span><span class="xs b">Purple</span></div>
+              </div>
+              <span class="lbl" style="margin-top:6px">Preview</span>
+              <div class="card grow" style="padding:18px 22px;gap:14px;justify-content:center">
+                <div class="row between"><span class="alg sm">R' U' F D2 L2 F' U2 R2 B' D' R2 U F2</span><span class="pill pri">3×3</span></div>
+                <div class="row between" style="align-items:flex-end">
+                  <div class="timer l">11.<span class="ms">482</span></div>
+                  <div class="row g16"><div class="stat"><span>ao5</span><b>12.36</b></div><div class="stat"><span>ao12</span><b>12.81</b></div><div class="stat"><span>Best</span><b class="ok">9.94</b></div></div>
+                </div>
+                <div class="times"><span>12.03</span><span>11.48</span><span class="ok">9.94</span><span>13.27</span><span class="warn">+2</span><span>12.61</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span>Profile</span><span>Messages</span><span>Community</span><span>Coaching</span><span class="on">Settings</span></div>
+            <span class="grow"></span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes">
+            <div class="pane side" style="width:360px;gap:4px;padding:14px 14px">
+              <div class="ph" style="padding:0 6px 6px"><span class="h3">Settings</span><button class="btn sm ghost"><i data-lucide="log-out"></i>Sign out</button></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="user-round"></i></span><div class="col"><b class="t b">Account</b><span class="xs trunc">yuki_blind · yuki@qbix.app · password</span></div></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="palette"></i></span><div class="col"><b class="t b">Appearance</b><span class="xs">Dark · Pink</span></div><span class="sw" style="background:var(--pri);width:18px;height:18px"></span></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="hourglass"></i></span><div class="col"><b class="t b">Timer</b><span class="xs">WCA inspection: None</span></div></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="languages"></i></span><div class="col"><b class="t b">Language</b><span class="xs">English</span></div></div>
+              <div class="li on" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="upload"></i></span><div class="col"><b class="t b">Import times</b><span class="xs">9 timers · last: 2,410 solves</span></div></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="database"></i></span><div class="col"><b class="t b">Your data</b><span class="xs">Download · Delete my account</span></div></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="book-open"></i></span><div class="col"><b class="t b">Guides &amp; notation</b><span class="xs">Replay the tour</span></div></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="bluetooth"></i></span><div class="col"><b class="t b">Devices</b><span class="xs">Connect a cube · Stackmat <span class="pri b">Experimental</span></span></div></div>
+              <div class="li" style="padding:7px 10px"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="github"></i></span><div class="col"><b class="t b">About</b><span class="xs trunc">Buy me a coffee · Open source · Legal · Privacy · Terms · Cookies</span></div></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="gap:12px">
+              <div class="ph"><span class="h3">Import times</span><span class="s">From another timer, or a file exported from Qbix · read on this device</span><button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button></div>
+              <div class="row g16 grow" style="align-items:stretch">
+                <div class="col g12" style="width:380px;flex:none">
+                  <div class="card dash center g10 grow" style="padding:18px">
+                    <span class="icon-tile pri" style="border-radius:50%;width:52px;height:52px"><i data-lucide="upload"></i></span>
+                    <b class="h2">Drop your exports here</b>
+                    <button class="btn pri"><i data-lucide="file-up"></i>Choose files</button>
+                  </div>
+                  <span class="cap">Read from</span>
+                  <div class="grid3" style="gap:6px">
+                    <span class="pill" style="justify-content:center;height:30px">csTimer</span><span class="pill" style="justify-content:center;height:30px">Twisty Timer</span><span class="pill" style="justify-content:center;height:30px">Cubic Timer</span>
+                    <span class="pill" style="justify-content:center;height:30px">CubeTime</span><span class="pill" style="justify-content:center;height:30px">CubeDesk</span><span class="pill" style="justify-content:center;height:30px">ZKT Timer</span>
+                    <span class="pill" style="justify-content:center;height:30px">Cubeast</span><span class="pill" style="justify-content:center;height:30px">acubemy</span><span class="pill" style="justify-content:center;height:30px">Speedcuber</span>
+                  </div>
+                </div>
+                <div class="col g10 grow">
+                  <span class="cap">Files to import</span>
+                  <div class="card" style="gap:6px">
+                    <div class="row g10"><span class="icon-tile"><i data-lucide="file-json"></i></span><div class="col g0 grow"><b class="t b trunc">cstimer_20261010.txt</b><span class="xs">csTimer backup · 6 sessions</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                    <div class="row wrap g6"><span class="pill">3×3 · 4,812</span><span class="pill">2×2 · 312</span><span class="pill">3×3 One-Handed · 140</span><span class="pill">Pyraminx · 96</span></div>
+                    <span class="xs">Left out: 3 (no time)</span>
+                  </div>
+                  <div class="card" style="gap:6px">
+                    <div class="row g10"><span class="icon-tile"><i data-lucide="file-spreadsheet"></i></span><div class="col g0 grow"><b class="t b trunc">twisty_backup.txt</b><span class="xs">Twisty Timer · event not found</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+                    <div class="row between"><span class="s num">1,108 solves</span><button class="chip on">Event <span class="v">3×3</span><i data-lucide="chevron-down"></i></button></div>
+                  </div>
+                  <div class="card hi" style="flex-direction:row;align-items:center;gap:10px">
+                    <i data-lucide="circle-check" class="ok"></i>
+                    <div class="col g0 grow"><b class="t b">Last time: 2,410 solves imported</b><span class="xs">186 solves already here · from CubeDesk</span></div>
+                  </div>
+                  <span class="grow"></span>
+                  <button class="btn lg pri block"><i data-lucide="download"></i>Import 6,468 solves</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 21 · Welcome -->
+<section class="page" id="welcome" data-short="Welcome">
+  <div class="page-head">
+    <h2>21 · Welcome <small>/login · introduction</small></h2>
+    <p>Aujourd'hui la connexion est une petite carte de bureau au milieu d'un grand vide, et le réglage en trois étapes (Welcome, Puzzles, Times) occupe un écran entier par question, avec les puzzles en une rangée trop large. Ici l'accueil et le formulaire partagent l'écran, et les puzzles, les méthodes, l'import et la visite tiennent sur un seul écran de réglage, même sur 720 px de haut.</p>
+    <div class="feats"><span>Welcome to Qbix : tes puzzles et méthodes · apprendre les autres · chrono et entraînement</span><span>Sign in / Create account</span><span>Username (3–24) · Password (10+) · afficher</span><span>Continue with Google (Soon)</span><span>Continue without an account (temps gardés)</span><span>Terms of use · Privacy policy</span><span>Étapes Welcome · Puzzles · Times</span><span>Puzzles : None yet, 2×2 à 7×7, Square-1, Pyraminx, Skewb, Megaminx</span><span>Methods you know · PB</span><span>Bring your times (9 chronos) · Choose files</span><span>Visite en 8 étapes · Skip the tour / Start the tour</span><span>Back</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Comme sur desktop, la connexion se pose sur l'app (le rail reste là, on peut continuer sans compte) : l'accueil en tête, le formulaire dessous en portrait. Le réglage devient une page : puzzles et méthodes au centre, l'import et la visite ancrés à droite sur 1280, empilés en portrait.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait · connexion</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a><span><i data-lucide="user-round"></i></span>Me</a><span class="sp"></span><span class="avatar sm n"><i data-lucide="user-round" style="width:15px;height:15px"></i></span></nav>
+            <div class="main">
+              <div class="phead"><span class="title">Welcome</span><span class="grow"></span><button class="btn sel"><i data-lucide="languages"></i>English<i data-lucide="chevron-down"></i></button></div>
+              <div class="col g16 px24 grow" style="padding-bottom:24px">
+                <div class="tile hero" style="flex-direction:row;align-items:center;gap:20px;padding:24px 26px">
+                  <div class="col g16 grow">
+                    <div class="col g6"><span class="display xl">Welcome to Qbix</span><span class="t mfg">Time your solves, learn algorithms, race in duels.</span></div>
+                    <div class="row g12"><span class="icon-tile pri" style="width:44px;height:44px"><i data-lucide="shapes"></i></span><div class="col g0"><b class="t b"><span class="pri">1</span> Your puzzles and methods</b><span class="xs">What you can solve today</span></div></div>
+<div class="row g12"><span class="icon-tile pri" style="width:44px;height:44px"><i data-lucide="graduation-cap"></i></span><div class="col g0"><b class="t b"><span class="pri">2</span> Learn the others</b><span class="xs">A new puzzle starts with its course</span></div></div>
+<div class="row g12"><span class="icon-tile pri" style="width:44px;height:44px"><i data-lucide="timer"></i></span><div class="col g0"><b class="t b"><span class="pri">3</span> Then time and train</b><span class="xs">Everything opens once it is solved</span></div></div>
+                  </div>
+                  <i class="iso xl" data-iso="yyyyyyyyy|rrrrrrrrr|ggggggggg"></i>
+                </div>
+                <div class="card" style="gap:16px;padding:26px 28px">
+                  <div class="col g4"><span class="h1">Welcome back</span><span class="s">Sign in to find your times, sessions and friends.</span></div>
+                  <div class="utabs" style="padding:0"><span class="on" style="flex:1;justify-content:center">Sign in</span><span style="flex:1;justify-content:center">Create account</span></div>
+<div class="col g6"><span class="lbl">Username</span><div class="field" style="color:var(--fg);height:44px">yuki_blind</div></div>
+<div class="col g6"><span class="lbl">Password</span><div class="field between" style="color:var(--fg);height:44px">••••••••••••<i data-lucide="eye" class="faint"></i></div></div>
+<button class="btn pri lg block">Sign in</button>
+<div class="sep">or</div>
+<button class="btn block" style="opacity:.6;height:44px"><i data-lucide="chrome"></i>Continue with Google<span class="pill">Soon</span></button>
+<button class="btn ghost block" style="color:var(--fg);height:44px">Continue without an account</button>
+<span class="xs row g6 center"><i data-lucide="hard-drive" style="width:14px;height:14px"></i>Your times on this device will be kept.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran · réglage</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="shell">
+            <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a><span><i data-lucide="user-round"></i></span>Me</a><span class="sp"></span><span class="avatar sm n"><i data-lucide="user-round" style="width:15px;height:15px"></i></span></nav>
+            <div class="main">
+              <div class="phead"><span class="title">Set up Qbix</span><div class="stp"><span class="ok"><b><i data-lucide="check"></i></b>Welcome</span><span class="on"><b>2</b>Puzzles</span><span><b>3</b>Times</span></div><span class="grow"></span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button></div>
+              <div class="col g12 px24 grow" style="padding-bottom:16px">
+                <div class="col g2"><span class="h2">What can you solve?</span><span class="s">The puzzles you already solve, then the methods you use</span></div>
+                <div class="grid6">
+<div class="pz"><i data-lucide="ban"></i>None yet</div>
+<div class="pz on"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+<div class="pz on"><span class="gl" style="--s:6px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+<div class="pz"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+<div class="pz"><span class="gl" style="--s:3.6px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+<div class="pz"><span class="gl" style="--s:3px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+<div class="pz"><span class="gl" style="--s:2.6px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+<div class="pz"><i data-lucide="square-asterisk"></i>Square-1</div>
+<div class="pz"><i data-lucide="triangle"></i>Pyraminx</div>
+<div class="pz on"><i data-lucide="diamond"></i>Skewb</div>
+<div class="pz"><i data-lucide="pentagon"></i>Megaminx</div>
+                </div>
+                <div class="card" style="gap:10px;padding:14px 16px">
+                  <div class="row between"><span class="lbl">Methods you know</span><span class="xs">Your best single, if you know it</span></div>
+                  <div class="row g10"><b class="t b row g6" style="width:78px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 11.48</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>Ortega</span><span class="mchip"><i data-lucide="plus"></i>CLL</span><span class="mchip"><i data-lucide="plus"></i>EG</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 4.21</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><i data-lucide="diamond" class="faint" style="width:14px;height:14px"></i>Skewb</b><div class="row wrap g6 grow"><span class="mchip on"><i data-lucide="check"></i>Beginner</span><span class="mchip"><i data-lucide="plus"></i>Sarah's</span></div><span class="field" style="height:36px;width:116px">PB · 12.34</span></div>
+                </div>
+                <span class="grow"></span>
+                <div class="row"><button class="btn ghost"><i data-lucide="arrow-left"></i>Back</button><span class="grow"></span><span class="xs">Nothing yet? Qbix starts you on the 3×3 course.</span></div>
+              </div>
+            </div>
+            <aside class="dock" style="width:340px;gap:12px">
+              <div class="card pop" style="gap:10px">
+                <div class="row g12"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="h3">Bring your times</b><span class="xs">Your history from another timer, if you have one</span></div></div>
+<span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span>
+<button class="btn sm soft block"><i data-lucide="file-up"></i>Choose files</button>
+              </div>
+              <div class="card pop grow" style="gap:9px">
+                <div class="row between"><b class="h3">A tour in 8 steps</b><div class="tdots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                <div class="tour"><b>1</b>Scramble your cube</div>
+<div class="tour"><b>2</b>Time your solve</div>
+<div class="tour"><b>3</b>Follow your session</div>
+<div class="tour"><b>4</b>Find the right algorithm</div>
+<div class="tour"><b>5</b>Practise with a purpose</div>
+<div class="tour"><b>6</b>Race when you are ready</div>
+<div class="tour"><b>7</b>Learn a new puzzle</div>
+<div class="tour"><b>8</b>Watch your progress</div>
+              </div>
+              <div class="row g8"><button class="btn ghost">Skip the tour</button><span class="grow"></span><button class="btn pri lg">Start the tour<i data-lucide="arrow-right"></i></button></div>
+            </aside>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Tablette portrait · réglage</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a><span><i data-lucide="user-round"></i></span>Me</a><span class="sp"></span><span class="avatar sm n"><i data-lucide="user-round" style="width:15px;height:15px"></i></span></nav>
+            <div class="main">
+              <div class="phead"><span class="title">Set up</span><div class="stp"><span class="ok"><b><i data-lucide="check"></i></b>Welcome</span><span class="on"><b>2</b>Puzzles</span><span><b>3</b>Times</span></div><span class="grow"></span></div>
+              <div class="col g14 px24 grow" style="padding-bottom:20px;gap:14px">
+                <div class="col g2"><span class="h1">What can you solve?</span><span class="s">The puzzles you already solve, then the methods you use</span></div>
+                <div class="grid4" style="gap:10px">
+<div class="pz lg"><i data-lucide="ban"></i>None yet</div>
+<div class="pz on lg"><span class="gl" style="--s:11.7px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+<div class="pz on lg"><span class="gl" style="--s:7.8px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+<div class="pz lg"><span class="gl" style="--s:5.9px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+<div class="pz lg"><span class="gl" style="--s:4.7px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+<div class="pz lg"><span class="gl" style="--s:3.9px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+<div class="pz lg"><span class="gl" style="--s:3.4px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+<div class="pz lg"><i data-lucide="square-asterisk"></i>Square-1</div>
+<div class="pz lg"><i data-lucide="triangle"></i>Pyraminx</div>
+<div class="pz on lg"><i data-lucide="diamond"></i>Skewb</div>
+<div class="pz lg"><i data-lucide="pentagon"></i>Megaminx</div>
+                </div>
+                <div class="card" style="gap:10px;padding:16px 18px">
+                  <div class="row between"><span class="lbl">Methods you know</span><span class="xs">Your best single, if you know it</span></div>
+                  <div class="row g10"><b class="t b row g6" style="width:78px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 11.48</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>Ortega</span><span class="mchip"><i data-lucide="plus"></i>CLL</span><span class="mchip"><i data-lucide="plus"></i>EG</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 4.21</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><i data-lucide="diamond" class="faint" style="width:14px;height:14px"></i>Skewb</b><div class="row wrap g6 grow"><span class="mchip on"><i data-lucide="check"></i>Beginner</span><span class="mchip"><i data-lucide="plus"></i>Sarah's</span></div><span class="field" style="height:36px;width:116px">PB · 12.34</span></div>
+                </div>
+                <div class="grid2" style="gap:12px">
+                  <div class="card" style="gap:10px;padding:16px 18px"><div class="row g12"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="h3">Bring your times</b><span class="xs">Your history from another timer, if you have one</span></div></div>
+<span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span>
+<button class="btn soft block"><i data-lucide="file-up"></i>Choose files</button></div>
+                  <div class="card" style="gap:8px;padding:16px 18px"><b class="h3">Then a tour in 8 steps</b><div class="tour"><b>1</b>Scramble your cube</div>
+<div class="tour"><b>2</b>Time your solve</div>
+<div class="tour"><b>3</b>Follow your session</div>
+<div class="tour"><b>4</b>Find the right algorithm</div><span class="xs">… duel, learn and your profile</span></div>
+                </div>
+                <span class="grow"></span>
+                <div class="row g8"><button class="btn ghost"><i data-lucide="arrow-left"></i>Back</button><span class="grow"></span><button class="btn ghost">Skip the tour</button><button class="btn pri lg">Start the tour<i data-lucide="arrow-right"></i></button></div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>L'accueil du téléphone en grand : le titre et ses trois promesses en haut, le formulaire en feuille sous le pouce (champs de 52 px). Pas de barre flottante tant que l'app n'est pas réglée. Le réglage en grandes tuiles ; sur 1280 l'import et la visite dans une feuille ancrée, en portrait dans une feuille du bas.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait · connexion</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="col g20" style="padding:36px 40px 0">
+            <div class="row between start"><div class="col g12"><span class="logo" style="zoom:1.8"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="display xl" style="font-size:60px">Welcome<br>to Qbix</span><span class="t mfg">Time your solves, learn algorithms, race in duels.</span></div><i class="iso xl" data-iso="yyyyyyyyy|rrrrrrrrr|ggggggggg"></i></div>
+            <div class="grid3" style="gap:12px">
+              <div class="tile" style="padding:16px"><span class="icon-tile pri"><i data-lucide="shapes"></i></span><b class="h3">Your puzzles and methods</b><span class="xs">What you can solve today</span></div>
+              <div class="tile" style="padding:16px"><span class="icon-tile pri"><i data-lucide="graduation-cap"></i></span><b class="h3">Learn the others</b><span class="xs">A new puzzle starts with its course</span></div>
+              <div class="tile" style="padding:16px"><span class="icon-tile pri"><i data-lucide="timer"></i></span><b class="h3">Then time and train</b><span class="xs">Everything opens once it is solved</span></div>
+            </div>
+          </div>
+          <div class="sheet" style="gap:14px;padding:10px 28px 28px">
+            <div class="row between"><span class="h1">Create your account</span><button class="btn sel"><i data-lucide="languages"></i>English<i data-lucide="chevron-down"></i></button></div>
+            <div class="seg block" style="padding:4px"><span style="height:52px">Sign in</span><span class="on" style="height:52px">Create account</span></div>
+<div class="col g4"><span class="lbl">Username</span><div class="field" style="color:var(--fg);height:52px">lena_speed</div><span class="xs">3–24 letters, digits or underscores.</span></div>
+<div class="col g4"><span class="lbl">Password</span><div class="field between" style="color:var(--fg);height:52px">••••••••••••<i data-lucide="eye-off" class="faint"></i></div><span class="xs">10 characters or more.</span></div>
+<span class="xs">By creating an account, you accept the <b class="pri">terms of use</b> and the <b class="pri">privacy policy</b>.</span>
+<button class="btn pri lg block">Create account</button>
+<div class="grid2" style="gap:10px"><button class="btn" style="opacity:.6;height:52px"><i data-lucide="chrome"></i>Google<span class="pill">Soon</span></button><button class="btn" style="height:52px"><i data-lucide="user-round"></i>Without an account</button></div>
+<span class="xs row g6 center"><i data-lucide="hard-drive" style="width:14px;height:14px"></i>Your times on this device will be kept.</span>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran · réglage</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row grow g0" style="align-items:stretch">
+            <div class="col g12 grow" style="padding-bottom:16px">
+              <div class="bigtitle" style="padding:14px 28px 0"><span class="display">What can you solve?</span><span class="pill pri" style="align-self:center">Set up · 2 / 3</span></div>
+              <span class="s" style="padding:0 28px">The puzzles you already solve, then the methods you use</span>
+              <div class="grid6" style="padding:0 28px;gap:10px">
+<div class="pz lg"><i data-lucide="ban"></i>None yet</div>
+<div class="pz on lg"><span class="gl" style="--s:11.7px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+<div class="pz on lg"><span class="gl" style="--s:7.8px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+<div class="pz lg"><span class="gl" style="--s:5.9px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+<div class="pz lg"><span class="gl" style="--s:4.7px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+<div class="pz lg"><span class="gl" style="--s:3.9px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+<div class="pz lg"><span class="gl" style="--s:3.4px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+<div class="pz lg"><i data-lucide="square-asterisk"></i>Square-1</div>
+<div class="pz lg"><i data-lucide="triangle"></i>Pyraminx</div>
+<div class="pz on lg"><i data-lucide="diamond"></i>Skewb</div>
+<div class="pz lg"><i data-lucide="pentagon"></i>Megaminx</div>
+              </div>
+              <div class="grid2" style="padding:0 28px;gap:12px">
+                <div class="tile" style="gap:10px;padding:14px 16px">
+                  <div class="row between"><b class="h3 row g6"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><span class="field" style="height:40px;width:120px;color:var(--fg)">PB · 11.48</span></div>
+                  <div class="row wrap g6"><span class="mchip" style="height:40px"><i data-lucide="plus"></i>Beginner</span><span class="mchip on" style="height:40px"><i data-lucide="check"></i>CFOP</span><span class="mchip" style="height:40px"><i data-lucide="plus"></i>Roux</span><span class="mchip" style="height:40px"><i data-lucide="plus"></i>ZZ</span></div>
+                </div>
+                <div class="tile" style="gap:10px;padding:14px 16px">
+                  <div class="row between"><b class="h3 row g6"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</b><span class="field" style="height:40px;width:120px;color:var(--fg)">PB · 4.21</span></div>
+                  <div class="row wrap g6"><span class="mchip" style="height:40px"><i data-lucide="plus"></i>Beginner</span><span class="mchip on" style="height:40px"><i data-lucide="check"></i>Ortega</span><span class="mchip" style="height:40px"><i data-lucide="plus"></i>CLL</span><span class="mchip" style="height:40px"><i data-lucide="plus"></i>EG</span></div>
+                </div>
+              </div>
+              <div class="row" style="padding:0 28px"><span class="xs row g6"><i data-lucide="diamond" style="width:14px;height:14px"></i>Skewb · Beginner · PB 12.34</span><span class="grow"></span><span class="xs">Nothing yet? Qbix starts you on the 3×3 course.</span></div>
+              <span class="grow"></span>
+              <div class="row" style="padding:0 28px"><button class="btn ghost" style="height:44px"><i data-lucide="arrow-left"></i>Back</button></div>
+            </div>
+            <aside class="sidesheet docked" style="width:380px;gap:12px">
+              <div class="row between"><div class="tdots"><i class="d"></i><i class="on"></i><i></i></div><button class="btn ghost sm">Skip the tour</button></div>
+              <div class="card pop" style="gap:10px"><div class="row g12"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="h3">Bring your times</b><span class="xs">Your history from another timer, if you have one</span></div></div>
+<span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span>
+<button class="btn block"><i data-lucide="file-up"></i>Choose files</button></div>
+              <div class="card pop grow" style="gap:8px">
+                <b class="h3">Then a tour in 8 steps</b>
+                <div class="tour"><b>1</b>Scramble your cube</div>
+<div class="tour"><b>2</b>Time your solve</div>
+<div class="tour"><b>3</b>Follow your session</div>
+<div class="tour"><b>4</b>Find the right algorithm</div>
+<div class="tour"><b>5</b>Practise with a purpose</div>
+<div class="tour"><b>6</b>Race when you are ready</div>
+<div class="tour"><b>7</b>Learn a new puzzle</div>
+<div class="tour"><b>8</b>Watch your progress</div>
+              </div>
+              <button class="btn pri lg block">Start the tour<i data-lucide="arrow-right"></i></button>
+            </aside>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Tablette portrait · réglage</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle" style="padding-top:22px"><span class="display xl">What can you solve?</span><span class="btn ghost" style="align-self:center">Skip</span></div>
+          <div class="col g12 grow" style="padding:4px 28px 0">
+            <div class="row between"><span class="s">The puzzles you already solve, then the methods you use</span><div class="tdots"><i class="d"></i><i class="on"></i><i></i></div></div>
+            <div class="grid4" style="gap:12px">
+<div class="pz lg"><i data-lucide="ban"></i>None yet</div>
+<div class="pz on lg"><span class="gl" style="--s:11.7px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+<div class="pz on lg"><span class="gl" style="--s:7.8px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+<div class="pz lg"><span class="gl" style="--s:5.9px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+<div class="pz lg"><span class="gl" style="--s:4.7px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+<div class="pz lg"><span class="gl" style="--s:3.9px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+<div class="pz lg"><span class="gl" style="--s:3.4px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+<div class="pz lg"><i data-lucide="square-asterisk"></i>Square-1</div>
+<div class="pz lg"><i data-lucide="triangle"></i>Pyraminx</div>
+<div class="pz on lg"><i data-lucide="diamond"></i>Skewb</div>
+<div class="pz lg"><i data-lucide="pentagon"></i>Megaminx</div>
+            </div>
+            <div class="grid2" style="gap:12px">
+              <div class="tile" style="gap:10px;padding:14px 16px">
+                <div class="row between"><b class="h3 row g6"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><span class="field" style="height:44px;width:120px;color:var(--fg)">PB · 11.48</span></div>
+                <div class="row wrap g6"><span class="mchip" style="height:44px"><i data-lucide="plus"></i>Beginner</span><span class="mchip on" style="height:44px"><i data-lucide="check"></i>CFOP</span><span class="mchip" style="height:44px"><i data-lucide="plus"></i>Roux</span><span class="mchip" style="height:44px"><i data-lucide="plus"></i>ZZ</span></div>
+              </div>
+              <div class="tile" style="gap:10px;padding:14px 16px">
+                <div class="row between"><b class="h3 row g6"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</b><span class="field" style="height:44px;width:120px;color:var(--fg)">PB · 4.21</span></div>
+                <div class="row wrap g6"><span class="mchip" style="height:44px"><i data-lucide="plus"></i>Beginner</span><span class="mchip on" style="height:44px"><i data-lucide="check"></i>Ortega</span><span class="mchip" style="height:44px"><i data-lucide="plus"></i>CLL</span><span class="mchip" style="height:44px"><i data-lucide="plus"></i>EG</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="sheet" style="gap:12px;padding:10px 28px 28px">
+            <div class="row g12"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="h3">Bring your times</b><span class="xs">Your history from another timer, if you have one</span></div></div>
+<span class="xs">csTimer · Twisty Timer · Cubic Timer · CubeTime · CubeDesk · ZKT · Cubeast · acubemy · Speedcuber Timer</span>
+<button class="btn block lg"><i data-lucide="file-up"></i>Choose files</button>
+            <div class="hr"></div>
+            <div class="row between"><b class="h3">Then a tour in 8 steps</b><span class="xs">Scramble, timer, session, algorithms, training, duel, learn, profile</span></div>
+            <div class="row g8"><button class="btn ghost" style="height:52px"><i data-lucide="arrow-left"></i>Back</button><span class="grow"></span><button class="btn ghost" style="height:52px">Skip the tour</button><button class="btn pri lg">Start the tour<i data-lucide="arrow-right"></i></button></div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Un seul écran en deux volets : le compte d'un côté, le réglage de l'autre, remplissable avant même de se connecter (gardé sur l'appareil, puis synchronisé). Empilés en portrait, côte à côte sur 1280 ; rien ne s'ouvre par-dessus.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="h3">Qbix</b>
+            <span class="grow"></span>
+            <button class="btn sel"><i data-lucide="languages"></i>English<i data-lucide="chevron-down"></i></button><button class="btn ghost" style="color:var(--fg)">Continue without an account</button>
+          </div>
+          <div class="panes v">
+            <div class="pane side" style="flex:none;height:520px;flex-direction:row;gap:24px;padding:20px 24px">
+              <div class="col g16" style="width:300px;flex:none">
+                <div class="col g6"><span class="display">Welcome to Qbix</span><span class="s">Time your solves, learn algorithms, race in duels.</span></div>
+                <div class="row g12"><span class="icon-tile pri" style="width:40px;height:40px"><i data-lucide="shapes"></i></span><div class="col g0"><b class="t b"><span class="pri">1</span> Your puzzles and methods</b><span class="xs">What you can solve today</span></div></div>
+<div class="row g12"><span class="icon-tile pri" style="width:40px;height:40px"><i data-lucide="graduation-cap"></i></span><div class="col g0"><b class="t b"><span class="pri">2</span> Learn the others</b><span class="xs">A new puzzle starts with its course</span></div></div>
+<div class="row g12"><span class="icon-tile pri" style="width:40px;height:40px"><i data-lucide="timer"></i></span><div class="col g0"><b class="t b"><span class="pri">3</span> Then time and train</b><span class="xs">Everything opens once it is solved</span></div></div>
+                <span class="grow"></span>
+                <i class="iso lg" data-iso="yyyyyyyyy|rrrrrrrrr|ggggggggg" style="align-self:center"></i>
+              </div>
+              <div class="col g12 grow">
+                <div class="seg block" style="padding:4px"><span style="height:44px">Sign in</span><span class="on" style="height:44px">Create account</span></div>
+<div class="col g4"><span class="lbl">Username</span><div class="field" style="color:var(--fg);height:44px">lena_speed</div><span class="xs">3–24 letters, digits or underscores.</span></div>
+<div class="col g4"><span class="lbl">Password</span><div class="field between" style="color:var(--fg);height:44px">••••••••••••<i data-lucide="eye-off" class="faint"></i></div><span class="xs">10 characters or more.</span></div>
+<span class="xs">By creating an account, you accept the <b class="pri">terms of use</b> and the <b class="pri">privacy policy</b>.</span>
+<button class="btn pri lg block">Create account</button>
+<div class="grid2" style="gap:10px"><button class="btn" style="opacity:.6;height:44px"><i data-lucide="chrome"></i>Google<span class="pill">Soon</span></button><button class="btn" style="height:44px"><i data-lucide="user-round"></i>Without an account</button></div>
+<span class="xs row g6 center"><i data-lucide="hard-drive" style="width:14px;height:14px"></i>Your times on this device will be kept.</span>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="gap:12px">
+              <div class="ph"><span class="h3">Set up</span><div class="stp"><span class="ok"><b><i data-lucide="check"></i></b>Welcome</span><span class="on"><b>2</b>Puzzles</span><span><b>3</b>Times</span></div></div>
+              <div class="row between"><span class="h2">What can you solve?</span><span class="xs">Nothing yet? Qbix starts you on the 3×3 course.</span></div>
+              <div class="grid6">
+<div class="pz"><i data-lucide="ban"></i>None yet</div>
+<div class="pz on"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+<div class="pz on"><span class="gl" style="--s:6px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+<div class="pz"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+<div class="pz"><span class="gl" style="--s:3.6px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+<div class="pz"><span class="gl" style="--s:3px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+<div class="pz"><span class="gl" style="--s:2.6px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+<div class="pz"><i data-lucide="square-asterisk"></i>Square-1</div>
+<div class="pz"><i data-lucide="triangle"></i>Pyraminx</div>
+<div class="pz on"><i data-lucide="diamond"></i>Skewb</div>
+<div class="pz"><i data-lucide="pentagon"></i>Megaminx</div>
+              </div>
+              <div class="card" style="gap:8px;padding:12px 14px">
+                <div class="row g10"><b class="t b row g6" style="width:78px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 11.48</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>Ortega</span><span class="mchip"><i data-lucide="plus"></i>CLL</span><span class="mchip"><i data-lucide="plus"></i>EG</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 4.21</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><i data-lucide="diamond" class="faint" style="width:14px;height:14px"></i>Skewb</b><div class="row wrap g6 grow"><span class="mchip on"><i data-lucide="check"></i>Beginner</span><span class="mchip"><i data-lucide="plus"></i>Sarah's</span></div><span class="field" style="height:36px;width:116px">PB · 12.34</span></div>
+              </div>
+              <div class="row g12" style="align-items:stretch">
+                <div class="card grow" style="flex-direction:row;align-items:center;gap:12px;padding:12px 14px"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="t b">Bring your times</b><span class="xs">csTimer, Twisty Timer, CubeDesk and 6 more</span></div><button class="btn sm soft"><i data-lucide="file-up"></i>Choose files</button></div>
+              </div>
+              <span class="grow"></span>
+              <div class="row g8"><span class="xs grow">Then a tour in 8 steps, from the scramble to your profile</span><button class="btn ghost">Skip the tour</button><button class="btn pri">Start the tour<i data-lucide="arrow-right"></i></button></div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="h3">Qbix</b>
+            <span class="grow"></span>
+            <button class="btn sel"><i data-lucide="languages"></i>English<i data-lucide="chevron-down"></i></button><button class="btn ghost" style="color:var(--fg)">Continue without an account</button>
+          </div>
+          <div class="panes">
+            <div class="pane side" style="width:400px;gap:10px;padding:16px 22px">
+              <div class="col g2"><span class="h1">Welcome back</span><span class="s">Time your solves, learn algorithms, race in duels.</span></div>
+              <div class="seg block"><span class="on">Sign in</span><span>Create account</span></div>
+              <div class="field" style="color:var(--fg)"><i data-lucide="at-sign" class="faint"></i>yuki_blind</div>
+              <div class="field" style="color:var(--fg)"><i data-lucide="key-round" class="faint"></i><span class="grow">••••••••••••</span><i data-lucide="eye" class="faint"></i></div>
+              <button class="btn pri lg block">Sign in</button>
+              <div class="sep">or</div>
+              <button class="btn block" style="opacity:.6"><i data-lucide="chrome"></i>Continue with Google<span class="pill">Soon</span></button>
+              <span class="grow"></span>
+              <div class="hr"></div>
+              <div class="row g12"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="shapes"></i></span><div class="col g0"><b class="t b"><span class="pri">1</span> Your puzzles and methods</b><span class="xs">What you can solve today</span></div></div>
+<div class="row g12"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="graduation-cap"></i></span><div class="col g0"><b class="t b"><span class="pri">2</span> Learn the others</b><span class="xs">A new puzzle starts with its course</span></div></div>
+<div class="row g12"><span class="icon-tile pri" style="width:36px;height:36px"><i data-lucide="timer"></i></span><div class="col g0"><b class="t b"><span class="pri">3</span> Then time and train</b><span class="xs">Everything opens once it is solved</span></div></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="gap:10px">
+              <div class="ph"><span class="h3">Set up</span><div class="stp"><span class="ok"><b><i data-lucide="check"></i></b>Welcome</span><span class="on"><b>2</b>Puzzles</span><span><b>3</b>Times</span></div><button class="btn icon sm ghost"><i data-lucide="circle-help"></i></button></div>
+              <div class="row between"><span class="h2">What can you solve?</span><span class="xs">Nothing yet? Qbix starts you on the 3×3 course.</span></div>
+              <div class="grid6" style="gap:8px">
+<div class="pz"><i data-lucide="ban"></i>None yet</div>
+<div class="pz on"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</div>
+<div class="pz on"><span class="gl" style="--s:6px;grid-template-columns:repeat(3,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</div>
+<div class="pz"><span class="gl" style="--s:4.5px;grid-template-columns:repeat(4,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>4×4</div>
+<div class="pz"><span class="gl" style="--s:3.6px;grid-template-columns:repeat(5,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>5×5</div>
+<div class="pz"><span class="gl" style="--s:3px;grid-template-columns:repeat(6,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>6×6</div>
+<div class="pz"><span class="gl" style="--s:2.6px;grid-template-columns:repeat(7,var(--s))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>7×7</div>
+<div class="pz"><i data-lucide="square-asterisk"></i>Square-1</div>
+<div class="pz"><i data-lucide="triangle"></i>Pyraminx</div>
+<div class="pz on"><i data-lucide="diamond"></i>Skewb</div>
+<div class="pz"><i data-lucide="pentagon"></i>Megaminx</div>
+              </div>
+              <div class="card" style="gap:7px;padding:12px 14px">
+                <div class="row g10"><b class="t b row g6" style="width:78px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>CFOP</span><span class="mchip"><i data-lucide="plus"></i>Roux</span><span class="mchip"><i data-lucide="plus"></i>ZZ</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 11.48</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><span class="gl" style="--s:9px;grid-template-columns:repeat(2,var(--s))"><i></i><i></i><i></i><i></i></span>2×2</b><div class="row wrap g6 grow"><span class="mchip"><i data-lucide="plus"></i>Beginner</span><span class="mchip on"><i data-lucide="check"></i>Ortega</span><span class="mchip"><i data-lucide="plus"></i>CLL</span><span class="mchip"><i data-lucide="plus"></i>EG</span></div><span class="field" style="height:36px;width:116px;color:var(--fg)">PB · 4.21</span></div>
+<div class="hr"></div>
+<div class="row g10"><b class="t b row g6" style="width:78px"><i data-lucide="diamond" class="faint" style="width:14px;height:14px"></i>Skewb</b><div class="row wrap g6 grow"><span class="mchip on"><i data-lucide="check"></i>Beginner</span><span class="mchip"><i data-lucide="plus"></i>Sarah's</span></div><span class="field" style="height:36px;width:116px">PB · 12.34</span></div>
+              </div>
+              <div class="row g12">
+                <div class="card grow" style="flex-direction:row;align-items:center;gap:12px;padding:10px 14px"><span class="icon-tile pri" style="border-radius:50%"><i data-lucide="upload"></i></span><div class="col g0 grow"><b class="t b">Bring your times</b><span class="xs">csTimer, Twisty Timer, CubeDesk and 6 more</span></div><button class="btn sm soft"><i data-lucide="file-up"></i>Choose files</button></div>
+              </div>
+              <span class="grow"></span>
+              <div class="row g8"><span class="xs grow">Then a tour in 8 steps, from the scramble to your profile</span><button class="btn ghost">Skip the tour</button><button class="btn pri">Start the tour<i data-lucide="arrow-right"></i></button></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>

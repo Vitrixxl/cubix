@@ -238,8 +238,8 @@ async function exportPhone(out: string): Promise<string> {
   const tags = page.match(/<style id="expo-reset">[\s\S]*?<\/style>|<link rel="stylesheet"[^>]*>|<script src="[^"]*"[^>]*><\/script>/g) ?? [];
   if (!tags.some((tag) => tag.startsWith("<script"))) throw new Error("The phone app's index.html has no script");
   // A page written ahead of time is never shown under the phone app, at any width (pageDocument.ts hides it, and shows the
-  // app it covers, only up to a phone's width): the app is in view at once.
-  return [...tags, "<style>#prerendered{display:none}#prerendered~#root{position:static;visibility:visible;pointer-events:auto}</style>"].join("\n");
+  // app it covers, only up to a phone's width): the app is in view at once, over pageDocument.ts's more specific rule.
+  return [...tags, "<style>#prerendered{display:none}#prerendered~#root{position:static!important;visibility:visible!important;pointer-events:auto!important}</style>"].join("\n");
 }
 
 /** The fonts, fetched with the stylesheet rather than once it is read: the first screen draws every weight. */

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { signIn, startServer } from "./app";
+import { signIn, startServer, desktopContext } from "./app";
 
 const OUT = "artifacts/learn-3d";
 const before = process.argv.includes("--before");
@@ -54,7 +54,7 @@ const close = async (page: Page) => {
 
 try {
   for (const [width, height] of [[1440, 900], [390, 844]] as const) {
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1 });
+    const context = await desktopContext(browser, { viewport: { width, height }, deviceScaleFactor: 1 });
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));

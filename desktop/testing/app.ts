@@ -1,6 +1,6 @@
 /** Test harness: a disposable API serving the web build (dist/web, or $CUBIX_TEST_WEB_DIR) and the Electron shell pointed at it,
  * without any window (Chromium's headless Ozone backend). Build first: `bun desktop/build.ts && bun desktop/web.ts`. */
-import { _electron as electron, type Page } from "playwright";
+import { _electron as electron, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { PUZZLES } from "../../src/shared/puzzles";
@@ -152,4 +152,14 @@ export async function signIn(page: Page, username: string, password = "a-long-te
     if (new URL(page.url()).pathname === "/onboarding") await page.goto(new URL("/timer", page.url()).href);
     await page.waitForSelector(".rail, .tabbar", { timeout: 30000 });
   }
+}
+
+/**
+ * A browser context that keeps the desktop app at every size: the web serves phones, tablets and small windows the
+ * phone app (boot.ts), while these tests check the desktop app and its own phone layout.
+ */
+export async function desktopContext(browser: Browser, options?: BrowserContextOptions) {
+  const context = await browser.newContext(options);
+  await context.addInitScript(() => localStorage.setItem("cubix.phoneApp", "off"));
+  return context;
 }

@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { TONE_TEXT, type Tone } from "../../../src/client/lib/tone";
 import { useColors } from "../theme";
+import { useLayout } from "../hooks/useLayout";
 import { said, tr } from "../../../src/client/i18n";
 
 export type { Tone };
@@ -31,9 +32,10 @@ export function Label({ className, ...props }: React.ComponentProps<typeof Text>
   return <Text className={cn("font-sans text-xs font-medium text-muted-foreground", className)} {...props} />;
 }
 
-/** A screen: the page padding and the gap between its head and its content. */
+/** A screen: the page padding and the gap between its head and its content, wider on a tablet. */
 export function Page({ className, ...props }: ViewProps) {
-  return <View className={cn("flex-1 gap-3 px-4 pt-2 pb-3", className)} {...props} />;
+  const { tablet } = useLayout();
+  return <View className={cn("flex-1 gap-3 px-4 pt-2 pb-3", tablet && "gap-4 px-7 pt-3", className)} {...props} />;
 }
 
 /** The way back in a page head: a chevron on a 44 dp target, flush with the page's edge. */

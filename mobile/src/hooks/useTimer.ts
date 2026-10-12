@@ -65,6 +65,27 @@ export function useTimer({ onStop, canStart = true, inspection = false, memo = f
     },
   }));
   useEffect(() => timer.dispose, [timer]);
+  // On the web (a tablet's keyboard, a laptop), the keyboard works the timer as on the desktop: the space bar is held
+  // then released to start, any key stops it. Not while typing in a field.
+  useEffect(() => {
+    if (typeof document === "undefined") return; // Android: no keyboard events to listen to.
+    const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
+    const running = () => timer.snapshot.phase === "running";
+    const down = (e: KeyboardEvent) => {
+      if (e.repeat || typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.code !== "Space" && !running()) return;
+      e.preventDefault();
+      timer.press();
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || typing(e)) return;
+      e.preventDefault();
+      timer.release();
+    };
+    addEventListener("keydown", down);
+    addEventListener("keyup", up);
+    return () => { removeEventListener("keydown", down); removeEventListener("keyup", up); };
+  }, [timer]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", state => {
       if (state !== "active") timer.cancelArming();

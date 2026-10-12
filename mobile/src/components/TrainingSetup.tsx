@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Check, ChevronRight, CircleHelp, Dices, Eye, GraduationCap, Layers, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
+import { Check, ChevronRight, CircleHelp, Dices, Eye, GraduationCap, Layers, ListChecks, Play, Rotate3d, Search, Shuffle, Target, Timer, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { plural } from "../../../src/client/lib/format";
@@ -23,6 +23,7 @@ import { CaseSelector } from "./CaseSelector";
 import { Chip, ChipMenu } from "./Chips";
 import { Bar, Empty, HeadButton, Numeric, SearchField } from "./layout";
 import { useBackTo } from "./Practice";
+import { useLayout } from "../hooks/useLayout";
 import { Sheet } from "./Sheet";
 import { useTourTarget } from "../tour";
 import { said, tr } from "../../../src/client/i18n";
@@ -122,7 +123,7 @@ const StartChip = ({ onPress, disabled }: { onPress: () => void; disabled?: bool
 /**
  * The Training tab: the five ways of training, each with its settings in chips under its name (the cross's goal and
  * moves, the recognition's set and seconds, the whole sets); Learned opens its own screen; the bottom bar counts the
- * cases the training drills, with Random AUF and Train.
+ * cases the training drills, with Random AUF and Train. A tablet shows Learned on the page and the ways in a sheet.
  */
 export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void; onStart: (run: TrainingRun) => void }) {
   const data = useTrainingData();
@@ -134,23 +135,26 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
   const [auf, setAuf] = useAtom(randomAufAtom);
   const [back, setBack] = useAtom(recognitionBackAtom);
   const freePicks = useAtomValue(freePicksAtom);
+  const setHand = useSetAtom(selectedCaseIdsAtom), setRoute = useSetAtom(routeAtom), sets = useAtomValue(setsAtom);
+  const [query, setQuery] = useState("");
+  const learnedCases = useMemo(() => data.cases.filter(c => data.learned.has(c.id)), [data.cases, data.learned]);
   const [picking, setPicking] = useState(false);
+  const [waysOpen, setWaysOpen] = useState(false), [searching, setSearching] = useState(false);
+  const { tablet, wide } = useLayout();
+  // From the tablet's sheet of the ways, a start closes it first.
+  const start = (run: TrainingRun) => { setWaysOpen(false); onStart(run); };
   const cube = !!puzzleInfo(data.puzzle).cubeSize;
   const free = freePicks.filter(id => data.cases.some(c => c.id === id)).length;
   const chosen = data.recognition;
   const handPicked = data.hand.filter(id => data.learned.has(id)).length, recommendedPicked = data.picks.filter(id => data.learned.has(id)).length;
   const tour = useTourTarget("training");
-  return <View className="flex-1">
-    <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("training")} /></AppBar>
-    <SectionTabs />
-    <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2 px-4 pt-3 pb-3" showsVerticalScrollIndicator={false}>
-      <View {...tour} accessibilityLabel={tr("Ways of training")} className="gap-2">
+  const ways = <View {...(tablet ? {} : tour)} accessibilityLabel={tr("Ways of training")} className="gap-2">
         {data.puzzle === "333" && <ModeCard icon={Target} title={tr("Cross")} summary={tr("Plan the cross in inspection, by its exact number of moves")} count={moves} unit={tr("moves")}>
           <View className="flex-row items-center gap-1.5">
             <ChipMenu label={tr("What to build")} value={target} onChange={t => setTarget(t as CrossTarget)} options={CROSS_TARGETS.map(t => ({ id: t, label: tr(CROSS_TARGET_LABELS[t]) }))}>{tr(CROSS_TARGET_LABELS[target])}</ChipMenu>
             <ChipMenu label={tr("Moves")} value={String(moves)} onChange={n => setMoves(Number(n))} options={CROSS_MOVES[target].map(n => ({ id: String(n), label: tr("{0} moves", { 0: n }) }))}>{tr("{0} moves", { 0: moves })}</ChipMenu>
             <View className="flex-1" />
-            <StartChip onPress={() => onStart("cross")} />
+            <StartChip onPress={() => start("cross")} />
           </View>
         </ModeCard>}
         <ModeCard icon={Eye} title={tr("Recognition")} summary={tr("The learned cases of a set at random, until you stop")} count={chosen?.learned ?? 0} unit={chosen ? tr(chosen.set.label) : tr("cases")}>
@@ -167,11 +171,11 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
             {cube && <Chip icon={Shuffle} on={auf} onPress={() => setAuf(!auf)} accessibilityLabel={tr("Random AUF")}>{tr("AUF")}</Chip>}
             {cube && chosen && viewForStage(chosen.set.stage) === "top" && <Chip icon={Rotate3d} on={back} onPress={() => setBack(!back)} accessibilityLabel={tr("Show the top layer's stickers hidden at the back")}>{tr("Back stickers")}</Chip>}
             <View className="flex-1" />
-            <StartChip onPress={() => onStart("recognition")} disabled={!chosen} />
+            <StartChip onPress={() => start("recognition")} disabled={!chosen} />
           </View>
         </ModeCard>
         <ModeCard icon={GraduationCap} title={tr("Learned")} summary={tr("Your slowest learned cases, and cases picked by hand")} count={data.learnedPool} unit={tr(data.learnedPool === 1 ? "case" : "cases")}
-          lit={data.learnedPool > 0} onPress={() => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}>
+          lit={data.learnedPool > 0} onPress={tablet ? () => setWaysOpen(false) : () => onOpen("learned")} accessibilityLabel={tr("Learned, {0}", { 0: plural(data.learnedPool, "case") })}>
           <View className="flex-row items-center gap-1.5">
             <Pill accent>{tr("{0} recommended", { 0: recommendedPicked })}</Pill>
             <Pill>{tr("{0} picked", { 0: handPicked })}</Pill>
@@ -196,10 +200,101 @@ export function TrainHome({ onOpen, onStart }: { onOpen: (mode: string) => void;
           <View className="flex-row items-center gap-1.5">
             <Chip icon={Search} onPress={() => setPicking(true)}>{tr("Pick…")}</Chip>
             <View className="flex-1" />
-            {free > 0 && <StartChip onPress={() => onStart("free")} />}
+            {free > 0 && <StartChip onPress={() => start("free")} />}
           </View>
         </ModeCard>
+      </View>;
+  const head = <>
+    <AppBar><HeadButton icon={CircleHelp} label={tr("Help")} onPress={() => openGuide("training")} /></AppBar>
+    <SectionTabs />
+  </>;
+  if (tablet) {
+    // A tablet shows what Train drills (the recommended, two by two, and the cases picked by hand); the ways of training
+    // are tiles peeking above the bar with Train, or chips over the page when wide, and each opens their settings in a sheet.
+    const openWays = () => setWaysOpen(true);
+    const tiles: { icon: LucideIcon; label: string; detail: string; on?: boolean }[] = [
+      ...(data.puzzle === "333" ? [{ icon: Target, label: tr("Cross"), detail: tr("{0} moves", { 0: moves }) }] : []),
+      { icon: Eye, label: tr("Recognition"), detail: chosen ? `${chosen.learned} · ${tr(chosen.set.label)}` : "–" },
+      { icon: GraduationCap, label: tr("Learned"), detail: plural(data.learnedPool, "case"), on: true },
+      { icon: Layers, label: tr("Whole sets"), detail: plural(data.whole, "case") },
+      { icon: Dices, label: tr("Free practice"), detail: free ? plural(free, "case") : tr("Pick…") },
+    ];
+    const train = (detail: string) => <Pressable accessibilityRole="button" accessibilityLabel={tr("Train")} disabled={!data.pool.length} onPress={() => onStart("cases")}
+      className={cn("h-12 min-w-0 flex-1 flex-row items-center justify-between gap-3 rounded-2xl bg-primary px-4 active:bg-primary/85", !data.pool.length && "opacity-45")}>
+      <View className="flex-row items-center gap-1.5">
+        <Icon as={Play} size={16} className="text-primary-foreground" fill="currentColor" />
+        <Text className="text-base font-bold text-primary-foreground">{tr("Train")}</Text>
       </View>
+      <Text numberOfLines={1} className="shrink text-[13px] text-primary-foreground/75">{detail}</Text>
+    </Pressable>;
+    return <View className="flex-1">
+      {head}
+      <View className="min-h-0 flex-1 flex-row">
+        {/* Clipped: the row of ways scrolls sideways inside the column rather than running under the docked panel. */}
+        <View className="min-w-0 flex-1 overflow-hidden">
+          {wide && <View {...tour} accessibilityLabel={tr("Ways of training")}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 px-7 pt-4">
+              {tiles.map(t => <Chip key={t.label} icon={t.icon} on={t.on} onPress={openWays} className="h-11 px-4">{`${t.label} · ${t.detail}`}</Chip>)}
+            </ScrollView>
+          </View>}
+          <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 px-7 pt-4 pb-3" showsVerticalScrollIndicator={false}>
+            <Recommended data={data} grid />
+            {!wide && <View className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3">
+              <Icon as={ListChecks} size={20} className="text-muted-foreground" />
+              <View className="min-w-0 flex-1">
+                <Text className="text-base font-extrabold">{tr("Case by case")}</Text>
+                <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("among your {0} learned", { 0: data.totalLearned })} · <Numeric className="text-[13px] font-bold text-foreground">{handPicked}</Numeric> {tr("picked")}</Text>
+              </View>
+              <Chip onPress={() => setHand([])} disabled={!data.hand.length}>{tr("Clear")}</Chip>
+              <Chip icon={Search} onPress={() => setSearching(true)} disabled={!data.totalLearned}>{tr("Pick…")}</Chip>
+            </View>}
+          </ScrollView>
+          {!wide && <View {...tour} className="mb-2 w-full max-w-[620px] gap-3 self-center rounded-[22px] border border-border bg-popover p-4">
+            <View accessibilityLabel={tr("Ways of training")} className="flex-row gap-2">
+              {tiles.map(t => <Pressable key={t.label} accessibilityRole="button" accessibilityLabel={`${t.label}, ${t.detail}`} onPress={openWays}
+                className={cn("h-[68px] min-w-0 flex-1 items-center justify-center gap-0.5 rounded-2xl px-1", t.on ? "bg-primary active:bg-primary/85" : "bg-card active:bg-muted")}>
+                <Icon as={t.icon} size={18} className={t.on ? "text-primary-foreground" : "text-muted-foreground"} />
+                <Text numberOfLines={1} className={cn("text-[13px] font-bold", t.on ? "text-primary-foreground" : "text-muted-foreground")}>{t.label}</Text>
+                <Text numberOfLines={1} className={cn("text-[11px] font-semibold", t.on ? "text-primary-foreground/75" : "text-muted-foreground/70")}>{t.detail}</Text>
+              </Pressable>)}
+            </View>
+            <View className="flex-row items-center gap-2">
+              {cube && <Chip icon={Shuffle} on={auf} onPress={() => setAuf(!auf)} className="h-12 px-4">{tr("Random AUF")}</Chip>}
+              {train([plural(data.pool.length, "case"), ...data.parts].join(" · "))}
+            </View>
+          </View>}
+        </View>
+        {wide && <View className="m-3 mt-4 ml-0 w-[400px] gap-3 rounded-[26px] border border-border bg-card p-4">
+          <View className="flex-row items-baseline gap-2">
+            <Text className="text-xl font-extrabold tracking-tight">{tr("Case by case")}</Text>
+            <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr("among your {0} learned", { 0: data.totalLearned })}</Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <View className="flex-row items-baseline gap-1">
+              <Numeric className="text-2xl font-extrabold tracking-tight">{handPicked}</Numeric>
+              <Text className="text-sm text-muted-foreground">{tr("picked")}</Text>
+            </View>
+            <SearchField value={query} onChangeText={setQuery} placeholder={tr("Search cases…")} className="flex-1" />
+            <Chip onPress={() => setHand([])} disabled={!data.hand.length}>{tr("Clear")}</Chip>
+          </View>
+          <View className="-mx-3 min-h-0 flex-1">
+            <CaseSelector cases={learnedCases} sets={sets} selected={data.hand} onChange={setHand} query={query} onOpenCase={caseId => setRoute({ page: "algorithms", caseId })} />
+          </View>
+          <View className="flex-row items-center gap-2">
+            {cube && <HeadButton icon={Shuffle} label={tr("Random AUF") + " " + (auf ? tr("· on") : tr("· off"))} active={auf} onPress={() => setAuf(!auf)} />}
+            {train(plural(data.pool.length, "case"))}
+          </View>
+        </View>}
+      </View>
+      <Sheet open={waysOpen} onClose={() => setWaysOpen(false)} title={tr("Ways of training")} scroll>{ways}</Sheet>
+      <PickSheet open={picking} onClose={() => setPicking(false)} free />
+      <PickSheet open={searching} onClose={() => setSearching(false)} />
+    </View>;
+  }
+  return <View className="flex-1">
+    {head}
+    <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-2 px-4 pt-3 pb-3" showsVerticalScrollIndicator={false}>
+      {ways}
     </ScrollView>
     <CasesBar data={data} onTrain={() => onStart("cases")} />
     <PickSheet open={picking} onClose={() => setPicking(false)} free />
@@ -240,27 +335,11 @@ export function LearnedSetup({ onBack, onTrain }: { onBack: () => void; onTrain:
   const setRoute = useSetAtom(routeAtom);
   const sets = useAtomValue(setsAtom);
   const [hand, setHand] = useAtom(selectedCaseIdsAtom);
-  const setPicks = useSetAtom(trainPicksAtom);
   const [searching, setSearching] = useState(false);
   const learnedCases = useMemo(() => data.cases.filter(c => data.learned.has(c.id)), [data.cases, data.learned]);
   const picked = hand.filter(id => data.learned.has(id)).length;
-  const scale = Math.max(1, ...data.recommended.map(r => Math.max(r.time, r.usual) * 1.12));
-  const picks = new Set(data.picks);
   const header = <View className="gap-2 pb-2">
-    <View className="flex-row items-baseline justify-between gap-2">
-      <Text className="text-xl font-extrabold tracking-tight">{tr("Recommended")}</Text>
-      <Text numberOfLines={1} className="shrink text-[13px] text-muted-foreground">{tr("your slowest learned cases")}</Text>
-    </View>
-    {!data.totalLearned ? <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="flex-none py-6">
-      {tr("The training drills the cases you learned. Learn them in the courses first.")}
-      <Chip icon={GraduationCap} on onPress={() => setRoute({ page: "learn" })}>{tr("Open the courses")}</Chip>
-    </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr("No recommendation yet")} className="flex-none py-6">
-      {tr("Train your learned cases a few times each: the slowest show up here.")}
-    </Empty> : data.recommended.map(r => {
-      const c = data.cases.find(x => x.id === r.id);
-      return c ? <RecommendedRow key={r.id} r={r} c={c} scale={scale} picked={picks.has(r.id)}
-        onToggle={() => setPicks(picks.has(r.id) ? data.picks.filter(id => id !== r.id) : [...data.picks, r.id])} /> : null;
-    })}
+    <Recommended data={data} />
     <View className="flex-row items-center gap-2 pt-3">
       <View className="min-w-0 flex-1">
         <Text className="text-base font-extrabold">{tr("Case by case")}</Text>
@@ -281,16 +360,46 @@ export function LearnedSetup({ onBack, onTrain }: { onBack: () => void; onTrain:
   </View>;
 }
 
-/** A recommended case: picked or not, its diagram, name and why, then its time against its set's usual. */
-function RecommendedRow({ r, c, scale, picked, onToggle }: { r: Recommendation; c: CaseDto; scale: number; picked: boolean; onToggle: () => void }) {
+/**
+ * The recommended cases (the learned ones slower than usual), each picked or not, or why there are none; `grid` lays
+ * them two by two under a larger title (a tablet).
+ */
+function Recommended({ data, grid = false }: { data: TrainingData; grid?: boolean }) {
+  const setRoute = useSetAtom(routeAtom), setPicks = useSetAtom(trainPicksAtom);
+  const scale = Math.max(1, ...data.recommended.map(r => Math.max(r.time, r.usual) * 1.12));
+  const picks = new Set(data.picks);
+  const rows = data.recommended.flatMap(r => {
+    const c = data.cases.find(x => x.id === r.id);
+    return c ? [<RecommendedRow key={r.id} r={r} c={c} scale={scale} picked={picks.has(r.id)} large={grid}
+      onToggle={() => setPicks(picks.has(r.id) ? data.picks.filter(id => id !== r.id) : [...data.picks, r.id])} />] : [];
+  });
+  return <>
+    <View className="flex-row items-baseline justify-between gap-2">
+      <Text className={cn("text-xl font-extrabold tracking-tight", grid && "text-[26px]")}>{tr("Recommended")}</Text>
+      <Text numberOfLines={1} className="shrink text-[13px] text-muted-foreground">{tr("your slowest learned cases")}</Text>
+    </View>
+    {!data.totalLearned ? <Empty icon={GraduationCap} title={tr("Nothing learned yet")} className="flex-none py-6">
+      {tr("The training drills the cases you learned. Learn them in the courses first.")}
+      <Chip icon={GraduationCap} on onPress={() => setRoute({ page: "learn" })}>{tr("Open the courses")}</Chip>
+    </Empty> : !data.recommended.length ? <Empty icon={Timer} title={tr("No recommendation yet")} className="flex-none py-6">
+      {tr("Train your learned cases a few times each: the slowest show up here.")}
+    </Empty> : grid ? Array.from({ length: Math.ceil(rows.length / 2) }, (_, i) => <View key={i} className="flex-row gap-3">
+      {rows.slice(i * 2, i * 2 + 2).map(row => <View key={row.key} className="min-w-0 flex-1">{row}</View>)}
+      {i * 2 + 1 >= rows.length && <View className="flex-1" />}
+    </View>) : rows}
+  </>;
+}
+
+/** A recommended case: picked or not, its diagram, name and why, then its time against its set's usual; `large` on a tablet. */
+function RecommendedRow({ r, c, scale, picked, onToggle, large = false }: { r: Recommendation; c: CaseDto; scale: number; picked: boolean; onToggle: () => void; large?: boolean }) {
   const Source = r.source === "solves" ? Rotate3d : Timer;
   return <Pressable onPress={onToggle} accessibilityRole="checkbox" accessibilityState={{ checked: picked }} accessibilityLabel={tr(c.name)}
-    className="flex-row items-center gap-2.5 rounded-2xl bg-card px-2.5 py-2 active:bg-muted/60">
+    className={cn("flex-row items-center gap-2.5 rounded-2xl bg-card px-2.5 py-2 active:bg-muted/60", large && "gap-3 px-4 py-3.5")}>
     <View className={cn("size-6 items-center justify-center rounded-md border-2", picked ? "border-primary bg-primary" : "border-muted-foreground/50")}>
       {picked && <Icon as={Check} size={14} strokeWidth={3} className="text-primary-foreground" />}
     </View>
-    <CaseDiagram c={c} size={40} />
-    <View className="min-w-0 flex-1 gap-1">
+    <CaseDiagram c={c} size={large ? 60 : 40} />
+    <View className={cn("min-w-0 flex-1 gap-1", large && "gap-1.5")}>
       <View className="flex-row items-baseline gap-1.5">
         <Text numberOfLines={1} className="shrink text-[15px] font-extrabold">{tr(c.name)}</Text>
         <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr(c.setLabel)} · {tr(c.group)}</Text>

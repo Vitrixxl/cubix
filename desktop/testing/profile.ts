@@ -5,14 +5,14 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium, type Page } from "playwright";
-import { startServer, signIn } from "./app";
+import { startServer, signIn, desktopContext } from "./app";
 
 const OUT = "artifacts/profile";
 const dir = await mkdtemp(join(tmpdir(), "cubix-profile-"));
 const { origin, server } = await startServer(dir);
 const browser = await chromium.launch({ executablePath: process.env.CUBIX_TEST_CHROMIUM ?? (existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined), headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 const errors: string[] = [];
-const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" });
+const context = await desktopContext(browser, { viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" });
 const page = await context.newPage();
 page.on("pageerror", e => errors.push(e.message));
 await mkdir(OUT, { recursive: true });
@@ -83,7 +83,7 @@ try {
   assert.notEqual(await favicon(), before, "the tab's icon follows the puzzle");
   await page.goto(origin + "/profile?puzzle=333"); await page.locator('[data-tour="profile-overview"]').waitFor();
   // A fresh account: compact empty states, still inside the window.
-  const fresh = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();
+  const fresh = await (await desktopContext(browser, { viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", serviceWorkers: "block" })).newPage();
   fresh.on("pageerror", e => errors.push(e.message));
   await fresh.goto(origin + "/timer");
   await signIn(fresh, "profile_empty");

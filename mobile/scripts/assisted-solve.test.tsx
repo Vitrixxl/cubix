@@ -42,6 +42,7 @@ mock.module("../src/components/StaticCubeSvg", () => ({ StaticCubeSvg: "StaticCu
 mock.module("../src/lib/practiceScramble", () => ({ generatePracticeScramble: async () => "R U F" }));
 (globalThis as any).requestAnimationFrame = (callback: (time: number) => void) => setTimeout(() => callback(performance.now()), 8) as unknown as number;
 (globalThis as any).cancelAnimationFrame = (frame: number) => clearTimeout(frame);
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
 const { AssistedPage } = await import("../src/pages/AssistedPage");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let renderer: ReactTestRenderer;

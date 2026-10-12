@@ -251,19 +251,19 @@ export function SaveError({ timer }: { timer: TimerApi }) {
  * The current average of five as it is counted: the last five solves as chips, the fastest and the slowest dropped
  * (in brackets), the newest outlined. Empty slots until there are five. A chip opens its solve; held, its menu.
  */
-export function AverageWindow({ solves, hidden }: { solves: SolveDto[]; hidden?: boolean }) {
+export function AverageWindow({ solves, hidden, large }: { solves: SolveDto[]; hidden?: boolean; /** Taller chips on a wider row (a tablet's timer). */ large?: boolean }) {
   const last = solves.slice(-5);
   const times = last.map(v => effective(v.time_ms, v.penalty) ?? Infinity);
   const full = last.length === 5;
   const fastest = full ? times.indexOf(Math.min(...times)) : -1, slowest = full ? times.lastIndexOf(Math.max(...times)) : -1;
-  return <Fade hidden={!!hidden} className="mt-6 w-full max-w-md flex-row gap-1.5">
+  return <Fade hidden={!!hidden} className={cn("mt-6 w-full max-w-md flex-row gap-1.5", large && "max-w-xl")}>
     {Array.from({ length: 5 }, (_, i) => {
       const index = i - (5 - last.length), v = last[index];
-      if (!v) return <View key={i} className="h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border"><Numeric className="text-xs text-muted-foreground/40">–</Numeric></View>;
+      if (!v) return <View key={i} className={cn("h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-dashed border-border", large && "h-11")}><Numeric className="text-xs text-muted-foreground/40">–</Numeric></View>;
       const dropped = index === fastest || index === slowest, time = fmtSolve(v.time_ms, v.penalty);
       return <SolveMenu key={v.id} solve={v} accessibilityLabel={tr("Solve {0}", { 0: time })} rootClassName="min-w-0 flex-1"
-        className={cn("h-9 items-center justify-center rounded-lg bg-muted active:bg-muted/70", index === last.length - 1 && "border border-foreground/25")}>
-        <Numeric numberOfLines={1} className={cn("text-sm", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
+        className={cn("h-9 items-center justify-center rounded-lg bg-muted active:bg-muted/70", large && "h-11", index === last.length - 1 && "border border-foreground/25")}>
+        <Numeric numberOfLines={1} className={cn("text-sm", large && "text-[15px]", dropped ? "text-muted-foreground" : v.penalty === "+2" ? "text-warning" : "", v.penalty === "dnf" && "text-destructive")}>{dropped ? `(${time})` : time}</Numeric>
       </SolveMenu>;
     })}
   </Fade>;
@@ -311,13 +311,15 @@ export const CubePreview = memo(function CubePreview({ alg, cube = 3, size, mask
  * The stage: the prompt and its picture on top, the readout in the middle (it measures its area for the digits), the
  * last solve's actions under it. A touch anywhere but on a control arms the timer.
  */
-export function Stage({ timer, disabled, running, prompt, visual, readout, bar }: {
+export function Stage({ timer, disabled, running, prompt, visual, readout, bar, promptClassName }: {
   timer: TimerApi; disabled: boolean; running: boolean; prompt: ReactNode; visual?: ReactNode;
+  /** Classes of the prompt's row (a card around it on a tablet). */
+  promptClassName?: string;
   readout: (area: { width: number; height: number }) => ReactNode; bar: ReactNode;
 }) {
   const [area, setArea] = useState({ width: 320, height: 0 });
   return <View className="min-h-0 flex-1" {...responder(timer, disabled)}>
-    <Fade hidden={running} className="flex-row items-start gap-4 pt-1">
+    <Fade hidden={running} className={cn("flex-row items-start gap-4 pt-1", promptClassName)}>
       <View className="min-w-0 flex-1 gap-3">{prompt}</View>
       {visual ? <View className="shrink-0">{visual}</View> : null}
     </Fade>

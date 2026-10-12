@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { signIn, startServer } from "./app";
+import { signIn, startServer, desktopContext } from "./app";
 import { openDb } from "../../scripts/sqlite";
 
 const SHOTS = "artifacts/coaching";
@@ -24,7 +24,7 @@ const browser = await chromium.launch({
 });
 const errors: string[] = [];
 async function open(width = 1440, height = 900) {
-  const context = await browser.newContext({ viewport: { width, height } });
+  const context = await desktopContext(browser, { viewport: { width, height } });
   await context.grantPermissions(["camera", "microphone"], { origin });
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.stack ?? e.message));

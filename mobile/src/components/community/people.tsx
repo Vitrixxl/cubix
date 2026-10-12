@@ -1,7 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import { useSetAtom } from "jotai";
 import { Check, Copy, MessageSquare, Plus, Search, Share2, UserPlus, UserRoundX, Users } from "lucide-react-native";
-import { useEffect, useState, type ReactNode } from "react";
+import { Children, useEffect, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Share, View } from "react-native";
 import { plural } from "../../../../src/client/lib/format";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,9 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import type { Conversation, Group, Match, Person } from "../../../../src/client/lib/community";
+import { useLayout } from "../../hooks/useLayout";
 import { community } from "../../lib/social";
-import { routeAtom } from "../../state";
+import { replaceRouteAtom, routeAtom } from "../../state";
 import { Empty, ListSkeleton, Numeric, SearchField, Segmented } from "../layout";
 import { Sheet, SheetInput, SheetScrollView } from "../Sheet";
 import { Face, day, relative } from "../chat/kit";
@@ -97,7 +98,7 @@ function useFound(query: string) {
 }
 
 /** The link that adds the account as a friend, on a card: copied or shared in a tap. */
-function ShareLink() {
+export function ShareLink() {
   const link = community.shareLink(), [copied, setCopied] = useState(false);
   return <View accessibilityLabel={tr("Your link")} className="flex-row items-center gap-2 rounded-2xl bg-card py-2.5 pr-2.5 pl-3.5">
     <View className="min-w-0 flex-1">
@@ -118,8 +119,10 @@ type Filter = (typeof FILTERS)[number];
 /**
  * The Community tab: the search (a friend, a group or any player) and a new group, the filters, then the requests
  * waiting, the friends with the score of your battles and the groups, each opening its page; the link to share at the foot.
+ * On a tablet the friends and groups go in two columns; on a wide screen the page open beside (`selected`) is marked,
+ * and with none open the requests and the link go `aside`, in its place.
  */
-export function Contacts({ onNewGroup }: { onNewGroup: () => void }) {
+export function Contacts({ onNewGroup, selected, aside = false }: { onNewGroup: () => void; selected?: string; aside?: boolean }) {
   const m = community.me, [query, setQuery] = useState(""), [filter, setFilter] = useState<Filter>("all"), found = useFound(query), q = query.trim().toLowerCase(),
     friends = (m?.friends ?? []).filter(f => f.username.toLowerCase().includes(q)),
     groups = (m?.groups ?? []).filter(g => g.name.toLowerCase().includes(q)),
@@ -131,7 +134,8 @@ export function Contacts({ onNewGroup }: { onNewGroup: () => void }) {
   useEffect(() => {
     for (const c of community.conversations ?? []) if (c.kind === "direct" && !community.messages.has(c.id)) void community.load(`messages:${c.id}`);
   }, [community.conversations]);
-  return <View className="min-h-0 flex-1 gap-2.5 px-4 pt-3 pb-2">
+  const { tablet } = useLayout();
+  return <View className={cn("min-h-0 flex-1 gap-2.5 px-4 pt-3 pb-2", tablet && "px-7")}>
     <View className="flex-row items-center gap-2">
       <SearchField value={query} onChangeText={setQuery} placeholder={tr("A friend, a group or a Qbix player")} className="min-w-0 flex-1" />
       <Pill icon={Plus} text={tr("Group")} label={tr("New group")} tone="soft" onPress={onNewGroup} className="h-11" />
@@ -147,19 +151,26 @@ export function Contacts({ onNewGroup }: { onNewGroup: () => void }) {
         {!strangers.length ? <Text className="px-1 text-[13px] text-muted-foreground">{tr("No other player by that name.")}</Text>
           : strangers.map(p => <PersonRow key={p.id} p={p} detail={RELATION[p.relation] ? tr(RELATION[p.relation]) : undefined}><RelationAction p={p} /></PersonRow>)}
       </Part> : null}
-      {!q && (filter === "all" || filter === "requests") ? <Requests empty={filter === "requests"} /> : null}
+      {!q && ((filter === "all" && !aside) || filter === "requests") ? <Requests empty={filter === "requests"} /> : null}
       {filter === "all" || filter === "friends" ? <Part title={tr("Friends")} count={friends.length}>
         {!friends.length ? <Text className="px-1 text-[13px] text-muted-foreground">{q ? tr("No friend by that name.") : tr("No friend yet. Find players by their username, or share your link.")}</Text>
-          : friends.map(f => <FriendRow key={f.id} f={f} />)}
+          : <Cells>{friends.map(f => <FriendRow key={f.id} f={f} selected={selected} />)}</Cells>}
       </Part> : null}
       {filter === "all" || filter === "groups" ? <Part title={tr("Groups")} count={groups.length}>
         {!groups.length ? <Text className="px-1 text-[13px] text-muted-foreground">{q ? tr("No group by that name.") : tr("No group yet: make one for your club or your friends.")}</Text>
-          : groups.map(g => <Line key={g.id} view={peopleView("g", g.id)} face={<GroupMark size={44} />} name={g.name}
-            sub={[plural(g.members, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")} />)}
+          : <Cells>{groups.map(g => <Line key={g.id} view={peopleView("g", g.id)} on={peopleView("g", g.id) === selected} face={<GroupMark size={44} />} name={g.name}
+            sub={[plural(g.members, "member"), g.role === "owner" ? tr("you own it") : g.role === "admin" ? tr("you are admin") : ""].filter(Boolean).join(" · ")} />)}</Cells>}
       </Part> : null}
     </ScrollView>}
-    <ShareLink />
+    {!aside ? <ShareLink /> : null}
   </View>;
+}
+
+/** The items of a list in two columns on a tablet (unless `narrow`, in a side sheet), as they come on a phone. */
+function Cells({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
+  const { tablet } = useLayout();
+  if (!tablet || narrow) return <>{children}</>;
+  return <View className="-mx-1 flex-row flex-wrap">{Children.map(children, child => <View className="w-1/2 p-1">{child}</View>)}</View>;
 }
 
 /** A titled part of the list. */
@@ -170,11 +181,14 @@ function Part({ title, count, children }: { title: string; count?: number; child
   </View>;
 }
 
-/** A friend or a group in the list: the face, the name, a line under it, and on the right what stands between you; it opens their page. */
+/**
+ * A friend or a group in the list: the face, the name, a line under it, and on the right what stands between you; it
+ * opens their page, on a card on a tablet. On a wide screen the page opens beside the list, in place of the one open.
+ */
 function Line({ view, face, name, sub, end, on = false }: { view: string; face: ReactNode; name: string; sub: string; end?: ReactNode; on?: boolean }) {
-  const push = useSetAtom(routeAtom);
-  return <Pressable accessibilityRole="button" accessibilityLabel={name} onPress={() => push({ page: "community", view })}
-    className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-muted/60", on && "bg-accent")}>
+  const { tablet, wide } = useLayout(), push = useSetAtom(routeAtom), replace = useSetAtom(replaceRouteAtom);
+  return <Pressable accessibilityRole="button" accessibilityLabel={name} onPress={() => (wide ? replace : push)({ page: "community", view })}
+    className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-muted/60", tablet && "bg-card", on && "bg-accent")}>
     {face}
     <View className="min-w-0 flex-1">
       <Text numberOfLines={1} className="text-base font-bold tracking-tight">{name}</Text>
@@ -184,9 +198,9 @@ function Line({ view, face, name, sub, end, on = false }: { view: string; face: 
   </Pressable>;
 }
 
-function FriendRow({ f }: { f: Person & { since: number } }) {
+function FriendRow({ f, selected }: { f: Person & { since: number }; selected?: string }) {
   const c = directWith(f.id), messages = c && community.messages.get(c.id), t = tally(battlesIn(c)), waits = !!messages && waiting(messages).length > 0;
-  return <Line view={peopleView("u", f.id)} on={waits} face={<Face name={f.username} src={f.avatar} size={44} />} name={f.username} sub={tr("Friends since {0}", { 0: day(f.since) })}
+  return <Line view={peopleView("u", f.id)} on={waits || peopleView("u", f.id) === selected} face={<Face name={f.username} src={f.avatar} size={44} />} name={f.username} sub={tr("Friends since {0}", { 0: day(f.since) })}
     end={messages ? <View className="items-end">
       {waits ? <Text className="text-[13px] font-extrabold text-primary">{tr("waiting")}</Text>
         : <Numeric className={cn("text-[15px] font-extrabold", t.won > t.lost ? "text-success" : t.won < t.lost ? "text-destructive" : "text-foreground")}>{t.played ? `${t.won}–${t.lost}` : "–"}</Numeric>}
@@ -194,14 +208,14 @@ function FriendRow({ f }: { f: Person & { since: number } }) {
     </View> : null} />;
 }
 
-/** What waits for an answer, each in a card of its own: friend requests, group invitations, then the requests sent. */
-export function Requests({ empty, onDone }: { empty: boolean; onDone?: () => void }) {
+/** What waits for an answer, each in a card of its own: friend requests, group invitations, then the requests sent; in one column when `narrow`. */
+export function Requests({ empty, onDone, narrow }: { empty: boolean; onDone?: () => void; narrow?: boolean }) {
   const m = community.me;
   if (!m) return null;
   const count = m.incoming.length + m.invitations.length;
   if (!count && !m.outgoing.length) return empty ? <Empty icon={Check} className="flex-none p-6">{tr("Nothing waiting. Requests and invitations show here.")}</Empty> : null;
   return <Part title={tr("Requests")} count={count}>
-    <View className="gap-2">
+    <View className="gap-2"><Cells narrow={narrow}>
       {m.incoming.map(p => <View key={p.id} className="gap-2.5 rounded-2xl bg-card p-2.5">
         <View className="flex-row items-center gap-2.5">
           <Face name={p.username} src={p.avatar} size={30} />
@@ -227,7 +241,7 @@ export function Requests({ empty, onDone }: { empty: boolean; onDone?: () => voi
         <Text className="min-w-0 flex-1 text-[13px] text-muted-foreground">{tr("Sent to")} <Text className="text-[13px] font-bold text-foreground">{p.username}</Text> · {relative(p.at)}</Text>
         <TextLink onPress={() => void community.removeFriend(p.id)}>{tr("Take back")}</TextLink>
       </Dashed>)}
-    </View>
+    </Cells></View>
   </Part>;
 }
 

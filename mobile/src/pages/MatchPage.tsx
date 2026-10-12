@@ -20,8 +20,9 @@ import { Digits, LiveDigits, StopSurface, digitsSize, timerHint, useTimerChrome 
 import { ScrambleCube } from "../components/ScrambleCube";
 import { Sheet } from "../components/Sheet";
 import { toastAtom } from "../components/Toast";
-import { Cap, Fly, LiveDot, Ping, RaceScore, SolveActions, SolveTime, TimerCard, type Cell } from "../components/duel/parts";
+import { Cap, Fly, LiveDot, Ping, RaceScore, SidePanel, SolveActions, SolveTime, TimerCard, type Cell } from "../components/duel/parts";
 import { Face, useBack } from "../components/tournaments/format";
+import { useLayout } from "../hooks/useLayout";
 import { useTimer, type TimerApi } from "../hooks/useTimer";
 import { community, live, openUrl, useSocial } from "../lib/social";
 import { alpha, useColors } from "../theme";
@@ -32,6 +33,7 @@ import { said, tr } from "../../../src/client/i18n";
  * its conversation. Until both players are here, both faces and who is awaited; then the race stacks the players and the
  * score over the strip of the set's solves, the scramble, the player's own timer (hold, then release) and the set's
  * solves as a butterfly. Those who are not players watch it live. Once a player has won, the verdict and the way back.
+ * On a wide screen every solve, the match's line and the way back are a docked side panel beside the race.
  */
 export function MatchPage({ id }: { id: number }) {
   useSocial();
@@ -122,6 +124,7 @@ function Race({ m }: { m: Match }) {
     running = timer.phase === "running",
     myPhase: Phase = playing ? (timer.phase === "stopped" || timer.phase === "inspecting" ? "idle" : timer.phase) : live.phases[own];
   const [solvesOpen, setSolvesOpen] = useState(false), [cube, setCube] = useState(false);
+  const { tablet, wide } = useLayout();
   const rest = (k: number) => shownSolve((current ?? last)?.results[k] ?? undefined);
   const waiting = !m.present?.every(Boolean);
   // What a player is doing, under the name.
@@ -155,38 +158,49 @@ function Race({ m }: { m: Match }) {
   });
   const theirPhase = live.phases[other];
   const event = eventInfo(m.event);
-  return <View className="flex-1">
-    <Fade hidden={running}><Head m={m} forfeit={playing && !live.over} cube={cube} onCube={event && !live.over ? () => setCube(c => !c) : undefined} /></Fade>
-    <View className="min-h-0 flex-1 gap-2.5 px-4 pt-1 pb-3">
-      <Fade hidden={running} className="gap-2.5">
-        <RaceScore label={m.sets > 1 ? tr("Solves of the set") : tr("Solves")} unit={m.sets > 1 ? tr("sets") : undefined}
-          score={m.sets > 1 ? m.score.sets.slice() as [number, number] : [scoreOf(m)[own], scoreOf(m)[other]]}
-          players={[racer(own, myPhase), racer(other, theirPhase)]} cells={cells} />
-        <View className="flex-row items-center justify-between gap-3">
-          <Cap className="shrink-0">{[m.sets > 1 && tr("Set {0}", { 0: setNumber }), current && !live.over ? tr("Solve {0}", { 0: current.number }) : null].filter(Boolean).join(" · ") || tr("Solves")}</Cap>
-          <Outcome m={m} />
-        </View>
-        {live.over ? <Text className="text-center text-sm text-muted-foreground">{m.status === "cancelled" ? tr("This match was called off.") : tr("{0} solves raced.", { 0: m.solves?.length ?? 0 })}</Text>
-          : scramble ? <ScrollView style={{ maxHeight: 96 }} contentContainerClassName="items-center"><Alg text={scramble} size={scramble.length > 90 ? 15 : 18} className="justify-center" /></ScrollView>
-          : <Skeleton style={{ height: 24, width: "80%", alignSelf: "center" }} />}
-      </Fade>
-      {playing ? <TimerCard timer={timer} rest={rest(own)} hint={myHint} disabled={!live.canSolve}
-        top={cube && event && scramble ? <ScrambleCube puzzle={event.puzzle} cubeSize={puzzleInfo(event.puzzle).cubeSize} scramble={scramble} held={heldScramble("normal")} size={92} still={timer.phase !== "idle" && timer.phase !== "stopped"} /> : null}
-        actions={live.over ? null : <SolveActions last={mine} onPenalty={p => live.penalty(p)} canCancel={live.canCancel} onCancel={() => live.cancel()} />} />
-        : <Watch phase={myPhase} startedAt={live.started[own]} rest={rest(own)} name={nameOf(m, own)} />}
-      <Fade hidden={running}>
-        <Pressable accessibilityRole="button" accessibilityHint={tr("Every solve of the match")} onPress={() => setSolvesOpen(true)} className="gap-1.5 rounded-2xl bg-card px-3.5 py-3 active:bg-muted/60">
-          <View className="flex-row items-baseline justify-between gap-2">
-            <Text className="text-sm font-bold">{tr("Solves")}</Text>
-            <Numeric numberOfLines={1} className="shrink text-xs text-muted-foreground">{sets.slice(0, -1).map((s, i) => setLine(m, s, i, own)).join(" · ")}</Numeric>
+  return <View className="flex-1 flex-row">
+    <View className="flex-1">
+      <Fade hidden={running}><Head m={m} forfeit={playing && !live.over} cube={cube} onCube={event && !live.over ? () => setCube(c => !c) : undefined} /></Fade>
+      <View className={cn("min-h-0 flex-1 gap-2.5 px-4 pt-1 pb-3", tablet && "gap-4 px-7")}>
+        <Fade hidden={running} className="gap-2.5">
+          <RaceScore label={m.sets > 1 ? tr("Solves of the set") : tr("Solves")} unit={m.sets > 1 ? tr("sets") : undefined}
+            score={m.sets > 1 ? m.score.sets.slice() as [number, number] : [scoreOf(m)[own], scoreOf(m)[other]]}
+            players={[racer(own, myPhase), racer(other, theirPhase)]} cells={cells} />
+          <View className="flex-row items-center justify-between gap-3">
+            <Cap className="shrink-0">{[m.sets > 1 && tr("Set {0}", { 0: setNumber }), current && !live.over ? tr("Solve {0}", { 0: current.number }) : null].filter(Boolean).join(" · ") || tr("Solves")}</Cap>
+            <Outcome m={m} />
           </View>
-          {m.sets > 1 ? <Text className="text-xs font-bold text-muted-foreground">{tr("Set {0}", { 0: setNumber })}</Text> : null}
-          {set.length ? set.slice(-3).map(s => <Fly key={s.number} n={s.number} times={[s.results[own] ?? undefined, s.results[other] ?? undefined]}
-            best={s.winner === null ? null : s.winner === own ? 0 : 1} current={s === current && !live.over} />)
-            : <Text className="text-xs text-muted-foreground">{tr("The first solve decides the first point.")}</Text>}
-        </Pressable>
-      </Fade>
+          {live.over ? <Text className="text-center text-sm text-muted-foreground">{m.status === "cancelled" ? tr("This match was called off.") : tr("{0} solves raced.", { 0: m.solves?.length ?? 0 })}</Text>
+            : scramble ? <ScrollView style={{ maxHeight: 96 }} contentContainerClassName="items-center"><Alg text={scramble} size={scramble.length > 90 ? 15 : 18} className="justify-center" /></ScrollView>
+            : <Skeleton style={{ height: 24, width: "80%", alignSelf: "center" }} />}
+        </Fade>
+        {playing ? <TimerCard timer={timer} rest={rest(own)} hint={myHint} disabled={!live.canSolve}
+          top={cube && event && scramble ? <ScrambleCube puzzle={event.puzzle} cubeSize={puzzleInfo(event.puzzle).cubeSize} scramble={scramble} held={heldScramble("normal")} size={92} still={timer.phase !== "idle" && timer.phase !== "stopped"} /> : null}
+          actions={live.over ? null : <SolveActions last={mine} onPenalty={p => live.penalty(p)} canCancel={live.canCancel} onCancel={() => live.cancel()} />} />
+          : <Watch phase={myPhase} startedAt={live.started[own]} rest={rest(own)} name={nameOf(m, own)} />}
+        {wide ? null : <Fade hidden={running}>
+          <Pressable accessibilityRole="button" accessibilityHint={tr("Every solve of the match")} onPress={() => setSolvesOpen(true)} className="gap-1.5 rounded-2xl bg-card px-3.5 py-3 active:bg-muted/60">
+            <View className="flex-row items-baseline justify-between gap-2">
+              <Text className="text-sm font-bold">{tr("Solves")}</Text>
+              <Numeric numberOfLines={1} className="shrink text-xs text-muted-foreground">{sets.slice(0, -1).map((s, i) => setLine(m, s, i, own)).join(" · ")}</Numeric>
+            </View>
+            {m.sets > 1 ? <Text className="text-xs font-bold text-muted-foreground">{tr("Set {0}", { 0: setNumber })}</Text> : null}
+            {set.length ? set.slice(-3).map(s => <Fly key={s.number} n={s.number} times={[s.results[own] ?? undefined, s.results[other] ?? undefined]}
+              best={s.winner === null ? null : s.winner === own ? 0 : 1} current={s === current && !live.over} />)
+              : <Text className="text-xs text-muted-foreground">{tr("The first solve decides the first point.")}</Text>}
+          </Pressable>
+        </Fade>}
+      </View>
     </View>
+    {wide ? <Fade hidden={running}><SidePanel className="flex-1">
+      <Text accessibilityRole="header" className="text-base font-bold">{tr("Solves")}</Text>
+      <ScrollView className="min-h-0 flex-1"><Solves m={m} own={own} /></ScrollView>
+      <View className="gap-0.5 rounded-2xl bg-muted px-3.5 py-2.5">
+        <Text numberOfLines={1} className="text-xs text-muted-foreground">{[m.tournament, m.tournament ? tr("Round {0}", { 0: m.round }) : m.group].filter(Boolean).join(" · ")}</Text>
+        <Text className="text-sm font-bold">{[eventName(m.event), formatText(m)].join(" · ")}</Text>
+      </View>
+      <Button variant="secondary" className="h-11 rounded-xl" onPress={() => openUrl(home(m))}><Text>{m.tournamentId ? tr("Back to the tournament") : tr("Back to the conversation")}</Text></Button>
+    </SidePanel></Fade> : null}
     <Sheet open={solvesOpen} onClose={() => setSolvesOpen(false)} title={tr("Solves")} scroll><Solves m={m} own={own} /></Sheet>
     <Result m={m} />
     <SetFlash m={m} />

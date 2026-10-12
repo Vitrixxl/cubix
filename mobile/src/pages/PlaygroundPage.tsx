@@ -27,8 +27,8 @@ import {
 } from "../components/Practice";
 import { AppBar, SectionTabs } from "../components/AppBar";
 import { Caption, inspectionAtom, Pill, scrambleCubeShownAtom, sessionSheetAtom, timerFiguresAtom } from "../components/PuzzlePicker";
-import { rememberTimerSession, resumeTimerSession, Stat, TimesSheet, useTimerSessions } from "../components/TimesSheet";
-import { LastSolveBar } from "../components/SolveMenus";
+import { rememberTimerSession, resumeTimerSession, Stat, TimesPanel, TimesSheet, useTimerSessions } from "../components/TimesSheet";
+import { LastSolveBar, PillAction } from "../components/SolveMenus";
 import { ScrambleCube } from "../components/ScrambleCube";
 import { Sheet, SheetInput } from "../components/Sheet";
 import { useLayout } from "../hooks/useLayout";
@@ -42,14 +42,14 @@ export function PlaygroundPage() {
   return <TimerSession key={contextKey(context)} context={context} />;
 }
 
-/** Figures of the session card, as many to a row as fit: up to four, six in two rows of three. */
-const WIDTH: Record<number, string> = { 1: "w-full", 2: "w-1/2", 3: "w-1/3", 4: "w-1/4" };
+/** Figures of the session card, as many to a row as fit: up to four, six in two rows of three (up to six on a tablet). */
+const WIDTH: Record<number, string> = { 1: "w-full", 2: "w-1/2", 3: "w-1/3", 4: "w-1/4", 5: "w-1/5", 6: "w-1/6" };
 /** The colour dot of a figure of the session card. */
 const dotOf = (id: string) => id === "best" || id.endsWith(":best") ? "bg-success" : id === "worst" || id.endsWith(":worst") ? "bg-destructive"
   : id === "ao5" ? "bg-primary" : id === "ao12" ? "bg-chart-2" : id === "mean" ? "bg-warning" : /^ao\d+$/.test(id) ? "bg-primary" : "bg-muted-foreground";
 
 function TimerSession({ context }: { context: PracticeContext }) {
-  const { height } = useLayout();
+  const { height, tablet, wide } = useLayout();
   const info = puzzleInfo(context.puzzle);
   const entry = useAtomValue(timeEntryAtom);
   const inspection = useAtomValue(inspectionAtom);
@@ -60,6 +60,8 @@ function TimerSession({ context }: { context: PracticeContext }) {
   const [scramble, setScramble] = useAtom(playgroundScrambleAtom);
   const [solves, setSolves] = useSessionSolves("playground", context);
   const [times, setTimes] = useState<null | "list" | "calendar">(null);
+  // Docked beside the timer on a wide screen, the session shows its calendar in place of its times.
+  const [panelCalendar, setPanelCalendar] = useState(false);
   const [editingFigures, setEditingFigures] = useState(false);
   // The time just recorded keeps its actions in the bar until the next attempt or its deletion.
   const [lastSolveId, setLastSolveId] = useState<number | null>(null);
@@ -100,18 +102,27 @@ function TimerSession({ context }: { context: PracticeContext }) {
 
   // The scramble played on its 3D puzzle, beside it.
   const held = heldScramble(context.scrambleType);
-  const previewSize = height < 700 ? 0 : height < 780 ? 60 : 72;
-  // Long scrambles get smaller moves, Megaminx ones (R++ D--) the smallest.
-  const promptFont = /\+\+|--/.test(scramble) ? 13 : scramble.length > 90 ? 16 : 20;
+  const previewSize = tablet ? (height < 600 ? 72 : wide ? 104 : 140) : height < 700 ? 0 : height < 780 ? 60 : 72;
+  // Long scrambles get smaller moves, Megaminx ones (R++ D--) the smallest; a tablet reads them from further away.
+  const promptFont = Math.round((/\+\+|--/.test(scramble) ? 13 : scramble.length > 90 ? 16 : 20) * (tablet ? (wide ? 1.15 : 1.5) : 1));
+  // The digits grow with a tablet's room (the mockup's 190 px in portrait, 150 px sideways).
+  const digitsMax = tablet ? (wide ? 150 : 190) : undefined;
   const loading = generating && (slow || !scramble) || !scramble && !generationError;
   const scrambleTarget = useTourTarget("scramble"), timerTarget = useTourTarget("timer"), sessionTarget = useTourTarget("session");
 
-  const prompt = <View {...scrambleTarget} className="overflow-hidden" style={{ maxHeight: Math.round(height * 0.24) }}>
+  // The scramble's settings as pills: under the bar on a phone, in the scramble's card on a tablet.
+  const settings = <>
+    <Pill label={tr("Scramble")} value={tr(scrambleLabel(context.scrambleType))} trailing={ChevronDown} onPress={() => openSheet("timer")} />
+    <Pill label={tr("Entry")} value={said(TIME_ENTRIES.find(e => e.id === entry)?.label ?? entry)} trailing={ChevronDown} onPress={() => openSheet("timer")} />
+    {!blind && !typing && <Pill label={tr("Inspection")} value={said(INSPECTIONS.find(i => i.id === inspection)?.label ?? inspection)} trailing={ChevronDown} onPress={() => openSheet("timer")} />}
+  </>;
+  const scrambleText = <View {...scrambleTarget} className="overflow-hidden" style={{ maxHeight: Math.round(height * 0.24) }}>
     {loading
       ? <View accessibilityLabel={tr("Generating a scramble")} className="gap-2"><Skeleton className="w-[92%]" style={{ height: promptFont * 1.2 }} /><Skeleton className="w-[58%]" style={{ height: promptFont * 1.2 }} /></View>
       : generationError ? <Alert variant="destructive" action={<Button size="sm" variant="outline" onPress={() => void generateNext()}><Text>{tr("Retry")}</Text></Button>}>{generationError}</Alert>
       : <Alg text={scramble} size={promptFont} />}
   </View>;
+  const prompt = tablet ? <>{scrambleText}<View className="flex-row flex-wrap gap-2">{settings}</View></> : scrambleText;
   const visual = <View className="items-center gap-1">
     {cubeShown && previewSize > 0 && scramble && !loading ? <ScrambleCube puzzle={context.puzzle} cubeSize={info.cubeSize} scramble={scramble} held={held} size={previewSize} still={busy} /> : null}
     <View className="flex-row">
@@ -130,59 +141,73 @@ function TimerSession({ context }: { context: PracticeContext }) {
     : timerHint(timer, { unsaved: entry === "casual", disabled: !scramble || generating ? tr("One moment…") : false });
   const event = tr(eventOf(context.puzzle, context.solveMode)?.label ?? info.label);
   const sessions = useTimerSessions(context), session = sessions.list.find(x => x.id === sessions.current);
+  const editFigures = <Pressable accessibilityRole="button" accessibilityLabel={tr("Choose the figures")} hitSlop={8} onPress={() => setEditingFigures(true)} className="size-8 items-center justify-center rounded-full active:bg-muted">
+    <Icon as={Pencil} size={16} className="text-muted-foreground" />
+  </Pressable>;
+  // A row of up to six on a tablet's card; three to a row in the docked panel.
+  const figureGrid = (columns: number) => <View className="min-w-0 flex-1 flex-row flex-wrap gap-y-2">
+    {figures.map(([label, value, , id]) => <Stat key={id} label={label} value={value} dot={dotOf(id)} className={WIDTH[columns]} />)}
+  </View>;
+  const columns = tablet && figures.length <= 6 ? figures.length : figures.length <= 4 ? figures.length : figures.length === 6 ? 3 : 4;
 
   return <View className="flex-1">
-    <Fade hidden={running}>
-      <AppBar title={tr("Timer")} scramble>
-        <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => setTimes("calendar")} />
-        <HeadButton icon={Bluetooth} label={tr("Connect a cube")} onPress={() => openGuide("smartCube")} />
-      </AppBar>
-      <SectionTabs />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="gap-2 px-4 pt-2.5 pb-1">
-        <Pill label={tr("Scramble")} value={tr(scrambleLabel(context.scrambleType))} trailing={ChevronDown} onPress={() => openSheet("timer")} />
-        <Pill label={tr("Entry")} value={said(TIME_ENTRIES.find(e => e.id === entry)?.label ?? entry)} trailing={ChevronDown} onPress={() => openSheet("timer")} />
-        {!blind && !typing && <Pill label={tr("Inspection")} value={said(INSPECTIONS.find(i => i.id === inspection)?.label ?? inspection)} trailing={ChevronDown} onPress={() => openSheet("timer")} />}
-      </ScrollView>
-    </Fade>
-    <View className="min-h-0 flex-1 px-4 pt-2 pb-3">
-      <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
-        readout={area => <View {...timerTarget} className="w-full items-center">
-          {typing
-            ? <TypedTime size={digitsSize(area, 6)} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message}
-              onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} />
-            : <>
-              {inspecting ? <InspectionDigits timer={timer} area={area} show={inspection === "display" || inspection === "both"} speak={inspection === "voice" || inspection === "both"} />
-                : <TimerDigits timer={timer} area={area} />}
-              <Hint notice={running ? null : notice} hidden={running && !blind}>{hint}</Hint>
-              <SaveError timer={timer} />
-            </>}
-        </View>}
-        bar={<View className="gap-2.5">
-          {/* The shared row of the last five sets its own top margin (mt-6), for a place under the digits. */}
-          <View className="-mt-6"><AverageWindow solves={shown} hidden={running} /></View>
-          <LastSolveBar look="pills" solve={saving ? null : lastSolve} />
-        </View>} />
-      <Fade hidden={running} className="pt-2.5">
-        <View {...sessionTarget}>
-          <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times")} onPress={() => setTimes("list")} className="gap-2 rounded-2xl bg-card p-3 active:bg-card/80">
-            <View className="flex-row items-center gap-2">
-              <Icon as={ListOrdered} size={16} className="text-foreground" />
-              <Text numberOfLines={1} className="min-w-0 shrink text-[13px] font-bold">
-                {session?.name || shortDate(session?.at ?? new Date().toISOString())} · {plural(shown.length, "solve")}
-                {summary.ao5 != null ? <Text className="text-[13px] font-bold text-chart-2"> · {tr("Ao5")} {fmtTime(summary.ao5)}</Text> : null}
-              </Text>
-              <View className="flex-1" />
-              <Pressable accessibilityRole="button" accessibilityLabel={tr("Choose the figures")} hitSlop={8} onPress={() => setEditingFigures(true)} className="size-8 items-center justify-center rounded-full active:bg-muted">
-                <Icon as={Pencil} size={16} className="text-muted-foreground" />
+    <View className="min-h-0 flex-1 flex-row">
+      <View className="min-w-0 flex-1">
+        <Fade hidden={running}>
+          <AppBar title={tr("Timer")} scramble>
+            <HeadButton icon={CalendarDays} label={tr("Sessions calendar")} onPress={() => wide ? setPanelCalendar(true) : setTimes("calendar")} />
+            <HeadButton icon={Bluetooth} label={tr("Connect a cube")} onPress={() => openGuide("smartCube")} />
+          </AppBar>
+          <SectionTabs />
+          {!tablet && <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="gap-2 px-4 pt-2.5 pb-1">{settings}</ScrollView>}
+        </Fade>
+        <View className={cn("min-h-0 flex-1 px-4 pt-2 pb-3", tablet && "px-7 pt-4")}>
+          <Stage timer={timer} disabled={typing || !!timer.saveError} running={running} prompt={prompt} visual={visual}
+            promptClassName={tablet ? "gap-5 rounded-3xl bg-card px-5 py-4" : undefined}
+            readout={area => <View {...timerTarget} className="w-full items-center">
+              {typing
+                ? <TypedTime size={digitsSize(area, 6, digitsMax)} disabled={saving || generating || !scramble || !!generationError || !!typedError} error={typedError?.message}
+                  onRetry={() => typedError && submitTyped(typedError.ms)} onSubmit={submitTyped} />
+                : <>
+                  {inspecting ? <InspectionDigits timer={timer} area={area} max={digitsMax} show={inspection === "display" || inspection === "both"} speak={inspection === "voice" || inspection === "both"} />
+                    : <TimerDigits timer={timer} area={area} max={digitsMax} />}
+                  <Hint notice={running ? null : notice} hidden={running && !blind}>{hint}</Hint>
+                  <SaveError timer={timer} />
+                </>}
+            </View>}
+            bar={<View className="gap-2.5">
+              {/* The shared row of the last five sets its own top margin (mt-6), for a place under the digits. */}
+              <View className={cn("-mt-6", tablet && "items-center")}><AverageWindow solves={shown} hidden={running} large={tablet} /></View>
+              {/* A tablet has room for the next scramble in the row, under the thumb, as the fifth action. */}
+              <LastSolveBar look="pills" solve={saving ? null : lastSolve}
+                extra={tablet ? <PillAction primary icon={Shuffle} label={tr("Next")} accessibilityLabel={tr("Next scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} /> : undefined} />
+            </View>} />
+          {!wide && <Fade hidden={running} className="pt-2.5">
+            <View {...sessionTarget}>
+              <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times")} onPress={() => setTimes("list")} className="gap-2 rounded-2xl bg-card p-3 active:bg-card/80">
+                <View className="flex-row items-center gap-2">
+                  <Icon as={ListOrdered} size={16} className="text-foreground" />
+                  <Text numberOfLines={1} className="min-w-0 shrink text-[13px] font-bold">
+                    {session?.name || shortDate(session?.at ?? new Date().toISOString())} · {plural(shown.length, "solve")}
+                    {summary.ao5 != null ? <Text className="text-[13px] font-bold text-chart-2"> · {tr("Ao5")} {fmtTime(summary.ao5)}</Text> : null}
+                  </Text>
+                  <View className="flex-1" />
+                  {editFigures}
+                  <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
+                </View>
+                <View className="flex-row">{figureGrid(columns)}</View>
               </Pressable>
-              <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
             </View>
-            <View className="flex-row flex-wrap gap-y-2">
-              {figures.map(([label, value, , id]) => <Stat key={id} label={label} value={value} dot={dotOf(id)} className={WIDTH[figures.length <= 4 ? figures.length : figures.length === 6 ? 3 : 4]} />)}
-            </View>
-          </Pressable>
+          </Fade>}
         </View>
-      </Fade>
+      </View>
+      {/* On a wide screen the session is docked at the right: its head, the chosen figures and its times, always shown. */}
+      {wide && <Fade hidden={running} className="w-[360px] py-3 pr-4">
+        <View {...sessionTarget} className="min-h-0 flex-1">
+          <TimesPanel solves={shown} title={event} context={context} calendar={panelCalendar} onCalendar={setPanelCalendar}
+            figures={<View className="mx-4 flex-row items-start rounded-2xl bg-card p-3">{figureGrid(3)}{editFigures}</View>} />
+        </View>
+      </Fade>}
     </View>
     <TimesSheet open={times !== null} calendar={times === "calendar"} onClose={() => setTimes(null)} solves={shown} title={event} context={context} />
     <FiguresSheet open={editingFigures} onClose={() => setEditingFigures(false)} />
@@ -202,7 +227,7 @@ function IconButton({ icon, label, onPress, disabled }: { icon: typeof Shuffle; 
  * A WCA inspection: in the digits, when `show`, the seconds left from 15, then +2, then DNF (the penalty the start
  * would get); when `speak`, the judge's calls at 8 and 12 seconds (a voice where the device has one, a buzz always).
  */
-function InspectionDigits({ timer, area, show, speak }: { timer: TimerApi; area: { width: number; height: number }; show: boolean; speak: boolean }) {
+function InspectionDigits({ timer, area, max, show, speak }: { timer: TimerApi; area: { width: number; height: number }; max?: number; show: boolean; speak: boolean }) {
   const since = timer.inspectedAt!;
   const [now, setNow] = useState(() => performance.now());
   useEffect(() => { const interval = setInterval(() => setNow(performance.now()), 100); return () => clearInterval(interval); }, []);
@@ -220,7 +245,7 @@ function InspectionDigits({ timer, area, show, speak }: { timer: TimerApi; area:
   }, [since, speak]);
   const elapsed = now - since;
   const text = !show ? "0.000" : elapsed < INSPECTION_MS ? String(Math.ceil((INSPECTION_MS - elapsed) / 1000)) : elapsed < INSPECTION_DNF_MS ? "+2" : tr("DNF");
-  return <Digits text={text} phase={timer.phase} size={digitsSize(area, 6)} />;
+  return <Digits text={text} phase={timer.phase} size={digitsSize(area, 6, max)} />;
 }
 
 /** The figures most asked for, offered as they are; any average can still be one of the chosen. */

@@ -63,13 +63,16 @@ export function ConversationList({ query, onQuery, children, className }: { quer
  * A conversation in the list: the face, the name (with `tag` after it) and the last words, then when it last moved
  * and the count unread. `act` tints it while something there waits for the account (a battle not seen yet).
  */
-export function ConversationRow({ onPress, face, name, tag, at, icon, preview, unread, act = false }: {
+export function ConversationRow({ onPress, face, name, tag, at, icon, preview, unread, act = false, on = false }: {
   onPress: () => void; face: ReactNode; name: string;
+  /** The one open beside the list, on a wide screen. */
+  on?: boolean;
   /** A word after the name: what the other is to the account, a group's size. */
   tag?: string | number; at?: number; icon?: LucideIcon | null; preview: string; unread: number; act?: boolean;
 }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={unread ? tr("{0}, {1} unread", { 0: name, 1: unread }) : name} onPress={onPress}
-    className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-muted/60", act && "bg-primary/10")}>
+    accessibilityState={{ selected: on }}
+    className={cn("min-h-16 flex-row items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-muted/60", act && "bg-primary/10", on && "bg-accent")}>
     {face}
     <View className="min-w-0 flex-1 gap-0.5">
       <View className="flex-row items-baseline gap-1.5">
@@ -111,6 +114,24 @@ export function ChatHeader({ back, face, title, sub, onOpen, openLabel, children
       : <View className="min-w-0 shrink flex-row items-center gap-2.5 px-1">{who}</View>}
     {children ? <View className="ml-auto shrink-0 flex-row items-center gap-1.5 pl-2">{children}</View> : null}
   </View>;
+}
+
+/**
+ * The panes of a wide screen (a tablet held sideways, a laptop), where a list and the item open from it show side by
+ * side: `Pane`, the card holding the open item beside its list; `Docked`, a side sheet docked at the right of a page,
+ * always visible; `Columns` and `Column`, a pushed page's two columns on a tablet, plain children otherwise.
+ */
+export function Pane({ children, className }: { children: ReactNode; className?: string }) {
+  return <View className={cn("min-h-0 flex-1 overflow-hidden rounded-3xl bg-card", className)}>{children}</View>;
+}
+export function Docked({ children }: { children: ReactNode }) {
+  return <View className="my-3 mr-3 w-[400px] overflow-hidden rounded-[26px] border border-border bg-card">{children}</View>;
+}
+export function Columns({ split, children }: { split: boolean; children: ReactNode }) {
+  return split ? <View className="flex-row items-start gap-6">{children}</View> : <>{children}</>;
+}
+export function Column({ split, children, className }: { split: boolean; children: ReactNode; className?: string }) {
+  return split ? <View className={cn("min-w-0 flex-1 gap-3", className)}>{children}</View> : <>{children}</>;
 }
 
 /** What a message needs to take its place: who sent it and when. */

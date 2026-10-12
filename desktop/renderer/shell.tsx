@@ -359,7 +359,7 @@ export const PhoneTop = memo(function PhoneTop() {
   );
 });
 
-/** Phone navigation: the five sections at the thumb, the current one in the accent. */
+/** Phone navigation: the five sections at the thumb as icons only (a label would push the others), the current one in the accent. */
 export const TabBar = memo(function TabBar() {
   useShell();
   const section = currentSection();
@@ -377,14 +377,14 @@ export const TabBar = memo(function TabBar() {
             data-action={"nav:" + page}
             data-section={id}
             aria-current={here ? "page" : undefined}
+            aria-label={said(short)}
             to={pageTo(page)}
-            className={cn("flex min-w-0 flex-col items-center gap-0.5 rounded-xl py-1 text-[11px] font-semibold text-faint transition-colors", FOCUS, here && "text-foreground")}
+            className={cn("flex min-w-0 items-center justify-center rounded-xl py-1 text-faint transition-colors", FOCUS, here && "text-foreground")}
           >
-            <span className={cn("relative flex h-8 w-full max-w-14 items-center justify-center rounded-xl transition-colors", here && "bg-primary/15 text-primary")}>
+            <span className={cn("relative flex h-10 w-full max-w-14 items-center justify-center rounded-xl transition-colors", here && "bg-primary/15 text-primary")}>
               <I className="size-5" />
-              <Dot n={sectionWaiting(id)} className="top-1 left-1/2 ml-2" />
+              <Dot n={sectionWaiting(id)} className="top-1.5 left-1/2 ml-2" />
             </span>
-            <span className="max-w-full truncate">{said(short)}</span>
           </Link>
         );
       })}

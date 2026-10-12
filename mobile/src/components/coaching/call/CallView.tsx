@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { useLayout } from "../../../hooks/useLayout";
 import { enterCall, type Call } from "../../../lib/call";
 import { goBackAtom } from "../../../state";
 import { BackButton, Empty, Page, PageHead, Surface } from "../../layout";
@@ -23,7 +24,8 @@ import { Movable, type Place } from "./Movable";
  * A session's call, alone on its page (the web's coaching/callView.tsx, phone layout): the other party large, with who
  * and until when above them and the controls over the bottom of the picture, oneself small in a corner (moved by
  * dragging, turned to the other camera from it), the chat under it on demand. Leaving the page, or Android's back,
- * keeps the call going in a floating window (Floating.tsx).
+ * keeps the call going in a floating window (Floating.tsx). On a tablet the controls are larger; on a wide screen the
+ * chat stands beside the picture rather than under it.
  */
 export function CallView({ id }: { id: string }) {
   const c = useCoaching(), nav = useCoachingNav();
@@ -67,7 +69,8 @@ function Room({ b, now }: { b: Booking; now: number }) {
   useEffect(() => setToast(t => (t?.id === "coaching-call-" + b.id ? null : t)), [b.id]);
   const conversation = coaching.conversations?.find(c => c.id === b.conversationId);
   const peerVideo = seesPeer(call), status = callStatus(call), ended = call.phase === "ended";
-  return <Page>
+  const { tablet, wide } = useLayout(), big = tablet ? "h-14 w-16 rounded-2xl" : undefined;
+  return <Page className={wide ? "flex-row" : undefined}>
     {/* The picture's room stays dark whatever the theme, its words light over it. */}
     <View className="min-h-0 flex-1 overflow-hidden rounded-xl bg-black" testID="call-stage">
       {peerVideo ? <RTCView key={call.remote.getVideoTracks()[0]!.id} streamURL={call.remote.toURL()} objectFit="contain" zOrder={0} style={FILL} /> : null}
@@ -89,19 +92,19 @@ function Room({ b, now }: { b: Booking; now: number }) {
       <View className="absolute inset-x-0 bottom-0 items-center gap-2 px-3 pt-10 pb-4" style={shade("top", 0.7)}>
         {call.notice && !ended ? <Text className="text-center text-xs text-white/60">{tr(call.notice)}</Text> : null}
         <View className="flex-row items-center justify-center gap-2" testID="call-controls">
-          <Control off={!call.mic} disabled={!call.devices.audio} onPress={() => call.toggleMic()} label={call.mic ? tr("Mute") : tr("Unmute")} icon={call.mic ? Mic : MicOff} />
-          <Control off={!call.camera} disabled={!call.devices.video} onPress={() => call.toggleCamera()} label={call.camera ? tr("Turn the camera off") : tr("Turn the camera on")} icon={call.camera ? Video : VideoOff} />
-          <Control active={chat} onPress={() => setChat(!chat)} label={chat ? tr("Hide the chat") : tr("Show the chat")} icon={MessageSquare} />
+          <Control off={!call.mic} disabled={!call.devices.audio} onPress={() => call.toggleMic()} label={call.mic ? tr("Mute") : tr("Unmute")} icon={call.mic ? Mic : MicOff} className={big} />
+          <Control off={!call.camera} disabled={!call.devices.video} onPress={() => call.toggleCamera()} label={call.camera ? tr("Turn the camera off") : tr("Turn the camera on")} icon={call.camera ? Video : VideoOff} className={big} />
+          <Control active={chat} onPress={() => setChat(!chat)} label={chat ? tr("Hide the chat") : tr("Show the chat")} icon={MessageSquare} className={big} />
           {/* Back where the player came from, the call floating in a corner. */}
-          {!ended ? <Control onPress={() => pop() || nav.go("sessions", true)} label={tr("Keep the call in a corner and browse the app")} icon={PictureInPicture2} /> : null}
-          <Button variant="destructive" className="h-11 rounded-lg px-4" testID="call-leave" onPress={() => { call.close(); nav.go("sessions", true); }}>
+          {!ended ? <Control onPress={() => pop() || nav.go("sessions", true)} label={tr("Keep the call in a corner and browse the app")} icon={PictureInPicture2} className={big} /> : null}
+          <Button variant="destructive" className={cn("h-11 rounded-lg px-4", tablet && "h-14 rounded-2xl px-5")} testID="call-leave" onPress={() => { call.close(); nav.go("sessions", true); }}>
             <Icon as={PhoneOff} size={18} className="text-white" />
             <Text className="text-white">{tr("Leave")}</Text>
           </Button>
         </View>
       </View>
     </View>
-    {chat && conversation ? <Surface className="h-[45%]" accessibilityLabel={tr("Chat")}>
+    {chat && conversation ? <Surface className={wide ? "w-[380px]" : "h-[45%]"} accessibilityLabel={tr("Chat")}>
       <Chat conversation={conversation} head={false} />
     </Surface> : null}
   </Page>;

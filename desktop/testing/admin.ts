@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { signIn, startServer } from "./app";
+import { signIn, startServer, desktopContext } from "./app";
 import { createApiClient } from "../../src/client/api-client";
 
 const SHOTS = "artifacts/login-admin";
@@ -94,7 +94,7 @@ const nav = async (page: Page, phone: boolean, view: string) => {
  * once with a message and the username; signing in again closes it; signing out opens it again. */
 async function appSession(token: string) {
   for (const [width, height, tag] of [[390, 844, "phone"], [1440, 900, "desktop"]] as const) {
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: tag === "phone" ? 2 : 1 });
+    const context = await desktopContext(browser, { viewport: { width, height }, deviceScaleFactor: tag === "phone" ? 2 : 1 });
     const page = await context.newPage();
     await page.goto(origin + "/login");
     await page.waitForSelector(".login");
@@ -139,7 +139,7 @@ try {
     [390, 844, true],
   ] as const) {
     const tag = phone ? "phone" : "desktop";
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: phone ? 2 : 1 });
+    const context = await desktopContext(browser, { viewport: { width, height }, deviceScaleFactor: phone ? 2 : 1 });
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));

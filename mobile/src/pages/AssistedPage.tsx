@@ -29,6 +29,7 @@ import { Pulse, ViewButtons } from "../components/AlgPlayer";
 import { StaticCubeSvg } from "../components/StaticCubeSvg";
 import { generatePracticeScramble } from "../lib/practiceScramble";
 import { useReducedMotion } from "../hooks/useReducedMotion";
+import { useLayout } from "../hooks/useLayout";
 import { courseProgressAtom, goBackAtom, replaceRouteAtom } from "../state";
 import { said, tr } from "../../../src/client/i18n";
 
@@ -74,7 +75,7 @@ export function AssistedPage() {
  * the content down to the safe area.
  */
 function Frame({ phase, back, close, children }: { phase: number; back: () => void; close: () => void; children: ReactNode }) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets(), { tablet } = useLayout();
   return <View className="flex-1" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
     <PushedBar title={tr("With my cube")} onBack={back}>
       <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={close} className="size-11 items-center justify-center rounded-full active:bg-muted">
@@ -96,13 +97,13 @@ function Frame({ phase, back, close, children }: { phase: number; back: () => vo
         </View>;
       })}
     </View>
-    <View className="min-h-0 flex-1 gap-2.5 px-4">{children}</View>
+    <View className={cn("min-h-0 flex-1 gap-2.5 px-4", tablet && "gap-3 px-7")}>{children}</View>
   </View>;
 }
 
 /** How Qbix sees the cube: the camera or the colours by hand, each a tile; then a scramble for a cube already solved. */
 function Choose({ onChoose }: { onChoose: (way: "scan" | "hand") => void }) {
-  const [scramble, setScramble] = useState("");
+  const [scramble, setScramble] = useState(""), { tablet } = useLayout();
   useEffect(() => {
     let live = true;
     void generatePracticeScramble({ puzzle: "333", solveMode: "standard", scrambleType: "normal" }).then(s => { if (live) setScramble(s); }, () => {});
@@ -113,8 +114,11 @@ function Choose({ onChoose }: { onChoose: (way: "scan" | "hand") => void }) {
       <Text accessibilityRole="header" className="text-center text-2xl font-extrabold tracking-[-0.04em]">{tr("How does Qbix see your cube?")}</Text>
       <Text className="text-center text-sm text-muted-foreground">{tr("It plans a solve with the six steps of the course, then tells you each turn to make.")}</Text>
     </View>
-    <WayTile icon={Camera} title={tr("Show the faces")} text={tr("Hold each face up to the camera: its colours are read for you.")} meta={tr("Six faces, one at a time")} onPress={() => onChoose("scan")} />
-    <WayTile icon={Paintbrush} title={tr("By hand")} text={tr("Paint the colours of each face on a flat cube.")} meta={tr("No camera needed")} onPress={() => onChoose("hand")} />
+    {/* The two ways side by side on a tablet. */}
+    <View className={cn("min-h-0 flex-1 gap-2.5", tablet && "flex-row gap-3")}>
+      <WayTile icon={Camera} title={tr("Show the faces")} text={tr("Hold each face up to the camera: its colours are read for you.")} meta={tr("Six faces, one at a time")} onPress={() => onChoose("scan")} />
+      <WayTile icon={Paintbrush} title={tr("By hand")} text={tr("Paint the colours of each face on a flat cube.")} meta={tr("No camera needed")} onPress={() => onChoose("hand")} />
+    </View>
     <View className="flex-row items-center gap-3 rounded-[20px] bg-card px-4 py-3">
       <StaticCubeSvg state={solved(3)} size={48} />
       <View className="min-w-0 flex-1 gap-0.5">
@@ -193,7 +197,8 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
     [box, setBox] = useState(0),
     [view] = useState(() => new CubeView()),
     [course, setCourse] = useAtom(courseProgressAtom),
-    replace = useSetAtom(replaceRouteAtom);
+    replace = useSetAtom(replaceRouteAtom),
+    { tablet, wide } = useLayout();
   const part = plan?.parts[at.part],
     turns = part ? turnsOf(part.alg) : [],
     finished = !!plan?.parts.length && at.part >= plan.parts.length,
@@ -275,60 +280,72 @@ function Solve({ start, back, leave, rescan }: { start: CubeState; back: () => v
   const inStep = plan.parts.filter(p => p.step === step),
     shown = turns[at.made]!,
     words = turnWords(shown);
+  // The turn in words grows with a tablet's room; a wide screen docks the part and the help at the right.
+  const turnSize = tablet ? (wide ? 120 : 150) : 72;
+  const stage = <View className={cn("min-h-0 flex-1 flex-row items-center gap-3 rounded-3xl bg-card p-3.5", tablet && "gap-6 p-6")} accessibilityLiveRegion="polite">
+    <View className="h-full min-w-0 flex-1 items-center justify-center" onLayout={e => { const { width, height } = e.nativeEvent.layout; setBox(Math.floor(Math.min(width, height))); }}>
+      {box > 0 && <SolveCube state={at.state} turn={at.turn} size={box} view={view} />}
+      <View className={cn("absolute top-1/2 -right-1 -mt-4 size-8 items-center justify-center rounded-[10px] bg-primary/20", tablet && "-mt-6 size-12 rounded-[14px]")}><Icon as={words.arrow} size={tablet ? 26 : 18} className="text-primary" /></View>
+      <ViewButtons player={view} compact className="absolute bottom-0" />
+    </View>
+    <View className={cn("w-36 gap-1", tablet && "w-64 gap-2")}>
+      <Label className={CAP}>{tr("Turn {0} of {1} in this part", { 0: at.made + 1, 1: turns.length })}</Label>
+      <Text className="font-sans font-extrabold tracking-[-0.04em] text-primary" style={{ fontSize: turnSize, lineHeight: Math.round(turnSize * 1.03) }}>{said(shown)}</Text>
+      <Text className={cn("text-xl font-extrabold tracking-[-0.03em]", tablet && "text-3xl")}>{words.face}</Text>
+      <Text className={cn("text-base text-muted-foreground", tablet && "text-xl")}>{words.way}</Text>
+    </View>
+  </View>;
+  const partCard = <View className="gap-2 rounded-3xl bg-card px-3.5 py-3" accessibilityLabel={tr("Current turns")}>
+    <Text numberOfLines={1} className="text-[13px] font-bold text-primary">
+      {tr("Step {0}", { 0: step + 1 })} · {said(STEPS[step]!.title)}{inStep.length > 1 ? ` · ${tr("{0} of {1}", { 0: inStep.indexOf(part!) + 1, 1: inStep.length })}` : ""}
+    </Text>
+    <View className="flex-row items-center gap-2.5">
+      {part!.piece && <Piece faces={part!.piece} />}
+      <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-extrabold tracking-[-0.02em]">{said(part!.label)}</Text>
+    </View>
+    <Tape turns={turns} made={at.made} />
+    <View className="flex-row items-center justify-between gap-2">
+      <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-x-1.5">
+        {part!.gesture && <>
+          <Text className="text-[13px] text-muted-foreground">{tr("The course's algorithm")}</Text>
+          <Alg text={part!.gesture.alg} size={14} />
+          {part!.gesture.times > 1 && <Text className="text-[13px] text-muted-foreground">· {tr("{0} times", { 0: part!.gesture.times })}</Text>}
+        </>}
+      </View>
+      <Pressable onPress={lesson} accessibilityRole="button" accessibilityLabel={tr("Review the lesson")} className="min-h-10 flex-row items-center gap-0.5">
+        <Text className="text-[13px] font-bold text-primary">{tr("Lesson")}</Text><Icon as={ChevronRight} size={14} className="text-primary" />
+      </Pressable>
+    </View>
+  </View>;
+  const progress = <View className="flex-row items-center gap-3">
+    <Text className="text-[13px] font-bold text-muted-foreground">{tr("Turns")}</Text>
+    <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><View className="h-full rounded-full bg-success" style={{ width: `${(done / total) * 100}%` }} /></View>
+    <Numeric className="text-[13px] font-bold">{done} / {total}</Numeric>
+    <Text className="text-[13px] font-bold text-muted-foreground">{tr("Time")}</Text>
+    <Numeric className="text-[13px] font-bold">{time}</Numeric>
+  </View>;
+  const next = <View className="flex-row gap-2">
+    <Button variant="secondary" size="icon" className="h-14 w-14 rounded-2xl" accessibilityLabel={tr("Previous turn")} disabled={!at.part && !at.made} onPress={previous}>
+      <Icon as={ChevronLeft} size={22} />
+    </Button>
+    <Button className="h-14 flex-1 rounded-2xl" onPress={forward}><Text className="text-lg font-extrabold">{tr("Done, next turn")}</Text></Button>
+  </View>;
+  const help = <View className="flex-row gap-2">
+    <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={() => setLost(true)}><Icon as={Info} size={17} /><Text>{tr("I'm lost")}</Text></Button>
+    <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={() => again()}><Icon as={ScanLine} size={17} /><Text>{tr("Read the cube again")}</Text></Button>
+  </View>;
   return <Frame phase={2} back={back} close={leave}>
-    <Route plan={plan} at={at.part} finished={false} />
-    <View className="min-h-0 flex-1 flex-row items-center gap-3 rounded-3xl bg-card p-3.5" accessibilityLiveRegion="polite">
-      <View className="h-full min-w-0 flex-1 items-center justify-center" onLayout={e => { const { width, height } = e.nativeEvent.layout; setBox(Math.floor(Math.min(width, height))); }}>
-        {box > 0 && <SolveCube state={at.state} turn={at.turn} size={box} view={view} />}
-        <View className="absolute top-1/2 -right-1 -mt-4 size-8 items-center justify-center rounded-[10px] bg-primary/20"><Icon as={words.arrow} size={18} className="text-primary" /></View>
-        <ViewButtons player={view} compact className="absolute bottom-0" />
-      </View>
-      <View className="w-36 gap-1">
-        <Label className={CAP}>{tr("Turn {0} of {1} in this part", { 0: at.made + 1, 1: turns.length })}</Label>
-        <Text className="font-sans text-[72px] font-extrabold tracking-[-0.04em] text-primary" style={{ lineHeight: 74 }}>{said(shown)}</Text>
-        <Text className="text-xl font-extrabold tracking-[-0.03em]">{words.face}</Text>
-        <Text className="text-base text-muted-foreground">{words.way}</Text>
-      </View>
-    </View>
-    <View className="gap-2 rounded-3xl bg-card px-3.5 py-3" accessibilityLabel={tr("Current turns")}>
-      <Text numberOfLines={1} className="text-[13px] font-bold text-primary">
-        {tr("Step {0}", { 0: step + 1 })} · {said(STEPS[step]!.title)}{inStep.length > 1 ? ` · ${tr("{0} of {1}", { 0: inStep.indexOf(part!) + 1, 1: inStep.length })}` : ""}
-      </Text>
-      <View className="flex-row items-center gap-2.5">
-        {part!.piece && <Piece faces={part!.piece} />}
-        <Text numberOfLines={1} className="min-w-0 flex-1 text-base font-extrabold tracking-[-0.02em]">{said(part!.label)}</Text>
-      </View>
-      <Tape turns={turns} made={at.made} />
-      <View className="flex-row items-center justify-between gap-2">
-        <View className="min-w-0 flex-1 flex-row flex-wrap items-center gap-x-1.5">
-          {part!.gesture && <>
-            <Text className="text-[13px] text-muted-foreground">{tr("The course's algorithm")}</Text>
-            <Alg text={part!.gesture.alg} size={14} />
-            {part!.gesture.times > 1 && <Text className="text-[13px] text-muted-foreground">· {tr("{0} times", { 0: part!.gesture.times })}</Text>}
-          </>}
-        </View>
-        <Pressable onPress={lesson} accessibilityRole="button" accessibilityLabel={tr("Review the lesson")} className="min-h-10 flex-row items-center gap-0.5">
-          <Text className="text-[13px] font-bold text-primary">{tr("Lesson")}</Text><Icon as={ChevronRight} size={14} className="text-primary" />
-        </Pressable>
-      </View>
-    </View>
-    <View className="flex-row items-center gap-3">
-      <Text className="text-[13px] font-bold text-muted-foreground">{tr("Turns")}</Text>
-      <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><View className="h-full rounded-full bg-success" style={{ width: `${(done / total) * 100}%` }} /></View>
-      <Numeric className="text-[13px] font-bold">{done} / {total}</Numeric>
-      <Text className="text-[13px] font-bold text-muted-foreground">{tr("Time")}</Text>
-      <Numeric className="text-[13px] font-bold">{time}</Numeric>
-    </View>
-    <View className="flex-row gap-2">
-      <Button variant="secondary" size="icon" className="h-14 w-14 rounded-2xl" accessibilityLabel={tr("Previous turn")} disabled={!at.part && !at.made} onPress={previous}>
-        <Icon as={ChevronLeft} size={22} />
-      </Button>
-      <Button className="h-14 flex-1 rounded-2xl" onPress={forward}><Text className="text-lg font-extrabold">{tr("Done, next turn")}</Text></Button>
-    </View>
-    <View className="flex-row gap-2">
-      <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={() => setLost(true)}><Icon as={Info} size={17} /><Text>{tr("I'm lost")}</Text></Button>
-      <Button variant="secondary" className="h-12 flex-1 gap-2 rounded-2xl" onPress={() => again()}><Icon as={ScanLine} size={17} /><Text>{tr("Read the cube again")}</Text></Button>
-    </View>
+    {wide ? <View className="min-h-0 flex-1 flex-row gap-4">
+      <View className="min-h-0 min-w-0 flex-1 gap-3"><Route plan={plan} at={at.part} finished={false} />{stage}{next}</View>
+      <View className="w-[380px] gap-3 rounded-[26px] bg-popover p-4">{partCard}{progress}<View className="flex-1" />{help}</View>
+    </View> : <>
+      <Route plan={plan} at={at.part} finished={false} />
+      {stage}
+      {partCard}
+      {progress}
+      {next}
+      {help}
+    </>}
   </Frame>;
 }
 

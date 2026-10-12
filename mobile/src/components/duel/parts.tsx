@@ -1,6 +1,6 @@
 import { Ban, Plus, Undo2 } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, type ViewProps } from "react-native";
 import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -177,4 +177,12 @@ export function OpponentLive({ title, sub, phase, startedAt, rest, gone }: { tit
 /** A small heading in capitals over a block: the round, a list's group, a tournament's line. */
 export function Cap({ className, ...props }: React.ComponentProps<typeof Text>) {
   return <Text numberOfLines={2} className={cn("text-xs font-bold tracking-wider text-muted-foreground uppercase", className)} {...props} />;
+}
+
+/**
+ * A page's side panel docked at its right on a wide screen (a tablet held sideways, a laptop): a card column always
+ * visible beside the page, where a phone opens a sheet. Portrait tablets keep the sheet.
+ */
+export function SidePanel({ className, ...props }: ViewProps) {
+  return <View className={cn("my-3 mr-3 w-[360px] gap-3 rounded-[26px] border border-border bg-card p-4", className)} {...props} />;
 }

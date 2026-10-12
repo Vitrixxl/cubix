@@ -1,0 +1,1264 @@
+<style>
+:is(#tournaments, #match) .rs { display: flex; gap: 4px; flex: 1; min-width: 0; align-items: center; }
+:is(#tournaments, #match) .rs > i { flex: 1; height: 8px; border-radius: 8px; background: var(--acc); }
+:is(#tournaments, #match) .rs > i.w { background: var(--pri); }
+:is(#tournaments, #match) .rs > i.l { background: var(--lilac); }
+:is(#tournaments, #match) .rs > i.t { background: var(--faint); }
+:is(#tournaments, #match) .rs > i.c { background: transparent; box-shadow: inset 0 0 0 2px var(--pri); }
+:is(#tournaments, #match) .rs.sm { width: 54px; flex: none; } :is(#tournaments, #match) .rs.sm > i { height: 5px; }
+:is(#tournaments, #match) .rs.l > i { height: 12px; }
+:is(#tournaments, #match) .av3 { display: inline-flex; }
+:is(#tournaments, #match) .av3 > .avatar + .avatar { margin-left: -9px; }
+:is(#tournaments, #match) .av3 > .avatar { box-shadow: 0 0 0 2px var(--card); }
+:is(#tournaments, #match) .live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 22%, transparent); flex: none; display: inline-block; }
+:is(#tournaments, #match) .halo { box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px color-mix(in srgb, var(--pri) 60%, transparent); }
+:is(#tournaments, #match) .halo.off { box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--acc); }
+:is(#tournaments, #match) .rk { width: 22px; text-align: center; font-weight: 800; color: var(--faint); font-variant-numeric: tabular-nums; flex: none; }
+:is(#tournaments, #match) .toggle { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--mfg); flex: 1; min-height: 48px; }
+:is(#tournaments, #match) .toggle svg.lucide { width: 20px; height: 20px; }
+/* A tournament's places: taken, or open (dashed). */
+:is(#tournaments, #match) .slot { height: 44px; border-radius: 12px; background: var(--muted); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 13.5px; font-weight: 700; min-width: 0; }
+:is(#tournaments, #match) .slot.e { background: transparent; border: 1.5px dashed var(--border); color: var(--faint); font-size: 12.5px; font-weight: 600; justify-content: center; }
+:is(#tournaments, #match) .slot.me { box-shadow: inset 0 0 0 2px var(--pri); }
+:is(#tournaments, #match) .slot.s40 { height: 40px; }
+/* The steps a tournament goes through. */
+:is(#tournaments, #match) .steps { display: flex; gap: 6px; flex: none; }
+:is(#tournaments, #match) .steps > span { flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--faint); white-space: nowrap; }
+:is(#tournaments, #match) .steps > span::before { content: ""; height: 4px; border-radius: 4px; background: var(--acc); }
+:is(#tournaments, #match) .steps > span.done { color: var(--mfg); } :is(#tournaments, #match) .steps > span.done::before { background: var(--ok); }
+:is(#tournaments, #match) .steps > span.on { color: var(--fg); } :is(#tournaments, #match) .steps > span.on::before { background: var(--pri); }
+/* A centred dialog (desktop Modal). */
+:is(#tournaments, #match) .modal { position: absolute; z-index: 7; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 580px; background: var(--pop); border-radius: 24px; padding: 24px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); display: flex; flex-direction: column; gap: 16px; }
+:is(#tournaments, #match) .lab { font-size: 13px; font-weight: 700; color: var(--fg); }
+:is(#tournaments, #match) .fld { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+:is(#tournaments, #match) .field.v { color: var(--fg); }
+/* A match of the bracket: its head line, its two players and the sets they won. */
+:is(#tournaments, #match) .mcard { background: var(--muted); border-radius: 16px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; position: relative; }
+:is(#tournaments, #match) .mcard .mh { display: flex; align-items: center; gap: 6px; height: 18px; font-size: 11.5px; font-weight: 600; color: var(--mfg); font-variant-numeric: tabular-nums; }
+:is(#tournaments, #match) .mcard .mh svg.lucide { width: 14px; height: 14px; margin-left: auto; color: var(--faint); }
+:is(#tournaments, #match) .mcard .pl { display: flex; align-items: center; gap: 8px; min-width: 0; height: 24px; font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+:is(#tournaments, #match) .mcard .pl .avatar { width: 22px; height: 22px; font-size: 9px; }
+:is(#tournaments, #match) .mcard .pl > span:not(.avatar) { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+:is(#tournaments, #match) .mcard .pl b { margin-left: auto; font-variant-numeric: tabular-nums; }
+:is(#tournaments, #match) .mcard .pl.out { color: var(--faint); } :is(#tournaments, #match) .mcard .pl.out .avatar { opacity: .5; }
+:is(#tournaments, #match) .mcard.on { box-shadow: inset 0 0 0 2px var(--pri); background: color-mix(in srgb, var(--pri) 10%, var(--muted)); }
+:is(#tournaments, #match) .mcard.tbd { background: transparent; border: 1.5px dashed var(--border); }
+:is(#tournaments, #match) .mcard.lg { padding: 10px 14px; gap: 6px; }
+:is(#tournaments, #match) .mcard.lg .pl { height: 28px; font-size: 14.5px; } :is(#tournaments, #match) .mcard.lg .pl .avatar { width: 26px; height: 26px; font-size: 10px; }
+/* The bracket: a column per round, each pair of matches joined to the match their winners meet in. */
+:is(#tournaments, #match) .brk { display: flex; gap: 32px; flex: 1; min-height: 0; }
+:is(#tournaments, #match) .brk .rd { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 8px; }
+:is(#tournaments, #match) .brk .rd.ch { flex: .72; }
+:is(#tournaments, #match) .brk .rh { display: flex; align-items: baseline; gap: 8px; height: 20px; flex: none; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); white-space: nowrap; }
+:is(#tournaments, #match) .brk .rh small { text-transform: none; letter-spacing: 0; font-size: 11.5px; font-weight: 600; color: var(--mfg); }
+:is(#tournaments, #match) .brk .rh.on { color: var(--pri); } :is(#tournaments, #match) .brk .rh.champ { color: var(--warn); }
+:is(#tournaments, #match) .brk .cells { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+:is(#tournaments, #match) .brk .pair { flex: 1; display: flex; flex-direction: column; justify-content: space-around; position: relative; }
+:is(#tournaments, #match) .brk .pair.j::after { content: ""; position: absolute; top: 25%; bottom: 25%; right: -17px; width: 17px; border: 1.5px solid color-mix(in srgb, var(--faint) 50%, transparent); border-left: 0; border-radius: 0 10px 10px 0; pointer-events: none; }
+:is(#tournaments, #match) .brk .pair.s::after { content: ""; position: absolute; top: 50%; right: -17px; width: 17px; border-top: 1.5px solid color-mix(in srgb, var(--faint) 50%, transparent); }
+:is(#tournaments, #match) .brk .rd + .rd .mcard::before { content: ""; position: absolute; right: 100%; top: 50%; width: 15px; border-top: 1.5px solid color-mix(in srgb, var(--faint) 50%, transparent); }
+:is(#tournaments, #match) .brk.tight { gap: 26px; }
+:is(#tournaments, #match) .brk.tight .pair.j::after, :is(#tournaments, #match) .brk.tight .pair.s::after { right: -14px; width: 14px; }
+:is(#tournaments, #match) .brk.tight .rd + .rd .mcard::before { width: 12px; }
+/* The race's rows as a butterfly: my time, my bar, the solve, theirs. */
+:is(#tournaments, #match) .bf { display: grid; grid-template-columns: 50px 1fr 24px 1fr 50px; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; font-size: 14px; }
+:is(#tournaments, #match) .bf > b:last-child { text-align: right; }
+:is(#tournaments, #match) .bf > span.n { text-align: center; font-size: 11px; font-weight: 700; color: var(--faint); }
+:is(#tournaments, #match) .bf .bar { height: 6px; }
+:is(#tournaments, #match) .bf .bar.r { transform: scaleX(-1); }
+:is(#tournaments, #match) .bf .bar.lil > i { background: var(--lilac); }
+</style>
+
+<!-- =============================================================== 15 · Tournaments -->
+<section class="page" id="tournaments" data-short="Tournaments">
+  <div class="page-head">
+    <h2>15 · Tournaments <small>/tournaments</small></h2>
+    <p>Aujourd'hui, sur tablette la liste tient dans une colonne et la scène du tournoi flotte au milieu d'un écran à moitié vide ; à 1280 × 720 la colonne des joueurs reste presque vide. Ici la liste et le tournoi choisi se partagent l'écran : la fiche se remplit de ce qui compte (les places prises et libres, les étapes, l'inscription), et « ton match est prêt » passe devant tout le reste.</p>
+    <div class="feats"><span>Liste : Under way / Registration open / Past</span><span>Ligne : groupe · puzzle · format · tour en cours</span><span>Your match is ready · Play your match</span><span>Group tournament / Open tournament</span><span>First to N solves · best of M sets</span><span>Players 7 / 16 · You are registered</span><span>Register / Registered / Unregister / Full</span><span>Starts (date, heure, dans combien)</span><span>Étapes : inscription, tirage, tours, champion</span><span>Champion (tournois passés)</span><span>Description</span><span>Start now · Cancel the tournament (organisateur)</span><span>New tournament : groupe, nom, puzzle, solves per set, sets to win, début, joueurs max, description</span><span>Open the tournament</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Le rail rend la hauteur ; le bouton « New tournament » est sur la ligne du titre. En paysage, la liste à gauche et la fiche du tournoi choisi à droite, ses 16 places dessinées ; en portrait, la liste passe en grille de deux au-dessus de la fiche. La création ouvre la boîte de dialogue du bureau.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+              <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <a><span><i data-lucide="timer"></i></span>Timer</a>
+              <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+              <a><span><i data-lucide="boxes"></i></span>Algs</a>
+              <a class="on"><span><i data-lucide="swords"></i></span>Challenges</a>
+              <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+              <span class="sp"></span>
+              <span class="avatar sm l">YU</span>
+            </nav>
+            <div class="main">
+              <div class="phead"><span class="title">Challenges</span><div class="utabs"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div><span class="grow"></span><button class="btn icon soft"><i data-lucide="plus"></i></button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="col g16 px24 grow" style="padding-bottom:24px">
+                <div class="card pri" style="flex-direction:row;align-items:center;gap:12px;padding:12px 16px">
+                  <i data-lucide="trophy"></i>
+                  <div class="col g0 grow"><b>Semi-finals · your match is ready</b><span class="xs">Friday sprint · 2×2 · against lena_speed</span></div>
+                  <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play your match</button>
+                </div>
+                <div class="card g10" style="padding:14px 16px">
+                  <div class="row"><b class="h3 grow">Tournaments <span class="faint">5</span></b><span class="xs">Open to every player, and your groups'</span></div>
+                  <span class="cap">Under way · 2</span>
+                  <div class="grid2">
+                    <div class="li" style="background:var(--muted)"><div class="col"><b class="h3">Friday sprint</b><span class="xs">Cubix Club · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Semi-finals</span><span class="rs sm"><i class="w"></i><i class="c"></i><i></i></span></div></div>
+                    <div class="li" style="background:var(--muted)"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Final</span><span class="rs sm"><i class="w"></i><i class="w"></i><i class="c"></i></span></div></div>
+                  </div>
+                  <span class="cap">Registration open · 2</span>
+                  <div class="grid2">
+                    <div class="li on outline"><div class="col"><b class="h3">Club cup</b><span class="xs">Cubix Club · 3×3 · today 16:30</span></div><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>Registered</span></div>
+                    <div class="li" style="background:var(--muted)"><div class="col"><b class="h3">Qbix Autumn Open</b><span class="xs">Open · 3×3 · Sat 17 Oct</span></div><span class="s num">23 / 64</span></div>
+                  </div>
+                  <span class="cap">Past · 1</span>
+                  <div class="grid2">
+                    <div class="li" style="background:var(--muted)"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · Mon 5 Oct</span></div><span class="s row g4"><i data-lucide="crown" class="warn" style="width:15px;height:15px"></i>hugo_sub10</span></div>
+                  </div>
+                </div>
+                <div class="card g16 grow" style="padding:22px 24px">
+                  <div class="row between"><span class="cap">Cubix Club · group tournament · 3×3 · First to 3 solves · best of 3 sets</span><span class="pill ok">Registration open</span></div>
+                  <div class="col g4"><span class="display xl">Club cup</span><span class="s">The club's monthly cup. Seeded at the start, one warm-up scramble each.</span></div>
+                  <div class="grid4">
+                    <div class="well"><span class="xs">Event</span><b class="h2">3×3</b><span class="xs">same scrambles</span></div>
+                    <div class="well"><span class="xs">Players</span><b class="h2 num">7 / 16</b><span class="xs">9 places left</span></div>
+                    <div class="well"><span class="xs">Starts</span><b class="h2 num">16:30</b><span class="xs pri b">today · in 2 h</span></div>
+                    <div class="well"><span class="xs">Bracket</span><b class="h2">4 rounds</b><span class="xs">drawn at the start</span></div>
+                  </div>
+                  <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Round of 16</span><span>Quarter-finals</span><span>Semi-finals</span><span>Final</span></div>
+                  <div class="row g8">
+                    <button class="btn ok"><i data-lucide="check"></i>Registered</button>
+                    <button class="btn ghost">Unregister</button>
+                    <span class="grow"></span>
+                    <button class="btn"><i data-lucide="play"></i>Start now</button>
+                    <button class="btn ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button>
+                  </div>
+                  <div class="row g10"><b class="h3">Players</b><span class="s num">7 / 16</span><span class="bar ok grow"><i style="width:44%"></i></span><span class="s">You are registered</span></div>
+                  <div class="grid4">
+                    <div class="slot me"><span class="avatar sm l">YU</span><span class="trunc">yuki_blind</span></div>
+                    <div class="slot"><span class="avatar sm y">CO</span><span class="trunc">coach</span></div>
+                    <div class="slot"><span class="avatar sm y">LE</span><span class="trunc">lena_speed</span></div>
+                    <div class="slot"><span class="avatar sm">AL</span><span class="trunc">alex_cubes</span></div>
+                    <div class="slot"><span class="avatar sm g">KE</span><span class="trunc">kenji_cfop</span></div>
+                    <div class="slot"><span class="avatar sm y">CH</span><span class="trunc">chloe_f2l</span></div>
+                    <div class="slot"><span class="avatar sm n">SO</span><span class="trunc">sofia_sq1</span></div>
+                    <div class="slot e">Open place</div>
+                    <div class="slot e">Open place</div><div class="slot e">Open place</div><div class="slot e">Open place</div><div class="slot e">Open place</div>
+                    <div class="slot e">Open place</div><div class="slot e">Open place</div><div class="slot e">Open place</div><div class="slot e">Open place</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+              <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <a><span><i data-lucide="timer"></i></span>Timer</a>
+              <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+              <a><span><i data-lucide="boxes"></i></span>Algs</a>
+              <a class="on"><span><i data-lucide="swords"></i></span>Challenges</a>
+              <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+              <span class="sp"></span>
+              <span class="avatar sm l">YU</span>
+            </nav>
+            <div class="main">
+              <div class="phead"><span class="title">Challenges</span><div class="utabs"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div><span class="grow"></span><button class="btn soft"><i data-lucide="plus"></i>New tournament</button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="row g16 px24 grow" style="align-items:stretch;padding-bottom:20px">
+                <div class="col g12 w340" style="width:340px;flex:none">
+                  <div class="card pri" style="flex-direction:row;align-items:center;gap:10px;padding:10px 12px">
+                    <i data-lucide="trophy"></i>
+                    <div class="col g0 grow"><b>Your match is ready</b><span class="xs">Friday sprint · semi-final · lena_speed</span></div>
+                    <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play</button>
+                  </div>
+                  <div class="card g6 grow" style="padding:14px 12px">
+                    <div class="row px12"><b class="h3 grow">Tournaments <span class="faint">5</span></b></div>
+                    <span class="cap px12" style="margin-top:4px">Under way · 2</span>
+                    <div class="li"><div class="col"><b class="h3">Friday sprint</b><span class="xs">Cubix Club · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Semi-finals</span><span class="rs sm"><i class="w"></i><i class="c"></i><i></i></span></div></div>
+                    <div class="li"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Final</span><span class="rs sm"><i class="w"></i><i class="w"></i><i class="c"></i></span></div></div>
+                    <span class="cap px12" style="margin-top:4px">Registration open · 2</span>
+                    <div class="li on"><div class="col"><b class="h3">Club cup</b><span class="xs">Cubix Club · 3×3 · today 16:30</span></div><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>In</span></div>
+                    <div class="li"><div class="col"><b class="h3">Qbix Autumn Open</b><span class="xs">Open · 3×3 · Sat 17 Oct</span></div><span class="s num">23 / 64</span></div>
+                    <span class="cap px12" style="margin-top:4px">Past · 1</span>
+                    <div class="li"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · Mon 5 Oct</span></div><span class="s row g4"><i data-lucide="crown" class="warn" style="width:15px;height:15px"></i>hugo_sub10</span></div>
+                  </div>
+                </div>
+                <div class="card g12 grow" style="padding:20px 24px">
+                  <div class="row between"><span class="cap">Cubix Club · group tournament · 3×3 · First to 3 solves · best of 3 sets</span><span class="pill ok">Registration open</span></div>
+                  <div class="row g16" style="align-items:flex-end"><span class="display xl">Club cup</span><span class="s grow" style="padding-bottom:6px">The club's monthly cup. Seeded at the start, one warm-up scramble each.</span></div>
+                  <div class="grid4">
+                    <div class="well"><span class="xs">Event</span><b class="h2">3×3</b><span class="xs">same scrambles</span></div>
+                    <div class="well"><span class="xs">Players</span><b class="h2 num">7 / 16</b><span class="xs">9 places left</span></div>
+                    <div class="well"><span class="xs">Starts</span><b class="h2 num">16:30</b><span class="xs pri b">today · in 2 h</span></div>
+                    <div class="well"><span class="xs">Bracket</span><b class="h2">4 rounds</b><span class="xs">drawn at the start</span></div>
+                  </div>
+                  <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Round of 16</span><span>Quarter-finals</span><span>Semi-finals</span><span>Final</span></div>
+                  <div class="row g8">
+                    <button class="btn ok"><i data-lucide="check"></i>Registered</button>
+                    <button class="btn ghost">Unregister</button>
+                    <span class="grow"></span>
+                    <button class="btn"><i data-lucide="play"></i>Start now</button>
+                    <button class="btn ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button>
+                  </div>
+                  <div class="row g10"><b class="h3">Players</b><span class="s num">7 / 16</span><span class="bar ok grow"><i style="width:44%"></i></span><span class="s">You are registered</span></div>
+                  <div class="grid4">
+                    <div class="slot s40 me"><span class="avatar sm l">YU</span><span class="trunc">yuki_blind</span></div>
+                    <div class="slot s40"><span class="avatar sm y">CO</span><span class="trunc">coach</span></div>
+                    <div class="slot s40"><span class="avatar sm y">LE</span><span class="trunc">lena_speed</span></div>
+                    <div class="slot s40"><span class="avatar sm">AL</span><span class="trunc">alex_cubes</span></div>
+                    <div class="slot s40"><span class="avatar sm g">KE</span><span class="trunc">kenji_cfop</span></div>
+                    <div class="slot s40"><span class="avatar sm y">CH</span><span class="trunc">chloe_f2l</span></div>
+                    <div class="slot s40"><span class="avatar sm n">SO</span><span class="trunc">sofia_sq1</span></div>
+                    <div class="slot s40 e">Open place</div>
+                    <div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div>
+                    <div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>New tournament ouvert</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+              <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              <a><span><i data-lucide="timer"></i></span>Timer</a>
+              <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+              <a><span><i data-lucide="boxes"></i></span>Algs</a>
+              <a class="on"><span><i data-lucide="swords"></i></span>Challenges</a>
+              <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+              <span class="sp"></span>
+              <span class="avatar sm l">YU</span>
+            </nav>
+            <div class="main">
+              <div class="phead"><span class="title">Challenges</span><div class="utabs"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div><span class="grow"></span><button class="btn icon pri"><i data-lucide="plus"></i></button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="col g16 px24 grow" style="padding-bottom:24px">
+                <div class="card pri" style="height:62px"></div>
+                <div class="card" style="height:344px"></div>
+                <div class="card grow"></div>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="modal">
+            <div class="row start g12"><div class="col g4 grow"><span class="h2">New tournament in Cubix Club</span><span class="s">Its card goes to the group's conversation. Members register until it starts; the bracket is drawn at its start.</span></div><button class="btn icon sm ghost"><i data-lucide="x"></i></button></div>
+            <div class="fld"><span class="lab">Group</span><div class="field v"><i data-lucide="users-round"></i><span class="grow">Cubix Club</span><i data-lucide="chevron-down"></i></div></div>
+            <div class="fld"><span class="lab">Name</span><div class="field v" style="box-shadow:inset 0 0 0 2px var(--pri)">Halloween cup</div></div>
+            <div class="row g12" style="align-items:flex-end">
+              <div class="fld" style="flex:1.4"><span class="lab">Event</span><div class="field v"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="grow">3×3</span><i data-lucide="chevron-down"></i></div></div>
+              <div class="fld grow"><span class="lab">Solves per set</span><div class="field v num">3</div></div>
+              <div class="fld grow"><span class="lab">Sets to win</span><div class="field v num">2</div></div>
+            </div>
+            <span class="xs" style="margin-top:-8px">First to 3 solves · best of 3 sets, on the same scrambles for both players.</span>
+            <div class="grid2" style="gap:12px">
+              <div class="fld"><span class="lab">Starts</span><div class="field v"><i data-lucide="calendar-clock"></i>Sat 31 Oct · 18:00</div></div>
+              <div class="fld"><span class="lab">Most players</span><div class="field v num">16</div></div>
+            </div>
+            <div class="fld"><span class="lab">Description</span><div class="field area">Costumes welcome. Bracket drawn at six.</div></div>
+            <div class="row end g8"><button class="btn ghost">Cancel</button><button class="btn pri"><i data-lucide="trophy"></i>Create the tournament</button></div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>L'app du téléphone agrandie : le match prêt en tuile héros, les tournois en cartes tactiles sur deux colonnes, filtrés par un segment. En paysage, le tournoi choisi est une feuille ancrée à droite ; en portrait, il monte en feuille du bas. « New tournament » est sur la ligne du grand titre.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display">Challenges</span><button class="btn soft" style="height:44px"><i data-lucide="plus"></i>New tournament</button><button class="chip on" style="height:44px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+          <div class="col g16 grow" style="padding:18px 28px 0">
+            <div class="tile hero g12" style="padding:20px 24px">
+              <div class="row between"><span class="cap">Friday sprint · semi-finals</span><span class="pill pri">Your match is ready</span></div>
+              <div class="row g20">
+                <div class="row g16 grow">
+                  <div class="col g4" style="align-items:center"><span class="avatar lg l halo">YU</span><b>You</b></div>
+                  <span class="h2 faint">vs</span>
+                  <div class="col g4" style="align-items:center"><span class="avatar lg y halo off">LE</span><b>lena_speed</b></div>
+                </div>
+                <div class="col g8" style="align-items:flex-end"><span class="s">Cubix Club · 2×2 · First to 2 solves · best of 3 sets</span><button class="btn pri lg"><i data-lucide="play"></i>Play your match</button></div>
+              </div>
+            </div>
+            <div class="row"><div class="seg" style="height:44px"><span class="on" style="height:38px">All 5</span><span style="height:38px">Under way 2</span><span style="height:38px">Open 2</span><span style="height:38px">Past 1</span></div><span class="grow"></span><span class="s">Open to every player, and your groups'</span></div>
+            <div class="grid2 grow" style="gap:14px;grid-auto-rows:1fr">
+              <div class="card g8" style="padding:18px">
+                <div class="row between"><span class="live"></span><span class="pill pri">Semi-finals</span></div>
+                <b class="h2">Friday sprint</b>
+                <span class="s">Cubix Club · group · 2×2 · First to 2 solves</span>
+                <span class="grow"></span>
+                <div class="row g10"><span class="rs"><i class="w"></i><i class="c"></i><i></i></span><span class="xs num">1 of 2 over</span></div>
+                <div class="row g8"><span class="av3"><span class="avatar sm">AL</span><span class="avatar sm l">YU</span><span class="avatar sm y">LE</span><span class="avatar sm y">CO</span></span><span class="xs grow">8 players</span><button class="btn soft" style="height:44px">Open</button></div>
+              </div>
+              <div class="card g8" style="padding:18px">
+                <div class="row between"><span class="live"></span><span class="pill pri">Final</span></div>
+                <b class="h2">Weekly 2×2 sprint</b>
+                <span class="s">Open tournament · 2×2 · First to 2 solves</span>
+                <span class="grow"></span>
+                <div class="row g10"><span class="rs"><i class="w"></i><i class="w"></i><i class="c"></i></span><span class="xs num">0 of 1 over</span></div>
+                <div class="row g8"><span class="av3"><span class="avatar sm">TO</span><span class="avatar sm g">HU</span></span><span class="xs grow">hugo_sub10 vs tom_onehand</span><button class="btn soft" style="height:44px">Watch</button></div>
+              </div>
+              <div class="card hi g8 outline" style="padding:18px">
+                <div class="row between"><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>Registered</span><span class="s b" style="color:var(--fg)">Today · 16:30</span></div>
+                <b class="h2">Club cup</b>
+                <span class="s">Cubix Club · group · 3×3 · First to 3 solves · best of 3 sets</span>
+                <span class="grow"></span>
+                <div class="row g10"><span class="bar ok grow"><i style="width:44%"></i></span><span class="xs num"><b style="color:var(--fg)">7 / 16</b> players</span></div>
+                <div class="row g8"><span class="xs pri b grow">in 2 h</span><button class="btn" style="height:44px">Unregister</button></div>
+              </div>
+              <div class="card g8" style="padding:18px">
+                <div class="row between"><span class="pill ok">Registration open</span><span class="s b" style="color:var(--fg)">Sat 17 Oct · 18:00</span></div>
+                <b class="h2">Qbix Autumn Open</b>
+                <span class="s">Open tournament · 3×3 · First to 3 solves · best of 3 sets</span>
+                <span class="grow"></span>
+                <div class="row g10"><span class="bar ok grow"><i style="width:36%"></i></span><span class="xs num"><b style="color:var(--fg)">23 / 64</b> players</span></div>
+                <div class="row g8"><span class="xs grow">in 5 days</span><button class="btn pri" style="height:44px">Register</button></div>
+              </div>
+              <div class="card g8" style="padding:18px">
+                <div class="row between"><span class="pill">Past</span><span class="s">Mon 5 Oct</span></div>
+                <b class="h2">Weekly 2×2 sprint</b>
+                <span class="s">Open tournament · 2×2 · First to 2 solves</span>
+                <span class="grow"></span>
+                <div class="row g8"><i data-lucide="crown" class="warn"></i><span class="avatar sm g">HU</span><b class="grow">hugo_sub10</b><span class="xs">Champion · 16 players</span></div>
+              </div>
+              <div class="card dash center g8" style="padding:18px">
+                <i data-lucide="trophy" class="faint" style="width:28px;height:28px"></i>
+                <b class="h3">Run one for your group</b>
+                <button class="btn soft" style="height:44px"><i data-lucide="plus"></i>New tournament</button>
+              </div>
+            </div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row g0 grow" style="align-items:stretch">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="padding-top:14px"><span class="display">Challenges</span><button class="btn soft" style="height:44px"><i data-lucide="plus"></i>New tournament</button><button class="chip on" style="height:44px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="utabs" style="padding:0 28px"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+              <div class="col g12 grow" style="padding:14px 28px 0">
+                <div class="tile hero" style="flex-direction:row;align-items:center;gap:16px;padding:14px 18px">
+                  <div class="row g10"><span class="avatar l halo">YU</span><span class="xs b faint">vs</span><span class="avatar y halo off">LE</span></div>
+                  <div class="col g2 grow"><b class="h3">Semi-finals · your match is ready</b><span class="xs">Friday sprint · Cubix Club · 2×2 · against lena_speed</span></div>
+                  <button class="btn pri" style="height:44px"><i data-lucide="play"></i>Play your match</button>
+                </div>
+                <div class="row"><div class="seg"><span class="on" style="height:38px">All 5</span><span style="height:38px">Under way 2</span><span style="height:38px">Open 2</span><span style="height:38px">Past 1</span></div></div>
+                <div class="scroll" style="gap:12px">
+                  <div class="grid2" style="gap:12px">
+                    <div class="card g6" style="padding:14px 16px">
+                      <div class="row between"><b class="h3">Friday sprint</b><span class="pill pri">Semi-finals</span></div>
+                      <span class="xs">Cubix Club · group · 2×2 · First to 2 solves</span>
+                      <div class="row g10" style="margin-top:4px"><span class="rs"><i class="w"></i><i class="c"></i><i></i></span><span class="xs num">1 of 2 over</span><span class="live"></span></div>
+                    </div>
+                    <div class="card g6" style="padding:14px 16px">
+                      <div class="row between"><b class="h3">Weekly 2×2 sprint</b><span class="pill pri">Final</span></div>
+                      <span class="xs">Open tournament · 2×2 · First to 2 solves</span>
+                      <div class="row g10" style="margin-top:4px"><span class="rs"><i class="w"></i><i class="w"></i><i class="c"></i></span><span class="xs num">hugo_sub10 vs tom_onehand</span><span class="live"></span></div>
+                    </div>
+                    <div class="card hi g6 outline" style="padding:14px 16px">
+                      <div class="row between"><b class="h3">Club cup</b><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>Registered</span></div>
+                      <span class="xs">Cubix Club · group · 3×3 · today 16:30</span>
+                      <div class="row g10" style="margin-top:4px"><span class="bar ok grow"><i style="width:44%"></i></span><span class="xs num"><b style="color:var(--fg)">7 / 16</b></span></div>
+                    </div>
+                    <div class="card g6" style="padding:14px 16px">
+                      <div class="row between"><b class="h3">Qbix Autumn Open</b><button class="btn sm pri" style="height:32px">Register</button></div>
+                      <span class="xs">Open tournament · 3×3 · Sat 17 Oct · 18:00</span>
+                      <div class="row g10" style="margin-top:4px"><span class="bar ok grow"><i style="width:36%"></i></span><span class="xs num"><b style="color:var(--fg)">23 / 64</b></span></div>
+                    </div>
+                    <div class="card g6" style="padding:14px 16px">
+                      <div class="row between"><b class="h3">Weekly 2×2 sprint</b><span class="pill">Past · Mon 5 Oct</span></div>
+                      <div class="row g6"><i data-lucide="crown" class="warn" style="width:15px;height:15px"></i><span class="xs">Champion hugo_sub10 · 16 players</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="fnav-space"></div>
+            </div>
+            <aside class="sidesheet docked g12" style="width:390px">
+              <div class="row between"><span class="cap">Cubix Club · group tournament</span><span class="pill ok">Registration open</span></div>
+              <div class="col g4"><span class="display">Club cup</span><span class="s">3×3 · First to 3 solves · best of 3 sets. The club's monthly cup, seeded at the start.</span></div>
+              <div class="grid2">
+                <div class="well"><span class="xs">Starts</span><b class="h3">Today, 16:30</b><span class="xs pri b">in 2 h</span></div>
+                <div class="well"><span class="xs">Bracket</span><b class="h3">4 rounds</b><span class="xs">drawn at the start</span></div>
+              </div>
+              <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Rounds</span><span>Champion</span></div>
+              <div class="card pop g8" style="padding:12px 14px">
+                <div class="row between"><span class="big">7 / 16</span><span class="s">You are registered</span></div>
+                <span class="bar ok"><i style="width:44%"></i></span>
+                <div class="row g6"><span class="av3"><span class="avatar sm l">YU</span><span class="avatar sm y">CO</span><span class="avatar sm y">LE</span><span class="avatar sm">AL</span><span class="avatar sm g">KE</span></span><span class="s grow trunc">yuki_blind, coach, lena_speed +4</span><i data-lucide="chevron-right" class="faint"></i></div>
+              </div>
+              <span class="grow"></span>
+              <div class="grid2"><button class="btn lg ok"><i data-lucide="check"></i>Registered</button><button class="btn lg">Unregister</button></div>
+              <div class="grid2"><button class="btn" style="height:44px"><i data-lucide="play"></i>Start now</button><button class="btn ghost" style="height:44px;color:var(--bad)"><i data-lucide="ban"></i>Cancel it</button></div>
+            </aside>
+          </div>
+          <nav class="fnav" style="left:444px">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+            <span class="on"><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Tournoi en feuille</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display">Challenges</span><button class="btn soft" style="height:44px"><i data-lucide="plus"></i>New tournament</button><span class="avatar l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+          <div class="col g16 grow" style="padding:18px 28px 0">
+            <div class="tile hero" style="height:170px"></div>
+            <div class="grid2" style="gap:14px"><div class="card" style="height:220px"></div><div class="card" style="height:220px"></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet g16" style="padding:8px 28px 28px">
+            <div class="row between"><span class="cap">Cubix Club · group tournament</span><div class="row g8"><span class="pill ok">Registration open</span><button class="btn icon ghost" style="width:44px;height:44px"><i data-lucide="x"></i></button></div></div>
+            <div class="col g4"><span class="display xl">Club cup</span><span class="s">3×3 · First to 3 solves · best of 3 sets, on the same scrambles for both players. The club's monthly cup, seeded at the start.</span></div>
+            <div class="grid3">
+              <div class="well"><span class="xs">Starts</span><b class="h2">16:30</b><span class="xs pri b">today · in 2 h</span></div>
+              <div class="well"><span class="xs">Players</span><b class="h2 num">7 / 16</b><span class="xs">You are registered</span></div>
+              <div class="well"><span class="xs">Bracket</span><b class="h2">4 rounds</b><span class="xs">drawn at the start</span></div>
+            </div>
+            <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Round of 16</span><span>Quarter-finals</span><span>Semi-finals</span><span>Final</span></div>
+            <div class="grid4">
+              <div class="slot me"><span class="avatar sm l">YU</span><span class="trunc">yuki_blind</span></div>
+              <div class="slot"><span class="avatar sm y">CO</span><span class="trunc">coach</span></div>
+              <div class="slot"><span class="avatar sm y">LE</span><span class="trunc">lena_speed</span></div>
+              <div class="slot"><span class="avatar sm">AL</span><span class="trunc">alex_cubes</span></div>
+              <div class="slot"><span class="avatar sm g">KE</span><span class="trunc">kenji_cfop</span></div>
+              <div class="slot"><span class="avatar sm y">CH</span><span class="trunc">chloe_f2l</span></div>
+              <div class="slot"><span class="avatar sm n">SO</span><span class="trunc">sofia_sq1</span></div>
+              <div class="slot e">9 open places</div>
+            </div>
+            <div class="grid2"><button class="btn lg ok"><i data-lucide="check"></i>Registered</button><button class="btn lg">Unregister</button></div>
+            <div class="grid2"><button class="btn" style="height:44px"><i data-lucide="play"></i>Start now</button><button class="btn ghost" style="height:44px;color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button></div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Liste-détail : les tournois groupés dans le volet de gauche (ou du haut en portrait), le tournoi choisi à côté, tout visible. « New tournament » est une ligne de la liste ; le formulaire prend la place du détail, sans boîte flottante.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="swords"></i>Challenges<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+            <span class="grow"></span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes v">
+            <div class="pane" style="flex:none;height:452px">
+              <div class="ph"><span class="h3">Tournaments <span class="faint">5</span></span><button class="btn sm soft"><i data-lucide="plus"></i>New tournament</button></div>
+              <div class="card pri" style="flex-direction:row;align-items:center;gap:12px;padding:10px 14px">
+                <i data-lucide="trophy"></i>
+                <div class="col g0 grow"><b>Semi-finals · your match is ready</b><span class="xs">Friday sprint · against lena_speed</span></div>
+                <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play your match</button>
+              </div>
+              <div class="row g16 grow" style="align-items:stretch">
+                <div class="col g6 grow">
+                  <span class="cap">Under way · 2</span>
+                  <div class="li" style="background:var(--card)"><div class="col"><b class="h3">Friday sprint</b><span class="xs">Cubix Club · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Semi-finals</span><span class="rs sm"><i class="w"></i><i class="c"></i><i></i></span></div></div>
+                  <div class="li" style="background:var(--card)"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Final</span><span class="rs sm"><i class="w"></i><i class="w"></i><i class="c"></i></span></div></div>
+                  <span class="cap" style="margin-top:6px">Past · 1</span>
+                  <div class="li" style="background:var(--card)"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · Mon 5 Oct</span></div><span class="s row g4"><i data-lucide="crown" class="warn" style="width:15px;height:15px"></i>hugo_sub10</span></div>
+                </div>
+                <div class="col g6 grow">
+                  <span class="cap">Registration open · 2</span>
+                  <div class="li on"><div class="col"><b class="h3">Club cup</b><span class="xs">Cubix Club · 3×3 · today 16:30</span></div><span class="pill ok"><i data-lucide="check" style="width:12px;height:12px"></i>Registered</span></div>
+                  <div class="li" style="background:var(--card)"><div class="col"><b class="h3">Qbix Autumn Open</b><span class="xs">Open · 3×3 · Sat 17 Oct</span></div><button class="btn sm pri">Register</button></div>
+                  <span class="cap" style="margin-top:6px">New</span>
+                  <div class="li" style="border:1.5px dashed var(--border)"><span class="icon-tile pri"><i data-lucide="plus"></i></span><div class="col"><b class="h3">New tournament</b><span class="xs">In one of your groups</span></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side g12" style="padding:18px 24px 22px">
+              <div class="ph"><span class="cap grow">Cubix Club · group tournament · 3×3 · First to 3 solves · best of 3 sets</span><span class="pill ok">Registration open</span></div>
+              <div class="row g16" style="align-items:flex-end"><span class="display xl">Club cup</span><span class="grow"></span><button class="btn ok"><i data-lucide="check"></i>Registered</button><button class="btn ghost">Unregister</button></div>
+              <span class="s">The club's monthly cup. Seeded at the start, one warm-up scramble each.</span>
+              <div class="grid4">
+                <div class="well"><span class="xs">Event</span><b class="h2">3×3</b></div>
+                <div class="well"><span class="xs">Players</span><b class="h2 num">7 / 16</b></div>
+                <div class="well"><span class="xs">Starts · in 2 h</span><b class="h2 num">16:30</b></div>
+                <div class="well"><span class="xs">Bracket</span><b class="h2">4 rounds</b></div>
+              </div>
+              <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Round of 16</span><span>Quarter-finals</span><span>Semi-finals</span><span>Final</span></div>
+              <div class="row g10"><b class="h3">Players</b><span class="bar ok grow"><i style="width:44%"></i></span><span class="s">You are registered</span></div>
+              <div class="grid4">
+                <div class="slot s40 me"><span class="avatar sm l">YU</span><span class="trunc">yuki_blind</span></div>
+                <div class="slot s40"><span class="avatar sm y">CO</span><span class="trunc">coach</span></div>
+                <div class="slot s40"><span class="avatar sm y">LE</span><span class="trunc">lena_speed</span></div>
+                <div class="slot s40"><span class="avatar sm">AL</span><span class="trunc">alex_cubes</span></div>
+                <div class="slot s40"><span class="avatar sm g">KE</span><span class="trunc">kenji_cfop</span></div>
+                <div class="slot s40"><span class="avatar sm y">CH</span><span class="trunc">chloe_f2l</span></div>
+                <div class="slot s40"><span class="avatar sm n">SO</span><span class="trunc">sofia_sq1</span></div>
+                <div class="slot s40 e">Open place</div>
+                <div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div>
+                <div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div>
+              </div>
+              <span class="grow"></span>
+              <div class="row g8"><span class="xs grow">Organiser tools</span><button class="btn"><i data-lucide="play"></i>Start now</button><button class="btn ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button></div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="swords"></i>Challenges<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+            <span class="grow"></span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes">
+            <div class="pane side g6" style="width:360px;padding:14px 12px">
+              <div class="ph px12"><span class="h3">Tournaments <span class="faint">5</span></span><button class="btn icon sm soft"><i data-lucide="plus"></i></button></div>
+              <div class="card pri" style="flex-direction:row;align-items:center;gap:10px;padding:10px 12px;margin:2px 0 4px">
+                <i data-lucide="trophy"></i>
+                <div class="col g0 grow"><b>Your match is ready</b><span class="xs">Friday sprint · semi-final · lena_speed</span></div>
+                <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)">Play</button>
+              </div>
+              <span class="cap px12">Under way · 2</span>
+              <div class="li"><div class="col"><b class="h3">Friday sprint</b><span class="xs">Cubix Club · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Semi-finals</span><span class="rs sm"><i class="w"></i><i class="c"></i><i></i></span></div></div>
+              <div class="li"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2</span></div><div class="col g4" style="align-items:flex-end;flex:none"><span class="pill pri">Final</span><span class="rs sm"><i class="w"></i><i class="w"></i><i class="c"></i></span></div></div>
+              <span class="cap px12" style="margin-top:4px">Registration open · 2</span>
+              <div class="li on"><div class="col"><b class="h3">Club cup</b><span class="xs">Cubix Club · 3×3 · today 16:30</span></div><span class="pill ok">Registered</span></div>
+              <div class="li"><div class="col"><b class="h3">Qbix Autumn Open</b><span class="xs">Open · 3×3 · Sat 17 Oct</span></div><span class="s num">23 / 64</span></div>
+              <span class="cap px12" style="margin-top:4px">Past · 1</span>
+              <div class="li"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · Mon 5 Oct</span></div><span class="s row g4"><i data-lucide="crown" class="warn" style="width:15px;height:15px"></i>hugo_sub10</span></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane g12" style="padding:16px 24px">
+              <div class="ph"><span class="cap grow">Cubix Club · group tournament · 3×3 · First to 3 solves · best of 3 sets</span><button class="btn sm"><i data-lucide="play"></i>Start now</button><button class="btn sm ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button></div>
+              <div class="row g16" style="align-items:flex-end"><span class="display xl">Club cup</span><span class="pill ok" style="margin-bottom:10px">Registration open</span><span class="grow"></span><button class="btn ok"><i data-lucide="check"></i>Registered</button><button class="btn ghost">Unregister</button></div>
+              <div class="row g16" style="align-items:stretch">
+                <div class="col g12 grow">
+                  <span class="s">The club's monthly cup. Seeded at the start, one warm-up scramble each.</span>
+                  <div class="grid2">
+                    <div class="well"><span class="xs">Starts</span><b class="h2 num">Today, 16:30</b><span class="xs pri b">in 2 h</span></div>
+                    <div class="well"><span class="xs">Bracket</span><b class="h2">4 rounds</b><span class="xs">drawn at the start</span></div>
+                  </div>
+                </div>
+                <div class="card hi g6 w280" style="padding:12px 14px">
+                  <div class="row between"><span class="big">7 / 16</span><span class="s">You are registered</span></div>
+                  <span class="bar ok"><i style="width:44%"></i></span>
+                  <span class="xs">9 open places · registration closes at the start</span>
+                </div>
+              </div>
+              <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Round of 16</span><span>Quarter-finals</span><span>Semi-finals</span><span>Final</span></div>
+              <b class="h3">Players</b>
+              <div class="grid4">
+                <div class="slot s40 me"><span class="avatar sm l">YU</span><span class="trunc">yuki_blind</span></div>
+                <div class="slot s40"><span class="avatar sm y">CO</span><span class="trunc">coach</span></div>
+                <div class="slot s40"><span class="avatar sm y">LE</span><span class="trunc">lena_speed</span></div>
+                <div class="slot s40"><span class="avatar sm">AL</span><span class="trunc">alex_cubes</span></div>
+                <div class="slot s40"><span class="avatar sm g">KE</span><span class="trunc">kenji_cfop</span></div>
+                <div class="slot s40"><span class="avatar sm y">CH</span><span class="trunc">chloe_f2l</span></div>
+                <div class="slot s40"><span class="avatar sm n">SO</span><span class="trunc">sofia_sq1</span></div>
+                <div class="slot s40 e">Open place</div>
+                <div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div><div class="slot s40 e">Open place</div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>New tournament</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="swords"></i>Challenges<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+            <span class="grow"></span>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes">
+            <div class="pane side g6" style="width:360px;padding:14px 12px">
+              <div class="ph px12"><span class="h3">Tournaments <span class="faint">5</span></span><button class="btn icon sm pri"><i data-lucide="plus"></i></button></div>
+              <div class="li on" style="margin:2px 0 4px"><span class="icon-tile pri"><i data-lucide="plus"></i></span><div class="col"><b class="h3">New tournament</b><span class="xs">Draft · Halloween cup</span></div></div>
+              <span class="cap px12">Under way · 2</span>
+              <div class="li"><div class="col"><b class="h3">Friday sprint</b><span class="xs">Cubix Club · 2×2 · First to 2</span></div><span class="pill pri">Semi-finals</span></div>
+              <div class="li"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · First to 2</span></div><span class="pill pri">Final</span></div>
+              <span class="cap px12" style="margin-top:4px">Registration open · 2</span>
+              <div class="li"><div class="col"><b class="h3">Club cup</b><span class="xs">Cubix Club · 3×3 · today 16:30</span></div><span class="pill ok">Registered</span></div>
+              <div class="li"><div class="col"><b class="h3">Qbix Autumn Open</b><span class="xs">Open · 3×3 · Sat 17 Oct</span></div><span class="s num">23 / 64</span></div>
+              <span class="cap px12" style="margin-top:4px">Past · 1</span>
+              <div class="li"><div class="col"><b class="h3">Weekly 2×2 sprint</b><span class="xs">Open · 2×2 · Mon 5 Oct</span></div><span class="s row g4"><i data-lucide="crown" class="warn" style="width:15px;height:15px"></i>hugo_sub10</span></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane g16" style="padding:20px 28px">
+              <div class="ph"><div class="col g2 grow"><span class="h1">New tournament</span><span class="s">Its card goes to the group's conversation. Members register until it starts; the bracket is drawn at its start.</span></div></div>
+              <div class="row g20" style="align-items:stretch">
+                <div class="col g12 grow">
+                  <div class="grid2" style="gap:12px">
+                    <div class="fld"><span class="lab">Group</span><div class="field v"><i data-lucide="users-round"></i><span class="grow">Cubix Club</span><i data-lucide="chevron-down"></i></div></div>
+                    <div class="fld"><span class="lab">Name</span><div class="field v" style="box-shadow:inset 0 0 0 2px var(--pri)">Halloween cup</div></div>
+                  </div>
+                  <div class="row g12" style="align-items:flex-end">
+                    <div class="fld" style="flex:1.4"><span class="lab">Event</span><div class="field v"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="grow">3×3</span><i data-lucide="chevron-down"></i></div></div>
+                    <div class="fld grow"><span class="lab">Solves per set</span><div class="field v num">3</div></div>
+                    <div class="fld grow"><span class="lab">Sets to win</span><div class="field v num">2</div></div>
+                  </div>
+                  <span class="xs">First to 3 solves · best of 3 sets, on the same scrambles for both players.</span>
+                  <div class="grid2" style="gap:12px">
+                    <div class="fld"><span class="lab">Starts</span><div class="field v"><i data-lucide="calendar-clock"></i>Sat 31 Oct · 18:00</div></div>
+                    <div class="fld"><span class="lab">Most players</span><div class="field v num">16</div></div>
+                  </div>
+                  <div class="fld"><span class="lab">Description</span><div class="field area" style="min-height:76px">Costumes welcome. Bracket drawn at six.</div></div>
+                </div>
+                <div class="card g10 w280" style="padding:16px">
+                  <span class="cap">Preview</span>
+                  <b class="h2">Halloween cup</b>
+                  <span class="xs">Cubix Club · group tournament · 3×3 · First to 3 solves · best of 3 sets</span>
+                  <div class="well"><span class="xs">Starts</span><b class="h3">Sat 31 Oct · 18:00</b></div>
+                  <div class="well"><span class="xs">Players</span><b class="h3 num">0 / 16</b></div>
+                  <span class="grow"></span>
+                  <div class="steps"><span class="on">Registration</span><span>Draw</span><span>Rounds</span></div>
+                </div>
+              </div>
+              <span class="grow"></span>
+              <div class="row end g8"><button class="btn ghost">Cancel</button><button class="btn pri"><i data-lucide="trophy"></i>Create the tournament</button></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 16 · Battle / bracket -->
+<section class="page" id="match" data-short="Bracket">
+  <div class="page-head">
+    <h2>16 · Battle / bracket <small>/tournaments/1 · /match/7</small></h2>
+    <p>Aujourd'hui, le tableau de Friday sprint est coupé sur tablette et ses colonnes restent à moitié vides : les tours sont empilés dans une scène trop étroite, les joueurs à part. Ici le tableau prend toute la largeur, quarts, demies, finale et champion reliés, chaque match à hauteur de ses deux matchs d'origine ; les joueurs et les outils de l'organisateur passent à côté (paysage) ou dessous (portrait). La course (manche par manche, les temps des deux joueurs) est le troisième écran.</p>
+    <div class="feats"><span>Group tournament · puzzle · format</span><span>Players 8 · Semi-finals 1 / 2 matches over · Started</span><span>Your match is ready · Play your match</span><span>Bracket : Quarter-finals, Semi-finals, Final, Champion</span><span>Match N · Over / Ready / Next · sets gagnés</span><span>To be decided</span><span>Players (classement, tour atteint)</span><span>Give up</span><span>Decide the match · Give the match to (organisateur)</span><span>Cancel the tournament (organisateur)</span><span>Battle : Here / Not here yet / Ready</span><span>Set N · Solve N · points « 1 of 2 »</span><span>Score des sets · bande des résolutions</span><span>Mélange</span><span>Hold, then release to start</span><span>+2 · DNF · Redo</span><span>Cube (connexion bluetooth)</span><span>« Solve 1 · lena_speed took it by 0.75 »</span><span>Solves (papillon par set, temps des deux joueurs)</span><span>Forfeit</span><span>Back to the tournament</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Le tableau occupe le contenu sous la ligne du tournoi et le bandeau du match prêt. En paysage, les joueurs et les outils de l'organisateur sont ancrés à droite ; en portrait, ils passent sous le tableau, sur deux colonnes. La course garde le même rail : score et chrono au centre, les résolutions ancrées à droite.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+  <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  <a><span><i data-lucide="timer"></i></span>Timer</a>
+  <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+  <a><span><i data-lucide="boxes"></i></span>Algs</a>
+  <a class="on"><span><i data-lucide="swords"></i></span>Challenges</a>
+  <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+  <span class="sp"></span>
+  <span class="avatar sm l">YU</span>
+</nav>
+            <div class="main">
+              <div class="phead"><span class="title">Challenges</span><div class="utabs"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div><span class="grow"></span><button class="btn ghost"><i data-lucide="flag"></i>Give up</button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="col g16 px24 grow" style="padding-bottom:24px">
+                <div class="col g6">
+                  <span class="cap">Cubix Club · group tournament · 2×2 · First to 2 solves · best of 3 sets</span>
+                  <div class="row g16"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><span class="h1 grow" style="font-size:34px">Friday sprint</span>
+                    <div class="stat"><span>Players</span><b>8</b></div>
+                    <div class="stat"><span>Semi-finals · over</span><b class="pri">1 / 2</b></div>
+                    <div class="stat"><span>Started</span><b>14:00</b></div>
+                  </div>
+                </div>
+                <div class="card pri" style="flex-direction:row;align-items:center;gap:12px;padding:12px 16px">
+                  <i data-lucide="trophy"></i>
+                  <div class="col g0 grow"><b>Your semi-final is ready</b><span class="xs">Against lena_speed: both on the match page and it starts.</span></div>
+                  <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play your match</button>
+                </div>
+                <div class="card g8" style="padding:16px;height:560px;flex:none">
+                  <div class="brk tight">
+  <div class="rd"><div class="rh">Quarter-finals <small>4 of 4 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar">BE</span><span>ben_tps</span><b>0</b></div></div>
+      <div class="mcard"><div class="mh">Match 2 · Over</div><div class="pl"><span class="avatar y">CO</span><span>coach</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CH</span><span>chloe_f2l</span><b>1</b></div></div>
+    </div>
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 3 · Over</div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">KE</span><span>kenji_cfop</span><b>1</b></div></div>
+      <div class="mcard"><div class="mh">Match 4 · Over</div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">HU</span><span>hugo_sub10</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh on">Semi-finals <small>1 of 2 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span><span>coach</span><b>0</b></div></div>
+      <div class="mcard on"><div class="mh"><span class="pri b">Your match · Ready</span><i data-lucide="gavel"></i></div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b>0</b></div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh">Final <small>Next</small></div><div class="cells">
+    <div class="pair s">
+      <div class="mcard"><div class="mh">Match 1 · Next</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span></div><div class="pl out"><span class="avatar n">?</span><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+  <div class="rd ch"><div class="rh champ">Champion</div><div class="cells">
+    <div class="pair">
+      <div class="mcard tbd"><div class="pl out" style="font-size:12.5px"><i data-lucide="crown" class="warn" style="width:16px;height:16px"></i><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+</div>
+                </div>
+                <div class="card g8 grow" style="padding:16px 18px">
+                  <div class="row"><b class="h3 grow">Players <span class="faint">8</span></b><button class="btn sm"><i data-lucide="gavel"></i>Decide a match</button><button class="btn sm ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button></div>
+                  <div class="grid2" style="column-gap:24px;row-gap:2px">
+                    <div class="row g10" style="min-height:40px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow trunc">alex_cubes</b><span class="pill pri">Final</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">2</span><span class="avatar sm l">YU</span><b class="grow trunc pri">yuki_blind</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow trunc">lena_speed</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow trunc">coach</b><span class="xs">Out · semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">5</span><span class="avatar sm y">CH</span><b class="grow trunc">chloe_f2l</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">6</span><span class="avatar sm g">KE</span><b class="grow trunc">kenji_cfop</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">7</span><span class="avatar sm">BE</span><b class="grow trunc">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">8</span><span class="avatar sm g">HU</span><b class="grow trunc">hugo_sub10</b><span class="xs">Out · quarter-finals</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+  <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  <a><span><i data-lucide="timer"></i></span>Timer</a>
+  <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+  <a><span><i data-lucide="boxes"></i></span>Algs</a>
+  <a class="on"><span><i data-lucide="swords"></i></span>Challenges</a>
+  <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+  <span class="sp"></span>
+  <span class="avatar sm l">YU</span>
+</nav>
+            <div class="main">
+              <div class="phead"><span class="title">Challenges</span><div class="utabs"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div><span class="grow"></span><button class="btn ghost"><i data-lucide="flag"></i>Give up</button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+              <div class="col g12 px24 grow" style="padding-bottom:20px">
+                <div class="row g16">
+                  <button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button>
+                  <div class="col g2 grow"><span class="cap trunc">Cubix Club · group tournament · 2×2 · First to 2 solves · best of 3 sets</span><span class="h1">Friday sprint</span></div>
+                  <div class="stat"><span>Players</span><b>8</b></div>
+                  <div class="stat"><span>Semi-finals · over</span><b class="pri">1 / 2</b></div>
+                  <div class="stat"><span>Started</span><b>14:00</b></div>
+                </div>
+                <div class="card pri" style="flex-direction:row;align-items:center;gap:12px;padding:10px 14px">
+                  <i data-lucide="trophy"></i>
+                  <div class="col g0 grow"><b>Your semi-final is ready</b><span class="xs">Against lena_speed: both on the match page and it starts.</span></div>
+                  <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play your match</button>
+                </div>
+                <div class="card g8 grow" style="padding:16px">
+                  <div class="brk">
+  <div class="rd"><div class="rh">Quarter-finals <small>4 of 4 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar">BE</span><span>ben_tps</span><b>0</b></div></div>
+      <div class="mcard"><div class="mh">Match 2 · Over</div><div class="pl"><span class="avatar y">CO</span><span>coach</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CH</span><span>chloe_f2l</span><b>1</b></div></div>
+    </div>
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 3 · Over</div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">KE</span><span>kenji_cfop</span><b>1</b></div></div>
+      <div class="mcard"><div class="mh">Match 4 · Over</div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">HU</span><span>hugo_sub10</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh on">Semi-finals <small>1 of 2 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span><span>coach</span><b>0</b></div></div>
+      <div class="mcard on"><div class="mh"><span class="pri b">Your match · Ready</span><i data-lucide="gavel"></i></div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b>0</b></div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh">Final <small>Next</small></div><div class="cells">
+    <div class="pair s">
+      <div class="mcard"><div class="mh">Match 1 · Next</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span></div><div class="pl out"><span class="avatar n">?</span><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+  <div class="rd ch"><div class="rh champ">Champion</div><div class="cells">
+    <div class="pair">
+      <div class="mcard tbd"><div class="pl out" style="font-size:12.5px"><i data-lucide="crown" class="warn" style="width:16px;height:16px"></i><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+</div>
+                </div>
+              </div>
+            </div>
+            <aside class="dock">
+              <b class="h3">Players <span class="faint">8</span></b>
+              <div class="col g2">
+                <div class="row g10" style="min-height:40px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow trunc">alex_cubes</b><span class="pill pri">Final</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">2</span><span class="avatar sm l">YU</span><b class="grow trunc pri">yuki_blind</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow trunc">lena_speed</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow trunc">coach</b><span class="xs">Out · semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">5</span><span class="avatar sm y">CH</span><b class="grow trunc">chloe_f2l</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">6</span><span class="avatar sm g">KE</span><b class="grow trunc">kenji_cfop</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">7</span><span class="avatar sm">BE</span><b class="grow trunc">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">8</span><span class="avatar sm g">HU</span><b class="grow trunc">hugo_sub10</b><span class="xs">Out · quarter-finals</span></div>
+              </div>
+              <span class="grow"></span>
+              <div class="card pop g8" style="padding:12px">
+                <span class="cap">Organiser</span>
+                <div class="row g6"><span class="xs grow">yuki_blind – lena_speed</span><button class="btn sm"><i data-lucide="gavel"></i>Decide</button></div>
+                <button class="btn sm ghost block" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button>
+              </div>
+            </aside>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Battle</b> /match/7 · 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="shell">
+            <nav class="rail">
+  <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  <a><span><i data-lucide="timer"></i></span>Timer</a>
+  <a><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+  <a><span><i data-lucide="boxes"></i></span>Algs</a>
+  <a class="on"><span><i data-lucide="swords"></i></span>Challenges</a>
+  <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+  <span class="sp"></span>
+  <span class="avatar sm l">YU</span>
+</nav>
+            <div class="main">
+              <div class="phead"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><span class="title">Battle</span><span class="s grow trunc">Friday sprint · semi-final · Cubix Club · 2×2 · First to 2 solves · best of 3 sets</span><button class="btn"><i data-lucide="bluetooth"></i>Connect a cube</button><button class="btn ghost"><i data-lucide="flag"></i>Forfeit</button></div>
+              <div class="col g12 px24 grow" style="padding-bottom:20px">
+                <div class="card g10" style="padding:14px 18px;flex:none">
+  <div class="row between">
+    <div class="row g10"><span class="avatar l">YU</span><div class="col g0"><b class="h3">You</b><span class="xs pri b">Your turn · 0 of 2</span></div></div>
+    <div class="col g2" style="align-items:center"><span class="big num"><span class="pri">1</span> <span class="faint">–</span> <span class="lilac">0</span></span><span class="xs">Sets · best of 3</span></div>
+    <div class="row g10"><div class="col g0" style="align-items:flex-end"><b class="h3">lena_speed</b><span class="xs ok b row g4"><i class="dot ok"></i>Here · Ready · 1 of 2</span></div><span class="avatar y">LE</span></div>
+  </div>
+  <div class="row g10"><span class="xs b" style="width:44px">Set 2</span><span class="rs"><i class="l"></i><i class="c"></i><i></i></span><span class="xs b" style="width:54px;text-align:right">Solve 2</span></div>
+</div>
+                <div class="row g16" style="padding:4px 4px 0"><span class="cap">Set 2 · Solve 2</span><span class="alg grow" style="text-align:center;font-size:24px">R U' F2 R' U2 F U' R2 F'</span><span class="s">Solve 1 · lena_speed took it by 0.75</span></div>
+                <div class="card grow center" style="gap:12px">
+                  <span class="grow"></span>
+                  <div class="timer xxl">0.<span class="ms">000</span></div>
+                  <span class="s">Hold, then release to start</span>
+                  <span class="grow"></span>
+                  <div class="row" style="width:420px"><span class="toggle"><i data-lucide="plus"></i>+2</span><span class="toggle"><i data-lucide="ban"></i>DNF</span><span class="toggle"><i data-lucide="undo-2"></i>Redo</span></div>
+                </div>
+              </div>
+            </div>
+            <aside class="dock">
+              <div class="row between"><b class="h3">Solves</b><span class="xs">You · lena_speed</span></div>
+              <div class="col g8">
+                <div class="row between"><span class="xs b">Set 1</span><span class="xs b pri">You 2–1</span></div>
+<div class="bf"><b class="faint">3.84</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.41</b></div>
+<div class="bf"><b>3.12</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">4.05</b></div>
+<div class="bf"><b>3.27</b><span class="bar r"><i style="width:100%"></i></span><span class="n">3</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.96</b></div>
+<div class="row between" style="margin-top:6px"><span class="xs b">Set 2</span><span class="xs b lilac">lena_speed 1–0</span></div>
+<div class="bf"><b class="faint">4.27</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.52</b></div>
+<div class="bf"><b class="faint">–</b><span class="bar r"><i style="width:0"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">–</b></div>
+              </div>
+              <span class="grow"></span>
+              <div class="grid2">
+                <div class="well"><span class="xs">Event</span><b class="h3">2×2</b></div>
+                <div class="well"><span class="xs">Format</span><b class="h3">First to 2</b><span class="xs">best of 3 sets</span></div>
+              </div>
+              <button class="btn ghost block"><i data-lucide="trophy"></i>Back to the tournament</button>
+            </aside>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>Le tournoi est un écran poussé, grand titre et retour : le match prêt en tuile héros, le tableau dans une grande tuile. En portrait, les joueurs sont une feuille qui dépasse au-dessus de la barre ; en paysage, une feuille ancrée à droite avec les actions. La course : score en haut, chrono au centre, résolutions en feuille ancrée.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><button class="btn icon ghost" style="width:44px;height:44px"><i data-lucide="chevron-left"></i></button><span class="display">Friday sprint</span><span class="pill pri">Semi-finals</span><button class="btn icon" style="width:44px;height:44px"><i data-lucide="ellipsis"></i></button><span class="avatar l">YU</span></div>
+          <div class="col g16 grow" style="padding:6px 28px 0">
+            <div class="row g16"><span class="cap grow trunc">Cubix Club · group tournament · 2×2 · First to 2 solves · best of 3 sets</span><span class="s"><b style="color:var(--fg)">8</b> players · <b class="pri">1 / 2</b> semi-finals over · started 14:00</span></div>
+            <div class="tile hero g12" style="flex-direction:row;align-items:center;gap:20px;padding:18px 22px">
+              <div class="row g16"><div class="col g4" style="align-items:center"><span class="avatar lg l halo">YU</span><b>You</b></div><span class="h2 faint">vs</span><div class="col g4" style="align-items:center"><span class="avatar lg y halo off">LE</span><b>lena_speed</b></div></div>
+              <div class="col g4 grow"><span class="cap">Your semi-final</span><b class="h2">Your match is ready</b><span class="s">Both on the match page and it starts.</span></div>
+              <button class="btn pri lg"><i data-lucide="play"></i>Play</button>
+            </div>
+            <div class="tile g8" style="height:520px;flex:none">
+              <div class="brk tight">
+  <div class="rd"><div class="rh">Quarter-finals <small>4 of 4 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar">BE</span><span>ben_tps</span><b>0</b></div></div>
+      <div class="mcard"><div class="mh">Match 2 · Over</div><div class="pl"><span class="avatar y">CO</span><span>coach</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CH</span><span>chloe_f2l</span><b>1</b></div></div>
+    </div>
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 3 · Over</div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">KE</span><span>kenji_cfop</span><b>1</b></div></div>
+      <div class="mcard"><div class="mh">Match 4 · Over</div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">HU</span><span>hugo_sub10</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh on">Semi-finals <small>1 of 2 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span><span>coach</span><b>0</b></div></div>
+      <div class="mcard on"><div class="mh"><span class="pri b">Your match · Ready</span><i data-lucide="gavel"></i></div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b>0</b></div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh">Final <small>Next</small></div><div class="cells">
+    <div class="pair s">
+      <div class="mcard"><div class="mh">Match 1 · Next</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span></div><div class="pl out"><span class="avatar n">?</span><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+  <div class="rd ch"><div class="rh champ">Champion</div><div class="cells">
+    <div class="pair">
+      <div class="mcard tbd"><div class="pl out" style="font-size:12.5px"><i data-lucide="crown" class="warn" style="width:16px;height:16px"></i><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+</div>
+            </div>
+          </div>
+          <div class="sheet over-nav g8" style="padding:8px 20px 14px">
+            <div class="row"><b class="h3 grow">Players <span class="faint">8</span></b><span class="s">alex_cubes waits in the final</span><i data-lucide="chevron-up" class="faint"></i></div>
+            <div class="grid2" style="column-gap:24px;row-gap:0">
+              <div class="row g10" style="min-height:44px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow">alex_cubes</b><span class="pill pri">Final</span></div>
+              <div class="row g10" style="min-height:44px"><span class="rk">2</span><span class="avatar sm l">YU</span><b class="grow pri">yuki_blind</b><span class="pill">Semi-finals</span></div>
+              <div class="row g10" style="min-height:44px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow">lena_speed</b><span class="pill">Semi-finals</span></div>
+              <div class="row g10" style="min-height:44px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow">coach</b><span class="xs">Out · semi-finals</span></div>
+            </div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+<span class="on"><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row g0 grow" style="align-items:stretch">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="padding-top:14px"><button class="btn icon ghost" style="width:44px;height:44px"><i data-lucide="chevron-left"></i></button><span class="display">Friday sprint</span><span class="pill pri">Semi-finals</span></div>
+              <div class="col g12 grow" style="padding:6px 28px 0">
+                <div class="tile hero" style="flex-direction:row;align-items:center;gap:16px;padding:12px 18px">
+                  <div class="row g10"><span class="avatar l halo">YU</span><span class="xs b faint">vs</span><span class="avatar y halo off">LE</span></div>
+                  <div class="col g2 grow"><b class="h3">Your semi-final is ready</b><span class="xs">Against lena_speed: both on the match page and it starts.</span></div>
+                  <button class="btn pri" style="height:44px"><i data-lucide="play"></i>Play your match</button>
+                </div>
+                <div class="tile g8 grow" style="padding:14px 16px">
+                  <div class="brk">
+  <div class="rd"><div class="rh">Quarter-finals <small>4 of 4 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar">BE</span><span>ben_tps</span><b>0</b></div></div>
+      <div class="mcard"><div class="mh">Match 2 · Over</div><div class="pl"><span class="avatar y">CO</span><span>coach</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CH</span><span>chloe_f2l</span><b>1</b></div></div>
+    </div>
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 3 · Over</div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">KE</span><span>kenji_cfop</span><b>1</b></div></div>
+      <div class="mcard"><div class="mh">Match 4 · Over</div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">HU</span><span>hugo_sub10</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh on">Semi-finals <small>1 of 2 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span><span>coach</span><b>0</b></div></div>
+      <div class="mcard on"><div class="mh"><span class="pri b">Your match · Ready</span><i data-lucide="gavel"></i></div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b>0</b></div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh">Final <small>Next</small></div><div class="cells">
+    <div class="pair s">
+      <div class="mcard"><div class="mh">Match 1 · Next</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span></div><div class="pl out"><span class="avatar n">?</span><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+  <div class="rd ch"><div class="rh champ">Champion</div><div class="cells">
+    <div class="pair">
+      <div class="mcard tbd"><div class="pl out" style="font-size:12.5px"><i data-lucide="crown" class="warn" style="width:16px;height:16px"></i><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+</div>
+                </div>
+              </div>
+              <div class="fnav-space"></div>
+            </div>
+            <aside class="sidesheet docked g8" style="width:360px">
+              <span class="cap">Cubix Club · group tournament</span>
+              <span class="s">2×2 · First to 2 solves · best of 3 sets</span>
+              <div class="grid3">
+                <div class="well"><span class="xs">Players</span><b class="h3">8</b></div>
+                <div class="well"><span class="xs">Semis over</span><b class="h3 pri">1 / 2</b></div>
+                <div class="well"><span class="xs">Started</span><b class="h3">14:00</b></div>
+              </div>
+              <b class="h3" style="margin-top:4px">Players</b>
+              <div class="scroll g2">
+                <div class="row g10" style="min-height:40px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow trunc">alex_cubes</b><span class="pill pri">Final</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">2</span><span class="avatar sm l">YU</span><b class="grow trunc pri">yuki_blind</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow trunc">lena_speed</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow trunc">coach</b><span class="xs">Out · semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">5</span><span class="avatar sm y">CH</span><b class="grow trunc">chloe_f2l</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">6</span><span class="avatar sm g">KE</span><b class="grow trunc">kenji_cfop</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">7</span><span class="avatar sm">BE</span><b class="grow trunc">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">8</span><span class="avatar sm g">HU</span><b class="grow trunc">hugo_sub10</b><span class="xs">Out · quarter-finals</span></div>
+              </div>
+              <div class="grid2"><button class="btn" style="height:44px"><i data-lucide="gavel"></i>Decide</button><button class="btn ghost" style="height:44px"><i data-lucide="flag"></i>Give up</button></div>
+              <button class="btn ghost block" style="height:44px;color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button>
+            </aside>
+          </div>
+          <nav class="fnav" style="left:454px">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+<span class="on"><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Battle</b> /match/7 · 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row g0 grow" style="align-items:stretch">
+            <div class="col g12 grow">
+              <div class="bigtitle" style="padding-top:14px;padding-bottom:0"><button class="btn icon ghost" style="width:44px;height:44px"><i data-lucide="chevron-left"></i></button><span class="display">Battle</span><button class="btn icon" style="width:44px;height:44px"><i data-lucide="bluetooth"></i></button><button class="btn ghost" style="height:44px"><i data-lucide="flag"></i>Forfeit</button></div>
+              <div class="col g12 px24 grow" style="padding:0 28px">
+                <div class="card g10" style="padding:14px 18px;flex:none">
+  <div class="row between">
+    <div class="row g10"><span class="avatar l">YU</span><div class="col g0"><b class="h3">You</b><span class="xs pri b">Your turn · 0 of 2</span></div></div>
+    <div class="col g2" style="align-items:center"><span class="big num"><span class="pri">1</span> <span class="faint">–</span> <span class="lilac">0</span></span><span class="xs">Sets · best of 3</span></div>
+    <div class="row g10"><div class="col g0" style="align-items:flex-end"><b class="h3">lena_speed</b><span class="xs ok b row g4"><i class="dot ok"></i>Here · Ready · 1 of 2</span></div><span class="avatar y">LE</span></div>
+  </div>
+  <div class="row g10"><span class="xs b" style="width:44px">Set 2</span><span class="rs"><i class="l"></i><i class="c"></i><i></i></span><span class="xs b" style="width:54px;text-align:right">Solve 2</span></div>
+</div>
+                <span class="alg" style="text-align:center;font-size:24px">R U' F2 R' U2 F U' R2 F'</span>
+                <div class="col center grow" style="gap:10px">
+                  <div class="timer xxl armed">0.<span class="ms">000</span></div>
+                  <span class="s">Release to start</span>
+                  <div class="row" style="width:360px"><span class="toggle"><i data-lucide="plus"></i>+2</span><span class="toggle"><i data-lucide="ban"></i>DNF</span><span class="toggle"><i data-lucide="undo-2"></i>Redo</span></div>
+                </div>
+              </div>
+              <div class="fnav-space"></div>
+            </div>
+            <aside class="sidesheet docked g10" style="width:360px">
+              <div class="row between"><b class="h3">Solves</b><span class="xs">You · lena_speed</span></div>
+              <span class="s">Solve 1 · lena_speed took it by 0.75</span>
+              <div class="col g8">
+                <div class="row between"><span class="xs b">Set 1</span><span class="xs b pri">You 2–1</span></div>
+<div class="bf"><b class="faint">3.84</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.41</b></div>
+<div class="bf"><b>3.12</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">4.05</b></div>
+<div class="bf"><b>3.27</b><span class="bar r"><i style="width:100%"></i></span><span class="n">3</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.96</b></div>
+<div class="row between" style="margin-top:6px"><span class="xs b">Set 2</span><span class="xs b lilac">lena_speed 1–0</span></div>
+<div class="bf"><b class="faint">4.27</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.52</b></div>
+<div class="bf"><b class="faint">–</b><span class="bar r"><i style="width:0"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">–</b></div>
+              </div>
+              <span class="grow"></span>
+              <div class="well"><span class="xs">Friday sprint · semi-final</span><b class="h3">2×2 · First to 2 solves · best of 3 sets</b></div>
+              <button class="btn block" style="height:44px"><i data-lucide="trophy"></i>Back to the tournament</button>
+            </aside>
+          </div>
+          <nav class="fnav" style="left:454px">
+            <span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span>
+<span class="on"><i data-lucide="swords"></i></span><span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Le tableau est le volet principal, toujours entier ; le volet d'appui porte le match prêt, les joueurs et les outils de l'organisateur, à droite en paysage, dessous en portrait. La course se découpe pareil : la course à gauche, les résolutions des deux joueurs dans le volet d'appui.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar">
+  <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  <span class="sect"><i data-lucide="swords"></i>Challenges<i data-lucide="chevron-down"></i></span>
+  <div class="seg"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+  <span class="grow"></span>
+  <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+  <span class="avatar sm l">YU</span>
+</div>
+          <div class="panes v">
+            <div class="pane g12">
+              <div class="ph"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><div class="col g2 grow"><span class="cap trunc">Cubix Club · group tournament · 2×2 · First to 2 solves · best of 3 sets</span><span class="h1">Friday sprint</span></div>
+                <div class="stat"><span>Players</span><b>8</b></div><div class="stat"><span>Semis over</span><b class="pri">1 / 2</b></div><div class="stat"><span>Started</span><b>14:00</b></div></div>
+              <div class="card pri" style="flex-direction:row;align-items:center;gap:12px;padding:10px 14px">
+                <i data-lucide="trophy"></i>
+                <div class="col g0 grow"><b>Your semi-final is ready</b><span class="xs">Against lena_speed: both on the match page and it starts.</span></div>
+                <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play your match</button>
+              </div>
+              <div class="brk tight">
+  <div class="rd"><div class="rh">Quarter-finals <small>4 of 4 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar">BE</span><span>ben_tps</span><b>0</b></div></div>
+      <div class="mcard"><div class="mh">Match 2 · Over</div><div class="pl"><span class="avatar y">CO</span><span>coach</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CH</span><span>chloe_f2l</span><b>1</b></div></div>
+    </div>
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 3 · Over</div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">KE</span><span>kenji_cfop</span><b>1</b></div></div>
+      <div class="mcard"><div class="mh">Match 4 · Over</div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">HU</span><span>hugo_sub10</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh on">Semi-finals <small>1 of 2 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span><span>coach</span><b>0</b></div></div>
+      <div class="mcard on"><div class="mh"><span class="pri b">Your match · Ready</span><i data-lucide="gavel"></i></div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b>0</b></div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh">Final <small>Next</small></div><div class="cells">
+    <div class="pair s">
+      <div class="mcard"><div class="mh">Match 1 · Next</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span></div><div class="pl out"><span class="avatar n">?</span><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+  <div class="rd ch"><div class="rh champ">Champion</div><div class="cells">
+    <div class="pair">
+      <div class="mcard tbd"><div class="pl out" style="font-size:12.5px"><i data-lucide="crown" class="warn" style="width:16px;height:16px"></i><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+</div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="flex:none;height:360px">
+              <div class="row g20 grow" style="align-items:stretch">
+                <div class="col g6 grow">
+                  <div class="ph"><span class="h3">Players <span class="faint">8</span></span></div>
+                  <div class="grid2" style="column-gap:20px;row-gap:0">
+                    <div class="row g10" style="min-height:40px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow trunc">alex_cubes</b><span class="pill pri">Final</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">2</span><span class="avatar sm l">YU</span><b class="grow trunc pri">yuki_blind</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow trunc">lena_speed</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow trunc">coach</b><span class="xs">Out · semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">5</span><span class="avatar sm y">CH</span><b class="grow trunc">chloe_f2l</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">6</span><span class="avatar sm g">KE</span><b class="grow trunc">kenji_cfop</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">7</span><span class="avatar sm">BE</span><b class="grow trunc">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">8</span><span class="avatar sm g">HU</span><b class="grow trunc">hugo_sub10</b><span class="xs">Out · quarter-finals</span></div>
+                  </div>
+                </div>
+                <div class="col g8 w220" style="width:220px;flex:none">
+                  <span class="cap">Organiser</span>
+                  <span class="xs">Give the match to</span>
+                  <button class="btn sm"><span class="avatar sm l" style="width:22px;height:22px;font-size:9px">YU</span>yuki_blind</button>
+                  <button class="btn sm"><span class="avatar sm y" style="width:22px;height:22px;font-size:9px">LE</span>lena_speed</button>
+                  <span class="grow"></span>
+                  <button class="btn ghost"><i data-lucide="flag"></i>Give up</button>
+                  <button class="btn ghost" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+  <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  <span class="sect"><i data-lucide="swords"></i>Challenges<i data-lucide="chevron-down"></i></span>
+  <div class="seg"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+  <span class="grow"></span>
+  <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+  <span class="avatar sm l">YU</span>
+</div>
+          <div class="panes">
+            <div class="pane g12">
+              <div class="ph"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><div class="col g2 grow"><span class="cap trunc">Cubix Club · group tournament · 2×2 · First to 2 solves · best of 3 sets</span><span class="h1">Friday sprint</span></div>
+                <div class="stat"><span>Players</span><b>8</b></div><div class="stat"><span>Semi-finals · over</span><b class="pri">1 / 2</b></div><div class="stat"><span>Started</span><b>14:00</b></div></div>
+              <div class="brk">
+  <div class="rd"><div class="rh">Quarter-finals <small>4 of 4 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar">BE</span><span>ben_tps</span><b>0</b></div></div>
+      <div class="mcard"><div class="mh">Match 2 · Over</div><div class="pl"><span class="avatar y">CO</span><span>coach</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CH</span><span>chloe_f2l</span><b>1</b></div></div>
+    </div>
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 3 · Over</div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">KE</span><span>kenji_cfop</span><b>1</b></div></div>
+      <div class="mcard"><div class="mh">Match 4 · Over</div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b class="ok">2</b></div><div class="pl out"><span class="avatar g">HU</span><span>hugo_sub10</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh on">Semi-finals <small>1 of 2 over</small></div><div class="cells">
+    <div class="pair j">
+      <div class="mcard"><div class="mh">Match 1 · Over</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span><b class="ok">2</b></div><div class="pl out"><span class="avatar y">CO</span><span>coach</span><b>0</b></div></div>
+      <div class="mcard on"><div class="mh"><span class="pri b">Your match · Ready</span><i data-lucide="gavel"></i></div><div class="pl"><span class="avatar l">YU</span><span>yuki_blind</span><b>0</b></div><div class="pl"><span class="avatar y">LE</span><span>lena_speed</span><b>0</b></div></div>
+    </div>
+  </div></div>
+  <div class="rd"><div class="rh">Final <small>Next</small></div><div class="cells">
+    <div class="pair s">
+      <div class="mcard"><div class="mh">Match 1 · Next</div><div class="pl"><span class="avatar">AL</span><span>alex_cubes</span></div><div class="pl out"><span class="avatar n">?</span><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+  <div class="rd ch"><div class="rh champ">Champion</div><div class="cells">
+    <div class="pair">
+      <div class="mcard tbd"><div class="pl out" style="font-size:12.5px"><i data-lucide="crown" class="warn" style="width:16px;height:16px"></i><span>To be decided</span></div></div>
+    </div>
+  </div></div>
+</div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side g10" style="width:340px">
+              <div class="card pri g8" style="padding:12px 14px">
+                <div class="row g10"><i data-lucide="trophy"></i><b class="grow">Your semi-final is ready</b></div>
+                <span class="xs">Against lena_speed: both on the match page and it starts.</span>
+                <button class="btn sm" style="background:var(--pri-fg);color:var(--pri)"><i data-lucide="play"></i>Play your match</button>
+              </div>
+              <div class="ph"><span class="h3">Players <span class="faint">8</span></span></div>
+              <div class="scroll g2">
+                <div class="row g10" style="min-height:40px"><span class="rk">1</span><span class="avatar sm">AL</span><b class="grow trunc">alex_cubes</b><span class="pill pri">Final</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">2</span><span class="avatar sm l">YU</span><b class="grow trunc pri">yuki_blind</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">3</span><span class="avatar sm y">LE</span><b class="grow trunc">lena_speed</b><span class="pill">Semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">4</span><span class="avatar sm y">CO</span><b class="grow trunc">coach</b><span class="xs">Out · semi-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">5</span><span class="avatar sm y">CH</span><b class="grow trunc">chloe_f2l</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">6</span><span class="avatar sm g">KE</span><b class="grow trunc">kenji_cfop</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">7</span><span class="avatar sm">BE</span><b class="grow trunc">ben_tps</b><span class="xs">Out · quarter-finals</span></div>
+<div class="row g10" style="min-height:40px"><span class="rk">8</span><span class="avatar sm g">HU</span><b class="grow trunc">hugo_sub10</b><span class="xs">Out · quarter-finals</span></div>
+              </div>
+              <div class="row g6"><button class="btn sm"><i data-lucide="gavel"></i>Decide the match</button><span class="grow"></span><button class="btn sm ghost"><i data-lucide="flag"></i>Give up</button></div>
+              <button class="btn sm ghost block" style="color:var(--bad)"><i data-lucide="ban"></i>Cancel the tournament</button>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Battle</b> /match/7 · 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+  <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  <span class="sect"><i data-lucide="swords"></i>Challenges<i data-lucide="chevron-down"></i></span>
+  <div class="seg"><span>Duel</span><span class="on">Tournaments</span><span>Daily</span></div>
+  <span class="grow"></span>
+  <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+  <span class="avatar sm l">YU</span>
+</div>
+          <div class="panes">
+            <div class="pane g12">
+              <div class="ph"><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><span class="h3">Battle</span><span class="s grow trunc">Friday sprint · semi-final · 2×2 · First to 2 solves · best of 3 sets</span><button class="btn sm"><i data-lucide="bluetooth"></i>Connect a cube</button><button class="btn sm ghost"><i data-lucide="flag"></i>Forfeit</button></div>
+              <div class="card g10" style="padding:14px 18px;flex:none">
+  <div class="row between">
+    <div class="row g10"><span class="avatar l">YU</span><div class="col g0"><b class="h3">You</b><span class="xs pri b">Your turn · 0 of 2</span></div></div>
+    <div class="col g2" style="align-items:center"><span class="big num"><span class="pri">1</span> <span class="faint">–</span> <span class="lilac">0</span></span><span class="xs">Sets · best of 3</span></div>
+    <div class="row g10"><div class="col g0" style="align-items:flex-end"><b class="h3">lena_speed</b><span class="xs ok b row g4"><i class="dot ok"></i>Here · Ready · 1 of 2</span></div><span class="avatar y">LE</span></div>
+  </div>
+  <div class="row g10"><span class="xs b" style="width:44px">Set 2</span><span class="rs"><i class="l"></i><i class="c"></i><i></i></span><span class="xs b" style="width:54px;text-align:right">Solve 2</span></div>
+</div>
+              <div class="row g16"><span class="cap">Set 2 · Solve 2</span><span class="alg grow" style="text-align:center;font-size:24px">R U' F2 R' U2 F U' R2 F'</span></div>
+              <div class="card grow center" style="gap:10px">
+                <span class="grow"></span>
+                <div class="timer xxl">0.<span class="ms">000</span></div>
+                <span class="s">Hold, then release to start</span>
+                <span class="grow"></span>
+                <div class="row" style="width:420px"><span class="toggle"><i data-lucide="plus"></i>+2</span><span class="toggle"><i data-lucide="ban"></i>DNF</span><span class="toggle"><i data-lucide="undo-2"></i>Redo</span></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side g10" style="width:360px">
+              <div class="ph"><span class="h3">Solves</span><span class="xs">You · lena_speed</span></div>
+              <span class="s">Solve 1 · lena_speed took it by 0.75</span>
+              <div class="col g8">
+                <div class="row between"><span class="xs b">Set 1</span><span class="xs b pri">You 2–1</span></div>
+<div class="bf"><b class="faint">3.84</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.41</b></div>
+<div class="bf"><b>3.12</b><span class="bar r"><i style="width:100%"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">4.05</b></div>
+<div class="bf"><b>3.27</b><span class="bar r"><i style="width:100%"></i></span><span class="n">3</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">3.96</b></div>
+<div class="row between" style="margin-top:6px"><span class="xs b">Set 2</span><span class="xs b lilac">lena_speed 1–0</span></div>
+<div class="bf"><b class="faint">4.27</b><span class="bar r"><i style="width:0"></i></span><span class="n">1</span><span class="bar lil"><i style="width:100%"></i></span><b>3.52</b></div>
+<div class="bf"><b class="faint">–</b><span class="bar r"><i style="width:0"></i></span><span class="n">2</span><span class="bar lil"><i style="width:0"></i></span><b class="faint">–</b></div>
+              </div>
+              <span class="grow"></span>
+              <div class="grid2">
+                <div class="well"><span class="xs">You</span><b class="h3 row g6"><i class="dot ok"></i>Here</b></div>
+                <div class="well"><span class="xs">lena_speed</span><b class="h3 row g6"><i class="dot ok"></i>Ready</b></div>
+              </div>
+              <button class="btn ghost block"><i data-lucide="trophy"></i>Back to the tournament</button>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>

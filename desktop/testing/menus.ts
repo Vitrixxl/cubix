@@ -5,7 +5,7 @@ import { chromium, type Page } from "playwright";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { act as click, signIn, startServer } from "./app";
+import { act as click, signIn, startServer, desktopContext } from "./app";
 
 const SHOTS = "artifacts/menus";
 await mkdir(SHOTS, { recursive: true });
@@ -32,7 +32,7 @@ const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/${n
 
 try {
   const [width, height] = (process.argv.find((a) => /^\d+x\d+$/.test(a)) ?? "1440x900").split("x").map(Number);
-  const context = await browser.newContext({ viewport: { width: width!, height: height! } });
+  const context = await desktopContext(browser, { viewport: { width: width!, height: height! } });
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("page error:", e.message));
   await page.goto(origin + "/timer");

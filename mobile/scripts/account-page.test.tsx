@@ -62,6 +62,7 @@ mock.module("../src/components/ui/dropdown-menu", () => ({ DropdownMenu: "Dropdo
 mock.module("../src/components/layout", () => Object.fromEntries(["Bar", "Empty", "Figure", "MenuItem", "Numeric", "Segmented", "Surface"].map(name => [name, name])));
 mock.module("../src/theme", () => ({ useColors: () => ({ primary: "#f5609f", variables: {} }) }));
 const account = { id: "u1", username: "vitrix", isGuest: false, createdAt: "2026-01-15T00:00:00Z" };
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
 const { ProfilePage } = await import("../src/pages/AccountPage");
 const { routeAtom, userAtom, profileFiltersAtom, statsVersionAtom, deletedSolveIdAtom } = await import("../src/state");
 const { profileDataAtom, profileAchievementsAtom } = await import("../src/profile");

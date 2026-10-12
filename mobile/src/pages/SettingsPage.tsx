@@ -20,6 +20,7 @@ import { Sheet, SheetInput } from "../components/Sheet";
 import { toastAtom } from "../components/Toast";
 import { UserAvatar } from "../components/UserAvatar";
 import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n";
+import { useLayout } from "../hooks/useLayout";
 import { exportData } from "../lib/files";
 import { updateAvailable } from "../lib/release";
 import { APK_DOWNLOAD_URL, APP_BUILD, APP_COMMIT, APP_RUNTIME, APP_VERSION, latestReleaseAtom, restartWithUpdate, useOtaCheck, useOtaPending, useReleaseCheck } from "../release";
@@ -29,18 +30,52 @@ import { said, tr } from "../../../src/client/i18n";
 /**
  * The settings, pushed from the account menu (direction A): the account and signing out, then grouped rows: the
  * appearance (mode and accent), the timer and the language, the data (importing, a copy to keep, the account deleted),
- * the guides, the legal documents and the installed version.
+ * the guides, the legal documents and the installed version. A tablet sets the inspection and the language in place
+ * and lays the groups in two columns; a wide screen docks the account, the help and the version at the right.
  */
 export function SettingsPage() {
   useReleaseCheck(true);
   useOtaCheck(true);
   const openGuides = useSetAtom(guidesAtom);
+  const { tablet, wide } = useLayout();
+  const head = <PushedBar title={tr("Settings")}>
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Guides")} onPress={() => openGuides("about")} className="size-11 items-center justify-center rounded-full active:bg-muted">
+      <Icon as={CircleHelp} size={20} />
+    </Pressable>
+  </PushedBar>;
+  if (wide) return <View className="flex-1 flex-row">
+    <View className="min-w-0 flex-1">
+      {head}
+      <ScrollView className="flex-1" contentContainerClassName="flex-row gap-3 px-7 pb-4" showsVerticalScrollIndicator={false}>
+        <View className="flex-1 gap-2.5"><Appearance /><InspectionChoice /></View>
+        <View className="flex-1 gap-2.5"><LanguageChoice /><Data /></View>
+      </ScrollView>
+    </View>
+    <View className="w-[404px] p-3 pl-0">
+      <ScrollView className="flex-1 rounded-3xl bg-card" contentContainerClassName="gap-2.5 p-4" showsVerticalScrollIndicator={false}>
+        <Account />
+        <Help />
+        <Legal />
+        <Version />
+      </ScrollView>
+    </View>
+  </View>;
+  if (tablet) return <View className="flex-1">
+    {head}
+    <ScrollView className="flex-1" contentContainerClassName="gap-3 px-7 pb-4" showsVerticalScrollIndicator={false}>
+      <Account />
+      <Appearance />
+      <View className="flex-row gap-3"><InspectionChoice className="flex-1" /><LanguageChoice className="flex-1" /></View>
+      <View className="flex-row gap-3">
+        <View className="flex-1 gap-2.5"><Data /></View>
+        <View className="flex-1 gap-2.5"><Help /></View>
+      </View>
+      <Legal />
+      <Version />
+    </ScrollView>
+  </View>;
   return <View className="flex-1">
-    <PushedBar title={tr("Settings")}>
-      <Pressable accessibilityRole="button" accessibilityLabel={tr("Guides")} onPress={() => openGuides("about")} className="size-11 items-center justify-center rounded-full active:bg-muted">
-        <Icon as={CircleHelp} size={20} />
-      </Pressable>
-    </PushedBar>
+    {head}
     <ScrollView className="flex-1" contentContainerClassName="gap-2.5 px-4 pb-4" showsVerticalScrollIndicator={false}>
       <Account />
       <Appearance />
@@ -127,6 +162,22 @@ function TimerAndLanguage() {
     <ChoiceRow<Inspection> first icon={Hourglass} title={tr("WCA inspection")} value={inspection} onChange={setInspection} options={INSPECTIONS.map(i => ({ id: i.id, label: tr(i.label) }))} />
     <ChoiceRow<Language> icon={Languages} title={tr("Language of the app")} value={language} onChange={id => void setLanguage(id)} options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
   </Group>;
+}
+
+/** On a tablet: the WCA inspection's choices in place, on a card of their own. */
+function InspectionChoice({ className }: { className?: string }) {
+  const [inspection, setInspection] = useAtom(inspectionAtom);
+  return <View className={cn("rounded-2xl bg-card p-4", className)}>
+    <SheetChoice<Inspection> label={tr("WCA inspection")} columns={1} value={inspection} onChange={setInspection} options={INSPECTIONS.map(i => ({ id: i.id, label: tr(i.label) }))} />
+  </View>;
+}
+
+/** On a tablet: the app's languages in place, on a card of their own. */
+function LanguageChoice({ className }: { className?: string }) {
+  const language = useLanguage();
+  return <View className={cn("rounded-2xl bg-card p-4", className)}>
+    <SheetChoice<Language> label={tr("Language of the app")} columns={2} value={language} onChange={id => void setLanguage(id)} options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
+  </View>;
 }
 
 /** The account's data: times brought from another timer, a copy to keep, the account deleted. */

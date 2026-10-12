@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { useLayout } from "../../hooks/useLayout";
 import { userAtom } from "../../state";
 import { useColors } from "../../theme";
 import { PushedBar } from "../AppBar";
@@ -35,8 +36,9 @@ export const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 /** A filter as a chip that scrolls with the others: a filled pill, the accent's tint once it narrows the list. */
 const CHIP = "h-10 rounded-full border-0 bg-muted px-3.5";
 
-export function CoachList() {
-  const c = useCoaching(), nav = useCoachingNav();
+/** Every coach, in two columns on a tablet; on a wide screen a coach's page docks beside the list, `selected` marked. */
+export function CoachList({ selected }: { selected?: string }) {
+  const c = useCoaching(), nav = useCoachingNav(), { tablet, wide } = useLayout(), columns = tablet ? 2 : 1;
   useEffect(() => { void coaching.load("coaches"); }, []);
   const [query, setQuery] = useState(""), [event, setEvent] = useState("all"), [language, setLanguage] = useState("all"), [most, setMost] = useState("any"),
     [soon, setSoon] = useState(false), [sort, setSort] = useState("next");
@@ -69,16 +71,16 @@ export function CoachList() {
         {list?.length ? tr("No coach matches your search.") : tr("No coach has opened their page yet.")}
         {!c.isCoach && !list?.length ? <Button variant="outline" onPress={() => nav.go("apply", true)}><Text>{tr("Become the first coach")}</Text></Button> : null}
       </Empty>
-        : <FlatList data={shown} keyExtractor={c => c.id} className="min-h-0 flex-1" contentContainerClassName="gap-2 pb-2" keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => <CoachCard c={item} onPress={() => nav.go("coach/" + item.id)} />} />}
+        : <FlatList key={columns} data={shown} extraData={selected} keyExtractor={c => c.id} numColumns={columns} className={cn("min-h-0 flex-1", tablet && "-mx-1")} contentContainerClassName={tablet ? "pb-2" : "gap-2 pb-2"} keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => <View className={cn(tablet && "w-1/2 p-1")}><CoachCard c={item} on={item.id === selected} onPress={() => nav.go("coach/" + item.id, wide)} /></View>} />}
   </View>;
 }
 
 /** A coach in the list: the face, the name and their rating, the price on the right, what they teach, then their next slot and how many more are open. */
-function CoachCard({ c, onPress }: { c: Coach; onPress: () => void }) {
+function CoachCard({ c, onPress, on = false }: { c: Coach; onPress: () => void; on?: boolean }) {
   const line = [c.headline || tr("Speedcubing coach"), c.languages.join(", ")].filter(Boolean).join(" · ");
-  return <Pressable accessibilityRole="button" accessibilityLabel={c.username} onPress={onPress} testID={"coach-" + c.username}
-    className="gap-2.5 rounded-3xl bg-card p-3.5 active:bg-muted/40">
+  return <Pressable accessibilityRole="button" accessibilityLabel={c.username} accessibilityState={{ selected: on }} onPress={onPress} testID={"coach-" + c.username}
+    className={cn("gap-2.5 rounded-3xl bg-card p-3.5 active:bg-muted/40", on && "bg-accent")}>
     <View className="flex-row items-center gap-2.5">
       <Face name={c.username} src={c.avatar} size={40} />
       <View className="min-w-0 flex-1">
@@ -103,9 +105,10 @@ function CoachCard({ c, onPress }: { c: Coach; onPress: () => void }) {
 
 /**
  * A coach's page, pushed from the list: who they are, their figures, their words and a review, their week of slots
- * with the booking stuck at the bottom; then their times per puzzle, their practice and every review.
+ * with the booking stuck at the bottom; then their times per puzzle, their practice and every review. `docked` beside
+ * the list on a wide screen, it closes back to the list alone.
  */
-export function CoachPage({ id }: { id: string }) {
+export function CoachPage({ id, docked = false }: { id: string; docked?: boolean }) {
   const cs = useCoaching(), nav = useCoachingNav(), { run } = useAction(), scroller = useRef<ScrollView>(null), reviewsAt = useRef(0);
   useEffect(() => {
     void coaching.load(`coach:${id}`);
@@ -116,7 +119,7 @@ export function CoachPage({ id }: { id: string }) {
     booked = cs.bookings?.some(b => b.coachId === id);
   const message = () => run(async () => nav.go("messages/" + (await coaching.talkTo(id)).id));
   return <View className="min-h-0 flex-1">
-    <PushedBar title={tr("Coach")} onBack={() => nav.back(own ? "profile" : "coaches")}>
+    <PushedBar title={tr("Coach")} back={docked ? "close" : "back"} onBack={() => docked ? nav.go("coaches", true) : nav.back(own ? "profile" : "coaches")}>
       {c?.reviews ? <Pressable accessibilityRole="button" onPress={() => scroller.current?.scrollTo({ y: reviewsAt.current })} className="h-10 justify-center rounded-lg px-1.5 active:bg-muted">
         <Text className="text-[13px] font-bold text-muted-foreground">{plural(c.reviews, "review")}</Text>
       </Pressable> : null}

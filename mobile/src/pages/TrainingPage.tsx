@@ -1,6 +1,6 @@
 import { useKeepAwake } from "expo-keep-awake";
 import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
-import { Box, Check, ChevronLeft, ChevronRight, CirclePlay, Eye, EyeOff, List, ListChecks, RotateCcw, Shuffle, Undo2, X } from "lucide-react-native";
+import { Box, Check, ChevronLeft, ChevronRight, ChevronUp, CirclePlay, Eye, EyeOff, List, ListChecks, RotateCcw, Shuffle, Undo2, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Animated, Easing, Linking, Pressable, ScrollView, View } from "react-native";
 import { effective, fmtSolve, fmtTime, plural } from "../../../src/client/lib/format";
@@ -21,7 +21,7 @@ import { PushedBar } from "../components/AppBar";
 import { CaseDiagram } from "../components/CaseDiagram";
 import { Chip } from "../components/Chips";
 import { CrossPractice } from "../components/CrossPractice";
-import { Alg, Empty, Fade, HeadButton, Label, MenuItem, MoreMenu, Numeric, Segmented } from "../components/layout";
+import { Alg, Empty, Fade, Figure, HeadButton, Label, MenuItem, MoreMenu, Numeric, Segmented } from "../components/layout";
 import {
   CubePreview, Hint, SaveError, Stage, StopSurface, TimerDigits, timerHint, useBackTo, useNotice, usePracticeLock, useSessionSolves, useShownSolves, useTimerChrome,
 } from "../components/Practice";
@@ -94,10 +94,11 @@ function TrainingRoot() {
 
 /**
  * A training session, pushed from Training: the case on top with its tools, the timer in the middle, the last solve's
- * actions then Previous / Next case. The list icon pushes the session's screen.
+ * actions then Previous / Next case. The list icon pushes the session's screen. A tablet reads the case larger and
+ * keeps the session in view: peeking above the bar (portrait), docked at the right (wide).
  */
 function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }) {
-  const { height } = useLayout();
+  const { height, tablet, wide } = useLayout();
   const puzzle = useAtomValue(puzzleAtom);
   const cube = puzzleInfo(puzzle).cubeSize;
   const supportsAuf = !!cube;
@@ -181,8 +182,8 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
   const currentLearned = !!current && learned.has(current.c.id);
   const hasCube = !!cube && !!current && !current.c.diagram;
   const recommendation = current && !free ? data.recommended.find(r => r.id === current.c.id) : undefined;
-  const promptFont = shownSetup.length > 90 ? 15 : 18;
-  const pictureSize = height < 760 ? 72 : 92;
+  const promptFont = (shownSetup.length > 90 ? 15 : 18) + (tablet ? 4 : 0);
+  const pictureSize = tablet ? (wide ? 140 : 150) : height < 760 ? 72 : 92;
   const sub = free ? `${tr("Free practice")} · ${plural(selected.length, "case")}` : [plural(selected.length, "case"), ...data.parts].join(" · ");
   const openCase = () => current && setRoute({ page: "algorithms", caseId: current.c.id });
 
@@ -196,7 +197,7 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
       {picture}
       <View className="min-w-0 flex-1 gap-1">
         <Pressable disabled={busy} onPress={openCase} accessibilityRole="button" accessibilityLabel={tr("Open {0}", { 0: tr(current.c.name) })}>
-          <Text numberOfLines={1} className="text-[28px] leading-8 font-extrabold tracking-[-0.04em]">{tr(current.c.name)}</Text>
+          <Text numberOfLines={1} className={cn("text-[28px] leading-8 font-extrabold tracking-[-0.04em]", tablet && "text-[36px] leading-10")}>{tr(current.c.name)}</Text>
         </Pressable>
         <Text numberOfLines={1} className="text-sm text-muted-foreground">{tr(current.c.setLabel) + (current.c.group && current.c.group !== current.c.setLabel ? " · " + tr(current.c.group) : "")}</Text>
         {recommendation && <Badge variant="accent" className="self-start rounded-full"><View className="size-1.5 rounded-full bg-primary" /><Text numberOfLines={1} className="text-xs font-semibold text-primary">{tr("Recommended")} · {recommendedWhy(recommendation)}</Text></Badge>}
@@ -227,10 +228,10 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
     <Fade hidden={running}>
       <PushedBar title={tr("Session")} sub={sub} onBack={onBack}>
         {supportsAuf && <HeadButton icon={Shuffle} label={tr("Random AUF") + " " + (useAuf ? tr("· on") : tr("· off"))} active={useAuf} disabled={busy} onPress={() => setUseAuf(v => !v)} />}
-        <HeadButton icon={List} label={tr("Session")} disabled={busy} onPress={() => setSessionOpen(true)} />
+        {!wide && <HeadButton icon={List} label={tr("Session")} disabled={busy} onPress={() => setSessionOpen(true)} />}
       </PushedBar>
     </Fade>
-    <View className="min-h-0 flex-1 px-4 pb-2">
+    <View className={cn("min-h-0 flex-1 px-4 pb-2", tablet && "px-7")}>
       <Stage timer={timer} disabled={!current || saving || !!timer.saveError} running={running} prompt={prompt}
         readout={area => <>
           <TimerDigits timer={timer} area={area} />
@@ -238,12 +239,13 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
           <SaveError timer={timer} />
           {!running && lastSolve && <Verdict solve={lastSolve} />}
         </>}
-        bar={<View className="gap-2">
-          <LastSolveBar solve={saving ? null : lastSolve} />
-          <View className="flex-row gap-2">
+        bar={<View className={cn("gap-2", tablet && "flex-row items-center")}>
+          {/* A tablet: the last solve's actions, then Previous (an icon) and Next case on the same row. */}
+          <View className={cn(tablet && "min-w-0 flex-[4]")}><LastSolveBar solve={saving ? null : lastSolve} /></View>
+          <View className={cn("flex-row gap-2", tablet && "flex-[3]")}>
             <Pressable accessibilityRole="button" accessibilityLabel={tr("Previous case")} disabled={busy || !canPrevious} onPress={previousCase}
-              className={cn("h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl bg-muted active:bg-muted/70", (busy || !canPrevious) && "opacity-40")}>
-              <Icon as={ChevronLeft} size={18} /><Text className="text-[15px] font-bold">{tr("Previous case")}</Text>
+              className={cn("h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl bg-muted active:bg-muted/70", tablet && "w-14 flex-none", (busy || !canPrevious) && "opacity-40")}>
+              <Icon as={ChevronLeft} size={18} />{!tablet && <Text className="text-[15px] font-bold">{tr("Previous case")}</Text>}
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={tr("Next case")} disabled={busy || !current} onPress={nextCase}
               className={cn("h-12 flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl bg-primary active:bg-primary/85", (busy || !current) && "opacity-40")}>
@@ -252,6 +254,15 @@ function TrainingSession({ free, onBack }: { free: boolean; onBack: () => void }
           </View>
         </View>} />
     </View>
+    {tablet && !wide && <SessionPeekCard solves={shown} pool={selectedCases} hidden={running} onPress={() => setSessionOpen(true)} />}
+    {!wide && <StopSurface timer={timer} />}
+  </View>;
+  // Wide: the session stays docked at the right, faded while a solve runs.
+  if (wide) return <View className="flex-1 flex-row">
+    {caseScreen}
+    <Fade hidden={running}>
+      <SessionScreen solves={shown} pool={selectedCases} currentId={current?.c.id} onBack={() => {}} onChoose={onBack} onUndo={solves.length ? () => void undoLast() : undefined} docked />
+    </Fade>
     <StopSurface timer={timer} />
   </View>;
   return <SlideSwitch id={sessionOpen ? "session" : "case"} depth={sessionOpen ? 1 : 0}>
@@ -276,11 +287,47 @@ function Verdict({ solve }: { solve: SolveDto }) {
 }
 
 /**
+ * The session peeking above the bar on a tablet in portrait: its four figures and its last attempts (each case and its
+ * time), one tap from the whole session.
+ */
+function SessionPeekCard({ solves, pool, hidden, onPress }: { solves: SolveDto[]; pool: CaseDto[]; hidden: boolean; onPress: () => void }) {
+  const cases = useAtomValue(casesAtom);
+  const summary = useMemo(() => practiceSummary(solves), [solves]);
+  const byId = useMemo(() => new Map(cases.map(c => [c.id, c])), [cases]);
+  return <Fade hidden={hidden} className="w-full max-w-[620px] self-center px-4 pb-2">
+    <Pressable accessibilityRole="button" accessibilityLabel={tr("Session times, {0}", { 0: plural(solves.length, "attempt") })} onPress={onPress}
+      className="gap-3 rounded-[22px] border border-border bg-popover p-4 active:bg-muted">
+      <View className="flex-row items-center gap-2">
+        <Text className="min-w-0 flex-1 text-base font-extrabold">{tr("Session")} <Numeric className="text-base text-muted-foreground">{solves.length}</Numeric> <Text className="text-xs text-muted-foreground">{plural(pool.length, "case")}</Text></Text>
+        <Icon as={ChevronUp} size={18} className="text-muted-foreground" />
+      </View>
+      <View className="flex-row gap-2">
+        <Figure label={tr("Best")} value={fmtTime(summary.best)} tone="good" className="flex-1" />
+        <Figure label={tr("Mean")} value={fmtTime(summary.mean)} className="flex-1" />
+        <Figure label="Ao5" value={fmtTime(summary.ao5)} className="flex-1" />
+        <Figure label="Ao12" value={fmtTime(summary.ao12)} className="flex-1" />
+      </View>
+      {solves.length > 0 && <View className="flex-row gap-2 overflow-hidden">
+        {solves.slice(-9).reverse().map(v => {
+          const c = v.case_id ? byId.get(v.case_id) : undefined;
+          return <View key={v.id} className="w-[52px] items-center gap-0.5">
+            {c ? <CaseDiagram c={c} size={36} /> : <View className="size-9" />}
+            <Numeric numberOfLines={1} className={cn("text-xs font-bold", v.penalty === "dnf" ? "text-destructive" : v.penalty === "+2" ? "text-warning" : "")}>{fmtSolve(v.time_ms, v.penalty)}</Numeric>
+          </View>;
+        })}
+      </View>}
+    </Pressable>
+  </Fade>;
+}
+
+/**
  * The session as a pushed screen: its four figures, the cases it drills set by set (the one now outlined) with the way
  * back to choosing them, then its cases from the slowest to the fastest, or its times.
  */
-function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo }: {
+function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo, docked = false }: {
   solves: SolveDto[]; pool: CaseDto[]; currentId?: string; onBack: () => void; onChoose: () => void; onUndo?: () => void;
+  /** Docked at the right of a wide screen, beside the case, rather than pushed. */
+  docked?: boolean;
 }) {
   const cases = useAtomValue(casesAtom);
   const [tab, setTab] = useState<"cases" | "times">("cases");
@@ -299,13 +346,14 @@ function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo }: {
     ["Ao5", fmtTime(summary.ao5), "bg-warning", ""], ["Ao12", fmtTime(summary.ao12), "bg-lilac", ""],
   ];
   const byId = new Map(cases.map(c => [c.id, c]));
-  return <View className="flex-1">
-    <PushedBar title={<Text className="text-xl font-extrabold tracking-[-0.03em]">{tr("Session")} <Numeric className="text-base text-muted-foreground">{solves.length}</Numeric></Text>} onBack={onBack}>
-      <MoreMenu label={tr("Session")}>
-        <MenuItem icon={Undo2} disabled={!onUndo} onPress={() => onUndo?.()}>{tr("Delete the last solve")}</MenuItem>
-      </MoreMenu>
-    </PushedBar>
-    <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 px-4 pb-4">
+  const title = <Text className="text-xl font-extrabold tracking-[-0.03em]">{tr("Session")} <Numeric className="text-base text-muted-foreground">{solves.length}</Numeric></Text>;
+  const menu = <MoreMenu label={tr("Session")}>
+    <MenuItem icon={Undo2} disabled={!onUndo} onPress={() => onUndo?.()}>{tr("Delete the last solve")}</MenuItem>
+  </MoreMenu>;
+  return <View className={docked ? "m-3 ml-0 w-[380px] flex-1 gap-2 rounded-[26px] border border-border bg-card p-4" : "flex-1"}>
+    {docked ? <View className="flex-row items-center gap-2"><View className="min-w-0 flex-1">{title}</View>{menu}</View>
+      : <PushedBar title={title} onBack={onBack}>{menu}</PushedBar>}
+    <ScrollView className="min-h-0 flex-1" contentContainerClassName={docked ? "gap-3 pb-2" : "gap-3 px-4 pb-4"}>
       <Segmented label={tr("Session")} value={tab} onChange={setTab} options={[{ id: "cases", label: tr("By case") }, { id: "times", label: tr("Times") }]} />
       <View className="flex-row gap-1.5">
         {figures.map(([label, value, dot, tone]) => <View key={label} className="min-w-0 flex-1 gap-0.5 rounded-xl bg-muted px-2.5 py-2">
@@ -353,7 +401,7 @@ function SessionScreen({ solves, pool, currentId, onBack, onChoose, onUndo }: {
 function RecognitionRun({ onBack }: { onBack: () => void }) {
   useBackTo(onBack);
   useKeepAwake("cubix-recognition", { suppressDeactivateWarnings: true });
-  const { width, height } = useLayout();
+  const { width, height, tablet } = useLayout();
   const puzzle = useAtomValue(puzzleAtom);
   const cube = puzzleInfo(puzzle).cubeSize;
   const cases = useAtomValue(casesAtom);
@@ -372,8 +420,15 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
     return () => clearTimeout(timeout);
   }, [state.phase, state.left]);
   const next = () => setState(s => s.phase === "running" ? { ...s, ...draw(s.current), done: s.done + 1 } : s);
+  // On the web (a keyboard), the space bar shows the next case, as a tap does.
+  useEffect(() => {
+    if (typeof document === "undefined") return; // Android: no keyboard events to listen to.
+    const down = (e: KeyboardEvent) => { if (e.code === "Space" && !e.repeat) { e.preventDefault(); next(); } };
+    addEventListener("keydown", down);
+    return () => removeEventListener("keydown", down);
+  });
   const c = cases.find(x => x.id === state.current);
-  const size = Math.round(Math.max(160, Math.min(height * 0.45, width - 48, 420)));
+  const size = Math.round(Math.max(160, Math.min(height * 0.45, width - 48, tablet ? 440 : 420)));
   const sub = set ? `${tr(set.label)} · ${plural(state.done, "case")}` : undefined;
   return <View className="flex-1">
     <PushedBar title={tr("Recognition")} sub={sub} onBack={onBack} />
@@ -395,16 +450,16 @@ function RecognitionRun({ onBack }: { onBack: () => void }) {
         {c && (cube && !c.diagram
           ? <CubePreview key={"cube" + state.done} alg={combineAuf(c.setup, state.auf)} cube={cube} size={size} mask={maskForStage(c.stage)} view={!back && viewForStage(c.stage) === "top" ? "iso" : viewForStage(c.stage)} />
           : <CaseDiagram c={c} size={size} />)}
-        <Countdown key={"bar" + state.done} seconds={seconds} onDone={next} />
+        <Countdown key={"bar" + state.done} seconds={seconds} onDone={next} width={tablet ? size : undefined} />
       </Pressable>}
-    {state.phase !== "closed" && <View className="flex-row justify-end px-4 pb-2">
-      <Chip icon={X} onPress={() => setState(s => ({ ...s, phase: "closed" }))}>{tr("Close")}</Chip>
+    {state.phase !== "closed" && <View className={cn("flex-row justify-end px-4 pb-2", tablet && "px-7 pb-4")}>
+      <Chip icon={X} onPress={() => setState(s => ({ ...s, phase: "closed" }))} className={tablet ? "h-12 px-5" : undefined}>{tr("Close")}</Chip>
     </View>}
   </View>;
 }
 
-/** A bar running out over `seconds`, then `onDone`. */
-function Countdown({ seconds, onDone }: { seconds: number; onDone: () => void }) {
+/** A bar running out over `seconds`, then `onDone`; `width` sets it under the case on a tablet. */
+function Countdown({ seconds, onDone, width }: { seconds: number; onDone: () => void; width?: number }) {
   const progress = useRef(new Animated.Value(1)).current;
   const done = useRef(onDone); done.current = onDone;
   useEffect(() => {
@@ -412,7 +467,7 @@ function Countdown({ seconds, onDone }: { seconds: number; onDone: () => void })
     animation.start(({ finished }) => { if (finished) done.current(); });
     return () => animation.stop();
   }, []);
-  return <View className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-muted">
+  return <View className={cn("h-1.5 overflow-hidden rounded-full bg-muted", !width && "w-full max-w-sm")} style={width ? { width } : undefined}>
     <Animated.View className="h-full rounded-full bg-primary" style={{ width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }} />
   </View>;
 }

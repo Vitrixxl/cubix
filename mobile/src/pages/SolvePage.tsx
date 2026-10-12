@@ -22,6 +22,7 @@ import { SolveDetail } from "../components/SolveDetail";
 import { analyseSolution, Dot, seconds, SolveBar, StepNames, useStepColour } from "../components/analysis/steps";
 import { deletedSolveIdAtom, goBackAtom, replaceRouteAtom, routeAtom, signedInAtom, statsVersionAtom, updatedSolveAtom } from "../state";
 import { useColors } from "../theme";
+import { useLayout } from "../hooks/useLayout";
 
 /**
  * A solve on its own screen, pushed from a list of times: its time and penalty, the scramble, the solution replayed in
@@ -50,6 +51,7 @@ function Replay({ solve, comment }: { solve: Shown; comment?: boolean }) {
   const notify = useSetAtom(updatedSolveAtom), bump = useSetAtom(statsVersionAtom);
   const [commenting, setCommenting] = useState(!!comment), [draft, setDraft] = useState(solve.comment ?? "");
   const saved = (next: Shown) => { notify(next); bump(v => v + 1); };
+  const { tablet } = useLayout();
   const saveComment = () => {
     setCommenting(false);
     if (draft.trim() === (solve.comment ?? "")) return;
@@ -66,7 +68,7 @@ function Replay({ solve, comment }: { solve: Shown; comment?: boolean }) {
       <Pressable accessibilityRole="button" accessibilityLabel={tr("Delete solve")} disabled={busy} onPress={() => void deleteTime(solve.id)}
         className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Trash2} size={20} /></Pressable>
     </PushedBar>
-    <View className="min-h-0 flex-1 px-4 pb-3">
+    <View className={cn("min-h-0 flex-1 px-4 pb-3", tablet && "px-7")}>
       <SolveDetail key={solve.id} solve={solve} fill
         onSave={async solution => { try { saved(await api.setSolution(solve.id, solution)); return true; } catch { return false; } }}
         onStep={phase => setRoute({ page: "solve", id: solve.id, step: phase })}
@@ -96,11 +98,14 @@ function Well({ label, value, dot }: { label: string; value: string; dot?: strin
 /** One step of a smart cube solve: the solve's figures and steps on top, then the step replayed, its case and algorithms. */
 function StepScreen({ solve, step }: { solve: Shown; step: PhaseId }) {
   const analysis = useMemo(() => analyseSolution(solve.scramble, solve.solution), [solve.scramble, solve.solution]);
-  const replace = useSetAtom(replaceRouteAtom), colors = useColors();
+  const replace = useSetAtom(replaceRouteAtom), colors = useColors(), { tablet, wide } = useLayout();
   const phase = analysis?.phases.find(p => p.id === step);
+  const detail = phase && <PhaseDetail phase={phase} />;
   return <View className="flex-1">
     <PushedBar title={tr("Solve analysis")} />
-    {!analysis || !phase ? <Empty title={tr("No turns recorded for this solve.")} /> : <View className="min-h-0 flex-1 gap-2.5 px-4 pb-3">
+    {!analysis || !phase ? <Empty title={tr("No turns recorded for this solve.")} /> : <View className={cn("min-h-0 flex-1 flex-row gap-4 px-4 pb-3", tablet && "px-7")}>
+    {/* On a wide screen the step's case and algorithms are docked at the right, beside the step replayed. */}
+    <View className="min-h-0 min-w-0 flex-1 gap-2.5">
       <View className="flex-row gap-1.5">
         <Well label={tr("Time")} value={`${seconds(analysis.time)} s`} dot={colors.primary} />
         <Well label={tr("Turns")} value={String(analysis.turns)} />
@@ -111,16 +116,16 @@ function StepScreen({ solve, step }: { solve: Shown; step: PhaseId }) {
         <SolveBar analysis={analysis} selected={step} onSelect={id => replace({ page: "solve", id: solve.id, step: id })} height={16} />
         <StepNames analysis={analysis} selected={step} onSelect={id => replace({ page: "solve", id: solve.id, step: id })} />
       </View>
-      <PhaseCard key={phase.id} analysis={analysis} phase={phase} scramble={solve.scramble!} />
-      <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 pb-2">
-        <PhaseDetail phase={phase} />
-      </ScrollView>
+      <PhaseCard key={phase.id} analysis={analysis} phase={phase} scramble={solve.scramble!} cubeSize={tablet ? 180 : 104} />
+      {!wide && <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-3 pb-2">{detail}</ScrollView>}
+    </View>
+    {wide && <ScrollView className="w-[400px] grow-0 rounded-[26px] bg-popover" contentContainerClassName="gap-3 p-4">{detail}</ScrollView>}
     </View>}
   </View>;
 }
 
 /** The step: its name and time, the step replayed on its own cube, and its figures. */
-function PhaseCard({ analysis, phase, scramble }: { analysis: SolveAnalysis; phase: Phase; scramble: string }) {
+function PhaseCard({ analysis, phase, scramble, cubeSize }: { analysis: SolveAnalysis; phase: Phase; scramble: string; cubeSize: number }) {
   const colour = useStepColour(), colors = useColors();
   // The step's turns, played on the cube as it stood before it: the scramble, then the turns before the step.
   const { setup, alg } = useMemo(() => {
@@ -140,7 +145,7 @@ function PhaseCard({ analysis, phase, scramble }: { analysis: SolveAnalysis; pha
     </View>
     {phase.skip ? <Text className="text-sm text-muted-foreground">{tr("Already solved by the step before: nothing to do.")}</Text> : <>
       <View className="flex-row items-center gap-3">
-        {player && <PlayerCube player={player} size={104} />}
+        {player && <PlayerCube player={player} size={cubeSize} />}
         <View className="min-w-0 flex-1 gap-1.5">
           <View className="flex-row gap-1.5">
             <Well label={tr("Recog.")} value={`${seconds(phase.recognition)} s`} dot={colors.variables["--warning"]} />

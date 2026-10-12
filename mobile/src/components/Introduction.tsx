@@ -21,6 +21,7 @@ import { IMPORT_APPS } from "../../../src/client/lib/timerImport";
 import { METHODS } from "../../../src/shared/methods";
 import { PUZZLES, puzzleInfo, type PuzzleId } from "../../../src/shared/puzzles";
 import { api, local } from "../api";
+import { useLayout } from "../hooks/useLayout";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { introductionAtom, journeyAtom } from "../journey";
 import { eventAtom, puzzleAtom, replaceRouteAtom, scrambleTypeAtom, tabOf, trainingSetupModeAtom, trainingStepAtom, userAtom, type Page } from "../state";
@@ -47,10 +48,10 @@ function StepTransition({ children, identity, direction = 1 }: { children: React
   return <Animated.View style={{ opacity: progress, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [direction * 24, 0] }) }] }}>{children}</Animated.View>;
 }
 
-/** A puzzle tile: its WCA glyph and name, ticked when chosen. */
-function Tile({ label, checked, glyph, onPress }: { label: string; checked: boolean; glyph: ReactNode; onPress: () => void }) {
+/** A puzzle tile: its WCA glyph and name, ticked when chosen; `className` sizes it (taller on a tablet, six a row on a wide screen). */
+function Tile({ label, checked, glyph, onPress, className }: { label: string; checked: boolean; glyph: ReactNode; onPress: () => void; className?: string }) {
   return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={label} onPress={onPress}
-    className={cn("h-[60px] w-[23.8%] items-center justify-center gap-1 rounded-2xl px-1", checked ? "bg-accent" : "bg-card active:bg-muted")}>
+    className={cn("h-[60px] w-[23.8%] items-center justify-center gap-1 rounded-2xl px-1", checked ? "bg-accent" : "bg-card active:bg-muted", className)}>
     {glyph}
     <Text numberOfLines={1} className={cn("text-xs font-bold", checked ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
     {checked ? <Icon as={Check} size={13} strokeWidth={3} className="absolute top-1.5 right-1.5 text-primary" /> : null}
@@ -59,52 +60,62 @@ function Tile({ label, checked, glyph, onPress }: { label: string; checked: bool
 
 type MethodMap = Partial<Record<PuzzleId, string[]>>;
 
+/** The times of another timer, brought in a sheet: under the puzzles, or in the side panel on a wide screen. */
+function ImportCard({ onImport, className }: { onImport: () => void; className?: string }) {
+  return <View className={cn("flex-row items-center gap-3 rounded-2xl bg-card p-3", className)}>
+    <View className="size-10 items-center justify-center rounded-full bg-primary/15"><Icon as={Upload} size={18} className="text-primary" /></View>
+    <View className="min-w-0 flex-1">
+      <Text className="text-[15px] font-bold">{tr("Bring your times")}</Text>
+      <Text numberOfLines={2} className="text-xs text-muted-foreground">{tr("From {0}, {1}, {2} and {3} more timers", { 0: IMPORT_APPS[0], 1: tr(IMPORT_APPS[1]!), 2: IMPORT_APPS[4], 3: IMPORT_APPS.length - 3 })}</Text>
+    </View>
+    <Button size="sm" variant="secondary" className="h-10 rounded-xl" onPress={onImport}><Text className="text-[13px] font-bold">{tr("Choose files")}</Text></Button>
+  </View>;
+}
+
 /**
  * Puzzles as tiles, then the methods and the best single of each chosen one, in the order they were picked; then the
- * times of another timer, brought in a sheet.
+ * times of another timer, brought in a sheet. A tablet gives the tiles more room and each chosen puzzle a card, two
+ * by two; a wide screen lays six tiles a row and moves the times to the side panel.
  */
 function PuzzleStep({ value, methods, bests, onToggle, onNone, onMethod, onBest, onImport }: {
   value: PuzzleId[]; methods: MethodMap; bests: Partial<Record<PuzzleId, string>>; onToggle: (id: PuzzleId) => void; onNone: () => void;
   onMethod: (puzzle: PuzzleId, method: string) => void; onBest: (puzzle: PuzzleId, text: string) => void; onImport: () => void;
 }) {
   const colors = useColors();
+  const { tablet, wide } = useLayout();
+  const columns = wide ? 6 : 4, tile = tablet ? cn("h-[88px] gap-2", wide && "w-[15.6%]") : undefined, glyph = tablet ? 28 : 22;
+  const rows = value.map(id => <View key={id} className={tablet ? "min-w-0 basis-[45%] grow gap-2 rounded-2xl bg-card p-3" : "gap-2 border-b border-border py-2 last:border-b-0"}>
+    <View className="flex-row items-center gap-2">
+      <PuzzleIcon puzzle={id} size={16} color={colors.mutedForeground} />
+      <Text className="min-w-0 flex-1 text-sm font-bold">{tr(puzzleInfo(id).label)}</Text>
+      <PbInput puzzle={tr(puzzleInfo(id).label)} value={bests[id] ?? ""} onChange={text => onBest(id, text)} />
+    </View>
+    {METHODS[id].length ? <View className="flex-row flex-wrap gap-1.5" accessibilityLabel={tr("{0} methods", { 0: tr(puzzleInfo(id).label) })}>
+      {METHODS[id].map(m => {
+        const on = methods[id]?.includes(m.id) ?? false;
+        return <Pressable key={m.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${tr(puzzleInfo(id).label)} ${tr(m.name)}`} onPress={() => onMethod(id, m.id)}
+          className={cn("h-10 flex-row items-center gap-1.5 rounded-xl px-3", on ? "bg-primary/15" : "bg-muted active:bg-accent")}>
+          <Icon as={on ? Check : Plus} size={14} strokeWidth={on ? 3 : 2} className={on ? "text-primary" : "text-muted-foreground"} />
+          <Text className={cn("text-[13px] font-bold", on ? "text-foreground" : "text-muted-foreground")}>{tr(m.name)}</Text>
+        </Pressable>;
+      })}
+    </View> : null}
+  </View>);
   return <View className="gap-2.5">
     <View className="flex-row flex-wrap justify-between gap-y-1.5" accessibilityLabel={tr("Puzzles you can solve")}>
-      <Tile label={tr("None yet")} checked={!value.length} onPress={onNone} glyph={<Icon as={Ban} size={22} strokeWidth={1.75} className={!value.length ? "text-primary" : "text-muted-foreground"} />} />
+      <Tile label={tr("None yet")} checked={!value.length} onPress={onNone} className={tile} glyph={<Icon as={Ban} size={glyph} strokeWidth={1.75} className={!value.length ? "text-primary" : "text-muted-foreground"} />} />
       {PUZZLES.map(p => {
         const on = value.includes(p.id);
-        return <Tile key={p.id} label={tr(p.label)} checked={on} onPress={() => onToggle(p.id)} glyph={<PuzzleIcon puzzle={p.id} size={22} color={on ? colors.primary : colors.mutedForeground} />} />;
+        return <Tile key={p.id} label={tr(p.label)} checked={on} onPress={() => onToggle(p.id)} className={tile} glyph={<PuzzleIcon puzzle={p.id} size={glyph} color={on ? colors.primary : colors.mutedForeground} />} />;
       })}
-      {Array.from({ length: (4 - (PUZZLES.length + 1) % 4) % 4 }, (_, i) => <View key={i} className="w-[23.8%]" />)}
+      {Array.from({ length: (columns - (PUZZLES.length + 1) % columns) % columns }, (_, i) => <View key={i} className={cn("w-[23.8%]", wide && "w-[15.6%]")} />)}
     </View>
-    <View className="gap-1 rounded-2xl bg-card px-3 py-2.5" accessibilityLabel={tr("Methods")}>
+    <View className={cn("gap-1 rounded-2xl bg-card px-3 py-2.5", tablet && "gap-2 bg-transparent p-0")} accessibilityLabel={tr("Methods")}>
       <Label>{tr("Methods you know")}</Label>
-      {value.length ? value.map(id => <View key={id} className="gap-2 border-b border-border py-2 last:border-b-0">
-        <View className="flex-row items-center gap-2">
-          <PuzzleIcon puzzle={id} size={16} color={colors.mutedForeground} />
-          <Text className="min-w-0 flex-1 text-sm font-bold">{tr(puzzleInfo(id).label)}</Text>
-          <PbInput puzzle={tr(puzzleInfo(id).label)} value={bests[id] ?? ""} onChange={text => onBest(id, text)} />
-        </View>
-        {METHODS[id].length ? <View className="flex-row flex-wrap gap-1.5" accessibilityLabel={tr("{0} methods", { 0: tr(puzzleInfo(id).label) })}>
-          {METHODS[id].map(m => {
-            const on = methods[id]?.includes(m.id) ?? false;
-            return <Pressable key={m.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${tr(puzzleInfo(id).label)} ${tr(m.name)}`} onPress={() => onMethod(id, m.id)}
-              className={cn("h-10 flex-row items-center gap-1.5 rounded-xl px-3", on ? "bg-primary/15" : "bg-muted active:bg-accent")}>
-              <Icon as={on ? Check : Plus} size={14} strokeWidth={on ? 3 : 2} className={on ? "text-primary" : "text-muted-foreground"} />
-              <Text className={cn("text-[13px] font-bold", on ? "text-foreground" : "text-muted-foreground")}>{tr(m.name)}</Text>
-            </Pressable>;
-          })}
-        </View> : null}
-      </View>) : <Text className="py-2 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</Text>}
+      {value.length ? tablet ? <View className="flex-row flex-wrap gap-3">{rows}</View> : rows
+        : <Text className="py-2 text-sm text-muted-foreground">{tr("Nothing yet? Qbix starts you on the 3×3 course.")}</Text>}
     </View>
-    <View className="flex-row items-center gap-3 rounded-2xl bg-card p-3">
-      <View className="size-10 items-center justify-center rounded-full bg-primary/15"><Icon as={Upload} size={18} className="text-primary" /></View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-[15px] font-bold">{tr("Bring your times")}</Text>
-        <Text numberOfLines={2} className="text-xs text-muted-foreground">{tr("From {0}, {1}, {2} and {3} more timers", { 0: IMPORT_APPS[0], 1: tr(IMPORT_APPS[1]!), 2: IMPORT_APPS[4], 3: IMPORT_APPS.length - 3 })}</Text>
-      </View>
-      <Button size="sm" variant="secondary" className="h-10 rounded-xl" onPress={onImport}><Text className="text-[13px] font-bold">{tr("Choose files")}</Text></Button>
-    </View>
+    {!wide && <ImportCard onImport={onImport} />}
   </View>;
 }
 
@@ -149,10 +160,12 @@ function Stepper({ step }: { step: number }) {
 /**
  * The setup as a wizard of numbered steps (direction A): Welcome, then the puzzles (methods and best single inline
  * under each chosen one, the times of another timer in a sheet), then the tour, started or skipped at the bottom.
- * Opened again on a saved profile, it starts on the puzzles and can be cancelled.
+ * Opened again on a saved profile, it starts on the puzzles and can be cancelled. A tablet uses its width; a wide
+ * screen keeps the times, the tour and the buttons in a panel docked at the right.
  */
 function Editor() {
   const insets = useSafeAreaInsets();
+  const { tablet, wide } = useLayout();
   const journey = useAtomValue(journeyAtom), existing = journeyProfile(journey), owner = useAtomValue(userAtom)?.id;
   const setIntro = useSetAtom(introductionAtom), setEvent = useSetAtom(eventAtom), setScramble = useSetAtom(scrambleTypeAtom), replace = useSetAtom(replaceRouteAtom);
   const current = useAtomValue(puzzleAtom);
@@ -188,58 +201,68 @@ function Editor() {
   };
   const { title, sub } = STEPS[step]!;
   const tourNext = step === LAST && !existing;
+  const actions = <>
+    {tourNext && <View className="flex-row items-center gap-3">
+      <View className="flex-row gap-1" importantForAccessibility="no-hide-descendants">
+        {TOUR.map((_, i) => <View key={i} className={cn("h-1.5 rounded-full", i ? "w-1.5 bg-muted" : "w-4 bg-primary")} />)}
+      </View>
+      <Text numberOfLines={2} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr("Then a tour in {0} steps, from the scramble to your profile", { 0: TOUR.length })}</Text>
+    </View>}
+    <View className="flex-row items-center gap-2">
+      {step > first ? <Button variant="ghost" size="icon" className="size-11" accessibilityLabel={tr("Back")} disabled={busy} onPress={() => go(step - 1)}>
+        <Icon as={ArrowLeft} size={18} />
+      </Button> : null}
+      <View className="flex-1" />
+      {tourNext && <Button variant="ghost" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip the tour")}</Text></Button>}
+      <Button className="h-11" disabled={busy} onPress={() => step < LAST ? go(step + 1) : finish(!existing)}>
+        <Text>{busy ? tr("Saving…") : step < LAST ? tr("Get started") : existing ? tr("Save") : tr("Start the tour")}</Text>
+        {!busy && <Icon as={ArrowRight} size={16} className="text-primary-foreground" />}
+      </Button>
+    </View>
+  </>;
 
   return <View className="absolute inset-0 bg-background">
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View accessibilityViewIsModal className="w-full max-w-[640px] flex-1 self-center">
-        <View className="h-14 flex-row items-center justify-between gap-2.5 px-4">
-          <Logo size={22} />
-          {existing ? <Button variant="ghost" className="h-11" disabled={busy} onPress={cancel}><Text>{tr("Cancel")}</Text></Button> : <Stepper step={step} />}
-        </View>
-        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerClassName="gap-3 px-4 pt-1 pb-4" contentContainerStyle={step === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}>
-          <StepTransition identity={step} direction={direction}>
-            <View className="gap-3">
-              <View className="gap-0.5">
-                <Text accessibilityRole="header" className="text-[28px] leading-tight font-extrabold tracking-[-0.04em]">{tr(title)}</Text>
-                <Text className="text-sm text-muted-foreground">{tr(sub)}</Text>
-              </View>
-              {step === 0 && <View className="gap-2">
-                {WELCOME.map((r, i) => <View key={r.title} className="flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3">
-                  <View className="size-10 items-center justify-center rounded-xl bg-primary/15"><Icon as={r.icon} size={20} className="text-primary" /></View>
-                  <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="text-[15px] font-bold"><Text className="text-[15px] font-bold text-primary">{i + 1}  </Text>{tr(r.title)}</Text>
-                    <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(r.text)}</Text>
-                  </View>
-                </View>)}
-              </View>}
-              {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests} onImport={() => setImporting(true)}
-                onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }}
-                onBest={(p, text) => setBests(v => ({ ...v, [p]: text }))}
-                onToggle={p => { setKnown(v => toggle(v, p)); setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); }}
-                onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
-            </View>
-          </StepTransition>
-          {!!error && <Alert variant="destructive">{error}</Alert>}
-        </ScrollView>
-        <View className="gap-2 border-t border-border px-4 pt-3 pb-3">
-          {tourNext && <View className="flex-row items-center gap-3">
-            <View className="flex-row gap-1" importantForAccessibility="no-hide-descendants">
-              {TOUR.map((_, i) => <View key={i} className={cn("h-1.5 rounded-full", i ? "w-1.5 bg-muted" : "w-4 bg-primary")} />)}
-            </View>
-            <Text numberOfLines={2} className="min-w-0 flex-1 text-xs text-muted-foreground">{tr("Then a tour in {0} steps, from the scramble to your profile", { 0: TOUR.length })}</Text>
-          </View>}
-          <View className="flex-row items-center gap-2">
-            {step > first ? <Button variant="ghost" size="icon" className="size-11" accessibilityLabel={tr("Back")} disabled={busy} onPress={() => go(step - 1)}>
-              <Icon as={ArrowLeft} size={18} />
-            </Button> : null}
-            <View className="flex-1" />
-            {tourNext && <Button variant="ghost" className="h-11" disabled={busy} onPress={() => finish(false)}><Text>{tr("Skip the tour")}</Text></Button>}
-            <Button className="h-11" disabled={busy} onPress={() => step < LAST ? go(step + 1) : finish(!existing)}>
-              <Text>{busy ? tr("Saving…") : step < LAST ? tr("Get started") : existing ? tr("Save") : tr("Start the tour")}</Text>
-              {!busy && <Icon as={ArrowRight} size={16} className="text-primary-foreground" />}
-            </Button>
+      <View accessibilityViewIsModal className={cn("w-full max-w-[640px] flex-1 self-center", tablet && "max-w-none", wide && "flex-row")}>
+        <View className="min-w-0 flex-1">
+          <View className={cn("h-14 flex-row items-center justify-between gap-2.5 px-4", tablet && "px-7")}>
+            <Logo size={22} />
+            {existing ? <Button variant="ghost" className="h-11" disabled={busy} onPress={cancel}><Text>{tr("Cancel")}</Text></Button> : <Stepper step={step} />}
           </View>
+          <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerClassName={cn("gap-3 px-4 pt-1 pb-4", tablet && "px-7")} contentContainerStyle={step === 0 ? { flexGrow: 1, justifyContent: "center" } : undefined}>
+            <StepTransition identity={step} direction={direction}>
+              <View className="gap-3">
+                <View className="gap-0.5">
+                  <Text accessibilityRole="header" className={cn("text-[28px] leading-tight font-extrabold tracking-[-0.04em]", tablet && "text-[40px]")}>{tr(title)}</Text>
+                  <Text className="text-sm text-muted-foreground">{tr(sub)}</Text>
+                </View>
+                {/* On a tablet the three promises stand side by side. */}
+                {step === 0 && <View className={cn("gap-2", tablet && "flex-row gap-3")}>
+                  {WELCOME.map((r, i) => <View key={r.title} className={cn("flex-row items-center gap-3 rounded-2xl bg-card px-4 py-3", tablet && "min-w-0 flex-1 flex-col items-start rounded-3xl p-4")}>
+                    <View className="size-10 items-center justify-center rounded-xl bg-primary/15"><Icon as={r.icon} size={20} className="text-primary" /></View>
+                    <View className="min-w-0 flex-1">
+                      <Text numberOfLines={1} className="text-[15px] font-bold"><Text className="text-[15px] font-bold text-primary">{i + 1}  </Text>{tr(r.title)}</Text>
+                      <Text numberOfLines={1} className="text-xs text-muted-foreground">{tr(r.text)}</Text>
+                    </View>
+                  </View>)}
+                </View>}
+                {step === 1 && <PuzzleStep value={known} methods={knownMethods} bests={bests} onImport={() => setImporting(true)}
+                  onNone={() => { setKnown([]); setKnownMethods({}); setBests({}); }}
+                  onBest={(p, text) => setBests(v => ({ ...v, [p]: text }))}
+                  onToggle={p => { setKnown(v => toggle(v, p)); setKnownMethods(v => withoutKey(v, p)); setBests(v => withoutKey(v, p)); }}
+                  onMethod={(p, m) => setKnownMethods(v => ({ ...v, [p]: toggle(v[p] ?? [], m) }))} />}
+              </View>
+            </StepTransition>
+            {!!error && <Alert variant="destructive">{error}</Alert>}
+          </ScrollView>
+          {!wide && <View className={cn("gap-2 border-t border-border px-4 pt-3 pb-3", tablet && "px-7")}>{actions}</View>}
         </View>
+        {/* On a wide screen: the times, the tour and the buttons docked at the right. */}
+        {wide && <View className="m-3 w-[380px] gap-3 rounded-3xl bg-card p-4">
+          {step === 1 && <ImportCard onImport={() => setImporting(true)} className="bg-muted" />}
+          <View className="flex-1" />
+          {actions}
+        </View>}
       </View>
     </KeyboardAvoidingView>
     <Sheet open={importing} onClose={() => setImporting(false)} title={tr("Import times")} scroll>

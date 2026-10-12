@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { useLayout } from "../hooks/useLayout";
 import { cubeSwitchLockedAtom, eventAtom, goBackAtom, replaceRouteAtom, routeAtom, SECTION_PAGES, tabOf, type Tab } from "../state";
 import { coaching, community, useSocial } from "../lib/social";
 import { eventInfo } from "../../../src/shared/puzzles";
@@ -47,8 +48,9 @@ export function PuzzleChip({ scramble = false }: { scramble?: boolean }) {
  */
 export function AppBar({ title, puzzle = true, scramble = false, children }: { title?: ReactNode; puzzle?: boolean; scramble?: boolean; children?: ReactNode }) {
   const route = useAtomValue(routeAtom);
-  return <View className="min-h-14 flex-row items-center gap-2 pr-3 pl-5 pt-1">
-    <Text numberOfLines={1} accessibilityRole="header" className="min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.04em]">{said(title ?? SECTION_LABELS[tabOf(route.page)])}</Text>
+  const { tablet } = useLayout();
+  return <View className={cn("min-h-14 flex-row items-center gap-2 pr-3 pl-5 pt-1", tablet && "min-h-16 pr-6 pl-7 pt-3")}>
+    <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 flex-1 text-[28px] font-extrabold tracking-[-0.04em]", tablet && "text-[40px]")}>{said(title ?? SECTION_LABELS[tabOf(route.page)])}</Text>
     {children}
     {puzzle && <PuzzleChip scramble={scramble} />}
     <AccountMenu />
@@ -59,10 +61,11 @@ export function AppBar({ title, puzzle = true, scramble = false, children }: { t
 export function SectionTabs() {
   const route = useAtomValue(routeAtom), replace = useSetAtom(replaceRouteAtom);
   const waiting = useWaiting();
+  const { tablet } = useLayout();
   const pages = SECTION_PAGES[tabOf(route.page)];
   if (pages.length < 2) return null;
   return <View className="border-b border-border">
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-4 px-5" accessibilityRole="tablist">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName={cn("gap-4 px-5", tablet && "gap-6 px-7")} accessibilityRole="tablist">
       {pages.map(page => {
         const here = page.has(route), n = waiting[page.id] ?? 0;
         return <Pressable key={page.id} accessibilityRole="tab" accessibilityState={{ selected: here }} onPress={() => { if (!here) replace(page.route); }}
@@ -82,14 +85,15 @@ export function SectionTabs() {
  */
 export function PushedBar({ title, sub, onBack, back = "back", children }: { title: ReactNode; sub?: ReactNode; onBack?: () => void; back?: "back" | "close"; children?: ReactNode }) {
   const goBack = useSetAtom(goBackAtom);
-  return <View className="min-h-14 flex-row items-center gap-1 pr-3 pl-2">
+  const { tablet } = useLayout();
+  return <View className={cn("min-h-14 flex-row items-center gap-1 pr-3 pl-2", tablet && "min-h-16 gap-2 pr-6 pl-5 pt-2")}>
     <Pressable accessibilityRole="button" accessibilityLabel={tr(back === "close" ? "Close" : "Back")} onPress={onBack ?? (() => { goBack(); })}
       className="size-11 items-center justify-center rounded-full active:bg-muted">
       <Icon as={back === "close" ? X : ChevronLeft} size={22} />
     </Pressable>
     <View className="min-w-0 flex-1">
-      <Text numberOfLines={1} accessibilityRole="header" className="text-xl font-extrabold tracking-[-0.03em]">{said(title)}</Text>
-      {sub ? <Text numberOfLines={1} className="text-xs text-muted-foreground">{said(sub)}</Text> : null}
+      <Text numberOfLines={1} accessibilityRole="header" className={cn("text-xl font-extrabold tracking-[-0.03em]", tablet && "text-[32px] tracking-[-0.04em]")}>{said(title)}</Text>
+      {sub ? <Text numberOfLines={1} className={cn("text-xs text-muted-foreground", tablet && "text-sm")}>{said(sub)}</Text> : null}
     </View>
     {children ? <View className="shrink-0 flex-row items-center gap-1.5">{children}</View> : null}
   </View>;

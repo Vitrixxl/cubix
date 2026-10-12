@@ -2,11 +2,12 @@
  * The achievements, as the web's (desktop/renderer/profile/achievements.tsx) on a phone: a pushed screen with the puzzle
  * and Unlocked / To do, the categories as cards sliding sideways (each one's dots coloured once unlocked), then the
  * journal: the unlocked ones month by month, or those to do from the closest. A badge opens its sheet in a full-screen
- * dialog: what it asks, where it stands, its series and the closest ones of its category.
+ * dialog: what it asks, where it stands, its series and the closest ones of its category. On a tablet the journal's
+ * achievements are rows, two by two, and on a wide screen the chosen one's sheet stays docked at the right.
  */
 import { useAtomValue, useSetAtom } from "jotai";
 import { BookOpen, Eye, Flame, Gauge, Layers, Share2, Target, Timer, Trophy, X, type LucideIcon } from "lucide-react-native";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { FlatList, Modal, Pressable, ScrollView, Share, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
@@ -24,6 +25,7 @@ import { API_ORIGIN, api, local } from "../api";
 import { profileAchievementsAtom, profilePuzzleAtom } from "../profile";
 import { eventAtom, puzzleAtom, routeAtom } from "../state";
 import { useColors } from "../theme";
+import { useLayout } from "../hooks/useLayout";
 import { PushedBar } from "./AppBar";
 import { Bar, Empty, Numeric, Segmented } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
@@ -119,22 +121,28 @@ const BANDS: [string, (a: A) => boolean][] = [
 export function AchievementsScreen({ group: initialGroup }: { group?: string }) {
   const summary = useAtomValue(profileAchievementsAtom);
   const xp = summary?.xp ?? 0;
-  return <View className="flex-1">
-    <PushedBar title={tr("Achievements")}>
-      <View className="h-8 justify-center rounded-full bg-primary/15 px-3"><Text className="text-[13px] font-bold text-primary">{tr("Level {0}", { 0: level(xp).level })}</Text></View>
-    </PushedBar>
-    {summary ? <Journal summary={summary} initialGroup={initialGroup} /> : <View className="flex-1 gap-3 px-4 pb-3">
+  // A tablet shows the level with its XP over the journal instead.
+  const { tablet } = useLayout();
+  const head = <PushedBar title={tr("Achievements")}>
+    {!tablet && <View className="h-8 justify-center rounded-full bg-primary/15 px-3"><Text className="text-[13px] font-bold text-primary">{tr("Level {0}", { 0: level(xp).level })}</Text></View>}
+  </PushedBar>;
+  return summary ? <Journal summary={summary} initialGroup={initialGroup} head={head} /> : <View className="flex-1">
+    {head}
+    <View className="flex-1 gap-3 px-4 pb-3">
       <Skeleton className="h-11 rounded-xl" />
       <Skeleton className="h-28 rounded-2xl" />
       <Skeleton className="flex-1 rounded-3xl" />
-    </View>}
+    </View>
   </View>;
 }
 
 type Row = { key: string } & ({ kind: "head"; title: string; count: number } | { kind: "tiles"; items: A[] });
 
-function Journal({ summary, initialGroup }: { summary: AchievementSummaryDto; initialGroup?: string }) {
+function Journal({ summary, initialGroup, head }: { summary: AchievementSummaryDto; initialGroup?: string; head: ReactNode }) {
   const all = summary.achievements, profilePuzzle = useAtomValue(profilePuzzleAtom);
+  const { tablet, wide } = useLayout();
+  // Tiles three by three on a phone, rows two by two on a tablet.
+  const per = tablet ? 2 : 3;
   const [group, setGroup] = useState(initialGroup && all.some(a => a.group === initialGroup) ? initialGroup : "all");
   const [mode, setMode] = useState<"unlocked" | "locked">("unlocked");
   const [category, setCategory] = useState("all");
@@ -155,17 +163,37 @@ function Journal({ summary, initialGroup }: { summary: AchievementSummaryDto; in
     const result: Row[] = [];
     for (const [title, items] of sections) {
       result.push({ key: "head:" + title, kind: "head", title, count: items.length });
-      for (let i = 0; i < items.length; i += 3) result.push({ key: items[i]!.id, kind: "tiles", items: items.slice(i, i + 3) });
+      for (let i = 0; i < items.length; i += per) result.push({ key: items[i]!.id, kind: "tiles", items: items.slice(i, i + per) });
     }
     return result;
-  }, [pool, mode]);
-  return <View className="min-h-0 flex-1 gap-2.5 px-4 pb-3">
-    <View className="flex-row items-center justify-between gap-2">
-      <ChoiceButton label={tr("Puzzle")} value={group} onChange={setGroup} className="rounded-full border-0 bg-muted"
-        options={[{ id: "all", label: tr("All puzzles") }, ...groups.map(id => ({ id, label: said(id) }))]} />
-      <Segmented label={tr("Show")} value={mode} onChange={setMode} className="w-52"
-        options={[{ id: "unlocked", label: tr("Unlocked"), count: unlocked }, { id: "locked", label: tr("To do"), count: inGroup.length - unlocked }]} />
-    </View>
+  }, [pool, mode, per]);
+  // Docked on a wide screen, the sheet shows the first of the list until one is picked.
+  const docked = wide ? picked ?? rows.flatMap(row => row.kind === "tiles" ? row.items : [])[0] ?? null : null;
+  const puzzle = <ChoiceButton label={tr("Puzzle")} value={group} onChange={setGroup} className="rounded-full border-0 bg-muted"
+    options={[{ id: "all", label: tr("All puzzles") }, ...groups.map(id => ({ id, label: said(id) }))]} />;
+  const show = <Segmented label={tr("Show")} value={mode} onChange={setMode} className={tablet ? (wide ? "h-12 w-72" : "h-12") : "w-52"}
+    options={[{ id: "unlocked", label: tr("Unlocked"), count: unlocked }, { id: "locked", label: tr("To do"), count: inGroup.length - unlocked }]} />;
+  const l = level(summary.xp);
+  const content = <View className={cn("min-h-0 flex-1 gap-2.5 px-4 pb-3", tablet && "gap-3 px-7")}>
+    {tablet ? <>
+      {/* The count unlocked in large, the level and its XP beside it. */}
+      <View className="flex-row items-center gap-4">
+        <View className="flex-row items-baseline gap-1">
+          <Numeric className="text-[52px] leading-[56px] font-extrabold tracking-[-0.04em]">{unlocked}</Numeric>
+          <Numeric className="text-lg font-bold text-muted-foreground">/ {inGroup.length}</Numeric>
+        </View>
+        <View className="min-w-0 flex-1 gap-1.5" accessibilityLabel={tr("{0} XP in all", { 0: summary.xp.toLocaleString() })}>
+          <View className="flex-row items-baseline justify-between gap-2">
+            <Text className="text-[15px] font-bold">{tr("Level {0}", { 0: l.level })}</Text>
+            <Numeric className="text-xs font-bold text-muted-foreground">{tr("{0} / {1} XP", { 0: l.into.toLocaleString(), 1: l.span.toLocaleString() })}</Numeric>
+          </View>
+          <Bar ratio={l.into / l.span} className="h-2" />
+        </View>
+        {puzzle}
+        {wide && show}
+      </View>
+      {!wide && show}
+    </> : <View className="flex-row items-center justify-between gap-2">{puzzle}{show}</View>}
     <Categories items={inGroup} category={category} onChange={setCategory} />
     <View className="min-h-0 flex-1 rounded-3xl bg-card pt-3 pl-3.5">
       <View className="flex-row items-baseline gap-2 pr-3.5">
@@ -179,11 +207,23 @@ function Journal({ summary, initialGroup }: { summary: AchievementSummaryDto; in
         ListEmptyComponent={<Empty icon={Trophy} title={mode === "unlocked" ? tr("Nothing unlocked here yet. Keep practising!") : tr("Everything here is unlocked.")} />}
         renderItem={({ item: row }) => row.kind === "head"
           ? <View className="flex-row items-baseline gap-2 pt-2.5"><Text className="text-[15px] font-extrabold capitalize">{row.title}</Text><Numeric className="text-xs text-muted-foreground">{plural(row.count, "achievement")}</Numeric></View>
-          : <View className="flex-row gap-1.5">
-            {row.items.map(a => <Tile key={a.id} a={a} onPress={() => setPicked(a)} />)}
-            {Array.from({ length: 3 - row.items.length }, (_, i) => <View key={i} className="flex-1" />)}
+          : <View className={cn("flex-row gap-1.5", tablet && "gap-2")}>
+            {row.items.map(a => tablet ? <Line key={a.id} a={a} on={a.id === docked?.id} onPress={() => setPicked(a)} /> : <Tile key={a.id} a={a} onPress={() => setPicked(a)} />)}
+            {Array.from({ length: per - row.items.length }, (_, i) => <View key={i} className="flex-1" />)}
           </View>} />
     </View>
+  </View>;
+  if (wide) return <View className="flex-1 flex-row">
+    <View className="min-w-0 flex-1">{head}{content}</View>
+    <View className="w-[404px] p-3 pl-0">
+      <ScrollView className="flex-1 rounded-3xl bg-card" contentContainerClassName="gap-2.5 p-4" showsVerticalScrollIndicator={false}>
+        {docked ? <AchievementDetail key={docked.id} a={docked} all={all} onPick={setPicked} docked /> : <Empty icon={Trophy} title={tr("Everything here is unlocked.")} />}
+      </ScrollView>
+    </View>
+  </View>;
+  return <View className="flex-1">
+    {head}
+    {content}
     <AchievementDialog a={picked} all={all} onPick={setPicked} onClose={() => setPicked(null)} />
   </View>;
 }
@@ -196,6 +236,21 @@ const Tile = memo(function Tile({ a, onPress }: { a: A; onPress: () => void }) {
     <Text numberOfLines={2} className="text-center text-[13px] leading-tight font-bold">{said(a.title)}</Text>
     <Numeric numberOfLines={1} className={cn("text-center text-xs font-semibold", a.unlocked ? "text-muted-foreground" : "text-primary")}>
       {a.unlocked ? `${said(a.group)}${a.unlockedAt ? " · " + DAY.format(new Date(a.unlockedAt)) : ""}` : left(a)}
+    </Numeric>
+  </Pressable>;
+});
+
+/** On a tablet, an achievement of the journal as a row: its badge, title, puzzle, category and XP, then its date or what is left. */
+const Line = memo(function Line({ a, on, onPress }: { a: A; on: boolean; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${said(a.title)}, ${said(a.group)}`} onPress={onPress}
+    className={cn("min-h-16 min-w-0 flex-1 flex-row items-center gap-3 rounded-[18px] px-3 py-2.5", on ? "bg-accent" : "bg-background active:bg-muted")}>
+    <AchievementBadge a={a} size={44} />
+    <View className="min-w-0 flex-1">
+      <Text numberOfLines={1} className="text-[15px] font-bold">{said(a.title)}</Text>
+      <Text numberOfLines={1} className="text-[13px] text-muted-foreground">{said(a.group)} · {said(categoryOf(a).label)} · {a.unlocked ? tr("+{0} XP", { 0: a.xp ?? 0 }) : tr("{0} XP", { 0: a.xp ?? 0 })}</Text>
+    </View>
+    <Numeric numberOfLines={1} className={cn("text-xs font-bold", a.unlocked ? "text-muted-foreground" : "text-primary")}>
+      {a.unlocked ? a.unlockedAt ? DAY.format(new Date(a.unlockedAt)) : "" : left(a)}
     </Numeric>
   </Pressable>;
 });
@@ -228,12 +283,41 @@ function Categories({ items, category, onChange }: { items: A[]; category: strin
   </View>;
 }
 
+/** Shares the solve that unlocked it: a link to its public page. */
+async function shareSolve(a: A) {
+  if (a.solveId == null) return;
+  const url = API_ORIGIN + "/solve/" + await api.shareSolve(a.solveId);
+  await Share.share({ message: `${said(a.title)} · ${url}`, title: said(a.title) }).catch(() => {});
+}
+
 /** One achievement in full, in a dialog over the whole screen; its series and neighbours open in place. */
 export function AchievementDialog({ a, all, onPick, onClose }: { a: A | null; all: A[]; onPick: (a: A) => void; onClose: () => void }) {
   const insets = useSafeAreaInsets();
+  if (!a) return null;
+  const solve = a.solveId != null ? local.read.solve(a.solveId) : null;
+  return <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <View className="h-14 flex-row items-center justify-between px-2">
+        <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={onClose} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={X} size={22} /></Pressable>
+        <Text accessibilityRole="header" className="text-[17px] font-extrabold">{tr("Achievement")}</Text>
+        {solve ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Share")} onPress={() => void shareSolve(a)} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Share2} size={20} /></Pressable> : <View className="size-11" />}
+      </View>
+      <ScrollView className="flex-1" contentContainerClassName="gap-2.5 px-4 pb-6">
+        <AchievementDetail a={a} all={all} onPick={onPick} onLeave={onClose} />
+      </ScrollView>
+    </View>
+  </Modal>;
+}
+
+/**
+ * What an achievement asks, where it stands, the way to its solve or to move it on, its series and the closest ones of
+ * its category. `onLeave` runs before a way out (the dialog closes first: the page it leads to is under it); `docked`
+ * (a side sheet, on a card) puts its own blocks on wells.
+ */
+function AchievementDetail({ a, all, onPick, onLeave, docked }: { a: A; all: A[]; onPick: (a: A) => void; onLeave?: () => void; docked?: boolean }) {
   const { openSolve } = useSolveMenu();
   const next = useNext();
-  if (!a) return null;
+  const well = docked ? "bg-muted" : "bg-card";
   const category = categoryOf(a), go = next(a), time = isTimeGoal(a), count = a.detail.split(" / ")[0];
   const series = all.filter(x => achievementSeries(x) === achievementSeries(a)), following = series.find(x => !x.unlocked);
   const nearby = closest(all.filter(x => x.category === a.category && x.id !== a.id && x.id !== following?.id)).slice(0, 2);
@@ -244,61 +328,47 @@ export function AchievementDialog({ a, all, onPick, onClose }: { a: A | null; al
     [tr("Where you are"), time ? fmtTime(a.progress, { blank: "–" }) : `${count} / ${a.target.toLocaleString()}`],
     [tr("Still to go"), time ? (a.progress ? fmtTime(a.progress - a.target + 1) : "–") : plural(a.target - a.progress, NOUN[achievementKind(a)] ?? "solve")],
   ];
-  // The way out closes the dialog first: the page it leads to is under it.
-  const leave = (then: () => void) => { onClose(); then(); };
+  const leave = (then: () => void) => { onLeave?.(); then(); };
   const solve = a.solveId != null ? local.read.solve(a.solveId) : null;
-  const share = async () => {
-    if (a.solveId == null) return;
-    const url = API_ORIGIN + "/solve/" + await api.shareSolve(a.solveId);
-    await Share.share({ message: `${said(a.title)} · ${url}`, title: said(a.title) }).catch(() => {});
-  };
-  return <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View className="h-14 flex-row items-center justify-between px-2">
-        <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={onClose} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={X} size={22} /></Pressable>
-        <Text accessibilityRole="header" className="text-[17px] font-extrabold">{tr("Achievement")}</Text>
-        {solve ? <Pressable accessibilityRole="button" accessibilityLabel={tr("Share")} onPress={() => void share()} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={Share2} size={20} /></Pressable> : <View className="size-11" />}
-      </View>
-      <ScrollView className="flex-1" contentContainerClassName="gap-2.5 px-4 pb-6">
-        <View className="items-center gap-1">
-          <AchievementBadge a={a} size={120} />
-          <Text className="mt-1.5 text-center text-[28px] leading-tight font-extrabold tracking-[-0.03em]">{said(a.title)}</Text>
-          <Text className="text-center text-sm font-semibold text-muted-foreground">{said(a.group)} · {said(category.label)} · {a.unlocked ? tr("+{0} XP", { 0: a.xp ?? 0 }) : tr("{0} XP", { 0: a.xp ?? 0 })}</Text>
-          <Text className="text-center text-[15px] text-muted-foreground">{said(a.description)}</Text>
-        </View>
-        <View className="flex-row gap-2">
-          {facts.map(([label, value]) => <View key={label} className="flex-1 rounded-2xl bg-card px-3.5 py-2.5">
-            <Text className="text-xs font-bold text-muted-foreground">{label}</Text>
-            <Numeric className="text-lg font-extrabold">{value}</Numeric>
-          </View>)}
-        </View>
-        {a.unlocked ? solve && <View className="flex-row gap-2">
-          <Button variant="secondary" className="h-11 flex-1" onPress={() => leave(() => openSolve(solve))}><Icon as={Eye} size={16} /><Text>{tr("View the solve")}</Text></Button>
-          <Button variant="secondary" className="h-11 flex-1" onPress={() => void share()}><Icon as={Share2} size={16} /><Text>{tr("Share")}</Text></Button>
-        </View> : <Button className="h-11" onPress={() => leave(go.go)}><Icon as={go.icon} size={16} className="text-primary-foreground" /><Text>{go.label}</Text></Button>}
-        {series.length > 1 && <>
-          <Text className="mt-2 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">{tr("The series · {0}", { 0: `${said(SERIES[achievementKind(a)] ?? "")} ${said(a.group)}` })}</Text>
-          <View className="flex-row flex-wrap gap-1.5">
-            {series.map(x => <Pressable key={x.id} accessibilityRole="button" accessibilityLabel={said(x.title)} accessibilityState={{ selected: x.id === a.id }} onPress={() => onPick(x)}
-              className={cn("rounded-full p-[3px]", x.id === a.id && "border-2 border-foreground")}>
-              <AchievementBadge a={x} size={38} />
-            </Pressable>)}
-          </View>
-          {following && following.id !== a.id && <NextRow a={following} title={tr("Next: {0}", { 0: said(following.title) })} onPick={onPick} go={next(following)} onGo={leave} />}
-        </>}
-        {!!nearby.length && <>
-          <Text className="mt-2 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">{tr("Closest in {0}", { 0: said(category.label) })}</Text>
-          {nearby.map(x => <NextRow key={x.id} a={x} title={`${said(x.title)} · ${said(x.group)}`} onPick={onPick} go={next(x)} onGo={leave} />)}
-        </>}
-      </ScrollView>
+  const share = () => shareSolve(a);
+  return <>
+    <View className="items-center gap-1">
+      <AchievementBadge a={a} size={docked ? 96 : 120} />
+      <Text className="mt-1.5 text-center text-[28px] leading-tight font-extrabold tracking-[-0.03em]">{said(a.title)}</Text>
+      <Text className="text-center text-sm font-semibold text-muted-foreground">{said(a.group)} · {said(category.label)} · {a.unlocked ? tr("+{0} XP", { 0: a.xp ?? 0 }) : tr("{0} XP", { 0: a.xp ?? 0 })}</Text>
+      <Text className="text-center text-[15px] text-muted-foreground">{said(a.description)}</Text>
     </View>
-  </Modal>;
+    <View className="flex-row gap-2">
+      {facts.map(([label, value]) => <View key={label} className={cn("flex-1 rounded-2xl px-3.5 py-2.5", well)}>
+        <Text className="text-xs font-bold text-muted-foreground">{label}</Text>
+        <Numeric className="text-lg font-extrabold">{value}</Numeric>
+      </View>)}
+    </View>
+    {a.unlocked ? solve && <View className="flex-row gap-2">
+      <Button variant="secondary" className="h-11 flex-1" onPress={() => leave(() => openSolve(solve))}><Icon as={Eye} size={16} /><Text>{tr("View the solve")}</Text></Button>
+      <Button variant="secondary" className="h-11 flex-1" onPress={() => void share()}><Icon as={Share2} size={16} /><Text>{tr("Share")}</Text></Button>
+    </View> : <Button className="h-11" onPress={() => leave(go.go)}><Icon as={go.icon} size={16} className="text-primary-foreground" /><Text>{go.label}</Text></Button>}
+    {series.length > 1 && <>
+      <Text className="mt-2 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">{tr("The series · {0}", { 0: `${said(SERIES[achievementKind(a)] ?? "")} ${said(a.group)}` })}</Text>
+      <View className="flex-row flex-wrap gap-1.5">
+        {series.map(x => <Pressable key={x.id} accessibilityRole="button" accessibilityLabel={said(x.title)} accessibilityState={{ selected: x.id === a.id }} onPress={() => onPick(x)}
+          className={cn("rounded-full p-[3px]", x.id === a.id && "border-2 border-foreground")}>
+          <AchievementBadge a={x} size={38} />
+        </Pressable>)}
+      </View>
+      {following && following.id !== a.id && <NextRow a={following} title={tr("Next: {0}", { 0: said(following.title) })} onPick={onPick} go={next(following)} onGo={leave} className={well} />}
+    </>}
+    {!!nearby.length && <>
+      <Text className="mt-2 text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">{tr("Closest in {0}", { 0: said(category.label) })}</Text>
+      {nearby.map(x => <NextRow key={x.id} a={x} title={`${said(x.title)} · ${said(x.group)}`} onPick={onPick} go={next(x)} onGo={leave} className={well} />)}
+    </>}
+  </>;
 }
 
 /** A locked achievement to work on: its badge and what is left, which open it, and the way to move it on beside. */
-function NextRow({ a, title, onPick, go, onGo }: { a: A; title: string; onPick: (a: A) => void; go: { label: string; icon: LucideIcon; go: () => void }; onGo: (then: () => void) => void }) {
+function NextRow({ a, title, onPick, go, onGo, className }: { a: A; title: string; onPick: (a: A) => void; go: { label: string; icon: LucideIcon; go: () => void }; onGo: (then: () => void) => void; className?: string }) {
   return <View className="flex-row items-center gap-2">
-    <Pressable accessibilityRole="button" onPress={() => onPick(a)} className="min-w-0 flex-1 flex-row items-center gap-3 rounded-2xl bg-card px-3 py-2.5 active:bg-muted">
+    <Pressable accessibilityRole="button" onPress={() => onPick(a)} className={cn("min-w-0 flex-1 flex-row items-center gap-3 rounded-2xl bg-card px-3 py-2.5 active:bg-muted", className)}>
       <AchievementBadge a={a} size={40} />
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="text-sm font-bold">{title}</Text>

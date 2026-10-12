@@ -15,6 +15,7 @@ import { cubeSwitchLockedAtom, eventAtom, puzzleAtom, scrambleTypeAtom, solveMod
 import { storage } from "../platform/storage";
 import { useColors } from "../theme";
 import { pickEventAtom } from "../journey";
+import { useLayout } from "../hooks/useLayout";
 import { Sheet } from "./Sheet";
 import { Label } from "./layout";
 import { said, tr } from "../../../src/client/i18n";
@@ -55,13 +56,13 @@ export function SheetChoice<T extends string>({ label, value, options, onChange,
   </View>;
 }
 
-/** The fourteen WCA events as a grid of glyph tiles, the current one lit in the accent. */
+/** The fourteen WCA events as a grid of glyph tiles, the current one lit in the accent: four to a row, seven on a tablet. */
 export function PuzzleGrid({ value, onChange, disabled }: { value: EventId; onChange: (event: EventId) => void; disabled?: boolean }) {
-  const colors = useColors();
+  const colors = useColors(), { tablet } = useLayout();
   return <View className="flex-row flex-wrap" style={{ marginHorizontal: -4 }} accessibilityRole="radiogroup" accessibilityLabel={tr("Puzzle")}>
     {EVENTS.map(e => {
       const on = e.id === value;
-      return <View key={e.id} style={{ width: "25%", padding: 4 }}>
+      return <View key={e.id} style={{ width: tablet ? `${100 / 7}%` : "25%", padding: 4 }}>
         <Pressable accessibilityRole="radio" accessibilityLabel={tr(e.label)} accessibilityState={{ checked: on, disabled }} disabled={disabled} onPress={() => onChange(e.id)}
           className={cn("h-16 items-center justify-center gap-1 rounded-[14px] px-1", on ? "border-[1.5px] border-primary bg-primary/20" : "bg-muted active:bg-muted/70", disabled && "opacity-50")}>
           <PuzzleIcon puzzle={e.id} size={22} color={on ? colors.primary : colors.mutedForeground} />
@@ -127,6 +128,7 @@ export function SessionSheet() {
   const [inspection, setInspection] = useAtom(inspectionAtom);
   const [cubeShown, setCubeShown] = useAtom(scrambleCubeShownAtom);
   const puzzle = useAtomValue(puzzleAtom), blind = useAtomValue(solveModeAtom) === "blindfolded";
+  const { tablet } = useLayout();
   const close = () => setMode(null);
   return <Sheet open={!!mode} onClose={close} title={scramble ? tr("Puzzle and scramble") : tr("Puzzle")} scroll={scramble} contentClassName="gap-3">
     <View className="gap-2">
@@ -139,15 +141,20 @@ export function SessionSheet() {
         {timerScrambles(puzzleInfo(puzzle).scrambles).map(id => <Pill key={id} label={tr(scrambleLabel(id))} icon={id === scrambleType ? Check : undefined} primary={id === scrambleType}
           disabled={locked} onPress={() => setScrambleType(id)} role="radio" />)}
       </View>
-      <Caption>{tr("Entry")}</Caption>
-      <PillSeg<TimeEntry> block label={tr("Entry")} value={entry} onChange={setEntry} disabled={locked}
-        options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label, icon: e.id === "timer" ? Timer : e.id === "typing" ? Keyboard : undefined }))} />
-      {/* Blindfolded solves have no inspection (it is part of the time), typed ones neither. */}
-      {!blind && entry !== "typing" && <>
-        <Caption>{tr("WCA inspection")}</Caption>
-        <PillSeg<Inspection> block label={tr("WCA inspection")} value={inspection} onChange={setInspection}
-          options={INSPECTIONS.map(i => ({ id: i.id, label: INSPECTION_SHORT[i.id] ?? i.label }))} />
-      </>}
+      {/* Side by side on a tablet's wider sheet. */}
+      <View className={cn("gap-3", tablet && "flex-row gap-4")}>
+        <View className={cn("gap-3", tablet && "min-w-0 flex-1")}>
+          <Caption>{tr("Entry")}</Caption>
+          <PillSeg<TimeEntry> block label={tr("Entry")} value={entry} onChange={setEntry} disabled={locked}
+            options={TIME_ENTRIES.map(e => ({ id: e.id, label: e.label, icon: e.id === "timer" ? Timer : e.id === "typing" ? Keyboard : undefined }))} />
+        </View>
+        {/* Blindfolded solves have no inspection (it is part of the time), typed ones neither. */}
+        {!blind && entry !== "typing" && <View className={cn("gap-3", tablet && "min-w-0 flex-1")}>
+          <Caption>{tr("WCA inspection")}</Caption>
+          <PillSeg<Inspection> block label={tr("WCA inspection")} value={inspection} onChange={setInspection}
+            options={INSPECTIONS.map(i => ({ id: i.id, label: INSPECTION_SHORT[i.id] ?? i.label }))} />
+        </View>}
+      </View>
       <Pressable accessibilityRole="switch" accessibilityState={{ checked: cubeShown }} onPress={() => setCubeShown(!cubeShown)} className="min-h-12 flex-row items-center gap-3">
         <Icon as={Box} size={20} className="text-foreground" />
         <Text className="flex-1 text-base font-bold">{tr("Show the scrambled cube")}</Text>

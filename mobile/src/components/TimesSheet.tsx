@@ -1,7 +1,7 @@
 import { useAtomValue } from "jotai";
 import { Ban, CalendarDays, ChevronLeft, ChevronRight, ListOrdered, MessageSquare, Pencil, Plus, Rotate3d, Trash2 } from "lucide-react-native";
-import { memo, useEffect, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FlatList, Pressable, TextInput, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { effective, fmtSolve, fmtTime, shortDate } from "../../../src/client/lib/format";
@@ -18,6 +18,7 @@ import { launchSessionId, setLaunchSession } from "../lib/launchSession";
 import { storage } from "../platform/storage";
 import { cubeSwitchLockedAtom } from "../state";
 import { useColors } from "../theme";
+import { useLayout } from "../hooks/useLayout";
 import { Empty, Numeric } from "./layout";
 import { Pill } from "./PuzzlePicker";
 import { Sheet, SheetFlatList, SheetInput } from "./Sheet";
@@ -90,29 +91,54 @@ export function TimesSheet({ open, onClose, solves, title, context, calendar = f
 }) {
   const [showCalendar, setShowCalendar] = useState(calendar);
   useEffect(() => { if (open) setShowCalendar(calendar); }, [open, calendar]);
+  return <Sheet open={open} onClose={onClose} title={title} hideTitle contentClassName="gap-3 px-0">
+    <TimesBody solves={solves} title={title} context={context} calendar={showCalendar} onCalendar={setShowCalendar} />
+  </Sheet>;
+}
+
+/**
+ * The same session docked beside the timer on a wide screen (a card column, always shown): its head, then `figures`
+ * (the timer's chosen ones) in place of the sheet's six, then its times scrolling inside.
+ */
+export function TimesPanel({ solves, title, context, figures, calendar, onCalendar }: {
+  solves: SolveDto[]; title: string; context: PracticeContext; figures: ReactNode; calendar: boolean; onCalendar: (shown: boolean) => void;
+}) {
+  return <View className="min-h-0 flex-1 gap-3 rounded-[26px] bg-popover pt-4">
+    <TimesBody docked solves={solves} title={title} context={context} calendar={calendar} onCalendar={onCalendar} figures={figures} />
+  </View>;
+}
+
+/** What the sheet and the panel share: the head, the figures and the list (a plain list when `docked`, out of a sheet). */
+function TimesBody({ solves, title, context, calendar, onCalendar, docked = false, figures }: {
+  solves: SolveDto[]; title: string; context?: PracticeContext; calendar: boolean; onCalendar: (shown: boolean) => void; docked?: boolean; figures?: ReactNode;
+}) {
+  const { tablet } = useLayout();
   const data = useMemo(() => [...solves].reverse(), [solves]);
   const extremes = useMemo(() => sessionExtremes(solves), [solves]);
-  return <Sheet open={open} onClose={onClose} title={title} hideTitle contentClassName="gap-3 px-0">
+  const List = (docked ? FlatList : SheetFlatList) as unknown as typeof FlatList;
+  return <>
     {context
-      ? <TimerSessionHead context={context} count={solves.length} calendar={showCalendar} onCalendar={() => setShowCalendar(!showCalendar)} onPicked={() => setShowCalendar(false)} />
+      ? <TimerSessionHead context={context} count={solves.length} calendar={calendar} docked={docked} onCalendar={() => onCalendar(!calendar)} onPicked={() => onCalendar(false)} />
       : <View className="flex-row items-baseline gap-2 px-5 pt-1">
         <Text accessibilityRole="header" className="text-xl font-extrabold tracking-[-0.03em]">{said(title)}</Text>
         <Numeric className="text-base font-bold text-muted-foreground">{solves.length}</Numeric>
       </View>}
-    {!showCalendar && <>
-      <SessionFigures solves={solves} />
+    {!calendar && <>
+      {figures ?? <SessionFigures solves={solves} wide={tablet} />}
       <View className="mx-5 h-px bg-border" />
-      <SheetFlatList data={data} keyExtractor={solve => String(solve.id)} initialNumToRender={20} getItemLayout={(_, index) => ({ length: ROW, offset: ROW * index, index })}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
+      <List data={data} keyExtractor={solve => String(solve.id)} initialNumToRender={20} getItemLayout={(_, index) => ({ length: ROW, offset: ROW * index, index })}
+        className={docked ? "min-h-0 flex-1" : undefined} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 12 }}
         ListEmptyComponent={<Empty icon={ListOrdered} title={tr("No times yet")} className="px-4 py-8">{tr("Every solve of this session lands here.")}</Empty>}
         renderItem={({ item, index }) => <TimeRow solve={item} number={solves.length - index} tone={solveTone(item, extremes)} />} />
     </>}
-  </Sheet>;
+  </>;
 }
 
 /** The session's name (edited in place) and count, the calendar, then the sessions of the puzzle as pills or as a month. */
-function TimerSessionHead({ context, count, calendar, onCalendar, onPicked }: { context: PracticeContext; count: number; calendar: boolean; onCalendar: () => void; onPicked: () => void }) {
+function TimerSessionHead({ context, count, calendar, docked, onCalendar, onPicked }: { context: PracticeContext; count: number; calendar: boolean; docked: boolean; onCalendar: () => void; onPicked: () => void }) {
   const colors = useColors();
+  // Out of a sheet, a plain field with the sheet field's look (the sheet's own needs its sheet).
+  const Field = (docked ? DockedInput : SheetInput) as typeof DockedInput;
   const { list, current: currentId } = useTimerSessions(context);
   const choose = (target: number | "new", name?: string) => chooseSession(context, target, name);
   const locked = useAtomValue(cubeSwitchLockedAtom);
@@ -132,7 +158,7 @@ function TimerSessionHead({ context, count, calendar, onCalendar, onPicked }: { 
   const pick = (id: number | "new") => { onPicked(); if (id !== currentId) run(choose(id)); };
   return <View className="gap-3">
     <View className="flex-row items-center gap-2 px-5">
-      <SheetInput accessibilityLabel={tr("Session name")} value={text ?? current?.name ?? ""} placeholder={sessionName(current ?? undefined, event)} placeholderTextColor={colors.foreground}
+      <Field accessibilityLabel={tr("Session name")} value={text ?? current?.name ?? ""} placeholder={sessionName(current ?? undefined, event)} placeholderTextColor={colors.foreground}
         maxLength={60} onChangeText={setText} onBlur={commit} submitBehavior="blurAndSubmit" returnKeyType="done"
         className="h-11 max-w-[70%] shrink rounded-lg border-0 bg-transparent px-0 text-xl font-extrabold tracking-[-0.03em]" />
       <Numeric className="text-base font-bold text-muted-foreground">{count}</Numeric>
@@ -151,6 +177,13 @@ function TimerSessionHead({ context, count, calendar, onCalendar, onPicked }: { 
       </ScrollView>}
     {error ? <Text className="px-5 text-sm text-destructive">{error}</Text> : null}
   </View>;
+}
+
+/** A text field drawn as `SheetInput`, for content out of a sheet. */
+function DockedInput({ className, ...props }: React.ComponentProps<typeof TextInput> & { className?: string }) {
+  const colors = useColors();
+  return <TextInput placeholderTextColor={colors.mutedForeground} cursorColor={colors.primary} selectionColor={colors.primary + "55"}
+    className={cn("min-h-11 rounded-lg border border-input bg-input/30 px-3 font-sans text-base text-foreground", className)} {...props} />;
 }
 
 /** A month of sessions: a dot on each day one was used; the sessions of the day touched as pills under it. */
@@ -196,7 +229,7 @@ function SessionCalendar({ list, current, disabled, onPick }: { list: SessionSum
 }
 
 /** The six figures of the session, each with its colour dot. */
-function SessionFigures({ solves }: { solves: SolveDto[] }) {
+function SessionFigures({ solves, wide }: { solves: SolveDto[]; /** One row of six (a tablet's sheet). */ wide: boolean }) {
   const figures = useMemo(() => {
     const summary = practiceSummary(solves), times = summary.times, valid = times.filter((t): t is number => t !== null);
     return [
@@ -206,7 +239,7 @@ function SessionFigures({ solves }: { solves: SolveDto[] }) {
     ] as const;
   }, [solves]);
   return <View className="flex-row flex-wrap gap-y-2.5 px-5" accessibilityLabel={tr("Statistics")}>
-    {figures.map(([label, value, dot]) => <Stat key={label} label={label} value={value} dot={dot} className="w-1/3" />)}
+    {figures.map(([label, value, dot]) => <Stat key={label} label={label} value={value} dot={dot} className={wide ? "w-1/6" : "w-1/3"} />)}
   </View>;
 }
 

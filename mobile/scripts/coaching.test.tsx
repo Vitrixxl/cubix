@@ -61,6 +61,7 @@ const fake = {
 };
 mock.module("../src/lib/social", () => ({ coaching: fake, useCoaching: () => fake }));
 
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
 const { CoachingPage } = await import("../src/pages/CoachingPage");
 const { routeAtom, userAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

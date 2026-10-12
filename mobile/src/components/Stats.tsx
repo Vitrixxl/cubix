@@ -17,6 +17,7 @@ import { profileFiltersAtom, routeAtom } from "../state";
 import { PushedBar } from "./AppBar";
 import { Empty, Numeric } from "./layout";
 import { useBackTo } from "./Practice";
+import { useLayout } from "../hooks/useLayout";
 import { Pill, PillSeg, PuzzleGrid, PuzzleIcon, SheetChoice } from "./PuzzlePicker";
 import { Sheet, SheetFlatList } from "./Sheet";
 import { SolveMenu, useSolveMenu, type SolveSummary } from "./SolveMenus";
@@ -57,7 +58,9 @@ export function StatsScreen() {
   const sessions = !!data?.sessions?.some(x => x.count > 0);
   const setEvent = (id: EventId) => { const e = eventInfo(id); if (e) setFilters(f => ({ ...f, cube: e.puzzle, solveMode: e.solveMode })); };
   const scrambles = puzzleInfo(cube).scrambles;
-  const listing = !!tool && !!data?.summary.count;
+  const { tablet, wide } = useLayout();
+  // On a wide screen the lists are docked beside the board instead of taking the screen.
+  const listing = !!tool && !!data?.summary.count && !wide;
   return <View className="flex-1">
     {!listing && <>
     <PushedBar title={tr("Statistics")}>
@@ -68,14 +71,14 @@ export function StatsScreen() {
         <Numeric className="text-[13px] font-bold text-primary">{count.toLocaleString()}</Numeric>
       </Pressable>
     </PushedBar>
-    <View className="px-4">
+    <View className={cn("px-4", tablet && "px-7")}>
       <View className="flex-row items-center justify-between gap-2">
         {scrambles.length > 1 ? <Pill label={tr(scrambleLabel(scrambleType))} trailing={ChevronDown} accessibilityLabel={tr("Scramble type")} onPress={() => setPicking("scramble")} /> : <View />}
         {sessions && <PillSeg<By> label={tr("Show")} value={by} onChange={setBy} options={[{ id: "solve", label: tr("Per solve") }, { id: "session", label: tr("Per session") }]} />}
       </View>
     </View>
     </>}
-    <View className={cn("min-h-0 flex-1 px-4 pb-3", listing ? "pt-1" : "pt-2.5")}>
+    <View className={cn("min-h-0 flex-1 px-4 pb-3", tablet && "px-7", listing ? "pt-1" : "pt-2.5")}>
       {!profile ? <View className="flex-1 gap-2.5"><Skeleton className="flex-1 rounded-3xl" /><Skeleton className="h-48 rounded-3xl" /></View>
         : !data?.summary.count ? <Empty icon={TimerIcon} title={tr("No times in this selection yet.")}>
           <Button onPress={() => navigate({ page: "playground" })}><Text>{tr("Open the timer")}</Text></Button>
@@ -135,13 +138,31 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
     [history, data, derived, range]);
   const periodRecords = derived.records.filter(r => r.index >= range[0] && r.index <= range[1]);
   const span = `${shortDate(history[range[0]]!.at)} → ${shortDate(history[range[1]]!.at)}`;
-  useBackTo(() => setTool(null), tool !== null);
+  const { tablet, wide } = useLayout();
+  // Docked beside the board on a wide screen, the list shows the solves first and switches to the sessions itself.
+  const [docked, setDocked] = useState<"solves" | "sessions">("solves");
+  useBackTo(() => setTool(null), tool !== null && !wide);
+  const list = (kind: "solves" | "sessions", onKind: (kind: "solves" | "sessions") => void, dock: boolean) =>
+    <ListTool docked={dock} kind={kind} onKind={onKind} onClose={() => setTool(null)} history={history} data={data} sessionOf={derived.session} sessions={periodSessions}
+      range={range} records={derived.records} title={kind === "solves" ? plural(range[1] - range[0] + 1, "solve") : plural(periodSessions.length, "session")} sub={`${title} · ${span}`} label={sessionLabel} />;
 
-  if (tool) return <ListTool kind={tool} onKind={setTool} onClose={() => setTool(null)} history={history} data={data} sessionOf={derived.session} sessions={periodSessions}
-    range={range} records={derived.records} title={tool === "solves" ? plural(range[1] - range[0] + 1, "solve") : plural(periodSessions.length, "session")} sub={`${title} · ${span}`} label={sessionLabel} />;
+  if (tool && !wide) return list(tool, setTool, false);
 
   const latest = derived.records[0];
-  return <View className="min-h-0 flex-1 gap-2.5">
+  const tiles = [
+    <FigureTile key="single" label={tr("Single")} figure={figures.single} />,
+    <FigureTile key="ao5" label="Ao5" figure={figures.ao5} />,
+    <FigureTile key="ao12" label="Ao12" figure={figures.ao12} />,
+    figures.memo
+      ? <Tile key="memo" label={tr("Memo · success")} value={fmtTime(figures.memo.period)} line={tr("{0}% success · {1} DNF", { 0: Math.round((figures.success?.period ?? 0) * 100), 1: figures.dnf?.period ?? 0 })} />
+      : <Tile key="mean" label={figures.ao100 ? tr("Mean · Ao100") : tr("Mean")} value={fmtTime(figures.mean?.period ?? null)}
+        line={[figures.ao100 && `Ao100 ${fmtTime(figures.ao100.period)}`, tr("{0} DNF", { 0: figures.dnf?.period ?? 0 })].filter(Boolean).join(" · ")} />,
+  ];
+  const doors = <View className={cn("flex-row gap-2.5", tablet && "flex-1")}>
+    <Door icon={ListOrdered} label={plural(range[1] - range[0] + 1, "solve")} onPress={() => setTool("solves")} />
+    <Door icon={CalendarDays} label={plural(periodSessions.length, "session")} disabled={!periodSessions.length} onPress={() => setTool("sessions")} />
+  </View>;
+  const board = <View className="min-h-0 flex-1 gap-2.5">
     {/* The curve: every solve and its rolling average, or one value per session; its period under it. */}
     <View className="min-h-48 flex-1 gap-1.5 rounded-3xl bg-card p-3.5">
       <View className="flex-row items-center justify-between gap-2">
@@ -163,32 +184,29 @@ function Board({ data, by, title, event, tool, setTool }: { data: Data; by: By; 
       <PeriodBar items={perSession ? sessions : history} range={perSession ? sessionRange : solveRange} onRange={perSession ? setSessionRange : setSolveRange}
         lastSession={perSession || !derived.session.at(-1) ? null : derived.session.indexOf(derived.session.at(-1)!)} count={range[1] - range[0] + 1} />
     </View>
-    {/* The key figures of the period, with the latest and the record. */}
-    <View className="flex-row gap-2.5">
-      <FigureTile label={tr("Single")} figure={figures.single} />
-      <FigureTile label="Ao5" figure={figures.ao5} />
-    </View>
-    <View className="flex-row gap-2.5">
-      <FigureTile label="Ao12" figure={figures.ao12} />
-      {figures.memo
-        ? <Tile label={tr("Memo · success")} value={fmtTime(figures.memo.period)} line={tr("{0}% success · {1} DNF", { 0: Math.round((figures.success?.period ?? 0) * 100), 1: figures.dnf?.period ?? 0 })} />
-        : <Tile label={figures.ao100 ? tr("Mean · Ao100") : tr("Mean")} value={fmtTime(figures.mean?.period ?? null)}
-          line={[figures.ao100 && `Ao100 ${fmtTime(figures.ao100.period)}`, tr("{0} DNF", { 0: figures.dnf?.period ?? 0 })].filter(Boolean).join(" · ")} />}
-    </View>
-    <Pressable accessibilityRole="button" onPress={() => setRecords(true)} disabled={!derived.records.length} className="flex-row items-center gap-2.5 rounded-3xl bg-card px-3.5 py-3 active:bg-card/80">
-      <View className="size-10 items-center justify-center rounded-xl bg-success/15"><Icon as={Trophy} size={20} className="text-success" /></View>
-      <View className="min-w-0 flex-1">
-        <Text numberOfLines={1} className="text-base font-bold">{periodRecords.length ? plural(periodRecords.length, "record") + " " + tr("broken") : tr("No record broken in this period")}</Text>
-        {latest && <Numeric numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("{0} on {1}", { 0: fmtTime(latest.time), 1: shortDate(latest.at) })}{latest.gain != null ? ` · ${signed(-latest.gain)}` : ""}</Numeric>}
-      </View>
-      <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
-    </Pressable>
-    <View className="flex-row gap-2.5">
-      <Door icon={ListOrdered} label={plural(range[1] - range[0] + 1, "solve")} onPress={() => setTool("solves")} />
-      <Door icon={CalendarDays} label={plural(periodSessions.length, "session")} disabled={!periodSessions.length} onPress={() => setTool("sessions")} />
+    {/* The key figures of the period, with the latest and the record: two rows of two, one row on a tablet. */}
+    {tablet ? <View className="flex-row gap-2.5">{tiles}</View> : <>
+      <View className="flex-row gap-2.5">{tiles.slice(0, 2)}</View>
+      <View className="flex-row gap-2.5">{tiles.slice(2)}</View>
+    </>}
+    {/* The records broken, and the doors to the lists beside them on a tablet (docked lists need none). */}
+    <View className={cn("gap-2.5", tablet && "flex-row")}>
+      <Pressable accessibilityRole="button" onPress={() => setRecords(true)} disabled={!derived.records.length} className={cn("flex-row items-center gap-2.5 rounded-3xl bg-card px-3.5 py-3 active:bg-card/80", tablet && "flex-1")}>
+        <View className="size-10 items-center justify-center rounded-xl bg-success/15"><Icon as={Trophy} size={20} className="text-success" /></View>
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-base font-bold">{periodRecords.length ? plural(periodRecords.length, "record") + " " + tr("broken") : tr("No record broken in this period")}</Text>
+          {latest && <Numeric numberOfLines={1} className="text-[13px] text-muted-foreground">{tr("{0} on {1}", { 0: fmtTime(latest.time), 1: shortDate(latest.at) })}{latest.gain != null ? ` · ${signed(-latest.gain)}` : ""}</Numeric>}
+        </View>
+        <Icon as={ChevronRight} size={18} className="text-muted-foreground" />
+      </Pressable>
+      {!wide && doors}
     </View>
     <RecordsSheet open={records} onClose={() => setRecords(false)} records={derived.records} history={history} label={i => sessionLabel(derived.session[i] ?? null)} />
   </View>;
+  return wide ? <View className="min-h-0 flex-1 flex-row gap-4">
+    {board}
+    <View className="w-[380px] rounded-[26px] bg-popover px-4 pt-2 pb-4">{list(docked, setDocked, true)}</View>
+  </View> : board;
 }
 
 function Legend({ swatch, label }: { swatch: string; label: string }) {
@@ -266,12 +284,15 @@ type Row = { kind: "head"; session: SessionSummary | null; key: string } | { kin
  * The solves (or the sessions) of the period as a full-screen tool: in time order under the heading of their session,
  * or sorted by time; the sort, the commented filter and solves / sessions at the bottom.
  */
-function ListTool({ kind, onKind, onClose, history, data, sessionOf, sessions, range, records, title, sub, label }: {
+function ListTool({ docked = false, kind, onKind, onClose, history, data, sessionOf, sessions, range, records, title, sub, label }: {
+  /** Docked beside the board (a wide screen): no way to close it, its tools at its foot in the panel. */
+  docked?: boolean;
   kind: "solves" | "sessions"; onKind: (kind: "solves" | "sessions") => void; onClose: () => void; history: HistoryPoint[]; data: Data; sessionOf: (SessionSummary | null)[];
   sessions: SessionSummary[]; range: Range; records: { index: number }[]; title: string; sub: string; label: (x: SessionSummary | null) => string;
 }) {
   const [sort, setSort] = useState<Sort>("newest");
   const [commented, setCommented] = useState(false);
+  const { tablet } = useLayout();
   const { optimistic } = useSolveMenu();
   const pbs = useMemo(() => new Set(records.map(r => r.index)), [records]);
   const grouped = sort === "newest" || sort === "oldest";
@@ -304,12 +325,12 @@ function ListTool({ kind, onKind, onClose, history, data, sessionOf, sessions, r
   }, [sessions, sort]);
   return <View className="min-h-0 flex-1">
     <View className="min-h-14 flex-row items-center gap-2">
-      <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={onClose} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={X} size={22} /></Pressable>
-      <View className="min-w-0 flex-1 items-center">
+      {!docked && <Pressable accessibilityRole="button" accessibilityLabel={tr("Close")} onPress={onClose} className="size-11 items-center justify-center rounded-full active:bg-muted"><Icon as={X} size={22} /></Pressable>}
+      <View className={cn("min-w-0 flex-1", !docked && "items-center")}>
         <Text numberOfLines={1} accessibilityRole="header" className="text-base font-extrabold tracking-[-0.02em]">{title}</Text>
         <Numeric numberOfLines={1} className="text-xs text-muted-foreground">{sub}</Numeric>
       </View>
-      <View className="size-11" />
+      {!docked && <View className="size-11" />}
     </View>
     {kind === "solves" ? <>
       <View className="h-6 flex-row items-center gap-2 px-1.5">
@@ -340,7 +361,7 @@ function ListTool({ kind, onKind, onClose, history, data, sessionOf, sessions, r
           {plural(x.count, "solve")} · <Text className="text-xs text-success">{tr("best {0}", { 0: fmtTime(x.best) })}</Text> · Ao5 {fmtTime(x.ao5)} · Ao12 {fmtTime(x.ao12)}
         </Numeric>
       </View>} />}
-    <View className="-mx-4 gap-2 border-t border-border bg-card px-3.5 pt-2.5">
+    <View className={cn("gap-2 pt-2.5", !docked && "-mx-4 border-t border-border bg-card px-3.5", !docked && tablet && "-mx-7 px-6")}>
       <PillSeg<Sort> block label={tr("Sort solves")} value={sort} onChange={setSort}
         options={[{ id: "newest", label: tr("Newest") }, { id: "oldest", label: tr("Oldest") }, { id: "fastest", label: tr("Fastest") }, { id: "slowest", label: tr("Slowest") }]} />
       <View className="flex-row items-center justify-between gap-2">

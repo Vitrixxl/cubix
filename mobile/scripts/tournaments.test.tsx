@@ -12,7 +12,7 @@ for (const [path, names] of Object.entries({
   "../src/components/ui/text": ["Text"], "../src/components/ui/button": ["Button"], "../src/components/ui/icon": ["Icon"],
   "../src/components/ui/skeleton": ["Skeleton"], "../src/components/ui/badge": ["Badge"], "../src/components/ui/alert": ["Alert"],
   "../src/components/PuzzlePicker": ["PuzzleIcon"], "../src/components/UserAvatar": ["UserAvatar"],
-  "../src/components/duel/parts": ["Cap", "Fly", "LiveDot", "Ping", "RaceScore", "RoundStrip", "SolveActions", "SolveTime", "TimerCard"],
+  "../src/components/duel/parts": ["Cap", "Fly", "LiveDot", "Ping", "RaceScore", "RoundStrip", "SidePanel", "SolveActions", "SolveTime", "TimerCard"],
   "../src/components/layout": ["Alg", "BackButton", "Bar", "Empty", "Fade", "Figure", "HeadButton", "Label", "MenuItem", "MoreMenu", "Numeric", "Surface", "TouchAction", "TouchBar"],
   "../src/components/AppBar": ["AppBar", "PushedBar", "SectionTabs"], "../src/components/ScrambleCube": ["ScrambleCube"],
   "../src/components/community/launch": ["TournamentSheet"],
@@ -80,6 +80,7 @@ mock.module("../src/lib/social", () => ({
   useSocial: () => useSyncExternalStore(listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, () => version),
 }));
 
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
 const { TournamentsPage } = await import("../src/pages/TournamentsPage");
 const { MatchPage } = await import("../src/pages/MatchPage");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

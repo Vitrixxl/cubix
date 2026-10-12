@@ -6,7 +6,7 @@ import { chromium, type Page } from "playwright";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { signIn, startServer } from "./app";
+import { signIn, startServer, desktopContext } from "./app";
 
 const SHOTS = "artifacts/grid";
 const shots = process.argv.includes("--shots");
@@ -143,7 +143,7 @@ async function solve(page: Page) {
 const sizes = process.argv.includes("--phone") ? [[390, 844]] : process.argv.includes("--desktop") ? [[2048, 1280], [1440, 900], [1280, 800]] : [[2048, 1280], [1440, 900], [1280, 800], [390, 844]];
 try {
   for (const [width, height] of sizes) {
-    const context = await browser.newContext({ viewport: { width: width!, height: height! } });
+    const context = await desktopContext(browser, { viewport: { width: width!, height: height! } });
     const page = await context.newPage();
     page.on("pageerror", (e) => console.log("page error:", e.message));
     // The sign-in dialog (/login), then a fresh account per size.
@@ -192,12 +192,14 @@ try {
     await check(page, "learn-catalog");
     await act(page, "nav:training");
     await check(page, "training-setup");
+    // A narrower window shows a way's settings once it is chosen.
+    if (!(await page.locator('[data-action="trainingStart:cross"]:visible').count())) await act(page, "trainingMode:cross");
     await act(page, "trainingStart:cross");
     await check(page, "cross-training");
     await act(page, "nav:duel");
     await check(page, "duel-lobby");
     // A race: another player, in a browser context of their own (the tabs of one browser share one connection).
-    const rival = await browser.newContext({ viewport: { width: width!, height: height! } });
+    const rival = await desktopContext(browser, { viewport: { width: width!, height: height! } });
     const other = await rival.newPage();
     await other.goto(origin + "/timer");
     await signIn(other, "grid_rival_" + width);

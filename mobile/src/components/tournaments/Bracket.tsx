@@ -40,12 +40,7 @@ export function RoundBoard({ tournament: t, me, onOpen }: {
       <View className="flex-row items-center gap-2.5">
         <View className="min-w-0 flex-1 gap-2">{matches.map(m => <MatchCard key={m.id} match={m} me={me} onOpen={onOpen} />)}</View>
         {next.length || champion ? <View className="min-w-0 flex-1 gap-1.5">
-          {champion ? <View accessibilityLabel={tr("Champion")} className="items-center gap-2 rounded-2xl bg-warning/10 px-3 py-4">
-            <Icon as={Crown} size={26} className="text-warning" />
-            <Face p={champion} size={40} />
-            <Text numberOfLines={1} className="text-base font-bold">{champion.username}</Text>
-            <Cap className="text-warning">{tr("Champion")}</Cap>
-          </View> : <>
+          {champion ? <Champion p={champion} /> : <>
             <Cap>{tr("{0} · next", { 0: said(roundName(shown + 1, t.rounds)) })}</Cap>
             {next.map(m => <MatchCard key={m.id} match={m} me={me} onOpen={onOpen} />)}
           </>}
@@ -53,6 +48,44 @@ export function RoundBoard({ tournament: t, me, onOpen }: {
       </View>
     </ScrollView>
   </View>;
+}
+
+/** The champion on a warm tile: the crown, the face and the name. */
+function Champion({ p }: { p: NonNullable<TournamentDetail["winner"]> }) {
+  return <View accessibilityLabel={tr("Champion")} className="items-center gap-2 rounded-2xl bg-warning/10 px-3 py-4">
+    <Icon as={Crown} size={26} className="text-warning" />
+    <Face p={p} size={40} />
+    <Text numberOfLines={1} className="text-base font-bold">{p.username}</Text>
+    <Cap className="text-warning">{tr("Champion")}</Cap>
+  </View>;
+}
+
+/**
+ * The whole bracket at once, for a tablet: a column per round, its matches spread over the height so each sits level
+ * with the two it comes from, then the champion. It scrolls once the rounds outgrow the room.
+ */
+export function FullBracket({ tournament: t, me, onOpen }: Parameters<typeof RoundBoard>[0]) {
+  const champion = t.status === "finished" && t.winner;
+  return <ScrollView className="min-h-0 flex-1" contentContainerStyle={{ flexGrow: 1 }} accessibilityLabel={tr("Bracket")}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} contentContainerClassName="gap-5">
+      {Array.from({ length: t.rounds }, (_, i) => {
+        const round = i + 1, current = t.status === "running" && round === t.round;
+        return <View key={round} className="w-48 grow gap-2">
+          <Cap className={current ? "text-primary" : undefined}>{said(roundName(round, t.rounds))}</Cap>
+          <View className="flex-1 justify-around gap-2">{byRound(t, round).map(m => <MatchCard key={m.id} match={m} me={me} onOpen={onOpen} />)}</View>
+        </View>;
+      })}
+      <View className="w-40 grow gap-2">
+        <Cap className="text-warning">{tr("Champion")}</Cap>
+        <View className="flex-1 justify-center">
+          {champion ? <Champion p={champion} /> : <View className="items-center gap-2 rounded-2xl border-2 border-dashed border-border px-3 py-4">
+            <Icon as={Crown} size={22} className="text-warning" />
+            <Text className="text-sm text-muted-foreground">{tr("To be decided")}</Text>
+          </View>}
+        </View>
+      </View>
+    </ScrollView>
+  </ScrollView>;
 }
 
 /** A match: its two players with the sets or solves they won, the winner checked, and its state under them. */

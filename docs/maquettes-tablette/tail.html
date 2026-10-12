@@ -1,0 +1,53 @@
+</main>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>
+// Stickers: y yellow, w white, r red, o orange, b blue, g green, x grey (not looked at), . none.
+const STICKER = { y: "#ffd94a", w: "#f4f0ec", r: "#ec5b57", o: "#f4973c", b: "#4f8ff0", g: "#4fc47e", x: "#5c5459", ".": "transparent" };
+const ns = "http://www.w3.org/2000/svg";
+const poly = (pts, fill) => `<polygon points="${pts.map(p => p.map(v => v.toFixed(2)).join(",")).join(" ")}" fill="${fill}" stroke="#141014" stroke-width="1.6" stroke-linejoin="round"/>`;
+/* A last-layer case seen from above: data-ll="top 9 | back 3 | right 3 | front 3 | left 3", read left to right, back to front. */
+function drawLL(el) {
+  const [top, back = "xxx", right = "xxx", front = "xxx", left = "xxx"] = el.dataset.ll.split("|");
+  const s = 22, o = 17, gap = 2.4, out = [];
+  const rect = (x, y, w, h, c) => out.push(`<rect x="${x + gap / 2}" y="${y + gap / 2}" width="${w - gap}" height="${h - gap}" rx="3.2" fill="${STICKER[c] ?? c}"/>`);
+  for (let i = 0; i < 9; i++) rect(o + (i % 3) * s, o + Math.floor(i / 3) * s, s, s, top[i]);
+  for (let i = 0; i < 3; i++) { rect(o + i * s, 6, s, 10, back[i]); rect(o + i * s, o + 3 * s + 1, s, 10, front[i]); rect(6, o + i * s, 10, s, left[i]); rect(o + 3 * s + 1, o + i * s, 10, s, right[i]); }
+  el.innerHTML = `<svg viewBox="0 0 100 100">${out.join("")}</svg>`;
+}
+/* A cube in isometric view: data-iso="U9|F9|R9", each face read left to right, top to bottom as seen. */
+function drawIso(el) {
+  const [U = "xxxxxxxxx", F = "xxxxxxxxx", R = "xxxxxxxxx"] = el.dataset.iso.split("|");
+  const L = 42, V = [50, 52], u1 = [-.866 * L, -.5 * L], u2 = [.866 * L, -.5 * L], d = [0, L];
+  const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k];
+  const face = (TL, TR, BL, colours, out) => {
+    const ex = [TR[0] - TL[0], TR[1] - TL[1]], ey = [BL[0] - TL[0], BL[1] - TL[1]];
+    for (let i = 0; i < 9; i++) {
+      const c = i % 3, r = Math.floor(i / 3), at = (x, y) => add(add(TL, ex, x / 3), ey, y / 3), m = .08;
+      out.push(poly([at(c + m, r + m), at(c + 1 - m, r + m), at(c + 1 - m, r + 1 - m), at(c + m, r + 1 - m)], STICKER[colours[i]] ?? colours[i]));
+    }
+  };
+  const out = [poly([add(add(V, u1), u2), add(V, u1), add(add(V, u1), d), add(V, d), add(add(V, u2), d), add(V, u2)], "#141014")];
+  face(add(add(V, u1), u2), add(V, u2), add(V, u1), U, out);
+  face(add(V, u1), V, add(add(V, u1), d), F, out);
+  face(V, add(V, u2), add(V, d), R, out);
+  el.innerHTML = `<svg viewBox="0 0 100 100">${out.join("")}</svg>`;
+}
+document.querySelectorAll("[data-ll]").forEach(drawLL);
+document.querySelectorAll("[data-iso]").forEach(drawIso);
+// Every phone gets its status bar and its gesture bar.
+document.querySelectorAll(".dev.tab > .scr, .dev.tabl > .scr").forEach(scr => scr.insertAdjacentHTML("afterbegin", `<div class="tsbar"><span>9:41 Mon 12 Oct</span><span class="ic"><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>`));
+document.querySelectorAll(".dev.pc > .scr").forEach(scr => scr.insertAdjacentHTML("afterbegin", `<div class="wbar"><i></i><i></i><i></i><span style="margin-left:8px">qbix.app</span></div>`));
+document.querySelectorAll(".phone > .scr").forEach(scr => {
+  scr.insertAdjacentHTML("afterbegin", `<div class="sbar"><span>9:41</span><span class="ic"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>`);
+  scr.insertAdjacentHTML("beforeend", `<div class="gbar"></div>`);
+});
+// The table of contents, from the pages.
+document.getElementById("toc").innerHTML = (window.PAGES ?? [...document.querySelectorAll("section.page")].map(s => ({ href: "#" + s.id, label: s.querySelector("h2").firstChild.textContent.trim(), done: true }))).map(p => `<a href="${p.href}" style="${location.pathname === p.href ? "background:var(--pri);color:var(--pri-fg)" : p.done ? "" : "opacity:.45"}">${p.label}</a>`).join("");
+const root = document.documentElement;
+document.getElementById("accent").onchange = e => root.style.setProperty("--pri", e.target.value);
+document.getElementById("light").onchange = e => { root.classList.toggle("light", e.target.checked); if (e.target.checked) root.style.removeProperty("--pri"); };
+document.getElementById("zoom").oninput = e => root.style.setProperty("--z", e.target.value);
+window.lucide?.createIcons();
+</script>
+</body>
+</html>

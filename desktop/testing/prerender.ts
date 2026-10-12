@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startServer } from "./app";
+import { startServer, desktopContext } from "./app";
 
 const SHOTS = "artifacts/prerender";
 await mkdir(SHOTS, { recursive: true });
@@ -19,7 +19,7 @@ const errors: string[] = [];
 const live = (page: import("playwright").Page) => page.waitForFunction(() => !document.getElementById("prerendered") && !!document.getElementById("root")?.childElementCount, undefined, { timeout: 30000 });
 try {
   // A crawler without JavaScript reads the whole page: its title, description, address in each language, content.
-  const crawler = await (await browser.newContext({ javaScriptEnabled: false, viewport })).newPage();
+  const crawler = await (await desktopContext(browser, { javaScriptEnabled: false, viewport })).newPage();
   const response = await crawler.goto(origin + "/algorithms/OLL%2021");
   assert.equal(response?.status(), 200);
   assert.equal(await crawler.title(), "OLL 21 (H Shape) algorithm | Qbix");
@@ -36,7 +36,7 @@ try {
   console.log("Crawlers read each public page whole without JavaScript; an account's page is not indexed");
 
   // A guest: the page gives way to the app, which works on this device without an account.
-  const guest = await (await browser.newContext({ viewport })).newPage();
+  const guest = await (await desktopContext(browser, { viewport })).newPage();
   guest.on("pageerror", (e) => errors.push(e.message));
   await guest.goto(origin + "/algorithms/OLL%2021");
   await live(guest);
@@ -81,14 +81,14 @@ try {
   console.log("An account's device skips the guest's page");
 
   // The language of the address; a German browser on an English address moves under /de.
-  const fr = await (await browser.newContext({ viewport })).newPage();
+  const fr = await (await desktopContext(browser, { viewport })).newPage();
   await fr.goto(origin + "/fr/learn/cfop?puzzle=333&step=2");
   assert.equal(await fr.evaluate(() => document.documentElement.lang), "fr");
   assert.match(await fr.title(), /^Méthode CFOP pour le 3x3, étape 3/);
   await live(fr);
   assert.match(await fr.title(), /^Méthode CFOP/);
   await fr.screenshot({ path: `${SHOTS}/fr.png` });
-  const de = await (await browser.newContext({ viewport, locale: "de-DE" })).newPage();
+  const de = await (await desktopContext(browser, { viewport, locale: "de-DE" })).newPage();
   await de.goto(origin + "/timer");
   await live(de);
   assert.equal(new URL(de.url()).pathname, "/de/timer");

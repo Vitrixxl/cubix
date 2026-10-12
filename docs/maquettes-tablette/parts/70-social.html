@@ -1,0 +1,1379 @@
+<style>
+:is(#messages,#people,#coaching) .day { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; flex: none; }
+:is(#messages,#people,#coaching) .day::before, :is(#messages,#people,#coaching) .day::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+:is(#messages,#people,#coaching) .tl { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: start; flex: none; }
+:is(#messages,#people,#coaching) .tl > span:first-child { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; font-weight: 800; color: var(--pri); text-align: right; }
+:is(#messages,#people,#coaching) .tl > span:first-child small { font-size: 11px; font-weight: 600; color: var(--faint); }
+:is(#messages,#people,#coaching) .tl > span.y { color: var(--warn); } :is(#messages,#people,#coaching) .tl > span.g { color: var(--ok); } :is(#messages,#people,#coaching) .tl > span.l { color: var(--lilac); }
+:is(#messages,#people,#coaching) .tl p { font-size: 14px; line-height: 1.45; }
+:is(#messages,#people,#coaching) .bub { max-width: 66%; padding: 10px 14px; border-radius: 20px 20px 20px 6px; background: var(--card); font-size: 15px; line-height: 1.4; align-self: flex-start; flex: none; }
+:is(#messages,#people,#coaching) .bub.me { align-self: flex-end; background: color-mix(in srgb, var(--pri) 22%, var(--card)); border-radius: 20px 20px 6px 20px; }
+:is(#messages,#people,#coaching) .bub small { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; text-align: right; font-weight: 600; }
+:is(#messages,#people,#coaching) .inv { border: 1.5px dashed color-mix(in srgb, var(--warn) 45%, transparent); border-radius: 18px; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--mfg); flex: none; line-height: 1.35; }
+:is(#messages,#people,#coaching) .inv b { color: var(--fg); }
+:is(#messages,#people,#coaching) .inv.out { border-color: var(--border); }
+:is(#messages,#people,#coaching) .lnk { font-weight: 700; font-size: 13px; color: var(--mfg); white-space: nowrap; }
+:is(#messages,#people,#coaching) .lnk.pri { color: var(--pri); }
+:is(#messages,#people,#coaching) .seat { flex: 1; min-width: 0; background: var(--muted); border-radius: 16px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; font-weight: 800; font-size: 13px; }
+:is(#messages,#people,#coaching) .vs { font-size: 12px; font-weight: 800; color: var(--faint); flex: none; }
+:is(#messages,#people,#coaching) .agenda { display: flex; flex-direction: column; gap: 4px; padding: 8px 16px 10px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex: none; }
+:is(#messages,#people,#coaching) .menu { position: absolute; z-index: 7; background: var(--pop); border-radius: 18px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+:is(#messages,#people,#coaching) .menu .li { padding: 9px 10px; border-radius: 12px; gap: 10px; font-weight: 700; }
+:is(#messages,#people,#coaching) .score { font-size: 46px; font-weight: 800; letter-spacing: -.05em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+:is(#messages,#people,#coaching) .score i { font-style: normal; color: var(--faint); padding: 0 6px; }
+:is(#messages,#people,#coaching) .stack3 { display: flex; }
+:is(#messages,#people,#coaching) .stack3 > * { box-shadow: 0 0 0 3px var(--bg); }
+:is(#messages,#people,#coaching) .stack3 > * + * { margin-left: -9px; }
+:is(#messages,#people,#coaching) .on-card .stack3 > * { box-shadow: 0 0 0 3px var(--card); }
+:is(#messages,#people,#coaching) .compose { display: flex; align-items: center; gap: 8px; padding: 10px 14px; flex: none; }
+:is(#messages,#people,#coaching) .compose .field { flex: 1; border-radius: 99px; padding: 0 16px; }
+:is(#messages,#people,#coaching) .compose .btn.icon { border-radius: 50%; }
+:is(#messages,#people,#coaching) .gm { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--pri); flex: none; }
+:is(#messages,#people,#coaching) .gm.sm { width: 30px; height: 30px; } :is(#messages,#people,#coaching) .gm.sm svg.lucide { width: 15px; height: 15px; }
+:is(#messages,#people,#coaching) .gm.lg { width: 64px; height: 64px; } :is(#messages,#people,#coaching) .gm.lg svg.lucide { width: 28px; height: 28px; }
+:is(#messages,#people,#coaching) .when { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; font-size: 11.5px; font-weight: 700; color: var(--faint); }
+:is(#messages,#people,#coaching) .li.act { background: color-mix(in srgb, var(--pri) 10%, transparent); }
+:is(#messages,#people,#coaching) .t44 > * { height: 40px; font-size: 14px; }
+:is(#messages,#people,#coaching) .btn.b44 { height: 48px; border-radius: 14px; font-size: 15px; }
+:is(#messages,#people,#coaching) .btn.icon.b44 { width: 48px; }
+:is(#messages,#people,#coaching) .avatar.md { width: 48px; height: 48px; font-size: 16px; }
+:is(#messages,#people,#coaching) .mem { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
+:is(#messages,#people,#coaching) .mem b { font-size: 11.5px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+
+<!-- =============================================================== 22 · Messages -->
+<section class="page" id="messages" data-short="Messages">
+  <div class="page-head">
+    <h2>22 · Messages <small>/community/messages</small></h2>
+    <p>Aujourd'hui la liste et la conversation sont deux grandes cartes vides sous deux rangées d'onglets : en portrait la liste garde 340 px pour trois filtres, en 1280 × 720 la conversation n'a plus que 450 px de haut, et le panneau d'infos passe par-dessus. Les propositions rendent la hauteur au fil, gardent liste et conversation ensemble et donnent sa place à ce qui attend une réponse (battle, invitation, demandes).</p>
+    <div class="feats"><span>Recherche des conversations</span><span>Filtres All / Unread / Friends / Groups</span><span>Requests (2 en attente)</span><span>Ajouter un ami</span><span>Nouveau groupe</span><span>Invitation de groupe Join / Decline</span><span>Non lus, dernier message, heure</span><span>Conversation d'ami et de groupe</span><span>En-tête : Battle, panneau d'infos</span><span>Waiting for you here</span><span>Carte de battle 3×3 · first to 3 solves · Waiting</span><span>Call off / See the detail</span><span>Messages par jour</span><span>Zone d'écriture</span><span>Infos : score, battles, membres, Invite, Leave</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Le desktop sans barre du haut : la liste en colonne fixe, la conversation à côté, sur toute la hauteur. Le panneau d'infos est ancré à droite en 1280 ; en portrait il s'ouvre en tiroir depuis le bouton de l'en-tête (ici sur le groupe Cubix Club).</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="row g16 px24 grow" style="align-items:stretch;padding-bottom:24px">
+              <div class="card w280" style="padding:14px 10px">
+                <div class="row g6" style="padding:0 4px"><b class="h2 grow">Messages</b><button class="btn icon sm"><i data-lucide="user-plus"></i></button><button class="btn icon sm"><i data-lucide="messages-square"></i></button></div>
+                <div class="field"><i data-lucide="search"></i>Search conversations</div>
+                <div class="seg block"><span class="on">All</span><span>Unread</span><span>Friends</span><span>Groups</span></div>
+                <div class="li" style="background:var(--muted);padding:8px 10px">
+                  <span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="user-round-plus"></i></span>
+                  <div class="col"><b>Requests</b><span class="xs trunc">ben_tps and 1 more</span></div>
+                  <span class="badge">2</span>
+                </div>
+                <div class="inv">
+                  <span>lena_speed invites you to <b>Big cubes</b> · 2 members</span>
+                  <span class="row g16"><span class="lnk pri">Join</span><span class="lnk">Decline</span></span>
+                </div>
+                <div class="scroll g2">
+                  <div class="li act"><span class="avatar">AL</span><div class="col"><b class="h3">alex_cubes</b><span class="s trunc">⚔ 3×3 · challenges you</span></div><span class="when"><span class="pri">13:52</span><span class="badge">1</span></span></div>
+                  <div class="li on"><span class="avatar y">CO</span><div class="col"><b class="h3">coach</b><span class="s trunc">You: Perfect, see you then!</span></div><span class="when">13:40</span></div>
+                  <div class="li"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b class="h3">Cubix Club <span class="faint s">8</span></b><span class="s trunc">lena_speed: Battle</span></div><span class="when">Fri</span></div>
+                  <div class="li"><span class="avatar g">LE</span><div class="col"><b class="h3">lena_speed</b><span class="s trunc">GG, that last one was fast</span></div><span class="when">Fri</span></div>
+                  <div class="li"><span class="avatar n">KE</span><div class="col"><b class="h3">kenji_cfop</b><span class="s trunc">Which OLL for the T?</span></div><span class="when">Wed</span></div>
+                  <div class="li"><span class="avatar">HU</span><div class="col"><b class="h3">hugo_sub10</b><span class="s trunc">You: 10.41 Ao5, finally</span></div><span class="when">2 Oct</span></div>
+                  <div class="li"><span class="avatar y">SO</span><div class="col"><b class="h3">sofia_sq1</b><span class="s trunc">Square-1 parity is cursed</span></div><span class="when">28 Sep</span></div>
+                  <div class="li"><span class="avatar n">TO</span><div class="col"><b class="h3">tom_onehand</b><span class="s trunc">OH Ao12 13.9!</span></div><span class="when">21 Sep</span></div>
+                </div>
+              </div>
+              <div class="card grow" style="padding:0;gap:0">
+                <div class="row g10" style="padding:12px 14px">
+                  <span class="avatar y">CO</span>
+                  <div class="col g0 grow"><b class="h3">coach</b><span class="xs trunc">Friends since 62 days ago</span></div>
+                  <button class="btn sm soft"><i data-lucide="swords"></i>Battle</button>
+                  <button class="btn icon sm"><i data-lucide="panel-right"></i></button>
+                </div>
+                <div class="agenda">
+                  <span class="cap">Waiting for you here</span>
+                  <div class="row g10"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b>3×3</b><span class="t mfg grow trunc">Your battle waits</span><button class="btn sm">Call off</button></div>
+                </div>
+                <div class="scroll px16" style="padding-top:14px;gap:14px">
+                  <div class="day">Yesterday</div>
+                  <div class="tl"><span class="y">coach<small>18:12</small></span><p>Your Ao5 dropped half a second this week, nice work.</p></div>
+                  <div class="tl"><span>You<small>18:20</small></span><p>Thanks! My F2L still feels slow though.</p></div>
+                  <div class="tl"><span class="y">coach<small>18:24</small></span><p>Let's drill pair recognition on Tuesday, bring your main cube.</p></div>
+                  <div class="day">Today</div>
+                  <div class="tl"><span>You<small>09:36</small></span>
+                    <div class="card pop g10" style="padding:12px">
+                      <div class="row g6"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="h3">3×3</b><span class="s grow trunc">First to 3 solves</span><span class="pill warn">Waiting</span></div>
+                      <div class="row g6"><div class="seat"><span class="avatar sm l">YU</span>You</div><span class="vs">vs</span><div class="seat"><span class="avatar sm y">CO</span>coach</div></div>
+                      <span class="xs">Waiting for coach to accept.</span>
+                      <div class="grid2"><button class="btn sm">Call off</button><button class="btn sm soft">See the detail</button></div>
+                    </div>
+                  </div>
+                  <div class="tl"><span class="y">coach<small>13:38</small></span><p>I'll take it after my session at 17:00.</p></div>
+                  <div class="tl"><span>You<small>13:40</small></span><p>Perfect, see you then!</p></div>
+                </div>
+                <div class="compose" style="border-top:1px solid var(--border)">
+                  <div class="field">Message coach</div>
+                  <button class="btn icon pri"><i data-lucide="send"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="row g16 px24 grow" style="align-items:stretch;padding-bottom:20px">
+              <div class="card w300" style="width:300px;flex:none;padding:12px 10px">
+                <div class="row g6"><div class="field grow" style="height:38px"><i data-lucide="search"></i>Search</div><button class="btn icon sm"><i data-lucide="user-plus"></i></button><button class="btn icon sm"><i data-lucide="messages-square"></i></button></div>
+                <div class="seg block"><span class="on">All</span><span>Unread <span class="pri">1</span></span><span>Friends</span><span>Groups</span></div>
+                <div class="li" style="background:var(--muted);padding:7px 10px">
+                  <span class="icon-tile pri" style="width:32px;height:32px"><i data-lucide="user-round-plus"></i></span>
+                  <div class="col"><b>Requests</b><span class="xs trunc">ben_tps and 1 more</span></div><span class="badge">2</span>
+                </div>
+                <div class="inv" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px"><span class="grow trunc"><b>Big cubes</b> · lena_speed</span><span class="lnk pri">Join</span><span class="lnk">Decline</span></div>
+                <div class="scroll g2">
+                  <div class="li act" style="padding:8px 10px"><span class="avatar">AL</span><div class="col"><b>alex_cubes</b><span class="s trunc">⚔ 3×3 · challenges you</span></div><span class="when"><span class="pri">13:52</span><span class="badge">1</span></span></div>
+                  <div class="li on" style="padding:8px 10px"><span class="avatar y">CO</span><div class="col"><b>coach</b><span class="s trunc">You: Perfect, see you then!</span></div><span class="when">13:40</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club <span class="faint s">8</span></b><span class="s trunc">lena_speed: Battle</span></div><span class="when">Fri</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar g">LE</span><div class="col"><b>lena_speed</b><span class="s trunc">GG, that last one was fast</span></div><span class="when">Fri</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar n">KE</span><div class="col"><b>kenji_cfop</b><span class="s trunc">Which OLL for the T?</span></div><span class="when">Wed</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar">HU</span><div class="col"><b>hugo_sub10</b><span class="s trunc">You: 10.41 Ao5, finally</span></div><span class="when">2 Oct</span></div>
+                </div>
+              </div>
+              <div class="card grow" style="padding:0;gap:0">
+                <div class="row g10" style="padding:10px 14px">
+                  <span class="avatar y">CO</span>
+                  <div class="col g0 grow"><b class="h3">coach</b><span class="xs trunc">Friends since 62 days ago</span></div>
+                  <button class="btn sm soft"><i data-lucide="swords"></i>Battle</button>
+                  <button class="btn icon sm" style="background:var(--acc)"><i data-lucide="panel-right"></i></button>
+                </div>
+                <div class="agenda" style="flex-direction:row;align-items:center;gap:10px"><span class="cap">Waiting for you here</span><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b>3×3</b><span class="t mfg grow trunc">Your battle waits</span><button class="btn sm">Call off</button></div>
+                <div class="scroll px16" style="padding-top:12px;gap:12px">
+                  <div class="day">Yesterday</div>
+                  <div class="tl"><span class="y">coach<small>18:12</small></span><p>Your Ao5 dropped half a second this week, nice work.</p></div>
+                  <div class="tl"><span>You<small>18:20</small></span><p>Thanks! My F2L still feels slow though.</p></div>
+                  <div class="day">Today</div>
+                  <div class="tl"><span>You<small>09:36</small></span>
+                    <div class="card pop row g10" style="padding:10px 12px;max-width:440px">
+                      <span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><div class="col g0 grow"><b>3×3 · First to 3 solves</b><span class="xs">You vs coach · waiting for coach</span></div><span class="pill warn">Waiting</span><span class="lnk">Call off</span><span class="lnk pri">See the detail</span>
+                    </div>
+                  </div>
+                  <div class="tl"><span class="y">coach<small>13:38</small></span><p>I'll take it after my session at 17:00.</p></div>
+                  <div class="tl"><span>You<small>13:40</small></span><p>Perfect, see you then!</p></div>
+                </div>
+                <div class="compose" style="border-top:1px solid var(--border)"><div class="field">Message coach</div><button class="btn icon pri"><i data-lucide="send"></i></button></div>
+              </div>
+            </div>
+          </div>
+          <aside class="dock">
+            <div class="row between"><span class="cap">Details</span><button class="btn icon sm ghost"><i data-lucide="ellipsis"></i></button></div>
+            <div class="menu" style="top:46px;right:14px;width:210px"><div class="li bad"><i data-lucide="user-minus"></i>Remove from friends</div></div>
+            <div class="row g12"><span class="avatar lg y">CO</span><div class="col g2 grow"><span class="h2">coach</span><span class="s">Friends since 62 days ago</span><span class="xs">Coach · ★ 4.3</span></div></div>
+            <div class="grid2"><button class="btn sm pri"><i data-lucide="swords"></i>Challenge</button><button class="btn sm"><i data-lucide="user-round"></i>Profile</button></div>
+            <span class="cap" style="margin-top:4px">Your battles</span>
+            <div class="card row" style="flex-direction:row;align-items:center;justify-content:space-between;background:var(--muted);padding:12px">
+              <div class="col g4 center"><span class="avatar sm l">YU</span><b class="s">You</b></div>
+              <span class="score" style="font-size:38px">2<i>–</i>1</span>
+              <div class="col g4 center"><span class="avatar sm y">CO</span><b class="s">coach</b></div>
+            </div>
+            <div class="col g0">
+              <div class="row g10" style="height:36px"><span class="xs" style="width:38px">Today</span><b style="width:30px">3×3</b><span class="s grow trunc">First to 3</span><span class="pill warn">Waiting</span></div>
+              <div class="row g10" style="height:36px"><span class="xs" style="width:38px">Sat</span><b style="width:30px">3×3</b><span class="s grow trunc">First to 3</span><b class="num">3–1</b><span class="pill ok">Won</span></div>
+              <div class="row g10" style="height:36px"><span class="xs" style="width:38px">2 Oct</span><b style="width:30px">2×2</b><span class="s grow trunc">First to 5</span><b class="num">2–5</b><span class="pill bad">Lost</span></div>
+            </div>
+            <span class="cap" style="margin-top:4px">Groups together</span>
+            <div class="li" style="padding:6px 0"><span class="gm sm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club</b><span class="xs">8 members</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+          </aside>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Tiroir d'infos ouvert</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="row g16 px24 grow" style="align-items:stretch;padding-bottom:24px">
+              <div class="card w280" style="padding:14px 10px">
+                <div class="row g6" style="padding:0 4px"><b class="h2 grow">Messages</b><button class="btn icon sm"><i data-lucide="user-plus"></i></button><button class="btn icon sm"><i data-lucide="messages-square"></i></button></div>
+                <div class="field"><i data-lucide="search"></i>Search conversations</div>
+                <div class="seg block"><span>All</span><span>Unread</span><span>Friends</span><span class="on">Groups</span></div>
+                <div class="scroll g2">
+                  <div class="li on"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b class="h3">Cubix Club <span class="faint s">8</span></b><span class="s trunc">You: Yes, see you there</span></div><span class="when">19:30</span></div>
+                  <div class="li"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b class="h3">Big cubes <span class="faint s">2</span></b><span class="s trunc">Invitation from lena_speed</span></div><span class="when">Sat</span></div>
+                </div>
+              </div>
+              <div class="card grow" style="padding:0;gap:0">
+                <div class="row g10" style="padding:12px 14px"><span class="gm"><i data-lucide="users"></i></span><div class="col g0 grow"><b class="h3">Cubix Club</b><span class="xs">8 members</span></div><button class="btn sm soft"><i data-lucide="swords"></i>Battle</button><button class="btn icon sm" style="background:var(--acc)"><i data-lucide="panel-right"></i></button></div>
+                <div class="scroll px16" style="padding-top:14px;gap:14px">
+                  <div class="day">Friday</div>
+                  <div class="tl"><span class="g">lena_speed<small>18:02</small></span><p>Club cup on Sunday, 18:00. Who's in?</p></div>
+                  <div class="tl"><span class="l">hugo_sub10<small>18:05</small></span><p>In. Bringing the new cube.</p></div>
+                  <div class="tl"><span class="y">alex_cubes<small>18:07</small></span><p>Count me in!</p></div>
+                  <div class="tl"><span>You<small>19:30</small></span><p>Yes, see you there.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="drawer" style="width:430px;gap:12px;padding:20px">
+            <div class="row g12"><span class="gm lg"><i data-lucide="users"></i></span><div class="col g2 grow"><span class="h2">Cubix Club</span><span class="s">8 members · you are admin</span></div><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+            <span class="t mfg">Friday sprints, Sunday club cup. Bring a 3×3.</span>
+            <div class="grid2"><button class="btn pri"><i data-lucide="swords"></i>Battle</button><button class="btn soft"><i data-lucide="trophy"></i>New tournament</button></div>
+            <div class="row between" style="margin-top:4px"><span class="cap">Members · 8</span><span class="lnk pri row g4"><i data-lucide="user-plus" style="width:15px;height:15px"></i>Invite</span></div>
+            <div class="col g0">
+              <div class="li" style="padding:6px 4px"><span class="avatar sm g">LE</span><b class="grow">lena_speed</b><span class="pill pri">Owner</span></div>
+              <div class="li" style="padding:6px 4px"><span class="avatar sm l">YU</span><b class="grow">yuki_blind <span class="faint s">you</span></b><span class="pill">Admin</span></div>
+              <div class="li" style="padding:6px 4px"><span class="avatar sm">AL</span><b class="grow">alex_cubes</b></div>
+              <div class="li" style="padding:6px 4px"><span class="avatar sm n">KE</span><b class="grow">kenji_cfop</b></div>
+              <div class="li" style="padding:6px 4px"><span class="avatar sm">HU</span><b class="grow">hugo_sub10</b></div>
+              <div class="li" style="padding:6px 4px"><span class="avatar sm y">SO</span><b class="grow">sofia_sq1</b></div>
+              <div class="li" style="padding:6px 4px"><span class="avatar sm n">TO</span><b class="grow">tom_onehand</b></div>
+              <div class="li" style="padding:6px 4px;opacity:.65"><span class="avatar sm y">DE</span><b class="grow">dev</b><span class="pill warn">Invited</span></div>
+            </div>
+            <span class="cap" style="margin-top:4px">Battles of the group</span>
+            <div class="col g0">
+              <div class="row g10" style="height:38px"><b style="width:34px">3×3</b><span class="s grow trunc">lena_speed vs hugo_sub10</span><span class="pill warn">Waiting</span></div>
+              <div class="row g10" style="height:38px"><b style="width:34px">2×2</b><span class="s grow trunc">alex_cubes vs kenji_cfop</span><b class="num">3–1</b></div>
+            </div>
+            <span class="cap" style="margin-top:4px">Tournaments</span>
+            <div class="card tight row g10" style="flex-direction:row;align-items:center;background:var(--card)"><span class="icon-tile pri"><i data-lucide="trophy"></i></span><div class="col g0 grow"><b>Club cup</b><span class="xs">Sun 18:00 · 6 of 8 places</span></div><button class="btn sm pri">Register</button></div>
+            <span class="grow"></span>
+            <div class="row g6"><button class="btn sm ghost"><i data-lucide="pencil"></i>Edit the group</button><span class="grow"></span><button class="btn sm ghost bad"><i data-lucide="log-out"></i>Leave the group</button></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>L'écran Messages de l'app mobile, agrandi : ce qui attend une réponse en trois cartes en tête, de grandes lignes, la conversation poussée en plein écran en portrait avec Battle à côté du champ. En 1280, liste et conversation côte à côte au-dessus de la barre flottante.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display">Me</span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div>
+          <div class="col g12 grow" style="padding:16px 28px 0">
+            <div class="grid3" style="gap:12px">
+              <div class="card on-card g10">
+                <div class="row between"><span class="cap">Requests</span><span class="badge">2</span></div>
+                <div class="row g6"><span class="stack3"><span class="avatar sm">BE</span><span class="avatar sm y">DE</span></span><span class="s trunc">ben_tps, dev</span></div>
+                <button class="btn block">See them</button>
+              </div>
+              <div class="card g10" style="background:transparent;border:1.5px dashed color-mix(in srgb, var(--warn) 45%, transparent)">
+                <span class="cap">Group invitation</span>
+                <span class="s trunc"><b style="color:var(--fg)">Big cubes</b> · from lena_speed</span>
+                <div class="row g6"><button class="btn pri grow">Join</button><button class="btn ghost">Decline</button></div>
+              </div>
+              <div class="card hi g10">
+                <span class="cap" style="color:var(--mfg)">Battle</span>
+                <span class="s trunc"><b style="color:var(--fg)">alex_cubes</b> · 3×3 · first to 3</span>
+                <div class="row g6"><button class="btn pri grow">Accept</button><button class="btn ghost">See</button></div>
+              </div>
+            </div>
+            <div class="row g10"><div class="field grow" style="height:48px"><i data-lucide="search"></i>Search conversations</div><button class="btn icon b44"><i data-lucide="user-plus"></i></button><button class="btn icon b44"><i data-lucide="messages-square"></i></button></div>
+            <div class="seg block t44"><span class="on">All</span><span>Unread <span class="pri">1</span></span><span>Friends</span><span>Groups</span></div>
+            <div class="scroll g4">
+              <div class="li act" style="padding:12px 14px"><span class="avatar md">AL</span><div class="col"><div class="row between"><b class="h3">alex_cubes</b><span class="pri xs b">13:52</span></div><div class="row"><span class="t mfg grow trunc">⚔ 3×3 · alex_cubes challenges you, first to 3 solves</span><span class="badge">1</span></div></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md y">CO</span><div class="col"><div class="row between"><b class="h3">coach</b><span class="faint xs b">13:40</span></div><span class="t mfg trunc">You: Perfect, see you then!</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="gm" style="width:48px;height:48px"><i data-lucide="users"></i></span><div class="col"><div class="row between"><b class="h3">Cubix Club <span class="faint s">8 members</span></b><span class="faint xs b">Fri</span></div><span class="t mfg trunc">lena_speed: Battle · 3×3 first to 5</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md g">LE</span><div class="col"><div class="row between"><b class="h3">lena_speed</b><span class="faint xs b">Fri</span></div><span class="t mfg trunc">GG, that last one was fast 😄 See you Sunday</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md n">KE</span><div class="col"><div class="row between"><b class="h3">kenji_cfop</b><span class="faint xs b">Wed</span></div><span class="t mfg trunc">Which OLL do you use for the T?</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md">HU</span><div class="col"><div class="row between"><b class="h3">hugo_sub10</b><span class="faint xs b">2 Oct</span></div><span class="t mfg trunc">You: 10.41 Ao5, finally</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md y">SO</span><div class="col"><div class="row between"><b class="h3">sofia_sq1</b><span class="faint xs b">28 Sep</span></div><span class="t mfg trunc">Square-1 parity is cursed</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md n">TO</span><div class="col"><div class="row between"><b class="h3">tom_onehand</b><span class="faint xs b">21 Sep</span></div><span class="t mfg trunc">OH Ao12 13.9!</span></div></div>
+              <div class="li" style="padding:12px 14px"><span class="avatar md">CH</span><div class="col"><div class="row between"><b class="h3">chloe_f2l</b><span class="faint xs b">14 Sep</span></div><span class="t mfg trunc">You: Thanks for the F2L tips</span></div></div>
+            </div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="bigtitle" style="align-items:center;padding:14px 28px 8px"><span class="display" style="flex:none">Me</span><div class="utabs" style="border:0;padding:0 0 0 16px"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="row g16 grow" style="align-items:stretch;padding:4px 28px 0">
+            <div class="col g10 w360" style="width:380px">
+              <div class="row g8"><div class="field grow" style="height:44px"><i data-lucide="search"></i>Search conversations</div><button class="btn icon" style="height:44px;width:44px"><i data-lucide="user-plus"></i></button><button class="btn icon" style="height:44px;width:44px"><i data-lucide="messages-square"></i></button></div>
+              <div class="seg block"><span class="on">All</span><span>Unread <span class="pri">1</span></span><span>Friends</span><span>Groups</span></div>
+              <div class="card g6" style="padding:10px 12px">
+                <div class="row g10"><span class="icon-tile pri" style="width:32px;height:32px"><i data-lucide="user-round-plus"></i></span><span class="t grow trunc"><b>2 requests</b> · ben_tps, dev</span><span class="lnk pri">See</span></div>
+                <div class="hr"></div>
+                <div class="row g10"><span class="gm sm"><i data-lucide="users"></i></span><span class="t grow trunc"><b>Big cubes</b> · lena_speed</span><button class="btn sm pri">Join</button><button class="btn sm ghost">Decline</button></div>
+              </div>
+              <div class="scroll g2">
+                <div class="li act"><span class="avatar">AL</span><div class="col"><b class="h3">alex_cubes</b><span class="s trunc">⚔ 3×3 · alex_cubes challenges you</span></div><span class="when"><span class="pri">13:52</span><span class="badge">1</span></span></div>
+                <div class="li on"><span class="avatar y">CO</span><div class="col"><b class="h3">coach</b><span class="s trunc">You: Perfect, see you then!</span></div><span class="when">13:40</span></div>
+                <div class="li"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b class="h3">Cubix Club <span class="faint s">8</span></b><span class="s trunc">lena_speed: Battle</span></div><span class="when">Fri</span></div>
+                <div class="li"><span class="avatar g">LE</span><div class="col"><b class="h3">lena_speed</b><span class="s trunc">GG, that last one was fast</span></div><span class="when">Fri</span></div>
+                <div class="li"><span class="avatar n">KE</span><div class="col"><b class="h3">kenji_cfop</b><span class="s trunc">Which OLL do you use for the T?</span></div><span class="when">Wed</span></div>
+              </div>
+            </div>
+            <div class="card grow" style="padding:0;gap:0;border-radius:24px">
+              <div class="row g10" style="padding:10px 16px"><span class="avatar y">CO</span><div class="col g0 grow"><b class="h3">coach</b><span class="xs">Friends since 62 days ago</span></div><button class="btn icon"><i data-lucide="panel-right"></i></button></div>
+              <div class="hr"></div>
+              <div class="scroll" style="padding:12px 20px 0;gap:8px">
+                <div class="day">Yesterday</div>
+                <div class="bub">Your Ao5 dropped half a second this week, nice work.<small>18:12</small></div>
+                <div class="bub me">Thanks! My F2L still feels slow though.<small>18:20</small></div>
+                <div class="day">Today</div>
+                <div class="card pop row g10" style="align-self:flex-end;width:62%;padding:10px 12px;border-radius:20px 20px 6px 20px;flex:none">
+                  <span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><div class="col g0 grow"><b>3×3 · First to 3 solves</b><span class="xs">09:36 · waiting for coach</span></div><span class="pill warn">Waiting</span><span class="lnk pri">See the detail</span>
+                </div>
+                <div class="bub">I'll take it after my session at 17:00.<small>13:38</small></div>
+                <div class="bub me">Perfect, see you then!<small>13:40</small></div>
+              </div>
+              <div class="row g10" style="margin:6px 14px 0;padding:8px 8px 8px 14px;border-radius:16px;background:var(--acc);flex:none"><span class="cap" style="color:var(--mfg)">Waiting for you here</span><span class="t grow"><b>3×3</b> · Your battle waits</span><button class="btn sm">Call off</button></div>
+              <div class="compose"><button class="btn icon soft"><i data-lucide="swords"></i></button><div class="field" style="height:44px">Message coach</div><button class="btn icon pri" style="height:44px;width:44px"><i data-lucide="send"></i></button></div>
+            </div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Conversation ouverte</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="row g12" style="padding:14px 20px 12px;flex:none">
+            <button class="btn icon ghost b44"><i data-lucide="chevron-left"></i></button>
+            <span class="avatar md y">CO</span>
+            <div class="col g0 grow"><span class="h2">coach</span><span class="s">Friends since 62 days ago</span></div>
+            <button class="btn icon b44"><i data-lucide="panel-right"></i></button>
+          </div>
+          <div class="hr"></div>
+          <div class="scroll" style="padding:16px 28px 0;gap:10px">
+            <div class="day">Yesterday</div>
+            <div class="bub">Your Ao5 dropped half a second this week, nice work.<small>18:12</small></div>
+            <div class="bub me">Thanks! My F2L still feels slow though.<small>18:20</small></div>
+            <div class="bub">Let's drill pair recognition on Tuesday, bring your main cube.<small>18:24</small></div>
+            <div class="bub me">Deal 👍<small>18:25</small></div>
+            <div class="day">Today</div>
+            <div class="card pop g12" style="align-self:flex-end;width:440px;padding:14px;border-radius:22px 22px 6px 22px;flex:none">
+              <div class="row g6"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b class="h3">3×3</b><span class="s grow trunc">First to 3 solves</span><span class="pill warn">Waiting</span></div>
+              <div class="row g6"><div class="seat"><span class="avatar sm l">YU</span>You</div><span class="vs">vs</span><div class="seat"><span class="avatar sm y">CO</span>coach</div></div>
+              <div class="row between"><span class="xs">09:36 · waiting for coach to accept</span><span class="lnk pri">See the detail</span></div>
+            </div>
+            <div class="bub">I'll take it after my session at 17:00.<small>13:38</small></div>
+            <div class="bub me">Perfect, see you then!<small>13:40</small></div>
+          </div>
+          <div style="padding:8px 20px 0;flex:none">
+            <div class="row g10" style="padding:10px 10px 10px 16px;border-radius:18px;background:var(--acc)">
+              <div class="col g0 grow"><span class="cap" style="color:var(--mfg)">Waiting for you here</span><span class="t"><b>3×3</b> · Your battle waits</span></div>
+              <button class="btn">Call off</button>
+            </div>
+          </div>
+          <div class="compose" style="padding:12px 20px 4px"><button class="btn soft b44"><i data-lucide="swords"></i>Battle</button><div class="field" style="height:48px">Message coach</div><button class="btn icon pri b44"><i data-lucide="send"></i></button></div>
+          <div class="fnav-space"></div>
+          <nav class="fnav"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Liste-détail toujours visible. En portrait la liste passe au-dessus, sur deux colonnes denses, et la conversation dessous ; en 1280, trois volets : liste, fil, et les infos (ici le groupe Cubix Club, ses membres, ses battles et tournois) sans bouton à ouvrir.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="panes v">
+            <div class="pane side" style="height:440px">
+              <div class="ph"><span class="h3">Conversations</span><span class="pill pri">1 unread</span><button class="btn sm"><i data-lucide="user-plus"></i>Add a friend</button><button class="btn sm"><i data-lucide="messages-square"></i>New group</button></div>
+              <div class="row g10"><div class="field grow" style="height:38px"><i data-lucide="search"></i>Search conversations</div><div class="seg"><span class="on">All</span><span>Unread</span><span>Friends</span><span>Groups</span></div></div>
+              <div class="row g10" style="align-items:stretch">
+                <div class="li grow" style="background:var(--muted);padding:8px 12px"><span class="icon-tile pri" style="width:32px;height:32px"><i data-lucide="user-round-plus"></i></span><div class="col"><b>Requests</b><span class="xs trunc">ben_tps, dev</span></div><span class="badge">2</span></div>
+                <div class="inv grow" style="flex-direction:row;align-items:center;gap:10px;padding:8px 12px"><span class="grow trunc"><b>Big cubes</b> · lena_speed</span><span class="lnk pri">Join</span><span class="lnk">Decline</span></div>
+              </div>
+              <div class="scroll">
+                <div class="grid2" style="gap:4px 10px">
+                  <div class="li act" style="padding:8px 10px"><span class="avatar">AL</span><div class="col"><b>alex_cubes</b><span class="s trunc">⚔ 3×3 · challenges you</span></div><span class="when"><span class="pri">13:52</span><span class="badge">1</span></span></div>
+                  <div class="li on" style="padding:8px 10px"><span class="avatar y">CO</span><div class="col"><b>coach</b><span class="s trunc">You: Perfect, see you then!</span></div><span class="when">13:40</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club <span class="faint s">8</span></b><span class="s trunc">lena_speed: Battle</span></div><span class="when">Fri</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar g">LE</span><div class="col"><b>lena_speed</b><span class="s trunc">GG, that last one was fast</span></div><span class="when">Fri</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar n">KE</span><div class="col"><b>kenji_cfop</b><span class="s trunc">Which OLL for the T?</span></div><span class="when">Wed</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar">HU</span><div class="col"><b>hugo_sub10</b><span class="s trunc">You: 10.41 Ao5, finally</span></div><span class="when">2 Oct</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar y">SO</span><div class="col"><b>sofia_sq1</b><span class="s trunc">Square-1 parity is cursed</span></div><span class="when">28 Sep</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar n">TO</span><div class="col"><b>tom_onehand</b><span class="s trunc">OH Ao12 13.9!</span></div><span class="when">21 Sep</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="padding:0;gap:0">
+              <div class="ph" style="padding:12px 20px"><span class="avatar y">CO</span><div class="col g0 grow"><b class="h3">coach</b><span class="xs">Friends since 62 days ago · battles 2–1 · Cubix Club</span></div><button class="btn sm soft"><i data-lucide="swords"></i>Battle</button><button class="btn sm ghost"><i data-lucide="user-round"></i>Profile</button></div>
+              <div class="agenda" style="flex-direction:row;align-items:center;gap:10px;padding:8px 20px"><span class="cap">Waiting for you here</span><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b>3×3</b><span class="t mfg grow">Your battle waits</span><button class="btn sm">Call off</button></div>
+              <div class="scroll" style="padding:14px 20px 0;gap:14px">
+                <div class="day">Yesterday</div>
+                <div class="tl"><span class="y">coach<small>18:12</small></span><p>Your Ao5 dropped half a second this week, nice work.</p></div>
+                <div class="tl"><span>You<small>18:20</small></span><p>Thanks! My F2L still feels slow though.</p></div>
+                <div class="day">Today</div>
+                <div class="tl"><span>You<small>09:36</small></span>
+                  <div class="card row g12" style="padding:12px 14px;max-width:560px">
+                    <div class="col g4 center" style="width:56px"><span class="avatar sm l">YU</span><b class="xs" style="color:var(--fg)">You</b></div>
+                    <div class="col g2 grow"><b class="h3">3×3 · First to 3 solves</b><span class="xs">Waiting for coach to accept</span><div class="row g16" style="margin-top:4px"><span class="lnk">Call off</span><span class="lnk pri">See the detail</span></div></div>
+                    <span class="pill warn">Waiting</span>
+                    <div class="col g4 center" style="width:56px"><span class="avatar sm y">CO</span><b class="xs" style="color:var(--fg)">coach</b></div>
+                  </div>
+                </div>
+                <div class="tl"><span class="y">coach<small>13:38</small></span><p>I'll take it after my session at 17:00.</p></div>
+                <div class="tl"><span>You<small>13:40</small></span><p>Perfect, see you then!</p></div>
+              </div>
+              <div class="compose" style="padding:10px 20px 14px;border-top:1px solid var(--border)"><div class="field">Message coach</div><button class="btn icon pri"><i data-lucide="send"></i></button></div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span class="on">Messages</span><span>Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="panes">
+            <div class="pane side" style="width:310px;padding:14px 12px">
+              <div class="ph"><span class="h3">Conversations</span><button class="btn icon sm"><i data-lucide="user-plus"></i></button><button class="btn icon sm"><i data-lucide="messages-square"></i></button></div>
+              <div class="field" style="height:38px"><i data-lucide="search"></i>Search conversations</div>
+              <div class="seg block"><span>All</span><span>Unread</span><span>Friends</span><span class="on">Groups</span></div>
+              <div class="li" style="background:var(--muted);padding:7px 10px"><span class="icon-tile pri" style="width:30px;height:30px"><i data-lucide="user-round-plus"></i></span><div class="col"><b>Requests</b><span class="xs trunc">ben_tps, dev</span></div><span class="badge">2</span></div>
+              <div class="inv" style="padding:8px 12px"><span><b>Big cubes</b> · lena_speed invites you · 2 members</span><span class="row g16"><span class="lnk pri">Join</span><span class="lnk">Decline</span></span></div>
+              <div class="scroll g2">
+                <div class="li on" style="padding:8px 10px"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club <span class="faint s">8</span></b><span class="s trunc">You: Yes, see you there</span></div><span class="when">19:30</span></div>
+                <div class="li" style="padding:8px 10px"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b>Big cubes <span class="faint s">2</span></b><span class="s trunc">Invitation</span></div><span class="when">Sat</span></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="padding:0;gap:0">
+              <div class="ph" style="padding:10px 18px"><span class="gm"><i data-lucide="users"></i></span><div class="col g0 grow"><b class="h3">Cubix Club</b><span class="xs">8 members · 2 battles · Club cup on Sunday</span></div><button class="btn sm soft"><i data-lucide="swords"></i>Battle</button></div>
+              <div class="agenda" style="flex-direction:row;align-items:center;gap:10px;padding:8px 18px"><span class="cap">Waiting for you here</span><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><b>3×3</b><span class="t mfg grow trunc">lena_speed's battle · first to 5</span><button class="btn sm pri">Play your match</button></div>
+              <div class="scroll" style="padding:12px 18px 0;gap:12px">
+                <div class="day">Friday</div>
+                <div class="tl"><span class="g">lena_speed<small>18:02</small></span><p>Club cup on Sunday, 18:00. Who's in?</p></div>
+                <div class="tl"><span class="l">hugo_sub10<small>18:05</small></span><p>In. Bringing the new cube.</p></div>
+                <div class="tl"><span class="g">lena_speed<small>18:10</small></span>
+                  <div class="card pop row g10" style="padding:10px 12px;max-width:470px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><div class="col g0 grow"><b>3×3 · First to 5 solves</b><span class="xs">lena_speed vs hugo_sub10</span></div><span class="pill warn">Waiting</span><span class="lnk pri">See the detail</span></div>
+                </div>
+                <div class="tl"><span class="y">alex_cubes<small>18:07</small></span><p>Count me in!</p></div>
+                <div class="day">Today</div>
+                <div class="tl"><span>You<small>19:30</small></span><p>Yes, see you there.</p></div>
+              </div>
+              <div class="compose" style="padding:10px 18px 12px;border-top:1px solid var(--border)"><div class="field">Message Cubix Club</div><button class="btn icon pri"><i data-lucide="send"></i></button></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:300px;padding:14px 16px">
+              <div class="ph"><span class="h3">Cubix Club</span><span class="pill">Admin</span></div>
+              <span class="s">Friday sprints, Sunday club cup. Bring a 3×3.</span>
+              <div class="row between"><span class="cap">Members · 8</span><span class="lnk pri row g4"><i data-lucide="user-plus" style="width:15px;height:15px"></i>Invite</span></div>
+              <div class="grid4" style="gap:8px 4px">
+                <div class="mem"><span class="avatar sm g">LE</span><b>lena_speed</b><span class="xs pri">Owner</span></div>
+                <div class="mem"><span class="avatar sm l">YU</span><b>you</b><span class="xs">Admin</span></div>
+                <div class="mem"><span class="avatar sm">AL</span><b>alex_cubes</b></div>
+                <div class="mem"><span class="avatar sm n">KE</span><b>kenji_cfop</b></div>
+                <div class="mem"><span class="avatar sm">HU</span><b>hugo_sub10</b></div>
+                <div class="mem"><span class="avatar sm y">SO</span><b>sofia_sq1</b></div>
+                <div class="mem"><span class="avatar sm n">TO</span><b>tom_onehand</b></div>
+                <div class="mem" style="opacity:.65"><span class="avatar sm y">DE</span><b>dev</b><span class="xs warn">Invited</span></div>
+              </div>
+              <span class="cap">Battles</span>
+              <div class="col g0">
+                <div class="row g10" style="height:32px"><b style="width:30px">3×3</b><span class="s grow trunc">lena vs hugo</span><span class="pill warn">Waiting</span></div>
+                <div class="row g10" style="height:32px"><b style="width:30px">2×2</b><span class="s grow trunc">alex vs kenji</span><b class="num">3–1</b></div>
+              </div>
+              <span class="cap">Tournaments</span>
+              <div class="row g10"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="trophy"></i></span><div class="col g0 grow"><b>Club cup</b><span class="xs">Sun 18:00 · 6 / 8</span></div><button class="btn sm pri">Register</button></div>
+              <span class="grow"></span>
+              <div class="row g6"><button class="btn sm soft grow"><i data-lucide="trophy"></i>New tournament</button><button class="btn icon sm ghost"><i data-lucide="pencil"></i></button><button class="btn icon sm ghost bad"><i data-lucide="log-out"></i></button></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================================== 23 · Community -->
+<section class="page" id="people" data-short="Community">
+  <div class="page-head">
+    <h2>23 · Community <small>/community/people</small></h2>
+    <p>Aujourd'hui la page empile demandes, amis, groupes et lien en une colonne sous deux rangées d'onglets, avec des « Accept » en petits liens ; la page d'un ami ou d'un groupe remplace la liste et fait défiler. Les propositions séparent ce qui attend une réponse (vrais boutons), montrent les amis avec leur score de battles et gardent la page d'un ami ou d'un groupe à côté de la liste dès que la largeur le permet.</p>
+    <div class="feats"><span>Recherche : un ami, un groupe ou un joueur Qbix</span><span>Filtres All / Friends 4 / Groups 1 / Requests 3</span><span>Demande d'ami Accept / Decline</span><span>Invitation de groupe Join / Decline</span><span>Demande envoyée · Take back</span><span>Amis et score des battles</span><span>Groupes (Cubix Club)</span><span>Ton lien + Copy</span><span>+ Group</span><span>Page d'un ami : Challenge, Write, … Remove from friends</span><span>Score et liste des battles</span><span>Waiting for you · A rematch?</span><span>Page d'un groupe : membres, Invite, battles, tournois, Battle, Write, New tournament, Edit / Leave</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>La page desktop sur toute la hauteur : recherche et filtres sur une ligne, ce qui attend en trois cartes, les amis en cartes avec leur score et leurs deux actions. En 1280 la page du groupe (ou d'un ami) est ancrée à droite ; en portrait elle s'ouvre en tiroir.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="btn sm soft"><i data-lucide="plus"></i>Group</button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="col g12 px24 grow" style="padding-bottom:24px">
+              <div class="row g10"><div class="field grow"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div><div class="seg"><span class="on">All</span><span>Friends <span class="faint">4</span></span><span>Groups <span class="faint">1</span></span><span>Requests <span class="pri">3</span></span></div></div>
+              <span class="cap" style="margin-top:4px">Waiting for you · 3</span>
+              <div class="grid3" style="gap:12px">
+                <div class="card g10"><div class="row g10"><span class="avatar sm">BE</span><span class="t grow"><b>ben_tps</b> wants to be your friend</span></div><span class="xs">3 days ago</span><div class="grid2"><button class="btn sm pri">Accept</button><button class="btn sm">Decline</button></div></div>
+                <div class="inv" style="gap:10px"><div class="row g10"><span class="gm sm"><i data-lucide="users"></i></span><span class="grow"><b>Big cubes</b> · from lena_speed</span></div><span class="xs">2 members</span><div class="row g16"><span class="lnk pri">Join</span><span class="lnk">Decline</span></div></div>
+                <div class="inv out" style="gap:10px"><div class="row g10"><span class="avatar sm n">CH</span><span class="grow">Sent to <b>chloe_f2l</b></span></div><span class="xs">4 days ago</span><span class="lnk">Take back</span></div>
+              </div>
+              <span class="cap" style="margin-top:4px">Friends · 4</span>
+              <div class="grid2" style="gap:12px">
+                <div class="card g10">
+                  <div class="row g10"><span class="avatar md">AL</span><div class="col g0 grow"><b class="h3">alex_cubes</b><span class="xs">Friends since Mon 14 Sept</span></div><span class="pill pri">Challenges you</span></div>
+                  <div class="row g10"><span class="big">0–0</span><span class="s grow">no battle finished yet</span></div>
+                  <div class="grid2"><button class="btn sm pri">Accept</button><button class="btn sm"><i data-lucide="message-circle"></i>Write</button></div>
+                </div>
+                <div class="card g10 outline">
+                  <div class="row g10"><span class="avatar md g">LE</span><div class="col g0 grow"><b class="h3">lena_speed</b><span class="xs">Friends since Sun 2 Aug</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+                  <div class="row g10"><span class="big ok">1–0</span><span class="s grow">1 battle · won Fri 3–2</span></div>
+                  <div class="grid2"><button class="btn sm soft"><i data-lucide="swords"></i>Challenge</button><button class="btn sm"><i data-lucide="message-circle"></i>Write</button></div>
+                </div>
+                <div class="card g10">
+                  <div class="row g10"><span class="avatar md y">CO</span><div class="col g0 grow"><b class="h3">coach</b><span class="xs">Friends since Mon 10 Aug</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+                  <div class="row g10"><span class="big ok">2–1</span><span class="s grow">3 battles · one waiting</span></div>
+                  <div class="grid2"><button class="btn sm soft"><i data-lucide="swords"></i>Challenge</button><button class="btn sm"><i data-lucide="message-circle"></i>Write</button></div>
+                </div>
+                <div class="card g10">
+                  <div class="row g10"><span class="avatar md n">KE</span><div class="col g0 grow"><b class="h3">kenji_cfop</b><span class="xs">Friends since Wed 30 Sept</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+                  <div class="row g10"><span class="big faint">–</span><span class="s grow">none yet</span></div>
+                  <div class="grid2"><button class="btn sm soft"><i data-lucide="swords"></i>Challenge</button><button class="btn sm"><i data-lucide="message-circle"></i>Write</button></div>
+                </div>
+              </div>
+              <span class="cap" style="margin-top:4px">Groups · 1</span>
+              <div class="card on-card row g12" style="flex-direction:row;align-items:center">
+                <span class="gm lg"><i data-lucide="users"></i></span>
+                <div class="col g2 grow"><b class="h3">Cubix Club</b><span class="s">8 members · 2 battles · Club cup Sun 18:00</span></div>
+                <span class="stack3"><span class="avatar sm g">LE</span><span class="avatar sm">AL</span><span class="avatar sm n">KE</span><span class="avatar sm n">+5</span></span>
+                <i data-lucide="chevron-right" class="faint"></i>
+              </div>
+              <span class="grow"></span>
+              <div class="card row g10" style="flex-direction:row;align-items:center;padding:12px 12px 12px 16px">
+                <span class="icon-tile pri"><i data-lucide="link"></i></span>
+                <div class="col g0 grow"><b class="trunc">qbix/community/add/yuki_blind</b><span class="xs">Your link · whoever opens it adds you</span></div>
+                <button class="btn sm soft"><i data-lucide="copy"></i>Copy</button>
+              </div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="btn sm soft"><i data-lucide="plus"></i>Group</button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="col g10 px24 grow" style="padding-bottom:20px">
+              <div class="row g10"><div class="field grow" style="height:38px"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div><div class="seg"><span class="on">All</span><span>Friends <span class="faint">4</span></span><span>Groups <span class="faint">1</span></span><span>Requests <span class="pri">3</span></span></div></div>
+              <span class="cap" style="margin-top:2px">Waiting for you · 3</span>
+              <div class="grid3" style="gap:10px">
+                <div class="card tight g6" style="padding:10px 12px"><div class="row g10"><span class="avatar sm">BE</span><span class="t grow trunc"><b>ben_tps</b> · 3 days ago</span></div><div class="grid2"><button class="btn sm pri">Accept</button><button class="btn sm">Decline</button></div></div>
+                <div class="inv" style="padding:10px 12px"><div class="row g10"><span class="gm sm"><i data-lucide="users"></i></span><span class="grow trunc"><b>Big cubes</b> · lena_speed</span></div><div class="row g16" style="height:32px"><span class="lnk pri">Join</span><span class="lnk">Decline</span></div></div>
+                <div class="inv out" style="padding:10px 12px"><div class="row g10"><span class="avatar sm n">CH</span><span class="grow trunc">Sent to <b>chloe_f2l</b></span></div><div class="row g16" style="height:32px"><span class="xs grow">4 days ago</span><span class="lnk">Take back</span></div></div>
+              </div>
+              <span class="cap" style="margin-top:2px">Friends · 4</span>
+              <div class="grid4" style="gap:10px">
+                <div class="card g6" style="padding:12px"><div class="row between"><span class="avatar">AL</span><span class="pill pri">Challenges you</span></div><b class="h3">alex_cubes</b><div class="row between"><span class="xs">since 14 Sept</span><b class="num">0–0</b></div></div>
+                <div class="card g6" style="padding:12px"><div class="row between"><span class="avatar g">LE</span><b class="h2 ok num">1–0</b></div><b class="h3">lena_speed</b><div class="row between"><span class="xs">since 2 Aug</span><span class="xs">1 battle</span></div></div>
+                <div class="card g6" style="padding:12px"><div class="row between"><span class="avatar y">CO</span><b class="h2 ok num">2–1</b></div><b class="h3">coach</b><div class="row between"><span class="xs">since 10 Aug</span><span class="xs">3 battles</span></div></div>
+                <div class="card g6" style="padding:12px"><div class="row between"><span class="avatar n">KE</span><b class="h2 faint">–</b></div><b class="h3">kenji_cfop</b><div class="row between"><span class="xs">since 30 Sept</span><span class="xs">none yet</span></div></div>
+              </div>
+              <span class="cap" style="margin-top:2px">Groups · 1</span>
+              <div class="grid2" style="gap:10px">
+                <div class="card on-card row g12 outline" style="flex-direction:row;align-items:center;padding:12px 14px"><span class="gm"><i data-lucide="users"></i></span><div class="col g0 grow"><b class="h3">Cubix Club</b><span class="xs">8 members · 2 battles</span></div><span class="stack3"><span class="avatar sm g">LE</span><span class="avatar sm">AL</span><span class="avatar sm n">+6</span></span></div>
+                <div class="card row g10" style="flex-direction:row;align-items:center;padding:12px 12px 12px 14px"><i data-lucide="link" class="pri"></i><div class="col g0 grow"><b class="trunc s" style="color:var(--fg)">qbix/community/add/yuki_blind</b><span class="xs">Your link · whoever opens it adds you</span></div><button class="btn sm soft"><i data-lucide="copy"></i>Copy</button></div>
+              </div>
+            </div>
+          </div>
+          <aside class="dock" style="gap:9px">
+            <div class="row g10"><span class="gm"><i data-lucide="users"></i></span><div class="col g0 grow"><b class="h2">Cubix Club</b><span class="xs">8 members · you are admin</span></div><button class="btn icon sm ghost"><i data-lucide="ellipsis"></i></button></div>
+            <div class="menu" style="top:52px;right:14px;width:200px"><div class="li"><i data-lucide="pencil"></i>Edit the group</div><div class="li bad"><i data-lucide="log-out"></i>Leave the group</div></div>
+            <span class="s">Friday sprints, Sunday club cup. Bring a 3×3.</span>
+            <div class="row between"><span class="cap">Members</span><span class="lnk pri row g4"><i data-lucide="user-plus" style="width:15px;height:15px"></i>Invite</span></div>
+            <div class="grid4" style="gap:8px 4px">
+              <div class="mem"><span class="avatar sm g">LE</span><b>lena_speed</b><span class="xs pri">Owner</span></div>
+              <div class="mem"><span class="avatar sm l">YU</span><b>you</b><span class="xs">Admin</span></div>
+              <div class="mem"><span class="avatar sm">AL</span><b>alex_cubes</b></div>
+              <div class="mem"><span class="avatar sm n">KE</span><b>kenji_cfop</b></div>
+              <div class="mem"><span class="avatar sm">HU</span><b>hugo_sub10</b></div>
+              <div class="mem"><span class="avatar sm y">SO</span><b>sofia_sq1</b></div>
+              <div class="mem"><span class="avatar sm n">TO</span><b>tom_onehand</b></div>
+              <div class="mem" style="opacity:.65"><span class="avatar sm y">DE</span><b>dev</b><span class="xs warn">Invited</span></div>
+            </div>
+            <span class="cap">Battles of the group</span>
+            <div class="col g0">
+              <div class="row g10" style="height:32px"><b style="width:30px">3×3</b><span class="s grow trunc">lena_speed vs hugo_sub10</span><span class="pill warn">Waiting</span></div>
+              <div class="row g10" style="height:32px"><b style="width:30px">2×2</b><span class="s grow trunc">alex_cubes vs kenji_cfop</span><b class="num">3–1</b></div>
+            </div>
+            <span class="cap">Tournaments</span>
+            <div class="row g10"><span class="icon-tile pri" style="width:34px;height:34px"><i data-lucide="trophy"></i></span><div class="col g0 grow"><b>Club cup</b><span class="xs">Sun 18:00 · 6 of 8 places</span></div><button class="btn sm pri">Register</button></div>
+            <span class="grow"></span>
+            <div class="row g6"><button class="btn sm pri grow"><i data-lucide="swords"></i>Battle</button><button class="btn sm soft"><i data-lucide="trophy"></i>New tournament</button><button class="btn icon sm"><i data-lucide="message-circle"></i></button></div>
+          </aside>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Tiroir · un ami</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="btn sm soft"><i data-lucide="plus"></i>Group</button></div>
+            <div class="col g12 px24 grow" style="padding-bottom:24px">
+              <div class="row g10"><div class="field grow"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div></div>
+              <span class="cap" style="margin-top:4px">Waiting for you · 3</span>
+              <div class="grid3" style="gap:12px">
+                <div class="card g10"><div class="row g10"><span class="avatar sm">BE</span><span class="t grow"><b>ben_tps</b> wants to be your friend</span></div><div class="grid2"><button class="btn sm pri">Accept</button><button class="btn sm">Decline</button></div></div>
+                <div class="inv"><span><b>Big cubes</b> · from lena_speed</span></div>
+                <div class="inv out"><span>Sent to <b>chloe_f2l</b></span></div>
+              </div>
+              <span class="cap" style="margin-top:4px">Friends · 4</span>
+              <div class="grid2" style="gap:12px">
+                <div class="card g10" style="height:150px"><div class="row g10"><span class="avatar md">AL</span><b class="h3">alex_cubes</b></div></div>
+                <div class="card g10 outline" style="height:150px"><div class="row g10"><span class="avatar md g">LE</span><b class="h3">lena_speed</b></div></div>
+                <div class="card g10" style="height:150px"><div class="row g10"><span class="avatar md y">CO</span><b class="h3">coach</b></div></div>
+                <div class="card g10" style="height:150px"><div class="row g10"><span class="avatar md n">KE</span><b class="h3">kenji_cfop</b></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="drawer" style="width:440px;gap:12px;padding:20px">
+            <div class="row between"><button class="btn icon ghost"><i data-lucide="x"></i></button><button class="btn icon"><i data-lucide="ellipsis"></i></button></div>
+            <div class="menu" style="top:68px;right:20px;width:220px"><div class="li bad"><i data-lucide="user-minus"></i>Remove from friends</div></div>
+            <div class="row g12"><span class="avatar lg g">LE</span><div class="col g2 grow"><span class="h1">lena_speed</span><span class="s">Friends since Sun 2 Aug · 1 battle</span></div></div>
+            <div class="grid2"><button class="btn pri"><i data-lucide="swords"></i>Challenge</button><button class="btn"><i data-lucide="message-circle"></i>Write</button></div>
+            <span class="cap" style="margin-top:6px">Your battles</span>
+            <div class="card row" style="flex-direction:row;align-items:center;justify-content:space-between;background:var(--muted)">
+              <div class="col g4 center" style="width:90px"><span class="avatar l">YU</span><b>You</b><span class="xs">1 win</span></div>
+              <span class="score">1<i>–</i>0</span>
+              <div class="col g4 center" style="width:90px"><span class="avatar g">LE</span><b>lena_speed</b><span class="xs">0 wins</span></div>
+            </div>
+            <div class="col g0">
+              <div class="row g10" style="height:44px"><span class="xs" style="width:34px">Fri</span><b style="width:34px">3×3</b><span class="s grow trunc">First to 3 solves</span><b class="num">3–2</b><span class="pill ok">Won</span></div>
+              <div class="hr"></div>
+              <div class="row g10" style="height:44px"><span class="xs" style="width:34px">Tue</span><b style="width:34px">2×2</b><span class="s grow trunc">First to 5 solves</span><b class="num faint">–</b><span class="pill">Called off</span></div>
+            </div>
+            <span class="cap" style="margin-top:6px">Waiting for you</span>
+            <div class="card hi row g12" style="flex-direction:row;align-items:center"><b class="h2">3×3</b><div class="col g0 grow"><b class="trunc">lena_speed challenges you</b><span class="xs">First to 3 solves</span></div><button class="btn pri">Accept</button></div>
+            <div class="card row g12" style="flex-direction:row;align-items:center;background:var(--muted)"><b class="h2">3×3</b><div class="col g0 grow"><b>A rematch?</b><span class="xs trunc">Same format: first to 3 solves</span></div><span class="lnk pri">Launch</span></div>
+            <span class="cap" style="margin-top:6px">Groups together</span>
+            <div class="li" style="padding:6px 0"><span class="gm sm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club</b><span class="xs">Owner · 8 members</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>Les contacts de l'app mobile en grand : amis en grandes tuiles avec leur score, le groupe en tuile, ce qui attend dans une feuille qui dépasse au-dessus de la barre. Un groupe s'ouvre en feuille du bas en portrait ; en 1280 la page d'un ami reste en feuille ancrée à droite.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display">Me</span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div>
+          <div class="col g12" style="padding:16px 28px 0;flex:none">
+            <div class="row g10"><div class="field grow" style="height:48px"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div><button class="btn soft b44"><i data-lucide="plus"></i>Group</button></div>
+            <div class="seg block t44"><span class="on">All</span><span>Friends <span class="faint">4</span></span><span>Groups <span class="faint">1</span></span><span>Requests <span class="pri">3</span></span></div>
+            <span class="cap" style="margin-top:4px">Friends · 4</span>
+            <div class="grid2" style="gap:12px">
+              <div class="tile g10"><div class="row g12"><span class="avatar md">AL</span><div class="col g0 grow"><b class="h3">alex_cubes</b><span class="xs">Friends since Mon 14 Sept</span></div></div><div class="row between"><span class="big">0–0</span><span class="pill pri">Challenges you</span></div></div>
+              <div class="tile g10"><div class="row g12"><span class="avatar md g">LE</span><div class="col g0 grow"><b class="h3">lena_speed</b><span class="xs">Friends since Sun 2 Aug</span></div></div><div class="row between"><span class="big ok">1–0</span><span class="xs">1 battle</span></div></div>
+              <div class="tile g10"><div class="row g12"><span class="avatar md y">CO</span><div class="col g0 grow"><b class="h3">coach</b><span class="xs">Friends since Mon 10 Aug</span></div></div><div class="row between"><span class="big ok">2–1</span><span class="xs">3 battles</span></div></div>
+              <div class="tile g10"><div class="row g12"><span class="avatar md n">KE</span><div class="col g0 grow"><b class="h3">kenji_cfop</b><span class="xs">Friends since Wed 30 Sept</span></div></div><div class="row between"><span class="big faint">–</span><span class="xs">none yet</span></div></div>
+            </div>
+            <span class="cap" style="margin-top:4px">Groups · 1</span>
+            <div class="tile on-card row g12" style="flex-direction:row;align-items:center"><span class="gm lg"><i data-lucide="users"></i></span><div class="col g2 grow"><b class="h3">Cubix Club</b><span class="s">8 members · 2 battles · Club cup Sun 18:00</span></div><span class="stack3"><span class="avatar sm g">LE</span><span class="avatar sm">AL</span><span class="avatar sm n">KE</span><span class="avatar sm n">+5</span></span><i data-lucide="chevron-right" class="faint"></i></div>
+            <div class="li" style="background:var(--card);padding:12px 12px 12px 16px"><span class="icon-tile pri"><i data-lucide="link"></i></span><div class="col"><b>Your link</b><span class="xs trunc">qbix/community/add/yuki_blind · whoever opens it adds you</span></div><button class="btn soft"><i data-lucide="copy"></i>Copy</button></div>
+          </div>
+          <span class="grow"></span>
+          <div class="sheet over-nav" style="gap:10px">
+            <div class="row between"><b class="h3">Waiting for you</b><span class="badge">3</span></div>
+            <div class="row g12"><span class="avatar">BE</span><div class="col g0 grow"><b class="h3">ben_tps</b><span class="xs">wants to be your friend · 3 days ago</span></div><button class="btn pri b44">Accept</button><button class="btn b44">Decline</button></div>
+            <div class="hr"></div>
+            <div class="row g12"><span class="gm"><i data-lucide="users"></i></span><span class="t grow trunc"><b>Big cubes</b> · from lena_speed · 2 members</span><button class="btn soft">Join</button><button class="btn ghost">Decline</button></div>
+            <div class="row g12"><span class="avatar n">CH</span><span class="t grow trunc mfg">Sent to <b style="color:var(--fg)">chloe_f2l</b> · 4 days ago</span><button class="btn ghost">Take back</button></div>
+          </div>
+          <div class="fnav-space"></div>
+          <nav class="fnav"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row grow" style="align-items:stretch;gap:0">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="align-items:center;padding:14px 28px 8px"><span class="display" style="flex:none">Me</span><div class="utabs" style="border:0;padding:0 0 0 16px"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+              <div class="col g10 grow" style="padding:4px 28px 0">
+                <div class="row g10"><div class="field grow" style="height:44px"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div><div class="seg"><span class="on">All</span><span>Friends 4</span><span>Groups 1</span><span>Requests <span class="pri">3</span></span></div><button class="btn soft" style="height:44px"><i data-lucide="plus"></i>Group</button></div>
+                <div class="card g6" style="padding:10px 14px">
+                  <div class="row g12"><span class="cap grow">Waiting for you · 3</span></div>
+                  <div class="row g12"><span class="avatar sm">BE</span><span class="t grow trunc"><b>ben_tps</b> wants to be your friend</span><button class="btn sm pri">Accept</button><button class="btn sm">Decline</button></div>
+                  <div class="row g12"><span class="gm sm"><i data-lucide="users"></i></span><span class="t grow trunc"><b>Big cubes</b> · from lena_speed</span><button class="btn sm soft">Join</button><button class="btn sm ghost">Decline</button></div>
+                  <div class="row g12"><span class="avatar sm n">CH</span><span class="s grow trunc">Sent to <b style="color:var(--fg)">chloe_f2l</b> · 4 days ago</span><button class="btn sm ghost">Take back</button></div>
+                </div>
+                <div class="grid2" style="gap:8px 12px">
+                  <div class="li on" style="padding:8px 12px"><span class="avatar">AL</span><div class="col"><b class="h3">alex_cubes</b><span class="xs">Friends since Mon 14 Sept</span></div><span class="when"><b class="pri" style="font-size:13px">challenges you</b>0–0</span></div>
+                  <div class="li" style="padding:8px 12px;background:var(--card)"><span class="avatar g">LE</span><div class="col"><b class="h3">lena_speed</b><span class="xs">Friends since Sun 2 Aug</span></div><span class="when"><b class="ok" style="font-size:15px">1–0</b>1 battle</span></div>
+                  <div class="li" style="padding:8px 12px;background:var(--card)"><span class="avatar y">CO</span><div class="col"><b class="h3">coach</b><span class="xs">Friends since Mon 10 Aug</span></div><span class="when"><b class="ok" style="font-size:15px">2–1</b>3 battles</span></div>
+                  <div class="li" style="padding:8px 12px;background:var(--card)"><span class="avatar n">KE</span><div class="col"><b class="h3">kenji_cfop</b><span class="xs">Friends since Wed 30 Sept</span></div><span class="when"><b style="font-size:15px;color:var(--fg)">–</b>none yet</span></div>
+                  <div class="li on-card" style="padding:8px 12px;background:var(--card)"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b class="h3">Cubix Club</b><span class="xs">8 members · 2 battles</span></div><span class="stack3"><span class="avatar sm g">LE</span><span class="avatar sm n">+7</span></span></div>
+                  <div class="li" style="padding:8px 12px;background:var(--card)"><span class="icon-tile pri"><i data-lucide="link"></i></span><div class="col"><b>Your link</b><span class="xs trunc">qbix/community/add/yuki_blind</span></div><button class="btn sm soft">Copy</button></div>
+                </div>
+              </div>
+              <div class="fnav-space"></div>
+            </div>
+            <div class="sidesheet docked" style="gap:10px">
+              <div class="row g12"><span class="avatar lg">AL</span><div class="col g2 grow"><span class="h2">alex_cubes</span><span class="s">Friends since Mon 14 Sept</span></div><button class="btn icon"><i data-lucide="ellipsis"></i></button></div>
+              <div class="grid2"><button class="btn pri"><i data-lucide="swords"></i>Challenge</button><button class="btn"><i data-lucide="message-circle"></i>Write</button></div>
+              <div class="card row" style="flex-direction:row;align-items:center;justify-content:space-between;background:var(--muted);padding:12px 16px">
+                <div class="col g4 center"><span class="avatar sm l">YU</span><b class="s">You</b></div>
+                <span class="score" style="font-size:40px">0<i>–</i>0</span>
+                <div class="col g4 center"><span class="avatar sm">AL</span><b class="s">alex_cubes</b></div>
+              </div>
+              <span class="cap">Waiting for you</span>
+              <div class="card hi g10" style="padding:12px">
+                <div class="row g10"><b class="h2">3×3</b><div class="col g0 grow"><b>alex_cubes challenges you</b><span class="xs">First to 3 solves · 13:52</span></div></div>
+                <div class="grid2"><button class="btn pri">Accept</button><button class="btn">See the detail</button></div>
+              </div>
+              <span class="cap">Battles</span>
+              <div class="col g0">
+                <div class="row g10" style="height:40px"><span class="xs" style="width:38px">13:52</span><b style="width:34px">3×3</b><span class="s grow">First to 3 solves</span><span class="pill warn">Waiting</span></div>
+                <div class="hr"></div>
+                <div class="row g10" style="height:40px"><span class="xs" style="width:38px">Sat</span><b style="width:34px">2×2</b><span class="s grow">First to 5 solves</span><span class="pill">Called off</span></div>
+              </div>
+            </div>
+          </div>
+          <nav class="fnav"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Feuille · un groupe</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display">Me</span><span class="avatar sm l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div>
+          <div class="col g12" style="padding:16px 28px 0">
+            <div class="field" style="height:48px"><i data-lucide="search"></i>A friend, a group or a Qbix player</div>
+            <div class="seg block t44"><span class="on">All</span><span>Friends 4</span><span>Groups 1</span><span>Requests 3</span></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet" style="top:330px;gap:12px;padding:8px 28px 24px">
+            <div class="row g12"><span class="gm lg"><i data-lucide="users"></i></span><div class="col g2 grow"><span class="h1">Cubix Club</span><span class="s">8 members · you are admin</span></div><button class="btn icon b44"><i data-lucide="ellipsis"></i></button></div>
+            <div class="menu" style="top:76px;right:28px;width:210px"><div class="li"><i data-lucide="pencil"></i>Edit the group</div><div class="li bad"><i data-lucide="log-out"></i>Leave the group</div></div>
+            <span class="t mfg">Friday sprints, Sunday club cup. Bring a 3×3.</span>
+            <div class="grid3"><button class="btn pri b44"><i data-lucide="swords"></i>Battle</button><button class="btn b44"><i data-lucide="message-circle"></i>Write</button><button class="btn soft b44"><i data-lucide="trophy"></i>New tournament</button></div>
+            <div class="row between" style="margin-top:4px"><span class="cap">Members · 8</span><button class="btn sm soft"><i data-lucide="user-plus"></i>Invite</button></div>
+            <div class="grid4" style="gap:12px 8px">
+              <div class="mem"><span class="avatar md g">LE</span><b class="s" style="color:var(--fg)">lena_speed</b><span class="xs pri">Owner</span></div>
+              <div class="mem"><span class="avatar md l">YU</span><b class="s" style="color:var(--fg)">you</b><span class="xs">Admin</span></div>
+              <div class="mem"><span class="avatar md">AL</span><b class="s" style="color:var(--fg)">alex_cubes</b><span class="xs">&nbsp;</span></div>
+              <div class="mem"><span class="avatar md n">KE</span><b class="s" style="color:var(--fg)">kenji_cfop</b><span class="xs">&nbsp;</span></div>
+              <div class="mem"><span class="avatar md">HU</span><b class="s" style="color:var(--fg)">hugo_sub10</b></div>
+              <div class="mem"><span class="avatar md y">SO</span><b class="s" style="color:var(--fg)">sofia_sq1</b></div>
+              <div class="mem"><span class="avatar md n">TO</span><b class="s" style="color:var(--fg)">tom_onehand</b></div>
+              <div class="mem" style="opacity:.65"><span class="avatar md y">DE</span><b class="s" style="color:var(--fg)">dev</b><span class="xs warn">Invited</span></div>
+            </div>
+            <div class="grid2" style="gap:12px;margin-top:4px">
+              <div class="col g6"><span class="cap">Battles of the group</span>
+                <div class="card g0" style="padding:4px 14px">
+                  <div class="row g10" style="height:48px"><b style="width:34px">3×3</b><span class="s grow trunc">lena_speed vs hugo_sub10</span><span class="pill warn">Waiting</span></div>
+                  <div class="hr"></div>
+                  <div class="row g10" style="height:48px"><b style="width:34px">2×2</b><span class="s grow trunc">alex_cubes vs kenji_cfop</span><b class="num">3–1</b></div>
+                </div>
+              </div>
+              <div class="col g6"><span class="cap">Tournaments</span>
+                <div class="card g0" style="padding:4px 14px">
+                  <div class="row g10" style="height:48px"><i data-lucide="trophy" class="pri"></i><div class="col g0 grow"><b>Club cup</b><span class="xs">Sun 18:00 · 6 of 8</span></div><button class="btn sm pri">Register</button></div>
+                  <div class="hr"></div>
+                  <div class="row g10" style="height:48px"><i data-lucide="trophy" class="faint"></i><div class="col g0 grow"><b>Friday sprint</b><span class="xs">Fri 21:00 · 3×3</span></div><span class="lnk">Open</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>La liste des contacts et la page choisie ensemble. En portrait la liste dense en haut et la page du groupe dessous, ses membres et ses battles côte à côte ; en 1280 trois volets : contacts, page d'un ami, et ce qui attend avec le lien d'ami, toujours visibles.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="panes v">
+            <div class="pane side" style="height:470px">
+              <div class="ph"><span class="h3">Contacts</span><button class="btn sm soft"><i data-lucide="plus"></i>Group</button></div>
+              <div class="row g10"><div class="field grow" style="height:38px"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div><div class="seg"><span class="on">All</span><span>Friends 4</span><span>Groups 1</span><span>Requests <span class="pri">3</span></span></div></div>
+              <div class="grid3" style="gap:10px">
+                <div class="card tight g6"><div class="row g6"><span class="avatar sm">BE</span><b class="trunc grow">ben_tps</b></div><div class="grid2" style="gap:4px"><button class="btn sm pri">Accept</button><button class="btn sm">Decline</button></div></div>
+                <div class="inv" style="padding:10px 12px;gap:6px"><span class="trunc"><b>Big cubes</b> · lena_speed</span><div class="row g16" style="height:32px"><span class="lnk pri">Join</span><span class="lnk">Decline</span></div></div>
+                <div class="inv out" style="padding:10px 12px;gap:6px"><span class="trunc">Sent to <b>chloe_f2l</b></span><div class="row g16" style="height:32px"><span class="xs grow">4 days ago</span><span class="lnk">Take back</span></div></div>
+              </div>
+              <div class="scroll">
+                <div class="grid2" style="gap:4px 10px">
+                  <div class="li" style="padding:8px 10px"><span class="avatar">AL</span><div class="col"><b>alex_cubes</b><span class="xs">since 14 Sept</span></div><span class="when"><b class="pri" style="font-size:12.5px">challenges you</b>0–0</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar g">LE</span><div class="col"><b>lena_speed</b><span class="xs">since 2 Aug</span></div><span class="when"><b class="ok" style="font-size:15px">1–0</b>1 battle</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar y">CO</span><div class="col"><b>coach</b><span class="xs">since 10 Aug</span></div><span class="when"><b class="ok" style="font-size:15px">2–1</b>3 battles</span></div>
+                  <div class="li" style="padding:8px 10px"><span class="avatar n">KE</span><div class="col"><b>kenji_cfop</b><span class="xs">since 30 Sept</span></div><span class="when"><b style="font-size:15px;color:var(--fg)">–</b>none yet</span></div>
+                  <div class="li on" style="padding:8px 10px"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club</b><span class="xs">8 members · 2 battles</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+                  <div class="li" style="padding:8px 10px"><span class="icon-tile pri"><i data-lucide="link"></i></span><div class="col"><b>Your link</b><span class="xs trunc">qbix/community/add/yuki_blind</span></div><button class="btn sm soft">Copy</button></div>
+                </div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane">
+              <div class="ph"><span class="gm"><i data-lucide="users"></i></span><div class="col g0 grow"><b class="h2">Cubix Club</b><span class="xs">8 members · you are admin · Friday sprints, Sunday club cup</span></div><button class="btn sm ghost"><i data-lucide="pencil"></i>Edit</button><button class="btn sm ghost bad"><i data-lucide="log-out"></i>Leave</button></div>
+              <div class="row g8"><button class="btn pri"><i data-lucide="swords"></i>Battle</button><button class="btn"><i data-lucide="message-circle"></i>Write</button><button class="btn soft"><i data-lucide="trophy"></i>New tournament</button></div>
+              <div class="row g16 grow" style="align-items:stretch">
+                <div class="card grow" style="gap:2px">
+                  <div class="row between" style="padding-bottom:6px"><span class="cap">Members · 8</span><span class="lnk pri row g4"><i data-lucide="user-plus" style="width:15px;height:15px"></i>Invite</span></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm g">LE</span><b class="grow">lena_speed</b><span class="pill pri">Owner</span></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm l">YU</span><b class="grow">yuki_blind <span class="faint s">you</span></b><span class="pill">Admin</span></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm">AL</span><b class="grow">alex_cubes</b></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm n">KE</span><b class="grow">kenji_cfop</b></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm">HU</span><b class="grow">hugo_sub10</b></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm y">SO</span><b class="grow">sofia_sq1</b></div>
+                  <div class="li" style="padding:6px 4px"><span class="avatar sm n">TO</span><b class="grow">tom_onehand</b></div>
+                  <div class="li" style="padding:6px 4px;opacity:.65"><span class="avatar sm y">DE</span><b class="grow">dev</b><span class="pill warn">Invited</span></div>
+                </div>
+                <div class="col g16 grow">
+                  <div class="card" style="gap:2px">
+                    <span class="cap" style="padding-bottom:6px">Battles of the group</span>
+                    <div class="row g10" style="height:44px"><b style="width:30px">3×3</b><span class="s grow trunc">lena_speed vs hugo_sub10</span><span class="pill warn">Waiting</span></div>
+                    <div class="hr"></div>
+                    <div class="row g10" style="height:44px"><b style="width:30px">2×2</b><span class="s grow trunc">alex_cubes vs kenji_cfop</span><b class="num">3–1</b></div>
+                  </div>
+                  <div class="card" style="gap:2px">
+                    <span class="cap" style="padding-bottom:6px">Tournaments</span>
+                    <div class="row g10" style="height:48px"><i data-lucide="trophy" class="pri"></i><div class="col g0 grow"><b>Club cup</b><span class="xs">Sun 18:00 · 6 of 8 places</span></div><button class="btn sm pri">Register</button></div>
+                    <div class="hr"></div>
+                    <div class="row g10" style="height:48px"><i data-lucide="trophy" class="faint"></i><div class="col g0 grow"><b>Friday sprint</b><span class="xs">Fri 21:00 · 3×3</span></div><span class="lnk">Open</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span>Messages</span><span class="on">Community <span class="badge">2</span></span><span>Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="panes">
+            <div class="pane side" style="width:320px;padding:14px 12px">
+              <div class="ph"><span class="h3">Contacts</span><button class="btn sm soft"><i data-lucide="plus"></i>Group</button></div>
+              <div class="field" style="height:38px"><i data-lucide="search"></i><span class="trunc">A friend, a group or a Qbix player</span></div>
+              <div class="seg block"><span class="on">All</span><span>Friends</span><span>Groups</span><span>Req. <span class="pri">3</span></span></div>
+              <div class="scroll g2">
+                <span class="cap" style="padding:4px 10px">Friends · 4</span>
+                <div class="li" style="padding:8px 10px;flex:none"><span class="avatar">AL</span><div class="col"><b>alex_cubes</b><span class="xs">since 14 Sept</span></div><span class="when"><b class="pri" style="font-size:12.5px">waiting</b>0–0</span></div>
+                <div class="li on" style="padding:8px 10px;flex:none"><span class="avatar g">LE</span><div class="col"><b>lena_speed</b><span class="xs">since 2 Aug</span></div><span class="when"><b class="ok" style="font-size:15px">1–0</b>1 battle</span></div>
+                <div class="li" style="padding:8px 10px;flex:none"><span class="avatar y">CO</span><div class="col"><b>coach</b><span class="xs">since 10 Aug</span></div><span class="when"><b class="ok" style="font-size:15px">2–1</b>3 battles</span></div>
+                <div class="li" style="padding:8px 10px;flex:none"><span class="avatar n">KE</span><div class="col"><b>kenji_cfop</b><span class="xs">since 30 Sept</span></div><span class="when"><b style="font-size:15px;color:var(--fg)">–</b>none yet</span></div>
+                <span class="cap" style="padding:8px 10px 4px">Groups · 1</span>
+                <div class="li" style="padding:8px 10px;flex:none"><span class="gm"><i data-lucide="users"></i></span><div class="col"><b>Cubix Club</b><span class="xs">8 members · 2 battles</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="padding:16px 24px">
+              <div class="ph"><span class="avatar lg g">LE</span><div class="col g2 grow"><span class="h1">lena_speed</span><span class="s">Friends since Sun 2 Aug · 1 battle · Cubix Club</span></div><button class="btn pri"><i data-lucide="swords"></i>Challenge</button><button class="btn"><i data-lucide="message-circle"></i>Write</button><button class="btn icon"><i data-lucide="ellipsis"></i></button></div>
+              <div class="menu" style="top:68px;right:24px;width:210px"><div class="li bad"><i data-lucide="user-minus"></i>Remove from friends</div></div>
+              <div class="card row" style="flex-direction:row;align-items:center;justify-content:space-around;background:var(--muted);padding:16px">
+                <div class="col g4 center"><span class="avatar l">YU</span><b>You</b><span class="xs">1 win</span></div>
+                <span class="score" style="font-size:56px">1<i>–</i>0</span>
+                <div class="col g4 center"><span class="avatar g">LE</span><b>lena_speed</b><span class="xs">0 wins</span></div>
+              </div>
+              <div class="row g16 grow" style="align-items:stretch">
+                <div class="col g6 grow"><span class="cap">Your battles</span>
+                  <div class="card g0" style="padding:4px 14px">
+                    <div class="row g10" style="height:44px"><span class="xs" style="width:34px">Fri</span><b style="width:34px">3×3</b><span class="s grow trunc">First to 3 solves</span><b class="num">3–2</b><span class="pill ok">Won</span></div>
+                    <div class="hr"></div>
+                    <div class="row g10" style="height:44px"><span class="xs" style="width:34px">Tue</span><b style="width:34px">2×2</b><span class="s grow trunc">First to 5 solves</span><b class="num faint">–</b><span class="pill">Called off</span></div>
+                  </div>
+                </div>
+                <div class="col g6 grow"><span class="cap">Waiting for you</span>
+                  <div class="card hi row g12" style="flex-direction:row;align-items:center"><b class="h2">3×3</b><div class="col g0 grow"><b class="trunc">lena_speed challenges you</b><span class="xs">First to 3 solves</span></div><button class="btn sm pri">Accept</button></div>
+                  <div class="card row g12" style="flex-direction:row;align-items:center;background:var(--muted)"><b class="h2">3×3</b><div class="col g0 grow"><b>A rematch?</b><span class="xs trunc">Same format: first to 3</span></div><span class="lnk pri">Launch</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:300px;padding:14px 16px">
+              <div class="ph"><span class="h3">Waiting for you</span><span class="badge">3</span></div>
+              <div class="card tight g10" style="flex:none"><div class="row g10"><span class="avatar sm">BE</span><span class="t grow"><b>ben_tps</b> wants to be your friend <span class="faint">· 3 days</span></span></div><div class="grid2"><button class="btn sm pri">Accept</button><button class="btn sm">Decline</button></div></div>
+              <div class="inv"><span class="row g10" style="align-items:flex-start"><span class="gm sm"><i data-lucide="users"></i></span><span>lena_speed invites you to <b>Big cubes</b> · 2 members</span></span><span class="row g16" style="padding-left:40px"><span class="lnk pri">Join</span><span class="lnk">Decline</span></span></div>
+              <div class="inv out" style="flex-direction:row;align-items:center;gap:10px"><span class="avatar sm n">CH</span><span class="grow">Sent to <b>chloe_f2l</b></span><span class="lnk">Take back</span></div>
+              <span class="grow"></span>
+              <div class="card tight g6" style="padding:12px"><span class="xs">Your link · whoever opens it adds you</span><b class="trunc">qbix/community/add/yuki_blind</b><button class="btn sm soft block"><i data-lucide="copy"></i>Copy</button></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<style>
+#coaching .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; flex: none; }
+#coaching .week > span { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 0 6px; border-radius: 14px; font-size: 11px; font-weight: 600; color: var(--faint); }
+#coaching .week > span b { font-size: 17px; font-weight: 800; color: var(--fg); letter-spacing: -.02em; }
+#coaching .week > span i { font-style: normal; font-size: 11px; font-weight: 800; color: var(--ok); }
+#coaching .week > span.off b, #coaching .week > span.off i { color: var(--faint); }
+#coaching .week > span.on { background: var(--acc); }
+#coaching .week > span.on i { color: var(--pri); }
+#coaching .slot { height: 34px; padding: 0 14px; border-radius: 12px; display: inline-grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--muted); flex: none; }
+#coaching .slot.on { background: color-mix(in srgb, var(--pri) 16%, transparent); color: var(--pri); box-shadow: inset 0 0 0 1.5px var(--pri); }
+#coaching .stars { color: var(--warn); font-weight: 800; }
+#coaching .vid { position: relative; border-radius: 24px; overflow: hidden; background: color-mix(in srgb, var(--acc) 55%, var(--bg)); display: grid; place-items: center; min-height: 0; }
+#coaching .shot { width: 78%; aspect-ratio: 16 / 10; border-radius: 14px; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; box-shadow: inset 0 0 0 1px var(--border); }
+#coaching .pip { position: absolute; right: 12px; bottom: 12px; width: 120px; height: 150px; border-radius: 18px; background: var(--acc); display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--border); }
+#coaching .glass { background: color-mix(in srgb, var(--bg) 82%, transparent); }
+#coaching .ctl { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--mfg); flex: 1; min-width: 0; }
+#coaching .ctl > span { width: 52px; height: 52px; border-radius: 50%; background: var(--muted); display: grid; place-items: center; color: var(--fg); }
+#coaching .ctl > span svg.lucide { width: 22px; height: 22px; }
+#coaching .ctl.off > span { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+#coaching .ctl.on > span { background: var(--pri); color: var(--pri-fg); }
+#coaching .ctl.end > span { background: var(--bad); color: var(--pri-fg); }
+#coaching .ctl.sm > span { width: 40px; height: 40px; } #coaching .ctl.sm > span svg.lucide { width: 18px; height: 18px; }
+#coaching .wk { display: grid; grid-template-columns: 96px 1fr 48px; gap: 10px; align-items: center; font-size: 13px; flex: none; }
+#coaching .wk .bar { height: 8px; background: color-mix(in srgb, var(--pri) 30%, var(--acc)); }
+#coaching .stat6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+#coaching .stat6.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
+#coaching .stat6 > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#coaching .stat6 b { font-size: 26px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+#coaching .stat6 span { font-size: 12px; color: var(--mfg); line-height: 1.25; }
+#coaching .float { position: absolute; z-index: 6; background: var(--pop); border-radius: 22px; box-shadow: var(--shadow), inset 0 0 0 1px var(--border); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+#coaching .agcol { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+#coaching .agcol > b { font-size: 12px; color: var(--mfg); text-align: center; }
+#coaching .agcol > b big { display: block; font-size: 18px; color: var(--fg); font-weight: 800; }
+#coaching .ag { height: 44px; border-radius: 10px; background: var(--muted); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--mfg); }
+#coaching .ag.bk { background: color-mix(in srgb, var(--pri) 18%, transparent); color: var(--pri); }
+#coaching .ag.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); color: var(--faint); }
+</style>
+
+<!-- =============================================================== 24 · Coaching -->
+<section class="page" id="coaching" data-short="Coaching">
+  <div class="page-head">
+    <h2>24 · Coaching <small>/coaching</small></h2>
+    <p>Aujourd'hui Coaching ajoute une troisième rangée d'onglets (Trouver un coach, Sessions, Messages, Espace coach) sous celles de Me : en 1280 × 720 le tableau de bord commence à 180 px, les prochaines sessions laissent une carte à moitié vide et le portrait finit sur 200 px de vide. Les propositions rangent les sous-pages dans un menu, des segments ou un volet, posent la page d'un coach et sa réservation côte à côte, et donnent à l'appel (avec partage d'écran) toute la place, ou un coin de l'écran.</p>
+    <div class="feats"><span>Sous-pages Find a coach / Sessions / Messages / Become a coach</span><span>Recherche (nom, méthode, spécialité)</span><span>Filtres Every event · Free this week · Every language · Any price</span><span>Tri Next slot first</span><span>Carte de coach : note, avis, prix, durée, prochain créneau</span><span>Page du coach : stats, à propos, avis</span><span>Créneau sur la semaine, horaires</span><span>Ce que tu veux travailler</span><span>Politique d'annulation, Book</span><span>Prochaine session : Join call 15 min avant, Message, Coach file</span><span>Appel : vidéo, micro, caméra, partage d'écran, chat, détails, notes privées, plein écran, coin de l'écran, Leave</span><span>Espace coach : Dashboard, Students, Schedule, Public page</span><span>Chiffres, quatre semaines, prochaines sessions</span><span>Edit availability, Take the day off</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Une seule rangée d'onglets : la sous-page (Find a coach, Sessions, Messages, Coach space) se choisit dans le bouton de l'en-tête. En portrait les coachs en deux colonnes, la page d'un coach et sa réservation en tiroir ; en 1280 l'espace coach avec son agenda du jour ancré, et l'appel en cours flotte dans un coin.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span class="on">Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="btn sm"><i data-lucide="search"></i>Find a coach<i data-lucide="chevron-down"></i></button></div>
+            <div class="col g12 px24 grow" style="padding-bottom:24px">
+              <div class="card g6">
+                <div class="row g10"><b class="h3 grow">Sessions</b><div class="seg"><span class="on">Upcoming <span class="pri">2</span></span><span>Past 3</span><span>Cancelled 0</span></div></div>
+                <div class="row g12" style="height:52px"><div class="col g0" style="width:104px"><b>Tue 13 · 18:00</b><span class="xs">60 min · €25</span></div><span class="avatar sm y">CO</span><div class="col g0 grow"><b class="trunc">coach</b><span class="xs trunc">“My F2L is slow”</span></div><button class="btn icon sm"><i data-lucide="message-circle"></i></button><button class="btn sm"><i data-lucide="id-card"></i>Coach file</button><button class="btn sm" style="opacity:.55"><i data-lucide="video"></i>Join call · 17:45</button></div>
+                <div class="hr"></div>
+                <div class="row g12" style="height:52px"><div class="col g0" style="width:104px"><b>Thu 15 · 10:00</b><span class="xs">45 min · €40</span></div><span class="avatar sm g">LE</span><div class="col g0 grow"><b class="trunc">lena_speed</b><span class="xs trunc">Reduction on 5×5</span></div><span class="xs">in 3 days</span><button class="btn sm ghost">Cancel</button></div>
+              </div>
+              <div class="row g10"><div class="field grow"><i data-lucide="search"></i>Name, method, speciality…</div><button class="btn"><i data-lucide="arrow-down-up"></i>Next slot first<i data-lucide="chevron-down"></i></button></div>
+              <div class="row g6"><span class="chip">Every event<i data-lucide="chevron-down"></i></span><span class="chip on">Free this week</span><span class="chip">Every language<i data-lucide="chevron-down"></i></span><span class="chip">Any price<i data-lucide="chevron-down"></i></span><span class="grow"></span><span class="xs">times in Europe/Paris</span></div>
+              <b class="h3">6 coaches</b>
+              <div class="scroll">
+                <div class="grid2" style="gap:12px">
+                  <div class="card g10 outline"><div class="row g10"><span class="avatar y">CO</span><div class="col g0 grow"><b class="h3">coach</b><span class="xs"><span class="stars">★ 4.3</span> · 12 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€25</b><span class="xs">60 min</span></div></div><span class="s">Sub-8 CFOP, I fix your F2L look-ahead · French, English</span><div class="row g6"><span class="pill" style="height:28px;font-size:12.5px;color:var(--fg)">Tue 13 Oct · 17:00</span><span class="xs">+ 71 more</span></div></div>
+                  <div class="card g10"><div class="row g10"><span class="avatar g">LE</span><div class="col g0 grow"><b class="h3">lena_speed</b><span class="xs"><span class="stars">★ 4.6</span> · 9 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€40</b><span class="xs">45 min</span></div></div><span class="s">Big cubes and reduction, sub-1 to sub-40 · English, German</span><div class="row g6"><span class="pill" style="height:28px;font-size:12.5px;color:var(--fg)">Tue 13 Oct · 17:30</span><span class="xs">+ 60 more</span></div></div>
+                  <div class="card g10"><div class="row g10"><span class="avatar">CH</span><div class="col g0 grow"><b class="h3">chloe_f2l</b><span class="xs"><span class="stars">★ 4.9</span> · 14 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€30</b><span class="xs">60 min</span></div></div><span class="s">F2L from intuitive to advanced cases · French</span><div class="row g6"><span class="pill" style="height:28px;font-size:12.5px;color:var(--fg)">Wed 14 Oct · 09:00</span><span class="xs">+ 22 more</span></div></div>
+                  <div class="card g10"><div class="row g10"><span class="avatar">HU</span><div class="col g0 grow"><b class="h3">hugo_sub10</b><span class="xs"><span class="stars">★ 4.8</span> · 5 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€30</b><span class="xs">60 min</span></div></div><span class="s">Sub-10 3×3: look-ahead and TPS · English</span><div class="row g6"><span class="pill" style="height:28px;font-size:12.5px;color:var(--fg)">Wed 14 Oct · 20:00</span><span class="xs">+ 12 more</span></div></div>
+                  <div class="card g10"><div class="row g10"><span class="avatar n">KE</span><div class="col g0 grow"><b class="h3">kenji_cfop</b><span class="xs"><span class="stars">★ 4.5</span> · 7 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€20</b><span class="xs">45 min</span></div></div><span class="s">Full OLL / PLL, recognition drills · Japanese, English</span><div class="row g6"><span class="pill" style="height:28px;font-size:12.5px;color:var(--fg)">Thu 15 Oct · 11:00</span><span class="xs">+ 30 more</span></div></div>
+                  <div class="card g10"><div class="row g10"><span class="avatar y">SO</span><div class="col g0 grow"><b class="h3">sofia_sq1</b><span class="xs"><span class="stars">★ 4.4</span> · 10 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2 ok">Free</b><span class="xs">60 min</span></div></div><span class="s">Free Square-1 lessons for beginners · Spanish, English</span><div class="row g6"><span class="pill" style="height:28px;font-size:12.5px;color:var(--fg)">Fri 16 Oct · 18:00</span><span class="xs">+ 8 more</span></div></div>
+                </div>
+              </div>
+              <div class="card dash row g12" style="flex-direction:row;align-items:center"><span class="icon-tile pri"><i data-lucide="sparkles"></i></span><div class="col g0 grow"><b>Become a coach</b><span class="xs">Events, your level, how you'd coach</span></div><button class="btn sm">Apply</button></div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span class="on">Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="btn sm"><i data-lucide="briefcase"></i>Coach space · Dashboard<i data-lucide="chevron-down"></i></button></div>
+            <div class="col g12 px24 grow" style="padding-bottom:20px">
+              <div class="card" style="padding:16px 20px">
+                <div class="stat6">
+                  <div><b>2</b><span>sessions in the next 7 days</span></div>
+                  <div><b>3 h</b><span>booked in the next 7 days</span></div>
+                  <div><b class="pri">€140</b><span>expected over 4 weeks</span></div>
+                  <div><b>9</b><span>free slots in the next 7 days</span></div>
+                  <div><b>4</b><span>students</span></div>
+                  <div><b class="stars">4.7</b><span>6 reviews</span></div>
+                </div>
+              </div>
+              <div class="row g12 grow" style="align-items:stretch">
+                <div class="card g12" style="width:360px;flex:none;padding:16px 18px">
+                  <div class="row between"><b class="h3">The next four weeks</b></div>
+                  <span class="row g10 xs"><i class="dot"></i>sessions booked <i class="dot" style="background:color-mix(in srgb, var(--pri) 30%, var(--acc))"></i>slots still free</span>
+                  <div class="col g4"><div class="row between"><b>This week</b><span class="xs">12 – 19 Oct</span></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:22%"></i></span><div class="row between"><span class="xs"><b style="color:var(--fg)">2 sessions</b> · 7 free slots</span><b class="s" style="color:var(--fg)">€70</b></div></div>
+                  <div class="col g4"><div class="row between"><b>Next week</b><span class="xs">19 – 26 Oct</span></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:10%"></i></span><div class="row between"><span class="xs"><b style="color:var(--fg)">1 session</b> · 9 free slots</span><b class="s" style="color:var(--fg)">€35</b></div></div>
+                  <div class="col g4"><div class="row between"><b>In 2 weeks</b><span class="xs">26 Oct – 2 Nov</span></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:10%"></i></span><div class="row between"><span class="xs"><b style="color:var(--fg)">1 session</b> · 10 free slots</span><b class="s" style="color:var(--fg)">€35</b></div></div>
+                  <div class="col g4"><div class="row between"><b>In 3 weeks</b><span class="xs">2 – 9 Nov</span></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:0"></i></span><div class="row between"><span class="xs"><b style="color:var(--fg)">0 session</b> · 10 free slots</span><b class="s" style="color:var(--fg)">€0</b></div></div>
+                </div>
+                <div class="card grow g6" style="padding:16px 18px">
+                  <div class="row between"><b class="h3">Next sessions <span class="faint">4</span></b><span class="s b">Schedule ›</span></div>
+                  <span class="cap" style="margin-top:6px">Today</span>
+                  <div class="row g12" style="height:52px"><div class="col g0" style="width:96px"><b>17:30–19:00</b><span class="xs">€35</span></div><span class="avatar sm y">DE</span><div class="col g0 grow"><b>dev <span class="xs">your student</span></b><span class="xs trunc">Memo drills</span></div><span class="pill ok"><i class="dot ok"></i>live</span></div>
+                  <span class="cap">Thu 15 Oct</span>
+                  <div class="row g12" style="height:52px"><div class="col g0" style="width:96px"><b>10:00–11:30</b><span class="xs">€35</span></div><span class="avatar sm">TE</span><div class="col g0 grow"><b>tess_cll <span class="xs">your student</span></b><span class="xs">No note</span></div><span class="xs">in 3 days</span></div>
+                  <span class="cap">Thu 22 Oct</span>
+                  <div class="row g12" style="height:52px"><div class="col g0" style="width:96px"><b>11:30–13:00</b><span class="xs">€35</span></div><span class="avatar sm l">EL</span><div class="col g0 grow"><b>eliott_cube <span class="xs">your student</span></b><span class="xs trunc">I'd like to work on my cross.</span></div><span class="xs">in 10 days</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="float" style="right:20px;bottom:20px;width:400px">
+              <div class="row g8" style="padding:0 2px"><span class="avatar sm y">DE</span><div class="col g0 grow"><b class="s" style="color:var(--fg)">Session with dev</b><span class="xs"><span class="ok b">● live · 18 min</span> · until 19:00</span></div><button class="btn icon sm ghost"><i data-lucide="maximize"></i></button><button class="btn icon sm ghost"><i data-lucide="grip"></i></button></div>
+              <div class="vid" style="height:190px;border-radius:16px">
+                <div class="shot" style="width:72%;gap:6px"><i class="iso sm" data-iso="ywyyyyoyy|rrgrrrrrr|ggbgggggg"></i><div class="timer s">12.<span class="ms">84</span></div></div>
+                <span class="pill glass" style="position:absolute;left:8px;top:8px;color:var(--fg)"><i data-lucide="screen-share" style="width:13px;height:13px"></i>dev shares their screen</span>
+                <div class="pip" style="width:64px;height:80px;right:8px;bottom:8px;border-radius:12px"><span class="avatar sm l">YU</span></div>
+              </div>
+              <div class="row" style="align-items:flex-start">
+                <span class="ctl sm"><span><i data-lucide="mic"></i></span></span><span class="ctl sm"><span><i data-lucide="video"></i></span></span><span class="ctl sm"><span><i data-lucide="screen-share"></i></span></span><span class="ctl sm"><span><i data-lucide="message-circle"></i></span></span><span class="ctl sm end"><span><i data-lucide="phone-off"></i></span></span>
+              </div>
+            </div>
+          </div>
+          <aside class="dock">
+            <div class="row between"><b class="h3">Today · Mon 12 Oct</b><span class="pill ok">Bookings open</span></div>
+            <div class="col g6">
+              <div class="row g10"><span class="xs num" style="width:40px">16:00</span><div class="ag grow">free</div></div>
+              <div class="row g10" style="align-items:stretch"><span class="xs num" style="width:40px">17:30</span><div class="ag bk grow" style="height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px"><b>dev · Memo drills</b><span class="xs">17:30 – 19:00 · live</span></div></div>
+              <div class="row g10"><span class="xs num" style="width:40px">19:00</span><div class="ag grow">free</div></div>
+              <div class="row g10"><span class="xs num" style="width:40px">20:30</span><div class="ag off grow">day ends</div></div>
+            </div>
+            <div class="row g6"><button class="btn sm soft grow"><i data-lucide="calendar-cog"></i>Edit availability</button><button class="btn sm"><i data-lucide="calendar-off"></i>Day off</button></div>
+            <div class="hr" style="margin:4px 0"></div>
+            <div class="row between"><b class="h3">Students <span class="faint">4</span></b><span class="pill pri">1 new</span></div>
+            <div class="col g0">
+              <div class="li" style="padding:6px 0"><span class="avatar sm y">DE</span><div class="col"><b>dev</b><span class="xs">3 sessions · 320 solves this month</span></div></div>
+              <div class="li" style="padding:6px 0"><span class="avatar sm">TE</span><div class="col"><b>tess_cll <span class="pill pri" style="height:18px">new</span></b><span class="xs">first session Thu</span></div></div>
+              <div class="li" style="padding:6px 0"><span class="avatar sm l">EL</span><div class="col"><b>eliott_cube</b><span class="xs">2 sessions</span></div></div>
+            </div>
+            <span class="grow"></span>
+            <div class="li" style="background:var(--muted);padding:10px 12px"><i data-lucide="id-card" class="pri"></i><div class="col"><b>Public page</b><span class="xs">How players see you · €35 · 90 min</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+          </aside>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Tiroir · un coach, réserver</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><a><span><i data-lucide="timer"></i></span>Timer</a><a><span><i data-lucide="graduation-cap"></i></span>Learn</a><a><span><i data-lucide="boxes"></i></span>Algs</a><a><span><i data-lucide="swords"></i></span>Challenges</a><a class="on"><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a><span class="sp"></span><span class="avatar sm l">YU</span></nav>
+          <div class="main">
+            <div class="phead"><span class="title">Me</span><div class="utabs"><span>Profile</span><span>Messages</span><span>Community</span><span class="on">Coaching</span></div><span class="grow"></span></div>
+            <div class="col g12 px24 grow" style="padding-bottom:24px">
+              <div class="card hi" style="height:80px"></div>
+              <div class="field">Name, method, speciality…</div>
+              <div class="grid2" style="gap:12px"><div class="card outline" style="height:150px"><div class="row g10"><span class="avatar y">CO</span><b class="h3">coach</b></div></div><div class="card" style="height:150px"><div class="row g10"><span class="avatar g">LE</span><b class="h3">lena_speed</b></div></div><div class="card" style="height:150px"><div class="row g10"><span class="avatar">CH</span><b class="h3">chloe_f2l</b></div></div><div class="card" style="height:150px"><div class="row g10"><span class="avatar">HU</span><b class="h3">hugo_sub10</b></div></div></div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="drawer" style="width:500px;gap:12px;padding:20px 22px">
+            <div class="row g12"><span class="avatar lg y">CO</span><div class="col g2 grow"><span class="h1">coach</span><span class="s">Sub-8 CFOP, I fix your F2L look-ahead</span><span class="xs">3×3 · 3×3 One-handed · French, English</span></div><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+            <div class="grid4">
+              <div class="col g0"><b class="h3 stars">4.3</b><span class="xs">12 reviews</span></div>
+              <div class="col g0"><b class="h3">31</b><span class="xs">sessions given</span></div>
+              <div class="col g0"><b class="h3">8</b><span class="xs">students</span></div>
+              <div class="col g0"><b class="h3">4,200</b><span class="xs">solves</span></div>
+            </div>
+            <span class="t mfg">Hi, I'm coach! Sub-8 CFOP solver, I've helped players from sub-30 to sub-12 by fixing their look-ahead and finger tricks. <span class="pri b">More</span></span>
+            <div class="grid2"><div class="well"><span class="t">“Great drills, I finally broke sub-15!”</span><span class="xs"><span class="stars">★★★★★</span> vera_zbll</span></div><div class="well"><span class="t">“Clear, patient, lots of homework.”</span><span class="xs"><span class="stars">★★★★☆</span> ben_tps</span></div></div>
+            <div class="row" style="margin-top:6px"><b class="h3 grow">Pick your slot <span class="xs">12 – 18 Oct</span></b><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button></div>
+            <div class="week"><span class="off">Mon<b>12</b><i>–</i></span><span>Tue<b>13</b><i>2</i></span><span class="on">Wed<b>14</b><i>3</i></span><span>Thu<b>15</b><i>3</i></span><span>Fri<b>16</b><i>2</i></span><span>Sat<b>17</b><i>4</i></span><span class="off">Sun<b>18</b><i>–</i></span></div>
+            <div class="row"><span class="slot on">17:00</span><span class="slot">18:00</span><span class="slot">19:00</span></div>
+            <div class="field area"><span>What you want to work on: your average, the step you struggle with… (optional)</span></div>
+            <span class="grow"></span>
+            <div class="card g10" style="background:var(--card)">
+              <b class="t">Wed 14 Oct, <span class="pri">17:00 – 18:00</span> with coach · <span class="pri">€25</span></b>
+              <div class="row g10" style="align-items:flex-start"><span class="check on"></span><div class="col g2"><span class="s" style="color:var(--fg)">I have read and accept the cancellation policy.</span><span class="xs">Cancellations must be made more than 24 hours before the session starts.</span></div></div>
+              <div class="row g10"><button class="btn pri"><i data-lucide="calendar-check"></i>Book</button><span class="xs">Confirmed at once · payment comes later · the call opens 15 min before</span></div>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>Les sous-pages sont des segments juste au-dessus de la barre, comme sur le téléphone. Portrait : l'espace coach en grandes tuiles, la session en cours en feuille qui dépasse avec Join call. 1280 : les coachs à gauche, la page du coach et sa réservation en feuille ancrée. L'appel prend tout l'écran, cinq gros boutons en bas.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display">Me</span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span>Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span class="on">Coaching <span class="badge">1</span></span></div>
+          <div class="col g12" style="padding:16px 28px 0;flex:none">
+            <div class="row g10"><span class="h1 grow">Coach space</span><span class="pill ok">Bookings open</span><button class="btn soft b44"><i data-lucide="calendar-cog"></i>Edit availability</button><button class="btn icon b44"><i data-lucide="calendar-off"></i></button></div>
+            <div class="tile" style="padding:18px 20px">
+              <div class="stat6 g3">
+                <div><b>2</b><span>sessions in the next 7 days</span></div>
+                <div><b>3 h</b><span>booked in the next 7 days</span></div>
+                <div><b class="pri">€140</b><span>expected over 4 weeks</span></div>
+                <div><b>9</b><span>free slots in the next 7 days</span></div>
+                <div><b>4</b><span>students</span></div>
+                <div><b class="stars">4.7</b><span>6 reviews</span></div>
+              </div>
+            </div>
+            <div class="grid2" style="gap:12px">
+              <div class="tile g10" style="padding:16px 18px">
+                <b class="h3">The next four weeks</b>
+                <div class="wk"><b>This week</b><span class="bar"><i style="width:22%"></i></span><b class="num" style="text-align:right">€70</b></div>
+                <div class="wk"><span class="mfg">Next week</span><span class="bar"><i style="width:10%"></i></span><span class="num mfg" style="text-align:right">€35</span></div>
+                <div class="wk"><span class="mfg">In 2 weeks</span><span class="bar"><i style="width:10%"></i></span><span class="num mfg" style="text-align:right">€35</span></div>
+                <div class="wk"><span class="mfg">In 3 weeks</span><span class="bar"><i style="width:0"></i></span><span class="num mfg" style="text-align:right">€0</span></div>
+                <span class="row g10 xs"><i class="dot"></i>booked <i class="dot" style="background:color-mix(in srgb, var(--pri) 30%, var(--acc))"></i>free</span>
+              </div>
+              <div class="tile g6" style="padding:16px 18px">
+                <div class="row between"><b class="h3">Next sessions</b><span class="s b pri">Schedule ›</span></div>
+                <div class="row g10" style="height:52px"><div class="col g0" style="width:62px"><b>Thu 15</b><span class="xs">10:00</span></div><span class="avatar sm">TE</span><div class="col g0 grow"><b class="trunc">tess_cll</b><span class="xs">90 min · €35</span></div></div>
+                <div class="hr"></div>
+                <div class="row g10" style="height:52px"><div class="col g0" style="width:62px"><b>Thu 22</b><span class="xs">11:30</span></div><span class="avatar sm l">EL</span><div class="col g0 grow"><b class="trunc">eliott_cube</b><span class="xs trunc">“work on my cross”</span></div></div>
+                <div class="hr"></div>
+                <div class="row g10" style="height:52px"><div class="col g0" style="width:62px"><b>Wed 28</b><span class="xs">17:30</span></div><span class="avatar sm y">DE</span><div class="col g0 grow"><b class="trunc">dev</b><span class="xs">90 min · €35</span></div></div>
+              </div>
+            </div>
+            <div class="tile g10" style="padding:14px 18px">
+              <div class="row between"><b class="h3">Today · Mon 12 Oct</b><span class="xs">times in Europe/Paris</span></div>
+              <div class="row g6"><div class="ag grow" style="height:48px">16:00 · free</div><div class="ag bk" style="flex:2;height:48px">17:30 – 19:00 · dev · live</div><div class="ag grow" style="height:48px">19:00 · free</div><div class="ag off grow" style="height:48px">20:30</div></div>
+            </div>
+            <div class="grid3" style="gap:12px">
+              <div class="tile g4"><div class="row between"><i data-lucide="users" class="pri"></i><span class="badge">1</span></div><b class="h3">Students</b><span class="xs">4 · tess_cll is new</span></div>
+              <div class="tile g4"><i data-lucide="calendar-days" class="pri"></i><b class="h3">Schedule</b><span class="xs">9 free slots this week</span></div>
+              <div class="tile g4"><i data-lucide="id-card" class="pri"></i><b class="h3">Public page</b><span class="xs">€35 · 90 min · ★ 4.7</span></div>
+            </div>
+          </div>
+          <span class="grow"></span>
+          <div class="sheet over-nav" style="bottom:156px;gap:10px;padding:8px 16px 14px">
+            <div class="row g12"><span class="avatar md y">DE</span><div class="col g0 grow"><b class="h3">Live now · dev</b><span class="xs">17:30 – 19:00 · Memo drills · €35</span></div><span class="pill ok"><i class="dot ok"></i>18 min</span><button class="btn icon b44"><i data-lucide="message-circle"></i></button><button class="btn pri b44"><i data-lucide="video"></i>Join call</button></div>
+          </div>
+          <div style="padding:0 28px 8px;flex:none"><div class="seg block t44"><span>Find a coach</span><span>Sessions</span><span>Messages <span class="badge">1</span></span><span class="on">Coach space</span></div></div>
+          <div class="fnav-space"></div>
+          <nav class="fnav"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row grow" style="align-items:stretch;gap:0">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="align-items:center;padding:14px 28px 8px"><span class="display" style="flex:none">Me</span><div class="utabs" style="border:0;padding:0 0 0 16px"><span>Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span class="on">Coaching <span class="badge">1</span></span></div><span class="grow"></span><span class="avatar sm l">YU</span></div>
+              <div class="col g10 grow" style="padding:4px 28px 0">
+                <div class="row g10"><div class="seg t44"><span class="on">Find a coach</span><span>Sessions <span class="faint">2</span></span><span>Messages <span class="badge">1</span></span><span>Coach space</span></div><span class="grow"></span><button class="btn ghost"><i data-lucide="sparkles"></i>Become a coach</button></div>
+                <div class="row g10"><div class="field grow" style="height:44px"><i data-lucide="search"></i>Name, method, speciality…</div><button class="btn" style="height:44px">Next slot first<i data-lucide="chevron-down"></i></button></div>
+                <div class="row g6"><span class="chip">Every event<i data-lucide="chevron-down"></i></span><span class="chip on">Free this week</span><span class="chip">Every language<i data-lucide="chevron-down"></i></span><span class="chip">Any price<i data-lucide="chevron-down"></i></span><span class="grow"></span><span class="xs">6 coaches · Europe/Paris</span></div>
+                <div class="scroll">
+                  <div class="grid2" style="gap:10px">
+                    <div class="card g6 outline" style="padding:12px 14px"><div class="row g10"><span class="avatar y">CO</span><div class="col g0 grow"><b class="h3">coach</b><span class="xs"><span class="stars">★ 4.3</span> · 12 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€25</b><span class="xs">60 min</span></div></div><span class="s trunc">Sub-8 CFOP, I fix your F2L look-ahead</span><span class="xs">Next: <b style="color:var(--fg)">Tue 13 Oct · 17:00</b></span></div>
+                    <div class="card g6" style="padding:12px 14px"><div class="row g10"><span class="avatar g">LE</span><div class="col g0 grow"><b class="h3">lena_speed</b><span class="xs"><span class="stars">★ 4.6</span> · 9 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€40</b><span class="xs">45 min</span></div></div><span class="s trunc">Big cubes and reduction</span><span class="xs">Next: <b style="color:var(--fg)">Tue 13 Oct · 17:30</b></span></div>
+                    <div class="card g6" style="padding:12px 14px"><div class="row g10"><span class="avatar">CH</span><div class="col g0 grow"><b class="h3">chloe_f2l</b><span class="xs"><span class="stars">★ 4.9</span> · 14 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€30</b><span class="xs">60 min</span></div></div><span class="s trunc">F2L from intuitive to advanced</span><span class="xs">Next: <b style="color:var(--fg)">Wed 14 Oct · 09:00</b></span></div>
+                    <div class="card g6" style="padding:12px 14px"><div class="row g10"><span class="avatar">HU</span><div class="col g0 grow"><b class="h3">hugo_sub10</b><span class="xs"><span class="stars">★ 4.8</span> · 5 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€30</b><span class="xs">60 min</span></div></div><span class="s trunc">Sub-10 3×3: look-ahead and TPS</span><span class="xs">Next: <b style="color:var(--fg)">Wed 14 Oct · 20:00</b></span></div>
+                    <div class="card g6" style="padding:12px 14px"><div class="row g10"><span class="avatar n">KE</span><div class="col g0 grow"><b class="h3">kenji_cfop</b><span class="xs"><span class="stars">★ 4.5</span> · 7 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2">€20</b><span class="xs">45 min</span></div></div><span class="s trunc">Full OLL / PLL, recognition drills</span></div>
+                    <div class="card g6" style="padding:12px 14px"><div class="row g10"><span class="avatar y">SO</span><div class="col g0 grow"><b class="h3">sofia_sq1</b><span class="xs"><span class="stars">★ 4.4</span> · 10 reviews</span></div><div class="col g0" style="align-items:flex-end"><b class="h2 ok">Free</b><span class="xs">60 min</span></div></div><span class="s trunc">Free Square-1 lessons for beginners</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="fnav-space"></div>
+            </div>
+            <div class="sidesheet docked" style="width:400px;gap:9px">
+              <div class="row g12"><span class="avatar lg y">CO</span><div class="col g0 grow"><span class="h2">coach</span><span class="s trunc">Sub-8 CFOP, I fix your F2L look-ahead</span><span class="xs">3×3 · 3×3 OH · French, English</span></div></div>
+              <div class="grid4"><div class="col g0"><b class="h3 stars">4.3</b><span class="xs">12 reviews</span></div><div class="col g0"><b class="h3">31</b><span class="xs">sessions</span></div><div class="col g0"><b class="h3">8</b><span class="xs">students</span></div><div class="col g0"><b class="h3">4,200</b><span class="xs">solves</span></div></div>
+              <span class="s trunc">Hi, I'm coach! Sub-8 CFOP solver… <span class="pri b">More</span></span>
+              <div class="well"><span class="s" style="color:var(--fg)">“Great drills, I finally broke sub-15!”</span><span class="xs"><span class="stars">★★★★★</span> vera_zbll · <span class="pri b">12 reviews ›</span></span></div>
+              <div class="row"><b class="h3 grow">Pick your slot <span class="xs">12 – 18 Oct</span></b><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button></div>
+              <div class="week"><span class="off">Mon<b>12</b><i>–</i></span><span>Tue<b>13</b><i>2</i></span><span class="on">Wed<b>14</b><i>3</i></span><span>Thu<b>15</b><i>3</i></span><span>Fri<b>16</b><i>2</i></span><span>Sat<b>17</b><i>4</i></span><span class="off">Sun<b>18</b><i>–</i></span></div>
+              <div class="row"><span class="slot on">17:00</span><span class="slot">18:00</span><span class="slot">19:00</span></div>
+              <div class="field" style="height:38px"><span class="trunc">What you want to work on (optional)</span></div>
+              <span class="grow"></span>
+              <div class="row g10" style="align-items:flex-start"><span class="check on"></span><span class="xs">I accept the cancellation policy: cancel more than 24 hours before the session starts.</span></div>
+              <button class="btn lg pri block"><i data-lucide="calendar-check"></i>Book · Wed 14 Oct, 17:00 · €25</button>
+            </div>
+          </div>
+          <nav class="fnav" style="margin-left:-206px"><span><i data-lucide="timer"></i></span><span><i data-lucide="graduation-cap"></i></span><span><i data-lucide="boxes"></i></span><span><i data-lucide="swords"></i></span><span class="on"><i data-lucide="user-round"></i></span></nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Appel · partage d'écran</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="row g12" style="padding:14px 20px 12px;flex:none">
+            <span class="avatar md y">DE</span>
+            <div class="col g0 grow"><b class="h3">Session with dev</b><span class="xs"><span class="ok b">● live · 18 min</span> · Memo drills · ends at 19:00</span></div>
+            <button class="btn icon b44"><i data-lucide="picture-in-picture-2"></i></button>
+            <button class="btn icon b44"><i data-lucide="maximize"></i></button>
+          </div>
+          <div class="vid grow" style="margin:0 20px">
+            <div class="shot"><i class="iso xl" data-iso="ywyyyyoyy|rrgrrrrrr|ggbgggggg"></i><div class="timer l">12.<span class="ms">84</span></div></div>
+            <div class="row g10 glass" style="position:absolute;top:14px;left:14px;right:14px;padding:8px 8px 8px 14px;border-radius:16px">
+              <i data-lucide="screen-share" class="pri"></i><div class="col g0 grow"><b class="s" style="color:var(--fg)">dev shares their screen</b><span class="xs">you see their Qbix timer</span></div><button class="btn sm">Hide the details</button>
+            </div>
+            <div class="pip"><span class="avatar lg l">YU</span></div>
+            <span class="pill glass" style="position:absolute;left:14px;bottom:14px;color:var(--fg)">dev</span>
+          </div>
+          <div class="grid2" style="gap:12px;padding:12px 20px 0;flex:none">
+            <div class="card g6" style="padding:12px 14px">
+              <div class="row between"><span class="cap">Details</span><span class="xs">€35 · 90 min</span></div>
+              <span class="t">“Memo drills, I lose letters on edges.”</span>
+              <div class="row g10"><span class="xs"><b style="color:var(--fg)">3</b> sessions together</span><span class="xs"><b style="color:var(--fg)">320</b> solves · 30 d</span></div>
+            </div>
+            <div class="card g6" style="padding:12px 14px">
+              <div class="row between"><span class="cap">Private notes</span><i data-lucide="lock" class="faint" style="width:14px;height:14px"></i></div>
+              <span class="s">Edges: buffer UF fine, stop re-reading pairs. Next: 3-style corners.</span>
+            </div>
+          </div>
+          <div class="card pop g6" style="margin:12px 20px 0;padding:10px 14px;flex:none">
+            <div class="row g6"><b class="xs" style="color:var(--warn)">dev</b><span class="s grow trunc" style="color:var(--fg)">Here's my memo for this scramble: KL BD QW…</span><span class="badge">1</span></div>
+            <div class="row g6"><div class="field grow" style="height:44px;border-radius:99px">Message dev</div><button class="btn icon pri" style="border-radius:50%;height:44px;width:44px"><i data-lucide="send"></i></button></div>
+          </div>
+          <div class="row" style="padding:16px 40px 20px;flex:none;align-items:flex-start">
+            <span class="ctl"><span><i data-lucide="mic"></i></span>Microphone</span>
+            <span class="ctl"><span><i data-lucide="video"></i></span>Camera</span>
+            <span class="ctl"><span><i data-lucide="screen-share"></i></span>Share your screen</span>
+            <span class="ctl on"><span><i data-lucide="message-circle"></i></span>Chat</span>
+            <span class="ctl end"><span><i data-lucide="phone-off"></i></span>Leave</span>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Trois volets en 1280 : les coachs, la page du coach choisi, la réservation, sans rien ouvrir. En portrait l'espace coach : le tableau en haut, le planning de la semaine en volet du bas avec ses deux actions. En appel, la vidéo et un volet d'appui (détails, notes privées, chat) côte à côte.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span class="on">Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="panes v">
+            <div class="pane">
+              <div class="ph"><button class="btn sm"><i data-lucide="briefcase"></i>Coach space<i data-lucide="chevron-down"></i></button><div class="seg"><span class="on">Dashboard</span><span>Students <span class="badge">1</span></span><span>Schedule</span><span>Public page</span></div><span class="grow"></span><span class="pill ok">Bookings open</span></div>
+              <div class="card" style="padding:16px 18px"><div class="stat6">
+                <div><b>2</b><span>sessions in the next 7 days</span></div>
+                <div><b>3 h</b><span>booked in 7 days</span></div>
+                <div><b class="pri">€140</b><span>expected over 4 weeks</span></div>
+                <div><b>9</b><span>free slots in 7 days</span></div>
+                <div><b>4</b><span>students</span></div>
+                <div><b class="stars">4.7</b><span>6 reviews</span></div>
+              </div></div>
+              <div class="row g12 grow" style="align-items:stretch">
+                <div class="card g12" style="width:330px;flex:none;padding:16px 18px">
+                  <b class="h3">The next four weeks</b>
+                  <div class="col g4"><div class="row between"><b>This week</b><b class="s" style="color:var(--fg)">€70</b></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:22%"></i></span><span class="xs">2 sessions · 7 free slots</span></div>
+                  <div class="col g4"><div class="row between"><b>Next week</b><b class="s" style="color:var(--fg)">€35</b></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:10%"></i></span><span class="xs">1 session · 9 free slots</span></div>
+                  <div class="col g4"><div class="row between"><b>In 2 weeks</b><b class="s" style="color:var(--fg)">€35</b></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:10%"></i></span><span class="xs">1 session · 10 free slots</span></div>
+                  <div class="col g4"><div class="row between"><b>In 3 weeks</b><b class="s" style="color:var(--fg)">€0</b></div><span class="bar" style="height:8px;background:color-mix(in srgb, var(--pri) 30%, var(--acc))"><i style="width:0"></i></span><span class="xs">0 session · 10 free slots</span></div>
+                  <span class="row g10 xs"><i class="dot"></i>booked <i class="dot" style="background:color-mix(in srgb, var(--pri) 30%, var(--acc))"></i>free</span>
+                </div>
+                <div class="card grow g6" style="padding:16px 18px">
+                  <b class="h3">Next sessions <span class="faint">4</span></b>
+                  <span class="cap" style="margin-top:6px">Today</span>
+                  <div class="row g10" style="height:50px"><div class="col g0" style="width:92px"><b>17:30–19:00</b><span class="xs">€35</span></div><span class="avatar sm y">DE</span><div class="col g0 grow"><b>dev</b><span class="xs trunc">Memo drills</span></div><button class="btn sm pri"><i data-lucide="video"></i>Join</button></div>
+                  <span class="cap">Thu 15 Oct</span>
+                  <div class="row g10" style="height:50px"><div class="col g0" style="width:92px"><b>10:00–11:30</b><span class="xs">€35</span></div><span class="avatar sm">TE</span><div class="col g0 grow"><b>tess_cll <span class="pill pri" style="height:18px">new</span></b><span class="xs">No note</span></div></div>
+                  <span class="cap">Thu 22 Oct</span>
+                  <div class="row g10" style="height:50px"><div class="col g0" style="width:92px"><b>11:30–13:00</b><span class="xs">€35</span></div><span class="avatar sm l">EL</span><div class="col g0 grow"><b>eliott_cube</b><span class="xs trunc">I'd like to work on my cross.</span></div></div>
+                  <span class="cap">Wed 28 Oct</span>
+                  <div class="row g10" style="height:50px"><div class="col g0" style="width:92px"><b>17:30–19:00</b><span class="xs">€35</span></div><span class="avatar sm y">DE</span><div class="col g0 grow"><b>dev</b><span class="xs trunc">3-style corners</span></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="height:420px">
+              <div class="ph"><span class="h3">Schedule · 12 – 18 Oct</span><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button><button class="btn sm soft"><i data-lucide="calendar-cog"></i>Edit availability</button><button class="btn sm"><i data-lucide="calendar-off"></i>Take the day off</button></div>
+              <div class="grid7" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px">
+                <div class="agcol"><b>Mon<big>12</big></b><div class="ag">16:00</div><div class="ag bk" style="height:96px">dev · 17:30</div><div class="ag">19:00</div></div>
+                <div class="agcol"><b>Tue<big>13</big></b><div class="ag">17:00</div><div class="ag">18:30</div><div class="ag">20:00</div></div>
+                <div class="agcol"><b>Wed<big>14</big></b><div class="ag off" style="height:200px">Day off</div></div>
+                <div class="agcol"><b>Thu<big>15</big></b><div class="ag bk" style="height:96px">tess_cll · 10:00</div><div class="ag">17:00</div><div class="ag">18:30</div></div>
+                <div class="agcol"><b>Fri<big>16</big></b><div class="ag">17:00</div><div class="ag">18:30</div></div>
+                <div class="agcol"><b>Sat<big>17</big></b><div class="ag">10:00</div><div class="ag">11:30</div><div class="ag">14:00</div></div>
+                <div class="agcol"><b>Sun<big>18</big></b><div class="ag off" style="height:200px">Closed</div></div>
+              </div>
+              <span class="row g12 xs" style="margin-top:auto"><span class="row g4"><i class="dot"></i>booked</span><span class="row g4"><i class="dot faint"></i>free slot · 90 min</span><span class="grow"></span>times in Europe/Paris</span>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span>Messages</span><span>Community <span class="badge">2</span></span><span class="on">Coaching <span class="badge">1</span></span></div><span class="grow"></span><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button><span class="avatar sm l">YU</span></div>
+          <div class="panes">
+            <div class="pane side" style="width:340px;padding:14px 12px">
+              <div class="ph"><button class="btn sm"><i data-lucide="search"></i>Find a coach<i data-lucide="chevron-down"></i></button><span class="grow"></span><button class="btn sm ghost"><i data-lucide="sparkles"></i>Become a coach</button></div>
+              <div class="field" style="height:38px"><i data-lucide="search"></i>Name, method, speciality…</div>
+              <div class="row g6 wrap"><span class="chip">Every event</span><span class="chip on">Free this week</span><span class="chip">Language</span><span class="chip">Price</span></div>
+              <div class="row between" style="padding:0 4px"><b>6 coaches</b><span class="s b row g4">Next slot first<i data-lucide="chevron-down" style="width:15px;height:15px"></i></span></div>
+              <div class="scroll g2">
+                <div class="li on" style="padding:8px 10px"><span class="avatar y">CO</span><div class="col"><b>coach <span class="stars xs">★ 4.3</span></b><span class="xs trunc">Sub-8 CFOP · Tue 17:00</span></div><span class="when"><b class="h3" style="color:var(--fg)">€25</b>60 min</span></div>
+                <div class="li" style="padding:8px 10px"><span class="avatar g">LE</span><div class="col"><b>lena_speed <span class="stars xs">★ 4.6</span></b><span class="xs trunc">Big cubes · Tue 17:30</span></div><span class="when"><b class="h3" style="color:var(--fg)">€40</b>45 min</span></div>
+                <div class="li" style="padding:8px 10px"><span class="avatar">CH</span><div class="col"><b>chloe_f2l <span class="stars xs">★ 4.9</span></b><span class="xs trunc">F2L · Wed 09:00</span></div><span class="when"><b class="h3" style="color:var(--fg)">€30</b>60 min</span></div>
+                <div class="li" style="padding:8px 10px"><span class="avatar">HU</span><div class="col"><b>hugo_sub10 <span class="stars xs">★ 4.8</span></b><span class="xs trunc">Sub-10 · Wed 20:00</span></div><span class="when"><b class="h3" style="color:var(--fg)">€30</b>60 min</span></div>
+                <div class="li" style="padding:8px 10px"><span class="avatar n">KE</span><div class="col"><b>kenji_cfop <span class="stars xs">★ 4.5</span></b><span class="xs trunc">OLL / PLL · Thu 11:00</span></div><span class="when"><b class="h3" style="color:var(--fg)">€20</b>45 min</span></div>
+                <div class="li" style="padding:8px 10px"><span class="avatar y">SO</span><div class="col"><b>sofia_sq1 <span class="stars xs">★ 4.4</span></b><span class="xs trunc">Square-1 · Fri 18:00</span></div><span class="when"><b class="h3 ok">Free</b>60 min</span></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="padding:16px 22px">
+              <div class="row g12"><span class="avatar lg y">CO</span><div class="col g2 grow"><span class="h1">coach</span><span class="s">Sub-8 CFOP, I fix your F2L look-ahead</span><span class="xs">3×3 · 3×3 One-handed · French, English</span></div><button class="btn sm"><i data-lucide="message-circle"></i>Message</button></div>
+              <div class="card" style="padding:12px 16px"><div class="grid4">
+                <div class="col g0"><b class="h2 stars">4.3</b><span class="xs">12 reviews</span></div>
+                <div class="col g0"><b class="h2">31</b><span class="xs">sessions given</span></div>
+                <div class="col g0"><b class="h2">8</b><span class="xs">students</span></div>
+                <div class="col g0"><b class="h2">4,200</b><span class="xs">solves</span></div>
+              </div></div>
+              <span class="cap">About</span>
+              <span class="t mfg">Hi, I'm coach! Sub-8 CFOP solver. I've helped players from sub-30 to sub-12 by fixing their look-ahead and finger tricks. Sessions are drills on your own scrambles, then homework. <span class="pri b">More</span></span>
+              <div class="row between"><span class="cap">Reviews · 12</span><span class="s b">All ›</span></div>
+              <div class="scroll" style="gap:8px">
+                <div class="well" style="flex:none"><div class="row between"><span class="xs"><span class="stars">★★★★★</span> vera_zbll</span><span class="xs">Sep</span></div><span class="t">“Great drills, I finally broke sub-15!”</span></div>
+                <div class="well" style="flex:none"><div class="row between"><span class="xs"><span class="stars">★★★★☆</span> ben_tps</span><span class="xs">Aug</span></div><span class="t">“Clear, patient, lots of homework.”</span></div>
+                <div class="well" style="flex:none"><div class="row between"><span class="xs"><span class="stars">★★★★☆</span> dev</span><span class="xs">Aug</span></div><span class="t">“My F2L finally flows, look-ahead drills work.”</span></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:340px;padding:16px 18px">
+              <div class="ph"><span class="h3">Pick your slot <span class="xs">12 – 18 Oct</span></span><button class="btn icon sm ghost"><i data-lucide="chevron-left"></i></button><button class="btn icon sm ghost"><i data-lucide="chevron-right"></i></button></div>
+              <div class="week"><span class="off">Mon<b>12</b><i>–</i></span><span>Tue<b>13</b><i>2</i></span><span class="on">Wed<b>14</b><i>3</i></span><span>Thu<b>15</b><i>3</i></span><span>Fri<b>16</b><i>2</i></span><span>Sat<b>17</b><i>4</i></span><span class="off">Sun<b>18</b><i>–</i></span></div>
+              <div class="row"><span class="slot on">17:00</span><span class="slot">18:00</span><span class="slot">19:00</span></div>
+              <div class="field area"><span>What you want to work on: your average, the step you struggle with… (optional)</span></div>
+              <span class="grow"></span>
+              <b class="t">Wed 14 Oct, <span class="pri">17:00 – 18:00</span> · <span class="pri">€25</span></b>
+              <div class="row g10" style="align-items:flex-start"><span class="check on"></span><div class="col g2"><span class="s" style="color:var(--fg)">I have read and accept the cancellation policy.</span><span class="xs">Cancel more than 24 hours before the session starts.</span></div></div>
+              <button class="btn pri block"><i data-lucide="calendar-check"></i>Book</button>
+              <span class="xs">Confirmed at once · payment comes later · the call opens 15 min before</span>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Appel · tablette paysage</b> 1194 × 834</div>
+        <div class="dev tabl"><div class="scr">
+          <div class="cbar"><span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="sect"><i data-lucide="user-round"></i>Me<i data-lucide="chevron-down"></i></span><div class="seg"><span>Profile</span><span>Messages</span><span>Community</span><span class="on">Coaching</span></div><span class="grow"></span><span class="pill ok"><i class="dot ok"></i>live · 18 min</span><span class="avatar sm l">YU</span></div>
+          <div class="panes">
+            <div class="pane" style="padding:14px 18px">
+              <div class="ph"><span class="avatar sm y">DE</span><span class="h3">Session with dev <span class="xs">· Memo drills · until 19:00</span></span><button class="btn sm ghost"><i data-lucide="picture-in-picture-2"></i>Corner</button><button class="btn sm ghost"><i data-lucide="maximize"></i>Full screen</button></div>
+              <div class="vid grow">
+                <div class="shot" style="width:70%"><i class="iso lg" data-iso="ywyyyyoyy|rrgrrrrrr|ggbgggggg"></i><div class="timer l">12.<span class="ms">84</span></div></div>
+                <div class="row g10 glass" style="position:absolute;top:12px;left:12px;padding:6px 12px;border-radius:14px"><i data-lucide="screen-share" class="pri"></i><b class="s" style="color:var(--fg)">dev shares their screen</b></div>
+                <div class="pip"><span class="avatar lg l">YU</span></div>
+              </div>
+              <div class="row" style="padding:4px 60px 0;align-items:flex-start;flex:none">
+                <span class="ctl"><span><i data-lucide="mic"></i></span>Microphone</span>
+                <span class="ctl off"><span><i data-lucide="video-off"></i></span>Camera off</span>
+                <span class="ctl"><span><i data-lucide="screen-share"></i></span>Share your screen</span>
+                <span class="ctl on"><span><i data-lucide="message-circle"></i></span>Hide the chat</span>
+                <span class="ctl end"><span><i data-lucide="phone-off"></i></span>Leave</span>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:360px;padding:14px 16px">
+              <div class="ph"><span class="h3">Details</span><span class="xs">€35 · 90 min</span></div>
+              <span class="t">“Memo drills, I lose letters on edges.”</span>
+              <div class="grid3"><div class="col g0"><b class="h3">3</b><span class="xs">sessions together</span></div><div class="col g0"><b class="h3">320</b><span class="xs">solves · 30 d</span></div><div class="col g0"><b class="h3">18</b><span class="xs">active days</span></div></div>
+              <div class="row between"><span class="cap">Private notes</span><i data-lucide="lock" class="faint" style="width:14px;height:14px"></i></div>
+              <div class="field area" style="min-height:70px;color:var(--fg)"><span class="s" style="color:var(--fg)">Edges: buffer UF fine, stop re-reading pairs. Next: 3-style corners.</span></div>
+              <div class="hr"></div>
+              <span class="cap">Chat</span>
+              <div class="scroll" style="gap:8px">
+                <div class="bub" style="max-width:85%;font-size:14px">Ready when you are!<small>17:30</small></div>
+                <div class="bub me" style="max-width:85%;font-size:14px">Share your screen and do a scramble, memo out loud.<small>17:41</small></div>
+                <div class="bub" style="max-width:85%;font-size:14px">Here's my memo: KL BD QW…<small>17:47</small></div>
+              </div>
+              <div class="compose" style="padding:0"><div class="field" style="height:40px">Message dev</div><button class="btn icon pri"><i data-lucide="send"></i></button></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+  </div>
+</section>

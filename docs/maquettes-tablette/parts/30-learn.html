@@ -1,0 +1,1016 @@
+<style>
+/* Patterns of the phone mockups (docs/maquettes/parts/30-learn.html), scoped to these two pages. */
+:is(#learn,#course) .lv { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; flex: none; }
+:is(#learn,#course) .lv i { width: 3px; border-radius: 1px; background: currentColor; opacity: .25; }
+:is(#learn,#course) .lv i:nth-child(1) { height: 6px; } :is(#learn,#course) .lv i:nth-child(2) { height: 10px; } :is(#learn,#course) .lv i:nth-child(3) { height: 14px; }
+:is(#learn,#course) .lv.l1 i:nth-child(1), :is(#learn,#course) .lv.l2 i:nth-child(-n+2), :is(#learn,#course) .lv.l3 i { opacity: 1; }
+:is(#learn,#course) .sb { height: 8px; }
+:is(#learn,#course) .here > .bar { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--fg); }
+:is(#learn,#course) .rg { --p: 0; width: 18px; height: 18px; border-radius: 50%; flex: none; display: inline-block; background: conic-gradient(currentColor calc(var(--p) * 1%), color-mix(in srgb, currentColor 22%, transparent) 0); -webkit-mask: radial-gradient(circle, transparent 4.5px, #000 5px); mask: radial-gradient(circle, transparent 4.5px, #000 5px); }
+:is(#learn,#course) .rg.ok { color: var(--ok); --p: 100; }
+:is(#learn,#course) .stepchip { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 12px; border-radius: 12px; background: var(--muted); font-weight: 700; font-size: 14px; color: var(--fg); white-space: nowrap; flex: none; }
+:is(#learn,#course) .stepchip.on { background: var(--pri); color: var(--pri-fg); }
+:is(#learn,#course) .trk { display: flex; align-items: center; gap: 8px; min-width: 0; }
+:is(#learn,#course) .trk > .ln { flex: 1; min-width: 10px; height: 1px; background: var(--border); }
+:is(#learn,#course) .trk > .ln.ok { background: var(--ok); }
+:is(#learn,#course) .tip { display: flex; gap: 10px; font-size: 13px; line-height: 1.45; color: var(--mfg); }
+:is(#learn,#course) .tip > b { width: 24px; height: 24px; border-radius: 8px; background: var(--muted); color: var(--warn); display: grid; place-items: center; font-size: 12px; flex: none; }
+:is(#learn,#course) .hid { display: flex; flex-wrap: wrap; gap: 5px; }
+:is(#learn,#course) .hid > i { width: 26px; height: 20px; border-radius: 5px; background: color-mix(in srgb, var(--fg) 12%, transparent); }
+:is(#learn,#course) .trail { display: flex; gap: 4px; }
+:is(#learn,#course) .trail > i { width: 12px; height: 12px; border-radius: 4px; background: var(--ok); }
+:is(#learn,#course) .trail > i.no { background: var(--bad); } :is(#learn,#course) .trail > i.meh { background: var(--warn); }
+:is(#learn,#course) .btn.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); box-shadow: none; }
+:is(#learn,#course) .btn.warn { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); box-shadow: none; }
+:is(#learn,#course) .btn.ok { box-shadow: none; }
+:is(#learn,#course) .btn kbd { background: color-mix(in srgb, currentColor 14%, transparent); }
+:is(#learn,#course) .pz { width: 40px; height: 40px; border-radius: 12px; background: var(--muted); display: grid; place-items: center; color: var(--fg); flex: none; }
+:is(#learn,#course) .pz .puzzle { grid-template-columns: repeat(3, 6px); gap: 2px; } :is(#learn,#course) .pz .puzzle i { width: 6px; height: 6px; border-radius: 1.5px; }
+:is(#learn,#course) .pz .puzzle.p2 { grid-template-columns: repeat(2, 6px); }
+:is(#learn,#course) .case { background: var(--muted); gap: 3px; }
+:is(#learn,#course) .case b { font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+:is(#learn,#course) .case small { color: var(--mfg); }
+:is(#learn,#course) .case.todo { background: transparent; }
+:is(#learn,#course) .case.todo .ll { opacity: .45; filter: saturate(.5); }
+:is(#learn,#course) .case.todo small { color: var(--warn); }
+:is(#learn,#course) .case.here { background: var(--pri); color: var(--pri-fg); }
+:is(#learn,#course) .case.here .ll { opacity: 1; filter: none; }
+:is(#learn,#course) .case.here small { color: color-mix(in srgb, var(--pri-fg) 75%, transparent); }
+:is(#learn,#course) .act { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 20px; background: var(--muted); min-width: 0; }
+:is(#learn,#course) .act > .col { gap: 2px; flex: 1; }
+:is(#learn,#course) .act > .icon-tile { background: var(--acc); color: var(--fg); }
+:is(#learn,#course) .act.pri { background: var(--pri); color: var(--pri-fg); }
+:is(#learn,#course) .act.pri .xs { color: inherit; opacity: .75; }
+:is(#learn,#course) .act.pri > .icon-tile { background: color-mix(in srgb, var(--pri-fg) 14%, transparent); color: var(--pri-fg); }
+:is(#learn,#course) .grp { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--mfg); padding: 8px 4px 0; }
+:is(#learn,#course) .grp span { color: var(--faint); font-variant-numeric: tabular-nums; } :is(#learn,#course) .grp span.ok { color: var(--ok); }
+:is(#learn,#course) .cg { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 6px; }
+</style>
+
+<!-- =============================================================== 07 · Courses -->
+<section class="page" id="learn" data-short="Courses">
+  <div class="page-head">
+    <h2>07 · Courses <small>/learn</small></h2>
+    <p>Aujourd'hui, en portrait, le bloc « Start here » occupe toute la hauteur de la colonne de gauche avec un grand vide au milieu, et les méthodes s'étirent en cartes de 230 px de haut dont le résumé est coupé ; à 1280 × 720 la quatrième méthode sort de l'écran. Les propositions gardent le cours à reprendre et les quatre méthodes entières dans l'écran, et utilisent la place libérée pour les autres puzzles (avec la question « Learn to solve the 4×4? »).</p>
+    <div class="feats"><span>Onglets Courses · Training</span><span>Choix du puzzle</span><span>Guide (?)</span><span>Méthodes du puzzle : Beginner, CFOP, Roux, ZZ</span><span>Niveau (barres) · nombre d'étapes · étapes apprises</span><span>Résumé de la méthode</span><span>% connu · algorithmes connus / total</span><span>Badges Recommended · In progress · Learned</span><span>Cours choisi : Continue / Start here, Steps, Algorithms, Known</span><span>Barres des étapes · Step 1 of 5 · Cross</span><span>Continue · Cross / Start</span><span>Puzzle pas encore ouvert : Learn to solve the 4×4? · Start learning · Unlock everything · Not now</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Le desktop sans barre du haut. En portrait, les deux colonnes deviennent une : le cours à reprendre en large bandeau, les méthodes en grille de deux, puis les autres puzzles là où il y avait du vide, le 4×4 fermé posant sa question sur place. À 1280 × 720, le cours à gauche et les quatre méthodes entières à droite, les autres puzzles en puces dessous.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <a><span><i data-lucide="timer"></i></span>Timer</a>
+            <a class="on"><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+            <a><span><i data-lucide="boxes"></i></span>Algs</a>
+            <a><span><i data-lucide="swords"></i></span>Challenges</a>
+            <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+            <span class="sp"></span>
+            <span class="avatar sm l">YU</span>
+          </nav>
+          <div class="main">
+            <div class="phead"><span class="title">Learn</span><div class="utabs"><span class="on">Courses</span><span>Training</span></div><span class="grow"></span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="col g12 px24 grow" style="padding-bottom:24px">
+              <div class="card g16" style="padding:24px;border-radius:24px">
+                <div class="row g20 start">
+                  <div class="col g8 grow">
+                    <span class="row g6 pri t b"><span class="lv l2"><i></i><i></i><i></i></span>Continue</span>
+                    <span class="display xl">CFOP</span>
+                    <span class="t mfg">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span>
+                  </div>
+                  <div class="col g6" style="width:220px;flex:none">
+                    <div class="well row between"><span class="s row g6"><i class="dot ok"></i>Steps</span><b class="h3 num">1 / 5</b></div>
+                    <div class="well row between"><span class="s row g6"><i class="dot"></i>Algorithms</span><b class="h3 num">124 / 1646</b></div>
+                    <div class="well row between"><span class="s row g6"><i class="dot lilac"></i>Known</span><b class="h3 num">8%</b></div>
+                  </div>
+                </div>
+                <div class="grid5" style="gap:6px">
+                  <div class="col g6 here"><div class="bar sb"><i style="width:0"></i></div><span class="xs b" style="color:var(--fg)">Cross</span></div>
+                  <div class="col g6"><div class="bar sb"><i style="width:83%"></i></div><span class="xs">F2L</span></div>
+                  <div class="col g6"><div class="bar sb"><i style="width:39%"></i></div><span class="xs">OLL</span></div>
+                  <div class="col g6"><div class="bar sb ok"><i style="width:100%"></i></div><span class="xs ok">PLL</span></div>
+                  <div class="col g6"><div class="bar sb"><i style="width:5%"></i></div><span class="xs">Going further</span></div>
+                </div>
+                <div class="row between"><span class="t mfg">Step 1 of 5 · <b style="color:var(--fg)">Cross</b></span><button class="btn pri lg" style="width:300px;justify-content:space-between">Continue · Cross<i data-lucide="chevron-right"></i></button></div>
+              </div>
+              <div class="row between" style="padding:6px 4px 0"><span class="cap">Methods · 3×3</span><span class="xs">4 methods</span></div>
+              <div class="grid2" style="gap:12px">
+                <div class="card g8" style="padding:16px">
+                  <div class="row g10"><span class="icon-tile pri"><span class="lv l1"><i></i><i></i><i></i></span></span><div class="col g2 grow"><span class="row g6"><b class="h2">Beginner</b><span class="pill pri">Recommended</span></span><span class="xs">Beginner · 6 steps</span></div></div>
+                  <span class="s" style="min-height:34px">Layer by layer with a handful of short algorithms. Slow but reliable, and the base of every other method.</span>
+                  <div class="row between" style="align-items:baseline"><span class="big faint">0%</span><span class="xs num">0 / 16 algorithms</span></div>
+                  <div class="bar thin"><i style="width:0"></i></div>
+                </div>
+                <div class="card g8 outline" style="padding:16px">
+                  <div class="row g10"><span class="icon-tile pri"><span class="lv l2"><i></i><i></i><i></i></span></span><div class="col g2 grow"><span class="row g6"><b class="h2">CFOP</b><span class="pill pri">In progress</span></span><span class="xs">Intermediate · 5 steps · 1 of 5 steps learned</span></div></div>
+                  <span class="s" style="min-height:34px">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span>
+                  <div class="row between" style="align-items:baseline"><span class="big">8%</span><span class="xs num">124 / 1646 algorithms</span></div>
+                  <div class="bar thin"><i style="width:8%"></i></div>
+                </div>
+                <div class="card g8" style="padding:16px">
+                  <div class="row g10"><span class="icon-tile"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col g2 grow"><b class="h2">Roux</b><span class="xs">Advanced · 4 steps</span></div></div>
+                  <span class="s" style="min-height:34px">A block-building method with few moves, finished with M and U turns.</span>
+                  <div class="row between" style="align-items:baseline"><span class="big faint">0%</span><span class="xs num">0 / 63 algorithms</span></div>
+                  <div class="bar thin"><i style="width:0"></i></div>
+                </div>
+                <div class="card g8" style="padding:16px">
+                  <div class="row g10"><span class="icon-tile pri"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col g2 grow"><span class="row g6"><b class="h2">ZZ</b><span class="pill pri">In progress</span></span><span class="xs">Advanced · 3 steps · 2 of 3 steps learned</span></div></div>
+                  <span class="s" style="min-height:34px">Orient every edge first, so the rest of the solve needs no F or B turns.</span>
+                  <div class="row between" style="align-items:baseline"><span class="big">30%</span><span class="xs num">31 / 103 algorithms</span></div>
+                  <div class="bar thin"><i style="width:30%"></i></div>
+                </div>
+              </div>
+              <div class="row between" style="padding:6px 4px 0"><span class="cap">Other puzzles</span><span class="xs">10 puzzles</span></div>
+              <div class="grid4" style="gap:12px;grid-template-rows:auto auto">
+                <div class="card hi g10" style="grid-column:span 2;grid-row:span 2;padding:18px">
+                  <div class="row g10"><span class="pz" style="background:var(--card)"><i data-lucide="lock"></i></span><div class="col g2 grow"><b class="h2">Learn to solve the 4×4?</b><span class="xs">Reduction · Yau</span></div></div>
+                  <span class="s">Learn it step by step, and the timer, algorithms, training and duels open on the 4×4 once you finish. Already know it? Unlock everything now.</span>
+                  <span class="grow"></span>
+                  <button class="btn pri block"><i data-lucide="graduation-cap"></i>Start learning</button>
+                  <div class="grid2"><button class="btn">Unlock everything</button><button class="btn ghost">Not now</button></div>
+                </div>
+                <div class="card g6"><div class="row between"><span class="pz"><span class="puzzle p2"><i></i><i></i><i></i><i></i></span></span><span class="ring" style="--p:12"><b>12%</b></span></div><b class="h3">2×2</b><span class="xs">4 methods</span></div>
+                <div class="card g6"><div class="row between"><span class="pz"><i data-lucide="triangle"></i></span><span class="ring" style="--p:0"><b class="faint">0%</b></span></div><b class="h3">Pyraminx</b><span class="xs">2 methods</span></div>
+                <div class="card g6"><div class="row between"><span class="pz"><i data-lucide="diamond"></i></span><span class="ring" style="--p:0"><b class="faint">0%</b></span></div><b class="h3">Skewb</b><span class="xs">2 methods</span></div>
+                <div class="card g6"><div class="row between"><span class="pz"><i data-lucide="lock"></i></span><span class="xs">Not opened</span></div><b class="h3">5×5</b><span class="xs">2 methods</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr"><div class="shell">
+          <nav class="rail">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <a><span><i data-lucide="timer"></i></span>Timer</a>
+            <a class="on"><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+            <a><span><i data-lucide="boxes"></i></span>Algs</a>
+            <a><span><i data-lucide="swords"></i></span>Challenges</a>
+            <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+            <span class="sp"></span>
+            <span class="avatar sm l">YU</span>
+          </nav>
+          <div class="main">
+            <div class="phead"><span class="title">Learn</span><div class="utabs"><span class="on">Courses</span><span>Training</span></div><span class="s">Choose a 3×3 method, then follow it step by step</span><span class="grow"></span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button></div>
+            <div class="row g20 px24 grow" style="align-items:stretch;padding-bottom:20px">
+              <div class="card w360 between" style="width:430px;padding:26px;border-radius:24px">
+                <div class="col g8">
+                  <span class="row g6 pri t b"><span class="lv l2"><i></i><i></i><i></i></span>Continue</span>
+                  <span class="display xl">CFOP</span>
+                  <span class="t mfg">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span>
+                </div>
+                <div class="col g12">
+                  <div class="grid3">
+                    <div class="well"><span class="xs row g4"><i class="dot ok"></i>Steps</span><b class="h3 num">1 / 5</b></div>
+                    <div class="well"><span class="xs row g4"><i class="dot"></i>Algorithms</span><b class="h3 num">124 / 1646</b></div>
+                    <div class="well"><span class="xs row g4"><i class="dot lilac"></i>Known</span><b class="h3 num">8%</b></div>
+                  </div>
+                  <div class="grid5" style="gap:6px">
+                    <div class="col g6 here"><div class="bar sb"><i style="width:0"></i></div><span class="xs b" style="color:var(--fg)">Cross</span></div>
+                    <div class="col g6"><div class="bar sb"><i style="width:83%"></i></div><span class="xs">F2L</span></div>
+                    <div class="col g6"><div class="bar sb"><i style="width:39%"></i></div><span class="xs">OLL</span></div>
+                    <div class="col g6"><div class="bar sb ok"><i style="width:100%"></i></div><span class="xs ok">PLL</span></div>
+                    <div class="col g6"><div class="bar sb"><i style="width:5%"></i></div><span class="xs trunc">Going further</span></div>
+                  </div>
+                  <span class="t mfg">Step 1 of 5 · <b style="color:var(--fg)">Cross</b></span>
+                  <button class="btn pri lg block between">Continue · Cross<i data-lucide="chevron-right"></i></button>
+                </div>
+              </div>
+              <div class="col g10 grow">
+                <div class="card g8" style="padding:14px 16px">
+                  <div class="row g12"><span class="icon-tile pri"><span class="lv l1"><i></i><i></i><i></i></span></span><div class="col g2 grow"><span class="row g6"><b class="h3">Beginner</b><span class="pill pri">Recommended</span></span><span class="s">Layer by layer with a handful of short algorithms. Slow but reliable, and the base of every other method.</span></div><div class="col g2" style="align-items:flex-end"><span class="big faint">0%</span><span class="xs num">0 / 16 algorithms</span></div></div>
+                  <div class="row g10"><span class="xs">Beginner · 6 steps</span><div class="bar thin grow"><i style="width:0"></i></div></div>
+                </div>
+                <div class="card g8 hi" style="padding:14px 16px">
+                  <div class="row g12"><span class="icon-tile pri"><span class="lv l2"><i></i><i></i><i></i></span></span><div class="col g2 grow"><span class="row g6"><b class="h3">CFOP</b><span class="pill pri">In progress</span></span><span class="s">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span></div><div class="col g2" style="align-items:flex-end"><span class="big">8%</span><span class="xs num">124 / 1646 algorithms</span></div></div>
+                  <div class="row g10"><span class="xs">Intermediate · 5 steps · 1 of 5 steps learned</span><div class="bar thin grow"><i style="width:8%"></i></div></div>
+                </div>
+                <div class="card g8" style="padding:14px 16px">
+                  <div class="row g12"><span class="icon-tile"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col g2 grow"><b class="h3">Roux</b><span class="s">A block-building method with few moves, finished with M and U turns.</span></div><div class="col g2" style="align-items:flex-end"><span class="big faint">0%</span><span class="xs num">0 / 63 algorithms</span></div></div>
+                  <div class="row g10"><span class="xs">Advanced · 4 steps</span><div class="bar thin grow"><i style="width:0"></i></div></div>
+                </div>
+                <div class="card g8" style="padding:14px 16px">
+                  <div class="row g12"><span class="icon-tile pri"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col g2 grow"><span class="row g6"><b class="h3">ZZ</b><span class="pill pri">In progress</span></span><span class="s">Orient every edge first, so the rest of the solve needs no F or B turns.</span></div><div class="col g2" style="align-items:flex-end"><span class="big">30%</span><span class="xs num">31 / 103 algorithms</span></div></div>
+                  <div class="row g10"><span class="xs">Advanced · 3 steps · 2 of 3 steps learned</span><div class="bar thin grow"><i style="width:30%"></i></div></div>
+                </div>
+                <span class="grow"></span>
+                <div class="row g8">
+                  <span class="cap" style="margin-right:4px">Other puzzles</span>
+                  <div class="hscroll grow">
+                    <span class="chip"><span class="puzzle"><i></i><i></i><i></i><i></i></span>2×2 <span class="v">12%</span></span>
+                    <span class="chip"><i data-lucide="lock"></i>4×4</span>
+                    <span class="chip"><i data-lucide="lock"></i>5×5</span>
+                    <span class="chip"><i data-lucide="triangle"></i>Pyraminx</span>
+                    <span class="chip"><i data-lucide="diamond"></i>Skewb</span>
+                    <span class="chip"><i data-lucide="pentagon"></i>Megaminx</span>
+                    <span class="chip"><i data-lucide="square"></i>Square-1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>L'écran Learn du téléphone agrandi : les puzzles en puces sous les onglets, les méthodes en grandes cartes tactiles, le cours choisi dans une feuille posée sur la barre (en portrait) ou ancré à droite (en paysage), avec ses étapes en liste et son grand bouton. Choisir un puzzle pas encore ouvert monte la feuille de sa question.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display xl">Learn</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><span class="avatar l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span class="on">Courses</span><span>Training</span></div>
+          <div class="hscroll" style="padding:14px 28px 2px">
+            <span class="chip on" style="height:44px;padding:0 16px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 <span class="v">8%</span></span>
+            <span class="chip" style="height:44px;padding:0 16px">2×2 <span class="v">12%</span></span>
+            <span class="chip" style="height:44px;padding:0 16px">4×4<i data-lucide="lock"></i></span>
+            <span class="chip" style="height:44px;padding:0 16px">5×5<i data-lucide="lock"></i></span>
+            <span class="chip" style="height:44px;padding:0 16px">Pyraminx</span>
+            <span class="chip" style="height:44px;padding:0 16px">Skewb</span>
+            <span class="chip" style="height:44px;padding:0 16px">Megaminx</span>
+            <span class="chip" style="height:44px;padding:0 16px">Square-1</span>
+          </div>
+          <div class="grid2" style="gap:14px;padding:14px 28px 0">
+            <div class="card g8" style="padding:20px;min-height:290px;border-radius:24px">
+              <div class="row between"><span class="pri"><span class="lv l1"><i></i><i></i><i></i></span></span><span class="pill pri">Recommended</span></div>
+              <b class="h1">Beginner</b>
+              <span class="s">Layer by layer with a handful of short algorithms. Slow but reliable, and the base of every other method.</span>
+              <span class="grow"></span>
+              <span class="xs">Beginner · 6 steps</span>
+              <div class="grid6" style="gap:5px"><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div></div>
+              <div class="row between" style="align-items:baseline"><span class="big faint" style="font-size:34px">0%</span><span class="s num">0 / 16 algorithms</span></div>
+            </div>
+            <div class="card g8 outline" style="padding:20px;min-height:290px;border-radius:24px">
+              <div class="row between"><span class="pri"><span class="lv l2"><i></i><i></i><i></i></span></span><span class="pill pri">In progress</span></div>
+              <b class="h1">CFOP</b>
+              <span class="s">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span>
+              <span class="grow"></span>
+              <span class="xs">Intermediate · 5 steps · 1 of 5 steps learned</span>
+              <div class="grid5" style="gap:5px"><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:83%"></i></div><div class="bar sb"><i style="width:39%"></i></div><div class="bar sb ok"><i style="width:100%"></i></div><div class="bar sb"><i style="width:5%"></i></div></div>
+              <div class="row between" style="align-items:baseline"><span class="big" style="font-size:34px">8%</span><span class="s num">124 / 1646 algorithms</span></div>
+            </div>
+            <div class="card g8" style="padding:20px;min-height:290px;border-radius:24px">
+              <div class="row between"><span class="faint"><span class="lv l3"><i></i><i></i><i></i></span></span></div>
+              <b class="h1">Roux</b>
+              <span class="s">A block-building method with few moves, finished with M and U turns.</span>
+              <span class="grow"></span>
+              <span class="xs">Advanced · 4 steps</span>
+              <div class="grid4" style="gap:5px"><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div><div class="bar sb"><i style="width:0"></i></div></div>
+              <div class="row between" style="align-items:baseline"><span class="big faint" style="font-size:34px">0%</span><span class="s num">0 / 63 algorithms</span></div>
+            </div>
+            <div class="card g8" style="padding:20px;min-height:290px;border-radius:24px">
+              <div class="row between"><span class="pri"><span class="lv l3"><i></i><i></i><i></i></span></span><span class="pill pri">In progress</span></div>
+              <b class="h1">ZZ</b>
+              <span class="s">Orient every edge first, so the rest of the solve needs no F or B turns.</span>
+              <span class="grow"></span>
+              <span class="xs">Advanced · 3 steps · 2 of 3 steps learned</span>
+              <div class="grid3" style="gap:5px"><div class="bar sb ok"><i style="width:100%"></i></div><div class="bar sb ok"><i style="width:100%"></i></div><div class="bar sb"><i style="width:22%"></i></div></div>
+              <div class="row between" style="align-items:baseline"><span class="big" style="font-size:34px">30%</span><span class="s num">31 / 103 algorithms</span></div>
+            </div>
+          </div>
+          <div class="sheet over-nav" style="gap:12px;padding:8px 20px 18px">
+            <div class="row between"><span class="row g6 pri t b"><span class="lv l2"><i></i><i></i><i></i></span>Continue</span><span class="s">Step 1 of 5 · <b style="color:var(--fg)">Cross</b></span></div>
+            <div class="row between" style="align-items:baseline"><span class="h1">CFOP</span><span class="s num">1 / 5 steps · 124 / 1646 algorithms · 8% known</span></div>
+            <div class="grid5" style="gap:6px">
+              <div class="col g6 here"><div class="bar sb"><i style="width:0"></i></div><span class="xs b" style="color:var(--fg)">Cross</span></div>
+              <div class="col g6"><div class="bar sb"><i style="width:83%"></i></div><span class="xs">F2L</span></div>
+              <div class="col g6"><div class="bar sb"><i style="width:39%"></i></div><span class="xs">OLL</span></div>
+              <div class="col g6"><div class="bar sb ok"><i style="width:100%"></i></div><span class="xs ok">PLL</span></div>
+              <div class="col g6"><div class="bar sb"><i style="width:5%"></i></div><span class="xs">Going further</span></div>
+            </div>
+            <button class="btn pri lg block between">Continue · Cross<i data-lucide="chevron-right"></i></button>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span class="on"><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row g0 grow" style="align-items:stretch;min-height:0">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="padding:14px 28px 6px"><span class="display">Learn</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><span class="avatar sm l">YU</span></div>
+              <div class="utabs" style="padding:0 28px"><span class="on">Courses</span><span>Training</span></div>
+              <div class="hscroll" style="padding:12px 28px 0">
+                <span class="chip on" style="height:40px;padding:0 14px"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3 <span class="v">8%</span></span>
+                <span class="chip" style="height:40px;padding:0 14px">2×2 <span class="v">12%</span></span>
+                <span class="chip" style="height:40px;padding:0 14px">4×4<i data-lucide="lock"></i></span>
+                <span class="chip" style="height:40px;padding:0 14px">5×5<i data-lucide="lock"></i></span>
+                <span class="chip" style="height:40px;padding:0 14px">Pyraminx</span>
+                <span class="chip" style="height:40px;padding:0 14px">Skewb</span>
+                <span class="chip" style="height:40px;padding:0 14px">Megaminx</span>
+                <span class="chip" style="height:40px;padding:0 14px">Square-1</span>
+              </div>
+              <div class="grid2" style="gap:12px;padding:12px 28px 0">
+                <div class="card g6" style="padding:16px;border-radius:22px">
+                  <div class="row between"><span class="pri"><span class="lv l1"><i></i><i></i><i></i></span></span><span class="pill pri">Recommended</span></div>
+                  <b class="h1">Beginner</b>
+                  <span class="s">Layer by layer with a handful of short algorithms. Slow but reliable, and the base of every other method.</span>
+                  <div class="row between" style="align-items:baseline"><span class="xs">Beginner · 6 steps</span><span class="row g6" style="align-items:baseline"><span class="s num">0 / 16</span><span class="big faint">0%</span></span></div>
+                  <div class="bar thin"><i style="width:0"></i></div>
+                </div>
+                <div class="card g6 outline" style="padding:16px;border-radius:22px">
+                  <div class="row between"><span class="pri"><span class="lv l2"><i></i><i></i><i></i></span></span><span class="pill pri">In progress</span></div>
+                  <b class="h1">CFOP</b>
+                  <span class="s">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span>
+                  <div class="row between" style="align-items:baseline"><span class="xs">Intermediate · 5 steps</span><span class="row g6" style="align-items:baseline"><span class="s num">124 / 1646</span><span class="big">8%</span></span></div>
+                  <div class="bar thin"><i style="width:8%"></i></div>
+                </div>
+                <div class="card g6" style="padding:16px;border-radius:22px">
+                  <div class="row between"><span class="faint"><span class="lv l3"><i></i><i></i><i></i></span></span></div>
+                  <b class="h1">Roux</b>
+                  <span class="s">A block-building method with few moves, finished with M and U turns.</span>
+                  <div class="row between" style="align-items:baseline"><span class="xs">Advanced · 4 steps</span><span class="row g6" style="align-items:baseline"><span class="s num">0 / 63</span><span class="big faint">0%</span></span></div>
+                  <div class="bar thin"><i style="width:0"></i></div>
+                </div>
+                <div class="card g6" style="padding:16px;border-radius:22px">
+                  <div class="row between"><span class="pri"><span class="lv l3"><i></i><i></i><i></i></span></span><span class="pill pri">In progress</span></div>
+                  <b class="h1">ZZ</b>
+                  <span class="s">Orient every edge first, so the rest of the solve needs no F or B turns.</span>
+                  <div class="row between" style="align-items:baseline"><span class="xs">Advanced · 3 steps</span><span class="row g6" style="align-items:baseline"><span class="s num">31 / 103</span><span class="big">30%</span></span></div>
+                  <div class="bar thin"><i style="width:30%"></i></div>
+                </div>
+              </div>
+              <span class="grow"></span>
+              <div class="fnav-space"></div>
+            </div>
+            <aside class="sidesheet docked" style="gap:12px;padding:20px">
+              <span class="row g6 pri t b"><span class="lv l2"><i></i><i></i><i></i></span>Continue</span>
+              <span class="display xl">CFOP</span>
+              <div class="grid3" style="gap:6px">
+                <div class="well" style="background:var(--muted)"><span class="xs row g4"><i class="dot ok"></i>Steps</span><b class="h3 num">1 / 5</b></div>
+                <div class="well"><span class="xs row g4"><i class="dot"></i>Algorithms</span><b class="h3 num">124</b></div>
+                <div class="well"><span class="xs row g4"><i class="dot lilac"></i>Known</span><b class="h3 num">8%</b></div>
+              </div>
+              <span class="cap" style="padding-top:4px">Steps</span>
+              <div class="col g2">
+                <div class="li on" style="padding:8px 10px"><i class="rg pri" style="--p:0"></i><div class="col"><b class="t">Cross</b><span class="xs">Intuitive · current step</span></div></div>
+                <div class="li" style="padding:8px 10px"><i class="rg pri" style="--p:83"></i><div class="col"><b class="t">F2L</b><span class="xs num">35 / 42 learned</span></div></div>
+                <div class="li" style="padding:8px 10px"><i class="rg pri" style="--p:39"></i><div class="col"><b class="t">OLL</b><span class="xs num">22 / 57 learned</span></div></div>
+                <div class="li" style="padding:8px 10px"><i class="rg ok"></i><div class="col"><b class="t">PLL</b><span class="xs ok">Done · 21 / 21</span></div></div>
+                <div class="li" style="padding:8px 10px"><i class="rg pri" style="--p:5"></i><div class="col"><b class="t">Going further</b><span class="xs num">46 / 1526 learned</span></div></div>
+              </div>
+              <span class="grow"></span>
+              <button class="btn pri lg block between">Continue · Cross<i data-lucide="chevron-right"></i></button>
+            </aside>
+          </div>
+          <nav class="fnav" style="left:444px">
+            <span><i data-lucide="timer"></i></span>
+            <span class="on"><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Feuille ouverte</b> 834 × 1194 · puzzle 4×4</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle"><span class="display xl">Learn</span><button class="btn icon ghost"><i data-lucide="circle-help"></i></button><span class="avatar l">YU</span></div>
+          <div class="utabs" style="padding:0 28px"><span class="on">Courses</span><span>Training</span></div>
+          <div class="hscroll" style="padding:14px 28px 2px">
+            <span class="chip" style="height:44px;padding:0 16px">3×3 <span class="v">8%</span></span>
+            <span class="chip" style="height:44px;padding:0 16px">2×2 <span class="v">12%</span></span>
+            <span class="chip on" style="height:44px;padding:0 16px"><span class="puzzle" style="grid-template-columns:repeat(4,3px)"><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i><i style="width:3px;height:3px"></i></span>4×4<i data-lucide="lock"></i></span>
+            <span class="chip" style="height:44px;padding:0 16px">5×5<i data-lucide="lock"></i></span>
+            <span class="chip" style="height:44px;padding:0 16px">Pyraminx</span>
+            <span class="chip" style="height:44px;padding:0 16px">Skewb</span>
+          </div>
+          <div class="grid2" style="gap:14px;padding:14px 28px 0">
+            <div class="card g8" style="padding:20px;min-height:290px;border-radius:24px">
+              <div class="row between"><span class="pri"><span class="lv l1"><i></i><i></i><i></i></span></span><span class="pill pri">Recommended</span></div>
+              <b class="h1">Reduction</b>
+              <span class="s">Build the centres, pair the edges, then solve it like a 3×3.</span>
+              <span class="grow"></span>
+              <span class="xs">Beginner · 4 steps</span>
+              <div class="row between" style="align-items:baseline"><span class="big faint" style="font-size:34px">0%</span><span class="s num">0 / 61 algorithms</span></div>
+            </div>
+            <div class="card g8" style="padding:20px;min-height:290px;border-radius:24px">
+              <div class="row between"><span class="faint"><span class="lv l2"><i></i><i></i><i></i></span></span></div>
+              <b class="h1">Yau</b>
+              <span class="s">Three cross edges first, then the centres and the rest of the edges.</span>
+              <span class="grow"></span>
+              <span class="xs">Intermediate · 5 steps</span>
+              <div class="row between" style="align-items:baseline"><span class="big faint" style="font-size:34px">0%</span><span class="s num">0 / 61 algorithms</span></div>
+            </div>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span class="on"><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+          <div class="scrim"></div>
+          <div class="sheet" style="gap:14px;padding:10px 28px 28px">
+            <div class="row g12" style="padding-top:6px">
+              <span class="pz" style="width:56px;height:56px;border-radius:16px"><i data-lucide="lock"></i></span>
+              <div class="col g2 grow"><span class="h1">Learn to solve the 4×4?</span><span class="s">Reduction · Yau</span></div>
+              <button class="btn icon ghost"><i data-lucide="x"></i></button>
+            </div>
+            <span class="t mfg">Learn it step by step, and the timer, algorithms, training and duels open on the 4×4 once you finish. Already know it? Unlock everything now.</span>
+            <div class="card hi g8">
+              <div class="row between"><span class="row g6 pri s b"><span class="lv l1"><i></i><i></i><i></i></span>Start here · Reduction</span><span class="xs num">4 steps · 61 algorithms</span></div>
+              <div class="grid4" style="gap:6px">
+                <div class="col g6 here"><div class="bar sb"><i style="width:0"></i></div><span class="xs b" style="color:var(--fg)">Centres</span></div>
+                <div class="col g6"><div class="bar sb"><i style="width:0"></i></div><span class="xs">Edge pairing</span></div>
+                <div class="col g6"><div class="bar sb"><i style="width:0"></i></div><span class="xs">3×3 stage</span></div>
+                <div class="col g6"><div class="bar sb"><i style="width:0"></i></div><span class="xs">Parity</span></div>
+              </div>
+            </div>
+            <button class="btn pri lg block"><i data-lucide="graduation-cap"></i>Start learning</button>
+            <div class="grid2" style="gap:10px"><button class="btn lg">Unlock everything</button><button class="btn lg ghost">Not now</button></div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Liste-détail : la liste des méthodes, le cours choisi en détail (ses chiffres et chacune de ses étapes, pour y entrer directement), et un volet des autres puzzles où un puzzle fermé déplie sa question sur place. En portrait le cours occupe le haut, méthodes et puzzles côte à côte dessous.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="graduation-cap"></i>Learn<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span class="on">Courses</span><span>Training</span></div>
+            <span class="grow"></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes v">
+            <div class="pane" style="padding:20px 24px;gap:12px">
+              <div class="ph"><span class="row g6 pri t b grow"><span class="lv l2"><i></i><i></i><i></i></span>Continue</span><span class="pill pri">In progress</span></div>
+              <div class="row g16 start">
+                <div class="col g6 grow"><span class="display xl">CFOP</span><span class="t mfg">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span></div>
+                <button class="btn pri lg">Continue · Cross<i data-lucide="chevron-right"></i></button>
+              </div>
+              <div class="grid3" style="gap:10px">
+                <div class="well"><span class="s row g6"><i class="dot ok"></i>Steps</span><b class="h2 num">1 / 5</b></div>
+                <div class="well"><span class="s row g6"><i class="dot"></i>Algorithms</span><b class="h2 num">124 / 1646</b></div>
+                <div class="well"><span class="s row g6"><i class="dot lilac"></i>Known</span><b class="h2 num">8%</b></div>
+              </div>
+              <div class="row between" style="padding-top:4px"><span class="cap">Steps</span><span class="xs">1 of 5 steps learned</span></div>
+              <div class="col g6">
+                <div class="li on" style="padding:10px 14px"><i class="rg pri" style="--p:0;width:22px;height:22px"></i><div class="col"><b class="h3">Cross</b><span class="xs">Intuitive · current step</span></div><span class="pill pri">Step 1</span><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:10px 14px;background:var(--card)"><i class="rg pri" style="--p:83;width:22px;height:22px"></i><div class="col"><b class="h3">F2L</b><span class="xs num">35 / 42 learned</span></div><div class="bar thin" style="width:180px"><i style="width:83%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:10px 14px;background:var(--card)"><i class="rg pri" style="--p:39;width:22px;height:22px"></i><div class="col"><b class="h3">OLL</b><span class="xs num">22 / 57 learned</span></div><div class="bar thin" style="width:180px"><i style="width:39%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:10px 14px;background:var(--card)"><i class="rg ok" style="width:22px;height:22px"></i><div class="col"><b class="h3">PLL</b><span class="xs ok num">Done · 21 / 21</span></div><div class="bar thin ok" style="width:180px"><i style="width:100%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:10px 14px;background:var(--card)"><i class="rg pri" style="--p:5;width:22px;height:22px"></i><div class="col"><b class="h3">Going further</b><span class="xs num">46 / 1526 learned</span></div><div class="bar thin" style="width:180px"><i style="width:5%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="panes" style="flex:none;height:440px">
+              <div class="pane" style="background:color-mix(in srgb, var(--card) 70%, var(--bg))">
+                <div class="ph"><span class="h3">Methods · 3×3</span><span class="xs">4 methods</span></div>
+                <div class="col g6">
+                  <div class="li" style="background:var(--card)"><span class="icon-tile pri"><span class="lv l1"><i></i><i></i><i></i></span></span><div class="col"><span class="row g6"><b class="h3">Beginner</b><span class="pill pri">Recommended</span></span><span class="xs">Beginner · 6 steps · 0 / 16 algorithms</span><div class="bar thin"><i style="width:0"></i></div></div><span class="big faint">0%</span></div>
+                  <div class="li on"><span class="icon-tile pri"><span class="lv l2"><i></i><i></i><i></i></span></span><div class="col"><span class="row g6"><b class="h3">CFOP</b><span class="pill pri">In progress</span></span><span class="xs">Intermediate · 5 steps · 124 / 1646 algorithms</span><div class="bar thin"><i style="width:8%"></i></div></div><span class="big">8%</span></div>
+                  <div class="li" style="background:var(--card)"><span class="icon-tile"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col"><b class="h3">Roux</b><span class="xs">Advanced · 4 steps · 0 / 63 algorithms</span><div class="bar thin"><i style="width:0"></i></div></div><span class="big faint">0%</span></div>
+                  <div class="li" style="background:var(--card)"><span class="icon-tile pri"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col"><span class="row g6"><b class="h3">ZZ</b><span class="pill pri">In progress</span></span><span class="xs">Advanced · 3 steps · 31 / 103 algorithms</span><div class="bar thin"><i style="width:30%"></i></div></div><span class="big">30%</span></div>
+                </div>
+              </div>
+              <div class="grip"></div>
+              <div class="pane side" style="width:300px">
+                <div class="ph"><span class="h3">Other puzzles</span><span class="xs">10</span></div>
+                <div class="scroll" style="gap:6px">
+                  <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><span class="puzzle p2"><i></i><i></i><i></i><i></i></span></span><div class="col"><b class="t">2×2</b><span class="xs">4 methods</span></div><span class="s b num">12%</span></div>
+                  <div class="card hi g8" style="padding:12px">
+                    <div class="row g10"><span class="pz" style="background:var(--card)"><i data-lucide="lock"></i></span><b class="h3 grow">Learn to solve the 4×4?</b></div>
+                    <span class="xs">Learn it step by step, and the timer, algorithms, training and duels open on the 4×4 once you finish. Already know it? Unlock everything now.</span>
+                    <button class="btn pri sm block"><i data-lucide="graduation-cap"></i>Start learning</button>
+                    <div class="row g6"><button class="btn sm grow">Unlock everything</button><button class="btn sm ghost">Not now</button></div>
+                  </div>
+                  <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="lock"></i></span><div class="col"><b class="t">5×5</b><span class="xs">Not opened</span></div></div>
+                  <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="triangle"></i></span><div class="col"><b class="t">Pyraminx</b><span class="xs">2 methods</span></div><span class="s b faint num">0%</span></div>
+                  <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="diamond"></i></span><div class="col"><b class="t">Skewb</b><span class="xs">2 methods</span></div><span class="s b faint num">0%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="graduation-cap"></i>Learn<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span class="on">Courses</span><span>Training</span></div>
+            <span class="grow"></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes">
+            <div class="pane side" style="width:360px">
+              <div class="ph"><span class="h3">Methods · 3×3</span><span class="xs">4 methods</span></div>
+              <div class="col g6">
+                <div class="li" style="background:var(--card);align-items:flex-start"><span class="icon-tile pri"><span class="lv l1"><i></i><i></i><i></i></span></span><div class="col"><span class="row g6"><b class="h3">Beginner</b><span class="pill pri">Recommended</span></span><span class="xs">Layer by layer with a handful of short algorithms. Slow but reliable.</span><span class="row between xs num" style="padding-top:4px">Beginner · 6 steps<b class="faint">0%</b></span><div class="bar thin"><i style="width:0"></i></div></div></div>
+                <div class="li on" style="align-items:flex-start"><span class="icon-tile pri"><span class="lv l2"><i></i><i></i><i></i></span></span><div class="col"><span class="row g6"><b class="h3">CFOP</b><span class="pill pri">In progress</span></span><span class="xs">The most popular speed method: cross, F2L, OLL and PLL.</span><span class="row between xs num" style="padding-top:4px">Intermediate · 5 steps<b style="color:var(--fg)">8%</b></span><div class="bar thin"><i style="width:8%"></i></div></div></div>
+                <div class="li" style="background:var(--card);align-items:flex-start"><span class="icon-tile"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col"><b class="h3">Roux</b><span class="xs">A block-building method with few moves, finished with M and U turns.</span><span class="row between xs num" style="padding-top:4px">Advanced · 4 steps<b class="faint">0%</b></span><div class="bar thin"><i style="width:0"></i></div></div></div>
+                <div class="li" style="background:var(--card);align-items:flex-start"><span class="icon-tile pri"><span class="lv l3"><i></i><i></i><i></i></span></span><div class="col"><span class="row g6"><b class="h3">ZZ</b><span class="pill pri">In progress</span></span><span class="xs">Orient every edge first, so the rest of the solve needs no F or B turns.</span><span class="row between xs num" style="padding-top:4px">Advanced · 3 steps<b style="color:var(--fg)">30%</b></span><div class="bar thin"><i style="width:30%"></i></div></div></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="padding:18px 24px;gap:12px">
+              <div class="ph"><span class="row g6 pri t b grow"><span class="lv l2"><i></i><i></i><i></i></span>Continue</span><span class="pill pri">In progress</span></div>
+              <div class="row g16">
+                <span class="display xl grow">CFOP</span>
+                <button class="btn pri lg">Continue · Cross<i data-lucide="chevron-right"></i></button>
+              </div>
+              <span class="t mfg">The most popular speed method: cross, F2L, OLL and PLL. Most of Qbix's 3×3 sets follow it.</span>
+              <div class="grid3" style="gap:10px">
+                <div class="well"><span class="s row g6"><i class="dot ok"></i>Steps</span><b class="h2 num">1 / 5</b></div>
+                <div class="well"><span class="s row g6"><i class="dot"></i>Algorithms</span><b class="h2 num">124 / 1646</b></div>
+                <div class="well"><span class="s row g6"><i class="dot lilac"></i>Known</span><b class="h2 num">8%</b></div>
+              </div>
+              <div class="row between" style="padding-top:2px"><span class="cap">Steps</span><span class="xs">1 of 5 steps learned</span></div>
+              <div class="col g4">
+                <div class="li on" style="padding:8px 12px"><i class="rg pri" style="--p:0"></i><div class="col"><b class="t">Cross</b><span class="xs">Intuitive · current step</span></div><span class="pill pri">Step 1</span><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:8px 12px;background:var(--card)"><i class="rg pri" style="--p:83"></i><div class="col"><b class="t">F2L</b><span class="xs num">35 / 42 learned</span></div><div class="bar thin" style="width:150px"><i style="width:83%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:8px 12px;background:var(--card)"><i class="rg pri" style="--p:39"></i><div class="col"><b class="t">OLL</b><span class="xs num">22 / 57 learned</span></div><div class="bar thin" style="width:150px"><i style="width:39%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:8px 12px;background:var(--card)"><i class="rg ok"></i><div class="col"><b class="t">PLL</b><span class="xs ok num">Done · 21 / 21</span></div><div class="bar thin ok" style="width:150px"><i style="width:100%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+                <div class="li" style="padding:8px 12px;background:var(--card)"><i class="rg pri" style="--p:5"></i><div class="col"><b class="t">Going further</b><span class="xs num">46 / 1526 learned</span></div><div class="bar thin" style="width:150px"><i style="width:5%"></i></div><i data-lucide="chevron-right" class="faint"></i></div>
+              </div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:280px">
+              <div class="ph"><span class="h3">Other puzzles</span><span class="xs">10</span></div>
+              <div class="scroll" style="gap:6px">
+                <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><span class="puzzle p2"><i></i><i></i><i></i><i></i></span></span><div class="col"><b class="t">2×2</b><span class="xs">4 methods</span></div><span class="s b num">12%</span></div>
+                <div class="card hi g8" style="padding:12px">
+                  <div class="row g10"><span class="pz" style="background:var(--card)"><i data-lucide="lock"></i></span><b class="h3 grow">Learn to solve the 4×4?</b></div>
+                  <span class="xs">Learn it step by step, and the timer, algorithms, training and duels open on the 4×4 once you finish. Already know it? Unlock everything now.</span>
+                  <button class="btn pri sm block"><i data-lucide="graduation-cap"></i>Start learning</button>
+                  <div class="row g6"><button class="btn sm grow">Unlock everything</button><button class="btn sm ghost">Not now</button></div>
+                </div>
+                <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="lock"></i></span><div class="col"><b class="t">5×5</b><span class="xs">Not opened</span></div></div>
+                <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="triangle"></i></span><div class="col"><b class="t">Pyraminx</b><span class="xs">2 methods</span></div><span class="s b faint num">0%</span></div>
+                <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="diamond"></i></span><div class="col"><b class="t">Skewb</b><span class="xs">2 methods</span></div><span class="s b faint num">0%</span></div>
+                <div class="li" style="background:var(--card);padding:8px 10px"><span class="pz"><i data-lucide="pentagon"></i></span><div class="col"><b class="t">Megaminx</b><span class="xs">2 methods</span></div><span class="s b faint num">0%</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>
+
+<!-- =============================================================== 08 · Course step -->
+<section class="page" id="course" data-short="Course step">
+  <div class="page-head">
+    <h2>08 · Course step <small>/learn/cfop</small></h2>
+    <p>Aujourd'hui, en portrait, l'établi de la croix flotte au milieu d'une colonne vide de 900 px pendant que la fiche de l'étape est serrée dans un tiers de la largeur ; à 1280 × 720 la fiche est coupée, et pour une étape à algorithmes (OLL) les trois colonnes du desktop (cas, établi, fiche) ne tiennent pas. Chaque direction montre la croix (étape intuitive) sur la tablette et l'OLL (cas, établi, fiche) sur le petit écran ; A et B ajoutent l'OLL en portrait, cas ouverts.</p>
+    <div class="feats"><span>Every method (retour)</span><span>CFOP · 1 of 5 steps learned</span><span>Piste des étapes Cross, F2L, OLL, PLL, Going further, anneaux de progression</span><span>Guide (?)</span><span>Fiche : Step 1 of 5, titre, avant → après, texte, conseils numérotés</span><span>Étape intuitive : An intuitive step · Train the cross · Mark as mastered</span><span>Jeu 2-Look OLL / OLL</span><span>Filtre All / Learned / To learn</span><span>Cas par groupe, appris / total, temps ou New</span><span>Cas sur l'établi : groupe · n of m, nom, autre nom, Mark learned</span><span>Average · Best · Attempts · This session</span><span>Diagramme (ouvre le cas)</span><span>Algorithmes par longueur (✓ celui que j'utilise) · I use it</span><span>Algorithme caché · Show (Espace)</span><span>Missed · Hesitated · Got it (1, 2, 3) · essais de la visite</span><span>Cas précédent / suivant</span><span>Train the 22 learned · Practise with the timer</span><span>Previous step · Next step</span></div>
+  </div>
+  <div class="phones">
+
+    <!-- ===================== A · Rail -->
+    <figure class="variant">
+      <figcaption><b><em>A</em> · Rail</b><span>Le desktop sans barre du haut : à 1280 × 720 la piste des étapes rejoint la ligne du titre, les cas et l'établi se partagent le centre et la fiche de l'étape est ancrée à droite, entière. En portrait, une seule colonne : l'établi, puis la fiche dessous avec ses cubes en grand ; à l'OLL, les cas passent dans un tiroir ouvert par le bouton Cases.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194 · Cross</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <a><span><i data-lucide="timer"></i></span>Timer</a>
+            <a class="on"><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+            <a><span><i data-lucide="boxes"></i></span>Algs</a>
+            <a><span><i data-lucide="swords"></i></span>Challenges</a>
+            <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+            <span class="sp"></span>
+            <span class="avatar sm l">YU</span>
+          </nav>
+          <div class="main">
+            <div class="phead">
+              <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+              <div class="col g0"><span class="title" style="line-height:1">CFOP</span><span class="xs num">3×3 · 1 of 5 steps learned</span></div>
+              <span class="grow"></span>
+              <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            </div>
+            <div class="trk px24" style="padding-bottom:14px"><span class="stepchip on"><i class="rg" style="--p:0"></i>Cross</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:83"></i>F2L</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:39"></i>OLL</span><i class="ln ok"></i><span class="stepchip"><i class="rg ok"></i>PLL</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:5"></i>Going further</span></div>
+            <div class="col g16 px24 grow" style="padding-bottom:24px">
+              <div class="card g16" style="padding:22px 24px;border-radius:24px">
+                <div class="row between"><span class="cap">Workbench</span><span class="pill">Intuitive</span></div>
+                <div class="col g6 center"><span class="h1" style="font-size:34px">An intuitive step</span><span class="t mfg">Nothing to memorise here: understand the idea, then practise it in your solves.</span></div>
+                <div class="grid2" style="gap:12px">
+                  <div class="act pri"><span class="icon-tile"><i data-lucide="dumbbell"></i></span><div class="col"><b class="h3">Train the cross</b><span class="xs">Plan it in inspection, then count its moves</span></div><i data-lucide="chevron-right"></i></div>
+                  <div class="act"><span class="icon-tile"><i data-lucide="check"></i></span><div class="col"><b class="h3">Mark as mastered</b><span class="xs">When you do it without thinking</span></div></div>
+                </div>
+              </div>
+              <div class="card g16 grow" style="padding:22px 24px;border-radius:24px">
+                <div class="row g20 start">
+                  <div class="col g6 grow"><span class="s b pri num">Step 1 of 5</span><span class="display xl">Cross</span><span class="t mfg">Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.</span></div>
+                </div>
+                <div class="well row center g20" style="padding:18px;border-radius:20px">
+                  <i class="iso" style="width:190px;height:190px" data-iso="xgxxwxxwx|xrxoxgxxx|xxxwxxxbx"></i>
+                  <i data-lucide="chevron-right" class="faint"></i>
+                  <i class="iso" style="width:190px;height:190px" data-iso="xwxwwwxwx|xgxxgxxxx|xoxxoxxxx"></i>
+                </div>
+                <div class="col g10">
+                  <div class="tip"><b>1</b>Build it on the bottom from the start, so the pairs stay in view.</div>
+                  <div class="tip"><b>2</b>Place edges relative to each other first; the centres can be matched with one last turn.</div>
+                  <div class="tip"><b>3</b>Most crosses take eight moves or fewer: if yours takes more, look for a shorter one.</div>
+                </div>
+              </div>
+              <div class="row g8"><button class="btn icon" style="opacity:.4"><i data-lucide="chevron-left"></i></button><span class="grow"></span><button class="btn">Next step · F2L<i data-lucide="chevron-right"></i></button></div>
+            </div>
+          </div>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720 · OLL</div>
+        <div class="dev pc"><div class="scr"><div class="shell">
+          <nav class="rail">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <a><span><i data-lucide="timer"></i></span>Timer</a>
+            <a class="on"><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+            <a><span><i data-lucide="boxes"></i></span>Algs</a>
+            <a><span><i data-lucide="swords"></i></span>Challenges</a>
+            <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+            <span class="sp"></span>
+            <span class="avatar sm l">YU</span>
+          </nav>
+          <div class="main">
+            <div class="phead" style="gap:14px">
+              <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+              <div class="col g0"><span class="h2">CFOP</span><span class="xs num">1 of 5 steps learned</span></div>
+              <div class="trk grow"><span class="stepchip"><i class="rg pri" style="--p:0"></i>Cross</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:83"></i>F2L</span><i class="ln"></i><span class="stepchip on"><i class="rg" style="--p:39"></i>OLL</span><i class="ln ok"></i><span class="stepchip"><i class="rg ok"></i>PLL</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:5"></i>Going further</span></div>
+            </div>
+            <div class="row g16 px24 grow" style="align-items:stretch;padding-bottom:20px">
+              <div class="card w280 g10" style="padding:14px 12px">
+                <div class="row between" style="padding:0 4px"><b class="h3">Cases</b><span class="xs num">22 / 57 learned</span></div>
+                <div class="seg block"><span>2-Look OLL</span><span class="on">OLL</span></div>
+                <div class="seg block"><span class="on">All 57</span><span>Learned 22</span><span>To learn 35</span></div>
+                <div class="scroll" style="gap:4px;--n:4"><div class="grp">Dot<span>2 / 8</span></div><div class="cg"><div class="case todo"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy"></i><b>1</b><small>New</small></div><div class="case here"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i><b>2</b><small>New</small></div><div class="case"><i class="ll sm" data-ll="xxxxyxxxy|yyx|xyx|yyx|yyx"></i><b>3</b><small>1.86</small></div><div class="case"><i class="ll sm" data-ll="yxxxyxxxx|xyy|xyy|xyx|yyx"></i><b>4</b><small>2.04</small></div><div class="case todo"><i class="ll sm" data-ll="yxxxyxxxy|xyy|xyx|xyx|xyy"></i><b>17</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyx|yyy|xyx"></i><b>18</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyy|xyx|yyx"></i><b>19</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx"></i><b>20</b><small>New</small></div></div><div class="grp">Line<span class="ok">4 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyx|xxx|xyy|xyx"></i><b>51</b><small>1.21</small></div><div class="case"><i class="ll sm" data-ll="xyxxyxxyx|xxx|yyy|xxx|yxy"></i><b>52</b><small>1.34</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyy|xxx|yyy|xxx"></i><b>55</b><small>0.98</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yxy|xyx|yxy|xyx"></i><b>56</b><small>1.12</small></div></div><div class="grp">T<span class="ok">2 / 2</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxyy|yxx|xxx|xxy|xyx"></i><b>33</b><small>1.05</small></div><div class="case"><i class="ll sm" data-ll="xyyyyyxyy|yxx|xxx|xxy|xyx"></i><b>45</b><small>1.17</small></div></div><div class="grp">P<span>3 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|xxx|xyy|yxx|xyx"></i><b>31</b><small>1.62</small></div><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|yxx|xxx|xyy|yxx"></i><b>32</b><small>1.48</small></div><div class="case"><i class="ll sm" data-ll="yyxxyyxxx|xxx|yyy|xxx|xxx"></i><b>43</b><small>1.77</small></div><div class="case todo"><i class="ll sm" data-ll="yyxyyxxxx|xxx|xxx|xyx|yyy"></i><b>44</b><small>New</small></div></div></div>
+              </div>
+              <div class="card grow g12" style="padding:18px 22px">
+                <div class="row between start">
+                  <div class="col g4"><span class="s b mfg">Dot · 2 of 8</span><span class="display xl">OLL 2</span><span class="t b mfg">Zamboni</span></div>
+                  <button class="btn sm"><i data-lucide="check"></i>Mark learned</button>
+                </div>
+                <div class="grid4" style="gap:6px">
+                  <div class="well"><span class="xs">Average</span><b class="num">–</b></div>
+                  <div class="well"><span class="xs">Best</span><b class="num">–</b></div>
+                  <div class="well"><span class="xs">Attempts</span><b class="num">2</b></div>
+                  <div class="well"><span class="xs">This session</span><b class="num">1 / 2</b></div>
+                </div>
+                <div class="row center grow" style="min-height:0"><i class="ll" style="width:150px;height:150px" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i></div>
+                <div class="row g8"><div class="seg"><span class="on"><i data-lucide="check" class="ok" style="width:14px;height:14px"></i>12 moves</span><span>14 moves</span></div><button class="chip" style="color:var(--ok)"><i data-lucide="check"></i>I use it</button></div>
+                <div class="well g12" style="background:var(--bg);padding:14px;border-radius:20px">
+                  <div class="row g10"><div class="hid grow"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><button class="btn"><i data-lucide="eye"></i>Show<kbd>Space</kbd></button></div>
+                  <div class="grid3"><button class="btn bad">Missed<kbd>1</kbd></button><button class="btn warn">Hesitated<kbd>2</kbd></button><button class="btn ok"><i data-lucide="check"></i>Got it<kbd>3</kbd></button></div>
+                </div>
+                <div class="row g8"><span class="row g6 xs grow">4 tries<span class="trail"><i class="meh"></i><i></i><i class="no"></i><i></i></span></span><button class="btn ghost"><i data-lucide="chevron-left"></i>OLL 1</button><button class="btn">OLL 3<i data-lucide="chevron-right"></i></button></div>
+              </div>
+            </div>
+          </div>
+          <aside class="dock" style="gap:12px;padding:18px">
+            <div class="col g4"><span class="s b pri num">Step 3 of 5</span><span class="h1">OLL</span></div>
+            <div class="well row center g6" style="padding:12px"><i class="iso" style="width:80px;height:80px" data-iso="yrybyyogy|gyygggggg|ryorrrrrr"></i><i data-lucide="chevron-right" class="faint"></i><i class="iso" style="width:80px;height:80px" data-iso="yyyyyyyyy|brggggggg|gorrrrrrr"></i></div>
+            <span class="t mfg">Orient the whole last layer in one algorithm, so the top face turns yellow. 57 cases, sorted by the shape the yellow makes.</span>
+            <div class="scroll" style="gap:10px">
+              <div class="tip"><b>1</b>Start with 2-Look OLL: ten algorithms cover every case in two goes.</div>
+              <div class="tip"><b>2</b>Read the shape of the yellow on top first, then the stickers on the sides.</div>
+              <div class="tip"><b>3</b>Learn the cases you meet most first: dots are rare, lines and Ls are common.</div>
+            </div>
+            <button class="btn block"><i data-lucide="dumbbell"></i>Train the 22 learned</button>
+            <button class="btn block"><i data-lucide="timer"></i>Practise with the timer</button>
+            <div class="row g6"><button class="btn icon"><i data-lucide="chevron-left"></i></button><button class="btn grow between">Next step · PLL<i data-lucide="chevron-right"></i></button></div>
+          </aside>
+        </div></div></div></div>
+
+        <div><div class="size"><b>Tiroir ouvert</b> 834 × 1194 · OLL</div>
+        <div class="dev tab"><div class="scr"><div class="shell">
+          <nav class="rail">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <a><span><i data-lucide="timer"></i></span>Timer</a>
+            <a class="on"><span><i data-lucide="graduation-cap"></i></span>Learn</a>
+            <a><span><i data-lucide="boxes"></i></span>Algs</a>
+            <a><span><i data-lucide="swords"></i></span>Challenges</a>
+            <a><span><i data-lucide="user-round"></i><i class="nd"></i></span>Me</a>
+            <span class="sp"></span>
+            <span class="avatar sm l">YU</span>
+          </nav>
+          <div class="main">
+            <div class="phead">
+              <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+              <div class="col g0"><span class="title" style="line-height:1">CFOP</span><span class="xs num">3×3 · 1 of 5 steps learned</span></div>
+              <span class="grow"></span>
+              <button class="btn soft"><i data-lucide="layout-grid"></i>Cases <span class="num">22 / 57</span></button>
+              <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            </div>
+            <div class="trk px24" style="padding-bottom:14px"><span class="stepchip"><i class="rg pri" style="--p:0"></i>Cross</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:83"></i>F2L</span><i class="ln"></i><span class="stepchip on"><i class="rg" style="--p:39"></i>OLL</span><i class="ln ok"></i><span class="stepchip"><i class="rg ok"></i>PLL</span><i class="ln"></i><span class="stepchip"><i class="rg pri" style="--p:5"></i>Going further</span></div>
+            <div class="col g16 px24 grow" style="padding-bottom:24px">
+              <div class="card g12 grow" style="padding:22px 24px;border-radius:24px">
+                <div class="row between start">
+                  <div class="col g4"><span class="s b mfg">Dot · 2 of 8</span><span class="display xl">OLL 2</span><span class="t b mfg">Zamboni</span></div>
+                  <button class="btn sm"><i data-lucide="check"></i>Mark learned</button>
+                </div>
+                <div class="grid4" style="gap:6px">
+                  <div class="well"><span class="xs">Average</span><b class="num">–</b></div>
+                  <div class="well"><span class="xs">Best</span><b class="num">–</b></div>
+                  <div class="well"><span class="xs">Attempts</span><b class="num">2</b></div>
+                  <div class="well"><span class="xs">This session</span><b class="num">1 / 2</b></div>
+                </div>
+                <div class="row center grow" style="min-height:0"><i class="ll" style="width:260px;height:260px" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i></div>
+                <div class="row g8"><div class="seg"><span class="on"><i data-lucide="check" class="ok" style="width:14px;height:14px"></i>12 moves</span><span>14 moves</span></div><button class="chip" style="color:var(--ok)"><i data-lucide="check"></i>I use it</button></div>
+                <div class="well g12" style="background:var(--bg);padding:14px;border-radius:20px">
+                  <div class="row g10"><div class="hid grow"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><button class="btn"><i data-lucide="eye"></i>Show<kbd>Space</kbd></button></div>
+                  <div class="grid3"><button class="btn bad">Missed<kbd>1</kbd></button><button class="btn warn">Hesitated<kbd>2</kbd></button><button class="btn ok"><i data-lucide="check"></i>Got it<kbd>3</kbd></button></div>
+                </div>
+                <div class="row g8"><span class="row g6 xs grow">4 tries<span class="trail"><i class="meh"></i><i></i><i class="no"></i><i></i></span></span><button class="btn ghost"><i data-lucide="chevron-left"></i>OLL 1</button><button class="btn">OLL 3<i data-lucide="chevron-right"></i></button></div>
+              </div>
+              <div class="card g10" style="padding:18px 24px;border-radius:24px">
+                <div class="row g16">
+                  <div class="col g4 grow"><span class="s b pri num">Step 3 of 5</span><span class="h1">OLL</span><span class="s">Orient the whole last layer in one algorithm, so the top face turns yellow. 57 cases, sorted by the shape the yellow makes.</span></div>
+                  <div class="well row g6" style="padding:8px 10px"><i class="iso" style="width:76px;height:76px" data-iso="yrybyyogy|gyygggggg|ryorrrrrr"></i><i data-lucide="chevron-right" class="faint"></i><i class="iso" style="width:76px;height:76px" data-iso="yyyyyyyyy|brggggggg|gorrrrrrr"></i></div>
+                </div>
+                <div class="row g8"><button class="btn"><i data-lucide="dumbbell"></i>Train the 22 learned</button><button class="btn"><i data-lucide="timer"></i>Practise with the timer</button><span class="grow"></span><button class="btn icon"><i data-lucide="chevron-left"></i></button><button class="btn">Next step · PLL<i data-lucide="chevron-right"></i></button></div>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="drawer left" style="width:420px;padding:20px 18px">
+            <div class="row g8"><b class="h2 grow">Cases</b><span class="s num">22 / 57 learned</span><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+            <div class="seg block"><span>2-Look OLL</span><span class="on">OLL</span></div>
+            <div class="seg block"><span class="on">All 57</span><span>Learned 22</span><span>To learn 35</span></div>
+            <div class="scroll" style="gap:4px;--n:5"><div class="grp">Dot<span>2 / 8</span></div><div class="cg"><div class="case todo"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy"></i><b>1</b><small>New</small></div><div class="case here"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i><b>2</b><small>New</small></div><div class="case"><i class="ll sm" data-ll="xxxxyxxxy|yyx|xyx|yyx|yyx"></i><b>3</b><small>1.86</small></div><div class="case"><i class="ll sm" data-ll="yxxxyxxxx|xyy|xyy|xyx|yyx"></i><b>4</b><small>2.04</small></div><div class="case todo"><i class="ll sm" data-ll="yxxxyxxxy|xyy|xyx|xyx|xyy"></i><b>17</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyx|yyy|xyx"></i><b>18</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyy|xyx|yyx"></i><b>19</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx"></i><b>20</b><small>New</small></div></div><div class="grp">Line<span class="ok">4 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyx|xxx|xyy|xyx"></i><b>51</b><small>1.21</small></div><div class="case"><i class="ll sm" data-ll="xyxxyxxyx|xxx|yyy|xxx|yxy"></i><b>52</b><small>1.34</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyy|xxx|yyy|xxx"></i><b>55</b><small>0.98</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yxy|xyx|yxy|xyx"></i><b>56</b><small>1.12</small></div></div><div class="grp">T<span class="ok">2 / 2</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxyy|yxx|xxx|xxy|xyx"></i><b>33</b><small>1.05</small></div><div class="case"><i class="ll sm" data-ll="xyyyyyxyy|yxx|xxx|xxy|xyx"></i><b>45</b><small>1.17</small></div></div><div class="grp">P<span>3 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|xxx|xyy|yxx|xyx"></i><b>31</b><small>1.62</small></div><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|yxx|xxx|xyy|yxx"></i><b>32</b><small>1.48</small></div><div class="case"><i class="ll sm" data-ll="yyxxyyxxx|xxx|yyy|xxx|xxx"></i><b>43</b><small>1.77</small></div><div class="case todo"><i class="ll sm" data-ll="yyxyyxxxx|xxx|xxx|xyx|yyy"></i><b>44</b><small>New</small></div></div></div>
+          </div>
+        </div></div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== B · Grand mobile -->
+    <figure class="variant">
+      <figcaption><b><em>B</em> · Grand mobile</b><span>Le cours du téléphone en grand : les étapes deviennent la rangée d'onglets, chacune avec son anneau. La croix se lit en haut (cubes en grand, conseils en cartes) et se pratique dans la feuille posée sur la barre. À l'OLL, l'établi prend toute la largeur en deux colonnes, les cas restent dans une feuille ancrée à droite (paysage) ou montée du bas (portrait).</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194 · Cross</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle">
+            <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+            <div class="col g2 grow"><span class="s num">3×3 · 1 of 5 steps learned</span><span class="display xl">CFOP</span></div>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="utabs" style="padding:0 28px;gap:26px"><span class="on" style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:0"></i>Cross</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:83"></i>F2L</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:39"></i>OLL</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg ok"></i>PLL</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:5"></i>Going further</span></div>
+          <div class="col g16" style="padding:18px 28px 0">
+            <div class="card row center g20" style="padding:20px;border-radius:24px">
+              <i class="iso" style="width:250px;height:250px" data-iso="xgxxwxxwx|xrxoxgxxx|xxxwxxxbx"></i>
+              <i data-lucide="arrow-right" class="faint"></i>
+              <i class="iso" style="width:250px;height:250px" data-iso="xwxwwwxwx|xgxxgxxxx|xoxxoxxxx"></i>
+            </div>
+            <div class="col g6"><span class="s b pri num">Step 1 of 5</span><span class="display xl">Cross</span><span class="t mfg">Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.</span></div>
+            <div class="grid3" style="gap:12px">
+              <div class="card g6"><span class="big warn">1</span><span class="t">Build it on the bottom from the start, so the pairs stay in view.</span></div>
+              <div class="card g6"><span class="big warn">2</span><span class="t">Place edges relative to each other first; the centres can be matched with one last turn.</span></div>
+              <div class="card g6"><span class="big warn">3</span><span class="t">Most crosses take eight moves or fewer: if yours takes more, look for a shorter one.</span></div>
+            </div>
+          </div>
+          <div class="sheet over-nav" style="gap:12px;padding:8px 18px 16px">
+            <div class="row between"><b class="h3">An intuitive step</b><span class="xs">Nothing to memorise: understand the idea, then practise it</span></div>
+            <div class="grid2" style="gap:10px">
+              <div class="act pri"><span class="icon-tile"><i data-lucide="dumbbell"></i></span><div class="col"><b class="h3">Train the cross</b><span class="xs">Plan it in inspection, then count its moves</span></div></div>
+              <div class="act"><span class="icon-tile"><i data-lucide="check"></i></span><div class="col"><b class="h3">Mark as mastered</b><span class="xs">When you do it without thinking</span></div></div>
+            </div>
+            <div class="row g8"><button class="btn lg icon" style="width:52px;opacity:.4"><i data-lucide="chevron-left"></i></button><button class="btn lg soft grow between">Next step · F2L<i data-lucide="chevron-right"></i></button></div>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span class="on"><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720 · OLL</div>
+        <div class="dev pc"><div class="scr">
+          <div class="row g0 grow" style="align-items:stretch;min-height:0">
+            <div class="col g0 grow">
+              <div class="bigtitle" style="padding:12px 28px 4px">
+                <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+                <span class="display" style="flex:none">CFOP</span><span class="s num grow">3×3 · 1 of 5 steps learned</span>
+                <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+              </div>
+              <div class="utabs" style="padding:0 28px;gap:26px"><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:0"></i>Cross</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:83"></i>F2L</span><span class="on" style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:39"></i>OLL</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg ok"></i>PLL</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:5"></i>Going further</span></div>
+              <div class="col g12" style="padding:12px 24px 0">
+                <div class="card row g20 start" style="padding:18px 20px;border-radius:24px;align-items:stretch">
+                  <div class="col g4" style="width:270px;flex:none">
+                    <span class="s b mfg">Dot · 2 of 8</span>
+                    <span class="display xl">OLL 2</span>
+                    <span class="t b mfg">Zamboni</span>
+                    <div class="grow row center" style="padding-top:6px"><i class="ll" style="width:200px;height:200px" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i></div>
+                  </div>
+                  <div class="col g12 grow">
+                    <div class="row g8"><div class="grid4 grow" style="gap:6px">
+                      <div class="well"><span class="xs">Average</span><b class="num">–</b></div>
+                      <div class="well"><span class="xs">Best</span><b class="num">–</b></div>
+                      <div class="well"><span class="xs">Attempts</span><b class="num">2</b></div>
+                      <div class="well"><span class="xs">This session</span><b class="num">1 / 2</b></div>
+                    </div></div>
+                    <div class="row g8"><button class="chip" style="height:44px;padding:0 14px"><i data-lucide="check"></i>Mark learned</button><span class="grow"></span><div class="seg"><span class="on" style="height:38px"><i data-lucide="check" class="ok" style="width:14px;height:14px"></i>12 moves</span><span style="height:38px">14 moves</span></div><button class="chip" style="height:44px;padding:0 14px;color:var(--ok)"><i data-lucide="check"></i>I use it</button></div>
+                    <div class="well g10" style="background:var(--bg);padding:12px;border-radius:20px">
+                      <div class="row g10"><span class="t b mfg grow">12 moves · hidden</span><button class="btn" style="height:44px"><i data-lucide="eye"></i>Show</button></div>
+                      <div class="grid3"><button class="btn lg bad">Missed</button><button class="btn lg warn">Hesitated</button><button class="btn lg ok"><i data-lucide="check"></i>Got it</button></div>
+                    </div>
+                    <span class="grow"></span>
+                    <div class="row g8"><span class="row g6 xs grow">4 tries<span class="trail"><i class="meh"></i><i></i><i class="no"></i><i></i></span></span><button class="btn ghost" style="height:44px"><i data-lucide="chevron-left"></i>OLL 1</button><button class="btn" style="height:44px">OLL 3<i data-lucide="chevron-right"></i></button></div>
+                  </div>
+                </div>
+                <div class="card row g12" style="padding:12px 16px"><span class="icon-tile"><i data-lucide="info"></i></span><div class="col g2 grow"><span class="xs b pri num">Step 3 of 5 · About this step</span><span class="s trunc">Orient the whole last layer in one algorithm, so the top face turns yellow. 57 cases, sorted by the shape the yellow makes.</span></div><i data-lucide="chevron-right" class="faint"></i></div>
+              </div>
+              <span class="grow"></span>
+              <div class="fnav-space"></div>
+            </div>
+            <aside class="sidesheet docked" style="gap:10px;padding:16px">
+              <div class="row between"><b class="h2">Cases</b><span class="s num">22 / 57 learned</span></div>
+              <div class="seg block"><span style="height:36px">2-Look OLL</span><span class="on" style="height:36px">OLL</span></div>
+              <div class="seg block"><span class="on" style="height:36px">All 57</span><span style="height:36px">Learned 22</span><span style="height:36px">To learn 35</span></div>
+              <div class="scroll" style="gap:4px;--n:5"><div class="grp">Dot<span>2 / 8</span></div><div class="cg"><div class="case todo"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy"></i><b>1</b><small>New</small></div><div class="case here"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i><b>2</b><small>New</small></div><div class="case"><i class="ll sm" data-ll="xxxxyxxxy|yyx|xyx|yyx|yyx"></i><b>3</b><small>1.86</small></div><div class="case"><i class="ll sm" data-ll="yxxxyxxxx|xyy|xyy|xyx|yyx"></i><b>4</b><small>2.04</small></div><div class="case todo"><i class="ll sm" data-ll="yxxxyxxxy|xyy|xyx|xyx|xyy"></i><b>17</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyx|yyy|xyx"></i><b>18</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyy|xyx|yyx"></i><b>19</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx"></i><b>20</b><small>New</small></div></div><div class="grp">Line<span class="ok">4 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyx|xxx|xyy|xyx"></i><b>51</b><small>1.21</small></div><div class="case"><i class="ll sm" data-ll="xyxxyxxyx|xxx|yyy|xxx|yxy"></i><b>52</b><small>1.34</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyy|xxx|yyy|xxx"></i><b>55</b><small>0.98</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yxy|xyx|yxy|xyx"></i><b>56</b><small>1.12</small></div></div><div class="grp">T<span class="ok">2 / 2</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxyy|yxx|xxx|xxy|xyx"></i><b>33</b><small>1.05</small></div><div class="case"><i class="ll sm" data-ll="xyyyyyxyy|yxx|xxx|xxy|xyx"></i><b>45</b><small>1.17</small></div></div><div class="grp">P<span>3 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|xxx|xyy|yxx|xyx"></i><b>31</b><small>1.62</small></div><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|yxx|xxx|xyy|yxx"></i><b>32</b><small>1.48</small></div><div class="case"><i class="ll sm" data-ll="yyxxyyxxx|xxx|yyy|xxx|xxx"></i><b>43</b><small>1.77</small></div><div class="case todo"><i class="ll sm" data-ll="yyxyyxxxx|xxx|xxx|xyx|yyy"></i><b>44</b><small>New</small></div></div></div>
+              <div class="grid2" style="gap:8px"><button class="btn" style="height:44px"><i data-lucide="dumbbell"></i>Train the 22</button><button class="btn" style="height:44px"><i data-lucide="timer"></i>With the timer</button></div>
+              <div class="row g8"><button class="btn lg icon" style="width:52px"><i data-lucide="chevron-left"></i></button><button class="btn lg soft grow between">Next step · PLL<i data-lucide="chevron-right"></i></button></div>
+            </aside>
+          </div>
+          <nav class="fnav" style="left:444px">
+            <span><i data-lucide="timer"></i></span>
+            <span class="on"><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+        </div></div></div>
+
+        <div><div class="size"><b>Feuille ouverte</b> 834 × 1194 · OLL</div>
+        <div class="dev tab"><div class="scr">
+          <div class="bigtitle">
+            <button class="btn icon"><i data-lucide="chevron-left"></i></button>
+            <div class="col g2 grow"><span class="s num">3×3 · 1 of 5 steps learned</span><span class="display xl">CFOP</span></div>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+          </div>
+          <div class="utabs" style="padding:0 28px;gap:26px"><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:0"></i>Cross</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:83"></i>F2L</span><span class="on" style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:39"></i>OLL</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg ok"></i>PLL</span><span style="padding:12px 0 11px;font-size:15px"><i class="rg pri" style="--p:5"></i>Going further</span></div>
+          <div class="col g12" style="padding:18px 28px 0">
+            <div class="row g16">
+              <div class="col g4 grow"><span class="s b mfg">Dot · 2 of 8</span><span class="display xl">OLL 2</span><span class="t b mfg">Zamboni</span></div>
+              <i class="ll" style="width:180px;height:180px" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i>
+            </div>
+            <div class="grid4" style="gap:8px">
+              <div class="well"><span class="xs">Average</span><b class="num">–</b></div>
+              <div class="well"><span class="xs">Best</span><b class="num">–</b></div>
+              <div class="well"><span class="xs">Attempts</span><b class="num">2</b></div>
+              <div class="well"><span class="xs">This session</span><b class="num">1 / 2</b></div>
+            </div>
+          </div>
+          <span class="grow"></span>
+          <div class="fnav-space"></div>
+          <nav class="fnav">
+            <span><i data-lucide="timer"></i></span>
+            <span class="on"><i data-lucide="graduation-cap"></i></span>
+            <span><i data-lucide="boxes"></i></span>
+            <span><i data-lucide="swords"></i></span>
+            <span><i data-lucide="user-round"></i><i class="nd"></i></span>
+          </nav>
+          <div class="scrim"></div>
+          <div class="sheet" style="top:330px;gap:12px;padding:8px 24px 24px">
+            <div class="row g8"><b class="h1 grow">Cases</b><span class="s num">22 / 57 learned</span><button class="btn icon ghost"><i data-lucide="x"></i></button></div>
+            <div class="row g10"><div class="seg"><span style="height:38px">2-Look OLL</span><span class="on" style="height:38px">OLL</span></div><span class="grow"></span><div class="seg"><span class="on" style="height:38px">All 57</span><span style="height:38px">Learned 22</span><span style="height:38px">To learn 35</span></div></div>
+            <div class="scroll" style="gap:4px;--n:8"><div class="grp">Dot<span>2 / 8</span></div><div class="cg"><div class="case todo"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy"></i><b>1</b><small>New</small></div><div class="case here"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i><b>2</b><small>New</small></div><div class="case"><i class="ll sm" data-ll="xxxxyxxxy|yyx|xyx|yyx|yyx"></i><b>3</b><small>1.86</small></div><div class="case"><i class="ll sm" data-ll="yxxxyxxxx|xyy|xyy|xyx|yyx"></i><b>4</b><small>2.04</small></div><div class="case todo"><i class="ll sm" data-ll="yxxxyxxxy|xyy|xyx|xyx|xyy"></i><b>17</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyx|yyy|xyx"></i><b>18</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyy|xyx|yyx"></i><b>19</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx"></i><b>20</b><small>New</small></div></div><div class="grp">Line<span class="ok">4 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyx|xxx|xyy|xyx"></i><b>51</b><small>1.21</small></div><div class="case"><i class="ll sm" data-ll="xyxxyxxyx|xxx|yyy|xxx|yxy"></i><b>52</b><small>1.34</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyy|xxx|yyy|xxx"></i><b>55</b><small>0.98</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yxy|xyx|yxy|xyx"></i><b>56</b><small>1.12</small></div></div><div class="grp">T<span class="ok">2 / 2</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxyy|yxx|xxx|xxy|xyx"></i><b>33</b><small>1.05</small></div><div class="case"><i class="ll sm" data-ll="xyyyyyxyy|yxx|xxx|xxy|xyx"></i><b>45</b><small>1.17</small></div></div><div class="grp">P<span>3 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|xxx|xyy|yxx|xyx"></i><b>31</b><small>1.62</small></div><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|yxx|xxx|xyy|yxx"></i><b>32</b><small>1.48</small></div><div class="case"><i class="ll sm" data-ll="yyxxyyxxx|xxx|yyy|xxx|xxx"></i><b>43</b><small>1.77</small></div><div class="case todo"><i class="ll sm" data-ll="yyxyyxxxx|xxx|xxx|xyx|yyy"></i><b>44</b><small>New</small></div></div><div class="grp">Fish<span>2 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyyyxyxx|xxx|yxx|xyx|yxy"></i><b>9</b><small>1.95</small></div><div class="case"><i class="ll sm" data-ll="yyxxyyxyx|xxy|xxx|yyx|xxx"></i><b>10</b><small>2.10</small></div><div class="case todo"><i class="ll sm" data-ll="xyyyyxxxy|xxx|yxx|xyx|xxy"></i><b>35</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yyxyyxxxx|xxy|xxy|xyx|xxx"></i><b>37</b><small>New</small></div></div></div>
+            <div class="grid2" style="gap:10px"><button class="btn lg"><i data-lucide="dumbbell"></i>Train the 22 learned</button><button class="btn lg"><i data-lucide="timer"></i>Practise with the timer</button></div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+    <!-- ===================== C · Volets -->
+    <figure class="variant">
+      <figcaption><b><em>C</em> · Volets</b><span>Le cours découpé en volets toujours visibles : les étapes, les cas de l'étape, l'établi et la fiche « About this step ». À 1280 × 720 les quatre côte à côte, l'établi au centre ; en portrait (croix), l'établi en haut, la liste des étapes et la fiche côte à côte dessous.</span></figcaption>
+      <div class="stack">
+        <div><div class="size"><b>Tablette portrait</b> 834 × 1194 · Cross</div>
+        <div class="dev tab"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="graduation-cap"></i>Learn<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span class="on">Courses</span><span>Training</span></div>
+            <span class="grow"></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes v">
+            <div class="pane" style="flex:none;height:390px;padding:18px 24px">
+              <div class="ph"><span class="h3">Workbench</span><span class="pill">Intuitive</span></div>
+              <div class="col g16 grow center" style="justify-content:center">
+                <div class="col g6 center"><span class="h1" style="font-size:34px">An intuitive step</span><span class="t mfg">Nothing to memorise here: understand the idea, then practise it in your solves.</span></div>
+                <div class="grid2" style="gap:12px;width:100%;text-align:left">
+                  <div class="act pri"><span class="icon-tile"><i data-lucide="dumbbell"></i></span><div class="col"><b class="h3">Train the cross</b><span class="xs">Plan it in inspection, then count its moves</span></div><i data-lucide="chevron-right"></i></div>
+                  <div class="act"><span class="icon-tile"><i data-lucide="check"></i></span><div class="col"><b class="h3">Mark as mastered</b><span class="xs">When you do it without thinking</span></div></div>
+                </div>
+              </div>
+              <div class="row g8"><button class="btn icon" style="opacity:.4"><i data-lucide="chevron-left"></i></button><span class="grow"></span><button class="btn">Next step · F2L<i data-lucide="chevron-right"></i></button></div>
+            </div>
+            <div class="grip"></div>
+            <div class="panes">
+              <div class="pane side" style="width:290px">
+                <div class="row g8"><button class="btn icon sm"><i data-lucide="chevron-left"></i></button><div class="col g0 grow"><b class="h3">CFOP</b><span class="xs num">1 of 5 steps learned</span></div></div>
+                <div class="col g2"><div class="li on" style="padding:10px 12px"><span class="xs b faint num" style="width:12px">1</span><i class="rg pri" style="--p:0"></i><div class="col"><b class="h3">Cross</b><span class="xs num">Intuitive · current</span></div></div><div class="li" style="padding:10px 12px"><span class="xs b faint num" style="width:12px">2</span><i class="rg pri" style="--p:83"></i><div class="col"><b class="h3">F2L</b><span class="xs num">35 / 42 learned</span></div></div><div class="li" style="padding:10px 12px"><span class="xs b faint num" style="width:12px">3</span><i class="rg pri" style="--p:39"></i><div class="col"><b class="h3">OLL</b><span class="xs num">22 / 57 learned</span></div></div><div class="li" style="padding:10px 12px"><span class="xs b faint num" style="width:12px">4</span><i class="rg ok"></i><div class="col"><b class="h3">PLL</b><span class="xs ok">Done · 21 / 21</span></div></div><div class="li" style="padding:10px 12px"><span class="xs b faint num" style="width:12px">5</span><i class="rg pri" style="--p:5"></i><div class="col"><b class="h3">Going further</b><span class="xs num">46 / 1526 learned</span></div></div></div>
+              </div>
+              <div class="grip"></div>
+              <div class="pane" style="padding:18px 24px;gap:12px">
+                <div class="ph"><span class="h3">About this step</span><span class="s b pri num">Step 1 of 5</span></div>
+                <span class="display xl">Cross</span>
+                <div class="well row center g10" style="padding:14px;border-radius:20px">
+                  <i class="iso" style="width:170px;height:170px" data-iso="xgxxwxxwx|xrxoxgxxx|xxxwxxxbx"></i>
+                  <i data-lucide="chevron-right" class="faint"></i>
+                  <i class="iso" style="width:170px;height:170px" data-iso="xwxwwwxwx|xgxxgxxxx|xoxxoxxxx"></i>
+                </div>
+                <span class="t mfg">Solve the four bottom edges in about eight moves. Plan the whole cross during inspection.</span>
+                <div class="col g10">
+                  <div class="tip"><b>1</b>Build it on the bottom from the start, so the pairs stay in view.</div>
+                  <div class="tip"><b>2</b>Place edges relative to each other first; the centres can be matched with one last turn.</div>
+                  <div class="tip"><b>3</b>Most crosses take eight moves or fewer: if yours takes more, look for a shorter one.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div></div></div>
+
+        <div><div class="size"><b>Petit écran</b> 1280 × 720 · OLL</div>
+        <div class="dev pc"><div class="scr">
+          <div class="cbar">
+            <span class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sect"><i data-lucide="graduation-cap"></i>Learn<i data-lucide="chevron-down"></i></span>
+            <div class="seg"><span class="on">Courses</span><span>Training</span></div>
+            <span class="grow"></span>
+            <button class="btn icon ghost"><i data-lucide="circle-help"></i></button>
+            <button class="chip on"><span class="puzzle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>3×3<i data-lucide="chevron-down"></i></button>
+            <span class="avatar sm l">YU</span>
+          </div>
+          <div class="panes">
+            <div class="pane side" style="width:200px;padding:14px 12px">
+              <div class="row g8"><button class="btn icon sm"><i data-lucide="chevron-left"></i></button><div class="col g0 grow"><b class="h3">CFOP</b><span class="xs num">1 of 5 steps learned</span></div></div>
+                <div class="col g2"><div class="li" style="padding:8px 8px"><span class="xs b faint num" style="width:12px">1</span><i class="rg pri" style="--p:0"></i><div class="col"><b class="t">Cross</b><span class="xs num">Intuitive</span></div></div><div class="li" style="padding:8px 8px"><span class="xs b faint num" style="width:12px">2</span><i class="rg pri" style="--p:83"></i><div class="col"><b class="t">F2L</b><span class="xs num">35 / 42 learned</span></div></div><div class="li on" style="padding:8px 8px"><span class="xs b faint num" style="width:12px">3</span><i class="rg pri" style="--p:39"></i><div class="col"><b class="t">OLL</b><span class="xs num">22 / 57 learned · current</span></div></div><div class="li" style="padding:8px 8px"><span class="xs b faint num" style="width:12px">4</span><i class="rg ok"></i><div class="col"><b class="t">PLL</b><span class="xs ok">Done · 21 / 21</span></div></div><div class="li" style="padding:8px 8px"><span class="xs b faint num" style="width:12px">5</span><i class="rg pri" style="--p:5"></i><div class="col"><b class="t">Going further</b><span class="xs num">46 / 1526 learned</span></div></div></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:290px;padding:14px 12px">
+              <div class="ph" style="padding:0 4px"><span class="h3">Cases</span><span class="xs num">22 / 57 learned</span></div>
+              <div class="seg block"><span>2-Look OLL</span><span class="on">OLL</span></div>
+              <div class="seg block"><span class="on">All 57</span><span>Learned 22</span><span>To learn 35</span></div>
+              <div class="scroll" style="gap:4px;--n:4"><div class="grp">Dot<span>2 / 8</span></div><div class="cg"><div class="case todo"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyy|xyx|yyy"></i><b>1</b><small>New</small></div><div class="case here"><i class="ll sm" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i><b>2</b><small>New</small></div><div class="case"><i class="ll sm" data-ll="xxxxyxxxy|yyx|xyx|yyx|yyx"></i><b>3</b><small>1.86</small></div><div class="case"><i class="ll sm" data-ll="yxxxyxxxx|xyy|xyy|xyx|yyx"></i><b>4</b><small>2.04</small></div><div class="case todo"><i class="ll sm" data-ll="yxxxyxxxy|xyy|xyx|xyx|xyy"></i><b>17</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyx|yyy|xyx"></i><b>18</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxxxx|xyx|xyy|xyx|yyx"></i><b>19</b><small>New</small></div><div class="case todo"><i class="ll sm" data-ll="yxyxyxyxy|xyx|xyx|xyx|xyx"></i><b>20</b><small>New</small></div></div><div class="grp">Line<span class="ok">4 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyx|xxx|xyy|xyx"></i><b>51</b><small>1.21</small></div><div class="case"><i class="ll sm" data-ll="xyxxyxxyx|xxx|yyy|xxx|yxy"></i><b>52</b><small>1.34</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yyy|xxx|yyy|xxx"></i><b>55</b><small>0.98</small></div><div class="case"><i class="ll sm" data-ll="xxxyyyxxx|yxy|xyx|yxy|xyx"></i><b>56</b><small>1.12</small></div></div><div class="grp">T<span class="ok">2 / 2</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxyy|yxx|xxx|xxy|xyx"></i><b>33</b><small>1.05</small></div><div class="case"><i class="ll sm" data-ll="xyyyyyxyy|yxx|xxx|xxy|xyx"></i><b>45</b><small>1.17</small></div></div><div class="grp">P<span>3 / 4</span></div><div class="cg"><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|xxx|xyy|yxx|xyx"></i><b>31</b><small>1.62</small></div><div class="case"><i class="ll sm" data-ll="xyyxyyxxx|yxx|xxx|xyy|yxx"></i><b>32</b><small>1.48</small></div><div class="case"><i class="ll sm" data-ll="yyxxyyxxx|xxx|yyy|xxx|xxx"></i><b>43</b><small>1.77</small></div><div class="case todo"><i class="ll sm" data-ll="yyxyyxxxx|xxx|xxx|xyx|yyy"></i><b>44</b><small>New</small></div></div></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane" style="padding:16px 20px;gap:12px">
+              <div class="row between start">
+                  <div class="col g4"><span class="s b mfg">Dot · 2 of 8</span><span class="display xl">OLL 2</span><span class="t b mfg">Zamboni</span></div>
+                  <button class="btn sm"><i data-lucide="check"></i>Mark learned</button>
+                </div>
+                <div class="grid4" style="gap:6px">
+                  <div class="well"><span class="xs">Average</span><b class="num">–</b></div>
+                  <div class="well"><span class="xs">Best</span><b class="num">–</b></div>
+                  <div class="well"><span class="xs">Attempts</span><b class="num">2</b></div>
+                  <div class="well"><span class="xs">This session</span><b class="num">1 / 2</b></div>
+                </div>
+                <div class="row center grow" style="min-height:0"><i class="ll" style="width:150px;height:150px" data-ll="xxxxyxxxx|xyx|yyx|yyy|yyx"></i></div>
+                <div class="row g8"><div class="seg"><span class="on"><i data-lucide="check" class="ok" style="width:14px;height:14px"></i>12 moves</span><span>14 moves</span></div><button class="chip" style="color:var(--ok)"><i data-lucide="check"></i>I use it</button></div>
+                <div class="well g12" style="background:var(--bg);padding:14px;border-radius:20px">
+                  <div class="row g10"><div class="hid grow"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><button class="btn"><i data-lucide="eye"></i>Show<kbd>Space</kbd></button></div>
+                  <div class="grid3"><button class="btn bad">Missed<kbd>1</kbd></button><button class="btn warn">Hesitated<kbd>2</kbd></button><button class="btn ok"><i data-lucide="check"></i>Got it<kbd>3</kbd></button></div>
+                </div>
+                <div class="row g8"><span class="row g6 xs grow">4 tries<span class="trail"><i class="meh"></i><i></i><i class="no"></i><i></i></span></span><button class="btn ghost"><i data-lucide="chevron-left"></i>OLL 1</button><button class="btn">OLL 3<i data-lucide="chevron-right"></i></button></div>
+            </div>
+            <div class="grip"></div>
+            <div class="pane side" style="width:270px;padding:16px;gap:12px">
+              <div class="col g4"><span class="s b pri num">Step 3 of 5</span><span class="h1">OLL</span></div>
+            <div class="well row center g6" style="padding:12px"><i class="iso" style="width:80px;height:80px" data-iso="yrybyyogy|gyygggggg|ryorrrrrr"></i><i data-lucide="chevron-right" class="faint"></i><i class="iso" style="width:80px;height:80px" data-iso="yyyyyyyyy|brggggggg|gorrrrrrr"></i></div>
+            <span class="t mfg">Orient the whole last layer in one algorithm, so the top face turns yellow. 57 cases, sorted by the shape the yellow makes.</span>
+            <div class="scroll" style="gap:10px">
+              <div class="tip"><b>1</b>Start with 2-Look OLL: ten algorithms cover every case in two goes.</div>
+              <div class="tip"><b>2</b>Read the shape of the yellow on top first, then the stickers on the sides.</div>
+              <div class="tip"><b>3</b>Learn the cases you meet most first: dots are rare, lines and Ls are common.</div>
+            </div>
+            <button class="btn block"><i data-lucide="dumbbell"></i>Train the 22 learned</button>
+            <button class="btn block"><i data-lucide="timer"></i>Practise with the timer</button>
+            <div class="row g6"><button class="btn icon"><i data-lucide="chevron-left"></i></button><button class="btn grow between">Next step · PLL<i data-lucide="chevron-right"></i></button></div>
+            </div>
+          </div>
+        </div></div></div>
+      </div>
+    </figure>
+
+  </div>
+</section>

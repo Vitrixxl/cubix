@@ -62,6 +62,7 @@ const community = {
 };
 mock.module("../src/lib/social", () => ({ community, useSocial: () => useSyncExternalStore(l => { listeners.add(l); return () => listeners.delete(l); }, () => version) }));
 
+mock.module("../src/hooks/useLayout", () => ({ useLayout: () => ({ width: 390, height: 844, phone: true, tablet: false, wide: false }) }));
 const { CommunityPage } = await import("../src/pages/CommunityPage");
 const { routeAtom } = await import("../src/state");
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

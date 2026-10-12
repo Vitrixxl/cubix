@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import { useLayout } from "../../hooks/useLayout";
 import { useColors } from "../../theme";
+import { Column, Columns } from "../chat/kit";
 import { ask } from "../Confirm";
 import { Bar, Empty, Figure, ListSkeleton, Numeric, Segmented, SectionHead, Surface } from "../layout";
 import { CoachingMessages } from "./CoachingMessages";
@@ -27,9 +29,12 @@ function useDashboard() {
 }
 const WEEK_NAMES = ["This week", "Next week", "In 2 weeks", "In 3 weeks"];
 
-/** What is coming: the figures of the weeks ahead, each week's load against its free slots, and the next sessions. */
+/**
+ * What is coming: the figures of the weeks ahead, each week's load against its free slots, and the next sessions. On a
+ * tablet the six figures hold one row, and the weeks and the next sessions stand side by side.
+ */
 export function Dashboard() {
-  const d = useDashboard(), now = useMinute(), nav = useCoachingNav();
+  const d = useDashboard(), now = useMinute(), nav = useCoachingNav(), { tablet } = useLayout(), third = tablet ? "w-1/6" : "w-1/3";
   if (!d) return <View accessibilityLabel={tr("Loading")} className="flex-1 gap-4">
     <Skeleton className="h-28 rounded-xl" />
     <View className="gap-5 rounded-xl border border-border p-4">
@@ -48,14 +53,15 @@ export function Dashboard() {
     {todo.map(([text, view, action]) => <Alert key={view + text} variant="warning" icon={TriangleAlert}
       action={<Button size="sm" variant="outline" className="h-10" onPress={() => nav.go(view)}><Text>{tr(action)}</Text></Button>}>{tr(text)}</Alert>)}
     <Strip accessibilityLabel={tr("Dashboard")}>
-      <Figure className="w-1/3 pr-2" label={tr("Sessions · 7 days")} value={String(week.sessions)} size="lg" />
-      <Figure className="w-1/3 pr-2" label={tr("Booked · 7 days")} value={`${(week.minutes / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })} h`} size="lg" />
-      <Figure className="w-1/3" label={tr("Expected · 4 weeks")} value={euros(month)} tone="accent" size="lg" />
-      <Figure className="w-1/3 pr-2" label={tr("Free slots · 7 days")} value={String(week.openSlots)} size="lg" />
-      <Figure className="w-1/3 pr-2" label={tr("Students")} value={String(d.students.length)} size="lg" />
-      <Figure className="w-1/3" label={tr("Rating")} value={c.rating == null ? "–" : c.rating.toFixed(1)} tone="warning" size="lg" />
+      <Figure className={cn(third, "pr-2")} label={tr("Sessions · 7 days")} value={String(week.sessions)} size="lg" />
+      <Figure className={cn(third, "pr-2")} label={tr("Booked · 7 days")} value={`${(week.minutes / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })} h`} size="lg" />
+      <Figure className={cn(third, tablet && "pr-2")} label={tr("Expected · 4 weeks")} value={euros(month)} tone="accent" size="lg" />
+      <Figure className={cn(third, "pr-2")} label={tr("Free slots · 7 days")} value={String(week.openSlots)} size="lg" />
+      <Figure className={cn(third, "pr-2")} label={tr("Students")} value={String(d.students.length)} size="lg" />
+      <Figure className={third} label={tr("Rating")} value={c.rating == null ? "–" : c.rating.toFixed(1)} tone="warning" size="lg" />
     </Strip>
-    <Surface className="px-4 pt-2 pb-4" accessibilityLabel={tr("Forecast")}>
+    <View className={tablet ? "flex-row items-start gap-4" : "gap-4"}>
+    <Surface className={cn("px-4 pt-2 pb-4", tablet && "flex-1")} accessibilityLabel={tr("Forecast")}>
       <SectionHead title={tr("Forecast")} />
       <View className="gap-4 pt-2">
         {d.weeks.map((w, i) => <View key={w.from} className="gap-1.5" testID={"week-" + i}>
@@ -72,17 +78,21 @@ export function Dashboard() {
         </View>)}
       </View>
     </Surface>
-    <Surface className="px-4 pt-2 pb-2">
+    <Surface className={cn("px-4 pt-2 pb-2", tablet && "flex-1")}>
       <SectionHead title={tr("Next sessions")} meta={d.upcoming.length} />
       {!d.upcoming.length ? <Empty icon={CalendarDays}>{tr("No session booked yet.")}</Empty>
         : <View className="gap-0.5">{d.upcoming.map(b => <SessionRow key={b.id} b={b} now={now} compact />)}</View>}
     </Surface>
+    </View>
   </ScrollView>;
 }
 
-/** The students: the list, then one student's conversation; their name there opens their file. */
-export function StudentsView({ id }: { id: string }) {
-  const d = useDashboard(), nav = useCoachingNav();
+/**
+ * The students: the list, then one student's conversation; their name there opens their file. On a wide screen the
+ * conversation opens beside the list, the student open (`selected`) marked.
+ */
+export function StudentsView({ id, selected }: { id: string; selected?: string }) {
+  const d = useDashboard(), nav = useCoachingNav(), { wide } = useLayout();
   useEffect(() => {
     void coaching.load("conversations");
     void coaching.load("bookings");
@@ -92,9 +102,9 @@ export function StudentsView({ id }: { id: string }) {
     : <Empty icon={d ? UserRoundX : Users} title={d ? tr("This student is not among yours.") : undefined} />;
   if (!d) return <ListSkeleton />;
   if (!d.students.length) return <Empty icon={Users}>{tr("Players who book you or write to you appear here.")}</Empty>;
-  return <FlatList data={d.students} keyExtractor={st => st.id} className="-mx-4" testID="students"
-    renderItem={({ item: st }) => <Pressable accessibilityRole="button" accessibilityLabel={st.username} onPress={() => nav.go("students/" + st.id)}
-      className="min-h-16 flex-row items-center gap-3 px-4 py-2.5 active:bg-muted/50">
+  return <FlatList data={d.students} extraData={selected} keyExtractor={st => st.id} className="-mx-4" testID="students"
+    renderItem={({ item: st }) => <Pressable accessibilityRole="button" accessibilityLabel={st.username} accessibilityState={{ selected: st.id === selected }} onPress={() => nav.go("students/" + st.id, wide)}
+      className={cn("min-h-16 flex-row items-center gap-3 px-4 py-2.5 active:bg-muted/50", st.id === selected && "bg-accent")}>
       <Face name={st.username} src={st.avatar} size={40} />
       <View className="min-w-0 flex-1 gap-0.5">
         <Text numberOfLines={1} className={cn("text-base", st.unread ? "font-semibold" : "font-medium")}>{st.username}</Text>
@@ -104,7 +114,7 @@ export function StudentsView({ id }: { id: string }) {
     </Pressable>} />;
 }
 
-/** What players see of the coach: a line, a few paragraphs, the events, the languages, the price and whether they book. */
+/** What players see of the coach: a line, a few paragraphs, the events, the languages, the price and whether they book; in two columns on a tablet. */
 export function CoachProfile() {
   const coach = useCoaching().me?.coach;
   if (!coach) return <View accessibilityLabel={tr("Loading")} className="gap-5">
@@ -115,7 +125,7 @@ export function CoachProfile() {
 }
 
 function ProfileForm() {
-  const coach = coaching.me!.coach!, nav = useCoachingNav(), colors = useColors();
+  const coach = coaching.me!.coach!, nav = useCoachingNav(), colors = useColors(), split = useLayout().tablet;
   const [headline, setHeadline] = useState(coach.headline), [bio, setBio] = useState(coach.bio), [events, setEvents] = useState(coach.events),
     [languages, setLanguages] = useState(coach.languages.join(", ")), [amount, setAmount] = useState(coach.priceCents ? String(coach.priceCents / 100) : ""),
     [accepting, setAccepting] = useState(coach.accepting), [newStudents, setNewStudents] = useState(coach.newStudents);
@@ -129,6 +139,7 @@ function ProfileForm() {
   const input = { placeholderTextColor: colors.mutedForeground, className: "h-11" };
   return <View className="min-h-0 flex-1 gap-3" testID="coach-profile">
     <ScrollView className="-mx-4 flex-1" contentContainerClassName="gap-5 px-4 pb-4" keyboardShouldPersistTaps="handled">
+      <Columns split={split}><Column split={split} className="gap-5">
       <Picture />
       <Field label={tr("Bookings")}>
         <Segmented label={tr("Bookings")} value={accepting ? "open" : "paused"} onChange={v => setAccepting(v === "open")} options={[{ id: "open", label: tr("Open") }, { id: "paused", label: tr("Paused") }]} />
@@ -136,6 +147,7 @@ function ProfileForm() {
       <Field label={tr("New students")} help={newStudents ? tr("Anyone can book your free slots.") : tr("Only players you already coached see your slots.")}>
         <Segmented label={tr("New students")} value={newStudents ? "open" : "closed"} onChange={v => setNewStudents(v === "open")} options={[{ id: "open", label: tr("Welcome") }, { id: "closed", label: tr("My students only") }]} />
       </Field>
+      </Column><Column split={split} className="gap-5">
       <Field label={tr("Headline")}>
         <Input {...input} value={headline} onChangeText={setHeadline} maxLength={80} placeholder={tr("Sub-10 CFOP coach, F2L and lookahead")} accessibilityLabel={tr("Headline")} />
       </Field>
@@ -153,6 +165,7 @@ function ProfileForm() {
           <Text className="text-sm text-muted-foreground">{tr("€ · {0} min", { 0: coach.sessionMinutes })}</Text>
         </View>
       </Field>
+      </Column></Columns>
     </ScrollView>
     <View className="flex-row gap-2">
       <Button variant="outline" size="lg" onPress={() => nav.go("coach/" + coach.id)}>

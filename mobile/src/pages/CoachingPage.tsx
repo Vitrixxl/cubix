@@ -1,5 +1,5 @@
 import { CalendarClock, CalendarDays, Check, ChevronDown, IdCard, LayoutDashboard, MessagesSquare, Search, Sparkles, Users, type LucideIcon } from "lucide-react-native";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, type ReactNode } from "react";
 import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -7,7 +7,8 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { AppBar, SectionTabs } from "../components/AppBar";
-import { Empty, ListSkeleton, Numeric } from "../components/layout";
+import { Docked, Pane } from "../components/chat/kit";
+import { Empty, ListSkeleton, Numeric, Segmented } from "../components/layout";
 import { Apply } from "../components/coaching/apply";
 import { BookPage, CoachList, CoachPage, zone } from "../components/coaching/browse";
 import { CoachProfile, Dashboard, StudentsView } from "../components/coaching/coach";
@@ -16,16 +17,19 @@ import { COACH_SECTIONS, coaching, useCoaching, type SectionId } from "../compon
 import { Count, useCoachingNav } from "../components/coaching/parts";
 import { Schedule } from "../components/coaching/schedule";
 import { Sessions } from "../components/coaching/sessions";
+import { useLayout } from "../hooks/useLayout";
 import { tr } from "../../../src/client/i18n";
 
 /**
  * The coaching page, the Me section's Coaching tab (desktop/renderer/coaching/page.tsx). Players find a coach, book one
  * of their slots, follow their sessions and talk with them; coaches also get their dashboard, students, schedule and
  * profile. The sub-page is chosen in a menu at the top of the content, never a second row of tabs; a coach's page, a
- * conversation, a student and a call are screens of their own.
+ * conversation, a student and a call are screens of their own. On a tablet the sub-pages are segments, at the foot of
+ * the content in portrait as on the phone mockups, at its top on a wide screen; there a coach's page (and its booking)
+ * docks beside the list of coaches, and a conversation or a student opens beside their list.
  */
 export function CoachingPage({ view: path = "" }: { view?: string }) {
-  const c = useCoaching(), nav = useCoachingNav();
+  const c = useCoaching(), nav = useCoachingNav(), { tablet, wide } = useLayout();
   const [view = "", arg = "", sub = ""] = path.split("/");
   useEffect(() => {
     void coaching.load("me");
@@ -40,32 +44,55 @@ export function CoachingPage({ view: path = "" }: { view?: string }) {
   }, [me, view]);
   // The call loads on first use, with WebRTC.
   if (view === "call" && arg) { const { CallView } = require("../components/coaching/call/CallView") as typeof import("../components/coaching/call/CallView"); return <CallView id={arg} />; }
-  if (view === "coach" && arg) return sub === "book" ? <BookPage id={arg} /> : <CoachPage id={arg} />;
-  if (view === "messages" && arg) return <CoachingMessages conversationId={Number(arg)} />;
-  if (view === "students" && arg) return <StudentsView id={arg} />;
+  const coach = view === "coach" && arg ? sub === "book" ? <BookPage id={arg} /> : <CoachPage id={arg} docked={wide} /> : null;
+  if (coach && !wide) return coach;
+  if (view === "messages" && arg && !wide) return <CoachingMessages conversationId={Number(arg)} />;
+  if (view === "students" && arg && !wide) return <StudentsView id={arg} />;
+  // Docked, a coach's page leaves the list of coaches its sub-page.
+  const section = coach ? "coaches" : view;
+  const times = section === "coaches" ? <Text numberOfLines={1} className="ml-auto shrink text-xs text-muted-foreground">{tr("times in {0}", { 0: zone() })}</Text> : null;
+  // On a wide screen a conversation or a student opens beside their list.
+  const detail = (list: ReactNode, open: ReactNode) => wide ? <View className="min-h-0 flex-1 flex-row gap-4">
+    <View className="w-[380px]">{list}</View>
+    <Pane>{open ?? <Empty icon={MessagesSquare} title={tr("Your conversations open here.")} />}</Pane>
+  </View> : list;
   return <View className="min-h-0 flex-1">
     <AppBar puzzle={false} />
     <SectionTabs />
-    <View className="min-h-0 flex-1 gap-3 px-4 pt-3 pb-2">
-      <View className="flex-row items-center gap-2">
-        <SectionMenu view={view} />
-        {view === "coaches" ? <Text numberOfLines={1} className="ml-auto shrink text-xs text-muted-foreground">{tr("times in {0}", { 0: zone() })}</Text> : null}
+    <View className="min-h-0 flex-1 flex-row">
+      <View className={cn("min-h-0 flex-1 gap-3 px-4 pt-3 pb-2", tablet && "px-7")}>
+        {!tablet ? <View className="flex-row items-center gap-2">
+          <SectionMenu view={view} />
+          {times}
+        </View> : wide ? <View className="flex-row items-center gap-3">
+          <SectionSegments view={section} className="min-w-0 max-w-[760px] flex-1" />
+          {times}
+        </View> : times}
+        <View className="min-h-0 flex-1">
+          {view === "dashboard" ? <Dashboard />
+            : view === "students" ? detail(<StudentsView id="" selected={arg} />, arg ? <StudentsView id={arg} /> : null)
+              : view === "schedule" ? <Schedule />
+                : view === "profile" ? <CoachProfile />
+                  : view === "sessions" ? <Sessions />
+                    : view === "messages" ? detail(<CoachingMessages />, arg ? <CoachingMessages conversationId={Number(arg)} /> : null)
+                      : view === "apply" ? <Apply />
+                        : section === "coaches" ? <CoachList selected={coach ? arg : undefined} />
+                          : !me && c.failure ? <Empty icon={MessagesSquare} title={c.failure}>
+                            <Button variant="outline" onPress={() => void coaching.load("me")}><Text>{tr("Retry")}</Text></Button>
+                          </Empty> : <ListSkeleton />}
+        </View>
+        {tablet && !wide ? <SectionSegments view={section} /> : null}
       </View>
-      <View className="min-h-0 flex-1">
-        {view === "dashboard" ? <Dashboard />
-          : view === "students" ? <StudentsView id="" />
-            : view === "schedule" ? <Schedule />
-              : view === "profile" ? <CoachProfile />
-                : view === "sessions" ? <Sessions />
-                  : view === "messages" ? <CoachingMessages />
-                    : view === "apply" ? <Apply />
-                      : view === "coaches" ? <CoachList />
-                        : !me && c.failure ? <Empty icon={MessagesSquare} title={c.failure}>
-                          <Button variant="outline" onPress={() => void coaching.load("me")}><Text>{tr("Retry")}</Text></Button>
-                        </Empty> : <ListSkeleton />}
-      </View>
+      {coach ? <Docked>{coach}</Docked> : null}
     </View>
   </View>;
+}
+
+/** The sub-pages as segments on a tablet, each with what waits on it. */
+function SectionSegments({ view, className }: { view: string; className?: string }) {
+  const c = useCoaching(), nav = useCoachingNav();
+  return <Segmented label={tr("Sections")} value={view as SectionId} onChange={id => nav.go(id, true)} className={className}
+    options={c.sections().flat().map(([id, label]) => ({ id: id as SectionId, label: tr(label), count: c.badge(id), accent: true }))} />;
 }
 
 const ICONS: Record<SectionId, LucideIcon> = {

@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { Alert } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { api } from "../api";
 import { useLayout } from "../hooks/useLayout";
 import { useTimer } from "../hooks/useTimer";
@@ -40,7 +41,7 @@ export function CrossPractice({ onBack }: { onBack: () => void }) {
 }
 
 function CrossSession({ context, onBack }: { context: PracticeContext; onBack: () => void }) {
-  const { height } = useLayout();
+  const { height, tablet, wide } = useLayout();
   const [moves, setMoves] = useAtom(crossMovesAtom);
   const [target, setTarget] = useAtom(crossTargetAtom);
   const scramble = useAtomValue(crossScrambleAtom);
@@ -93,8 +94,9 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
   useBackTo(onBack, !busy);
   const nextScramble = () => { if (!busy && !generating) { timer.reset(); void generateNext(); } };
   const lastSolve = lastSolveId === null ? null : shown.find(solve => solve.id === lastSolveId) ?? null;
-  const promptFont = scramble.length > 90 ? 15 : 18;
-  const previewSize = height < 760 ? 0 : 84;
+  // A tablet reads the scramble larger, its cube beside it at its size even on a short wide screen.
+  const promptFont = (scramble.length > 90 ? 15 : 18) + (tablet ? 4 : 0);
+  const previewSize = tablet ? 150 : height < 760 ? 0 : 84;
   const solutionFont = Math.max(15, promptFont - 3);
   const list = revealed && solutions?.scramble === scramble ? solutions.list : undefined;
   const summary = useMemo(() => practiceSummary(shown), [shown]);
@@ -154,8 +156,8 @@ function CrossSession({ context, onBack }: { context: PracticeContext; onBack: (
         <SaveError timer={timer} />
         <AverageWindow solves={shown} hidden={running} />
       </>}
-      bar={<LastSolveBar solve={saving ? null : lastSolve}
-        extra={<SolveAction icon={Shuffle} label={tr("Scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} />} />
+      bar={<View className={cn(wide && "w-full max-w-[720px] self-center")}><LastSolveBar solve={saving ? null : lastSolve}
+        extra={<SolveAction icon={Shuffle} label={tr("Scramble")} disabled={busy || slow || !!timer.saveError} onPress={nextScramble} />} /></View>} />
     <SessionPeek figures={peek} count={shown.length} noun="solve" onPress={() => setShowTimes(true)} hidden={running} />
     </View>
     <TimesSheet open={showTimes} onClose={() => setShowTimes(false)} solves={shown} title={tr("Times")} />

@@ -1,7 +1,7 @@
 /**
  * Bringing the solves of other timers, as the web's ImportTimes.tsx: files chosen in Android's picker are read on the
  * phone (timerImport.ts), summed up per file (the timer, its events, its dates, what is left out), then written at
- * once with their own dates.
+ * once with their own dates. A tablet's wider sheet lays the files two by two.
  */
 import { CircleCheck, FileUp, Upload, X } from "lucide-react-native";
 import { useState } from "react";
@@ -13,7 +13,9 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
 import { api } from "../api";
+import { useLayout } from "../hooks/useLayout";
 import { pickTextFiles } from "../lib/files";
 import { IconTile, Numeric } from "./layout";
 import { ChoiceButton } from "./PuzzlePicker";
@@ -38,6 +40,7 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ imported: number; duplicates: number } | null>(null);
   const [error, setError] = useState("");
+  const { tablet } = useLayout();
   const choose = async () => {
     setDone(null); setError("");
     try {
@@ -66,12 +69,12 @@ export function ImportTimes({ onImported }: { onImported?: (puzzles: PuzzleId[])
         <Icon as={FileUp} size={16} /><Text>{tr("Choose files")}</Text>
       </Button>
     </View>
-    {files.length > 0 && <View className="gap-2" accessibilityLabel={tr("Files to import")}>
-      {files.map((file, i) => <FileRow key={i} file={file}
+    {files.length > 0 && <View className={cn("gap-2", tablet && "flex-row flex-wrap")} accessibilityLabel={tr("Files to import")}>
+      {files.map((file, i) => <FileRow key={i} file={file} className={tablet ? "min-w-0 basis-[45%] grow" : undefined}
         onEvent={event => setFiles(current => current.map((f, j) => j === i ? { ...f, event } : f))}
         onRemove={() => setFiles(current => current.filter((_, j) => j !== i))} />)}
     </View>}
-    {solves.length > 0 && <Button className="h-11 self-start" disabled={busy} onPress={() => void save()}>
+    {solves.length > 0 && <Button className={cn("h-11 self-start", tablet && "h-12 self-stretch")} disabled={busy} onPress={() => void save()}>
       <Text>{busy ? tr("Importing…") : tr("Import {0}", { 0: plural(solves.length, "solve") })}</Text>
     </Button>}
     {done && <Alert variant={done.imported ? "info" : "default"} icon={CircleCheck} title={done.imported ? tr("{0} imported", { 0: plural(done.imported, "solve") }) : tr("Nothing new")}>
@@ -89,11 +92,11 @@ export function ImportSheet({ open, onClose }: { open: boolean; onClose: () => v
 }
 
 /** One file: the timer it comes from, its solves per event and dates, what is left out; or why it cannot be read. */
-function FileRow({ file, onEvent, onRemove }: { file: Loaded; onEvent: (event: EventId) => void; onRemove: () => void }) {
+function FileRow({ file, onEvent, onRemove, className }: { file: Loaded; onEvent: (event: EventId) => void; onRemove: () => void; className?: string }) {
   const read = file.read, solves = solvesOf(file), events = new Map<EventId, number>();
   for (const solve of solves) events.set(solve.event, (events.get(solve.event) ?? 0) + 1);
   const dates = solves.map(solve => solve.at), skipped = Object.entries(read?.skipped ?? {});
-  return <View className="flex-row items-start gap-2 rounded-xl border border-border bg-card py-2 pr-1 pl-3">
+  return <View className={cn("flex-row items-start gap-2 rounded-xl border border-border bg-card py-2 pr-1 pl-3", className)}>
     <View className="min-w-0 flex-1 gap-1 py-1">
       <View className="flex-row items-baseline gap-2">
         <Text numberOfLines={1} className="shrink-0 text-sm font-medium">{read ? read.app : file.name}</Text>

@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Download, FileJson, Flame, Gauge, LogIn, LogOut, NotebookPen, Settings, Sheet as SheetIcon, Swords, Trophy, Upload, type LucideIcon } from "lucide-react-native";
+import { BookOpen, CalendarDays, ChartLine, ChevronLeft, ChevronRight, Download, FileJson, Flame, Gauge, LogIn, LogOut, NotebookPen, Settings, Sheet as SheetIcon, Swords, Trophy, Upload, type LucideIcon } from "lucide-react-native";
 import { useMemo, useState, type ReactNode, type Ref } from "react";
 import { FlatList, Pressable, ScrollView, View, type PressableProps } from "react-native";
 import { fmtTime, joinedDate, plural, shortDate } from "../../../src/client/lib/format";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { api } from "../api";
+import { useLayout } from "../hooks/useLayout";
 import { journeyAtom } from "../journey";
 import { profileAchievementsAtom, profileCatalogAtom, profileDataAtom, profileKeyAtom, profilePuzzleAtom, profileSolveModeAtom, type PreparedProfile } from "../profile";
 import { AchievementBadge, AchievementDialog, AchievementsScreen } from "../components/Achievements";
@@ -108,10 +109,10 @@ function Caption({ children, link }: { children: ReactNode; link?: ReactNode }) 
 }
 
 /** A filled button of the identity's row. */
-function Action({ icon, label, square, ...props }: { icon: LucideIcon; label: string; square?: boolean } & PressableProps & { ref?: Ref<View> }) {
+function Action({ icon, label, square, className, ...props }: { icon: LucideIcon; label: string; square?: boolean; className?: string } & PressableProps & { ref?: Ref<View> }) {
   // The rest (a menu trigger's press and ref) goes to the button itself.
   return <Pressable accessibilityRole="button" accessibilityLabel={label} {...props}
-    className={cn("h-10 flex-row items-center justify-center gap-1.5 rounded-xl bg-muted active:bg-accent", square ? "w-10" : "min-w-0 flex-1 px-2")}>
+    className={cn("h-10 flex-row items-center justify-center gap-1.5 rounded-xl bg-muted active:bg-accent", square ? "w-10" : "min-w-0 flex-1 px-2", className)}>
     <Icon as={icon} size={16} className="text-foreground" />
     {!square && <Text numberOfLines={1} className="shrink text-[13px] font-bold">{label}</Text>}
   </Pressable>;
@@ -119,9 +120,10 @@ function Action({ icon, label, square, ...props }: { icon: LucideIcon; label: st
 
 /**
  * Who they are: the face, the name with the streak (which opens the activity), the method and the date they joined,
- * the level and its XP; then importing, exporting, the settings and signing out.
+ * the level and its XP; then importing, exporting, the settings and signing out. On a tablet it is a card: `large`
+ * (portrait) with a bigger face and the four buttons on one tall row, `compact` (beside other columns) with them two by two.
  */
-function Identity({ d, onImport, onActivity }: { d: PreparedProfile | null; onImport: () => void; onActivity: () => void }) {
+function Identity({ d, onImport, onActivity, size }: { d: PreparedProfile | null; onImport: () => void; onActivity: () => void; size?: "large" | "compact" }) {
   const user = useAtomValue(userAtom)!;
   const journey = useAtomValue(journeyAtom), navigate = useSetAtom(routeAtom), toast = useSetAtom(toastAtom);
   const xp = useAtomValue(profileAchievementsAtom)?.xp ?? 0, l = level(xp);
@@ -134,12 +136,14 @@ function Identity({ d, onImport, onActivity }: { d: PreparedProfile | null; onIm
   // Without an account, the same place leads to the sign-in screen.
   const logOut = async () => { if (user.isGuest) return setGuest(false); if (loggingOut) return; setLoggingOut(true); try { await api.logout(); } finally { setLoggingOut(false); } };
   const streak = d?.streak.current ?? 0;
-  return <View className="gap-2.5">
-    <View className="flex-row items-center gap-3">
-      <UserAvatar user={user} size={64} className="rounded-[20px]" />
+  // The buttons' shape: one row on a phone, a tall row on a portrait tablet, two by two in a column.
+  const button = size === "large" ? "h-12" : size === "compact" ? "h-11 basis-[45%] grow" : undefined;
+  return <View className={cn("gap-2.5", size && "gap-3 rounded-3xl bg-card p-4")}>
+    <View className={cn("flex-row items-center gap-3", size === "large" && "gap-4")}>
+      <UserAvatar user={user} size={size === "large" ? 88 : 64} className={size === "large" ? "rounded-3xl" : "rounded-[20px]"} />
       <View className="min-w-0 flex-1 gap-1">
         <View className="flex-row items-center justify-between gap-2">
-          <Text numberOfLines={1} accessibilityRole="header" className="min-w-0 shrink text-2xl font-extrabold tracking-[-0.03em]">{user.username}</Text>
+          <Text numberOfLines={1} accessibilityRole="header" className={cn("min-w-0 shrink text-2xl font-extrabold tracking-[-0.03em]", size === "large" && "text-[32px]")}>{user.username}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel={tr("Activity")} accessibilityHint={tr("{0} days in a row", { 0: streak })} onPress={onActivity}
             className={cn("h-7 flex-row items-center gap-1 rounded-full px-2.5", streak ? "bg-warning/15" : "bg-muted")}>
             <Icon as={Flame} size={13} className={streak ? "text-warning" : "text-muted-foreground"} />
@@ -154,34 +158,47 @@ function Identity({ d, onImport, onActivity }: { d: PreparedProfile | null; onIm
         <Bar ratio={l.into / l.span} className="h-1.5" />
       </View>
     </View>
-    <View className="flex-row gap-1.5">
-      <Action icon={Upload} label={tr("Import")} onPress={onImport} />
+    <View className={cn("flex-row gap-1.5", size === "compact" && "flex-wrap")}>
+      <Action icon={Upload} label={tr("Import")} onPress={onImport} className={button} />
       <DropdownMenu>
-        <DropdownMenuTrigger asChild><Action icon={Download} label={tr("Export")} /></DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild><Action icon={Download} label={tr("Export")} className={button} /></DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="min-w-60 rounded-2xl">
           <MenuItem icon={SheetIcon} onPress={() => download("csv")}>{tr("My solves, as a table (CSV)")}</MenuItem>
           <MenuItem icon={FileJson} onPress={() => download("json")}>{tr("All my profile's data (JSON)")}</MenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Action icon={Settings} label={tr("Account")} onPress={() => navigate({ page: "settings" })} />
-      <Action icon={user.isGuest ? LogIn : LogOut} label={user.isGuest ? tr("Sign in") : loggingOut ? tr("Logging out…") : tr("Log out")} square onPress={() => void logOut()} />
+      <Action icon={Settings} label={tr("Account")} onPress={() => navigate({ page: "settings" })} className={button} />
+      {/* A tablet has the room to name the way out too. */}
+      <Action icon={user.isGuest ? LogIn : LogOut} label={user.isGuest ? tr("Sign in") : loggingOut ? tr("Logging out…") : tr("Log out")} square={!size} onPress={() => void logOut()} className={button} />
     </View>
   </View>;
 }
 
-/** Each event's best single large and its best Ao5 under it, on small cards sliding sideways; one set this week in mint. */
-function Records({ d, onStatistics }: { d: PreparedProfile | null; onStatistics: () => void }) {
+/**
+ * Each event's best single large and its best Ao5 under it, on small cards sliding sideways; one set this week in mint.
+ * `list` (a tablet) makes it a card of its own, the events one per row, scrolling inside it.
+ */
+function Records({ d, onStatistics, list, className }: { d: PreparedProfile | null; onStatistics: () => void; list?: boolean; className?: string }) {
   const week = Date.now() - 7 * 86_400_000;
   const records = (d?.profile.records ?? []).filter(r => r.best != null);
-  return <View className="gap-1">
+  const recent = (r: (typeof records)[number]) => !!r.lastAt && new Date(r.lastAt).getTime() > week;
+  return <View className={cn("gap-1", list && "min-h-0 gap-2 rounded-3xl bg-card p-3.5", className)}>
     <Caption link={<Pressable accessibilityRole="button" onPress={onStatistics} className="h-8 flex-row items-center gap-0.5 pl-2">
       <Text className="text-[13px] font-bold text-primary">{tr("Statistics")}</Text><Icon as={ChevronRight} size={15} className="text-primary" />
     </Pressable>}>{tr("Records · single / Ao5")}</Caption>
-    {!d ? <Skeleton className="h-[70px] rounded-2xl" /> : records.length ? <View className="-mx-4">
+    {!d ? <Skeleton className="h-[70px] rounded-2xl" /> : records.length && list ? <ScrollView className="min-h-0 flex-1" contentContainerClassName="gap-1.5" showsVerticalScrollIndicator={false}>
+      {records.map(r => <View key={r.event} className="min-h-14 flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
+          <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtTime(r.best)}</Numeric>
+        </View>
+        <Numeric numberOfLines={1} className="text-[13px] font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
+      </View>)}
+    </ScrollView> : records.length ? <View className="-mx-4">
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-1.5 px-4">
         {records.map(r => <View key={r.event} className="w-[98px] rounded-2xl bg-card px-3 py-2">
           <Text numberOfLines={1} className="text-xs font-bold text-muted-foreground">{said(eventLabel(r.puzzle, r.solveMode))}</Text>
-          <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", r.lastAt && new Date(r.lastAt).getTime() > week && "text-success")}>{fmtTime(r.best)}</Numeric>
+          <Numeric numberOfLines={1} className={cn("text-xl font-extrabold tracking-[-0.02em]", recent(r) && "text-success")}>{fmtTime(r.best)}</Numeric>
           <Numeric numberOfLines={1} className="text-xs font-semibold text-muted-foreground">{r.bestAo5 != null ? tr("Ao5 {0}", { 0: fmtTime(r.bestAo5) }) : "–"}</Numeric>
         </View>)}
       </ScrollView>
@@ -189,11 +206,22 @@ function Records({ d, onStatistics }: { d: PreparedProfile | null; onStatistics:
   </View>;
 }
 
-/** The profile's other pages as four shortcuts, each with its count. */
-function Shortcuts({ learned, unlocked, battlesCount, show }: { learned: number; unlocked: number | null; battlesCount: number; show: (route: ProfileMode | "analysis") => void }) {
+/**
+ * The profile's other pages as four shortcuts, each with its count. On a tablet the statistics join them, as 48 dp
+ * pills on one `row` (portrait) or two by two (`grid`, in a column).
+ */
+function Shortcuts({ learned, unlocked, battlesCount, show, layout }: { learned: number; unlocked: number | null; battlesCount: number; show: (route: ProfileMode | "analysis") => void; layout?: "row" | "grid" }) {
   const items: [ProfileMode | "analysis", LucideIcon, string, number | null][] = [
-    ["analysis", Gauge, tr("Analysis"), null], ["training", BookOpen, tr("Cases"), learned], ["achievements", Trophy, tr("Awards"), unlocked], ["duels", Swords, tr("Battles"), battlesCount],
+    ...(layout ? [["playground", ChartLine, tr("Statistics"), null] as [ProfileMode, LucideIcon, string, null]] : []),
+    ["analysis", Gauge, tr("Analysis"), null], ["training", BookOpen, tr("Cases"), learned], ["achievements", Trophy, layout ? tr("Achievements") : tr("Awards"), unlocked], ["duels", Swords, tr("Battles"), battlesCount],
   ];
+  if (layout) return <View className={cn("flex-row gap-2", layout === "grid" && "flex-wrap")}>
+    {items.map(([id, icon, label, count]) => <Pressable key={id} accessibilityRole="button" accessibilityLabel={count != null ? `${label} ${count}` : label} onPress={() => show(id)}
+      className={cn("h-12 min-w-0 flex-row items-center justify-center gap-2 rounded-2xl bg-card px-3 active:bg-muted", layout === "grid" ? "basis-[45%] grow" : "flex-1")}>
+      <Icon as={icon} size={18} className="text-primary" />
+      <Text numberOfLines={1} className="shrink text-sm font-bold">{label}{count != null ? <Text className="text-sm font-bold text-muted-foreground/70">{" "}{count}</Text> : null}</Text>
+    </Pressable>)}
+  </View>;
   return <View className="flex-row gap-1.5">
     {items.map(([id, icon, label, count]) => <Pressable key={id} accessibilityRole="button" accessibilityLabel={count != null ? `${label} ${count}` : label} onPress={() => show(id)}
       className="min-w-0 flex-1 items-center gap-1 rounded-2xl bg-card px-1 py-2.5 active:bg-muted">
@@ -280,8 +308,14 @@ function Journal({ d, onActivity }: { d: PreparedProfile | null; onActivity: () 
   </View>;
 }
 
-/** The Me section's first page: who they are, the records, the shortcuts and the journal, in the screen's height. */
+/**
+ * The Me section's first page: who they are, the records, the shortcuts and the journal, in the screen's height. A
+ * tablet adds the month and the weekly averages: in portrait under the identity, the journal below; held sideways
+ * (or in a short window) in columns, the journal docked at the right (without the month and weeks when too narrow:
+ * the activity, opened from the streak or the journal, has them).
+ */
 function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) {
+  const { tablet, wide, height } = useLayout();
   const d = usePrepared();
   const catalog = useAtomValue(profileCatalogAtom), learnedIds = useAtomValue(learnedCaseIdsAtom);
   const learned = useMemo(() => { const set = new Set(learnedIds); return catalog.cases.filter(c => set.has(c.id)).length; }, [catalog.cases, learnedIds]);
@@ -289,6 +323,45 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
   useDuel();
   const [importing, setImporting] = useState(false);
   const tour = useTourTarget("profile-overview");
+  const shortcuts = (layout?: "row" | "grid") => <Shortcuts learned={learned} unlocked={unlocked} battlesCount={battles().length} show={show} layout={layout} />;
+  const importSheet = <ImportSheet open={importing} onClose={() => setImporting(false)} />;
+  if (tablet && (wide || height < 900)) return <View className="flex-1 flex-row">
+    <View className="min-w-0 flex-1">
+      <AppBar />
+      <SectionTabs />
+      <View className="min-h-0 flex-1 flex-row gap-3 pt-4 pb-3 pl-7">
+        <View {...tour} className="min-h-0 flex-1 gap-3">
+          <Identity d={d} size="compact" onImport={() => setImporting(true)} onActivity={() => show("activity")} />
+          <Records list d={d} onStatistics={() => show("playground")} className="flex-1" />
+          {!wide && shortcuts("grid")}
+        </View>
+        {wide && (d ? <>
+          <View className="flex-1"><MonthCard d={d} /></View>
+          <View className="min-h-0 flex-1 gap-3"><WeeksCard d={d} />{shortcuts("grid")}</View>
+        </> : <Skeleton className="flex-[2] rounded-3xl" />)}
+      </View>
+    </View>
+    {/* The journal as a docked side sheet, the whole height beside the page. */}
+    <View className={cn("py-3 pr-3 pl-3", wide ? "w-[404px]" : "flex-1")}><Journal d={d} onActivity={() => show("activity")} /></View>
+    {importSheet}
+  </View>;
+  if (tablet) return <View className="flex-1">
+    <AppBar />
+    <SectionTabs />
+    <View className="min-h-0 flex-1 gap-3 px-7 pt-4">
+      <View {...tour} className="gap-3">
+        <Identity d={d} size="large" onImport={() => setImporting(true)} onActivity={() => show("activity")} />
+        {d ? <View className="flex-row gap-3">
+          <View className="flex-1"><MonthCard d={d} large /></View>
+          {/* Laid over its column: the month alone sets the row's height, the records scroll inside what is left. */}
+          <View className="flex-1"><View className="absolute inset-0 gap-3"><Records list d={d} onStatistics={() => show("playground")} className="flex-1" /><WeeksCard d={d} /></View></View>
+        </View> : <Skeleton className="h-80 rounded-3xl" />}
+      </View>
+      {shortcuts("row")}
+      <Journal d={d} onActivity={() => show("activity")} />
+    </View>
+    {importSheet}
+  </View>;
   return <View className="flex-1">
     <AppBar />
     <SectionTabs />
@@ -304,8 +377,11 @@ function Overview({ show }: { show: (mode: ProfileMode | "analysis") => void }) 
   </View>;
 }
 
-/** The month as a calendar: each active day marked by a bar as long as its solves, in the streak's colour while the run lasts. */
-function MonthCard({ d }: { d: PreparedProfile }) {
+/**
+ * The month as a calendar: each active day marked by a bar as long as its solves, in the streak's colour while the run
+ * lasts. `large` (a portrait tablet) gives the days taller cells.
+ */
+function MonthCard({ d, large }: { d: PreparedProfile; large?: boolean }) {
   const [shift, setShift] = useState(0);
   const now = new Date(), month = new Date(now.getFullYear(), now.getMonth() + shift, 1), today = dayKey(now);
   const counts = d.days, most = Math.max(1, ...[...counts.values()].map(v => v.count));
@@ -326,9 +402,9 @@ function MonthCard({ d }: { d: PreparedProfile }) {
     <View className="flex-row flex-wrap">
       {weekdays.map((w, i) => <Text key={i} className="w-[14.28%] pb-0.5 text-center text-[11px] font-bold text-muted-foreground uppercase">{w}</Text>)}
       {cells.map((n, i) => {
-        if (n == null) return <View key={"lead" + i} className="h-9 w-[14.28%]" />;
+        if (n == null) return <View key={"lead" + i} className={cn("h-9 w-[14.28%]", large && "h-11")} />;
         const date = new Date(month.getFullYear(), month.getMonth(), n), key = dayKey(date), count = counts.get(key)?.count ?? 0;
-        return <View key={key} className="h-9 w-[14.28%] p-0.5" accessibilityLabel={date.toLocaleDateString(locale(), { day: "numeric", month: "long" }) + (count ? " · " + plural(count, "solve") : "")}>
+        return <View key={key} className={cn("h-9 w-[14.28%] p-0.5", large && "h-11")} accessibilityLabel={date.toLocaleDateString(locale(), { day: "numeric", month: "long" }) + (count ? " · " + plural(count, "solve") : "")}>
           <View className={cn("flex-1 items-center justify-center rounded-xl", key === today && "border-2 border-primary")}>
             <Numeric className={cn("text-[13px] font-bold", count ? "text-foreground" : "text-muted-foreground/60")}>{n}</Numeric>
             {count > 0 && <View className={cn("absolute bottom-1 h-1 rounded-full", run.has(key) ? "bg-warning" : "bg-primary")} style={{ width: 6 + (count / most) * 18 }} />}
