@@ -7,6 +7,7 @@ package main
 
 import (
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,6 +29,10 @@ const duelAnyoneAfter = 30 * time.Second
 
 // Players without a level meet each other at once, and anyone else after this long.
 const duelUnknownAfter = 10 * time.Second
+
+// Players searching at once, every event together: far above real use, and it bounds the pairing done each second
+// under the arena's lock (quadratic within an event).
+const duelQueueMax = 512
 
 var duelPhases = [4]string{"idle", "holding", "ready", "running"}
 var duelPenalties = [3]string{"none", "+2", "dnf"}
@@ -222,14 +227,23 @@ type duelSeatRef struct {
 }
 
 type duelInner struct {
-	queue []*duelWaiting
+	// Those searching, by event, longest waiting first.
+	queue map[string][]*duelWaiting
 	races map[string]*duelRace
 	// Race and seat of each player in a race.
 	seats map[string]duelSeatRef
 }
 
 func newDuelInner() *duelInner {
-	return &duelInner{races: map[string]*duelRace{}, seats: map[string]duelSeatRef{}}
+	return &duelInner{queue: map[string][]*duelWaiting{}, races: map[string]*duelRace{}, seats: map[string]duelSeatRef{}}
+}
+
+func (inner *duelInner) searching() int {
+	n := 0
+	for _, queue := range inner.queue {
+		n += len(queue)
+	}
+	return n
 }
 
 // DuelArena: the queue and the races under way.
@@ -283,57 +297,66 @@ func (inner *duelInner) raceOf(id string) (*duelRace, int) {
 // pair pairs the players waiting longest with the closest level they may meet.
 func (inner *duelInner) pair() {
 	now := time.Now()
-	sort.SliceStable(inner.queue, func(i, j int) bool { return inner.queue[i].since.Before(inner.queue[j].since) })
-	for i := 0; i < len(inner.queue); {
-		best, bestGap := -1, 0.0
-		for j := range inner.queue {
-			if j == i || inner.queue[j].event != inner.queue[i].event {
+	for event, queue := range inner.queue {
+		sort.SliceStable(queue, func(i, j int) bool { return queue[i].since.Before(queue[j].since) })
+		for i := 0; i < len(queue); {
+			best, bestGap := -1, 0.0
+			for j := range queue {
+				if j == i {
+					continue
+				}
+				if g, ok := duelGap(queue[i], queue[j], now); ok && (best < 0 || g < bestGap) {
+					best, bestGap = j, g
+				}
+			}
+			if best < 0 {
+				i++
 				continue
 			}
-			if g, ok := duelGap(inner.queue[i], inner.queue[j], now); ok && (best < 0 || g < bestGap) {
-				best, bestGap = j, g
-			}
+			lo, hi := min(i, best), max(i, best)
+			first, second := queue[lo], queue[hi]
+			queue = append(queue[:hi], queue[hi+1:]...)
+			queue = append(queue[:lo], queue[lo+1:]...)
+			inner.start(first, second)
 		}
-		if best < 0 {
-			i++
-			continue
+		if len(queue) == 0 {
+			delete(inner.queue, event)
+		} else {
+			inner.queue[event] = queue
 		}
-		lo, hi := min(i, best), max(i, best)
-		first, second := inner.queue[lo], inner.queue[hi]
-		inner.queue = append(inner.queue[:hi], inner.queue[hi+1:]...)
-		inner.queue = append(inner.queue[:lo], inner.queue[lo+1:]...)
-		id := newUUID()
-		seat := func(w *duelWaiting) *duelSeat {
-			return &duelSeat{id: w.id, name: w.name, user: w.user, level: w.level, tx: w.tx, results: make([]*duelSolve, duelRounds)}
-		}
-		race := &duelRace{id: id, event: first.event, seats: [2]*duelSeat{seat(first), seat(second)}, game: 1}
-		players := []any{}
-		for _, s := range race.seats {
-			var level any
-			if s.level != nil {
-				level = *s.level
-			}
-			players = append(players, M{"name": s.name, "level": level})
-		}
-		for seat := range race.seats {
-			inner.seats[race.seats[seat].id] = duelSeatRef{race: id, seat: seat}
-			race.send(seat, M{"type": "match", "race": id, "seat": seat, "host": seat == 0, "event": race.event, "players": players})
-		}
-		race.broadcast(race.state())
-		inner.races[id] = race
 	}
+}
+
+// start: a race between two players taken out of the queue.
+func (inner *duelInner) start(first, second *duelWaiting) {
+	id := newUUID()
+	seat := func(w *duelWaiting) *duelSeat {
+		return &duelSeat{id: w.id, name: w.name, user: w.user, level: w.level, tx: w.tx, results: make([]*duelSolve, duelRounds)}
+	}
+	race := &duelRace{id: id, event: first.event, seats: [2]*duelSeat{seat(first), seat(second)}, game: 1}
+	players := []any{}
+	for _, s := range race.seats {
+		var level any
+		if s.level != nil {
+			level = *s.level
+		}
+		players = append(players, M{"name": s.name, "level": level})
+	}
+	for seat := range race.seats {
+		inner.seats[race.seats[seat].id] = duelSeatRef{race: id, seat: seat}
+		race.send(seat, M{"type": "match", "race": id, "seat": seat, "host": seat == 0, "event": race.event, "players": players})
+	}
+	race.broadcast(race.state())
+	inner.races[id] = race
 }
 
 // status tells everyone searching how many others search the same event.
 func (inner *duelInner) status() {
-	for _, w := range inner.queue {
-		others := -1
-		for _, o := range inner.queue {
-			if o.event == w.event {
-				others++
-			}
+	for _, queue := range inner.queue {
+		message := liveText("duel", M{"type": "queue", "searching": len(queue) - 1})
+		for _, w := range queue {
+			w.tx.send(message)
 		}
-		w.tx.send(liveText("duel", M{"type": "queue", "searching": others}))
 	}
 }
 
@@ -348,8 +371,11 @@ func (a *DuelArena) queue(waiting *duelWaiting) {
 	a.leave(waiting.id)
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.inner.searching() >= duelQueueMax {
+		return
+	}
 	waiting.tx.send(liveText("duel", M{"type": "queued"}))
-	a.inner.queue = append(a.inner.queue, waiting)
+	a.inner.queue[waiting.event] = append(a.inner.queue[waiting.event], waiting)
 	a.inner.pair()
 	a.inner.status()
 }
@@ -358,13 +384,15 @@ func (a *DuelArena) queue(waiting *duelWaiting) {
 func (a *DuelArena) leave(id string) {
 	a.mu.Lock()
 	inner := a.inner
-	kept := inner.queue[:0]
-	for _, w := range inner.queue {
-		if w.id != id {
-			kept = append(kept, w)
+	for event, queue := range inner.queue {
+		if i := slices.IndexFunc(queue, func(w *duelWaiting) bool { return w.id == id }); i >= 0 {
+			if queue = slices.Delete(queue, i, i+1); len(queue) == 0 {
+				delete(inner.queue, event)
+			} else {
+				inner.queue[event] = queue
+			}
 		}
 	}
-	inner.queue = kept
 	ref, ok := inner.seats[id]
 	if !ok {
 		a.mu.Unlock()
@@ -524,14 +552,10 @@ func (c *liveClient) onDuel(body any) {
 	}
 	switch str(idx(body, "type")) {
 	case "queue":
+		// An event of the registry only: made-up ones would each open a queue of their own.
 		event, err := apiString(body, "event", 1, 16)
-		if err != nil {
+		if err != nil || !practiceIsEvent(event) {
 			return
-		}
-		for i := 0; i < len(event); i++ {
-			if ch := event[i]; !('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || '0' <= ch && ch <= '9') {
-				return
-			}
 		}
 		var level *float64
 		if l, ok := asFloat(idx(body, "level")); ok && !math.IsInf(l, 0) && !math.IsNaN(l) && l > 0 && l < 3_600_000 {

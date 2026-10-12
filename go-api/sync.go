@@ -4,6 +4,8 @@ package main
 // Every mutation bumps the owner's cursor; live sockets stream its changed entities to other devices.
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -46,9 +48,24 @@ func syncMigrate(db *Conn) error {
 			}
 		}
 	}
-	// Receipts are part of the database too; canonicalize only context fields, never user text.
-	if err := db.ExecBatch(`UPDATE sync_receipts SET payload=json_set(payload,'$.body.scrambleType','normal')
-        WHERE json_extract(payload,'$.body.scrambleType') IN ('competition','random-moves');
+	// Receipts expire (`syncPrune`); those written before they had a date get theirs from the upgrade.
+	has, err := hasColumn(db, "sync_receipts", "at")
+	if err != nil {
+		return err
+	}
+	if !has {
+		if _, err := db.Exec("ALTER TABLE sync_receipts ADD COLUMN at INTEGER NOT NULL DEFAULT 0"); err != nil {
+			return err
+		}
+		if _, err := db.Exec("UPDATE sync_receipts SET at=?", accountsNow()); err != nil {
+			return err
+		}
+	}
+	// Receipts are part of the database too; canonicalize only context fields, never user text. Payloads are digests
+	// since receipts were made compact: only the older ones are JSON.
+	if err := db.ExecBatch(`CREATE INDEX IF NOT EXISTS idx_sync_receipts_at ON sync_receipts(at);
+        UPDATE sync_receipts SET payload=json_set(payload,'$.body.scrambleType','normal')
+        WHERE CASE WHEN json_valid(payload) THEN json_extract(payload,'$.body.scrambleType') END IN ('competition','random-moves');
         UPDATE sync_receipts SET result=json_set(result,'$.scramble_type','normal')
         WHERE json_extract(result,'$.scramble_type') IN ('competition','random-moves');`); err != nil {
 		return err
@@ -180,6 +197,31 @@ func copyJSON(v any) any {
 	return v
 }
 
+// syncReceiptDays: how long an upload's receipt answers its retries; a device offline longer resends as new.
+const syncReceiptDays = 30
+
+// syncCompact: what a receipt keeps of an operation's answer for its retries: the id a device maps its local row to,
+// and a learning order's groups. The rows themselves come back through the change feed.
+func syncCompact(value any) any {
+	row, ok := value.(M)
+	if !ok {
+		return nil
+	}
+	out := M{}
+	for _, key := range []string{"id", "track", "groups"} {
+		if v, ok := row[key]; ok {
+			out[key] = v
+		}
+	}
+	return out
+}
+
+// syncPrune forgets expired receipts (hourly, with the request log).
+func syncPrune(db *Conn) error {
+	_, err := db.Exec("DELETE FROM sync_receipts WHERE at<?", accountsNow()-syncReceiptDays*accountsDayMs)
+	return err
+}
+
 func syncPush(db *Conn, state *AppState, uid string, caller *ApiCaller, body any) (any, error) {
 	operations, ok := asArray(idx(body, "operations"))
 	if !ok || len(operations) == 0 || len(operations) > 100 {
@@ -199,17 +241,23 @@ func syncPush(db *Conn, state *AppState, uid string, caller *ApiCaller, body any
 			if err != nil {
 				return nil, err
 			}
-			payload := encodeJSON(op)
+			digest := sha256.Sum256([]byte(encodeJSON(op)))
+			payload := hex.EncodeToString(digest[:])
 			receipt, err := dbOne(db, "SELECT payload,result FROM sync_receipts WHERE user_id=? AND operation_id=?", uid, operationID)
 			if err != nil {
 				return nil, err
 			}
 			if receipt != nil {
-				recorded, err := parseJSONText(receipt["payload"], "")
-				if err != nil {
-					return nil, err
+				same := eqStr(receipt["payload"], payload)
+				// Receipts from before digests kept the whole operation.
+				if recorded := str(receipt["payload"]); strings.HasPrefix(recorded, "{") {
+					value, err := parseJSONText(recorded, "")
+					if err != nil {
+						return nil, err
+					}
+					same = jsonEqual(value, op)
 				}
-				if !jsonEqual(recorded, op) {
+				if !same {
 					return nil, apiErr(409, "Operation ID already used with different data")
 				}
 				value, err := parseJSONText(receipt["result"], "")
@@ -272,7 +320,7 @@ func syncPush(db *Conn, state *AppState, uid string, caller *ApiCaller, body any
 				}
 				value.(M)["created_at"] = at
 			}
-			if _, err := db.Exec("INSERT INTO sync_receipts(user_id,operation_id,payload,result) VALUES(?,?,?,?)", uid, operationID, payload, encodeJSON(value)); err != nil {
+			if _, err := db.Exec("INSERT INTO sync_receipts(user_id,operation_id,payload,result,at) VALUES(?,?,?,?,?)", uid, operationID, payload, encodeJSON(syncCompact(value)), accountsNow()); err != nil {
 				return nil, err
 			}
 			results = append(results, M{"id": operationID, "value": value})

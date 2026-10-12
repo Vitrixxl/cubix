@@ -63,11 +63,17 @@ export async function packageRelease() {
   // Linux: the shell package.ts assembles (desktop/dist built on the way), with its icon for the installer.
   await run(["bun", "desktop/package.ts"]);
   const linux = join(root, "artifacts/electron/cubix-linux-x64");
+  // What the shell compares with GET /api/desktop at launch, to tell when a newer one is out (electron/main.ts).
+  const version = await desktopVersion();
+  const stamp = (path: string, name: string) => Bun.write(join(path, "version.json"), JSON.stringify({ version, package: name }));
+  await stamp(join(linux, "app"), PACKAGES.linux);
   await cp(join(root, "desktop/linux/fr.vitrixxl.cubix.png"), join(linux, "fr.vitrixxl.cubix.png"));
   await pruneLocales(join(linux, "runtime/locales"));
   await run(["tar", "-czf", join(OUT, PACKAGES.linux), "-C", join(root, "artifacts/electron"), "cubix-linux-x64"]);
   // Windows: Packager's Electron for win32, the same desktop/dist inside.
   const { version: electronVersion } = await Bun.file(join(root, "node_modules/electron/package.json")).json();
+  // Only for the package: the shell run from desktop/dist in development has no version to compare.
+  await stamp(join(root, "desktop/dist"), PACKAGES.windows);
   const [windows] = await packager({
     dir: join(root, "desktop/dist"),
     out: join(root, "artifacts/electron"),
@@ -78,12 +84,12 @@ export async function packageRelease() {
     asar: true,
     overwrite: true,
     extraResource: [join(root, "desktop/NOTICE"), join(root, "desktop/licenses")],
-  });
+  }).finally(() => rm(join(root, "desktop/dist/version.json"), { force: true }));
   await pruneLocales(join(windows!, "locales"));
   await icon(join(windows!, "Cubix.ico"));
   await run(["bsdtar", "-a", "-cf", join(OUT, PACKAGES.windows), "-C", join(root, "artifacts/electron"), "Cubix-win32-x64"]);
   for (const name of Object.values(PACKAGES)) console.log(`${name}: ${(Bun.file(join(OUT, name)).size / 1048576).toFixed(1)} MiB`);
-  return { version: await desktopVersion() };
+  return { version };
 }
 
 if (import.meta.main) {

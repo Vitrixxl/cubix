@@ -35,16 +35,40 @@ case "$(uname -s)-$(uname -m)" in
     ;;
 esac
 command -v tar >/dev/null 2>&1 || { echo "Qbix needs tar to install." >&2; exit 1; }
+command -v openssl >/dev/null 2>&1 || { echo "Qbix needs openssl to check the download: install your distribution's openssl package." >&2; exit 1; }
+
+# Packages are signed with a key kept off the server (scripts/deploy.ts): one that does not match this key is not
+# Qbix's, whoever serves it.
+public_key='-----BEGIN PUBLIC KEY-----
+MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA596v2w8FYeJqX3xF/fac
+CaAzmkuN897RX9uC5xi2Oo6yS8mQ0P3ENu5cRv8JMDu89pBSzt5uXHceuv1FCULB
+j6jLhLu4hcx2ko2t8mKYZTZK7RIRbXnoVVDQVV6rt6wex/6q/iRyuFiPBvX152T0
+DdcogAV3yGr9WeZvjKq1bhmA8Df67BooI01Ip2tOt/Ea4WSqLa8iUS45V6qPPYoa
+P3IxqWjFpc7zvZYiPYSGKWY8JsQSRqFveDz/+HfTtk3geYZF60iTDMtaLe5TdGXE
+03NesIopdqB3zsIf3X4FnkkTlh5b7aKB7LusdfSGcfmSsglDYF2sopOnv27Ia/Lm
++42EdIIXuwACw3uLyMri4ypEI6bIJEvmQvmZsXvnD699NlKUG34H1soQ7uR7yGhC
+sZHVcv5B5pQGXlnjmduYWRdkK9bjYCiawbkgSW4UjlntQo6ez+sK7ZtP+/n/MAjv
+ckBZF3bP3+NA1Ewi3hLvfgNNJBrk/fgWjY5FybYZjoZ7AgMBAAE=
+-----END PUBLIC KEY-----'
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
+download() {
+  if command -v curl >/dev/null 2>&1; then
+    curl -fL --progress-bar "$1" -o "$2"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q --show-progress -O "$2" "$1"
+  else
+    echo "Qbix needs curl or wget to download." >&2
+    exit 1
+  fi
+}
 echo "Downloading Qbix…"
-if command -v curl >/dev/null 2>&1; then
-  curl -fL --progress-bar "$origin/api/desktop/$package.tar.gz" -o "$tmp/qbix.tar.gz"
-elif command -v wget >/dev/null 2>&1; then
-  wget -q --show-progress -O "$tmp/qbix.tar.gz" "$origin/api/desktop/$package.tar.gz"
-else
-  echo "Qbix needs curl or wget to download." >&2
+download "$origin/api/desktop/$package.tar.gz" "$tmp/qbix.tar.gz"
+download "$origin/api/desktop/$package.tar.gz.sig" "$tmp/qbix.tar.gz.sig"
+printf '%s\n' "$public_key" >"$tmp/key.pem"
+if ! openssl dgst -sha256 -verify "$tmp/key.pem" -signature "$tmp/qbix.tar.gz.sig" "$tmp/qbix.tar.gz" >/dev/null 2>&1; then
+  echo "The download's signature does not match: Qbix was not installed." >&2
   exit 1
 fi
 tar -xzf "$tmp/qbix.tar.gz" -C "$tmp"

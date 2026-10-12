@@ -4,12 +4,18 @@
  * publish (`PUT /api/mobile/updates` on the API, done by `scripts/deploy.ts` at the root).
  * The runtime version comes from app.config.ts, so the update only reaches APKs whose native
  * code matches.
+ *
+ * The manifest phones receive is written here, whole, and signed with the expo-updates key
+ * (`CUBIX_UPDATES_SIGNING_KEY`, by default ~/.config/cubix/keys/expo-updates/private-key.pem), which never
+ * leaves this machine: the server serves the text as it is, and APKs embedding certs/certificate.pem refuse any
+ * other. Without the key the update is exported unsigned (scripts/deploy.ts then refuses to publish it).
  */
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { basename, extname, resolve } from "node:path";
-import { buildNumber, commitHash, runtimeVersion } from "../app.config";
+import { createHash, randomUUID, sign, verify, X509Certificate } from "node:crypto";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, extname, join, resolve } from "node:path";
+import { API_ORIGIN, buildNumber, commitHash, runtimeVersion } from "../app.config";
 
 const root = resolve(import.meta.dir, "..");
 const out = resolve(root, process.argv.find(a => a.startsWith("--output="))?.slice("--output=".length) ?? "build/updates");
@@ -48,6 +54,26 @@ const update = {
   assets: android.assets.map(asset => entry(asset.path, asset.ext)),
   expoClient,
 };
+// What GET /api/mobile/updates/manifest answers (expo-updates protocol 1). The asset addresses are fixed here, on the
+// server the bundle talks to, since the signature covers them.
+const served = ({ hash, key, contentType, fileExtension }: ReturnType<typeof entry>) =>
+  ({ hash: Buffer.from(hash, "hex").toString("base64url"), key, contentType, fileExtension, url: `${API_ORIGIN}/api/mobile/updates/assets/${hash}` });
+const manifest = JSON.stringify({
+  id: randomUUID(), createdAt: new Date().toISOString(), runtimeVersion: runtime,
+  launchAsset: served(update.launchAsset), assets: update.assets.map(served), metadata: {}, extra: { expoClient },
+});
+const key = process.env.CUBIX_UPDATES_SIGNING_KEY ?? join(homedir(), ".config/cubix/keys/expo-updates/private-key.pem");
+let signature: string | undefined;
+if (existsSync(key)) {
+  // RSA PKCS#1 v1.5 over SHA-256, the `rsa-v1_5-sha256` app.config.ts announces.
+  signature = sign("sha256", Buffer.from(manifest), readFileSync(key)).toString("base64");
+  // A key that does not match the certificate in the APKs would get every update refused: stop here instead.
+  const certificate = new X509Certificate(readFileSync(resolve(root, "certs/certificate.pem")));
+  if (!verify("sha256", Buffer.from(manifest), certificate.publicKey, Buffer.from(signature, "base64"))) {
+    console.error(`${key} does not match certs/certificate.pem`);
+    process.exit(1);
+  }
+} else console.warn(`No signing key at ${key}: the update is not signed, and phones with the certificate will refuse it.`);
 rmSync(resolve(out, "update.json"), { force: true });
-writeFileSync(resolve(out, "update.json"), JSON.stringify(update, null, 2));
+writeFileSync(resolve(out, "update.json"), JSON.stringify({ ...update, manifest, signature }, null, 2));
 console.log(`Update ${build} (${commit.slice(0, 7)}) for runtime ${runtime}: ${update.assets.length + 1} files in ${out}`);

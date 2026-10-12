@@ -1,6 +1,27 @@
 package main
 
-import "testing"
+import (
+	"net/netip"
+	"testing"
+)
+
+func TestRateLimitedRequestsLoggedOncePerMinute(t *testing.T) {
+	batch := newActivityBatch()
+	seen, used, limited := activityThrottle{}, activityThrottle{}, activityThrottle{}
+	ip := netip.MustParseAddr("203.0.113.30")
+	for i := range 1000 {
+		entry := ActivityEntry{at: 1_000_000 + int64(i), ip: ip, method: "GET", path: "/api/moves", status: 429}
+		activityAdd(batch, activityEvent{request: &entry}, seen, used, limited)
+	}
+	later := ActivityEntry{at: 1_000_000 + activitySeenEveryMs, ip: ip, method: "GET", path: "/api/moves", status: 429}
+	activityAdd(batch, activityEvent{request: &later}, seen, used, limited)
+	if len(batch.rows) != 2 {
+		t.Errorf("%d rows logged, want 2", len(batch.rows))
+	}
+	if counted := batch.traffic[[2]string{activityDay(1_000_000), ip.String()}].limited; counted != 1001 {
+		t.Errorf("%d refusals counted, want 1001", counted)
+	}
+}
 
 func TestDaysAreUtcDates(t *testing.T) {
 	for _, c := range []struct{ got, want string }{

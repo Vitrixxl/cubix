@@ -21,6 +21,40 @@ const socialUnknownConversation = "Unknown conversation"
 // Messages a page of a conversation holds.
 const socialPage int64 = 100
 
+// A request or an invitation turned down (or taken back) is not made again for a week, so nobody is asked over and
+// over.
+const socialDeclineDays = 7
+
+// The groups an account may own: plenty for clubs, not a flood of them.
+const socialMaxGroups = 20
+
+// socialMessageAllowed: a message (or a battle's card) within its sender's allowance of 30 a minute.
+func socialMessageAllowed(uid string) error {
+	if !apiUserAllow("messages:"+uid, 30, 60) {
+		return apiErr(429, "You are sending messages too quickly. Wait a moment.")
+	}
+	return nil
+}
+
+// socialDecline remembers that `user` was asked by `asker` (a friend request) or to join `group` and that it ended
+// unanswered.
+func socialDecline(db *Conn, user, asker string, group int64) error {
+	_, err := db.Exec("INSERT OR REPLACE INTO social_declines(user_id,asker_id,group_id,at) VALUES(?,?,?,?)", user, asker, group, accountsNow())
+	return err
+}
+
+// socialDeclined: whether `user` turned down `asker`'s request, or an invitation to `group`, within the week.
+func socialDeclined(db *Conn, user, asker string, group int64) (bool, error) {
+	row, err := dbOne(db, "SELECT 1 FROM social_declines WHERE user_id=? AND asker_id=? AND group_id=? AND at>=?", user, asker, group, accountsNow()-socialDeclineDays*accountsDayMs)
+	return row != nil, err
+}
+
+// socialPrune forgets declines older than the week (hourly, with the request log).
+func socialPrune(db *Conn) error {
+	_, err := db.Exec("DELETE FROM social_declines WHERE at<?", accountsNow()-socialDeclineDays*accountsDayMs)
+	return err
+}
+
 // optID is an `Option<i64>` id as an SQL parameter: 0 is NULL.
 func optID(id int64) any {
 	if id == 0 {
@@ -197,6 +231,13 @@ func socialBefriend(db *Conn, state *AppState, user, other M) (any, error) {
 		return nil, apiErr(409, "Your request is waiting for an answer.")
 	case "incoming":
 		return socialAccept(db, state, user, oid)
+	}
+	declined, err := socialDeclined(db, oid, uid, 0)
+	if err != nil {
+		return nil, err
+	}
+	if declined {
+		return nil, apiErr(409, "This player was asked recently. Try again in a few days.")
 	}
 	if _, err := db.Exec("INSERT INTO friends(user_id,friend_id,status,created_at) VALUES(?,?,'pending',?)", uid, oid, accountsNow()); err != nil {
 		return nil, err
@@ -560,6 +601,13 @@ func socialCreateGroup(db *Conn, state *AppState, uid string, body any) (any, er
 	if err != nil {
 		return nil, err
 	}
+	owned, err := dbOne(db, "SELECT count(*) n FROM social_groups WHERE owner_id=?", uid)
+	if err != nil {
+		return nil, err
+	}
+	if n, _ := asInt(owned["n"]); n >= socialMaxGroups {
+		return nil, apiErr(409, "You already own 20 groups, the most an account can. Delete one to make another.")
+	}
 	at := accountsNow()
 	tx, err := db.Begin()
 	if err != nil {
@@ -625,6 +673,13 @@ func socialInvite(db *Conn, state *AppState, group int64, by string, byName any,
 	}
 	if existing != nil {
 		return apiErr(409, "This player is already in the group, or invited.")
+	}
+	declined, err := socialDeclined(db, other, "", group)
+	if err != nil {
+		return err
+	}
+	if declined {
+		return apiErr(409, "This player was invited recently. Try again in a few days.")
 	}
 	if _, err := db.Exec("INSERT INTO group_members(group_id,user_id,role,invited_by,joined_at) VALUES(?,?,'invited',?,?)", group, other, by, accountsNow()); err != nil {
 		return err
@@ -712,12 +767,18 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 	// Declines a request, takes one back, or ends a friendship.
 	case is("DELETE", "friends", "*"):
 		id := parts[1]
-		gone, err := db.Exec("DELETE FROM friends WHERE (user_id=?1 AND friend_id=?2) OR (user_id=?2 AND friend_id=?1)", uid, id)
+		request, err := dbOne(db, "DELETE FROM friends WHERE (user_id=?1 AND friend_id=?2) OR (user_id=?2 AND friend_id=?1) RETURNING user_id,friend_id,status", uid, id)
 		if err != nil {
 			return nil, err
 		}
-		if gone == 0 {
+		if request == nil {
 			return nil, apiErr(404, socialUnknownUser)
+		}
+		// A request declined or taken back: its asker waits before asking again.
+		if eqStr(request["status"], "pending") {
+			if err := socialDecline(db, str(request["friend_id"]), str(request["user_id"]), 0); err != nil {
+				return nil, err
+			}
 		}
 		socialNotify(db, state, []string{uid, id}, "friends", M{})
 		return M{"relation": "none"}, nil
@@ -800,6 +861,9 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		}
 		text, err := socialTrimmed(body, "body", 1, 1000)
 		if err != nil {
+			return nil, err
+		}
+		if err := socialMessageAllowed(uid); err != nil {
 			return nil, err
 		}
 		return socialPost(db, state, row, user, text, SocialCard{})
@@ -984,6 +1048,12 @@ func socialRoute(db *Conn, state *AppState, method string, parts []string, query
 		}
 		if _, err := db.Exec("DELETE FROM group_members WHERE group_id=? AND user_id=?", id, memberID); err != nil {
 			return nil, err
+		}
+		// An invitation declined or taken back: the group waits before inviting them again.
+		if theirs == "invited" {
+			if err := socialDecline(db, memberID, "", id); err != nil {
+				return nil, err
+			}
 		}
 		socialNotify(db, state, []string{memberID}, "groups", M{"left": id})
 		if own {

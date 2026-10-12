@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
@@ -10,6 +11,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
@@ -136,6 +139,38 @@ func apiEnumString(body any, key string, allowed ...string) (string, error) {
 	return "", validation()
 }
 
+// apiMaxSolves: the most solves an account keeps, years of daily practice; the server's card is shared.
+const apiMaxSolves = 200_000
+
+// apiUserLimits: per-account allowances for writes a free account could otherwise repeat at will (solves,
+// messages): token buckets as traffic.go keeps per IP.
+var apiUserLimits = struct {
+	sync.Mutex
+	buckets map[string]*trafficBucket
+}{buckets: map[string]*trafficBucket{}}
+
+// apiUserAllow takes a token from the bucket `key` (a kind and an account), which holds `cap` refilled over
+// `seconds`.
+func apiUserAllow(key string, cap, seconds float64) bool {
+	apiUserLimits.Lock()
+	defer apiUserLimits.Unlock()
+	b, ok := apiUserLimits.buckets[key]
+	if !ok {
+		// An hour idle refills every bucket: forgetting it changes nothing.
+		if len(apiUserLimits.buckets) >= 10000 {
+			for k, old := range apiUserLimits.buckets {
+				if accountsNow()-old.at > 3600_000 {
+					delete(apiUserLimits.buckets, k)
+				}
+			}
+		}
+		bucket := newTrafficBucket(cap)
+		b = &bucket
+		apiUserLimits.buckets[key] = b
+	}
+	return b.allow(cap, seconds)
+}
+
 func apiQueryInt(query map[string]string, key string, def, max int64) (int64, error) {
 	v, ok := query[key]
 	if !ok {
@@ -153,7 +188,8 @@ type attempt struct {
 	until int64
 }
 
-func apiLimited(state *AppState, key string) error {
+// apiLimited counts an attempt under `key`: past `most` within 15 minutes, it is refused.
+func apiLimited(state *AppState, key string, most uint32) error {
 	now := accountsNow()
 	state.attemptsMu.Lock()
 	defer state.attemptsMu.Unlock()
@@ -164,14 +200,21 @@ func apiLimited(state *AppState, key string) error {
 	}
 	entry, ok := state.attempts[key]
 	if len(state.attempts) >= 10000 && !ok {
-		return apiErr(429, "Too many attempts. Try again in 15 minutes.")
+		// Full: the oldest entry goes. Refusing new keys would let a flood of names lock everyone out.
+		oldest := ""
+		for k, a := range state.attempts {
+			if oldest == "" || a.until < state.attempts[oldest].until {
+				oldest = k
+			}
+		}
+		delete(state.attempts, oldest)
 	}
 	if !ok {
 		entry = &attempt{until: now + 15*60000}
 		state.attempts[key] = entry
 	}
 	entry.count++
-	if entry.count > 10 {
+	if entry.count > most {
 		return apiErr(429, "Too many attempts. Try again in 15 minutes.")
 	}
 	return nil
@@ -249,11 +292,19 @@ func apiHashPassword(password string) string {
 	return argonHash([]byte(password), 65536, 2, 1)
 }
 
+// apiDummyHash: what a sign-in with an unknown username is checked against, so it takes as long as a wrong password.
+var apiDummyHash = sync.OnceValue(func() string { return apiHashPassword("cubix-unknown-account") })
+
 // apiPassword hashes `password`, or checks it against `hash` (then answers the hash).
-func apiPassword(state *AppState, password string, hash *string) (string, error) {
+func apiPassword(ctx context.Context, state *AppState, password string, hash *string) (string, error) {
+	// Each hash takes 64 MiB, so a few run at a time; the others wait their turn a little rather than fail at once.
+	wait := time.NewTimer(5 * time.Second)
+	defer wait.Stop()
 	select {
 	case state.passwords <- struct{}{}:
-	default:
+	case <-wait.C:
+		return "", apiErr(429, "Too many sign-in requests. Try again shortly.")
+	case <-ctx.Done():
 		return "", apiErr(429, "Too many sign-in requests. Try again shortly.")
 	}
 	defer func() { <-state.passwords }()
@@ -274,7 +325,7 @@ func isUsernameByte(b byte) bool {
 	return 'a' <= b && b <= 'z' || '0' <= b && b <= '9' || b == '_'
 }
 
-func apiAuthRequest(state *AppState, path string, body any, token string) (any, error) {
+func apiAuthRequest(state *AppState, r *http.Request, path string, body any, token string) (any, error) {
 	registering := path == "auth/register"
 	min := 0
 	if registering {
@@ -301,11 +352,11 @@ func apiAuthRequest(state *AppState, path string, body any, token string) (any, 
 			return nil, apiErr(400, "Use 3–24 letters, numbers or underscores for your username.")
 		}
 	}
-	key := "login:" + username
-	if registering {
-		key = "register:" + username
-	}
-	if err := apiLimited(state, key); err != nil {
+	// Attempts count per username and client: failures from elsewhere never lock an account's owner out. A looser
+	// limit per client bounds guessing across usernames.
+	ip := trafficKey(state.traffic.ip(peerIP(r), r.Header)).String()
+	key := path + ":" + username + "@" + ip
+	if err := apiLimited(state, key, 10); err != nil {
 		return nil, err
 	}
 	if registering {
@@ -329,28 +380,41 @@ func apiAuthRequest(state *AppState, path string, body any, token string) (any, 
 		if err != nil {
 			return nil, err
 		}
-		hash, err := apiPassword(state, secret, nil)
+		// Each account costs a password hash: ten per client every 15 minutes (a family or a class behind one address).
+		if err := apiLimited(state, "register@"+ip, 10); err != nil {
+			return nil, err
+		}
+		hash, err := apiPassword(r.Context(), state, secret, nil)
 		if err != nil {
 			return nil, err
 		}
 		return dbCall(state.db, func(db *Conn) (M, error) { return accountsRegister(db, username, hash) })
 	}
-	user, err := dbCall(state.db, func(db *Conn) (M, error) {
-		user, err := accountsByUsername(db, username)
-		if err == nil && user == nil {
-			err = apiErr(401, "Incorrect username or password.")
-		}
-		return user, err
-	})
+	if err := apiLimited(state, "login@"+ip, 100); err != nil {
+		return nil, err
+	}
+	user, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsByUsername(db, username) })
 	if err != nil {
 		return nil, err
 	}
+	if user == nil {
+		// Checked all the same: an unknown username answers no sooner than a wrong password.
+		dummy := apiDummyHash()
+		if _, err := apiPassword(r.Context(), state, secret, &dummy); err != nil {
+			return nil, err
+		}
+		return nil, apiErr(401, "Incorrect username or password.")
+	}
 	hash := str(user["password_hash"])
-	if _, err := apiPassword(state, secret, &hash); err != nil {
+	if _, err := apiPassword(r.Context(), state, secret, &hash); err != nil {
 		return nil, err
 	}
 	state.attemptsMu.Lock()
 	delete(state.attempts, key)
+	// Only failures count against the client.
+	if a, ok := state.attempts["login@"+ip]; ok && a.count > 0 {
+		a.count--
+	}
 	state.attemptsMu.Unlock()
 	return dbCall(state.db, func(db *Conn) (M, error) { return accountsIssue(db, user) })
 }
@@ -366,7 +430,32 @@ func headerText(r *http.Request, name string) string {
 	return v
 }
 
+// The API's JSON bodies stay under apiBodyMax; a signed-in sync push may carry apiSyncMax. Bodies above apiSmallBody
+// are read and decoded a few at a time (apiLargeBodies): decoded JSON takes many times its size, `[0,0,…]` about 20.
+const apiBodyMax = 256 * 1024
+const apiSyncMax = 2 * 1024 * 1024
+const apiSmallBody = 64 * 1024
+
+var apiLargeBodies = make(chan struct{}, 4)
+
 func apiDispatch(state *AppState, w http.ResponseWriter, r *http.Request) {
+	// A chunked body has no announced length (-1).
+	if r.ContentLength < 0 || r.ContentLength > apiSmallBody {
+		if (r.ContentLength < 0 || r.ContentLength > apiBodyMax) && r.Method == "POST" && string(apiRoutePath(r.URL.EscapedPath())) == "sync" {
+			// The larger limit only once the token opens an account.
+			if _, err := dbCall(state.db, func(db *Conn) (M, error) { return accountsSignedIn(db, headerText(r, "Authorization")) }); err != nil {
+				writeError(w, err)
+				return
+			}
+			r = r.WithContext(context.WithValue(r.Context(), limitKey{}, int64(apiSyncMax)))
+		}
+		select {
+		case apiLargeBodies <- struct{}{}:
+			defer func() { <-apiLargeBodies }()
+		case <-r.Context().Done():
+			return
+		}
+	}
 	bytes, ok := readBody(w, r)
 	if !ok {
 		return
@@ -391,12 +480,16 @@ func apiHandle(state *AppState, r *http.Request, bytes []byte) (*ActivityActor, 
 	return actor, value, err
 }
 
-func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **ActivityActor) (any, error) {
-	raw := r.URL.EscapedPath()
-	for strings.HasPrefix(raw, "/api/") {
-		raw = raw[len("/api/"):]
+// apiRoutePath: the route an API path names: every leading `/api/` stripped, then percent-decoded.
+func apiRoutePath(escaped string) []byte {
+	for strings.HasPrefix(escaped, "/api/") {
+		escaped = escaped[len("/api/"):]
 	}
-	decoded := percentDecode(raw)
+	return percentDecode(escaped)
+}
+
+func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **ActivityActor) (any, error) {
+	decoded := apiRoutePath(r.URL.EscapedPath())
 	if !utf8.Valid(decoded) {
 		return nil, validation()
 	}
@@ -412,7 +505,7 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 	token := headerText(r, "Authorization")
 	method := r.Method
 	if method == "POST" && (path == "auth/register" || path == "auth/login") {
-		return apiAuthRequest(state, path, body, token)
+		return apiAuthRequest(state, r, path, body, token)
 	}
 	// The account deleted by its owner, with its password: everything it holds goes at once (admin_data::purge).
 	if method == "POST" && path == "account/delete" {
@@ -425,14 +518,14 @@ func apiRespond(state *AppState, r *http.Request, bytes []byte, actor **Activity
 			return nil, err
 		}
 		id := str(user["id"])
-		if err := apiLimited(state, "delete:"+id); err != nil {
+		if err := apiLimited(state, "delete:"+id, 10); err != nil {
 			return nil, err
 		}
 		hash, ok := asStr(user["password_hash"])
 		if !ok {
 			return nil, apiErr(401, "Incorrect password.")
 		}
-		if _, err := apiPassword(state, secret, &hash); err != nil {
+		if _, err := apiPassword(r.Context(), state, secret, &hash); err != nil {
 			return nil, apiErr(401, "Incorrect password.")
 		}
 		if _, err := adminDataDelete(state, id); err != nil {
@@ -665,7 +758,8 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 			cases = []any{}
 		}
 		list, ok := asArray(cases)
-		if !ok {
+		// Each id is the catalogue's: a longer list only repeats them.
+		if !ok || len(list) > len(state.catalog.byID) {
 			return nil, validation()
 		}
 		for _, id := range list {
@@ -719,7 +813,8 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if err != nil {
 			return nil, err
 		}
-		solves, err := dbAll(db, "SELECT * FROM solves WHERE session_id=? AND user_id=? ORDER BY created_at,id", id, uid)
+		// The session's latest solves: one session may hold an account's whole history.
+		solves, err := dbAll(db, "SELECT * FROM (SELECT * FROM solves WHERE session_id=? AND user_id=? ORDER BY created_at DESC,id DESC LIMIT 1000) ORDER BY created_at,id", id, uid)
 		if err != nil {
 			return nil, err
 		}
@@ -733,7 +828,8 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if mode != "training" && mode != "playground" {
 			return nil, validation()
 		}
-		limit, err := apiQueryInt(query, "limit", 500, 10000)
+		// Rows carry up to 12,500 characters of text each: a page stays in the tens of megabytes.
+		limit, err := apiQueryInt(query, "limit", 500, 1000)
 		if err != nil {
 			return nil, err
 		}
@@ -761,6 +857,9 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 		if err != nil {
 			return nil, err
 		}
+		if caseID != nil && len(*caseID) > 100 {
+			return nil, validation()
+		}
 		time, ok := asFloat(idx(body, "timeMs"))
 		if !ok || math.IsInf(time, 0) || math.IsNaN(time) || time < 0 {
 			return nil, validation()
@@ -771,9 +870,14 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 				return nil, err
 			}
 		}
-		scramble, err := apiOptionalString(body, "scramble")
-		if err != nil {
-			return nil, err
+		var scramble *string
+		if v, ok := get(body, "scramble"); ok && v != nil {
+			// As long as a duel's or a match's scramble.
+			s, err := apiString(body, "scramble", 0, 2000)
+			if err != nil {
+				return nil, err
+			}
+			scramble = &s
 		}
 		_, comment, err := apiComment(body)
 		if err != nil {
@@ -825,6 +929,18 @@ func apiRoute(db *Conn, state *AppState, method, path string, query map[string]s
 			if _, ok := state.catalog.byID[*caseID]; !ok {
 				return nil, apiErr(400, "Unknown case")
 			}
+		}
+		// A thousand a minute lets an import through (a hundred per sync request), not a flood.
+		if !apiUserAllow("solves:"+uid, 1000, 60) {
+			return nil, apiErr(429, "Too many solves at once. Try again in a minute.")
+		}
+		// ponytail: counts the account's index on every solve, milliseconds near the cap; keep a counter if it shows.
+		count, err := dbOne(db, "SELECT count(*) n FROM solves WHERE user_id=?", uid)
+		if err != nil {
+			return nil, err
+		}
+		if n, _ := asInt(count["n"]); n >= apiMaxSolves {
+			return nil, apiErr(409, "This account holds 200,000 solves, the most it can keep. Delete old ones to add more.")
 		}
 		return dbRequired(db, "INSERT INTO solves(session_id,case_id,time_ms,penalty,scramble,comment,solution,memo_ms,user_id,cube_size,puzzle_id,solve_mode,scramble_type) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *", "Unknown solve",
 			sid, caseID, math.Round(time), penalty, scramble, comment, solution, memo, uid, context.cubeSize(), context.puzzle, context.solveMode, context.scrambleType)

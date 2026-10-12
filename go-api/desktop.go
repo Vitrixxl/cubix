@@ -7,9 +7,14 @@ package main
 // builds it on the developer's machine, as it does the APK, and uploads it here with the admin
 // password only when its version (a hash of the shell's sources) changed. The files live next to
 // the APK, beside the database, and survive container rebuilds.
+//
+// Each package comes with its RSA signature, made at deploy time with a key that never leaves the developer's
+// machine and served at `<package>.sig`: the install scripts check it against the public key they embed, so a
+// leaked admin password cannot slip them another package.
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,6 +65,9 @@ func desktopPackages() M {
 	for _, file := range desktopFiles {
 		if meta := desktopMetadata(file.name); meta != nil {
 			packages[file.name] = M{"url": desktopPath + "/" + file.name, "size": idx(meta, "size"), "sha256": idx(meta, "sha256"), "version": idx(meta, "version"), "commit": idx(meta, "commit"), "uploadedAt": idx(meta, "uploadedAt")}
+			if idx(meta, "signature") != nil {
+				packages[file.name].(M)["signature"] = desktopPath + "/" + file.name + ".sig"
+			}
 		}
 	}
 	return packages
@@ -71,15 +79,30 @@ func desktopInfo(state *AppState, w http.ResponseWriter, r *http.Request) {
 }
 
 // desktopDownload: `GET /api/desktop/{name}` streams a package: a hundred megabytes never sit in memory.
+// `GET /api/desktop/{name}.sig` sends its signature.
 func desktopDownload(state *AppState, w http.ResponseWriter, r *http.Request) {
-	file, err := desktopFileOf(r.PathValue("name"))
+	name, signature := strings.CutSuffix(r.PathValue("name"), ".sig")
+	file, err := desktopFileOf(name)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 	missing := apiErr(404, "This package has not been uploaded to this server yet")
-	if desktopMetadata(file.name) == nil {
+	meta := desktopMetadata(file.name)
+	if meta == nil {
 		writeError(w, missing)
+		return
+	}
+	if signature {
+		sig, err := base64.StdEncoding.DecodeString(str(idx(meta, "signature")))
+		if err != nil || len(sig) == 0 {
+			writeError(w, apiErr(404, "This package was uploaded without a signature"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Length", strconv.Itoa(len(sig)))
+		w.WriteHeader(200)
+		_, _ = w.Write(sig)
 		return
 	}
 	f, err := os.Open(filepath.Join(desktopDir(), file.name))
@@ -155,5 +178,10 @@ func desktopHeaders(state *AppState, r *http.Request) (desktopFile, M, error) {
 	if !releaseIsCommit(commit) {
 		return desktopFile{}, nil, apiErr(422, "X-Cubix-Commit must be a hexadecimal commit")
 	}
-	return file, M{"version": version, "commit": commit}, nil
+	// The server cannot check it (the install scripts do), only that there is one to serve.
+	signature := releaseHeaderText(r, "X-Cubix-Signature")
+	if sig, err := base64.StdEncoding.DecodeString(signature); err != nil || len(sig) == 0 || len(sig) > 1024 {
+		return desktopFile{}, nil, apiErr(422, "X-Cubix-Signature must be the package's signature in base64")
+	}
+	return file, M{"version": version, "commit": commit, "signature": signature}, nil
 }

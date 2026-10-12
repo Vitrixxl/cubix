@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -41,26 +42,64 @@ func TestAnAccountNeverMeetsItself(t *testing.T) {
 	for _, w := range mine {
 		w.user = "u1"
 	}
-	inner.queue = mine
+	inner.queue["333"] = mine
 	inner.pair()
-	if len(inner.queue) != 2 {
-		t.Fatal(len(inner.queue))
+	if len(inner.queue["333"]) != 2 {
+		t.Fatal(inner.queue)
 	}
 	// Someone else meets the device that has waited longest.
 	first := mine[0].id
-	inner.queue = append(inner.queue, waiting(0, 0))
+	inner.queue["333"] = append(inner.queue["333"], waiting(0, 0))
 	inner.pair()
-	if _, ok := inner.seats[first]; len(inner.queue) != 1 || !ok {
-		t.Fatal(len(inner.queue))
+	if _, ok := inner.seats[first]; len(inner.queue["333"]) != 1 || !ok {
+		t.Fatal(inner.queue)
 	}
 }
 
 func TestClosestLevelFirst(t *testing.T) {
 	inner := newDuelInner()
-	inner.queue = []*duelWaiting{waiting(10_000, 2), waiting(30_000, 1), waiting(10_500, 0)}
-	slow, close := inner.queue[1].id, inner.queue[2].id
+	inner.queue["333"] = []*duelWaiting{waiting(10_000, 2), waiting(30_000, 1), waiting(10_500, 0)}
+	slow, close := inner.queue["333"][1].id, inner.queue["333"][2].id
 	inner.pair()
-	if _, ok := inner.seats[close]; len(inner.queue) != 1 || inner.queue[0].id != slow || !ok {
+	if _, ok := inner.seats[close]; len(inner.queue["333"]) != 1 || inner.queue["333"][0].id != slow || !ok {
 		t.Fatal(inner.queue)
+	}
+}
+
+func duelClient(arena *DuelArena) *liveClient {
+	return &liveClient{state: &AppState{duel: arena}, id: newUUID(), tx: newWsOutbox(), duelRate: newLiveBucket(30, 3)}
+}
+
+func TestOnlyKnownEventsQueueEachInItsOwnQueue(t *testing.T) {
+	arena := newDuelArena(nil)
+	for _, event := range []any{"abc", "333x", "", 333} {
+		duelClient(arena).onDuel(M{"type": "queue", "event": event})
+	}
+	if arena.inner.searching() != 0 {
+		t.Fatal(arena.inner.queue)
+	}
+	a, b, c := duelClient(arena), duelClient(arena), duelClient(arena)
+	a.onDuel(M{"type": "queue", "event": "222"})
+	b.onDuel(M{"type": "queue", "event": "444"})
+	c.onDuel(M{"type": "queue", "event": "222"})
+	_, raced := arena.inner.seats[a.id]
+	if _, ok := arena.inner.seats[c.id]; !ok || !raced || len(arena.inner.queue) != 1 || arena.inner.queue["444"][0].id != b.id {
+		t.Fatal(arena.inner.queue)
+	}
+	if last := b.tx.queue[len(b.tx.queue)-1]; !strings.Contains(last, `"searching":0`) {
+		t.Fatal(last)
+	}
+}
+
+func TestTheQueueIsCapped(t *testing.T) {
+	arena := newDuelArena(nil)
+	for range duelQueueMax {
+		w := waiting(0, 0)
+		w.user = "u1"
+		arena.inner.queue["333"] = append(arena.inner.queue["333"], w)
+	}
+	duelClient(arena).onDuel(M{"type": "queue", "event": "222"})
+	if arena.inner.searching() != duelQueueMax || arena.inner.queue["222"] != nil {
+		t.Fatal(arena.inner.searching())
 	}
 }

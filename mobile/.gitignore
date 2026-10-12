@@ -29,6 +29,8 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+# The public certificate the APK embeds to check over-the-air updates; its private key stays in ~/.config/cubix/keys.
+!/certs/certificate.pem
 
 # local env files
 .env*.local

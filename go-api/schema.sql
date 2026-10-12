@@ -165,6 +165,15 @@ CREATE TABLE IF NOT EXISTS friends (
  PRIMARY KEY(user_id, friend_id)
 );
 CREATE INDEX IF NOT EXISTS idx_friends_friend ON friends(friend_id);
+-- A friend request (from `asker_id`) or a group's invitation (`group_id`) that `user_id` turned down, or that was
+-- taken back: not asked again for a week (social.go, `socialDeclineDays`).
+CREATE TABLE IF NOT EXISTS social_declines (
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ asker_id TEXT NOT NULL DEFAULT '',
+ group_id INTEGER NOT NULL DEFAULT 0,
+ at INTEGER NOT NULL,
+ PRIMARY KEY(user_id, asker_id, group_id)
+);
 CREATE TABLE IF NOT EXISTS social_groups (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  name TEXT NOT NULL,

@@ -1,11 +1,93 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
+
+// testCoachingDb: a database with a coach `c` open every hour of the week and a student `s`.
+func testCoachingDb(t *testing.T) *Db {
+	db, err := dbOpen(filepath.Join(t.TempDir(), "cubix.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	windows := []string{}
+	for day := 0; day < 7; day++ {
+		windows = append(windows, fmt.Sprintf(`{"weekday":%d,"start":0,"end":1440}`, day))
+	}
+	err = db.Call(func(c *Conn) error {
+		return c.ExecBatch(`INSERT INTO users(id,username,password_hash) VALUES('c','coach','x'),('s','student','x');
+			INSERT INTO coaches(user_id,windows,created_at) VALUES('c','[` + strings.Join(windows, ",") + `]',0);`)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return db
+}
+
+func testStatus(err error) int {
+	if err == nil {
+		return 200
+	}
+	return toApiError(err).Status
+}
+
+// A booking cancelled at once opens neither the conversation nor the student's practice; one kept does.
+func TestCancelledBookingGrantsNothing(t *testing.T) {
+	err := testCoachingDb(t).Call(func(c *Conn) error {
+		start := accountsNow() + 2*accountsDayMs
+		if err := c.ExecBatch(fmt.Sprintf(`INSERT INTO coach_conversations(id,coach_id,student_id,updated_at) VALUES(1,'c','s',0);
+			INSERT INTO coach_bookings(id,coach_id,student_id,starts_at,ends_at,status,created_at) VALUES('b','c','s',%d,%d,'cancelled',0);`,
+			start, start+3600_000)); err != nil {
+			return err
+		}
+		check := func(write, person int) {
+			for _, uid := range []string{"c", "s"} {
+				if _, err := coachingWritable(c, "1", uid); testStatus(err) != write {
+					t.Fatalf("%s writes: %v", uid, err)
+				}
+			}
+			if _, err := coachingPerson(c, "c", "s"); testStatus(err) != person {
+				t.Fatalf("the coach sees the student: %v", err)
+			}
+		}
+		check(403, 404)
+		if _, err := c.Exec("UPDATE coach_bookings SET status='booked'"); err != nil {
+			return err
+		}
+		check(200, 200)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A student holds at most three sessions to come with one coach.
+func TestBookingsToComePerCoachAreCapped(t *testing.T) {
+	err := testCoachingDb(t).Call(func(c *Conn) error {
+		state := &AppState{coaching: newCoachingRooms()}
+		coach, err := coachingRow(c, "c")
+		if err != nil {
+			return err
+		}
+		slots := coachingFreeSlots(coach, nil, accountsNow(), 7)
+		for i := 0; i < 4; i++ {
+			_, err := coachingBook(c, state, "s", M{"cancellationPolicy": coachingCancellationPolicy, "coachId": "c", "start": slots[i*2][0]})
+			if want := map[bool]int{true: 200, false: 409}[i < 3]; testStatus(err) != want {
+				t.Fatalf("booking %d: %v", i, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestCancellationClosesExactlyTwentyFourHoursBeforeStart(t *testing.T) {
 	at := int64(1_800_000_000_000)

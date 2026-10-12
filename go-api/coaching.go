@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -77,6 +78,15 @@ const coachingUnknownMedia = "Unknown picture or video"
 // coachingMediaMax is the largest video a message carries; pictures stop at `coachingImageMax`.
 const coachingMediaMax = 64 * 1024 * 1024
 const coachingImageMax = 10 * 1024 * 1024
+
+// What an account may keep on the server's card in pictures and videos, in all and sent over a day, and the free
+// space under which uploads stop, kept for the database.
+const coachingMediaQuota = 500 * 1024 * 1024
+const coachingMediaDayQuota = 200 * 1024 * 1024
+const coachingMediaFloor = 1024 * 1024 * 1024
+
+// The sessions to come a student may hold with one coach.
+const coachingMaxUpcoming = 3
 
 // coachingText: optional trimmed text of at most `max` characters, empty when absent.
 func coachingText(body any, key string, max int) (string, error) {
@@ -1307,8 +1317,8 @@ func coachingRoute(db *Conn, state *AppState, method string, parts []string, que
 		return out, nil
 
 	case is("POST", "conversations"):
-		// A player who booked a coach (even a session cancelled since) opens their conversation; coaches answer in
-		// the ones opened with them.
+		// A player who booked a coach (a session not cancelled) opens their conversation; coaches answer in the ones
+		// opened with them.
 		coachID, err := apiString(body, "coachId", 1, 64)
 		if err != nil {
 			return nil, err
@@ -1373,6 +1383,9 @@ func coachingRoute(db *Conn, state *AppState, method string, parts []string, que
 		}
 		if text = strings.TrimSpace(text); text == "" {
 			return nil, validation()
+		}
+		if err := socialMessageAllowed(uid); err != nil {
+			return nil, err
 		}
 		return coachingPost(db, state, conversation, user, text, nil)
 
@@ -1623,6 +1636,14 @@ func coachingBook(db *Conn, state *AppState, uid string, body any) (any, error) 
 	if taken != nil {
 		return nil, apiErr(409, "You already have a session at that time.")
 	}
+	// One student cannot take all of a coach's hours.
+	upcoming, err := dbOne(db, "SELECT count(*) n FROM coach_bookings WHERE coach_id=? AND student_id=? AND status='booked' AND ends_at>?", coachID, uid, at)
+	if err != nil {
+		return nil, err
+	}
+	if n, _ := asInt(upcoming["n"]); n >= coachingMaxUpcoming {
+		return nil, apiErr(409, "You already have 3 sessions to come with this coach.")
+	}
 	id := newUUID()
 	price, _ := asInt(coach["price_cents"])
 	if _, err := db.Exec("INSERT INTO coach_bookings(id,coach_id,student_id,starts_at,ends_at,note,price_cents,created_at,cancellation_policy,cancellation_policy_accepted_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -1777,6 +1798,24 @@ func coachingSignedIn(db *Conn, authorization string) (M, error) {
 	return user, nil
 }
 
+// coachingQuota fails when `size` more bytes would take the sender past their allowance of pictures and videos.
+func coachingQuota(db *Conn, uid string, size int64) error {
+	row, err := dbOne(db, "SELECT coalesce(sum(media_size),0) total,coalesce(sum(CASE WHEN created_at>? THEN media_size END),0) day FROM coach_messages WHERE sender_id=? AND media_id IS NOT NULL",
+		accountsNow()-accountsDayMs, uid)
+	if err != nil {
+		return err
+	}
+	total, _ := asInt(row["total"])
+	day, _ := asInt(row["day"])
+	if total+size > coachingMediaQuota {
+		return apiErr(413, "Your pictures and videos already take all the space an account has.")
+	}
+	if day+size > coachingMediaDayQuota {
+		return apiErr(413, "You have sent enough pictures and videos for today. Try again tomorrow.")
+	}
+	return nil
+}
+
 // coachingUpload is `POST /api/coaching/conversations/{id}/media`: a picture or a video as the whole body, sent as a
 // message of its own. Its original name may come URI-encoded in `X-File-Name`.
 func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
@@ -1801,8 +1840,11 @@ func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
 		if user, err = coachingSignedIn(db, authorization); err != nil {
 			return err
 		}
-		conversation, err = coachingWritable(db, id, str(user["id"]))
-		return err
+		if conversation, err = coachingWritable(db, id, str(user["id"])); err != nil {
+			return err
+		}
+		// The size is known once read; an account already at its allowance is refused before.
+		return coachingQuota(db, str(user["id"]), 1)
 	})
 	if err != nil {
 		writeError(w, err)
@@ -1811,6 +1853,15 @@ func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
 	dir := coachingMediaDir()
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		writeError(w, internal(err))
+		return
+	}
+	var disk syscall.Statfs_t
+	if err := syscall.Statfs(dir, &disk); err != nil {
+		writeError(w, internal(err))
+		return
+	}
+	if int64(disk.Bavail)*int64(disk.Bsize) < coachingMediaFloor {
+		writeError(w, apiErr(507, "The server is short of space. Try again later."))
 		return
 	}
 	media := &coachingAttachment{id: newUUID(), name: name}
@@ -1829,7 +1880,13 @@ func coachingUpload(state *AppState, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	media.size = int(size)
-	sent, err := dbCall(state.db, func(db *Conn) (any, error) { return coachingPost(db, state, conversation, user, "", media) })
+	sent, err := dbCall(state.db, func(db *Conn) (any, error) {
+		// Checked again with its size, on the database thread: uploads made side by side count each other.
+		if err := coachingQuota(db, str(user["id"]), size); err != nil {
+			return nil, err
+		}
+		return coachingPost(db, state, conversation, user, "", media)
+	})
 	if err != nil {
 		_ = os.Remove(path)
 	}
@@ -2013,6 +2070,13 @@ func coachingPerson(db *Conn, uid, id string) (any, error) {
 	if conversation == nil {
 		return nil, apiErr(404, "Unknown person")
 	}
+	coached, err := coachingCoached(db, str(conversation["coach_id"]), str(conversation["student_id"]))
+	if err != nil {
+		return nil, err
+	}
+	if !coached {
+		return nil, apiErr(404, "Unknown person")
+	}
 	user, err := dbRequired(db, "SELECT id,username,avatar,created_at FROM users WHERE id=?", "Unknown person", id)
 	if err != nil {
 		return nil, err
@@ -2190,10 +2254,11 @@ func coachingPractice(db *Conn, id string, top int64) (any, error) {
 	return M{"solves": totals["solves"], "activeDays": totals["active_days"], "lastAt": totals["last_at"], "learned": learned, "puzzles": puzzles}, nil
 }
 
-// coachingCoached: whether the student had a session with the coach (any, even cancelled): coaches closed to new
-// students still take theirs.
+// coachingCoached: whether the student has a session with the coach, past or to come, that was not cancelled: coaches
+// closed to new students still take theirs. A booking cancelled at once must not open messages, uploads and the
+// student's practice for good.
 func coachingCoached(db *Conn, coach, student string) (bool, error) {
-	row, err := dbOne(db, "SELECT 1 FROM coach_bookings WHERE coach_id=? AND student_id=? LIMIT 1", coach, student)
+	row, err := dbOne(db, "SELECT 1 FROM coach_bookings WHERE coach_id=? AND student_id=? AND status='booked' LIMIT 1", coach, student)
 	return row != nil, err
 }
 

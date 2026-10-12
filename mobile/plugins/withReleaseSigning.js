@@ -1,5 +1,6 @@
 // Signs release builds with the keystore named by CUBIX_ANDROID_KEYSTORE. Without it the
-// generated debug key is kept, so local builds keep installing over each other.
+// generated debug key is kept for local builds; production builds (scripts/build-apk.ts --production)
+// fail without the release key, and scripts/deploy.ts refuses to upload a debug-signed APK.
 const { withAppBuildGradle } = require("expo/config-plugins");
 
 const MARKER = "CUBIX_ANDROID_KEYSTORE";

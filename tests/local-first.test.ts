@@ -186,7 +186,7 @@ test("server sync enforces ownership, keeps receipts after delete, rejects reuse
   const op = {id:crypto.randomUUID(),method:"POST",path:"solves",body:{timeMs:3456},createdAt:"2026-08-01T12:34:56.000Z"};
   const result = await api.syncPush([op]); const solve = result.results[0].value as SolveDto;
   await api.deleteSolve(solve.id);
-  expect(await api.syncPush([op])).toEqual(result);
+  expect(await api.syncPush([op]) as unknown).toEqual({results:[{id:op.id,value:{id:solve.id}}]});
   expect(await api.solves("playground")).toEqual([]);
   await expect(api.syncPush([{...op,body:{timeMs:999}}])).rejects.toMatchObject({status:409});
   const session = await api.createSession("playground");

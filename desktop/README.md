@@ -81,9 +81,32 @@ Le profil Chromium (IndexedDB, cache du service worker) est dans
 Au premier lancement, le `storage.json` de l'ancien moteur desktop est importé une
 seule fois, puis renommé `storage.imported.json`.
 
+La session n'accorde que ce que l'application utilise (caméra et micro, partage d'écran,
+plein écran, copie), et seulement à cette origine ; tout le reste est refusé. Il n'y a
+pas de mise à jour automatique de la fenêtre : au lancement, elle compare sa version
+(`version.json`, écrit par `package-release.ts`) à celle de `GET /api/desktop` et, si
+elle diffère, une boîte de dialogue donne la commande d'installation à relancer.
+
 - `CUBIX_DESKTOP_GPU=system` : conserver la sélection graphique du système. Par défaut,
   sur les PC hybrides Intel/AMD + NVIDIA, la fenêtre utilise le GPU intégré et évite
   le scan Vulkan qui réveille la carte dédiée. L’accélération OpenGL reste active.
+
+### Paquets signés
+
+`bun run deploy` signe chaque paquet (`cubix-linux-x64.tar.gz`, `cubix-windows-x64.zip`)
+en RSA-3072, SHA-256, PKCS#1 v1.5, avec `~/.config/cubix/keys/desktop-private-key.pem`
+(`CUBIX_DESKTOP_SIGNING_KEY` pour un autre chemin), et l'envoie avec sa signature.
+`install.sh` (openssl) et `install.ps1` (.NET de Windows PowerShell 5.1) embarquent la
+clé publique, téléchargent `<paquet>.sig` et refusent d'extraire un paquet qui ne
+correspond pas. La clé privée ne quitte pas la machine de déploiement : la
+**sauvegarder** (hors du dépôt, chiffrée). Pour en changer, remplacer la clé publique
+des deux scripts (PEM dans `install.sh`, module et exposant en base64 dans
+`install.ps1`) ; le déploiement refuse une clé que `install.sh` ne reconnaît pas. Elle a
+été créée par :
+
+```sh
+umask 077; openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out ~/.config/cubix/keys/desktop-private-key.pem
+```
 
 ## Validation
 

@@ -203,6 +203,13 @@ func run() int {
 		}
 		return 0
 	}
+	// `cubix-api backup [path]`: a copy of the database now, the server running or not (backup.go).
+	if len(args) > 1 && args[1] == "backup" {
+		if err := backupCommand(path, args[2:]); err != nil {
+			return fail("Backup: " + err.Error())
+		}
+		return 0
+	}
 	// `cubix-api seed`, in development images only (compose.dev.yaml): fills an empty database.
 	if seedCommand != nil && len(args) > 1 && args[1] == "seed" {
 		if err := seedCommand(db); err != nil {
@@ -269,6 +276,7 @@ func run() int {
 	}
 	// Tournaments start at their date.
 	go tournamentRun(state)
+	go backupRun(path)
 	app := state.routes()
 	// Optional extra listeners let local load generators use separate TCP port pools.
 	// All listeners share the same runtime, SQLite worker, authentication and live hub.
@@ -286,7 +294,10 @@ func run() int {
 			return 1
 		}
 		fmt.Printf("Cubix Go: http://%s (db: %s)\n", listener.Addr(), path)
-		go func() { failed <- (&http.Server{Handler: app}).Serve(listener) }()
+		// No whole-request read or write timeout: WebSockets and package uploads last. Bodies read in memory get
+		// their own deadline (readBody).
+		server := &http.Server{Handler: app, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute, MaxHeaderBytes: 64 << 10}
+		go func() { failed <- server.Serve(listener) }()
 	}
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -346,7 +357,8 @@ func (s *AppState) routes() http.Handler {
 	route(true, "/api/mobile/updates/assets/{hash}", 64*1024*1024, map[string]handler{"GET": releaseAsset, "PUT": releaseUploadAsset})
 	route(true, "/api/mobile/updates", json, map[string]handler{"PUT": releasePublish})
 	route(true, "/api/mobile/updates/manifest", json, get(releaseManifest))
-	api := s.endpoint(true, json, every(apiDispatch))
+	// Generic API bodies are small; apiDispatch raises the limit for a signed-in sync push.
+	api := s.endpoint(true, apiBodyMax, every(apiDispatch))
 	// An empty catch-all matches no route in axum: `/api/` is the fallback's. The exact
 	// patterns keep ServeMux from redirecting `/api` and `/api/admin` to them.
 	mux.Handle("/api", fallback)
@@ -450,6 +462,13 @@ func readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 	if r.ContentLength > limit {
 		bodyRejected(w, &http.MaxBytesError{Limit: limit})
 		return nil, false
+	}
+	if r.ContentLength != 0 {
+		// A body trickled in would hold its memory (and a large-body slot) for ever. The deadline goes once read:
+		// a later expiry would cancel the request.
+		rc := http.NewResponseController(w)
+		_ = rc.SetReadDeadline(time.Now().Add(time.Minute))
+		defer rc.SetReadDeadline(time.Time{})
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err != nil {

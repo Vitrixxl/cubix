@@ -110,7 +110,8 @@ test("socket uploads are idempotent and an expired token cannot read or mutate d
   const { socket } = await a.connect();
   const op = { id: crypto.randomUUID(), method: "POST", path: "solves", body: { timeMs: 9999 }, createdAt: "2026-01-01T00:00:00.000Z" };
   const result = await socket.syncPush([op]);
-  expect(await socket.syncPush([op])).toEqual(result);
+  // A retry gets the id back; the row itself comes through the change feed.
+  expect(await socket.syncPush([op]) as unknown).toEqual({ results: [{ id: op.id, value: { id: (result.results[0]!.value as any).id } }] });
   await expect(socket.syncPush([{ ...op, body: { timeMs: 1000 } }])).rejects.toMatchObject({ status: 409 });
   expect(db.query<{ n: number }>("SELECT count(*) n FROM solves WHERE user_id=?").get(auth.user.id)?.n).toBe(1);
   await createApiClient(origin, { getToken: a.token }).logout();

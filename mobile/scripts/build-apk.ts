@@ -1,17 +1,22 @@
 /**
  * Build an installable Android APK: regenerate the generated sources, sync the native
  * project, then run Gradle. `bun scripts/build-apk.ts --debug` builds a debug APK that
- * loads the JavaScript bundle from a running `expo start` server.
+ * loads the JavaScript bundle from a running `expo start` server. `--production` (scripts/deploy.ts) signs with the
+ * release key of scripts/release-signing.ts and its lineage, and fails without them; other builds keep the debug key.
  */
 import { spawnSync } from "node:child_process";
 import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { API_ORIGIN, NATIVE_INPUTS, buildNumber, commitHash, runtimeVersion } from "../app.config";
+import { assertReleaseSigned, loadReleaseSigning, signWithLineage } from "./release-signing";
 
 const root = resolve(import.meta.dir, "..");
 const debug = process.argv.includes("--debug");
 const arm64 = process.argv.includes("--arm64");
+const production = process.argv.includes("--production");
+if (production && debug) throw new Error("--production builds the release APK; it cannot be combined with --debug.");
+const signing = production ? loadReleaseSigning() : undefined;
 /** `--arch=x86_64` builds for one ABI only, e.g. an APK for the emulator. */
 const arch = process.argv.find(argument => argument.startsWith("--arch="))?.slice("--arch=".length) ?? (arm64 ? "arm64-v8a" : undefined);
 const outputArgument = process.argv.find(argument => argument.startsWith("--output="))?.slice("--output=".length);
@@ -23,6 +28,8 @@ const env: NodeJS.ProcessEnv = {
   ANDROID_HOME: process.env.ANDROID_HOME ?? `${home}/.local/share/android`,
 };
 env.ANDROID_SDK_ROOT = env.ANDROID_HOME;
+// Gradle signs with the release key (plugins/withReleaseSigning.js), then signWithLineage adds the rotation proof.
+Object.assign(env, signing);
 // app.config.ts stamps the commit into versionCode and Constants.expoConfig.extra.
 const build = buildNumber();
 env.CUBIX_BUILD_NUMBER = String(build);
@@ -94,5 +101,7 @@ const apk = resolve(root, `android/app/build/outputs/apk/${debug ? "debug/app-de
 mkdirSync(resolve(root, "build"), { recursive: true });
 const out = resolve(root, outputArgument ?? `build/cubix-${debug ? "debug" : "release"}${arm64 ? "-arm64" : arch ? `-${arch}` : ""}.apk`);
 copyFileSync(apk, `${out}.tmp`);
+if (signing) signWithLineage(`${out}.tmp`, resolve(root, "android/app/debug.keystore"), signing);
 renameSync(`${out}.tmp`, out);
+if (signing) assertReleaseSigned(out, signing);
 console.log(`APK: ${out}`);

@@ -38,7 +38,7 @@ const UPDATES_ENABLED = process.env.CUBIX_UPDATES !== "off";
  */
 export const NATIVE_INPUTS = [
   "app.json", "app.config.ts", "plugins/withReleaseSigning.js", "plugins/withHighRefreshRate.js", "bun.lock",
-  "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png",
+  "assets/icon.png", "assets/splash-icon.png", "assets/android-icon-foreground.png", "certs/certificate.pem",
   ...fontFiles(),
 ];
 /** The font files expo-font links natively (app.json): its plain fonts, then each Android family's weights. */
@@ -64,6 +64,10 @@ export function runtimeVersion(): string {
 /** Extends app.json with the build identity, the update channel, the release signing and the refresh rate plugins. */
 export default ({ config }: ConfigContext): ExpoConfig => {
   const build = buildNumber();
+  // Production speaks https only; a test build pointed at a local http API (EXPO_PUBLIC_API_ORIGIN) needs cleartext.
+  const plugins = (config.plugins ?? []).map(plugin => Array.isArray(plugin) && plugin[0] === "expo-build-properties" && API_ORIGIN.startsWith("http:")
+    ? [plugin[0], { ...plugin[1], android: { ...plugin[1].android, usesCleartextTraffic: true } }] as [string, unknown]
+    : plugin);
   return {
     ...config,
     name: config.name ?? "Cubix",
@@ -76,11 +80,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Launch the cached bundle at once and fetch a newer one in the background for the next start.
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0,
+      // Only manifests signed with the key kept off the server are run (scripts/export-update.ts signs them).
+      codeSigningCertificate: "./certs/certificate.pem",
+      codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" },
     },
     android: { ...config.android, versionCode: build || 1 },
     extra: { ...config.extra, build, commit: commitHash() },
     // The web build lives under a path of the site (desktop/web.ts exports it to dist/web/phone).
     ...process.env.CUBIX_WEB_BASE ? { experiments: { ...config.experiments, baseUrl: process.env.CUBIX_WEB_BASE } } : {},
-    plugins: [...(config.plugins ?? []), "./plugins/withReleaseSigning", "./plugins/withHighRefreshRate"],
+    plugins: [...plugins, "./plugins/withReleaseSigning", "./plugins/withHighRefreshRate"],
   };
 };

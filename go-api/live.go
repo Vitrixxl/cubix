@@ -14,6 +14,7 @@ package main
 // throttled, so an open app needs no message of its own to stay connected.
 
 import (
+	"errors"
 	"net/http"
 	"net/netip"
 	"os"
@@ -167,13 +168,100 @@ const liveSyncMax = 2 * 1024 * 1024
 const liveCoachingMax = 65536
 const liveGameMax = 16384
 
+// Caps on open sockets. Each costs a few dozen kilobytes (buffers, two goroutines), so 8192 stay well within the Pi's
+// memory. Apps without an account (duels and matches need none) may hold half of them, so a flood of those from many
+// addresses leaves room for accounts; a household or a club behind one address still opens a few tabs each.
+const liveMaxSockets = 8192
+const liveMaxAnonymous = 4096
+const liveMaxPerIP = 64
+const liveMaxAnonymousPerIP = 8
+
+type liveCount struct{ all, anonymous int }
+
+// LiveSockets counts the open sockets, in all and by client address (liveIPKey).
+type LiveSockets struct {
+	mu    sync.Mutex
+	total liveCount
+	ips   map[netip.Addr]*liveCount
+}
+
+func newLiveSockets() *LiveSockets {
+	return &LiveSockets{ips: map[netip.Addr]*liveCount{}}
+}
+
+var liveSockets = newLiveSockets()
+
+// liveIPKey: an IPv6 client holds a whole /64, so its sockets count together.
+func liveIPKey(ip netip.Addr) netip.Addr {
+	ip = ip.Unmap()
+	if ip.Is6() {
+		prefix, _ := ip.Prefix(64)
+		return prefix.Addr()
+	}
+	return ip
+}
+
+// open counts a new socket of `ip` or, with `anonymous`, one of its sockets signed in without an account; false
+// when that would go over a cap.
+func (s *LiveSockets) open(ip netip.Addr, anonymous bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c := s.ips[ip]
+	if c == nil {
+		c = &liveCount{}
+	}
+	if anonymous {
+		if s.total.anonymous >= liveMaxAnonymous || c.anonymous >= liveMaxAnonymousPerIP {
+			return false
+		}
+		c.anonymous++
+		s.total.anonymous++
+	} else {
+		if s.total.all >= liveMaxSockets || c.all >= liveMaxPerIP {
+			return false
+		}
+		c.all++
+		s.total.all++
+	}
+	s.ips[ip] = c
+	return true
+}
+
+// close undoes an open.
+func (s *LiveSockets) close(ip netip.Addr, anonymous bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c := s.ips[ip]
+	if c == nil {
+		return
+	}
+	if anonymous {
+		c.anonymous--
+		s.total.anonymous--
+	} else {
+		c.all--
+		s.total.all--
+	}
+	if c.all <= 0 && c.anonymous <= 0 {
+		delete(s.ips, ip)
+	}
+}
+
 func liveUpgrade(state *AppState, w http.ResponseWriter, r *http.Request) {
 	ip := state.traffic.ip(peerIP(r), r.Header)
+	key := liveIPKey(ip)
+	if !liveSockets.open(key, false) {
+		w.Header().Set("Retry-After", "30")
+		http.Error(w, "Too many connections", http.StatusServiceUnavailable)
+		return
+	}
+	defer liveSockets.close(key, false)
 	conn, err := liveUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
-	conn.SetReadLimit(liveSyncMax)
+	// Until it signs in, a socket may send only its small `auth` message: no large frame is buffered nor decoded.
+	conn.SetReadLimit(liveGameMax)
 	live(state, conn, ip)
 }
 
@@ -225,6 +313,8 @@ type liveClient struct {
 	user  M
 	// An account with a password: practice sync and coaching are theirs only.
 	member bool
+	// Signed in without an account: counted against the anonymous caps.
+	anonymous bool
 	// The practice cursor the app holds, for the changes streamed to it.
 	slot      *LiveSlot
 	delivered int64
@@ -247,16 +337,51 @@ func live(state *AppState, conn *websocket.Conn, ip netip.Addr) {
 	defer conn.Close()
 	c := &liveClient{state: state, conn: conn, ip: ip, id: newUUID(), slot: newLiveSlot(), tx: newWsOutbox(),
 		coachingRate: newLiveBucket(200, 20), duelRate: newLiveBucket(30, 3), matchRate: newLiveBucket(30, 5), matches: map[int64]int{}}
+	defer c.leave()
+	// The app says who it is at once, read here before anything else; afterwards any frame, a pong included, shows it
+	// is still there.
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	kind, data, err := conn.ReadMessage()
+	if err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			wsClose(conn, 1001, "Idle")
+		}
+		return
+	}
+	if kind != websocket.TextMessage {
+		wsClose(conn, 1008, "Invalid message")
+		return
+	}
+	body, err := decodeJSON(data)
+	if err != nil {
+		wsClose(conn, 1008, "Invalid message")
+		return
+	}
+	if !eqStr(idx(body, "channel"), "live") || !eqStr(idx(body, "type"), "auth") {
+		wsClose(conn, 1008, "Authentication expected")
+		return
+	}
+	if !state.traffic.allow(ip, "/api/live", true) {
+		wsClose(conn, 1008, "Message rate limit exceeded")
+		return
+	}
+	if !c.auth(body) {
+		return
+	}
+	_ = conn.SetReadDeadline(time.Time{})
+	// Sync and coaching, the large messages, are an account's only: others keep the small limit, so only an account's
+	// large frames are ever buffered and decoded. Set before the reading goroutine starts.
+	var wake chan struct{}
+	if c.member {
+		conn.SetReadLimit(liveSyncMax)
+		wake = c.slot.wake
+	}
 	incoming, stop := wsReceive(conn)
 	defer stop()
-	defer c.leave()
-	// The app says who it is at once; afterwards any frame, a pong included, shows it is still there.
-	idle := time.NewTimer(5 * time.Second)
+	idle := time.NewTimer(3 * livePing)
 	defer idle.Stop()
 	ping := time.NewTicker(livePing)
 	defer ping.Stop()
-	authenticated := false
-	var wake chan struct{}
 	for {
 		select {
 		case <-idle.C:
@@ -278,9 +403,7 @@ func live(state *AppState, conn *websocket.Conn, ip netip.Addr) {
 			if message.err != nil {
 				return
 			}
-			if authenticated {
-				idle.Reset(3 * livePing)
-			}
+			idle.Reset(3 * livePing)
 			switch message.kind {
 			case websocket.PongMessage:
 				// An open app is an active account even between HTTP requests.
@@ -301,25 +424,6 @@ func live(state *AppState, conn *websocket.Conn, ip netip.Addr) {
 				return
 			}
 			channel := str(idx(body, "channel"))
-			if !authenticated {
-				if channel != "live" || !eqStr(idx(body, "type"), "auth") {
-					wsClose(conn, 1008, "Authentication expected")
-					return
-				}
-				if !state.traffic.allow(ip, "/api/live", true) {
-					wsClose(conn, 1008, "Message rate limit exceeded")
-					return
-				}
-				if !c.auth(body) {
-					return
-				}
-				authenticated = true
-				idle.Reset(3 * livePing)
-				if c.member {
-					wake = c.slot.wake
-				}
-				continue
-			}
 			limit := liveGameMax
 			switch channel {
 			case "sync":
@@ -365,6 +469,13 @@ func (c *liveClient) auth(body any) bool {
 		}
 		c.token, c.user, c.member = "Bearer "+token, user, user["password_hash"] != nil
 	}
+	if c.user == nil {
+		if !liveSockets.open(liveIPKey(c.ip), true) {
+			wsClose(c.conn, 1013, "Too many connections")
+			return false
+		}
+		c.anonymous = true
+	}
 	ready := M{"channel": "live", "type": "ready", "user": nil}
 	if c.user != nil {
 		state.traffic.log.seen(c.uid())
@@ -395,6 +506,9 @@ func (c *liveClient) auth(body any) bool {
 
 // leave: the app is gone: out of every room it was in.
 func (c *liveClient) leave() {
+	if c.anonymous {
+		liveSockets.close(liveIPKey(c.ip), true)
+	}
 	if c.member {
 		c.state.hub.remove(c.uid(), c.id)
 		c.state.coaching.remove(c.uid(), c.id)

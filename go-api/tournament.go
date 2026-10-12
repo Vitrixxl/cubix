@@ -461,6 +461,13 @@ func tournamentPlay(db *Conn, state *AppState, id int64, seat int, body any) err
 		if number != int64(len(rows))+1 || (last != nil && open(last)) || tournamentMatchScore(row, rows).winner >= 0 {
 			return nil
 		}
+		// Ties and two DNFs take nothing, so two accounts could race for ever: past twice the most solves a match can
+		// need, no more scrambles (the players forfeit, or the organiser decides).
+		points, _ := asInt(row["points"])
+		sets, _ := asInt(row["sets"])
+		if number > 2*(2*points-1)*(2*sets-1)+10 {
+			return nil
+		}
 		if _, err := db.Exec("INSERT OR IGNORE INTO match_solves(match_id,number,scramble) VALUES(?,?,?)", id, number, text); err != nil {
 			return err
 		}
@@ -702,6 +709,16 @@ func tournamentCreate(db *Conn, state *AppState, body any, group int64, by strin
 	if v, ok := get(body, "maxPlayers"); ok && v != nil {
 		if limit, err = tournamentNumber(body, "maxPlayers", 2, tournamentMaxPlayers); err != nil {
 			return nil, err
+		}
+	}
+	// An organiser runs a few tournaments at once; the administration's (`by` empty) are not counted.
+	if by != "" {
+		running, err := dbOne(db, "SELECT count(*) n FROM tournaments WHERE created_by=? AND status IN ('open','running')", by)
+		if err != nil {
+			return nil, err
+		}
+		if n, _ := asInt(running["n"]); n >= 5 {
+			return nil, apiErr(409, "You already run 5 tournaments. Wait until one is over to make another.")
 		}
 	}
 	if _, err := db.Exec("INSERT INTO tournaments(name,description,event,group_id,created_by,starts_at,points,sets,max_players,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -1194,6 +1211,10 @@ func tournamentBattle(db *Conn, state *AppState, user M, body any) (any, error) 
 		if err := socialRequireFriend(db, uid, opponent); err != nil {
 			return nil, err
 		}
+	}
+	// A battle is a card in the conversation: a message as far as its sender's allowance goes.
+	if err := socialMessageAllowed(uid); err != nil {
+		return nil, err
 	}
 	if _, err := db.Exec("INSERT INTO matches(group_id,event,points,sets,player_a,player_b,status,created_by,created_at) VALUES(?,?,?,?,?,?,'waiting',?,?)",
 		optID(group), event, points, sets, uid, optStr(opponent), uid, accountsNow()); err != nil {

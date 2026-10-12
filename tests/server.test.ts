@@ -174,7 +174,7 @@ test("learning marks are validated, upserted per account and journaled for sync"
   const op = { id: crypto.randomUUID(), method: "PUT", path: "learned", body: { caseId: "OLL 1", learned: true } };
   const pushed = (await call("/sync", "POST", { operations: [op] }, alice.token)).body;
   expect(pushed.results[0].value.case_id).toBe("OLL 1");
-  expect((await call("/sync", "POST", { operations: [op] }, alice.token)).body).toEqual(pushed);
+  expect((await call("/sync", "POST", { operations: [op] }, alice.token)).body).toEqual({ results: [{ id: op.id, value: { id: pushed.results[0].value.id } }] });
   expect((await call("/sync", "POST", { operations: [{ ...op, id: crypto.randomUUID(), method: "POST" }] }, alice.token)).status).toBe(422);
   const db = new Database(path); cleanups.unshift(() => db.close());
   expect(db.query<{ n: number }, []>("SELECT count(*) n FROM learned_cases").get()?.n).toBe(3);
@@ -223,7 +223,7 @@ test("learning order validates tracks and groups, isolates accounts, and replays
   const first = await call("/sync","POST",{ operations:[op] },alice.token);
   expect(first.status).toBe(200);
   expect(first.body.results[0].value.groups).toEqual(body.groups);
-  expect((await call("/sync","POST",{ operations:[op] },alice.token)).body).toEqual(first.body);
+  expect((await call("/sync","POST",{ operations:[op] },alice.token)).body).toEqual({ results:[{ id:op.id, value:{ id:first.body.results[0].value.id, track:"PLL", groups:body.groups } }] });
   const cursor = (await call("/sync?after=0","GET",undefined,alice.token)).body.cursor;
   expect((await call("/sync?after=0","GET",undefined,bob.token)).body.changes).toEqual([]);
   const reversed = [...body.groups].reverse();
@@ -315,6 +315,26 @@ test("the server publishes over-the-air updates following the expo-updates proto
   expect(new Uint8Array(await download.arrayBuffer())).toEqual(bundle);
   expect((await fetch(`${origin}/api/mobile/updates/assets/${"0".repeat(64)}`)).status).toBe(404);
   expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ commit: "0123456789abcdef" });
+  // A manifest signed at export time is served byte for byte, its signature in `expo-signature`.
+  const text = JSON.stringify({ id: "11111111-2222-4333-8444-555555555555", createdAt: "2026-10-12T08:00:00.000Z", runtimeVersion: "rt-1", launchAsset: {}, assets: [], metadata: {}, extra: {} });
+  expect((await publish({ ...update, manifest: text, signature: "not base64!" })).status).toBe(422);
+  expect((await publish({ ...update, manifest: text.replace("rt-1", "rt-2"), signature: "c2ln" })).status).toBe(422);
+  expect((await publish({ ...update, manifest: text, signature: "c2ln" })).status).toBe(200);
+  const signed = await manifestRequest("rt-1");
+  expect([signed.status, signed.headers.get("expo-signature"), await signed.text()]).toEqual([200, `sig="c2ln", keyid="main", alg="rsa-v1_5-sha256"`, text]);
+  expect((await call("/mobile/release")).body.updates["rt-1"]).toMatchObject({ id: "11111111-2222-4333-8444-555555555555", createdAt: "2026-10-12T08:00:00.000Z" });
+});
+
+test("desktop packages are stored with their signature, served beside them", async () => {
+  const app = startApi(fixture());
+  const origin = `http://127.0.0.1:${app.server.port}`;
+  const gzip = new Uint8Array(2048); gzip.set([0x1f, 0x8b]);
+  const put = (headers: Record<string, string>) => fetch(`${origin}/api/desktop/cubix-linux-x64.tar.gz`, { method: "PUT", headers: { Authorization: "Bearer synthetic-admin-test-password", "X-Cubix-Version": "abc", "X-Cubix-Commit": "0123abcd", ...headers }, body: new Blob([gzip]) });
+  expect((await put({})).status).toBe(422);
+  expect((await put({ "X-Cubix-Signature": "c2lnbmF0dXJl" })).status).toBe(200);
+  expect((await (await fetch(`${origin}/api/desktop`)).json())["cubix-linux-x64.tar.gz"]).toMatchObject({ version: "abc", signature: "/api/desktop/cubix-linux-x64.tar.gz.sig" });
+  expect(await (await fetch(`${origin}/api/desktop/cubix-linux-x64.tar.gz.sig`)).text()).toBe("signature");
+  expect((await fetch(`${origin}/api/desktop/cubix-windows-x64.zip.sig`)).status).toBe(404);
 });
 
 test("Normal migration merges both histories and receipts, fixes defaults and tolerates old-client retries", async () => {

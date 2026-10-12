@@ -457,6 +457,10 @@ func releaseJSONBody(w http.ResponseWriter, r *http.Request) (any, bool) {
 // stored. The body carries `runtimeVersion`, `build`, `commit`, `launchAsset`, `assets` and
 // the public Expo config (`expoClient`) the application reads through `Constants.expoConfig`.
 // Republishing the same commit keeps the existing update id, so phones do not download it again.
+//
+// mobile/scripts/export-update.ts also sends the finished `manifest` text and its `signature`, made on the
+// developer's machine with a key this server never sees: both are stored and served byte for byte, so neither a
+// compromised server nor a leaked admin password can hand phones a bundle that key did not sign.
 func releasePublish(state *AppState, w http.ResponseWriter, r *http.Request) {
 	body, ok := releaseJSONBody(w, r)
 	if !ok {
@@ -511,6 +515,27 @@ func releaseStoreUpdate(state *AppState, r *http.Request, body any) (any, error)
 		id = str(previous["id"])
 		createdAt = previous["createdAt"]
 	}
+	// The signed text is served as it is, so the update takes the id and date written in it.
+	manifest, signature := "", ""
+	if raw := idx(body, "manifest"); raw != nil {
+		var ok bool
+		manifest, ok = asStr(raw)
+		parsed, _ := decodeJSON([]byte(manifest))
+		_, hasID := asStr(idx(parsed, "id"))
+		_, hasDate := asStr(idx(parsed, "createdAt"))
+		if !ok || !hasID || !hasDate || !eqStr(idx(parsed, "runtimeVersion"), runtime) {
+			return nil, apiErr(422, "manifest must be the text of this runtime version's manifest")
+		}
+		id, createdAt = str(idx(parsed, "id")), idx(parsed, "createdAt")
+		// An export made without the key is published unsigned: phones that embed the certificate refuse it.
+		if raw := idx(body, "signature"); raw != nil {
+			signature, ok = asStr(raw)
+			decoded, err := base64.StdEncoding.DecodeString(signature)
+			if !ok || err != nil || len(decoded) == 0 || len(decoded) > 1024 {
+				return nil, apiErr(422, "signature must be the manifest's signature in base64")
+			}
+		}
+	}
 	update := M{
 		"id":             id,
 		"createdAt":      createdAt,
@@ -520,6 +545,9 @@ func releaseStoreUpdate(state *AppState, r *http.Request, body any) (any, error)
 		"launchAsset":    launchAsset,
 		"assets":         assets,
 		"expoClient":     expoClient,
+	}
+	if manifest != "" {
+		update["manifest"], update["signature"] = manifest, signature
 	}
 	path := filepath.Join(releaseUpdatesDir(), runtime+".json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o777); err != nil {
@@ -535,13 +563,19 @@ func releaseStoreUpdate(state *AppState, r *http.Request, body any) (any, error)
 // releaseManifest: `GET /api/mobile/updates/manifest`: the expo-updates protocol. The phone names its runtime
 // version and platform in headers; the answer is the stored manifest or an empty 204 that
 // means "nothing newer". The manifest's own build identity rides in `extra.expoClient.extra`.
+// A manifest published as signed text goes out verbatim, its signature in `expo-signature`; older uploads
+// without one are assembled here, unsigned.
 func releaseManifest(state *AppState, w http.ResponseWriter, r *http.Request) {
 	var manifest M
+	var signed []byte
+	var signature string
 	runtime := releaseHeaderText(r, "Expo-Runtime-Version")
 	platform := releaseHeaderText(r, "Expo-Platform")
 	if releaseIsRuntimeVersion(runtime) && (platform == "" || platform == "android") {
-		if update := releaseReadUpdate(runtime); update != nil {
-			origin := releasePublicOrigin(r)
+		if update := releaseReadUpdate(runtime); update != nil && update["manifest"] != nil {
+			signed, signature = []byte(str(update["manifest"])), str(update["signature"])
+		} else if update != nil {
+			origin := releasePublicOrigin(state, r)
 			asset := func(entry any) M {
 				hash := str(idx(entry, "hash"))
 				return M{
@@ -573,6 +607,16 @@ func releaseManifest(state *AppState, w http.ResponseWriter, r *http.Request) {
 	h.Set("Expo-Protocol-Version", "1")
 	h.Set("Expo-Sfv-Version", "0")
 	h.Set("Cache-Control", "private, max-age=0")
+	if signed != nil {
+		if signature != "" {
+			h.Set("Expo-Signature", `sig="`+signature+`", keyid="main", alg="rsa-v1_5-sha256"`)
+		}
+		h.Set("Content-Type", "application/json")
+		h.Set("Content-Length", strconv.Itoa(len(signed)))
+		w.WriteHeader(200)
+		_, _ = w.Write(signed)
+		return
+	}
 	if manifest == nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -594,16 +638,18 @@ func releaseAsset(state *AppState, w http.ResponseWriter, r *http.Request) {
 }
 
 // releasePublicOrigin: where phones reach this server: `CUBIX_PUBLIC_ORIGIN`, or the request's own host through
-// Caddy's forwarding headers.
-func releasePublicOrigin(r *http.Request) string {
+// Caddy's forwarding headers, believed only from a trusted proxy (CUBIX_TRUSTED_PROXIES).
+func releasePublicOrigin(state *AppState, r *http.Request) string {
 	if origin := strings.TrimSpace(os.Getenv("CUBIX_PUBLIC_ORIGIN")); origin != "" {
 		return strings.TrimRight(origin, "/")
 	}
-	proto := releaseHeaderText(r, "X-Forwarded-Proto")
+	proto, host := "", ""
+	if state.traffic.isTrusted(peerIP(r)) {
+		proto, host = releaseHeaderText(r, "X-Forwarded-Proto"), releaseHeaderText(r, "X-Forwarded-Host")
+	}
 	if proto == "" {
 		proto = "http"
 	}
-	host := releaseHeaderText(r, "X-Forwarded-Host")
 	if host == "" {
 		// Go keeps the Host header in r.Host.
 		host = strings.TrimSpace(r.Host)

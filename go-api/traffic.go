@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -106,7 +107,8 @@ func (t *Traffic) ip(peer netip.Addr, header http.Header) netip.Addr {
 	// Walk from the trusted socket towards the first untrusted hop. Never trust arbitrary XFF.
 	current := peer
 	if values, ok := header["X-Forwarded-For"]; ok && len(values) > 0 {
-		hops := strings.Split(values[0], ",")
+		// Several header lines are one list (RFC 9110): reading the first alone would trust a client-sent line.
+		hops := strings.Split(strings.Join(values, ","), ",")
 		for i := len(hops) - 1; i >= 0; i-- {
 			if !t.isTrusted(current) {
 				break
@@ -115,25 +117,39 @@ func (t *Traffic) ip(peer netip.Addr, header http.Header) netip.Addr {
 			if err != nil || ip.Zone() != "" {
 				return peer
 			}
-			current = ip
+			current = ip.Unmap()
 		}
 	}
 	return current
 }
 
+// trafficKey: whom the limits count. An IPv6 client usually holds a whole /64, so the /64 is one client.
+func trafficKey(ip netip.Addr) netip.Addr {
+	if ip.Is6() {
+		return netip.PrefixFrom(ip, 64).Masked().Addr()
+	}
+	return ip
+}
+
+// allow: whether a client may send this request; `path` is the route as the router decodes it (trafficRoute).
 func (t *Traffic) allow(ip netip.Addr, path string, websocket bool) bool {
+	ip = trafficKey(ip)
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if _, ok := t.ips[ip]; !ok && len(t.ips) >= trafficMaxIPs {
-		// Evict only inactive buckets. A flood cannot reset an active IP's allowance.
+		// Inactive buckets go first, else the least recently active tenth. Refusing new clients would let a flood of
+		// addresses lock everyone out; the flooding clients are the most recent, so they keep their spent buckets.
 		cutoff := accountsNow() - 900000
+		lasts := make([]int64, 0, len(t.ips))
+		for _, c := range t.ips {
+			lasts = append(lasts, c.last)
+		}
+		slices.Sort(lasts)
+		cutoff = max(cutoff, lasts[len(lasts)/10])
 		for k, c := range t.ips {
 			if c.last <= cutoff {
 				delete(t.ips, k)
 			}
-		}
-		if len(t.ips) >= trafficMaxIPs {
-			return false
 		}
 	}
 	c, ok := t.ips[ip]
@@ -161,7 +177,7 @@ func (t *Traffic) record(ip netip.Addr, path string) {
 		return
 	}
 	t.mu.Lock()
-	if c, ok := t.ips[ip]; ok {
+	if c, ok := t.ips[trafficKey(ip)]; ok {
 		c.recorded = true
 		c.last = accountsNow()
 	}
@@ -290,14 +306,23 @@ func trafficMonitor(traffic *Traffic, next http.Handler) http.Handler {
 				traffic.log.request(ActivityEntry{at: accountsNow(), ip: ip, path: truncateChars(path, 300), method: truncateChars(method, 16), status: status, ms: ms, agent: agent, actor: rw.actor})
 			}
 		}
-		onHeader(rw, func(h http.Header, _ int) { h.Set("X-Content-Type-Options", "nosniff") })
-		if traffic.allow(ip, path, false) {
+		onHeader(rw, func(h http.Header, _ int) {
+			h.Set("X-Content-Type-Options", "nosniff")
+			// Production is HTTPS only; browsers ignore HSTS on the plain HTTP of local servers.
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+			// Nothing frames the site: the phone app's web frames are srcdoc documents, which these do not govern.
+			h.Set("X-Frame-Options", "DENY")
+			h.Set("Content-Security-Policy", "frame-ancestors 'none'")
+			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		})
+		route := trafficRoute(path)
+		if traffic.allow(ip, route, false) {
 			next.ServeHTTP(rw, r.WithContext(context.WithValue(r.Context(), actorKey{}, rw)))
 		} else {
 			retry := 60
-			if path == "/api/admin/login" {
+			if route == "/api/admin/login" {
 				retry = 180
-			} else if strings.HasPrefix(path, "/api/auth/") {
+			} else if strings.HasPrefix(route, "/api/auth/") {
 				retry = 3
 			}
 			rw.Header().Set("Retry-After", strconv.Itoa(retry))
@@ -308,6 +333,14 @@ func trafficMonitor(traffic *Traffic, next http.Handler) http.Handler {
 		}
 		rw.finish()
 	})
+}
+
+// trafficRoute: the path the limits judge, an API path decoded as apiRespond routes it: `/api/auth/%6cogin` signs in.
+func trafficRoute(path string) string {
+	if strings.HasPrefix(path, "/api/") {
+		return "/api/" + string(apiRoutePath(path))
+	}
+	return path
 }
 
 func truncateChars(s string, n int) string {

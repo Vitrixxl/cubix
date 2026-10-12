@@ -238,6 +238,10 @@ func dbMigrate(db *Conn) error {
 		func() error {
 			return db.ExecBatch("CREATE UNIQUE INDEX IF NOT EXISTS idx_coach_messages_media ON coach_messages(media_id) WHERE media_id IS NOT NULL")
 		},
+		// What each account sent in pictures and videos, for its allowance (`coachingQuota`).
+		func() error {
+			return db.ExecBatch("CREATE INDEX IF NOT EXISTS idx_coach_messages_sender_media ON coach_messages(sender_id,created_at) WHERE media_id IS NOT NULL")
+		},
 		// Daily results made on a connected cube are verified, their moves kept.
 		func() error { return addColumnIfMissing(db, "daily_results", "verified", "INTEGER NOT NULL DEFAULT 0") },
 		func() error { return addColumnIfMissing(db, "daily_results", "solution", "TEXT") },

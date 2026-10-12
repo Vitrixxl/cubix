@@ -27,6 +27,9 @@ const activityRetentionDays int64 = 30
 const activityMaxRows int64 = 200_000
 const activityMaxImportantRows int64 = 50_000
 
+// Pruning runs early once this many rows were written since the last one.
+const activityPruneRows = 10_000
+
 // Daily per-IP aggregates (and the accounts seen from each IP) are kept this long.
 const activityTrafficDays int64 = 90
 
@@ -364,7 +367,9 @@ func (t activityThrottle) due(key string, at int64) bool {
 	return true
 }
 
-func activityAdd(batch *activityBatchState, event activityEvent, seen, used activityThrottle) {
+// activityAdd adds an event to the batch. Refusals by the rate limiter are counted, but logged once a minute per IP
+// (`limited`): a flood would otherwise write a row per refused request.
+func activityAdd(batch *activityBatchState, event activityEvent, seen, used, limited activityThrottle) {
 	batch.events++
 	switch {
 	case event.request != nil:
@@ -400,7 +405,7 @@ func activityAdd(batch *activityBatchState, event activityEvent, seen, used acti
 				batch.used = append(batch.used, [2]any{*actor.token, entry.at})
 			}
 		}
-		if store {
+		if store && (entry.status != 429 || limited.due(ip, entry.at)) {
 			batch.rows = append(batch.rows, activityRow{entry: entry, kind: kind, important: important})
 		}
 	case event.duel != nil:
@@ -550,22 +555,34 @@ func activityPrune(db *Conn) error {
 	if _, err := db.Exec("DELETE FROM traffic_daily_users WHERE day<?", traffic); err != nil {
 		return err
 	}
-	_, err := db.Exec("DELETE FROM user_activity WHERE day<?", activityDay(at-activityActivityDays*accountsDayMs))
-	return err
+	if _, err := db.Exec("DELETE FROM user_activity WHERE day<?", activityDay(at-activityActivityDays*accountsDayMs)); err != nil {
+		return err
+	}
+	// The other tables that only grow but for their age go with the same hourly pass.
+	if err := syncPrune(db); err != nil {
+		return err
+	}
+	return socialPrune(db)
 }
 
 func activityWriter(db *Db, rx chan activityEvent, important *broadcaster[M]) {
 	batch := newActivityBatch()
-	seen, used := activityThrottle{}, activityThrottle{}
+	seen, used, limited := activityThrottle{}, activityThrottle{}, activityThrottle{}
 	tick := time.NewTicker(time.Second)
 	// The first tick is immediate: old rows go at startup, then hourly.
 	hourly := time.NewTimer(0)
+	// Rows written since the last pruning: past activityPruneRows, pruning comes early, so a burst of logged
+	// requests cannot outgrow the row caps until the next hour.
+	written := 0
 	store := func() {
 		if batch.events == 0 {
 			return
 		}
 		pending := batch
 		batch = newActivityBatch()
+		if written += len(pending.rows); written >= activityPruneRows {
+			hourly.Reset(0)
+		}
 		rows, err := dbCall(db, func(c *Conn) ([]M, error) { return activityWrite(c, pending) })
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Request log: %s\n", toApiError(err).Message)
@@ -585,7 +602,7 @@ func activityWriter(db *Db, rx chan activityEvent, important *broadcaster[M]) {
 				event.done <- struct{}{}
 				continue
 			}
-			activityAdd(batch, event, seen, used)
+			activityAdd(batch, event, seen, used, limited)
 			if batch.events >= activityBatch {
 				store()
 			}
@@ -595,6 +612,7 @@ func activityWriter(db *Db, rx chan activityEvent, important *broadcaster[M]) {
 			if err := db.Call(activityPrune); err != nil {
 				fmt.Fprintf(os.Stderr, "Request log pruning: %s\n", toApiError(err).Message)
 			}
+			written = 0
 			hourly.Reset(time.Hour)
 		}
 	}

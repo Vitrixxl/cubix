@@ -59,17 +59,45 @@ fichier et Android propose l'installation par-dessus la version en place, à con
 que la signature soit la même. Les builds debug (`bun run pc`) ignorent expo-updates et
 chargent le code depuis Metro.
 
-Le build signe l'APK avec le keystore désigné par `CUBIX_ANDROID_KEYSTORE`,
-`CUBIX_ANDROID_KEYSTORE_PASSWORD`, `CUBIX_ANDROID_KEY_ALIAS` et `CUBIX_ANDROID_KEY_PASSWORD`
-(plugin `plugins/withReleaseSigning.js`). Sans ces variables, l'APK garde la clé de
-développement générée par Expo : les builds s'installent alors les uns par-dessus les
-autres, mais cette clé est publique. Changer de clé oblige à désinstaller
-l'application une fois. Créer le keystore :
+Les mises à jour à la volée sont signées (code signing d'expo-updates, RSA-SHA256,
+`keyid` `main`). `export-update.ts` écrit le manifeste complet (adresses des assets
+comprises) et le signe avec `~/.config/cubix/keys/expo-updates/private-key.pem`
+(`CUBIX_UPDATES_SIGNING_KEY` pour un autre chemin) ; l'API stocke ce texte et le sert tel
+quel avec l'en-tête `expo-signature`, sans jamais voir la clé. L'APK embarque le
+certificat public `certs/certificate.pem` et refuse tout manifeste non signé par cette
+clé : un serveur compromis ou une fuite de `CUBIX_ADMIN_PASSWORD` ne suffisent plus à
+pousser du code. Seuls les APK compilés avec le certificat vérifient : ceux déjà
+installés acceptent encore tout jusqu'à la mise à jour de l'APK. Sans la clé, l'export
+reste possible mais non signé, et `bun run deploy` refuse de le publier.
+
+La clé privée n'existe que sur la machine de déploiement : la **sauvegarder** (hors du
+dépôt, chiffrée). Perdue, plus aucune mise à jour à la volée n'atteint les téléphones
+avant un nouvel APK (certificat changé, donc nouvelle `runtimeVersion`). La paire a été
+créée une seule fois par :
 
 ```sh
-keytool -genkeypair -v -keystore cubix.keystore -alias cubix -keyalg RSA -keysize 4096 -validity 10000
-base64 -w0 cubix.keystore   # valeur du secret ANDROID_KEYSTORE_BASE64
+bunx expo-updates codesigning:generate --key-output-directory ~/.config/cubix/keys/expo-updates \
+  --certificate-output-directory certs --certificate-validity-duration-years 30 --certificate-common-name Qbix
 ```
+
+La clé release est hors du dépôt, dans `~/.config/cubix/keys/` (dossier en 700) :
+`android-release.p12` (alias `cubix`), `android-lineage.bin` et `android-release.env`, qui
+exporte `CUBIX_ANDROID_KEYSTORE`, `CUBIX_ANDROID_KEYSTORE_PASSWORD`, `CUBIX_ANDROID_KEY_ALIAS`,
+`CUBIX_ANDROID_KEY_PASSWORD` et `CUBIX_ANDROID_LINEAGE`. **Sauvegarder ce dossier hors de ce PC** :
+sans cette clé, plus aucune mise à jour ne s'installera sur les téléphones.
+
+`bun run deploy` lance `scripts/build-apk.ts --production`, qui charge ce fichier
+(`CUBIX_ANDROID_SIGNING_ENV` désigne un autre chemin) et échoue s'il manque. Gradle signe avec
+la clé release (`plugins/withReleaseSigning.js`), puis `scripts/release-signing.ts` re-signe
+avec apksigner : v3 avec la clé release et la lignée, v2 avec l'ancienne clé de debug publique.
+Android 9+ accepte ainsi la mise à jour par-dessus les APK signés en debug et refuse ensuite
+tout APK signé avec la seule clé de debug ; Android 7 et 8 (minSdk 24) ne lisent que le v2 et
+restent sur la clé de debug. Le déploiement refuse d'envoyer un APK dont le signataire n'est pas
+la clé release (`bun scripts/release-signing.ts <apk>` fait la même vérification). Les autres
+builds (`bun run apk`, émulateur) gardent la clé de debug et ne sont jamais envoyés.
+
+La lignée a été créée une fois avec `apksigner rotate --out android-lineage.bin --old-signer --ks
+android/app/debug.keystore … --set-rollback false --new-signer --ks android-release.p12 …`.
 
 ## Installation et développement
 

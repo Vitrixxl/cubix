@@ -19,16 +19,22 @@
  *   bun scripts/deploy.ts --no-push    main is pushed already (scripts/deploy-background.ts deploys a copy of it)
  *
  * The APK is not built on the Pi: Gradle needs more memory than the board has and Google
- * ships no ARM64 Linux NDK, so the phone build always happens on the developer's machine.
+ * ships no ARM64 Linux NDK, so the phone build always happens on the developer's machine, with the release key of
+ * ~/.config/cubix/keys (mobile/scripts/release-signing.ts): the build and the upload fail without it.
  * `CUBIX_DEPLOY_PASSWORD` (the server's admin password) authorises the uploads; when unset it
  * is read over SSH from the server's `.env`. The local `.env`, which Bun loads automatically,
  * holds the development password and must not be used here. `CUBIX_PI` (ssh target) and `CUBIX_ORIGIN` (public API) override the defaults.
+ * The password only lets the server store files: phones and the install scripts check the over-the-air manifest and
+ * the desktop packages against keys kept in ~/.config/cubix/keys on this machine (mobile/README.md, desktop/README.md).
  */
 import { spawnSync } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { sign, verify } from "node:crypto";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import { runtimeVersion } from "../mobile/app.config";
 import { validateProductionUpdate } from "../mobile/scripts/validate-update";
+import { assertReleaseSigned } from "../mobile/scripts/release-signing";
 
 const root = resolve(import.meta.dir, "..");
 const PI = process.env.CUBIX_PI ?? "vitrix@82.67.236.74";
@@ -42,6 +48,8 @@ const skipDesktop = process.argv.includes("--skip-desktop");
 const noPush = process.argv.includes("--no-push");
 const APK = resolve(root, "mobile/build/cubix-android-arm64.apk");
 const UPDATE_DIR = resolve(root, "mobile/build/updates");
+/** Signs the desktop packages; like the expo-updates key (mobile/scripts/export-update.ts), it never leaves this machine. */
+const DESKTOP_KEY = process.env.CUBIX_DESKTOP_SIGNING_KEY ?? join(homedir(), ".config/cubix/keys/desktop-private-key.pem");
 
 const run = (command: string, args: string[], options: { cwd?: string; capture?: boolean } = {}) => {
   console.log(`$ ${command} ${args.join(" ")}`);
@@ -113,7 +121,9 @@ if (!apkOnly) {
   if (published?.commit === head) console.log(`The server already publishes this commit for runtime ${runtime}.`);
   else {
     run("bun", ["scripts/export-update.ts", `--output=${UPDATE_DIR}`], { cwd: resolve(root, "mobile") });
-    const update = JSON.parse(readFileSync(resolve(UPDATE_DIR, "update.json"), "utf8")) as { runtimeVersion: string; expoClient: { updates: { url: string } }; launchAsset: { path: string; hash: string }; assets: { path: string; hash: string }[] };
+    const update = JSON.parse(readFileSync(resolve(UPDATE_DIR, "update.json"), "utf8")) as { runtimeVersion: string; expoClient: { updates: { url: string } }; launchAsset: { path: string; hash: string }; assets: { path: string; hash: string }[]; signature?: string };
+    // Phones built with the certificate refuse an unsigned manifest: publishing one would only stall them.
+    if (!update.signature) { console.error("The update is not signed: the expo-updates key is missing (see mobile/README.md)."); process.exit(1); }
     if (update.runtimeVersion !== runtime) { console.error(`The export targets runtime ${update.runtimeVersion}, expected ${runtime}.`); process.exit(1); }
     validateProductionUpdate(update, readFileSync(resolve(UPDATE_DIR, update.launchAsset.path)));
     for (const asset of [update.launchAsset, ...update.assets]) {
@@ -130,17 +140,24 @@ if (!apkOnly) {
 }
 // --- Desktop packages: the Electron shell for Linux and Windows, only when it changed (its version digests it). ---
 if (!apkOnly && !updateOnly && !skipDesktop) {
-  const served = (await fetch(`${ORIGIN}/api/desktop`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as Record<string, { version?: string }>;
+  const served = (await fetch(`${ORIGIN}/api/desktop`, { signal: AbortSignal.timeout(10000) }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))) as Record<string, { version?: string; signature?: string }>;
   for (const script of ["desktop/package-release.ts"]) {
     const { desktopVersion, OUT, PACKAGES } = await import(`../${script}`);
     const version = await desktopVersion();
-    const stale = (Object.values(PACKAGES) as string[]).filter((name) => served[name]?.version !== version);
+    // Packages stored before they were signed are uploaded again, with their signature.
+    const stale = (Object.values(PACKAGES) as string[]).filter((name) => served[name]?.version !== version || !served[name]?.signature);
     if (!stale.length) { console.log(`The server already serves ${script}'s ${version}.`); continue; }
+    if (!existsSync(DESKTOP_KEY)) { console.error(`No desktop signing key at ${DESKTOP_KEY} (see desktop/README.md).`); process.exit(1); }
     run("bun", [script]);
+    // The key the install scripts trust: a package signed with another would be refused by every install.
+    const trusted = readFileSync(resolve(root, "desktop/install/install.sh"), "utf8").match(/-----BEGIN PUBLIC KEY-----[^-]+-----END PUBLIC KEY-----/)![0];
     for (const name of stale) {
       const file = resolve(OUT, name);
       console.log(`Uploading ${name} (${(statSync(file).size / 1048576).toFixed(1)} MiB)`);
-      await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, file);
+      // RSA PKCS#1 v1.5 over SHA-256: what openssl (install.sh) and .NET (install.ps1) check.
+      const data = readFileSync(file), signature = sign("sha256", data, readFileSync(DESKTOP_KEY));
+      if (!verify("sha256", data, trusted, signature)) { console.error(`${DESKTOP_KEY} is not the key desktop/install/install.sh trusts.`); process.exit(1); }
+      await send(`/api/desktop/${name}`, { "X-Cubix-Version": version, "X-Cubix-Commit": head, "X-Cubix-Signature": signature.toString("base64"), "Content-Type": name.endsWith(".zip") ? "application/zip" : "application/gzip" }, file);
     }
     console.log(`${script}'s ${version} is now served by ${ORIGIN}/api/desktop`);
   }
@@ -151,7 +168,9 @@ if (updateOnly || skipApk) process.exit(0);
 if (deployed.apkBuild === build && deployed.apkCommit === head) { console.log("The server already stores this build's APK."); process.exit(0); }
 if (!forceApk && !apkOnly && deployed.apkRuntimeVersion === runtime) { console.log(`The stored APK already has runtime ${runtime}; no native change, no APK (pass --apk to force one).`); process.exit(0); }
 
-run("bun", ["scripts/build-apk.ts", "--arm64", `--output=${APK}`], { cwd: resolve(root, "mobile") });
+run("bun", ["scripts/build-apk.ts", "--arm64", "--production", `--output=${APK}`], { cwd: resolve(root, "mobile") });
+// Never upload an APK signed with the public debug key: anyone could sign an update that takes over the installs.
+assertReleaseSigned(APK);
 
 console.log(`Uploading ${(statSync(APK).size / 1048576).toFixed(1)} MiB to ${ORIGIN}/api/mobile/apk`);
 const info = await send("/api/mobile/apk", { "X-Cubix-Build": String(build), "X-Cubix-Commit": head, "X-Cubix-Runtime": runtime, "Content-Type": "application/vnd.android.package-archive" }, APK);

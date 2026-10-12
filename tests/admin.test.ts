@@ -413,15 +413,46 @@ test("finished duels are recorded for the overview and both accounts",async()=>{
  const log=await adminGet(origin,admin.cookie,"/api/admin/requests?kind=live");expect(log.total).toBe(2);expect(log.rows[0]).toMatchObject({path:"/api/live",status:101});
 });
 
-test("rate-limited requests are logged as important and counted per day and per IP",async()=>{
+test("rate-limited requests are logged as important once a minute per IP and all counted per day and per IP",async()=>{
  // The admin's own IP shares the limit: the start-up health probe, the login and four reads fit.
  const {origin}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1",CUBIX_RATE_LIMIT:"8"});
  const statuses=[];for(let i=0;i<10;i++)statuses.push((await fetch(origin+"/api/moves",{headers:{"x-forwarded-for":"203.0.113.30"}})).status);
  expect(statuses.filter(s=>s===429).length).toBeGreaterThanOrEqual(2);const limited=statuses.filter(s=>s===429).length;
  const admin=await login(origin);
  const log=await adminGet(origin,admin.cookie,"/api/admin/requests?kind=rate-limit");
- expect(log.total).toBe(limited);expect(log.rows[0]).toMatchObject({ip:"203.0.113.30",status:429,important:true,path:"/api/moves"});
+ expect(log.total).toBe(1);expect(log.rows[0]).toMatchObject({ip:"203.0.113.30",status:429,important:true,path:"/api/moves"});
  expect((await adminGet(origin,admin.cookie,"/api/admin/requests?important=0&ip=203.0.113.30")).total).toBe(10-limited);
  expect((await adminGet(origin,admin.cookie,"/api/admin/overview")).requests).toMatchObject({rateLimitedToday:limited,errorsToday:limited});
  expect((await adminGet(origin,admin.cookie,"/api/admin/ips?sort=limited")).rows[0]).toMatchObject({ip:"203.0.113.30",requests:10,limited,errors:limited});
+});
+
+test("sign-in limits count per username and client, decode the path as routing does, and cap registrations per client",async()=>{
+ const {origin}=setup({CUBIX_TRUSTED_PROXIES:"127.0.0.1"});
+ const from=(ip:string)=>({"x-forwarded-for":ip});
+ const signIn=(password:string,ip:string)=>call(origin,"POST","/api/auth/login",{body:{username:"victim",password},headers:from(ip)});
+ expect((await call(origin,"POST","/api/auth/register",{body:{username:"victim",password:PASSWORD},headers:from("203.0.113.40")})).status).toBe(200);
+ const statuses=[];for(let i=0;i<11;i++)statuses.push((await signIn("wrong-secret-password","203.0.113.41")).status);
+ expect(statuses.slice(0,10).every(s=>s===401)).toBe(true);expect(statuses[10]).toBe(429);
+ // Another client's failures never lock the owner out.
+ expect((await signIn(PASSWORD,"203.0.113.40")).status).toBe(200);
+ // An unknown username answers as a wrong password.
+ expect((await call(origin,"POST","/api/auth/login",{body:{username:"nobody_here",password:PASSWORD},headers:from("203.0.113.40")})).status).toBe(401);
+ // `%6c` is `l`: the 20 sign-ins a minute still apply.
+ const encoded=[];for(let i=0;i<21;i++)encoded.push((await call(origin,"POST","/api/auth/%6cogin",{body:{},headers:from("203.0.113.42")})).status);
+ expect(encoded.slice(0,20).every(s=>s===422)).toBe(true);expect(encoded[20]).toBe(429);
+ const accounts=[];for(let i=0;i<11;i++)accounts.push((await call(origin,"POST","/api/auth/register",{body:{username:"many_"+i,password:PASSWORD},headers:from("203.0.113.43")})).status);
+ expect(accounts).toEqual([...Array(10).fill(200),429]);
+});
+
+test("API bodies are small but for a signed-in sync push, and every response carries the security headers",async()=>{
+ const {origin}=setup();
+ const big="["+"0,".repeat(150_000)+"0]";
+ const post=(path:string,token?:string)=>fetch(origin+path,{method:"POST",headers:{"content-type":"application/json",...(token?{authorization:"Bearer "+token}:{})},body:big});
+ expect((await post("/api/solves")).status).toBe(413);
+ expect((await post("/api/sync")).status).toBe(401);
+ const user=await register(origin,"sync_user");
+ expect((await post("/api/sync",user.token)).status).toBe(422);
+ const response=await fetch(origin+"/api/moves");
+ expect(Object.fromEntries(["strict-transport-security","x-frame-options","content-security-policy","referrer-policy"].map(h=>[h,response.headers.get(h)])))
+  .toEqual({"strict-transport-security":"max-age=31536000","x-frame-options":"DENY","content-security-policy":"frame-ancestors 'none'","referrer-policy":"strict-origin-when-cross-origin"});
 });

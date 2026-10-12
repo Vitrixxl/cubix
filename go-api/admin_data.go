@@ -141,6 +141,7 @@ func adminDataPurge(tx *Conn, user string) (solves int64, sessions int64, err er
 		"DELETE FROM auth_tokens WHERE user_id=?",
 		"DELETE FROM user_activity WHERE user_id=?",
 		"DELETE FROM traffic_daily_users WHERE user_id=?",
+		"DELETE FROM social_declines WHERE asker_id=?",
 		"UPDATE duel_games SET player1_id=NULL,player1_name='deleted' WHERE player1_id=?",
 		"UPDATE duel_games SET player2_id=NULL,player2_name='deleted' WHERE player2_id=?",
 		"UPDATE request_log SET user_id=NULL WHERE user_id=? AND kind NOT IN ('admin','account')",

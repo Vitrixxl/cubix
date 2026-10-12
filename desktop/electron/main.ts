@@ -1,6 +1,7 @@
 /** The desktop app is the web app served by the API, opened in its own window. Its service worker keeps
- * it usable offline and every online launch opens the latest deployed version: there is no updater. */
-import { app, BrowserWindow, ipcMain, shell, Menu, net } from "electron";
+ * it usable offline and every online launch opens the latest deployed version. The shell itself has no updater:
+ * when the server offers a newer one, a dialog tells how to install it (`announceUpdate`). */
+import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell, Menu, net } from "electron";
 import { join } from "node:path";
 import { existsSync, readFileSync, renameSync } from "node:fs";
 import { desktopDataDirectory } from "../data-path";
@@ -32,6 +33,31 @@ const trusted = (event: Electron.IpcMainInvokeEvent) =>
   event.senderFrame === window.webContents.mainFrame &&
   sameOrigin(event.senderFrame.url);
 const external = (url: string) => { if (/^https?:\/\//.test(url)) void shell.openExternal(url); };
+/** What the web app asks for: the camera (cube scan, calls), the microphone (Stackmat timer, calls), screen sharing,
+ * full screen and copying. Only its own pages get them; anything else, or any other page, is refused. */
+const PERMISSIONS = new Set(["media", "display-capture", "fullscreen", "clipboard-sanitized-write"]);
+const allowed = (permission: string, url: string) => PERMISSIONS.has(permission) && sameOrigin(url);
+
+/** Compares the shell's version, written by desktop/package-release.ts (a build from the sources has none), with
+ * the one the server offers. */
+async function announceUpdate() {
+  const path = join(root, "version.json");
+  if (!existsSync(path)) return;
+  const { version, package: name } = JSON.parse(readFileSync(path, "utf8"));
+  const served = await net.fetch(origin + "/api/desktop").then((response) => response.json()).catch(() => null);
+  const latest = served?.[name]?.version;
+  if (!latest || latest === version) return;
+  const command = process.platform === "win32" ? `irm ${origin}/install.ps1 | iex` : `curl -fsSL ${origin}/install.sh | sh`;
+  const { response } = await dialog.showMessageBox(window, {
+    type: "info",
+    message: "A new version of the Qbix desktop app is available",
+    detail: `Install it by running:\n\n${command}`,
+    buttons: ["Copy the command", "Later"],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response === 0) clipboard.writeText(command);
+}
 
 /** Only a first launch without connection has nothing cached to show: wait for the server there. */
 function offline() {
@@ -57,6 +83,9 @@ else {
     .whenReady()
     .then(async () => {
       Menu.setApplicationMenu(null);
+      session.defaultSession.setPermissionRequestHandler((_contents, permission, callback, details) =>
+        callback(allowed(permission, details.requestingUrl)));
+      session.defaultSession.setPermissionCheckHandler((_contents, permission, requestingOrigin) => allowed(permission, requestingOrigin));
       ipcMain.handle("legacy:read", (event) => {
         if (!trusted(event)) throw Error("Invalid request");
         return existsSync(legacy) ? readFileSync(legacy, "utf8") : null;
@@ -107,6 +136,7 @@ else {
         });
       window.once("ready-to-show", () => window.show());
       await window.loadURL(start).catch(() => {});
+      void announceUpdate();
     })
     .catch((error) => {
       console.error(error);
