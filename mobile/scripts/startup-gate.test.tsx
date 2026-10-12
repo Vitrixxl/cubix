@@ -7,8 +7,12 @@ let checks = 0, reloads = 0, mounts = 0, splashHidden = 0;
 let launcher: { message: string; finish: boolean; onHidden: () => void } | undefined;
 let release: () => Promise<unknown> = async () => null;
 const toastAtom = atom<{ title: string } | null>(null);
-const stored = new Map<string, string>();
-mock.module("react-native", () => ({ View: "View", Text: "Text" }));
+// A device that launched the app before: no first-launch screen.
+const stored = new Map<string, string>([["cubix.launched", "1"]]);
+mock.module("react-native", () => ({ View: "View", Text: "Text", Platform: { OS: "android" } }));
+// The scrambler's page, started once the app is mounted: the first launch waits for it.
+let finishWarm!: (value: string) => void;
+mock.module("../src/scrambler", () => ({ nativeEngine: { randomScrambleForEvent: () => new Promise<string>(resolve => { finishWarm = resolve; }) } }));
 mock.module("../src/theme", () => ({ useTheme: () => ({ text: "white", text2: "gray", accent: "blue" }) }));
 mock.module("../src/platform/storage", () => ({ storage: {
   getItem: (key: string) => stored.get(key) ?? null,
@@ -55,6 +59,35 @@ test("the cube screen only appears for a download and holds practice through the
   // The cube keeps cycling until the new bundle takes over; practice never mounts under it.
   expect(launcher!.finish).toBe(false);
   expect(mounts).toBe(0);
+  await act(() => renderer.unmount());
+});
+test("on the device's first launch the cube screen covers the app until its scrambler has started, once", async () => {
+  const kept = new Map<string, string>();
+  mock.module("../src/platform/storage", () => ({ storage: {
+    getItem: (key: string) => kept.get(key) ?? null,
+    setItem: (key: string, value: string) => kept.set(key, value),
+    removeItem: (key: string) => kept.delete(key),
+  } }));
+  release = async () => null;
+  launcher = undefined;
+  mounts = 0;
+  const { StartupGate: Gate } = await import(`../src/components/StartupGate?first=${Date.now()}`);
+  function Practice() { mounts++; return null; }
+  let renderer!: ReactTestRenderer;
+  await act(() => { renderer = create(<Gate fontsReady><Practice /></Gate>); });
+  expect(launcher!.message).toBe("Getting Qbix ready for its first launch…");
+  expect(launcher!.finish).toBe(false);
+  // No update: the app mounts under the screen, which stays until the scrambler answers.
+  await act(() => finishCheck({ isAvailable: false }));
+  await act(async () => { await Bun.sleep(1); });
+  expect(mounts).toBeGreaterThan(0);
+  expect(launcher!.finish).toBe(false);
+  await act(() => finishWarm("R U"));
+  await act(async () => { await Bun.sleep(1); });
+  expect(launcher!.finish).toBe(true);
+  await act(() => launcher!.onHidden());
+  expect(kept.get("cubix.launched")).toBe("1");
+  expect(JSON.stringify(renderer.toJSON())).not.toContain("Launcher");
   await act(() => renderer.unmount());
 });
 test("without an update the app opens directly; offline, it announces offline mode at once", async () => {

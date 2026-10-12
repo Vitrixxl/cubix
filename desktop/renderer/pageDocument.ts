@@ -38,9 +38,10 @@ export function pageDocument(template: string, { language, seo, body, theme, loc
     `<meta property="og:image" content="${SITE}/og.png" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<script type="application/ld+json">${json(trail)}</script>`,
-    // The app starts out of sight, over the page, until it draws the page itself (app.tsx `reveal`); an account's device
-    // and a phone (the layout's widest, viewport.ts) never show the page, a guest's on a wide window (boot.ts).
-    `<style>html:not([data-account]) #prerendered~#root{position:fixed;inset:0;visibility:hidden;pointer-events:none}[data-account] #prerendered{display:none}` +
+    // The app starts out of sight, over the page, until it draws the page itself (app.tsx `reveal`); a person's browser,
+    // an account's device and a phone (the layout's widest, viewport.ts) never show the page, which is for search engines
+    // and automated browsers (boot.ts).
+    `<style>html:not([data-account]):not([data-direct]) #prerendered~#root{position:fixed;inset:0;visibility:hidden;pointer-events:none}[data-account] #prerendered,[data-direct] #prerendered{display:none}` +
       `@media (max-width:${PHONE_MAX_WIDTH}px){html[data-js] #prerendered{display:none}html[data-js] #prerendered~#root{position:static;visibility:visible;pointer-events:auto}}</style>`,
   ].join("\n    ");
   const html = template
