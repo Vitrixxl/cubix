@@ -70,6 +70,10 @@ async function renderShare(out: string, template: string, index: number, count: 
     await setLanguage(language, false);
     for (const { url, files } of pages) {
       const { pathname, search } = new URL(url, "https://localhost");
+      // The algorithms' cases (thousands of nearly identical pages, searched by their names in every language) are
+      // written in English only: in another language their address gets the app's page, which draws them itself
+      // (go-api/web.go). The fewer pages a language is searched in (courses, timer, training) stay in every one.
+      if (language !== "en" && /^\/algorithms\/./.test(pathname)) continue;
       const route = readRoute(pathname, search)!;
       Object.assign(s, initial, { prefs: {}, ready: true, introductionReady: true, user: { id: "local-guest", username: "Guest", isGuest: true } });
       s.loadContext();
