@@ -111,7 +111,14 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
     console.warn(`${phoneHead.message}\nServing the desktop app at every width.`);
     phoneHead = "";
   }
-  const { entry: boot } = await bundle("desktop/renderer/boot.ts", { CUBIX_DESKTOP_HEAD: JSON.stringify(desktopHead.join("\n")), CUBIX_PHONE_HEAD: JSON.stringify(phoneHead) });
+  // The screen of a device's first launch (firstLaunch.ts), which boot.ts loads, its text in each dictionary's language.
+  const { FIRST_LAUNCH_TEXT } = await import("../src/client/lib/firstLaunch");
+  const firstLaunchText: Record<string, string> = {};
+  for (const name of await readdir("src/client/i18n")) {
+    if (name.endsWith(".json") && name !== "keys.json") firstLaunchText[basename(name, ".json")] = JSON.parse(await readFile(join("src/client/i18n", name), "utf8"))[FIRST_LAUNCH_TEXT];
+  }
+  const { entry: firstLaunch } = await bundle("desktop/renderer/firstLaunch.ts", { CUBIX_FIRST_LAUNCH_TEXT: JSON.stringify(firstLaunchText) });
+  const { entry: boot } = await bundle("desktop/renderer/boot.ts", { CUBIX_DESKTOP_HEAD: JSON.stringify(desktopHead.join("\n")), CUBIX_PHONE_HEAD: JSON.stringify(phoneHead), CUBIX_FIRST_LAUNCH: JSON.stringify(firstLaunch) });
   const html = (await readFile("desktop/renderer/index.html", "utf8"))
     .replace("<!-- styles -->", `<script src="${boot}"></script>`)
     .replace("<!-- scripts -->", "");
@@ -138,7 +145,7 @@ export async function buildWeb(out = WEB_DIR, { devTools = false } = {}) {
   // The administration is never used offline.
   const shell = app.files.filter((path) => !basename(path).startsWith("admin-") && !Object.values(dictionaries).includes(path));
   // The app's own page, without any page written in it: the one every address opens offline (sw.ts).
-  const precache = ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, boot, ...shell, ...fonts.values(), ...icons, scrambler];
+  const precache = ["/index.html", "/manifest.webmanifest", "/favicon.svg", "/icon-192.png", "/icon-512.png", worker, boot, firstLaunch, ...shell, ...fonts.values(), ...icons, scrambler];
   // Named after the content, so any changed file installs a new shell cache.
   const hasher = new Bun.CryptoHasher("sha256");
   for (const url of [...precache, ...Object.values(dictionaries)]) hasher.update(url).update(await readFile(join(out, url)));

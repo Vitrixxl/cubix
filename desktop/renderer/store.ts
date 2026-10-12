@@ -28,6 +28,7 @@ import { ask } from "./confirm";
 import { msg } from "../../src/client/i18n/msg";
 import { isCaseSource, type CaseSource } from "../../src/client/lib/smartStats";
 import { cancelDaily, dailyDay, fetchDaily, isDailyEvent, DailyError, type DailyBoard } from "../../src/client/lib/daily";
+import { appReady } from "../../src/client/lib/firstLaunch";
 
 const SHOWN_SCRAMBLE = "cubix.shownScramble";
 /** The next scrambles drawn ahead, by context (`Store.ahead`). */
@@ -432,7 +433,8 @@ export class Store {
       this.ready = true;
       this.emit();
       // The scramble is asked with the first snapshot, not after it; once shown, one ahead for every event and type.
-      const scrambled = (this.scramble ? Promise.resolve() : this.nextScramble()).finally(() => this.drawAllAhead());
+      // The first scramble shown, the app is ready: a first launch's screen goes (firstLaunch.ts).
+      const scrambled = (this.scramble ? Promise.resolve() : this.nextScramble()).finally(() => { this.drawAllAhead(); appReady(); });
       await this.refresh();
       await Promise.all([scrambled, this.nextCase()]);
       this.prefetchCrossSolutions();
@@ -440,6 +442,8 @@ export class Store {
       this.profileAhead = true;
       if (!this.profile) void this.refresh();
     } catch (e) {
+      // Nothing to wait for: the error shows.
+      appReady();
       this.fail(e);
     }
   }

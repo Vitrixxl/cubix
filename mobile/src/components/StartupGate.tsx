@@ -1,5 +1,6 @@
 import { useSetAtom } from "jotai";
 import { useEffect, useState, type ReactNode } from "react";
+import { Platform } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import { runStartupUpdate, type StartupPhase } from "../lib/startupUpdate";
@@ -8,6 +9,8 @@ import { fetchRelease } from "../release";
 import { Launcher } from "./Launcher";
 import { toastAtom } from "./Toast";
 import { tr } from "../../../src/client/i18n";
+import { appReady, FIRST_LAUNCH_TEXT, LAUNCHED_KEY, onAppReady } from "../../../src/client/lib/firstLaunch";
+import { nativeEngine } from "../scrambler";
 
 // The native splash stays up while updates are checked: the cube screen only appears for a download.
 void SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -51,6 +54,8 @@ const OFFLINE_TOAST = {
  * The app, timers and navigation only mount after the startup update completes. Without an update the
  * app opens directly behind the native splash; when a download starts, the cube screen covers the
  * start until the new bundle is running (or, if the download fails, until the cube stands and fades).
+ * On the device's first launch the cube screen also covers the app until it is ready: mounted, its scrambler
+ * started (src/client/lib/firstLaunch.ts; on the web, boot.ts shows the page's own screen instead).
  */
 export function StartupGate({ children, fontsReady }: { children: ReactNode; fontsReady: boolean }) {
   const [currentPhase, setPhase] = useState(phase);
@@ -58,6 +63,8 @@ export function StartupGate({ children, fontsReady }: { children: ReactNode; fon
   const [connected, setConnected] = useState<boolean | null>(null);
   const [launcher, setLauncher] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [firstLaunch] = useState(() => Platform.OS !== "web" && !storage.getItem(LAUNCHED_KEY));
+  const [appIsReady, setAppIsReady] = useState(false);
   const setToast = useSetAtom(toastAtom);
   const { downloadProgress, isDownloading } = Updates.useUpdates();
   nativeDownloading = isDownloading;
@@ -69,9 +76,12 @@ export function StartupGate({ children, fontsReady }: { children: ReactNode; fon
     return () => { active = false; listeners.delete(setPhase); };
   }, []);
   const loaded = ready && fontsReady;
+  useEffect(() => onAppReady(() => setAppIsReady(true)), []);
+  // Ready once mounted with its scrambler started: a first scramble starts it (its tables built in its page).
+  useEffect(() => { if (loaded) void nativeEngine.randomScrambleForEvent("333").catch(() => {}).finally(appReady); }, [loaded]);
   const downloading = currentPhase === "downloading" || currentPhase === "restarting" || isDownloading;
   useEffect(() => { if (downloading && !loaded) setLauncher(true); }, [downloading, loaded]);
-  const visible = launcher && !hidden;
+  const visible = (launcher || firstLaunch) && !hidden;
   useEffect(() => {
     if (loaded || visible) void SplashScreen.hideAsync().catch(() => {});
   }, [loaded, visible]);
@@ -79,11 +89,15 @@ export function StartupGate({ children, fontsReady }: { children: ReactNode; fon
     if (connected === false && loaded && !visible) setToast(OFFLINE_TOAST);
   }, [connected, loaded, visible, setToast]);
   const percent = typeof downloadProgress === "number" ? Math.floor(Math.max(0, Math.min(1, downloadProgress)) * 100) : undefined;
-  const message = loaded ? tr("Opening Qbix…")
+  const message = firstLaunch && !downloading ? tr(FIRST_LAUNCH_TEXT)
+    : loaded ? tr("Opening Qbix…")
     : currentPhase === "restarting" ? tr("Opening the new version…")
     : tr("Downloading the update…") + (percent === undefined ? "" : ` ${percent}%`);
   return <>
     {loaded && children}
-    {visible && <Launcher message={message} progress={loaded ? undefined : percent} finish={loaded} onHidden={() => setHidden(true)} />}
+    {visible && <Launcher message={message} progress={loaded ? undefined : percent} finish={loaded && (!firstLaunch || appIsReady)} onHidden={() => {
+      if (firstLaunch) storage.setItem(LAUNCHED_KEY, "1");
+      setHidden(true);
+    }} />}
   </>;
 }

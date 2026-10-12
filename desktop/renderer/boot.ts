@@ -5,6 +5,7 @@
  */
 import { cachedAppearance, paintTheme } from "../appearance";
 import { isPhone } from "../../src/client/lib/viewport";
+import { LAUNCHED_KEY } from "../../src/client/lib/firstLaunch";
 
 const root = document.documentElement;
 // The theme chosen on this device, never the default one first.
@@ -27,6 +28,17 @@ const phone = () => {
   try { if (localStorage.getItem("cubix.phoneApp") === "off") return false; } catch {}
   return !admin && !("cubixDesktop" in window) && (isPhone(innerWidth) || isPhone(Math.min(screen.width, screen.height)));
 };
+/**
+ * The device's first launch (src/client/lib/firstLaunch.ts): the page stays hidden while the app gets ready, behind the
+ * startup cube of firstLaunch.ts. Not for search engines nor automated browsers (the tests), which read the page.
+ */
+declare const CUBIX_FIRST_LAUNCH: string;
+try {
+  if (!admin && !navigator.webdriver && !/bot|crawl|spider|slurp|preview|lighthouse/i.test(navigator.userAgent) && !localStorage.getItem(LAUNCHED_KEY)) {
+    root.setAttribute("data-first-launch", "");
+    document.write(`<style>html[data-first-launch]{background:var(--background)}html[data-first-launch] body>:not(#first-launch){visibility:hidden}</style><script src="${CUBIX_FIRST_LAUNCH}" defer></script>`);
+  }
+} catch {}
 // No phone app in a development build where mobile/ did not build (web.ts).
 const started = !!CUBIX_PHONE_HEAD && phone();
 document.write(started ? CUBIX_PHONE_HEAD : admin ? CUBIX_DESKTOP_HEAD.replace(/<link rel="modulepreload"[^>]*>\n?/g, "") : CUBIX_DESKTOP_HEAD);
